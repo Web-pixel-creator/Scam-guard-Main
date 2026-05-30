@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,7 +24,18 @@ export const Route = createFileRoute("/report")({
 
 function ReportPage() {
   const { lang } = useLang();
+  const router = useRouter();
   const { v } = useSearch({ from: "/report" });
+
+  const goBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/" });
+    }
+  };
+
   const [value, setValue] = useState(v ?? "");
   const [desc, setDesc] = useState("");
   const [scamType, setScamType] = useState("");
@@ -77,11 +88,12 @@ function ReportPage() {
     return (
       <div className="apex-page" style={{ maxWidth: 800 }}>
         <div className="mb-4">
-          <Link to="/" className="apex-pill inline-flex">
+          <a href="/" onClick={goBack} className="apex-pill inline-flex cursor-pointer">
             <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
-            {{ ru: "На главную", uz: "Bosh sahifaga", en: "Back home" }[lang]}
-          </Link>
+            {{ ru: "Назад", uz: "Orqaga", en: "Back" }[lang]}
+          </a>
         </div>
+
         <div className="apex-card apex-frame apex-stripes text-center">
 
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
@@ -107,11 +119,12 @@ function ReportPage() {
   return (
     <div className="apex-page" style={{ maxWidth: 960 }}>
       <div className="mb-4">
-        <Link to="/" className="apex-pill inline-flex">
+        <a href="/" onClick={goBack} className="apex-pill inline-flex cursor-pointer">
           <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
           {backLabel}
-        </Link>
+        </a>
       </div>
+
       <div className="apex-card apex-frame apex-stripes">
 
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
