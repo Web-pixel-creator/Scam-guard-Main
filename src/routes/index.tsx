@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+
 import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
 import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
