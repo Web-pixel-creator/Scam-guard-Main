@@ -27,7 +27,7 @@ function Index() {
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
         <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24">
           {/* Pill tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white/70 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
@@ -36,7 +36,7 @@ function Index() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-display font-extrabold tracking-tight leading-[1.05] text-5xl md:text-7xl lg:text-[88px] max-w-5xl animate-fade-in-up text-foreground">
+          <h1 className="font-display font-extrabold tracking-tight leading-[1.02] text-5xl md:text-7xl lg:text-[88px] max-w-5xl animate-fade-in-up text-foreground">
             {{
               ru: <>Проверьте до того,<br /><span className="text-foreground/35">как обманут.</span></>,
               uz: <>Aldanmasdan oldin<br /><span className="text-foreground/35">tekshiring.</span></>,
@@ -44,46 +44,62 @@ function Index() {
             }[lang]}
           </h1>
 
-          {/* Subheadline */}
-          <p className="mt-7 text-lg md:text-xl text-foreground/55 max-w-2xl leading-relaxed font-medium animate-fade-in-up">
+          {/* Subheadline — tight like GoLive */}
+          <p className="mt-7 text-base md:text-lg text-foreground/55 max-w-xl leading-relaxed font-medium animate-fade-in-up">
             {t("hero_sub", lang)}
           </p>
 
-          {/* Hero focal point: CheckInput on painterly bloom backdrop (form-only, like GoLive reference) */}
-          <div className="w-full max-w-4xl mt-14 animate-fade-in-up">
-            <div className="relative rounded-[36px] p-6 md:p-10 overflow-hidden">
-              {/* Bloom backdrop — contained to this card only */}
-              <img
-                src={heroBloom}
-                alt=""
-                aria-hidden
-                loading="lazy"
-                className="absolute inset-0 w-full h-full object-cover -z-10"
-                style={{ filter: "saturate(1.08)" }}
-              />
-              {/* Soft inner fade so form sits cleanly on top */}
-              <div className="absolute inset-0 -z-10 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(80% 70% at 50% 55%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0) 100%)",
-                }}
-              />
-              {/* Bottom fade into page bg */}
-              <div className="absolute inset-x-0 bottom-0 h-24 -z-10 bg-gradient-to-t from-[#FCFAF9] to-transparent" />
-
-              <div className="cta-glow rounded-[24px]">
-                <div className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-[0_30px_80px_-30px_rgba(11,11,15,0.25)]">
-                  <CheckInput />
-                </div>
-              </div>
+          {/* Trust bar — avatars + stars (GoLive's 4.8/5 row) */}
+          <div className="mt-8 flex items-center gap-4 animate-fade-in-up">
+            <div className="flex -space-x-2">
+              {["bg-amber-200","bg-rose-200","bg-sky-200"].map((c,i)=>(
+                <div key={i} className={`h-8 w-8 rounded-full ring-2 ring-[#FCFAF9] ${c}`} />
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/70">
+              <span className="text-foreground tracking-tight">★★★★★</span>
+              <span className="text-foreground/50">{{ ru: "Бесплатно · За секунды · Без сохранения", uz: "Bepul · Soniyalarda · Saqlanmaydi", en: "Free · In seconds · No storage" }[lang]}</span>
             </div>
           </div>
 
-          {/* Trust micro-bar */}
-          <div className="mt-10 mb-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm font-medium text-foreground/50 animate-fade-in-up">
-            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
+          {/* Browser-window mockup — bloom wallpaper inside, form floats over it like GoLive dashboard */}
+          <div className="w-full max-w-[1100px] mt-16 mb-12 animate-fade-in-up">
+            <div className="relative rounded-[28px] overflow-hidden border border-black/[0.08] shadow-[0_50px_120px_-30px_rgba(11,11,15,0.35)] bg-white">
+              {/* Browser chrome */}
+              <div className="flex items-center gap-2 px-5 py-3 bg-white/95 backdrop-blur border-b border-black/[0.06]">
+                <span className="h-3 w-3 rounded-full bg-[#FF5F57]" />
+                <span className="h-3 w-3 rounded-full bg-[#FEBC2E]" />
+                <span className="h-3 w-3 rounded-full bg-[#28C840]" />
+                <div className="mx-auto px-4 py-1 rounded-md bg-foreground/[0.04] text-[11px] font-mono text-foreground/50 flex items-center gap-1.5">
+                  <span className="text-emerald-500">●</span> ishonch.guard
+                </div>
+                <span className="w-12" />
+              </div>
+
+              {/* Bloom wallpaper */}
+              <div className="relative">
+                <img
+                  src={heroBloom}
+                  alt=""
+                  aria-hidden
+                  loading="lazy"
+                  className="w-full h-[440px] md:h-[540px] object-cover"
+                  style={{ filter: "saturate(1.1)" }}
+                />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: "radial-gradient(70% 60% at 50% 60%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)" }}
+                />
+
+                {/* Floating form card — like dashboard in GoLive */}
+                <div className="absolute inset-x-0 bottom-0 px-4 md:px-10 pb-8 md:pb-12">
+                  <div className="mx-auto max-w-3xl cta-glow rounded-[22px]">
+                    <div className="relative bg-white rounded-[22px] border border-black/[0.06] shadow-[0_30px_80px_-20px_rgba(11,11,15,0.35)]">
+                      <CheckInput />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
