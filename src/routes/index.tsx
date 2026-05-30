@@ -26,7 +26,20 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-10 md:space-y-12 lg:space-y-14 pt-8 md:pt-12">
 
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
-        <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24">
+        <section className="relative isolate flex flex-col items-center text-center pt-10 md:pt-16">
+          {/* Techno system rail */}
+          <div className="hero-rail mb-6 animate-fade-in-up">
+            <span className="apex-mono">SYS · IGUARD-01</span>
+            <span className="hero-rail-divider" aria-hidden />
+            <span className="apex-mono flex items-center gap-2">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              STATUS · READY
+            </span>
+          </div>
+
           {/* Pill tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
             <span className="relative flex h-1.5 w-1.5">
@@ -51,7 +64,7 @@ function Index() {
           </p>
 
           {/* Trust bar — avatars + stars (GoLive's 4.8/5 row) */}
-          <div className="mt-8 flex items-center gap-4 animate-fade-in-up">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 animate-fade-in-up">
             <div className="flex -space-x-2">
               {["bg-amber-200","bg-rose-200","bg-sky-200"].map((c,i)=>(
                 <div key={i} className={`h-8 w-8 rounded-full ring-2 ring-[#FCFAF9] ${c}`} />
@@ -61,7 +74,12 @@ function Index() {
               <span className="text-foreground tracking-tight">★★★★★</span>
               <span className="text-foreground/50">{{ ru: "Бесплатно · За секунды · Без сохранения", uz: "Bepul · Soniyalarda · Saqlanmaydi", en: "Free · In seconds · No storage" }[lang]}</span>
             </div>
+            <div className="hidden md:flex items-center gap-2 pl-4 ml-2 border-l border-[#E2E0D8]">
+              <span className="apex-mono">UPTIME · 99.9%</span>
+              <span className="apex-mono">· LATENCY ~1.2s</span>
+            </div>
           </div>
+
 
           {/* Bloom band with form centered on top (GoLive-mockup style) */}
           <div className="w-full max-w-[1200px] mt-14 mb-12 animate-fade-in-up">
