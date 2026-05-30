@@ -23,7 +23,7 @@ function Index() {
   const { lang } = useLang();
   return (
     <div className="overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
+      <div className="max-w-[1400px] mx-auto px-6 space-y-12 md:space-y-16 pt-10 md:pt-14">
 
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
         <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24">
