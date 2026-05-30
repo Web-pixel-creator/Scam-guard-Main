@@ -23,6 +23,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { lang } = useLang();
+  const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
   return (
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
