@@ -699,8 +699,8 @@ function Index() {
               </p>
               <p className="apex-mono flex items-center gap-2">
                 <span className="relative inline-flex h-2 w-2 shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-[#059669]/40 animate-ping" />
-                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#059669]" />
+                  <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
+                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
                 </span>
                 CORE SYSTEMS: ONLINE
               </p>
