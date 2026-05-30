@@ -84,8 +84,12 @@ function Index() {
           <div className="flex items-end justify-between mb-12 gap-6">
             <div>
               <p className="text-primary label-md mb-3">02 · {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
-              <h2 className="font-display text-4xl md:text-5xl tracking-tight">
-                {{ ru: "Что можно проверить", uz: "Nimani tekshirish mumkin", en: "What you can check" }[lang]}
+              <h2 className="font-display text-4xl md:text-6xl tracking-tight">
+                {{
+                  ru: <>Что <span className="font-serif-italic text-foreground/70">можно</span> проверить</>,
+                  uz: <>Nimani <span className="font-serif-italic text-foreground/70">tekshirish</span> mumkin</>,
+                  en: <>What you <span className="font-serif-italic text-foreground/70">can</span> check</>,
+                }[lang]}
               </h2>
             </div>
             <span className="hidden md:block text-foreground/40 text-sm font-mono">04 / 04</span>
