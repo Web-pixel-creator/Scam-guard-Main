@@ -133,10 +133,10 @@ function EmergencyPage() {
       {/* Guides — apex hairline grid */}
       <section className="apex-card apex-frame apex-stripes" style={{ background: "#F4F2EB" }}>
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">PROTOCOLS · {guides.length.toString().padStart(2, "0")}</span>
+          <span className="apex-mono">{{ ru: `${guides.length} шага`, uz: `${guides.length} qadam`, en: `${guides.length} steps` }[lang]}</span>
           <span className="apex-mono text-right">
-            <span className="hidden xs:inline">FOLLOW IN ORDER</span>
-            <span className="xs:hidden">IN ORDER</span>
+            <span className="hidden xs:inline">{{ ru: "Делайте по порядку", uz: "Tartib bilan bajaring", en: "Follow in order" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "По порядку", uz: "Tartib bilan", en: "In order" }[lang]}</span>
           </span>
         </div>
 
