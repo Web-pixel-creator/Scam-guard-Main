@@ -303,21 +303,21 @@ function Index() {
 
 
         {/* KNOWLEDGE BASE — APEX striped frame */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-center justify-between mb-6">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">DB · SCAM CASES</span>
-            <span className="apex-mono">INDEX 06 / 06</span>
+            <span className="apex-mono text-right">INDEX 06 / 06</span>
           </div>
-          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
-            <div>
-              <p className="label-md mb-3">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
-              <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-3xl text-[#18181B]">{t("schemes_title", lang)}</h2>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
+              <p className="label-md mb-4">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block apex-mono">06 cases</span>
+            <span className="hidden md:block apex-mono shrink-0">06 cases</span>
           </div>
 
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {([
               { n: "01", ru: "«Служба безопасности банка»", uz: "«Bank xavfsizlik xizmati»", en: "Bank security call",
                 d_ru: "Звонят якобы из банка, говорят о подозрительной операции и просят SMS-код.", d_uz: "Bank nomidan qo'ng'iroq qilib, SMS-kod so'rashadi.", d_en: "They call “from the bank” and ask for your SMS code." },
@@ -332,16 +332,17 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-6 md:p-8">
-                <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-5">CASE #{s.n}</p>
-                <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B]">{s[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 min-h-[220px] flex flex-col">
+                <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-6">CASE #{s.n}</p>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{s[lang]}</h3>
+                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[42ch] text-pretty">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
               </div>
             ))}
           </div>
         </section>
+
 
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
