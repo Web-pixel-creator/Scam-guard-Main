@@ -199,12 +199,23 @@ function Index() {
                 projectId="pSxbKYCCk7vGhrLFRLrG"
                 className="absolute inset-0 w-full h-full z-0 pointer-events-none"
               />
+              {/* Brand-color overlay: forces any hue from the animated canvas into our orange palette */}
               <div
                 aria-hidden
                 className="absolute inset-0 z-10 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%)",
+                    "linear-gradient(135deg, #FB923C 0%, #F97316 50%, #C2410C 100%)",
+                  mixBlendMode: "color",
+                  opacity: 0.85,
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute inset-0 z-10 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 70%)",
                 }}
               />
               <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-8 md:py-12 min-h-[380px] md:min-h-[440px]">
