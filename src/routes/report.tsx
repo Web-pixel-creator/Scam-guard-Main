@@ -124,10 +124,15 @@ function ReportPage() {
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button type="submit" disabled={loading} className="gap-2">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {labels.send[lang]}
-        </Button>
+        <button type="submit" disabled={loading} className="fancy-btn min-w-[200px]">
+          <span className="fancy-points" aria-hidden="true">
+            {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+          </span>
+          <span className="fancy-inner">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {labels.send[lang]}
+          </span>
+        </button>
         <p className="text-xs text-muted-foreground">{t("privacy_promise", lang)}</p>
       </form>
     </div>
