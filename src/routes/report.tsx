@@ -103,15 +103,43 @@ function ReportPage() {
                 en: "Report submitted. We'll review it shortly." },
   };
 
+  const L = {
+    back: { ru: "Назад", uz: "Orqaga", en: "Back" }[lang],
+    home: { ru: "Главная", uz: "Bosh sahifa", en: "Home" }[lang],
+    crumb: { ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang],
+    step1: { ru: "Шаг 1 из 2 · заполнение", uz: "1/2 qadam · to'ldirish", en: "Step 1 of 2 · fill in" }[lang],
+    step2: { ru: "Шаг 2 из 2 · отправлено", uz: "2/2 qadam · yuborildi", en: "Step 2 of 2 · sent" }[lang],
+  };
+
+  const Crumbs = ({ stepLabel, current }: { stepLabel: string; current: string }) => (
+    <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
+        <a
+          href="/"
+          onClick={goBack}
+          className="apex-pill inline-flex cursor-pointer"
+          aria-label={L.back}
+        >
+          <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+          {L.back}
+        </a>
+        <nav aria-label="breadcrumb" className="flex items-center gap-1.5 apex-mono">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-[#52525B] hover:text-[#18181B] transition-colors">
+            <Home className="h-3 w-3" strokeWidth={2} />
+            {L.home}
+          </Link>
+          <ChevronRight className="h-3 w-3 text-[#A1A1AA]" strokeWidth={2} />
+          <span className="text-[#18181B]" aria-current="page">{current}</span>
+        </nav>
+      </div>
+      <span className="apex-mono text-[#52525B]">{stepLabel}</span>
+    </div>
+  );
+
   if (done) {
     return (
       <div className="apex-page" style={{ maxWidth: 800 }}>
-        <div className="mb-4">
-          <a href="/" onClick={goBack} className="apex-pill inline-flex cursor-pointer">
-            <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
-            {{ ru: "Назад", uz: "Orqaga", en: "Back" }[lang]}
-          </a>
-        </div>
+        <Crumbs stepLabel={L.step2} current={L.crumb} />
 
         <div className="apex-card apex-frame apex-stripes text-center">
 
@@ -133,16 +161,11 @@ function ReportPage() {
     );
   }
 
-  const backLabel = { ru: "Назад", uz: "Orqaga", en: "Back" }[lang];
-
   return (
     <div className="apex-page" style={{ maxWidth: 960 }}>
-      <div className="mb-4">
-        <a href="/" onClick={goBack} className="apex-pill inline-flex cursor-pointer">
-          <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
-          {backLabel}
-        </a>
-      </div>
+      <Crumbs stepLabel={L.step1} current={L.crumb} />
+
+
 
       <div className="apex-card apex-frame apex-stripes">
 
