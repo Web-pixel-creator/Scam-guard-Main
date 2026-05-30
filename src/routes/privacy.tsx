@@ -118,11 +118,11 @@ function PrivacyPage() {
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono inline-flex items-center gap-1.5">
             <Lock className="h-3 w-3 text-[#F97316]" strokeWidth={2} aria-hidden="true" focusable="false" />
-            SYS · PRIVACY
+            {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}
           </span>
           <span className="apex-mono text-right">
-            <span className="hidden xs:inline">HASHED · MASKED</span>
-            <span className="xs:hidden">HASHED</span>
+            <span className="hidden xs:inline">{{ ru: "Данные зашифрованы", uz: "Ma'lumotlar shifrlangan", en: "Data encrypted" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "Зашифровано", uz: "Shifrlangan", en: "Encrypted" }[lang]}</span>
           </span>
         </div>
 
