@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import { FancyShell } from "@/components/FancyButton";
 
 export type CheckResult = {
   type: string;
@@ -147,12 +148,8 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 : "REPORTS · 00"}
             </span>
             <div className="flex flex-wrap gap-3">
-              <Link
-                to="/report"
-                className="fancy-btn inline-flex items-center justify-center gap-2 group"
-              >
-                {t("report_btn", lang)}
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              <Link to="/report" className="fancy-btn">
+                <FancyShell>{t("report_btn", lang)}</FancyShell>
               </Link>
               {isHot && (
                 <Link
