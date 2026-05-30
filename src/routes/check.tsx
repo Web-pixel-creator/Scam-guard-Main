@@ -30,6 +30,10 @@ function CheckPage() {
         </div>
 
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Сомневаетесь — не переводите, проверьте", uz: "Shubha bo'lsa — o'tkazmang, tekshiring", en: "In doubt? Don't pay — check first" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">01 — {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}</p>
           <h1 className="apex-h1">
             {{

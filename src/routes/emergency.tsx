@@ -110,6 +110,10 @@ function EmergencyPage() {
         </div>
 
         <div className="max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Уже отправили код или деньги? Действуйте сейчас", uz: "Kod yoki pul yuborib qo'ydingizmi? Hozir harakat qiling", en: "Sent a code or money? Act right now" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">03 — {{ ru: "Срочные шаги", uz: "Shoshilinch qadamlar", en: "Emergency" }[lang]}</p>
           <h1 className="apex-h1">
             {{
@@ -147,7 +151,7 @@ function EmergencyPage() {
                 <g.icon className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" focusable="false" />
               </div>
               <h2 className="apex-h2 mb-5 sm:mb-6">{g.title}</h2>
-              <ol className="space-y-2.5 sm:space-y-3 text-[14px] md:text-[14.5px] leading-[1.6] text-[#52525B]">
+              <ol className="space-y-3 sm:space-y-3.5 text-[15px] md:text-[15.5px] leading-[1.7] text-[#3F3F46]">
                 {g.steps.map((s, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="apex-mono text-[#A1A1AA] shrink-0 mt-[3px] tabular-nums">{(i + 1).toString().padStart(2, "0")}</span>

@@ -127,6 +127,10 @@ function PrivacyPage() {
         </div>
 
         <div className="max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Боитесь, что данные утекут? Читайте, что мы НЕ делаем", uz: "Ma'lumotlar oqib ketishidan qo'rqasizmi? Biz NIMA qilmasligimizni o'qing", en: "Worried your data leaks? See what we never do" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">04 — {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
           <h1 className="apex-h1">
             {data.h_lead} <span className="font-serif-italic text-[#8B8B92]">{data.h_accent}</span>
@@ -147,7 +151,7 @@ function PrivacyPage() {
                 </div>
               </div>
               <h2 className="apex-h2 mb-4 sm:mb-5">{s.title}</h2>
-              <ul className="space-y-2.5 text-[14.5px] leading-[1.65] text-[#52525B]">
+              <ul className="space-y-3 text-[15.5px] leading-[1.7] text-[#3F3F46]">
                 {s.items.map((it, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="text-[#F97316] mt-[8px] h-[3px] w-[3px] rounded-full bg-current shrink-0" aria-hidden />

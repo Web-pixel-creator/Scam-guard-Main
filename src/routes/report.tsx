@@ -189,6 +189,10 @@ function ReportPage() {
 
 
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Уже столкнулись с обманом? Расскажите", uz: "Aldovga duch keldingizmi? Aytib bering", en: "Got scammed? Tell us — protect others" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
           <h1 className="apex-h1">
             {{
