@@ -1,11 +1,12 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, CheckCircle2, Send } from "lucide-react";
+import { Loader2, CheckCircle2, Send, ArrowLeft } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { submitReport } from "@/lib/report.functions";
+
 
 const reportSearchSchema = z.object({ v: z.string().optional() });
 
@@ -75,7 +76,14 @@ function ReportPage() {
   if (done) {
     return (
       <div className="apex-page" style={{ maxWidth: 800 }}>
+        <div className="mb-4">
+          <Link to="/" className="apex-pill inline-flex">
+            <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+            {{ ru: "На главную", uz: "Bosh sahifaga", en: "Back home" }[lang]}
+          </Link>
+        </div>
         <div className="apex-card apex-frame apex-stripes text-center">
+
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
             <span className="apex-mono">SYS · RECEIVED</span>
             <span className="apex-status" data-state="success">
@@ -94,9 +102,18 @@ function ReportPage() {
     );
   }
 
+  const backLabel = { ru: "Назад", uz: "Orqaga", en: "Back" }[lang];
+
   return (
     <div className="apex-page" style={{ maxWidth: 960 }}>
+      <div className="mb-4">
+        <Link to="/" className="apex-pill inline-flex">
+          <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+          {backLabel}
+        </Link>
+      </div>
       <div className="apex-card apex-frame apex-stripes">
+
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono">SYS · REPORT</span>
           <span className="apex-mono text-right">
