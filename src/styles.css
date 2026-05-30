@@ -509,6 +509,28 @@
   );
 }
 
+/* Full-page diagonal stripes layer for the home background (7% opacity).
+   Applied via a fixed pseudo-element so it covers viewport without clipping. */
+.home-stripes-bg {
+  position: relative;
+}
+.home-stripes-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 8px,
+    rgba(11, 11, 15, 0.07) 8px 8.6px
+  );
+}
+.home-stripes-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Tighter step on small screens so lines stay crisp and don't read as a blob */
 @media (max-width: 640px) {
   :root {
