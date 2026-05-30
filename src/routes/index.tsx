@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown, Lock } from "lucide-react";
+import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown, Lock, Plus, EyeOff, KeyRound, ImageOff, UserX } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
 import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
@@ -804,11 +804,11 @@ function Index() {
             ].map((item, idx) => (
               <details
                 key={idx}
-                className="group bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 [&_summary::-webkit-details-marker]:hidden"
+                className="group bg-white/85 backdrop-blur-[4px] [&_summary::-webkit-details-marker]:hidden transition-colors hover:bg-[#FFFDF9] open:bg-white"
                 open={idx === 0}
               >
-                <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
-                  <div className="flex-1">
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-5 sm:gap-6 p-6 sm:p-7 md:p-8 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F97316] min-h-11">
+                  <div className="flex-1 min-w-0">
                     <span className="apex-mono text-[#52525B] block mb-2">{{ ru: `Вопрос ${idx + 1}`, uz: `Savol ${idx + 1}`, en: `Question ${idx + 1}` }[lang]}</span>
                     <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
@@ -816,33 +816,37 @@ function Index() {
                   </div>
                   <span
                     aria-hidden
-                    className="mt-1 shrink-0 w-10 h-10 rounded-full border border-[#E2E0D8] bg-white flex items-center justify-center text-[#F97316] text-xl leading-none transition-transform group-open:rotate-45"
+                    className="mt-0.5 shrink-0 grid place-items-center w-10 h-10 rounded-full border border-[#E2E0D8] bg-white text-[#F97316] transition-all duration-200 group-hover:border-[#FED7AA] group-hover:bg-[#FFF7ED] group-open:rotate-45 group-open:border-[#F97316] group-open:bg-[#FFF7ED]"
                   >
-                    +
+                    <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
                   </span>
                 </summary>
 
-                {/* Pain scenario — what the user is actually feeling */}
-                <div className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                  </span>
-                  {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
-                </div>
-                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
-                  {item.pain[lang]}
-                </blockquote>
 
-                {/* Answer — unified warm cream with orange brand accent */}
-                <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
-                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
-                    → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
-                  </p>
-                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
-                    {item.ans[lang]}
-                  </p>
+                <div className="px-6 sm:px-7 md:px-8 pb-6 sm:pb-7 md:pb-8 -mt-1">
+                  {/* Pain scenario — what the user is actually feeling */}
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                    </span>
+                    {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
+                  </div>
+                  <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {item.pain[lang]}
+                  </blockquote>
+
+                  {/* Answer — unified warm cream with orange brand accent */}
+                  <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
+                    <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
+                      → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
+                    </p>
+                    <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
+                      {item.ans[lang]}
+                    </p>
+                  </div>
                 </div>
+
               </details>
             ))}
           </div>
@@ -852,53 +856,91 @@ function Index() {
         {/* PRIVACY PROMISE — explicit "we don't store your data" block */}
         <section
           aria-labelledby="privacy-promise-title"
-          className="apex-frame border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-12 bg-white/75 cv-auto"
+          className="apex-frame border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/80 cv-auto relative overflow-hidden"
         >
-          <div className="flex items-start gap-5 md:gap-7 flex-col sm:flex-row">
-            <span className="grid h-14 w-14 place-items-center rounded-[6px] bg-[#0B0B0F] text-white shrink-0">
-              <Lock className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+          {/* Top accent line */}
+          <span
+            aria-hidden
+            className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/60 to-transparent"
+          />
+
+          {/* Header strip */}
+          <div className="flex items-center justify-between gap-4 mb-8 md:mb-10 pb-5 border-b border-[#E2E0D8]">
+            <span className="apex-mono">[ {{ ru: "приватность", uz: "maxfiylik", en: "privacy" }[lang]} ]</span>
+            <span className="apex-mono text-right inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+              {{ ru: "гарантия", uz: "kafolat", en: "guarantee" }[lang]}
             </span>
-            <div className="flex-1 min-w-0">
-              <p className="apex-mono mb-3">{{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 md:gap-10 items-start">
+            {/* Lock badge */}
+            <div className="flex md:flex-col items-center md:items-start gap-4">
+              <span className="grid h-16 w-16 place-items-center rounded-[8px] bg-[#0B0B0F] text-white shrink-0 shadow-[0_8px_24px_-12px_rgba(11,11,15,0.45)]">
+                <Lock className="h-7 w-7" strokeWidth={1.75} aria-hidden="true" />
+              </span>
+              <span className="hidden md:inline-block apex-mono text-[#A1A1AA]">01 — 04</span>
+            </div>
+
+            <div className="min-w-0">
+              <p className="label-md mb-3">{{ ru: "Наш принцип", uz: "Bizning tamoyilimiz", en: "Our principle" }[lang]}</p>
               <h2
                 id="privacy-promise-title"
-                className="font-sans font-medium text-[24px] sm:text-3xl md:text-[34px] tracking-[-0.04em] leading-[1.1] text-[#18181B] text-balance"
+                className="font-sans font-medium text-[26px] sm:text-[32px] md:text-[40px] tracking-[-0.045em] leading-[1.08] text-[#0B0B0F] text-balance"
               >
                 {{
-                  ru: <>Мы <span className="font-serif-italic text-[#C2410C]">не храним</span> ваши номера, коды и пароли</>,
-                  uz: <>Biz raqamlar, kodlar va parollarni <span className="font-serif-italic text-[#C2410C]">saqlamaymiz</span></>,
-                  en: <>We <span className="font-serif-italic text-[#C2410C]">don't store</span> your numbers, codes or passwords</>,
+                  ru: <>Мы <span className="font-serif-italic text-[#C2410C] mx-0.5">не&nbsp;храним</span> ваши номера, коды и&nbsp;пароли</>,
+                  uz: <>Biz raqamlar, kodlar va&nbsp;parollarni <span className="font-serif-italic text-[#C2410C] mx-0.5">saqlamaymiz</span></>,
+                  en: <>We <span className="font-serif-italic text-[#C2410C] mx-0.5">don't store</span> your numbers, codes or&nbsp;passwords</>,
                 }[lang]}
               </h2>
-              <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-[14.5px] md:text-[15px] leading-[1.55] text-[#18181B]">
+              <p className="mt-4 text-[15px] md:text-[16.5px] text-[#52525B] leading-[1.6] max-w-2xl">
+                {{
+                  ru: "Проверка работает без регистрации. Чувствительные данные удаляются ещё до того, как попадают в анализ.",
+                  uz: "Tekshirish ro'yxatdan o'tmasdan ishlaydi. Maxfiy ma'lumotlar tahlilga tushmasdan oldin o'chiriladi.",
+                  en: "Checks run without sign-up. Sensitive data is stripped before it ever reaches analysis.",
+                }[lang]}
+              </p>
+
+              <ul className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 {[
-                  { ru: "Полные номера маскируются до проверки", uz: "To'liq raqamlar tekshiruvdan oldin niqoblanadi", en: "Full numbers are masked before checking" },
-                  { ru: "OTP-коды и пароли никогда не сохраняются", uz: "OTP kodlar va parollar hech qachon saqlanmaydi", en: "OTP codes and passwords are never saved" },
-                  { ru: "Скриншоты не уходят в базу — только текст без PII", uz: "Skrinshotlar bazaga tushmaydi — faqat shaxsiy ma'lumotsiz matn", en: "Screenshots never leave to DB — only redacted text" },
-                  { ru: "Регистрация не нужна — никаких профилей", uz: "Ro'yxatdan o'tish shart emas — profil yo'q", en: "No signup — no profiles, no tracking" },
-                ].map((item) => (
-                  <li key={item.en} className="flex items-start gap-2.5">
-                    <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-[#F97316] shrink-0" />
-                    <span>{item[lang]}</span>
+                  { icon: EyeOff, ru: "Полные номера маскируются до проверки", uz: "To'liq raqamlar tekshiruvdan oldin niqoblanadi", en: "Full numbers are masked before checking" },
+                  { icon: KeyRound, ru: "OTP-коды и пароли никогда не сохраняются", uz: "OTP kodlar va parollar hech qachon saqlanmaydi", en: "OTP codes and passwords are never saved" },
+                  { icon: ImageOff, ru: "Скриншоты не уходят в базу — только текст без PII", uz: "Skrinshotlar bazaga tushmaydi — faqat shaxsiy ma'lumotsiz matn", en: "Screenshots never reach our DB — only redacted text" },
+                  { icon: UserX, ru: "Регистрация не нужна — никаких профилей", uz: "Ro'yxatdan o'tish shart emas — profil yo'q", en: "No signup, no profiles, no tracking" },
+                ].map(({ icon: Icon, ...item }) => (
+                  <li
+                    key={item.en}
+                    className="group flex items-start gap-3 rounded-[8px] border border-[#E2E0D8] bg-white/70 p-3.5 md:p-4 transition-colors hover:border-[#FED7AA] hover:bg-[#FFFDF9]"
+                  >
+                    <span className="grid h-8 w-8 place-items-center rounded-[6px] bg-[#FFF7ED] text-[#C2410C] shrink-0 ring-1 ring-[#FED7AA]/60">
+                      <Icon className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <span className="text-[14.5px] md:text-[15px] leading-[1.5] text-[#18181B] pt-0.5">
+                      {item[lang]}
+                    </span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-5 text-[13.5px] text-[#52525B]">
-                {{
-                  ru: "Подробнее в разделе ",
-                  uz: "Batafsil ",
-                  en: "Read more in our ",
-                }[lang]}
+
+              <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 pt-5 border-t border-dashed border-[#E2E0D8]">
                 <Link
                   to="/privacy"
-                  className="text-[#C2410C] font-semibold underline-offset-4 decoration-[#FED7AA] hover:decoration-[#F97316] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-[14px] md:text-[14.5px] font-semibold text-[#C2410C] hover:text-[#9A3412] transition-colors"
                 >
-                  {{ ru: "«Приватность» →", uz: "«Maxfiylik» bo'limi →", en: "Privacy policy →" }[lang]}
+                  <span className="underline underline-offset-4 decoration-[#FED7AA] group-hover:decoration-[#F97316]">
+                    {{ ru: "Полная политика приватности", uz: "To'liq maxfiylik siyosati", en: "Full privacy policy" }[lang]}
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
-              </p>
+                <span className="apex-mono text-[#A1A1AA]">
+                  · {{ ru: "соответствует GDPR-практикам", uz: "GDPR amaliyotiga mos", en: "GDPR-aligned" }[lang]}
+                </span>
+              </div>
             </div>
           </div>
         </section>
+
 
         {/* COMMUNITY REPORT — short form for new scam patterns, writes to DB */}
         <section
