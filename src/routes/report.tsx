@@ -172,7 +172,7 @@ function ReportPage() {
         {loading && <div className="apex-progress absolute top-0 inset-x-0 z-10" aria-hidden />}
 
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">SYS · REPORT</span>
+          <span className="apex-mono">{{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</span>
           <span
             className="apex-status"
             data-state={loading ? "loading" : error ? "error" : "idle"}
@@ -180,10 +180,10 @@ function ReportPage() {
           >
             <span className="apex-status-dot" />
             {loading
-              ? { ru: "ОТПРАВКА…", uz: "YUBORILMOQDA…", en: "SUBMITTING…" }[lang]
+              ? { ru: "Отправляем…", uz: "Yuborilmoqda…", en: "Sending…" }[lang]
               : error
-                ? { ru: "ОШИБКА", uz: "XATO", en: "ERROR" }[lang]
-                : { ru: "МОДЕРАЦИЯ · АНОНИМНО", uz: "MODERATSIYA · ANONIM", en: "MODERATED · ANONYMOUS" }[lang]}
+                ? { ru: "Ошибка", uz: "Xato", en: "Error" }[lang]
+                : { ru: "Анонимно · с проверкой", uz: "Anonim · tekshiriladi", en: "Anonymous · moderated" }[lang]}
           </span>
         </div>
 
