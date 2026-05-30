@@ -347,13 +347,13 @@ function Index() {
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
           <div className="apex-shell">
-            <div className="relative bg-white p-6 sm:p-9 md:p-11 overflow-hidden">
+            <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
                 <span className="label-md text-[#F97316]">[ Emergency ]</span>
                 <AlertTriangle className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
-              <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] mb-4 text-[#18181B]">{t("emergency_title", lang)}</h3>
-              <p className="text-[#A1A1AA] text-[13px] leading-relaxed mb-8 max-w-sm">
+              <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
+              <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
                 {{ ru: "Если вы уже отправили SMS-код, установили APK или перевели деньги — время идёт на минуты.",
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
@@ -364,16 +364,16 @@ function Index() {
             </div>
           </div>
 
-          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-6 sm:p-9 md:p-11 overflow-hidden">
+          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-7 sm:p-9 md:p-11 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
               <span className="label-md">[ Community ]</span>
               <Users className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
-            <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] mb-4 text-[#18181B]">
+            <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}
             </h3>
-            <p className="text-[#A1A1AA] text-[13px] leading-relaxed mb-8 max-w-sm">
+            <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
               {{ ru: "Каждая жалоба проходит модерацию и помогает системе обучиться и предупредить тысячи пользователей.",
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
@@ -383,6 +383,7 @@ function Index() {
             </Link>
           </div>
         </section>
+
 
         {/* APEX-style footer band: ghost wordmark + status meta */}
         <section className="apex-frame apex-stripes border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
