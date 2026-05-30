@@ -28,14 +28,32 @@ function ReportPage() {
   const router = useRouter();
   const { v } = useSearch({ from: "/report" });
 
+  // Capture once at first render: did the user arrive from somewhere inside
+  // our app? If yes, history.back() is safe. Otherwise (deep link, new tab,
+  // refresh, opened from an email) we route to "/" to keep the result predictable.
+  const canGoBackRef = useRef<boolean>(
+    typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      window.history.length > 1 &&
+      !!document.referrer &&
+      (() => {
+        try {
+          return new URL(document.referrer).origin === window.location.origin;
+        } catch {
+          return false;
+        }
+      })()
+  );
+
   const goBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (canGoBackRef.current) {
       router.history.back();
     } else {
       router.navigate({ to: "/" });
     }
   };
+
 
   const [value, setValue] = useState(v ?? "");
   const [desc, setDesc] = useState("");
