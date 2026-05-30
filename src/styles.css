@@ -7,6 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --breakpoint-xs: 420px;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -635,14 +636,107 @@
   100% { transform: translateX(320%); }
 }
 
-/* Form field focus ring (orange techno accent) */
-.apex-field { transition: box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease; }
+/* ===== Unified APEX form field =====
+   One look for every input/textarea across all pages. */
+.apex-field {
+  width: 100%;
+  background: #FFFFFF;
+  color: #18181B;
+  border: 1px solid var(--apex-border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  line-height: 1.5;
+  box-shadow: inset 0 1px 0 rgba(11,11,15,0.02);
+  transition: box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+.apex-field::placeholder { color: #A1A1AA; }
+.apex-field:hover { border-color: #D4D1C6; }
 .apex-field:focus,
 .apex-field:focus-visible {
   outline: none;
+  border-color: rgba(249,115,22,0.55);
   box-shadow:
     0 0 0 1px rgba(249,115,22,0.45),
     0 0 0 4px rgba(249,115,22,0.10);
+}
+.apex-field[aria-invalid="true"] {
+  border-color: rgba(220,38,38,0.55);
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.35);
+}
+.apex-field[aria-invalid="true"]:focus,
+.apex-field[aria-invalid="true"]:focus-visible {
+  border-color: rgba(220,38,38,0.7);
+  box-shadow:
+    0 0 0 1px rgba(220,38,38,0.55),
+    0 0 0 4px rgba(220,38,38,0.12);
+}
+textarea.apex-field { resize: vertical; min-height: 96px; }
+
+/* ===== Field label, error, success — single tone across all forms ===== */
+.apex-label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #52525B;
+  margin-bottom: 8px;
+}
+.apex-error {
+  display: inline-flex; align-items: flex-start; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px; letter-spacing: 0.06em; line-height: 1.5;
+  color: #DC2626;
+}
+.apex-error::before { content: "!"; font-weight: 700; }
+.apex-success {
+  display: inline-flex; align-items: flex-start; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px; letter-spacing: 0.06em; line-height: 1.5;
+  color: #047857;
+}
+.apex-success::before { content: "\2713"; font-weight: 700; }
+
+/* ===== Section / page chrome — unified responsive padding ===== */
+.apex-page { max-width: 1200px; margin-inline: auto; padding: 32px 16px; }
+@media (min-width: 640px) { .apex-page { padding: 40px 24px; } }
+@media (min-width: 1024px){ .apex-page { padding: 56px 24px; } }
+
+.apex-card {
+  position: relative;
+  border: 1px solid var(--apex-border);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.55);
+  padding: 24px;
+}
+@media (min-width: 640px) { .apex-card { padding: 40px; } }
+@media (min-width: 1024px){ .apex-card { padding: 56px; } }
+
+.apex-h1 {
+  font-family: var(--font-sans); font-weight: 500;
+  font-size: clamp(26px, 6.2vw, 56px);
+  line-height: 1.05; letter-spacing: -0.04em;
+  color: #18181B; text-wrap: balance;
+}
+.apex-h2 {
+  font-family: var(--font-sans); font-weight: 500;
+  font-size: clamp(20px, 3.4vw, 28px);
+  line-height: 1.1; letter-spacing: -0.03em;
+  color: #18181B; text-wrap: balance;
+}
+.apex-lead {
+  font-size: 14.5px; line-height: 1.6; color: #52525B;
+  max-width: 56ch; text-wrap: pretty;
+}
+@media (min-width: 768px) { .apex-lead { font-size: 16px; line-height: 1.65; } }
+
+/* Make fancy-btn safe on narrow screens */
+@media (max-width: 480px) {
+  .fancy-btn { width: 100%; }
+  .fancy-btn .fancy-inner { width: 100%; justify-content: center; }
 }
 
 /* Hero techno system rail */
