@@ -186,11 +186,11 @@ function Index() {
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
-                {[
-                  "Безопасный счёт", "Bank security call", "Fake APK", "OTP request", "Telegram loan",
-                  "Soxta kuryer", "Prize phishing", "Crypto doubler", "Job offer scam", "Romance scam",
-                  "Безопасный счёт", "Bank security call", "Fake APK", "OTP request",
-                ].map((w, i) => (
+                {({
+                  ru: ["Безопасный счёт", "Звонок «из банка»", "Поддельное приложение", "Просят код из СМС", "Кредит в Telegram", "Фейковый курьер", "«Вы выиграли приз»", "Удвоение крипты", "Фейковая вакансия", "Знакомство с обманом"],
+                  uz: ["«Xavfsiz hisob»", "«Bankdan qo'ng'iroq»", "Soxta ilova", "SMS kodini so'rashmoqda", "Telegram'da kredit", "Soxta kuryer", "«Sovrin yutdingiz»", "Kriptoni ikki barobar", "Soxta ish o'rni", "Tanishuv firibgarligi"],
+                  en: ["«Safe account»", "Fake bank call", "Fake banking app", "Asking for SMS code", "Loan in Telegram", "Fake courier", "«You won a prize»", "Crypto doubler", "Fake job offer", "Romance scam"],
+                }[lang]).map((w, i) => (
                   <span key={`${dup}-${i}`} className="flex items-center gap-12 text-xl md:text-2xl font-sans font-medium tracking-tight text-[#71717A]">
                     {w}
                     <span className="text-[#F97316] text-2xl md:text-3xl">×</span>
@@ -198,6 +198,7 @@ function Index() {
                 ))}
               </div>
             ))}
+
           </div>
         </section>
 
@@ -729,9 +730,10 @@ function Index() {
           {/* Bottom strip */}
           <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
             <p className="apex-mono text-[#71717A] text-pretty max-w-[44ch] sm:max-w-none">
-              {{ ru: "ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
-                 uz: "ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
-                 en: "ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
+              {{ ru: "ISHONCH GUARD — ПОМОЩНИК ПРОТИВ ОБМАНА ДЛЯ УЗБЕКИСТАНА",
+                 uz: "ISHONCH GUARD — O'ZBEKISTON UCHUN ALDOVGA QARSHI YORDAMCHI",
+                 en: "ISHONCH GUARD — ANTI-FRAUD HELPER FOR UZBEKISTAN" }[lang]}
+
             </p>
             <nav aria-label="Footer" className="flex items-center gap-4 sm:gap-8 shrink-0">
               <Link to="/" className="footer-link apex-mono">
