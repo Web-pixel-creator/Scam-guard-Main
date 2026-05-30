@@ -722,9 +722,9 @@ html.a11y-high-contrast :focus-visible {
   transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease, background var(--dur-fast) ease;
 }
 .apex-status-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
-.apex-status[data-state="idle"]    { color: #10B981; }
+.apex-status[data-state="idle"]    { color: #A1A1AA; border-color: rgba(161,161,170,0.4); }
 .apex-status[data-state="loading"] { color: #F97316; border-color: rgba(249,115,22,0.4); }
-.apex-status[data-state="success"] { color: #059669; border-color: rgba(5,150,105,0.4); }
+.apex-status[data-state="success"] { color: #C2410C; border-color: rgba(194,65,12,0.4); background: #FFF7ED; }
 .apex-status[data-state="error"]   { color: #DC2626; border-color: rgba(220,38,38,0.4); }
 .apex-status[data-state="idle"] .apex-status-dot,
 .apex-status[data-state="loading"] .apex-status-dot {
