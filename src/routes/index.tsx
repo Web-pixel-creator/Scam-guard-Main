@@ -121,7 +121,7 @@ function Index() {
 
 
         {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
           <div className="flex items-start justify-between mb-3">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
             <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
@@ -151,7 +151,7 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="group relative bg-white/70 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
+              <div key={c.k.en} className="group relative bg-white/85 backdrop-blur-[4px] p-6 md:p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
                 <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
                 <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12 transition-colors" style={{ color: c.accent }}>
                   <c.i className="h-4 w-4" strokeWidth={1.5} />
@@ -182,7 +182,7 @@ function Index() {
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5 apex-stripes-soft">
+                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5 apex-stripes">
                   <span className="block font-sans text-5xl font-medium tracking-[-0.05em] text-[#E2E0D8]">{s.i}</span>
                   <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
                   <p className="text-[#A1A1AA] text-[13px] leading-relaxed">{s.d}</p>
@@ -193,7 +193,7 @@ function Index() {
         </section>
 
         {/* EXAMPLE — APEX striped frame around the demo */}
-        <section className="apex-frame apex-stripes-soft border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
           <div className="flex items-center justify-between mb-8">
             <span className="apex-mono">CASE STUDY · DEMO</span>
             <span className="apex-mono">RISK · LIVE</span>
@@ -274,7 +274,7 @@ function Index() {
         </section>
 
         {/* KNOWLEDGE BASE — APEX striped frame */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
           <div className="flex items-center justify-between mb-6">
             <span className="apex-mono">DB · SCAM CASES</span>
             <span className="apex-mono">INDEX 06 / 06</span>
@@ -303,7 +303,7 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="group bg-white/70 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300">
+              <div key={s.en} className="group bg-white/85 backdrop-blur-[4px] p-6 md:p-8 hover:bg-white transition-colors duration-300">
                 <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-5">CASE #{s.n}</p>
                 <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B] group-hover:text-[#F97316] transition-colors">{s[lang]}</h3>
                 <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
@@ -355,7 +355,7 @@ function Index() {
         </section>
 
         {/* APEX-style footer band: ghost wordmark + status meta */}
-        <section className="apex-frame apex-stripes-soft border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
+        <section className="apex-frame apex-stripes border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
           <div className="flex items-start justify-between mb-10">
             <div className="space-y-1">
               <p className="apex-mono">BUILD V3.1</p>
