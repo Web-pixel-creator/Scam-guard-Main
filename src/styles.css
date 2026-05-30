@@ -170,6 +170,12 @@
     background-color: #FCFAF9;
     color-scheme: light;
     scroll-behavior: smooth;
+    /* Larger base for older readers — bumped from 16px to 17px (18px on ≥768px) */
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  @media (min-width: 768px) {
+    html { font-size: 18px; }
   }
   body {
     background-color: var(--color-background);
@@ -178,7 +184,10 @@
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "cv11","ss01";
     position: relative;
+    font-size: 1rem;
+    line-height: 1.65;
   }
+
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.03em;
@@ -266,9 +275,10 @@
 
 /* Card body text — bumped for readability. Slightly larger + darker so
    users can scan cards without leaning in. */
-.card-body { font-size: 16px; line-height: 1.65; color: #3F3F46; max-width: 44ch;
+.card-body { font-size: 17px; line-height: 1.7; color: #3F3F46; max-width: 44ch;
   text-wrap: pretty; }
-@media (min-width: 768px) { .card-body { font-size: 16.5px; } }
+@media (min-width: 768px) { .card-body { font-size: 17.5px; line-height: 1.75; } }
+
 
 
 /* Body paragraph helper: pretty wrapping + safe break for long urls/words.
@@ -758,10 +768,11 @@ textarea.apex-field { resize: vertical; min-height: 96px; }
   color: #18181B; text-wrap: balance;
 }
 .apex-lead {
-  font-size: 15.5px; line-height: 1.65; color: #3F3F46;
+  font-size: 17px; line-height: 1.7; color: #3F3F46;
   max-width: 58ch; text-wrap: pretty;
 }
-@media (min-width: 768px) { .apex-lead { font-size: 17px; line-height: 1.7; } }
+@media (min-width: 768px) { .apex-lead { font-size: 18.5px; line-height: 1.75; } }
+
 
 /* Pain pill — pulsing red pain badge used in page heroes (mirrors home hero) */
 .pain-pill {
