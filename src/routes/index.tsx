@@ -364,8 +364,8 @@ function Index() {
         {/* EXAMPLE — APEX striped frame around the demo */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">CASE STUDY · DEMO</span>
-            <span className="apex-mono text-right">RISK · LIVE</span>
+            <span className="apex-mono">{{ ru: "Пример проверки", uz: "Tekshirish misoli", en: "Check example" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Опасно", uz: "Xavfli", en: "Dangerous" }[lang]}</span>
           </div>
           <div className="text-center mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <p className="label-md mb-4">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
