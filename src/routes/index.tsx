@@ -283,7 +283,8 @@ function Index() {
 
                 {/* What we do about it — outcome line */}
                 <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#059669] mb-1.5">
+                  <p className="apex-mono text-[#C2410C] mb-1.5">
+
                     ✓ {{ ru: "Что мы делаем", uz: "Biz nima qilamiz", en: "What we do" }[lang]}
                   </p>
                   <p className="card-body">{c.check[lang]}</p>
