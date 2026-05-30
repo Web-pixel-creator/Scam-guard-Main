@@ -107,6 +107,14 @@
   --gap-stack: clamp(40px, 6vw, 80px);     /* vertical rhythm between sections */
   --gap-grid: 1px;                          /* hairline grid gap */
 
+  /* ===== Unified motion tokens =====
+     One easing + three durations for every hover/active/focus transition. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 160ms;     /* color / opacity / border swap */
+  --dur-base: 240ms;     /* default hover (transform, shadow, bg) */
+  --dur-slow: 600ms;     /* shine sweep across surfaces */
+
   --safe: #059669;
   --safe-foreground: #FFFFFF;
   --warn: #D97706;
@@ -360,7 +368,7 @@
 
 
 .card-hover {
-  transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), border-color 0.3s, background-color 0.3s;
+  transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
@@ -471,7 +479,7 @@
 
 .apex-frame {
   position: relative;
-  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
   /* Stability: isolate layout/paint so focus/hover never reflows neighbours
      and the caret stays put on low-power devices. */
   contain: layout paint style;
@@ -562,7 +570,7 @@
     linear-gradient(#fff, #fff),
     linear-gradient(135deg, #FB923C 0%, #FB923C 50%, #C2410C 100%);
   background-origin: border-box;
-  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
   overflow: hidden;
   will-change: transform;
 }
@@ -572,7 +580,7 @@
   inset: 0;
   background: linear-gradient(120deg, transparent 35%, rgba(249,115,22,0.22) 50%, transparent 65%);
   transform: translate3d(-110%, 0, 0);
-  transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
+  transition: transform var(--dur-slow) var(--ease-out);
   pointer-events: none;
 }
 .apex-btn-outline:hover {
@@ -595,7 +603,7 @@
   font-family: var(--font-mono);
   font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--apex-text-soft);
-  transition: color 0.25s, border-color 0.25s, background 0.25s;
+  transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease, background var(--dur-fast) ease;
 }
 .apex-status-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
 .apex-status[data-state="idle"]    { color: #10B981; }
@@ -627,7 +635,7 @@
 }
 
 /* Form field focus ring (orange techno accent) */
-.apex-field { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+.apex-field { transition: box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease; }
 .apex-field:focus,
 .apex-field:focus-visible {
   outline: none;
@@ -671,10 +679,7 @@
   box-shadow:
     0 1px 0 rgba(11,11,15,0.02),
     0 1px 2px rgba(11,11,15,0.04);
-  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease,
-              background-color 0.2s ease;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
   cursor: pointer;
   will-change: transform;
 }
@@ -713,8 +718,7 @@
     inset 0 1px 0 rgba(255,255,255,0.08),
     0 1px 2px rgba(11,11,15,0.12),
     0 10px 24px -14px rgba(11,11,15,0.45);
-  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1),
-              box-shadow 0.25s ease;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -725,7 +729,7 @@
   position: absolute; inset: 0;
   background: linear-gradient(120deg, transparent 35%, rgba(249,115,22,0.28) 50%, transparent 65%);
   transform: translate3d(-110%, 0, 0);
-  transition: transform 0.7s cubic-bezier(0.22,1,0.36,1);
+  transition: transform var(--dur-slow) var(--ease-out);
   pointer-events: none;
 }
 .apex-cta:hover {
@@ -784,7 +788,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), background-color var(--dur-fast) ease;
   background:
     radial-gradient(65.28% 65.28% at 50% 100%, rgba(253, 186, 116, 0.85) 0%, rgba(253, 186, 116, 0) 100%),
     linear-gradient(0deg, #F97316, #F97316);
@@ -802,7 +806,7 @@
 .fancy-btn::after {
   content: "";
   position: absolute;
-  transition: all 0.5s ease-in-out;
+  transition: transform var(--dur-slow) var(--ease-in-out), opacity var(--dur-base) ease;
   z-index: 0;
 }
 .fancy-btn::before {
@@ -875,13 +879,13 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.4;
-  transition: color 0.2s ease-in-out;
+  transition: color var(--dur-fast) var(--ease-in-out);
   white-space: nowrap;
 }
 .fancy-inner > svg {
   width: 16px;
   height: 16px;
-  transition: transform 0.3s ease;
+  transition: transform var(--dur-base) var(--ease-out);
   stroke: #fff;
   fill: none;
   flex-shrink: 0;
@@ -907,7 +911,7 @@
   min-height: 44px;
   padding: 10px 8px;
   margin: -10px -8px;
-  transition: color 160ms ease;
+  transition: color var(--dur-fast) ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -921,7 +925,7 @@
   background: #F97316;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 200ms ease;
+  transition: transform var(--dur-base) var(--ease-out);
 }
 .footer-link:hover { color: #18181B; }
 .footer-link:hover::after { transform: scaleX(1); }
