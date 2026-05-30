@@ -67,6 +67,7 @@ function Index() {
             <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
             <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
           </div>
+          </div>
         </section>
 
         {/* MARQUEE — scam patterns ticker */}
