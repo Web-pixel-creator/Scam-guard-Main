@@ -9,9 +9,11 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
-import { LangProvider } from "@/lib/lang-context";
+import { LangProvider, useLang } from "@/lib/lang-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { Header, Footer } from "@/components/Layout";
+import { A11yPanel } from "@/components/A11yPanel";
+import { useEffect } from "react";
 
 function NotFoundComponent() {
   return (
