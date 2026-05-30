@@ -59,24 +59,15 @@ function Index() {
                 Anti-Scam Intelligence
               </div>
 
-              {/* Bracketed headline frame */}
-              <div className="relative inline-block">
-                <span aria-hidden className="hidden md:block absolute -left-3 lg:-left-5 top-1 h-7 w-3 border-l border-t border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -right-3 lg:-right-5 top-1 h-7 w-3 border-r border-t border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -left-3 lg:-left-5 bottom-1 h-7 w-3 border-l border-b border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -right-3 lg:-right-5 bottom-1 h-7 w-3 border-r border-b border-[#0B0B0F]/35" />
+              <h1 className="font-display font-extrabold tracking-[-0.02em] leading-[1.02] text-[40px] sm:text-6xl md:text-7xl lg:text-[88px] animate-fade-in-up text-foreground max-w-4xl mx-auto">
+                {{
+                  ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                  uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                  en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                }[lang]}
+              </h1>
 
-                <h1 className="font-display font-extrabold tracking-tight leading-[1.05] md:leading-[1] md:whitespace-nowrap text-[34px] sm:text-5xl md:text-6xl lg:text-[72px] xl:text-[84px] animate-fade-in-up text-foreground">
-                  {{
-                    ru: <>Проверьте до того, <span className="relative inline-block text-foreground/60">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
-                    uz: <>Aldanmasdan oldin <span className="relative inline-block text-foreground/60">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
-                    en: <>Check it before <span className="relative inline-block text-foreground/60">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
-                  }[lang]}
-                </h1>
-              </div>
-
-
-              <p className="mt-10 md:mt-12 text-[15px] md:text-base text-foreground/75 max-w-md mx-auto leading-[1.6] animate-fade-in-up">
+              <p className="mt-8 md:mt-10 text-[15px] md:text-[17px] text-foreground/70 max-w-xl mx-auto leading-[1.55] animate-fade-in-up">
                 {{
                   ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
                   uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
