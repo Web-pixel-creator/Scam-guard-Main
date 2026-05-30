@@ -90,8 +90,8 @@ function Index() {
         </section>
 
 
-        {/* MARQUEE — APEX style: tight, thin border, neutral */}
-        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px]">
+        {/* MARQUEE — APEX: stripes texture + hairline borders */}
+        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px] apex-stripes-soft">
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
@@ -111,9 +111,13 @@ function Index() {
         </section>
 
 
-        {/* CAPABILITIES — APEX grid: sharp, glass, hairline borders */}
-        <section>
-          <div className="flex items-end justify-between mb-12 gap-6 pb-6 border-b border-[#E2E0D8]">
+        {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-start justify-between mb-3">
+            <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
+            <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
+          </div>
+          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
             <div>
               <p className="label-md mb-3">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
@@ -124,10 +128,10 @@ function Index() {
                 }[lang]}
               </h2>
             </div>
-            <span className="hidden md:block text-[#A1A1AA] text-xs font-mono tracking-[0.1em] uppercase">04 / 04</span>
+            <span className="hidden md:block apex-mono">04 / 04</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {[
               { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
@@ -138,8 +142,8 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="group relative bg-white/40 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
-                <span className="absolute top-5 right-5 text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em]">0{idx + 1}</span>
+              <div key={c.k.en} className="group relative bg-white/70 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
+                <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
                 <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12 transition-colors" style={{ color: c.accent }}>
                   <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
@@ -150,6 +154,7 @@ function Index() {
             ))}
           </div>
         </section>
+
 
         {/* HOW IT WORKS — APEX surface panel */}
         <section className="relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
