@@ -42,28 +42,28 @@ function Index() {
             Anti-Scam Intelligence · Tashkent
           </div>
 
-          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up">
+          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up text-white relative">
             {{
-              ru: <>Проверьте <span className="font-serif-italic text-gradient">до того,</span><br />как обманут</>,
-              uz: <>Aldanmasdan <span className="font-serif-italic text-gradient">oldin</span><br />tekshiring</>,
-              en: <>Check it <span className="font-serif-italic text-gradient">before</span><br />you get scammed</>,
+              ru: <>Проверьте <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">до того,</span><br />как обманут</>,
+              uz: <>Aldanmasdan <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">oldin</span><br />tekshiring</>,
+              en: <>Check it <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">before</span><br />you get scammed</>,
             }[lang]}
           </h1>
 
-          <p className="mt-7 text-lg text-foreground/55 max-w-2xl leading-relaxed animate-fade-in-up">
+          <p className="mt-7 text-lg text-white/65 max-w-2xl leading-relaxed animate-fade-in-up relative">
             {t("hero_sub", lang)}
           </p>
 
-          <div className="w-full max-w-3xl mt-12 animate-fade-in-up">
-            <div className="p-1.5 rounded-3xl bg-gradient-to-b from-foreground/5 to-foreground/0 border border-border backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.4)]">
+          <div className="w-full max-w-3xl mt-12 animate-fade-in-up relative">
+            <div className="p-1.5 rounded-3xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.5)]">
               <CheckInput />
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-foreground/45 uppercase">
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
+          <div className="mt-8 mb-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-white/50 uppercase relative">
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
           </div>
         </section>
 
