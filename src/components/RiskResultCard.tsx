@@ -139,6 +139,28 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             </span>
           </div>
 
+          {/* Read-aloud control — bigger tap target for elderly users */}
+          <div className="-mt-4 mb-6 flex justify-end">
+            <button
+              type="button"
+              onClick={speak}
+              aria-pressed={speaking}
+              className="inline-flex items-center gap-2 min-h-11 px-4 rounded-[6px] border border-[#E2E0D8] bg-white text-[13.5px] font-semibold text-[#18181B] hover:border-[#F97316] hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
+            >
+              {speaking ? (
+                <>
+                  <Square aria-hidden="true" className="h-4 w-4" strokeWidth={2} fill="currentColor" />
+                  {{ ru: "Остановить чтение", uz: "O'qishni to'xtatish", en: "Stop reading" }[lang]}
+                </>
+              ) : (
+                <>
+                  <Volume2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                  {{ ru: "Прочитать вслух", uz: "Ovoz chiqarib o'qish", en: "Read aloud" }[lang]}
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Title block */}
           <div className="flex items-start gap-5">
             <div className="grid h-12 w-12 place-items-center rounded-[4px] border border-[#E2E0D8] shrink-0" style={{ color: s.accent }}>
