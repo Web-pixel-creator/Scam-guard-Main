@@ -3,9 +3,6 @@ import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, Send } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { submitReport } from "@/lib/report.functions";
@@ -23,9 +20,6 @@ export const Route = createFileRoute("/report")({
   }),
   component: ReportPage,
 });
-
-const FIELD_CLS =
-  "rounded-[4px] border-[#E2E0D8] bg-white text-[#18181B] placeholder:text-[#A1A1AA] focus-visible:border-[#0B0B0F]/40 focus-visible:ring-[3px] focus-visible:ring-[#0B0B0F]/6 shadow-none";
 
 function ReportPage() {
   const { lang } = useLang();
@@ -63,7 +57,6 @@ function ReportPage() {
 
   const labels = {
     title: { ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" },
-    accent: { ru: "мошеннике", uz: "firibgarni", en: "scammer" },
     sub: { ru: "Каждая жалоба проходит модерацию. Не публикуйте чужие персональные данные.",
            uz: "Har bir shikoyat moderatsiyadan o'tadi. Boshqalarning shaxsiy ma'lumotlarini joylashtirmang.",
            en: "Every report is moderated. Do not include other people's personal data." },
@@ -81,94 +74,92 @@ function ReportPage() {
 
   if (done) {
     return (
-      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-16">
-        <div className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] bg-white/55 p-10 md:p-14 text-center">
-          <div className="flex items-center justify-between gap-4 mb-8">
+      <div className="apex-page" style={{ maxWidth: 800 }}>
+        <div className="apex-card apex-frame apex-stripes text-center">
+          <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
             <span className="apex-mono">SYS · RECEIVED</span>
             <span className="apex-status" data-state="success">
               <span className="apex-status-dot" />
-              REPORT · QUEUED
+              <span className="hidden xs:inline">REPORT · QUEUED</span>
+              <span className="xs:hidden">QUEUED</span>
             </span>
           </div>
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
-            <CheckCircle2 className="h-6 w-6" strokeWidth={1.75} />
+            <CheckCircle2 className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" focusable="false" />
           </div>
-          <h1 className="mt-6 font-sans font-medium text-[34px] md:text-5xl tracking-[-0.05em] text-[#18181B]">
-            {labels.thanks_h[lang]}
-          </h1>
-          <p className="mt-4 text-[15px] text-[#52525B] leading-[1.65] max-w-md mx-auto">{labels.thanks_d[lang]}</p>
+          <h1 className="apex-h1 mt-5 sm:mt-6">{labels.thanks_h[lang]}</h1>
+          <p className="apex-lead mt-3 sm:mt-4 mx-auto">{labels.thanks_d[lang]}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-12 md:py-16">
-      <div className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] bg-white/55 p-6 sm:p-10 md:p-14">
-        <div className="flex items-start justify-between gap-4 mb-6">
+    <div className="apex-page" style={{ maxWidth: 960 }}>
+      <div className="apex-card apex-frame apex-stripes">
+        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono">SYS · REPORT</span>
-          <span className="apex-mono text-right">MODERATED · ANONYMOUS</span>
+          <span className="apex-mono text-right">
+            <span className="hidden xs:inline">MODERATED · ANONYMOUS</span>
+            <span className="xs:hidden">ANON</span>
+          </span>
         </div>
 
-        <div className="mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
-          <p className="label-md mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
-          <h1 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">
+        <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
+          <p className="label-md mb-3 sm:mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
+          <h1 className="apex-h1">
             {{
               ru: <>Сообщить о <span className="font-serif-italic text-[#8B8B92]">мошеннике</span></>,
               uz: <>Firibgarni <span className="font-serif-italic text-[#8B8B92]">xabar qilish</span></>,
               en: <>Report a <span className="font-serif-italic text-[#8B8B92]">scammer</span></>,
             }[lang]}
           </h1>
-          <p className="mt-6 text-[15px] md:text-[16px] text-[#52525B] leading-[1.65] max-w-xl text-pretty">
-            {labels.sub[lang]}
-          </p>
+          <p className="apex-lead mt-5 sm:mt-6">{labels.sub[lang]}</p>
         </div>
 
-        <form onSubmit={onSubmit} className="max-w-2xl space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="v" className="apex-mono text-[#52525B]">{labels.value[lang]}</Label>
-            <Input id="v" required maxLength={500} value={value} onChange={(e) => setValue(e.target.value)}
-                   placeholder="+998 90 ••• •• ••  /  @username  /  https://…" className={FIELD_CLS} />
+        <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-5 sm:space-y-6">
+          <div>
+            <label htmlFor="v" className="apex-label">{labels.value[lang]}</label>
+            <input id="v" required maxLength={500} value={value} onChange={(e) => setValue(e.target.value)}
+                   placeholder="+998 90 ••• •• ••  /  @username  /  https://…" className="apex-field" />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="d" className="apex-mono text-[#52525B]">{labels.desc[lang]}</Label>
-            <Textarea id="d" required minLength={5} maxLength={5000} rows={6}
+          <div>
+            <label htmlFor="d" className="apex-label">{labels.desc[lang]}</label>
+            <textarea id="d" required minLength={5} maxLength={5000} rows={6}
                       value={desc} onChange={(e) => setDesc(e.target.value)}
-                      className={`${FIELD_CLS} resize-none leading-relaxed`} />
+                      className="apex-field" />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <Label htmlFor="s" className="apex-mono text-[#52525B]">{labels.scam[lang]}</Label>
-              <Input id="s" maxLength={80} value={scamType} onChange={(e) => setScamType(e.target.value)} className={FIELD_CLS} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div>
+              <label htmlFor="s" className="apex-label">{labels.scam[lang]}</label>
+              <input id="s" maxLength={80} value={scamType} onChange={(e) => setScamType(e.target.value)} className="apex-field" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="c" className="apex-mono text-[#52525B]">{labels.city[lang]}</Label>
-              <Input id="c" maxLength={80} value={city} onChange={(e) => setCity(e.target.value)} className={FIELD_CLS} />
+            <div>
+              <label htmlFor="c" className="apex-label">{labels.city[lang]}</label>
+              <input id="c" maxLength={80} value={city} onChange={(e) => setCity(e.target.value)} className="apex-field" />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="a" className="apex-mono text-[#52525B]">{labels.amount[lang]}</Label>
-            <Input id="a" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className={FIELD_CLS} />
+          <div>
+            <label htmlFor="a" className="apex-label">{labels.amount[lang]}</label>
+            <input id="a" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="apex-field" />
           </div>
 
-          {error && (
-            <p className="apex-mono text-[#DC2626]" role="alert">! {error}</p>
-          )}
+          {error && <p className="apex-error" role="alert">{error}</p>}
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-            <button type="submit" disabled={loading} className="fancy-btn min-w-[220px]">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 pt-1">
+            <button type="submit" disabled={loading} className="fancy-btn sm:min-w-[220px]">
               <span className="fancy-points" aria-hidden="true">
                 {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
               </span>
               <span className="fancy-inner">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
                 {labels.send[lang]}
               </span>
             </button>
-            <p className="apex-mono text-[#71717A]">{t("privacy_promise", lang)}</p>
+            <p className="apex-mono text-[#71717A] leading-relaxed">{t("privacy_promise", lang)}</p>
           </div>
         </form>
       </div>
