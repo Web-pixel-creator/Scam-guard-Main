@@ -436,20 +436,20 @@ function Index() {
           </div>
 
           {/* Bottom strip */}
-          <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <p className="apex-mono text-[#71717A]">
+          <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
+            <p className="apex-mono text-[#71717A] text-pretty max-w-[44ch] sm:max-w-none">
               {{ ru: ") ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
                  uz: ") ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
                  en: ") ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
             </p>
-            <div className="flex items-center gap-6">
+            <nav aria-label="Footer" className="flex items-center gap-4 sm:gap-8 shrink-0">
               <Link to="/" className="footer-link apex-mono">
                 {{ ru: "ПРИВАТНОСТЬ", uz: "MAXFIYLIK", en: "PRIVACY" }[lang]}
               </Link>
               <Link to="/" className="footer-link apex-mono">
                 {{ ru: "ПОМОЩЬ", uz: "YORDAM", en: "HELP" }[lang]}
               </Link>
-            </div>
+            </nav>
           </div>
         </footer>
 

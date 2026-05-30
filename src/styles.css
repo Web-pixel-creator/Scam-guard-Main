@@ -867,18 +867,25 @@
   .fancy-point { animation: none !important; opacity: 0 !important; }
 }
 
-/* Footer link — subtle hover/active that matches brand orange */
+/* Footer link — 44×44 hit-area without shifting layout */
 .footer-link {
   color: #52525B;
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 8px;
+  margin: -10px -8px;
   transition: color 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .footer-link::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
   height: 1px;
   background: #F97316;
   transform: scaleX(0);
@@ -888,3 +895,9 @@
 .footer-link:hover { color: #18181B; }
 .footer-link:hover::after { transform: scaleX(1); }
 .footer-link:active { color: #C2410C; }
+.footer-link:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
