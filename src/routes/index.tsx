@@ -465,8 +465,8 @@ function Index() {
         {/* KNOWLEDGE BASE — APEX striped frame */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">DB · SCAM CASES</span>
-            <span className="apex-mono text-right">INDEX 06 / 06</span>
+            <span className="apex-mono">{{ ru: "Известные обманы", uz: "Ma'lum aldovlar", en: "Known scams" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "6 из 6", uz: "6 / 6", en: "6 of 6" }[lang]}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
