@@ -19,6 +19,69 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Бесплатный антискам-помощник для Узбекистана. Вставьте подозрительное сообщение, номер, ссылку или Telegram username — получите оценку риска и шаги, что делать." },
       { property: "og:title", content: "Ishonch Guard — антискам-помощник для Узбекистана" },
       { property: "og:description", content: "Распознайте мошенников до того, как потеряете деньги." },
+      { property: "og:url", content: "/" },
+    ],
+    links: [{ rel: "canonical", href: "/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Ishonch Guard",
+              url: "/",
+              description:
+                "Бесплатный антискам-помощник для Узбекистана: проверка номеров, ссылок, Telegram-аккаунтов и сообщений.",
+              areaServed: "UZ",
+            },
+            {
+              "@type": "WebSite",
+              name: "Ishonch Guard",
+              url: "/",
+              inLanguage: ["ru", "uz", "en"],
+            },
+            {
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Мне звонят из «службы безопасности банка» — это правда?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Настоящий банк никогда не просит SMS-код, пароль или установку приложений по ссылке. Положите трубку и перезвоните по номеру с обратной стороны карты.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Я уже отправил код из SMS — что делать?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Срочно позвоните в банк и попросите блокировку карты и онлайн-банка. Затем смените пароль в приложении банка и проверьте недавние операции.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Перевёл деньги «на безопасный счёт» — можно вернуть?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Немедленно — звонок в банк с просьбой о возврате/споре операции, и заявление в Cyber Police (102). Шанс есть только в первые часы.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "В Telegram пишет «менеджер банка» — отвечать?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Банки не ведут клиентскую поддержку в личных Telegram-сообщениях. Не отвечайте, пришлите username нам — проверим за секунды.",
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      },
     ],
   }),
   component: Index,
@@ -645,6 +708,75 @@ function Index() {
               </details>
             ))}
           </div>
+        </section>
+
+
+        {/* EMERGENCY CONTACTS — large tap-targets for elderly users, always on home */}
+        <section aria-labelledby="emergency-contacts-title" className="apex-frame border border-[#FCA5A5]/60 rounded-[6px] p-6 sm:p-8 md:p-10 bg-[#FFF7ED]">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <span className="apex-mono text-[#991B1B] inline-flex items-center gap-2">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+              </span>
+              {{ ru: "Если уже случилось — звоните сразу", uz: "Agar allaqachon yuz bergan bo'lsa — darhol qo'ng'iroq qiling", en: "If it already happened — call now" }[lang]}
+            </span>
+            <span className="apex-mono text-right hidden sm:block">{{ ru: "Каждая минута важна", uz: "Har bir daqiqa muhim", en: "Every minute counts" }[lang]}</span>
+          </div>
+          <h2 id="emergency-contacts-title" className="font-sans font-medium text-[26px] sm:text-3xl md:text-[36px] tracking-[-0.04em] leading-[1.1] text-[#18181B] mb-6 md:mb-8 text-balance">
+            {{ ru: "Срочные телефоны — нажмите, чтобы позвонить", uz: "Shoshilinch telefonlar — qo'ng'iroq qilish uchun bosing", en: "Emergency phones — tap to call" }[lang]}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+            {[
+              {
+                num: "102",
+                label: { ru: "Полиция · Cyber Police", uz: "Politsiya · Cyber Police", en: "Police · Cyber Police" },
+                desc: { ru: "Заявление о мошенничестве", uz: "Firibgarlik haqida ariza", en: "File a fraud report" },
+              },
+              {
+                num: "1252",
+                label: { ru: "Антифрод-линия ЦБ", uz: "MB antifirib liniyasi", en: "Central Bank anti-fraud" },
+                desc: { ru: "Блокировка карт и счетов", uz: "Karta va hisoblarni bloklash", en: "Block cards and accounts" },
+              },
+              {
+                num: "1173",
+                label: { ru: "Горячая линия Узкарт", uz: "UzCard ishonch telefoni", en: "UzCard hotline" },
+                desc: { ru: "Споры по платежам", uz: "To'lovlar bo'yicha bahslar", en: "Payment disputes" },
+              },
+            ].map((c) => (
+              <a
+                key={c.num}
+                href={`tel:${c.num}`}
+                className="group flex items-center gap-4 rounded-[6px] border border-[#E2E0D8] bg-white p-4 md:p-5 min-h-[72px] hover:border-[#F97316] hover:shadow-[0_8px_24px_-12px_rgba(249,115,22,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-all"
+              >
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[4px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#DC2626]">
+                  <Phone aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block font-display font-extrabold text-[26px] md:text-[28px] tracking-tight text-[#0B0B0F] leading-none tabular-nums">
+                    {c.num}
+                  </span>
+                  <span className="block mt-1 text-[13.5px] font-semibold text-[#18181B] truncate">
+                    {c.label[lang]}
+                  </span>
+                  <span className="block text-[12.5px] text-[#52525B] truncate">
+                    {c.desc[lang]}
+                  </span>
+                </span>
+                <ArrowRight aria-hidden="true" className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#F97316] group-hover:translate-x-0.5 transition-all" strokeWidth={2} />
+              </a>
+            ))}
+          </div>
+          <p className="mt-5 text-[13.5px] text-[#52525B] leading-[1.55] text-pretty">
+            {{
+              ru: "Не уверены, что говорить? Откройте раздел «Срочная помощь» — там пошаговая инструкция на 3 минуты.",
+              uz: "Nima deyishni bilmayapsizmi? «Shoshilinch yordam» bo'limini oching — u yerda 3 daqiqalik bosqichma-bosqich ko'rsatma bor.",
+              en: "Not sure what to say? Open the “Emergency help” page — 3-minute step-by-step guide.",
+            }[lang]}{" "}
+            <Link to="/emergency" className="text-[#C2410C] font-semibold underline-offset-4 decoration-[#FED7AA] hover:decoration-[#F97316] hover:underline">
+              {{ ru: "Открыть инструкцию →", uz: "Ko'rsatmani ochish →", en: "Open the guide →" }[lang]}
+            </Link>
+          </p>
         </section>
 
 

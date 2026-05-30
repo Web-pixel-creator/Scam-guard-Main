@@ -1,5 +1,6 @@
-import { ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle, ArrowRight } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle, Volume2, Square } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
@@ -78,6 +79,40 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
 
+  // "Read aloud" — Web Speech API. Cleans up on unmount and on result change.
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [result]);
+
+  const speak = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const verdict = t(s.key as never, lang);
+    const whatToDo = { ru: "Что делать:", uz: "Nima qilish kerak:", en: "What to do:" }[lang];
+    const parts = [
+      `${TAG_LABELS[result.level][lang]}. ${verdict}.`,
+      result.explanation ?? "",
+      `${whatToDo} ${advice.join(". ")}`,
+    ].filter(Boolean);
+    const utter = new SpeechSynthesisUtterance(parts.join(" "));
+    utter.lang = { ru: "ru-RU", uz: "uz-UZ", en: "en-US" }[lang];
+    utter.rate = 0.95;
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
+  };
+
   return (
     <div className="apex-shell">
       <div className="relative bg-white">
@@ -102,6 +137,28 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 ? { ru: "Оценка · нет", uz: "Baho · yo'q", en: "Score · n/a" }[lang]
                 : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${Math.round(result.score)}%`}
             </span>
+          </div>
+
+          {/* Read-aloud control — bigger tap target for elderly users */}
+          <div className="-mt-4 mb-6 flex justify-end">
+            <button
+              type="button"
+              onClick={speak}
+              aria-pressed={speaking}
+              className="inline-flex items-center gap-2 min-h-11 px-4 rounded-[6px] border border-[#E2E0D8] bg-white text-[13.5px] font-semibold text-[#18181B] hover:border-[#F97316] hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
+            >
+              {speaking ? (
+                <>
+                  <Square aria-hidden="true" className="h-4 w-4" strokeWidth={2} fill="currentColor" />
+                  {{ ru: "Остановить чтение", uz: "O'qishni to'xtatish", en: "Stop reading" }[lang]}
+                </>
+              ) : (
+                <>
+                  <Volume2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                  {{ ru: "Прочитать вслух", uz: "Ovoz chiqarib o'qish", en: "Read aloud" }[lang]}
+                </>
+              )}
+            </button>
           </div>
 
           {/* Title block */}
