@@ -66,13 +66,23 @@ function Index() {
 
 
             <div className="relative text-center px-0">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-8 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
+              {/* Pain badge — red pulsing dot signals "this is the problem we solve" */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.18em] uppercase text-[#991B1B] mb-7 animate-fade-in-up font-mono">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                 </span>
-                Anti-Scam Intelligence
+                {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
               </div>
+
+              {/* Scammer's bait — italicized quote on a red left border */}
+              <blockquote className="mx-auto max-w-2xl border-l-2 border-[#DC2626]/40 pl-4 mb-8 text-left text-[15px] md:text-[17px] leading-[1.55] text-[#18181B] italic font-serif-italic animate-fade-in-up">
+                {{
+                  ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция — назовите код из SMS…»",
+                  uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangizda shubhali amaliyot — SMS kodni ayting…»",
+                  en: "“Hello, this is bank security. A suspicious transaction on your card — tell me the SMS code…”",
+                }[lang]}
+              </blockquote>
 
               <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.1] text-[38px] sm:text-5xl md:text-6xl lg:text-[72px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
                 {{
@@ -82,7 +92,7 @@ function Index() {
                 }[lang]}
               </h1>
 
-              <p className="mt-8 md:mt-10 text-[15px] md:text-[16px] text-foreground/65 max-w-lg mx-auto leading-[1.55] text-center animate-fade-in-up">
+              <p className="mt-7 md:mt-9 text-[17px] md:text-[19px] text-[#3F3F46] max-w-xl mx-auto leading-[1.55] text-center animate-fade-in-up">
                 {{
                   ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
                   uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
@@ -90,7 +100,19 @@ function Index() {
                 }[lang]}
               </p>
 
-              <div className="mt-7 md:mt-8 flex items-center justify-center gap-5 animate-fade-in-up">
+              {/* Green outcome — what you get back */}
+              <div className="mt-6 inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#86EFAC]/60 text-[13px] md:text-[14px] font-medium text-[#065F46] animate-fade-in-up">
+                <span className="font-mono text-[#059669]">✓</span>
+                <span>
+                  {{
+                    ru: "Бесплатно · без регистрации · ответ за 3 секунды",
+                    uz: "Bepul · ro'yxatdan o'tmasdan · 3 soniyada javob",
+                    en: "Free · no signup · answer in 3 seconds",
+                  }[lang]}
+                </span>
+              </div>
+
+              <div className="mt-8 md:mt-10 flex items-center justify-center gap-5 animate-fade-in-up">
                 <Link to="/check" className="fancy-btn">
                   <FancyShell>
                     {{ ru: "Проверить", uz: "Tekshirish", en: "Check now" }[lang]}
@@ -98,7 +120,7 @@ function Index() {
                 </Link>
                 <Link
                   to="/report"
-                  className="text-[12px] font-semibold tracking-[0.15em] uppercase text-[#52525B] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
+                  className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#3F3F46] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
                 >
                   {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
                 </Link>
