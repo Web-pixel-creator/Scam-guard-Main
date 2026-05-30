@@ -163,9 +163,10 @@ function EmergencyPage() {
           <span className="apex-mono text-[#71717A]">
             {{ ru: "Поделитесь случаем — поможете другим", uz: "Holatni baham ko'ring — boshqalarga yordam berasiz", en: "Share the case — help others" }[lang]}
           </span>
-          <Link to="/report" className="fancy-btn inline-flex items-center justify-center gap-2 group">
-            {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          <Link to="/report" className="fancy-btn">
+            <FancyShell>
+              {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
+            </FancyShell>
           </Link>
         </div>
       </section>
