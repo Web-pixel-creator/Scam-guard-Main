@@ -90,8 +90,8 @@ function Index() {
         </section>
 
 
-        {/* MARQUEE — APEX style: tight, thin border, neutral */}
-        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px]">
+        {/* MARQUEE — APEX: stripes texture + hairline borders */}
+        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px] apex-stripes-soft">
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
@@ -111,9 +111,13 @@ function Index() {
         </section>
 
 
-        {/* CAPABILITIES — APEX grid: sharp, glass, hairline borders */}
-        <section>
-          <div className="flex items-end justify-between mb-12 gap-6 pb-6 border-b border-[#E2E0D8]">
+        {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-start justify-between mb-3">
+            <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
+            <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
+          </div>
+          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
             <div>
               <p className="label-md mb-3">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
@@ -124,10 +128,10 @@ function Index() {
                 }[lang]}
               </h2>
             </div>
-            <span className="hidden md:block text-[#A1A1AA] text-xs font-mono tracking-[0.1em] uppercase">04 / 04</span>
+            <span className="hidden md:block apex-mono">04 / 04</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {[
               { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
@@ -138,8 +142,8 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="group relative bg-white/40 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
-                <span className="absolute top-5 right-5 text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em]">0{idx + 1}</span>
+              <div key={c.k.en} className="group relative bg-white/70 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
+                <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
                 <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12 transition-colors" style={{ color: c.accent }}>
                   <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
@@ -151,20 +155,25 @@ function Index() {
           </div>
         </section>
 
-        {/* HOW IT WORKS — APEX surface panel */}
-        <section className="relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1]" />
+
+        {/* HOW IT WORKS — APEX striped surface panel */}
+        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1] z-[1]" />
           <div className="relative p-10 md:p-16">
+            <div className="flex items-center justify-between mb-6">
+              <span className="apex-mono">SYS · ALGORITHM</span>
+              <span className="apex-mono">03 / 03 STEPS</span>
+            </div>
             <p className="label-md mb-3">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
             <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-14 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
                 { i: "01", t: t("step_1", lang), d: t("step_1_d", lang) },
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5">
+                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5 apex-stripes-soft">
                   <span className="block font-sans text-5xl font-medium tracking-[-0.05em] text-[#E2E0D8]">{s.i}</span>
                   <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
                   <p className="text-[#A1A1AA] text-[13px] leading-relaxed">{s.d}</p>
@@ -174,14 +183,19 @@ function Index() {
           </div>
         </section>
 
-        {/* EXAMPLE — APEX gradient shell on the risk card */}
-        <section>
+        {/* EXAMPLE — APEX striped frame around the demo */}
+        <section className="apex-frame apex-stripes-soft border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-center justify-between mb-8">
+            <span className="apex-mono">CASE STUDY · DEMO</span>
+            <span className="apex-mono">RISK · LIVE</span>
+          </div>
           <div className="text-center mb-14">
             <p className="label-md mb-3">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
             <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-2xl mx-auto text-[#18181B]">
               {t("example_title", lang)}
             </h2>
           </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <div className="apex-glass p-8 rounded-[8px]">
@@ -250,15 +264,20 @@ function Index() {
           </div>
         </section>
 
-        {/* KNOWLEDGE BASE — APEX 1px-gap grid */}
-        <section>
-          <div className="flex items-end justify-between mb-12 gap-6 pb-6 border-b border-[#E2E0D8]">
+        {/* KNOWLEDGE BASE — APEX striped frame */}
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-center justify-between mb-6">
+            <span className="apex-mono">DB · SCAM CASES</span>
+            <span className="apex-mono">INDEX 06 / 06</span>
+          </div>
+          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
             <div>
               <p className="label-md mb-3">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-3xl text-[#18181B]">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block text-[#A1A1AA] text-xs font-mono tracking-[0.1em] uppercase">06 cases</span>
+            <span className="hidden md:block apex-mono">06 cases</span>
           </div>
+
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {([
@@ -275,7 +294,7 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="group bg-white/40 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300">
+              <div key={s.en} className="group bg-white/70 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300">
                 <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-5">CASE #{s.n}</p>
                 <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B] group-hover:text-[#F97316] transition-colors">{s[lang]}</h3>
                 <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
@@ -326,14 +345,30 @@ function Index() {
           </div>
         </section>
 
-        {/* trust strip — APEX label */}
-        <section className="py-8 flex items-center justify-center gap-3 label-md">
-          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
-          <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
-          <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+        {/* APEX-style footer band: ghost wordmark + status meta */}
+        <section className="apex-frame apex-stripes-soft border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
+          <div className="flex items-start justify-between mb-10">
+            <div className="space-y-1">
+              <p className="apex-mono">BUILD V3.1</p>
+              <p className="apex-mono">CORE SYSTEMS: ONLINE</p>
+            </div>
+            <div className="text-right space-y-1">
+              <p className="apex-mono">{{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}</p>
+              <p className="apex-mono">© 2025 ISHONCH GUARD</p>
+            </div>
+          </div>
+          <div className="apex-wordmark text-[26vw] md:text-[18vw] leading-none select-none pointer-events-none">
+            ISHONCH.
+          </div>
+          <div className="mt-8 flex items-center justify-center gap-3 label-md">
+            <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </div>
         </section>
 
       </div>
     </div>
   );
 }
+

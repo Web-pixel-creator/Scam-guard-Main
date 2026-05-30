@@ -368,3 +368,91 @@
   100% { opacity: 1;    transform: translateX(-50%) scale(1.06); }
 }
 
+/* ===== APEX techno frame: diagonal hairline stripes + corner ticks ===== */
+.apex-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 22px,
+    rgba(11, 11, 15, 0.032) 22px 23px
+  );
+}
+.apex-stripes-soft {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 28px,
+    rgba(11, 11, 15, 0.022) 28px 29px
+  );
+}
+
+.apex-frame {
+  position: relative;
+}
+.apex-frame::before,
+.apex-frame::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0.8px solid rgba(11, 11, 15, 0.35);
+  pointer-events: none;
+  z-index: 2;
+}
+.apex-frame::before {
+  top: 10px;
+  left: 10px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.apex-frame::after {
+  bottom: 10px;
+  right: 10px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.apex-mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--apex-text-soft);
+  font-weight: 500;
+}
+
+.apex-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(11, 11, 15, 0.08);
+  user-select: none;
+}
+
+.apex-btn-outline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--apex-text);
+  background-clip: padding-box;
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(#fff, #fff),
+    linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #6366F1 100%);
+  background-origin: border-box;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.apex-btn-outline:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -12px rgba(236, 72, 153, 0.35);
+}
+
+
