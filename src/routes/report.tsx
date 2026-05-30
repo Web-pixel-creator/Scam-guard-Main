@@ -1,11 +1,12 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, CheckCircle2, Send } from "lucide-react";
+import { Loader2, CheckCircle2, Send, ArrowLeft } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { submitReport } from "@/lib/report.functions";
+
 
 const reportSearchSchema = z.object({ v: z.string().optional() });
 
