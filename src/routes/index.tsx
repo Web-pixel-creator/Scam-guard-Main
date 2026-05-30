@@ -991,7 +991,7 @@ function Index() {
 
 
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8 cv-auto">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 pb-16">
           <div className="apex-shell">
             <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
