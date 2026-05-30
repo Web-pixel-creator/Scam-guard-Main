@@ -79,9 +79,33 @@
   --apex-pink: #FB923C;
   --apex-indigo: #C2410C;
   --apex-text: #18181B;
-  --apex-text-soft: #A1A1AA;
+  --apex-text-soft: #71717A;     /* WCAG AA on #FFFFFF and #F4F2EB (≥4.5:1) */
+  --apex-text-faint: #A1A1AA;    /* Decorative only — large display numbers, dividers */
   --apex-surface: #F4F2EB;
   --apex-border: #E2E0D8;
+
+  /* ===== Unified spacing scale (4px base) =====
+     Use the same tokens for section padding, card padding, and gaps so
+     the whole layout stays on one rhythm. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Section / card paddings (responsive via clamp) */
+  --pad-section: clamp(24px, 4vw, 56px);   /* p-6 → md:p-14 */
+  --pad-card: clamp(28px, 3vw, 40px);      /* p-7 → md:p-10 */
+  --gap-stack: clamp(40px, 6vw, 80px);     /* vertical rhythm between sections */
+  --gap-grid: 1px;                          /* hairline grid gap */
 
   --safe: #059669;
   --safe-foreground: #FFFFFF;
