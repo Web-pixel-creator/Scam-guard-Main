@@ -3,7 +3,7 @@ import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, 
 import { CheckInput } from "@/components/CheckInput";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import heroBloom from "@/assets/hero-bloom.jpg";
+import { UnicornBackground } from "@/components/UnicornBackground";
 
 
 export const Route = createFileRoute("/")({
@@ -64,14 +64,10 @@ function Index() {
 
           {/* Bloom band with form centered on top (GoLive-mockup style) */}
           <div className="w-full max-w-[1200px] mt-14 mb-12 animate-fade-in-up">
-            <div className="relative rounded-[28px] overflow-hidden">
-              <img
-                src={heroBloom}
-                alt=""
-                aria-hidden
-                loading="lazy"
-                className="w-full h-[460px] md:h-[520px] object-cover"
-                style={{ filter: "saturate(1.1)" }}
+            <div className="relative rounded-[28px] overflow-hidden h-[460px] md:h-[520px]">
+              <UnicornBackground
+                projectId="pSxbKYCCk7vGhrLFRLrG"
+                className="absolute inset-0 w-full h-full"
               />
               {/* Form centered over the bloom */}
               <div className="absolute inset-0 flex items-center justify-center px-4 md:px-10">
