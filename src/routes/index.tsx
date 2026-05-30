@@ -221,30 +221,30 @@ function Index() {
 
 
         {/* EXAMPLE — APEX striped frame around the demo */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-center justify-between mb-8">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">CASE STUDY · DEMO</span>
-            <span className="apex-mono">RISK · LIVE</span>
+            <span className="apex-mono text-right">RISK · LIVE</span>
           </div>
-          <div className="text-center mb-14">
-            <p className="label-md mb-3">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
-            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-2xl mx-auto text-[#18181B]">
+          <div className="text-center mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <p className="label-md mb-4">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
+            <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] max-w-2xl mx-auto text-[#18181B] text-balance">
               {t("example_title", lang)}
             </h2>
           </div>
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <div className="apex-glass p-6 md:p-8 rounded-[6px]">
-              <p className="label-md mb-5">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
-              <p className="text-[15px] leading-relaxed text-[#18181B] italic border-l-2 border-[#F97316] pl-5">
+            <div className="apex-glass p-7 sm:p-9 md:p-10 rounded-[6px]">
+              <p className="label-md mb-6">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
+              <p className="text-[15px] md:text-[16px] leading-[1.7] text-[#18181B] italic border-l-2 border-[#F97316] pl-5 max-w-[58ch] text-pretty">
                 {{
                   ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция. Срочно назовите код из SMS…»",
                   uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangiz bo'yicha shubhali amaliyot. Tezda SMS-kodni ayting…»",
                   en: "“Hello, this is the bank security service. A suspicious transaction was detected on your card. Tell us the SMS code now…”",
                 }[lang]}
               </p>
-              <p className="mt-7 text-[13px] text-[#A1A1AA] leading-relaxed">
+              <p className="mt-8 text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[56ch] text-pretty">
                 {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
                    uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
                    en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
@@ -253,42 +253,42 @@ function Index() {
 
             {/* Gradient-shell card — APEX signature technique */}
             <div className="apex-shell">
-              <div className="relative bg-white p-8">
-                <div className="flex items-start justify-between mb-8">
+              <div className="relative bg-white p-7 sm:p-9 md:p-10">
+                <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
                     <p className="text-[11px] font-medium tracking-[0.1em] uppercase mb-2 bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</p>
-                    <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B]">{t("risk_high", lang)}</h3>
+                    <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                   </div>
-                  <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316]">
+                  <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
                     <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <div className="space-y-7">
+                <div className="space-y-8">
                   <div>
-                    <p className="label-md mb-3">{t("why_title", lang)}</p>
-                    <ul className="space-y-2.5 text-[13px] text-[#18181B]">
+                    <p className="label-md mb-4">{t("why_title", lang)}</p>
+                    <ul className="space-y-3 text-[14px] md:text-[15px] text-[#18181B] leading-[1.6]">
                       {(({
                         ru: ["Просят SMS-код (OTP)", "Представляются банком", "Создают срочность и давление", "Похожая схема уже в жалобах"],
                         uz: ["SMS-kod (OTP) so'rashmoqda", "Bank nomidan murojaat", "Shoshilinchlik va bosim", "Shu sxema shikoyatlarda uchragan"],
                         en: ["They ask for an SMS code (OTP)", "They impersonate a bank", "Urgency and pressure", "Similar pattern already reported"],
                       })[lang]).map((r) => (
-                        <li key={r} className="flex items-center gap-3">
-                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0" />
+                        <li key={r} className="flex items-start gap-3">
+                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0 mt-2.5" />
                           <span>{r}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="pt-6 border-t border-[#E2E0D8]">
-                    <p className="label-md mb-3">{t("what_to_do", lang)}</p>
-                    <div className="space-y-2">
+                  <div className="pt-7 border-t border-[#E2E0D8]">
+                    <p className="label-md mb-4">{t("what_to_do", lang)}</p>
+                    <div className="space-y-2.5">
                       {(({
                         ru: ["Не отправляйте код", "Завершите разговор", "Позвоните в банк по номеру с карты"],
                         uz: ["Kodni yubormang", "Suhbatni tugating", "Bankka kartadagi raqam orqali qo'ng'iroq qiling"],
                         en: ["Don't send the code", "End the call", "Call the bank using the number on your card"],
                       })[lang]).map((r, i) => (
-                        <div key={r} className="flex items-center gap-3 px-3 py-2.5 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[13px]">
+                        <div key={r} className="flex items-center gap-3 px-3.5 py-3 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[14px]">
                           <span className="text-[#A1A1AA] text-[11px] font-mono">0{i + 1}</span>
                           <span className="text-[#18181B]">{r}</span>
                         </div>
@@ -300,6 +300,7 @@ function Index() {
             </div>
           </div>
         </section>
+
 
         {/* KNOWLEDGE BASE — APEX striped frame */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
