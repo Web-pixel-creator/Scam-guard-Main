@@ -77,12 +77,10 @@ function Index() {
               </p>
 
               <div className="mt-7 md:mt-8 flex items-center justify-center gap-5 animate-fade-in-up">
-                <Link
-                  to="/check"
-                  className="inline-flex items-center gap-2 rounded-[6px] bg-[#0B0B0F] hover:bg-[#F97316] transition-colors px-5 py-3 text-[12px] font-semibold tracking-[0.15em] uppercase text-white"
-                >
-                  {{ ru: "Проверить", uz: "Tekshirish", en: "Check now" }[lang]}
-                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+                <Link to="/check" className="fancy-btn">
+                  <FancyShell>
+                    {{ ru: "Проверить", uz: "Tekshirish", en: "Check now" }[lang]}
+                  </FancyShell>
                 </Link>
                 <Link
                   to="/report"
