@@ -24,13 +24,15 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
 
         {/* HERO */}
-        <section className="flex flex-col items-center text-center pt-8 md:pt-12 relative -mx-6 px-6 rounded-[40px] overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-[#08080B]" />
-          <div className="pointer-events-none absolute inset-0 -z-10">
+        <section className="isolate flex flex-col items-center text-center pt-16 md:pt-24 relative -mx-6 px-6 rounded-[40px] overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[#08080B]" />
+          <div className="pointer-events-none absolute inset-0 z-[1]">
             <UnicornBackground />
           </div>
-          <div className="pointer-events-none absolute inset-0 -z-10 grid-bg opacity-[0.07]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-b from-transparent to-background" />
+          <div className="pointer-events-none absolute inset-0 z-[2] grid-bg opacity-[0.08]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-40 bg-gradient-to-b from-transparent to-background" />
+          <div className="relative z-10 flex flex-col items-center w-full">
+
 
 
 
