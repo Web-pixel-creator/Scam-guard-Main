@@ -264,7 +264,7 @@ function Index() {
                 </div>
 
                 {/* Pain badge — red dot signals "this is the problem" */}
-                <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
