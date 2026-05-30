@@ -149,10 +149,10 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/report"
-                className="apex-btn-outline inline-flex items-center gap-2 group"
+                className="fancy-btn inline-flex items-center justify-center gap-2 group"
               >
                 {t("report_btn", lang)}
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
               {isHot && (
                 <Link
