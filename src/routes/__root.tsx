@@ -85,6 +85,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Preconnect to font CDNs so the display font lands before LCP
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // Preload the main display font (used for H1) to avoid FOUT/CLS on the LCP
+      {
+        rel: "preload",
+        as: "style",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
+      },
       // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
       { rel: "preconnect", href: "https://keacrmbtxccnernxhfhn.supabase.co", crossOrigin: "anonymous" },
       { rel: "dns-prefetch", href: "https://keacrmbtxccnernxhfhn.supabase.co" },
