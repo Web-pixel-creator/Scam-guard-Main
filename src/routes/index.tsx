@@ -166,9 +166,9 @@ function Index() {
 
 
         {/* HOW IT WORKS — APEX striped surface panel */}
-        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
+        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px]">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1] z-[1]" />
-          <div className="relative p-10 md:p-16">
+          <div className="relative p-6 sm:p-10 md:p-14">
             <div className="flex items-center justify-between mb-6">
               <span className="apex-mono">SYS · ALGORITHM</span>
               <span className="apex-mono">03 / 03 STEPS</span>
@@ -207,7 +207,7 @@ function Index() {
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <div className="apex-glass p-8 rounded-[8px]">
+            <div className="apex-glass p-6 md:p-8 rounded-[6px]">
               <p className="label-md mb-5">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
               <p className="text-[15px] leading-relaxed text-[#18181B] italic border-l-2 border-[#F97316] pl-5">
                 {{
@@ -317,7 +317,7 @@ function Index() {
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
           <div className="apex-shell">
-            <div className="relative bg-white p-10 md:p-12 overflow-hidden">
+            <div className="relative bg-white p-6 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
                 <span className="label-md text-[#F97316]">[ Emergency ]</span>
                 <AlertTriangle className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
@@ -334,7 +334,7 @@ function Index() {
             </div>
           </div>
 
-          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[8px] p-10 md:p-12 overflow-hidden">
+          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-6 sm:p-9 md:p-11 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#6366F1] via-[#EC4899] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
               <span className="label-md">[ Community ]</span>
