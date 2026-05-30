@@ -24,13 +24,15 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
 
         {/* HERO */}
-        <section className="isolate flex flex-col items-center text-center pt-16 md:pt-24 relative -mx-6 px-6 rounded-[40px] overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 z-0 bg-[#08080B]" />
-          <div className="pointer-events-none absolute inset-0 z-[1]">
+        <section className="isolate flex flex-col items-center text-center pt-16 md:pt-24 relative">
+          {/* Full-width background breakout */}
+          <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen z-0 overflow-hidden">
+            <div className="absolute inset-0 bg-[#08080B]" />
             <UnicornBackground />
+            <div className="absolute inset-0 grid-bg opacity-[0.08]" />
+            {/* Stronger bottom fade to background */}
+            <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-b from-transparent via-background/70 to-background" />
           </div>
-          <div className="pointer-events-none absolute inset-0 z-[2] grid-bg opacity-[0.08]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-40 bg-gradient-to-b from-transparent to-background" />
           <div className="relative z-10 flex flex-col items-center w-full">
 
 
