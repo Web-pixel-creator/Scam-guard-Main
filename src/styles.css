@@ -1084,3 +1084,7 @@ textarea.apex-field { resize: vertical; min-height: 96px; }
   .bloom-band::before,
   .bloom-band::after { animation: none; }
 }
+
+/* Make UnicornStudio canvas stretch to container as it grows */
+[data-us-project] { width: 100% !important; height: 100% !important; }
+[data-us-project] canvas { width: 100% !important; height: 100% !important; display: block; }
