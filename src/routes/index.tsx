@@ -398,26 +398,51 @@ function Index() {
 
 
         {/* APEX-style footer band: ghost wordmark + status meta */}
-        <section className="apex-frame apex-stripes border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
-          <div className="flex items-start justify-between mb-10">
-            <div className="space-y-1">
+        <footer className="apex-frame apex-stripes border-t border-[#E2E0D8] mt-4 pt-12 sm:pt-16 pb-8 -mx-6 px-6 sm:px-10 md:px-14">
+          {/* Top meta row */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-14 sm:mb-20">
+            <div className="space-y-1.5">
               <p className="apex-mono">BUILD V3.1</p>
-              <p className="apex-mono">CORE SYSTEMS: ONLINE</p>
+              <p className="apex-mono flex items-center gap-2">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                CORE SYSTEMS: ONLINE
+              </p>
             </div>
-            <div className="text-right space-y-1">
+            <div className="sm:text-right space-y-1.5">
               <p className="apex-mono">{{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}</p>
               <p className="apex-mono">© 2025 ISHONCH GUARD</p>
             </div>
           </div>
-          <div className="apex-wordmark text-[26vw] md:text-[18vw] leading-none select-none pointer-events-none">
+
+          {/* Ghost wordmark */}
+          <div className="apex-wordmark text-[26vw] md:text-[18vw] leading-none select-none pointer-events-none mb-12 sm:mb-16">
             ISHONCH.
           </div>
-          <div className="mt-8 flex items-center justify-center gap-3 label-md">
-            <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
+
+          {/* Tagline */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 label-md text-center mb-12 sm:mb-16">
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
             <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
-            <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Sparkles className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
           </div>
-        </section>
+
+          {/* Bottom strip */}
+          <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <p className="apex-mono text-[#71717A]">
+              {{ ru: ") ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
+                 uz: ") ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
+                 en: ") ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
+            </p>
+            <div className="flex items-center gap-6">
+              <Link to="/" className="apex-mono text-[#52525B]">
+                {{ ru: "ПРИВАТНОСТЬ", uz: "MAXFIYLIK", en: "PRIVACY" }[lang]}
+              </Link>
+              <Link to="/" className="apex-mono text-[#52525B]">
+                {{ ru: "ПОМОЩЬ", uz: "YORDAM", en: "HELP" }[lang]}
+              </Link>
+            </div>
+          </div>
+        </footer>
 
       </div>
     </div>
