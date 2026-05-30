@@ -32,7 +32,15 @@ function validateInput(value: string, hasOcr: boolean): string | null {
   return null;
 }
 
-export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
+export function CheckInput({
+  defaultValue = "",
+  hideInlineResult = false,
+  onResult,
+}: {
+  defaultValue?: string;
+  hideInlineResult?: boolean;
+  onResult?: (r: CheckResult | null) => void;
+}) {
   const { lang } = useLang();
   const navigate = useNavigate();
   const [value, setValue] = useState(defaultValue);
