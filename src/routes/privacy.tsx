@@ -127,6 +127,10 @@ function PrivacyPage() {
         </div>
 
         <div className="max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Боитесь, что данные утекут? Читайте, что мы НЕ делаем", uz: "Ma'lumotlar oqib ketishidan qo'rqasizmi? Biz NIMA qilmasligimizni o'qing", en: "Worried your data leaks? See what we never do" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">04 — {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
           <h1 className="apex-h1">
             {data.h_lead} <span className="font-serif-italic text-[#8B8B92]">{data.h_accent}</span>
