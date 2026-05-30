@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import { FancyShell } from "@/components/FancyButton";
 
 export type CheckResult = {
   type: string;
