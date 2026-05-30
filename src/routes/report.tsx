@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
