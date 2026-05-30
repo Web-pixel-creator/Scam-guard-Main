@@ -71,11 +71,14 @@ export function CheckInput({
         : "idle";
 
   const statusLabel: Record<Status, string> = {
-    idle: "READY",
-    loading: ocrLoading ? "OCR · SCAN" : "ANALYZING",
-    success: "RISK · READY",
-    error: "ERROR",
+    idle: { ru: "Готово", uz: "Tayyor", en: "Ready" }[lang],
+    loading: ocrLoading
+      ? { ru: "Читаем картинку…", uz: "Rasm o'qilmoqda…", en: "Reading image…" }[lang]
+      : { ru: "Проверяем…", uz: "Tekshirilmoqda…", en: "Checking…" }[lang],
+    success: { ru: "Готово", uz: "Tayyor", en: "Done" }[lang],
+    error: { ru: "Ошибка", uz: "Xato", en: "Error" }[lang],
   };
+
 
   async function onPickFile(file: File | undefined) {
     setError(null);
@@ -158,7 +161,7 @@ export function CheckInput({
 
         {/* Header bar */}
         <div className="flex items-center justify-between gap-3 px-7 pt-5 pb-3 border-b border-[#E2E0D8]/60">
-          <span className="apex-mono">INPUT · {lang.toUpperCase()}</span>
+          <span className="apex-mono">{{ ru: "Ввод", uz: "Kiritish", en: "Input" }[lang]} · {lang.toUpperCase()}</span>
           <span className="apex-status" data-state={status} aria-live="polite">
             <span className="apex-status-dot" />
             {statusLabel[status]}
@@ -207,9 +210,10 @@ export function CheckInput({
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#F97316]/10">
                   <AlertTriangle className="h-3 w-3 text-[#C2410C]" strokeWidth={2} />
                 </span>
-                <span className="apex-mono text-[#18181B]">OCR · PREVIEW</span>
+                <span className="apex-mono text-[#18181B]">{{ ru: "Текст с картинки", uz: "Rasmdagi matn", en: "Text from image" }[lang]}</span>
               </div>
-              <span className="apex-mono text-[#A1A1AA]">{ocrText.trim().length} CHARS</span>
+              <span className="apex-mono text-[#A1A1AA]">{ocrText.trim().length} {{ ru: "символов", uz: "belgi", en: "chars" }[lang]}</span>
+
             </div>
 
             {/* Body */}

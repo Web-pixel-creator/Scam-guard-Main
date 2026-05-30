@@ -26,32 +26,40 @@ type LevelStyle = {
   topBar: string;        // gradient class for top stripe
 };
 
+const TAG_LABELS: Record<RiskLevel, { ru: string; uz: string; en: string }> = {
+  safe: { ru: "Безопасно", uz: "Xavfsiz", en: "Safe" },
+  unknown: { ru: "Неизвестно", uz: "Noma'lum", en: "Unknown" },
+  suspicious: { ru: "Подозрительно", uz: "Shubhali", en: "Watch" },
+  high_risk: { ru: "Обман", uz: "Aldov", en: "Scam" },
+};
+
 const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
   safe: {
     icon: ShieldCheck, key: "risk_safe", accent: "#059669",
     badgeBg: "bg-[#ECFDF5]", badgeBorder: "border-[#A7F3D0]/70", badgeText: "text-[#065F46]",
-    tag: "SAFE",
+    tag: "safe",
     topBar: "from-[#10B981] via-[#34D399] to-[#6EE7B7]",
   },
   unknown: {
     icon: ShieldQuestion, key: "risk_unknown", accent: "#71717A",
     badgeBg: "bg-[#F4F4F5]", badgeBorder: "border-[#E4E4E7]", badgeText: "text-[#3F3F46]",
-    tag: "UNKNOWN",
+    tag: "unknown",
     topBar: "from-[#FDBA74]/40 via-[#E2E0D8] to-[#FDBA74]/40",
   },
   suspicious: {
     icon: AlertTriangle, key: "risk_suspicious", accent: "#D97706",
     badgeBg: "bg-[#FFFBEB]", badgeBorder: "border-[#FCD34D]/70", badgeText: "text-[#92400E]",
-    tag: "WATCH",
+    tag: "suspicious",
     topBar: "from-[#F59E0B] via-[#FBBF24] to-[#FCD34D]",
   },
   high_risk: {
     icon: ShieldAlert, key: "risk_high", accent: "#DC2626",
     badgeBg: "bg-[#FEF2F2]", badgeBorder: "border-[#FCA5A5]/60", badgeText: "text-[#991B1B]",
-    tag: "SCAM",
+    tag: "high_risk",
     topBar: "from-[#F97316] via-[#FB923C] to-[#C2410C]",
   },
 };
+
 
 const TYPE_LABELS: Record<string, { ru: string; uz: string; en: string }> = {
   phone: { ru: "Телефон", uz: "Telefon", en: "Phone" },
@@ -103,9 +111,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-3 text-[12px] text-[#71717A]">
-                <span>Тип:</span>
+                <span>{{ ru: "Тип:", uz: "Turi:", en: "Type:" }[lang]}</span>
                 <span className="text-[#18181B] font-medium">{typeLabel}</span>
+                <span className="text-[#A1A1AA]">·</span>
+                <span className="text-[#18181B] font-medium uppercase tracking-wider">{TAG_LABELS[result.level][lang]}</span>
               </div>
+
               <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
                 {t(s.key as never, lang)}
               </h3>
@@ -163,10 +174,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-[#E2E0D8] flex flex-wrap items-center justify-between gap-4">
             <span className="apex-mono text-[#71717A]">
-              {result.knownReports > 0
-                ? `REPORTS · ${result.knownReports}`
-                : "REPORTS · 00"}
+              {{ ru: "Жалоб", uz: "Shikoyatlar", en: "Reports" }[lang]} · {result.knownReports > 0 ? result.knownReports : "00"}
             </span>
+
             <div className="flex flex-wrap gap-3">
               <Link to="/report" className="fancy-btn">
                 <FancyShell>{t("report_btn", lang)}</FancyShell>
