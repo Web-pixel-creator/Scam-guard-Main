@@ -24,7 +24,18 @@ export const Route = createFileRoute("/report")({
 
 function ReportPage() {
   const { lang } = useLang();
+  const router = useRouter();
   const { v } = useSearch({ from: "/report" });
+
+  const goBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/" });
+    }
+  };
+
   const [value, setValue] = useState(v ?? "");
   const [desc, setDesc] = useState("");
   const [scamType, setScamType] = useState("");
