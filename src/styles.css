@@ -423,20 +423,34 @@
   width: 16px;
   height: 16px;
 }
-/* Optional sweeping scan-line element placed inside .apex-frame */
+/* Sweep scanline — only when NOT focused inside, so it doesn't distract typing */
 .apex-frame > .apex-scan {
   position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.55), transparent);
-  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.45), transparent);
+  transform: translate3d(-100%, 0, 0);
   opacity: 0;
   pointer-events: none;
   z-index: 3;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
+  will-change: transform, opacity;
 }
-.apex-frame:hover > .apex-scan { opacity: 1; animation: apex-scan-sweep 1.8s ease-in-out infinite; }
+.apex-frame:hover:not(:focus-within) > .apex-scan {
+  opacity: 1;
+  animation: apex-scan-sweep 2.4s ease-in-out infinite;
+}
 @keyframes apex-scan-sweep {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0%   { transform: translate3d(-100%, 0, 0); }
+  100% { transform: translate3d(100%, 0, 0); }
+}
+
+/* Respect reduced-motion globally for these effects */
+@media (prefers-reduced-motion: reduce) {
+  .apex-frame:hover { box-shadow: 0 0 0 1px rgba(11,11,15,0.10); }
+  .apex-frame:hover::before,
+  .apex-frame:hover::after { width: 12px; height: 12px; }
+  .apex-frame > .apex-scan { display: none !important; }
+  .apex-btn-outline:hover { transform: none !important; }
+  .apex-btn-outline::after { display: none !important; }
 }
 
 
@@ -478,23 +492,25 @@
     linear-gradient(#fff, #fff),
     linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #6366F1 100%);
   background-origin: border-box;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
   overflow: hidden;
+  will-change: transform;
 }
 .apex-btn-outline::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 30%, rgba(249,115,22,0.18) 50%, transparent 70%);
-  transform: translateX(-110%);
-  transition: transform 0.7s ease;
+  background: linear-gradient(120deg, transparent 35%, rgba(249,115,22,0.22) 50%, transparent 65%);
+  transform: translate3d(-110%, 0, 0);
+  transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
   pointer-events: none;
 }
 .apex-btn-outline:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 30px -12px rgba(236, 72, 153, 0.35);
+  transform: translate3d(0, -1px, 0);
+  box-shadow: 0 12px 28px -14px rgba(236, 72, 153, 0.4);
 }
-.apex-btn-outline:hover::after { transform: translateX(110%); }
+.apex-btn-outline:hover::after { transform: translate3d(110%, 0, 0); }
+.apex-btn-outline:active { transform: translate3d(0, 0, 0); }
 .apex-btn-outline:disabled,
 .apex-btn-outline[disabled] {
   opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
