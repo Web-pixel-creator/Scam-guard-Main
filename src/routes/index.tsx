@@ -176,13 +176,13 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[240px] md:min-h-[260px] flex flex-col">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[260px] md:min-h-[280px] flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12" style={{ color: c.accent }}>
-                  <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12 transition-colors" style={{ color: c.accent }}>
+                  <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
-                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[34ch] text-pretty">{c.d[lang]}</p>
+                <p className="card-body">{c.d[lang]}</p>
               </div>
             ))}
           </div>
