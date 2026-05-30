@@ -715,9 +715,28 @@ function Index() {
             </div>
           </div>
 
-          {/* Ghost wordmark */}
-          <div className="apex-wordmark text-[26vw] md:text-[18vw] leading-none select-none pointer-events-none mb-12 sm:mb-16">
-            ISHONCH.
+          {/* Ghost wordmark — SVG scales to container width, never clips */}
+          <div className="select-none pointer-events-none mb-12 sm:mb-16" aria-hidden="true">
+            <svg
+              viewBox="0 0 1000 220"
+              preserveAspectRatio="xMidYMid meet"
+              className="block w-full h-auto overflow-visible"
+            >
+              <text
+                x="500"
+                y="180"
+                textAnchor="middle"
+                fontFamily="var(--font-display)"
+                fontWeight={800}
+                fontSize={240}
+                letterSpacing="-12"
+                fill="transparent"
+                stroke="rgba(11,11,15,0.10)"
+                strokeWidth={1.2}
+              >
+                ISHONCH.
+              </text>
+            </svg>
           </div>
 
           {/* Tagline */}
