@@ -274,9 +274,8 @@
   filter: blur(22px);
   opacity: 0.45;
   z-index: -1;
-  transition: opacity 0.6s ease;
+  transition: none;
 }
-.cta-glow:hover::before { opacity: 0.7; }
 
 .glow-danger {
   box-shadow:
@@ -429,20 +428,9 @@
   border: 0.8px solid var(--apex-tick-color);
   pointer-events: none;
   z-index: 2;
-  transition: border-color 0.35s ease, width 0.35s ease, height 0.35s ease;
 }
 .apex-frame::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
 .apex-frame::after  { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
-.apex-frame:hover {
-  border-color: rgba(11, 11, 15, 0.22);
-  box-shadow: 0 0 0 1px rgba(249,115,22,0.06), 0 18px 40px -28px rgba(11,11,15,0.18);
-}
-.apex-frame:hover::before,
-.apex-frame:hover::after {
-  border-color: var(--apex-tick-color-hover);
-  width: 16px;
-  height: 16px;
-}
 /* Sweep scanline — only when NOT focused inside, so it doesn't distract typing */
 .apex-frame > .apex-scan {
   position: absolute; top: 0; left: 0; right: 0; height: 1px;
@@ -451,23 +439,11 @@
   opacity: 0;
   pointer-events: none;
   z-index: 3;
-  transition: opacity 0.25s ease;
   will-change: transform, opacity;
-}
-.apex-frame:hover:not(:focus-within) > .apex-scan {
-  opacity: 1;
-  animation: apex-scan-sweep 2.4s ease-in-out infinite;
-}
-@keyframes apex-scan-sweep {
-  0%   { transform: translate3d(-100%, 0, 0); }
-  100% { transform: translate3d(100%, 0, 0); }
 }
 
 /* Respect reduced-motion globally for these effects */
 @media (prefers-reduced-motion: reduce) {
-  .apex-frame:hover { box-shadow: 0 0 0 1px rgba(11,11,15,0.10); }
-  .apex-frame:hover::before,
-  .apex-frame:hover::after { width: 12px; height: 12px; }
   .apex-frame > .apex-scan { display: none !important; }
   .apex-btn-outline:hover { transform: none !important; }
   .apex-btn-outline::after { display: none !important; }
