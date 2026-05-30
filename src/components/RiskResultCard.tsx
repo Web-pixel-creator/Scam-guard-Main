@@ -53,12 +53,22 @@ const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
   },
 };
 
+const TYPE_LABELS: Record<string, { ru: string; uz: string; en: string }> = {
+  phone: { ru: "Телефон", uz: "Telefon", en: "Phone" },
+  telegram: { ru: "Telegram", uz: "Telegram", en: "Telegram" },
+  url: { ru: "Ссылка", uz: "Havola", en: "Link" },
+  text: { ru: "Текст сообщения", uz: "Xabar matni", en: "Message text" },
+  unknown: { ru: "Запрос", uz: "So‘rov", en: "Input" },
+};
+
 export function RiskResultCard({ result }: { result: CheckResult }) {
   const { lang } = useLang();
   const s = LEVEL_STYLES[result.level];
   const Icon = s.icon;
   const advice = ADVICE[result.level][lang];
   const isHot = result.level === "high_risk" || result.level === "suspicious";
+  const isUnknown = result.level === "unknown";
+  const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
 
   return (
     <div className="apex-shell">
@@ -80,7 +90,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               SYS · RESULT
             </span>
             <span className="apex-mono text-right tabular-nums">
-              SCORE · {Math.round(result.score)}%
+              {isUnknown ? "SCORE · N/A" : `SCORE · ${Math.round(result.score)}%`}
             </span>
           </div>
 
@@ -90,13 +100,10 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
-              <span
-                className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] border ${s.badgeBg} ${s.badgeBorder} ${s.badgeText} text-[11px] font-medium tracking-[0.08em] uppercase mb-3`}
-              >
-                <span className="font-mono text-[10px]" style={{ color: s.accent }}>{s.tag}</span>
-                <span className="h-3 w-px" style={{ backgroundColor: `${s.accent}55` }} />
-                <span>{result.type}</span>
-              </span>
+              <div className="flex items-center gap-2 mb-3 text-[12px] text-[#71717A]">
+                <span>Тип:</span>
+                <span className="text-[#18181B] font-medium">{typeLabel}</span>
+              </div>
               <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
                 {t(s.key as never, lang)}
               </h3>
@@ -105,7 +112,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                   {result.display}
                 </blockquote>
               ) : (
-                <p className="mt-2 apex-mono break-all">{result.display}</p>
+                <p className="mt-2 font-mono text-[13.5px] text-[#52525B] break-all">{result.display}</p>
               )}
 
               {result.explanation && (
@@ -123,7 +130,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               <ul className="space-y-2.5">
                 {result.reasons.map((r, idx) => (
                   <li key={r} className="flex gap-3 text-[14.5px] leading-[1.6] text-[#52525B]">
-                    <span className="apex-mono text-[#A1A1AA] shrink-0 mt-[2px] tabular-nums">
+                    <span className="font-mono text-[12px] text-[#A1A1AA] shrink-0 mt-[2px] tabular-nums">
                       {(idx + 1).toString().padStart(2, "0")}
                     </span>
                     <span className="text-pretty">{REASON_LABELS[r]?.[lang] ?? r}</span>
@@ -133,17 +140,22 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             </div>
           )}
 
-          {/* Advice */}
-          <div className="mt-8 pt-6 border-t border-[#E2E0D8]">
-            <p className="label-md mb-4">{t("what_to_do", lang)}</p>
-            <ul className="space-y-2.5">
-              {advice.map((a, i) => (
-                <li key={i} className="flex gap-3 text-[14.5px] leading-[1.6] text-[#18181B]">
-                  <span className="text-[#F97316] shrink-0 mt-[1px]" aria-hidden>→</span>
-                  <span className="text-pretty">{a}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Advice — emphasized as primary action block */}
+          <div className="mt-8">
+            <div className="rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#F97316]" />
+                <p className="apex-mono text-[#9A3412]">{t("what_to_do", lang)}</p>
+              </div>
+              <ul className="space-y-3">
+                {advice.map((a, i) => (
+                  <li key={i} className="flex gap-3 text-[15px] leading-[1.6] text-[#18181B]">
+                    <span className="text-[#F97316] shrink-0 mt-[1px] font-semibold" aria-hidden>→</span>
+                    <span className="text-pretty">{a}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Footer */}
@@ -172,3 +184,4 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
     </div>
   );
 }
+
