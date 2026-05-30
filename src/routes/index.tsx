@@ -381,8 +381,8 @@ function Index() {
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
               </p>
-              <Link to="/emergency" className="fancy-btn inline-flex items-center justify-center gap-2 group">
-                {t("emergency_cta", lang)} <ArrowRight aria-hidden="true" focusable="false" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+              <Link to="/emergency" className="fancy-btn">
+                <FancyShell>{t("emergency_cta", lang)}</FancyShell>
               </Link>
             </div>
           </div>
