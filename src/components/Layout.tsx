@@ -7,13 +7,14 @@ import { t } from "@/lib/i18n";
 export function Header() {
   const { lang } = useLang();
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/60 backdrop-blur-2xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2.5 text-foreground">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_20px_-8px_rgba(59,130,246,0.6)]">
+        <Link to="/" className="flex items-center gap-2.5 text-foreground group">
+          <span className="relative grid h-8 w-8 place-items-center rounded-xl bg-primary text-primary-foreground glow-primary transition-transform group-hover:scale-105">
             <ShieldCheck className="h-4 w-4" strokeWidth={2.25} />
           </span>
           <span className="font-display text-base font-extrabold tracking-tight">{t("brand", lang)}</span>
+          <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 rounded-full border border-border text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/50">v1.0</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-foreground/60">
           <Link to="/check" className="hover:text-foreground transition-colors">{t("nav_check", lang)}</Link>

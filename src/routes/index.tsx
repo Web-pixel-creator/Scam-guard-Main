@@ -26,7 +26,7 @@ function Index() {
         <section className="flex flex-col items-center text-center pt-8 md:pt-12 relative">
           <div className="pointer-events-none absolute inset-0 -z-10 grid-bg [mask-image:radial-gradient(ellipse_60%_55%_at_50%_30%,black,transparent)]" />
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold tracking-[0.18em] uppercase mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-[11px] font-mono tracking-[0.2em] uppercase mb-8 animate-fade-in-up">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
@@ -34,28 +34,48 @@ function Index() {
             Anti-Scam Intelligence · Tashkent
           </div>
 
-          <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-5xl md:text-7xl lg:text-[88px] max-w-4xl animate-fade-in-up">
+          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up">
             {{
-              ru: <>Проверьте <span className="text-gradient">до того,</span><br />как обманут</>,
-              uz: <>Aldanmasdan <span className="text-gradient">oldin</span><br />tekshiring</>,
-              en: <>Check it <span className="text-gradient">before</span><br />you get scammed</>,
+              ru: <>Проверьте <span className="font-serif-italic text-gradient">до того,</span><br />как обманут</>,
+              uz: <>Aldanmasdan <span className="font-serif-italic text-gradient">oldin</span><br />tekshiring</>,
+              en: <>Check it <span className="font-serif-italic text-gradient">before</span><br />you get scammed</>,
             }[lang]}
           </h1>
 
-          <p className="mt-7 text-lg text-foreground/60 max-w-2xl leading-relaxed animate-fade-in-up">
+          <p className="mt-7 text-lg text-foreground/55 max-w-2xl leading-relaxed animate-fade-in-up">
             {t("hero_sub", lang)}
           </p>
 
           <div className="w-full max-w-3xl mt-12 animate-fade-in-up">
-            <div className="p-1.5 rounded-3xl bg-gradient-to-b from-foreground/5 to-foreground/0 border border-border backdrop-blur-xl shadow-[0_30px_80px_-30px_rgba(79,70,229,0.25)]">
+            <div className="p-1.5 rounded-3xl bg-gradient-to-b from-foreground/5 to-foreground/0 border border-border backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.4)]">
               <CheckInput />
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-bold tracking-[0.2em] text-foreground/50 uppercase">
+          <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-foreground/45 uppercase">
             <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
             <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
             <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
+          </div>
+        </section>
+
+        {/* MARQUEE — scam patterns ticker */}
+        <section className="relative -mx-6 overflow-hidden border-y border-border py-6 bg-foreground/[0.02]">
+          <div className="flex gap-12 whitespace-nowrap animate-marquee">
+            {[...Array(2)].map((_, dup) => (
+              <div key={dup} className="flex gap-12 shrink-0">
+                {[
+                  "Безопасный счёт", "Bank security call", "Fake APK", "OTP request", "Telegram loan",
+                  "Soxta kuryer", "Prize phishing", "Crypto doubler", "Job offer scam", "Romance scam",
+                  "Безопасный счёт", "Bank security call", "Fake APK", "OTP request",
+                ].map((w, i) => (
+                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground/30">
+                    {w}
+                    <span className="font-serif-italic text-primary/70 text-3xl md:text-4xl">×</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </section>
 
@@ -64,8 +84,12 @@ function Index() {
           <div className="flex items-end justify-between mb-12 gap-6">
             <div>
               <p className="text-primary label-md mb-3">02 · {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
-              <h2 className="font-display text-4xl md:text-5xl tracking-tight">
-                {{ ru: "Что можно проверить", uz: "Nimani tekshirish mumkin", en: "What you can check" }[lang]}
+              <h2 className="font-display text-4xl md:text-6xl tracking-tight">
+                {{
+                  ru: <>Что <span className="font-serif-italic text-foreground/70">можно</span> проверить</>,
+                  uz: <>Nimani <span className="font-serif-italic text-foreground/70">tekshirish</span> mumkin</>,
+                  en: <>What you <span className="font-serif-italic text-foreground/70">can</span> check</>,
+                }[lang]}
               </h2>
             </div>
             <span className="hidden md:block text-foreground/40 text-sm font-mono">04 / 04</span>
@@ -81,13 +105,15 @@ function Index() {
                 d: { ru: "Фишинг, ложные оплаты и вредоносные APK.", uz: "Fishing, soxta to'lovlar va zararli APK.", en: "Phishing, fake payments and malicious APKs." } },
               { i: FileWarning, color: "bg-amber-500/10 text-amber-400", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
-            ].map((c) => (
-              <div key={c.k.en} className="group p-7 rounded-3xl bg-card border border-border hover:bg-secondary hover:border-border transition-all">
+            ].map((c, idx) => (
+              <div key={c.k.en} className="group relative p-7 rounded-3xl bg-card border border-border card-hover overflow-hidden">
+                <span className="absolute top-5 right-5 text-[10px] font-mono text-foreground/30">0{idx + 1}</span>
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-16 group-hover:scale-110 transition-transform ${c.color}`}>
                   <c.i className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <h3 className="font-display text-lg font-bold mb-2 tracking-tight">{c.k[lang]}</h3>
-                <p className="text-sm text-foreground/60 leading-relaxed">{c.d[lang]}</p>
+                <p className="text-sm text-foreground/55 leading-relaxed">{c.d[lang]}</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-4 w-4 text-foreground/20 -rotate-45 group-hover:rotate-0 group-hover:text-primary transition-all" />
               </div>
             ))}
           </div>
