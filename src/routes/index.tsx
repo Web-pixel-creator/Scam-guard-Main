@@ -652,7 +652,7 @@ function Index() {
           <div className="apex-shell">
             <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
-                <span className="label-md text-[#F97316]">[ Emergency ]</span>
+                <span className="label-md text-[#F97316]">[ {{ ru: "Срочно", uz: "Shoshilinch", en: "Urgent" }[lang]} ]</span>
                 <AlertTriangle aria-hidden="true" focusable="false" className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
               <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
