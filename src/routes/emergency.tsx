@@ -101,11 +101,11 @@ function EmergencyPage() {
               <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
             </span>
-            SYS · EMERGENCY
+            {{ ru: "Срочно", uz: "Shoshilinch", en: "Urgent" }[lang]}
           </span>
           <span className="apex-mono text-right">
-            <span className="hidden xs:inline">PRIORITY · CRITICAL</span>
-            <span className="xs:hidden">CRITICAL</span>
+            <span className="hidden xs:inline">{{ ru: "Очень важно", uz: "Juda muhim", en: "Critical" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "Важно", uz: "Muhim", en: "Critical" }[lang]}</span>
           </span>
         </div>
 
