@@ -108,10 +108,16 @@ function Index() {
               />
               <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
-                  <CheckInput />
+                  <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
               </div>
             </div>
+
+            {homeResult && (
+              <div className="mt-6 w-full max-w-3xl mx-auto animate-fade-in-up">
+                <RiskResultCard result={homeResult} />
+              </div>
+            )}
           </div>
 
 
