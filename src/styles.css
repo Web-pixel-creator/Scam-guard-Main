@@ -116,12 +116,37 @@
   --dur-base: 240ms;     /* default hover (transform, shadow, bg) */
   --dur-slow: 600ms;     /* shine sweep across surfaces */
 
+  /* ============================================================
+     SEMANTIC STATUS COLORS — use these tokens, not raw hex.
+
+     BRAND (orange) = identity, primary actions, success outcomes,
+       "what we do / what you get" surfaces.
+       --brand / --brand-bright / --brand-deep
+
+     DANGER (red) = pain, scam, loss, validation errors ONLY.
+       Never use red for decoration or as a secondary accent.
+       --danger        #DC2626 — decorative UI (dots, icons, borders, ≥18px bold)
+       --danger-strong #B91C1C — small body text on white/warm surfaces (AA ≥4.5)
+       --danger-deep   #991B1B — chip / badge text on tinted backgrounds (AAA)
+       --danger-soft   #FEF2F2 — chip / banner background
+       --danger-border #FCA5A5 — chip / banner border
+     ============================================================ */
   --safe: #059669;
   --safe-foreground: #FFFFFF;
   --warn: #D97706;
   --warn-foreground: #FFFFFF;
   --danger: #DC2626;
+  --danger-strong: #B91C1C;
+  --danger-deep: #991B1B;
+  --danger-soft: #FEF2F2;
+  --danger-border: #FCA5A5;
   --danger-foreground: #FFFFFF;
+
+  /* Brand aliases — pair with the orange palette above */
+  --brand: var(--apex-orange);          /* #F97316 */
+  --brand-bright: var(--apex-pink);     /* #FB923C */
+  --brand-deep: var(--apex-indigo);     /* #C2410C — AA body text on white (5.18:1) */
+
   --trust: #4F46E5;
   --trust-foreground: #FFFFFF;
 

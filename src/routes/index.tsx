@@ -264,7 +264,7 @@ function Index() {
                 </div>
 
                 {/* Pain badge — red dot signals "this is the problem" */}
-                <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
@@ -334,7 +334,7 @@ function Index() {
                     <span className="apex-mono text-[#71717A]">STEP 0{idx + 1}/03</span>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
@@ -413,7 +413,7 @@ function Index() {
                     </p>
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                     <p className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#991B1B] text-[11px] font-medium tracking-[0.08em] uppercase">
-                      <span className="font-mono text-[10px] text-[#DC2626]">SCAM</span>
+                      <span className="font-mono text-[10px] text-[#991B1B]">SCAM</span>
                       <span className="h-3 w-px bg-[#FCA5A5]/70" />
                       <span>{{ ru: "Вишинг · OTP-фрод", uz: "Vishing · OTP-firibgar", en: "Vishing · OTP fraud" }[lang]}</span>
                     </p>
@@ -508,7 +508,7 @@ function Index() {
                 <div className="flex items-center gap-3 mb-6">
                   <span className="apex-mono">CASE #{s.n}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
@@ -529,7 +529,7 @@ function Index() {
 
                 {/* Consequence — what you lose */}
                 <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#DC2626] mb-1.5">
+                  <p className="apex-mono text-[#B91C1C] mb-1.5">
                     ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
                   </p>
                   <p className="card-body">{(s as never as Record<string, string>)["loss_" + lang]}</p>
