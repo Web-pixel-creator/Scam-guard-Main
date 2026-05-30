@@ -299,7 +299,7 @@ export function CheckInput({
           <p className="text-[12px] text-[#DC2626] apex-mono leading-relaxed">{error}</p>
         </div>
       )}
-      {result && <div className="mt-6"><RiskResultCard result={result} /></div>}
+      {result && !hideInlineResult && <div className="mt-6"><RiskResultCard result={result} /></div>}
     </div>
   );
 }
