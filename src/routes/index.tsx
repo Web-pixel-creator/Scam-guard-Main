@@ -744,6 +744,25 @@ function Index() {
         </footer>
 
       </div>
+
+      {/* Mobile sticky CTA — visible only when the check form is off-screen */}
+      <div
+        aria-hidden={formVisible || !!homeResult}
+        className={`md:hidden fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 bg-gradient-to-t from-[#FCFAF9] via-[#FCFAF9]/95 to-[#FCFAF9]/0 transition-all duration-300 ${
+          formVisible || homeResult ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100 translate-y-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={scrollToForm}
+          className="fancy-btn w-full shadow-[0_10px_30px_-8px_rgba(194,65,12,0.45)]"
+        >
+          <FancyShell showArrow={false}>
+            {{ ru: "Проверить номер или ссылку", uz: "Raqam yoki havolani tekshirish", en: "Check a number or link" }[lang]}
+            <ArrowDown className="h-4 w-4" strokeWidth={2} />
+          </FancyShell>
+        </button>
+      </div>
     </div>
   );
 }
