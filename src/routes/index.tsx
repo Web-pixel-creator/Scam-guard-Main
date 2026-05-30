@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin } from "lucide-react";
+import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
 import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
@@ -28,6 +28,8 @@ function Index() {
   const { lang } = useLang();
   const router = useRouter();
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const [formVisible, setFormVisible] = useState(true);
 
   // Re-clicking the brand/Home link while already on "/" does not unmount
   // this component — subscribe to router resolves and reset the result so the
@@ -39,9 +41,26 @@ function Index() {
     return () => unsub();
   }, [router]);
 
+  // Hide mobile sticky CTA when the form is on screen
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFormVisible(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
+
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
@@ -83,24 +102,33 @@ function Index() {
                 }[lang]}
               </h1>
 
-              {/* One-line subtitle merging value + green outcome */}
+              {/* One-line subtitle — unified orange brand accent */}
               <p className="mt-5 md:mt-6 text-[16px] md:text-[18px] text-[#3F3F46] max-w-xl mx-auto leading-[1.5] text-center animate-fade-in-up">
                 {{
-                  ru: <>Номер, ссылка или сообщение — <span className="text-[#065F46] font-semibold whitespace-nowrap">бесплатно, без регистрации ↓</span></>,
-                  uz: <>Raqam, havola yoki xabar — <span className="text-[#065F46] font-semibold whitespace-nowrap">bepul, ro'yxatdan o'tmasdan ↓</span></>,
-                  en: <>Number, link or message — <span className="text-[#065F46] font-semibold whitespace-nowrap">free, no signup ↓</span></>,
+                  ru: <>Номер, ссылка или сообщение — <span className="text-[#C2410C] font-semibold whitespace-nowrap">бесплатно, без регистрации</span></>,
+                  uz: <>Raqam, havola yoki xabar — <span className="text-[#C2410C] font-semibold whitespace-nowrap">bepul, ro'yxatdan o'tmasdan</span></>,
+                  en: <>Number, link or message — <span className="text-[#C2410C] font-semibold whitespace-nowrap">free, no signup</span></>,
                 }[lang]}
               </p>
+
+              {/* One-action CTA — scrolls straight to the form */}
+              <div className="mt-7 md:mt-8 flex justify-center animate-fade-in-up">
+                <button type="button" onClick={scrollToForm} className="fancy-btn min-w-[240px]">
+                  <FancyShell showArrow={false}>
+                    {{ ru: "Проверить сейчас", uz: "Hozir tekshirish", en: "Check now" }[lang]}
+                    <ArrowDown className="h-4 w-4" strokeWidth={2} />
+                  </FancyShell>
+                </button>
+              </div>
             </div>
           </div>
 
-
-
-
-
-
           {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}>
+          <div
+            id="check-form"
+            ref={formRef}
+            className={`scroll-mt-24 w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}
+          >
             <div className="relative isolate rounded-[28px] overflow-hidden min-h-[380px] md:min-h-[440px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
@@ -255,7 +283,8 @@ function Index() {
 
                 {/* What we do about it — outcome line */}
                 <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#059669] mb-1.5">
+                  <p className="apex-mono text-[#C2410C] mb-1.5">
+
                     ✓ {{ ru: "Что мы делаем", uz: "Biz nima qilamiz", en: "What we do" }[lang]}
                   </p>
                   <p className="card-body">{c.check[lang]}</p>
@@ -320,7 +349,7 @@ function Index() {
                   <p className="card-body">{s.d}</p>
 
                   <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                    <p className="apex-mono text-[#059669] mb-1.5">
+                    <p className="apex-mono text-[#C2410C] mb-1.5">
                       → {{ ru: "Что получите", uz: "Nima olasiz", en: "What you get" }[lang]}
                     </p>
                     <p className="card-body">{s.out[lang]}</p>
@@ -603,12 +632,12 @@ function Index() {
                   {item.pain[lang]}
                 </blockquote>
 
-                {/* Green answer — what to do */}
-                <div className="mt-5 rounded-[6px] bg-[#ECFDF5] border border-[#86EFAC]/70 p-4 md:p-5">
-                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#047857] font-mono mb-2">
-                    ✓ {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
+                {/* Answer — unified warm cream with orange brand accent */}
+                <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
+                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
+                    → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
                   </p>
-                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#064E3B]">
+                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
                     {item.ans[lang]}
                   </p>
                 </div>
@@ -670,8 +699,8 @@ function Index() {
               </p>
               <p className="apex-mono flex items-center gap-2">
                 <span className="relative inline-flex h-2 w-2 shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-[#059669]/40 animate-ping" />
-                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#059669]" />
+                  <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
+                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
                 </span>
                 CORE SYSTEMS: ONLINE
               </p>
@@ -715,6 +744,25 @@ function Index() {
           </div>
         </footer>
 
+      </div>
+
+      {/* Mobile sticky CTA — visible only when the check form is off-screen */}
+      <div
+        aria-hidden={formVisible || !!homeResult}
+        className={`md:hidden fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 bg-gradient-to-t from-[#FCFAF9] via-[#FCFAF9]/95 to-[#FCFAF9]/0 transition-all duration-300 ${
+          formVisible || homeResult ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100 translate-y-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={scrollToForm}
+          className="fancy-btn w-full shadow-[0_10px_30px_-8px_rgba(194,65,12,0.45)]"
+        >
+          <FancyShell showArrow={false}>
+            {{ ru: "Проверить номер или ссылку", uz: "Raqam yoki havolani tekshirish", en: "Check a number or link" }[lang]}
+            <ArrowDown className="h-4 w-4" strokeWidth={2} />
+          </FancyShell>
+        </button>
       </div>
     </div>
   );
