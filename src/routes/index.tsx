@@ -28,6 +28,8 @@ function Index() {
   const { lang } = useLang();
   const router = useRouter();
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const [formVisible, setFormVisible] = useState(true);
 
   // Re-clicking the brand/Home link while already on "/" does not unmount
   // this component — subscribe to router resolves and reset the result so the
@@ -39,9 +41,26 @@ function Index() {
     return () => unsub();
   }, [router]);
 
+  // Hide mobile sticky CTA when the form is on screen
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFormVisible(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
+
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
