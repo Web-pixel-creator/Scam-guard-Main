@@ -838,6 +838,89 @@ function Index() {
         </section>
 
 
+        {/* PRIVACY PROMISE — explicit "we don't store your data" block */}
+        <section
+          aria-labelledby="privacy-promise-title"
+          className="apex-frame border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-12 bg-white/75 cv-auto"
+        >
+          <div className="flex items-start gap-5 md:gap-7 flex-col sm:flex-row">
+            <span className="grid h-14 w-14 place-items-center rounded-[6px] bg-[#0B0B0F] text-white shrink-0">
+              <Lock className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="apex-mono mb-3">{{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
+              <h2
+                id="privacy-promise-title"
+                className="font-sans font-medium text-[24px] sm:text-3xl md:text-[34px] tracking-[-0.04em] leading-[1.1] text-[#18181B] text-balance"
+              >
+                {{
+                  ru: <>Мы <span className="font-serif-italic text-[#C2410C]">не храним</span> ваши номера, коды и пароли</>,
+                  uz: <>Biz raqamlar, kodlar va parollarni <span className="font-serif-italic text-[#C2410C]">saqlamaymiz</span></>,
+                  en: <>We <span className="font-serif-italic text-[#C2410C]">don't store</span> your numbers, codes or passwords</>,
+                }[lang]}
+              </h2>
+              <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-[14.5px] md:text-[15px] leading-[1.55] text-[#18181B]">
+                {[
+                  { ru: "Полные номера маскируются до проверки", uz: "To'liq raqamlar tekshiruvdan oldin niqoblanadi", en: "Full numbers are masked before checking" },
+                  { ru: "OTP-коды и пароли никогда не сохраняются", uz: "OTP kodlar va parollar hech qachon saqlanmaydi", en: "OTP codes and passwords are never saved" },
+                  { ru: "Скриншоты не уходят в базу — только текст без PII", uz: "Skrinshotlar bazaga tushmaydi — faqat shaxsiy ma'lumotsiz matn", en: "Screenshots never leave to DB — only redacted text" },
+                  { ru: "Регистрация не нужна — никаких профилей", uz: "Ro'yxatdan o'tish shart emas — profil yo'q", en: "No signup — no profiles, no tracking" },
+                ].map((item) => (
+                  <li key={item.en} className="flex items-start gap-2.5">
+                    <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-[#F97316] shrink-0" />
+                    <span>{item[lang]}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-[13.5px] text-[#52525B]">
+                {{
+                  ru: "Подробнее в разделе ",
+                  uz: "Batafsil ",
+                  en: "Read more in our ",
+                }[lang]}
+                <Link
+                  to="/privacy"
+                  className="text-[#C2410C] font-semibold underline-offset-4 decoration-[#FED7AA] hover:decoration-[#F97316] hover:underline"
+                >
+                  {{ ru: "«Приватность» →", uz: "«Maxfiylik» bo'limi →", en: "Privacy policy →" }[lang]}
+                </Link>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* COMMUNITY REPORT — short form for new scam patterns, writes to DB */}
+        <section
+          aria-labelledby="quick-report-title"
+          className="apex-frame border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-12 bg-[#F4F2EB] cv-auto"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12 items-start">
+            <div>
+              <p className="apex-mono mb-3">{{ ru: "Сообщество", uz: "Hamjamiyat", en: "Community" }[lang]}</p>
+              <h2
+                id="quick-report-title"
+                className="font-sans font-medium text-[26px] sm:text-3xl md:text-[36px] tracking-[-0.04em] leading-[1.1] text-[#18181B] text-balance"
+              >
+                {{
+                  ru: <>Ваша жалоба <span className="font-serif-italic text-[#C2410C]">защищает тысячи</span></>,
+                  uz: <>Sizning shikoyatingiz <span className="font-serif-italic text-[#C2410C]">minglarni himoya qiladi</span></>,
+                  en: <>Your report <span className="font-serif-italic text-[#C2410C]">protects thousands</span></>,
+                }[lang]}
+              </h2>
+              <p className="mt-4 text-[15px] md:text-[16px] text-[#3F3F46] leading-[1.6]">
+                {{
+                  ru: "Каждая модерация добавляет в защиту новый сигнал. Без личных данных — только описание схемы.",
+                  uz: "Har bir moderatsiya himoyaga yangi signal qo'shadi. Shaxsiy ma'lumotlarsiz — faqat sxema tavsifi.",
+                  en: "Every moderation adds a new signal to the system. No personal data — only the scheme description.",
+                }[lang]}
+              </p>
+            </div>
+            <div className="rounded-[6px] bg-white border border-[#E2E0D8] p-5 md:p-7">
+              <QuickReportForm />
+            </div>
+          </div>
+        </section>
+
         {/* EMERGENCY CONTACTS — large tap-targets for elderly users, always on home */}
         <section aria-labelledby="emergency-contacts-title" className="apex-frame border border-[#FCA5A5]/60 rounded-[6px] p-6 sm:p-8 md:p-10 bg-[#FFF7ED] cv-auto">
           <div className="flex items-start justify-between gap-4 mb-4">
