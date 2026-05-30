@@ -96,57 +96,39 @@ function Index() {
                 </h1>
               </div>
 
-              {/* Hairline gradient divider with center tick */}
-              <div className="mx-auto mt-9 flex items-center justify-center gap-2">
+              {/* Hairline divider with center tick */}
+              <div className="mx-auto mt-10 flex items-center justify-center gap-2">
                 <span className="h-px w-16 bg-gradient-to-r from-transparent to-[#0B0B0F]/20" />
                 <span className="h-1.5 w-1.5 rotate-45 border border-[#F97316]/70" />
                 <span className="h-px w-16 bg-gradient-to-l from-transparent to-[#0B0B0F]/20" />
               </div>
 
-              <p className="mt-6 text-base md:text-lg text-foreground/65 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
-                {t("hero_sub", lang)}
+              <p className="mt-7 text-base md:text-lg text-foreground/65 max-w-xl mx-auto leading-relaxed animate-fade-in-up">
+                {{
+                  ru: "Номер, ссылка, Telegram или текст — оценка риска за секунды.",
+                  uz: "Raqam, havola, Telegram yoki matn — xavf bahosi soniyalarda.",
+                  en: "Number, link, Telegram or text — risk score in seconds.",
+                }[lang]}
               </p>
 
-              {/* Spec bar — centered chips */}
-              <div className="mt-9 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
+              {/* Spec chips — only 3, breathable */}
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
                 {[
-                  { k: "01", v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
-                  { k: "02", v: { ru: "За секунды", uz: "Soniyalarda", en: "Seconds" }[lang] },
-                  { k: "03", v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
-                  { k: "04", v: { ru: "RU · UZ · EN", uz: "RU · UZ · EN", en: "RU · UZ · EN" }[lang] },
-                ].map((c) => (
+                  { v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
+                  { v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
+                  { v: "RU · UZ · EN" },
+                ].map((c, i) => (
                   <span
-                    key={c.k}
-                    className="inline-flex items-center gap-2 h-8 px-3 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm font-mono text-[11px] text-[#18181B] shadow-[0_1px_0_rgba(11,11,15,0.02)] transition-all duration-200 hover:bg-white hover:border-[#0B0B0F]/25 hover:-translate-y-px"
+                    key={i}
+                    className="inline-flex items-center h-8 px-3.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm font-mono text-[11px] text-[#52525B] shadow-[0_1px_0_rgba(11,11,15,0.02)] transition-all duration-200 hover:bg-white hover:border-[#0B0B0F]/25 hover:-translate-y-px"
                   >
-                    <span className="text-[#A1A1AA] text-[10px] tracking-[0.18em]">{c.k}</span>
-                    <span className="h-3 w-px bg-[#E2E0D8]" />
                     {c.v}
                   </span>
                 ))}
               </div>
-
-              {/* Technical readout strip */}
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 apex-mono text-[#A1A1AA] animate-fade-in-up">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1 w-1 rounded-full bg-[#F97316]" />
-                  AI · GEMINI 2.5
-                </span>
-                <span className="text-[#E2E0D8]">/</span>
-                <span>LATENCY · ~1.4s</span>
-                <span className="text-[#E2E0D8]">/</span>
-                <span>SIGNALS · 24</span>
-              </div>
-
-              {/* Soft scroll hint */}
-              <div className="mt-7 flex items-center justify-center gap-2 apex-mono text-[#A1A1AA] animate-fade-in-up">
-                <span className="h-px w-8 bg-[#E2E0D8]" />
-                <span className="animate-bounce-soft">↓</span>
-                <span>Paste &amp; check below</span>
-                <span className="h-px w-8 bg-[#E2E0D8]" />
-              </div>
             </div>
           </div>
+
 
 
 
