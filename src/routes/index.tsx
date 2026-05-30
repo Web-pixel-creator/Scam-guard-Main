@@ -26,7 +26,19 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { lang } = useLang();
+  const router = useRouter();
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
+
+  // Re-clicking the brand/Home link while already on "/" does not unmount
+  // this component — subscribe to router resolves and reset the result so the
+  // hero re-appears as the user expects.
+  useEffect(() => {
+    const unsub = router.subscribe("onResolved", ({ toLocation }) => {
+      if (toLocation.pathname === "/") setHomeResult(null);
+    });
+    return () => unsub();
+  }, [router]);
+
   return (
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
