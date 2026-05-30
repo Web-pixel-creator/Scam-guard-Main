@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Smartphone, KeyRound, Banknote, ShieldAlert, ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { FancyShell } from "@/components/FancyButton";
 
 export const Route = createFileRoute("/emergency")({
   head: () => ({
