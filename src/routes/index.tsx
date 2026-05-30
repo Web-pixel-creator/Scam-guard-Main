@@ -161,9 +161,9 @@ function Index() {
 
               <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.05] text-[36px] sm:text-5xl md:text-6xl lg:text-[68px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
                 {{
-                  ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
-                  uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
-                  en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
+                  ru: <>Проверьте до того,<br /><span className="relative inline-block"><span className="font-serif-italic font-normal text-[#C2410C]">как обманут</span><span className="text-foreground">.</span></span></>,
+                  uz: <>Aldanmasdan oldin<br /><span className="relative inline-block"><span className="font-serif-italic font-normal text-[#C2410C]">tekshiring</span><span className="text-foreground">.</span></span></>,
+                  en: <>Check it before<br /><span className="relative inline-block"><span className="font-serif-italic font-normal text-[#C2410C]">you get scammed</span><span className="text-foreground">.</span></span></>,
                 }[lang]}
               </h1>
 
