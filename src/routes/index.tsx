@@ -102,24 +102,33 @@ function Index() {
                 }[lang]}
               </h1>
 
-              {/* One-line subtitle merging value + green outcome */}
+              {/* One-line subtitle — unified orange brand accent */}
               <p className="mt-5 md:mt-6 text-[16px] md:text-[18px] text-[#3F3F46] max-w-xl mx-auto leading-[1.5] text-center animate-fade-in-up">
                 {{
-                  ru: <>Номер, ссылка или сообщение — <span className="text-[#065F46] font-semibold whitespace-nowrap">бесплатно, без регистрации ↓</span></>,
-                  uz: <>Raqam, havola yoki xabar — <span className="text-[#065F46] font-semibold whitespace-nowrap">bepul, ro'yxatdan o'tmasdan ↓</span></>,
-                  en: <>Number, link or message — <span className="text-[#065F46] font-semibold whitespace-nowrap">free, no signup ↓</span></>,
+                  ru: <>Номер, ссылка или сообщение — <span className="text-[#C2410C] font-semibold whitespace-nowrap">бесплатно, без регистрации</span></>,
+                  uz: <>Raqam, havola yoki xabar — <span className="text-[#C2410C] font-semibold whitespace-nowrap">bepul, ro'yxatdan o'tmasdan</span></>,
+                  en: <>Number, link or message — <span className="text-[#C2410C] font-semibold whitespace-nowrap">free, no signup</span></>,
                 }[lang]}
               </p>
+
+              {/* One-action CTA — scrolls straight to the form */}
+              <div className="mt-7 md:mt-8 flex justify-center animate-fade-in-up">
+                <button type="button" onClick={scrollToForm} className="fancy-btn min-w-[240px]">
+                  <FancyShell showArrow={false}>
+                    {{ ru: "Проверить сейчас", uz: "Hozir tekshirish", en: "Check now" }[lang]}
+                    <ArrowDown className="h-4 w-4" strokeWidth={2} />
+                  </FancyShell>
+                </button>
+              </div>
             </div>
           </div>
 
-
-
-
-
-
           {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}>
+          <div
+            id="check-form"
+            ref={formRef}
+            className={`scroll-mt-24 w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}
+          >
             <div className="relative isolate rounded-[28px] overflow-hidden min-h-[380px] md:min-h-[440px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
