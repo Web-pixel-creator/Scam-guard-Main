@@ -66,25 +66,16 @@ function Index() {
 
 
             <div className="relative text-center px-0">
-              {/* Pain badge — red pulsing dot signals "this is the problem we solve" */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.18em] uppercase text-[#991B1B] mb-7 animate-fade-in-up font-mono">
+              {/* Compact pain badge — single visual signal, no separate quote block */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] mb-5 animate-fade-in-up font-mono">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                 </span>
-                {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
+                {{ ru: "Звонят мошенники? Проверьте за 3 секунды", uz: "Firibgar qo'ng'iroq qilyaptimi? 3 soniyada tekshiring", en: "Scam call? Check it in 3 seconds" }[lang]}
               </div>
 
-              {/* Scammer's bait — italicized quote on a red left border */}
-              <blockquote className="mx-auto max-w-2xl border-l-2 border-[#DC2626]/40 pl-4 mb-8 text-left text-[15px] md:text-[17px] leading-[1.55] text-[#18181B] italic font-serif-italic animate-fade-in-up">
-                {{
-                  ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция — назовите код из SMS…»",
-                  uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangizda shubhali amaliyot — SMS kodni ayting…»",
-                  en: "“Hello, this is bank security. A suspicious transaction on your card — tell me the SMS code…”",
-                }[lang]}
-              </blockquote>
-
-              <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.1] text-[38px] sm:text-5xl md:text-6xl lg:text-[72px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
+              <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.05] text-[36px] sm:text-5xl md:text-6xl lg:text-[68px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
                 {{
                   ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
                   uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
@@ -92,39 +83,14 @@ function Index() {
                 }[lang]}
               </h1>
 
-              <p className="mt-7 md:mt-9 text-[17px] md:text-[19px] text-[#3F3F46] max-w-xl mx-auto leading-[1.55] text-center animate-fade-in-up">
+              {/* One-line subtitle merging value + green outcome */}
+              <p className="mt-5 md:mt-6 text-[16px] md:text-[18px] text-[#3F3F46] max-w-xl mx-auto leading-[1.5] text-center animate-fade-in-up">
                 {{
-                  ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
-                  uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
-                  en: "Risk score for a number, link or message — in seconds.",
+                  ru: <>Номер, ссылка или сообщение — <span className="text-[#065F46] font-semibold whitespace-nowrap">бесплатно, без регистрации ↓</span></>,
+                  uz: <>Raqam, havola yoki xabar — <span className="text-[#065F46] font-semibold whitespace-nowrap">bepul, ro'yxatdan o'tmasdan ↓</span></>,
+                  en: <>Number, link or message — <span className="text-[#065F46] font-semibold whitespace-nowrap">free, no signup ↓</span></>,
                 }[lang]}
               </p>
-
-              {/* Green outcome — what you get back */}
-              <div className="mt-6 inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#86EFAC]/60 text-[13px] md:text-[14px] font-medium text-[#065F46] animate-fade-in-up">
-                <span className="font-mono text-[#059669]">✓</span>
-                <span>
-                  {{
-                    ru: "Бесплатно · без регистрации · ответ за 3 секунды",
-                    uz: "Bepul · ro'yxatdan o'tmasdan · 3 soniyada javob",
-                    en: "Free · no signup · answer in 3 seconds",
-                  }[lang]}
-                </span>
-              </div>
-
-              <div className="mt-8 md:mt-10 flex items-center justify-center gap-5 animate-fade-in-up">
-                <Link to="/check" className="fancy-btn">
-                  <FancyShell>
-                    {{ ru: "Проверить", uz: "Tekshirish", en: "Check now" }[lang]}
-                  </FancyShell>
-                </Link>
-                <Link
-                  to="/report"
-                  className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#3F3F46] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
-                >
-                  {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
-                </Link>
-              </div>
             </div>
           </div>
 
@@ -134,8 +100,8 @@ function Index() {
 
 
           {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-10"}`}>
-            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[460px] md:min-h-[520px] bg-[#fde7d3]">
+          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}>
+            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[380px] md:min-h-[440px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
                 className="absolute inset-0 w-full h-full z-0 pointer-events-none"
@@ -148,7 +114,7 @@ function Index() {
                     "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%)",
                 }}
               />
-              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
+              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-8 md:py-12 min-h-[380px] md:min-h-[440px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
                   <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
@@ -610,39 +576,39 @@ function Index() {
                 className="group bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 [&_summary::-webkit-details-marker]:hidden"
                 open={idx === 0}
               >
-                <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
                   <div className="flex-1">
-                    <span className="apex-mono text-[#71717A] block mb-2">Q · 0{idx + 1}</span>
-                    <h3 className="font-sans text-[18px] md:text-[20px] font-medium tracking-tight text-[#18181B] leading-[1.35] text-balance">
+                    <span className="apex-mono text-[#52525B] block mb-2">Q · 0{idx + 1}</span>
+                    <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
                     </h3>
                   </div>
                   <span
                     aria-hidden
-                    className="mt-1 shrink-0 w-7 h-7 rounded-full border border-[#E2E0D8] flex items-center justify-center text-[#F97316] text-lg leading-none transition-transform group-open:rotate-45"
+                    className="mt-1 shrink-0 w-10 h-10 rounded-full border border-[#E2E0D8] bg-white flex items-center justify-center text-[#F97316] text-xl leading-none transition-transform group-open:rotate-45"
                   >
                     +
                   </span>
                 </summary>
 
                 {/* Pain scenario — what the user is actually feeling */}
-                <div className="mt-5 inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                <div className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                   </span>
                   {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
                 </div>
-                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/30 pl-3 text-[14.5px] md:text-[15.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
                   {item.pain[lang]}
                 </blockquote>
 
                 {/* Green answer — what to do */}
-                <div className="mt-5 rounded-[4px] bg-[#ECFDF5] border border-[#86EFAC]/60 p-4 md:p-5">
-                  <p className="apex-mono text-[#059669] mb-2">
+                <div className="mt-5 rounded-[6px] bg-[#ECFDF5] border border-[#86EFAC]/70 p-4 md:p-5">
+                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#047857] font-mono mb-2">
                     ✓ {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
                   </p>
-                  <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#065F46]">
+                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#064E3B]">
                     {item.ans[lang]}
                   </p>
                 </div>
