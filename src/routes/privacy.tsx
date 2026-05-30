@@ -113,42 +113,45 @@ function PrivacyPage() {
   const data = TEXT[lang];
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 md:py-16 space-y-10">
-      <div className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] bg-white/55 p-6 sm:p-10 md:p-14">
-        <div className="flex items-start justify-between gap-4 mb-6">
+    <div className="apex-page space-y-8 sm:space-y-10">
+      <div className="apex-card apex-frame apex-stripes">
+        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono inline-flex items-center gap-1.5">
-            <Lock className="h-3 w-3 text-[#F97316]" strokeWidth={2} />
+            <Lock className="h-3 w-3 text-[#F97316]" strokeWidth={2} aria-hidden="true" focusable="false" />
             SYS · PRIVACY
           </span>
-          <span className="apex-mono text-right">HASHED · MASKED</span>
+          <span className="apex-mono text-right">
+            <span className="hidden xs:inline">HASHED · MASKED</span>
+            <span className="xs:hidden">HASHED</span>
+          </span>
         </div>
 
         <div className="max-w-3xl">
-          <p className="label-md mb-4">04 — {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
-          <h1 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">
+          <p className="label-md mb-3 sm:mb-4">04 — {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}</p>
+          <h1 className="apex-h1">
             {data.h_lead} <span className="font-serif-italic text-[#8B8B92]">{data.h_accent}</span>
           </h1>
-          <p className="mt-6 text-[15px] md:text-[16px] text-[#52525B] leading-[1.65] max-w-xl text-pretty">{data.sub}</p>
+          <p className="apex-lead mt-5 sm:mt-6">{data.sub}</p>
         </div>
       </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
         {data.sections.map((s, idx) => {
           const Icon = ICONS[idx % ICONS.length];
           return (
-            <article key={s.title} className="bg-white/90 backdrop-blur-[4px] p-7 sm:p-9 md:p-10 flex flex-col min-h-[300px]">
-              <div className="flex items-center justify-between mb-8">
+            <article key={s.title} className="bg-white/90 backdrop-blur-[4px] p-6 sm:p-8 md:p-10 flex flex-col min-h-[260px] sm:min-h-[300px]">
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <span className="apex-mono">0{idx + 1}</span>
                 <div className="flex items-center justify-center w-9 h-9 rounded-[3px] border border-[#E2E0D8] text-[#F97316]">
                   <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" focusable="false" />
                 </div>
               </div>
-              <h2 className="font-sans text-[18px] md:text-[19px] font-medium tracking-tight text-[#18181B] mb-5 text-balance">{s.title}</h2>
+              <h2 className="apex-h2 mb-4 sm:mb-5">{s.title}</h2>
               <ul className="space-y-2.5 text-[14.5px] leading-[1.65] text-[#52525B]">
                 {s.items.map((it, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="text-[#F97316] mt-[8px] h-[3px] w-[3px] rounded-full bg-current shrink-0" aria-hidden />
-                    <span className="text-pretty">{it}</span>
+                    <span className="prose-pretty">{it}</span>
                   </li>
                 ))}
               </ul>
