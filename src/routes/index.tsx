@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown } from "lucide-react";
+import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown, Lock } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
 import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { UnicornBackground } from "@/components/UnicornBackground";
+import { StatsStrip } from "@/components/StatsStrip";
+import { QuickReportForm } from "@/components/QuickReportForm";
 
 
 
