@@ -295,14 +295,48 @@ function Index() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
-                { i: "01", t: t("step_1", lang), d: t("step_1_d", lang) },
-                { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
-                { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
-              ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[260px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
-                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
+                {
+                  i: "01", t: t("step_1", lang), d: t("step_1_d", lang),
+                  pain: { ru: "«Сомневаюсь — но времени думать нет»", uz: "«Shubhalanyapman — o'ylashga vaqt yo'q»", en: "“I'm suspicious — but no time to think.”" },
+                  out: { ru: "Вставьте номер, ссылку или текст — без регистрации.", uz: "Raqam, havola yoki matnni joylashtiring — ro'yxatdan o'tmasdan.", en: "Paste the number, link or text — no signup." },
+                },
+                {
+                  i: "02", t: t("step_2", lang), d: t("step_2_d", lang),
+                  pain: { ru: "«Не понимаю, реально это банк или развод»", uz: "«Bu haqiqiy bankmi yoki firibgarlikmi — tushunmayapman»", en: "“I can't tell if this is a real bank or a scam.”" },
+                  out: { ru: "Сверяем с базой жалоб и паттернами в реальном времени.", uz: "Shikoyatlar bazasi va naqshlar bilan real vaqtda tekshiramiz.", en: "We cross-check against the reports DB and live patterns." },
+                },
+                {
+                  i: "03", t: t("step_3", lang), d: t("step_3_d", lang),
+                  pain: { ru: "«Что делать прямо сейчас?»", uz: "«Hozir nima qilishim kerak?»", en: "“What should I do right now?”" },
+                  out: { ru: "Конкретные шаги: что не отправлять, кому звонить, куда писать.", uz: "Aniq qadamlar: nimani yubormaslik, kimga qo'ng'iroq qilish, qayerga yozish.", en: "Concrete steps: what not to send, whom to call, where to report." },
+                },
+              ].map((s, idx) => (
+                <div key={s.i} className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
+                    <span className="apex-mono text-[#71717A]">STEP 0{idx + 1}/03</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                    </span>
+                    {{ ru: "Что чувствует человек", uz: "Inson nimani his qiladi", en: "What the user feels" }[lang]}
+                  </div>
+                  <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 text-[13.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {s.pain[lang]}
+                  </blockquote>
+
                   <h3 className="font-sans text-[19px] md:text-xl font-medium tracking-tight text-[#18181B] text-balance">{s.t}</h3>
                   <p className="card-body">{s.d}</p>
+
+                  <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                    <p className="apex-mono text-[#059669] mb-1.5">
+                      → {{ ru: "Что получите", uz: "Nima olasiz", en: "What you get" }[lang]}
+                    </p>
+                    <p className="card-body">{s.out[lang]}</p>
+                  </div>
                 </div>
               ))}
             </div>
