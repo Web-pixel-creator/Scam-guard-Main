@@ -25,29 +25,7 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
 
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
-        <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24 overflow-visible">
-          {/* Painterly bloom backdrop (full-width, behind form area) */}
-          <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen -z-10 overflow-hidden">
-            <img
-              src={heroBloom}
-              alt=""
-              aria-hidden
-              className="absolute left-1/2 -translate-x-1/2 top-[42%] w-[min(1500px,108vw)] h-[760px] object-cover rounded-[48px] opacity-95"
-              style={{ filter: "saturate(1.05)" }}
-            />
-            {/* Edge fades into the page bg */}
-            <div className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(60% 55% at 50% 45%, transparent 0%, transparent 35%, rgba(252,250,249,0.55) 65%, #FCFAF9 90%)",
-              }}
-            />
-            {/* Top + bottom soft wash */}
-            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#FCFAF9] to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#FCFAF9] to-transparent" />
-          </div>
-
-
+        <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24">
           {/* Pill tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white/70 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
             <span className="relative flex h-1.5 w-1.5">
@@ -71,11 +49,32 @@ function Index() {
             {t("hero_sub", lang)}
           </p>
 
-          {/* Hero focal point: CheckInput card with GoLive multicolor halo */}
-          <div className="w-full max-w-3xl mt-12 animate-fade-in-up">
-            <div className="cta-glow rounded-[28px]">
-              <div className="relative bg-white rounded-[28px] border border-black/[0.06] shadow-[0_20px_60px_-20px_rgba(11,11,15,0.12)]">
-                <CheckInput />
+          {/* Hero focal point: CheckInput on painterly bloom backdrop (form-only, like GoLive reference) */}
+          <div className="w-full max-w-4xl mt-14 animate-fade-in-up">
+            <div className="relative rounded-[36px] p-6 md:p-10 overflow-hidden">
+              {/* Bloom backdrop — contained to this card only */}
+              <img
+                src={heroBloom}
+                alt=""
+                aria-hidden
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover -z-10"
+                style={{ filter: "saturate(1.08)" }}
+              />
+              {/* Soft inner fade so form sits cleanly on top */}
+              <div className="absolute inset-0 -z-10 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(80% 70% at 50% 55%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0) 100%)",
+                }}
+              />
+              {/* Bottom fade into page bg */}
+              <div className="absolute inset-x-0 bottom-0 h-24 -z-10 bg-gradient-to-t from-[#FCFAF9] to-transparent" />
+
+              <div className="cta-glow rounded-[24px]">
+                <div className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-[0_30px_80px_-30px_rgba(11,11,15,0.25)]">
+                  <CheckInput />
+                </div>
               </div>
             </div>
           </div>
@@ -87,6 +86,7 @@ function Index() {
             <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
           </div>
         </section>
+
 
         {/* MARQUEE — scam patterns ticker */}
         <section className="relative -mx-6 overflow-hidden border-y border-border py-6 bg-white/60">
