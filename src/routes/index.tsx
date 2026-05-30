@@ -282,7 +282,7 @@ function Index() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
               <p className="label-md mb-4">02 — {{ ru: "Что мы проверяем", uz: "Nimani tekshiramiz", en: "What we check" }[lang]}</p>
-              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
+              <h2 className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] text-[#18181B]">
                 {{
                   ru: <>Если что-то <span className="font-serif-italic text-[#DC2626]">подозрительное</span> — пришлите нам</>,
                   uz: <>Biror narsa <span className="font-serif-italic text-[#DC2626]">shubhali</span> bo'lsa — bizga yuboring</>,
@@ -377,7 +377,7 @@ function Index() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
               <p className="label-md mb-4">03 — {{ ru: "Было / Стало", uz: "Edi / Bo'ldi", en: "Before / After" }[lang]}</p>
-              <h2 id="ba-title" className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
+              <h2 id="ba-title" className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] text-[#18181B]">
                 {{
                   ru: <>Как выглядит <span className="font-serif-italic text-[#DC2626]">обман</span> — и как должно быть на самом деле</>,
                   uz: <>«<span className="font-serif-italic text-[#DC2626]">Aldov</span>» qanday ko'rinadi va aslida qanday bo'lishi kerak</>,
@@ -495,7 +495,7 @@ function Index() {
             </div>
             <div className="mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
               <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
-              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] max-w-3xl text-balance">{t("how_it_works", lang)}</h2>
+              <h2 className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] text-[#18181B] max-w-3xl text-balance">{t("how_it_works", lang)}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
@@ -558,7 +558,7 @@ function Index() {
           </div>
           <div className="text-center mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <p className="label-md mb-4">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
-            <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] max-w-2xl mx-auto text-[#18181B] text-balance">
+            <h2 className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] max-w-2xl mx-auto text-[#18181B] text-balance">
               {t("example_title", lang)}
             </h2>
           </div>
@@ -661,7 +661,7 @@ function Index() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
               <p className="label-md mb-4">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
-              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
+              <h2 className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
             </div>
             <span className="hidden md:block apex-mono shrink-0">{{ ru: "6 случаев", uz: "6 holat", en: "6 cases" }[lang]}</span>
           </div>
@@ -740,7 +740,7 @@ function Index() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
               <p className="label-md mb-4">06 — {{ ru: "Частые вопросы", uz: "Tez-tez beriladigan savollar", en: "Frequent questions" }[lang]}</p>
-              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">
+              <h2 className="font-sans font-medium text-[30px] sm:text-[38px] md:text-[48px] tracking-[-0.045em] leading-[1.05] text-[#18181B] text-balance">
                 {{
                   ru: <>А что если <span className="font-serif-italic text-[#DC2626]">уже случилось</span>?</>,
                   uz: <>Agar <span className="font-serif-italic text-[#DC2626]">allaqachon sodir bo'lgan</span> bo'lsa-chi?</>,
