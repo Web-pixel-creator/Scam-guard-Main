@@ -76,7 +76,14 @@ function ReportPage() {
   if (done) {
     return (
       <div className="apex-page" style={{ maxWidth: 800 }}>
+        <div className="mb-4">
+          <Link to="/" className="apex-pill inline-flex">
+            <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+            {{ ru: "На главную", uz: "Bosh sahifaga", en: "Back home" }[lang]}
+          </Link>
+        </div>
         <div className="apex-card apex-frame apex-stripes text-center">
+
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
             <span className="apex-mono">SYS · RECEIVED</span>
             <span className="apex-status" data-state="success">
