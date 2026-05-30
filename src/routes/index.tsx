@@ -508,7 +508,7 @@ function Index() {
                 <div className="flex items-center gap-3 mb-6">
                   <span className="apex-mono">CASE #{s.n}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
