@@ -607,7 +607,7 @@ function Index() {
               >
                 <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
                   <div className="flex-1">
-                    <span className="apex-mono text-[#52525B] block mb-2">Q · 0{idx + 1}</span>
+                    <span className="apex-mono text-[#52525B] block mb-2">{{ ru: `Вопрос ${idx + 1}`, uz: `Savol ${idx + 1}`, en: `Question ${idx + 1}` }[lang]}</span>
                     <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
                     </h3>
