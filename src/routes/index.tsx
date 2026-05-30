@@ -3,7 +3,7 @@ import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, 
 import { CheckInput } from "@/components/CheckInput";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { UnicornBackground } from "@/components/UnicornBackground";
+
 
 
 export const Route = createFileRoute("/")({
