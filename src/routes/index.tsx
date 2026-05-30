@@ -235,28 +235,35 @@ function Index() {
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <div className="apex-glass p-7 sm:p-9 md:p-10 rounded-[6px]">
-              <p className="label-md mb-6">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
-              <p className="text-[15px] md:text-[16px] leading-[1.7] text-[#18181B] italic border-l-2 border-[#F97316] pl-5 max-w-[58ch] text-pretty">
-                {{
-                  ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция. Срочно назовите код из SMS…»",
-                  uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangiz bo'yicha shubhali amaliyot. Tezda SMS-kodni ayting…»",
-                  en: "“Hello, this is the bank security service. A suspicious transaction was detected on your card. Tell us the SMS code now…”",
-                }[lang]}
-              </p>
-              <p className="mt-8 text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[56ch] text-pretty">
-                {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
-                   uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
-                   en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
-              </p>
+            <div className="apex-glass p-8 sm:p-10 md:p-12 rounded-[6px] flex flex-col">
+              <p className="label-md mb-8">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
+
+              <div className="flex-1 flex flex-col justify-center max-w-[52ch]">
+                <span aria-hidden className="font-serif-italic text-[64px] md:text-[80px] leading-none text-[#F97316]/30 mb-2 select-none">“</span>
+                <p className="text-[16px] md:text-[17px] leading-[1.65] text-[#18181B] italic text-pretty">
+                  {{
+                    ru: "Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция. Срочно назовите код из SMS…",
+                    uz: "Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangiz bo'yicha shubhali amaliyot. Tezda SMS-kodni ayting…",
+                    en: "Hello, this is the bank security service. A suspicious transaction was detected on your card. Tell us the SMS code now…",
+                  }[lang]}
+                </p>
+              </div>
+
+              <div className="mt-10 pt-6 border-t border-[#E2E0D8]">
+                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[52ch] text-pretty">
+                  {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
+                     uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
+                     en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
+                </p>
+              </div>
             </div>
 
             {/* Gradient-shell card — APEX signature technique */}
             <div className="apex-shell">
-              <div className="relative bg-white p-7 sm:p-9 md:p-10">
-                <div className="flex items-start justify-between gap-4 mb-8">
+              <div className="relative bg-white p-8 sm:p-10 md:p-12">
+                <div className="flex items-start justify-between gap-4 mb-10">
                   <div>
-                    <p className="text-[11px] font-medium tracking-[0.1em] uppercase mb-2 bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</p>
+                    <p className="text-[11px] font-medium tracking-[0.12em] uppercase mb-3 bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</p>
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                   </div>
                   <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
@@ -264,10 +271,10 @@ function Index() {
                   </div>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-10">
                   <div>
-                    <p className="label-md mb-4">{t("why_title", lang)}</p>
-                    <ul className="space-y-3 text-[14px] md:text-[15px] text-[#18181B] leading-[1.6]">
+                    <p className="label-md mb-5">{t("why_title", lang)}</p>
+                    <ul className="space-y-3.5 text-[14px] md:text-[15px] text-[#18181B] leading-[1.55]">
                       {(({
                         ru: ["Просят SMS-код (OTP)", "Представляются банком", "Создают срочность и давление", "Похожая схема уже в жалобах"],
                         uz: ["SMS-kod (OTP) so'rashmoqda", "Bank nomidan murojaat", "Shoshilinchlik va bosim", "Shu sxema shikoyatlarda uchragan"],
@@ -280,15 +287,15 @@ function Index() {
                       ))}
                     </ul>
                   </div>
-                  <div className="pt-7 border-t border-[#E2E0D8]">
-                    <p className="label-md mb-4">{t("what_to_do", lang)}</p>
+                  <div className="pt-8 border-t border-[#E2E0D8]">
+                    <p className="label-md mb-5">{t("what_to_do", lang)}</p>
                     <div className="space-y-2.5">
                       {(({
                         ru: ["Не отправляйте код", "Завершите разговор", "Позвоните в банк по номеру с карты"],
                         uz: ["Kodni yubormang", "Suhbatni tugating", "Bankka kartadagi raqam orqali qo'ng'iroq qiling"],
                         en: ["Don't send the code", "End the call", "Call the bank using the number on your card"],
                       })[lang]).map((r, i) => (
-                        <div key={r} className="flex items-center gap-3 px-3.5 py-3 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[14px]">
+                        <div key={r} className="flex items-center gap-4 px-4 py-3.5 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[14px]">
                           <span className="text-[#71717A] text-[11px] font-mono">0{i + 1}</span>
                           <span className="text-[#18181B]">{r}</span>
                         </div>
@@ -300,6 +307,7 @@ function Index() {
             </div>
           </div>
         </section>
+
 
 
         {/* KNOWLEDGE BASE — APEX striped frame */}
@@ -332,13 +340,17 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 min-h-[220px] flex flex-col">
-                <p className="text-[10px] font-mono text-[#71717A] tracking-[0.1em] mb-6">CASE #{s.n}</p>
-                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{s[lang]}</h3>
-                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[42ch] text-pretty">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] flex flex-col">
+                <div className="flex items-center gap-3 mb-8">
+                  <span className="text-[10px] font-mono text-[#71717A] tracking-[0.18em]">CASE #{s.n}</span>
+                  <span className="flex-1 h-px bg-[#E2E0D8]" />
+                </div>
+                <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-4 tracking-tight text-[#18181B] leading-[1.3] text-balance">{s[lang]}</h3>
+                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[40ch] text-pretty">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
               </div>
+
             ))}
           </div>
         </section>
