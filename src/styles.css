@@ -866,3 +866,25 @@
 @media (prefers-reduced-motion: reduce) {
   .fancy-point { animation: none !important; opacity: 0 !important; }
 }
+
+/* Footer link — subtle hover/active that matches brand orange */
+.footer-link {
+  color: #52525B;
+  position: relative;
+  transition: color 160ms ease;
+}
+.footer-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: #F97316;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms ease;
+}
+.footer-link:hover { color: #18181B; }
+.footer-link:hover::after { transform: scaleX(1); }
+.footer-link:active { color: #C2410C; }
