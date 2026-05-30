@@ -87,10 +87,10 @@ function AdminPage() {
       {/* Header */}
       <div className="apex-card apex-frame apex-stripes">
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">SYS · ADMIN</span>
+          <span className="apex-mono">Админка</span>
           <span className="apex-status" data-state="success">
             <span className="apex-status-dot" />
-            SIGNED · IN
+            Вы вошли
           </span>
         </div>
 
