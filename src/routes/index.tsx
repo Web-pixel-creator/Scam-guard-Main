@@ -156,20 +156,24 @@ function Index() {
         </section>
 
 
-        {/* HOW IT WORKS — APEX surface panel */}
-        <section className="relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1]" />
+        {/* HOW IT WORKS — APEX striped surface panel */}
+        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1] z-[1]" />
           <div className="relative p-10 md:p-16">
+            <div className="flex items-center justify-between mb-6">
+              <span className="apex-mono">SYS · ALGORITHM</span>
+              <span className="apex-mono">03 / 03 STEPS</span>
+            </div>
             <p className="label-md mb-3">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
             <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-14 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
                 { i: "01", t: t("step_1", lang), d: t("step_1_d", lang) },
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5">
+                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5 apex-stripes-soft">
                   <span className="block font-sans text-5xl font-medium tracking-[-0.05em] text-[#E2E0D8]">{s.i}</span>
                   <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
                   <p className="text-[#A1A1AA] text-[13px] leading-relaxed">{s.d}</p>
@@ -179,14 +183,19 @@ function Index() {
           </div>
         </section>
 
-        {/* EXAMPLE — APEX gradient shell on the risk card */}
-        <section>
+        {/* EXAMPLE — APEX striped frame around the demo */}
+        <section className="apex-frame apex-stripes-soft border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-center justify-between mb-8">
+            <span className="apex-mono">CASE STUDY · DEMO</span>
+            <span className="apex-mono">RISK · LIVE</span>
+          </div>
           <div className="text-center mb-14">
             <p className="label-md mb-3">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
             <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-2xl mx-auto text-[#18181B]">
               {t("example_title", lang)}
             </h2>
           </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <div className="apex-glass p-8 rounded-[8px]">
