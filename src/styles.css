@@ -47,32 +47,32 @@
 
 :root {
   --radius: 16px;
-  /* Land-book / Webflow-inspired premium light base */
-  --background: #FAFAF7;
-  --foreground: #0A0B0F;
+  /* GoLive-inspired warm off-white SaaS base */
+  --background: #FCFAF9;
+  --foreground: #0B0B0F;
   --card: #FFFFFF;
-  --card-foreground: #0A0B0F;
+  --card-foreground: #0B0B0F;
   --popover: #FFFFFF;
-  --popover-foreground: #0A0B0F;
+  --popover-foreground: #0B0B0F;
 
-  --primary: #4F46E5;
+  --primary: #0B0B0F;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F4F4EE;
-  --secondary-foreground: #0A0B0F;
+  --secondary: #F4F2EE;
+  --secondary-foreground: #0B0B0F;
 
-  --muted: #F4F4EE;
-  --muted-foreground: #5B6473;
+  --muted: #F4F2EE;
+  --muted-foreground: #6B7280;
 
-  --accent: #EEF0FF;
+  --accent: #F1EEFF;
   --accent-foreground: #1E1B4B;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  --border: rgba(10,11,15,0.08);
-  --input: rgba(10,11,15,0.12);
-  --ring: #4F46E5;
+  --border: rgba(11,11,15,0.06);
+  --input: rgba(11,11,15,0.1);
+  --ring: #0B0B0F;
 
   --safe: #059669;
   --safe-foreground: #FFFFFF;
@@ -84,14 +84,15 @@
   --trust-foreground: #FFFFFF;
 
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #0A0B0F;
-  --sidebar-primary: #4F46E5;
+  --sidebar-foreground: #0B0B0F;
+  --sidebar-primary: #0B0B0F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F4F4EE;
-  --sidebar-accent-foreground: #0A0B0F;
-  --sidebar-border: rgba(10,11,15,0.08);
-  --sidebar-ring: #4F46E5;
+  --sidebar-accent: #F4F2EE;
+  --sidebar-accent-foreground: #0B0B0F;
+  --sidebar-border: rgba(11,11,15,0.06);
+  --sidebar-ring: #0B0B0F;
 }
+
 
 @layer base {
   * {
@@ -99,7 +100,7 @@
   }
   html {
     font-family: var(--font-sans);
-    background-color: #FAFAF7;
+    background-color: #FCFAF9;
     color-scheme: light;
   }
   body {
@@ -116,9 +117,9 @@
     font-weight: 800;
     line-height: 0.95;
   }
-  ::selection { background: rgba(79,70,229,0.18); color: #0A0B0F; }
+  ::selection { background: #0B0B0F; color: #FCFAF9; }
 
-  /* Soft aurora ambient backdrop — Land-book style */
+  /* GoLive-style soft pastel blooms in viewport corners */
   body::before {
     content: "";
     position: fixed;
@@ -126,9 +127,9 @@
     pointer-events: none;
     z-index: -2;
     background:
-      radial-gradient(60% 50% at 20% 0%, rgba(79,70,229,0.12), transparent 60%),
-      radial-gradient(50% 40% at 85% 10%, rgba(16,185,129,0.07), transparent 60%),
-      radial-gradient(40% 35% at 50% 100%, rgba(220,38,38,0.06), transparent 60%);
+      radial-gradient(40% 35% at 90% 5%, rgba(147,197,253,0.35), transparent 70%),
+      radial-gradient(35% 30% at 10% 95%, rgba(252,165,165,0.28), transparent 70%),
+      radial-gradient(30% 25% at 95% 95%, rgba(196,181,253,0.30), transparent 70%);
   }
   /* Subtle grain overlay */
   body::after {
@@ -137,11 +138,12 @@
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    opacity: 0.035;
+    opacity: 0.025;
     mix-blend-mode: multiply;
     background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='1'/></svg>");
   }
 }
+
 
 .label-md {
   font-family: var(--font-mono);
@@ -191,17 +193,36 @@
 
 .glow-primary {
   box-shadow:
-    0 0 0 1px rgba(79,70,229,0.25),
-    0 20px 60px -20px rgba(79,70,229,0.45),
-    inset 0 1px 0 0 rgba(255,255,255,0.4);
+    0 0 0 1px rgba(11,11,15,0.06),
+    0 30px 80px -20px rgba(11,11,15,0.18),
+    inset 0 1px 0 0 rgba(255,255,255,0.7);
 }
+
+/* GoLive-style multicolor under-glow halo (use on a wrapper around CTA / card) */
+.cta-glow {
+  position: relative;
+  isolation: isolate;
+}
+.cta-glow::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: linear-gradient(110deg, #FDBA74 0%, #F472B6 35%, #A78BFA 65%, #60A5FA 100%);
+  filter: blur(22px);
+  opacity: 0.45;
+  z-index: -1;
+  transition: opacity 0.6s ease;
+}
+.cta-glow:hover::before { opacity: 0.7; }
 
 .glow-danger {
   box-shadow:
-    0 0 0 1px rgba(255,90,95,0.3),
-    0 30px 80px -20px rgba(255,90,95,0.25),
-    inset 0 1px 0 0 rgba(244,244,240,0.05);
+    0 0 0 1px rgba(220,38,38,0.18),
+    0 30px 80px -20px rgba(220,38,38,0.22),
+    inset 0 1px 0 0 rgba(255,255,255,0.6);
 }
+
 
 .card-hover {
   transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), border-color 0.3s, background-color 0.3s;

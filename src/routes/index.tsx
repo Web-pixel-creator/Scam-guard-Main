@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
-import { UnicornBackground } from "@/components/UnicornBackground";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 
@@ -23,57 +22,60 @@ function Index() {
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
 
-        {/* HERO */}
-        <section className="isolate flex flex-col items-center text-center pt-16 md:pt-24 relative">
-          {/* Full-width background breakout */}
-          <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen z-0 overflow-hidden">
-            <div className="absolute inset-0 bg-[#08080B]" />
-            <UnicornBackground />
-            <div className="absolute inset-0 grid-bg opacity-[0.08]" />
-            {/* Stronger bottom fade to background */}
-            <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-b from-transparent via-background/70 to-background" />
+        {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
+        <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24 overflow-visible">
+          {/* Soft pastel blooms (full-width, behind content) */}
+          <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen -z-10 overflow-hidden">
+            <div className="absolute top-[-10%] right-[-5%] w-[520px] h-[520px] rounded-full blur-[110px]"
+              style={{ background: "radial-gradient(circle, rgba(147,197,253,0.55), rgba(196,181,253,0.35) 50%, transparent 75%)" }} />
+            <div className="absolute bottom-[-15%] left-[-5%] w-[620px] h-[620px] rounded-full blur-[130px]"
+              style={{ background: "radial-gradient(circle, rgba(252,165,165,0.40), rgba(253,186,116,0.30) 45%, transparent 75%)" }} />
+            <div className="absolute top-[20%] left-[35%] w-[420px] h-[420px] rounded-full blur-[120px]"
+              style={{ background: "radial-gradient(circle, rgba(167,139,250,0.30), transparent 70%)" }} />
           </div>
-          <div className="relative z-10 flex flex-col items-center w-full">
 
-
-
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-[11px] font-mono tracking-[0.2em] uppercase mb-8 animate-fade-in-up">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          {/* Pill tag */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white/70 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
             </span>
-            Anti-Scam Intelligence · Tashkent
+            {{ ru: "Anti-Scam Intelligence · Tashkent", uz: "Anti-Scam Intelligence · Toshkent", en: "Anti-Scam Intelligence · Tashkent" }[lang]}
           </div>
 
-          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up text-white relative">
+          {/* Headline */}
+          <h1 className="font-display font-extrabold tracking-tight leading-[1.05] text-5xl md:text-7xl lg:text-[88px] max-w-5xl animate-fade-in-up text-foreground">
             {{
-              ru: <>Проверьте <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">до того,</span><br />как обманут</>,
-              uz: <>Aldanmasdan <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">oldin</span><br />tekshiring</>,
-              en: <>Check it <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">before</span><br />you get scammed</>,
+              ru: <>Проверьте до того,<br /><span className="text-foreground/35">как обманут.</span></>,
+              uz: <>Aldanmasdan oldin<br /><span className="text-foreground/35">tekshiring.</span></>,
+              en: <>Check it before<br /><span className="text-foreground/35">you get scammed.</span></>,
             }[lang]}
           </h1>
 
-          <p className="mt-7 text-lg text-white/65 max-w-2xl leading-relaxed animate-fade-in-up relative">
+          {/* Subheadline */}
+          <p className="mt-7 text-lg md:text-xl text-foreground/55 max-w-2xl leading-relaxed font-medium animate-fade-in-up">
             {t("hero_sub", lang)}
           </p>
 
-          <div className="w-full max-w-3xl mt-12 animate-fade-in-up relative">
-            <div className="p-1.5 rounded-3xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.5)]">
-              <CheckInput />
+          {/* Hero focal point: CheckInput card with GoLive multicolor halo */}
+          <div className="w-full max-w-3xl mt-12 animate-fade-in-up">
+            <div className="cta-glow rounded-[28px]">
+              <div className="relative bg-white rounded-[28px] border border-black/[0.06] shadow-[0_20px_60px_-20px_rgba(11,11,15,0.12)]">
+                <CheckInput />
+              </div>
             </div>
           </div>
 
-          <div className="mt-8 mb-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-white/50 uppercase relative">
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
-          </div>
+          {/* Trust micro-bar */}
+          <div className="mt-10 mb-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm font-medium text-foreground/50 animate-fade-in-up">
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
           </div>
         </section>
 
         {/* MARQUEE — scam patterns ticker */}
-        <section className="relative -mx-6 overflow-hidden border-y border-border py-6 bg-foreground/[0.02]">
+        <section className="relative -mx-6 overflow-hidden border-y border-border py-6 bg-white/60">
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
@@ -82,15 +84,16 @@ function Index() {
                   "Soxta kuryer", "Prize phishing", "Crypto doubler", "Job offer scam", "Romance scam",
                   "Безопасный счёт", "Bank security call", "Fake APK", "OTP request",
                 ].map((w, i) => (
-                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground/30">
+                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground/25">
                     {w}
-                    <span className="font-serif-italic text-primary/70 text-3xl md:text-4xl">×</span>
+                    <span className="font-serif-italic text-rose-400/70 text-3xl md:text-4xl">×</span>
                   </span>
                 ))}
               </div>
             ))}
           </div>
         </section>
+
 
         {/* CAPABILITIES */}
         <section>
