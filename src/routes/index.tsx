@@ -295,14 +295,48 @@ function Index() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
-                { i: "01", t: t("step_1", lang), d: t("step_1_d", lang) },
-                { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
-                { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
-              ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[260px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
-                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
+                {
+                  i: "01", t: t("step_1", lang), d: t("step_1_d", lang),
+                  pain: { ru: "«Сомневаюсь — но времени думать нет»", uz: "«Shubhalanyapman — o'ylashga vaqt yo'q»", en: "“I'm suspicious — but no time to think.”" },
+                  out: { ru: "Вставьте номер, ссылку или текст — без регистрации.", uz: "Raqam, havola yoki matnni joylashtiring — ro'yxatdan o'tmasdan.", en: "Paste the number, link or text — no signup." },
+                },
+                {
+                  i: "02", t: t("step_2", lang), d: t("step_2_d", lang),
+                  pain: { ru: "«Не понимаю, реально это банк или развод»", uz: "«Bu haqiqiy bankmi yoki firibgarlikmi — tushunmayapman»", en: "“I can't tell if this is a real bank or a scam.”" },
+                  out: { ru: "Сверяем с базой жалоб и паттернами в реальном времени.", uz: "Shikoyatlar bazasi va naqshlar bilan real vaqtda tekshiramiz.", en: "We cross-check against the reports DB and live patterns." },
+                },
+                {
+                  i: "03", t: t("step_3", lang), d: t("step_3_d", lang),
+                  pain: { ru: "«Что делать прямо сейчас?»", uz: "«Hozir nima qilishim kerak?»", en: "“What should I do right now?”" },
+                  out: { ru: "Конкретные шаги: что не отправлять, кому звонить, куда писать.", uz: "Aniq qadamlar: nimani yubormaslik, kimga qo'ng'iroq qilish, qayerga yozish.", en: "Concrete steps: what not to send, whom to call, where to report." },
+                },
+              ].map((s, idx) => (
+                <div key={s.i} className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
+                    <span className="apex-mono text-[#71717A]">STEP 0{idx + 1}/03</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                    </span>
+                    {{ ru: "Что чувствует человек", uz: "Inson nimani his qiladi", en: "What the user feels" }[lang]}
+                  </div>
+                  <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 text-[13.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {s.pain[lang]}
+                  </blockquote>
+
                   <h3 className="font-sans text-[19px] md:text-xl font-medium tracking-tight text-[#18181B] text-balance">{s.t}</h3>
                   <p className="card-body">{s.d}</p>
+
+                  <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                    <p className="apex-mono text-[#059669] mb-1.5">
+                      → {{ ru: "Что получите", uz: "Nima olasiz", en: "What you get" }[lang]}
+                    </p>
+                    <p className="card-body">{s.out[lang]}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -429,27 +463,60 @@ function Index() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {([
               { n: "01", ru: "«Служба безопасности банка»", uz: "«Bank xavfsizlik xizmati»", en: "Bank security call",
-                d_ru: "Звонят якобы из банка, говорят о подозрительной операции и просят SMS-код.", d_uz: "Bank nomidan qo'ng'iroq qilib, SMS-kod so'rashadi.", d_en: "They call “from the bank” and ask for your SMS code." },
+                d_ru: "Звонят якобы из банка, говорят о подозрительной операции и просят SMS-код.", d_uz: "Bank nomidan qo'ng'iroq qilib, SMS-kod so'rashadi.", d_en: "They call “from the bank” and ask for your SMS code.",
+                bait_ru: "«По вашей карте подозрительная операция. Назовите код из SMS»", bait_uz: "«Kartangizda shubhali amaliyot. SMS kodni ayting»", bait_en: "“Suspicious activity on your card. Tell me the SMS code.”",
+                loss_ru: "Списание всей карты за минуты", loss_uz: "Daqiqalarda kartadan barcha pul yo'qoladi", loss_en: "Whole card drained in minutes" },
               { n: "02", ru: "APK от мнимого банка", uz: "Soxta bank APK", en: "Fake bank APK",
-                d_ru: "Просят установить «безопасное приложение» — оно крадёт SMS и данные.", d_uz: "«Xavfsiz ilova» o'rnatishni so'rashadi — u SMS o'g'irlaydi.", d_en: "They push a “safe app” that steals SMS and data." },
+                d_ru: "Просят установить «безопасное приложение» — оно крадёт SMS и данные.", d_uz: "«Xavfsiz ilova» o'rnatishni so'rashadi — u SMS o'g'irlaydi.", d_en: "They push a “safe app” that steals SMS and data.",
+                bait_ru: "«Установите это приложение для защиты счёта»", bait_uz: "«Hisobni himoya qilish uchun ilovani o'rnating»", bait_en: "“Install this app to protect your account.”",
+                loss_ru: "Полный доступ к SMS и банк-приложению", loss_uz: "SMS va bank ilovasiga to'liq kirish", loss_en: "Full access to SMS and banking apps" },
               { n: "03", ru: "Безопасный счёт", uz: "Xavfsiz hisob", en: "Safe account",
-                d_ru: "Уговаривают перевести деньги на «безопасный счёт». Их не существует.", d_uz: "«Xavfsiz hisob»ga pul o'tkazishga undashadi.", d_en: "They push you to move money to a “safe account”." },
+                d_ru: "Уговаривают перевести деньги на «безопасный счёт». Их не существует.", d_uz: "«Xavfsiz hisob»ga pul o'tkazishga undashadi.", d_en: "They push you to move money to a “safe account”.",
+                bait_ru: "«Переведите деньги на безопасный счёт, пока мы блокируем мошенников»", bait_uz: "«Firibgarlarni bloklaganimizcha pulni xavfsiz hisobga o'tkazing»", bait_en: "“Move your money to a safe account while we block fraud.”",
+                loss_ru: "Перевод собственных денег мошенникам", loss_uz: "O'z pullarini firibgarlarga o'tkazish", loss_en: "Your own money sent to scammers" },
               { n: "04", ru: "Лёгкий кредит в Telegram", uz: "Telegram'dagi oson kredit", en: "Easy Telegram loan",
-                d_ru: "Telegram-канал обещает быстрый кредит, просит предоплату.", d_uz: "Telegram kanali kredit va'da qilib oldindan to'lov so'raydi.", d_en: "A Telegram channel promises a quick loan, asks a fee upfront." },
+                d_ru: "Telegram-канал обещает быстрый кредит, просит предоплату.", d_uz: "Telegram kanali kredit va'da qilib oldindan to'lov so'raydi.", d_en: "A Telegram channel promises a quick loan, asks a fee upfront.",
+                bait_ru: "«Кредит без проверок. Оплатите страховку — и деньги ваши»", bait_uz: "«Tekshiruvsiz kredit. Sug'urtani to'lang — pul sizniki»", bait_en: "“Loan with no checks. Pay the insurance fee and money is yours.”",
+                loss_ru: "Предоплата уходит, кредита нет", loss_uz: "Oldindan to'lov ketadi, kredit yo'q", loss_en: "Upfront fee gone, no loan" },
               { n: "05", ru: "Фейковая доставка", uz: "Soxta yetkazib berish", en: "Fake delivery",
-                d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это фишинг карты.", d_uz: "«Kuryer» to'lov havolasini yuboradi — bu fishing.", d_en: "A “courier” sends a payment link — card phishing." },
+                d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это фишинг карты.", d_uz: "«Kuryer» to'lov havolasini yuboradi — bu fishing.", d_en: "A “courier” sends a payment link — card phishing.",
+                bait_ru: "«Доплатите 12 000 сум за доставку по ссылке»", bait_uz: "«Yetkazib berish uchun 12 000 so'm to'lang»", bait_en: "“Pay 12,000 UZS delivery fee via this link.”",
+                loss_ru: "Реквизиты карты уходят на фишинг-сайт", loss_uz: "Karta ma'lumotlari fishing saytga ketadi", loss_en: "Card details captured by phishing site" },
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
-                d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
+                d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details.",
+                bait_ru: "«Вы выиграли iPhone! Введите карту для зачисления приза»", bait_uz: "«Siz iPhone yutdingiz! Sovg'a uchun karta ma'lumotlarini kiriting»", bait_en: "“You won an iPhone! Enter your card to receive it.”",
+                loss_ru: "Карта попадает в руки мошенников", loss_uz: "Karta firibgarlar qo'liga tushadi", loss_en: "Card details handed to scammers" },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] md:min-h-[280px] flex flex-col">
-                <div className="flex items-center gap-3 mb-8">
+              <div key={s.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col">
+                <div className="flex items-center gap-3 mb-6">
                   <span className="apex-mono">CASE #{s.n}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                    </span>
+                    SCAM
+                  </span>
                 </div>
-                <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-4 tracking-tight text-[#18181B] leading-[1.3] text-balance">{s[lang]}</h3>
-                <p className="card-body">
+
+                <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-3 tracking-tight text-[#18181B] leading-[1.3] text-balance">{s[lang]}</h3>
+                <p className="card-body mb-5">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
+
+                {/* Scammer bait */}
+                <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                  {(s as never as Record<string, string>)["bait_" + lang]}
+                </blockquote>
+
+                {/* Consequence — what you lose */}
+                <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                  <p className="apex-mono text-[#DC2626] mb-1.5">
+                    ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
+                  </p>
+                  <p className="card-body">{(s as never as Record<string, string>)["loss_" + lang]}</p>
+                </div>
               </div>
 
             ))}
