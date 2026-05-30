@@ -3,6 +3,8 @@ import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, 
 import { CheckInput } from "@/components/CheckInput";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
+import heroBloom from "@/assets/hero-bloom.jpg";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
