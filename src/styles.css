@@ -193,17 +193,36 @@
 
 .glow-primary {
   box-shadow:
-    0 0 0 1px rgba(79,70,229,0.25),
-    0 20px 60px -20px rgba(79,70,229,0.45),
-    inset 0 1px 0 0 rgba(255,255,255,0.4);
+    0 0 0 1px rgba(11,11,15,0.06),
+    0 30px 80px -20px rgba(11,11,15,0.18),
+    inset 0 1px 0 0 rgba(255,255,255,0.7);
 }
+
+/* GoLive-style multicolor under-glow halo (use on a wrapper around CTA / card) */
+.cta-glow {
+  position: relative;
+  isolation: isolate;
+}
+.cta-glow::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: linear-gradient(110deg, #FDBA74 0%, #F472B6 35%, #A78BFA 65%, #60A5FA 100%);
+  filter: blur(22px);
+  opacity: 0.45;
+  z-index: -1;
+  transition: opacity 0.6s ease;
+}
+.cta-glow:hover::before { opacity: 0.7; }
 
 .glow-danger {
   box-shadow:
-    0 0 0 1px rgba(255,90,95,0.3),
-    0 30px 80px -20px rgba(255,90,95,0.25),
-    inset 0 1px 0 0 rgba(244,244,240,0.05);
+    0 0 0 1px rgba(220,38,38,0.18),
+    0 30px 80px -20px rgba(220,38,38,0.22),
+    inset 0 1px 0 0 rgba(255,255,255,0.6);
 }
+
 
 .card-hover {
   transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), border-color 0.3s, background-color 0.3s;
