@@ -110,6 +110,10 @@ function EmergencyPage() {
         </div>
 
         <div className="max-w-3xl">
+          <span className="pain-pill">
+            <span className="pain-pill-dot" />
+            {{ ru: "Уже отправили код или деньги? Действуйте сейчас", uz: "Kod yoki pul yuborib qo'ydingizmi? Hozir harakat qiling", en: "Sent a code or money? Act right now" }[lang]}
+          </span>
           <p className="label-md mb-3 sm:mb-4">03 — {{ ru: "Срочные шаги", uz: "Shoshilinch qadamlar", en: "Emergency" }[lang]}</p>
           <h1 className="apex-h1">
             {{
