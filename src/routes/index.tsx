@@ -134,7 +134,7 @@ function Index() {
                   "Soxta kuryer", "Prize phishing", "Crypto doubler", "Job offer scam", "Romance scam",
                   "Безопасный счёт", "Bank security call", "Fake APK", "OTP request",
                 ].map((w, i) => (
-                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-xl md:text-2xl font-sans font-medium tracking-tight text-[#A1A1AA]">
+                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-xl md:text-2xl font-sans font-medium tracking-tight text-[#71717A]">
                     {w}
                     <span className="text-[#F97316] text-2xl md:text-3xl">×</span>
                   </span>
@@ -289,7 +289,7 @@ function Index() {
                         en: ["Don't send the code", "End the call", "Call the bank using the number on your card"],
                       })[lang]).map((r, i) => (
                         <div key={r} className="flex items-center gap-3 px-3.5 py-3 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[14px]">
-                          <span className="text-[#A1A1AA] text-[11px] font-mono">0{i + 1}</span>
+                          <span className="text-[#71717A] text-[11px] font-mono">0{i + 1}</span>
                           <span className="text-[#18181B]">{r}</span>
                         </div>
                       ))}
@@ -333,7 +333,7 @@ function Index() {
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
               <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 min-h-[220px] flex flex-col">
-                <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-6">CASE #{s.n}</p>
+                <p className="text-[10px] font-mono text-[#71717A] tracking-[0.1em] mb-6">CASE #{s.n}</p>
                 <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{s[lang]}</h3>
                 <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[42ch] text-pretty">
                   {(s as never as Record<string, string>)["d_" + lang]}
