@@ -186,7 +186,7 @@ function Index() {
         </section>
 
 
-        {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
+        {/* CAPABILITIES — pain-first cards: what scares the user → what we check */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
@@ -194,40 +194,89 @@ function Index() {
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
-              <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
+              <p className="label-md mb-4">02 — {{ ru: "Что мы проверяем", uz: "Nimani tekshiramiz", en: "What we check" }[lang]}</p>
               <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
                 {{
-                  ru: <>Что <span className="font-serif-italic text-[#8B8B92]">можно</span> проверить</>,
-                  uz: <>Nimani <span className="font-serif-italic text-[#8B8B92]">tekshirish</span> mumkin</>,
-                  en: <>What you <span className="font-serif-italic text-[#8B8B92]">can</span> check</>,
+                  ru: <>Если что-то <span className="font-serif-italic text-[#DC2626]">подозрительное</span> — пришлите нам</>,
+                  uz: <>Biror narsa <span className="font-serif-italic text-[#DC2626]">shubhali</span> bo'lsa — bizga yuboring</>,
+                  en: <>If something feels <span className="font-serif-italic text-[#DC2626]">off</span> — send it to us</>,
                 }[lang]}
               </h2>
+              <p className="mt-5 text-[15px] md:text-[16px] text-[#52525B] max-w-2xl leading-[1.6]">
+                {{
+                  ru: "Четыре самые частые схемы в Узбекистане. Каждая карточка показывает реальную боль и то, что мы за вас проверяем за секунды.",
+                  uz: "O'zbekistondagi eng keng tarqalgan to'rtta sxema. Har bir karta haqiqiy muammoni va biz soniyalarda nimani tekshirayotganimizni ko'rsatadi.",
+                  en: "The four most common scam patterns in Uzbekistan. Each card shows a real pain and what we verify for you in seconds.",
+                }[lang]}
+              </p>
             </div>
             <span className="hidden md:block apex-mono shrink-0">04 / 04</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {[
-              { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
-                d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
-              { i: MessageSquare, accent: "#FB923C", k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
-                d: { ru: "Боты, каналы или псевдо-менеджеры банков.", uz: "Botlar, kanallar yoki soxta menejerlar.", en: "Bots, channels or fake account managers." } },
-              { i: Link2, accent: "#C2410C", k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
-                d: { ru: "Фишинг, ложные оплаты и вредоносные APK.", uz: "Fishing, soxta to'lovlar va zararli APK.", en: "Phishing, fake payments and malicious APKs." } },
-              { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
-                d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
+              {
+                i: Phone, accent: "#F97316",
+                k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
+                pain: { ru: "«Здравствуйте, служба безопасности банка…»", uz: "«Assalomu alaykum, bank xavfsizlik xizmati…»", en: "“Hello, this is the bank security service…”" },
+                check: { ru: "Сверим с базой жалоб, найдём фейковые «банки», «операторы» и звонки-обманы.", uz: "Shikoyatlar bazasi bilan tekshiramiz, soxta «bank», «operator» va aldov qo'ng'iroqlarni topamiz.", en: "Cross-check against our scam database, flag fake “banks”, “operators” and call scams." },
+              },
+              {
+                i: MessageSquare, accent: "#FB923C",
+                k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
+                pain: { ru: "«Менеджер банка пишет в личку — просит код из SMS»", uz: "«Bank menejeri shaxsiyga yozyapti — SMS kodini so'rayapti»", en: "“A bank manager DMs you and asks for the SMS code.”" },
+                check: { ru: "Боты, каналы-ловушки и псевдо-сотрудники банков — определяем по паттернам.", uz: "Botlar, tuzoq-kanallar va soxta bank xodimlarini namunalar bo'yicha aniqlaymiz.", en: "Detect bots, trap channels and fake bank employees by behavior patterns." },
+              },
+              {
+                i: Link2, accent: "#C2410C",
+                k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
+                pain: { ru: "«Оплатите доставку по этой ссылке — иначе посылку вернут»", uz: "«Yetkazib berishni shu havola orqali to'lang — aks holda qaytariladi»", en: "“Pay the delivery fee via this link or your parcel is returned.”" },
+                check: { ru: "Фишинг, поддельные платёжки и вредоносные APK — отделяем от настоящих.", uz: "Fishing, soxta to'lov sahifalari va zararli APK fayllarini haqiqiylaridan ajratamiz.", en: "Phishing, fake payment pages and malicious APKs — separated from the real ones." },
+              },
+              {
+                i: FileWarning, accent: "#F97316",
+                k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
+                pain: { ru: "«Срочно! По вашей карте подозрительная операция…»", uz: "«Shoshilinch! Kartangizda shubhali amaliyot…»", en: "“Urgent! A suspicious transaction on your card…”" },
+                check: { ru: "Признаки социальной инженерии: давление, срочность, просьба о коде или переводе.", uz: "Ijtimoiy muhandislik belgilari: bosim, shoshqaloqlik, kod yoki o'tkazma so'rovi.", en: "Social-engineering signals: pressure, urgency, asking for codes or transfers." },
+              },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[260px] md:min-h-[280px] flex flex-col">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12 transition-colors" style={{ color: c.accent }}>
+
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-6 transition-colors" style={{ color: c.accent }}>
                   <c.i aria-hidden="true" focusable="false" className="h-4 w-4" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
-                <p className="card-body">{c.d[lang]}</p>
+
+                {/* Pain badge — red dot signals "this is the problem" */}
+                <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                  </span>
+                  {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
+                </div>
+
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">
+                  {c.k[lang]}
+                </h3>
+
+                {/* Pain quote — the scammer's line, visually emphasized */}
+                <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                  {c.pain[lang]}
+                </blockquote>
+
+                {/* What we do about it — outcome line */}
+                <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                  <p className="apex-mono text-[#059669] mb-1.5">
+                    ✓ {{ ru: "Что мы делаем", uz: "Biz nima qilamiz", en: "What we do" }[lang]}
+                  </p>
+                  <p className="card-body">{c.check[lang]}</p>
+                </div>
               </div>
             ))}
           </div>
         </section>
+
 
 
 

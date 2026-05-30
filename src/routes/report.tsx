@@ -167,15 +167,26 @@ function ReportPage() {
 
 
 
-      <div className="apex-card apex-frame apex-stripes">
+      <div className="apex-card apex-frame apex-stripes relative overflow-hidden">
+        {/* Animated progress bar — pinned to the very top of the card */}
+        {loading && <div className="apex-progress absolute top-0 inset-x-0 z-10" aria-hidden />}
 
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono">SYS · REPORT</span>
-          <span className="apex-mono text-right">
-            <span className="hidden xs:inline">MODERATED · ANONYMOUS</span>
-            <span className="xs:hidden">ANON</span>
+          <span
+            className="apex-status"
+            data-state={loading ? "loading" : error ? "error" : "idle"}
+            aria-live="polite"
+          >
+            <span className="apex-status-dot" />
+            {loading
+              ? { ru: "ОТПРАВКА…", uz: "YUBORILMOQDA…", en: "SUBMITTING…" }[lang]
+              : error
+                ? { ru: "ОШИБКА", uz: "XATO", en: "ERROR" }[lang]
+                : { ru: "МОДЕРАЦИЯ · АНОНИМНО", uz: "MODERATSIYA · ANONIM", en: "MODERATED · ANONYMOUS" }[lang]}
           </span>
         </div>
+
 
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
           <p className="label-md mb-3 sm:mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
@@ -189,16 +200,20 @@ function ReportPage() {
           <p className="apex-lead mt-5 sm:mt-6">{labels.sub[lang]}</p>
         </div>
 
-        <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-5 sm:space-y-6">
+        <form
+          onSubmit={onSubmit}
+          aria-busy={loading}
+          className={`mx-auto max-w-2xl space-y-5 sm:space-y-6 transition-opacity ${loading ? "opacity-70 pointer-events-none" : ""}`}
+        >
           <div>
             <label htmlFor="v" className="apex-label">{labels.value[lang]}</label>
-            <input id="v" required maxLength={500} value={value} onChange={(e) => setValue(e.target.value)}
+            <input id="v" required maxLength={500} disabled={loading} value={value} onChange={(e) => setValue(e.target.value)}
                    placeholder="+998 90 ••• •• ••  /  @username  /  https://…" className="apex-field" />
           </div>
 
           <div>
             <label htmlFor="d" className="apex-label">{labels.desc[lang]}</label>
-            <textarea id="d" required minLength={5} maxLength={5000} rows={6}
+            <textarea id="d" required minLength={5} maxLength={5000} rows={6} disabled={loading}
                       value={desc} onChange={(e) => setDesc(e.target.value)}
                       className="apex-field" />
           </div>
@@ -206,34 +221,48 @@ function ReportPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <div>
               <label htmlFor="s" className="apex-label">{labels.scam[lang]}</label>
-              <input id="s" maxLength={80} value={scamType} onChange={(e) => setScamType(e.target.value)} className="apex-field" />
+              <input id="s" maxLength={80} disabled={loading} value={scamType} onChange={(e) => setScamType(e.target.value)} className="apex-field" />
             </div>
             <div>
               <label htmlFor="c" className="apex-label">{labels.city[lang]}</label>
-              <input id="c" maxLength={80} value={city} onChange={(e) => setCity(e.target.value)} className="apex-field" />
+              <input id="c" maxLength={80} disabled={loading} value={city} onChange={(e) => setCity(e.target.value)} className="apex-field" />
             </div>
           </div>
 
           <div>
             <label htmlFor="a" className="apex-label">{labels.amount[lang]}</label>
-            <input id="a" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="apex-field" />
+            <input id="a" inputMode="numeric" disabled={loading} value={amount} onChange={(e) => setAmount(e.target.value)} className="apex-field" />
           </div>
 
           {error && <p className="apex-error" role="alert">{error}</p>}
 
+          {loading && (
+            <div className="flex items-center gap-3 rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] px-4 py-3" role="status" aria-live="polite">
+              <Loader2 className="h-4 w-4 text-[#C2410C] animate-spin shrink-0" />
+              <p className="text-[13px] text-[#9A3412] leading-snug">
+                {{ ru: "Отправляем жалобу на модерацию… Не закрывайте страницу.",
+                   uz: "Shikoyat moderatsiyaga yuborilmoqda… Sahifani yopmang.",
+                   en: "Sending your report to moderation… Don't close the page." }[lang]}
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 pt-1">
-            <button type="submit" disabled={loading} className="fancy-btn sm:min-w-[220px]">
+            <button type="submit" disabled={loading} aria-disabled={loading} className="fancy-btn sm:min-w-[220px]">
               <span className="fancy-points" aria-hidden="true">
                 {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
               </span>
               <span className="fancy-inner">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-                {labels.send[lang]}
+                {loading
+                  ? { ru: "Отправка…", uz: "Yuborilmoqda…", en: "Submitting…" }[lang]
+                  : labels.send[lang]}
               </span>
             </button>
             <p className="apex-mono text-[#71717A] leading-relaxed">{t("privacy_promise", lang)}</p>
           </div>
         </form>
+
       </div>
     </div>
   );
