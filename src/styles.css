@@ -202,13 +202,13 @@
 
 .label-md {
   font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--apex-text);            /* AA on white & surface */
-  opacity: 0.78;
+  color: var(--apex-text);
+  opacity: 0.85;
 }
 
 .font-serif-italic {
@@ -238,10 +238,12 @@
   .section-divider { margin-top: 48px; margin-bottom: 48px; padding-bottom: 32px; }
 }
 
-/* Card body text — single rhythm so all sections read at the same beat */
-.card-body { font-size: 14.5px; line-height: 1.65; color: #52525B; max-width: 38ch;
+/* Card body text — bumped for readability. Slightly larger + darker so
+   users can scan cards without leaning in. */
+.card-body { font-size: 16px; line-height: 1.65; color: #3F3F46; max-width: 44ch;
   text-wrap: pretty; }
-@media (min-width: 768px) { .card-body { font-size: 15px; } }
+@media (min-width: 768px) { .card-body { font-size: 16.5px; } }
+
 
 /* Body paragraph helper: pretty wrapping + safe break for long urls/words.
    Russian/Uzbek hyphenation is unreliable cross-browser, so we rely on
