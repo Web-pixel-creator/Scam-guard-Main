@@ -438,9 +438,9 @@ function Index() {
           {/* Bottom strip */}
           <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
             <p className="apex-mono text-[#71717A] text-pretty max-w-[44ch] sm:max-w-none">
-              {{ ru: ") ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
-                 uz: ") ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
-                 en: ") ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
+              {{ ru: "ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
+                 uz: "ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
+                 en: "ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
             </p>
             <nav aria-label="Footer" className="flex items-center gap-4 sm:gap-8 shrink-0">
               <Link to="/" className="footer-link apex-mono">
