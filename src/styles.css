@@ -76,8 +76,8 @@
 
   /* APEX accent palette */
   --apex-orange: #F97316;
-  --apex-pink: #EC4899;
-  --apex-indigo: #6366F1;
+  --apex-pink: #FB923C;
+  --apex-indigo: #C2410C;
   --apex-text: #18181B;
   --apex-text-soft: #A1A1AA;
   --apex-surface: #F4F2EB;
@@ -184,11 +184,11 @@
   position: relative;
   padding: 1px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #9333EA 100%);
+  background: linear-gradient(135deg, #FB923C 0%, #FB923C 50%, #C2410C 100%);
   box-shadow:
     0 25px 50px -12px rgba(0,0,0,0.25),
-    0 10px 15px -3px rgba(236, 72, 153, 0.1),
-    0 4px 6px -4px rgba(236, 72, 153, 0.1);
+    0 10px 15px -3px rgba(249,115,22,0.1),
+    0 4px 6px -4px rgba(249,115,22,0.1);
 }
 .apex-shell > * {
   border-radius: 8px;
@@ -220,7 +220,7 @@
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #F97316, #EC4899);
+  background: linear-gradient(135deg, #F97316, #FB923C);
 }
 
 .glass {
@@ -510,7 +510,7 @@
   border: 1px solid transparent;
   background-image:
     linear-gradient(#fff, #fff),
-    linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #6366F1 100%);
+    linear-gradient(135deg, #FB923C 0%, #FB923C 50%, #C2410C 100%);
   background-origin: border-box;
   transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
   overflow: hidden;
@@ -527,7 +527,7 @@
 }
 .apex-btn-outline:hover {
   transform: translate3d(0, -1px, 0);
-  box-shadow: 0 12px 28px -14px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 12px 28px -14px rgba(249,115,22,0.4);
 }
 .apex-btn-outline:hover::after { transform: translate3d(110%, 0, 0); }
 .apex-btn-outline:active { transform: translate3d(0, 0, 0); }
@@ -568,7 +568,7 @@
 }
 .apex-progress::before {
   content: ""; position: absolute; inset: 0; width: 35%;
-  background: linear-gradient(90deg, transparent, #F97316, #EC4899, transparent);
+  background: linear-gradient(90deg, transparent, #F97316, #FB923C, transparent);
   animation: apex-progress-slide 1.2s ease-in-out infinite;
 }
 @keyframes apex-progress-slide {
@@ -683,7 +683,7 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.1),
     0 1px 2px rgba(11,11,15,0.15),
-    0 16px 32px -16px rgba(236,72,153,0.45);
+    0 16px 32px -16px rgba(249,115,22,0.45);
 }
 .apex-cta:hover::after { transform: translate3d(110%, 0, 0); }
 .apex-cta:active { transform: translate3d(0, 0, 0); }
@@ -705,7 +705,7 @@
   position: absolute;
   left: 0; top: 8px; bottom: 8px;
   width: 2px;
-  background: linear-gradient(180deg, #F97316 0%, #EC4899 50%, #6366F1 100%);
+  background: linear-gradient(180deg, #F97316 0%, #FB923C 50%, #C2410C 100%);
   border-radius: 2px;
 }
 
