@@ -32,7 +32,15 @@ function validateInput(value: string, hasOcr: boolean): string | null {
   return null;
 }
 
-export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
+export function CheckInput({
+  defaultValue = "",
+  hideInlineResult = false,
+  onResult,
+}: {
+  defaultValue?: string;
+  hideInlineResult?: boolean;
+  onResult?: (r: CheckResult | null) => void;
+}) {
   const { lang } = useLang();
   const navigate = useNavigate();
   const [value, setValue] = useState(defaultValue);
@@ -127,6 +135,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
       setResult(r as CheckResult);
+      onResult?.(r as CheckResult);
       if (ocrPreviewOpen) clearImage();
     } catch (e: unknown) {
       console.error(e);
@@ -290,7 +299,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
           <p className="text-[12px] text-[#DC2626] apex-mono leading-relaxed">{error}</p>
         </div>
       )}
-      {result && <div className="mt-6"><RiskResultCard result={result} /></div>}
+      {result && !hideInlineResult && <div className="mt-6"><RiskResultCard result={result} /></div>}
     </div>
   );
 }

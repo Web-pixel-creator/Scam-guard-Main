@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
+import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { lang } = useLang();
+  const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
   return (
     <div className="overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
@@ -105,10 +108,16 @@ function Index() {
               />
               <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
-                  <CheckInput />
+                  <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
               </div>
             </div>
+
+            {homeResult && (
+              <div className="mt-6 w-full max-w-3xl mx-auto animate-fade-in-up">
+                <RiskResultCard result={homeResult} />
+              </div>
+            )}
           </div>
 
 
