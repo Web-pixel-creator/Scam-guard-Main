@@ -506,14 +506,14 @@ function Index() {
             ] as const).map((s) => (
               <div key={s.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="apex-mono">CASE #{s.n}</span>
+                  <span className="apex-mono">{{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
                   <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     </span>
-                    SCAM
+                    {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
                   </span>
                 </div>
 
