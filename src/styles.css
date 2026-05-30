@@ -185,7 +185,8 @@
   line-height: 16px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--apex-text-soft);
+  color: var(--apex-text);            /* AA on white & surface */
+  opacity: 0.78;
 }
 
 .font-serif-italic {
@@ -193,6 +194,24 @@
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.02em;
+}
+
+/* ===== Unified rhythm utilities — apply to every section / card ===== */
+.section-pad   { padding: var(--pad-section); }
+.section-stack > * + * { margin-top: var(--gap-stack); }
+.card-pad      { padding: var(--pad-card); }
+.grid-hairline { display: grid; gap: var(--gap-grid); background: var(--apex-border); border: 1px solid var(--apex-border); }
+
+/* Body paragraph helper: pretty wrapping + safe break for long urls/words.
+   Russian/Uzbek hyphenation is unreliable cross-browser, so we rely on
+   text-wrap:pretty + overflow-wrap to avoid ragged lines on 320–414 widths. */
+.prose-pretty {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+@supports not (text-wrap: pretty) {
+  .prose-pretty { text-wrap: balance; }
 }
 
 /* APEX glass surface — thin border, soft blur, no shadow */
