@@ -402,14 +402,23 @@ function Index() {
           {/* Top meta row */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-14 sm:mb-20">
             <div className="space-y-1.5">
-              <p className="apex-mono">BUILD V3.1</p>
               <p className="apex-mono flex items-center gap-2">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                <ShieldCheck className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+                BUILD V3.1
+              </p>
+              <p className="apex-mono flex items-center gap-2">
+                <span className="relative inline-flex h-2 w-2 shrink-0">
+                  <span className="absolute inset-0 rounded-full bg-[#059669]/40 animate-ping" />
+                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#059669]" />
+                </span>
                 CORE SYSTEMS: ONLINE
               </p>
             </div>
             <div className="sm:text-right space-y-1.5">
-              <p className="apex-mono">{{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}</p>
+              <p className="apex-mono flex items-center gap-2 sm:justify-end">
+                <MapPin className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+                {{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}
+              </p>
               <p className="apex-mono">© 2025 ISHONCH GUARD</p>
             </div>
           </div>
@@ -421,9 +430,9 @@ function Index() {
 
           {/* Tagline */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 label-md text-center mb-12 sm:mb-16">
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+            <ShieldCheck className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
             <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
-            <Sparkles className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+            <Sparkles className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
           </div>
 
           {/* Bottom strip */}
@@ -434,10 +443,10 @@ function Index() {
                  en: ") ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
             </p>
             <div className="flex items-center gap-6">
-              <Link to="/" className="apex-mono text-[#52525B]">
+              <Link to="/" className="footer-link apex-mono">
                 {{ ru: "ПРИВАТНОСТЬ", uz: "MAXFIYLIK", en: "PRIVACY" }[lang]}
               </Link>
-              <Link to="/" className="apex-mono text-[#52525B]">
+              <Link to="/" className="footer-link apex-mono">
                 {{ ru: "ПОМОЩЬ", uz: "YORDAM", en: "HELP" }[lang]}
               </Link>
             </div>
