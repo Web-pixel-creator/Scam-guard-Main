@@ -57,7 +57,7 @@ function Index() {
               UPTIME · 99.98%
             </span>
 
-            <div className="relative text-center px-0 lg:px-20">
+            <div className="relative text-center px-0">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-8 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
@@ -67,20 +67,21 @@ function Index() {
               </div>
 
               {/* Bracketed headline frame */}
-              <div className="relative">
-                <span aria-hidden className="hidden md:block absolute -left-2 lg:-left-4 top-2 h-8 w-3 border-l border-t border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -right-2 lg:-right-4 top-2 h-8 w-3 border-r border-t border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -left-2 lg:-left-4 bottom-2 h-8 w-3 border-l border-b border-[#0B0B0F]/35" />
-                <span aria-hidden className="hidden md:block absolute -right-2 lg:-right-4 bottom-2 h-8 w-3 border-r border-b border-[#0B0B0F]/35" />
+              <div className="relative inline-block">
+                <span aria-hidden className="hidden md:block absolute -left-3 lg:-left-5 top-1 h-7 w-3 border-l border-t border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -right-3 lg:-right-5 top-1 h-7 w-3 border-r border-t border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -left-3 lg:-left-5 bottom-1 h-7 w-3 border-l border-b border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -right-3 lg:-right-5 bottom-1 h-7 w-3 border-r border-b border-[#0B0B0F]/35" />
 
-                <h1 className="font-display font-extrabold tracking-tight leading-[1] md:leading-[0.94] text-[42px] sm:text-6xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
+                <h1 className="font-display font-extrabold tracking-tight leading-[1.05] md:leading-[1] md:whitespace-nowrap text-[34px] sm:text-5xl md:text-6xl lg:text-[72px] xl:text-[84px] animate-fade-in-up text-foreground">
                   {{
-                    ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/60">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
-                    uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/60">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
-                    en: <>Check it before<br /><span className="relative inline-block text-foreground/60">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    ru: <>Проверьте до того, <span className="relative inline-block text-foreground/60">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                    uz: <>Aldanmasdan oldin <span className="relative inline-block text-foreground/60">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                    en: <>Check it before <span className="relative inline-block text-foreground/60">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-2 md:-bottom-3 lg:-bottom-4 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
                   }[lang]}
                 </h1>
               </div>
+
 
               <p className="mt-10 md:mt-12 text-[15px] md:text-base text-foreground/75 max-w-md mx-auto leading-[1.6] animate-fade-in-up">
                 {{
