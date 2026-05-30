@@ -124,6 +124,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LangProvider>
         <AuthProvider>
+          <LangSync />
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-1">
@@ -131,8 +132,40 @@ function RootComponent() {
             </main>
             <Footer />
           </div>
+          <A11yPanel />
         </AuthProvider>
       </LangProvider>
     </QueryClientProvider>
   );
+}
+
+// Keeps <html lang>, document.title and meta description in sync with the
+// active language. SSR sets a default "ru" shell; this runs on the client and
+// re-applies on every language change so /, /check, etc. show the right
+// language metadata without per-route head() duplication.
+function LangSync() {
+  const { lang } = useLang();
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = lang;
+    const titles = {
+      ru: "Ishonch Guard — проверьте номер, Telegram или ссылку до того, как вас обманут",
+      uz: "Ishonch Guard — aldanishdan oldin raqam, Telegram yoki havolani tekshiring",
+      en: "Ishonch Guard — check a number, Telegram or link before you get scammed",
+    } as const;
+    const descs = {
+      ru: "Бесплатный антискам-помощник для Узбекистана. Проверьте подозрительный номер, ссылку, Telegram или текст за секунды.",
+      uz: "O‘zbekiston uchun bepul antiskam-yordamchi. Shubhali raqam, havola, Telegram yoki matnni soniyalarda tekshiring.",
+      en: "Free anti-scam helper for Uzbekistan. Check a suspicious number, link, Telegram or text in seconds.",
+    } as const;
+    document.title = titles[lang];
+    const setMeta = (sel: string, content: string) => {
+      const el = document.head.querySelector<HTMLMetaElement>(sel);
+      if (el) el.setAttribute("content", content);
+    };
+    setMeta('meta[name="description"]', descs[lang]);
+    setMeta('meta[property="og:title"]', titles[lang]);
+    setMeta('meta[property="og:description"]', descs[lang]);
+  }, [lang]);
+  return null;
 }
