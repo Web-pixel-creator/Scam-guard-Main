@@ -804,11 +804,11 @@ function Index() {
             ].map((item, idx) => (
               <details
                 key={idx}
-                className="group bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 [&_summary::-webkit-details-marker]:hidden"
+                className="group bg-white/85 backdrop-blur-[4px] [&_summary::-webkit-details-marker]:hidden transition-colors hover:bg-[#FFFDF9] open:bg-white"
                 open={idx === 0}
               >
-                <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
-                  <div className="flex-1">
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-5 sm:gap-6 p-6 sm:p-7 md:p-8 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F97316] min-h-11">
+                  <div className="flex-1 min-w-0">
                     <span className="apex-mono text-[#52525B] block mb-2">{{ ru: `Вопрос ${idx + 1}`, uz: `Savol ${idx + 1}`, en: `Question ${idx + 1}` }[lang]}</span>
                     <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
@@ -816,11 +816,12 @@ function Index() {
                   </div>
                   <span
                     aria-hidden
-                    className="mt-1 shrink-0 w-10 h-10 rounded-full border border-[#E2E0D8] bg-white flex items-center justify-center text-[#F97316] text-xl leading-none transition-transform group-open:rotate-45"
+                    className="mt-0.5 shrink-0 grid place-items-center w-10 h-10 rounded-full border border-[#E2E0D8] bg-white text-[#F97316] transition-all duration-200 group-hover:border-[#FED7AA] group-hover:bg-[#FFF7ED] group-open:rotate-45 group-open:border-[#F97316] group-open:bg-[#FFF7ED]"
                   >
-                    +
+                    <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
                   </span>
                 </summary>
+
 
                 {/* Pain scenario — what the user is actually feeling */}
                 <div className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
