@@ -302,8 +302,8 @@ function Index() {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
           <div className="relative p-6 sm:p-10 md:p-14">
             <div className="flex items-start justify-between gap-4 mb-6">
-              <span className="apex-mono">SYS · ALGORITHM</span>
-              <span className="apex-mono text-right">03 / 03 STEPS</span>
+              <span className="apex-mono">{{ ru: "Как это работает", uz: "Bu qanday ishlaydi", en: "How it works" }[lang]}</span>
+              <span className="apex-mono text-right">{{ ru: "3 шага", uz: "3 qadam", en: "3 steps" }[lang]}</span>
             </div>
             <div className="mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
               <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
