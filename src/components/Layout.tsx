@@ -19,12 +19,13 @@ export function Header() {
             V1.0
           </span>
         </Link>
-        <nav className="hidden md:flex items-center gap-7 apex-mono">
-          <Link to="/check" className="hover:text-[#18181B] transition-colors">{t("nav_check", lang)}</Link>
-          <Link to="/report" className="hover:text-[#18181B] transition-colors">{t("nav_report", lang)}</Link>
-          <Link to="/emergency" className="hover:text-[#18181B] transition-colors">{t("nav_emergency", lang)}</Link>
-          <Link to="/privacy" className="hover:text-[#18181B] transition-colors">{t("nav_privacy", lang)}</Link>
+        <nav className="hidden md:flex items-center gap-1 apex-mono">
+          <Link to="/check" className="nav-link">{t("nav_check", lang)}</Link>
+          <Link to="/report" className="nav-link">{t("nav_report", lang)}</Link>
+          <Link to="/emergency" className="nav-link">{t("nav_emergency", lang)}</Link>
+          <Link to="/privacy" className="nav-link">{t("nav_privacy", lang)}</Link>
         </nav>
+
         <LanguageSwitcher />
       </div>
     </header>

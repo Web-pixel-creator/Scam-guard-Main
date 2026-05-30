@@ -849,18 +849,61 @@ textarea.apex-field { resize: vertical; min-height: 96px; }
 }
 .apex-pill:hover {
   transform: translate3d(0, -1px, 0);
-  border-color: #DDD9CC;
-  background: #FCFBF7;
+  border-color: #FDBA74;
+  background: #FFF7ED;
+  color: #C2410C;
   box-shadow:
     0 1px 0 rgba(11,11,15,0.02),
-    0 6px 16px -8px rgba(11,11,15,0.18);
+    0 10px 24px -10px rgba(249,115,22,0.35);
 }
+.apex-pill:hover svg { color: #C2410C; transition: color var(--dur-fast) ease; }
 .apex-pill:active { transform: translate3d(0, 0, 0); box-shadow: 0 1px 0 rgba(11,11,15,0.04); }
 .apex-pill:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(249,115,22,0.18), 0 1px 2px rgba(11,11,15,0.05);
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.28), 0 1px 2px rgba(11,11,15,0.05);
 }
 .apex-pill[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ===== Header nav link — animated underline + soft hover pill ===== */
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #52525B;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 12px; right: 12px; bottom: 6px;
+  height: 1.5px;
+  background: linear-gradient(90deg, #F97316, #C2410C);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.nav-link:hover { color: #18181B; background: rgba(249, 115, 22, 0.06); }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link:active { color: #C2410C; }
+.nav-link.active,
+.nav-link[aria-current="page"] { color: #18181B; }
+.nav-link.active::after,
+.nav-link[aria-current="page"]::after { transform: scaleX(1); }
+.nav-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
+}
+
 
 /* ===== APEX primary CTA — solid dark pill ===== */
 .apex-cta {
