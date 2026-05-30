@@ -473,7 +473,7 @@ function Index() {
               <p className="label-md mb-4">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
               <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block apex-mono shrink-0">06 cases</span>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "6 случаев", uz: "6 holat", en: "6 cases" }[lang]}</span>
           </div>
 
 
