@@ -76,7 +76,7 @@ export function UnicornBackground({ projectId, className, fallbackStyle }: Props
 
   const fallback: React.CSSProperties = fallbackStyle ?? {
     background:
-      "radial-gradient(120% 80% at 30% 30%, #ffd1a8 0%, transparent 60%), radial-gradient(120% 80% at 75% 70%, #f5a3c7 0%, transparent 55%), linear-gradient(135deg, #fde7d3, #fbd5e6 60%, #e8d4f5)",
+      "radial-gradient(120% 80% at 30% 30%, #ffd1a8 0%, transparent 60%), radial-gradient(120% 80% at 75% 70%, #fdba74 0%, transparent 55%), linear-gradient(135deg, #fde7d3, #fed7aa 60%, #fdba74)",
   };
 
   return (
