@@ -209,10 +209,10 @@ function Index() {
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[240px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
-                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#E2E0D8] leading-none">{s.i}</span>
+                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[260px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
+                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
                   <h3 className="font-sans text-[19px] md:text-xl font-medium tracking-tight text-[#18181B] text-balance">{s.t}</h3>
-                  <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] max-w-[36ch] text-pretty">{s.d}</p>
+                  <p className="card-body">{s.d}</p>
                 </div>
               ))}
             </div>
