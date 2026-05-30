@@ -23,21 +23,16 @@ function Index() {
   const { lang } = useLang();
   return (
     <div className="overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-12 md:space-y-14 lg:space-y-16 pt-3 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-11 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
 
-        {/* HERO — techno-editorial header: index strip + title block with corner ticks */}
-        <section className="relative isolate pt-4 md:pt-6">
-          {/* Top technical strip */}
-          <div className="flex items-center justify-between gap-4 pb-5 border-b border-[#E2E0D8] animate-fade-in-up">
+        {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
+        <section className="relative isolate pt-3 md:pt-5">
+          {/* Compact top strip */}
+          <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#E2E0D8]/70 animate-fade-in-up">
             <div className="flex items-center gap-3">
-              <span className="apex-mono">01 / 05</span>
-              <span className="h-px w-8 bg-[#E2E0D8]" aria-hidden />
               <span className="apex-mono">SYS · IGUARD-01</span>
-            </div>
-            <div className="hidden md:flex items-center gap-3">
-              <span className="apex-mono">PROTOCOL · ANTI-SCAM</span>
-              <span className="h-1 w-1 rounded-full bg-[#E2E0D8]" />
-              <span className="apex-mono">REGION · UZ</span>
+              <span className="hidden sm:inline-block h-px w-8 bg-[#E2E0D8]" aria-hidden />
+              <span className="hidden sm:inline apex-mono">PROTOCOL · ANTI-SCAM</span>
             </div>
             <span className="apex-mono flex items-center gap-1.5 text-[#10B981]">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
@@ -45,75 +40,45 @@ function Index() {
             </span>
           </div>
 
-          {/* Title row: left index meta, right headline & CTAs */}
-          <div className="grid grid-cols-12 gap-6 md:gap-10 pt-8 md:pt-10">
-            {/* Left meta column (techno labels) */}
-            <aside className="hidden lg:flex col-span-3 flex-col gap-6 pt-2 animate-fade-in-up">
-              <div>
-                <p className="apex-mono mb-2">SECTION</p>
-                <p className="font-mono text-sm tracking-tight text-[#18181B]">01 — Hero</p>
-              </div>
-              <div className="h-px w-12 bg-[#E2E0D8]" aria-hidden />
-              <div>
-                <p className="apex-mono mb-2">MODULES</p>
-                <ul className="space-y-1.5 font-mono text-[12px] text-[#52525B]">
-                  <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-[#F97316]" /> 01.01 · Input</li>
-                  <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-[#EC4899]" /> 01.02 · Analysis</li>
-                  <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-[#6366F1]" /> 01.03 · Report</li>
-                </ul>
-              </div>
-              <div className="h-px w-12 bg-[#E2E0D8]" aria-hidden />
-              <div>
-                <p className="apex-mono mb-2">UPTIME</p>
-                <p className="font-mono text-sm text-[#18181B]">99.9% · ~1.2s</p>
-              </div>
-            </aside>
+          {/* Title block — centered, single column, vertical accent rule */}
+          <div className="max-w-4xl mx-auto text-center pt-10 md:pt-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/80 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-6 animate-fade-in-up font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Anti-Scam Intelligence · Tashkent
+            </div>
 
-            {/* Right content column */}
-            <div className="col-span-12 lg:col-span-9">
-              {/* Brand tag (no serif, pure mono+sans) */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[4px] border border-[#E2E0D8] bg-white text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-7 animate-fade-in-up font-mono">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Anti-Scam Intelligence · Tashkent
-              </div>
+            <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-5xl md:text-7xl lg:text-[88px] animate-fade-in-up text-foreground">
+              {{
+                ru: <>Проверьте до того,<br /><span className="text-foreground/30">как обманут.</span></>,
+                uz: <>Aldanmasdan oldin<br /><span className="text-foreground/30">tekshiring.</span></>,
+                en: <>Check it before<br /><span className="text-foreground/30">you get scammed.</span></>,
+              }[lang]}
+            </h1>
 
-              {/* Headline */}
-              <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-5xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
-                {{
-                  ru: <>Проверьте до того,<br /><span className="text-foreground/30">как обманут.</span></>,
-                  uz: <>Aldanmasdan oldin<br /><span className="text-foreground/30">tekshiring.</span></>,
-                  en: <>Check it before<br /><span className="text-foreground/30">you get scammed.</span></>,
-                }[lang]}
-              </h1>
+            <p className="mt-6 text-base md:text-lg text-foreground/60 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
+              {t("hero_sub", lang)}
+            </p>
 
-              {/* Subheadline — sans, slightly tighter */}
-              <p className="mt-6 text-base md:text-lg text-foreground/60 max-w-2xl leading-relaxed animate-fade-in-up">
-                {t("hero_sub", lang)}
-              </p>
-
-              {/* Spec bar: techno chips */}
-              <div className="mt-8 flex flex-wrap items-center gap-2 animate-fade-in-up">
-                {[
-                  { k: "01", v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
-                  { k: "02", v: { ru: "За секунды", uz: "Soniyalarda", en: "Seconds" }[lang] },
-                  { k: "03", v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
-                  { k: "04", v: { ru: "RU · UZ · EN", uz: "RU · UZ · EN", en: "RU · UZ · EN" }[lang] },
-                ].map((c) => (
-                  <span key={c.k} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] border border-[#E2E0D8] bg-white/70 font-mono text-[11px] text-[#18181B]">
-                    <span className="text-[#A1A1AA] text-[10px] tracking-[0.18em]">{c.k}</span>
-                    <span className="h-3 w-px bg-[#E2E0D8]" />
-                    {c.v}
-                  </span>
-                ))}
-              </div>
+            {/* Spec bar — centered chips */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
+              {[
+                { k: "01", v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
+                { k: "02", v: { ru: "За секунды", uz: "Soniyalarda", en: "Seconds" }[lang] },
+                { k: "03", v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
+                { k: "04", v: { ru: "RU · UZ · EN", uz: "RU · UZ · EN", en: "RU · UZ · EN" }[lang] },
+              ].map((c) => (
+                <span key={c.k} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-[#E2E0D8] bg-white/70 font-mono text-[11px] text-[#18181B]">
+                  <span className="text-[#A1A1AA] text-[10px] tracking-[0.18em]">{c.k}</span>
+                  <span className="h-3 w-px bg-[#E2E0D8]" />
+                  {c.v}
+                </span>
+              ))}
             </div>
           </div>
 
-
-
           {/* Bloom band with form centered on top */}
-          <div className="w-full max-w-[1200px] mt-12 mb-8 animate-fade-in-up">
-            <div className="relative isolate rounded-[28px] overflow-hidden h-[480px] md:h-[540px] bg-[#fde7d3]">
+          <div className="w-full max-w-[1200px] mx-auto mt-10 mb-6 animate-fade-in-up">
+            <div className="relative isolate rounded-[28px] overflow-hidden h-[460px] md:h-[520px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
                 className="absolute inset-0 w-full h-full z-0 pointer-events-none"
@@ -135,6 +100,7 @@ function Index() {
             </div>
           </div>
         </section>
+
 
 
 
