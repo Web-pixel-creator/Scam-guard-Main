@@ -220,13 +220,13 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-[#E2E0D8] bg-[#FCFAF9]/60">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-9 px-3 gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-white rounded-[4px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-colors" type="button" disabled={ocrLoading}>
-              <ImagePlus className="h-3.5 w-3.5" />{t("attach_screenshot", lang)}
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-10 px-3.5 gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#18181B] border border-[#E2E0D8] bg-white hover:bg-[#F4F2EB] hover:border-[#0B0B0F]/25 hover:text-[#0B0B0F] rounded-[6px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-all" type="button" disabled={ocrLoading}>
+              <ImagePlus className="h-3.5 w-3.5 text-[#F97316]" />{t("attach_screenshot", lang)}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="h-9 px-3 gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-white rounded-[4px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-colors" type="button">
-              <Send className="h-3.5 w-3.5" />{t("report_btn", lang)}
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="h-10 px-3.5 gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#18181B] border border-[#E2E0D8] bg-white hover:bg-[#F4F2EB] hover:border-[#0B0B0F]/25 hover:text-[#0B0B0F] rounded-[6px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-all" type="button">
+              <Send className="h-3.5 w-3.5 text-[#EC4899]" />{t("report_btn", lang)}
             </Button>
           </div>
           <Button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-btn-outline h-auto">
@@ -238,6 +238,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
             {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
           </Button>
         </div>
+
       </div>
 
       {error && (
