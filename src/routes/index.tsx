@@ -176,13 +176,13 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[240px] md:min-h-[260px] flex flex-col">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[260px] md:min-h-[280px] flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12" style={{ color: c.accent }}>
-                  <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12 transition-colors" style={{ color: c.accent }}>
+                  <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
-                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[34ch] text-pretty">{c.d[lang]}</p>
+                <p className="card-body">{c.d[lang]}</p>
               </div>
             ))}
           </div>
@@ -209,10 +209,10 @@ function Index() {
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[240px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
-                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#E2E0D8] leading-none">{s.i}</span>
+                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[260px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
+                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
                   <h3 className="font-sans text-[19px] md:text-xl font-medium tracking-tight text-[#18181B] text-balance">{s.t}</h3>
-                  <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] max-w-[36ch] text-pretty">{s.d}</p>
+                  <p className="card-body">{s.d}</p>
                 </div>
               ))}
             </div>
@@ -281,7 +281,7 @@ function Index() {
                         en: ["They ask for an SMS code (OTP)", "They impersonate a bank", "Urgency and pressure", "Similar pattern already reported"],
                       })[lang]).map((r) => (
                         <li key={r} className="flex items-start gap-3">
-                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0 mt-2.5" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] shrink-0 mt-[7px]" />
                           <span>{r}</span>
                         </li>
                       ))}
@@ -340,13 +340,13 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] flex flex-col">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] md:min-h-[280px] flex flex-col">
                 <div className="flex items-center gap-3 mb-8">
-                  <span className="text-[10px] font-mono text-[#71717A] tracking-[0.18em]">CASE #{s.n}</span>
+                  <span className="apex-mono">CASE #{s.n}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
                 </div>
                 <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-4 tracking-tight text-[#18181B] leading-[1.3] text-balance">{s[lang]}</h3>
-                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[40ch] text-pretty">
+                <p className="card-body">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
               </div>
@@ -370,8 +370,8 @@ function Index() {
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
               </p>
-              <Link to="/emergency" className="inline-flex items-center gap-2 px-4 py-2 rounded-[3px] bg-[#F4F2EB] text-[#27272A] text-[12px] font-medium tracking-[0.1em] uppercase border border-[#E2E0D8]">
-                {t("emergency_cta", lang)} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <Link to="/emergency" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-[#F4F2EB] text-[#27272A] text-[12px] font-medium tracking-[0.1em] uppercase border border-[#E2E0D8] transition-colors hover:bg-white hover:border-[#F97316]/40 hover:text-[#18181B]">
+                {t("emergency_cta", lang)} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
               </Link>
             </div>
           </div>
@@ -390,8 +390,8 @@ function Index() {
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
             </p>
-            <Link to="/report" className="inline-flex items-center gap-2 px-4 py-2 rounded-[3px] bg-[#18181B] text-white text-[12px] font-medium tracking-[0.1em] uppercase">
-              {t("report_btn", lang)} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Link to="/report" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-[#18181B] text-white text-[12px] font-medium tracking-[0.1em] uppercase transition-colors hover:bg-[#0B0B0F]">
+              {t("report_btn", lang)} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
             </Link>
           </div>
         </section>
@@ -438,9 +438,9 @@ function Index() {
           {/* Bottom strip */}
           <div className="pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
             <p className="apex-mono text-[#71717A] text-pretty max-w-[44ch] sm:max-w-none">
-              {{ ru: ") ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
-                 uz: ") ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
-                 en: ") ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
+              {{ ru: "ISHONCH GUARD — АНТИ-СКАМ АССИСТЕНТ ДЛЯ УЗБЕКИСТАНА",
+                 uz: "ISHONCH GUARD — O'ZBEKISTON UCHUN ANTI-SCAM YORDAMCHI",
+                 en: "ISHONCH GUARD — ANTI-SCAM ASSISTANT FOR UZBEKISTAN" }[lang]}
             </p>
             <nav aria-label="Footer" className="flex items-center gap-4 sm:gap-8 shrink-0">
               <Link to="/" className="footer-link apex-mono">
