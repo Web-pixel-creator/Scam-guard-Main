@@ -3,7 +3,7 @@ import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, 
 import { CheckInput } from "@/components/CheckInput";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { UnicornBackground } from "@/components/UnicornBackground";
+
 
 
 export const Route = createFileRoute("/")({
@@ -64,24 +64,11 @@ function Index() {
 
           {/* Bloom band with form centered on top (GoLive-mockup style) */}
           <div className="w-full max-w-[1200px] mt-14 mb-12 animate-fade-in-up">
-            <div className="relative isolate rounded-[28px] overflow-hidden h-[460px] md:h-[520px] bg-[#fde7d3]">
-              <UnicornBackground
-                projectId="pSxbKYCCk7vGhrLFRLrG"
-                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-              />
-              {/* Readability scrim behind the form */}
-              <div
-                aria-hidden
-                className="absolute inset-0 z-10 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%)",
-                }}
-              />
-              {/* Form centered over the bloom */}
+            <div className="neuform-panel relative rounded-[28px] h-[460px] md:h-[520px] border border-white/[0.06] shadow-[0_40px_120px_-30px_rgba(139,92,246,0.45)]">
+              {/* Form centered over the dark grid */}
               <div className="absolute inset-0 z-20 flex items-center justify-center px-4 md:px-10">
                 <div className="w-full max-w-3xl cta-glow rounded-[22px]">
-                  <div className="relative bg-white rounded-[22px] border border-black/[0.06] shadow-[0_30px_80px_-20px_rgba(11,11,15,0.35)]">
+                  <div className="relative bg-white rounded-[22px] border border-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
                     <CheckInput />
                   </div>
                 </div>
