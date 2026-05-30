@@ -231,13 +231,18 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
               {t("report_btn", lang)}
             </button>
           </div>
-          <button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-cta" type="button">
-            {loading
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : status === "success"
-                ? <CheckCircle2 className="h-3.5 w-3.5" />
-                : <Search className="h-3.5 w-3.5" />}
-            {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
+          <button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="fancy-btn min-w-[170px]" type="button">
+            <span className="fancy-points" aria-hidden="true">
+              {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+            </span>
+            <span className="fancy-inner">
+              {loading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : status === "success"
+                  ? <CheckCircle2 className="h-4 w-4" />
+                  : <Search className="h-4 w-4" />}
+              {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
+            </span>
           </button>
         </div>
 
