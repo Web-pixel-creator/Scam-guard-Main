@@ -79,6 +79,40 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
 
+  // "Read aloud" — Web Speech API. Cleans up on unmount and on result change.
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [result]);
+
+  const speak = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const verdict = t(s.key as never, lang);
+    const whatToDo = { ru: "Что делать:", uz: "Nima qilish kerak:", en: "What to do:" }[lang];
+    const parts = [
+      `${TAG_LABELS[result.level][lang]}. ${verdict}.`,
+      result.explanation ?? "",
+      `${whatToDo} ${advice.join(". ")}`,
+    ].filter(Boolean);
+    const utter = new SpeechSynthesisUtterance(parts.join(" "));
+    utter.lang = { ru: "ru-RU", uz: "uz-UZ", en: "en-US" }[lang];
+    utter.rate = 0.95;
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
+  };
+
   return (
     <div className="apex-shell">
       <div className="relative bg-white">
