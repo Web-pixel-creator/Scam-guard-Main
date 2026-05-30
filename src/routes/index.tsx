@@ -179,7 +179,7 @@ function Index() {
               <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[260px] md:min-h-[280px] flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
                 <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12 transition-colors" style={{ color: c.accent }}>
-                  <c.i className="h-4 w-4" strokeWidth={1.5} />
+                  <c.i aria-hidden="true" focusable="false" className="h-4 w-4" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
                 <p className="card-body">{c.d[lang]}</p>
@@ -267,7 +267,7 @@ function Index() {
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                   </div>
                   <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
-                    <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />
+                    <ShieldAlert aria-hidden="true" focusable="false" className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                 </div>
 
@@ -362,7 +362,7 @@ function Index() {
             <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
                 <span className="label-md text-[#F97316]">[ Emergency ]</span>
-                <AlertTriangle className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
+                <AlertTriangle aria-hidden="true" focusable="false" className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
               <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
               <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
@@ -371,7 +371,7 @@ function Index() {
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
               </p>
               <Link to="/emergency" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-[#F4F2EB] text-[#27272A] text-[12px] font-medium tracking-[0.1em] uppercase border border-[#E2E0D8] transition-colors hover:bg-white hover:border-[#F97316]/40 hover:text-[#18181B]">
-                {t("emergency_cta", lang)} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+                {t("emergency_cta", lang)} <ArrowRight aria-hidden="true" focusable="false" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
               </Link>
             </div>
           </div>
@@ -380,7 +380,7 @@ function Index() {
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
               <span className="label-md">[ Community ]</span>
-              <Users className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
+              <Users aria-hidden="true" focusable="false" className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
             <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}
@@ -391,7 +391,7 @@ function Index() {
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
             </p>
             <Link to="/report" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-[#18181B] text-white text-[12px] font-medium tracking-[0.1em] uppercase transition-colors hover:bg-[#0B0B0F]">
-              {t("report_btn", lang)} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+              {t("report_btn", lang)} <ArrowRight aria-hidden="true" focusable="false" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
             </Link>
           </div>
         </section>
@@ -403,7 +403,7 @@ function Index() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-14 sm:mb-20">
             <div className="space-y-1.5">
               <p className="apex-mono flex items-center gap-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+                <ShieldCheck aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
                 BUILD V3.1
               </p>
               <p className="apex-mono flex items-center gap-2">
@@ -416,7 +416,7 @@ function Index() {
             </div>
             <div className="sm:text-right space-y-1.5">
               <p className="apex-mono flex items-center gap-2 sm:justify-end">
-                <MapPin className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+                <MapPin aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
                 {{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}
               </p>
               <p className="apex-mono">© 2025 ISHONCH GUARD</p>
@@ -430,9 +430,9 @@ function Index() {
 
           {/* Tagline */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 label-md text-center mb-12 sm:mb-16">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+            <ShieldCheck aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
             <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
-            <Sparkles className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
+            <Sparkles aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
           </div>
 
           {/* Bottom strip */}
