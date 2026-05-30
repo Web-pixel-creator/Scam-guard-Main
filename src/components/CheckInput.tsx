@@ -220,24 +220,27 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-[#E2E0D8] bg-[#FCFAF9]/60">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-10 px-3.5 gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#18181B] border border-[#E2E0D8] bg-white hover:bg-[#F4F2EB] hover:border-[#0B0B0F]/25 hover:text-[#0B0B0F] rounded-[6px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-all" type="button" disabled={ocrLoading}>
-              <ImagePlus className="h-3.5 w-3.5 text-[#F97316]" />{t("attach_screenshot", lang)}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="h-10 px-3.5 gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#18181B] border border-[#E2E0D8] bg-white hover:bg-[#F4F2EB] hover:border-[#0B0B0F]/25 hover:text-[#0B0B0F] rounded-[6px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-all" type="button">
-              <Send className="h-3.5 w-3.5 text-[#EC4899]" />{t("report_btn", lang)}
-            </Button>
+            <button onClick={() => fileInputRef.current?.click()} className="apex-pill" type="button" disabled={ocrLoading}>
+              <ImagePlus className="h-3.5 w-3.5 text-[#F97316]" strokeWidth={2} />
+              {t("attach_screenshot", lang)}
+            </button>
+            <button onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="apex-pill" type="button">
+              <Send className="h-3.5 w-3.5 text-[#EC4899]" strokeWidth={2} />
+              {t("report_btn", lang)}
+            </button>
           </div>
-          <Button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-btn-outline h-auto">
+          <button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-cta" type="button">
             {loading
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : status === "success"
                 ? <CheckCircle2 className="h-3.5 w-3.5" />
                 : <Search className="h-3.5 w-3.5" />}
             {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
-          </Button>
+          </button>
         </div>
+
 
       </div>
 
