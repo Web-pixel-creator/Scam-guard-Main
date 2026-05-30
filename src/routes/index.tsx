@@ -146,14 +146,14 @@ function Index() {
 
 
         {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-start justify-between mb-3">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between mb-4">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
             <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
           </div>
-          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
+          <div className="flex items-end justify-between mb-14 gap-6 pb-8 border-b border-[#E2E0D8]">
             <div>
-              <p className="label-md mb-3">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
+              <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
                 {{
                   ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
@@ -176,14 +176,13 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-6 md:p-8 overflow-hidden">
-                <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-9 h-9 rounded-[3px] border border-[#E2E0D8] mb-10" style={{ color: c.accent }}>
-                  <c.i className="h-4 w-4" strokeWidth={1.5} />
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 md:p-10 overflow-hidden min-h-[260px] flex flex-col">
+                <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12" style={{ color: c.accent }}>
+                  <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-sans text-[15px] font-medium mb-2 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-relaxed">{c.d[lang]}</p>
-                <span className="absolute bottom-5 right-5 apex-mono text-[#A1A1AA]">→</span>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
+                <p className="text-[13px] text-[#A1A1AA] leading-[1.7]">{c.d[lang]}</p>
               </div>
             ))}
           </div>
@@ -193,13 +192,13 @@ function Index() {
         {/* HOW IT WORKS — APEX striped surface panel */}
         <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px]">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
-          <div className="relative p-6 sm:p-10 md:p-14">
-            <div className="flex items-center justify-between mb-6">
+          <div className="relative p-8 sm:p-12 md:p-16">
+            <div className="flex items-center justify-between mb-8">
               <span className="apex-mono">SYS · ALGORITHM</span>
               <span className="apex-mono">03 / 03 STEPS</span>
             </div>
-            <p className="label-md mb-3">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
-            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-14 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
+            <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
+            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-16 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
@@ -207,10 +206,10 @@ function Index() {
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5 apex-stripes">
-                  <span className="block font-sans text-5xl font-medium tracking-[-0.05em] text-[#E2E0D8]">{s.i}</span>
+                <div key={s.i} className="bg-[#F4F2EB] p-10 md:p-12 space-y-8 apex-stripes min-h-[280px]">
+                  <span className="block font-sans text-6xl font-medium tracking-[-0.05em] text-[#E2E0D8] leading-none">{s.i}</span>
                   <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
-                  <p className="text-[#A1A1AA] text-[13px] leading-relaxed">{s.d}</p>
+                  <p className="text-[#52525B] text-[14px] leading-[1.7]">{s.d}</p>
                 </div>
               ))}
             </div>
