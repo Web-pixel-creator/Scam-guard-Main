@@ -95,9 +95,18 @@ function ReportPage() {
     );
   }
 
+  const backLabel = { ru: "Назад", uz: "Orqaga", en: "Back" }[lang];
+
   return (
     <div className="apex-page" style={{ maxWidth: 960 }}>
+      <div className="mb-4">
+        <Link to="/" className="apex-pill inline-flex">
+          <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+          {backLabel}
+        </Link>
+      </div>
       <div className="apex-card apex-frame apex-stripes">
+
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono">SYS · REPORT</span>
           <span className="apex-mono text-right">
