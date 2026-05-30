@@ -1,5 +1,6 @@
-import { ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle, ArrowRight } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle, Volume2, Square } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
