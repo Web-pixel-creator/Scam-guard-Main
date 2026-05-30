@@ -19,6 +19,69 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Бесплатный антискам-помощник для Узбекистана. Вставьте подозрительное сообщение, номер, ссылку или Telegram username — получите оценку риска и шаги, что делать." },
       { property: "og:title", content: "Ishonch Guard — антискам-помощник для Узбекистана" },
       { property: "og:description", content: "Распознайте мошенников до того, как потеряете деньги." },
+      { property: "og:url", content: "/" },
+    ],
+    links: [{ rel: "canonical", href: "/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Ishonch Guard",
+              url: "/",
+              description:
+                "Бесплатный антискам-помощник для Узбекистана: проверка номеров, ссылок, Telegram-аккаунтов и сообщений.",
+              areaServed: "UZ",
+            },
+            {
+              "@type": "WebSite",
+              name: "Ishonch Guard",
+              url: "/",
+              inLanguage: ["ru", "uz", "en"],
+            },
+            {
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Мне звонят из «службы безопасности банка» — это правда?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Настоящий банк никогда не просит SMS-код, пароль или установку приложений по ссылке. Положите трубку и перезвоните по номеру с обратной стороны карты.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Я уже отправил код из SMS — что делать?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Срочно позвоните в банк и попросите блокировку карты и онлайн-банка. Затем смените пароль в приложении банка и проверьте недавние операции.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Перевёл деньги «на безопасный счёт» — можно вернуть?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Немедленно — звонок в банк с просьбой о возврате/споре операции, и заявление в Cyber Police (102). Шанс есть только в первые часы.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "В Telegram пишет «менеджер банка» — отвечать?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Банки не ведут клиентскую поддержку в личных Telegram-сообщениях. Не отвечайте, пришлите username нам — проверим за секунды.",
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      },
     ],
   }),
   component: Index,
