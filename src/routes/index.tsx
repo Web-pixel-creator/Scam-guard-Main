@@ -146,14 +146,14 @@ function Index() {
 
 
         {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-start justify-between mb-3">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between mb-4">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
             <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
           </div>
-          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
+          <div className="flex items-end justify-between mb-14 gap-6 pb-8 border-b border-[#E2E0D8]">
             <div>
-              <p className="label-md mb-3">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
+              <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
                 {{
                   ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
@@ -176,14 +176,13 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-6 md:p-8 overflow-hidden">
-                <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-9 h-9 rounded-[3px] border border-[#E2E0D8] mb-10" style={{ color: c.accent }}>
-                  <c.i className="h-4 w-4" strokeWidth={1.5} />
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 md:p-10 overflow-hidden min-h-[260px] flex flex-col">
+                <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12" style={{ color: c.accent }}>
+                  <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-sans text-[15px] font-medium mb-2 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-relaxed">{c.d[lang]}</p>
-                <span className="absolute bottom-5 right-5 apex-mono text-[#A1A1AA]">→</span>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
+                <p className="text-[13px] text-[#A1A1AA] leading-[1.7]">{c.d[lang]}</p>
               </div>
             ))}
           </div>
