@@ -409,13 +409,13 @@ function Index() {
                         <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                       </span>
-                      <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</span>
+                      <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">{{ ru: "Опасность · 98%", uz: "Xavf · 98%", en: "Risk · 98%" }[lang]}</span>
                     </p>
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                     <p className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#991B1B] text-[11px] font-medium tracking-[0.08em] uppercase">
-                      <span className="font-mono text-[10px] text-[#991B1B]">SCAM</span>
+                      <span className="font-mono text-[10px] text-[#991B1B]">{{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}</span>
                       <span className="h-3 w-px bg-[#FCA5A5]/70" />
-                      <span>{{ ru: "Вишинг · OTP-фрод", uz: "Vishing · OTP-firibgar", en: "Vishing · OTP fraud" }[lang]}</span>
+                      <span>{{ ru: "Звонок «из банка» · код из SMS", uz: "«Bank»dan qo'ng'iroq · SMS kod", en: "Fake bank call · SMS code" }[lang]}</span>
                     </p>
                   </div>
                   <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
