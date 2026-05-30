@@ -80,7 +80,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      // Preconnect to font CDNs so the display font lands before LCP
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
+      { rel: "preconnect", href: "https://keacrmbtxccnernxhfhn.supabase.co", crossOrigin: "anonymous" },
+      { rel: "dns-prefetch", href: "https://keacrmbtxccnernxhfhn.supabase.co" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
