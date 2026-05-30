@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, Send, Loader2, ImagePlus, X, Info, AlertTriangle } from "lucide-react";
+import { Search, Send, Loader2, ImagePlus, X, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
@@ -10,6 +10,10 @@ import { checkInput, ocrExtract } from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MIN_INPUT_CHARS = 3;
+const MAX_INPUT_CHARS = 2000;
+
+type Status = "idle" | "loading" | "success" | "error";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -18,6 +22,14 @@ function fileToDataUrl(file: File): Promise<string> {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(file);
   });
+}
+
+function validateInput(value: string, hasOcr: boolean): string | null {
+  const v = value.trim();
+  if (!v && !hasOcr) return "Введите номер, ссылку, username или текст сообщения.";
+  if (!hasOcr && v.length < MIN_INPUT_CHARS) return `Слишком короткий ввод — минимум ${MIN_INPUT_CHARS} символа.`;
+  if (v.length > MAX_INPUT_CHARS) return `Слишком длинный текст — максимум ${MAX_INPUT_CHARS} символов.`;
+  return null;
 }
 
 export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
@@ -32,9 +44,30 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const checkFn = useServerFn(checkInput);
   const ocrFn = useServerFn(ocrExtract);
+
+  const validationMsg = useMemo(
+    () => (touched ? validateInput(value, ocrPreviewOpen) : null),
+    [value, ocrPreviewOpen, touched]
+  );
+
+  const status: Status = error
+    ? "error"
+    : loading || ocrLoading
+      ? "loading"
+      : result
+        ? "success"
+        : "idle";
+
+  const statusLabel: Record<Status, string> = {
+    idle: "READY",
+    loading: ocrLoading ? "OCR · SCAN" : "ANALYZING",
+    success: "RISK · READY",
+    error: "ERROR",
+  };
 
   async function onPickFile(file: File | undefined) {
     setError(null);
@@ -78,14 +111,20 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
   }
 
   async function run() {
-    if ((!value.trim() && !ocrPreviewOpen) || loading) return;
+    setTouched(true);
+    const vmsg = validateInput(value, ocrPreviewOpen);
+    if (vmsg) {
+      setError(vmsg);
+      return;
+    }
+    if (loading) return;
     setLoading(true);
     setError(null);
     setResult(null);
     try {
       const input = ocrPreviewOpen
         ? (value.trim() ? value.trim() + "\n\n" + ocrText.trim() : ocrText.trim())
-        : value.trim().slice(0, 2000);
+        : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
       setResult(r as CheckResult);
       if (ocrPreviewOpen) clearImage();
@@ -100,26 +139,50 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
     }
   }
 
-  const canSubmit = (!!value.trim() || ocrPreviewOpen) && !loading;
+  const canSubmit = (!!value.trim() || ocrPreviewOpen) && !loading && !validationMsg;
+  const charCount = value.trim().length;
 
   return (
     <div className="w-full">
-      <div className="apex-frame bg-white rounded-[6px] border border-[#E2E0D8] transition-all focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)]">
-        <div className="flex items-center justify-between px-5 pt-3 pb-1 border-b border-[#E2E0D8]/60">
+      <div className="apex-frame bg-white rounded-[6px] border border-[#E2E0D8] transition-all focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
+        <span className="apex-scan" aria-hidden />
+
+        {/* Header bar */}
+        <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-2 border-b border-[#E2E0D8]/60">
           <span className="apex-mono">INPUT · {lang.toUpperCase()}</span>
-          <span className="apex-mono">SECURE · LIVE</span>
+          <span className="apex-status" data-state={status} aria-live="polite">
+            <span className="apex-status-dot" />
+            {statusLabel[status]}
+          </span>
         </div>
+
+        {/* Progress bar (loading) */}
+        {(loading || ocrLoading) && <div className="apex-progress" />}
+
         <Textarea
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => { setValue(e.target.value); if (error) setError(null); }}
+          onBlur={() => setTouched(true)}
           placeholder={t("input_placeholder", lang)}
           rows={4}
-          className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 px-5 pt-4 pb-3 text-base md:text-[16px] text-[#18181B] placeholder:text-[#A1A1AA] min-h-[120px]"
+          aria-invalid={!!validationMsg}
+          maxLength={MAX_INPUT_CHARS + 100}
+          className="apex-field resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 px-5 pt-4 pb-2 text-base md:text-[16px] text-[#18181B] placeholder:text-[#A1A1AA] min-h-[120px]"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); }}
         />
 
+        {/* Inline validation + char counter */}
+        <div className="flex items-center justify-between px-5 pb-2 min-h-[18px]">
+          <span className="apex-mono text-[#DC2626]" role="alert">
+            {validationMsg ? `! ${validationMsg}` : ""}
+          </span>
+          <span className={`apex-mono ${charCount > MAX_INPUT_CHARS ? "text-[#DC2626]" : ""}`}>
+            {charCount} / {MAX_INPUT_CHARS}
+          </span>
+        </div>
+
         {ocrPreviewOpen && (
-          <div className="mt-3 mx-3 rounded-[6px] border border-amber-400/40 bg-amber-400/5 p-4">
+          <div className="mt-1 mx-3 rounded-[6px] border border-amber-400/40 bg-amber-400/5 p-4">
             <div className="flex items-start gap-2 mb-2">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
@@ -127,7 +190,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
                 <p className="text-xs text-[#A1A1AA] mt-0.5">{t("ocr_preview_hint", lang)}</p>
               </div>
             </div>
-            <Textarea value={ocrText} onChange={(e) => setOcrText(e.target.value)} rows={4} className="resize-none text-sm bg-white border-[#E2E0D8] rounded-[4px]" />
+            <Textarea value={ocrText} onChange={(e) => setOcrText(e.target.value)} rows={4} className="apex-field resize-none text-sm bg-white border-[#E2E0D8] rounded-[4px]" />
             <div className="flex gap-2 mt-3">
               <Button size="sm" onClick={run} disabled={!ocrText.trim() || loading} className="gap-1.5 rounded-[3px] bg-[#0B0B0F] hover:bg-[#F97316] text-white text-[11px] font-semibold tracking-[0.15em] uppercase">
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
@@ -142,7 +205,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         )}
 
         {imageDataUrl && !ocrPreviewOpen && (
-          <div className="mt-2 mx-3 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2">
+          <div className="mt-1 mx-3 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2">
             <img src={imageDataUrl} alt="screenshot" className="h-14 w-14 rounded-[4px] object-cover" />
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate text-[#18181B]">{imageName}</p>
@@ -159,23 +222,31 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-[#E2E0D8]">
           <div className="flex items-center gap-1">
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px]" type="button" disabled={ocrLoading}>
+            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40" type="button" disabled={ocrLoading}>
               <ImagePlus className="h-3.5 w-3.5" />{t("attach_screenshot", lang)}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px]" type="button">
+            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40" type="button">
               <Send className="h-3.5 w-3.5" />{t("report_btn", lang)}
             </Button>
           </div>
-          <Button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-btn-outline disabled:opacity-50 disabled:cursor-not-allowed h-auto">
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-            {loading ? t("checking", lang) : t("check_now", lang)}
+          <Button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="apex-btn-outline h-auto">
+            {loading
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : status === "success"
+                ? <CheckCircle2 className="h-3.5 w-3.5" />
+                : <Search className="h-3.5 w-3.5" />}
+            {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
           </Button>
         </div>
       </div>
 
-      {error && <p className="mt-3 text-sm text-red-500 apex-mono">{error}</p>}
+      {error && (
+        <div className="mt-3 flex items-start gap-2 rounded-[6px] border border-[#DC2626]/30 bg-[#DC2626]/5 px-3 py-2.5">
+          <AlertTriangle className="h-3.5 w-3.5 text-[#DC2626] mt-0.5 shrink-0" />
+          <p className="text-[12px] text-[#DC2626] apex-mono leading-relaxed">{error}</p>
+        </div>
+      )}
       {result && <div className="mt-6"><RiskResultCard result={result} /></div>}
     </div>
   );
 }
-
