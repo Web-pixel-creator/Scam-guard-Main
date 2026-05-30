@@ -114,7 +114,7 @@ function Index() {
                     "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%)",
                 }}
               />
-              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
+              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-8 md:py-12 min-h-[380px] md:min-h-[440px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
                   <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
