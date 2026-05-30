@@ -90,8 +90,16 @@ function Index() {
         </section>
 
 
-        {/* MARQUEE — APEX: stripes texture + hairline borders */}
-        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px] apex-stripes-soft">
+        {/* MARQUEE — APEX: stripes texture + edge fade mask */}
+        <section
+          className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px] apex-stripes-soft"
+          style={{
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0, #000 80px, #000 calc(100% - 80px), transparent 100%)",
+            maskImage:
+              "linear-gradient(to right, transparent 0, #000 80px, #000 calc(100% - 80px), transparent 100%)",
+          }}
+        >
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
