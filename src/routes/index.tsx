@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin } from "lucide-react";
+import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle, MapPin, ArrowDown } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
 import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
