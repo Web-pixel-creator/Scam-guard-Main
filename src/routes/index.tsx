@@ -37,11 +37,11 @@ function Index() {
           </div>
 
           {/* Title block — laconic, generous whitespace */}
-          <div className="relative max-w-4xl mx-auto pt-14 md:pt-20 pb-2">
+          <div className="relative max-w-5xl mx-auto pt-14 md:pt-20 pb-2">
             {/* Subtle dot-grid backdrop behind the title */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-8 h-[320px] md:h-[400px] opacity-[0.3] [mask-image:radial-gradient(55%_55%_at_50%_40%,#000_0%,transparent_75%)]"
+              className="pointer-events-none absolute inset-x-0 top-8 h-[280px] md:h-[340px] opacity-[0.3] [mask-image:radial-gradient(55%_55%_at_50%_40%,#000_0%,transparent_75%)]"
               style={{
                 backgroundImage:
                   "radial-gradient(circle at 1px 1px, rgba(11,11,15,0.18) 1px, transparent 0)",
@@ -49,13 +49,6 @@ function Index() {
               }}
             />
 
-            {/* Side vertical meta rails (desktop only) */}
-            <span className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 apex-mono [writing-mode:vertical-rl] rotate-180 tracking-[0.3em] pointer-events-none select-none">
-              MODULE · 01 / INTAKE
-            </span>
-            <span className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 apex-mono [writing-mode:vertical-rl] tracking-[0.3em] pointer-events-none select-none">
-              UPTIME · 99.98%
-            </span>
 
             <div className="relative text-center px-0">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-8 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
