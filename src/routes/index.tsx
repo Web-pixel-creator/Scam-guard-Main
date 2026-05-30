@@ -543,8 +543,8 @@ function Index() {
         {/* FAQ — pain scenarios with green "what we do" answer */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">FAQ · PAIN SCENARIOS</span>
-            <span className="apex-mono text-right">REAL CASES</span>
+            <span className="apex-mono">{{ ru: "Частые вопросы", uz: "Tez-tez beriladigan savollar", en: "Common questions" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Реальные ситуации", uz: "Haqiqiy holatlar", en: "Real situations" }[lang]}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
