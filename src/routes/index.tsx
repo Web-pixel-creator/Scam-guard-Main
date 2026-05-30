@@ -390,8 +390,8 @@ function Index() {
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
             </p>
-            <Link to="/report" className="inline-flex items-center gap-2 px-4 py-2 rounded-[3px] bg-[#18181B] text-white text-[12px] font-medium tracking-[0.1em] uppercase">
-              {t("report_btn", lang)} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Link to="/report" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-[#18181B] text-white text-[12px] font-medium tracking-[0.1em] uppercase transition-colors hover:bg-[#0B0B0F]">
+              {t("report_btn", lang)} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
             </Link>
           </div>
         </section>
