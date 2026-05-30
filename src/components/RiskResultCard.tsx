@@ -37,7 +37,7 @@ const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
     icon: ShieldQuestion, key: "risk_unknown", accent: "#71717A",
     badgeBg: "bg-[#F4F4F5]", badgeBorder: "border-[#E4E4E7]", badgeText: "text-[#3F3F46]",
     tag: "UNKNOWN",
-    topBar: "from-[#A1A1AA] via-[#D4D4D8] to-[#E4E4E7]",
+    topBar: "from-[#FDBA74]/40 via-[#E2E0D8] to-[#FDBA74]/40",
   },
   suspicious: {
     icon: AlertTriangle, key: "risk_suspicious", accent: "#D97706",
