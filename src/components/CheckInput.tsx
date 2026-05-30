@@ -135,6 +135,7 @@ export function CheckInput({
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
       setResult(r as CheckResult);
+      onResult?.(r as CheckResult);
       if (ocrPreviewOpen) clearImage();
     } catch (e: unknown) {
       console.error(e);
