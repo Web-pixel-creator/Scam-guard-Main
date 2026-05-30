@@ -27,15 +27,9 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-11 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
-        <section className="relative isolate pt-3 md:pt-5">
-          {/* Compact top strip — only essential meta */}
-          <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#E2E0D8]/70 animate-fade-in-up">
-            <span className="apex-mono">SYS · IGUARD-01</span>
-            <span className="apex-mono flex items-center gap-1.5 text-[#10B981]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
-              READY
-            </span>
-          </div>
+        <section className="relative isolate pt-6 md:pt-10">
+
+
 
           {/* Title block — laconic, generous whitespace */}
           <div className="relative max-w-5xl mx-auto pt-14 md:pt-20 pb-2">
