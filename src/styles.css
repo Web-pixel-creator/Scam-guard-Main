@@ -149,6 +149,19 @@
     letter-spacing: -0.03em;
     font-weight: 800;
     line-height: 0.95;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11", "kern";
+  }
+  /* Tabular numerals for counters / case numbers / mono labels */
+  .apex-mono, .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "zero";
+  }
+  /* Unified focus ring — single brand token across all interactive elements */
+  a:focus-visible, button:focus-visible, [role="button"]:focus-visible {
+    outline: 2px solid rgba(249, 115, 22, 0.55);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
   ::selection { background: #0B0B0F; color: #FCFAF9; }
 
