@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
+import { UnicornBackground } from "@/components/UnicornBackground";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 
@@ -23,8 +24,17 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-6 space-y-28 md:space-y-32 pt-10 md:pt-14">
 
         {/* HERO */}
-        <section className="flex flex-col items-center text-center pt-8 md:pt-12 relative">
-          <div className="pointer-events-none absolute inset-0 -z-10 grid-bg [mask-image:radial-gradient(ellipse_60%_55%_at_50%_30%,black,transparent)]" />
+        <section className="isolate flex flex-col items-center text-center pt-16 md:pt-24 relative -mx-6 px-6 rounded-[40px] overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[#08080B]" />
+          <div className="pointer-events-none absolute inset-0 z-[1]">
+            <UnicornBackground />
+          </div>
+          <div className="pointer-events-none absolute inset-0 z-[2] grid-bg opacity-[0.08]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-40 bg-gradient-to-b from-transparent to-background" />
+          <div className="relative z-10 flex flex-col items-center w-full">
+
+
+
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-[11px] font-mono tracking-[0.2em] uppercase mb-8 animate-fade-in-up">
             <span className="relative flex h-2 w-2">
@@ -34,28 +44,29 @@ function Index() {
             Anti-Scam Intelligence · Tashkent
           </div>
 
-          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up">
+          <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[96px] max-w-5xl animate-fade-in-up text-white relative">
             {{
-              ru: <>Проверьте <span className="font-serif-italic text-gradient">до того,</span><br />как обманут</>,
-              uz: <>Aldanmasdan <span className="font-serif-italic text-gradient">oldin</span><br />tekshiring</>,
-              en: <>Check it <span className="font-serif-italic text-gradient">before</span><br />you get scammed</>,
+              ru: <>Проверьте <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">до того,</span><br />как обманут</>,
+              uz: <>Aldanmasdan <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">oldin</span><br />tekshiring</>,
+              en: <>Check it <span className="font-serif-italic bg-gradient-to-r from-white via-[#C9C2FF] to-[#7C6BFF] bg-clip-text text-transparent">before</span><br />you get scammed</>,
             }[lang]}
           </h1>
 
-          <p className="mt-7 text-lg text-foreground/55 max-w-2xl leading-relaxed animate-fade-in-up">
+          <p className="mt-7 text-lg text-white/65 max-w-2xl leading-relaxed animate-fade-in-up relative">
             {t("hero_sub", lang)}
           </p>
 
-          <div className="w-full max-w-3xl mt-12 animate-fade-in-up">
-            <div className="p-1.5 rounded-3xl bg-gradient-to-b from-foreground/5 to-foreground/0 border border-border backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.4)]">
+          <div className="w-full max-w-3xl mt-12 animate-fade-in-up relative">
+            <div className="p-1.5 rounded-3xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-[0_40px_120px_-30px_rgba(124,107,255,0.5)]">
               <CheckInput />
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-foreground/45 uppercase">
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
-            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-foreground/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
+          <div className="mt-8 mb-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-[11px] font-mono tracking-[0.2em] text-white/50 uppercase relative">
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "За секунды", uz: "Soniyalarda", en: "In seconds" }[lang]}</span>
+            <span className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-white/40" />{{ ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang]}</span>
+          </div>
           </div>
         </section>
 
