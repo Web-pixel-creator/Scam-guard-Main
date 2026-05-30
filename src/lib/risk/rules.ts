@@ -1,0 +1,218 @@
+import type { InputType } from "./detect";
+import type { Database } from "@/integrations/supabase/types";
+
+export type RiskLevel = Database["public"]["Enums"]["risk_level"];
+
+export type ReasonCode =
+  | "asks_for_otp"
+  | "asks_for_sms_code"
+  | "asks_for_card_cvv"
+  | "asks_for_pin"
+  | "asks_to_install_apk"
+  | "asks_to_share_screen"
+  | "asks_to_transfer_to_safe_account"
+  | "impersonates_bank"
+  | "impersonates_operator"
+  | "uses_urgency"
+  | "threatens_legal_action"
+  | "asks_not_to_hang_up"
+  | "telegram_bank_contact"
+  | "fake_loan_offer"
+  | "suspicious_short_link"
+  | "apk_download_link"
+  | "unknown_sender"
+  | "new_telegram_account"
+  | "weird_domain"
+  | "brand_name_typo"
+  | "payment_before_service"
+  | "too_good_to_be_true"
+  | "requests_personal_data"
+  | "non_uz_phone"
+  | "valid_uz_phone"
+  | "verified_official";
+
+const WEIGHTS: Record<ReasonCode, number> = {
+  asks_for_otp: 45,
+  asks_for_sms_code: 45,
+  asks_for_card_cvv: 45,
+  asks_for_pin: 45,
+  asks_to_install_apk: 45,
+  asks_to_share_screen: 35,
+  asks_to_transfer_to_safe_account: 40,
+  impersonates_bank: 30,
+  impersonates_operator: 25,
+  uses_urgency: 15,
+  threatens_legal_action: 20,
+  asks_not_to_hang_up: 20,
+  telegram_bank_contact: 25,
+  fake_loan_offer: 25,
+  suspicious_short_link: 30,
+  apk_download_link: 45,
+  unknown_sender: 5,
+  new_telegram_account: 10,
+  weird_domain: 25,
+  brand_name_typo: 20,
+  payment_before_service: 20,
+  too_good_to_be_true: 15,
+  requests_personal_data: 15,
+  non_uz_phone: 5,
+  valid_uz_phone: 0,
+  verified_official: -100,
+};
+
+const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
+  { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
+  { code: "asks_for_sms_code", re: /(sms.?код|код из (смс|sms)|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн)/i },
+  { code: "asks_for_card_cvv", re: /\b(cvv|cvc|cvv2)\b|трёхзначн|uch xonali kod/i },
+  { code: "asks_for_pin", re: /\b(pin|пин-?код|pin.?kod)\b/i },
+  { code: "asks_to_install_apk", re: /(установ(и|ите).{0,30}(прилож|apk)|apk.?(скачайте|yuklab)|o['’]rnating.{0,30}(ilova|apk)|install.{0,30}(app|apk))/i },
+  { code: "asks_to_share_screen", re: /(демонстр.{0,15}экран|share.{0,5}screen|screen.?share|anydesk|teamviewer|rustdesk|quick.?support)/i },
+  { code: "asks_to_transfer_to_safe_account", re: /(безопасн.{0,15}(счёт|счет|карт)|safe account|xavfsiz hisob)/i },
+  { code: "impersonates_bank", re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|payme|click)/i },
+  { code: "impersonates_operator", re: /(оператор связи|ucell|beeline|mobiuz|ums|uzmobile)/i },
+  { code: "uses_urgency", re: /(срочно|немедленно|прямо сейчас|tezda|hozir|darhol|urgent|immediately|right now)/i },
+  { code: "threatens_legal_action", re: /(полици(я|ей)|суд|арест|уголовн|jinoiy|sud|hibsga|police|lawsuit|criminal case)/i },
+  { code: "asks_not_to_hang_up", re: /(не клад(и|ите) трубку|не отключ|не завершайте|telefonni qo['’]ymang|don'?t hang up)/i },
+  { code: "telegram_bank_contact", re: /(банк.{0,20}telegram|telegram.{0,20}банк|bank.{0,20}telegram)/i },
+  { code: "fake_loan_offer", re: /(быстры(й|е) кредит|кредит без|kredit.?bering|tez kredit|easy loan|guaranteed loan|loan without)/i },
+  { code: "asks_to_transfer_to_safe_account", re: /(переведите.{0,30}(счёт|карту|safe)|pul.{0,30}o['’]tkazing)/i },
+];
+
+const SHORT_LINK_HOSTS = ["bit.ly","t.co","tinyurl.com","goo.gl","cutt.ly","is.gd","rebrand.ly","clck.ru","vk.cc","ow.ly"];
+
+export function evaluateText(text: string): ReasonCode[] {
+  const codes = new Set<ReasonCode>();
+  for (const { code, re } of PATTERNS) if (re.test(text)) codes.add(code);
+  // Heuristics
+  if (/\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) && /(выигр|приз|бесплатн|tabrik|sovrin|prize|won)/i.test(text)) {
+    codes.add("too_good_to_be_true");
+  }
+  if (/(паспорт|passport|seriya)/i.test(text) && /(отправ|yuboring|send)/i.test(text)) {
+    codes.add("requests_personal_data");
+  }
+  return [...codes];
+}
+
+export function evaluateUrl(url: string): ReasonCode[] {
+  const codes: ReasonCode[] = [];
+  try {
+    const u = new URL(url.startsWith("http") ? url : "https://" + url);
+    const host = u.hostname.toLowerCase();
+    if (SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith("." + h))) codes.push("suspicious_short_link");
+    if (/\.apk(\?|$)/i.test(u.pathname)) codes.push("apk_download_link");
+    // brand typo heuristic
+    const brandTypos = [/uzc[ao]rt/i, /hum0/i, /pay[mn]e\d/, /clikc/i, /hamkrbank/i, /kap[ii]talbank.+\..+/];
+    if (brandTypos.some((r) => r.test(host))) codes.push("brand_name_typo");
+    // weird tld for UZ context
+    if (/\.(xyz|top|click|gq|cf|tk|ml|loan|work)$/i.test(host)) codes.push("weird_domain");
+    // ip address
+    if (/^\d+\.\d+\.\d+\.\d+/.test(host)) codes.push("weird_domain");
+  } catch {
+    codes.push("weird_domain");
+  }
+  return codes;
+}
+
+export function evaluatePhone(phone: string): ReasonCode[] {
+  const d = phone.replace(/\D/g, "");
+  if (d.startsWith("998") && d.length === 12) return ["valid_uz_phone"];
+  if (d.length >= 7) return ["non_uz_phone"];
+  return [];
+}
+
+export function evaluateTelegram(_handle: string): ReasonCode[] {
+  // Without lookup we can't tell account age — placeholder
+  return ["unknown_sender"];
+}
+
+export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: RiskLevel } {
+  let score = 0;
+  for (const c of codes) score += WEIGHTS[c] ?? 0;
+  if (codes.includes("verified_official")) return { score: 0, level: "safe" };
+  if (score >= 50) return { score, level: "high_risk" };
+  if (score >= 20) return { score, level: "suspicious" };
+  if (score > 0) return { score, level: "unknown" };
+  return { score, level: "unknown" };
+}
+
+export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: string }> = {
+  asks_for_otp: { ru: "Просят OTP-код", uz: "OTP kodini so‘rashmoqda", en: "Asks for an OTP code" },
+  asks_for_sms_code: { ru: "Просят SMS-код подтверждения", uz: "SMS tasdiqlash kodini so‘rashmoqda", en: "Asks for an SMS confirmation code" },
+  asks_for_card_cvv: { ru: "Просят CVV/CVC карты", uz: "Karta CVV/CVC raqamini so‘rashmoqda", en: "Asks for the card CVV/CVC" },
+  asks_for_pin: { ru: "Просят PIN-код", uz: "PIN kodni so‘rashmoqda", en: "Asks for the PIN code" },
+  asks_to_install_apk: { ru: "Просят установить APK / приложение", uz: "APK / ilova o‘rnatishni so‘rashmoqda", en: "Asks to install an APK / app" },
+  asks_to_share_screen: { ru: "Просят демонстрацию экрана", uz: "Ekran ulashishni so‘rashmoqda", en: "Asks to share your screen" },
+  asks_to_transfer_to_safe_account: { ru: "Предлагают «безопасный счёт»", uz: "«Xavfsiz hisob»ga pul o‘tkazishni taklif qilishmoqda", en: "Offers a fake “safe account”" },
+  impersonates_bank: { ru: "Выдают себя за сотрудника банка", uz: "O‘zini bank xodimi qilib ko‘rsatmoqda", en: "Impersonates a bank employee" },
+  impersonates_operator: { ru: "Выдают себя за мобильного оператора", uz: "O‘zini mobil operator qilib ko‘rsatmoqda", en: "Impersonates a mobile operator" },
+  uses_urgency: { ru: "Создают ощущение срочности", uz: "Shoshilinchlik bosimi yaratmoqda", en: "Uses urgency pressure" },
+  threatens_legal_action: { ru: "Угрожают полицией / судом", uz: "Politsiya yoki sud bilan qo‘rqitmoqda", en: "Threatens legal action" },
+  asks_not_to_hang_up: { ru: "Просят не класть трубку", uz: "Telefonni qo‘ymaslikni so‘rashmoqda", en: "Tells you not to hang up" },
+  telegram_bank_contact: { ru: "Контакт «банка» через Telegram", uz: "Bank Telegram orqali bog‘lanmoqda", en: "Claims to be a bank via Telegram" },
+  fake_loan_offer: { ru: "Подозрительное предложение кредита", uz: "Shubhali kredit taklifi", en: "Suspicious loan offer" },
+  suspicious_short_link: { ru: "Сокращённая ссылка", uz: "Qisqartirilgan havola", en: "Shortened link" },
+  apk_download_link: { ru: "Ссылка на скачивание APK", uz: "APK yuklab olish havolasi", en: "APK download link" },
+  unknown_sender: { ru: "Отправитель неизвестен", uz: "Yuboruvchi noma’lum", en: "Unknown sender" },
+  new_telegram_account: { ru: "Новый Telegram-аккаунт", uz: "Yangi Telegram hisob", en: "New Telegram account" },
+  weird_domain: { ru: "Подозрительный домен", uz: "Shubhali domen", en: "Suspicious domain" },
+  brand_name_typo: { ru: "Опечатка в названии бренда", uz: "Brend nomida xatolik", en: "Brand name typo" },
+  payment_before_service: { ru: "Предоплата до услуги", uz: "Xizmatdan oldin to‘lov", en: "Payment requested before service" },
+  too_good_to_be_true: { ru: "Слишком хорошее предложение", uz: "Haqiqatga to‘g‘ri kelmaydigan taklif", en: "Too good to be true" },
+  requests_personal_data: { ru: "Запрашивают личные данные", uz: "Shaxsiy ma’lumotlarni so‘rashmoqda", en: "Requests personal data" },
+  non_uz_phone: { ru: "Не узбекский номер", uz: "O‘zbek raqami emas", en: "Non-Uzbek phone number" },
+  valid_uz_phone: { ru: "Корректный узбекский номер", uz: "To‘g‘ri O‘zbek raqami", en: "Valid Uzbek phone" },
+  verified_official: { ru: "Проверенный официальный контакт", uz: "Tasdiqlangan rasmiy kontakt", en: "Verified official contact" },
+};
+
+export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[] }> = {
+  safe: {
+    ru: ["Это проверенный официальный контакт.", "Всё равно перепроверяйте детали на сайте организации."],
+    uz: ["Bu tasdiqlangan rasmiy kontakt.", "Shunda ham tafsilotlarni tashkilot saytida tekshiring."],
+    en: ["This is a verified official contact.", "Still double-check details on the organization’s website."],
+  },
+  unknown: {
+    ru: ["Данных мало — будьте осторожны.", "Не отправляйте коды, не переходите по ссылкам, не устанавливайте файлы."],
+    uz: ["Ma’lumot kam — ehtiyot bo‘ling.", "Kod yubormang, havolalarga o‘tmang, fayllarni o‘rnatmang."],
+    en: ["Not enough data — stay cautious.", "Don’t send codes, click links or install files."],
+  },
+  suspicious: {
+    ru: [
+      "Не передавайте OTP, PIN, CVV и пароли.",
+      "Не переходите по ссылкам и не устанавливайте приложения.",
+      "Перезвоните в банк / организацию по официальному номеру.",
+    ],
+    uz: [
+      "OTP, PIN, CVV va parollarni bermang.",
+      "Havolalarga o‘tmang va ilovalar o‘rnatmang.",
+      "Bank yoki tashkilotning rasmiy raqami orqali o‘zingiz qo‘ng‘iroq qiling.",
+    ],
+    en: [
+      "Do not share OTP, PIN, CVV or passwords.",
+      "Do not click links or install apps.",
+      "Call the bank / company back using the official number.",
+    ],
+  },
+  high_risk: {
+    ru: [
+      "Не отправляйте код, не сообщайте данные карты.",
+      "Не устанавливайте APK / приложение по их ссылке.",
+      "Завершите разговор и перезвоните в банк по официальному номеру.",
+      "Сделайте скриншоты переписки и сохраните номер.",
+      "Сообщите о случае через форму «Сообщить о мошеннике».",
+    ],
+    uz: [
+      "Kod yubormang, karta ma’lumotlarini aytmang.",
+      "Ularning havolasi orqali APK / ilova o‘rnatmang.",
+      "Suhbatni tugatib, bankka rasmiy raqami orqali qo‘ng‘iroq qiling.",
+      "Yozishmalarning skrinshotini saqlang.",
+      "“Firibgarni xabar qilish” formasi orqali habar bering.",
+    ],
+    en: [
+      "Don’t send codes or share card details.",
+      "Don’t install any APK or app from their link.",
+      "End the call and dial your bank using the official number.",
+      "Take screenshots of the chat and save the number.",
+      "Submit the case via the “Report a scammer” form.",
+    ],
+  },
+};
