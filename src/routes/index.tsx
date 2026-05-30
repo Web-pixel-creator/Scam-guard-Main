@@ -345,14 +345,30 @@ function Index() {
           </div>
         </section>
 
-        {/* trust strip — APEX label */}
-        <section className="py-8 flex items-center justify-center gap-3 label-md">
-          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
-          <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
-          <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+        {/* APEX-style footer band: ghost wordmark + status meta */}
+        <section className="apex-frame apex-stripes-soft border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
+          <div className="flex items-start justify-between mb-10">
+            <div className="space-y-1">
+              <p className="apex-mono">BUILD V3.1</p>
+              <p className="apex-mono">CORE SYSTEMS: ONLINE</p>
+            </div>
+            <div className="text-right space-y-1">
+              <p className="apex-mono">{{ ru: "ТАШКЕНТ · UZ", uz: "TOSHKENT · UZ", en: "TASHKENT · UZ" }[lang]}</p>
+              <p className="apex-mono">© 2025 ISHONCH GUARD</p>
+            </div>
+          </div>
+          <div className="apex-wordmark text-[26vw] md:text-[18vw] leading-none select-none pointer-events-none">
+            ISHONCH.
+          </div>
+          <div className="mt-8 flex items-center justify-center gap-3 label-md">
+            <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span>{{ ru: "Без сохранения · За секунды · Бесплатно", uz: "Saqlanmaydi · Soniyalarda · Bepul", en: "No storage · In seconds · Free" }[lang]}</span>
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </div>
         </section>
 
       </div>
     </div>
   );
 }
+
