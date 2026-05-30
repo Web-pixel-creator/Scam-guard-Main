@@ -24,7 +24,7 @@ function Index() {
   const { lang } = useLang();
   return (
     <div className="overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-11 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
@@ -147,14 +147,14 @@ function Index() {
 
         {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
-            <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
+            <span className="apex-mono text-right">CORE SYSTEMS: ONLINE</span>
           </div>
-          <div className="flex items-end justify-between mb-14 gap-6 pb-8 border-b border-[#E2E0D8]">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
               <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
-              <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
                 {{
                   ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
                   uz: <>Nimani <span className="font-serif-italic text-[#A1A1AA]">tekshirish</span> mumkin</>,
@@ -162,10 +162,10 @@ function Index() {
                 }[lang]}
               </h2>
             </div>
-            <span className="hidden md:block apex-mono">04 / 04</span>
+            <span className="hidden md:block apex-mono shrink-0">04 / 04</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {[
               { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
@@ -176,29 +176,32 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 md:p-10 overflow-hidden min-h-[260px] flex flex-col">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[240px] md:min-h-[260px] flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12" style={{ color: c.accent }}>
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12" style={{ color: c.accent }}>
                   <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-[1.7]">{c.d[lang]}</p>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
+                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[34ch] text-pretty">{c.d[lang]}</p>
               </div>
             ))}
           </div>
         </section>
 
 
+
         {/* HOW IT WORKS — APEX striped surface panel */}
         <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px]">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
-          <div className="relative p-8 sm:p-12 md:p-16">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative p-6 sm:p-10 md:p-14">
+            <div className="flex items-start justify-between gap-4 mb-6">
               <span className="apex-mono">SYS · ALGORITHM</span>
-              <span className="apex-mono">03 / 03 STEPS</span>
+              <span className="apex-mono text-right">03 / 03 STEPS</span>
             </div>
-            <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
-            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-16 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
+            <div className="mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+              <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] max-w-3xl text-balance">{t("how_it_works", lang)}</h2>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
               {[
@@ -206,41 +209,42 @@ function Index() {
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
               ].map((s) => (
-                <div key={s.i} className="bg-[#F4F2EB] p-10 md:p-12 space-y-8 apex-stripes min-h-[280px]">
-                  <span className="block font-sans text-6xl font-medium tracking-[-0.05em] text-[#E2E0D8] leading-none">{s.i}</span>
-                  <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
-                  <p className="text-[#52525B] text-[14px] leading-[1.7]">{s.d}</p>
+                <div key={s.i} className="bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[240px] md:min-h-[280px] flex flex-col gap-6 md:gap-8">
+                  <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#E2E0D8] leading-none">{s.i}</span>
+                  <h3 className="font-sans text-[19px] md:text-xl font-medium tracking-tight text-[#18181B] text-balance">{s.t}</h3>
+                  <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] max-w-[36ch] text-pretty">{s.d}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
+
         {/* EXAMPLE — APEX striped frame around the demo */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-center justify-between mb-8">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">CASE STUDY · DEMO</span>
-            <span className="apex-mono">RISK · LIVE</span>
+            <span className="apex-mono text-right">RISK · LIVE</span>
           </div>
-          <div className="text-center mb-14">
-            <p className="label-md mb-3">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
-            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-2xl mx-auto text-[#18181B]">
+          <div className="text-center mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <p className="label-md mb-4">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
+            <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] max-w-2xl mx-auto text-[#18181B] text-balance">
               {t("example_title", lang)}
             </h2>
           </div>
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <div className="apex-glass p-6 md:p-8 rounded-[6px]">
-              <p className="label-md mb-5">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
-              <p className="text-[15px] leading-relaxed text-[#18181B] italic border-l-2 border-[#F97316] pl-5">
+            <div className="apex-glass p-7 sm:p-9 md:p-10 rounded-[6px]">
+              <p className="label-md mb-6">{{ ru: "Входящий текст", uz: "Kirish matni", en: "Incoming text" }[lang]}</p>
+              <p className="text-[15px] md:text-[16px] leading-[1.7] text-[#18181B] italic border-l-2 border-[#F97316] pl-5 max-w-[58ch] text-pretty">
                 {{
                   ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция. Срочно назовите код из SMS…»",
                   uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangiz bo'yicha shubhali amaliyot. Tezda SMS-kodni ayting…»",
                   en: "“Hello, this is the bank security service. A suspicious transaction was detected on your card. Tell us the SMS code now…”",
                 }[lang]}
               </p>
-              <p className="mt-7 text-[13px] text-[#A1A1AA] leading-relaxed">
+              <p className="mt-8 text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[56ch] text-pretty">
                 {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
                    uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
                    en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
@@ -249,42 +253,42 @@ function Index() {
 
             {/* Gradient-shell card — APEX signature technique */}
             <div className="apex-shell">
-              <div className="relative bg-white p-8">
-                <div className="flex items-start justify-between mb-8">
+              <div className="relative bg-white p-7 sm:p-9 md:p-10">
+                <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
                     <p className="text-[11px] font-medium tracking-[0.1em] uppercase mb-2 bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</p>
-                    <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B]">{t("risk_high", lang)}</h3>
+                    <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                   </div>
-                  <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316]">
+                  <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
                     <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <div className="space-y-7">
+                <div className="space-y-8">
                   <div>
-                    <p className="label-md mb-3">{t("why_title", lang)}</p>
-                    <ul className="space-y-2.5 text-[13px] text-[#18181B]">
+                    <p className="label-md mb-4">{t("why_title", lang)}</p>
+                    <ul className="space-y-3 text-[14px] md:text-[15px] text-[#18181B] leading-[1.6]">
                       {(({
                         ru: ["Просят SMS-код (OTP)", "Представляются банком", "Создают срочность и давление", "Похожая схема уже в жалобах"],
                         uz: ["SMS-kod (OTP) so'rashmoqda", "Bank nomidan murojaat", "Shoshilinchlik va bosim", "Shu sxema shikoyatlarda uchragan"],
                         en: ["They ask for an SMS code (OTP)", "They impersonate a bank", "Urgency and pressure", "Similar pattern already reported"],
                       })[lang]).map((r) => (
-                        <li key={r} className="flex items-center gap-3">
-                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0" />
+                        <li key={r} className="flex items-start gap-3">
+                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0 mt-2.5" />
                           <span>{r}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="pt-6 border-t border-[#E2E0D8]">
-                    <p className="label-md mb-3">{t("what_to_do", lang)}</p>
-                    <div className="space-y-2">
+                  <div className="pt-7 border-t border-[#E2E0D8]">
+                    <p className="label-md mb-4">{t("what_to_do", lang)}</p>
+                    <div className="space-y-2.5">
                       {(({
                         ru: ["Не отправляйте код", "Завершите разговор", "Позвоните в банк по номеру с карты"],
                         uz: ["Kodni yubormang", "Suhbatni tugating", "Bankka kartadagi raqam orqali qo'ng'iroq qiling"],
                         en: ["Don't send the code", "End the call", "Call the bank using the number on your card"],
                       })[lang]).map((r, i) => (
-                        <div key={r} className="flex items-center gap-3 px-3 py-2.5 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[13px]">
+                        <div key={r} className="flex items-center gap-3 px-3.5 py-3 rounded-[3px] bg-[#F4F2EB] border border-[#E2E0D8] text-[14px]">
                           <span className="text-[#A1A1AA] text-[11px] font-mono">0{i + 1}</span>
                           <span className="text-[#18181B]">{r}</span>
                         </div>
@@ -297,22 +301,23 @@ function Index() {
           </div>
         </section>
 
+
         {/* KNOWLEDGE BASE — APEX striped frame */}
-        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-5 sm:p-8 md:p-10 bg-white/55">
-          <div className="flex items-center justify-between mb-6">
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">DB · SCAM CASES</span>
-            <span className="apex-mono">INDEX 06 / 06</span>
+            <span className="apex-mono text-right">INDEX 06 / 06</span>
           </div>
-          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
-            <div>
-              <p className="label-md mb-3">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
-              <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-3xl text-[#18181B]">{t("schemes_title", lang)}</h2>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
+              <p className="label-md mb-4">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block apex-mono">06 cases</span>
+            <span className="hidden md:block apex-mono shrink-0">06 cases</span>
           </div>
 
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {([
               { n: "01", ru: "«Служба безопасности банка»", uz: "«Bank xavfsizlik xizmati»", en: "Bank security call",
                 d_ru: "Звонят якобы из банка, говорят о подозрительной операции и просят SMS-код.", d_uz: "Bank nomidan qo'ng'iroq qilib, SMS-kod so'rashadi.", d_en: "They call “from the bank” and ask for your SMS code." },
@@ -327,10 +332,10 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-6 md:p-8">
-                <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-5">CASE #{s.n}</p>
-                <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B]">{s[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 min-h-[220px] flex flex-col">
+                <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-6">CASE #{s.n}</p>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{s[lang]}</h3>
+                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[42ch] text-pretty">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
               </div>
@@ -338,16 +343,17 @@ function Index() {
           </div>
         </section>
 
+
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
           <div className="apex-shell">
-            <div className="relative bg-white p-6 sm:p-9 md:p-11 overflow-hidden">
+            <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
                 <span className="label-md text-[#F97316]">[ Emergency ]</span>
                 <AlertTriangle className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
-              <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] mb-4 text-[#18181B]">{t("emergency_title", lang)}</h3>
-              <p className="text-[#A1A1AA] text-[13px] leading-relaxed mb-8 max-w-sm">
+              <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
+              <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
                 {{ ru: "Если вы уже отправили SMS-код, установили APK или перевели деньги — время идёт на минуты.",
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
@@ -358,16 +364,16 @@ function Index() {
             </div>
           </div>
 
-          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-6 sm:p-9 md:p-11 overflow-hidden">
+          <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-7 sm:p-9 md:p-11 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
               <span className="label-md">[ Community ]</span>
               <Users className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
-            <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] mb-4 text-[#18181B]">
+            <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}
             </h3>
-            <p className="text-[#A1A1AA] text-[13px] leading-relaxed mb-8 max-w-sm">
+            <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
               {{ ru: "Каждая жалоба проходит модерацию и помогает системе обучиться и предупредить тысячи пользователей.",
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
@@ -377,6 +383,7 @@ function Index() {
             </Link>
           </div>
         </section>
+
 
         {/* APEX-style footer band: ghost wordmark + status meta */}
         <section className="apex-frame apex-stripes border-t border-[#E2E0D8] mt-4 pt-10 pb-6 -mx-6 px-6">
