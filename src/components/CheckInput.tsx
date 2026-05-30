@@ -144,7 +144,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
 
   return (
     <div className="w-full">
-      <div className="apex-frame bg-white rounded-[10px] border border-[#E2E0D8] transition-all focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
+      <div className="apex-frame bg-white rounded-[10px] border border-[#E2E0D8] focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
         <span className="apex-scan" aria-hidden />
 
         {/* Header bar */}
