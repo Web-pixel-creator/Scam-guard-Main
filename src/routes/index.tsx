@@ -147,14 +147,14 @@ function Index() {
 
         {/* CAPABILITIES — APEX grid inside a striped frame with corner ticks */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
-            <span className="apex-mono">CORE SYSTEMS: ONLINE</span>
+            <span className="apex-mono text-right">CORE SYSTEMS: ONLINE</span>
           </div>
-          <div className="flex items-end justify-between mb-14 gap-6 pb-8 border-b border-[#E2E0D8]">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
               <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
-              <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
                 {{
                   ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
                   uz: <>Nimani <span className="font-serif-italic text-[#A1A1AA]">tekshirish</span> mumkin</>,
@@ -162,10 +162,10 @@ function Index() {
                 }[lang]}
               </h2>
             </div>
-            <span className="hidden md:block apex-mono">04 / 04</span>
+            <span className="hidden md:block apex-mono shrink-0">04 / 04</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {[
               { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
@@ -176,17 +176,18 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 md:p-10 overflow-hidden min-h-[260px] flex flex-col">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 overflow-hidden min-h-[240px] md:min-h-[260px] flex flex-col">
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12" style={{ color: c.accent }}>
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-10 md:mb-12" style={{ color: c.accent }}>
                   <c.i className="h-[18px] w-[18px]" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
-                <p className="text-[13px] text-[#A1A1AA] leading-[1.7]">{c.d[lang]}</p>
+                <h3 className="font-sans text-[17px] font-medium mb-3 tracking-tight text-[#18181B] text-balance">{c.k[lang]}</h3>
+                <p className="text-[14px] text-[#52525B] leading-[1.7] max-w-[34ch] text-pretty">{c.d[lang]}</p>
               </div>
             ))}
           </div>
         </section>
+
 
 
         {/* HOW IT WORKS — APEX striped surface panel */}
