@@ -234,6 +234,11 @@ function Index() {
 
         </section>
 
+        {/* SOCIAL PROOF — live counters from the DB (today / total / confirmed scammers) */}
+        <StatsStrip />
+
+
+
 
 
 
