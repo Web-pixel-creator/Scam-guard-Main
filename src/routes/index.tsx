@@ -823,27 +823,30 @@ function Index() {
                 </summary>
 
 
-                {/* Pain scenario — what the user is actually feeling */}
-                <div className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                  </span>
-                  {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
-                </div>
-                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
-                  {item.pain[lang]}
-                </blockquote>
+                <div className="px-6 sm:px-7 md:px-8 pb-6 sm:pb-7 md:pb-8 -mt-1">
+                  {/* Pain scenario — what the user is actually feeling */}
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                    </span>
+                    {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
+                  </div>
+                  <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {item.pain[lang]}
+                  </blockquote>
 
-                {/* Answer — unified warm cream with orange brand accent */}
-                <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
-                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
-                    → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
-                  </p>
-                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
-                    {item.ans[lang]}
-                  </p>
+                  {/* Answer — unified warm cream with orange brand accent */}
+                  <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
+                    <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
+                      → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
+                    </p>
+                    <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
+                      {item.ans[lang]}
+                    </p>
+                  </div>
                 </div>
+
               </details>
             ))}
           </div>
