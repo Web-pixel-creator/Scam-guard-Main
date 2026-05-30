@@ -27,15 +27,9 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-11 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
-        <section className="relative isolate pt-3 md:pt-5">
-          {/* Compact top strip — only essential meta */}
-          <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#E2E0D8]/70 animate-fade-in-up">
-            <span className="apex-mono">SYS · IGUARD-01</span>
-            <span className="apex-mono flex items-center gap-1.5 text-[#10B981]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
-              READY
-            </span>
-          </div>
+        <section className="relative isolate pt-6 md:pt-10">
+
+
 
           {/* Title block — laconic, generous whitespace */}
           <div className="relative max-w-5xl mx-auto pt-14 md:pt-20 pb-2">
@@ -178,9 +172,9 @@ function Index() {
             {[
               { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
-              { i: MessageSquare, accent: "#EC4899", k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
+              { i: MessageSquare, accent: "#FB923C", k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
                 d: { ru: "Боты, каналы или псевдо-менеджеры банков.", uz: "Botlar, kanallar yoki soxta menejerlar.", en: "Bots, channels or fake account managers." } },
-              { i: Link2, accent: "#6366F1", k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
+              { i: Link2, accent: "#C2410C", k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
                 d: { ru: "Фишинг, ложные оплаты и вредоносные APK.", uz: "Fishing, soxta to'lovlar va zararli APK.", en: "Phishing, fake payments and malicious APKs." } },
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
@@ -201,7 +195,7 @@ function Index() {
 
         {/* HOW IT WORKS — APEX striped surface panel */}
         <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px]">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1] z-[1]" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
           <div className="relative p-6 sm:p-10 md:p-14">
             <div className="flex items-center justify-between mb-6">
               <span className="apex-mono">SYS · ALGORITHM</span>
@@ -262,7 +256,7 @@ function Index() {
               <div className="relative bg-white p-8">
                 <div className="flex items-start justify-between mb-8">
                   <div>
-                    <p className="text-[11px] font-medium tracking-[0.1em] uppercase mb-2 bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1] bg-clip-text text-transparent">Risk score · 98%</p>
+                    <p className="text-[11px] font-medium tracking-[0.1em] uppercase mb-2 bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</p>
                     <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B]">{t("risk_high", lang)}</h3>
                   </div>
                   <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316]">
@@ -369,10 +363,10 @@ function Index() {
           </div>
 
           <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-6 sm:p-9 md:p-11 overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#6366F1] via-[#EC4899] to-[#F97316]" />
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
               <span className="label-md">[ Community ]</span>
-              <Users className="h-5 w-5 text-[#6366F1]" strokeWidth={1.5} />
+              <Users className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
             <h3 className="font-sans text-3xl md:text-4xl font-medium tracking-[-0.05em] mb-4 text-[#18181B]">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}

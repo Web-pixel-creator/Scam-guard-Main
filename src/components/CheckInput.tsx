@@ -227,7 +227,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
               {t("attach_screenshot", lang)}
             </button>
             <button onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="apex-pill" type="button">
-              <Send className="h-3.5 w-3.5 text-[#EC4899]" strokeWidth={2} />
+              <Send className="h-3.5 w-3.5 text-[#FB923C]" strokeWidth={2} />
               {t("report_btn", lang)}
             </button>
           </div>
