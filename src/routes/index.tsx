@@ -66,13 +66,23 @@ function Index() {
 
 
             <div className="relative text-center px-0">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-8 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
+              {/* Pain badge — red pulsing dot signals "this is the problem we solve" */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.18em] uppercase text-[#991B1B] mb-7 animate-fade-in-up font-mono">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                 </span>
-                Anti-Scam Intelligence
+                {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
               </div>
+
+              {/* Scammer's bait — italicized quote on a red left border */}
+              <blockquote className="mx-auto max-w-2xl border-l-2 border-[#DC2626]/40 pl-4 mb-8 text-left text-[15px] md:text-[17px] leading-[1.55] text-[#18181B] italic font-serif-italic animate-fade-in-up">
+                {{
+                  ru: "«Здравствуйте, это служба безопасности банка. По вашей карте подозрительная операция — назовите код из SMS…»",
+                  uz: "«Assalomu alaykum, bu bank xavfsizlik xizmati. Kartangizda shubhali amaliyot — SMS kodni ayting…»",
+                  en: "“Hello, this is bank security. A suspicious transaction on your card — tell me the SMS code…”",
+                }[lang]}
+              </blockquote>
 
               <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.1] text-[38px] sm:text-5xl md:text-6xl lg:text-[72px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
                 {{
@@ -82,7 +92,7 @@ function Index() {
                 }[lang]}
               </h1>
 
-              <p className="mt-8 md:mt-10 text-[15px] md:text-[16px] text-foreground/65 max-w-lg mx-auto leading-[1.55] text-center animate-fade-in-up">
+              <p className="mt-7 md:mt-9 text-[17px] md:text-[19px] text-[#3F3F46] max-w-xl mx-auto leading-[1.55] text-center animate-fade-in-up">
                 {{
                   ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
                   uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
@@ -90,7 +100,19 @@ function Index() {
                 }[lang]}
               </p>
 
-              <div className="mt-7 md:mt-8 flex items-center justify-center gap-5 animate-fade-in-up">
+              {/* Green outcome — what you get back */}
+              <div className="mt-6 inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#86EFAC]/60 text-[13px] md:text-[14px] font-medium text-[#065F46] animate-fade-in-up">
+                <span className="font-mono text-[#059669]">✓</span>
+                <span>
+                  {{
+                    ru: "Бесплатно · без регистрации · ответ за 3 секунды",
+                    uz: "Bepul · ro'yxatdan o'tmasdan · 3 soniyada javob",
+                    en: "Free · no signup · answer in 3 seconds",
+                  }[lang]}
+                </span>
+              </div>
+
+              <div className="mt-8 md:mt-10 flex items-center justify-center gap-5 animate-fade-in-up">
                 <Link to="/check" className="fancy-btn">
                   <FancyShell>
                     {{ ru: "Проверить", uz: "Tekshirish", en: "Check now" }[lang]}
@@ -98,7 +120,7 @@ function Index() {
                 </Link>
                 <Link
                   to="/report"
-                  className="text-[12px] font-semibold tracking-[0.15em] uppercase text-[#52525B] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
+                  className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#3F3F46] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
                 >
                   {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
                 </Link>
@@ -202,7 +224,7 @@ function Index() {
                   en: <>If something feels <span className="font-serif-italic text-[#DC2626]">off</span> — send it to us</>,
                 }[lang]}
               </h2>
-              <p className="mt-5 text-[15px] md:text-[16px] text-[#52525B] max-w-2xl leading-[1.6]">
+              <p className="mt-5 text-[16.5px] md:text-[18px] text-[#3F3F46] max-w-2xl leading-[1.6]">
                 {{
                   ru: "Четыре самые частые схемы в Узбекистане. Каждая карточка показывает реальную боль и то, что мы за вас проверяем за секунды.",
                   uz: "O'zbekistondagi eng keng tarqalgan to'rtta sxema. Har bir karta haqiqiy muammoni va biz soniyalarda nimani tekshirayotganimizni ko'rsatadi.",
@@ -374,7 +396,7 @@ function Index() {
               </div>
 
               <div className="mt-10 pt-6 border-t border-[#E2E0D8]">
-                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[52ch] text-pretty">
+                <p className="text-[16px] md:text-[17px] text-[#3F3F46] leading-[1.7] max-w-[52ch] text-pretty">
                   {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
                      uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
                      en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
@@ -409,7 +431,7 @@ function Index() {
                 <div className="space-y-10">
                   <div>
                     <p className="label-md mb-5">{t("why_title", lang)}</p>
-                    <ul className="space-y-3.5 text-[14px] md:text-[15px] text-[#18181B] leading-[1.55]">
+                    <ul className="space-y-3.5 text-[15.5px] md:text-[16.5px] text-[#18181B] leading-[1.55]">
                       {(({
                         ru: ["Просят SMS-код (OTP)", "Представляются банком", "Создают срочность и давление", "Похожая схема уже в жалобах"],
                         uz: ["SMS-kod (OTP) so'rashmoqda", "Bank nomidan murojaat", "Shoshilinchlik va bosim", "Shu sxema shikoyatlarda uchragan"],
@@ -523,6 +545,112 @@ function Index() {
           </div>
         </section>
 
+        {/* FAQ — pain scenarios with green "what we do" answer */}
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <span className="apex-mono">FAQ · PAIN SCENARIOS</span>
+            <span className="apex-mono text-right">REAL CASES</span>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
+              <p className="label-md mb-4">06 — {{ ru: "Частые вопросы", uz: "Tez-tez beriladigan savollar", en: "Frequent questions" }[lang]}</p>
+              <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">
+                {{
+                  ru: <>А что если <span className="font-serif-italic text-[#DC2626]">уже случилось</span>?</>,
+                  uz: <>Agar <span className="font-serif-italic text-[#DC2626]">allaqachon sodir bo'lgan</span> bo'lsa-chi?</>,
+                  en: <>What if it <span className="font-serif-italic text-[#DC2626]">already happened</span>?</>,
+                }[lang]}
+              </h2>
+              <p className="mt-5 text-[16.5px] md:text-[18px] text-[#3F3F46] max-w-2xl leading-[1.6]">
+                {{
+                  ru: "Шесть реальных ситуаций, в которых пользователи приходят к нам. Для каждой — что сделать прямо сейчас.",
+                  uz: "Foydalanuvchilar bizga keladigan oltita haqiqiy holat. Har biri uchun — hozir nima qilish kerak.",
+                  en: "Six real situations users come to us with. For each — what to do right now.",
+                }[lang]}
+              </p>
+            </div>
+            <span className="hidden md:block apex-mono shrink-0">06 / 06</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+            {[
+              {
+                q: { ru: "Мне звонят из «службы безопасности банка» — это правда?", uz: "Menga «bank xavfsizlik xizmati»dan qo'ng'iroq qilishyapti — bu rostmi?", en: "I'm getting a call from “bank security” — is it real?" },
+                pain: { ru: "«Они знают моё имя и последние цифры карты — как такому не верить?»", uz: "«Ular ismimni va karta raqamining oxirini bilishadi — qanday ishonmaslik kerak?»", en: "“They know my name and last card digits — how can I not trust this?”" },
+                ans: { ru: "Настоящий банк никогда не просит SMS-код, пароль или установку приложений по ссылке. Положите трубку и перезвоните по номеру с обратной стороны карты.", uz: "Haqiqiy bank hech qachon SMS-kod, parol yoki havola orqali ilova o'rnatishni so'ramaydi. Qo'ng'iroqni tugating va karta orqasidagi raqamga qo'ng'iroq qiling.", en: "A real bank never asks for an SMS code, password, or app install via a link. Hang up and call the number printed on your card." },
+              },
+              {
+                q: { ru: "Я уже отправил код из SMS — что делать?", uz: "Men SMS kodni allaqachon yubordim — nima qilish kerak?", en: "I already sent the SMS code — what now?" },
+                pain: { ru: "«Прошло 2 минуты — успею я что-то остановить?»", uz: "«2 daqiqa o'tdi — biror narsani to'xtata olamanmi?»", en: "“It's been 2 minutes — can I still stop something?”" },
+                ans: { ru: "Срочно позвоните в банк и попросите блокировку карты и онлайн-банка. Затем смените пароль в приложении банка и проверьте недавние операции.", uz: "Zudlik bilan bankka qo'ng'iroq qiling va karta hamda onlayn-bankni bloklashni so'rang. So'ngra bank ilovasidagi parolni o'zgartiring va so'nggi amaliyotlarni tekshiring.", en: "Call the bank immediately and request a card and online-banking block. Then change your banking app password and review recent transactions." },
+              },
+              {
+                q: { ru: "Установил подозрительный APK — телефон скомпрометирован?", uz: "Shubhali APK o'rnatdim — telefonim xavf ostidami?", en: "I installed a sketchy APK — is my phone compromised?" },
+                pain: { ru: "«Приложение просит доступ ко всем SMS и контактам — это нормально?»", uz: "«Ilova barcha SMS va kontaktlarga ruxsat so'rayapti — bu normalmi?»", en: "“The app asks for access to all my SMS and contacts — is that normal?”" },
+                ans: { ru: "Включите авиарежим, удалите приложение, смените пароли в банках через другой телефон. При необходимости сделайте сброс к заводским настройкам.", uz: "Aviarejimni yoqing, ilovani o'chiring, boshqa telefon orqali bank parollarini o'zgartiring. Kerak bo'lsa, telefonni zavod sozlamalariga qaytaring.", en: "Switch on airplane mode, uninstall the app, change banking passwords from a different phone. Factory-reset if needed." },
+              },
+              {
+                q: { ru: "Перевёл деньги «на безопасный счёт» — можно вернуть?", uz: "Pulni «xavfsiz hisob»ga o'tkazdim — qaytarib olsa bo'ladimi?", en: "I sent money to a “safe account” — can I get it back?" },
+                pain: { ru: "«Перевод ушёл 10 минут назад — это уже навсегда?»", uz: "«O'tkazma 10 daqiqa oldin ketgan — bu butunlay yo'qoldimi?»", en: "“The transfer left 10 minutes ago — is it gone for good?”" },
+                ans: { ru: "Немедленно — звонок в банк с просьбой о возврате/споре операции, и заявление в Cyber Police (102). Шанс есть только в первые часы.", uz: "Zudlik bilan — bankka qo'ng'iroq qilib amaliyotni qaytarish/bahslashishni so'rang va Cyber Police'ga (102) ariza bering. Imkoniyat faqat dastlabki soatlarda.", en: "Immediately call the bank to request a refund/dispute, and file a report with Cyber Police (102). The window is just a few hours." },
+              },
+              {
+                q: { ru: "В Telegram пишет «менеджер банка» — отвечать?", uz: "Telegram'da «bank menejeri» yozyapti — javob berishim kerakmi?", en: "A “bank manager” is DMing me on Telegram — should I reply?" },
+                pain: { ru: "«У него аватарка с логотипом банка и официальное имя — выглядит настоящим»", uz: "«Uning avatarida bank logotipi va rasmiy ism — haqiqiyga o'xshaydi»", en: "“Their avatar has the bank logo and an official name — it looks real.”" },
+                ans: { ru: "Банки не ведут клиентскую поддержку в личных Telegram-сообщениях. Не отвечайте, пришлите username нам — проверим за секунды.", uz: "Banklar shaxsiy Telegram xabarlarida mijozlarga xizmat ko'rsatmaydi. Javob bermang, username'ni bizga yuboring — soniyalarda tekshiramiz.", en: "Banks don't run support over Telegram DMs. Don't reply — send the username to us, we'll check it in seconds." },
+              },
+              {
+                q: { ru: "Хочу проверить ссылку, но боюсь по ней переходить", uz: "Havolani tekshirmoqchiman, lekin bosishdan qo'rqyapman", en: "I want to check a link but I'm scared to click it" },
+                pain: { ru: "«А вдруг это вирус, и просто открытие в браузере уже навредит?»", uz: "«Agar virus bo'lsa va shunchaki brauzerda ochish allaqachon zarar yetkazsa-chi?»", en: "“What if it's malware and just opening it in a browser already hurts?”" },
+                ans: { ru: "Не открывайте. Скопируйте ссылку как текст и вставьте в нашу проверку — мы анализируем её безопасно, не загружая страницу на ваш телефон.", uz: "Ochmang. Havolani matn sifatida nusxalang va tekshiruvimizga joylashtiring — biz sahifani telefoningizga yuklamasdan xavfsiz tahlil qilamiz.", en: "Don't open it. Copy the link as text and paste it into our checker — we analyze it safely, without loading the page on your phone." },
+              },
+            ].map((item, idx) => (
+              <details
+                key={idx}
+                className="group bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 [&_summary::-webkit-details-marker]:hidden"
+                open={idx === 0}
+              >
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <span className="apex-mono text-[#71717A] block mb-2">Q · 0{idx + 1}</span>
+                    <h3 className="font-sans text-[18px] md:text-[20px] font-medium tracking-tight text-[#18181B] leading-[1.35] text-balance">
+                      {item.q[lang]}
+                    </h3>
+                  </div>
+                  <span
+                    aria-hidden
+                    className="mt-1 shrink-0 w-7 h-7 rounded-full border border-[#E2E0D8] flex items-center justify-center text-[#F97316] text-lg leading-none transition-transform group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                </summary>
+
+                {/* Pain scenario — what the user is actually feeling */}
+                <div className="mt-5 inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                  </span>
+                  {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
+                </div>
+                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/30 pl-3 text-[14.5px] md:text-[15.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                  {item.pain[lang]}
+                </blockquote>
+
+                {/* Green answer — what to do */}
+                <div className="mt-5 rounded-[4px] bg-[#ECFDF5] border border-[#86EFAC]/60 p-4 md:p-5">
+                  <p className="apex-mono text-[#059669] mb-2">
+                    ✓ {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
+                  </p>
+                  <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#065F46]">
+                    {item.ans[lang]}
+                  </p>
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+
 
         {/* CTA pair — APEX: one gradient-shell (emergency), one flat surface (community) */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
@@ -533,7 +661,7 @@ function Index() {
                 <AlertTriangle aria-hidden="true" focusable="false" className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
               <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
-              <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
+              <p className="text-[#3F3F46] text-[16px] md:text-[17px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
                 {{ ru: "Если вы уже отправили SMS-код, установили APK или перевели деньги — время идёт на минуты.",
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
@@ -553,7 +681,7 @@ function Index() {
             <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}
             </h3>
-            <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
+            <p className="text-[#3F3F46] text-[16px] md:text-[17px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
               {{ ru: "Каждая жалоба проходит модерацию и помогает системе обучиться и предупредить тысячи пользователей.",
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
