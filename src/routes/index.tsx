@@ -156,9 +156,9 @@ function Index() {
               <p className="label-md mb-4">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
               <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
                 {{
-                  ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
-                  uz: <>Nimani <span className="font-serif-italic text-[#A1A1AA]">tekshirish</span> mumkin</>,
-                  en: <>What you <span className="font-serif-italic text-[#A1A1AA]">can</span> check</>,
+                  ru: <>Что <span className="font-serif-italic text-[#8B8B92]">можно</span> проверить</>,
+                  uz: <>Nimani <span className="font-serif-italic text-[#8B8B92]">tekshirish</span> mumkin</>,
+                  en: <>What you <span className="font-serif-italic text-[#8B8B92]">can</span> check</>,
                 }[lang]}
               </h2>
             </div>
