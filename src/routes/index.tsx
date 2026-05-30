@@ -264,15 +264,20 @@ function Index() {
           </div>
         </section>
 
-        {/* KNOWLEDGE BASE — APEX 1px-gap grid */}
-        <section>
-          <div className="flex items-end justify-between mb-12 gap-6 pb-6 border-b border-[#E2E0D8]">
+        {/* KNOWLEDGE BASE — APEX striped frame */}
+        <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[8px] p-6 md:p-10 bg-white/30">
+          <div className="flex items-center justify-between mb-6">
+            <span className="apex-mono">DB · SCAM CASES</span>
+            <span className="apex-mono">INDEX 06 / 06</span>
+          </div>
+          <div className="flex items-end justify-between mb-10 gap-6 pb-6 border-b border-[#E2E0D8]">
             <div>
               <p className="label-md mb-3">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
               <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] max-w-3xl text-[#18181B]">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block text-[#A1A1AA] text-xs font-mono tracking-[0.1em] uppercase">06 cases</span>
+            <span className="hidden md:block apex-mono">06 cases</span>
           </div>
+
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
             {([
