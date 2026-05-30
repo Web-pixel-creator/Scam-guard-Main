@@ -167,15 +167,26 @@ function ReportPage() {
 
 
 
-      <div className="apex-card apex-frame apex-stripes">
+      <div className="apex-card apex-frame apex-stripes relative overflow-hidden">
+        {/* Animated progress bar — pinned to the very top of the card */}
+        {loading && <div className="apex-progress absolute top-0 inset-x-0 z-10" aria-hidden />}
 
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
           <span className="apex-mono">SYS · REPORT</span>
-          <span className="apex-mono text-right">
-            <span className="hidden xs:inline">MODERATED · ANONYMOUS</span>
-            <span className="xs:hidden">ANON</span>
+          <span
+            className="apex-status"
+            data-state={loading ? "loading" : error ? "error" : "idle"}
+            aria-live="polite"
+          >
+            <span className="apex-status-dot" />
+            {loading
+              ? { ru: "ОТПРАВКА…", uz: "YUBORILMOQDA…", en: "SUBMITTING…" }[lang]
+              : error
+                ? { ru: "ОШИБКА", uz: "XATO", en: "ERROR" }[lang]
+                : { ru: "МОДЕРАЦИЯ · АНОНИМНО", uz: "MODERATSIYA · ANONIM", en: "MODERATED · ANONYMOUS" }[lang]}
           </span>
         </div>
+
 
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
           <p className="label-md mb-3 sm:mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
