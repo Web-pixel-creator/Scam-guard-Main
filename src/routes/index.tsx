@@ -176,14 +176,14 @@ function Index() {
               { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="group relative bg-white/85 backdrop-blur-[4px] p-6 md:p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
+              <div key={c.k.en} className="relative bg-white/85 backdrop-blur-[4px] p-6 md:p-8 overflow-hidden">
                 <span className="absolute top-5 right-5 apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12 transition-colors" style={{ color: c.accent }}>
+                <div className="flex items-center justify-center w-9 h-9 rounded-[3px] border border-[#E2E0D8] mb-10" style={{ color: c.accent }}>
                   <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-sans text-[15px] font-medium mb-2 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
                 <p className="text-[13px] text-[#A1A1AA] leading-relaxed">{c.d[lang]}</p>
-                <ArrowRight className="absolute bottom-5 right-5 h-3.5 w-3.5 text-[#A1A1AA] -rotate-45 group-hover:rotate-0 group-hover:text-[#F97316] transition-all" strokeWidth={1.5} />
+                <span className="absolute bottom-5 right-5 apex-mono text-[#A1A1AA]">→</span>
               </div>
             ))}
           </div>
