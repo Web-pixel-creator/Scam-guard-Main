@@ -99,7 +99,7 @@ function Index() {
 
 
           {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div className="w-full max-w-[1200px] mx-auto mt-10 mb-6 animate-fade-in-up">
+          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-10"}`}>
             <div className="relative isolate rounded-[28px] overflow-hidden min-h-[460px] md:min-h-[520px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
