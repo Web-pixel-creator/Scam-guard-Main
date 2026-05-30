@@ -529,7 +529,7 @@ function Index() {
 
                 {/* Consequence — what you lose */}
                 <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#DC2626] mb-1.5">
+                  <p className="apex-mono text-[#B91C1C] mb-1.5">
                     ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
                   </p>
                   <p className="card-body">{(s as never as Record<string, string>)["loss_" + lang]}</p>
