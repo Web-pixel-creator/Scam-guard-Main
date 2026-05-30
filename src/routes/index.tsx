@@ -4,7 +4,7 @@ import { CheckInput } from "@/components/CheckInput";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { UnicornBackground } from "@/components/UnicornBackground";
+
 
 
 
