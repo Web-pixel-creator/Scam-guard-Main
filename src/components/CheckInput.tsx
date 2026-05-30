@@ -304,8 +304,8 @@ export function CheckInput({
 
       {error && (
         <div className="mt-3 flex items-start gap-2 rounded-[6px] border border-[#DC2626]/30 bg-[#DC2626]/5 px-3 py-2.5">
-          <AlertTriangle className="h-3.5 w-3.5 text-[#DC2626] mt-0.5 shrink-0" />
-          <p className="text-[12px] text-[#DC2626] apex-mono leading-relaxed">{error}</p>
+          <AlertTriangle className="h-3.5 w-3.5 text-[#B91C1C] mt-0.5 shrink-0" />
+          <p className="text-[12px] text-[#991B1B] apex-mono leading-relaxed">{error}</p>
         </div>
       )}
       {result && !hideInlineResult && <div className="mt-6"><RiskResultCard result={result} /></div>}
