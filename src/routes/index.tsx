@@ -101,13 +101,15 @@ function Index() {
                 d: { ru: "Фишинг, ложные оплаты и вредоносные APK.", uz: "Fishing, soxta to'lovlar va zararli APK.", en: "Phishing, fake payments and malicious APKs." } },
               { i: FileWarning, color: "bg-amber-500/10 text-amber-400", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
-            ].map((c) => (
-              <div key={c.k.en} className="group p-7 rounded-3xl bg-card border border-border hover:bg-secondary hover:border-border transition-all">
+            ].map((c, idx) => (
+              <div key={c.k.en} className="group relative p-7 rounded-3xl bg-card border border-border card-hover overflow-hidden">
+                <span className="absolute top-5 right-5 text-[10px] font-mono text-foreground/30">0{idx + 1}</span>
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-16 group-hover:scale-110 transition-transform ${c.color}`}>
                   <c.i className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <h3 className="font-display text-lg font-bold mb-2 tracking-tight">{c.k[lang]}</h3>
-                <p className="text-sm text-foreground/60 leading-relaxed">{c.d[lang]}</p>
+                <p className="text-sm text-foreground/55 leading-relaxed">{c.d[lang]}</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-4 w-4 text-foreground/20 -rotate-45 group-hover:rotate-0 group-hover:text-primary transition-all" />
               </div>
             ))}
           </div>
