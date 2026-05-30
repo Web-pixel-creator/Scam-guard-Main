@@ -632,12 +632,12 @@ function Index() {
                   {item.pain[lang]}
                 </blockquote>
 
-                {/* Green answer — what to do */}
-                <div className="mt-5 rounded-[6px] bg-[#ECFDF5] border border-[#86EFAC]/70 p-4 md:p-5">
-                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#047857] font-mono mb-2">
-                    ✓ {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
+                {/* Answer — unified warm cream with orange brand accent */}
+                <div className="mt-5 rounded-[6px] bg-[#FFF7ED] border border-[#FED7AA] p-4 md:p-5">
+                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#C2410C] font-mono mb-2">
+                    → {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
                   </p>
-                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#064E3B]">
+                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#3F1A0A]">
                     {item.ans[lang]}
                   </p>
                 </div>
