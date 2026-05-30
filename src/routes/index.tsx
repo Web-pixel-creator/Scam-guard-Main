@@ -564,7 +564,7 @@ function Index() {
                 }[lang]}
               </p>
             </div>
-            <span className="hidden md:block apex-mono shrink-0">06 / 06</span>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "6 из 6", uz: "6 / 6", en: "6 of 6" }[lang]}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
