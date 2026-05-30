@@ -40,41 +40,72 @@ function Index() {
             </span>
           </div>
 
-          {/* Title block — centered, single column, vertical accent rule */}
-          <div className="max-w-4xl mx-auto text-center pt-10 md:pt-14">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/80 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-6 animate-fade-in-up font-mono">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Anti-Scam Intelligence · Tashkent
+          {/* Title block — centered with side meta rails for an editorial techno feel */}
+          <div className="relative max-w-5xl mx-auto pt-12 md:pt-16">
+            {/* Left + right vertical meta rails (desktop only) */}
+            <div className="hidden lg:flex absolute left-0 top-16 bottom-4 flex-col justify-between items-start pointer-events-none select-none">
+              <span className="apex-mono [writing-mode:vertical-rl] rotate-180 tracking-[0.3em]">MODULE · 01 / INTAKE</span>
+              <span className="apex-mono">↳ INPUT</span>
+            </div>
+            <div className="hidden lg:flex absolute right-0 top-16 bottom-4 flex-col justify-between items-end pointer-events-none select-none">
+              <span className="apex-mono [writing-mode:vertical-rl] tracking-[0.3em]">UPTIME · 99.98%</span>
+              <span className="apex-mono">v3.1 ⌁</span>
             </div>
 
-            <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-5xl md:text-7xl lg:text-[88px] animate-fade-in-up text-foreground">
-              {{
-                ru: <>Проверьте до того,<br /><span className="text-foreground/30">как обманут.</span></>,
-                uz: <>Aldanmasdan oldin<br /><span className="text-foreground/30">tekshiring.</span></>,
-                en: <>Check it before<br /><span className="text-foreground/30">you get scammed.</span></>,
-              }[lang]}
-            </h1>
-
-            <p className="mt-6 text-base md:text-lg text-foreground/60 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
-              {t("hero_sub", lang)}
-            </p>
-
-            {/* Spec bar — centered chips */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
-              {[
-                { k: "01", v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
-                { k: "02", v: { ru: "За секунды", uz: "Soniyalarda", en: "Seconds" }[lang] },
-                { k: "03", v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
-                { k: "04", v: { ru: "RU · UZ · EN", uz: "RU · UZ · EN", en: "RU · UZ · EN" }[lang] },
-              ].map((c) => (
-                <span key={c.k} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-[#E2E0D8] bg-white/70 font-mono text-[11px] text-[#18181B]">
-                  <span className="text-[#A1A1AA] text-[10px] tracking-[0.18em]">{c.k}</span>
-                  <span className="h-3 w-px bg-[#E2E0D8]" />
-                  {c.v}
+            <div className="text-center px-0 lg:px-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-7 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
-              ))}
+                Anti-Scam Intelligence
+                <span className="h-3 w-px bg-[#E2E0D8]" />
+                <span className="text-[#A1A1AA]">Tashkent</span>
+              </div>
+
+              <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
+                {{
+                  ru: <>Проверьте до того,<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">как обманут.</span></>,
+                  uz: <>Aldanmasdan oldin<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">tekshiring.</span></>,
+                  en: <>Check it before<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">you get scammed.</span></>,
+                }[lang]}
+              </h1>
+
+              {/* Hairline gradient divider */}
+              <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-[#F97316]/60 to-transparent" />
+
+              <p className="mt-6 text-base md:text-lg text-foreground/60 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
+                {t("hero_sub", lang)}
+              </p>
+
+              {/* Spec bar — centered chips */}
+              <div className="mt-9 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
+                {[
+                  { k: "01", v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
+                  { k: "02", v: { ru: "За секунды", uz: "Soniyalarda", en: "Seconds" }[lang] },
+                  { k: "03", v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
+                  { k: "04", v: { ru: "RU · UZ · EN", uz: "RU · UZ · EN", en: "RU · UZ · EN" }[lang] },
+                ].map((c) => (
+                  <span
+                    key={c.k}
+                    className="inline-flex items-center gap-2 h-8 px-3 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm font-mono text-[11px] text-[#18181B] shadow-[0_1px_0_rgba(11,11,15,0.02)] transition-all duration-200 hover:bg-white hover:border-[#0B0B0F]/25 hover:-translate-y-px"
+                  >
+                    <span className="text-[#A1A1AA] text-[10px] tracking-[0.18em]">{c.k}</span>
+                    <span className="h-3 w-px bg-[#E2E0D8]" />
+                    {c.v}
+                  </span>
+                ))}
+              </div>
+
+              {/* Soft scroll hint */}
+              <div className="mt-10 flex items-center justify-center gap-2 apex-mono text-[#A1A1AA] animate-fade-in-up">
+                <span className="h-px w-8 bg-[#E2E0D8]" />
+                <span>↓ Paste &amp; check below</span>
+                <span className="h-px w-8 bg-[#E2E0D8]" />
+              </div>
             </div>
           </div>
+
 
           {/* Bloom band with form centered on top */}
           <div className="w-full max-w-[1200px] mx-auto mt-10 mb-6 animate-fade-in-up">

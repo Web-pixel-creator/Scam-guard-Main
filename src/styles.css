@@ -399,6 +399,26 @@
 .apex-frame {
   position: relative;
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  /* Stability: isolate layout/paint so focus/hover never reflows neighbours
+     and the caret stays put on low-power devices. */
+  contain: layout paint style;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+/* Caret + selection inside the input frame, themed to the palette */
+.apex-frame textarea,
+.apex-frame input {
+  caret-color: #F97316;
+}
+.apex-frame textarea::selection,
+.apex-frame input::selection {
+  background: rgba(249, 115, 22, 0.22);
+  color: #0B0B0F;
+}
+.apex-frame textarea::-moz-selection,
+.apex-frame input::-moz-selection {
+  background: rgba(249, 115, 22, 0.22);
+  color: #0B0B0F;
 }
 .apex-frame::before,
 .apex-frame::after {
