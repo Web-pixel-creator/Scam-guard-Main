@@ -361,8 +361,125 @@ function Index() {
 
 
 
+        {/* BEFORE / AFTER — real scam message vs what's actually safe, with plain-language why */}
+        <section aria-labelledby="ba-title" className="apex-frame apex-stripes cv-auto border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <span className="apex-mono">{{ ru: "Реальные примеры", uz: "Haqiqiy misollar", en: "Real examples" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Было → Стало", uz: "Edi → Bo'ldi", en: "Before → After" }[lang]}</span>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
+            <div className="max-w-3xl">
+              <p className="label-md mb-4">03 — {{ ru: "Было / Стало", uz: "Edi / Bo'ldi", en: "Before / After" }[lang]}</p>
+              <h2 id="ba-title" className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B]">
+                {{
+                  ru: <>Как выглядит <span className="font-serif-italic text-[#DC2626]">обман</span> — и как должно быть на самом деле</>,
+                  uz: <>«<span className="font-serif-italic text-[#DC2626]">Aldov</span>» qanday ko'rinadi va aslida qanday bo'lishi kerak</>,
+                  en: <>What a <span className="font-serif-italic text-[#DC2626]">scam</span> looks like — and what it should look like</>,
+                }[lang]}
+              </h2>
+              <p className="mt-5 text-[16.5px] md:text-[18px] text-[#3F3F46] max-w-2xl leading-[1.6]">
+                {{
+                  ru: "Три реальных сообщения от мошенников и три признака, по которым их можно узнать за 5 секунд. Сравните с тем, как пишет настоящий банк или магазин.",
+                  uz: "Firibgarlarning uchta haqiqiy xabari va ularni 5 soniyada tanish mumkin bo'lgan uchta belgi. Haqiqiy bank yoki do'kon qanday yozishini taqqoslang.",
+                  en: "Three real scam messages and three signals that give them away in 5 seconds. Compare with how a real bank or store actually writes.",
+                }[lang]}
+              </p>
+            </div>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "3 из 3", uz: "3 / 3", en: "3 of 3" }[lang]}</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            {[
+              {
+                topic: { ru: "СМС от «банка»", uz: "«Bank»dan SMS", en: "“Bank” SMS" },
+                bad: { ru: "СРОЧНО! По вашей карте подозрительная операция 4 500 000 сум. Если это не вы — позвоните: +998 99 412-87-03", uz: "SHOSHILINCH! Kartangizda shubhali amaliyot 4 500 000 so'm. Agar bu siz bo'lmasangiz — qo'ng'iroq qiling: +998 99 412-87-03", en: "URGENT! Suspicious transaction of 4,500,000 UZS on your card. If it wasn't you — call: +998 99 412-87-03" },
+                good: { ru: "Покупка 89 000 сум · Korzinka · 14:32. Баланс: 312 400 сум. Поддержка — номер на обороте карты.", uz: "Xarid 89 000 so'm · Korzinka · 14:32. Hisob: 312 400 so'm. Yordam — karta orqasidagi raqam.", en: "Purchase 89,000 UZS · Korzinka · 14:32. Balance: 312,400 UZS. Support — number on the back of your card." },
+                why: [
+                  { ru: "Слово «СРОЧНО» большими буквами — давление на эмоции", uz: "Katta harflar bilan «SHOSHILINCH» — hissiyotga bosim", en: "ALL-CAPS «URGENT» — emotional pressure" },
+                  { ru: "Незнакомый мобильный номер вместо короткого банковского", uz: "Qisqa bank raqami o'rniga notanish mobil raqam", en: "Random mobile number instead of the short bank code" },
+                  { ru: "Просят перезвонить — настоящий банк не даёт чужие номера", uz: "Qayta qo'ng'iroq qilishni so'rashadi — haqiqiy bank begona raqam bermaydi", en: "Asks you to call back — a real bank never gives an outside number" },
+                ],
+              },
+              {
+                topic: { ru: "Сообщение от «курьера»", uz: "«Kuryer»dan xabar", en: "Message from a “courier”" },
+                bad: { ru: "Ваша посылка не доставлена. Оплатите 27 000 сум, иначе будет возвращена: hxxp://uzpost-pay.top/track?id=8821", uz: "Sizning posilkangiz yetkazilmadi. 27 000 so'm to'lang, aks holda qaytariladi: hxxp://uzpost-pay.top/track?id=8821", en: "Your parcel was not delivered. Pay 27,000 UZS or it will be returned: hxxp://uzpost-pay.top/track?id=8821" },
+                good: { ru: "Посылка №RA12345UZ ожидает в отделении №7 до 12 апреля. Доплата не требуется. uzpost.uz", uz: "RA12345UZ raqamli posilka 12 aprelgacha 7-bo'limda kutmoqda. Qo'shimcha to'lov shart emas. uzpost.uz", en: "Parcel RA12345UZ is waiting at branch #7 until Apr 12. No extra payment needed. uzpost.uz" },
+                why: [
+                  { ru: "Подозрительный домен .top вместо официального .uz", uz: "Rasmiy .uz o'rniga shubhali .top domen", en: "Sketchy .top domain instead of the official .uz" },
+                  { ru: "Требование оплатить «прямо сейчас» по ссылке", uz: "Havola orqali «hozir» to'lash talabi", en: "Demand to pay «right now» via a link" },
+                  { ru: "Почта никогда не просит доплату через ссылку в SMS", uz: "Pochta hech qachon SMS havola orqali to'lov so'ramaydi", en: "Post offices never request payment via an SMS link" },
+                ],
+              },
+              {
+                topic: { ru: "Telegram «менеджер банка»", uz: "Telegram «bank menejeri»", en: "Telegram «bank manager»" },
+                bad: { ru: "Здравствуйте, я Алишер из службы безопасности. Чтобы отменить операцию — назовите код из SMS, который пришёл сейчас.", uz: "Assalomu alaykum, men xavfsizlik xizmatidan Alisherman. Amaliyotni bekor qilish uchun — hozir kelgan SMS kodni ayting.", en: "Hi, I'm Alisher from security. To cancel the transaction — tell me the SMS code you just got." },
+                good: { ru: "Банк пишет только в официальном приложении и никогда не спрашивает SMS-код. Поддержка — телефон с обратной стороны карты.", uz: "Bank faqat rasmiy ilovada yozadi va hech qachon SMS-kod so'ramaydi. Yordam — karta orqasidagi telefon.", en: "Banks only message you inside their official app and never ask for an SMS code. Support — the phone on the back of your card." },
+                why: [
+                  { ru: "Просит код из SMS — главный признак мошенника", uz: "SMS kodni so'rayapti — firibgarning asosiy belgisi", en: "Asks for an SMS code — the #1 scam signal" },
+                  { ru: "Связь через Telegram, а не в приложении банка", uz: "Bank ilovasi orqali emas, Telegram orqali bog'lanish", en: "Contact via Telegram instead of the bank app" },
+                  { ru: "Спешка — «прямо сейчас», чтобы вы не успели подумать", uz: "Shoshqaloqlik — «hozir», o'ylab ko'rmasligingiz uchun", en: "Hurry — «right now» so you don't have time to think" },
+                ],
+              },
+            ].map((ex, idx) => (
+              <article key={idx} className="rounded-[6px] border border-[#E2E0D8] bg-white overflow-hidden flex flex-col">
+                <header className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[#E2E0D8] bg-[#FAFAF7]">
+                  <span className="apex-mono text-[#52525B]">0{idx + 1}</span>
+                  <span className="text-[13px] font-semibold text-[#18181B]">{ex.topic[lang]}</span>
+                </header>
+
+                {/* BAD */}
+                <div className="px-5 pt-5 pb-4">
+                  <div className="inline-flex items-center gap-1.5 mb-2 text-[10.5px] font-bold tracking-[0.18em] uppercase text-[#991B1B] font-mono">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#DC2626]" aria-hidden />
+                    {{ ru: "Было — мошенник", uz: "Edi — firibgar", en: "Before — scammer" }[lang]}
+                  </div>
+                  <blockquote className="rounded-[4px] border border-[#FCA5A5]/50 bg-[#FEF2F2] p-3.5 text-[14px] leading-[1.55] text-[#3F1A0A] font-sans whitespace-pre-wrap break-words">
+                    {ex.bad[lang]}
+                  </blockquote>
+                </div>
+
+                {/* GOOD */}
+                <div className="px-5 pb-5">
+                  <div className="inline-flex items-center gap-1.5 mb-2 text-[10.5px] font-bold tracking-[0.18em] uppercase text-[#065F46] font-mono">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#059669]" aria-hidden />
+                    {{ ru: "Стало — как настоящий", uz: "Bo'ldi — haqiqiysi", en: "After — the real one" }[lang]}
+                  </div>
+                  <blockquote className="rounded-[4px] border border-[#A7F3D0]/60 bg-[#ECFDF5] p-3.5 text-[14px] leading-[1.55] text-[#064E3B] font-sans whitespace-pre-wrap break-words">
+                    {ex.good[lang]}
+                  </blockquote>
+                </div>
+
+                {/* WHY */}
+                <div className="mt-auto px-5 py-4 border-t border-[#E2E0D8] bg-[#FFF7ED]">
+                  <p className="apex-mono text-[#9A3412] mb-2.5">
+                    → {{ ru: "Почему это обман", uz: "Nega bu aldov", en: "Why it's a scam" }[lang]}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {ex.why.map((w, i) => (
+                      <li key={i} className="flex gap-2 text-[13.5px] leading-[1.55] text-[#3F1A0A]">
+                        <span className="text-[#F97316] font-bold shrink-0" aria-hidden>·</span>
+                        <span className="text-pretty">{w[lang]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <button type="button" onClick={scrollToForm} className="fancy-btn">
+              <FancyShell>
+                {{ ru: "Проверить своё сообщение", uz: "O'z xabaringizni tekshiring", en: "Check your message" }[lang]}
+              </FancyShell>
+            </button>
+          </div>
+        </section>
+
+
         {/* HOW IT WORKS — APEX striped surface panel */}
-        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px]">
+        <section className="apex-frame apex-stripes relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[6px] cv-auto">
+
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
           <div className="relative p-6 sm:p-10 md:p-14">
             <div className="flex items-start justify-between gap-4 mb-6">
