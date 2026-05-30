@@ -27,25 +27,21 @@ function Index() {
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-3 md:pt-5">
-          {/* Compact top strip */}
-          <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#E2E0D8]/70 animate-fade-in-up">
-            <div className="flex items-center gap-3">
-              <span className="apex-mono">SYS · IGUARD-01</span>
-              <span className="hidden sm:inline-block h-px w-8 bg-[#E2E0D8]" aria-hidden />
-              <span className="hidden sm:inline apex-mono">PROTOCOL · ANTI-SCAM</span>
-            </div>
+          {/* Compact top strip — only essential meta */}
+          <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#E2E0D8]/70 animate-fade-in-up">
+            <span className="apex-mono">SYS · IGUARD-01</span>
             <span className="apex-mono flex items-center gap-1.5 text-[#10B981]">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
-              STATUS · READY
+              READY
             </span>
           </div>
 
-          {/* Title block — centered with side meta rails for an editorial techno feel */}
-          <div className="relative max-w-5xl mx-auto pt-12 md:pt-16">
-            {/* Subtle dot-grid backdrop behind the title (fills negative space, very low contrast) */}
+          {/* Title block — laconic, generous whitespace */}
+          <div className="relative max-w-4xl mx-auto pt-14 md:pt-20 pb-2">
+            {/* Subtle dot-grid backdrop behind the title */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-10 h-[360px] md:h-[440px] opacity-[0.35] [mask-image:radial-gradient(60%_60%_at_50%_40%,#000_0%,transparent_75%)]"
+              className="pointer-events-none absolute inset-x-0 top-8 h-[320px] md:h-[400px] opacity-[0.3] [mask-image:radial-gradient(55%_55%_at_50%_40%,#000_0%,transparent_75%)]"
               style={{
                 backgroundImage:
                   "radial-gradient(circle at 1px 1px, rgba(11,11,15,0.18) 1px, transparent 0)",
@@ -53,31 +49,21 @@ function Index() {
               }}
             />
 
-            {/* Left + right vertical meta rails (desktop only) */}
-            <div className="hidden lg:flex absolute left-0 top-16 bottom-4 flex-col justify-between items-start pointer-events-none select-none">
-              <span className="apex-mono [writing-mode:vertical-rl] rotate-180 tracking-[0.3em]">MODULE · 01 / INTAKE</span>
-              <div className="flex flex-col items-start gap-1.5">
-                <span className="h-3 w-3 border-l border-b border-[#0B0B0F]/40" aria-hidden />
-                <span className="apex-mono">↳ INPUT</span>
-              </div>
-            </div>
-            <div className="hidden lg:flex absolute right-0 top-16 bottom-4 flex-col justify-between items-end pointer-events-none select-none">
-              <span className="apex-mono [writing-mode:vertical-rl] tracking-[0.3em]">UPTIME · 99.98%</span>
-              <div className="flex flex-col items-end gap-1.5">
-                <span className="h-3 w-3 border-r border-b border-[#0B0B0F]/40" aria-hidden />
-                <span className="apex-mono">v3.1 ⌁</span>
-              </div>
-            </div>
+            {/* Side vertical meta rails (desktop only) */}
+            <span className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 apex-mono [writing-mode:vertical-rl] rotate-180 tracking-[0.3em] pointer-events-none select-none">
+              MODULE · 01 / INTAKE
+            </span>
+            <span className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 apex-mono [writing-mode:vertical-rl] tracking-[0.3em] pointer-events-none select-none">
+              UPTIME · 99.98%
+            </span>
 
-            <div className="relative text-center px-0 lg:px-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-7 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
+            <div className="relative text-center px-0 lg:px-20">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-8 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
                 Anti-Scam Intelligence
-                <span className="h-3 w-px bg-[#E2E0D8]" />
-                <span className="text-[#A1A1AA]">Tashkent</span>
               </div>
 
               {/* Bracketed headline frame */}
@@ -87,47 +73,25 @@ function Index() {
                 <span aria-hidden className="hidden md:block absolute -left-2 lg:-left-4 bottom-2 h-8 w-3 border-l border-b border-[#0B0B0F]/35" />
                 <span aria-hidden className="hidden md:block absolute -right-2 lg:-right-4 bottom-2 h-8 w-3 border-r border-b border-[#0B0B0F]/35" />
 
-                <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
+                <h1 className="font-display font-extrabold tracking-tight leading-[1] md:leading-[0.94] text-[42px] sm:text-6xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
                   {{
-                    ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
-                    uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
-                    en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/60">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/60">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    en: <>Check it before<br /><span className="relative inline-block text-foreground/60">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
                   }[lang]}
                 </h1>
               </div>
 
-              {/* Hairline divider with center tick */}
-              <div className="mx-auto mt-10 flex items-center justify-center gap-2">
-                <span className="h-px w-16 bg-gradient-to-r from-transparent to-[#0B0B0F]/20" />
-                <span className="h-1.5 w-1.5 rotate-45 border border-[#F97316]/70" />
-                <span className="h-px w-16 bg-gradient-to-l from-transparent to-[#0B0B0F]/20" />
-              </div>
-
-              <p className="mt-7 text-base md:text-lg text-foreground/65 max-w-xl mx-auto leading-relaxed animate-fade-in-up">
+              <p className="mt-10 md:mt-12 text-[15px] md:text-base text-foreground/75 max-w-md mx-auto leading-[1.6] animate-fade-in-up">
                 {{
-                  ru: "Номер, ссылка, Telegram или текст — оценка риска за секунды.",
-                  uz: "Raqam, havola, Telegram yoki matn — xavf bahosi soniyalarda.",
-                  en: "Number, link, Telegram or text — risk score in seconds.",
+                  ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
+                  uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
+                  en: "Risk score for a number, link or message — in seconds.",
                 }[lang]}
               </p>
-
-              {/* Spec chips — only 3, breathable */}
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 animate-fade-in-up">
-                {[
-                  { v: { ru: "Бесплатно", uz: "Bepul", en: "Free" }[lang] },
-                  { v: { ru: "Без сохранения", uz: "Saqlanmaydi", en: "No storage" }[lang] },
-                  { v: "RU · UZ · EN" },
-                ].map((c, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center h-8 px-3.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm font-mono text-[11px] text-[#52525B] shadow-[0_1px_0_rgba(11,11,15,0.02)] transition-all duration-200 hover:bg-white hover:border-[#0B0B0F]/25 hover:-translate-y-px"
-                  >
-                    {c.v}
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
+
 
 
 
