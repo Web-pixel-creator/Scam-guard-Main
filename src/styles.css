@@ -725,3 +725,125 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-bounce-soft { animation: none !important; }
 }
+
+/* ===== Fancy CTA — gradient + floating dots (brand orange) ===== */
+.fancy-btn {
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  background:
+    radial-gradient(65.28% 65.28% at 50% 100%, rgba(253, 186, 116, 0.85) 0%, rgba(253, 186, 116, 0) 100%),
+    linear-gradient(0deg, #F97316, #F97316);
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  padding: 12px 20px;
+  min-height: 48px;
+  text-decoration: none;
+  color: #fff;
+  font-family: var(--font-sans);
+  isolation: isolate;
+}
+.fancy-btn::before,
+.fancy-btn::after {
+  content: "";
+  position: absolute;
+  transition: all 0.5s ease-in-out;
+  z-index: 0;
+}
+.fancy-btn::before {
+  inset: 1px;
+  background: linear-gradient(177.95deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 100%);
+  border-radius: calc(12px - 1px);
+}
+.fancy-btn::after {
+  inset: 2px;
+  background:
+    radial-gradient(65.28% 65.28% at 50% 100%, rgba(253, 186, 116, 0.85) 0%, rgba(253, 186, 116, 0) 100%),
+    linear-gradient(0deg, #F97316, #F97316);
+  border-radius: calc(12px - 2px);
+}
+.fancy-btn:hover {
+  box-shadow: 0 10px 28px -12px rgba(249, 115, 22, 0.55);
+}
+.fancy-btn:active { transform: scale(0.97); }
+.fancy-btn[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+.fancy-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.35);
+}
+
+.fancy-points {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.fancy-point {
+  bottom: -10px;
+  position: absolute;
+  animation: fancy-floating infinite ease-in-out;
+  pointer-events: none;
+  width: 2px;
+  height: 2px;
+  background-color: #fff;
+  border-radius: 9999px;
+}
+@keyframes fancy-floating {
+  0%   { transform: translateY(0); }
+  85%  { opacity: 0; }
+  100% { transform: translateY(-55px); opacity: 0; }
+}
+.fancy-point:nth-child(1)  { left: 10%; opacity: 1;   animation-duration: 2.35s; animation-delay: 0.2s; }
+.fancy-point:nth-child(2)  { left: 30%; opacity: 0.7; animation-duration: 2.5s;  animation-delay: 0.5s; }
+.fancy-point:nth-child(3)  { left: 25%; opacity: 0.8; animation-duration: 2.2s;  animation-delay: 0.1s; }
+.fancy-point:nth-child(4)  { left: 44%; opacity: 0.6; animation-duration: 2.05s; }
+.fancy-point:nth-child(5)  { left: 50%; opacity: 1;   animation-duration: 1.9s; }
+.fancy-point:nth-child(6)  { left: 75%; opacity: 0.5; animation-duration: 1.5s;  animation-delay: 1.5s; }
+.fancy-point:nth-child(7)  { left: 88%; opacity: 0.9; animation-duration: 2.2s;  animation-delay: 0.2s; }
+.fancy-point:nth-child(8)  { left: 58%; opacity: 0.8; animation-duration: 2.25s; animation-delay: 0.2s; }
+.fancy-point:nth-child(9)  { left: 98%; opacity: 0.6; animation-duration: 2.6s;  animation-delay: 0.1s; }
+.fancy-point:nth-child(10) { left: 65%; opacity: 1;   animation-duration: 2.5s;  animation-delay: 0.2s; }
+
+.fancy-inner {
+  z-index: 2;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  transition: color 0.2s ease-in-out;
+  white-space: nowrap;
+}
+.fancy-inner > svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+  stroke: #fff;
+  fill: none;
+  flex-shrink: 0;
+}
+.fancy-btn:hover .fancy-inner > svg { transform: translateX(3px); }
+.fancy-btn:hover .fancy-inner > svg path { animation: fancy-dash 0.8s linear forwards; }
+@keyframes fancy-dash {
+  0%   { stroke-dasharray: 0, 20;  stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 10, 10; stroke-dashoffset: -5; }
+  100% { stroke-dasharray: 20, 0;  stroke-dashoffset: -10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fancy-point { animation: none !important; opacity: 0 !important; }
+}
