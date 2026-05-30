@@ -88,24 +88,29 @@ function Index() {
 
 
 
-          {/* Bloom band with form centered on top — animation stretches with content */}
+          {/* Bloom band with animated Unicorn background that stretches with content */}
           <div className="w-full max-w-[1200px] mx-auto mt-10 mb-6 animate-fade-in-up">
-            <div className="bloom-band rounded-[28px] min-h-[460px] md:min-h-[520px]">
+            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[460px] md:min-h-[520px] bg-[#fde7d3]">
+              <UnicornBackground
+                projectId="pSxbKYCCk7vGhrLFRLrG"
+                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+              />
               <div
                 aria-hidden
-                className="absolute inset-0 z-0 pointer-events-none"
+                className="absolute inset-0 z-10 pointer-events-none"
                 style={{
                   background:
                     "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%)",
                 }}
               />
-              <div className="relative z-10 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
+              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[460px] md:min-h-[520px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
                   <CheckInput />
                 </div>
               </div>
             </div>
           </div>
+
 
         </section>
 
