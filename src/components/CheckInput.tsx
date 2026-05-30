@@ -144,11 +144,11 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
 
   return (
     <div className="w-full">
-      <div className="apex-frame bg-white rounded-[6px] border border-[#E2E0D8] transition-all focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
+      <div className="apex-frame bg-white rounded-[10px] border border-[#E2E0D8] transition-all focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
         <span className="apex-scan" aria-hidden />
 
         {/* Header bar */}
-        <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-2 border-b border-[#E2E0D8]/60">
+        <div className="flex items-center justify-between gap-3 px-7 pt-5 pb-3 border-b border-[#E2E0D8]/60">
           <span className="apex-mono">INPUT · {lang.toUpperCase()}</span>
           <span className="apex-status" data-state={status} aria-live="polite">
             <span className="apex-status-dot" />
@@ -167,12 +167,12 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
           rows={4}
           aria-invalid={!!validationMsg}
           maxLength={MAX_INPUT_CHARS + 100}
-          className="apex-field resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 px-5 pt-4 pb-2 text-base md:text-[16px] text-[#18181B] placeholder:text-[#A1A1AA] min-h-[120px]"
+          className="apex-field resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); }}
         />
 
         {/* Inline validation + char counter */}
-        <div className="flex items-center justify-between px-5 pb-2 min-h-[18px]">
+        <div className="flex items-center justify-between gap-3 px-7 pb-4 min-h-[20px]">
           <span className="apex-mono text-[#DC2626]" role="alert">
             {validationMsg ? `! ${validationMsg}` : ""}
           </span>
@@ -182,7 +182,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         </div>
 
         {ocrPreviewOpen && (
-          <div className="mt-1 mx-3 rounded-[6px] border border-amber-400/40 bg-amber-400/5 p-4">
+          <div className="mt-1 mx-5 mb-2 rounded-[6px] border border-amber-400/40 bg-amber-400/5 p-4">
             <div className="flex items-start gap-2 mb-2">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
@@ -192,11 +192,11 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
             </div>
             <Textarea value={ocrText} onChange={(e) => setOcrText(e.target.value)} rows={4} className="apex-field resize-none text-sm bg-white border-[#E2E0D8] rounded-[4px]" />
             <div className="flex gap-2 mt-3">
-              <Button size="sm" onClick={run} disabled={!ocrText.trim() || loading} className="gap-1.5 rounded-[3px] bg-[#0B0B0F] hover:bg-[#F97316] text-white text-[11px] font-semibold tracking-[0.15em] uppercase">
+              <Button size="sm" onClick={run} disabled={!ocrText.trim() || loading} className="gap-1.5 rounded-[4px] bg-[#0B0B0F] hover:bg-[#F97316] text-white text-[11px] font-semibold tracking-[0.15em] uppercase">
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                 {t("ocr_check_this", lang)}
               </Button>
-              <Button size="sm" variant="ghost" onClick={clearImage} className="gap-1.5 rounded-[3px] text-[11px] font-semibold tracking-[0.15em] uppercase" type="button">
+              <Button size="sm" variant="ghost" onClick={clearImage} className="gap-1.5 rounded-[4px] text-[11px] font-semibold tracking-[0.15em] uppercase" type="button">
                 <X className="h-3.5 w-3.5" />
                 {t("ocr_cancel", lang)}
               </Button>
@@ -205,7 +205,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         )}
 
         {imageDataUrl && !ocrPreviewOpen && (
-          <div className="mt-1 mx-3 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2">
+          <div className="mt-1 mx-5 mb-2 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2.5">
             <img src={imageDataUrl} alt="screenshot" className="h-14 w-14 rounded-[4px] object-cover" />
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate text-[#18181B]">{imageName}</p>
@@ -215,17 +215,17 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
                 <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5"><Info className="h-3 w-3 mt-0.5 shrink-0" /><span>{t("screenshot_warning", lang)}</span></p>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={clearImage} className="shrink-0 rounded-[3px]" type="button"><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={clearImage} className="shrink-0 rounded-[4px]" type="button"><X className="h-4 w-4" /></Button>
           </div>
         )}
 
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-[#E2E0D8]">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-[#E2E0D8] bg-[#FCFAF9]/60">
+          <div className="flex items-center gap-1.5">
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40" type="button" disabled={ocrLoading}>
+            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-9 px-3 gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-white rounded-[4px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-colors" type="button" disabled={ocrLoading}>
               <ImagePlus className="h-3.5 w-3.5" />{t("attach_screenshot", lang)}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F2EB] rounded-[3px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40" type="button">
+            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="h-9 px-3 gap-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] hover:text-[#18181B] hover:bg-white rounded-[4px] focus-visible:ring-2 focus-visible:ring-[#F97316]/40 transition-colors" type="button">
               <Send className="h-3.5 w-3.5" />{t("report_btn", lang)}
             </Button>
           </div>

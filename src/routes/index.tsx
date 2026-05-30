@@ -23,25 +23,24 @@ function Index() {
   const { lang } = useLang();
   return (
     <div className="overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-10 md:space-y-12 lg:space-y-14 pt-8 md:pt-12">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-10 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
 
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
-        <section className="relative isolate flex flex-col items-center text-center pt-10 md:pt-16">
-          {/* Techno system rail */}
-          <div className="hero-rail mb-6 animate-fade-in-up">
-            <span className="apex-mono">SYS · IGUARD-01</span>
-            <span className="hero-rail-divider" aria-hidden />
-            <span className="apex-mono flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+        <section className="relative isolate flex flex-col items-center text-center pt-4 md:pt-6">
+          {/* Techno system rail + brand pill in one elegant row */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 mb-7 animate-fade-in-up">
+            <div className="hero-rail">
+              <span className="apex-mono">SYS · IGUARD-01</span>
+              <span className="hero-rail-divider" aria-hidden />
+              <span className="apex-mono flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
+                STATUS · READY
               </span>
-              STATUS · READY
-            </span>
+            </div>
           </div>
 
           {/* Pill tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-7 animate-fade-in-up">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
@@ -58,32 +57,36 @@ function Index() {
             }[lang]}
           </h1>
 
-          {/* Subheadline — tight like GoLive */}
+          {/* Subheadline */}
           <p className="mt-7 text-base md:text-lg text-foreground/55 max-w-xl leading-relaxed font-medium animate-fade-in-up">
             {t("hero_sub", lang)}
           </p>
 
-          {/* Trust bar — avatars + stars (GoLive's 4.8/5 row) */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 animate-fade-in-up">
-            <div className="flex -space-x-2">
-              {["bg-amber-200","bg-rose-200","bg-sky-200"].map((c,i)=>(
-                <div key={i} className={`h-8 w-8 rounded-full ring-2 ring-[#FCFAF9] ${c}`} />
-              ))}
+          {/* Trust bar — avatars + stars + uptime */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 animate-fade-in-up">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {["bg-amber-200","bg-rose-200","bg-sky-200"].map((c,i)=>(
+                  <div key={i} className={`h-8 w-8 rounded-full ring-2 ring-[#FCFAF9] ${c}`} />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground/70">
+                <span className="text-foreground tracking-tight">★★★★★</span>
+                <span className="text-foreground/50">{{ ru: "Бесплатно · За секунды · Без сохранения", uz: "Bepul · Soniyalarda · Saqlanmaydi", en: "Free · In seconds · No storage" }[lang]}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-              <span className="text-foreground tracking-tight">★★★★★</span>
-              <span className="text-foreground/50">{{ ru: "Бесплатно · За секунды · Без сохранения", uz: "Bepul · Soniyalarda · Saqlanmaydi", en: "Free · In seconds · No storage" }[lang]}</span>
-            </div>
-            <div className="hidden md:flex items-center gap-2 pl-4 ml-2 border-l border-[#E2E0D8]">
+            <span className="hidden md:inline-block h-4 w-px bg-[#E2E0D8]" aria-hidden />
+            <div className="hidden md:flex items-center gap-3">
               <span className="apex-mono">UPTIME · 99.9%</span>
-              <span className="apex-mono">· LATENCY ~1.2s</span>
+              <span className="h-1 w-1 rounded-full bg-[#E2E0D8]" />
+              <span className="apex-mono">LATENCY ~1.2s</span>
             </div>
           </div>
 
 
-          {/* Bloom band with form centered on top (GoLive-mockup style) */}
-          <div className="w-full max-w-[1200px] mt-14 mb-12 animate-fade-in-up">
-            <div className="relative isolate rounded-[28px] overflow-hidden h-[460px] md:h-[520px] bg-[#fde7d3]">
+          {/* Bloom band with form centered on top */}
+          <div className="w-full max-w-[1200px] mt-12 mb-8 animate-fade-in-up">
+            <div className="relative isolate rounded-[28px] overflow-hidden h-[480px] md:h-[540px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
                 className="absolute inset-0 w-full h-full z-0 pointer-events-none"
@@ -105,6 +108,7 @@ function Index() {
             </div>
           </div>
         </section>
+
 
 
         {/* MARQUEE — APEX: stripes texture + edge fade mask */}
