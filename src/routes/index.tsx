@@ -32,7 +32,7 @@ function Index() {
               src={heroBloom}
               alt=""
               aria-hidden
-              className="absolute left-1/2 -translate-x-1/2 top-[8%] w-[min(1500px,110vw)] h-[820px] object-cover rounded-[48px] opacity-90"
+              className="absolute left-1/2 -translate-x-1/2 top-[42%] w-[min(1500px,108vw)] h-[760px] object-cover rounded-[48px] opacity-95"
               style={{ filter: "saturate(1.05)" }}
             />
             {/* Edge fades into the page bg */}
