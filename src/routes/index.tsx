@@ -32,8 +32,14 @@ function Index() {
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
-          {/* Title block — laconic, generous whitespace */}
-          <div className="relative max-w-5xl mx-auto pt-4 md:pt-6 pb-2">
+          <div
+            className={`relative max-w-5xl mx-auto overflow-hidden transition-[max-height,opacity,margin,padding] duration-700 ease-out ${
+              homeResult
+                ? "max-h-0 opacity-0 pt-0 pb-0 -mt-2 pointer-events-none"
+                : "max-h-[900px] opacity-100 pt-4 md:pt-6 pb-2"
+            }`}
+            aria-hidden={homeResult ? true : undefined}
+          >
             {/* Subtle dot-grid backdrop behind the title */}
             <div
               aria-hidden
@@ -91,8 +97,9 @@ function Index() {
 
 
 
+
           {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div className="w-full max-w-[1200px] mx-auto mt-10 mb-6 animate-fade-in-up">
+          <div className={`w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-10"}`}>
             <div className="relative isolate rounded-[28px] overflow-hidden min-h-[460px] md:min-h-[520px] bg-[#fde7d3]">
               <UnicornBackground
                 projectId="pSxbKYCCk7vGhrLFRLrG"
