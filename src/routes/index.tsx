@@ -224,7 +224,7 @@ function Index() {
                   en: <>If something feels <span className="font-serif-italic text-[#DC2626]">off</span> — send it to us</>,
                 }[lang]}
               </h2>
-              <p className="mt-5 text-[15px] md:text-[16px] text-[#52525B] max-w-2xl leading-[1.6]">
+              <p className="mt-5 text-[16.5px] md:text-[18px] text-[#3F3F46] max-w-2xl leading-[1.6]">
                 {{
                   ru: "Четыре самые частые схемы в Узбекистане. Каждая карточка показывает реальную боль и то, что мы за вас проверяем за секунды.",
                   uz: "O'zbekistondagi eng keng tarqalgan to'rtta sxema. Har bir karta haqiqiy muammoni va biz soniyalarda nimani tekshirayotganimizni ko'rsatadi.",
@@ -396,7 +396,7 @@ function Index() {
               </div>
 
               <div className="mt-10 pt-6 border-t border-[#E2E0D8]">
-                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[52ch] text-pretty">
+                <p className="text-[16px] md:text-[17px] text-[#3F3F46] leading-[1.7] max-w-[52ch] text-pretty">
                   {{ ru: "Мы объясняем, почему сообщение выглядит подозрительным, и какие конкретные шаги предпринять.",
                      uz: "Xabar nima uchun shubhali ekani va aniq qadamlarni tushuntiramiz.",
                      en: "We explain why the message looks suspicious and which exact steps to take." }[lang]}
@@ -431,7 +431,7 @@ function Index() {
                 <div className="space-y-10">
                   <div>
                     <p className="label-md mb-5">{t("why_title", lang)}</p>
-                    <ul className="space-y-3.5 text-[14px] md:text-[15px] text-[#18181B] leading-[1.55]">
+                    <ul className="space-y-3.5 text-[15.5px] md:text-[16.5px] text-[#18181B] leading-[1.55]">
                       {(({
                         ru: ["Просят SMS-код (OTP)", "Представляются банком", "Создают срочность и давление", "Похожая схема уже в жалобах"],
                         uz: ["SMS-kod (OTP) so'rashmoqda", "Bank nomidan murojaat", "Shoshilinchlik va bosim", "Shu sxema shikoyatlarda uchragan"],
@@ -555,7 +555,7 @@ function Index() {
                 <AlertTriangle aria-hidden="true" focusable="false" className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
               <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
-              <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
+              <p className="text-[#3F3F46] text-[16px] md:text-[17px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
                 {{ ru: "Если вы уже отправили SMS-код, установили APK или перевели деньги — время идёт на минуты.",
                    uz: "Agar SMS-kod yuborgan, APK o'rnatgan yoki pul o'tkazgan bo'lsangiz — vaqt daqiqalar bilan o'lchanadi.",
                    en: "If you already sent an SMS code, installed an APK or transferred money — every minute counts." }[lang]}
@@ -575,7 +575,7 @@ function Index() {
             <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
               {{ ru: "Помогите защитить других", uz: "Boshqalarni himoya qiling", en: "Help protect others" }[lang]}
             </h3>
-            <p className="text-[#52525B] text-[14px] md:text-[15px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
+            <p className="text-[#3F3F46] text-[16px] md:text-[17px] leading-[1.7] mb-8 max-w-[44ch] text-pretty">
               {{ ru: "Каждая жалоба проходит модерацию и помогает системе обучиться и предупредить тысячи пользователей.",
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
