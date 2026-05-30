@@ -832,7 +832,7 @@ function Index() {
 
 
         {/* EMERGENCY CONTACTS — large tap-targets for elderly users, always on home */}
-        <section aria-labelledby="emergency-contacts-title" className="apex-frame border border-[#FCA5A5]/60 rounded-[6px] p-6 sm:p-8 md:p-10 bg-[#FFF7ED]">
+        <section aria-labelledby="emergency-contacts-title" className="apex-frame border border-[#FCA5A5]/60 rounded-[6px] p-6 sm:p-8 md:p-10 bg-[#FFF7ED] cv-auto">
           <div className="flex items-start justify-between gap-4 mb-4">
             <span className="apex-mono text-[#991B1B] inline-flex items-center gap-2">
               <span className="relative flex h-1.5 w-1.5">
