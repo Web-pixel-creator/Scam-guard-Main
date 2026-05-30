@@ -331,7 +331,7 @@ function Index() {
                 <div key={s.i} className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5">
                   <div className="flex items-start justify-between gap-3">
                     <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
-                    <span className="apex-mono text-[#71717A]">STEP 0{idx + 1}/03</span>
+                    <span className="apex-mono text-[#71717A]">{{ ru: `Шаг ${idx + 1} из 3`, uz: `${idx + 1}/3 qadam`, en: `Step ${idx + 1} of 3` }[lang]}</span>
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
