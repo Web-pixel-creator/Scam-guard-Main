@@ -398,7 +398,7 @@
 
 .apex-frame {
   position: relative;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .apex-frame::before,
 .apex-frame::after {
@@ -409,28 +409,34 @@
   border: 0.8px solid var(--apex-tick-color);
   pointer-events: none;
   z-index: 2;
-  transition: border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+  transition: border-color 0.35s ease, width 0.35s ease, height 0.35s ease;
 }
-.apex-frame::before {
-  top: 8px;
-  left: 8px;
-  border-right: 0;
-  border-bottom: 0;
-}
-.apex-frame::after {
-  bottom: 8px;
-  right: 8px;
-  border-left: 0;
-  border-top: 0;
-}
+.apex-frame::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
+.apex-frame::after  { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
 .apex-frame:hover {
   border-color: rgba(11, 11, 15, 0.22);
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.06), 0 18px 40px -28px rgba(11,11,15,0.18);
 }
 .apex-frame:hover::before,
 .apex-frame:hover::after {
   border-color: var(--apex-tick-color-hover);
   width: 16px;
   height: 16px;
+}
+/* Optional sweeping scan-line element placed inside .apex-frame */
+.apex-frame > .apex-scan {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.55), transparent);
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 0.3s ease;
+}
+.apex-frame:hover > .apex-scan { opacity: 1; animation: apex-scan-sweep 1.8s ease-in-out infinite; }
+@keyframes apex-scan-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 
@@ -473,10 +479,91 @@
     linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #6366F1 100%);
   background-origin: border-box;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.apex-btn-outline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(249,115,22,0.18) 50%, transparent 70%);
+  transform: translateX(-110%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
 }
 .apex-btn-outline:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 30px -12px rgba(236, 72, 153, 0.35);
+}
+.apex-btn-outline:hover::after { transform: translateX(110%); }
+.apex-btn-outline:disabled,
+.apex-btn-outline[disabled] {
+  opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
+}
+
+/* Status pill (idle / loading / success / error) */
+.apex-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  border: 0.8px solid var(--apex-border);
+  background: rgba(255,255,255,0.7);
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--apex-text-soft);
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+.apex-status-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
+.apex-status[data-state="idle"]    { color: #10B981; }
+.apex-status[data-state="loading"] { color: #F97316; border-color: rgba(249,115,22,0.4); }
+.apex-status[data-state="success"] { color: #059669; border-color: rgba(5,150,105,0.4); }
+.apex-status[data-state="error"]   { color: #DC2626; border-color: rgba(220,38,38,0.4); }
+.apex-status[data-state="idle"] .apex-status-dot,
+.apex-status[data-state="loading"] .apex-status-dot {
+  animation: apex-status-pulse 1.4s ease-in-out infinite;
+}
+@keyframes apex-status-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Indeterminate progress bar */
+.apex-progress {
+  position: relative; height: 2px; width: 100%;
+  background: rgba(11,11,15,0.06); overflow: hidden;
+}
+.apex-progress::before {
+  content: ""; position: absolute; inset: 0; width: 35%;
+  background: linear-gradient(90deg, transparent, #F97316, #EC4899, transparent);
+  animation: apex-progress-slide 1.2s ease-in-out infinite;
+}
+@keyframes apex-progress-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+/* Form field focus ring (orange techno accent) */
+.apex-field { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+.apex-field:focus,
+.apex-field:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(249,115,22,0.45),
+    0 0 0 4px rgba(249,115,22,0.10);
+}
+
+/* Hero techno system rail */
+.hero-rail {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 9px 14px;
+  border: 0.8px solid var(--apex-border);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  max-width: 620px; width: 100%;
+}
+.hero-rail-divider {
+  flex: 1; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--apex-border) 0 4px, transparent 4px 8px);
 }
 
 
