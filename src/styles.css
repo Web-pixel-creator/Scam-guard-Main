@@ -215,6 +215,24 @@
 .card-pad      { padding: var(--pad-card); }
 .grid-hairline { display: grid; gap: var(--gap-grid); background: var(--apex-border); border: 1px solid var(--apex-border); }
 
+/* Section header rhythm — same gap stack everywhere */
+.section-eyebrow { margin-bottom: 16px; }
+.section-title   { font-family: var(--font-sans); font-weight: 500;
+  font-size: clamp(34px, 5.4vw, 60px); line-height: 1.02; letter-spacing: -0.05em;
+  color: #18181B; text-wrap: balance; }
+.section-meta-row{ display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 24px; }
+.section-divider { margin-top: 40px; margin-bottom: 40px;
+  padding-bottom: 28px; border-bottom: 1px solid var(--apex-border); }
+@media (min-width: 768px) {
+  .section-divider { margin-top: 48px; margin-bottom: 48px; padding-bottom: 32px; }
+}
+
+/* Card body text — single rhythm so all sections read at the same beat */
+.card-body { font-size: 14.5px; line-height: 1.65; color: #52525B; max-width: 38ch;
+  text-wrap: pretty; }
+@media (min-width: 768px) { .card-body { font-size: 15px; } }
+
 /* Body paragraph helper: pretty wrapping + safe break for long urls/words.
    Russian/Uzbek hyphenation is unreliable cross-browser, so we rely on
    text-wrap:pretty + overflow-wrap to avoid ragged lines on 320–414 widths. */
