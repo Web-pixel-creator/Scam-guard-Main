@@ -27,12 +27,9 @@ function Index() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-11 md:space-y-12 lg:space-y-14 pt-3 md:pt-4">
 
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
-        <section className="relative isolate pt-6 md:pt-10">
-
-
-
+        <section className="relative isolate pt-1 md:pt-2">
           {/* Title block — laconic, generous whitespace */}
-          <div className="relative max-w-5xl mx-auto pt-14 md:pt-20 pb-2">
+          <div className="relative max-w-5xl mx-auto pt-4 md:pt-6 pb-2">
             {/* Subtle dot-grid backdrop behind the title */}
             <div
               aria-hidden
