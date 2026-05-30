@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { CheckInput } from "@/components/CheckInput";
+import { UnicornBackground } from "@/components/UnicornBackground";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 
