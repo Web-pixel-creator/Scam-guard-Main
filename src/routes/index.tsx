@@ -3,6 +3,8 @@ import { Phone, MessageSquare, Link2, FileWarning, ArrowRight, Sparkles, Users, 
 import { CheckInput } from "@/components/CheckInput";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
+import heroBloom from "@/assets/hero-bloom.jpg";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,15 +26,27 @@ function Index() {
 
         {/* HERO — GoLive style: warm off-white, soft pastel blooms, white input card with multicolor halo */}
         <section className="relative isolate flex flex-col items-center text-center pt-16 md:pt-24 overflow-visible">
-          {/* Soft pastel blooms (full-width, behind content) */}
+          {/* Painterly bloom backdrop (full-width, behind form area) */}
           <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen -z-10 overflow-hidden">
-            <div className="absolute top-[-10%] right-[-5%] w-[520px] h-[520px] rounded-full blur-[110px]"
-              style={{ background: "radial-gradient(circle, rgba(147,197,253,0.55), rgba(196,181,253,0.35) 50%, transparent 75%)" }} />
-            <div className="absolute bottom-[-15%] left-[-5%] w-[620px] h-[620px] rounded-full blur-[130px]"
-              style={{ background: "radial-gradient(circle, rgba(252,165,165,0.40), rgba(253,186,116,0.30) 45%, transparent 75%)" }} />
-            <div className="absolute top-[20%] left-[35%] w-[420px] h-[420px] rounded-full blur-[120px]"
-              style={{ background: "radial-gradient(circle, rgba(167,139,250,0.30), transparent 70%)" }} />
+            <img
+              src={heroBloom}
+              alt=""
+              aria-hidden
+              className="absolute left-1/2 -translate-x-1/2 top-[42%] w-[min(1500px,108vw)] h-[760px] object-cover rounded-[48px] opacity-95"
+              style={{ filter: "saturate(1.05)" }}
+            />
+            {/* Edge fades into the page bg */}
+            <div className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(60% 55% at 50% 45%, transparent 0%, transparent 35%, rgba(252,250,249,0.55) 65%, #FCFAF9 90%)",
+              }}
+            />
+            {/* Top + bottom soft wash */}
+            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#FCFAF9] to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#FCFAF9] to-transparent" />
           </div>
+
 
           {/* Pill tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-black/5 bg-white/70 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] uppercase text-foreground/55 shadow-sm mb-8 animate-fade-in-up">
