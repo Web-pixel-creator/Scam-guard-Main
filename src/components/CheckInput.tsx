@@ -191,10 +191,10 @@ export function CheckInput({
 
         {/* Inline validation + char counter */}
         <div className="flex items-center justify-between gap-3 px-7 pb-4 min-h-[20px]">
-          <span className="apex-mono text-[#DC2626]" role="alert">
+          <span className="apex-mono text-[#B91C1C]" role="alert">
             {validationMsg ? `! ${validationMsg}` : ""}
           </span>
-          <span className={`apex-mono ${charCount > MAX_INPUT_CHARS ? "text-[#DC2626]" : ""}`}>
+          <span className={`apex-mono ${charCount > MAX_INPUT_CHARS ? "text-[#B91C1C]" : ""}`}>
             {charCount} / {MAX_INPUT_CHARS}
           </span>
         </div>
