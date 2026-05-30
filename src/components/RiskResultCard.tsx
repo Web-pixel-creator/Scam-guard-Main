@@ -37,7 +37,7 @@ const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
     icon: ShieldQuestion, key: "risk_unknown", accent: "#71717A",
     badgeBg: "bg-[#F4F4F5]", badgeBorder: "border-[#E4E4E7]", badgeText: "text-[#3F3F46]",
     tag: "UNKNOWN",
-    topBar: "from-[#A1A1AA] via-[#D4D4D8] to-[#E4E4E7]",
+    topBar: "from-[#FDBA74]/40 via-[#E2E0D8] to-[#FDBA74]/40",
   },
   suspicious: {
     icon: AlertTriangle, key: "risk_suspicious", accent: "#D97706",
@@ -100,7 +100,13 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
                 {t(s.key as never, lang)}
               </h3>
-              <p className="mt-2 apex-mono break-all">{result.display}</p>
+              {result.type === "text" ? (
+                <blockquote className="mt-3 border-l-2 border-[#E2E0D8] pl-3 text-[13.5px] leading-[1.6] text-[#52525B] font-sans whitespace-pre-wrap break-words line-clamp-4">
+                  {result.display}
+                </blockquote>
+              ) : (
+                <p className="mt-2 apex-mono break-all">{result.display}</p>
+              )}
 
               {result.explanation && (
                 <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
