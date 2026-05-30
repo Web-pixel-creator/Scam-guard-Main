@@ -695,14 +695,14 @@ function Index() {
             <div className="space-y-1.5">
               <p className="apex-mono flex items-center gap-2">
                 <ShieldCheck aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
-                BUILD V3.1
+                {{ ru: "Версия 3.1", uz: "Versiya 3.1", en: "Version 3.1" }[lang]}
               </p>
               <p className="apex-mono flex items-center gap-2">
                 <span className="relative inline-flex h-2 w-2 shrink-0">
                   <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
                   <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
                 </span>
-                CORE SYSTEMS: ONLINE
+                {{ ru: "Сервис работает", uz: "Xizmat ishlamoqda", en: "Service online" }[lang]}
               </p>
             </div>
             <div className="sm:text-right space-y-1.5">
