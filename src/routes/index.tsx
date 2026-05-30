@@ -205,8 +205,8 @@ function Index() {
         {/* CAPABILITIES — pain-first cards: what scares the user → what we check */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">BUILD V3.1 · CAPABILITIES</span>
-            <span className="apex-mono text-right">CORE SYSTEMS: ONLINE</span>
+            <span className="apex-mono">{{ ru: "Что мы проверяем", uz: "Nimani tekshiramiz", en: "What we check" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Сервис работает", uz: "Xizmat ishlamoqda", en: "Service online" }[lang]}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
@@ -226,7 +226,7 @@ function Index() {
                 }[lang]}
               </p>
             </div>
-            <span className="hidden md:block apex-mono shrink-0">04 / 04</span>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "4 из 4", uz: "4 / 4", en: "4 of 4" }[lang]}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
@@ -302,8 +302,8 @@ function Index() {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] z-[1]" />
           <div className="relative p-6 sm:p-10 md:p-14">
             <div className="flex items-start justify-between gap-4 mb-6">
-              <span className="apex-mono">SYS · ALGORITHM</span>
-              <span className="apex-mono text-right">03 / 03 STEPS</span>
+              <span className="apex-mono">{{ ru: "Как это работает", uz: "Bu qanday ishlaydi", en: "How it works" }[lang]}</span>
+              <span className="apex-mono text-right">{{ ru: "3 шага", uz: "3 qadam", en: "3 steps" }[lang]}</span>
             </div>
             <div className="mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
               <p className="label-md mb-4">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
@@ -331,7 +331,7 @@ function Index() {
                 <div key={s.i} className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5">
                   <div className="flex items-start justify-between gap-3">
                     <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">{s.i}</span>
-                    <span className="apex-mono text-[#71717A]">STEP 0{idx + 1}/03</span>
+                    <span className="apex-mono text-[#71717A]">{{ ru: `Шаг ${idx + 1} из 3`, uz: `${idx + 1}/3 qadam`, en: `Step ${idx + 1} of 3` }[lang]}</span>
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
@@ -364,8 +364,8 @@ function Index() {
         {/* EXAMPLE — APEX striped frame around the demo */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">CASE STUDY · DEMO</span>
-            <span className="apex-mono text-right">RISK · LIVE</span>
+            <span className="apex-mono">{{ ru: "Пример проверки", uz: "Tekshirish misoli", en: "Check example" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Опасно", uz: "Xavfli", en: "Dangerous" }[lang]}</span>
           </div>
           <div className="text-center mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <p className="label-md mb-4">04 — {{ ru: "Пример работы", uz: "Ish misoli", en: "Example" }[lang]}</p>
@@ -409,13 +409,13 @@ function Index() {
                         <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                       </span>
-                      <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">Risk score · 98%</span>
+                      <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">{{ ru: "Опасность · 98%", uz: "Xavf · 98%", en: "Risk · 98%" }[lang]}</span>
                     </p>
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                     <p className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#991B1B] text-[11px] font-medium tracking-[0.08em] uppercase">
-                      <span className="font-mono text-[10px] text-[#991B1B]">SCAM</span>
+                      <span className="font-mono text-[10px] text-[#991B1B]">{{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}</span>
                       <span className="h-3 w-px bg-[#FCA5A5]/70" />
-                      <span>{{ ru: "Вишинг · OTP-фрод", uz: "Vishing · OTP-firibgar", en: "Vishing · OTP fraud" }[lang]}</span>
+                      <span>{{ ru: "Звонок «из банка» · код из SMS", uz: "«Bank»dan qo'ng'iroq · SMS kod", en: "Fake bank call · SMS code" }[lang]}</span>
                     </p>
                   </div>
                   <div className="w-11 h-11 rounded-[3px] border border-[#E2E0D8] flex items-center justify-center text-[#F97316] shrink-0">
@@ -465,15 +465,15 @@ function Index() {
         {/* KNOWLEDGE BASE — APEX striped frame */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">DB · SCAM CASES</span>
-            <span className="apex-mono text-right">INDEX 06 / 06</span>
+            <span className="apex-mono">{{ ru: "Известные обманы", uz: "Ma'lum aldovlar", en: "Known scams" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "6 из 6", uz: "6 / 6", en: "6 of 6" }[lang]}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
               <p className="label-md mb-4">05 — {{ ru: "База знаний", uz: "Bilimlar bazasi", en: "Knowledge base" }[lang]}</p>
               <h2 className="font-sans font-medium text-[34px] sm:text-5xl md:text-6xl tracking-[-0.05em] leading-[1.02] text-[#18181B] text-balance">{t("schemes_title", lang)}</h2>
             </div>
-            <span className="hidden md:block apex-mono shrink-0">06 cases</span>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "6 случаев", uz: "6 holat", en: "6 cases" }[lang]}</span>
           </div>
 
 
@@ -506,14 +506,14 @@ function Index() {
             ] as const).map((s) => (
               <div key={s.en} className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="apex-mono">CASE #{s.n}</span>
+                  <span className="apex-mono">{{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
                   <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     </span>
-                    SCAM
+                    {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
                   </span>
                 </div>
 
@@ -543,8 +543,8 @@ function Index() {
         {/* FAQ — pain scenarios with green "what we do" answer */}
         <section className="apex-frame apex-stripes border border-[#E2E0D8] rounded-[6px] p-6 sm:p-10 md:p-14 bg-white/55">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <span className="apex-mono">FAQ · PAIN SCENARIOS</span>
-            <span className="apex-mono text-right">REAL CASES</span>
+            <span className="apex-mono">{{ ru: "Частые вопросы", uz: "Tez-tez beriladigan savollar", en: "Common questions" }[lang]}</span>
+            <span className="apex-mono text-right">{{ ru: "Реальные ситуации", uz: "Haqiqiy holatlar", en: "Real situations" }[lang]}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8]">
             <div className="max-w-3xl">
@@ -564,7 +564,7 @@ function Index() {
                 }[lang]}
               </p>
             </div>
-            <span className="hidden md:block apex-mono shrink-0">06 / 06</span>
+            <span className="hidden md:block apex-mono shrink-0">{{ ru: "6 из 6", uz: "6 / 6", en: "6 of 6" }[lang]}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
@@ -607,7 +607,7 @@ function Index() {
               >
                 <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
                   <div className="flex-1">
-                    <span className="apex-mono text-[#52525B] block mb-2">Q · 0{idx + 1}</span>
+                    <span className="apex-mono text-[#52525B] block mb-2">{{ ru: `Вопрос ${idx + 1}`, uz: `Savol ${idx + 1}`, en: `Question ${idx + 1}` }[lang]}</span>
                     <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
                     </h3>
@@ -652,7 +652,7 @@ function Index() {
           <div className="apex-shell">
             <div className="relative bg-white p-7 sm:p-9 md:p-11 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
-                <span className="label-md text-[#F97316]">[ Emergency ]</span>
+                <span className="label-md text-[#F97316]">[ {{ ru: "Срочно", uz: "Shoshilinch", en: "Urgent" }[lang]} ]</span>
                 <AlertTriangle aria-hidden="true" focusable="false" className="h-5 w-5 text-[#F97316]" strokeWidth={1.5} />
               </div>
               <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">{t("emergency_title", lang)}</h3>
@@ -670,7 +670,7 @@ function Index() {
           <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-7 sm:p-9 md:p-11 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
-              <span className="label-md">[ Community ]</span>
+              <span className="label-md">[ {{ ru: "Сообщество", uz: "Hamjamiyat", en: "Community" }[lang]} ]</span>
               <Users aria-hidden="true" focusable="false" className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
             <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
@@ -695,14 +695,14 @@ function Index() {
             <div className="space-y-1.5">
               <p className="apex-mono flex items-center gap-2">
                 <ShieldCheck aria-hidden="true" focusable="false" className="h-3.5 w-3.5 text-[#F97316] shrink-0" strokeWidth={1.5} />
-                BUILD V3.1
+                {{ ru: "Версия 3.1", uz: "Versiya 3.1", en: "Version 3.1" }[lang]}
               </p>
               <p className="apex-mono flex items-center gap-2">
                 <span className="relative inline-flex h-2 w-2 shrink-0">
                   <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
                   <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
                 </span>
-                CORE SYSTEMS: ONLINE
+                {{ ru: "Сервис работает", uz: "Xizmat ishlamoqda", en: "Service online" }[lang]}
               </p>
             </div>
             <div className="sm:text-right space-y-1.5">

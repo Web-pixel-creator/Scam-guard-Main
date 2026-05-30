@@ -144,11 +144,11 @@ function ReportPage() {
         <div className="apex-card apex-frame apex-stripes text-center">
 
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
-            <span className="apex-mono">SYS · RECEIVED</span>
+            <span className="apex-mono">{{ ru: "Получено", uz: "Qabul qilindi", en: "Received" }[lang]}</span>
             <span className="apex-status" data-state="success">
               <span className="apex-status-dot" />
-              <span className="hidden xs:inline">REPORT · QUEUED</span>
-              <span className="xs:hidden">QUEUED</span>
+              <span className="hidden xs:inline">{{ ru: "Жалоба принята", uz: "Shikoyat qabul qilindi", en: "Report queued" }[lang]}</span>
+              <span className="xs:hidden">{{ ru: "Принято", uz: "Qabul", en: "Queued" }[lang]}</span>
             </span>
           </div>
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
@@ -172,7 +172,7 @@ function ReportPage() {
         {loading && <div className="apex-progress absolute top-0 inset-x-0 z-10" aria-hidden />}
 
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">SYS · REPORT</span>
+          <span className="apex-mono">{{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</span>
           <span
             className="apex-status"
             data-state={loading ? "loading" : error ? "error" : "idle"}
@@ -180,10 +180,10 @@ function ReportPage() {
           >
             <span className="apex-status-dot" />
             {loading
-              ? { ru: "ОТПРАВКА…", uz: "YUBORILMOQDA…", en: "SUBMITTING…" }[lang]
+              ? { ru: "Отправляем…", uz: "Yuborilmoqda…", en: "Sending…" }[lang]
               : error
-                ? { ru: "ОШИБКА", uz: "XATO", en: "ERROR" }[lang]
-                : { ru: "МОДЕРАЦИЯ · АНОНИМНО", uz: "MODERATSIYA · ANONIM", en: "MODERATED · ANONYMOUS" }[lang]}
+                ? { ru: "Ошибка", uz: "Xato", en: "Error" }[lang]
+                : { ru: "Анонимно · с проверкой", uz: "Anonim · tekshiriladi", en: "Anonymous · moderated" }[lang]}
           </span>
         </div>
 

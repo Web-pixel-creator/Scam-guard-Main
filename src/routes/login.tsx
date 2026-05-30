@@ -48,10 +48,10 @@ function LoginPage() {
     <div className="apex-page" style={{ maxWidth: 520 }}>
       <div className="apex-card apex-frame apex-stripes" style={{ padding: "clamp(24px, 5vw, 40px)" }}>
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">SYS · AUTH</span>
+          <span className="apex-mono">Вход</span>
           <span className="apex-status" data-state={loading ? "loading" : "idle"}>
             <span className="apex-status-dot" />
-            {loading ? "VERIFYING" : "SECURE"}
+            {loading ? "Проверяем…" : "Защищено"}
           </span>
         </div>
 

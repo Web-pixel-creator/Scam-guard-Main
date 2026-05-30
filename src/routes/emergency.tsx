@@ -101,11 +101,11 @@ function EmergencyPage() {
               <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
             </span>
-            SYS · EMERGENCY
+            {{ ru: "Срочно", uz: "Shoshilinch", en: "Urgent" }[lang]}
           </span>
           <span className="apex-mono text-right">
-            <span className="hidden xs:inline">PRIORITY · CRITICAL</span>
-            <span className="xs:hidden">CRITICAL</span>
+            <span className="hidden xs:inline">{{ ru: "Очень важно", uz: "Juda muhim", en: "Critical" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "Важно", uz: "Muhim", en: "Critical" }[lang]}</span>
           </span>
         </div>
 
@@ -133,10 +133,10 @@ function EmergencyPage() {
       {/* Guides — apex hairline grid */}
       <section className="apex-card apex-frame apex-stripes" style={{ background: "#F4F2EB" }}>
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">PROTOCOLS · {guides.length.toString().padStart(2, "0")}</span>
+          <span className="apex-mono">{{ ru: `${guides.length} шага`, uz: `${guides.length} qadam`, en: `${guides.length} steps` }[lang]}</span>
           <span className="apex-mono text-right">
-            <span className="hidden xs:inline">FOLLOW IN ORDER</span>
-            <span className="xs:hidden">IN ORDER</span>
+            <span className="hidden xs:inline">{{ ru: "Делайте по порядку", uz: "Tartib bilan bajaring", en: "Follow in order" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "По порядку", uz: "Tartib bilan", en: "In order" }[lang]}</span>
           </span>
         </div>
 

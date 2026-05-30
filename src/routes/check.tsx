@@ -21,11 +21,11 @@ function CheckPage() {
     <div className="apex-page" style={{ maxWidth: 1080 }}>
       <div className="apex-card apex-frame apex-stripes">
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">SYS · CHECK</span>
+          <span className="apex-mono">{{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}</span>
           <span className="apex-mono text-right inline-flex items-center gap-1.5">
             <ShieldCheck className="h-3 w-3 text-[#F97316]" strokeWidth={2} aria-hidden="true" focusable="false" />
-            <span className="hidden xs:inline">PRIVATE · HASHED</span>
-            <span className="xs:hidden">PRIVATE</span>
+            <span className="hidden xs:inline">{{ ru: "Конфиденциально", uz: "Maxfiy", en: "Private" }[lang]}</span>
+            <span className="xs:hidden">{{ ru: "Тайно", uz: "Maxfiy", en: "Private" }[lang]}</span>
           </span>
         </div>
 

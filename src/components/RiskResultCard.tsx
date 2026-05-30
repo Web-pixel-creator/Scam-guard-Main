@@ -87,10 +87,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 )}
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.accent }} />
               </span>
-              SYS · RESULT
+              {{ ru: "Результат", uz: "Natija", en: "Result" }[lang]}
             </span>
             <span className="apex-mono text-right tabular-nums">
-              {isUnknown ? "SCORE · N/A" : `SCORE · ${Math.round(result.score)}%`}
+              {isUnknown
+                ? { ru: "Оценка · нет", uz: "Baho · yo'q", en: "Score · n/a" }[lang]
+                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${Math.round(result.score)}%`}
             </span>
           </div>
 
