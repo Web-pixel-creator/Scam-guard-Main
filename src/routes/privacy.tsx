@@ -151,7 +151,7 @@ function PrivacyPage() {
                 </div>
               </div>
               <h2 className="apex-h2 mb-4 sm:mb-5">{s.title}</h2>
-              <ul className="space-y-2.5 text-[14.5px] leading-[1.65] text-[#52525B]">
+              <ul className="space-y-3 text-[15.5px] leading-[1.7] text-[#3F3F46]">
                 {s.items.map((it, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="text-[#F97316] mt-[8px] h-[3px] w-[3px] rounded-full bg-current shrink-0" aria-hidden />
