@@ -328,9 +328,9 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="group bg-white/85 backdrop-blur-[4px] p-6 md:p-8 hover:bg-white transition-colors duration-300">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-6 md:p-8">
                 <p className="text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em] mb-5">CASE #{s.n}</p>
-                <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B] group-hover:text-[#F97316] transition-colors">{s[lang]}</h3>
+                <h3 className="font-sans text-[15px] font-medium mb-3 tracking-tight text-[#18181B]">{s[lang]}</h3>
                 <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
