@@ -182,24 +182,59 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
         </div>
 
         {ocrPreviewOpen && (
-          <div className="mt-1 mx-5 mb-2 rounded-[6px] border border-amber-400/40 bg-amber-400/5 p-4">
-            <div className="flex items-start gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-[#18181B]">{t("ocr_preview_title", lang)}</p>
-                <p className="text-xs text-[#A1A1AA] mt-0.5">{t("ocr_preview_hint", lang)}</p>
+          <div className="mt-1 mx-5 mb-3 rounded-[8px] border border-[#E2E0D8] bg-[#FCFAF9] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#E2E0D8] bg-white">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#F97316]/10">
+                  <AlertTriangle className="h-3 w-3 text-[#C2410C]" strokeWidth={2} />
+                </span>
+                <span className="apex-mono text-[#18181B]">OCR · PREVIEW</span>
               </div>
+              <span className="apex-mono text-[#A1A1AA]">{ocrText.trim().length} CHARS</span>
             </div>
-            <Textarea value={ocrText} onChange={(e) => setOcrText(e.target.value)} rows={4} className="apex-field resize-none text-sm bg-white border-[#E2E0D8] rounded-[4px]" />
-            <div className="flex gap-2 mt-3">
-              <Button size="sm" onClick={run} disabled={!ocrText.trim() || loading} className="gap-1.5 rounded-[4px] bg-[#0B0B0F] hover:bg-[#F97316] text-white text-[11px] font-semibold tracking-[0.15em] uppercase">
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                {t("ocr_check_this", lang)}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={clearImage} className="gap-1.5 rounded-[4px] text-[11px] font-semibold tracking-[0.15em] uppercase" type="button">
-                <X className="h-3.5 w-3.5" />
-                {t("ocr_cancel", lang)}
-              </Button>
+
+            {/* Body */}
+            <div className="px-4 pt-3 pb-4">
+              <p className="text-[13px] font-medium text-[#18181B] leading-snug">
+                {t("ocr_preview_title", lang)}
+              </p>
+              <p className="text-[12px] text-[#52525B] leading-relaxed mt-1">
+                {t("ocr_preview_hint", lang)}
+              </p>
+
+              <Textarea
+                value={ocrText}
+                onChange={(e) => setOcrText(e.target.value)}
+                rows={5}
+                aria-label={t("ocr_preview_title", lang)}
+                className="apex-field resize-y text-[13px] bg-white border-[#E2E0D8] rounded-[6px] mt-3 leading-relaxed font-mono"
+              />
+
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="apex-pill justify-center sm:justify-start"
+                >
+                  <X className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
+                  {t("ocr_cancel", lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={run}
+                  disabled={!ocrText.trim() || loading}
+                  className="fancy-btn sm:min-w-[200px]"
+                >
+                  <span className="fancy-points" aria-hidden="true">
+                    {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+                  </span>
+                  <span className="fancy-inner">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {t("ocr_check_this", lang)}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         )}
