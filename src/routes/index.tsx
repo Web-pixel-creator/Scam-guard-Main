@@ -42,17 +42,34 @@ function Index() {
 
           {/* Title block — centered with side meta rails for an editorial techno feel */}
           <div className="relative max-w-5xl mx-auto pt-12 md:pt-16">
+            {/* Subtle dot-grid backdrop behind the title (fills negative space, very low contrast) */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-10 h-[360px] md:h-[440px] opacity-[0.35] [mask-image:radial-gradient(60%_60%_at_50%_40%,#000_0%,transparent_75%)]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 1px 1px, rgba(11,11,15,0.18) 1px, transparent 0)",
+                backgroundSize: "22px 22px",
+              }}
+            />
+
             {/* Left + right vertical meta rails (desktop only) */}
             <div className="hidden lg:flex absolute left-0 top-16 bottom-4 flex-col justify-between items-start pointer-events-none select-none">
               <span className="apex-mono [writing-mode:vertical-rl] rotate-180 tracking-[0.3em]">MODULE · 01 / INTAKE</span>
-              <span className="apex-mono">↳ INPUT</span>
+              <div className="flex flex-col items-start gap-1.5">
+                <span className="h-3 w-3 border-l border-b border-[#0B0B0F]/40" aria-hidden />
+                <span className="apex-mono">↳ INPUT</span>
+              </div>
             </div>
             <div className="hidden lg:flex absolute right-0 top-16 bottom-4 flex-col justify-between items-end pointer-events-none select-none">
               <span className="apex-mono [writing-mode:vertical-rl] tracking-[0.3em]">UPTIME · 99.98%</span>
-              <span className="apex-mono">v3.1 ⌁</span>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="h-3 w-3 border-r border-b border-[#0B0B0F]/40" aria-hidden />
+                <span className="apex-mono">v3.1 ⌁</span>
+              </div>
             </div>
 
-            <div className="text-center px-0 lg:px-16">
+            <div className="relative text-center px-0 lg:px-16">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E2E0D8] bg-white/85 backdrop-blur-sm text-[10px] font-semibold tracking-[0.22em] uppercase text-[#52525B] mb-7 animate-fade-in-up font-mono shadow-[0_1px_0_rgba(11,11,15,0.02)]">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
@@ -63,18 +80,30 @@ function Index() {
                 <span className="text-[#A1A1AA]">Tashkent</span>
               </div>
 
-              <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
-                {{
-                  ru: <>Проверьте до того,<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">как обманут.</span></>,
-                  uz: <>Aldanmasdan oldin<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">tekshiring.</span></>,
-                  en: <>Check it before<br /><span className="bg-gradient-to-r from-foreground/35 via-foreground/25 to-foreground/35 bg-clip-text text-transparent">you get scammed.</span></>,
-                }[lang]}
-              </h1>
+              {/* Bracketed headline frame */}
+              <div className="relative">
+                <span aria-hidden className="hidden md:block absolute -left-2 lg:-left-4 top-2 h-8 w-3 border-l border-t border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -right-2 lg:-right-4 top-2 h-8 w-3 border-r border-t border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -left-2 lg:-left-4 bottom-2 h-8 w-3 border-l border-b border-[#0B0B0F]/35" />
+                <span aria-hidden className="hidden md:block absolute -right-2 lg:-right-4 bottom-2 h-8 w-3 border-r border-b border-[#0B0B0F]/35" />
 
-              {/* Hairline gradient divider */}
-              <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-[#F97316]/60 to-transparent" />
+                <h1 className="font-display font-extrabold tracking-tight leading-[0.92] text-5xl md:text-7xl lg:text-[92px] animate-fade-in-up text-foreground">
+                  {{
+                    ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                    en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent" /></span></>,
+                  }[lang]}
+                </h1>
+              </div>
 
-              <p className="mt-6 text-base md:text-lg text-foreground/60 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
+              {/* Hairline gradient divider with center tick */}
+              <div className="mx-auto mt-9 flex items-center justify-center gap-2">
+                <span className="h-px w-16 bg-gradient-to-r from-transparent to-[#0B0B0F]/20" />
+                <span className="h-1.5 w-1.5 rotate-45 border border-[#F97316]/70" />
+                <span className="h-px w-16 bg-gradient-to-l from-transparent to-[#0B0B0F]/20" />
+              </div>
+
+              <p className="mt-6 text-base md:text-lg text-foreground/65 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
                 {t("hero_sub", lang)}
               </p>
 
@@ -97,14 +126,28 @@ function Index() {
                 ))}
               </div>
 
+              {/* Technical readout strip */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 apex-mono text-[#A1A1AA] animate-fade-in-up">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1 w-1 rounded-full bg-[#F97316]" />
+                  AI · GEMINI 2.5
+                </span>
+                <span className="text-[#E2E0D8]">/</span>
+                <span>LATENCY · ~1.4s</span>
+                <span className="text-[#E2E0D8]">/</span>
+                <span>SIGNALS · 24</span>
+              </div>
+
               {/* Soft scroll hint */}
-              <div className="mt-10 flex items-center justify-center gap-2 apex-mono text-[#A1A1AA] animate-fade-in-up">
+              <div className="mt-7 flex items-center justify-center gap-2 apex-mono text-[#A1A1AA] animate-fade-in-up">
                 <span className="h-px w-8 bg-[#E2E0D8]" />
-                <span>↓ Paste &amp; check below</span>
+                <span className="animate-bounce-soft">↓</span>
+                <span>Paste &amp; check below</span>
                 <span className="h-px w-8 bg-[#E2E0D8]" />
               </div>
             </div>
           </div>
+
 
 
           {/* Bloom band with form centered on top */}

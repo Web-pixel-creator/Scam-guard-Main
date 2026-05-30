@@ -712,3 +712,16 @@
 
 
 
+
+/* Soft vertical bounce for hero scroll hint */
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50%      { transform: translateY(3px); opacity: 1; }
+}
+.animate-bounce-soft {
+  display: inline-block;
+  animation: bounce-soft 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-soft { animation: none !important; }
+}
