@@ -107,6 +107,14 @@
   --gap-stack: clamp(40px, 6vw, 80px);     /* vertical rhythm between sections */
   --gap-grid: 1px;                          /* hairline grid gap */
 
+  /* ===== Unified motion tokens =====
+     One easing + three durations for every hover/active/focus transition. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 160ms;     /* color / opacity / border swap */
+  --dur-base: 240ms;     /* default hover (transform, shadow, bg) */
+  --dur-slow: 600ms;     /* shine sweep across surfaces */
+
   --safe: #059669;
   --safe-foreground: #FFFFFF;
   --warn: #D97706;
