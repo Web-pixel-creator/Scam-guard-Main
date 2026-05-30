@@ -670,7 +670,7 @@ function Index() {
           <div className="relative bg-[#F4F2EB] border border-[#E2E0D8] rounded-[6px] p-7 sm:p-9 md:p-11 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
             <div className="flex items-center justify-between mb-6">
-              <span className="label-md">[ Community ]</span>
+              <span className="label-md">[ {{ ru: "Сообщество", uz: "Hamjamiyat", en: "Community" }[lang]} ]</span>
               <Users aria-hidden="true" focusable="false" className="h-5 w-5 text-[#C2410C]" strokeWidth={1.5} />
             </div>
             <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] leading-[1.05] mb-5 text-[#18181B] text-balance">
