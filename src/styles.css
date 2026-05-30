@@ -58,11 +58,11 @@
   --primary: #0B0B0F;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F4F2EE;
-  --secondary-foreground: #0B0B0F;
+  --secondary: #F4F2EB;
+  --secondary-foreground: #18181B;
 
-  --muted: #F4F2EE;
-  --muted-foreground: #6B7280;
+  --muted: #F4F2EB;
+  --muted-foreground: #A1A1AA;
 
   --accent: #F1EEFF;
   --accent-foreground: #1E1B4B;
@@ -70,9 +70,18 @@
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  --border: rgba(11,11,15,0.06);
+  --border: #E2E0D8;
   --input: rgba(11,11,15,0.1);
-  --ring: #0B0B0F;
+  --ring: #18181B;
+
+  /* APEX accent palette */
+  --apex-orange: #F97316;
+  --apex-pink: #EC4899;
+  --apex-indigo: #6366F1;
+  --apex-text: #18181B;
+  --apex-text-soft: #A1A1AA;
+  --apex-surface: #F4F2EB;
+  --apex-border: #E2E0D8;
 
   --safe: #059669;
   --safe-foreground: #FFFFFF;
@@ -146,12 +155,13 @@
 
 
 .label-md {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 500;
   line-height: 16px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--apex-text-soft);
 }
 
 .font-serif-italic {
@@ -159,6 +169,58 @@
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.02em;
+}
+
+/* APEX glass surface — thin border, soft blur, no shadow */
+.apex-glass {
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(4px) saturate(140%);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
+  border: 0.8px solid var(--apex-border);
+}
+
+/* APEX gradient border shell — wrap with 1px padding to expose hairline gradient */
+.apex-shell {
+  position: relative;
+  padding: 1px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #FB923C 0%, #EC4899 50%, #9333EA 100%);
+  box-shadow:
+    0 25px 50px -12px rgba(0,0,0,0.25),
+    0 10px 15px -3px rgba(236, 72, 153, 0.1),
+    0 4px 6px -4px rgba(236, 72, 153, 0.1);
+}
+.apex-shell > * {
+  border-radius: 8px;
+}
+
+.apex-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--apex-border), transparent);
+}
+
+/* Hairline label */
+.apex-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 0.8px solid var(--apex-border);
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(4px);
+  border-radius: 3px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--apex-text);
+}
+.apex-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F97316, #EC4899);
 }
 
 .glass {
