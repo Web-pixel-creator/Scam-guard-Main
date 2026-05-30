@@ -281,7 +281,7 @@ function Index() {
                         en: ["They ask for an SMS code (OTP)", "They impersonate a bank", "Urgency and pressure", "Similar pattern already reported"],
                       })[lang]).map((r) => (
                         <li key={r} className="flex items-start gap-3">
-                          <span className="h-1 w-1 rounded-full bg-[#F97316] shrink-0 mt-2.5" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] shrink-0 mt-[7px]" />
                           <span>{r}</span>
                         </li>
                       ))}
