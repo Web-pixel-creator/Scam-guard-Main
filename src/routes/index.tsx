@@ -413,7 +413,7 @@ function Index() {
                     </p>
                     <h3 className="font-sans text-[28px] sm:text-3xl md:text-4xl font-medium tracking-[-0.05em] text-[#18181B] leading-[1.05]">{t("risk_high", lang)}</h3>
                     <p className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#991B1B] text-[11px] font-medium tracking-[0.08em] uppercase">
-                      <span className="font-mono text-[10px] text-[#DC2626]">SCAM</span>
+                      <span className="font-mono text-[10px] text-[#991B1B]">SCAM</span>
                       <span className="h-3 w-px bg-[#FCA5A5]/70" />
                       <span>{{ ru: "Вишинг · OTP-фрод", uz: "Vishing · OTP-firibgar", en: "Vishing · OTP fraud" }[lang]}</span>
                     </p>
