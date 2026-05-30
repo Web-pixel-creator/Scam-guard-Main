@@ -90,8 +90,8 @@ function Index() {
         </section>
 
 
-        {/* MARQUEE — scam patterns ticker */}
-        <section className="relative -mx-6 overflow-hidden border-y border-border py-6 bg-white/60">
+        {/* MARQUEE — APEX style: tight, thin border, neutral */}
+        <section className="relative -mx-6 overflow-hidden border-y border-[#E2E0D8] py-5 bg-white/40 backdrop-blur-[4px]">
           <div className="flex gap-12 whitespace-nowrap animate-marquee">
             {[...Array(2)].map((_, dup) => (
               <div key={dup} className="flex gap-12 shrink-0">
@@ -100,9 +100,9 @@ function Index() {
                   "Soxta kuryer", "Prize phishing", "Crypto doubler", "Job offer scam", "Romance scam",
                   "Безопасный счёт", "Bank security call", "Fake APK", "OTP request",
                 ].map((w, i) => (
-                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground/25">
+                  <span key={`${dup}-${i}`} className="flex items-center gap-12 text-xl md:text-2xl font-sans font-medium tracking-tight text-[#A1A1AA]">
                     {w}
-                    <span className="font-serif-italic text-rose-400/70 text-3xl md:text-4xl">×</span>
+                    <span className="text-[#F97316] text-2xl md:text-3xl">×</span>
                   </span>
                 ))}
               </div>
@@ -111,63 +111,63 @@ function Index() {
         </section>
 
 
-        {/* CAPABILITIES */}
+        {/* CAPABILITIES — APEX grid: sharp, glass, hairline borders */}
         <section>
-          <div className="flex items-end justify-between mb-12 gap-6">
+          <div className="flex items-end justify-between mb-12 gap-6 pb-6 border-b border-[#E2E0D8]">
             <div>
-              <p className="text-primary label-md mb-3">02 · {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
-              <h2 className="font-display text-4xl md:text-6xl tracking-tight">
+              <p className="label-md mb-3">02 — {{ ru: "Возможности", uz: "Imkoniyatlar", en: "Capabilities" }[lang]}</p>
+              <h2 className="font-sans font-medium text-4xl md:text-6xl tracking-[-0.05em] leading-[0.95] text-[#18181B]">
                 {{
-                  ru: <>Что <span className="font-serif-italic text-foreground/70">можно</span> проверить</>,
-                  uz: <>Nimani <span className="font-serif-italic text-foreground/70">tekshirish</span> mumkin</>,
-                  en: <>What you <span className="font-serif-italic text-foreground/70">can</span> check</>,
+                  ru: <>Что <span className="font-serif-italic text-[#A1A1AA]">можно</span> проверить</>,
+                  uz: <>Nimani <span className="font-serif-italic text-[#A1A1AA]">tekshirish</span> mumkin</>,
+                  en: <>What you <span className="font-serif-italic text-[#A1A1AA]">can</span> check</>,
                 }[lang]}
               </h2>
             </div>
-            <span className="hidden md:block text-foreground/40 text-sm font-mono">04 / 04</span>
+            <span className="hidden md:block text-[#A1A1AA] text-xs font-mono tracking-[0.1em] uppercase">04 / 04</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8]">
             {[
-              { i: Phone, color: "bg-blue-500/10 text-blue-400", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
+              { i: Phone, accent: "#F97316", k: { ru: "Номер телефона", uz: "Telefon raqami", en: "Phone number" },
                 d: { ru: "«Банки», «операторы» или анонимные мошенники.", uz: "«Bank», «operator» yoki noma'lum raqamlar.", en: "“Banks”, “operators” or anonymous scammers." } },
-              { i: MessageSquare, color: "bg-indigo-500/10 text-indigo-400", k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
+              { i: MessageSquare, accent: "#EC4899", k: { ru: "Telegram-аккаунт", uz: "Telegram hisob", en: "Telegram account" },
                 d: { ru: "Боты, каналы или псевдо-менеджеры банков.", uz: "Botlar, kanallar yoki soxta menejerlar.", en: "Bots, channels or fake account managers." } },
-              { i: Link2, color: "bg-emerald-500/10 text-emerald-400", k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
+              { i: Link2, accent: "#6366F1", k: { ru: "Ссылки и сайты", uz: "Havolalar va saytlar", en: "Links & sites" },
                 d: { ru: "Фишинг, ложные оплаты и вредоносные APK.", uz: "Fishing, soxta to'lovlar va zararli APK.", en: "Phishing, fake payments and malicious APKs." } },
-              { i: FileWarning, color: "bg-amber-500/10 text-amber-400", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
+              { i: FileWarning, accent: "#F97316", k: { ru: "Текст SMS / Telegram", uz: "SMS / Telegram matni", en: "SMS / Telegram text" },
                 d: { ru: "Анализ сообщений на признаки соц. инженерии.", uz: "Xabarlarni ijtimoiy muhandislik belgilariga tekshirish.", en: "Analyze messages for social engineering patterns." } },
             ].map((c, idx) => (
-              <div key={c.k.en} className="group relative p-7 rounded-3xl bg-card border border-border card-hover overflow-hidden">
-                <span className="absolute top-5 right-5 text-[10px] font-mono text-foreground/30">0{idx + 1}</span>
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-16 group-hover:scale-110 transition-transform ${c.color}`}>
-                  <c.i className="h-5 w-5" strokeWidth={2} />
+              <div key={c.k.en} className="group relative bg-white/40 backdrop-blur-[4px] p-8 hover:bg-white transition-colors duration-300 overflow-hidden">
+                <span className="absolute top-5 right-5 text-[10px] font-mono text-[#A1A1AA] tracking-[0.1em]">0{idx + 1}</span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-12 transition-colors" style={{ color: c.accent }}>
+                  <c.i className="h-4 w-4" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-display text-lg font-bold mb-2 tracking-tight">{c.k[lang]}</h3>
-                <p className="text-sm text-foreground/55 leading-relaxed">{c.d[lang]}</p>
-                <ArrowRight className="absolute bottom-5 right-5 h-4 w-4 text-foreground/20 -rotate-45 group-hover:rotate-0 group-hover:text-primary transition-all" />
+                <h3 className="font-sans text-[15px] font-medium mb-2 tracking-tight text-[#18181B]">{c.k[lang]}</h3>
+                <p className="text-[13px] text-[#A1A1AA] leading-relaxed">{c.d[lang]}</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-3.5 w-3.5 text-[#A1A1AA] -rotate-45 group-hover:rotate-0 group-hover:text-[#F97316] transition-all" strokeWidth={1.5} />
               </div>
             ))}
           </div>
         </section>
 
-        {/* HOW IT WORKS */}
-        <section className="rounded-[40px] bg-secondary border border-border p-10 md:p-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-2/3 h-full bg-primary/10 blur-[140px] rounded-full pointer-events-none" />
-          <div className="relative">
-            <p className="text-primary label-md mb-3">03 · {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
-            <h2 className="font-display text-4xl md:text-5xl tracking-tight mb-14">{t("how_it_works", lang)}</h2>
+        {/* HOW IT WORKS — APEX surface panel */}
+        <section className="relative overflow-hidden border border-[#E2E0D8] bg-[#F4F2EB] rounded-[8px]">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#6366F1]" />
+          <div className="relative p-10 md:p-16">
+            <p className="label-md mb-3">03 — {{ ru: "Алгоритм", uz: "Algoritm", en: "Algorithm" }[lang]}</p>
+            <h2 className="font-sans font-medium text-4xl md:text-5xl tracking-[-0.05em] leading-[0.95] mb-14 text-[#18181B] max-w-3xl">{t("how_it_works", lang)}</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8]">
               {[
                 { i: "01", t: t("step_1", lang), d: t("step_1_d", lang) },
                 { i: "02", t: t("step_2", lang), d: t("step_2_d", lang) },
                 { i: "03", t: t("step_3", lang), d: t("step_3_d", lang) },
-              ].map((s, idx) => (
-                <div key={s.i} className={`space-y-5 ${idx > 0 ? "md:border-l md:border-border md:pl-10" : ""}`}>
-                  <span className="block font-display text-5xl font-extrabold text-foreground/10">{s.i}</span>
-                  <h3 className="font-display text-2xl font-bold tracking-tight">{s.t}</h3>
-                  <p className="text-foreground/60 text-sm leading-relaxed">{s.d}</p>
+              ].map((s) => (
+                <div key={s.i} className="bg-[#F4F2EB] p-8 space-y-5">
+                  <span className="block font-sans text-5xl font-medium tracking-[-0.05em] text-[#E2E0D8]">{s.i}</span>
+                  <h3 className="font-sans text-xl font-medium tracking-tight text-[#18181B]">{s.t}</h3>
+                  <p className="text-[#A1A1AA] text-[13px] leading-relaxed">{s.d}</p>
                 </div>
               ))}
             </div>
