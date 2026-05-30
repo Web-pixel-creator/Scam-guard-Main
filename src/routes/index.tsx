@@ -59,15 +59,15 @@ function Index() {
                 Anti-Scam Intelligence
               </div>
 
-              <h1 className="font-display font-extrabold tracking-[-0.02em] leading-[1.02] text-[40px] sm:text-6xl md:text-7xl lg:text-[88px] animate-fade-in-up text-foreground max-w-4xl mx-auto">
+              <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.04] text-[38px] sm:text-5xl md:text-6xl lg:text-[72px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-balance">
                 {{
-                  ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
-                  uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
-                  en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-0 right-0 -bottom-1 md:-bottom-2 h-[3px] bg-gradient-to-r from-transparent via-[#F97316]/80 to-transparent rounded-full" /></span></>,
+                  ru: <>Проверьте до того,<br /><span className="relative inline-block text-foreground/55">как обманут.<span aria-hidden className="absolute left-2 right-2 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
+                  uz: <>Aldanmasdan oldin<br /><span className="relative inline-block text-foreground/55">tekshiring.<span aria-hidden className="absolute left-2 right-2 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
+                  en: <>Check it before<br /><span className="relative inline-block text-foreground/55">you get scammed.<span aria-hidden className="absolute left-2 right-2 -bottom-1 md:-bottom-1.5 h-[2px] bg-gradient-to-r from-transparent via-[#F97316]/70 to-transparent rounded-full" /></span></>,
                 }[lang]}
               </h1>
 
-              <p className="mt-8 md:mt-10 text-[15px] md:text-[17px] text-foreground/70 max-w-xl mx-auto leading-[1.55] animate-fade-in-up">
+              <p className="mt-7 md:mt-8 text-[15px] md:text-[16px] text-foreground/65 max-w-lg mx-auto leading-[1.55] animate-fade-in-up">
                 {{
                   ru: "Оценка риска для номера, ссылки или сообщения — за секунды.",
                   uz: "Raqam, havola yoki xabar uchun xavf bahosi — soniyalarda.",
