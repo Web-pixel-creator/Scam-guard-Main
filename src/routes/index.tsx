@@ -401,8 +401,8 @@ function Index() {
                  uz: "Har bir shikoyat moderatsiyadan o'tadi va tizimni o'rgatadi.",
                  en: "Every report is moderated and helps the system learn and warn thousands." }[lang]}
             </p>
-            <Link to="/report" className="fancy-btn inline-flex items-center justify-center gap-2 group">
-              {t("report_btn", lang)} <ArrowRight aria-hidden="true" focusable="false" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+            <Link to="/report" className="fancy-btn">
+              <FancyShell>{t("report_btn", lang)}</FancyShell>
             </Link>
           </div>
         </section>
