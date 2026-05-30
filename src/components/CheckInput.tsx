@@ -170,7 +170,15 @@ export function CheckInput({
 
         <Textarea
           value={value}
-          onChange={(e) => { setValue(e.target.value); if (error) setError(null); }}
+          onChange={(e) => {
+            const next = e.target.value;
+            setValue(next);
+            if (error) setError(null);
+            if (!next.trim() && result) {
+              setResult(null);
+              onResult?.(null);
+            }
+          }}
           onBlur={() => setTouched(true)}
           placeholder={t("input_placeholder", lang)}
           rows={4}
@@ -179,6 +187,7 @@ export function CheckInput({
           className="resize-none border-0 bg-transparent shadow-none outline-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); }}
         />
+
 
         {/* Inline validation + char counter */}
         <div className="flex items-center justify-between gap-3 px-7 pb-4 min-h-[20px]">
