@@ -340,13 +340,13 @@ function Index() {
               { n: "06", ru: "Выигрыш / приз", uz: "Yutuq / sovrin", en: "Prize won",
                 d_ru: "Сообщают о выигрыше и просят данные карты для «зачисления».", d_uz: "Yutuq haqida xabar berib karta ma'lumotlarini so'rashadi.", d_en: "They claim you won and ask for card details." },
             ] as const).map((s) => (
-              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] flex flex-col">
+              <div key={s.en} className="bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[260px] md:min-h-[280px] flex flex-col">
                 <div className="flex items-center gap-3 mb-8">
-                  <span className="text-[10px] font-mono text-[#71717A] tracking-[0.18em]">CASE #{s.n}</span>
+                  <span className="apex-mono">CASE #{s.n}</span>
                   <span className="flex-1 h-px bg-[#E2E0D8]" />
                 </div>
                 <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-4 tracking-tight text-[#18181B] leading-[1.3] text-balance">{s[lang]}</h3>
-                <p className="text-[14px] md:text-[15px] text-[#52525B] leading-[1.7] max-w-[40ch] text-pretty">
+                <p className="card-body">
                   {(s as never as Record<string, string>)["d_" + lang]}
                 </p>
               </div>
