@@ -14,16 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_allowlist: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
+      checks: {
+        Row: {
+          ai_explanation: string | null
+          created_at: string
+          id: string
+          input_hash: string
+          input_type: Database["public"]["Enums"]["input_type"]
+          language: string
+          reason_codes: string[]
+          redacted_input: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+        }
+        Insert: {
+          ai_explanation?: string | null
+          created_at?: string
+          id?: string
+          input_hash: string
+          input_type: Database["public"]["Enums"]["input_type"]
+          language?: string
+          reason_codes?: string[]
+          redacted_input: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+        }
+        Update: {
+          ai_explanation?: string | null
+          created_at?: string
+          id?: string
+          input_hash?: string
+          input_type?: Database["public"]["Enums"]["input_type"]
+          language?: string
+          reason_codes?: string[]
+          redacted_input?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+        }
+        Relationships: []
+      }
+      entities: {
+        Row: {
+          created_at: string
+          display_mask: string
+          entity_hash: string
+          entity_type: Database["public"]["Enums"]["input_type"]
+          id: string
+          last_seen_at: string
+          moderation_status: Database["public"]["Enums"]["report_status"]
+          report_count: number
+          risk_level: Database["public"]["Enums"]["risk_level"]
+        }
+        Insert: {
+          created_at?: string
+          display_mask: string
+          entity_hash: string
+          entity_type: Database["public"]["Enums"]["input_type"]
+          id?: string
+          last_seen_at?: string
+          moderation_status?: Database["public"]["Enums"]["report_status"]
+          report_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+        }
+        Update: {
+          created_at?: string
+          display_mask?: string
+          entity_hash?: string
+          entity_type?: Database["public"]["Enums"]["input_type"]
+          id?: string
+          last_seen_at?: string
+          moderation_status?: Database["public"]["Enums"]["report_status"]
+          report_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          amount_lost_uzs: number | null
+          city: string | null
+          created_at: string
+          description: string
+          entity_hash: string
+          entity_type: Database["public"]["Enums"]["input_type"]
+          id: string
+          language: string
+          redacted_value: string
+          scam_type: string | null
+          screenshot_url: string | null
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          amount_lost_uzs?: number | null
+          city?: string | null
+          created_at?: string
+          description: string
+          entity_hash: string
+          entity_type: Database["public"]["Enums"]["input_type"]
+          id?: string
+          language?: string
+          redacted_value: string
+          scam_type?: string | null
+          screenshot_url?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          amount_lost_uzs?: number | null
+          city?: string | null
+          created_at?: string
+          description?: string
+          entity_hash?: string
+          entity_type?: Database["public"]["Enums"]["input_type"]
+          id?: string
+          language?: string
+          redacted_value?: string
+          scam_type?: string | null
+          screenshot_url?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      input_type:
+        | "phone"
+        | "telegram"
+        | "url"
+        | "text"
+        | "payment"
+        | "apk"
+        | "unknown"
+      report_status:
+        | "new"
+        | "reviewing"
+        | "confirmed"
+        | "rejected"
+        | "duplicate"
+      risk_level: "safe" | "unknown" | "suspicious" | "high_risk"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +326,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      input_type: [
+        "phone",
+        "telegram",
+        "url",
+        "text",
+        "payment",
+        "apk",
+        "unknown",
+      ],
+      report_status: ["new", "reviewing", "confirmed", "rejected", "duplicate"],
+      risk_level: ["safe", "unknown", "suspicious", "high_risk"],
+    },
   },
 } as const
