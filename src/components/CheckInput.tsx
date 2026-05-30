@@ -167,7 +167,7 @@ export function CheckInput({ defaultValue = "" }: { defaultValue?: string }) {
           rows={4}
           aria-invalid={!!validationMsg}
           maxLength={MAX_INPUT_CHARS + 100}
-          className="apex-field resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
+          className="resize-none border-0 bg-transparent shadow-none outline-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); }}
         />
 
