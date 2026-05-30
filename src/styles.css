@@ -531,6 +531,15 @@
   z-index: 1;
 }
 
+/* Defer rendering work for below-the-fold sections without removing them from
+   SSR/SEO. Keeps HTML present for crawlers, but lets the browser skip layout
+   + paint until the section scrolls near the viewport. contain-intrinsic-size
+   reserves vertical space so there's no layout shift (CLS) when content
+   becomes visible. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 800px;
+}
 /* Tighter step on small screens so lines stay crisp and don't read as a blob */
 @media (max-width: 640px) {
   :root {
