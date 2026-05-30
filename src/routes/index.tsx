@@ -135,9 +135,19 @@ function Index() {
 
             {homeResult && (
               <div className="mt-6 w-full max-w-3xl mx-auto animate-fade-in-up">
+                <div className="mb-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setHomeResult(null)}
+                    className="apex-pill"
+                  >
+                    {{ ru: "Сбросить", uz: "Tozalash", en: "Reset" }[lang]}
+                  </button>
+                </div>
                 <RiskResultCard result={homeResult} />
               </div>
             )}
+
           </div>
 
 
