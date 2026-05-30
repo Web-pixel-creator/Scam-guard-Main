@@ -368,48 +368,71 @@
   100% { opacity: 1;    transform: translateX(-50%) scale(1.06); }
 }
 
-/* ===== APEX techno frame: fine diagonal hairline stripes + corner ticks ===== */
-.apex-stripes {
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent 0 7px,
-    rgba(11, 11, 15, 0.045) 7px 7.6px
-  );
+/* ===== APEX techno frame: unified hairline stripes + corner ticks =====
+   All surfaces share the same step, weight and color so the texture reads
+   as one consistent material across the page. */
+:root {
+  --apex-stripe-step: 8px;
+  --apex-stripe-color: rgba(11, 11, 15, 0.05);
+  --apex-tick-color: rgba(11, 11, 15, 0.28);
+  --apex-tick-color-hover: rgba(249, 115, 22, 0.85);
 }
+
+.apex-stripes,
 .apex-stripes-soft {
   background-image: repeating-linear-gradient(
     135deg,
-    transparent 0 9px,
-    rgba(11, 11, 15, 0.03) 9px 9.6px
+    transparent 0 var(--apex-stripe-step),
+    var(--apex-stripe-color) var(--apex-stripe-step)
+    calc(var(--apex-stripe-step) + 0.6px)
   );
 }
 
+/* Tighter step on small screens so lines stay crisp and don't read as a blob */
+@media (max-width: 640px) {
+  :root {
+    --apex-stripe-step: 6px;
+    --apex-stripe-color: rgba(11, 11, 15, 0.045);
+  }
+}
 
 .apex-frame {
   position: relative;
+  transition: border-color 0.3s ease;
 }
 .apex-frame::before,
 .apex-frame::after {
   content: "";
   position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 0.8px solid rgba(11, 11, 15, 0.35);
+  width: 12px;
+  height: 12px;
+  border: 0.8px solid var(--apex-tick-color);
   pointer-events: none;
   z-index: 2;
+  transition: border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
 }
 .apex-frame::before {
-  top: 10px;
-  left: 10px;
+  top: 8px;
+  left: 8px;
   border-right: 0;
   border-bottom: 0;
 }
 .apex-frame::after {
-  bottom: 10px;
-  right: 10px;
+  bottom: 8px;
+  right: 8px;
   border-left: 0;
   border-top: 0;
 }
+.apex-frame:hover {
+  border-color: rgba(11, 11, 15, 0.22);
+}
+.apex-frame:hover::before,
+.apex-frame:hover::after {
+  border-color: var(--apex-tick-color-hover);
+  width: 16px;
+  height: 16px;
+}
+
 
 .apex-mono {
   font-family: var(--font-mono);
