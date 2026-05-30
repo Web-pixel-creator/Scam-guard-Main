@@ -576,39 +576,39 @@ function Index() {
                 className="group bg-white/85 backdrop-blur-[4px] p-7 sm:p-8 md:p-10 [&_summary::-webkit-details-marker]:hidden"
                 open={idx === 0}
               >
-                <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-4 rounded-[6px] -m-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] hover:bg-[#F4F2EB]/50 transition-colors min-h-11">
                   <div className="flex-1">
-                    <span className="apex-mono text-[#71717A] block mb-2">Q · 0{idx + 1}</span>
-                    <h3 className="font-sans text-[18px] md:text-[20px] font-medium tracking-tight text-[#18181B] leading-[1.35] text-balance">
+                    <span className="apex-mono text-[#52525B] block mb-2">Q · 0{idx + 1}</span>
+                    <h3 className="font-sans text-[17px] sm:text-[18px] md:text-[20px] font-semibold tracking-tight text-[#0B0B0F] leading-[1.35] text-balance">
                       {item.q[lang]}
                     </h3>
                   </div>
                   <span
                     aria-hidden
-                    className="mt-1 shrink-0 w-7 h-7 rounded-full border border-[#E2E0D8] flex items-center justify-center text-[#F97316] text-lg leading-none transition-transform group-open:rotate-45"
+                    className="mt-1 shrink-0 w-10 h-10 rounded-full border border-[#E2E0D8] bg-white flex items-center justify-center text-[#F97316] text-xl leading-none transition-transform group-open:rotate-45"
                   >
                     +
                   </span>
                 </summary>
 
                 {/* Pain scenario — what the user is actually feeling */}
-                <div className="mt-5 inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.18em] uppercase text-[#DC2626] font-mono">
+                <div className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                   </span>
                   {{ ru: "Что вы думаете в этот момент", uz: "Shu daqiqada nima o'ylaysiz", en: "What you're thinking" }[lang]}
                 </div>
-                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/30 pl-3 text-[14.5px] md:text-[15.5px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                <blockquote className="mt-2.5 border-l-2 border-[#DC2626]/40 pl-3 text-[15px] md:text-[16px] leading-[1.55] text-[#18181B] italic font-serif-italic">
                   {item.pain[lang]}
                 </blockquote>
 
                 {/* Green answer — what to do */}
-                <div className="mt-5 rounded-[4px] bg-[#ECFDF5] border border-[#86EFAC]/60 p-4 md:p-5">
-                  <p className="apex-mono text-[#059669] mb-2">
+                <div className="mt-5 rounded-[6px] bg-[#ECFDF5] border border-[#86EFAC]/70 p-4 md:p-5">
+                  <p className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#047857] font-mono mb-2">
                     ✓ {{ ru: "Что делаем / что делать", uz: "Nima qilamiz / nima qilish kerak", en: "What we do / what you do" }[lang]}
                   </p>
-                  <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#065F46]">
+                  <p className="text-[15.5px] md:text-[16.5px] leading-[1.6] text-[#064E3B]">
                     {item.ans[lang]}
                   </p>
                 </div>
