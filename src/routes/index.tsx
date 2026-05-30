@@ -68,7 +68,7 @@ function Index() {
             className={`relative max-w-5xl mx-auto overflow-hidden transition-[max-height,opacity,margin,padding] duration-700 ease-out ${
               homeResult
                 ? "max-h-0 opacity-0 pt-0 pb-0 -mt-2 pointer-events-none"
-                : "max-h-[900px] opacity-100 pt-4 md:pt-6 pb-2"
+                : "max-h-[900px] opacity-100 pt-4 md:pt-6 pb-10 md:pb-12"
             }`}
             aria-hidden={homeResult ? true : undefined}
           >
