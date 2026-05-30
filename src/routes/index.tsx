@@ -62,40 +62,22 @@ function Index() {
             </div>
           </div>
 
-          {/* Browser-window mockup — bloom wallpaper inside, form floats over it like GoLive dashboard */}
-          <div className="w-full max-w-[1100px] mt-16 mb-12 animate-fade-in-up">
-            <div className="relative rounded-[28px] overflow-hidden border border-black/[0.08] shadow-[0_50px_120px_-30px_rgba(11,11,15,0.35)] bg-white">
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 px-5 py-3 bg-white/95 backdrop-blur border-b border-black/[0.06]">
-                <span className="h-3 w-3 rounded-full bg-[#FF5F57]" />
-                <span className="h-3 w-3 rounded-full bg-[#FEBC2E]" />
-                <span className="h-3 w-3 rounded-full bg-[#28C840]" />
-                <div className="mx-auto px-4 py-1 rounded-md bg-foreground/[0.04] text-[11px] font-mono text-foreground/50 flex items-center gap-1.5">
-                  <span className="text-emerald-500">●</span> ishonch.guard
-                </div>
-                <span className="w-12" />
-              </div>
-
-              {/* Bloom wallpaper */}
-              <div className="relative">
-                <img
-                  src={heroBloom}
-                  alt=""
-                  aria-hidden
-                  loading="lazy"
-                  className="w-full h-[440px] md:h-[540px] object-cover"
-                  style={{ filter: "saturate(1.1)" }}
-                />
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: "radial-gradient(70% 60% at 50% 60%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)" }}
-                />
-
-                {/* Floating form card — like dashboard in GoLive */}
-                <div className="absolute inset-x-0 bottom-0 px-4 md:px-10 pb-8 md:pb-12">
-                  <div className="mx-auto max-w-3xl cta-glow rounded-[22px]">
-                    <div className="relative bg-white rounded-[22px] border border-black/[0.06] shadow-[0_30px_80px_-20px_rgba(11,11,15,0.35)]">
-                      <CheckInput />
-                    </div>
+          {/* Bloom band with form centered on top (GoLive-mockup style) */}
+          <div className="w-full max-w-[1200px] mt-14 mb-12 animate-fade-in-up">
+            <div className="relative rounded-[28px] overflow-hidden">
+              <img
+                src={heroBloom}
+                alt=""
+                aria-hidden
+                loading="lazy"
+                className="w-full h-[460px] md:h-[520px] object-cover"
+                style={{ filter: "saturate(1.1)" }}
+              />
+              {/* Form centered over the bloom */}
+              <div className="absolute inset-0 flex items-center justify-center px-4 md:px-10">
+                <div className="w-full max-w-3xl cta-glow rounded-[22px]">
+                  <div className="relative bg-white rounded-[22px] border border-black/[0.06] shadow-[0_30px_80px_-20px_rgba(11,11,15,0.35)]">
+                    <CheckInput />
                   </div>
                 </div>
               </div>
