@@ -75,7 +75,7 @@ function Index() {
                 </Link>
                 <Link
                   to="/report"
-                  className="text-[12px] font-semibold tracking-[0.15em] uppercase text-foreground/60 underline-offset-4"
+                  className="text-[12px] font-semibold tracking-[0.15em] uppercase text-[#52525B] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors"
                 >
                   {{ ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" }[lang]}
                 </Link>
