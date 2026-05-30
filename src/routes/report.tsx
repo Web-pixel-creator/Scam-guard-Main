@@ -144,11 +144,11 @@ function ReportPage() {
         <div className="apex-card apex-frame apex-stripes text-center">
 
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
-            <span className="apex-mono">SYS · RECEIVED</span>
+            <span className="apex-mono">{{ ru: "Получено", uz: "Qabul qilindi", en: "Received" }[lang]}</span>
             <span className="apex-status" data-state="success">
               <span className="apex-status-dot" />
-              <span className="hidden xs:inline">REPORT · QUEUED</span>
-              <span className="xs:hidden">QUEUED</span>
+              <span className="hidden xs:inline">{{ ru: "Жалоба принята", uz: "Shikoyat qabul qilindi", en: "Report queued" }[lang]}</span>
+              <span className="xs:hidden">{{ ru: "Принято", uz: "Qabul", en: "Queued" }[lang]}</span>
             </span>
           </div>
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
