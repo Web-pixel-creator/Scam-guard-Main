@@ -1,0 +1,89 @@
+// Telegram webhook CORE (Ishonch Guard bot) — task 9.1, PART A.
+//
+// A pure, framework-agnostic handler for incoming Telegram webhook requests:
+// it takes a standard web `Request` and returns a standard web `Response`, with
+// NO coupling to TanStack Start / Nitro / Cloudflare. This is the real, testable
+// deliverable — the HTTP binding (PART B, src/server.ts) is a thin shell that
+// simply forwards `POST /api/telegram/webhook` here, and tasks 9.2/9.3 call this
+// function directly with synthetic `Request`s.
+//
+// Step order is FIXED by Requirement 12 and MUST NOT be reordered:
+//
+//   1. Read secrets per-request (CODING_RULES §6). If either the webhook secret
+//      or the bot token is missing → log (no values) + HTTP 401. Fail closed
+//      (R17.4 / R12.6) — a misconfigured deploy never silently accepts updates.
+//   2. Compare the `X-Telegram-Bot-Api-Secret-Token` header against the secret
+//      BEFORE any body parsing. On mismatch → 401, and `dispatchUpdate` is NOT
+//      called and the body is NOT parsed (R12.1 / R12.2).
+//   3. Only after the token is accepted: parse + validate the JSON body with
+//      `telegramUpdateSchema`. Invalid/unsupported structure → 200 + ignore so
+//      Telegram stops re-delivering (R12.3).
+//   4. A valid update is dispatched inside try/catch. ANY processing error after
+//      a valid token is logged WITHOUT Sensitive_Data and still answered 200, so
+//      Telegram does not retry forever (R12.4 / R12.5 / R19.1 / R19.2).
+//
+// Handler wiring: importing/calling the aggregator (PART C) registers the
+// concrete `Handlers` via `setHandlers(...)` before any dispatch happens.
+//
+// Server-only (.server.ts): reads secrets and pulls in service-role modules.
+// Never import this file into the client bundle.
+import { getTelegramBotToken, getTelegramWebhookSecret } from "@/lib/config.server";
+import {
+  dispatchUpdate,
+  telegramUpdateSchema,
+  type TelegramUpdate,
+} from "@/lib/telegram/router";
+import { installTelegramHandlers } from "@/lib/telegram/handlers";
+
+/** Telegram sends the configured secret in this header (case-insensitive). */
+const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
+
+/**
+ * Handle a single Telegram webhook request. Returns 401 for any token-stage
+ * failure (missing secrets or bad/absent header) and 200 for everything after a
+ * valid token — including invalid bodies and handler errors — per Requirement 12.
+ */
+export async function handleTelegramWebhook(request: Request): Promise<Response> {
+  // ── Step 1 — read secrets INSIDE the handler (per-request). Fail closed. ──
+  const secret = getTelegramWebhookSecret();
+  const botToken = getTelegramBotToken();
+  if (!secret || !botToken) {
+    // R17.4 / R12.6 — never log the secret values themselves (R19.3).
+    console.error("telegram webhook misconfigured: missing secrets");
+    return new Response("unauthorized", { status: 401 });
+  }
+
+  // ── Step 2 — verify the secret token FIRST, before touching the body. ──
+  // R12.1 / R12.2 — on mismatch we return 401 and never parse the body or call
+  // dispatchUpdate.
+  const header = request.headers.get(SECRET_HEADER);
+  if (header !== secret) {
+    return new Response("unauthorized", { status: 401 });
+  }
+
+  // ── Step 3 — only now parse + validate the structure (R12.3). ──
+  // Make sure the concrete handlers are wired before any dispatch.
+  installTelegramHandlers();
+
+  let update: TelegramUpdate;
+  try {
+    const body: unknown = await request.json();
+    update = telegramUpdateSchema.parse(body);
+  } catch {
+    // Invalid JSON or unsupported structure → acknowledge + ignore (R12.3).
+    return new Response("ok", { status: 200 });
+  }
+
+  // ── Step 4 — dispatch the valid update; any later error → log + 200. ──
+  try {
+    await dispatchUpdate(update);
+  } catch (err) {
+    // R12.5 / R19.1 / R19.2 — log WITHOUT Sensitive_Data, still answer 200 so
+    // Telegram does not retry indefinitely.
+    console.error(
+      "telegram webhook: dispatch failed",
+      err instanceof Error ? err.message : "unknown",
+    );
+  }
+  return new Response("ok", { status: 200 });
+}

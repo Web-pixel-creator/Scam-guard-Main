@@ -29,7 +29,11 @@ export type ReasonCode =
   | "requests_personal_data"
   | "non_uz_phone"
   | "valid_uz_phone"
-  | "verified_official";
+  | "verified_official"
+  | "asks_to_scan_qr"
+  | "relative_in_distress"
+  | "requests_card_digits"
+  | "threatens_account_block";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -58,6 +62,10 @@ const WEIGHTS: Record<ReasonCode, number> = {
   non_uz_phone: 5,
   valid_uz_phone: 0,
   verified_official: -100,
+  asks_to_scan_qr: 50,
+  relative_in_distress: 30,
+  requests_card_digits: 45,
+  threatens_account_block: 20,
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -76,6 +84,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "telegram_bank_contact", re: /(банк.{0,20}telegram|telegram.{0,20}банк|bank.{0,20}telegram)/i },
   { code: "fake_loan_offer", re: /(быстры(й|е) кредит|кредит без|kredit.?bering|tez kredit|easy loan|guaranteed loan|loan without)/i },
   { code: "asks_to_transfer_to_safe_account", re: /(переведите.{0,30}(счёт|карту|safe)|pul.{0,30}o['’]tkazing)/i },
+  { code: "asks_to_scan_qr", re: /(qr.?код.{0,30}(скан|отскан|войти|подтверд|вериф)|скан.{0,15}qr|qr.?(kod).{0,30}(skaner|kiring|tasdiq)|scan.{0,10}qr)/i },
+  { code: "relative_in_distress", re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i },
+  { code: "requests_card_digits", re: /(последн(ие|их).{0,10}(4|четыре).{0,10}цифр|подтверд(и|ите).{0,15}цифр.{0,10}карт|karta.{0,20}(raqam|oxirgi).{0,10}(4|to['’]rt).{0,10}(raqam|son))/i },
+  { code: "threatens_account_block", re: /(карт(а|у)|счёт|счет|аккаунт).{0,30}(заблокир|блокиров)|(karta|hisob).{0,30}(bloklan|bloklab)/i },
 ];
 
 const SHORT_LINK_HOSTS = ["bit.ly","t.co","tinyurl.com","goo.gl","cutt.ly","is.gd","rebrand.ly","clck.ru","vk.cc","ow.ly"];
@@ -162,6 +174,10 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
   non_uz_phone: { ru: "Не узбекский номер", uz: "O‘zbek raqami emas", en: "Non-Uzbek phone number" },
   valid_uz_phone: { ru: "Корректный узбекский номер", uz: "To‘g‘ri O‘zbek raqami", en: "Valid Uzbek phone" },
   verified_official: { ru: "Проверенный официальный контакт", uz: "Tasdiqlangan rasmiy kontakt", en: "Verified official contact" },
+  asks_to_scan_qr: { ru: "Просят отсканировать QR-код", uz: "QR-kodni skanerlashni so‘rashmoqda", en: "Asks you to scan a QR code" },
+  relative_in_distress: { ru: "«Родственник/друг в беде» — срочный перевод", uz: "«Qarindosh/do‘st xavf ostida» — shoshilinch pul", en: "“Relative/friend in distress” money request" },
+  requests_card_digits: { ru: "Просят назвать цифры карты", uz: "Karta raqamlarini aytishni so‘rashmoqda", en: "Asks you to reveal card digits" },
+  threatens_account_block: { ru: "Угрожают блокировкой счёта / карты", uz: "Hisob / kartani bloklash bilan qo‘rqitmoqda", en: "Threatens to block your account / card" },
 };
 
 export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[] }> = {
@@ -180,22 +196,26 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
       "Не передавайте OTP, PIN, CVV и пароли.",
       "Не переходите по ссылкам и не устанавливайте приложения.",
       "Перезвоните в банк / организацию по официальному номеру.",
+      "Если просят перевести деньги «за родственника/друга в беде» — сначала свяжитесь с этим человеком напрямую по известному вам номеру.",
     ],
     uz: [
       "OTP, PIN, CVV va parollarni bermang.",
       "Havolalarga o‘tmang va ilovalar o‘rnatmang.",
       "Bank yoki tashkilotning rasmiy raqami orqali o‘zingiz qo‘ng‘iroq qiling.",
+      "«Qarindosh/do‘st xavf ostida» deb pul so‘rashsa — avval o‘sha odamga o‘zingizga ma’lum raqam orqali bog‘laning.",
     ],
     en: [
       "Do not share OTP, PIN, CVV or passwords.",
       "Do not click links or install apps.",
       "Call the bank / company back using the official number.",
+      "If asked to send money for a “relative/friend in distress”, first reach that person directly on a number you already know.",
     ],
   },
   high_risk: {
     ru: [
       "Не отправляйте код, не сообщайте данные карты.",
       "Не устанавливайте APK / приложение по их ссылке.",
+      "Не сканируйте чужой QR-код: это может дать мошеннику доступ к вашему Telegram-аккаунту.",
       "Завершите разговор и перезвоните в банк по официальному номеру.",
       "Сделайте скриншоты переписки и сохраните номер.",
       "Сообщите о случае через форму «Сообщить о мошеннике».",
@@ -203,6 +223,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
     uz: [
       "Kod yubormang, karta ma’lumotlarini aytmang.",
       "Ularning havolasi orqali APK / ilova o‘rnatmang.",
+      "Birovning QR-kodini skanerlamang: bu firibgarga Telegram hisobingizdan foydalanish imkonini berishi mumkin.",
       "Suhbatni tugatib, bankka rasmiy raqami orqali qo‘ng‘iroq qiling.",
       "Yozishmalarning skrinshotini saqlang.",
       "“Firibgarni xabar qilish” formasi orqali habar bering.",
@@ -210,6 +231,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
     en: [
       "Don’t send codes or share card details.",
       "Don’t install any APK or app from their link.",
+      "Don’t scan someone else’s QR code: it can give a scammer access to your Telegram account.",
       "End the call and dial your bank using the official number.",
       "Take screenshots of the chat and save the number.",
       "Submit the case via the “Report a scammer” form.",

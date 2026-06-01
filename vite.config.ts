@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Force-enable the Nitro deploy plugin with a portable Node preset (no Lovable
+  // Cloud / Cloudflare). `node-server` emits a standalone HTTP server at
+  // dist/server/index.mjs that listens on $PORT — suitable for Docker / VPS /
+  // Railway / Render / Fly.io. Override at build time with NITRO_PRESET if needed.
+  nitro: { preset: process.env.NITRO_PRESET ?? "node-server" },
 });

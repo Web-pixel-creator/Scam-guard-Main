@@ -1,0 +1,414 @@
+// Telegram update router (Ishonch Guard bot).
+//
+// Decides which handler an incoming Telegram update belongs to and invokes it,
+// after loading the user's Session. The routing PRIORITY is fixed by the
+// requirements (design.md → "5. Роутер обновлений"):
+//
+//     callback_query  >  command  >  active scenario step  >  content
+//
+// Extra rules baked into the decision:
+//  - A command (text starting with "/") interrupts an active scenario: the
+//    scenario is reset and the command is handled (R15.4).
+//  - A forwarded message carries text, so it is routed as ordinary check
+//    content — no special-casing needed (R11.5).
+//  - `parseCommand` understands the "@botusername" suffix, e.g.
+//    "/check@IshonchGuardBot текст" → command "/check", arg "текст".
+//
+// ── Decoupling from the concrete handlers (tasks 8.2–8.5) ───────────────────
+// This module owns ONLY the dispatch logic and the `Handlers` CONTRACT. The
+// concrete command/check/report/callback handlers are implemented later (tasks
+// 8.2–8.5) and pushed in via `setHandlers(...)` (dependency inversion), so the
+// router never imports them. Until they are wired, `dispatchUpdate` falls back
+// to harmless logging stubs. Tests inject their own `Handlers` through the
+// optional `deps` argument, so the dispatch logic stays pure and observable.
+//
+// Server-only: pulls in `session.server.ts` (service-role Supabase) at runtime.
+// Never import this module into the client bundle.
+import { z } from "zod";
+import {
+  loadSession as loadSessionImpl,
+  resetScenario as resetScenarioImpl,
+  type Session,
+} from "@/lib/telegram/session.server";
+
+// ---------------------------------------------------------------------------
+// Telegram update schema (only the MVP-relevant fields; everything else is
+// ignored via `.passthrough()`). Centralised here so the webhook route (task
+// 9.1) and the router share a single source of truth for the update shape.
+// ---------------------------------------------------------------------------
+
+const messageSchema = z.object({
+  message_id: z.number(),
+  from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
+  chat: z.object({ id: z.number() }),
+  text: z.string().optional(),
+  caption: z.string().optional(),
+  entities: z
+    .array(z.object({ type: z.string(), offset: z.number(), length: z.number() }))
+    .optional(),
+  photo: z
+    .array(z.object({ file_id: z.string(), file_size: z.number().optional() }))
+    .optional(),
+  document: z
+    .object({
+      file_id: z.string(),
+      mime_type: z.string().optional(),
+      file_size: z.number().optional(),
+    })
+    .optional(),
+  contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
+  voice: z.unknown().optional(), // out of scope (R22) — recognised only to decline politely
+  audio: z.unknown().optional(),
+  video: z.unknown().optional(),
+  sticker: z.unknown().optional(),
+  forward_origin: z.unknown().optional(), // forward → text handled as ordinary input (R11.5)
+});
+
+export const telegramUpdateSchema = z
+  .object({
+    update_id: z.number(),
+    message: messageSchema.optional(),
+    callback_query: z
+      .object({
+        id: z.string(),
+        from: z.object({ id: z.number() }),
+        message: z.object({ chat: z.object({ id: z.number() }) }).optional(),
+        data: z.string(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
+export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>;
+export type TelegramMessage = z.infer<typeof messageSchema>;
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+/** Commands the bot understands. `command` keeps its leading slash (design.md). */
+export type BotCommand =
+  | "/start"
+  | "/lang"
+  | "/help"
+  | "/safety"
+  | "/check"
+  | "/report"
+  | "/emergency";
+
+const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
+  "/start",
+  "/lang",
+  "/help",
+  "/safety",
+  "/check",
+  "/report",
+  "/emergency",
+]);
+
+/** Parsed command + the remaining argument on the same message (R4.9). */
+export interface ParsedCommand {
+  command: BotCommand;
+  arg: string; // text after the command (and optional @botusername), trimmed
+}
+
+// `/cmd` , `/cmd@Bot` , `/cmd arg...` , `/cmd@Bot arg...` (arg may span newlines).
+const COMMAND_RE = /^\/([a-zA-Z0-9_]+)(?:@[a-zA-Z0-9_]+)?(?:\s+([\s\S]*))?$/;
+
+/**
+ * Parse a command from message text, honouring the "@botusername" suffix.
+ * Returns `null` when the text is not a recognised command (including unknown
+ * "/foo" commands and bare "/"). Command matching is case-insensitive; the
+ * returned `command` is normalised to lowercase with its leading slash.
+ *
+ * Examples:
+ *   "/check@IshonchGuardBot текст" → { command: "/check", arg: "текст" }
+ *   "/report"                      → { command: "/report", arg: "" }
+ *   "/unknown"                     → null
+ */
+export function parseCommand(text: string, _entities?: unknown[]): ParsedCommand | null {
+  const trimmed = text.trimStart();
+  const m = COMMAND_RE.exec(trimmed);
+  if (!m) return null;
+  const command = `/${m[1].toLowerCase()}`;
+  if (!KNOWN_COMMANDS.has(command)) return null;
+  return { command: command as BotCommand, arg: (m[2] ?? "").trim() };
+}
+
+// ---------------------------------------------------------------------------
+// Handler contract (implemented by tasks 8.2–8.5) + per-update context
+// ---------------------------------------------------------------------------
+
+/** Content kinds the bot cannot act on; mapped to a localized hint/refusal. */
+export type OutOfScopeKind =
+  | "voice"
+  | "audio"
+  | "video"
+  | "sticker"
+  | "empty"
+  | "unknown_command";
+
+/** Context handed to every handler — Session is already loaded by the router. */
+export interface HandlerCtx {
+  chatId: number;
+  userId: number;
+  session: Session;
+}
+
+/**
+ * The set of handlers the router dispatches to. Tasks 8.2–8.5 provide the
+ * concrete implementation and register it via `setHandlers(...)`. The router
+ * depends only on this abstraction, never on the concrete modules.
+ */
+export interface Handlers {
+  /** Commands: /start, /lang, /help, /safety, /check, /report, /emergency (8.2). */
+  handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promise<void>;
+  /** One step of an active multi-step scenario, e.g. /report (8.4). */
+  handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void>;
+  /** Free text / forwarded text → Check_Pipeline (8.3). */
+  handleCheck(content: string, ctx: HandlerCtx): Promise<void>;
+  /** Photo / image-document → OCR → Check_Pipeline (8.3). */
+  handleImage(fileId: string, ctx: HandlerCtx): Promise<void>;
+  /** Telegram contact card → phone check (8.3 / R21). */
+  handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
+  /** Inline-button callbacks: language / Report / Check another / Emergency (8.5). */
+  handleCallback(data: string, ctx: HandlerCtx): Promise<void>;
+  /** Empty / unsupported / out-of-scope input and unknown commands (8.5 / R16, R22). */
+  handleOutOfScope(kind: OutOfScopeKind, ctx: HandlerCtx): Promise<void>;
+}
+
+// ---------------------------------------------------------------------------
+// Routing decision (PURE) — fully unit-testable without any I/O (task 8.8)
+// ---------------------------------------------------------------------------
+
+/** What the router decided to do with an update. Pure, side-effect free. */
+export type RouteAction =
+  | { kind: "callback"; data: string }
+  | { kind: "command"; command: ParsedCommand }
+  | { kind: "unknownCommand" }
+  | { kind: "scenarioStep"; text: string }
+  | { kind: "check"; content: string }
+  | { kind: "image"; fileId: string }
+  | { kind: "contact"; phone: string }
+  | { kind: "outOfScope"; reason: OutOfScopeKind }
+  | { kind: "ignore" };
+
+/** Who to reply to and on whose behalf. `null` when the update is not actionable. */
+export interface RouteTarget {
+  userId: number;
+  chatId: number;
+}
+
+/**
+ * Resolve the user + chat to act on. For callbacks the chat may be absent (old
+ * messages); in a private chat the chat id equals the user id, so we fall back
+ * to `from.id`. Returns `null` for updates we cannot answer (no message and no
+ * callback, or a message without a sender such as a channel post).
+ */
+export function extractTarget(update: TelegramUpdate): RouteTarget | null {
+  const cb = update.callback_query;
+  if (cb) {
+    return { userId: cb.from.id, chatId: cb.message?.chat.id ?? cb.from.id };
+  }
+  const m = update.message;
+  if (m?.from) {
+    return { userId: m.from.id, chatId: m.chat.id };
+  }
+  return null;
+}
+
+/** Pick the highest-resolution photo's file_id from a Telegram photo array. */
+function largestPhotoFileId(
+  photo: NonNullable<TelegramMessage["photo"]>,
+): string | null {
+  if (photo.length === 0) return null;
+  let best = photo[0];
+  for (const p of photo) {
+    if ((p.file_size ?? 0) >= (best.file_size ?? 0)) best = p;
+  }
+  return best.file_id;
+}
+
+/**
+ * Decide what to do with an update given the user's current Session. PURE:
+ * no I/O, no session mutation. The PRIORITY ordering is:
+ *   callback > command > active scenario step > content type.
+ *
+ * Note: a command is returned even while a scenario is active (command wins);
+ * the actual scenario reset (R15.4) is performed by `dispatchUpdate`, which
+ * owns side effects.
+ */
+export function decideRoute(update: TelegramUpdate, session: Session): RouteAction {
+  // 1) Callback queries take top priority.
+  if (update.callback_query) {
+    return { kind: "callback", data: update.callback_query.data };
+  }
+
+  const m = update.message;
+  if (!m) return { kind: "ignore" };
+
+  // 2) Commands (text starting with "/") — beat an active scenario (R15.4).
+  const text = m.text;
+  if (text && text.trimStart().startsWith("/")) {
+    const parsed = parseCommand(text);
+    return parsed ? { kind: "command", command: parsed } : { kind: "unknownCommand" };
+  }
+
+  // 3) Active scenario → the message is the answer to the current step (R15.3).
+  if (session.scenario !== "none") {
+    return { kind: "scenarioStep", text: m.text ?? m.caption ?? "" };
+  }
+
+  // 4) Content type (only when no scenario is active).
+  if (m.photo && m.photo.length > 0) {
+    const fileId = largestPhotoFileId(m.photo);
+    if (fileId) return { kind: "image", fileId };
+  }
+  if (m.document && typeof m.document.mime_type === "string" && m.document.mime_type.startsWith("image/")) {
+    return { kind: "image", fileId: m.document.file_id };
+  }
+  if (m.contact) {
+    return { kind: "contact", phone: m.contact.phone_number };
+  }
+  if (m.voice != null) return { kind: "outOfScope", reason: "voice" };
+  if (m.audio != null) return { kind: "outOfScope", reason: "audio" };
+  if (m.video != null) return { kind: "outOfScope", reason: "video" };
+  if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
+
+  // Plain text (including forwarded text, R11.5) → Check_Pipeline.
+  const content = (m.text ?? m.caption ?? "").trim();
+  if (content) return { kind: "check", content };
+
+  // Empty / anything else we can't act on → supported-input hint (R16.1).
+  return { kind: "outOfScope", reason: "empty" };
+}
+
+// ---------------------------------------------------------------------------
+// Handler registry — lets tasks 8.2–8.5 wire concrete handlers without the
+// router importing them (dependency inversion). No module-load side effects.
+// ---------------------------------------------------------------------------
+
+/**
+ * Placeholder handlers used until tasks 8.2–8.5 register the real ones. They
+ * log a warning (no PII / no secrets) and resolve, so an un-wired bot degrades
+ * quietly instead of throwing. In production `setHandlers(...)` is called at
+ * startup, so these are never hit.
+ */
+const stubHandlers: Handlers = {
+  async handleCommand(cmd) {
+    console.warn(`telegram router: no handler wired for command ${cmd.command}`);
+  },
+  async handleScenarioStep() {
+    console.warn("telegram router: no handler wired for scenario step");
+  },
+  async handleCheck() {
+    console.warn("telegram router: no handler wired for check");
+  },
+  async handleImage() {
+    console.warn("telegram router: no handler wired for image");
+  },
+  async handlePhoneFromContact() {
+    console.warn("telegram router: no handler wired for contact");
+  },
+  async handleCallback() {
+    console.warn("telegram router: no handler wired for callback");
+  },
+  async handleOutOfScope(kind) {
+    console.warn(`telegram router: no handler wired for out-of-scope (${kind})`);
+  },
+};
+
+let registeredHandlers: Handlers | null = null;
+
+/** Register the concrete handler set (called once at startup by tasks 8.2–8.5). */
+export function setHandlers(handlers: Handlers): void {
+  registeredHandlers = handlers;
+}
+
+/** Current handler set: the registered one, or the logging stubs as fallback. */
+export function getHandlers(): Handlers {
+  return registeredHandlers ?? stubHandlers;
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch (EFFECTFUL) — loads the session, applies side effects, invokes the
+// chosen handler. Dependencies are injectable for tests.
+// ---------------------------------------------------------------------------
+
+export interface DispatchDeps {
+  handlers: Handlers;
+  loadSession: (userId: number) => Promise<Session>;
+  resetScenario: (userId: number) => Promise<void>;
+}
+
+export type Dispatch = (update: TelegramUpdate) => Promise<void>;
+
+/**
+ * Dispatch an incoming Telegram update to the right handler.
+ *
+ *  1. Resolve the user/chat; ignore non-actionable updates.
+ *  2. Load the Session (language + scenario step).
+ *  3. Decide the route (callback > command > scenario > content).
+ *  4. If a command interrupts an active scenario, reset the scenario first so
+ *     the command handler sees a neutral Session (R15.4).
+ *  5. Invoke the matching handler with the loaded `HandlerCtx`.
+ *
+ * Handler errors are NOT swallowed here — the webhook route (task 9.1) wraps
+ * dispatch in try/catch, logs without Sensitive_Data and returns 200 so
+ * Telegram does not retry (R12.5).
+ */
+export async function dispatchUpdate(
+  update: TelegramUpdate,
+  deps?: Partial<DispatchDeps>,
+): Promise<void> {
+  const handlers = deps?.handlers ?? getHandlers();
+  const loadSession = deps?.loadSession ?? loadSessionImpl;
+  const resetScenario = deps?.resetScenario ?? resetScenarioImpl;
+
+  const target = extractTarget(update);
+  if (!target) return; // nothing/no-one to respond to
+
+  const { userId, chatId } = target;
+  let session = await loadSession(userId);
+  const action = decideRoute(update, session);
+
+  // R15.4 — a command aborts any active scenario before being handled.
+  if (
+    (action.kind === "command" || action.kind === "unknownCommand") &&
+    session.scenario !== "none"
+  ) {
+    await resetScenario(userId);
+    session = { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} };
+  }
+
+  const ctx: HandlerCtx = { chatId, userId, session };
+
+  switch (action.kind) {
+    case "callback":
+      await handlers.handleCallback(action.data, ctx);
+      break;
+    case "command":
+      await handlers.handleCommand(action.command, ctx);
+      break;
+    case "unknownCommand":
+      await handlers.handleOutOfScope("unknown_command", ctx);
+      break;
+    case "scenarioStep":
+      await handlers.handleScenarioStep(action.text, ctx);
+      break;
+    case "check":
+      await handlers.handleCheck(action.content, ctx);
+      break;
+    case "image":
+      await handlers.handleImage(action.fileId, ctx);
+      break;
+    case "contact":
+      await handlers.handlePhoneFromContact(action.phone, ctx);
+      break;
+    case "outOfScope":
+      await handlers.handleOutOfScope(action.reason, ctx);
+      break;
+    case "ignore":
+      break;
+  }
+}

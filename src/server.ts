@@ -2,6 +2,19 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
+
+// Fixed public endpoint for Telegram updates.
+//
+// This version of TanStack Start (1.168.x) + Nitro v3 exposes NO file-based
+// server-route API (no `createServerFileRoute` / `ServerRoute`), so there is no
+// `src/routes/api/telegram/webhook.ts` to host the handler. Instead we bind the
+// endpoint at the real Worker entry (this file — wired via vite.config.ts
+// `tanstackStart.server.entry = "server"`), through which every request flows.
+// We intercept `POST /api/telegram/webhook` BEFORE the SSR/server entry and
+// delegate to the framework-agnostic core. The core still verifies the secret
+// token FIRST and fails closed (R12 / R17.4) — this binding does not weaken it.
+const TELEGRAM_WEBHOOK_PATH = "/api/telegram/webhook";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -40,6 +53,15 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Telegram webhook: handle POST /api/telegram/webhook here, ahead of the
+      // SSR/server entry. The core fails closed on a missing/invalid token.
+      if (request.method === "POST") {
+        const { pathname } = new URL(request.url);
+        if (pathname === TELEGRAM_WEBHOOK_PATH) {
+          return await handleTelegramWebhook(request);
+        }
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
