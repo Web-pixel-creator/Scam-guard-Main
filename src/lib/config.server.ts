@@ -24,3 +24,29 @@ export function getServerConfig() {
     //   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   };
 }
+
+// --- Telegram bot secrets (server-only) ---
+//
+// Read per-request inside handlers (CODING_RULES §6). On Cloudflare the env
+// binds at request time, so module-scope reads resolve to undefined. Each
+// accessor returns `string | undefined` so callers can fail closed (e.g. the
+// webhook returns 401 when a secret is missing — R17.4) instead of crashing.
+// LOVABLE_API_KEY and the Supabase secrets already exist elsewhere and are not
+// duplicated here.
+
+/**
+ * Telegram Bot API token, used to authenticate calls to the Bot API.
+ * Returns undefined when not configured. (R17.1, R17.2)
+ */
+export function getTelegramBotToken(): string | undefined {
+  return process.env.TELEGRAM_BOT_TOKEN;
+}
+
+/**
+ * Secret compared against the `X-Telegram-Bot-Api-Secret-Token` header to
+ * authenticate incoming webhook requests. Returns undefined when not
+ * configured so the webhook can reject the request. (R17.1, R17.4)
+ */
+export function getTelegramWebhookSecret(): string | undefined {
+  return process.env.TELEGRAM_WEBHOOK_SECRET;
+}

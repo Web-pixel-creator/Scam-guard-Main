@@ -25,3 +25,6 @@ Scam detection regexes include Russian and Uzbek-Latin variants because local sc
 
 ## D-008 — TanStack Start server functions instead of a separate API
 No standalone backend service; typed RPC server functions keep the stack single-deployable on Lovable Cloud / Cloudflare edge.
+
+## D-009 — Four new local-scam reason codes (no threshold changes)
+Added `asks_to_scan_qr` (weight 50), `relative_in_distress` (30), `requests_card_digits` (45), `threatens_account_block` (20) to `rules.ts` via the standard pattern (ReasonCode + WEIGHTS + PATTERNS with RU & UZ-Latin + REASON_LABELS ru/uz/en). Covers QR "quishing" / Telegram takeover, "relative in distress" money asks, piecemeal card-digit extraction, and account-block urgency threats (SCAM_COVERAGE rows 13–17, R14.4–R14.7). Weight 50 makes `asks_to_scan_qr` high_risk on its own; `threatens_account_block` (20) pairs with `uses_urgency` (15) to reach suspicious. `scoreFromCodes` thresholds (≥50 high_risk, ≥20 suspicious) are unchanged — codes integrate through the existing `PATTERNS` loop in `evaluateText`. Added behavioral advice (call back relatives directly; never scan a stranger's QR) without removing existing advice.
