@@ -9,6 +9,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `package.json` | Scripts: `dev`, `build`, `start`, `preview`, `lint`, `format`, `test`, `test:run`. |
 | `vite.config.ts` | TanStack/Vite/Nitro config. Forces Nitro `node-server` preset and `src/server.ts` entry. |
 | `Dockerfile`, `.dockerignore` | Multi-stage production image for the Node SSR artifact. |
+| `.github/workflows/ci.yml` | GitHub Actions verification: install, typecheck, tests, production build. |
 | `railway.toml` | Railway config: Docker builder, `/healthz`, restart policy. |
 | `.env.example` | Documented runtime env vars. Real `.env` is local-only and ignored. |
 | `bun.lock`, `bunfig.toml` | Bun package manager files. npm also works for scripts. |
