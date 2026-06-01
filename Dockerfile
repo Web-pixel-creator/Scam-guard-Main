@@ -15,6 +15,17 @@ RUN npm install --no-audit --no-fund
 COPY . .
 # node-server is already the default in vite.config.ts; set explicitly for clarity.
 ENV NITRO_PRESET=node-server
+
+# VITE_* vars are baked into the client bundle at build time by Vite.
+# Railway passes service variables as build-time env automatically; for other
+# platforms (manual docker build) pass them via --build-arg.
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID
+# Also needed server-side at build for SSR pre-render (if any):
+ARG SUPABASE_URL
+ARG SUPABASE_PUBLISHABLE_KEY
+
 RUN npm run build
 
 # ── Runtime stage ───────────────────────────────────────────────────────────
