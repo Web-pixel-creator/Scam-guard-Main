@@ -49,7 +49,7 @@ platform's secret manager — never bake them into the image.
 
 Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
-`railway.toml` (Dockerfile builder + healthcheck on `/` + restart policy).
+`railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
 1. Create a project from the GitHub repo (`New Project → Deploy from GitHub`),
    pointing at the deploy branch. Railway auto-detects `Dockerfile` and
@@ -197,6 +197,7 @@ can authenticate updates.
 ## Deploy checklist
 
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
+- [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + optional AI key), not in `VITE_*`.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
 - [ ] Verify RLS: anon cannot read `checks`, can only read `confirmed` entities.

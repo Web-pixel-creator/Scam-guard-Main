@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Lockfiles: this is a Bun project (bun.lock is the source of truth).
+# package-lock.json is an npm artifact (e.g. from `npm install` during local
+# testing) and must not be committed — two lockfiles drift and conflict.
+package-lock.json
+
 # Local env (never commit real secrets — see .env.example)
 .env
 .env.*
