@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { detectInputType, normalize, maskForDisplay } from "./risk/detect";
+import { detectInputType, normalize, maskForDisplay, redactText } from "./risk/detect";
 import { hashIdentifier } from "./risk/hash";
 
 const reportSchema = z.object({
@@ -20,13 +20,14 @@ export const submitReport = createServerFn({ method: "POST" })
     const detected = data.type && data.type !== "unknown" ? data.type : detectInputType(data.value);
     const normalized = normalize(data.value, detected);
     const display = maskForDisplay(normalized, detected);
+    const description = redactText(data.description);
     const hash = await hashIdentifier(normalized);
 
     const { error } = await supabaseAdmin.from("reports").insert({
       entity_type: detected,
       entity_hash: hash,
       redacted_value: display,
-      description: data.description,
+      description,
       scam_type: data.scamType ?? null,
       city: data.city ?? null,
       amount_lost_uzs: data.amountLostUzs ?? null,

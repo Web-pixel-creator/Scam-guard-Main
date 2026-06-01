@@ -8,7 +8,7 @@
 // External dependencies are mocked so no real network / DB calls happen:
 //   - `supabaseAdmin` (the `checks` insert is intercepted; `entities` lookup
 //     returns null) — see the vi.mock below.
-//   - the Lovable AI Gateway `fetch` — stubbed to a deterministic response.
+//   - the OpenAI-compatible AI provider `fetch` — stubbed to a deterministic response.
 //   - the in-memory rate limiter — stubbed to always allow, and every run also
 //     uses a unique rateLimitKey, so the 10/60s window never fails the test.
 import fc from "fast-check";
@@ -48,7 +48,7 @@ vi.mock("./rate-limit", () => ({
   checkRateLimit: () => ({ ok: true, remaining: 10, retryAfterSec: 0 }),
 }));
 
-import { runCheck } from "./check-core";
+import { ocrExtractCore, runCheck } from "./check-core";
 
 // Unique rate-limit key per run (defensive, in case the mock above is bypassed).
 let keyCounter = 0;
@@ -193,5 +193,34 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
       ),
       { numRuns: 100 },
     );
+  });
+
+  it("OCR output is deterministically redacted after the AI provider response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content:
+                  "Kod 123456. Karta 8600 1234 5678 9012. Telefon +998901234567.",
+              },
+            },
+          ],
+        }),
+        text: async () => "",
+      })),
+    );
+
+    const result = await ocrExtractCore("data:image/png;base64,AAAA", "ru", nextKey());
+    const text = result.text ?? "";
+
+    expect(text).not.toContain("123456");
+    expect(text).not.toContain("8600 1234 5678 9012");
+    expect(text).not.toContain("+998901234567");
+    expect(maxDigitRun(text)).toBeLessThanOrEqual(3);
   });
 });

@@ -1,56 +1,57 @@
 # Functions Map
 
-> Signatures and intent only — no full code. See file paths for the source.
+Signatures and intent only. See file paths for source.
 
-## Server functions (RPC endpoints) — `createServerFn`
+## Server functions
 
 | Function | File | Auth | Purpose |
 |---|---|---|---|
-| `checkInput({ input, type?, lang })` | `lib/check.functions.ts` | public | Full risk check pipeline; returns `{ type, display, level, score, reasons, explanation, knownReports }`. Rate-limited 10/min/IP. |
-| `ocrExtract({ image, lang })` | `lib/check.functions.ts` | public | Gemini Vision OCR + redaction of a screenshot data URL → `{ text }`. Rate-limited. |
-| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, lang })` | `lib/report.functions.ts` | public | Insert a report; upsert/bump the matching `entities` row. |
-| `listReports({ status })` | `lib/admin.functions.ts` | admin | List reports (≤200) by status. |
-| `listEntities({ status })` | `lib/admin.functions.ts` | admin | List entities (≤200). |
-| `moderateReport({ reportId, decision, riskLevel })` | `lib/admin.functions.ts` | admin | Confirm/reject a report; sync entity risk + moderation status. |
-| `adminStats()` | `lib/admin.functions.ts` | admin | Counts: new/confirmed reports, confirmed entities, total checks. |
+| `checkInput({ input, type?, lang })` | `src/lib/check.functions.ts` | public | Web wrapper around `runCheck`; rate-limited 10/min/IP. |
+| `ocrExtract({ image, lang })` | `src/lib/check.functions.ts` | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction. |
+| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report and upserts/bumps `entities`. |
+| `listReports({ status })` | `src/lib/admin.functions.ts` | admin | Lists reports by status. |
+| `listEntities({ status })` | `src/lib/admin.functions.ts` | admin | Lists moderated/known entities. |
+| `moderateReport({ reportId, decision, riskLevel })` | `src/lib/admin.functions.ts` | admin | Confirms/rejects a report and syncs entity reputation. |
+| `adminStats()` | `src/lib/admin.functions.ts` | admin | Dashboard counts. |
 
-Input validation: all use **zod** schemas. Admin fns use `requireSupabaseAuth` middleware + `assertAdmin(userId)`.
+## Risk engine
 
-## Risk engine — `lib/risk/`
+**`src/lib/risk/detect.ts`**
+- `detectInputType(raw) -> InputType`
+- `normalizePhone`, `normalizeTelegram`, `normalizeUrl`, `normalize(input, type)`
+- `maskForDisplay(value, type)`
+- `redactText(s)` masks full cards, inline phones and OTP-like digit runs.
 
-**`detect.ts`**
-- `detectInputType(raw) -> InputType` — regex-based (apk/telegram/url/phone/text).
-- `normalizePhone / normalizeTelegram / normalizeUrl / normalize(input, type)` — canonical forms (UZ phones → `+998…`).
-- `maskForDisplay(value, type)` — display-safe masked string.
-- `redactText(s)` — strips card numbers, inline phones, OTP-like digits.
+**`src/lib/risk/rules.ts`**
+- `ReasonCode` union + weights.
+- `evaluateText`, `evaluateUrl`, `evaluatePhone`, `evaluateTelegram`.
+- `scoreFromCodes(codes) -> { score, level }`.
+- `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
 
-**`rules.ts`**
-- `ReasonCode` union + `WEIGHTS` map (e.g. `asks_for_otp`=45, `verified_official`=-100).
-- `evaluateText(text)`, `evaluateUrl(url)`, `evaluatePhone(phone)`, `evaluateTelegram(handle)` → `ReasonCode[]`.
-- `scoreFromCodes(codes) -> { score, level }` — thresholds: ≥50 high_risk, ≥20 suspicious, >0 unknown; any `verified_official` → safe.
-- `REASON_LABELS`, `ADVICE` — RU/UZ/EN strings per code / per risk level.
+**`src/lib/risk/check-core.ts`**
+- `runCheck(params)` is the transport-independent check pipeline.
+- `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline.
+- Private AI helpers call an OpenAI-compatible Chat Completions provider and degrade to `null`.
 
-**`hash.ts`** — `hashIdentifier(value): Promise<string>` (SHA-256 via Web Crypto, FNV-1a fallback).
+**`src/lib/risk/hash.ts`**: `hashIdentifier(value)`.
 
-**`rate-limit.ts`** — `checkRateLimit(key, limit, windowMs) -> { ok, remaining, retryAfterSec }` (in-memory).
+**`src/lib/risk/rate-limit.ts`**: in-memory sliding-window limiter.
 
-## AI helpers (private, in `check.functions.ts`)
+## Telegram
 
-- `aiExplain({ lang, type, level, redacted, reasons })` — calls Lovable AI Gateway; returns explanation or `null` (graceful). Needs `LOVABLE_API_KEY`.
-- `ocrScreenshot(dataUrl, lang)` — Gemini Vision OCR with a redaction system prompt.
+- `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler.
+- `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
+- `src/lib/telegram/router.ts`: parses updates and routes commands/content.
+- `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
+- `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
+- `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
 
-## Auth / integration
+## Auth and integration
 
-- `requireSupabaseAuth` (`auth-middleware.ts`) — validates Bearer token, injects `{ supabase, userId, claims }`.
-- `attachSupabaseAuth` (`auth-attacher.ts`) — client middleware attaching the session token to server-fn calls.
-- `supabase` / `supabaseAdmin` — lazy Proxy clients (browser RLS vs server service-role).
+- `requireSupabaseAuth` (`src/integrations/supabase/auth-middleware.ts`) validates Bearer tokens.
+- `attachSupabaseAuth` (`src/integrations/supabase/auth-attacher.ts`) attaches the session token client-side.
+- `supabase` / `supabaseAdmin`: browser RLS client vs server service-role client.
 
-## Frontend contexts / i18n
+## DB functions
 
-- `useLang()` / `LangProvider` — active language state.
-- `useAuth()` / `AuthProvider` — `{ user, session, loading, isAdmin, signOut }`.
-- `t(key, lang)` — dictionary lookup over `t_dict`.
-
-## DB functions (Postgres) — see `DATABASE.md`
-
-`has_role(uuid, app_role)`, `handle_new_user_role()` (signup trigger, allowlist-based), `get_check_stats()` (public aggregate counts RPC).
+`has_role(uuid, app_role)`, `handle_new_user_role()`, `get_check_stats()`, `prune_telegram_sessions()`.

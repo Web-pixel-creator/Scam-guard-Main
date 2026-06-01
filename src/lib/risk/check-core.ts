@@ -263,7 +263,7 @@ async function aiExplain(opts: {
  */
 async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null> {
   const sys = `You are an OCR + privacy filter. Extract ALL readable text from the image. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add commentary or translation — return only the cleaned, redacted text exactly as it appears. Reply language: ${lang}.`;
-  return chatCompletion(
+  const text = await chatCompletion(
     [
       { role: "system", content: sys },
       {
@@ -276,4 +276,5 @@ async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null
     ],
     "ocr",
   );
+  return text ? redactText(text) : null;
 }

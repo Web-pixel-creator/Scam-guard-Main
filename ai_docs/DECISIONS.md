@@ -1,33 +1,47 @@
 # Decisions
 
-> Architecture & product decisions and the reasoning behind them. Append new entries; don't rewrite history.
+Architecture and product decisions. Newest entries can be appended; keep them short.
 
-## D-001 — Consumer-first, Telegram-first (not a 1Lookup clone)
-1Lookup is B2B data-validation. Local pain is consumer scams (calls + Telegram + pressure). Build a consumer check/report tool first; keep B2B API as a later revenue path. Model: ScamShield (Singapore).
+## D-001 - Consumer-first, Telegram-first
 
-## D-002 — Rules decide, AI explains
-The numeric risk score comes from deterministic weighted reason codes (`rules.ts`), not the LLM. The LLM only produces the human explanation, and degrades to `null` if unavailable. Keeps results predictable, testable and cheap; avoids hallucinated verdicts. (AI provider made provider-neutral in D-010.)
+Local pain is consumer scams: calls, SMS, Telegram pressure and fake payment flows. Build a consumer check/report tool first; keep B2B APIs as a later path.
 
-## D-003 — Privacy by hashing + redaction
-Store only hashed identifiers + masked display strings. Redact OTP/card/phone before persistence. Screenshots are OCR'd then discarded. Protects users and limits legal exposure under UZ data law.
+## D-002 - Rules decide, AI explains
 
-## D-004 — Moderation gate before public exposure
-Reported entities are public only after an admin confirms (`moderation_status='confirmed'`). Prevents doxxing and weaponized mass-false-reporting.
+The numeric risk score comes from deterministic weighted reason codes, not the LLM. AI only explains the result or performs OCR. If AI is unavailable, verdicts still work.
 
-## D-005 — Allowlist-based admin bootstrap
-Originally the first signup became admin; replaced with `admin_allowlist` + DB trigger so admin grants are explicit and safe in production.
+## D-003 - Privacy by hashing and redaction
 
-## D-006 — Two Supabase clients (RLS vs service-role)
-Browser uses the publishable key under RLS; the server uses a service-role client that bypasses RLS for trusted writes/admin reads. Strict separation via `*.server.ts` naming.
+Store only hashed identifiers plus masked display strings. Redact OTP/card/phone/passport-like data before persistence. Screenshots are OCR'd in memory and discarded.
 
-## D-007 — Bilingual rule patterns (RU + UZ)
-Scam detection regexes include Russian and Uzbek-Latin variants because local scams operate in both languages.
+## D-004 - Moderation gate before public exposure
 
-## D-008 — TanStack Start server functions instead of a separate API
-No standalone backend service; typed RPC server functions keep the stack single-deployable. (Deploy target moved off Lovable Cloud to self-hosted Node in D-010.)
+Reported entities become publicly visible only after admin confirmation. This prevents doxxing and weaponized false reports.
 
-## D-009 — Four new local-scam reason codes (no threshold changes)
-Added `asks_to_scan_qr` (weight 50), `relative_in_distress` (30), `requests_card_digits` (45), `threatens_account_block` (20) to `rules.ts` via the standard pattern (ReasonCode + WEIGHTS + PATTERNS with RU & UZ-Latin + REASON_LABELS ru/uz/en). Covers QR "quishing" / Telegram takeover, "relative in distress" money asks, piecemeal card-digit extraction, and account-block urgency threats (SCAM_COVERAGE rows 13–17, R14.4–R14.7). Weight 50 makes `asks_to_scan_qr` high_risk on its own; `threatens_account_block` (20) pairs with `uses_urgency` (15) to reach suspicious. `scoreFromCodes` thresholds (≥50 high_risk, ≥20 suspicious) are unchanged — codes integrate through the existing `PATTERNS` loop in `evaluateText`. Added behavioral advice (call back relatives directly; never scan a stranger's QR) without removing existing advice.
+## D-005 - Allowlist-based admin bootstrap
 
-## D-010 — Off Lovable: self-hosted Node/Docker deploy + provider-neutral AI
-Lovable was used only to author the initial UI design; the runtime no longer depends on Lovable Cloud or its AI gateway. Deploy target is self-hosted **Node SSR** via Nitro v3 `node-server` preset (standalone `dist/server/index.mjs` on `$PORT`), shippable as a Docker image and runnable on Railway / Render / Fly.io / a VPS. The AI explanation layer is now **provider-neutral, OpenAI-compatible**: `OPENAI_API_KEY` (+ optional `OPENAI_MODEL`, `OPENAI_BASE_URL`) replaces `LOVABLE_API_KEY` / `ai.gateway.lovable.dev`. Graceful degradation is unchanged — with no key, scoring is rules-only and `explanation === null`. The `@lovable.dev/vite-tanstack-config` build wrapper remains a build-time-only dev dependency (no runtime coupling); Railway is the first deploy target.
+Admin grants are explicit via `admin_allowlist`; first-user-is-admin behavior is not safe for production.
+
+## D-006 - Two Supabase clients
+
+Browser code uses the publishable key under RLS. Server code uses service-role only in server-only modules.
+
+## D-007 - RU + UZ scam patterns
+
+Rules include Russian and Uzbek-Latin variants because local scams operate in both languages.
+
+## D-008 - TanStack Start server functions instead of a separate API
+
+Typed server functions keep the app single-deployable. The Telegram webhook is bound at the server entry and delegates to a testable core handler.
+
+## D-009 - Four local-scam reason codes
+
+Added `asks_to_scan_qr`, `relative_in_distress`, `requests_card_digits`, and `threatens_account_block` without changing score thresholds.
+
+## D-010 - Off Lovable: self-hosted Node/Docker deploy + provider-neutral AI
+
+Lovable was used only to author the initial UI design. Production runtime is self-hosted Node SSR via Nitro `node-server`, shippable with Docker and Railway-ready. AI uses the OpenAI-compatible env contract: `OPENAI_API_KEY`, optional `OPENAI_MODEL`, optional `OPENAI_BASE_URL`.
+
+## D-011 - Research feed and deterministic privacy hardening
+
+`pressauz` is treated as a local research feed, not a raw content source. New posts should be summarized into recurring tactics, mapped to `SCAM_COVERAGE.md`, then converted into reason-code proposals or education-only guidance with RU/UZ/EN copy and tests. Privacy is reinforced: report descriptions and OCR provider output are passed through deterministic `redactText`, so user safety does not depend only on prompt compliance.

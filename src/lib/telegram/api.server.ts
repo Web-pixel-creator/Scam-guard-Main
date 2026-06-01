@@ -1,8 +1,8 @@
 // Telegram Bot API helper — a thin, hand-rolled wrapper over the HTTP Bot API
 // (no grammY/telegraf; see design.md → Open Decision 1). Server-only: the
 // `.server.ts` suffix keeps it out of the client bundle, and the bot token is
-// read INSIDE each function via `getTelegramBotToken()` (per-request on
-// Cloudflare, CODING_RULES §6), never at module scope.
+// read INSIDE each function via `getTelegramBotToken()` (per-request server
+// config read, CODING_RULES §6), never at module scope.
 //
 // Failure policy (R13.4, R10.3, R17.x): network errors, missing token and
 // non-ok Bot API responses degrade gracefully — `sendMessage`/`setWebhook`

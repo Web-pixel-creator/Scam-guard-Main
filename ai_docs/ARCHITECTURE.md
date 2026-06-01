@@ -1,52 +1,50 @@
 # Architecture
 
-## Stack (actual)
+## Stack
 
-- **Framework:** TanStack Start v1 (full-stack React, SSR) + TanStack Router (file-based) + TanStack Query.
-- **UI:** React 19, Tailwind CSS v4, shadcn/ui (new-york style) on Radix UI, lucide icons.
-- **Backend:** TanStack **server functions** (`createServerFn`) — no separate API server. Runs on the SSR/edge runtime (Nitro; default target Cloudflare via Lovable config).
-- **Data:** Supabase (Postgres + Auth + RLS), provisioned through **Lovable Cloud**.
-- **AI:** Lovable AI Gateway (`https://ai.gateway.lovable.dev`), model `google/gemini-2.5-flash`, used for (a) scam explanations and (b) screenshot OCR + redaction.
-- **Build/tooling:** Vite 7, Bun (lockfile `bun.lock`), ESLint + Prettier, TypeScript.
+- **Framework:** TanStack Start v1 (full-stack React, SSR) + TanStack Router + TanStack Query.
+- **UI:** React 19, Tailwind CSS v4, shadcn/ui on Radix UI, lucide icons.
+- **Backend:** TanStack server functions (`createServerFn`) plus a Node SSR entry at `src/server.ts`.
+- **Runtime:** Nitro v3 `node-server` preset. The production artifact is `dist/server/index.mjs`; it runs on Node 22+ and is Docker/Railway/Render/Fly/VPS-friendly.
+- **Data:** Supabase Postgres + Auth + RLS. The project owns its Supabase project; no Lovable Cloud runtime dependency.
+- **AI:** Provider-neutral OpenAI-compatible Chat Completions. `OPENAI_API_KEY` enables explanations and screenshot OCR; `OPENAI_MODEL` and `OPENAI_BASE_URL` are optional.
+- **Tooling:** Vite 7, Bun lockfile, TypeScript, Vitest, ESLint/Prettier.
 
-## Clients
+## Clients and channels
 
-Single **web app** today (SSR). Routes: `/`, `/check`, `/report`, `/emergency`, `/privacy`, `/login`, `/admin`. Planned: Telegram bot, mobile app, B2B API (see `OPEN_TASKS.md`).
+- Web SSR app: `/`, `/check`, `/report`, `/emergency`, `/privacy`, `/login`, `/admin`.
+- Telegram bot channel: webhook endpoint `POST /api/telegram/webhook` is intercepted in `src/server.ts` before SSR and delegated to `src/lib/telegram/webhook.server.ts`.
+- Planned later: mobile app and B2B API.
 
-## Main data flow — a "check"
+## Main data flow: a check
 
-1. User submits text/phone/Telegram/url/apk (or a screenshot) on `/` or `/check` (`CheckInput`).
-2. (Screenshot path) `ocrExtract` server fn → Gemini Vision extracts + redacts text.
-3. `checkInput` server fn runs:
-   - rate limit per IP (10/min, in-memory),
-   - `detectInputType` → `normalize` → `maskForDisplay` + `redactText`,
-   - rule evaluators (`evaluateText/Url/Phone/Telegram`) produce **reason codes**,
-   - lookup of the hashed identifier in `entities`; confirmed `high_risk` boosts score,
-   - `scoreFromCodes` → numeric score + `risk_level`,
-   - `aiExplain` → localized natural-language explanation,
-   - logs a redacted row into `checks`.
-4. `RiskResultCard` shows level, reasons, AI explanation, advice.
-5. User may submit a report (`submitReport`) → stored in `reports`, bumps/creates an `entities` row (`moderation_status='new'`).
-6. Admin (`/admin`) reviews via `listReports`/`listEntities`, calls `moderateReport` → confirms/rejects, syncing the `entities` risk + status.
+1. User submits text/phone/Telegram/url/apk/payment-like text or screenshot.
+2. Screenshot path: `ocrExtract` -> `ocrExtractCore` -> `ocrScreenshot`; the AI output is passed through deterministic `redactText` before returning.
+3. `runCheck` performs rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert.
+4. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
+5. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
+6. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
 
-## Risk engine (rules-first, AI second)
+## Risk engine
 
-Deterministic rules live in `src/lib/risk/`. Each matched pattern maps to a weighted `ReasonCode` (e.g. `asks_for_otp`=45, `apk_download_link`=45, `verified_official`=-100). Thresholds: ≥50 → `high_risk`, ≥20 → `suspicious`, >0 → `unknown`. AI only *explains*; it does not decide the score. Patterns are bilingual (RU + UZ Latin) — see `rules.ts`.
+The engine is rules-first. `src/lib/risk/rules.ts` maps matched patterns to weighted `ReasonCode`s. Thresholds: score >= 50 => `high_risk`, score >= 20 => `suspicious`, score > 0 => `unknown`; `verified_official` forces `safe`.
 
-## Auth & roles
+AI never decides the score. It only explains the deterministic verdict or performs OCR extraction. If AI is unavailable, the verdict still works.
 
-Supabase Auth (email). Client attaches the bearer token to server fns via `attachSupabaseAuth` middleware; protected admin fns use `requireSupabaseAuth` + an `assertAdmin` DB check. Admin role is granted on signup only if the email is in `admin_allowlist` (DB trigger `handle_new_user_role`).
+## Telegram bot architecture
 
-## Two Supabase clients
+- Webhook auth fails closed when `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is missing.
+- The secret header is checked before body parsing.
+- Invalid bodies after a valid token return 200 so Telegram stops retrying.
+- Bot session state is stored in Supabase `telegram_sessions`, not memory.
+- Images are downloaded in memory, capped at 6 MB, OCR'd, and discarded.
 
-- `client.ts` — browser client, **publishable** key, RLS-enforced (used for auth/session + reading own roles).
-- `client.server.ts` — **service-role** key, bypasses RLS, server-only (all writes/admin reads). Never import into client code.
+## Auth and roles
 
-## Error handling
+Supabase Auth powers browser sessions. Client middleware attaches the bearer token to server-function calls. Admin functions validate the session server-side (`requireSupabaseAuth`) and check `user_roles` via `assertAdmin`.
 
-`src/server.ts` wraps the SSR entry and normalizes catastrophic h3-swallowed 500s into a friendly HTML error page; `src/start.ts` registers request + function middleware. `error-capture.ts` / `lovable-error-reporting.ts` capture errors.
+## Constraints
 
-## Platform constraints (design implications)
-
-- iOS can't fully inspect live calls; Telegram private chats can't be auto-scanned by third parties → UX is **forward / paste / screenshot**, not background interception.
-- In-memory rate limit and `entities` cache are per-worker and best-effort, not a hard guarantee.
+- Telegram private chats and live calls cannot be silently inspected. The model is user-forward/paste/screenshot.
+- In-memory rate limit is best-effort per process. Use Redis/KV before multi-instance high-traffic production.
+- Do not add runtime coupling back to Lovable Cloud. `@lovable.dev/vite-tanstack-config` remains a build-time wrapper only.

@@ -1,5 +1,8 @@
 # Implementation Plan: Telegram Bot MVP (Ishonch Guard)
 
+> Current implementation note (2026-06-01): all listed MVP tasks are complete in
+> `main`. Follow-up work lives in `ai_docs/OPEN_TASKS.md`.
+
 ## Overview
 
 План реализует Telegram-бота как **новый канал** к существующему веб-приложению, переиспользуя risk engine (`src/lib/risk/*`) и серверные конвейеры через **вынесенное общее ядро** `check-core.ts`. Принцип «scoring правилами, AI только объясняет» сохраняется без изменений.
@@ -23,7 +26,7 @@
     - _Requirements: 15.1, 15.2, 17.3_
 
   - [x] 1.3 Добавить серверные переменные окружения бота
-    - Добавить чтение `TELEGRAM_BOT_TOKEN` и `TELEGRAM_WEBHOOK_SECRET` **внутри хендлеров** (per-request, CODING_RULES §6), не на уровне модуля; `LOVABLE_API_KEY` и Supabase-секреты уже есть
+    - Добавить чтение `TELEGRAM_BOT_TOKEN` и `TELEGRAM_WEBHOOK_SECRET` **внутри хендлеров** (per-request, CODING_RULES §6), не на уровне модуля; `OPENAI_API_KEY` и Supabase-секреты уже есть
     - Задокументировать переменные в `.env.example` без реальных значений; не помещать секреты в `VITE_*` или клиентский bundle
     - _Requirements: 17.1, 17.2, 17.4_
 
@@ -134,7 +137,7 @@
 
 - [x] 9. Реализовать webhook route и интеграцию
   - [x] 9.1 Реализовать `webhook.ts` (server route)
-    - Создать `src/routes/api/telegram/webhook.ts` (`POST /api/telegram/webhook`): сверка `X-Telegram-Bot-Api-Secret-Token` **первой**, до валидации структуры (401 при отсутствии/несовпадении и при отсутствии секретов конфигурации); zod-валидация `telegramUpdateSchema` только после токена (невалидная структура → 200, игнор); `dispatchUpdate` в работу; processing error после валидного токена → лог без Sensitive_Data + 200
+    - Создать `src/server.ts + src/lib/telegram/webhook.server.ts` (`POST /api/telegram/webhook`): сверка `X-Telegram-Bot-Api-Secret-Token` **первой**, до валидации структуры (401 при отсутствии/несовпадении и при отсутствии секретов конфигурации); zod-валидация `telegramUpdateSchema` только после токена (невалидная структура → 200, игнор); `dispatchUpdate` в работу; processing error после валидного токена → лог без Sensitive_Data + 200
     - _Requirements: 11.3, 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 17.4, 19.1, 19.2_
 
   - [x]* 9.2 Property-тесты контракта webhook
@@ -147,7 +150,7 @@
     - _Requirements: 5.3, 12.2, 12.4, 12.5_
 
   - [x]* 9.4 Интеграционный тест деградации AI
-    - Без `LOVABLE_API_KEY` ответ содержит Risk_Level + reasons + ADVICE без блока объяснения; scoring через `scoreFromCodes`
+    - Без `OPENAI_API_KEY` ответ содержит Risk_Level + reasons + ADVICE без блока объяснения; scoring через `scoreFromCodes`
     - _Requirements: 13.1, 13.2, 13.3, 13.5, 18.3_
 
 - [x] 10. Развёртывание webhook
@@ -162,7 +165,7 @@
 
 - Подзадачи с `*` — опциональные тесты; основные реализационные подзадачи не опциональны.
 - Каждое свойство реализуется одним fast-check тестом (≥100 прогонов, `fc.assert(..., { numRuns: 100 })`) с тегом `// Feature: telegram-bot-mvp, Property {n}`.
-- Внешние вызовы в тестах мокаются: Telegram Bot API (`fetch`), Lovable AI Gateway (`fetch`), `supabaseAdmin`. Секреты в тестах — фиктивные значения через окружение.
+- Внешние вызовы в тестах мокаются: Telegram Bot API (`fetch`), OpenAI-compatible AI provider (`fetch`), `supabaseAdmin`. Секреты в тестах — фиктивные значения через окружение.
 - Рефакторинг `check-core.ts` сохраняет поведение веба без изменений (ключ `check:<ip>`, лимит 10/мин, формат ответа).
 - Покрытие 10 design-свойств: 1→2.2, 2→2.2, 3→9.2, 4→8.6, 5→6.3, 6→3.2, 7→9.2, 8→5.2, 9→8.7, 10→3.2.
 - `rate-limit.ts` читает `Date.now()` и держит модульный `buckets`; тесты, зависящие от окна, используют `vi.useFakeTimers()` и сбрасывают модульное состояние.

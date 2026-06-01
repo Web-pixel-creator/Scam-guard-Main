@@ -1,60 +1,62 @@
 # Scam Coverage Map
 
-> Realistic map of which scam categories Ishonch Guard covers, how, and where the limits are. We do **not** promise to eliminate scams — no app can. We reduce the chance a user falls for the most common, most costly local schemes by giving a clear verdict *before* they act, plus education and emergency steps.
+Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a clear verdict before the user acts, plus education, reporting and emergency steps.
 
 ## Guiding truth
 
-- A detector cannot stop a person who, under pressure, willingly says a code or transfers money. So coverage = **detection + education + emergency response + (later) blocking**.
-- Platform limits: iOS can't inspect live calls; Telegram private chats can't be auto-scanned. Model is always **user forwards / pastes / screenshots**, never silent interception.
-- Scammers adapt. Coverage grows continuously via community reports, moderation, official feeds and new rules.
+- A detector cannot stop someone who is already under pressure and willingly shares a code or transfers money.
+- Coverage = detection + education + emergency response + community reports.
+- Telegram private chats and live calls cannot be silently inspected; the user must forward/paste/screenshot.
+- Scammers adapt, so coverage grows from moderated reports, official warnings and research feeds.
 
-## Coverage status legend
+## Status legend
 
-- ✅ **Covered now** — reason code + rule exists in `src/lib/risk/rules.ts`.
-- 🟡 **Planned rule** — needs a new reason code/pattern (tracked in `OPEN_TASKS.md`).
-- 📘 **Education/flow** — handled by guidance, "panic mode", or emergency checklist, not pure detection.
+- **Covered:** reason code/rule or concrete flow exists.
+- **Partial:** related rule exists, but coverage is indirect or education-only.
+- **Planned:** needs a reason code, pattern, content or integration.
 
 ## Categories
 
 | # | Scam category | How we cover it | Status |
 |---|---|---|---|
-| 1 | Fake bank / Central Bank / operator call | `impersonates_bank`, `impersonates_operator` + phone check | ✅ |
-| 2 | Asks for OTP / SMS code / CVV / PIN | `asks_for_otp`, `asks_for_sms_code`, `asks_for_card_cvv`, `asks_for_pin` → high_risk | ✅ |
-| 3 | Telegram "bank manager" / trap bots & channels | `telegram_bank_contact` + username/link check | ✅ |
-| 4 | Fake loans | `fake_loan_offer` | ✅ |
-| 5 | Phishing links / fake payment pages | `evaluateUrl`: short links, weird domains, brand typos | ✅ |
-| 6 | Malicious APK install | `apk_download_link`, `asks_to_install_apk` | ✅ |
-| 7 | "Transfer to a safe account" | `asks_to_transfer_to_safe_account` | ✅ |
-| 8 | Screen sharing (AnyDesk/TeamViewer) | `asks_to_share_screen` | ✅ |
-| 9 | Urgency / legal threats | `uses_urgency`, `threatens_legal_action` | ✅ |
-| 10 | "Don't hang up" / keeping victim on the line | `asks_not_to_hang_up` + 📘 live-call panic checklist | ✅ + 📘 |
-| 11 | Prize / too-good-to-be-true / crypto doubler | `too_good_to_be_true` | ✅ |
-| 12 | Requests personal/passport data | `requests_personal_data` | ✅ |
-| 13 | **QR-code scam / "quishing"** ("scan this QR to verify/log in") — Telegram account takeover via Link Desktop Device; also fake QR in public places | `asks_to_scan_qr` → always high_risk + 📘 strong warning | 🟡 |
-| 14 | **Relative/friend in distress** ("friend had an accident, send money now") | `relative_in_distress` (RU/UZ patterns) | 🟡 |
-| 15 | **Time-wasting / prolonging the call** to extract data | reinforce `asks_not_to_hang_up`; can't measure call length → 📘 behavioral guide | 🟡 + 📘 |
-| 16 | **Piecemeal data extraction** ("just confirm the last 4 digits of your card") | `requests_card_digits` (RU/UZ patterns) → treated as data theft | 🟡 |
-| 17 | **Account-block threat** ("your account/card will be blocked in 24h, confirm now") | `uses_urgency` + `threatens_account_block` | 🟡 |
-| 18 | **AI voice-clone call** (call "sounds like" your bank or a relative) | 📘 education only — we can't analyze live audio; advise call-back verification | 📘 |
-| 19 | Fake courier / delivery surcharge | `evaluateUrl` + 🟡 `fake_delivery_payment` pattern | 🟡 |
-| 20 | Marketplace prepayment / fake buyer-seller | 🟡 `payment_before_service` (code exists, needs patterns) | 🟡 |
-| 21 | Romance / dating scam | 🟡 future pattern | 🟡 |
-| 22 | Fake job offer | 🟡 future pattern | 🟡 |
-| 23 | Free eSIM / prize QR stuck on ATMs | overlaps `asks_to_scan_qr` + `too_good_to_be_true` | 🟡 |
+| 1 | Fake bank / Central Bank / operator call | `impersonates_bank`, `impersonates_operator`, phone checks | Covered |
+| 2 | OTP / SMS code / CVV / PIN request | `asks_for_otp`, `asks_for_sms_code`, `asks_for_card_cvv`, `asks_for_pin` | Covered |
+| 3 | Telegram "bank manager" / trap bot | `telegram_bank_contact`, `unknown_sender` | Covered |
+| 4 | Fake loans | `fake_loan_offer` | Covered |
+| 5 | Phishing links / fake payment pages | short links, weird domains, brand typos | Covered |
+| 6 | Malicious APK install | `apk_download_link`, `asks_to_install_apk` | Covered |
+| 7 | "Transfer to a safe account" | `asks_to_transfer_to_safe_account` | Covered |
+| 8 | Screen sharing / remote access | `asks_to_share_screen` | Covered |
+| 9 | Urgency / legal threats | `uses_urgency`, `threatens_legal_action` | Covered |
+| 10 | "Do not hang up" pressure | `asks_not_to_hang_up` + emergency guidance | Covered |
+| 11 | Prize / too-good-to-be-true / crypto doubler | `too_good_to_be_true` | Covered |
+| 12 | Personal/passport data request | `requests_personal_data` | Covered |
+| 13 | QR login/account takeover | `asks_to_scan_qr` | Covered |
+| 14 | Relative/friend in distress | `relative_in_distress` | Covered |
+| 15 | Piecemeal card data extraction | `requests_card_digits` | Covered |
+| 16 | Account/card block threat | `threatens_account_block` + urgency | Covered |
+| 17 | AI voice-clone call | education only; advise callback verification | Partial |
+| 18 | Fake courier / delivery surcharge | URL heuristics; needs `fake_delivery_payment` | Planned |
+| 19 | Marketplace prepayment / fake buyer-seller | `payment_before_service` exists; needs stronger patterns | Planned |
+| 20 | Romance / dating scam | future pattern/content | Planned |
+| 21 | Fake job offer | future pattern/content | Planned |
+| 22 | Malicious Telegram GIF/file bait | out-of-scope handling + APK coverage; needs education/pattern notes | Planned |
+| 23 | Fake boss/official/workplace request | overlaps personal-data request; needs dedicated wording/patterns | Planned |
 
-> Research note (2025–2026 trends, rephrased for licensing compliance; sources: southernbank.com, ntd.com, cybersamir.com, kun.uz, group-ib.com): the fastest-rising tactics are QR-code "quishing", AI voice cloning that imitates a bank or a loved one, and urgency-driven phishing ("account blocked in 24h"). Live audio and deepfake-voice detection are **out of scope** for the bot — we counter them with education + call-back verification advice.
+## Research feed: pressauz
 
-## Protection layers (beyond detection)
+`https://t.me/pressauz` is useful as a local research feed. Use it to identify recurring tactics, not as raw app content. Current themes to track:
 
-1. **Clear verdict before action** — risk level + reasons + concrete next step, in RU/UZ/EN.
-2. **Emergency mode** (`/emergency`) — "already sent a code/money?" first-hours checklist (block card, change Telegram password, end sessions, call bank official number, file report 102).
-3. **Panic / live-call helper** 📘 — short script for when someone is being pressured on a call ("hang up, call the bank yourself").
-4. **Education for vulnerable users (elderly)** 📘 — simple language, big-text/voice-friendly, and a **trusted-contact / family-share** so a relative can review a suspicious message. (Planned — see OPEN_TASKS.)
-5. **Community reports + moderation** — grows the `entities` reputation base over time.
-6. **Later:** automated call/SMS blocking (Android first), official "verified" contacts, B2B risk API.
+- suspicious foreign calls asking for SMS codes or card data;
+- unknown Telegram files/GIFs that may lead to malware or phishing;
+- fake manager/boss/official messages requesting personal data;
+- APK "security" apps that steal payment data;
+- fake service/payment intermediaries and offline social-engineering scripts.
 
-## Hard limits (state these to users, don't hide)
+Before adding a new detection rule, summarize the tactic, map it to a reason code, add RU/UZ/EN labels/advice, and write tests.
 
-- We can't read your private chats or listen to live calls — you must forward/paste/screenshot.
-- We reduce risk; we don't guarantee zero scams.
-- A "safe/unknown" result is not a green light to share codes or transfer money.
+## Hard limits
+
+- We cannot read private chats or listen to live calls.
+- A `safe` or `unknown` result is not permission to share codes or transfer money.
+- Public reputation appears only after moderation.

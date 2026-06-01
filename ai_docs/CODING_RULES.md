@@ -1,44 +1,54 @@
 # Coding Rules
 
-## Privacy & security (non-negotiable)
+## Privacy and security
 
-1. Never store or log raw OTP/SMS codes, full card numbers, PINs, passwords, passport data. Run `redactText` before persisting; rely on hashed `entity_hash`/`input_hash` for identifiers.
-2. `client.server.ts` (service-role) and anything `*.server.ts` must never be imported into client/browser code — it bypasses RLS.
-3. Public-facing data must respect RLS. Don't add public SELECT policies to `checks`, `reports`, or unconfirmed `entities`.
-4. Entities become publicly visible only after `moderation_status='confirmed'`. Never auto-confirm from raw user reports.
-5. Never name a specific person as a scammer. Use risk labels only.
-6. Read env secrets inside handlers (per-request on Cloudflare), never at module scope.
+1. Never store or log raw OTP/SMS codes, full card numbers, PINs, passwords, passport data or raw screenshot images.
+2. Run `redactText` before persisting free-form user text, including report descriptions and OCR output.
+3. Hash sensitive identifiers with `hashIdentifier` and store only `entity_hash` / `input_hash` plus masked display strings.
+4. `client.server.ts` and anything `*.server.ts` must never be imported into client/browser code.
+5. Public-facing data must respect RLS. Do not add public SELECT policies to `checks`, `reports`, `telegram_sessions` or unconfirmed `entities`.
+6. Entities become publicly visible only after `moderation_status='confirmed'`.
+7. Never name a specific person as a scammer. Use risk labels only.
+8. Read secrets inside server handlers/helpers, not at module scope.
 
 ## Risk engine
 
-- Rules are deterministic and decide the score; AI only explains. Keep it that way.
-- New scam patterns: add a `ReasonCode`, a `WEIGHTS` entry, a regex in `PATTERNS` (with RU **and** UZ Latin variants), and RU/UZ/EN strings in `REASON_LABELS`.
-- Keep thresholds in `scoreFromCodes` consistent; document any change in `DECISIONS.md`.
+- Rules are deterministic and decide the score; AI only explains or OCRs.
+- New scam patterns require: `ReasonCode`, weight, regex/pattern, RU/UZ/EN labels, advice if needed, tests, and a `SCAM_COVERAGE.md` update.
+- Keep `scoreFromCodes` thresholds stable unless the change is explicitly documented in `DECISIONS.md`.
+
+## AI provider
+
+- Use the OpenAI-compatible env contract: `OPENAI_API_KEY`, optional `OPENAI_MODEL`, optional `OPENAI_BASE_URL`.
+- Missing or failing AI must degrade to `null`; scoring must still work.
+- Never log prompts, secrets, raw screenshots or sensitive user input.
 
 ## i18n
 
-- App is trilingual **ru / uz / en**. Every user-facing string needs all three. Use `t()` / `t_dict` in `lib/i18n.ts`, or inline `{ ru, uz, en }[lang]` objects (pattern used in routes).
-- Default language is `ru`; `LangSync` keeps `<html lang>`, title and meta in sync.
+- App language set: `ru`, `uz`, `en`.
+- Every user-facing string needs all three languages.
+- Default language is `ru`.
 
-## UI / styling (see root `README.md`)
+## UI / styling
 
-- **Orange = us (brand). Red = the threat (danger).** Don't reintroduce green/other accents in content.
-- Never invent new red/orange shades. Use CSS variable tokens in `styles.css`; small red text (<18px) must use `--danger-strong`, not `--danger` (WCAG AA).
-- Use shadcn/ui primitives from `components/ui`; respect aliases (`@/components`, `@/lib`, ...).
-- Keep accessibility intact (`A11yPanel`, aria labels, focus states).
+- Orange = us. Red = the threat.
+- Use CSS variables in `src/styles.css`; do not invent ad hoc red/orange shades.
+- Use shadcn/ui primitives from `components/ui`.
+- Preserve accessibility controls, aria labels and focus states.
 
-## Routing (see `src/routes/README.md`)
+## Routing
 
-- File-based routing only. Don't create `src/pages/` or Next/Remix conventions.
-- Never hand-edit `routeTree.gen.ts`.
+- File-based routing only.
+- Never hand-edit `src/routeTree.gen.ts`.
 
 ## Server functions
 
-- Validate all input with zod. Fail gracefully (return `{ ok:false }` or `null`) rather than leaking internals.
-- Admin fns: always `requireSupabaseAuth` + `assertAdmin`.
+- Validate all input with zod.
+- Fail gracefully without leaking internals.
+- Admin functions always require `requireSupabaseAuth` + `assertAdmin`.
 
 ## Tooling
 
-- Lint with ESLint, format with Prettier before committing. TypeScript strict — no `any` leaks across boundaries.
-- Don't manually re-add plugins already bundled by `@lovable.dev/vite-tanstack-config`.
-- Files marked "automatically generated — do not edit" (supabase integration, route tree) are generated; change the source instead.
+- Run TypeScript and tests before merging.
+- Do not add runtime coupling to Lovable Cloud. `@lovable.dev/vite-tanstack-config` is a build-time wrapper only.
+- Files marked generated should be changed at their source, not manually edited.
