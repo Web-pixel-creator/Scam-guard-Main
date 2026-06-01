@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+npm-debug.log*
+package-lock.json
+.kiro
+ai_docs
+**/*.test.ts
+coverage
+.vscode
+.idea
+*.md

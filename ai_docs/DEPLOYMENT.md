@@ -2,7 +2,18 @@
 
 ## Platform
 
-Built and hosted via **Lovable Cloud** (template `tanstack_start_ts_2026-05-29`). The backend (Supabase: Postgres + Auth) is provisioned by Lovable Cloud. Build uses Vite 7 + Nitro; the default Nitro target in the Lovable config is **Cloudflare** (edge workers).
+Self-hosted **Node SSR** server. The app is built with Vite 7 + Nitro v3 using
+the **`node-server`** preset, which emits a standalone HTTP server at
+`dist/server/index.mjs` (listens on `$PORT`, default 3000). It runs anywhere
+Node 22+ runs — Docker on a VPS, Railway, Render, Fly.io, etc. There is **no
+dependency on Lovable Cloud or Cloudflare** at runtime. (Lovable was used only
+to author the initial UI design.)
+
+The backend datastore is **Supabase** (Postgres + Auth) — a standalone Supabase
+project you control; provision it directly via the Supabase dashboard/CLI.
+
+Override the Nitro preset at build time with `NITRO_PRESET=<preset>` if you ever
+target a different platform (e.g. `vercel`, `netlify`, `cloudflare-module`).
 
 ## Local run
 
@@ -11,14 +22,28 @@ Package manager is **Bun** (lockfile present). npm also works.
 ```bash
 bun install          # or: npm install
 bun run dev          # vite dev  → local SSR dev server
-bun run build        # vite build (production)
-bun run build:dev    # build in development mode
-bun run preview      # preview a production build
+bun run build        # vite build (production)  → dist/ (client + Nitro server)
+bun run start        # node dist/server/index.mjs  → run the production server
+bun run preview      # vite preview (Nitro preview)
 bun run lint         # eslint
 bun run format       # prettier --write .
+bun run test:run     # vitest run (full suite)
 ```
 
 > Do not start the dev server from an automated agent in this environment (long-running). Run it manually.
+
+## Docker
+
+A two-stage `Dockerfile` is included (build → slim runtime). It runs the Nitro
+`node-server` bundle as the non-root `node` user.
+
+```bash
+docker build -t scam-guard .
+docker run --rm -p 3000:3000 --env-file .env.production scam-guard
+```
+
+Provide the server-only secrets (below) at runtime via `--env-file` or your
+platform's secret manager — never bake them into the image.
 
 ## Environment variables
 
@@ -26,33 +51,44 @@ Public (in `.env`, prefixed `VITE_`, safe for browser):
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (server reads these too)
 
-Server-only **secrets** (injected by Lovable Cloud, NOT in `.env`, never shipped to client):
+Server-only **secrets** (set in the host/orchestrator environment, NOT in a
+committed `.env`, never shipped to client):
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role client (`client.server.ts`). Bypasses RLS.
-- `LOVABLE_API_KEY` — AI gateway. If absent, AI explanation/OCR degrade to `null` gracefully.
+- `LOVABLE_API_KEY` — AI explanation gateway (optional). If absent, AI
+  explanation/OCR degrade to `null` gracefully and scoring continues by rules.
+  (This is the only remaining Lovable-related dependency, and it is optional;
+  swap in another AI provider in the AI layer to drop it entirely.)
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — Telegram bot (see below).
 
-On Cloudflare Workers, env binds **per request** — always read `process.env.*` inside a handler/function, never at module top level (see `config.server.ts` notes).
+Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
+
+Env is read **per request inside handlers** (`config.server.ts`), never at
+module top level — this keeps the secret reads correct across runtimes.
 
 ## Database migrations
 
-SQL migrations live in `supabase/migrations/`. Apply via the Supabase workflow / Lovable Cloud. The latest consolidated migration defines the full current schema.
+SQL migrations live in `supabase/migrations/`. Apply them to your Supabase
+project via the Supabase CLI (`supabase db push`) or the dashboard SQL editor.
+The latest consolidated migration defines the full current schema.
 
 ## Telegram bot webhook deployment
 
 The Telegram bot is a **new channel** to the same app. There is no separate
-service to deploy — the webhook endpoint is bound at the Worker `fetch` entry
+service to deploy — the webhook endpoint is bound at the server `fetch` entry
 (`src/server.ts`), which intercepts `POST /api/telegram/webhook` ahead of the
 SSR/server entry. This TanStack Start (1.168.x) + Nitro v3 build exposes **no
 file-based server-route API**, so there is intentionally no
 `src/routes/api/telegram/webhook.ts` route file — do not look for one.
 
-Deploy target is **Nitro v3 / Cloudflare** (edge workers) via
-`@lovable.dev/vite-tanstack-config`. Follow these steps in order:
+Once the Node server is deployed behind a public HTTPS URL, follow these steps
+in order:
 
 ### 1. Apply the `telegram_sessions` migration
 
 Apply the SQL migration that creates the bot session table (per-user dialog
-state, service-role only) through the Supabase / Lovable Cloud migration
-workflow:
+state, service-role only) to your Supabase project:
+
+
 
 ```
 supabase/migrations/20260531090000_0c3c0c8c-225b-435f-9d6f-f6f8363cb56b.sql
@@ -64,23 +100,22 @@ is applied, regenerate `src/integrations/supabase/types.ts` (do not hand-edit).
 
 ### 2. Set the bot secrets in the server environment
 
-Set these as **server-only** secrets in the deployment environment (Lovable
-Cloud / Cloudflare Worker env). **Never** put them in `.env` committed to the
-repo, and **never** prefix them with `VITE_` (that would ship them to the
-browser bundle):
+Set these as **server-only** secrets in the deployment environment (host env
+vars / your orchestrator's secret manager / Docker `--env-file`). **Never** put
+them in a `.env` committed to the repo, and **never** prefix them with `VITE_`
+(that would ship them to the browser bundle):
 
 - `TELEGRAM_BOT_TOKEN` — Bot API auth token.
 - `TELEGRAM_WEBHOOK_SECRET` — value compared against the
   `X-Telegram-Bot-Api-Secret-Token` header on every incoming update.
-- `LOVABLE_API_KEY` — AI gateway (optional; the bot/check degrade to no
-  explanation if missing).
+- `LOVABLE_API_KEY` — AI explanation gateway (optional; the bot/check degrade
+  to no explanation if missing).
 - Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (service-role,
   server-only).
 
-These are read **per request inside handlers** (`config.server.ts`), as
-Cloudflare binds env at request time. The webhook fails closed: if
-`TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is missing, it returns `401`
-without processing the update (R17.4).
+These are read **per request inside handlers** (`config.server.ts`). The
+webhook fails closed: if `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is
+missing, it returns `401` without processing the update (R17.4).
 
 ### 3. Register the webhook with Telegram
 
@@ -124,8 +159,9 @@ can authenticate updates.
 
 ## Deploy checklist
 
-- [ ] Secrets set in Lovable Cloud (service role + AI key).
-- [ ] Migrations applied; `admin_allowlist` seeded with admin email(s) before first admin signup.
+- [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
+- [ ] Server-only secrets set in the host environment (Supabase service role + optional AI key), not in `VITE_*`.
+- [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
 - [ ] Verify RLS: anon cannot read `checks`, can only read `confirmed` entities.
 - [ ] Confirm AI gateway key works (otherwise explanations are blank but the app still scores).
 - [ ] `telegram_sessions` migration applied (Telegram bot session state).
