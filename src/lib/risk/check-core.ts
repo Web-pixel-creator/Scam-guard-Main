@@ -7,8 +7,15 @@
 //  - score/level are computed ONLY by `scoreFromCodes` (deterministic, R13.5).
 //  - Only redacted + hashed data is written to `checks` (R7).
 //  - On rate-limit overflow it throws `RateLimitedError` (status 429, retryAfter).
-//  - `explanation === null` when `LOVABLE_API_KEY` is missing or AI fails (R13).
+//  - `explanation === null` when no AI provider is configured (`OPENAI_API_KEY`
+//    missing) or the AI call fails (R13).
 //  - When `skipAi: true`, AI is never called.
+//
+// AI provider: provider-neutral, OpenAI-compatible Chat Completions API. Set
+// `OPENAI_API_KEY` (required to enable AI), `OPENAI_MODEL` (default
+// "gpt-4o-mini", must be vision-capable for screenshot OCR), and optionally
+// `OPENAI_BASE_URL` (default "https://api.openai.com/v1") to point at any
+// OpenAI-compatible gateway (OpenAI, OpenRouter, Together, a local server, …).
 import type { Lang } from "@/lib/i18n";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { detectInputType, normalize, maskForDisplay, redactText, type InputType } from "./detect";
@@ -162,7 +169,72 @@ export async function ocrExtractCore(
 // ---------------------------------------------------------------------------
 // AI helpers (private). Secrets are read INSIDE the functions (per-request,
 // CODING_RULES §6), never at module scope.
+//
+// Provider-neutral: any OpenAI-compatible Chat Completions endpoint. The only
+// hard requirement to ENABLE AI is `OPENAI_API_KEY`; without it both helpers
+// return null and the pipeline degrades gracefully (rules-only, R13).
 // ---------------------------------------------------------------------------
+
+const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
+const DEFAULT_AI_MODEL = "gpt-4o-mini";
+
+interface AiConfig {
+  apiKey: string;
+  baseUrl: string; // no trailing slash
+  model: string;
+}
+
+/**
+ * Resolve the OpenAI-compatible AI config from the environment, per-request.
+ * Returns `null` when no API key is set, which is the signal to degrade to a
+ * rules-only result (`explanation`/OCR `text` === null).
+ */
+function getAiConfig(): AiConfig | null {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  const baseUrl = (process.env.OPENAI_BASE_URL ?? DEFAULT_AI_BASE_URL).replace(/\/+$/, "");
+  const model = process.env.OPENAI_MODEL ?? DEFAULT_AI_MODEL;
+  return { apiKey, baseUrl, model };
+}
+
+/** Body shape accepted by the OpenAI-compatible Chat Completions API. */
+type ChatMessage =
+  | { role: "system" | "user" | "assistant"; content: string }
+  | {
+      role: "user";
+      content: Array<
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+      >;
+    };
+
+/**
+ * Call the OpenAI-compatible Chat Completions endpoint and return the assistant
+ * message content, or `null` on any failure (missing key, non-2xx, network or
+ * parse error). Never throws — callers degrade gracefully.
+ */
+async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
+  const cfg = getAiConfig();
+  if (!cfg) return null;
+  try {
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({ model: cfg.model, messages }),
+    });
+    if (!res.ok) {
+      // Log status only — never the prompt content or the API key.
+      console.error(`AI ${label} error`, res.status);
+      return null;
+    }
+    const data = await res.json();
+    const txt: string | undefined = data?.choices?.[0]?.message?.content;
+    return txt?.trim() ?? null;
+  } catch (e) {
+    console.error(`AI ${label} failed`, e instanceof Error ? e.message : "unknown");
+    return null;
+  }
+}
 
 async function aiExplain(opts: {
   lang: Lang;
@@ -171,73 +243,37 @@ async function aiExplain(opts: {
   redacted: string;
   reasons: string[];
 }): Promise<string | null> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) return null;
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
   const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, 2-4 short sentences. Explain WHY the input may be risky based on the listed reason codes. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
   const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the explanation.`;
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      console.error("AI gateway error", res.status, await res.text());
-      return null;
-    }
-    const data = await res.json();
-    const txt: string | undefined = data?.choices?.[0]?.message?.content;
-    return txt?.trim() ?? null;
-  } catch (e) {
-    console.error("AI explain failed", e);
-    return null;
-  }
+  return chatCompletion(
+    [
+      { role: "system", content: sys },
+      { role: "user", content: user },
+    ],
+    "explain",
+  );
 }
 
 /**
- * Extract text from a screenshot via Gemini Vision.
- * The prompt instructs the model to mask OTP codes, full card numbers and
- * full phone numbers so sensitive data never lands in our DB. We additionally
- * run `redactText` as a defence-in-depth step.
+ * Extract text from a screenshot via a vision-capable model (set `OPENAI_MODEL`
+ * to a vision model). The prompt instructs the model to mask OTP codes, full
+ * card numbers and full phone numbers so sensitive data never lands in our DB.
+ * We additionally run `redactText` as a defence-in-depth step.
  */
 async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) return null;
   const sys = `You are an OCR + privacy filter. Extract ALL readable text from the image. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add commentary or translation — return only the cleaned, redacted text exactly as it appears. Reply language: ${lang}.`;
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: sys },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Extract text from this screenshot following the rules." },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
+  return chatCompletion(
+    [
+      { role: "system", content: sys },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Extract text from this screenshot following the rules." },
+          { type: "image_url", image_url: { url: dataUrl } },
         ],
-      }),
-    });
-    if (!res.ok) {
-      console.error("OCR error", res.status, await res.text());
-      return null;
-    }
-    const data = await res.json();
-    const txt: string | undefined = data?.choices?.[0]?.message?.content;
-    return txt?.trim() ?? null;
-  } catch (e) {
-    console.error("OCR failed", e);
-    return null;
-  }
+      },
+    ],
+    "ocr",
+  );
 }

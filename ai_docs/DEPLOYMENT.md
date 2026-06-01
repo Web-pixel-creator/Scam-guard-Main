@@ -45,6 +45,38 @@ docker run --rm -p 3000:3000 --env-file .env.production scam-guard
 Provide the server-only secrets (below) at runtime via `--env-file` or your
 platform's secret manager — never bake them into the image.
 
+## Railway (first deploy target)
+
+Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
+runtime, which the Nitro node-server already honours. Config-as-code lives in
+`railway.toml` (Dockerfile builder + healthcheck on `/` + restart policy).
+
+1. Create a project from the GitHub repo (`New Project → Deploy from GitHub`),
+   pointing at the deploy branch. Railway auto-detects `Dockerfile` and
+   `railway.toml`.
+2. Add the service variables (Railway dashboard → service → Variables) — the
+   same names listed under **Environment variables** below. At minimum:
+   `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
+   `VITE_SUPABASE_PROJECT_ID`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`,
+   and optionally `OPENAI_API_KEY` / `OPENAI_MODEL` / `OPENAI_BASE_URL`. Do
+   **not** set `PORT` — Railway provides it.
+3. Deploy. Once a public domain is assigned (service → Settings → Networking →
+   Generate Domain), use it as `PUBLIC_APP_URL` for the webhook registration
+   step below.
+
+Or via the CLI:
+
+```bash
+railway init           # link/create the project
+railway up             # build & deploy from the Dockerfile
+railway variables set TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=...
+```
+
+> The `@lovable.dev/vite-tanstack-config` package is a build-time-only dev
+> dependency (it wires the Vite/Nitro build). It has no runtime role and does
+> not couple the deploy to Lovable.
+
 ## Environment variables
 
 Public (in `.env`, prefixed `VITE_`, safe for browser):
@@ -54,10 +86,14 @@ Public (in `.env`, prefixed `VITE_`, safe for browser):
 Server-only **secrets** (set in the host/orchestrator environment, NOT in a
 committed `.env`, never shipped to client):
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role client (`client.server.ts`). Bypasses RLS.
-- `LOVABLE_API_KEY` — AI explanation gateway (optional). If absent, AI
-  explanation/OCR degrade to `null` gracefully and scoring continues by rules.
-  (This is the only remaining Lovable-related dependency, and it is optional;
-  swap in another AI provider in the AI layer to drop it entirely.)
+- `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible). If
+  absent, AI explanation/OCR degrade to `null` gracefully and scoring continues
+  by rules.
+- `OPENAI_MODEL` — chat model (default `gpt-4o-mini`; must be vision-capable for
+  screenshot OCR).
+- `OPENAI_BASE_URL` — OpenAI-compatible endpoint (default
+  `https://api.openai.com/v1`; point at OpenAI, OpenRouter, Together, a local
+  server, etc.).
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — Telegram bot (see below).
 
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
@@ -108,8 +144,9 @@ them in a `.env` committed to the repo, and **never** prefix them with `VITE_`
 - `TELEGRAM_BOT_TOKEN` — Bot API auth token.
 - `TELEGRAM_WEBHOOK_SECRET` — value compared against the
   `X-Telegram-Bot-Api-Secret-Token` header on every incoming update.
-- `LOVABLE_API_KEY` — AI explanation gateway (optional; the bot/check degrade
-  to no explanation if missing).
+- `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible; the
+  bot/check degrade to no explanation if missing). Optionally `OPENAI_MODEL` /
+  `OPENAI_BASE_URL`.
 - Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (service-role,
   server-only).
 
@@ -163,7 +200,7 @@ can authenticate updates.
 - [ ] Server-only secrets set in the host environment (Supabase service role + optional AI key), not in `VITE_*`.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
 - [ ] Verify RLS: anon cannot read `checks`, can only read `confirmed` entities.
-- [ ] Confirm AI gateway key works (otherwise explanations are blank but the app still scores).
+- [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.
 - [ ] `telegram_sessions` migration applied (Telegram bot session state).
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Webhook registered via `scripts/register-telegram-webhook.ts`.

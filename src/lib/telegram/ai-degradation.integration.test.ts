@@ -1,7 +1,7 @@
 // Integration test — AI degradation (task 9.4, telegram-bot-mvp).
 //
 // Verifies the "scoring by rules, AI only explains" guarantee under a degraded
-// AI_Gateway: when `LOVABLE_API_KEY` is missing (or the gateway errors / the
+// AI provider: when `OPENAI_API_KEY` is missing (or the provider errors / the
 // network throws), `runCheck` still returns a deterministic Risk_Level + score
 // + reasons computed by `scoreFromCodes`, but with `explanation === null`. The
 // rendered bot reply (`formatCheckResult`) then contains the level label, the
@@ -116,7 +116,7 @@ function makeSession(lang: Lang): Session {
 }
 
 // Save the seeded fake key so each test can restore the original environment.
-const ORIGINAL_LOVABLE_KEY = process.env.LOVABLE_API_KEY;
+const ORIGINAL_OPENAI_KEY = process.env.OPENAI_API_KEY;
 
 beforeEach(() => {
   hoisted.insertCalls.length = 0;
@@ -133,8 +133,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  if (ORIGINAL_LOVABLE_KEY === undefined) delete process.env.LOVABLE_API_KEY;
-  else process.env.LOVABLE_API_KEY = ORIGINAL_LOVABLE_KEY;
+  if (ORIGINAL_OPENAI_KEY === undefined) delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY = ORIGINAL_OPENAI_KEY;
 });
 
 // Assert the rendered reply honours the degradation contract for a result whose
@@ -166,12 +166,12 @@ function assertDegradedReply(result: RunCheckResult, lang: Lang): void {
 }
 
 // ---------------------------------------------------------------------------
-// 1) LOVABLE_API_KEY missing → explanation null, rules-based verdict (R13)
+// 1) OPENAI_API_KEY missing → explanation null, rules-based verdict (R13)
 // ---------------------------------------------------------------------------
 
-describe("AI degradation — без LOVABLE_API_KEY (R13.1, R13.2, R13.3, R13.5)", () => {
+describe("AI degradation — без OPENAI_API_KEY (R13.1, R13.2, R13.3, R13.5)", () => {
   beforeEach(() => {
-    delete process.env.LOVABLE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
   });
 
   it("high_risk: runCheck даёт level/score/reasons по правилам и explanation === null", async () => {
@@ -229,7 +229,7 @@ describe("AI degradation — без LOVABLE_API_KEY (R13.1, R13.2, R13.3, R13.5)
 
 describe("AI degradation — scoring через scoreFromCodes (R13.5, R18.3)", () => {
   it("degraded (нет ключа) и skipAi:true дают идентичные level/score/reasons", async () => {
-    delete process.env.LOVABLE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
 
     for (const input of [HIGH_RISK_INPUT, SUSPICIOUS_INPUT]) {
       const degraded = await runCheck({
@@ -260,14 +260,14 @@ describe("AI degradation — scoring через scoreFromCodes (R13.5, R18.3)", 
 });
 
 // ---------------------------------------------------------------------------
-// 3) AI_Gateway недоступен (ключ есть, но шлюз отвечает ошибкой / сеть падает)
+// 3) AI provider недоступен (ключ есть, но провайдер отвечает ошибкой / сеть падает)
 //    → деградация к explanation === null без таймаута сверх предела (R13.1, R18.3).
 // ---------------------------------------------------------------------------
 
-describe("AI degradation — ошибка AI_Gateway при наличии ключа (R13.1, R18.3)", () => {
-  it("шлюз отвечает 500 → explanation === null, вердикт по правилам", async () => {
-    process.env.LOVABLE_API_KEY = "test-lovable-api-key";
-    // Override the default throwing stub with a non-ok gateway response.
+describe("AI degradation — ошибка AI-провайдера при наличии ключа (R13.1, R18.3)", () => {
+  it("провайдер отвечает 500 → explanation === null, вердикт по правилам", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    // Override the default throwing stub with a non-ok provider response.
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -291,7 +291,7 @@ describe("AI degradation — ошибка AI_Gateway при наличии кл�
   });
 
   it("сетевая ошибка (fetch throws) → explanation === null", async () => {
-    process.env.LOVABLE_API_KEY = "test-lovable-api-key";
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
     // Default beforeEach stub already throws; assert the degradation path.
     const result = await runCheck({
       input: SUSPICIOUS_INPUT,
@@ -313,7 +313,7 @@ describe("AI degradation — ошибка AI_Gateway при наличии кл�
 
 describe("AI degradation — end-to-end через handleCheck (R13.1, R13.2, R13.3)", () => {
   beforeEach(() => {
-    delete process.env.LOVABLE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
   });
 
   it("handleCheck отправляет один sendMessage с уровнем + ADVICE, без блока объяснения", async () => {

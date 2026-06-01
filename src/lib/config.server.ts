@@ -3,9 +3,9 @@ import process from "node:process";
 // Server-only config. The .server.ts suffix prevents Vite from bundling
 // this file into the client — values here never reach the browser.
 //
-// On Cloudflare Workers, env binds at REQUEST time. Module-scope reads
-// (e.g. `const x = process.env.X`) resolve to undefined — always read
-// process.env INSIDE a function or handler.
+// Read env INSIDE a function/handler, not at module scope. Most runtimes
+// (Node included) make this work either way, but some edge runtimes bind env
+// at REQUEST time, so per-request reads keep the code portable.
 //
 // When to use which env-access pattern:
 //   - .server.ts module (this file): server-only helpers reused across
@@ -27,12 +27,11 @@ export function getServerConfig() {
 
 // --- Telegram bot secrets (server-only) ---
 //
-// Read per-request inside handlers (CODING_RULES §6). On Cloudflare the env
-// binds at request time, so module-scope reads resolve to undefined. Each
-// accessor returns `string | undefined` so callers can fail closed (e.g. the
-// webhook returns 401 when a secret is missing — R17.4) instead of crashing.
-// LOVABLE_API_KEY and the Supabase secrets already exist elsewhere and are not
-// duplicated here.
+// Read per-request inside handlers (CODING_RULES §6), so module-scope reads are
+// avoided. Each accessor returns `string | undefined` so callers can fail
+// closed (e.g. the webhook returns 401 when a secret is missing — R17.4)
+// instead of crashing. OPENAI_API_KEY and the Supabase secrets are read where
+// they are used and are not duplicated here.
 
 /**
  * Telegram Bot API token, used to authenticate calls to the Bot API.

@@ -1,0 +1,22 @@
+# Railway config-as-code. https://docs.railway.app/guides/config-as-code
+#
+# Build: use the repo Dockerfile (multi-stage Node SSR; Nitro node-server
+# preset emits dist/server/index.mjs). Railway injects $PORT at runtime, which
+# the server already reads (HOST defaults to 0.0.0.0).
+#
+# Secrets are NOT defined here — set them as Railway service variables:
+#   SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID,
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET,
+#   OPENAI_API_KEY (optional), OPENAI_MODEL (optional), OPENAI_BASE_URL (optional)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# The Dockerfile CMD already runs `node dist/server/index.mjs`; no override.
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
