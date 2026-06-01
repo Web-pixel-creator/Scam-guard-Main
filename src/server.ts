@@ -16,6 +16,11 @@ import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
 // token FIRST and fails closed (R12 / R17.4) — this binding does not weaken it.
 const TELEGRAM_WEBHOOK_PATH = "/api/telegram/webhook";
 
+// Lightweight liveness endpoint for platform health checks (Railway, etc.).
+// Answers 200 without touching the SSR renderer, so probes stay cheap and do
+// not depend on React rendering or any downstream service.
+const HEALTHZ_PATH = "/healthz";
+
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
@@ -53,13 +58,21 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const { pathname } = new URL(request.url);
+
+      // Health check: cheap 200, no SSR. Handled before everything else so
+      // platform liveness probes never render React or hit downstream services.
+      if (pathname === HEALTHZ_PATH) {
+        return new Response("ok", {
+          status: 200,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+
       // Telegram webhook: handle POST /api/telegram/webhook here, ahead of the
       // SSR/server entry. The core fails closed on a missing/invalid token.
-      if (request.method === "POST") {
-        const { pathname } = new URL(request.url);
-        if (pathname === TELEGRAM_WEBHOOK_PATH) {
-          return await handleTelegramWebhook(request);
-        }
+      if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
+        return await handleTelegramWebhook(request);
       }
 
       const handler = await getServerEntry();
