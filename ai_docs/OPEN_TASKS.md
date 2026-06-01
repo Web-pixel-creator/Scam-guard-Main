@@ -1,42 +1,45 @@
 # Open Tasks
 
-## Fragile / risky spots (handle with care)
+## Fragile / risky spots
 
-- **In-memory rate limit & entity reads** (`rate-limit.ts`) are per-worker on stateless edge — not a real global limit. Abuse protection is best-effort. Consider a shared store (KV/Redis) if abuse appears.
-- **AI gateway dependency** — if `LOVABLE_API_KEY` is missing, explanations + OCR silently return `null`. Scoring still works, but the UX loses its "why".
-- **`.env` ships public keys** — fine (publishable/anon), but make sure service-role / AI keys never land here or in client bundles.
-- **`entities` boost hack** — in `checkInput`, a confirmed high-risk entity adds `asks_to_install_apk` as a proxy code to raise the score. Works, but it's a semantic hack; consider a dedicated `known_reported` reason code.
-- **Telegram risk is a placeholder** — `evaluateTelegram` only returns `unknown_sender` (no account-age/lookup data yet).
-- **Large route file** — `routes/index.tsx` is very large (inline trilingual content). Splitting into section components would help maintainability.
-- **`payment` input_type** exists in the enum but has no dedicated detector/rules yet.
+- **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
+- **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
+- **`entities` boost hack:** a confirmed high-risk entity currently adds `asks_to_install_apk` as a proxy reason code. Add a real `known_reported` reason code.
+- **Telegram risk enrichment is shallow:** `evaluateTelegram` returns `unknown_sender`; no account-age/metadata lookup yet.
+- **`payment` input_type exists but has no dedicated detector/rules yet.**
+- **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
+- **CI not in `main` yet:** GitHub token needs `workflow` scope before `.github/workflows/ci.yml` can be pushed.
 
 ## Near-term product tasks
 
-- [ ] **Telegram bot MVP** — `/start /check /report /help /safety`; reuse `lib/risk/*` and server fns. (Highest-leverage channel for UZ.)
-- [ ] **New reason codes** (see `SCAM_COVERAGE.md`): `asks_to_scan_qr` (Telegram QR takeover → high_risk), `relative_in_distress` ("friend in an accident, send money"), `fake_delivery_payment`; add RU/UZ patterns + REASON_LABELS + weights.
-- [ ] **Panic / live-call helper** + **emergency checklist** surfaced in the bot (time-wasting calls can't be detected by duration — handle behaviorally).
-- [ ] **Vulnerable-user (elderly) layer**: simple language, trusted-contact / family-share of a verdict.
-- [ ] **Screenshot reports** — `reports.screenshot_url` exists but the upload path (Supabase Storage + retention) isn't wired in the report flow.
-- [ ] Add a real `known_reported` reason code + weight instead of the apk proxy.
-- [ ] Phone enrichment (carrier/validity) and Telegram metadata lookup integrations.
-- [ ] Official "verified" contacts seed (banks, operators, Central Bank) → `verified_official`.
-- [ ] Recent scam alerts feed + ingestion of official warnings.
+- [ ] Add `known_reported` reason code + weight and remove the APK proxy boost.
+- [ ] Add fake delivery / courier-payment rule (`fake_delivery_payment`) and payment-before-service patterns.
+- [ ] Add malicious file attachment education/rule coverage for unknown GIF/APK/sticker-like bait shared in Telegram.
+- [ ] Add "fake boss / official request" coverage: impersonating a manager, authority or workplace contact to request personal data.
+- [ ] Add official verified contacts seed (banks, operators, Central Bank) -> `verified_official`.
+- [ ] Add screenshot report upload path only after retention policy is defined.
+- [ ] Add panic/live-call helper and trusted-contact sharing for elderly/vulnerable users.
+
+## Research feed
+
+Use `https://t.me/pressauz` as a research feed for Uzbekistan scam patterns. Do not copy posts verbatim into the app. Summarize recurring tactics into:
+
+1. a `SCAM_COVERAGE.md` category,
+2. a reason-code proposal or education-only note,
+3. RU/UZ/EN wording,
+4. tests before enabling a scoring rule.
+
+Recent useful feed themes: suspicious foreign calls asking for SMS/card data, malicious Telegram files/GIFs, fake boss/official requests, APK "security app" theft, fake service/payment intermediaries.
 
 ## Later / scaling
 
-- [ ] Native mobile app (Android first for call/SMS protection).
-- [ ] B2B API (`/v1/check/*`, `/v1/risk-score`) with API-key auth for banks/fintech/marketplaces.
-- [ ] Shared rate-limit + caching layer.
-- [ ] Analytics on scam trends (privacy-safe aggregates only).
+- [ ] Native mobile app (Android first for SMS/call protection).
+- [ ] B2B API with API-key auth.
+- [ ] Shared cache/rate-limit layer.
+- [ ] Privacy-safe analytics on scam trends.
 
-## Compliance / legal (do before scaling reports)
+## Compliance / legal
 
-- [ ] Review UZ personal-data law for storage of `redacted_value`, `description`, `amount_lost_uzs`, `city`.
-- [ ] Define data-retention windows for `checks` and `reports`.
-- [ ] Moderation guidelines + audit log for admin actions.
-
-## Unknowns
-
-- Production hosting target confirmation (Cloudflare assumed from Lovable default).
-- Whether a Supabase Storage bucket is provisioned for screenshots.
-- Real traffic volumes (affects rate-limit + DB indexing decisions).
+- [ ] Review UZ personal-data law for `redacted_value`, `description`, `amount_lost_uzs`, `city`.
+- [ ] Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.
+- [ ] Moderation guidelines + admin audit log.

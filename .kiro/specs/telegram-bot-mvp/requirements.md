@@ -1,5 +1,11 @@
 # Requirements Document
 
+> Current implementation note (2026-06-01): this MVP is implemented in `main`.
+> Runtime is self-hosted Node/Nitro `node-server`; AI uses the OpenAI-compatible
+> env contract (`OPENAI_API_KEY`, optional `OPENAI_MODEL`, `OPENAI_BASE_URL`).
+> Older platform names in historical text should be read through this current
+> deployment model.
+
 ## Introduction
 
 Документ описывает требования к MVP Telegram-бота для проекта **Ishonch Guard** — антимошеннического ассистента для Узбекистана. Бот добавляется как **новый канал** к уже работающему веб-приложению и **переиспользует** существующий risk engine (`src/lib/risk/*`) и серверные функции (`checkInput`, `ocrExtract`, `submitReport`), а также общую модель данных Supabase (таблицы `checks`, `reports`, `entities`).
@@ -8,7 +14,7 @@
 
 Бот должен работать на трёх языках (RU / UZ / EN), учитывать локальные сценарии мошенничества (поддельный Центробанк / банк / оператор, фейковые кредиты, кража OTP, установка APK, перевод на «безопасный счёт», просьба отсканировать QR-код для захвата Telegram-аккаунта, схема «родственник/друг в беде — срочно переведите», затягивание живого звонка) и строго соблюдать приватность: чувствительные данные редактируются и хешируются, изображения не сохраняются, никого нельзя называть мошенником поимённо.
 
-Ключевой архитектурный принцип сохраняется: **scoring выполняется детерминированными правилами (rules-first), AI только объясняет**. Если AI Gateway недоступен, бот продолжает выдавать уровень риска и советы, теряя лишь текстовое объяснение.
+Ключевой архитектурный принцип сохраняется: **scoring выполняется детерминированными правилами (rules-first), AI только объясняет**. Если AI provider недоступен, бот продолжает выдавать уровень риска и советы, теряя лишь текстовое объяснение.
 
 ## Glossary
 
@@ -19,15 +25,15 @@
 - **Chat_Id**: числовой идентификатор чата Telegram, в котором происходит взаимодействие.
 - **Risk_Engine**: существующий модуль `src/lib/risk/*` (`detect.ts`, `rules.ts`, `hash.ts`, `rate-limit.ts`).
 - **Check_Pipeline**: существующая логика проверки (`checkInput`): `detectInputType` → `normalize` → `redactText`/`maskForDisplay` → правила `evaluate*` → lookup в `entities` → `scoreFromCodes` → `aiExplain` → запись в `checks`.
-- **OCR_Pipeline**: существующая логика `ocrExtract` / `ocrScreenshot` — извлечение и редактирование текста из изображения через Gemini Vision.
+- **OCR_Pipeline**: существующая логика `ocrExtract` / `ocrScreenshot` — извлечение и редактирование текста из изображения через OpenAI-compatible vision model.
 - **Report_Pipeline**: существующая логика `submitReport` — вставка строки в `reports` и upsert/инкремент строки в `entities`.
 - **Risk_Level**: один из `safe | unknown | suspicious | high_risk` (enum `risk_level`).
 - **Input_Type**: один из `phone | telegram | url | text | payment | apk | unknown` (enum `input_type`).
 - **Reason_Code**: код «красного флага» из `rules.ts` (например `asks_for_otp`, `apk_download_link`).
 - **ADVICE**: набор трилингвальных советов по уровню риска из `rules.ts`.
 - **REASON_LABELS**: трилингвальные человекочитаемые названия reason codes из `rules.ts`.
-- **AI_Gateway**: Lovable AI Gateway (`https://ai.gateway.lovable.dev`), модель `google/gemini-2.5-flash`.
-- **LOVABLE_API_KEY**: секретный ключ доступа к AI_Gateway.
+- **AI_Provider**: OpenAI-compatible AI provider (`OPENAI_BASE_URL`), модель `OPENAI_MODEL`.
+- **OPENAI_API_KEY**: секретный ключ доступа к AI_Provider.
 - **Webhook_Secret_Token**: секретный токен, передаваемый Telegram в заголовке `X-Telegram-Bot-Api-Secret-Token` для подтверждения подлинности webhook-запроса.
 - **Bot_Token**: секретный токен авторизации бота в Telegram Bot API, хранимый только на сервере.
 - **Language (Lang)**: выбранный язык интерфейса бота, один из `ru | uz | en`.
@@ -95,12 +101,12 @@
 
 #### Acceptance Criteria
 
-1. WHEN пользователь присылает изображение (фото или документ-изображение), THE Telegram_Bot SHALL извлечь и отредактировать текст через OCR_Pipeline (Gemini Vision) на текущем Language.
+1. WHEN пользователь присылает изображение (фото или документ-изображение), THE Telegram_Bot SHALL извлечь и отредактировать текст через OCR_Pipeline (OpenAI-compatible vision model) на текущем Language.
 2. THE Telegram_Bot SHALL передавать извлечённый отредактированный текст в Check_Pipeline для оценки риска.
 3. THE Telegram_Bot SHALL обрабатывать изображение только в памяти на время запроса и не сохранять файл изображения в базу данных, объектное хранилище или на диск.
 4. WHEN обработка изображения завершена, THE Telegram_Bot SHALL отправить тот же формат результата, что и для текстовой проверки (Risk_Level, объяснение, Reason_Code, ADVICE, кнопки Report / Check another).
 5. IF размер изображения превышает лимит OCR_Pipeline (6 МБ), THEN THE Telegram_Bot SHALL отклонить изображение с понятным сообщением на текущем Language.
-6. IF OCR_Pipeline не возвращает текст (например AI_Gateway недоступен), THEN THE Telegram_Bot SHALL сообщить пользователю, что распознать текст не удалось, и предложить прислать содержимое текстом.
+6. IF OCR_Pipeline не возвращает текст (например AI_Provider недоступен), THEN THE Telegram_Bot SHALL сообщить пользователю, что распознать текст не удалось, и предложить прислать содержимое текстом.
 
 ### Requirement 6: Отправка жалобы через Report_Pipeline (`/report`)
 
@@ -136,7 +142,7 @@
 #### Acceptance Criteria
 
 1. THE Telegram_Bot SHALL описывать результат только через Risk_Level и Reason_Code, без формулировок, утверждающих, что конкретное названное лицо является мошенником.
-2. THE Telegram_Bot SHALL включать в системную инструкцию для AI_Gateway требование не обвинять конкретное лицо (сохраняя существующее поведение `aiExplain`).
+2. THE Telegram_Bot SHALL включать в системную инструкцию для AI_Provider требование не обвинять конкретное лицо (сохраняя существующее поведение `aiExplain`).
 3. WHERE результат относится к Confirmed_Entity, THE Telegram_Bot SHALL сообщать только агрегированные данные (уровень риска, количество подтверждённых жалоб), без раскрытия личности.
 
 ### Requirement 9: Публичность жалоб только после модерации
@@ -185,17 +191,17 @@
 5. IF обработка Telegram_Update вызывает внутреннюю ошибку (processing error) после успешной проверки токена, THEN THE Webhook_Handler SHALL логировать ошибку и возвращать Telegram HTTP-статус 200, чтобы избежать бесконечных повторных доставок.
 6. IF ошибка возникает на этапе проверки токена (token validation error), THEN THE Webhook_Handler SHALL возвращать HTTP-статус 401, а не 200.
 
-### Requirement 13: Деградация при недоступности AI_Gateway
+### Requirement 13: Деградация при недоступности AI_Provider
 
 **User Story:** Как пользователь, я хочу получать уровень риска и советы даже если AI-объяснение недоступно, чтобы сервис оставался полезным при сбоях.
 
 #### Acceptance Criteria
 
-1. IF LOVABLE_API_KEY отсутствует или AI_Gateway возвращает ошибку, THEN THE Telegram_Bot SHALL всё равно отправить Risk_Level, список Reason_Code и ADVICE на текущем Language.
-2. THE Telegram_Bot SHALL всегда отправлять советы (ADVICE) даже при полном отсутствии доступа к AI_Gateway, используя локальный ADVICE из `rules.ts` как fallback-контент.
+1. IF OPENAI_API_KEY отсутствует или AI_Provider возвращает ошибку, THEN THE Telegram_Bot SHALL всё равно отправить Risk_Level, список Reason_Code и ADVICE на текущем Language.
+2. THE Telegram_Bot SHALL всегда отправлять советы (ADVICE) даже при полном отсутствии доступа к AI_Provider, используя локальный ADVICE из `rules.ts` как fallback-контент.
 3. WHEN AI-объяснение недоступно (`explanation` = null), THE Telegram_Bot SHALL отправить результат без блока текстового объяснения, не показывая пользователю техническую ошибку, связанную с AI.
 4. WHERE сбой относится не к AI (например сетевые ошибки Telegram API, ошибки валидации ввода), THE Telegram_Bot SHALL обрабатывать и при необходимости показывать такие ошибки независимо от недоступности AI-объяснения.
-5. THE Telegram_Bot SHALL вычислять Risk_Level и score исключительно через детерминированные правила `scoreFromCodes`, независимо от доступности AI_Gateway.
+5. THE Telegram_Bot SHALL вычислять Risk_Level и score исключительно через детерминированные правила `scoreFromCodes`, независимо от доступности AI_Provider.
 
 ### Requirement 14: Локальные сценарии мошенничества Узбекистана
 
@@ -240,8 +246,8 @@
 
 #### Acceptance Criteria
 
-1. THE Telegram_Bot SHALL читать Bot_Token, Webhook_Secret_Token и LOVABLE_API_KEY только из серверных переменных окружения.
-2. THE Telegram_Bot SHALL обращаться к Telegram Bot API и AI_Gateway исключительно из серверного кода (server function / edge handler), не из клиентского bundle.
+1. THE Telegram_Bot SHALL читать Bot_Token, Webhook_Secret_Token и OPENAI_API_KEY только из серверных переменных окружения.
+2. THE Telegram_Bot SHALL обращаться к Telegram Bot API и AI_Provider исключительно из серверного кода (server function / edge handler), не из клиентского bundle.
 3. THE Telegram_Bot SHALL выполнять записи в `checks`, `reports` и `entities` через серверный клиент с service-role ключом (`supabaseAdmin`), как это делают существующие серверные функции.
 4. IF Bot_Token или Webhook_Secret_Token не сконфигурированы, THEN THE Webhook_Handler SHALL отклонять обработку обновлений и логировать ошибку конфигурации без раскрытия значений секретов.
 
@@ -251,9 +257,9 @@
 
 #### Acceptance Criteria
 
-1. WHEN пользователь присылает текстовый ввод для проверки и AI_Gateway доступен, THE Telegram_Bot SHALL отправить результат в течение 10 секунд при штатной работе зависимостей.
+1. WHEN пользователь присылает текстовый ввод для проверки и AI_Provider доступен, THE Telegram_Bot SHALL отправить результат в течение 10 секунд при штатной работе зависимостей.
 2. WHILE Check_Pipeline или OCR_Pipeline выполняется дольше 3 секунд, THE Telegram_Bot SHALL отправить промежуточный индикатор обработки (например действие «typing» или сообщение «Анализирую…») на текущем Language.
-3. WHEN AI_Gateway недоступен, THE Telegram_Bot SHALL отправить результат на основе детерминированных правил без ожидания таймаута AI сверх настроенного предела.
+3. WHEN AI_Provider недоступен, THE Telegram_Bot SHALL отправить результат на основе детерминированных правил без ожидания таймаута AI сверх настроенного предела.
 
 ### Requirement 19: Наблюдаемость и логирование без утечки данных
 
@@ -263,7 +269,7 @@
 
 1. WHEN обрабатывается Telegram_Update, THE Telegram_Bot SHALL логировать тип события, Input_Type и Risk_Level без записи в лог исходного содержимого пользователя или Sensitive_Data.
 2. IF при обработке возникает ошибка, THEN THE Telegram_Bot SHALL логировать сообщение об ошибке и контекст без полных идентификаторов и Sensitive_Data.
-3. THE Telegram_Bot SHALL не записывать в логи Bot_Token, Webhook_Secret_Token, LOVABLE_API_KEY или полные значения присланных идентификаторов.
+3. THE Telegram_Bot SHALL не записывать в логи Bot_Token, Webhook_Secret_Token, OPENAI_API_KEY или полные значения присланных идентификаторов.
 
 ### Requirement 20: Режим паники и экстренные шаги (`/emergency`)
 
@@ -305,7 +311,7 @@
 Следующие решения не зафиксированы в требованиях и должны быть приняты на этапе design:
 
 1. **Bot framework / runtime** — использовать ли легковесную обработку Telegram Bot API вручную в server function (TanStack Start, как существующие RPC) или библиотеку (`grammY` / `telegraf`). Влияет на структуру Webhook_Handler.
-2. **Хостинг webhook-обработчика** — отдельный маршрут в текущем приложении (Cloudflare/Nitro по умолчанию Lovable) против отдельной serverless-функции. Требование 12 предполагает HTTP-эндпоинт, но размещение открыто.
+2. **Хостинг webhook-обработчика** — отдельный маршрут в текущем приложении (Node runtime/Nitro node-server preset) против отдельной serverless-функции. Требование 12 предполагает HTTP-эндпоинт, но размещение открыто.
 3. **Персистентность Session_State и Language** — in-memory (per-worker, теряется при рестарте, как текущий rate-limit) против таблицы Supabase (новая таблица `telegram_sessions`) против Telegram-side хранения. Влияет на требования 2, 6, 15 и на сохранение языка между сессиями.
 4. **Rate-limit store** — переиспользовать существующий in-memory `checkRateLimit` (best-effort, per-worker) против общего хранилища (KV/Redis). Связано с известным риском в `OPEN_TASKS.md`.
 5. **Расширение `checks` для канала** — нужно ли добавлять признак канала (web / telegram) в таблицу `checks` для аналитики; сейчас схема его не содержит.

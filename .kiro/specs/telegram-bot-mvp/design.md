@@ -1,14 +1,19 @@
 # Design Document: Telegram Bot MVP (Ishonch Guard)
 
+> Current implementation note (2026-06-01): the webhook is bound in `src/server.ts`
+> and delegated to `src/lib/telegram/webhook.server.ts`. Production target is
+> Nitro `node-server`, not Lovable Cloud. AI calls use an OpenAI-compatible
+> provider and degrade to `null` when unavailable.
+
 ## Overview
 
 _(Обзор)_
 
-Telegram-бот добавляется к существующему веб-приложению Ishonch Guard как **новый канал**, не меняя архитектурный принцип «scoring правилами, AI только объясняет». Бот принимает обновления Telegram через HTTPS-webhook (TanStack Start server route на рантайме Nitro / Cloudflare Workers), маршрутизирует их (команда / шаг сценария / свободный контент / callback / фото / контакт), переиспользует risk engine (`src/lib/risk/*`) и серверные конвейеры (`checkInput`, `ocrExtract`, `submitReport`) через **вынесенное общее ядро** и отвечает пользователю на одном из трёх языков (RU / UZ / EN) с уровнем риска, объяснением, reason-кодами, советами (ADVICE) и inline-кнопками.
+Telegram-бот добавляется к существующему веб-приложению Ishonch Guard как **новый канал**, не меняя архитектурный принцип «scoring правилами, AI только объясняет». Бот принимает обновления Telegram через HTTPS-webhook (TanStack Start server entry на рантайме Nitro / Node server instances), маршрутизирует их (команда / шаг сценария / свободный контент / callback / фото / контакт), переиспользует risk engine (`src/lib/risk/*`) и серверные конвейеры (`checkInput`, `ocrExtract`, `submitReport`) через **вынесенное общее ядро** и отвечает пользователю на одном из трёх языков (RU / UZ / EN) с уровнем риска, объяснением, reason-кодами, советами (ADVICE) и inline-кнопками.
 
 Ключевая архитектурная задача — **не дублировать** логику scoring/redaction/AI/lookup. Сейчас вся проверка живёт внутри `createServerFn`-обёртки `checkInput`, которая жёстко привязана к HTTP-контексту веба (rate-limit по IP через `getRequestHeader`/`getRequestIP`). Чтобы бот мог переиспользовать ту же логику с rate-limit по `telegram_user_id`, мы выносим транспортно-независимое ядро в `src/lib/risk/check-core.ts`. Существующий `checkInput` становится тонкой обёрткой над ядром (извлекает IP → строит `rateLimitKey` → вызывает ядро), а бот вызывает то же ядро с ключом на основе `telegram_user_id`.
 
-Состояние диалога (`Session_State`) и выбранный язык **не** хранятся in-memory: на edge/Cloudflare воркеры не шарят память и не переживают рестарт. Вводится таблица Supabase `telegram_sessions`, доступная только service-role, как единый источник правды для языка и текущего шага сценария.
+Состояние диалога (`Session_State`) и выбранный язык **не** хранятся in-memory: на edge/Node runtime воркеры не шарят память и не переживают рестарт. Вводится таблица Supabase `telegram_sessions`, доступная только service-role, как единый источник правды для языка и текущего шага сценария.
 
 Бот строго соблюдает приватность: чувствительные данные редактируются (`redactText`) и хешируются (`hashIdentifier`) до любой записи в БД, изображения обрабатываются только в памяти и не сохраняются, никого не называют мошенником поимённо — только Risk_Level + reason codes.
 
@@ -40,7 +45,7 @@ _(Архитектура)_
 
 ```mermaid
 graph TD
-    TG[Telegram Bot API] -->|POST update + X-Telegram-Bot-Api-Secret-Token| WH[Webhook server route<br/>src/routes/api/telegram/webhook.ts]
+    TG[Telegram Bot API] -->|POST update + X-Telegram-Bot-Api-Secret-Token| WH[Webhook server route<br/>src/server.ts + src/lib/telegram/webhook.server.ts]
     WH -->|1. verify secret token FIRST| AUTH{Secret token valid?}
     AUTH -->|no| R401[401, без валидации структуры]
     AUTH -->|yes| VAL[Zod-валидация структуры update]
@@ -57,7 +62,7 @@ graph TD
     CORE --> DETECT[risk/detect.ts<br/>detectInputType/normalize/redact]
     CORE --> RL[risk/rate-limit.ts<br/>key = tg:USER_ID]
     CORE --> ENT[(entities lookup)]
-    CORE --> AI[Lovable AI Gateway<br/>опционально, деградирует к null]
+    CORE --> AI[OpenAI-compatible AI provider<br/>опционально, деградирует к null]
     CORE --> CHK[(checks insert<br/>redacted+hashed)]
 
     FMT --> SEND[Telegram API helper<br/>telegram/api.server.ts<br/>sendMessage/sendChatAction/answerCallbackQuery]
@@ -137,7 +142,7 @@ sequenceDiagram
 
 _(Компоненты и интерфейсы)_
 
-> Ниже приведены только сигнатуры, типы и контракты. Полная реализация — на этапе задач. Все модули с суффиксом `.server.ts` и любой код, читающий секреты, **никогда** не импортируется в клиент (CODING_RULES §2). Секреты читаются **внутри** хендлеров (per-request на Cloudflare), не на уровне модуля (CODING_RULES §6).
+> Ниже приведены только сигнатуры, типы и контракты. Полная реализация — на этапе задач. Все модули с суффиксом `.server.ts` и любой код, читающий секреты, **никогда** не импортируется в клиент (CODING_RULES §2). Секреты читаются **внутри** хендлеров (per-request на Node runtime), не на уровне модуля (CODING_RULES §6).
 
 ### 1. Общее ядро проверки — `src/lib/risk/check-core.ts`
 
@@ -182,7 +187,7 @@ export type RateLimitedError = Error & { status: 429; retryAfter: number };
  *  - score/level вычисляются ТОЛЬКО scoreFromCodes (детерминированно, R13.5).
  *  - В checks пишутся только redacted + hashed данные (R7).
  *  - При превышении лимита бросает RateLimitedError (status 429, retryAfter).
- *  - explanation === null при отсутствии LOVABLE_API_KEY или ошибке AI (R13).
+ *  - explanation === null при отсутствии OPENAI_API_KEY или ошибке AI (R13).
  */
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult>;
 
@@ -305,9 +310,9 @@ export function setLanguage(telegramUserId: number, lang: Lang): Promise<{ ok: b
 export function resetScenario(telegramUserId: number): Promise<void>;
 ```
 
-### 4. Webhook server route — `src/routes/api/telegram/webhook.ts`
+### 4. Webhook server route — `src/server.ts + src/lib/telegram/webhook.server.ts`
 
-HTTP-эндпоинт для Telegram. Размещается внутри текущего приложения как server route (Open Decision 2 — отдельный маршрут в текущем приложении на Nitro/Cloudflare). В TanStack Start v1 server route объявляется через серверный обработчик метода `POST` (точная форма API — `createServerFileRoute(...).methods({ POST })` или route-`server.handlers`, фиксируется на этапе задач; контракт ниже не зависит от формы).
+HTTP-эндпоинт для Telegram. Размещается внутри текущего приложения как server route (Open Decision 2 — отдельный маршрут в текущем приложении на Nitro node-server). В TanStack Start v1 server route объявляется через серверный обработчик метода `POST` (точная форма API — `createServerFileRoute(...).methods({ POST })` или route-`server.handlers`, фиксируется на этапе задач; контракт ниже не зависит от формы).
 
 ```typescript
 // Псевдо-контракт обработчика (порядок шагов фиксирован Requirement 12).
@@ -560,9 +565,9 @@ REVOKE EXECUTE ON FUNCTION public.prune_telegram_sessions() FROM PUBLIC, anon, a
 
 > Типы `src/integrations/supabase/types.ts` генерируются автоматически — после применения миграции их нужно регенерировать, не редактируя руками (CODING_RULES).
 
-### Почему Supabase, а не Cloudflare KV (Open Decision 3)
+### Почему Supabase, а не Node runtime KV (Open Decision 3)
 
-| Критерий | In-memory (текущий rate-limit) | Cloudflare KV | **Supabase `telegram_sessions`** |
+| Критерий | In-memory (текущий rate-limit) | Node runtime KV | **Supabase `telegram_sessions`** |
 |---|---|---|---|
 | Переживает рестарт воркера | ❌ | ✅ | ✅ |
 | Шарится между воркерами/регионами | ❌ | ✅ (eventual) | ✅ (строгая) |
@@ -571,7 +576,7 @@ REVOKE EXECUTE ON FUNCTION public.prune_telegram_sessions() FROM PUBLIC, anon, a
 | Реляционная связность/очистка/аналитика | — | ограничена | ✅ SQL + TTL-функция |
 | Стоимость инфраструктуры | 0 | отдельный продукт | в рамках уже оплаченной БД |
 
-Выбор — **Supabase**: сессия требует строгой согласованности между шагами сценария (R15.3), а проект уже использует service-role клиент для всех серверных записей (R17.3). KV дал бы eventual-consistency и потребовал бы нового binding вне текущего шаблона Lovable. In-memory исключён требованием R15 (состояние не должно теряться при рестарте).
+Выбор — **Supabase**: сессия требует строгой согласованности между шагами сценария (R15.3), а проект уже использует service-role клиент для всех серверных записей (R17.3). KV дал бы eventual-consistency и потребовал бы нового binding вне текущей self-hosted Node архитектуры. In-memory исключён требованием R15 (состояние не должно теряться при рестарте).
 
 ### Расширение `checks` каналом (Open Decision 5) — не в MVP
 
@@ -711,10 +716,10 @@ _(Стратегия тестирования)_
   - валидный токен + бросок в обработчике → 200;
   - фото → `getFile`+`downloadFileAsDataUrl` (в память) → OCR → check; файл не сохраняется.
 - Сценарий жалобы: многошаговый ввод (value → desc → optional) с сохранением `telegram_sessions` на каждом шаге (R15.2), прерывание командой, успешный `submitReport` → `entities.moderation_status='new'` (R9.1).
-- Деградация AI: без `LOVABLE_API_KEY` ответ содержит уровень + reasons + ADVICE, без блока объяснения.
+- Деградация AI: без `OPENAI_API_KEY` ответ содержит уровень + reasons + ADVICE, без блока объяснения.
 
 ### Что мокается
-Telegram Bot API (fetch), Lovable AI Gateway (fetch), `supabaseAdmin`. Реальные внешние вызовы в тестах не выполняются. Секреты в тестах — фиктивные значения через окружение.
+Telegram Bot API (fetch), OpenAI-compatible AI provider (fetch), `supabaseAdmin`. Реальные внешние вызовы в тестах не выполняются. Секреты в тестах — фиктивные значения через окружение.
 
 ## Deployment и секреты
 
@@ -724,12 +729,12 @@ Telegram Bot API (fetch), Lovable AI Gateway (fetch), `supabaseAdmin`. Реал�
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | авторизация в Telegram Bot API |
 | `TELEGRAM_WEBHOOK_SECRET` | сверка с `X-Telegram-Bot-Api-Secret-Token` |
-| `LOVABLE_API_KEY` | AI Gateway (уже есть; деградация при отсутствии) |
+| `OPENAI_API_KEY` | AI provider (уже есть; деградация при отсутствии) |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | уже есть; для `supabaseAdmin` |
 
 Шаги развёртывания:
 1. Применить миграцию `telegram_sessions`; регенерировать `types.ts`.
-2. Задать секреты в окружении Lovable Cloud / Cloudflare (не в репозитории, не в `VITE_*`).
+2. Задать секреты в окружении self-hosted Node runtime (не в репозитории, не в `VITE_*`).
 3. Один раз вызвать `setWebhook(<публичный URL>/api/telegram/webhook, TELEGRAM_WEBHOOK_SECRET)` (админ-скрипт).
 4. Проверить, что секреты не попадают в логи (R19.3) и в клиентский bundle (никаких `*.server.ts`/секретов в клиентских импортах — R17.2, CODING_RULES §2).
 
@@ -740,7 +745,7 @@ Telegram Bot API (fetch), Lovable AI Gateway (fetch), `supabaseAdmin`. Реал�
 | # | Решение в дизайне |
 |---|---|
 | 1. Bot framework | Ручной helper над Telegram Bot API (без grammY/telegraf) — минимум зависимостей, согласуется с «server functions, без отдельного сервера». |
-| 2. Хостинг webhook | Server route внутри текущего приложения (Nitro/Cloudflare), путь `/api/telegram/webhook`. |
+| 2. Хостинг webhook | Server route внутри текущего приложения (Nitro node-server), путь `/api/telegram/webhook`. |
 | 3. Session_State / Language | Таблица Supabase `telegram_sessions` (service-role), а не in-memory/KV — строгая согласованность для сценариев. |
 | 4. Rate-limit store | Переиспользуем in-memory `checkRateLimit` с ключом `tg:<userId>` — best-effort per-worker (R10.4); общий store вне MVP. |
 | 5. Канал в `checks` | Не добавляем колонку в MVP; `channel` только для логов. |

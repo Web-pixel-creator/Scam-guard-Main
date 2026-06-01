@@ -3,8 +3,8 @@
 // Supabase table and accessed exclusively through the service-role client
 // (`supabaseAdmin`), so this module is server-only (R17.3, CODING_RULES §2).
 //
-// State is NOT kept in-memory: edge/Cloudflare workers neither share memory nor
-// survive restarts, so the dialog state lives in Postgres (R15.1).
+// State is NOT kept in-memory: Node instances do not share memory and restarts
+// lose process-local state, so the dialog state lives in Postgres (R15.1).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Lang } from "@/lib/i18n";
