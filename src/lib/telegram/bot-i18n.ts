@@ -20,8 +20,8 @@ export const bot_dict: BotDict = {
   // ── /start: greeting + capabilities (R1.1, R1.5) ──────────────────────────
   welcome: {
     ru: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nПомогаю распознать мошенников в Узбекистане.\n\n📌 *Что я умею:*\n• Проверить номер, ссылку или скриншот\n• Оценить подозрительное сообщение\n• Дать срочные шаги при обмане\n\n👇 *Отправьте что-нибудь для проверки* или выберите язык:",
-    uz: "Assalomu alaykum! Men Ishonch Guard — O‘zbekistonda firibgarlarni tanib olishga yordam beraman.\n\nTelefon raqami, Telegram-username, havola, APK-havola, xabar matni yoki skrinshot yuboring — men xavfni baholab, nima qilish kerakligini aytaman.\n\nIltimos, tilni tanlang:",
-    en: "Hello! I’m Ishonch Guard — I help you spot scammers in Uzbekistan.\n\nSend a phone number, Telegram username, link, APK link, message text or screenshot — I’ll assess the risk and tell you what to do.\n\nPlease choose a language:",
+    uz: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nO'zbekistonda firibgarlarni tanib olishga yordam beraman.\n\n📌 *Nima qila olaman:*\n• Raqam, havola yoki skrinshotni tekshirish\n• Shubhali xabarni baholash\n• Aldov holatida shoshilinch qadamlar\n\n👇 *Tekshirish uchun biror narsa yuboring* yoki tilni tanlang:",
+    en: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nI help you spot scammers in Uzbekistan.\n\n📌 *What I can do:*\n• Check a number, link or screenshot\n• Assess a suspicious message\n• Give emergency steps if scammed\n\n👇 *Send something to check* or choose a language:",
   },
 
   // Prompt shown when asking the user to pick/switch a language (R2.1) ────────
@@ -60,15 +60,15 @@ export const bot_dict: BotDict = {
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
     ru: "📋 *Команды бота*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Начать работу\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о мошеннике\n🆘 /panic — Экстренная помощь\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "Bot buyruqlari:\n/start — ishni boshlash va tilni tanlash\n/check — raqam, havola, xabar yoki skrinshotni tekshirish\n/report — firibgar haqida xabar berish\n/emergency — agar kod yoki pul yuborgan bo‘lsangiz, shoshilinch qadamlar\n/help — shu buyruqlar ro‘yxati\n/safety — xavfsizlik qoidalari\n/lang — tilni o‘zgartirish\n\nBuyruqsiz ham xabar yuborishingiz mumkin — men uni tekshiraman.",
-    en: "Bot commands:\n/start — get started and choose a language\n/check — check a number, link, message or screenshot\n/report — report a scammer\n/emergency — urgent steps if you already sent a code or money\n/help — this list of commands\n/safety — safety rules\n/lang — change the language\n\nYou can also just send a message without a command — I’ll check it.",
+    uz: "📋 *Bot buyruqlari*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Boshlash\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Firibgar haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 *Bot Commands*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Get started\n🔍 /check — Check a number or link\n📢 /report — Report a scammer\n🆘 /panic — Emergency help\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
   },
 
   // ── /safety: basic safety rules + scope reminder (R3.2, R3.3) ─────────────
   safety: {
-    ru: "Простые правила безопасности:\n• Никому не сообщайте OTP/SMS-код, PIN, CVV/CVC или пароль — банк и операторы их не спрашивают.\n• Не устанавливайте APK и приложения по ссылкам из сообщений.\n• Не переводите деньги на «безопасный счёт» по просьбе незнакомцев.\n• Сомневаетесь — положите трубку и сами перезвоните в банк по официальному номеру (он указан на обратной стороне карты).\n• Не сканируйте чужие QR-коды «для входа» или «подтверждения».\n\nПомните: я анализирую только то содержимое, которое вы сами мне прислали. Я не читаю ваши чаты и звонки.",
-    uz: "Oddiy xavfsizlik qoidalari:\n• Hech kimga OTP/SMS-kod, PIN, CVV/CVC yoki parolni aytmang — bank va operatorlar ularni so‘ramaydi.\n• Xabardagi havolalar orqali APK va ilovalar o‘rnatmang.\n• Notanish odamlarning iltimosiga ko‘ra «xavfsiz hisob»ga pul o‘tkazmang.\n• Shubha qilsangiz — go‘shakni qo‘ying va bankka o‘zingiz rasmiy raqami orqali qo‘ng‘iroq qiling (u karta orqasida yozilgan).\n• «Kirish» yoki «tasdiqlash» uchun begona QR-kodlarni skanerlamang.\n\nEsda tuting: men faqat o‘zingiz yuborgan ma’lumotni tahlil qilaman. Chat va qo‘ng‘iroqlaringizni o‘qimayman.",
-    en: "Simple safety rules:\n• Never share an OTP/SMS code, PIN, CVV/CVC or password — banks and operators don’t ask for them.\n• Don’t install APKs or apps from links in messages.\n• Don’t transfer money to a “safe account” when strangers ask.\n• If in doubt — hang up and call the bank yourself using the official number (it’s on the back of your card).\n• Don’t scan someone else’s QR codes “to log in” or “to confirm”.\n\nRemember: I only analyze the content you send me yourself. I don’t read your chats or calls.",
+    ru: "🛡 *Правила безопасности*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Никому не сообщайте OTP/SMS-код, PIN, CVV или пароль\n❌ Не устанавливайте APK по ссылкам из сообщений\n❌ Не переводите деньги на «безопасный счёт»\n❌ Не сканируйте чужие QR-коды «для входа»\n\n✅ Сомневаетесь — положите трубку\n✅ Перезвоните в банк по номеру с карты\n✅ Проверьте номер/ссылку через этого бота\n\n🔒 Я анализирую только то, что вы сами присылаете. Я не читаю ваши чаты.",
+    uz: "🛡 *Xavfsizlik qoidalari*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Hech kimga OTP/SMS-kod, PIN, CVV yoki parolni aytmang\n❌ Xabardagi havolalar orqali APK o‘rnatmang\n❌ «Xavfsiz hisob»ga pul o‘tkazmang\n❌ Begona QR-kodlarni skanerlamang\n\n✅ Shubha qilsangiz — go‘shakni qo‘ying\n✅ Bankka karta orqasidagi raqam orqali qo‘ng‘iroq qiling\n✅ Raqam/havolani shu bot orqali tekshiring\n\n🔒 Men faqat o‘zingiz yuborgan ma‘lumotni tahlil qilaman. Chatlaringizni o‘qimayman.",
+    en: "🛡 *Safety Rules*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Never share OTP/SMS codes, PIN, CVV or passwords\n❌ Don't install APKs from message links\n❌ Don't transfer money to a 'safe account'\n❌ Don't scan someone else's QR codes\n\n✅ If in doubt — hang up\n✅ Call your bank using the number on your card\n✅ Check the number/link with this bot\n\n🔒 I only analyze what you send me. I don't read your chats.",
   },
 
   // ── /emergency: numbered checklist (R20.1, R20.2, R20.5) ──────────────────
@@ -222,24 +222,24 @@ export const bot_dict: BotDict = {
 
   // ── Inline button labels (R1.1, R4.6, R20.3, R6.3) ────────────────────────
   btn_report: {
-    ru: "Сообщить",
-    uz: "Xabar berish",
-    en: "Report",
+    ru: "📢 Сообщить",
+    uz: "📢 Xabar berish",
+    en: "📢 Report",
   },
   btn_check_another: {
-    ru: "Проверить ещё",
-    uz: "Yana tekshirish",
-    en: "Check another",
+    ru: "🔄 Проверить ещё",
+    uz: "🔄 Yana tekshirish",
+    en: "🔄 Check another",
   },
   btn_emergency: {
-    ru: "Я уже отправил код/деньги",
+    ru: "🆘 Я уже отправил код/деньги",
     uz: "Men kod/pul yuborib qo‘ydim",
-    en: "I already sent a code/money",
+    en: "🆘 I already sent a code/money",
   },
   btn_skip: {
-    ru: "Пропустить",
+    ru: "⏭ Пропустить",
     uz: "O‘tkazib yuborish",
-    en: "Skip",
+    en: "⏭ Skip",
   },
   // Language buttons keep the language’s own name in every locale (like LANGS in i18n.ts).
   btn_lang_ru: {
