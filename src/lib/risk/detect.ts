@@ -6,13 +6,24 @@ const PHONE_RE = /^[+]?[\d][\d\s\-()]{6,18}\d$/;
 const TG_USERNAME_RE = /^@?[a-zA-Z][a-zA-Z0-9_]{3,31}$/;
 const TG_LINK_RE = /(t\.me|telegram\.me)\//i;
 const URL_RE = /\bhttps?:\/\/\S+|\bwww\.\S+\.\S+/i;
+const PURE_URL_RE = /^(?:https?:\/\/|www\.)\S+$/i;
 const APK_RE = /\.apk(\?|$)/i;
+const PAYMENT_ACTION_RE = /\b(pay|payment|paid|fee|transfer|prepay|deposit|invoice|receipt|top.?up|click|payme|uzum|uzcard|humo|to['’]?lov|tolov|o['’]?tkaz|pul|karta|avans|bron)\b/i;
+const PAYMENT_CONTEXT_RE = /\b(uzs|sum|soum|so['’]?m|som|usd|card|karta|bank|qr|merchant|order|parcel|delivery|shipping|click|payme|uzum|uzcard|humo)\b|[$₽]/i;
+const PAYMENT_AMOUNT_RE = /(?:[$₽]\s?\d+|\b\d{1,3}(?:[ .]\d{3})+\b|\b\d{4,}\s?(?:uzs|sum|soum|so['’]?m|som|usd)?\b|\b\d+(?:[.,]\d{2})\s?(?:uzs|sum|soum|so['’]?m|som|usd)\b)/i;
+
+export function looksLikePaymentInput(raw: string): boolean {
+  const v = raw.trim();
+  if (!v || PURE_URL_RE.test(v) || APK_RE.test(v) || TG_LINK_RE.test(v)) return false;
+  return PAYMENT_ACTION_RE.test(v) && (PAYMENT_CONTEXT_RE.test(v) || PAYMENT_AMOUNT_RE.test(v));
+}
 
 export function detectInputType(raw: string): InputType {
   const v = raw.trim();
   if (!v) return "unknown";
   if (APK_RE.test(v)) return "apk";
   if (TG_LINK_RE.test(v)) return "telegram";
+  if (looksLikePaymentInput(v)) return "payment";
   if (URL_RE.test(v)) return "url";
   // Pure phone (only digits/+/()-/space, no letters/spaces of text)
   if (PHONE_RE.test(v.replace(/\s/g, "")) && !/[a-zа-я]/i.test(v)) return "phone";

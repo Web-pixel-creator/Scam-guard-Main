@@ -53,3 +53,7 @@ Added dedicated reason codes for recurring local patterns from the research-feed
 ## D-013 - Direct Vite/TanStack/Nitro config
 
 Removed the historical `@lovable.dev/vite-tanstack-config` build wrapper and replaced it with explicit Vite plugins: TanStack Start, React, Tailwind, tsconfig paths, and Nitro `node-server`. This keeps the original Lovable-authored design while removing Lovable-specific build tooling from the production path.
+
+## D-014 - Heuristic `payment` input detector
+
+Added `looksLikePaymentInput` in `risk/detect.ts` so payment-flow messages can be classified as `payment` instead of generic `text` or accidental `url`. The detector is conservative: pure URLs/APKs/Telegram links keep their primary type, while mixed payment text needs payment action/context plus amount, currency, card, QR or provider signals.
