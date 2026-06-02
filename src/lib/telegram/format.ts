@@ -136,9 +136,11 @@ function buildResultKeyboard(level: RiskLevel, lang: Lang): InlineKeyboard {
   return keyboard;
 }
 
+import { buildEmergencyText } from "@/lib/telegram/emergency";
+
 /** Трилингвальный чек-лист экстренных шагов (R20). MarkdownV2-экранирован. */
 export function formatEmergencyChecklist(lang: Lang): string {
-  return escapeMarkdownV2(bt("emergency", lang));
+  return escapeMarkdownV2(buildEmergencyText(lang));
 }
 
 /** Текст команды /help (R3.1). MarkdownV2-экранирован. */
