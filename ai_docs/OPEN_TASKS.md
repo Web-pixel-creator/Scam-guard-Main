@@ -4,21 +4,17 @@
 
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
-- **`entities` boost hack:** a confirmed high-risk entity currently adds `asks_to_install_apk` as a proxy reason code. Add a real `known_reported` reason code.
 - **Telegram risk enrichment is shallow:** `evaluateTelegram` returns `unknown_sender`; no account-age/metadata lookup yet.
-- **`payment` input_type exists but has no dedicated detector/rules yet.**
+- **`payment` input_type exists but has only text-pattern coverage; no dedicated detector/classifier yet.**
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
-- **CI not in `main` yet:** GitHub token needs `workflow` scope before `.github/workflows/ci.yml` can be pushed.
 
 ## Near-term product tasks
 
-- [ ] Add `known_reported` reason code + weight and remove the APK proxy boost.
-- [ ] Add fake delivery / courier-payment rule (`fake_delivery_payment`) and payment-before-service patterns.
-- [ ] Add malicious file attachment education/rule coverage for unknown GIF/APK/sticker-like bait shared in Telegram.
-- [ ] Add "fake boss / official request" coverage: impersonating a manager, authority or workplace contact to request personal data.
 - [ ] Add official verified contacts seed (banks, operators, Central Bank) -> `verified_official`.
 - [ ] Add screenshot report upload path only after retention policy is defined.
 - [ ] Add panic/live-call helper and trusted-contact sharing for elderly/vulnerable users.
+- [ ] Improve Telegram/account enrichment beyond `unknown_sender` (account age, official handles, metadata where legally available).
+- [ ] Add a dedicated payment classifier/detector for marketplace and service-payment flows.
 
 ## Research feed
 

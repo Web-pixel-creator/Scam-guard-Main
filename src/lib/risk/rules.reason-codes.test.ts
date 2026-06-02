@@ -130,3 +130,102 @@ describe("integration — block threat + urgency → suspicious (R14.7)", () => 
     expect(level).toBe("suspicious");
   });
 });
+
+describe("evaluateText — fake_delivery_payment (research feed)", () => {
+  const positives: { name: string; text: string }[] = [
+    { name: "RU courier fee link", text: "Курьер отправил ссылку: доплатите 12000 сум за доставку, иначе посылку вернут" },
+    { name: "RU postal customs payment", text: "Ваша посылка на почте, оплатите небольшой таможенный сбор по ссылке" },
+    { name: "UZ delivery payment link", text: "Yetkazib berish uchun 12000 so'm to'lov qiling, aks holda posilka qaytariladi" },
+    { name: "EN parcel payment", text: "Pay the delivery fee for your parcel by this link or it will be returned" },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU normal courier status", text: "Курьер доставит посылку завтра с 10 до 12" },
+    { name: "UZ normal delivery", text: "Kuryer ertaga posilkani olib keladi" },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("fake_delivery_payment");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("fake_delivery_payment");
+  });
+});
+
+describe("evaluateText — payment_before_service marketplace patterns", () => {
+  const positives: { name: string; text: string }[] = [
+    { name: "RU prepayment", text: "Сначала внесите предоплату за бронь товара, потом я отправлю" },
+    { name: "RU deposit", text: "Нужен аванс или задаток до встречи, иначе не держу заказ" },
+    { name: "UZ upfront payment", text: "Xizmatdan oldin oldindan to'lov qiling, keyin yuboramiz" },
+    { name: "EN prepay", text: "First pay the deposit, then I will ship the item" },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU neutral payment", text: "Оплата при получении после проверки товара" },
+    { name: "UZ pay after service", text: "Tovarni tekshirgandan keyin to'lov qilasiz" },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("payment_before_service");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("payment_before_service");
+  });
+});
+
+describe("evaluateText — fake_boss_request (research feed)", () => {
+  const positives: { name: string; text: string }[] = [
+    { name: "RU boss asks passport", text: "Это ваш руководитель, срочно отправьте паспортные данные для проверки" },
+    { name: "RU HR asks card", text: "Отдел кадров просит данные карты и код для анкеты сотрудника" },
+    { name: "UZ boss asks data", text: "Rahbar nomidan yozayapman, tez pasport ma'lumot va karta raqamini yuboring" },
+    { name: "UZ official asks code", text: "Soliq organidanmiz, kod va ma'lumot yuboring" },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU ordinary boss message", text: "Руководитель просит завтра прийти на планёрку к 10 утра" },
+    { name: "UZ ordinary HR", text: "Kadr bo'limi ertaga uchrashuv bo'lishini eslatdi" },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("fake_boss_request");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("fake_boss_request");
+  });
+});
+
+describe("evaluateText — malicious_file_bait (research feed)", () => {
+  const positives: { name: string; text: string }[] = [
+    { name: "RU gif bait", text: "Откройте этот gif и посмотрите поздравление" },
+    { name: "RU archive bait", text: "Скачайте архив с документами и откройте файл" },
+    { name: "UZ sticker bait", text: "Stikerni ko'ring va faylni oching" },
+    { name: "EN download file", text: "Download this greeting card file and open it" },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU normal photo", text: "Посмотрите фото с праздника в семейном чате" },
+    { name: "UZ normal message", text: "Bugun oilaviy rasm ko'rdim" },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("malicious_file_bait");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("malicious_file_bait");
+  });
+});
+
+describe("integration — research-feed codes reach expected risk levels", () => {
+  it("known_reported is high_risk on its own", () => {
+    expect(scoreFromCodes(["known_reported"]).level).toBe("high_risk");
+  });
+
+  it("fake delivery plus a short link becomes high_risk", () => {
+    const { level } = scoreFromCodes(["fake_delivery_payment", "suspicious_short_link"]);
+    expect(level).toBe("high_risk");
+  });
+});

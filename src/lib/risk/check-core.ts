@@ -105,7 +105,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       .maybeSingle();
     if (ent && ent.moderation_status === "confirmed") {
       knownReports = ent.report_count;
-      if (ent.risk_level === "high_risk") codes.add("asks_to_install_apk" as ReasonCode);
+      if (ent.risk_level === "high_risk") codes.add("known_reported");
     }
   }
 

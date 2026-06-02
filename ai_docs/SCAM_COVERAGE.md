@@ -36,22 +36,22 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 15 | Piecemeal card data extraction | `requests_card_digits` | Covered |
 | 16 | Account/card block threat | `threatens_account_block` + urgency | Covered |
 | 17 | AI voice-clone call | education only; advise callback verification | Partial |
-| 18 | Fake courier / delivery surcharge | URL heuristics; needs `fake_delivery_payment` | Planned |
-| 19 | Marketplace prepayment / fake buyer-seller | `payment_before_service` exists; needs stronger patterns | Planned |
+| 18 | Fake courier / delivery surcharge | `fake_delivery_payment` + URL heuristics | Covered |
+| 19 | Marketplace prepayment / fake buyer-seller | `payment_before_service` text patterns | Covered |
 | 20 | Romance / dating scam | future pattern/content | Planned |
 | 21 | Fake job offer | future pattern/content | Planned |
-| 22 | Malicious Telegram GIF/file bait | out-of-scope handling + APK coverage; needs education/pattern notes | Planned |
-| 23 | Fake boss/official/workplace request | overlaps personal-data request; needs dedicated wording/patterns | Planned |
+| 22 | Malicious Telegram GIF/file bait | `malicious_file_bait`, APK coverage and out-of-scope handling | Covered |
+| 23 | Fake boss/official/workplace request | `fake_boss_request` + personal-data rules | Covered |
 
 ## Research feed: pressauz
 
 `https://t.me/pressauz` is useful as a local research feed. Use it to identify recurring tactics, not as raw app content. Current themes to track:
 
 - suspicious foreign calls asking for SMS codes or card data;
-- unknown Telegram files/GIFs that may lead to malware or phishing;
-- fake manager/boss/official messages requesting personal data;
+- unknown Telegram files/GIFs that may lead to malware or phishing (`malicious_file_bait`);
+- fake manager/boss/official messages requesting personal data (`fake_boss_request`);
 - APK "security" apps that steal payment data;
-- fake service/payment intermediaries and offline social-engineering scripts.
+- fake delivery/service/payment intermediaries (`fake_delivery_payment`, `payment_before_service`) and offline social-engineering scripts.
 
 Before adding a new detection rule, summarize the tactic, map it to a reason code, add RU/UZ/EN labels/advice, and write tests.
 

@@ -45,3 +45,7 @@ Lovable was used only to author the initial UI design. Production runtime is sel
 ## D-011 - Research feed and deterministic privacy hardening
 
 `pressauz` is treated as a local research feed, not a raw content source. New posts should be summarized into recurring tactics, mapped to `SCAM_COVERAGE.md`, then converted into reason-code proposals or education-only guidance with RU/UZ/EN copy and tests. Privacy is reinforced: report descriptions and OCR provider output are passed through deterministic `redactText`, so user safety does not depend only on prompt compliance.
+
+## D-012 - Research-feed scam rules and `known_reported`
+
+Added dedicated reason codes for recurring local patterns from the research-feed process: `known_reported` (50), `fake_delivery_payment` (35), `fake_boss_request` (30), and `malicious_file_bait` (35). `payment_before_service` received concrete marketplace/prepayment patterns. Confirmed high-risk entities now use `known_reported` instead of the old APK proxy boost, so explanations and analytics describe the real reason for the verdict.
