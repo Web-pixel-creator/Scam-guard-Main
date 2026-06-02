@@ -80,7 +80,17 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
   const levelLabel = t(RISK_LABEL_KEY[result.level], lang);
   parts.push(`${RISK_EMOJI[result.level]} ${bold(escapeMarkdownV2(levelLabel))}`);
 
-  // 2) блок объяснения — только если AI вернул текст (R13.3).
+  // 1b) Verified contact badge + spoofing warning (D-011).
+  if (result.verifiedContact) {
+    const orgName = result.verifiedContact.orgName;
+    // If level is still high_risk/suspicious despite the match → dangerous behavior detected.
+    if (result.level === "high_risk" || result.level === "suspicious") {
+      parts.push(escapeMarkdownV2(bt("verified_with_danger", lang, { org: orgName })));
+    } else {
+      parts.push(escapeMarkdownV2(bt("verified_match", lang, { org: orgName })));
+      parts.push(escapeMarkdownV2(bt("verified_spoofing_warning", lang)));
+    }
+  }
   if (result.explanation !== null) {
     const title = t("ai_explanation", lang);
     parts.push(`${bold(escapeMarkdownV2(title))}\n${escapeMarkdownV2(result.explanation)}`);

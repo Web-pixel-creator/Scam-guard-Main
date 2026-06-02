@@ -41,6 +41,7 @@ const CORE_RESULT: RunCheckResult = {
   reasons: ["uses_urgency"],
   explanation: "AI explanation text",
   knownReports: 0,
+  verifiedContact: null,
 };
 
 // Mock createServerFn: capture the real validator + handler, expose a callable
@@ -158,7 +159,7 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     // … and the EXACT same key set as the documented pre-refactor shape:
     // no fields added, removed or renamed by the wrapper.
     expect(Object.keys(result).sort()).toEqual(
-      ["display", "explanation", "knownReports", "level", "reasons", "score", "type"].sort(),
+      ["display", "explanation", "knownReports", "level", "reasons", "score", "type", "verifiedContact"].sort(),
     );
   });
 

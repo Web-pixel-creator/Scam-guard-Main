@@ -38,6 +38,7 @@ const FAKE_RESULT = {
   reasons: ["unknown_sender"],
   explanation: null,
   knownReports: 0,
+  verifiedContact: null,
 };
 
 // Mock the transport-independent core: capture the rateLimitKey it receives.
