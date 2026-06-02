@@ -14,7 +14,7 @@
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
 - [ ] Improve Telegram/account enrichment beyond `unknown_sender` (account age, official handles, metadata where legally available).
-- [ ] Production deploy on Railway (pending payment).
+- [ ] Production operational verification on Railway: endpoint responds, but confirm billing, env secrets, Supabase migrations, webhook registration and `/start` live flow.
 
 ## Research feed
 

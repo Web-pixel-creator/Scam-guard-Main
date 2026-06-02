@@ -85,7 +85,9 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
 
   // 1) эмодзи + метка уровня (метка — пользовательская строка, экранируем).
   const levelLabel = t(RISK_LABEL_KEY[result.level], lang);
-  parts.push(`${RISK_EMOJI[result.level]} ${bold(escapeMarkdownV2(levelLabel))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`);
+  parts.push(
+    `${RISK_EMOJI[result.level]} ${bold(escapeMarkdownV2(levelLabel))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`,
+  );
 
   // 1b) Verified contact badge + spoofing warning (D-011).
   if (result.verifiedContact) {
@@ -125,7 +127,7 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
   }
 
   return {
-    text: parts.join("\n\n"),  // blocks separated by double newline; visual separators added inline
+    text: parts.join("\n\n"), // blocks separated by double newline; visual separators added inline
     keyboard: buildResultKeyboard(result.level, lang),
   };
 }
@@ -175,9 +177,7 @@ export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeybo
       { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
       { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
     ],
-    [
-      { text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency },
-    ],
+    [{ text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency }],
   ];
   return {
     text: escapeMarkdownV2(bt("welcome", lang)),

@@ -89,13 +89,18 @@ function callbackUpdate(
  */
 function makeSpyHandlers(): {
   handlers: Handlers;
-  calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx }[];
+  calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx; callbackQueryId?: string }[];
 } {
-  const calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx }[] = [];
+  const calls: {
+    name: keyof Handlers;
+    arg: unknown;
+    ctx: HandlerCtx;
+    callbackQueryId?: string;
+  }[] = [];
   const record =
     (name: keyof Handlers) =>
-    async (arg: unknown, ctx: HandlerCtx): Promise<void> => {
-      calls.push({ name, arg, ctx });
+    async (arg: unknown, ctx: HandlerCtx, callbackQueryId?: string): Promise<void> => {
+      calls.push({ name, arg, ctx, callbackQueryId });
     };
   const handlers: Handlers = {
     handleCommand: record("handleCommand"),
@@ -183,7 +188,7 @@ describe("decideRoute priority: callback > command > scenario step > content", (
   it("routes a callback query as a callback (top priority)", () => {
     const update = callbackUpdate("lang:uz");
     const action = decideRoute(update, makeSession());
-    expect(action).toEqual({ kind: "callback", data: "lang:uz" });
+    expect(action).toEqual({ kind: "callback", data: "lang:uz", callbackQueryId: "cb1" });
   });
 
   it("routes a known command as a command", () => {
@@ -378,6 +383,7 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCallback");
     expect(calls[0].arg).toBe("lang:en");
+    expect(calls[0].callbackQueryId).toBe("cb1");
   });
 
   it("dispatches a command to handleCommand", async () => {

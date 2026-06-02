@@ -96,7 +96,7 @@ export function A11yPanel() {
   const pct = Math.round(scale * 100);
 
   return (
-    <div className="fixed z-50 left-3 sm:left-4 bottom-3 sm:bottom-4 print:hidden">
+    <div className="fixed z-50 right-3 sm:right-auto sm:left-4 bottom-3 sm:bottom-4 print:hidden">
       {!open && (
         <button
           type="button"
