@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap");
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
 
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap");
+@source "../src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -570,13 +570,13 @@ html.a11y-high-contrast a,
 html.a11y-high-contrast button {
   text-decoration-thickness: 2px;
 }
-html.a11y-high-contrast .text-\[#52525B\],
-html.a11y-high-contrast .text-\[#71717A\],
-html.a11y-high-contrast .text-\[#A1A1AA\],
-html.a11y-high-contrast .text-\[#3F3F46\] {
+html.a11y-high-contrast [class~="text-[#52525B]"],
+html.a11y-high-contrast [class~="text-[#71717A]"],
+html.a11y-high-contrast [class~="text-[#A1A1AA]"],
+html.a11y-high-contrast [class~="text-[#3F3F46]"] {
   color: #0a0a0a !important;
 }
-html.a11y-high-contrast [class*="border-\[#E2E0D8\]"] {
+html.a11y-high-contrast [class~="border-[#E2E0D8]"] {
   border-color: #0a0a0a !important;
 }
 html.a11y-high-contrast :focus-visible {
