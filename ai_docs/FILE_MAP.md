@@ -53,7 +53,19 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/rules.ts` | Reason codes, weights, regex patterns, scoring, labels, advice. |
 | `risk/hash.ts` | Identifier hashing. |
 | `risk/rate-limit.ts` | In-memory rate limit. |
-| `telegram/*` | Telegram API, router, handlers, webhook and session store. |
+| `risk/verified-contacts.ts` | Official Uzbekistan contacts (banks, telecom, gov, payments). Lookup for pipeline. |
+| `telegram/emergency.ts` | Dynamic emergency checklist builder (scenarios + verified numbers). |
+| `telegram/router.ts` | Telegram update router (dispatch, parseCommand, decideRoute). |
+| `telegram/handlers/index.ts` | Handler aggregator — wires commands/check/report/misc into the router. |
+| `telegram/handlers/commands.ts` | /start, /lang, /help, /safety, /emergency, /panic, /check, /report. |
+| `telegram/handlers/check.ts` | Text/image/contact check pipeline handlers. |
+| `telegram/handlers/report.ts` | Multi-step /report scenario. |
+| `telegram/handlers/misc.ts` | Callbacks (language, report, check_another, emergency, panic) + out-of-scope. |
+| `telegram/webhook.server.ts` | Framework-agnostic webhook handler (token-first, fail-closed). |
+| `telegram/api.server.ts` | Telegram Bot API helpers (sendMessage, getFile, escapeMarkdownV2, etc.). |
+| `telegram/session.server.ts` | Session store (telegram_sessions table via supabaseAdmin). |
+| `telegram/bot-i18n.ts` | Bot-specific trilingual strings (ru/uz/en). |
+| `telegram/format.ts` | Telegram response formatter (MarkdownV2, keyboards, verified badge). |
 | `config.server.ts` | Server-only env helpers read per request. |
 | `error-capture.ts`, `error-page.ts` | Error capture/rendering. |
 

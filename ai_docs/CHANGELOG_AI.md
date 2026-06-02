@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-01 — Production deploy + pre-deploy hardening
+
+- **Deployed to Railway** (https://scam-guard-main-production.up.railway.app). Telegram webhook registered, bot live at @scamguard_bot.
+- PR #17: pre-deploy hardening — fixed .gitignore NUL bytes, removed duplicate consolidated migration, switched Dockerfile to Bun, enabled short-code verified lookup in pipeline, added verified contact UI to web RiskResultCard, fixed check logging order (finalLevel), updated README/OPEN_TASKS.
+- PR #16: `/panic` interactive emergency mode — inline buttons for 6 scenarios instead of one big text wall.
+- PR #15: dynamic `/emergency` checklist pulling real numbers from verified-contacts module.
+- PR #14: integrated verified contacts into risk engine + Telegram formatter (badge + spoofing warning, dangerous override).
+- PR #13: expanded verified contacts seed to 27 entries (banks, telecoms, payment systems, government, UZCERT).
+- PR #12: initial verified contacts module.
+- PR #11: public README + CONTRIBUTING.md.
+- PR #10: CI workflow, /healthz endpoint, Dockerfile VITE_* ARGs, .gitignore fix.
+- Supabase migrations applied (8 migrations; consolidated duplicate removed).
+- 215+ tests, CI green, production build verified.
+
 ## 2026-06-02 - Payment input detector
 
 - Added a conservative `payment` input detector for payment-flow text.
