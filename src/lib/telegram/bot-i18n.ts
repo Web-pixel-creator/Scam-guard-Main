@@ -19,7 +19,7 @@ type BotDict = Record<string, { ru: string; uz: string; en: string }>;
 export const bot_dict: BotDict = {
   // ── /start: greeting + capabilities (R1.1, R1.5) ──────────────────────────
   welcome: {
-    ru: "Здравствуйте! Я Ishonch Guard — помогаю распознать мошенников в Узбекистане.\n\nПришлите номер телефона, Telegram-username, ссылку, APK-ссылку, текст сообщения или скриншот — я оценю риск и подскажу, что делать.\n\nВыберите, пожалуйста, язык:",
+    ru: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nПомогаю распознать мошенников в Узбекистане.\n\n📌 *Что я умею:*\n• Проверить номер, ссылку или скриншот\n• Оценить подозрительное сообщение\n• Дать срочные шаги при обмане\n\n👇 *Отправьте что-нибудь для проверки* или выберите язык:",
     uz: "Assalomu alaykum! Men Ishonch Guard — O‘zbekistonda firibgarlarni tanib olishga yordam beraman.\n\nTelefon raqami, Telegram-username, havola, APK-havola, xabar matni yoki skrinshot yuboring — men xavfni baholab, nima qilish kerakligini aytaman.\n\nIltimos, tilni tanlang:",
     en: "Hello! I’m Ishonch Guard — I help you spot scammers in Uzbekistan.\n\nSend a phone number, Telegram username, link, APK link, message text or screenshot — I’ll assess the risk and tell you what to do.\n\nPlease choose a language:",
   },
@@ -59,7 +59,7 @@ export const bot_dict: BotDict = {
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "Команды бота:\n/start — начало работы и выбор языка\n/check — проверить номер, ссылку, сообщение или скриншот\n/report — сообщить о мошеннике\n/emergency — срочные шаги, если вы уже отправили код или деньги\n/help — этот список команд\n/safety — правила безопасности\n/lang — сменить язык\n\nМожно просто прислать сообщение без команды — я проверю его.",
+    ru: "📋 *Команды бота*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Начать работу\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о мошеннике\n🆘 /panic — Экстренная помощь\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
     uz: "Bot buyruqlari:\n/start — ishni boshlash va tilni tanlash\n/check — raqam, havola, xabar yoki skrinshotni tekshirish\n/report — firibgar haqida xabar berish\n/emergency — agar kod yoki pul yuborgan bo‘lsangiz, shoshilinch qadamlar\n/help — shu buyruqlar ro‘yxati\n/safety — xavfsizlik qoidalari\n/lang — tilni o‘zgartirish\n\nBuyruqsiz ham xabar yuborishingiz mumkin — men uni tekshiraman.",
     en: "Bot commands:\n/start — get started and choose a language\n/check — check a number, link, message or screenshot\n/report — report a scammer\n/emergency — urgent steps if you already sent a code or money\n/help — this list of commands\n/safety — safety rules\n/lang — change the language\n\nYou can also just send a message without a command — I’ll check it.",
   },
