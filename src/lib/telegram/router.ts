@@ -94,7 +94,8 @@ export type BotCommand =
   | "/safety"
   | "/check"
   | "/report"
-  | "/emergency";
+  | "/emergency"
+  | "/panic";
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/start",
@@ -104,6 +105,7 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/check",
   "/report",
   "/emergency",
+  "/panic",
 ]);
 
 /** Parsed command + the remaining argument on the same message (R4.9). */

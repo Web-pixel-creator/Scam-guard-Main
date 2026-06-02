@@ -29,6 +29,12 @@
 
 import { CB, formatEmergencyChecklist, formatHelp, formatSafety, formatWelcome } from "@/lib/telegram/format";
 import {
+  buildPanicMenuText,
+  PANIC_MENU_TITLES,
+  PANIC_CB_PREFIX,
+  type PanicScenarioId,
+} from "@/lib/telegram/emergency";
+import {
   escapeMarkdownV2,
   sendMessage,
   type InlineKeyboard,
@@ -93,6 +99,36 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
 }
 
 /**
+ * Show the panic/emergency scenario selection menu (inline buttons).
+ * User picks their situation → bot replies with specific steps + verified numbers.
+ */
+async function showPanicMenu(ctx: HandlerCtx): Promise<void> {
+  const { lang } = ctx.session;
+  const ids: PanicScenarioId[] = [1, 2, 3, 4, 5, 6];
+  // Two buttons per row for readability.
+  const keyboard: InlineKeyboard = [];
+  for (let i = 0; i < ids.length; i += 2) {
+    const row: { text: string; callback_data: string }[] = [];
+    row.push({
+      text: PANIC_MENU_TITLES[ids[i]][lang],
+      callback_data: `${PANIC_CB_PREFIX}${ids[i]}`,
+    });
+    if (ids[i + 1]) {
+      row.push({
+        text: PANIC_MENU_TITLES[ids[i + 1]][lang],
+        callback_data: `${PANIC_CB_PREFIX}${ids[i + 1]}`,
+      });
+    }
+    keyboard.push(row);
+  }
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(buildPanicMenuText(lang)),
+    keyboard,
+  });
+}
+
+/**
  * Dispatch a parsed bot command to its handler, replying on the current
  * session language. Matches the `Handlers["handleCommand"]` signature so task
  * 9.1 can register it directly. The switch is exhaustive over `BotCommand`.
@@ -127,7 +163,8 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
       return;
 
     case "/emergency":
-      await sendMessage({ chatId: ctx.chatId, text: formatEmergencyChecklist(lang) });
+    case "/panic":
+      await showPanicMenu(ctx);
       return;
 
     case "/check":

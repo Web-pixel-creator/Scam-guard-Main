@@ -40,6 +40,7 @@ import {
 } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
+import { parsePanicCallback, buildPanicScenarioText } from "@/lib/telegram/emergency";
 import { setLanguage, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
@@ -135,7 +136,15 @@ export async function handleCallback(
     return;
   }
 
-  // 5) Unknown callback data — spinner already cleared above; nothing else to do.
+  // 5) Panic scenario button — "panic:1" through "panic:6" (PR #16).
+  const panicId = parsePanicCallback(data);
+  if (panicId !== null) {
+    const scenarioText = buildPanicScenarioText(panicId, lang);
+    await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
+    return;
+  }
+
+  // 6) Unknown callback data — spinner already cleared above; nothing else to do.
   // (e.g. the /report «Skip» button is routed to report.ts by task 9.1.)
 }
 
