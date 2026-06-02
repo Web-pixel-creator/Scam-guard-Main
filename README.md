@@ -59,7 +59,7 @@
 - **БД**: Supabase (PostgreSQL + Auth + RLS)
 - **AI**: OpenAI-compatible API (опционально; любой провайдер)
 - **Telegram**: Bot API + Webhook
-- **Тесты**: Vitest + fast-check (property-based), 193 теста
+- **Тесты**: Vitest + fast-check (property-based), 215+ тестов
 - **CI/CD**: GitHub Actions
 - **Deploy**: Docker / Railway-ready
 
@@ -115,7 +115,7 @@ src/
 ## Тестирование
 
 ```bash
-bun run test:run     # Vitest (193 теста, включая property-based)
+bun run test:run     # Vitest (215+ тестов, включая property-based)
 bunx tsc --noEmit    # Type check
 bun run build        # Production build
 ```

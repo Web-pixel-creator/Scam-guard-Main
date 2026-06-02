@@ -125,37 +125,27 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         reasons: reasonList,
       });
 
-  const inputHash = await hashIdentifier(normalized || safeInput);
-  try {
-    await supabaseAdmin.from("checks").insert({
-      input_type: detected,
-      redacted_input: display,
-      input_hash: inputHash,
-      risk_level: level,
-      risk_score: score,
-      reason_codes: reasonList,
-      ai_explanation: explanation,
-      language: lang,
-    });
-  } catch (e) {
-    console.error("log check failed", e);
-  }
-
   // ── Verified contact lookup (D-011) ──────────────────────────────────────
-  // Check if the normalized input matches a known official contact. If yes AND
-  // no dangerous reason codes are present, lower the risk to "safe". Dangerous
-  // behavior (OTP/APK/card requests) always overrides verified match.
+  // Check if the input matches a known official contact. Works for:
+  //   - detected "phone" (full numbers like +998712000044)
+  //   - short digit-only inputs (1340, 0611, 1257, 102) even when detected as "text"
+  // If match + no dangerous reason codes → lower to "safe". Dangerous behavior
+  // (OTP/APK/card requests) always overrides verified match.
   let verifiedContact: RunCheckResult["verifiedContact"] = null;
   let finalLevel = level;
-  if (detected === "phone" && normalized) {
-    const match = findVerifiedContact(normalized);
+
+  const isShortCode = /^\d{3,5}$/.test(workingInput);
+  const shouldLookupVerified = detected === "phone" || isShortCode;
+
+  if (shouldLookupVerified) {
+    const lookupValue = detected === "phone" ? normalized : workingInput;
+    const match = findVerifiedContact(lookupValue);
     if (match) {
       verifiedContact = {
-        orgName: match.org.en, // stored in EN for simplicity; formatter picks lang
+        orgName: match.org.en,
         orgType: match.orgType,
         source: match.source,
       };
-      // Dangerous codes that override a verified match:
       const DANGEROUS_CODES: readonly string[] = [
         "asks_for_sms_code", "asks_for_otp", "requests_card_digits",
         "asks_to_install_apk", "apk_download_link", "asks_to_scan_qr",
@@ -165,8 +155,24 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       if (!hasDangerous) {
         finalLevel = "safe";
       }
-      // If hasDangerous — level stays as computed by rules (high_risk/suspicious).
     }
+  }
+
+  // ── Persist to checks (with the FINAL level the user sees) ───────────────
+  const inputHash = await hashIdentifier(normalized || safeInput);
+  try {
+    await supabaseAdmin.from("checks").insert({
+      input_type: detected,
+      redacted_input: display,
+      input_hash: inputHash,
+      risk_level: finalLevel,
+      risk_score: score,
+      reason_codes: reasonList,
+      ai_explanation: explanation,
+      language: lang,
+    });
+  } catch (e) {
+    console.error("log check failed", e);
   }
 
   return {

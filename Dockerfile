@@ -1,20 +1,15 @@
 # syntax=docker/dockerfile:1
 
-# ── Build stage ─────────────────────────────────────────────────────────────
-# Builds the TanStack Start SSR app with the Nitro `node-server` preset, which
-# emits a standalone HTTP server at dist/server/index.mjs.
-FROM node:22-bookworm-slim AS build
+# ── Build stage (Bun — matches CI and bun.lock) ────────────────────────────
+FROM oven/bun:1 AS build
 WORKDIR /app
 
-# Install deps against the committed lockfile for reproducible builds.
-# This project uses Bun's lockfile (bun.lock); npm resolves it fine.
+# Install deps from the committed bun.lock (reproducible, frozen).
 COPY package.json bun.lock ./
-RUN npm install --no-audit --no-fund
+RUN bun install --frozen-lockfile
 
-# Copy the rest of the source and build.
+# Copy source and build with the Nitro node-server preset.
 COPY . .
-# node-server is already the default in vite.config.ts; set explicitly for clarity.
-ENV NITRO_PRESET=node-server
 
 # VITE_* vars are baked into the client bundle at build time by Vite.
 # Railway passes service variables as build-time env automatically; for other
@@ -22,26 +17,23 @@ ENV NITRO_PRESET=node-server
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ARG VITE_SUPABASE_PROJECT_ID
-# Also needed server-side at build for SSR pre-render (if any):
 ARG SUPABASE_URL
 ARG SUPABASE_PUBLISHABLE_KEY
 
-RUN npm run build
+ENV NITRO_PRESET=node-server
+RUN bun run build
 
-# ── Runtime stage ───────────────────────────────────────────────────────────
-# Ships only the built output — no source, no devDependencies.
+# ── Runtime stage (Node — Nitro node-server is a plain Node bundle) ────────
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-# Nitro's node-server reads PORT/HOST at runtime.
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
 # The Nitro node-server bundle is self-contained (deps are bundled into
-# dist/server). Copy just the build artifacts.
+# dist/server). Copy just the build artifacts — no source, no devDeps.
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
-# Run as the built-in non-root node user.
 USER node
 CMD ["node", "dist/server/index.mjs"]
