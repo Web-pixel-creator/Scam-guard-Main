@@ -192,6 +192,7 @@ can authenticate updates.
 
 ## Deploy checklist
 
+- [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + optional AI key), not in `VITE_*`.

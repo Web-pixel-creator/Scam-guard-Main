@@ -1,13 +1,26 @@
 name: CI
 
+# Runs type-check, the full test suite (Vitest + fast-check) and the production
+# build on every push to main and on every pull request. Keeps regressions out
+# of main — nothing merges without a green build.
+
 on:
   pull_request:
   push:
     branches:
       - main
 
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   verify:
+    name: type-check · test · build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -20,14 +33,14 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
+      - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
+      - name: Type check
         run: bunx tsc --noEmit
 
-      - name: Test
+      - name: Tests (Vitest + fast-check)
         run: bun run test:run
 
-      - name: Build
+      - name: Production build
         run: bun run build
