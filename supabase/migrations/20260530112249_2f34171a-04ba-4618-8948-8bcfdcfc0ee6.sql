@@ -1,7 +1,15 @@
 
-CREATE TYPE public.risk_level AS ENUM ('safe','unknown','suspicious','high_risk');
-CREATE TYPE public.input_type AS ENUM ('phone','telegram','url','text','payment','apk','unknown');
-CREATE TYPE public.report_status AS ENUM ('new','reviewing','confirmed','rejected','duplicate');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'risk_level') THEN
+    CREATE TYPE public.risk_level AS ENUM ('safe','unknown','suspicious','high_risk');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'input_type') THEN
+    CREATE TYPE public.input_type AS ENUM ('phone','telegram','url','text','payment','apk','unknown');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'report_status') THEN
+    CREATE TYPE public.report_status AS ENUM ('new','reviewing','confirmed','rejected','duplicate');
+  END IF;
+END $$;
 
 CREATE TABLE public.checks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -66,7 +74,11 @@ CREATE POLICY "Public can read confirmed entities"
   ON public.entities FOR SELECT TO anon, authenticated
   USING (moderation_status = 'confirmed');
 
-CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
+    CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
+  END IF;
+END $$;
 CREATE TABLE public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
