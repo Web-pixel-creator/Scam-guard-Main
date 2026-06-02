@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-02 - Lovable build wrapper removed
+
+- Updated architecture/deployment/tooling docs for direct Vite/TanStack/Nitro configuration.
+- Recorded that the Lovable-authored design remains, but Lovable-specific build tooling is no longer part of the production path.
+- Removed the stale `lovable-error-reporting.ts` file map reference.
+
 ## 2026-06-02 - Research-feed scam coverage rules
 
 - Documented `known_reported`, `fake_delivery_payment`, `fake_boss_request`, `malicious_file_bait`, and stronger `payment_before_service` coverage.

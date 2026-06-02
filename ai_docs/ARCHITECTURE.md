@@ -47,4 +47,4 @@ Supabase Auth powers browser sessions. Client middleware attaches the bearer tok
 
 - Telegram private chats and live calls cannot be silently inspected. The model is user-forward/paste/screenshot.
 - In-memory rate limit is best-effort per process. Use Redis/KV before multi-instance high-traffic production.
-- Do not add runtime coupling back to Lovable Cloud. `@lovable.dev/vite-tanstack-config` remains a build-time wrapper only.
+- Do not reintroduce Lovable Cloud/runtime coupling. Vite/TanStack/Nitro are configured directly in `vite.config.ts`.

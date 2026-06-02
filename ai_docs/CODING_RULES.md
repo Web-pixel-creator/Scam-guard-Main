@@ -50,5 +50,5 @@
 ## Tooling
 
 - Run TypeScript and tests before merging.
-- Do not add runtime coupling to Lovable Cloud. `@lovable.dev/vite-tanstack-config` is a build-time wrapper only.
+- Do not add Lovable Cloud/runtime coupling or Lovable-specific build wrappers.
 - Files marked generated should be changed at their source, not manually edited.

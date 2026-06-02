@@ -1,7 +1,7 @@
 // Standalone Vitest config for server-side logic (risk engine, Telegram bot core).
-// We intentionally do NOT reuse the app's @lovable.dev/vite-tanstack-config here:
-// that config wires up the full TanStack Start + Nitro/Cloudflare build pipeline,
-// which is unnecessary (and heavy) for unit/property tests of pure server logic.
+// Keep Vitest on a small standalone config instead of the app's full
+// TanStack Start + Nitro production pipeline; unit/property tests only need
+// server-side TypeScript and path aliases.
 // Path aliases (`@/...`) are resolved via vite-tsconfig-paths, reading tsconfig.json.
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";

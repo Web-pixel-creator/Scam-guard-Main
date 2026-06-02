@@ -55,7 +55,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/rate-limit.ts` | In-memory rate limit. |
 | `telegram/*` | Telegram API, router, handlers, webhook and session store. |
 | `config.server.ts` | Server-only env helpers read per request. |
-| `error-capture.ts`, `error-page.ts`, `lovable-error-reporting.ts` | Error capture/rendering; Lovable name is historical. |
+| `error-capture.ts`, `error-page.ts` | Error capture/rendering. |
 
 ## `src/components/`
 

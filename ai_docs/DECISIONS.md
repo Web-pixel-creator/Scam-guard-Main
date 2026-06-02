@@ -49,3 +49,7 @@ Lovable was used only to author the initial UI design. Production runtime is sel
 ## D-012 - Research-feed scam rules and `known_reported`
 
 Added dedicated reason codes for recurring local patterns from the research-feed process: `known_reported` (50), `fake_delivery_payment` (35), `fake_boss_request` (30), and `malicious_file_bait` (35). `payment_before_service` received concrete marketplace/prepayment patterns. Confirmed high-risk entities now use `known_reported` instead of the old APK proxy boost, so explanations and analytics describe the real reason for the verdict.
+
+## D-013 - Direct Vite/TanStack/Nitro config
+
+Removed the historical `@lovable.dev/vite-tanstack-config` build wrapper and replaced it with explicit Vite plugins: TanStack Start, React, Tailwind, tsconfig paths, and Nitro `node-server`. This keeps the original Lovable-authored design while removing Lovable-specific build tooling from the production path.
