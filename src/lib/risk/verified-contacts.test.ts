@@ -1,94 +1,163 @@
 import { describe, it, expect } from "vitest";
 import {
   findVerifiedContact,
-  EMERGENCY_NUMBERS,
-  VERIFIED_HOTLINES,
-  ALL_VERIFIED_CONTACTS,
+  VERIFIED_CONTACTS,
+  VERIFIED_CONTACTS_COUNT,
+  type VerifiedContact,
 } from "./verified-contacts";
 
-describe("verified-contacts", () => {
-  describe("data integrity", () => {
-    it("all contacts have ru/uz/en org and description", () => {
-      for (const c of ALL_VERIFIED_CONTACTS) {
-        expect(c.org.ru).toBeTruthy();
-        expect(c.org.uz).toBeTruthy();
-        expect(c.org.en).toBeTruthy();
-        expect(c.description.ru).toBeTruthy();
-        expect(c.description.uz).toBeTruthy();
-        expect(c.description.en).toBeTruthy();
-      }
-    });
-
-    it("emergency numbers are short codes (3-4 digits)", () => {
-      for (const c of EMERGENCY_NUMBERS) {
-        const digits = c.number.replace(/\D/g, "");
-        expect(digits.length).toBeLessThanOrEqual(4);
-        expect(digits.length).toBeGreaterThanOrEqual(3);
-      }
-    });
-
-    it("hotlines have source URLs or references", () => {
-      for (const c of VERIFIED_HOTLINES) {
-        expect(c.source.length).toBeGreaterThan(0);
-      }
-    });
+describe("verified-contacts seed data integrity", () => {
+  it("contains at least 25 entries (target seed size)", () => {
+    expect(VERIFIED_CONTACTS_COUNT).toBeGreaterThanOrEqual(25);
   });
 
-  describe("findVerifiedContact", () => {
-    it("finds emergency number 102 (police)", () => {
-      const result = findVerifiedContact("102");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toBe("Police");
-      expect(result!.category).toBe("emergency");
-    });
+  it("all entries have trilingual org and description", () => {
+    for (const c of VERIFIED_CONTACTS) {
+      expect(c.org.ru, `${c.normalized} org.ru`).toBeTruthy();
+      expect(c.org.uz, `${c.normalized} org.uz`).toBeTruthy();
+      expect(c.org.en, `${c.normalized} org.en`).toBeTruthy();
+      expect(c.description.ru, `${c.normalized} desc.ru`).toBeTruthy();
+      expect(c.description.uz, `${c.normalized} desc.uz`).toBeTruthy();
+      expect(c.description.en, `${c.normalized} desc.en`).toBeTruthy();
+    }
+  });
 
-    it("finds short code 1233 (Kapitalbank)", () => {
-      const result = findVerifiedContact("1233");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toBe("Kapitalbank");
-      expect(result!.category).toBe("bank");
-    });
+  it("all entries have a source reference", () => {
+    for (const c of VERIFIED_CONTACTS) {
+      expect(c.source.length, `${c.normalized} source`).toBeGreaterThan(0);
+    }
+  });
 
-    it("finds CBU hotline with +998 prefix", () => {
-      const result = findVerifiedContact("+998712000044");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toContain("Central Bank");
-    });
+  it("all entries have verificationLevel and usageContext", () => {
+    for (const c of VERIFIED_CONTACTS) {
+      expect(["high", "medium"]).toContain(c.verificationLevel);
+      expect(["callback_only", "support_line", "hotline", "incident_report", "outbound_info"]).toContain(c.usageContext);
+    }
+  });
 
-    it("finds CBU hotline without + (just digits)", () => {
-      const result = findVerifiedContact("998712000044");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toContain("Central Bank");
-    });
+  it("all entries have a valid verifiedAt date", () => {
+    for (const c of VERIFIED_CONTACTS) {
+      expect(Date.parse(c.verifiedAt)).not.toBeNaN();
+    }
+  });
 
-    it("finds CBU hotline with local format (no country code)", () => {
-      const result = findVerifiedContact("712000044");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toContain("Central Bank");
-    });
+  it("short codes are ≤5 digits", () => {
+    const shortCodes = VERIFIED_CONTACTS.filter((c) => c.contactType === "short_code");
+    expect(shortCodes.length).toBeGreaterThan(0);
+    for (const c of shortCodes) {
+      const digits = c.normalized.replace(/\D/g, "");
+      expect(digits.length, `${c.normalized}`).toBeLessThanOrEqual(5);
+    }
+  });
 
-    it("returns null for unknown numbers", () => {
-      expect(findVerifiedContact("+998901234567")).toBeNull();
-      expect(findVerifiedContact("12345")).toBeNull();
-      expect(findVerifiedContact("")).toBeNull();
-    });
+  it("full phone numbers start with +998 and have 12 digits total", () => {
+    const phones = VERIFIED_CONTACTS.filter((c) => c.contactType === "phone");
+    expect(phones.length).toBeGreaterThan(0);
+    for (const c of phones) {
+      expect(c.normalized, `${c.org.en}`).toMatch(/^\+998\d{9}$/);
+    }
+  });
 
-    it("handles numbers with formatting characters", () => {
-      const result = findVerifiedContact("+998 71 200-00-44");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toContain("Central Bank");
-    });
+  it("no duplicate normalized values", () => {
+    const seen = new Set<string>();
+    for (const c of VERIFIED_CONTACTS) {
+      expect(seen.has(c.normalized), `duplicate: ${c.normalized}`).toBe(false);
+      seen.add(c.normalized);
+    }
+  });
 
-    it("finds unified emergency number 1199", () => {
-      const result = findVerifiedContact("1199");
-      expect(result).not.toBeNull();
-      expect(result!.category).toBe("emergency");
-    });
+  it("covers all required org types", () => {
+    const types = new Set(VERIFIED_CONTACTS.map((c) => c.orgType));
+    expect(types.has("bank")).toBe(true);
+    expect(types.has("telecom")).toBe(true);
+    expect(types.has("government")).toBe(true);
+    expect(types.has("payment_system")).toBe(true);
+    expect(types.has("cybersecurity")).toBe(true);
+  });
+});
 
-    it("finds tourist hotline 1173", () => {
-      const result = findVerifiedContact("1173");
-      expect(result).not.toBeNull();
-      expect(result!.org.en).toContain("Safe Tourism");
-    });
+describe("findVerifiedContact lookup", () => {
+  it("finds emergency 102 (police)", () => {
+    const r = findVerifiedContact("102");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Police");
+    expect(r!.orgType).toBe("government");
+  });
+
+  it("finds short code 1340 (Kapitalbank)", () => {
+    const r = findVerifiedContact("1340");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toBe("Kapitalbank");
+    expect(r!.orgType).toBe("bank");
+  });
+
+  it("finds CBU hotline with +998 prefix", () => {
+    const r = findVerifiedContact("+998712000044");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Central Bank");
+  });
+
+  it("finds CBU hotline from just local digits (712000044)", () => {
+    const r = findVerifiedContact("712000044");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Central Bank");
+  });
+
+  it("finds number with formatting (spaces, dashes)", () => {
+    const r = findVerifiedContact("+998 71 200-00-44");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Central Bank");
+  });
+
+  it("finds Beeline short code 0611", () => {
+    const r = findVerifiedContact("0611");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Beeline");
+  });
+
+  it("finds UZCARD 1257", () => {
+    const r = findVerifiedContact("1257");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toBe("UZCARD");
+    expect(r!.orgType).toBe("payment_system");
+  });
+
+  it("finds Mobiuz 0890", () => {
+    const r = findVerifiedContact("0890");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toBe("Mobiuz");
+  });
+
+  it("finds UZCERT phone", () => {
+    const r = findVerifiedContact("+998712030023");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toBe("UZCERT");
+    expect(r!.orgType).toBe("cybersecurity");
+  });
+
+  it("finds gov.uz trust phone 1007 (Prosecutor General)", () => {
+    const r = findVerifiedContact("1007");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("Prosecutor");
+  });
+
+  it("returns null for unknown numbers", () => {
+    expect(findVerifiedContact("+998901234567")).toBeNull();
+    expect(findVerifiedContact("9999")).toBeNull();
+    expect(findVerifiedContact("")).toBeNull();
+    expect(findVerifiedContact("abc")).toBeNull();
+  });
+
+  it("finds NBU 1344", () => {
+    const r = findVerifiedContact("1344");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toContain("National Bank");
+  });
+
+  it("finds HUMO full number", () => {
+    const r = findVerifiedContact("+998788888585");
+    expect(r).not.toBeNull();
+    expect(r!.org.en).toBe("HUMO");
+    expect(r!.orgType).toBe("payment_system");
   });
 });
