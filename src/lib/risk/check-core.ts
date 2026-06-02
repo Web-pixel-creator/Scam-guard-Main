@@ -30,6 +30,7 @@ import {
 } from "./rules";
 import { hashIdentifier } from "./hash";
 import { checkRateLimit } from "./rate-limit";
+import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -51,6 +52,8 @@ export interface RunCheckResult {
   reasons: ReasonCode[];
   explanation: string | null; // null при недоступном AI (деградация, R13)
   knownReports: number; // >0 только для Confirmed_Entity
+  /** Verified official contact match (D-011). null if not matched. */
+  verifiedContact: { orgName: string; orgType: string; source: string } | null;
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -138,14 +141,43 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     console.error("log check failed", e);
   }
 
+  // ── Verified contact lookup (D-011) ──────────────────────────────────────
+  // Check if the normalized input matches a known official contact. If yes AND
+  // no dangerous reason codes are present, lower the risk to "safe". Dangerous
+  // behavior (OTP/APK/card requests) always overrides verified match.
+  let verifiedContact: RunCheckResult["verifiedContact"] = null;
+  let finalLevel = level;
+  if (detected === "phone" && normalized) {
+    const match = findVerifiedContact(normalized);
+    if (match) {
+      verifiedContact = {
+        orgName: match.org.en, // stored in EN for simplicity; formatter picks lang
+        orgType: match.orgType,
+        source: match.source,
+      };
+      // Dangerous codes that override a verified match:
+      const DANGEROUS_CODES: readonly string[] = [
+        "asks_for_sms_code", "asks_for_otp", "requests_card_digits",
+        "asks_to_install_apk", "apk_download_link", "asks_to_scan_qr",
+        "payment_before_service",
+      ];
+      const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
+      if (!hasDangerous) {
+        finalLevel = "safe";
+      }
+      // If hasDangerous — level stays as computed by rules (high_risk/suspicious).
+    }
+  }
+
   return {
     type: detected,
     display,
-    level,
+    level: finalLevel,
     score,
     reasons: reasonList,
     explanation,
     knownReports,
+    verifiedContact,
   };
 }
 

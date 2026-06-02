@@ -250,6 +250,23 @@ export const bot_dict: BotDict = {
     uz: "English",
     en: "English",
   },
+
+  // ── Verified contacts (D-011) ─────────────────────────────────────────────
+  verified_match: {
+    ru: "✅ Номер совпадает с официальным контактом: {org}.",
+    uz: "✅ Raqam rasmiy kontakt bilan mos keladi: {org}.",
+    en: "✅ Number matches an official contact: {org}.",
+  },
+  verified_spoofing_warning: {
+    ru: "⚠️ Важно: номер на экране может быть подменён (Caller ID spoofing). Если вам звонят с этого номера и просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — это опасно.\n\nБезопаснее завершить разговор и самостоятельно перезвонить по официальному номеру.",
+    uz: "⚠️ Muhim: ekrandagi raqam soxta bo'lishi mumkin (Caller ID spoofing). Agar sizga ushbu raqamdan qo'ng'iroq qilib, SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — bu xavfli.\n\nXavfsizroq: suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
+    en: "⚠️ Important: Caller ID can be spoofed. If someone calls from this number and asks for your SMS code, PIN, CVV, password, to install an app or transfer money — it's still dangerous.\n\nSafer: hang up and call back using the official number yourself.",
+  },
+  verified_with_danger: {
+    ru: "🚨 Номер похож на официальный контакт ({org}), но сообщение содержит опасные признаки. Даже официальный номер на экране может быть подменён. Не выполняйте инструкции и свяжитесь с организацией самостоятельно.",
+    uz: "🚨 Raqam rasmiy kontaktga ({org}) o'xshaydi, lekin xabarda xavfli belgilar bor. Hatto rasmiy raqam ham soxta bo'lishi mumkin. Ko'rsatmalarni bajarmang va tashkilotga o'zingiz murojaat qiling.",
+    en: "🚨 Number resembles an official contact ({org}), but the message contains dangerous signals. Even an official number on screen can be spoofed. Do not follow the instructions — contact the organization yourself.",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;

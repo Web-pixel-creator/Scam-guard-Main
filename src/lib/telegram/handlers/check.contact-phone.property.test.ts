@@ -51,6 +51,7 @@ const hoisted = vi.hoisted(() => {
     reasons: string[];
     explanation: string | null;
     knownReports: number;
+    verifiedContact: null;
   }
 
   const runCheckCalls: Array<{ params: Params; result: FakeResult }> = [];
@@ -89,6 +90,7 @@ const hoisted = vi.hoisted(() => {
       reasons: [...reasons],
       explanation: null,
       knownReports: 0,
+      verifiedContact: null,
     };
   };
 

@@ -90,10 +90,9 @@ const runCheckResultArb: fc.Arbitrary<RunCheckResult> = fc.record({
   level: fc.constantFrom(...RISK_LEVELS),
   score: fc.nat(),
   reasons: fc.subarray([...ALL_REASON_CODES]),
-  // fc.option(..) yields `string | null` — exercises BOTH a present AI
-  // explanation and the degraded `explanation === null` case (R13).
   explanation: fc.option(fc.string()),
   knownReports: fc.nat(),
+  verifiedContact: fc.constant(null),
 });
 
 /** A concrete result for the unit tests; fields overridable per case. */
@@ -106,6 +105,7 @@ function baseResult(overrides: Partial<RunCheckResult> = {}): RunCheckResult {
     reasons: ["uses_urgency"],
     explanation: null,
     knownReports: 0,
+    verifiedContact: null,
     ...overrides,
   };
 }
