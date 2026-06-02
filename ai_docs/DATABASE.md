@@ -15,13 +15,19 @@ Postgres via Supabase. Schema = `public`. RLS is enabled on all app tables. Sour
 
 Risk-check log: `id, input_type, redacted_input, input_hash, risk_level, risk_score, reason_codes, ai_explanation, language, created_at`.
 
-RLS: anon/authenticated can insert under constraints; public cannot select; admins can select. Stores redacted/hashed data only.
+RLS/grants: public direct inserts are revoked. Writes go through server functions
+using the service-role client after validation, redaction and hashing. Public
+cannot select; admins can read via admin server functions. Stores redacted/hashed
+data only.
 
 ### `reports`
 
 User-submitted reports: `id, entity_type, redacted_value, entity_hash, description, screenshot_url, scam_type, city, amount_lost_uzs, status, language, created_at`.
 
-RLS: anon/authenticated can insert; admins can select/update. Anonymous by default. `submitReport` redacts free-form `description` before insert.
+RLS/grants: public direct inserts are revoked. Reports are accepted through
+`submitReport`, which validates payloads and redacts free-form `description`
+before service-role insert. Anonymous by default; admins moderate through admin
+server functions.
 
 ### `entities`
 

@@ -57,3 +57,11 @@ Removed the historical `@lovable.dev/vite-tanstack-config` build wrapper and rep
 ## D-014 - Heuristic `payment` input detector
 
 Added `looksLikePaymentInput` in `risk/detect.ts` so payment-flow messages can be classified as `payment` instead of generic `text` or accidental `url`. The detector is conservative: pure URLs/APKs/Telegram links keep their primary type, while mixed payment text needs payment action/context plus amount, currency, card, QR or provider signals.
+
+## D-015 - Sensitive writes only through server functions
+
+Direct `anon`/`authenticated` inserts into `checks` and `reports` are disabled.
+Those tables can contain sensitive scam evidence even after masking, so all
+writes must pass through server functions that validate, redact and hash before
+using the service-role client. This also prevents public stat pollution through
+direct `checks` inserts.

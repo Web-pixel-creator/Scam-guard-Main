@@ -4,6 +4,10 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 
 ## Server functions
 
+`public` here means callable through the TanStack Start server-function surface.
+It does not mean direct browser writes to Supabase tables: sensitive writes to
+`checks` and `reports` are service-role-only behind these handlers.
+
 | RPC | Auth | Input | Returns |
 |---|---|---|---|
 | `checkInput` | public | `{ input: 1-2000, type?, lang }` | `{ type, display, level, score, reasons[], explanation, knownReports }` |
