@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-02 - Research-feed scam coverage rules
+
+- Documented `known_reported`, `fake_delivery_payment`, `fake_boss_request`, `malicious_file_bait`, and stronger `payment_before_service` coverage.
+- Updated `SCAM_COVERAGE.md` and `OPEN_TASKS.md` so completed research-feed patterns no longer appear as planned work.
+- Recorded the removal of the old high-risk entity APK proxy in favor of `known_reported`.
+
 ## 2026-06-01 - Production-readiness sync
 
 - Updated AI memory to reflect the actual runtime: self-hosted Node/Nitro `node-server`, Docker/Railway-ready, no Lovable Cloud production dependency.

@@ -30,10 +30,14 @@ export type ReasonCode =
   | "non_uz_phone"
   | "valid_uz_phone"
   | "verified_official"
+  | "known_reported"
   | "asks_to_scan_qr"
   | "relative_in_distress"
   | "requests_card_digits"
-  | "threatens_account_block";
+  | "threatens_account_block"
+  | "fake_delivery_payment"
+  | "fake_boss_request"
+  | "malicious_file_bait";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -62,10 +66,14 @@ const WEIGHTS: Record<ReasonCode, number> = {
   non_uz_phone: 5,
   valid_uz_phone: 0,
   verified_official: -100,
+  known_reported: 50,
   asks_to_scan_qr: 50,
   relative_in_distress: 30,
   requests_card_digits: 45,
   threatens_account_block: 20,
+  fake_delivery_payment: 35,
+  fake_boss_request: 30,
+  malicious_file_bait: 35,
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -88,6 +96,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "relative_in_distress", re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i },
   { code: "requests_card_digits", re: /(последн(ие|их).{0,10}(4|четыре).{0,10}цифр|подтверд(и|ите).{0,15}цифр.{0,10}карт|karta.{0,20}(raqam|oxirgi).{0,10}(4|to['’]rt).{0,10}(raqam|son))/i },
   { code: "threatens_account_block", re: /(карт(а|у)|счёт|счет|аккаунт).{0,30}(заблокир|блокиров)|(karta|hisob).{0,30}(bloklan|bloklab)/i },
+  { code: "fake_delivery_payment", re: /((курьер|доставк|посылк|почт[аы]|parcel|delivery|shipping|kuryer|yetkazib|posilka).{0,70}(оплат|доплат|пошлин|сбор|комисс|вернут|возврат|ссылк|fee|pay|returned|link|to['’]lov|havola|qaytar|komiss|boj)|pay.{0,40}(delivery|shipping|parcel).{0,20}fee)/i },
+  { code: "payment_before_service", re: /(предоплат|аванс|задаток|брон[ьи]|оплатите.{0,30}(до|сначала)|oldindan.{0,20}to['’]lov|avans|zaklad|bron|xizmatdan oldin|first.{0,20}pay|prepay)/i },
+  { code: "fake_boss_request", re: /(начальник|директор|руководител|бухгалтер|кадр|отдел кадров|прокуратур|мвд|налогов|орган[аы]|rahbar|direktor|boshliq|kadr|buxgalter|soliq|prokuratura|iib).{0,90}(паспорт|анкета|данн|код|карт|перевод|срочно|отправ|pasport|ma['’]lumot|kod|karta|pul|yubor|tez)/i },
+  { code: "malicious_file_bait", re: /(открой|скачай|скачайте|посмотр|получите|open|download|ko['’]r|och|yuklab).{0,50}(gif|гиф|стикер|sticker|stiker|greeting card|открытк|fayl|file|файл|archive|архив|apk)/i },
 ];
 
 const SHORT_LINK_HOSTS = ["bit.ly","t.co","tinyurl.com","goo.gl","cutt.ly","is.gd","rebrand.ly","clck.ru","vk.cc","ow.ly"];
@@ -174,10 +186,14 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
   non_uz_phone: { ru: "Не узбекский номер", uz: "O‘zbek raqami emas", en: "Non-Uzbek phone number" },
   valid_uz_phone: { ru: "Корректный узбекский номер", uz: "To‘g‘ri O‘zbek raqami", en: "Valid Uzbek phone" },
   verified_official: { ru: "Проверенный официальный контакт", uz: "Tasdiqlangan rasmiy kontakt", en: "Verified official contact" },
+  known_reported: { ru: "Идентификатор уже подтверждён в жалобах", uz: "Bu identifikator oldin tasdiqlangan shikoyatlarda bor", en: "Identifier is already confirmed in reports" },
   asks_to_scan_qr: { ru: "Просят отсканировать QR-код", uz: "QR-kodni skanerlashni so‘rashmoqda", en: "Asks you to scan a QR code" },
   relative_in_distress: { ru: "«Родственник/друг в беде» — срочный перевод", uz: "«Qarindosh/do‘st xavf ostida» — shoshilinch pul", en: "“Relative/friend in distress” money request" },
   requests_card_digits: { ru: "Просят назвать цифры карты", uz: "Karta raqamlarini aytishni so‘rashmoqda", en: "Asks you to reveal card digits" },
   threatens_account_block: { ru: "Угрожают блокировкой счёта / карты", uz: "Hisob / kartani bloklash bilan qo‘rqitmoqda", en: "Threatens to block your account / card" },
+  fake_delivery_payment: { ru: "Фейковая оплата доставки / посылки", uz: "Soxta yetkazib berish / posilka to‘lovi", en: "Fake delivery / parcel payment" },
+  fake_boss_request: { ru: "Фейковый руководитель / официальный запрос", uz: "Soxta rahbar / rasmiy so‘rov", en: "Fake boss / official request" },
+  malicious_file_bait: { ru: "Побуждают открыть подозрительный файл", uz: "Shubhali faylni ochishga undashmoqda", en: "Pushes you to open a suspicious file" },
 };
 
 export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[] }> = {
@@ -215,6 +231,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
     ru: [
       "Не отправляйте код, не сообщайте данные карты.",
       "Не устанавливайте APK / приложение по их ссылке.",
+      "Не открывайте GIF, открытки, архивы или файлы от неизвестного отправителя.",
       "Не сканируйте чужой QR-код: это может дать мошеннику доступ к вашему Telegram-аккаунту.",
       "Завершите разговор и перезвоните в банк по официальному номеру.",
       "Сделайте скриншоты переписки и сохраните номер.",
@@ -223,6 +240,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
     uz: [
       "Kod yubormang, karta ma’lumotlarini aytmang.",
       "Ularning havolasi orqali APK / ilova o‘rnatmang.",
+      "Noma’lum yuboruvchidan kelgan GIF, otkritka, arxiv yoki faylni ochmang.",
       "Birovning QR-kodini skanerlamang: bu firibgarga Telegram hisobingizdan foydalanish imkonini berishi mumkin.",
       "Suhbatni tugatib, bankka rasmiy raqami orqali qo‘ng‘iroq qiling.",
       "Yozishmalarning skrinshotini saqlang.",
@@ -231,6 +249,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
     en: [
       "Don’t send codes or share card details.",
       "Don’t install any APK or app from their link.",
+      "Don’t open GIFs, greeting cards, archives or files from an unknown sender.",
       "Don’t scan someone else’s QR code: it can give a scammer access to your Telegram account.",
       "End the call and dial your bank using the official number.",
       "Take screenshots of the chat and save the number.",

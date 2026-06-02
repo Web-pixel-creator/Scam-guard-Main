@@ -13,12 +13,20 @@ import { scoreFromCodes, type ReasonCode, type RiskLevel } from "./rules";
 // annotations make TypeScript reject any typo'd / non-existent code.
 // ---------------------------------------------------------------------------
 
-/** The four reason codes added for the local-scenario scoring (task 3.1). */
+/** The four reason codes added for the Telegram local-scenario scoring. */
 const NEW_CODES = [
   "asks_to_scan_qr",
   "relative_in_distress",
   "requests_card_digits",
   "threatens_account_block",
+] as const satisfies readonly ReasonCode[];
+
+/** The follow-up reason codes added from local research-feed patterns. */
+const RESEARCH_FEED_CODES = [
+  "known_reported",
+  "fake_delivery_payment",
+  "fake_boss_request",
+  "malicious_file_bait",
 ] as const satisfies readonly ReasonCode[];
 
 /** The 26 reason codes that existed before the new local-scenario codes. */
@@ -51,7 +59,7 @@ const OLD_CODES = [
   "verified_official",
 ] as const satisfies readonly ReasonCode[];
 
-const ALL_CODES: readonly ReasonCode[] = [...OLD_CODES, ...NEW_CODES];
+const ALL_CODES: readonly ReasonCode[] = [...OLD_CODES, ...NEW_CODES, ...RESEARCH_FEED_CODES];
 
 // ---------------------------------------------------------------------------
 // Legacy reference for Property 10.
@@ -111,8 +119,9 @@ describe("risk rules — property-based scoring invariants", () => {
   it("fixtures cover the full reason-code universe without overlap", () => {
     expect(OLD_CODES.length).toBe(26);
     expect(NEW_CODES.length).toBe(4);
-    expect(new Set(ALL_CODES).size).toBe(30);
-    for (const c of NEW_CODES) {
+    expect(RESEARCH_FEED_CODES.length).toBe(4);
+    expect(new Set(ALL_CODES).size).toBe(34);
+    for (const c of [...NEW_CODES, ...RESEARCH_FEED_CODES]) {
       expect(OLD_CODES).not.toContain(c);
     }
   });

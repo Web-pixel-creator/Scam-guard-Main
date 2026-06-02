@@ -16,7 +16,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // `insertCalls` is referenced inside the (hoisted) vi.mock factory, so it must
 // itself be hoisted to be initialised before the mock runs.
-const hoisted = vi.hoisted(() => ({ insertCalls: [] as Array<Record<string, unknown>> }));
+const hoisted = vi.hoisted(() => ({
+  insertCalls: [] as Array<Record<string, unknown>>,
+  entityRow: null as null | {
+    report_count: number;
+    moderation_status: string;
+    risk_level: string;
+  },
+}));
 
 // Mock the service-role Supabase client used by check-core. The real module
 // reads SUPABASE_* env vars at first access and would throw in tests.
@@ -34,7 +41,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
             // entities lookup: .select(...).eq(...).maybeSingle()
             select: () => ({
               eq: () => ({
-                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                maybeSingle: () => Promise.resolve({ data: hoisted.entityRow, error: null }),
               }),
             }),
           },
@@ -58,6 +65,7 @@ const LANGS = ["ru", "uz", "en"] as const;
 
 beforeEach(() => {
   hoisted.insertCalls.length = 0;
+  hoisted.entityRow = null;
   // Deterministic, non-empty AI response so the skipAi:false path yields a
   // string explanation (and never performs a real network request).
   vi.stubGlobal(
@@ -222,5 +230,27 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(text).not.toContain("8600 1234 5678 9012");
     expect(text).not.toContain("+998901234567");
     expect(maxDigitRun(text)).toBeLessThanOrEqual(3);
+  });
+
+  it("confirmed high-risk entities use the dedicated known_reported reason code", async () => {
+    hoisted.entityRow = {
+      report_count: 7,
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+    };
+
+    const result = await runCheck({
+      input: "+998901234567",
+      type: "phone",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.knownReports).toBe(7);
+    expect(result.reasons).toContain("known_reported");
+    expect(result.reasons).not.toContain("asks_to_install_apk");
+    expect(result.level).toBe("high_risk");
   });
 });
