@@ -147,6 +147,7 @@ export type OutOfScopeKind =
   | "audio"
   | "video"
   | "sticker"
+  | "document"
   | "empty"
   | "unknown_command";
 
@@ -268,6 +269,10 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   }
   if (m.document && typeof m.document.mime_type === "string" && m.document.mime_type.startsWith("image/")) {
     return { kind: "image", fileId: m.document.file_id };
+  }
+  // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
+  if (m.document) {
+    return { kind: "outOfScope", reason: "document" };
   }
   if (m.contact) {
     return { kind: "contact", phone: m.contact.phone_number };
