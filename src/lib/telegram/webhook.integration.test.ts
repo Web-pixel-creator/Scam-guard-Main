@@ -241,11 +241,12 @@ beforeEach(() => {
   // the rules-based level).
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      new Response(
-        JSON.stringify({ choices: [{ message: { content: "AI explanation stub." } }] }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      ),
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: "AI explanation stub." } }] }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
     ),
   );
 

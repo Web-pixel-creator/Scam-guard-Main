@@ -56,12 +56,7 @@ vi.mock("@/integrations/supabase/client.server", () => {
   return { supabaseAdmin };
 });
 
-import {
-  loadSession,
-  saveSession,
-  setLanguage,
-  resetScenario,
-} from "./session.server";
+import { loadSession, saveSession, setLanguage, resetScenario } from "./session.server";
 
 beforeEach(() => {
   // Reset to neutral "success / no row" defaults before every test.

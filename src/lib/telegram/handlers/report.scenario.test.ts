@@ -102,12 +102,7 @@ vi.mock("@/lib/report.functions", () => ({
   },
 }));
 
-import {
-  startReport,
-  handleScenarioStep,
-  handleReportSkip,
-  REPORT_SKIP_CALLBACK,
-} from "./report";
+import { startReport, handleScenarioStep, handleReportSkip, REPORT_SKIP_CALLBACK } from "./report";
 
 // ---------------------------------------------------------------------------
 // Helpers

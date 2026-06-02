@@ -159,7 +159,16 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     // … and the EXACT same key set as the documented pre-refactor shape:
     // no fields added, removed or renamed by the wrapper.
     expect(Object.keys(result).sort()).toEqual(
-      ["display", "explanation", "knownReports", "level", "reasons", "score", "type", "verifiedContact"].sort(),
+      [
+        "display",
+        "explanation",
+        "knownReports",
+        "level",
+        "reasons",
+        "score",
+        "type",
+        "verifiedContact",
+      ].sort(),
     );
   });
 
@@ -167,9 +176,7 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     hoisted.requestIp = "192.0.2.1";
 
     await expect(checkInput({ data: { input: "" } })).rejects.toBeDefined();
-    await expect(
-      checkInput({ data: { input: "x", type: "not-a-type" } }),
-    ).rejects.toBeDefined();
+    await expect(checkInput({ data: { input: "x", type: "not-a-type" } })).rejects.toBeDefined();
     // No call reached the core for invalid inputs.
     expect(hoisted.runCheckCalls).toHaveLength(0);
   });

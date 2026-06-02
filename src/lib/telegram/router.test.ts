@@ -160,7 +160,16 @@ describe("parseCommand (R4.9)", () => {
   });
 
   it("recognises every known command", () => {
-    for (const cmd of ["/start", "/lang", "/help", "/safety", "/check", "/report", "/emergency", "/panic"]) {
+    for (const cmd of [
+      "/start",
+      "/lang",
+      "/help",
+      "/safety",
+      "/check",
+      "/report",
+      "/emergency",
+      "/panic",
+    ]) {
       expect(parseCommand(cmd)).toEqual({ command: cmd, arg: "" });
     }
   });

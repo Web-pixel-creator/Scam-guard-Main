@@ -52,7 +52,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Повторить
@@ -75,10 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Ishonch Guard — антискам-помощник для Узбекистана" },
-      { name: "description", content: "Проверьте номер, Telegram, ссылку или текст сообщения и получите понятный risk score. Защитите себя от телефонных и SMS-мошенников в Узбекистане." },
+      {
+        name: "description",
+        content:
+          "Проверьте номер, Telegram, ссылку или текст сообщения и получите понятный risk score. Защитите себя от телефонных и SMS-мошенников в Узбекистане.",
+      },
       { name: "author", content: "Ishonch Guard" },
       { property: "og:title", content: "Ishonch Guard — антискам-помощник для Узбекистана" },
-      { property: "og:description", content: "Распознайте мошенников до того, как потеряете деньги. Бесплатно, на 3 языках." },
+      {
+        property: "og:description",
+        content: "Распознайте мошенников до того, как потеряете деньги. Бесплатно, на 3 языках.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -94,7 +104,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
       },
       // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
-      { rel: "preconnect", href: "https://keacrmbtxccnernxhfhn.supabase.co", crossOrigin: "anonymous" },
+      {
+        rel: "preconnect",
+        href: "https://keacrmbtxccnernxhfhn.supabase.co",
+        crossOrigin: "anonymous",
+      },
       { rel: "dns-prefetch", href: "https://keacrmbtxccnernxhfhn.supabase.co" },
     ],
   }),

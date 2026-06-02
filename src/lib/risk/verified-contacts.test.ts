@@ -31,7 +31,13 @@ describe("verified-contacts seed data integrity", () => {
   it("all entries have verificationLevel and usageContext", () => {
     for (const c of VERIFIED_CONTACTS) {
       expect(["high", "medium"]).toContain(c.verificationLevel);
-      expect(["callback_only", "support_line", "hotline", "incident_report", "outbound_info"]).toContain(c.usageContext);
+      expect([
+        "callback_only",
+        "support_line",
+        "hotline",
+        "incident_report",
+        "outbound_info",
+      ]).toContain(c.usageContext);
     }
   });
 

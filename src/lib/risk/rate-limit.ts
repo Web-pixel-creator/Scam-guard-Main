@@ -6,11 +6,7 @@ const buckets = new Map<string, Bucket>();
 
 export type RateLimitResult = { ok: boolean; remaining: number; retryAfterSec: number };
 
-export function checkRateLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-): RateLimitResult {
+export function checkRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
   const cutoff = now - windowMs;
   const arr = buckets.get(key) ?? [];

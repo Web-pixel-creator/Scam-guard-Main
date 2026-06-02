@@ -42,7 +42,11 @@ export function A11yPanel() {
       const idx = SCALES.indexOf(prev);
       const next = SCALES[Math.min(SCALES.length - 1, Math.max(0, idx + delta))];
       applyScale(next);
-      try { localStorage.setItem(STORAGE_SCALE, String(next)); } catch { /* no-op */ }
+      try {
+        localStorage.setItem(STORAGE_SCALE, String(next));
+      } catch {
+        /* no-op */
+      }
       return next;
     });
   }, []);
@@ -51,7 +55,11 @@ export function A11yPanel() {
     setContrast((prev) => {
       const next = !prev;
       applyContrast(next);
-      try { localStorage.setItem(STORAGE_CONTRAST, next ? "1" : "0"); } catch { /* no-op */ }
+      try {
+        localStorage.setItem(STORAGE_CONTRAST, next ? "1" : "0");
+      } catch {
+        /* no-op */
+      }
       return next;
     });
   }, []);
@@ -64,12 +72,18 @@ export function A11yPanel() {
     try {
       localStorage.removeItem(STORAGE_SCALE);
       localStorage.removeItem(STORAGE_CONTRAST);
-    } catch { /* no-op */ }
+    } catch {
+      /* no-op */
+    }
   }, []);
 
   const L = {
     title: { ru: "Доступность", uz: "Imkoniyatlar", en: "Accessibility" }[lang],
-    open: { ru: "Открыть панель доступности", uz: "Imkoniyatlar panelini ochish", en: "Open accessibility panel" }[lang],
+    open: {
+      ru: "Открыть панель доступности",
+      uz: "Imkoniyatlar panelini ochish",
+      en: "Open accessibility panel",
+    }[lang],
     close: { ru: "Закрыть", uz: "Yopish", en: "Close" }[lang],
     fontSize: { ru: "Размер шрифта", uz: "Shrift o'lchami", en: "Text size" }[lang],
     inc: { ru: "Увеличить шрифт", uz: "Shriftni kattalashtirish", en: "Increase text size" }[lang],

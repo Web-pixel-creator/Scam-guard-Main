@@ -18,7 +18,9 @@ async function fetchStats(): Promise<Stats> {
 
 function formatNum(n: number, lang: string) {
   try {
-    return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : lang === "uz" ? "uz-UZ" : "en-US").format(n);
+    return new Intl.NumberFormat(
+      lang === "ru" ? "ru-RU" : lang === "uz" ? "uz-UZ" : "en-US",
+    ).format(n);
   } catch {
     return String(n);
   }
@@ -51,13 +53,19 @@ export function StatsStrip() {
       key: "confirmed",
       icon: ShieldCheck,
       value: data?.confirmed_entities ?? 0,
-      label: { ru: "Подтверждённых мошенников", uz: "Tasdiqlangan firibgarlar", en: "Confirmed scammers" }[lang],
+      label: {
+        ru: "Подтверждённых мошенников",
+        uz: "Tasdiqlangan firibgarlar",
+        en: "Confirmed scammers",
+      }[lang],
     },
   ];
 
   return (
     <section
-      aria-label={{ ru: "Статистика сервиса", uz: "Xizmat statistikasi", en: "Service stats" }[lang]}
+      aria-label={
+        { ru: "Статистика сервиса", uz: "Xizmat statistikasi", en: "Service stats" }[lang]
+      }
       className="relative"
     >
       {/* Header strip */}
@@ -70,7 +78,11 @@ export function StatsStrip() {
             <span className="absolute inset-0 rounded-full bg-[#059669] animate-ping opacity-70" />
             <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-[#059669]" />
           </span>
-          {{ ru: "обновляется в реальном времени", uz: "real vaqtda yangilanadi", en: "live" }[lang]}
+          {
+            { ru: "обновляется в реальном времени", uz: "real vaqtda yangilanadi", en: "live" }[
+              lang
+            ]
+          }
         </span>
       </div>
 

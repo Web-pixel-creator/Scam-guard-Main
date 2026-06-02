@@ -27,18 +27,20 @@
 // Server-only: pulls in `session.server.ts` (service-role Supabase) and
 // `api.server.ts` (bot token) at runtime. Never import into the client bundle.
 
-import { CB, formatEmergencyChecklist, formatHelp, formatSafety, formatWelcome } from "@/lib/telegram/format";
+import {
+  CB,
+  formatEmergencyChecklist,
+  formatHelp,
+  formatSafety,
+  formatWelcome,
+} from "@/lib/telegram/format";
 import {
   buildPanicMenuText,
   PANIC_MENU_TITLES,
   PANIC_CB_PREFIX,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
-import {
-  escapeMarkdownV2,
-  sendMessage,
-  type InlineKeyboard,
-} from "@/lib/telegram/api.server";
+import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";

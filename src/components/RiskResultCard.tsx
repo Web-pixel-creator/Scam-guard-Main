@@ -1,4 +1,11 @@
-import { ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle, Volume2, Square } from "lucide-react";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
+  AlertTriangle,
+  Volume2,
+  Square,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
@@ -20,12 +27,12 @@ export type CheckResult = {
 type LevelStyle = {
   icon: typeof ShieldCheck;
   key: string;
-  accent: string;        // hex used for dot/icon
+  accent: string; // hex used for dot/icon
   badgeBg: string;
   badgeBorder: string;
   badgeText: string;
-  tag: string;           // SCAM/SAFE/WATCH text
-  topBar: string;        // gradient class for top stripe
+  tag: string; // SCAM/SAFE/WATCH text
+  topBar: string; // gradient class for top stripe
 };
 
 const TAG_LABELS: Record<RiskLevel, { ru: string; uz: string; en: string }> = {
@@ -37,31 +44,46 @@ const TAG_LABELS: Record<RiskLevel, { ru: string; uz: string; en: string }> = {
 
 const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
   safe: {
-    icon: ShieldCheck, key: "risk_safe", accent: "#059669",
-    badgeBg: "bg-[#ECFDF5]", badgeBorder: "border-[#A7F3D0]/70", badgeText: "text-[#065F46]",
+    icon: ShieldCheck,
+    key: "risk_safe",
+    accent: "#059669",
+    badgeBg: "bg-[#ECFDF5]",
+    badgeBorder: "border-[#A7F3D0]/70",
+    badgeText: "text-[#065F46]",
     tag: "safe",
     topBar: "from-[#10B981] via-[#34D399] to-[#6EE7B7]",
   },
   unknown: {
-    icon: ShieldQuestion, key: "risk_unknown", accent: "#71717A",
-    badgeBg: "bg-[#F4F4F5]", badgeBorder: "border-[#E4E4E7]", badgeText: "text-[#3F3F46]",
+    icon: ShieldQuestion,
+    key: "risk_unknown",
+    accent: "#71717A",
+    badgeBg: "bg-[#F4F4F5]",
+    badgeBorder: "border-[#E4E4E7]",
+    badgeText: "text-[#3F3F46]",
     tag: "unknown",
     topBar: "from-[#FDBA74]/40 via-[#E2E0D8] to-[#FDBA74]/40",
   },
   suspicious: {
-    icon: AlertTriangle, key: "risk_suspicious", accent: "#D97706",
-    badgeBg: "bg-[#FFFBEB]", badgeBorder: "border-[#FCD34D]/70", badgeText: "text-[#92400E]",
+    icon: AlertTriangle,
+    key: "risk_suspicious",
+    accent: "#D97706",
+    badgeBg: "bg-[#FFFBEB]",
+    badgeBorder: "border-[#FCD34D]/70",
+    badgeText: "text-[#92400E]",
     tag: "suspicious",
     topBar: "from-[#F59E0B] via-[#FBBF24] to-[#FCD34D]",
   },
   high_risk: {
-    icon: ShieldAlert, key: "risk_high", accent: "#DC2626",
-    badgeBg: "bg-[#FEF2F2]", badgeBorder: "border-[#FCA5A5]/60", badgeText: "text-[#991B1B]",
+    icon: ShieldAlert,
+    key: "risk_high",
+    accent: "#DC2626",
+    badgeBg: "bg-[#FEF2F2]",
+    badgeBorder: "border-[#FCA5A5]/60",
+    badgeText: "text-[#991B1B]",
     tag: "high_risk",
     topBar: "from-[#F97316] via-[#FB923C] to-[#C2410C]",
   },
 };
-
 
 const TYPE_LABELS: Record<string, { ru: string; uz: string; en: string }> = {
   phone: { ru: "Телефон", uz: "Telefon", en: "Phone" },
@@ -117,7 +139,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   return (
     <div className="apex-shell">
       <div className="relative bg-white">
-        <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.topBar} z-[1]`} />
+        <div
+          className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.topBar} z-[1]`}
+        />
         <div className="p-7 sm:p-9 md:p-10">
           {/* Header strip */}
           <div className="flex items-center justify-between gap-4 mb-8 pb-5 border-b border-[#E2E0D8]">
@@ -129,7 +153,10 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                     style={{ backgroundColor: s.accent }}
                   />
                 )}
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.accent }} />
+                <span
+                  className="relative inline-flex h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: s.accent }}
+                />
               </span>
               {{ ru: "Результат", uz: "Natija", en: "Result" }[lang]}
             </span>
@@ -150,7 +177,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             >
               {speaking ? (
                 <>
-                  <Square aria-hidden="true" className="h-4 w-4" strokeWidth={2} fill="currentColor" />
+                  <Square
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    strokeWidth={2}
+                    fill="currentColor"
+                  />
                   {{ ru: "Остановить чтение", uz: "O'qishni to'xtatish", en: "Stop reading" }[lang]}
                 </>
               ) : (
@@ -164,7 +196,10 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
 
           {/* Title block */}
           <div className="flex items-start gap-5">
-            <div className="grid h-12 w-12 place-items-center rounded-[4px] border border-[#E2E0D8] shrink-0" style={{ color: s.accent }}>
+            <div
+              className="grid h-12 w-12 place-items-center rounded-[4px] border border-[#E2E0D8] shrink-0"
+              style={{ color: s.accent }}
+            >
               <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
@@ -172,7 +207,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 <span>{{ ru: "Тип:", uz: "Turi:", en: "Type:" }[lang]}</span>
                 <span className="text-[#18181B] font-medium">{typeLabel}</span>
                 <span className="text-[#A1A1AA]">·</span>
-                <span className="text-[#18181B] font-medium uppercase tracking-wider">{TAG_LABELS[result.level][lang]}</span>
+                <span className="text-[#18181B] font-medium uppercase tracking-wider">
+                  {TAG_LABELS[result.level][lang]}
+                </span>
               </div>
 
               <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
@@ -183,7 +220,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                   {result.display}
                 </blockquote>
               ) : (
-                <p className="mt-2 font-mono text-[13.5px] text-[#52525B] break-all">{result.display}</p>
+                <p className="mt-2 font-mono text-[13.5px] text-[#52525B] break-all">
+                  {result.display}
+                </p>
               )}
 
               {result.explanation && (
@@ -196,12 +235,24 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               {result.verifiedContact && (
                 <div className="mt-5 p-4 rounded-lg border border-[#A7F3D0]/70 bg-[#ECFDF5]">
                   <p className="text-[14px] font-medium text-[#065F46] mb-2">
-                    ✅ {{ ru: "Номер совпадает с официальным контактом:", uz: "Raqam rasmiy kontakt bilan mos keladi:", en: "Number matches an official contact:" }[lang]} {result.verifiedContact.orgName}
+                    ✅{" "}
+                    {
+                      {
+                        ru: "Номер совпадает с официальным контактом:",
+                        uz: "Raqam rasmiy kontakt bilan mos keladi:",
+                        en: "Number matches an official contact:",
+                      }[lang]
+                    }{" "}
+                    {result.verifiedContact.orgName}
                   </p>
                   <p className="text-[13px] text-[#52525B] leading-[1.5]">
-                    {{ ru: "⚠️ Caller ID может быть подменён. Если вас просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — завершите разговор и перезвоните самостоятельно по официальному номеру.",
-                       uz: "⚠️ Caller ID soxta bo'lishi mumkin. Agar sizdan SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
-                       en: "⚠️ Caller ID can be spoofed. If someone asks for your SMS code, PIN, CVV, password, to install an app or transfer money — hang up and call back using the official number yourself." }[lang]}
+                    {
+                      {
+                        ru: "⚠️ Caller ID может быть подменён. Если вас просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — завершите разговор и перезвоните самостоятельно по официальному номеру.",
+                        uz: "⚠️ Caller ID soxta bo'lishi mumkin. Agar sizdan SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
+                        en: "⚠️ Caller ID can be spoofed. If someone asks for your SMS code, PIN, CVV, password, to install an app or transfer money — hang up and call back using the official number yourself.",
+                      }[lang]
+                    }
                   </p>
                 </div>
               )}
@@ -235,7 +286,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               <ul className="space-y-3">
                 {advice.map((a, i) => (
                   <li key={i} className="flex gap-3 text-[15px] leading-[1.6] text-[#18181B]">
-                    <span className="text-[#F97316] shrink-0 mt-[1px] font-semibold" aria-hidden>→</span>
+                    <span className="text-[#F97316] shrink-0 mt-[1px] font-semibold" aria-hidden>
+                      →
+                    </span>
                     <span className="text-pretty">{a}</span>
                   </li>
                 ))}
@@ -246,7 +299,8 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-[#E2E0D8] flex flex-wrap items-center justify-between gap-4">
             <span className="apex-mono text-[#71717A]">
-              {{ ru: "Жалоб", uz: "Shikoyatlar", en: "Reports" }[lang]} · {result.knownReports > 0 ? result.knownReports : "00"}
+              {{ ru: "Жалоб", uz: "Shikoyatlar", en: "Reports" }[lang]} ·{" "}
+              {result.knownReports > 0 ? result.knownReports : "00"}
             </span>
 
             <div className="flex flex-wrap gap-3">
@@ -268,4 +322,3 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
     </div>
   );
 }
-

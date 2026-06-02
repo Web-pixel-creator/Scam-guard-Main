@@ -8,7 +8,11 @@ export const Route = createFileRoute("/check")({
   head: () => ({
     meta: [
       { title: "Проверка — Ishonch Guard" },
-      { name: "description", content: "Вставьте номер, Telegram, ссылку или текст и получите risk score и понятные шаги." },
+      {
+        name: "description",
+        content:
+          "Вставьте номер, Telegram, ссылку или текст и получите risk score и понятные шаги.",
+      },
       { property: "og:title", content: "Проверка подозрительного — Ishonch Guard" },
     ],
   }),
@@ -21,10 +25,19 @@ function CheckPage() {
     <div className="apex-page" style={{ maxWidth: 1080 }}>
       <div className="apex-card apex-frame apex-stripes">
         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">{{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}</span>
+          <span className="apex-mono">
+            {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}
+          </span>
           <span className="apex-mono text-right inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-3 w-3 text-[#F97316]" strokeWidth={2} aria-hidden="true" focusable="false" />
-            <span className="hidden xs:inline">{{ ru: "Конфиденциально", uz: "Maxfiy", en: "Private" }[lang]}</span>
+            <ShieldCheck
+              className="h-3 w-3 text-[#F97316]"
+              strokeWidth={2}
+              aria-hidden="true"
+              focusable="false"
+            />
+            <span className="hidden xs:inline">
+              {{ ru: "Конфиденциально", uz: "Maxfiy", en: "Private" }[lang]}
+            </span>
             <span className="xs:hidden">{{ ru: "Тайно", uz: "Maxfiy", en: "Private" }[lang]}</span>
           </span>
         </div>
@@ -32,15 +45,39 @@ function CheckPage() {
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
           <span className="pain-pill">
             <span className="pain-pill-dot" />
-            {{ ru: "Сомневаетесь — не переводите, проверьте", uz: "Shubha bo'lsa — o'tkazmang, tekshiring", en: "In doubt? Don't pay — check first" }[lang]}
+            {
+              {
+                ru: "Сомневаетесь — не переводите, проверьте",
+                uz: "Shubha bo'lsa — o'tkazmang, tekshiring",
+                en: "In doubt? Don't pay — check first",
+              }[lang]
+            }
           </span>
-          <p className="label-md mb-3 sm:mb-4">01 — {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}</p>
+          <p className="label-md mb-3 sm:mb-4">
+            01 — {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}
+          </p>
           <h1 className="apex-h1">
-            {{
-              ru: <>Проверка <span className="font-serif-italic text-[#8B8B92]">подозрительного</span></>,
-              uz: <>Shubhalini <span className="font-serif-italic text-[#8B8B92]">tekshirish</span></>,
-              en: <>Check a <span className="font-serif-italic text-[#8B8B92]">suspicious</span> thing</>,
-            }[lang]}
+            {
+              {
+                ru: (
+                  <>
+                    Проверка{" "}
+                    <span className="font-serif-italic text-[#8B8B92]">подозрительного</span>
+                  </>
+                ),
+                uz: (
+                  <>
+                    Shubhalini <span className="font-serif-italic text-[#8B8B92]">tekshirish</span>
+                  </>
+                ),
+                en: (
+                  <>
+                    Check a <span className="font-serif-italic text-[#8B8B92]">suspicious</span>{" "}
+                    thing
+                  </>
+                ),
+              }[lang]
+            }
           </h1>
           <p className="apex-lead mt-5 sm:mt-6">{t("input_placeholder", lang)}</p>
         </div>

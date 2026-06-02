@@ -33,11 +33,7 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase). Never
 // import into the client bundle.
-import {
-  sendMessage,
-  answerCallbackQuery,
-  escapeMarkdownV2,
-} from "@/lib/telegram/api.server";
+import { sendMessage, answerCallbackQuery, escapeMarkdownV2 } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
 import { parsePanicCallback, buildPanicScenarioText } from "@/lib/telegram/emergency";

@@ -11,7 +11,10 @@ type AuthState = {
 };
 
 const AuthCtx = createContext<AuthState>({
-  user: null, session: null, loading: true, isAdmin: false,
+  user: null,
+  session: null,
+  loading: true,
+  isAdmin: false,
   signOut: async () => {},
 });
 
@@ -33,18 +36,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const uid = session?.user?.id;
-    if (!uid) { setIsAdmin(false); return; }
-    supabase.from("user_roles").select("role").eq("user_id", uid).then(({ data }) => {
-      setIsAdmin(!!data?.some((r) => r.role === "admin"));
-    });
+    if (!uid) {
+      setIsAdmin(false);
+      return;
+    }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", uid)
+      .then(({ data }) => {
+        setIsAdmin(!!data?.some((r) => r.role === "admin"));
+      });
   }, [session?.user?.id]);
 
   return (
-    <AuthCtx.Provider value={{
-      user: session?.user ?? null,
-      session, loading, isAdmin,
-      signOut: async () => { await supabase.auth.signOut(); },
-    }}>{children}</AuthCtx.Provider>
+    <AuthCtx.Provider
+      value={{
+        user: session?.user ?? null,
+        session,
+        loading,
+        isAdmin,
+        signOut: async () => {
+          await supabase.auth.signOut();
+        },
+      }}
+    >
+      {children}
+    </AuthCtx.Provider>
   );
 }
 

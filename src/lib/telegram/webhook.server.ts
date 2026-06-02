@@ -28,11 +28,7 @@
 // Server-only (.server.ts): reads secrets and pulls in service-role modules.
 // Never import this file into the client bundle.
 import { getTelegramBotToken, getTelegramWebhookSecret } from "@/lib/config.server";
-import {
-  dispatchUpdate,
-  telegramUpdateSchema,
-  type TelegramUpdate,
-} from "@/lib/telegram/router";
+import { dispatchUpdate, telegramUpdateSchema, type TelegramUpdate } from "@/lib/telegram/router";
 import { installTelegramHandlers } from "@/lib/telegram/handlers";
 
 /** Telegram sends the configured secret in this header (case-insensitive). */

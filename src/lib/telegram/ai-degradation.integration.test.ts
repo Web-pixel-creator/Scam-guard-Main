@@ -84,7 +84,10 @@ const LANGS = ["ru", "uz", "en"] as const satisfies readonly Lang[];
 
 // RiskLevel → i18n label key (mirrors the private map in format.ts; high_risk
 // maps to `risk_high`, not `risk_high_risk`).
-const RISK_LABEL_KEY: Record<RiskLevel, "risk_safe" | "risk_unknown" | "risk_suspicious" | "risk_high"> = {
+const RISK_LABEL_KEY: Record<
+  RiskLevel,
+  "risk_safe" | "risk_unknown" | "risk_suspicious" | "risk_high"
+> = {
   safe: "risk_safe",
   unknown: "risk_unknown",
   suspicious: "risk_suspicious",
@@ -96,8 +99,7 @@ const RISK_LABEL_KEY: Record<RiskLevel, "risk_safe" | "risk_unknown" | "risk_sus
 //  - SUSPICIOUS: requests_card_digits (45) → suspicious
 const HIGH_RISK_INPUT =
   "Срочно назовите код подтверждения из СМС, иначе ваша карта будет заблокирована";
-const SUSPICIOUS_INPUT =
-  "Здравствуйте, для проверки подтвердите последние 4 цифры вашей карты";
+const SUSPICIOUS_INPUT = "Здравствуйте, для проверки подтвердите последние 4 цифры вашей карты";
 
 // Unique rate-limit key / userId per call so the 10/min window never trips.
 let counter = 0;
@@ -318,7 +320,11 @@ describe("AI degradation — end-to-end через handleCheck (R13.1, R13.2, R1
 
   it("handleCheck отправляет один sendMessage с уровнем + ADVICE, без блока объяснения", async () => {
     const session = makeSession("ru");
-    const ctx: HandlerCtx = { chatId: session.telegramUserId, userId: session.telegramUserId, session };
+    const ctx: HandlerCtx = {
+      chatId: session.telegramUserId,
+      userId: session.telegramUserId,
+      session,
+    };
 
     await handleCheck(HIGH_RISK_INPUT, ctx);
 

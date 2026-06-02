@@ -6,7 +6,9 @@ export async function hashIdentifier(value: string): Promise<string> {
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v));
       return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   // FNV-1a fallback
   let h = 0x811c9dc5;
   for (let i = 0; i < v.length; i++) {

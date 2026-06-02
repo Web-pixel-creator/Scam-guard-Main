@@ -7,8 +7,6 @@ import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { submitReport } from "@/lib/report.functions";
 
-
-
 const reportSearchSchema = z.object({ v: z.string().optional() });
 
 export const Route = createFileRoute("/report")({
@@ -16,7 +14,11 @@ export const Route = createFileRoute("/report")({
   head: () => ({
     meta: [
       { title: "Сообщить о мошеннике — Ishonch Guard" },
-      { name: "description", content: "Отправьте подозрительный номер, Telegram, ссылку или сообщение — мы добавим в антискам-базу после модерации." },
+      {
+        name: "description",
+        content:
+          "Отправьте подозрительный номер, Telegram, ссылку или сообщение — мы добавим в антискам-базу после модерации.",
+      },
       { property: "og:title", content: "Сообщить о мошеннике — Ishonch Guard" },
     ],
   }),
@@ -42,7 +44,7 @@ function ReportPage() {
         } catch {
           return false;
         }
-      })()
+      })(),
   );
 
   const goBack = (e: React.MouseEvent) => {
@@ -53,7 +55,6 @@ function ReportPage() {
       router.navigate({ to: "/" });
     }
   };
-
 
   const [value, setValue] = useState(v ?? "");
   const [desc, setDesc] = useState("");
@@ -68,47 +69,74 @@ function ReportPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
-      const r = await submit({ data: {
-        value: value.trim().slice(0, 500),
-        description: desc.trim().slice(0, 5000),
-        scamType: scamType.trim() || undefined,
-        city: city.trim() || undefined,
-        amountLostUzs: amount ? Number(amount.replace(/\D/g, "")) || undefined : undefined,
-        lang,
-      }});
+      const r = await submit({
+        data: {
+          value: value.trim().slice(0, 500),
+          description: desc.trim().slice(0, 5000),
+          scamType: scamType.trim() || undefined,
+          city: city.trim() || undefined,
+          amountLostUzs: amount ? Number(amount.replace(/\D/g, "")) || undefined : undefined,
+          lang,
+        },
+      });
       if (r.ok) setDone(true);
       else setError(r.error ?? "Ошибка");
     } catch (e) {
       console.error(e);
       setError("Не удалось отправить. Попробуйте позже.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   const labels = {
     title: { ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" },
-    sub: { ru: "Каждая жалоба проходит модерацию. Не публикуйте чужие персональные данные.",
-           uz: "Har bir shikoyat moderatsiyadan o'tadi. Boshqalarning shaxsiy ma'lumotlarini joylashtirmang.",
-           en: "Every report is moderated. Do not include other people's personal data." },
-    value: { ru: "Номер, Telegram, ссылка или короткий текст", uz: "Raqam, Telegram, havola yoki qisqa matn", en: "Number, Telegram, link or short text" },
+    sub: {
+      ru: "Каждая жалоба проходит модерацию. Не публикуйте чужие персональные данные.",
+      uz: "Har bir shikoyat moderatsiyadan o'tadi. Boshqalarning shaxsiy ma'lumotlarini joylashtirmang.",
+      en: "Every report is moderated. Do not include other people's personal data.",
+    },
+    value: {
+      ru: "Номер, Telegram, ссылка или короткий текст",
+      uz: "Raqam, Telegram, havola yoki qisqa matn",
+      en: "Number, Telegram, link or short text",
+    },
     desc: { ru: "Что произошло", uz: "Nima sodir bo'ldi", en: "What happened" },
-    scam: { ru: "Тип схемы (необязательно)", uz: "Sxema turi (ixtiyoriy)", en: "Scam type (optional)" },
+    scam: {
+      ru: "Тип схемы (необязательно)",
+      uz: "Sxema turi (ixtiyoriy)",
+      en: "Scam type (optional)",
+    },
     city: { ru: "Город (необязательно)", uz: "Shahar (ixtiyoriy)", en: "City (optional)" },
-    amount: { ru: "Сумма потерь, UZS (необязательно)", uz: "Yo'qotilgan summa, UZS (ixtiyoriy)", en: "Amount lost, UZS (optional)" },
+    amount: {
+      ru: "Сумма потерь, UZS (необязательно)",
+      uz: "Yo'qotilgan summa, UZS (ixtiyoriy)",
+      en: "Amount lost, UZS (optional)",
+    },
     send: { ru: "Отправить жалобу", uz: "Shikoyatni yuborish", en: "Submit report" },
     thanks_h: { ru: "Спасибо!", uz: "Rahmat!", en: "Thank you!" },
-    thanks_d: { ru: "Жалоба отправлена. Мы рассмотрим её в ближайшее время.",
-                uz: "Shikoyat yuborildi. Yaqin orada ko'rib chiqamiz.",
-                en: "Report submitted. We'll review it shortly." },
+    thanks_d: {
+      ru: "Жалоба отправлена. Мы рассмотрим её в ближайшее время.",
+      uz: "Shikoyat yuborildi. Yaqin orada ko'rib chiqamiz.",
+      en: "Report submitted. We'll review it shortly.",
+    },
   };
 
   const L = {
     back: { ru: "Назад", uz: "Orqaga", en: "Back" }[lang],
     home: { ru: "Главная", uz: "Bosh sahifa", en: "Home" }[lang],
     crumb: { ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang],
-    step1: { ru: "Шаг 1 из 2 · заполнение", uz: "1/2 qadam · to'ldirish", en: "Step 1 of 2 · fill in" }[lang],
-    step2: { ru: "Шаг 2 из 2 · отправлено", uz: "2/2 qadam · yuborildi", en: "Step 2 of 2 · sent" }[lang],
+    step1: {
+      ru: "Шаг 1 из 2 · заполнение",
+      uz: "1/2 qadam · to'ldirish",
+      en: "Step 1 of 2 · fill in",
+    }[lang],
+    step2: { ru: "Шаг 2 из 2 · отправлено", uz: "2/2 qadam · yuborildi", en: "Step 2 of 2 · sent" }[
+      lang
+    ],
   };
 
   const Crumbs = ({ stepLabel, current }: { stepLabel: string; current: string }) => (
@@ -124,12 +152,17 @@ function ReportPage() {
           {L.back}
         </a>
         <nav aria-label="breadcrumb" className="flex items-center gap-1.5 apex-mono">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-[#52525B] hover:text-[#18181B] transition-colors">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-[#52525B] hover:text-[#18181B] transition-colors"
+          >
             <Home className="h-3 w-3" strokeWidth={2} />
             {L.home}
           </Link>
           <ChevronRight className="h-3 w-3 text-[#A1A1AA]" strokeWidth={2} />
-          <span className="text-[#18181B]" aria-current="page">{current}</span>
+          <span className="text-[#18181B]" aria-current="page">
+            {current}
+          </span>
         </nav>
       </div>
       <span className="apex-mono text-[#52525B]">{stepLabel}</span>
@@ -142,17 +175,27 @@ function ReportPage() {
         <Crumbs stepLabel={L.step2} current={L.crumb} />
 
         <div className="apex-card apex-frame apex-stripes text-center">
-
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
-            <span className="apex-mono">{{ ru: "Получено", uz: "Qabul qilindi", en: "Received" }[lang]}</span>
+            <span className="apex-mono">
+              {{ ru: "Получено", uz: "Qabul qilindi", en: "Received" }[lang]}
+            </span>
             <span className="apex-status" data-state="success">
               <span className="apex-status-dot" />
-              <span className="hidden xs:inline">{{ ru: "Жалоба принята", uz: "Shikoyat qabul qilindi", en: "Report queued" }[lang]}</span>
-              <span className="xs:hidden">{{ ru: "Принято", uz: "Qabul", en: "Queued" }[lang]}</span>
+              <span className="hidden xs:inline">
+                {{ ru: "Жалоба принята", uz: "Shikoyat qabul qilindi", en: "Report queued" }[lang]}
+              </span>
+              <span className="xs:hidden">
+                {{ ru: "Принято", uz: "Qabul", en: "Queued" }[lang]}
+              </span>
             </span>
           </div>
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
-            <CheckCircle2 className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" focusable="false" />
+            <CheckCircle2
+              className="h-6 w-6"
+              strokeWidth={1.75}
+              aria-hidden="true"
+              focusable="false"
+            />
           </div>
           <h1 className="apex-h1 mt-5 sm:mt-6">{labels.thanks_h[lang]}</h1>
           <p className="apex-lead mt-3 sm:mt-4 mx-auto">{labels.thanks_d[lang]}</p>
@@ -164,8 +207,6 @@ function ReportPage() {
   return (
     <div className="apex-page" style={{ maxWidth: 960 }}>
       <Crumbs stepLabel={L.step1} current={L.crumb} />
-
-
 
       <div className="apex-card apex-frame apex-stripes relative overflow-hidden">
         {/* Animated progress bar — pinned to the very top of the card */}
@@ -183,23 +224,49 @@ function ReportPage() {
               ? { ru: "Отправляем…", uz: "Yuborilmoqda…", en: "Sending…" }[lang]
               : error
                 ? { ru: "Ошибка", uz: "Xato", en: "Error" }[lang]
-                : { ru: "Анонимно · с проверкой", uz: "Anonim · tekshiriladi", en: "Anonymous · moderated" }[lang]}
+                : {
+                    ru: "Анонимно · с проверкой",
+                    uz: "Anonim · tekshiriladi",
+                    en: "Anonymous · moderated",
+                  }[lang]}
           </span>
         </div>
-
 
         <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
           <span className="pain-pill">
             <span className="pain-pill-dot" />
-            {{ ru: "Уже столкнулись с обманом? Расскажите", uz: "Aldovga duch keldingizmi? Aytib bering", en: "Got scammed? Tell us — protect others" }[lang]}
+            {
+              {
+                ru: "Уже столкнулись с обманом? Расскажите",
+                uz: "Aldovga duch keldingizmi? Aytib bering",
+                en: "Got scammed? Tell us — protect others",
+              }[lang]
+            }
           </span>
-          <p className="label-md mb-3 sm:mb-4">02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</p>
+          <p className="label-md mb-3 sm:mb-4">
+            02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}
+          </p>
           <h1 className="apex-h1">
-            {{
-              ru: <>Сообщить о <span className="font-serif-italic text-[#8B8B92]">мошеннике</span></>,
-              uz: <>Firibgarni <span className="font-serif-italic text-[#8B8B92]">xabar qilish</span></>,
-              en: <>Report a <span className="font-serif-italic text-[#8B8B92]">scammer</span></>,
-            }[lang]}
+            {
+              {
+                ru: (
+                  <>
+                    Сообщить о <span className="font-serif-italic text-[#8B8B92]">мошеннике</span>
+                  </>
+                ),
+                uz: (
+                  <>
+                    Firibgarni{" "}
+                    <span className="font-serif-italic text-[#8B8B92]">xabar qilish</span>
+                  </>
+                ),
+                en: (
+                  <>
+                    Report a <span className="font-serif-italic text-[#8B8B92]">scammer</span>
+                  </>
+                ),
+              }[lang]
+            }
           </h1>
           <p className="apex-lead mt-5 sm:mt-6">{labels.sub[lang]}</p>
         </div>
@@ -210,54 +277,124 @@ function ReportPage() {
           className={`mx-auto max-w-2xl space-y-5 sm:space-y-6 transition-opacity ${loading ? "opacity-70 pointer-events-none" : ""}`}
         >
           <div>
-            <label htmlFor="v" className="apex-label">{labels.value[lang]}</label>
-            <input id="v" required maxLength={500} disabled={loading} value={value} onChange={(e) => setValue(e.target.value)}
-                   placeholder="+998 90 ••• •• ••  /  @username  /  https://…" className="apex-field" />
+            <label htmlFor="v" className="apex-label">
+              {labels.value[lang]}
+            </label>
+            <input
+              id="v"
+              required
+              maxLength={500}
+              disabled={loading}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="+998 90 ••• •• ••  /  @username  /  https://…"
+              className="apex-field"
+            />
           </div>
 
           <div>
-            <label htmlFor="d" className="apex-label">{labels.desc[lang]}</label>
-            <textarea id="d" required minLength={5} maxLength={5000} rows={6} disabled={loading}
-                      value={desc} onChange={(e) => setDesc(e.target.value)}
-                      className="apex-field" />
+            <label htmlFor="d" className="apex-label">
+              {labels.desc[lang]}
+            </label>
+            <textarea
+              id="d"
+              required
+              minLength={5}
+              maxLength={5000}
+              rows={6}
+              disabled={loading}
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              className="apex-field"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <div>
-              <label htmlFor="s" className="apex-label">{labels.scam[lang]}</label>
-              <input id="s" maxLength={80} disabled={loading} value={scamType} onChange={(e) => setScamType(e.target.value)} className="apex-field" />
+              <label htmlFor="s" className="apex-label">
+                {labels.scam[lang]}
+              </label>
+              <input
+                id="s"
+                maxLength={80}
+                disabled={loading}
+                value={scamType}
+                onChange={(e) => setScamType(e.target.value)}
+                className="apex-field"
+              />
             </div>
             <div>
-              <label htmlFor="c" className="apex-label">{labels.city[lang]}</label>
-              <input id="c" maxLength={80} disabled={loading} value={city} onChange={(e) => setCity(e.target.value)} className="apex-field" />
+              <label htmlFor="c" className="apex-label">
+                {labels.city[lang]}
+              </label>
+              <input
+                id="c"
+                maxLength={80}
+                disabled={loading}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="apex-field"
+              />
             </div>
           </div>
 
           <div>
-            <label htmlFor="a" className="apex-label">{labels.amount[lang]}</label>
-            <input id="a" inputMode="numeric" disabled={loading} value={amount} onChange={(e) => setAmount(e.target.value)} className="apex-field" />
+            <label htmlFor="a" className="apex-label">
+              {labels.amount[lang]}
+            </label>
+            <input
+              id="a"
+              inputMode="numeric"
+              disabled={loading}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="apex-field"
+            />
           </div>
 
-          {error && <p className="apex-error" role="alert">{error}</p>}
+          {error && (
+            <p className="apex-error" role="alert">
+              {error}
+            </p>
+          )}
 
           {loading && (
-            <div className="flex items-center gap-3 rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] px-4 py-3" role="status" aria-live="polite">
+            <div
+              className="flex items-center gap-3 rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] px-4 py-3"
+              role="status"
+              aria-live="polite"
+            >
               <Loader2 className="h-4 w-4 text-[#C2410C] animate-spin shrink-0" />
               <p className="text-[13px] text-[#9A3412] leading-snug">
-                {{ ru: "Отправляем жалобу на модерацию… Не закрывайте страницу.",
-                   uz: "Shikoyat moderatsiyaga yuborilmoqda… Sahifani yopmang.",
-                   en: "Sending your report to moderation… Don't close the page." }[lang]}
+                {
+                  {
+                    ru: "Отправляем жалобу на модерацию… Не закрывайте страницу.",
+                    uz: "Shikoyat moderatsiyaga yuborilmoqda… Sahifani yopmang.",
+                    en: "Sending your report to moderation… Don't close the page.",
+                  }[lang]
+                }
               </p>
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 pt-1">
-            <button type="submit" disabled={loading} aria-disabled={loading} className="fancy-btn sm:min-w-[220px]">
+            <button
+              type="submit"
+              disabled={loading}
+              aria-disabled={loading}
+              className="fancy-btn sm:min-w-[220px]"
+            >
               <span className="fancy-points" aria-hidden="true">
-                {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <i key={i} className="fancy-point" />
+                ))}
               </span>
               <span className="fancy-inner">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                )}
                 {loading
                   ? { ru: "Отправка…", uz: "Yuborilmoqda…", en: "Submitting…" }[lang]
                   : labels.send[lang]}
@@ -266,7 +403,6 @@ function ReportPage() {
             <p className="apex-mono text-[#71717A] leading-relaxed">{t("privacy_promise", lang)}</p>
           </div>
         </form>
-
       </div>
     </div>
   );

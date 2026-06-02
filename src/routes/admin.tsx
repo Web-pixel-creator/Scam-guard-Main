@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { listReports, listEntities, moderateReport, adminStats } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Админка — Ishonch Guard" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Админка — Ishonch Guard" }, { name: "robots", content: "noindex" }],
+  }),
   component: AdminPage,
 });
 
@@ -30,15 +32,18 @@ function AdminPage() {
   }, [loading, user, nav]);
 
   const stats = useQuery({
-    queryKey: ["admin-stats"], enabled: !!user && isAdmin,
+    queryKey: ["admin-stats"],
+    enabled: !!user && isAdmin,
     queryFn: () => statsFn({ data: undefined as never }),
   });
   const reports = useQuery({
-    queryKey: ["admin-reports", status], enabled: !!user && isAdmin,
+    queryKey: ["admin-reports", status],
+    enabled: !!user && isAdmin,
     queryFn: () => listReportsFn({ data: { status } }),
   });
   const entities = useQuery({
-    queryKey: ["admin-entities"], enabled: !!user && isAdmin,
+    queryKey: ["admin-entities"],
+    enabled: !!user && isAdmin,
     queryFn: () => listEntitiesFn({ data: { status: "all" } }),
   });
 
@@ -73,8 +78,13 @@ function AdminPage() {
           <h1 className="apex-h1" style={{ fontSize: "clamp(22px, 5vw, 32px)" }}>
             Нет <span className="font-serif-italic text-[#8B8B92]">доступа</span>
           </h1>
-          <p className="apex-lead mt-3 sm:mt-4 mx-auto">Этот аккаунт не является администратором.</p>
-          <button onClick={() => signOut().then(() => nav({ to: "/login" }))} className="apex-btn-outline mt-6 inline-flex items-center gap-2">
+          <p className="apex-lead mt-3 sm:mt-4 mx-auto">
+            Этот аккаунт не является администратором.
+          </p>
+          <button
+            onClick={() => signOut().then(() => nav({ to: "/login" }))}
+            className="apex-btn-outline mt-6 inline-flex items-center gap-2"
+          >
             <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Выйти
           </button>
         </div>
@@ -103,14 +113,20 @@ function AdminPage() {
             <p className="apex-mono mt-3 truncate">{user.email}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => {
-              qc.invalidateQueries({ queryKey: ["admin-reports"] });
-              qc.invalidateQueries({ queryKey: ["admin-entities"] });
-              qc.invalidateQueries({ queryKey: ["admin-stats"] });
-            }} className="apex-btn-outline inline-flex items-center gap-2">
+            <button
+              onClick={() => {
+                qc.invalidateQueries({ queryKey: ["admin-reports"] });
+                qc.invalidateQueries({ queryKey: ["admin-entities"] });
+                qc.invalidateQueries({ queryKey: ["admin-stats"] });
+              }}
+              className="apex-btn-outline inline-flex items-center gap-2"
+            >
               <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" /> Обновить
             </button>
-            <button onClick={() => signOut().then(() => nav({ to: "/login" }))} className="apex-btn-outline inline-flex items-center gap-2">
+            <button
+              onClick={() => signOut().then(() => nav({ to: "/login" }))}
+              className="apex-btn-outline inline-flex items-center gap-2"
+            >
               <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Выйти
             </button>
           </div>
@@ -134,13 +150,16 @@ function AdminPage() {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {FILTERS.map((s) => (
-              <button key={s} onClick={() => setStatus(s)}
+              <button
+                key={s}
+                onClick={() => setStatus(s)}
                 aria-pressed={status === s}
                 className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
                   status === s
                     ? "bg-[#0B0B0F] text-white border-[#0B0B0F]"
                     : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
-                }`}>
+                }`}
+              >
                 {labelStatus(s)}
               </button>
             ))}
@@ -165,12 +184,18 @@ function AdminPage() {
                     <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
                       {r.entity_type}
                     </span>
-                    <code className="text-[13px] font-mono text-[#18181B] break-all">{r.redacted_value}</code>
+                    <code className="text-[13px] font-mono text-[#18181B] break-all">
+                      {r.redacted_value}
+                    </code>
                     <StatusBadge status={r.status} />
-                    {r.scam_type && <span className="apex-mono text-[#71717A]">· {r.scam_type}</span>}
+                    {r.scam_type && (
+                      <span className="apex-mono text-[#71717A]">· {r.scam_type}</span>
+                    )}
                     {r.city && <span className="apex-mono text-[#71717A]">· {r.city}</span>}
                   </div>
-                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">{r.description}</p>
+                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                    {r.description}
+                  </p>
                   <p className="mt-3 apex-mono text-[#A1A1AA]">
                     {new Date(r.created_at).toLocaleString()} · LANG: {r.language}
                     {r.amount_lost_uzs ? ` · ${r.amount_lost_uzs.toLocaleString()} UZS` : ""}
@@ -222,13 +247,22 @@ function AdminPage() {
             </thead>
             <tbody>
               {entities.data?.map((e) => (
-                <tr key={e.id} className="border-b border-[#E2E0D8] last:border-0 hover:bg-[#FCFBF7] transition-colors">
+                <tr
+                  key={e.id}
+                  className="border-b border-[#E2E0D8] last:border-0 hover:bg-[#FCFBF7] transition-colors"
+                >
                   <td className="py-3 px-2 sm:px-3 apex-mono uppercase">{e.entity_type}</td>
-                  <td className="py-3 px-2 sm:px-3 font-mono text-[#18181B] break-all">{e.display_mask}</td>
+                  <td className="py-3 px-2 sm:px-3 font-mono text-[#18181B] break-all">
+                    {e.display_mask}
+                  </td>
                   <td className="py-3 px-2 sm:px-3 tabular-nums">{e.report_count}</td>
                   <td className="py-3 px-2 sm:px-3 apex-mono">{e.risk_level}</td>
-                  <td className="py-3 px-2 sm:px-3 apex-mono">{labelStatus(e.moderation_status)}</td>
-                  <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA]">{new Date(e.last_seen_at).toLocaleString()}</td>
+                  <td className="py-3 px-2 sm:px-3 apex-mono">
+                    {labelStatus(e.moderation_status)}
+                  </td>
+                  <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA]">
+                    {new Date(e.last_seen_at).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -240,7 +274,10 @@ function AdminPage() {
       </section>
 
       <p className="apex-mono">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-[#71717A] hover:text-[#18181B] transition-colors">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-[#71717A] hover:text-[#18181B] transition-colors"
+        >
           <ArrowLeft className="h-3 w-3" aria-hidden="true" /> На главную сайта
         </Link>
       </p>
@@ -250,7 +287,9 @@ function AdminPage() {
 
 function Stat({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
   return (
-    <div className={`bg-white/90 backdrop-blur-[4px] p-5 sm:p-6 flex flex-col gap-2 ${highlight ? "ring-1 ring-inset ring-[#F97316]/30" : ""}`}>
+    <div
+      className={`bg-white/90 backdrop-blur-[4px] p-5 sm:p-6 flex flex-col gap-2 ${highlight ? "ring-1 ring-inset ring-[#F97316]/30" : ""}`}
+    >
       <p className="apex-mono text-[#71717A]">{label}</p>
       <p className="font-display text-[28px] sm:text-[32px] font-extrabold tracking-tight tabular-nums text-[#18181B] leading-none">
         {value ?? "—"}
@@ -261,18 +300,27 @@ function Stat({ label, value, highlight }: { label: string; value?: number; high
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; border: string }> = {
-    new:       { bg: "bg-[#FFF7ED]", text: "text-[#9A3412]", border: "border-[#FDBA74]/70" },
+    new: { bg: "bg-[#FFF7ED]", text: "text-[#9A3412]", border: "border-[#FDBA74]/70" },
     confirmed: { bg: "bg-[#FEF2F2]", text: "text-[#991B1B]", border: "border-[#FCA5A5]/60" },
-    rejected:  { bg: "bg-[#F4F4F5]", text: "text-[#3F3F46]", border: "border-[#E4E4E7]" },
+    rejected: { bg: "bg-[#F4F4F5]", text: "text-[#3F3F46]", border: "border-[#E4E4E7]" },
   };
   const s = map[status] ?? map.rejected;
   return (
-    <span className={`apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border ${s.bg} ${s.text} ${s.border}`}>
+    <span
+      className={`apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border ${s.bg} ${s.text} ${s.border}`}
+    >
       {labelStatus(status)}
     </span>
   );
 }
 
 function labelStatus(s: string) {
-  return ({ new: "Новые", confirmed: "Подтверждено", rejected: "Отклонено", all: "Все" } as Record<string, string>)[s] ?? s;
+  return (
+    (
+      { new: "Новые", confirmed: "Подтверждено", rejected: "Отклонено", all: "Все" } as Record<
+        string,
+        string
+      >
+    )[s] ?? s
+  );
 }

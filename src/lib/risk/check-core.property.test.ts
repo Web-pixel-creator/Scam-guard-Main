@@ -85,7 +85,7 @@ afterEach(() => {
 
 // Longest run of consecutive digits in a string (0 if none).
 const maxDigitRun = (s: string): number =>
-  Math.max(0, ...((s.match(/\d+/g) ?? []).map((r) => r.length)));
+  Math.max(0, ...(s.match(/\d+/g) ?? []).map((r) => r.length));
 
 const digitsOnly = (s: string): string => s.replace(/\D/g, "");
 
@@ -114,7 +114,9 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     const typeArb = fc.option(
       fc.constantFrom("phone", "telegram", "url", "text", "payment", "apk", "unknown"),
       { nil: undefined },
-    ) as fc.Arbitrary<undefined | "phone" | "telegram" | "url" | "text" | "payment" | "apk" | "unknown">;
+    ) as fc.Arbitrary<
+      undefined | "phone" | "telegram" | "url" | "text" | "payment" | "apk" | "unknown"
+    >;
 
     await fc.assert(
       fc.asyncProperty(inputArb, fc.constantFrom(...LANGS), typeArb, async (input, lang, type) => {
@@ -213,8 +215,7 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
           choices: [
             {
               message: {
-                content:
-                  "Kod 123456. Karta 8600 1234 5678 9012. Telefon +998901234567.",
+                content: "Kod 123456. Karta 8600 1234 5678 9012. Telefon +998901234567.",
               },
             },
           ],

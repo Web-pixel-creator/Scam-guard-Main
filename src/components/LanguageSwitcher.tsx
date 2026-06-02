@@ -2,7 +2,10 @@ import { useLang } from "@/lib/lang-context";
 import { LANGS } from "@/lib/i18n";
 import { Globe } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +25,10 @@ export function LanguageSwitcher() {
           <span className="sm:hidden uppercase font-medium">{current.code}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="rounded-xl border-[#E2E0D8] shadow-[0_20px_50px_-20px_rgba(11,11,15,0.25)] p-1.5 min-w-[160px]">
+      <DropdownMenuContent
+        align="end"
+        className="rounded-xl border-[#E2E0D8] shadow-[0_20px_50px_-20px_rgba(11,11,15,0.25)] p-1.5 min-w-[160px]"
+      >
         {LANGS.map((l) => (
           <DropdownMenuItem
             key={l.code}
@@ -41,4 +47,3 @@ export function LanguageSwitcher() {
     </DropdownMenu>
   );
 }
-

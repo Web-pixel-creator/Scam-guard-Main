@@ -66,7 +66,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 import { submitReport } from "./report.functions";
 
 const maxDigitRun = (s: string): number =>
-  Math.max(0, ...((s.match(/\d+/g) ?? []).map((run) => run.length)));
+  Math.max(0, ...(s.match(/\d+/g) ?? []).map((run) => run.length));
 
 beforeEach(() => {
   hoisted.reportRows.length = 0;
