@@ -198,14 +198,41 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
 
 export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[] }> = {
   safe: {
-    ru: ["Это проверенный официальный контакт.", "Всё равно перепроверяйте детали на сайте организации."],
-    uz: ["Bu tasdiqlangan rasmiy kontakt.", "Shunda ham tafsilotlarni tashkilot saytida tekshiring."],
-    en: ["This is a verified official contact.", "Still double-check details on the organization’s website."],
+    ru: [
+      "\u042f\u0432\u043d\u044b\u0445 \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u043e\u0432 \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u0447\u0435\u0441\u0442\u0432\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e.",
+      "\u041d\u043e \u043f\u043e\u043c\u043d\u0438\u0442\u0435: \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0441\u043e\u043e\u0431\u0449\u0430\u0439\u0442\u0435 OTP, PIN, CVV \u0438\u043b\u0438 \u043f\u0430\u0440\u043e\u043b\u0438 \u2014 \u0434\u0430\u0436\u0435 \u0435\u0441\u043b\u0438 \u0437\u0432\u043e\u043d\u044f\u0449\u0438\u0439 \u043f\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0431\u0430\u043d\u043a\u043e\u043c.",
+      "\u0415\u0441\u043b\u0438 \u0447\u0442\u043e-\u0442\u043e \u0432\u044b\u0437\u044b\u0432\u0430\u0435\u0442 \u0441\u043e\u043c\u043d\u0435\u043d\u0438\u044f \u2014 \u043f\u043e\u043b\u043e\u0436\u0438\u0442\u0435 \u0442\u0440\u0443\u0431\u043a\u0443 \u0438 \u043f\u0435\u0440\u0435\u0437\u0432\u043e\u043d\u0438\u0442\u0435 \u043f\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u043c\u0443 \u043d\u043e\u043c\u0435\u0440\u0443.",
+    ],
+    uz: [
+      "Firibgarlikning aniq belgilari topilmadi.",
+      "Lekin esda tuting: hech qachon OTP, PIN, CVV yoki parolni aytmang \u2014 hatto qo\u2018ng\u2018iroq qiluvchi o\u2018zini bank deb tanishtirsa ham.",
+      "Biror narsa shubha tug\u2018dirsa \u2014 go\u2018shakni qo\u2018ying va rasmiy raqamga o\u2018zingiz qo\u2018ng\u2018iroq qiling.",
+    ],
+    en: [
+      "No obvious fraud signals found.",
+      "But remember: never share OTP, PIN, CVV or passwords \u2014 even if the caller claims to be your bank.",
+      "If anything feels off \u2014 hang up and call back using the official number.",
+    ],
   },
   unknown: {
-    ru: ["Данных мало — будьте осторожны.", "Не отправляйте коды, не переходите по ссылкам, не устанавливайте файлы."],
-    uz: ["Ma’lumot kam — ehtiyot bo‘ling.", "Kod yubormang, havolalarga o‘tmang, fayllarni o‘rnatmang."],
-    en: ["Not enough data — stay cautious.", "Don’t send codes, click links or install files."],
+    ru: [
+      "\u0414\u0430\u043d\u043d\u044b\u0445 \u0434\u043b\u044f \u043e\u0446\u0435\u043d\u043a\u0438 \u043d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u2014 \u0431\u0443\u0434\u044c\u0442\u0435 \u043e\u0441\u0442\u043e\u0440\u043e\u0436\u043d\u044b.",
+      "\u041d\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0439\u0442\u0435 SMS-\u043a\u043e\u0434\u044b \u0438 \u043d\u0435 \u043f\u0435\u0440\u0435\u0445\u043e\u0434\u0438\u0442\u0435 \u043f\u043e \u0441\u0441\u044b\u043b\u043a\u0430\u043c.",
+      "\u041d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0439\u0442\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f \u0438\u0437 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439.",
+      "\u0415\u0441\u043b\u0438 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a \u0434\u0430\u0432\u0438\u0442 \u0438\u043b\u0438 \u0442\u043e\u0440\u043e\u043f\u0438\u0442 \u2014 \u044d\u0442\u043e \u043f\u0440\u0438\u0437\u043d\u0430\u043a \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u0447\u0435\u0441\u0442\u0432\u0430.",
+    ],
+    uz: [
+      "Baholash uchun ma\u2018lumot yetarli emas \u2014 ehtiyot bo\u2018ling.",
+      "SMS-kodlarni yubormang va havolalarga o\u2018tmang.",
+      "Xabarlardan ilovalar o\u2018rnatmang.",
+      "Agar suhbatdosh bosim qilsa yoki shoshiltirayotgan bo\u2018lsa \u2014 bu firibgarlik belgisi.",
+    ],
+    en: [
+      "Not enough data to assess \u2014 stay cautious.",
+      "Do not send SMS codes or click links.",
+      "Do not install apps from messages.",
+      "If the person pressures you or rushes you \u2014 that\u2019s a fraud signal.",
+    ],
   },
   suspicious: {
     ru: [
