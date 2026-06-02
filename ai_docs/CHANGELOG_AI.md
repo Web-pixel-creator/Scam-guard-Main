@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-02 - Payment input detector
+
+- Added a conservative `payment` input detector for payment-flow text.
+- Updated `OPEN_TASKS.md` and `SCAM_COVERAGE.md` so payment detection is no longer listed as missing.
+- Recorded the detector boundaries: pure URLs/APKs/Telegram links keep their primary type.
+
 ## 2026-06-02 - Lovable build wrapper removed
 
 - Updated architecture/deployment/tooling docs for direct Vite/TanStack/Nitro configuration.

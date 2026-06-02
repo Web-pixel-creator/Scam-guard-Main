@@ -5,7 +5,7 @@
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
 - **Telegram risk enrichment is shallow:** `evaluateTelegram` returns `unknown_sender`; no account-age/metadata lookup yet.
-- **`payment` input_type exists but has only text-pattern coverage; no dedicated detector/classifier yet.**
+- **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
 ## Near-term product tasks
@@ -14,7 +14,6 @@
 - [ ] Add screenshot report upload path only after retention policy is defined.
 - [ ] Add panic/live-call helper and trusted-contact sharing for elderly/vulnerable users.
 - [ ] Improve Telegram/account enrichment beyond `unknown_sender` (account age, official handles, metadata where legally available).
-- [ ] Add a dedicated payment classifier/detector for marketplace and service-payment flows.
 
 ## Research feed
 

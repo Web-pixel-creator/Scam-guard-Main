@@ -37,7 +37,7 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 16 | Account/card block threat | `threatens_account_block` + urgency | Covered |
 | 17 | AI voice-clone call | education only; advise callback verification | Partial |
 | 18 | Fake courier / delivery surcharge | `fake_delivery_payment` + URL heuristics | Covered |
-| 19 | Marketplace prepayment / fake buyer-seller | `payment_before_service` text patterns | Covered |
+| 19 | Marketplace prepayment / fake buyer-seller | `payment` detector + `payment_before_service` text patterns | Covered |
 | 20 | Romance / dating scam | future pattern/content | Planned |
 | 21 | Fake job offer | future pattern/content | Planned |
 | 22 | Malicious Telegram GIF/file bait | `malicious_file_bait`, APK coverage and out-of-scope handling | Covered |
@@ -51,7 +51,7 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 - unknown Telegram files/GIFs that may lead to malware or phishing (`malicious_file_bait`);
 - fake manager/boss/official messages requesting personal data (`fake_boss_request`);
 - APK "security" apps that steal payment data;
-- fake delivery/service/payment intermediaries (`fake_delivery_payment`, `payment_before_service`) and offline social-engineering scripts.
+- fake delivery/service/payment intermediaries (`payment` detector, `fake_delivery_payment`, `payment_before_service`) and offline social-engineering scripts.
 
 Before adding a new detection rule, summarize the tactic, map it to a reason code, add RU/UZ/EN labels/advice, and write tests.
 
