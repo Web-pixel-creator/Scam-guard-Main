@@ -173,7 +173,7 @@ export interface Handlers {
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
   /** Inline-button callbacks: language / Report / Check another / Emergency (8.5). */
-  handleCallback(data: string, ctx: HandlerCtx): Promise<void>;
+  handleCallback(data: string, ctx: HandlerCtx, callbackQueryId?: string): Promise<void>;
   /** Empty / unsupported / out-of-scope input and unknown commands (8.5 / R16, R22). */
   handleOutOfScope(kind: OutOfScopeKind, ctx: HandlerCtx): Promise<void>;
 }
@@ -184,7 +184,7 @@ export interface Handlers {
 
 /** What the router decided to do with an update. Pure, side-effect free. */
 export type RouteAction =
-  | { kind: "callback"; data: string }
+  | { kind: "callback"; data: string; callbackQueryId: string }
   | { kind: "command"; command: ParsedCommand }
   | { kind: "unknownCommand" }
   | { kind: "scenarioStep"; text: string }
@@ -240,7 +240,11 @@ function largestPhotoFileId(photo: NonNullable<TelegramMessage["photo"]>): strin
 export function decideRoute(update: TelegramUpdate, session: Session): RouteAction {
   // 1) Callback queries take top priority.
   if (update.callback_query) {
-    return { kind: "callback", data: update.callback_query.data };
+    return {
+      kind: "callback",
+      data: update.callback_query.data,
+      callbackQueryId: update.callback_query.id,
+    };
   }
 
   const m = update.message;
@@ -392,7 +396,7 @@ export async function dispatchUpdate(
 
   switch (action.kind) {
     case "callback":
-      await handlers.handleCallback(action.data, ctx);
+      await handlers.handleCallback(action.data, ctx, action.callbackQueryId);
       break;
     case "command":
       await handlers.handleCommand(action.command, ctx);

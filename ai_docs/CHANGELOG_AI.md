@@ -1,5 +1,17 @@
 # Changelog (AI memory)
 
+## 2026-06-02 - Live QA hardening
+
+- Fixed Telegram inline callback acknowledgement: router now forwards
+  `callback_query.id`; report skip callbacks also clear the Telegram spinner.
+- Added integration coverage for `/start`, quick buttons, panic callback and
+  report skip callback.
+- Fixed Telegram short description script to respect Telegram's 120-character
+  `setMyShortDescription` limit.
+- Fixed mobile accessibility floating-button overlap on check/home forms.
+- Railway `/healthz` currently responds; remaining deploy work is operational
+  verification of secrets, migrations and live bot flow.
+
 ## 2026-06-02 - Sensitive DB write lockdown
 
 - Revoked direct public inserts into `checks` and `reports`; writes now go

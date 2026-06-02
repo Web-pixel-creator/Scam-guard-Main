@@ -26,6 +26,7 @@
 import { setHandlers, type Handlers, type HandlerCtx } from "@/lib/telegram/router";
 import type { Scenario } from "@/lib/telegram/session.server";
 import { resetScenario } from "@/lib/telegram/session.server";
+import { answerCallbackQuery } from "@/lib/telegram/api.server";
 
 import { handleCommand } from "@/lib/telegram/handlers/commands";
 import { handleCheck, handleImage, handlePhoneFromContact } from "@/lib/telegram/handlers/check";
@@ -83,6 +84,9 @@ async function handleCallback(
   callbackQueryId?: string,
 ): Promise<void> {
   if (data === REPORT_SKIP_CALLBACK && isReportScenario(ctx.session.scenario)) {
+    if (callbackQueryId !== undefined) {
+      await answerCallbackQuery(callbackQueryId);
+    }
     await handleReportSkip(ctx);
     return;
   }

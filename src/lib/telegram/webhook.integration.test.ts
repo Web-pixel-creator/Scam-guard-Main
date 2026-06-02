@@ -149,7 +149,7 @@ vi.mock("@/lib/report.functions", () => ({
 // REAL handlers into the REAL router via its module-load side effect, and
 // webhook.server re-installs them (idempotent) before dispatching.
 import { handleTelegramWebhook } from "./webhook.server";
-import { RISK_EMOJI } from "./format";
+import { CB, RISK_EMOJI } from "./format";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -198,6 +198,24 @@ function photoUpdate(opts: { userId: number; chatId: number }): unknown {
         { file_id: "thumb", file_size: 100 },
         { file_id: "full", file_size: 5000 },
       ],
+    },
+  };
+}
+
+/** A callback query update from an inline keyboard button. */
+function callbackUpdate(opts: {
+  userId: number;
+  chatId: number;
+  data: string;
+  id?: string;
+}): unknown {
+  return {
+    update_id: opts.userId,
+    callback_query: {
+      id: opts.id ?? `cb-${opts.userId}`,
+      from: { id: opts.userId },
+      message: { chat: { id: opts.chatId } },
+      data: opts.data,
     },
   };
 }
@@ -322,6 +340,119 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
 
     // The real core logged the check (redacted) into `checks`.
     expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2b. Real /start + inline callback flows. This catches Telegram UX regressions
+//     such as not answering callback_query (stuck button spinner).
+// ---------------------------------------------------------------------------
+describe("webhook end-to-end — start and quick button callbacks", () => {
+  it("sends /start with language and quick-action buttons", async () => {
+    const update = textUpdate({ userId: 1100, chatId: 5100, text: "/start" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5100);
+
+    const data = callbackData(h.sendCalls[0].keyboard);
+    expect(data).toEqual(
+      expect.arrayContaining([
+        CB.lang("ru"),
+        CB.lang("uz"),
+        CB.lang("en"),
+        CB.checkAnother,
+        CB.report,
+        CB.emergency,
+      ]),
+    );
+  });
+
+  it.each([
+    ["check another", CB.checkAnother],
+    ["report", CB.report],
+    ["emergency", CB.emergency],
+    ["panic scenario", "panic:1"],
+    ["language switch", CB.lang("uz")],
+  ])("acknowledges the %s callback and sends a response", async (_label, data) => {
+    const update = callbackUpdate({
+      userId: 1101,
+      chatId: 5101,
+      data,
+      id: `cb-${data}`,
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual([`cb-${data}`]);
+    expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
+    expect(h.sendCalls.every((call) => call.chatId === 5101)).toBe(true);
+  });
+
+  it("starts the report scenario from the report button", async () => {
+    const update = callbackUpdate({
+      userId: 1102,
+      chatId: 5102,
+      data: CB.report,
+      id: "cb-report-start",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-report-start"]);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: 1102,
+            scenario: "report_value",
+            scenario_step: 0,
+            scenario_data: {},
+          }),
+        }),
+      ]),
+    );
+    expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("acknowledges report skip callbacks before advancing the report scenario", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1103,
+      lang: "ru",
+      scenario: "report_scamType",
+      scenario_step: 2,
+      scenario_data: { value: "@bad", description: "long enough" },
+      updated_at: new Date(0).toISOString(),
+    };
+    const update = callbackUpdate({
+      userId: 1103,
+      chatId: 5103,
+      data: "report_skip",
+      id: "cb-report-skip",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-report-skip"]);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: 1103,
+            scenario: "report_city",
+            scenario_step: 3,
+          }),
+        }),
+      ]),
+    );
+    expect(h.sendCalls).toHaveLength(1);
   });
 });
 
