@@ -274,6 +274,23 @@ export const bot_dict: BotDict = {
     uz: "🚨 Raqam rasmiy kontaktga ({org}) o'xshaydi, lekin xabarda xavfli belgilar bor. Hatto rasmiy raqam ham soxta bo'lishi mumkin. Ko'rsatmalarni bajarmang va tashkilotga o'zingiz murojaat qiling.",
     en: "🚨 Number resembles an official contact ({org}), but the message contains dangerous signals. Even an official number on screen can be spoofed. Do not follow the instructions — contact the organization yourself.",
   },
+
+  // ── Quick action buttons (welcome screen) ─────────────────────────────────
+  btn_quick_check: {
+    ru: "Проверить",
+    uz: "Tekshirish",
+    en: "Check",
+  },
+  btn_quick_report: {
+    ru: "Пожаловаться",
+    uz: "Shikoyat",
+    en: "Report",
+  },
+  btn_quick_panic: {
+    ru: "Экстренная помощь",
+    uz: "Shoshilinch yordam",
+    en: "Emergency",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;
