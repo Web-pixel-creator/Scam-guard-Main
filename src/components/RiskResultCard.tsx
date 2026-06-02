@@ -14,6 +14,7 @@ export type CheckResult = {
   reasons: ReasonCode[];
   explanation: string | null;
   knownReports: number;
+  verifiedContact: { orgName: string; orgType: string; source: string } | null;
 };
 
 type LevelStyle = {
@@ -189,6 +190,20 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
                   {result.explanation}
                 </p>
+              )}
+
+              {/* Verified official contact match (D-011) */}
+              {result.verifiedContact && (
+                <div className="mt-5 p-4 rounded-lg border border-[#A7F3D0]/70 bg-[#ECFDF5]">
+                  <p className="text-[14px] font-medium text-[#065F46] mb-2">
+                    ✅ {{ ru: "Номер совпадает с официальным контактом:", uz: "Raqam rasmiy kontakt bilan mos keladi:", en: "Number matches an official contact:" }[lang]} {result.verifiedContact.orgName}
+                  </p>
+                  <p className="text-[13px] text-[#52525B] leading-[1.5]">
+                    {{ ru: "⚠️ Caller ID может быть подменён. Если вас просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — завершите разговор и перезвоните самостоятельно по официальному номеру.",
+                       uz: "⚠️ Caller ID soxta bo'lishi mumkin. Agar sizdan SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
+                       en: "⚠️ Caller ID can be spoofed. If someone asks for your SMS code, PIN, CVV, password, to install an app or transfer money — hang up and call back using the official number yourself." }[lang]}
+                  </p>
+                </div>
               )}
             </div>
           </div>

@@ -10,10 +10,11 @@
 
 ## Near-term product tasks
 
-- [ ] Add official verified contacts seed (banks, operators, Central Bank) -> `verified_official`.
+- [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
+- [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
-- [ ] Add panic/live-call helper and trusted-contact sharing for elderly/vulnerable users.
 - [ ] Improve Telegram/account enrichment beyond `unknown_sender` (account age, official handles, metadata where legally available).
+- [ ] Production deploy on Railway (pending payment).
 
 ## Research feed
 
