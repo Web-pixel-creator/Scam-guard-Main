@@ -73,10 +73,6 @@ railway up             # build & deploy from the Dockerfile
 railway variables set TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=...
 ```
 
-> The `@lovable.dev/vite-tanstack-config` package is a build-time-only dev
-> dependency (it wires the Vite/Nitro build). It has no runtime role and does
-> not couple the deploy to Lovable.
-
 ## Environment variables
 
 Public (in `.env`, prefixed `VITE_`, safe for browser):
