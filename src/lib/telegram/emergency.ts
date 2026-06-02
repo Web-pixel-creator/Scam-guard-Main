@@ -318,3 +318,61 @@ export function buildEmergencyText(lang: Lang): string {
 
   return parts.join("\n");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PANIC MODE — individual scenario access for interactive Telegram flow
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Scenario IDs (1-indexed, matching the numbered list above). */
+export type PanicScenarioId = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Short titles for the scenario selection menu (inline buttons). */
+export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = {
+  1: { ru: "📱 Отправил SMS-код", uz: "📱 SMS-kod yubordim", en: "📱 Sent SMS code" },
+  2: { ru: "📦 Установил APK", uz: "📦 APK o'rnatdim", en: "📦 Installed APK" },
+  3: { ru: "💸 Перевёл деньги", uz: "💸 Pul o'tkazdim", en: "💸 Transferred money" },
+  4: { ru: "💳 Ввёл данные карты", uz: "💳 Karta ma'lumotlari", en: "💳 Entered card data" },
+  5: { ru: "🔒 Потерял Telegram", uz: "🔒 Telegram'ni yo'qotdim", en: "🔒 Lost Telegram" },
+  6: { ru: "📞 Звонят сейчас", uz: "📞 Hozir qo'ng'iroq", en: "📞 On a call now" },
+};
+
+/** callback_data prefix for panic scenario buttons. Full: "panic:1" – "panic:6". */
+export const PANIC_CB_PREFIX = "panic:";
+
+/** Build the panic menu prompt text. */
+export function buildPanicMenuText(lang: Lang): string {
+  const prompts: Record<Lang, string> = {
+    ru: "Что произошло? Выберите ситуацию — я дам конкретные шаги:",
+    uz: "Nima bo'ldi? Vaziyatni tanlang — aniq qadamlarni aytaman:",
+    en: "What happened? Choose a situation — I'll give you specific steps:",
+  };
+  return prompts[lang];
+}
+
+/**
+ * Build the text for a single panic scenario (by ID).
+ * Returns the scenario title + steps + disclaimer, pulling numbers from
+ * the verified-contacts module.
+ */
+export function buildPanicScenarioText(id: PanicScenarioId, lang: Lang): string {
+  const contacts = getEmergencyContacts();
+  const scenarios = buildScenarios(contacts);
+  const scenario = scenarios[id - 1]; // 1-indexed → 0-indexed
+
+  const parts: string[] = [scenario.title[lang], ""];
+  for (const step of scenario.steps[lang]) {
+    parts.push(step);
+  }
+  parts.push("");
+  parts.push(DISCLAIMER[lang]);
+
+  return parts.join("\n");
+}
+
+/** Parse a panic callback_data ("panic:1" → 1, invalid → null). */
+export function parsePanicCallback(data: string): PanicScenarioId | null {
+  if (!data.startsWith(PANIC_CB_PREFIX)) return null;
+  const n = Number(data.slice(PANIC_CB_PREFIX.length));
+  if (n >= 1 && n <= 6) return n as PanicScenarioId;
+  return null;
+}
