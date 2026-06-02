@@ -76,8 +76,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
   const paymentList = (lang: Lang) => contactList(contacts.payments, lang);
   const telecomList = (lang: Lang) => contactList(contacts.telecom, lang);
   const policeLine = (lang: Lang) => fmtContact(contacts.police, lang);
-  const cyberLine = (lang: Lang) =>
-    contacts.cyber ? fmtContact(contacts.cyber, lang) : "";
+  const cyberLine = (lang: Lang) => (contacts.cyber ? fmtContact(contacts.cyber, lang) : "");
 
   return [
     {

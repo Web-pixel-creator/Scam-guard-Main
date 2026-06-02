@@ -171,10 +171,7 @@ export async function saveSession(
  * (upsert не применён), поэтому вызывающий продолжает отвечать на прежнем
  * языке (R2.2, R2.3).
  */
-export async function setLanguage(
-  telegramUserId: number,
-  lang: Lang,
-): Promise<{ ok: boolean }> {
+export async function setLanguage(telegramUserId: number, lang: Lang): Promise<{ ok: boolean }> {
   return saveSession(telegramUserId, { lang });
 }
 

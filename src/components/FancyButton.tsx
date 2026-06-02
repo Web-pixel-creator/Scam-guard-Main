@@ -5,7 +5,13 @@ import { cn } from "@/lib/utils";
  * Brand-animated CTA: gradient base, glossy border, floating dots, arrow dash on hover.
  * Use <FancyButton> for buttons or <FancyShell> children inside any element (e.g. <Link>).
  */
-export function FancyShell({ children, showArrow = true }: { children: ReactNode; showArrow?: boolean }) {
+export function FancyShell({
+  children,
+  showArrow = true,
+}: {
+  children: ReactNode;
+  showArrow?: boolean;
+}) {
   return (
     <>
       <span className="fancy-points" aria-hidden="true">

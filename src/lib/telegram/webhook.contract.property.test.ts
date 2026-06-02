@@ -124,11 +124,7 @@ describe("webhook contract — Property 3: no valid token ⇒ 401, no dispatch, 
   // Validates: Requirements 12.1, 12.2
   it("returns 401 without dispatching or parsing the body for any invalid-token / misconfig case (fast-check, ≥100 runs)", async () => {
     // How the secret header is supplied when the config IS present.
-    const headerModeArb = fc.constantFrom<"absent" | "empty" | "wrong">(
-      "absent",
-      "empty",
-      "wrong",
-    );
+    const headerModeArb = fc.constantFrom<"absent" | "empty" | "wrong">("absent", "empty", "wrong");
     // Which secrets are configured. "ok" = both present (then the header must be
     // invalid); the others omit at least one secret → fail-closed 401 (R17.4).
     const configCaseArb = fc.constantFrom<"ok" | "noSecret" | "noToken" | "neither">(
@@ -158,8 +154,10 @@ describe("webhook contract — Property 3: no valid token ⇒ 401, no dispatch, 
           hoisted.dispatchCalls = 0;
 
           // Configure secrets per the case.
-          const configuredSecret = configCase === "ok" || configCase === "noToken" ? secret : undefined;
-          const configuredToken = configCase === "ok" || configCase === "noSecret" ? token : undefined;
+          const configuredSecret =
+            configCase === "ok" || configCase === "noToken" ? secret : undefined;
+          const configuredToken =
+            configCase === "ok" || configCase === "noSecret" ? token : undefined;
           setSecrets(configuredSecret, configuredToken);
 
           // Build a header guaranteed NOT to be a valid match.

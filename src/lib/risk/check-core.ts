@@ -95,7 +95,8 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   evaluateText(safeInput).forEach((c) => codes.add(c));
   if (detected === "phone") evaluatePhone(normalized).forEach((c) => codes.add(c));
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
-  if (detected === "url" || detected === "apk") evaluateUrl(normalized).forEach((c) => codes.add(c));
+  if (detected === "url" || detected === "apk")
+    evaluateUrl(normalized).forEach((c) => codes.add(c));
   if (detected === "apk") codes.add("apk_download_link");
 
   let knownReports = 0;
@@ -147,8 +148,12 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         source: match.source,
       };
       const DANGEROUS_CODES: readonly string[] = [
-        "asks_for_sms_code", "asks_for_otp", "requests_card_digits",
-        "asks_to_install_apk", "apk_download_link", "asks_to_scan_qr",
+        "asks_for_sms_code",
+        "asks_for_otp",
+        "requests_card_digits",
+        "asks_to_install_apk",
+        "apk_download_link",
+        "asks_to_scan_qr",
         "payment_before_service",
       ];
       const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
@@ -241,8 +246,7 @@ type ChatMessage =
   | {
       role: "user";
       content: Array<
-        | { type: "text"; text: string }
-        | { type: "image_url"; image_url: { url: string } }
+        { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
       >;
     };
 

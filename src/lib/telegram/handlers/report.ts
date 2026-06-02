@@ -31,17 +31,9 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase) and
 // `report.functions.ts` (server fn). Never import into the client bundle.
-import {
-  sendMessage,
-  escapeMarkdownV2,
-  type InlineKeyboard,
-} from "@/lib/telegram/api.server";
+import { sendMessage, escapeMarkdownV2, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
-import {
-  saveSession,
-  resetScenario,
-  type ReportDraft,
-} from "@/lib/telegram/session.server";
+import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import { submitReport } from "@/lib/report.functions";
 import type { Lang } from "@/lib/i18n";
@@ -263,10 +255,7 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
     }
   } catch (e) {
     // R6.8 — never crash; log without Sensitive_Data (R19.2).
-    console.error(
-      "telegram submitReport failed",
-      e instanceof Error ? e.message : "unknown",
-    );
+    console.error("telegram submitReport failed", e instanceof Error ? e.message : "unknown");
     await sendText(ctx, "report_error", lang);
   }
 

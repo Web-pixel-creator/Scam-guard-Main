@@ -8,9 +8,12 @@ const TG_LINK_RE = /(t\.me|telegram\.me)\//i;
 const URL_RE = /\bhttps?:\/\/\S+|\bwww\.\S+\.\S+/i;
 const PURE_URL_RE = /^(?:https?:\/\/|www\.)\S+$/i;
 const APK_RE = /\.apk(\?|$)/i;
-const PAYMENT_ACTION_RE = /\b(pay|payment|paid|fee|transfer|prepay|deposit|invoice|receipt|top.?up|click|payme|uzum|uzcard|humo|to['’]?lov|tolov|o['’]?tkaz|pul|karta|avans|bron)\b/i;
-const PAYMENT_CONTEXT_RE = /\b(uzs|sum|soum|so['’]?m|som|usd|card|karta|bank|qr|merchant|order|parcel|delivery|shipping|click|payme|uzum|uzcard|humo)\b|[$₽]/i;
-const PAYMENT_AMOUNT_RE = /(?:[$₽]\s?\d+|\b\d{1,3}(?:[ .]\d{3})+\b|\b\d{4,}\s?(?:uzs|sum|soum|so['’]?m|som|usd)?\b|\b\d+(?:[.,]\d{2})\s?(?:uzs|sum|soum|so['’]?m|som|usd)\b)/i;
+const PAYMENT_ACTION_RE =
+  /\b(pay|payment|paid|fee|transfer|prepay|deposit|invoice|receipt|top.?up|click|payme|uzum|uzcard|humo|to['’]?lov|tolov|o['’]?tkaz|pul|karta|avans|bron)\b/i;
+const PAYMENT_CONTEXT_RE =
+  /\b(uzs|sum|soum|so['’]?m|som|usd|card|karta|bank|qr|merchant|order|parcel|delivery|shipping|click|payme|uzum|uzcard|humo)\b|[$₽]/i;
+const PAYMENT_AMOUNT_RE =
+  /(?:[$₽]\s?\d+|\b\d{1,3}(?:[ .]\d{3})+\b|\b\d{4,}\s?(?:uzs|sum|soum|so['’]?m|som|usd)?\b|\b\d+(?:[.,]\d{2})\s?(?:uzs|sum|soum|so['’]?m|som|usd)\b)/i;
 
 export function looksLikePaymentInput(raw: string): boolean {
   const v = raw.trim();
@@ -60,11 +63,15 @@ export function normalizeUrl(raw: string): string {
 
 export function normalize(input: string, type: InputType): string {
   switch (type) {
-    case "phone": return normalizePhone(input);
-    case "telegram": return normalizeTelegram(input);
+    case "phone":
+      return normalizePhone(input);
+    case "telegram":
+      return normalizeTelegram(input);
     case "url":
-    case "apk": return normalizeUrl(input);
-    default: return input.trim();
+    case "apk":
+      return normalizeUrl(input);
+    default:
+      return input.trim();
   }
 }
 
@@ -84,7 +91,9 @@ export function maskForDisplay(value: string, type: InputType): string {
     try {
       const u = new URL(value.startsWith("http") ? value : "https://" + value);
       return u.hostname + (u.pathname.length > 1 ? "/…" : "");
-    } catch { return value; }
+    } catch {
+      return value;
+    }
   }
   // text: redact phones/cards/OTP
   return redactText(value).slice(0, 240) + (value.length > 240 ? "…" : "");

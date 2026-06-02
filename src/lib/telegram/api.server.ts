@@ -97,10 +97,7 @@ export async function sendChatAction(chatId: number, action: "typing"): Promise<
  * Подтверждение нажатия inline-кнопки (убирает "часики" у пользователя).
  * Best-effort; ошибки не пробрасываются.
  */
-export async function answerCallbackQuery(
-  callbackQueryId: string,
-  text?: string,
-): Promise<void> {
+export async function answerCallbackQuery(callbackQueryId: string, text?: string): Promise<void> {
   const body: Record<string, unknown> = { callback_query_id: callbackQueryId };
   if (text !== undefined) body.text = text;
   await callBotApi("answerCallbackQuery", body);
@@ -166,17 +163,30 @@ export async function downloadFileAsDataUrl(filePath: string): Promise<string | 
  * Передаёт `secret_token` в Bot API `setWebhook`, чтобы Telegram присылал его в
  * заголовке `X-Telegram-Bot-Api-Secret-Token`. Возвращает `{ ok }`.
  */
-export async function setWebhook(
-  url: string,
-  secretToken: string,
-): Promise<{ ok: boolean }> {
+export async function setWebhook(url: string, secretToken: string): Promise<{ ok: boolean }> {
   const res = await callBotApi("setWebhook", { url, secret_token: secretToken });
   return { ok: res?.ok === true };
 }
 
 const MARKDOWN_V2_SPECIALS = new Set([
-  "_", "*", "[", "]", "(", ")", "~", "`", ">", "#",
-  "+", "-", "=", "|", "{", "}", ".", "!",
+  "_",
+  "*",
+  "[",
+  "]",
+  "(",
+  ")",
+  "~",
+  "`",
+  ">",
+  "#",
+  "+",
+  "-",
+  "=",
+  "|",
+  "{",
+  "}",
+  ".",
+  "!",
 ]);
 
 /**

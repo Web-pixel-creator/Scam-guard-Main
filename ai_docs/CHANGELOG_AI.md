@@ -1,5 +1,12 @@
 # Changelog (AI memory)
 
+## 2026-06-02 - Sensitive DB write lockdown
+
+- Revoked direct public inserts into `checks` and `reports`; writes now go
+  through server functions/service-role after validation, redaction and hashing.
+- Updated `DATABASE.md`, `API.md` and `DECISIONS.md` to reflect the security
+  boundary.
+
 Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-06-01 — Production deploy + pre-deploy hardening

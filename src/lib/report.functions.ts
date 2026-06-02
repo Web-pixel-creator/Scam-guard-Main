@@ -6,12 +6,12 @@ import { hashIdentifier } from "./risk/hash";
 
 const reportSchema = z.object({
   value: z.string().min(1).max(500),
-  type: z.enum(["phone","telegram","url","text","payment","apk","unknown"]).optional(),
+  type: z.enum(["phone", "telegram", "url", "text", "payment", "apk", "unknown"]).optional(),
   description: z.string().min(5).max(5000),
   scamType: z.string().max(80).optional(),
   city: z.string().max(80).optional(),
   amountLostUzs: z.number().int().nonnegative().max(10_000_000_000).optional(),
-  lang: z.enum(["ru","uz","en"]).default("ru"),
+  lang: z.enum(["ru", "uz", "en"]).default("ru"),
 });
 
 export const submitReport = createServerFn({ method: "POST" })
@@ -42,11 +42,17 @@ export const submitReport = createServerFn({ method: "POST" })
     // Bump entity counter (server-managed)
     try {
       const { data: existing } = await supabaseAdmin
-        .from("entities").select("id, report_count")
-        .eq("entity_hash", hash).maybeSingle();
+        .from("entities")
+        .select("id, report_count")
+        .eq("entity_hash", hash)
+        .maybeSingle();
       if (existing) {
-        await supabaseAdmin.from("entities")
-          .update({ report_count: existing.report_count + 1, last_seen_at: new Date().toISOString() })
+        await supabaseAdmin
+          .from("entities")
+          .update({
+            report_count: existing.report_count + 1,
+            last_seen_at: new Date().toISOString(),
+          })
           .eq("id", existing.id);
       } else {
         await supabaseAdmin.from("entities").insert({

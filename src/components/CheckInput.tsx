@@ -1,6 +1,15 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, Send, Loader2, ImagePlus, X, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  Search,
+  Send,
+  Loader2,
+  ImagePlus,
+  X,
+  Info,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
@@ -27,8 +36,10 @@ function fileToDataUrl(file: File): Promise<string> {
 function validateInput(value: string, hasOcr: boolean): string | null {
   const v = value.trim();
   if (!v && !hasOcr) return "Введите номер, ссылку, username или текст сообщения.";
-  if (!hasOcr && v.length < MIN_INPUT_CHARS) return `Слишком короткий ввод — минимум ${MIN_INPUT_CHARS} символа.`;
-  if (v.length > MAX_INPUT_CHARS) return `Слишком длинный текст — максимум ${MAX_INPUT_CHARS} символов.`;
+  if (!hasOcr && v.length < MIN_INPUT_CHARS)
+    return `Слишком короткий ввод — минимум ${MIN_INPUT_CHARS} символа.`;
+  if (v.length > MAX_INPUT_CHARS)
+    return `Слишком длинный текст — максимум ${MAX_INPUT_CHARS} символов.`;
   return null;
 }
 
@@ -59,7 +70,7 @@ export function CheckInput({
 
   const validationMsg = useMemo(
     () => (touched ? validateInput(value, ocrPreviewOpen) : null),
-    [value, ocrPreviewOpen, touched]
+    [value, ocrPreviewOpen, touched],
   );
 
   const status: Status = error
@@ -78,7 +89,6 @@ export function CheckInput({
     success: { ru: "Готово", uz: "Tayyor", en: "Done" }[lang],
     error: { ru: "Ошибка", uz: "Xato", en: "Error" }[lang],
   };
-
 
   async function onPickFile(file: File | undefined) {
     setError(null);
@@ -134,7 +144,9 @@ export function CheckInput({
     setResult(null);
     try {
       const input = ocrPreviewOpen
-        ? (value.trim() ? value.trim() + "\n\n" + ocrText.trim() : ocrText.trim())
+        ? value.trim()
+          ? value.trim() + "\n\n" + ocrText.trim()
+          : ocrText.trim()
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
       setResult(r as CheckResult);
@@ -161,7 +173,9 @@ export function CheckInput({
 
         {/* Header bar */}
         <div className="flex items-center justify-between gap-3 px-7 pt-5 pb-3 border-b border-[#E2E0D8]/60">
-          <span className="apex-mono">{{ ru: "Ввод", uz: "Kiritish", en: "Input" }[lang]} · {lang.toUpperCase()}</span>
+          <span className="apex-mono">
+            {{ ru: "Ввод", uz: "Kiritish", en: "Input" }[lang]} · {lang.toUpperCase()}
+          </span>
           <span className="apex-status" data-state={status} aria-live="polite">
             <span className="apex-status-dot" />
             {statusLabel[status]}
@@ -188,9 +202,10 @@ export function CheckInput({
           aria-invalid={!!validationMsg}
           maxLength={MAX_INPUT_CHARS + 100}
           className="resize-none border-0 bg-transparent shadow-none outline-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
-          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); }}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run();
+          }}
         />
-
 
         {/* Inline validation + char counter */}
         <div className="flex items-center justify-between gap-3 px-7 pb-4 min-h-[20px]">
@@ -210,10 +225,13 @@ export function CheckInput({
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#F97316]/10">
                   <AlertTriangle className="h-3 w-3 text-[#C2410C]" strokeWidth={2} />
                 </span>
-                <span className="apex-mono text-[#18181B]">{{ ru: "Текст с картинки", uz: "Rasmdagi matn", en: "Text from image" }[lang]}</span>
+                <span className="apex-mono text-[#18181B]">
+                  {{ ru: "Текст с картинки", uz: "Rasmdagi matn", en: "Text from image" }[lang]}
+                </span>
               </div>
-              <span className="apex-mono text-[#A1A1AA]">{ocrText.trim().length} {{ ru: "символов", uz: "belgi", en: "chars" }[lang]}</span>
-
+              <span className="apex-mono text-[#A1A1AA]">
+                {ocrText.trim().length} {{ ru: "символов", uz: "belgi", en: "chars" }[lang]}
+              </span>
             </div>
 
             {/* Body */}
@@ -249,10 +267,16 @@ export function CheckInput({
                   className="fancy-btn sm:min-w-[200px]"
                 >
                   <span className="fancy-points" aria-hidden="true">
-                    {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <i key={i} className="fancy-point" />
+                    ))}
                   </span>
                   <span className="fancy-inner">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
                     {t("ocr_check_this", lang)}
                   </span>
                 </button>
@@ -263,47 +287,93 @@ export function CheckInput({
 
         {imageDataUrl && !ocrPreviewOpen && (
           <div className="mt-1 mx-5 mb-2 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2.5">
-            <img src={imageDataUrl} alt="screenshot" className="h-14 w-14 rounded-[4px] object-cover" />
+            <img
+              src={imageDataUrl}
+              alt="screenshot"
+              className="h-14 w-14 rounded-[4px] object-cover"
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate text-[#18181B]">{imageName}</p>
               {ocrLoading ? (
-                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-0.5"><Loader2 className="h-3 w-3 animate-spin" />{t("ocr_recognizing", lang)}</p>
+                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-0.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {t("ocr_recognizing", lang)}
+                </p>
               ) : (
-                <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5"><Info className="h-3 w-3 mt-0.5 shrink-0" /><span>{t("screenshot_warning", lang)}</span></p>
+                <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                  <span>{t("screenshot_warning", lang)}</span>
+                </p>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={clearImage} className="shrink-0 rounded-[4px]" type="button"><X className="h-4 w-4" /></Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearImage}
+              className="shrink-0 rounded-[4px]"
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-[#E2E0D8] bg-[#FCFAF9]/60">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <button onClick={() => fileInputRef.current?.click()} className="apex-pill" type="button" disabled={ocrLoading}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => onPickFile(e.target.files?.[0])}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="apex-pill"
+              type="button"
+              disabled={ocrLoading}
+            >
               <ImagePlus className="h-3.5 w-3.5 text-[#F97316]" strokeWidth={2} />
               {t("attach_screenshot", lang)}
             </button>
-            <button onClick={() => navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })} className="apex-pill" type="button">
+            <button
+              onClick={() =>
+                navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })
+              }
+              className="apex-pill"
+              type="button"
+            >
               <Send className="h-3.5 w-3.5 text-[#FB923C]" strokeWidth={2} />
               {t("report_btn", lang)}
             </button>
           </div>
-          <button onClick={run} disabled={!canSubmit || ocrPreviewOpen} className="fancy-btn min-w-[170px]" type="button">
+          <button
+            onClick={run}
+            disabled={!canSubmit || ocrPreviewOpen}
+            className="fancy-btn min-w-[170px]"
+            type="button"
+          >
             <span className="fancy-points" aria-hidden="true">
-              {Array.from({ length: 10 }).map((_, i) => (<i key={i} className="fancy-point" />))}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <i key={i} className="fancy-point" />
+              ))}
             </span>
             <span className="fancy-inner">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : status === "success" ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
               {loading
-                ? <Loader2 className="h-4 w-4 animate-spin" />
+                ? t("checking", lang)
                 : status === "success"
-                  ? <CheckCircle2 className="h-4 w-4" />
-                  : <Search className="h-4 w-4" />}
-              {loading ? t("checking", lang) : status === "success" ? "Готово" : t("check_now", lang)}
+                  ? "Готово"
+                  : t("check_now", lang)}
             </span>
           </button>
         </div>
-
-
       </div>
 
       {error && (
@@ -312,7 +382,11 @@ export function CheckInput({
           <p className="text-[12px] text-[#991B1B] apex-mono leading-relaxed">{error}</p>
         </div>
       )}
-      {result && !hideInlineResult && <div className="mt-6"><RiskResultCard result={result} /></div>}
+      {result && !hideInlineResult && (
+        <div className="mt-6">
+          <RiskResultCard result={result} />
+        </div>
+      )}
     </div>
   );
 }

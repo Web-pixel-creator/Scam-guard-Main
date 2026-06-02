@@ -15,14 +15,26 @@ export function QuickReportForm() {
   const [error, setError] = useState<string | null>(null);
 
   const L = {
-    title: { ru: "Сообщить о новом виде мошенничества", uz: "Yangi firibgarlik haqida xabar berish", en: "Report a new scam pattern" }[lang],
+    title: {
+      ru: "Сообщить о новом виде мошенничества",
+      uz: "Yangi firibgarlik haqida xabar berish",
+      en: "Report a new scam pattern",
+    }[lang],
     sub: {
       ru: "Видели схему, которой ещё нет в базе? Расскажите коротко — мы добавим в защиту других.",
       uz: "Bazada yo'q sxemani ko'rdingizmi? Qisqacha yozing — boshqalarni himoya qilamiz.",
       en: "Saw a scheme not in our database yet? Tell us briefly — we'll add it to protect others.",
     }[lang],
-    valueLabel: { ru: "Номер / ссылка / username (необязательно)", uz: "Raqam / havola / username (ixtiyoriy)", en: "Number / link / username (optional)" }[lang],
-    valuePh: { ru: "+998... · t.me/... · https://...", uz: "+998... · t.me/... · https://...", en: "+998... · t.me/... · https://..." }[lang],
+    valueLabel: {
+      ru: "Номер / ссылка / username (необязательно)",
+      uz: "Raqam / havola / username (ixtiyoriy)",
+      en: "Number / link / username (optional)",
+    }[lang],
+    valuePh: {
+      ru: "+998... · t.me/... · https://...",
+      uz: "+998... · t.me/... · https://...",
+      en: "+998... · t.me/... · https://...",
+    }[lang],
     descLabel: { ru: "Что случилось", uz: "Nima sodir bo'ldi", en: "What happened" }[lang],
     descPh: {
       ru: "Опишите схему: кто, как написал, что просил, чем закончилось…",
@@ -31,9 +43,17 @@ export function QuickReportForm() {
     }[lang],
     send: { ru: "Отправить жалобу", uz: "Shikoyatni yuborish", en: "Send report" }[lang],
     sending: { ru: "Отправляю…", uz: "Yuborilmoqda…", en: "Sending…" }[lang],
-    success: { ru: "Спасибо! Жалоба отправлена в модерацию.", uz: "Rahmat! Shikoyat moderatsiyaga yuborildi.", en: "Thank you! Your report was submitted for moderation." }[lang],
+    success: {
+      ru: "Спасибо! Жалоба отправлена в модерацию.",
+      uz: "Rahmat! Shikoyat moderatsiyaga yuborildi.",
+      en: "Thank you! Your report was submitted for moderation.",
+    }[lang],
     again: { ru: "Отправить ещё одну", uz: "Yana yuborish", en: "Submit another" }[lang],
-    err: { ru: "Не удалось отправить. Попробуйте позже.", uz: "Yuborilmadi. Keyinroq urinib ko'ring.", en: "Failed to send. Please try later." }[lang],
+    err: {
+      ru: "Не удалось отправить. Попробуйте позже.",
+      uz: "Yuborilmadi. Keyinroq urinib ko'ring.",
+      en: "Failed to send. Please try later.",
+    }[lang],
     minHint: { ru: "Минимум 5 символов", uz: "Kamida 5 ta belgi", en: "Min. 5 characters" }[lang],
   };
 
@@ -70,7 +90,11 @@ export function QuickReportForm() {
   if (done) {
     return (
       <div className="rounded-[6px] border border-[#A7F3D0] bg-[#ECFDF5] p-6 flex items-start gap-3">
-        <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0 mt-0.5" strokeWidth={2} aria-hidden="true" />
+        <CheckCircle2
+          className="h-5 w-5 text-[#059669] shrink-0 mt-0.5"
+          strokeWidth={2}
+          aria-hidden="true"
+        />
         <div className="flex-1">
           <p className="text-[15px] font-semibold text-[#064E3B]">{L.success}</p>
           <button
@@ -88,12 +112,17 @@ export function QuickReportForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       <div>
-        <p className="font-display text-[20px] md:text-[22px] font-extrabold tracking-tight text-[#0B0B0F]">{L.title}</p>
+        <p className="font-display text-[20px] md:text-[22px] font-extrabold tracking-tight text-[#0B0B0F]">
+          {L.title}
+        </p>
         <p className="mt-1.5 text-[13.5px] text-[#52525B]">{L.sub}</p>
       </div>
 
       <div>
-        <label htmlFor={`${id}-value`} className="block text-[12.5px] font-semibold text-[#18181B] mb-1.5">
+        <label
+          htmlFor={`${id}-value`}
+          className="block text-[12.5px] font-semibold text-[#18181B] mb-1.5"
+        >
           {L.valueLabel}
         </label>
         <input
@@ -108,7 +137,10 @@ export function QuickReportForm() {
       </div>
 
       <div>
-        <label htmlFor={`${id}-desc`} className="block text-[12.5px] font-semibold text-[#18181B] mb-1.5">
+        <label
+          htmlFor={`${id}-desc`}
+          className="block text-[12.5px] font-semibold text-[#18181B] mb-1.5"
+        >
           {L.descLabel} <span className="text-[#DC2626]">*</span>
         </label>
         <textarea
@@ -122,11 +154,16 @@ export function QuickReportForm() {
           maxLength={5000}
           className="w-full px-3 py-2.5 rounded-[6px] border border-[#E2E0D8] bg-white text-[14px] text-[#18181B] placeholder:text-[#A1A1AA] focus:border-[#F97316] focus:outline-2 focus:outline-offset-0 focus:outline-[#F97316]/30 resize-y min-h-[100px]"
         />
-        <p className="mt-1 text-[11.5px] text-[#A1A1AA] tabular-nums">{description.length} / 5000</p>
+        <p className="mt-1 text-[11.5px] text-[#A1A1AA] tabular-nums">
+          {description.length} / 5000
+        </p>
       </div>
 
       {error && (
-        <p role="alert" className="text-[13px] text-[#991B1B] bg-[#FEF2F2] border border-[#FCA5A5]/60 rounded-[4px] px-3 py-2">
+        <p
+          role="alert"
+          className="text-[13px] text-[#991B1B] bg-[#FEF2F2] border border-[#FCA5A5]/60 rounded-[4px] px-3 py-2"
+        >
           {error}
         </p>
       )}

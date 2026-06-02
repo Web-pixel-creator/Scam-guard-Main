@@ -46,9 +46,7 @@ const messageSchema = z.object({
   entities: z
     .array(z.object({ type: z.string(), offset: z.number(), length: z.number() }))
     .optional(),
-  photo: z
-    .array(z.object({ file_id: z.string(), file_size: z.number().optional() }))
-    .optional(),
+  photo: z.array(z.object({ file_id: z.string(), file_size: z.number().optional() })).optional(),
   document: z
     .object({
       file_id: z.string(),
@@ -221,9 +219,7 @@ export function extractTarget(update: TelegramUpdate): RouteTarget | null {
 }
 
 /** Pick the highest-resolution photo's file_id from a Telegram photo array. */
-function largestPhotoFileId(
-  photo: NonNullable<TelegramMessage["photo"]>,
-): string | null {
+function largestPhotoFileId(photo: NonNullable<TelegramMessage["photo"]>): string | null {
   if (photo.length === 0) return null;
   let best = photo[0];
   for (const p of photo) {
@@ -267,7 +263,11 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     const fileId = largestPhotoFileId(m.photo);
     if (fileId) return { kind: "image", fileId };
   }
-  if (m.document && typeof m.document.mime_type === "string" && m.document.mime_type.startsWith("image/")) {
+  if (
+    m.document &&
+    typeof m.document.mime_type === "string" &&
+    m.document.mime_type.startsWith("image/")
+  ) {
     return { kind: "image", fileId: m.document.file_id };
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.

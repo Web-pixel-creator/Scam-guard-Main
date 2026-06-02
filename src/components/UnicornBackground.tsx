@@ -18,7 +18,9 @@ const SCRIPT_SRC =
 function shouldDisableAnimation(): boolean {
   if (typeof window === "undefined") return true;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
-  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  const conn = (
+    navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+  ).connection;
   if (conn?.saveData) return true;
   if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return true;
   const cores = navigator.hardwareConcurrency ?? 8;
@@ -43,7 +45,7 @@ export function UnicornBackground({ projectId, className, fallbackStyle }: Props
       (entries) => {
         for (const e of entries) if (e.isIntersecting) setVisible(true);
       },
-      { rootMargin: "200px" }
+      { rootMargin: "200px" },
     );
     io.observe(el);
     return () => io.disconnect();

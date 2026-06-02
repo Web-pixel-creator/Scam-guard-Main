@@ -28,17 +28,16 @@ import type { Scenario } from "@/lib/telegram/session.server";
 import { resetScenario } from "@/lib/telegram/session.server";
 
 import { handleCommand } from "@/lib/telegram/handlers/commands";
-import {
-  handleCheck,
-  handleImage,
-  handlePhoneFromContact,
-} from "@/lib/telegram/handlers/check";
+import { handleCheck, handleImage, handlePhoneFromContact } from "@/lib/telegram/handlers/check";
 import {
   handleScenarioStep as handleReportScenarioStep,
   handleReportSkip,
   REPORT_SKIP_CALLBACK,
 } from "@/lib/telegram/handlers/report";
-import { handleCallback as miscHandleCallback, handleOutOfScope } from "@/lib/telegram/handlers/misc";
+import {
+  handleCallback as miscHandleCallback,
+  handleOutOfScope,
+} from "@/lib/telegram/handlers/misc";
 
 /** True for any multi-step `/report` scenario state (`report_*`). */
 function isReportScenario(scenario: Scenario): boolean {

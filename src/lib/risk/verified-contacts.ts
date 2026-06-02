@@ -20,7 +20,12 @@
 export type OrgType = "bank" | "telecom" | "government" | "payment_system" | "cybersecurity";
 export type ContactType = "phone" | "short_code" | "toll_free" | "email" | "telegram";
 export type VerificationLevel = "high" | "medium";
-export type UsageContext = "callback_only" | "support_line" | "hotline" | "incident_report" | "outbound_info";
+export type UsageContext =
+  | "callback_only"
+  | "support_line"
+  | "hotline"
+  | "incident_report"
+  | "outbound_info";
 
 export interface VerifiedContact {
   /** Normalized value: digits only for phones/short codes, with + for full numbers */
@@ -57,7 +62,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Пожарная служба", uz: "Yong'in xizmati", en: "Fire Department" },
     orgType: "government",
-    description: { ru: "Экстренный вызов пожарной охраны", uz: "Yong'in xizmati", en: "Fire emergency" },
+    description: {
+      ru: "Экстренный вызов пожарной охраны",
+      uz: "Yong'in xizmati",
+      en: "Fire emergency",
+    },
     source: "Standard Uzbekistan emergency numbers",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -69,7 +78,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Полиция / МВД", uz: "Politsiya / IIV", en: "Police / MIA" },
     orgType: "government",
-    description: { ru: "Полиция — преступления и мошенничество", uz: "Politsiya — jinoyat va firibgarlik", en: "Police — crime and fraud" },
+    description: {
+      ru: "Полиция — преступления и мошенничество",
+      uz: "Politsiya — jinoyat va firibgarlik",
+      en: "Police — crime and fraud",
+    },
     source: "Standard Uzbekistan emergency numbers; gov.uz/ru/iiv",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -81,7 +94,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Скорая помощь", uz: "Tez yordam", en: "Ambulance" },
     orgType: "government",
-    description: { ru: "Скорая медицинская помощь", uz: "Tez tibbiy yordam", en: "Emergency medical services" },
+    description: {
+      ru: "Скорая медицинская помощь",
+      uz: "Tez tibbiy yordam",
+      en: "Emergency medical services",
+    },
     source: "Standard Uzbekistan emergency numbers",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -91,9 +108,17 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "1199",
     display: "1199",
     contactType: "short_code",
-    org: { ru: "Единый номер экстренных служб", uz: "Yagona favqulodda raqam", en: "Unified Emergency Number" },
+    org: {
+      ru: "Единый номер экстренных служб",
+      uz: "Yagona favqulodda raqam",
+      en: "Unified Emergency Number",
+    },
     orgType: "government",
-    description: { ru: "Единый номер всех экстренных служб (Минцифры)", uz: "Barcha favqulodda xizmatlar uchun yagona raqam", en: "Single number for all emergency services" },
+    description: {
+      ru: "Единый номер всех экстренных служб (Минцифры)",
+      uz: "Barcha favqulodda xizmatlar uchun yagona raqam",
+      en: "Single number for all emergency services",
+    },
     source: "gov.uz (Ministry of Digital Technologies, trust phone list)",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -105,9 +130,17 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "1000",
     display: "1000",
     contactType: "short_code",
-    org: { ru: "Виртуальная приёмная Президента", uz: "Prezidentning virtual qabulxonasi", en: "President's Virtual Reception" },
+    org: {
+      ru: "Виртуальная приёмная Президента",
+      uz: "Prezidentning virtual qabulxonasi",
+      en: "President's Virtual Reception",
+    },
     orgType: "government",
-    description: { ru: "Обращения граждан к Президенту", uz: "Fuqarolarning Prezidentga murojaat", en: "Citizens' appeals to the President" },
+    description: {
+      ru: "Обращения граждан к Президенту",
+      uz: "Fuqarolarning Prezidentga murojaat",
+      en: "Citizens' appeals to the President",
+    },
     source: "gov.uz official trust phone list",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -117,9 +150,17 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "1007",
     display: "1007",
     contactType: "short_code",
-    org: { ru: "Генеральная прокуратура", uz: "Bosh prokuratura", en: "Prosecutor General's Office" },
+    org: {
+      ru: "Генеральная прокуратура",
+      uz: "Bosh prokuratura",
+      en: "Prosecutor General's Office",
+    },
     orgType: "government",
-    description: { ru: "Телефон доверия Генпрокуратуры", uz: "Bosh prokuratura ishonch telefoni", en: "Prosecutor General trust phone" },
+    description: {
+      ru: "Телефон доверия Генпрокуратуры",
+      uz: "Bosh prokuratura ishonch telefoni",
+      en: "Prosecutor General trust phone",
+    },
     source: "gov.uz official trust phone list",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -131,7 +172,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "МВД — телефон доверия", uz: "IIV — ishonch telefoni", en: "MIA — trust phone" },
     orgType: "government",
-    description: { ru: "Телефон доверия МВД для сообщений о коррупции и преступлениях", uz: "IIV ishonch telefoni", en: "MIA trust phone for corruption/crime reports" },
+    description: {
+      ru: "Телефон доверия МВД для сообщений о коррупции и преступлениях",
+      uz: "IIV ishonch telefoni",
+      en: "MIA trust phone for corruption/crime reports",
+    },
     source: "gov.uz official trust phone list",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -143,7 +188,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "МЧС", uz: "FVV", en: "Ministry of Emergency Situations" },
     orgType: "government",
-    description: { ru: "Телефон доверия МЧС", uz: "FVV ishonch telefoni", en: "Emergency Ministry trust phone" },
+    description: {
+      ru: "Телефон доверия МЧС",
+      uz: "FVV ishonch telefoni",
+      en: "Emergency Ministry trust phone",
+    },
     source: "gov.uz official trust phone list",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -155,7 +204,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Безопасный туризм", uz: "Xavfsiz turizm", en: "Safe Tourism Call Centre" },
     orgType: "government",
-    description: { ru: "24/7 помощь (рус/узб/англ)", uz: "24/7 yordam (rus/o'zb/ingl)", en: "24/7 assistance (UZ/RU/EN)" },
+    description: {
+      ru: "24/7 помощь (рус/узб/англ)",
+      uz: "24/7 yordam (rus/o'zb/ingl)",
+      en: "24/7 assistance (UZ/RU/EN)",
+    },
     source: "https://www.gov.uk/foreign-travel-advice/uzbekistan/getting-help",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -169,7 +222,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "UZCERT", uz: "UZCERT", en: "UZCERT" },
     orgType: "cybersecurity",
-    description: { ru: "Центр кибербезопасности — сообщить об инциденте", uz: "Kiberxavfsizlik markazi — hodisa haqida xabar berish", en: "Cybersecurity center — report an incident" },
+    description: {
+      ru: "Центр кибербезопасности — сообщить об инциденте",
+      uz: "Kiberxavfsizlik markazi — hodisa haqida xabar berish",
+      en: "Cybersecurity center — report an incident",
+    },
     source: "uzcert.uz (official contacts page)",
     verificationLevel: "high",
     usageContext: "incident_report",
@@ -181,9 +238,17 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "+998712000044",
     display: "+998 71 200-00-44",
     contactType: "phone",
-    org: { ru: "Центральный банк РУз", uz: "O'zbekiston Markaziy banki", en: "Central Bank of Uzbekistan" },
+    org: {
+      ru: "Центральный банк РУз",
+      uz: "O'zbekiston Markaziy banki",
+      en: "Central Bank of Uzbekistan",
+    },
     orgType: "bank",
-    description: { ru: "Горячая линия ЦБ — вклады и банковское мошенничество", uz: "MB ishonch telefoni — omonatlar va firibgarlik", en: "CBU hotline — deposits and banking fraud" },
+    description: {
+      ru: "Горячая линия ЦБ — вклады и банковское мошенничество",
+      uz: "MB ishonch telefoni — omonatlar va firibgarlik",
+      en: "CBU hotline — deposits and banking fraud",
+    },
     source: "https://cbu.uz/en/contacts/helpline/",
     verificationLevel: "high",
     usageContext: "hotline",
@@ -193,7 +258,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "+998712126205",
     display: "+998 71 212-62-05",
     contactType: "phone",
-    org: { ru: "Центральный банк РУз", uz: "O'zbekiston Markaziy banki", en: "Central Bank of Uzbekistan" },
+    org: {
+      ru: "Центральный банк РУз",
+      uz: "O'zbekiston Markaziy banki",
+      en: "Central Bank of Uzbekistan",
+    },
     orgType: "bank",
     description: { ru: "Контактный номер ЦБ", uz: "MB aloqa raqami", en: "CBU contact number" },
     source: "https://cbu.uz/en/contacts/helpline/",
@@ -208,7 +277,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "1344",
     display: "1344",
     contactType: "short_code",
-    org: { ru: "Национальный банк Узбекистана (NBU)", uz: "O'zbekiston Milliy banki (NBU)", en: "National Bank of Uzbekistan (NBU)" },
+    org: {
+      ru: "Национальный банк Узбекистана (NBU)",
+      uz: "O'zbekiston Milliy banki (NBU)",
+      en: "National Bank of Uzbekistan (NBU)",
+    },
     orgType: "bank",
     description: { ru: "Контакт-центр NBU", uz: "NBU aloqa markazi", en: "NBU contact center" },
     source: "nbu.uz (official contacts page)",
@@ -220,9 +293,17 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     normalized: "+998781480010",
     display: "+998 78 148-00-10",
     contactType: "phone",
-    org: { ru: "Национальный банк Узбекистана (NBU)", uz: "O'zbekiston Milliy banki (NBU)", en: "National Bank of Uzbekistan (NBU)" },
+    org: {
+      ru: "Национальный банк Узбекистана (NBU)",
+      uz: "O'zbekiston Milliy banki (NBU)",
+      en: "National Bank of Uzbekistan (NBU)",
+    },
     orgType: "bank",
-    description: { ru: "Контакт-центр NBU (полный номер)", uz: "NBU aloqa markazi (to'liq raqam)", en: "NBU contact center (full number)" },
+    description: {
+      ru: "Контакт-центр NBU (полный номер)",
+      uz: "NBU aloqa markazi (to'liq raqam)",
+      en: "NBU contact center (full number)",
+    },
     source: "nbu.uz (official contacts page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -235,7 +316,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Капиталбанк", uz: "Kapitalbank", en: "Kapitalbank" },
     orgType: "bank",
-    description: { ru: "Колл-центр для физ. лиц — карты, мошенничество", uz: "Jismoniy shaxslar uchun — kartalar, firibgarlik", en: "Retail call center — cards, fraud" },
+    description: {
+      ru: "Колл-центр для физ. лиц — карты, мошенничество",
+      uz: "Jismoniy shaxslar uchun — kartalar, firibgarlik",
+      en: "Retail call center — cards, fraud",
+    },
     source: "kapitalbank.uz (official contacts)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -248,7 +333,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Ипак Йули Банк", uz: "Ipak Yo'li Banki", en: "Ipak Yuli Bank" },
     orgType: "bank",
-    description: { ru: "Контакт-центр Ипак Йули", uz: "Ipak Yo'li aloqa markazi", en: "Ipak Yuli contact center" },
+    description: {
+      ru: "Контакт-центр Ипак Йули",
+      uz: "Ipak Yo'li aloqa markazi",
+      en: "Ipak Yuli contact center",
+    },
     source: "ipakyulibank.uz (official contacts page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -261,7 +350,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "АНОРБАНК", uz: "ANORBANK", en: "ANORBANK" },
     orgType: "bank",
-    description: { ru: "Колл-центр АНОРБАНК", uz: "ANORBANK qo'ng'iroq markazi", en: "ANORBANK call center" },
+    description: {
+      ru: "Колл-центр АНОРБАНК",
+      uz: "ANORBANK qo'ng'iroq markazi",
+      en: "ANORBANK call center",
+    },
     source: "anorbank.uz (official contacts page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -274,7 +367,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "Алокабанк", uz: "Aloqabank", en: "Aloqabank" },
     orgType: "bank",
-    description: { ru: "Единый контакт-центр 24/7", uz: "Yagona aloqa markazi 24/7", en: "Unified contact center 24/7" },
+    description: {
+      ru: "Единый контакт-центр 24/7",
+      uz: "Yagona aloqa markazi 24/7",
+      en: "Unified contact center 24/7",
+    },
     source: "aloqabank.uz (official contacts page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -289,7 +386,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Ucell", uz: "Ucell", en: "Ucell" },
     orgType: "telecom",
-    description: { ru: "Колл-центр Ucell (для абонентов)", uz: "Ucell qo'ng'iroq markazi (abonentlar uchun)", en: "Ucell call center (for subscribers)" },
+    description: {
+      ru: "Колл-центр Ucell (для абонентов)",
+      uz: "Ucell qo'ng'iroq markazi (abonentlar uchun)",
+      en: "Ucell call center (for subscribers)",
+    },
     source: "ucell.uz (Call Center official page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -301,7 +402,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "Ucell", uz: "Ucell", en: "Ucell" },
     orgType: "telecom",
-    description: { ru: "Ucell для абонентов других операторов", uz: "Ucell boshqa operatorlar abonentlari uchun", en: "Ucell for other operators' subscribers" },
+    description: {
+      ru: "Ucell для абонентов других операторов",
+      uz: "Ucell boshqa operatorlar abonentlari uchun",
+      en: "Ucell for other operators' subscribers",
+    },
     source: "ucell.uz (Call Center official page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -314,7 +419,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Beeline Uzbekistan", uz: "Beeline Uzbekistan", en: "Beeline Uzbekistan" },
     orgType: "telecom",
-    description: { ru: "Колл-центр Beeline", uz: "Beeline qo'ng'iroq markazi", en: "Beeline call center" },
+    description: {
+      ru: "Колл-центр Beeline",
+      uz: "Beeline qo'ng'iroq markazi",
+      en: "Beeline call center",
+    },
     source: "beeline.uz (official contacts)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -326,7 +435,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "Beeline Uzbekistan", uz: "Beeline Uzbekistan", en: "Beeline Uzbekistan" },
     orgType: "telecom",
-    description: { ru: "Beeline (полный номер)", uz: "Beeline (to'liq raqam)", en: "Beeline (full number)" },
+    description: {
+      ru: "Beeline (полный номер)",
+      uz: "Beeline (to'liq raqam)",
+      en: "Beeline (full number)",
+    },
     source: "beeline.uz (official contacts)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -339,7 +452,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "Mobiuz", uz: "Mobiuz", en: "Mobiuz" },
     orgType: "telecom",
-    description: { ru: "Колл-центр Mobiuz (внутри сети)", uz: "Mobiuz qo'ng'iroq markazi (tarmoq ichida)", en: "Mobiuz call center (in-network)" },
+    description: {
+      ru: "Колл-центр Mobiuz (внутри сети)",
+      uz: "Mobiuz qo'ng'iroq markazi (tarmoq ichida)",
+      en: "Mobiuz call center (in-network)",
+    },
     source: "mobiuz.uz (contact center page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -351,7 +468,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "Mobiuz", uz: "Mobiuz", en: "Mobiuz" },
     orgType: "telecom",
-    description: { ru: "Mobiuz (полный номер)", uz: "Mobiuz (to'liq raqam)", en: "Mobiuz (full number)" },
+    description: {
+      ru: "Mobiuz (полный номер)",
+      uz: "Mobiuz (to'liq raqam)",
+      en: "Mobiuz (full number)",
+    },
     source: "mobiuz.uz (contact center page)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -366,7 +487,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "short_code",
     org: { ru: "UZCARD", uz: "UZCARD", en: "UZCARD" },
     orgType: "payment_system",
-    description: { ru: "Колл-центр UZCARD — операции по картам", uz: "UZCARD qo'ng'iroq markazi — karta operatsiyalari", en: "UZCARD call center — card operations" },
+    description: {
+      ru: "Колл-центр UZCARD — операции по картам",
+      uz: "UZCARD qo'ng'iroq markazi — karta operatsiyalari",
+      en: "UZCARD call center — card operations",
+    },
     source: "uzcard.uz (official contacts)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -378,7 +503,11 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     contactType: "phone",
     org: { ru: "UZCARD", uz: "UZCARD", en: "UZCARD" },
     orgType: "payment_system",
-    description: { ru: "UZCARD (полный номер)", uz: "UZCARD (to'liq raqam)", en: "UZCARD (full number)" },
+    description: {
+      ru: "UZCARD (полный номер)",
+      uz: "UZCARD (to'liq raqam)",
+      en: "UZCARD (full number)",
+    },
     source: "uzcard.uz (official contacts)",
     verificationLevel: "high",
     usageContext: "support_line",
@@ -426,7 +555,8 @@ export function findVerifiedContact(input: string): VerifiedContact | null {
     if (contactDigits.startsWith("998") && contactDigits.slice(3) === digits) return contact;
 
     // Input with leading 8 for local long-distance (old UZ format)
-    if (digits.startsWith("8") && digits.length > 5 && digits.slice(1) === contactDigits) return contact;
+    if (digits.startsWith("8") && digits.length > 5 && digits.slice(1) === contactDigits)
+      return contact;
   }
 
   return null;

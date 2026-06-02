@@ -12,10 +12,16 @@ import { evaluateText, scoreFromCodes } from "./rules";
 describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
   const positives: { name: string; text: string }[] = [
     // RU — verb after the QR mention (branch: qr.?код .{0,30} (скан|войти|подтверд|вериф))
-    { name: "RU вход через QR с просьбой отсканировать", text: "Наведите камеру на QR-код и отсканируйте, чтобы войти" },
+    {
+      name: "RU вход через QR с просьбой отсканировать",
+      text: "Наведите камеру на QR-код и отсканируйте, чтобы войти",
+    },
     { name: "RU подтверждение через QR", text: "QR код, отсканируйте для подтверждения личности" },
     // RU — branch: скан .{0,15} qr
-    { name: "RU отсканируйте QR для входа", text: "Отсканируйте QR код, чтобы войти в личный кабинет" },
+    {
+      name: "RU отсканируйте QR для входа",
+      text: "Отсканируйте QR код, чтобы войти в личный кабинет",
+    },
     // UZ — branch: qr.?kod .{0,30} (skaner|kiring|tasdiq)
     { name: "UZ skanerlang va kiring", text: "QR kodni skanerlang va tizimga kiring" },
     { name: "UZ tasdiqlash uchun QR", text: "Tasdiqlash uchun QR kodni skaner qiling" },
@@ -23,7 +29,10 @@ describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
 
   const negatives: { name: string; text: string }[] = [
     { name: "RU нейтральная фраза без QR", text: "Я сегодня купил билеты в кино на вечер" },
-    { name: "RU показать чужой QR на входе (без сканирования/входа-глагола)", text: "Покажите ваш QR-код на входе в музей" },
+    {
+      name: "RU показать чужой QR на входе (без сканирования/входа-глагола)",
+      text: "Покажите ваш QR-код на входе в музей",
+    },
     { name: "UZ нейтральная покупка", text: "Men bugun dokondan non sotib oldim" },
   ];
 
@@ -39,9 +48,15 @@ describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
 describe("evaluateText — relative_in_distress (R14.5)", () => {
   const positives: { name: string; text: string }[] = [
     // RU — (родственник|сын|...|друг).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)
-    { name: "RU сын попал в аварию", text: "Ваш сын попал в аварию, срочно нужны деньги на лечение" },
+    {
+      name: "RU сын попал в аварию",
+      text: "Ваш сын попал в аварию, срочно нужны деньги на лечение",
+    },
     { name: "RU брат в больнице", text: "Твой брат сейчас в больнице, нужна помощь с оплатой" },
-    { name: "RU родственника задержали", text: "Вашего родственника задержали, нужно срочно перевести деньги" },
+    {
+      name: "RU родственника задержали",
+      text: "Вашего родственника задержали, нужно срочно перевести деньги",
+    },
     // UZ — (farzand|...|aka|uka|qiz|do'st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)
     { name: "UZ aka avariyaga tushdi", text: "Akangiz avariyaga tushdi, pul kerak" },
     { name: "UZ do'st kasalxonada", text: "Do'stingiz kasalxonada, tezda pul yuboring" },
@@ -67,7 +82,10 @@ describe("evaluateText — requests_card_digits (R14.6)", () => {
   const positives: { name: string; text: string }[] = [
     // RU — последн(ие|их).{0,10}(4|четыре).{0,10}цифр
     { name: "RU последние 4 цифры карты", text: "Назовите последние 4 цифры вашей карты" },
-    { name: "RU последних четыре цифры", text: "Сообщите последних четыре цифры карты для проверки" },
+    {
+      name: "RU последних четыре цифры",
+      text: "Сообщите последних четыре цифры карты для проверки",
+    },
     // RU — подтверд(и|ите).{0,15}цифр.{0,10}карт
     { name: "RU подтвердите цифры карты", text: "Подтвердите цифры карты для верификации" },
     // UZ — karta.{0,20}(raqam|oxirgi).{0,10}(4|to'rt).{0,10}(raqam|son)
@@ -133,10 +151,22 @@ describe("integration — block threat + urgency → suspicious (R14.7)", () => 
 
 describe("evaluateText — fake_delivery_payment (research feed)", () => {
   const positives: { name: string; text: string }[] = [
-    { name: "RU courier fee link", text: "Курьер отправил ссылку: доплатите 12000 сум за доставку, иначе посылку вернут" },
-    { name: "RU postal customs payment", text: "Ваша посылка на почте, оплатите небольшой таможенный сбор по ссылке" },
-    { name: "UZ delivery payment link", text: "Yetkazib berish uchun 12000 so'm to'lov qiling, aks holda posilka qaytariladi" },
-    { name: "EN parcel payment", text: "Pay the delivery fee for your parcel by this link or it will be returned" },
+    {
+      name: "RU courier fee link",
+      text: "Курьер отправил ссылку: доплатите 12000 сум за доставку, иначе посылку вернут",
+    },
+    {
+      name: "RU postal customs payment",
+      text: "Ваша посылка на почте, оплатите небольшой таможенный сбор по ссылке",
+    },
+    {
+      name: "UZ delivery payment link",
+      text: "Yetkazib berish uchun 12000 so'm to'lov qiling, aks holda posilka qaytariladi",
+    },
+    {
+      name: "EN parcel payment",
+      text: "Pay the delivery fee for your parcel by this link or it will be returned",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
@@ -177,14 +207,26 @@ describe("evaluateText — payment_before_service marketplace patterns", () => {
 
 describe("evaluateText — fake_boss_request (research feed)", () => {
   const positives: { name: string; text: string }[] = [
-    { name: "RU boss asks passport", text: "Это ваш руководитель, срочно отправьте паспортные данные для проверки" },
-    { name: "RU HR asks card", text: "Отдел кадров просит данные карты и код для анкеты сотрудника" },
-    { name: "UZ boss asks data", text: "Rahbar nomidan yozayapman, tez pasport ma'lumot va karta raqamini yuboring" },
+    {
+      name: "RU boss asks passport",
+      text: "Это ваш руководитель, срочно отправьте паспортные данные для проверки",
+    },
+    {
+      name: "RU HR asks card",
+      text: "Отдел кадров просит данные карты и код для анкеты сотрудника",
+    },
+    {
+      name: "UZ boss asks data",
+      text: "Rahbar nomidan yozayapman, tez pasport ma'lumot va karta raqamini yuboring",
+    },
     { name: "UZ official asks code", text: "Soliq organidanmiz, kod va ma'lumot yuboring" },
   ];
 
   const negatives: { name: string; text: string }[] = [
-    { name: "RU ordinary boss message", text: "Руководитель просит завтра прийти на планёрку к 10 утра" },
+    {
+      name: "RU ordinary boss message",
+      text: "Руководитель просит завтра прийти на планёрку к 10 утра",
+    },
     { name: "UZ ordinary HR", text: "Kadr bo'limi ertaga uchrashuv bo'lishini eslatdi" },
   ];
 

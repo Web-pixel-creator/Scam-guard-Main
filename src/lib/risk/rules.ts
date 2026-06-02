@@ -78,37 +78,108 @@ const WEIGHTS: Record<ReasonCode, number> = {
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
-  { code: "asks_for_sms_code", re: /(sms.?код|код из (смс|sms)|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн)/i },
+  {
+    code: "asks_for_sms_code",
+    re: /(sms.?код|код из (смс|sms)|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн)/i,
+  },
   { code: "asks_for_card_cvv", re: /\b(cvv|cvc|cvv2)\b|трёхзначн|uch xonali kod/i },
   { code: "asks_for_pin", re: /\b(pin|пин-?код|pin.?kod)\b/i },
-  { code: "asks_to_install_apk", re: /(установ(и|ите).{0,30}(прилож|apk)|apk.?(скачайте|yuklab)|o['’]rnating.{0,30}(ilova|apk)|install.{0,30}(app|apk))/i },
-  { code: "asks_to_share_screen", re: /(демонстр.{0,15}экран|share.{0,5}screen|screen.?share|anydesk|teamviewer|rustdesk|quick.?support)/i },
-  { code: "asks_to_transfer_to_safe_account", re: /(безопасн.{0,15}(счёт|счет|карт)|safe account|xavfsiz hisob)/i },
-  { code: "impersonates_bank", re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|payme|click)/i },
+  {
+    code: "asks_to_install_apk",
+    re: /(установ(и|ите).{0,30}(прилож|apk)|apk.?(скачайте|yuklab)|o['’]rnating.{0,30}(ilova|apk)|install.{0,30}(app|apk))/i,
+  },
+  {
+    code: "asks_to_share_screen",
+    re: /(демонстр.{0,15}экран|share.{0,5}screen|screen.?share|anydesk|teamviewer|rustdesk|quick.?support)/i,
+  },
+  {
+    code: "asks_to_transfer_to_safe_account",
+    re: /(безопасн.{0,15}(счёт|счет|карт)|safe account|xavfsiz hisob)/i,
+  },
+  {
+    code: "impersonates_bank",
+    re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|payme|click)/i,
+  },
   { code: "impersonates_operator", re: /(оператор связи|ucell|beeline|mobiuz|ums|uzmobile)/i },
-  { code: "uses_urgency", re: /(срочно|немедленно|прямо сейчас|tezda|hozir|darhol|urgent|immediately|right now)/i },
-  { code: "threatens_legal_action", re: /(полици(я|ей)|суд|арест|уголовн|jinoiy|sud|hibsga|police|lawsuit|criminal case)/i },
-  { code: "asks_not_to_hang_up", re: /(не клад(и|ите) трубку|не отключ|не завершайте|telefonni qo['’]ymang|don'?t hang up)/i },
-  { code: "telegram_bank_contact", re: /(банк.{0,20}telegram|telegram.{0,20}банк|bank.{0,20}telegram)/i },
-  { code: "fake_loan_offer", re: /(быстры(й|е) кредит|кредит без|kredit.?bering|tez kredit|easy loan|guaranteed loan|loan without)/i },
-  { code: "asks_to_transfer_to_safe_account", re: /(переведите.{0,30}(счёт|карту|safe)|pul.{0,30}o['’]tkazing)/i },
-  { code: "asks_to_scan_qr", re: /(qr.?код.{0,30}(скан|отскан|войти|подтверд|вериф)|скан.{0,15}qr|qr.?(kod).{0,30}(skaner|kiring|tasdiq)|scan.{0,10}qr)/i },
-  { code: "relative_in_distress", re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i },
-  { code: "requests_card_digits", re: /(последн(ие|их).{0,10}(4|четыре).{0,10}цифр|подтверд(и|ите).{0,15}цифр.{0,10}карт|karta.{0,20}(raqam|oxirgi).{0,10}(4|to['’]rt).{0,10}(raqam|son))/i },
-  { code: "threatens_account_block", re: /(карт(а|у)|счёт|счет|аккаунт).{0,30}(заблокир|блокиров)|(karta|hisob).{0,30}(bloklan|bloklab)/i },
-  { code: "fake_delivery_payment", re: /((курьер|доставк|посылк|почт[аы]|parcel|delivery|shipping|kuryer|yetkazib|posilka).{0,70}(оплат|доплат|пошлин|сбор|комисс|вернут|возврат|ссылк|fee|pay|returned|link|to['’]lov|havola|qaytar|komiss|boj)|pay.{0,40}(delivery|shipping|parcel).{0,20}fee)/i },
-  { code: "payment_before_service", re: /(предоплат|аванс|задаток|брон[ьи]|оплатите.{0,30}(до|сначала)|oldindan.{0,20}to['’]lov|avans|zaklad|bron|xizmatdan oldin|first.{0,20}pay|prepay)/i },
-  { code: "fake_boss_request", re: /(начальник|директор|руководител|бухгалтер|кадр|отдел кадров|прокуратур|мвд|налогов|орган[аы]|rahbar|direktor|boshliq|kadr|buxgalter|soliq|prokuratura|iib).{0,90}(паспорт|анкета|данн|код|карт|перевод|срочно|отправ|pasport|ma['’]lumot|kod|karta|pul|yubor|tez)/i },
-  { code: "malicious_file_bait", re: /(открой|скачай|скачайте|посмотр|получите|open|download|ko['’]r|och|yuklab).{0,50}(gif|гиф|стикер|sticker|stiker|greeting card|открытк|fayl|file|файл|archive|архив|apk)/i },
+  {
+    code: "uses_urgency",
+    re: /(срочно|немедленно|прямо сейчас|tezda|hozir|darhol|urgent|immediately|right now)/i,
+  },
+  {
+    code: "threatens_legal_action",
+    re: /(полици(я|ей)|суд|арест|уголовн|jinoiy|sud|hibsga|police|lawsuit|criminal case)/i,
+  },
+  {
+    code: "asks_not_to_hang_up",
+    re: /(не клад(и|ите) трубку|не отключ|не завершайте|telefonni qo['’]ymang|don'?t hang up)/i,
+  },
+  {
+    code: "telegram_bank_contact",
+    re: /(банк.{0,20}telegram|telegram.{0,20}банк|bank.{0,20}telegram)/i,
+  },
+  {
+    code: "fake_loan_offer",
+    re: /(быстры(й|е) кредит|кредит без|kredit.?bering|tez kredit|easy loan|guaranteed loan|loan without)/i,
+  },
+  {
+    code: "asks_to_transfer_to_safe_account",
+    re: /(переведите.{0,30}(счёт|карту|safe)|pul.{0,30}o['’]tkazing)/i,
+  },
+  {
+    code: "asks_to_scan_qr",
+    re: /(qr.?код.{0,30}(скан|отскан|войти|подтверд|вериф)|скан.{0,15}qr|qr.?(kod).{0,30}(skaner|kiring|tasdiq)|scan.{0,10}qr)/i,
+  },
+  {
+    code: "relative_in_distress",
+    re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i,
+  },
+  {
+    code: "requests_card_digits",
+    re: /(последн(ие|их).{0,10}(4|четыре).{0,10}цифр|подтверд(и|ите).{0,15}цифр.{0,10}карт|karta.{0,20}(raqam|oxirgi).{0,10}(4|to['’]rt).{0,10}(raqam|son))/i,
+  },
+  {
+    code: "threatens_account_block",
+    re: /(карт(а|у)|счёт|счет|аккаунт).{0,30}(заблокир|блокиров)|(karta|hisob).{0,30}(bloklan|bloklab)/i,
+  },
+  {
+    code: "fake_delivery_payment",
+    re: /((курьер|доставк|посылк|почт[аы]|parcel|delivery|shipping|kuryer|yetkazib|posilka).{0,70}(оплат|доплат|пошлин|сбор|комисс|вернут|возврат|ссылк|fee|pay|returned|link|to['’]lov|havola|qaytar|komiss|boj)|pay.{0,40}(delivery|shipping|parcel).{0,20}fee)/i,
+  },
+  {
+    code: "payment_before_service",
+    re: /(предоплат|аванс|задаток|брон[ьи]|оплатите.{0,30}(до|сначала)|oldindan.{0,20}to['’]lov|avans|zaklad|bron|xizmatdan oldin|first.{0,20}pay|prepay)/i,
+  },
+  {
+    code: "fake_boss_request",
+    re: /(начальник|директор|руководител|бухгалтер|кадр|отдел кадров|прокуратур|мвд|налогов|орган[аы]|rahbar|direktor|boshliq|kadr|buxgalter|soliq|prokuratura|iib).{0,90}(паспорт|анкета|данн|код|карт|перевод|срочно|отправ|pasport|ma['’]lumot|kod|karta|pul|yubor|tez)/i,
+  },
+  {
+    code: "malicious_file_bait",
+    re: /(открой|скачай|скачайте|посмотр|получите|open|download|ko['’]r|och|yuklab).{0,50}(gif|гиф|стикер|sticker|stiker|greeting card|открытк|fayl|file|файл|archive|архив|apk)/i,
+  },
 ];
 
-const SHORT_LINK_HOSTS = ["bit.ly","t.co","tinyurl.com","goo.gl","cutt.ly","is.gd","rebrand.ly","clck.ru","vk.cc","ow.ly"];
+const SHORT_LINK_HOSTS = [
+  "bit.ly",
+  "t.co",
+  "tinyurl.com",
+  "goo.gl",
+  "cutt.ly",
+  "is.gd",
+  "rebrand.ly",
+  "clck.ru",
+  "vk.cc",
+  "ow.ly",
+];
 
 export function evaluateText(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
   for (const { code, re } of PATTERNS) if (re.test(text)) codes.add(code);
   // Heuristics
-  if (/\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) && /(выигр|приз|бесплатн|tabrik|sovrin|prize|won)/i.test(text)) {
+  if (
+    /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
+    /(выигр|приз|бесплатн|tabrik|sovrin|prize|won)/i.test(text)
+  ) {
     codes.add("too_good_to_be_true");
   }
   if (/(паспорт|passport|seriya)/i.test(text) && /(отправ|yuboring|send)/i.test(text)) {
@@ -122,10 +193,18 @@ export function evaluateUrl(url: string): ReasonCode[] {
   try {
     const u = new URL(url.startsWith("http") ? url : "https://" + url);
     const host = u.hostname.toLowerCase();
-    if (SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith("." + h))) codes.push("suspicious_short_link");
+    if (SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith("." + h)))
+      codes.push("suspicious_short_link");
     if (/\.apk(\?|$)/i.test(u.pathname)) codes.push("apk_download_link");
     // brand typo heuristic
-    const brandTypos = [/uzc[ao]rt/i, /hum0/i, /pay[mn]e\d/, /clikc/i, /hamkrbank/i, /kap[ii]talbank.+\..+/];
+    const brandTypos = [
+      /uzc[ao]rt/i,
+      /hum0/i,
+      /pay[mn]e\d/,
+      /clikc/i,
+      /hamkrbank/i,
+      /kap[ii]talbank.+\..+/,
+    ];
     if (brandTypos.some((r) => r.test(host))) codes.push("brand_name_typo");
     // weird tld for UZ context
     if (/\.(xyz|top|click|gq|cf|tk|ml|loan|work)$/i.test(host)) codes.push("weird_domain");
@@ -161,39 +240,159 @@ export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: Ris
 
 export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: string }> = {
   asks_for_otp: { ru: "Просят OTP-код", uz: "OTP kodini so‘rashmoqda", en: "Asks for an OTP code" },
-  asks_for_sms_code: { ru: "Просят SMS-код подтверждения", uz: "SMS tasdiqlash kodini so‘rashmoqda", en: "Asks for an SMS confirmation code" },
-  asks_for_card_cvv: { ru: "Просят CVV/CVC карты", uz: "Karta CVV/CVC raqamini so‘rashmoqda", en: "Asks for the card CVV/CVC" },
+  asks_for_sms_code: {
+    ru: "Просят SMS-код подтверждения",
+    uz: "SMS tasdiqlash kodini so‘rashmoqda",
+    en: "Asks for an SMS confirmation code",
+  },
+  asks_for_card_cvv: {
+    ru: "Просят CVV/CVC карты",
+    uz: "Karta CVV/CVC raqamini so‘rashmoqda",
+    en: "Asks for the card CVV/CVC",
+  },
   asks_for_pin: { ru: "Просят PIN-код", uz: "PIN kodni so‘rashmoqda", en: "Asks for the PIN code" },
-  asks_to_install_apk: { ru: "Просят установить APK / приложение", uz: "APK / ilova o‘rnatishni so‘rashmoqda", en: "Asks to install an APK / app" },
-  asks_to_share_screen: { ru: "Просят демонстрацию экрана", uz: "Ekran ulashishni so‘rashmoqda", en: "Asks to share your screen" },
-  asks_to_transfer_to_safe_account: { ru: "Предлагают «безопасный счёт»", uz: "«Xavfsiz hisob»ga pul o‘tkazishni taklif qilishmoqda", en: "Offers a fake “safe account”" },
-  impersonates_bank: { ru: "Выдают себя за сотрудника банка", uz: "O‘zini bank xodimi qilib ko‘rsatmoqda", en: "Impersonates a bank employee" },
-  impersonates_operator: { ru: "Выдают себя за мобильного оператора", uz: "O‘zini mobil operator qilib ko‘rsatmoqda", en: "Impersonates a mobile operator" },
-  uses_urgency: { ru: "Создают ощущение срочности", uz: "Shoshilinchlik bosimi yaratmoqda", en: "Uses urgency pressure" },
-  threatens_legal_action: { ru: "Угрожают полицией / судом", uz: "Politsiya yoki sud bilan qo‘rqitmoqda", en: "Threatens legal action" },
-  asks_not_to_hang_up: { ru: "Просят не класть трубку", uz: "Telefonni qo‘ymaslikni so‘rashmoqda", en: "Tells you not to hang up" },
-  telegram_bank_contact: { ru: "Контакт «банка» через Telegram", uz: "Bank Telegram orqali bog‘lanmoqda", en: "Claims to be a bank via Telegram" },
-  fake_loan_offer: { ru: "Подозрительное предложение кредита", uz: "Shubhali kredit taklifi", en: "Suspicious loan offer" },
-  suspicious_short_link: { ru: "Сокращённая ссылка", uz: "Qisqartirilgan havola", en: "Shortened link" },
-  apk_download_link: { ru: "Ссылка на скачивание APK", uz: "APK yuklab olish havolasi", en: "APK download link" },
+  asks_to_install_apk: {
+    ru: "Просят установить APK / приложение",
+    uz: "APK / ilova o‘rnatishni so‘rashmoqda",
+    en: "Asks to install an APK / app",
+  },
+  asks_to_share_screen: {
+    ru: "Просят демонстрацию экрана",
+    uz: "Ekran ulashishni so‘rashmoqda",
+    en: "Asks to share your screen",
+  },
+  asks_to_transfer_to_safe_account: {
+    ru: "Предлагают «безопасный счёт»",
+    uz: "«Xavfsiz hisob»ga pul o‘tkazishni taklif qilishmoqda",
+    en: "Offers a fake “safe account”",
+  },
+  impersonates_bank: {
+    ru: "Выдают себя за сотрудника банка",
+    uz: "O‘zini bank xodimi qilib ko‘rsatmoqda",
+    en: "Impersonates a bank employee",
+  },
+  impersonates_operator: {
+    ru: "Выдают себя за мобильного оператора",
+    uz: "O‘zini mobil operator qilib ko‘rsatmoqda",
+    en: "Impersonates a mobile operator",
+  },
+  uses_urgency: {
+    ru: "Создают ощущение срочности",
+    uz: "Shoshilinchlik bosimi yaratmoqda",
+    en: "Uses urgency pressure",
+  },
+  threatens_legal_action: {
+    ru: "Угрожают полицией / судом",
+    uz: "Politsiya yoki sud bilan qo‘rqitmoqda",
+    en: "Threatens legal action",
+  },
+  asks_not_to_hang_up: {
+    ru: "Просят не класть трубку",
+    uz: "Telefonni qo‘ymaslikni so‘rashmoqda",
+    en: "Tells you not to hang up",
+  },
+  telegram_bank_contact: {
+    ru: "Контакт «банка» через Telegram",
+    uz: "Bank Telegram orqali bog‘lanmoqda",
+    en: "Claims to be a bank via Telegram",
+  },
+  fake_loan_offer: {
+    ru: "Подозрительное предложение кредита",
+    uz: "Shubhali kredit taklifi",
+    en: "Suspicious loan offer",
+  },
+  suspicious_short_link: {
+    ru: "Сокращённая ссылка",
+    uz: "Qisqartirilgan havola",
+    en: "Shortened link",
+  },
+  apk_download_link: {
+    ru: "Ссылка на скачивание APK",
+    uz: "APK yuklab olish havolasi",
+    en: "APK download link",
+  },
   unknown_sender: { ru: "Отправитель неизвестен", uz: "Yuboruvchi noma’lum", en: "Unknown sender" },
-  new_telegram_account: { ru: "Новый Telegram-аккаунт", uz: "Yangi Telegram hisob", en: "New Telegram account" },
+  new_telegram_account: {
+    ru: "Новый Telegram-аккаунт",
+    uz: "Yangi Telegram hisob",
+    en: "New Telegram account",
+  },
   weird_domain: { ru: "Подозрительный домен", uz: "Shubhali domen", en: "Suspicious domain" },
-  brand_name_typo: { ru: "Опечатка в названии бренда", uz: "Brend nomida xatolik", en: "Brand name typo" },
-  payment_before_service: { ru: "Предоплата до услуги", uz: "Xizmatdan oldin to‘lov", en: "Payment requested before service" },
-  too_good_to_be_true: { ru: "Слишком хорошее предложение", uz: "Haqiqatga to‘g‘ri kelmaydigan taklif", en: "Too good to be true" },
-  requests_personal_data: { ru: "Запрашивают личные данные", uz: "Shaxsiy ma’lumotlarni so‘rashmoqda", en: "Requests personal data" },
-  non_uz_phone: { ru: "Не узбекский номер", uz: "O‘zbek raqami emas", en: "Non-Uzbek phone number" },
-  valid_uz_phone: { ru: "Корректный узбекский номер", uz: "To‘g‘ri O‘zbek raqami", en: "Valid Uzbek phone" },
-  verified_official: { ru: "Проверенный официальный контакт", uz: "Tasdiqlangan rasmiy kontakt", en: "Verified official contact" },
-  known_reported: { ru: "Идентификатор уже подтверждён в жалобах", uz: "Bu identifikator oldin tasdiqlangan shikoyatlarda bor", en: "Identifier is already confirmed in reports" },
-  asks_to_scan_qr: { ru: "Просят отсканировать QR-код", uz: "QR-kodni skanerlashni so‘rashmoqda", en: "Asks you to scan a QR code" },
-  relative_in_distress: { ru: "«Родственник/друг в беде» — срочный перевод", uz: "«Qarindosh/do‘st xavf ostida» — shoshilinch pul", en: "“Relative/friend in distress” money request" },
-  requests_card_digits: { ru: "Просят назвать цифры карты", uz: "Karta raqamlarini aytishni so‘rashmoqda", en: "Asks you to reveal card digits" },
-  threatens_account_block: { ru: "Угрожают блокировкой счёта / карты", uz: "Hisob / kartani bloklash bilan qo‘rqitmoqda", en: "Threatens to block your account / card" },
-  fake_delivery_payment: { ru: "Фейковая оплата доставки / посылки", uz: "Soxta yetkazib berish / posilka to‘lovi", en: "Fake delivery / parcel payment" },
-  fake_boss_request: { ru: "Фейковый руководитель / официальный запрос", uz: "Soxta rahbar / rasmiy so‘rov", en: "Fake boss / official request" },
-  malicious_file_bait: { ru: "Побуждают открыть подозрительный файл", uz: "Shubhali faylni ochishga undashmoqda", en: "Pushes you to open a suspicious file" },
+  brand_name_typo: {
+    ru: "Опечатка в названии бренда",
+    uz: "Brend nomida xatolik",
+    en: "Brand name typo",
+  },
+  payment_before_service: {
+    ru: "Предоплата до услуги",
+    uz: "Xizmatdan oldin to‘lov",
+    en: "Payment requested before service",
+  },
+  too_good_to_be_true: {
+    ru: "Слишком хорошее предложение",
+    uz: "Haqiqatga to‘g‘ri kelmaydigan taklif",
+    en: "Too good to be true",
+  },
+  requests_personal_data: {
+    ru: "Запрашивают личные данные",
+    uz: "Shaxsiy ma’lumotlarni so‘rashmoqda",
+    en: "Requests personal data",
+  },
+  non_uz_phone: {
+    ru: "Не узбекский номер",
+    uz: "O‘zbek raqami emas",
+    en: "Non-Uzbek phone number",
+  },
+  valid_uz_phone: {
+    ru: "Корректный узбекский номер",
+    uz: "To‘g‘ri O‘zbek raqami",
+    en: "Valid Uzbek phone",
+  },
+  verified_official: {
+    ru: "Проверенный официальный контакт",
+    uz: "Tasdiqlangan rasmiy kontakt",
+    en: "Verified official contact",
+  },
+  known_reported: {
+    ru: "Идентификатор уже подтверждён в жалобах",
+    uz: "Bu identifikator oldin tasdiqlangan shikoyatlarda bor",
+    en: "Identifier is already confirmed in reports",
+  },
+  asks_to_scan_qr: {
+    ru: "Просят отсканировать QR-код",
+    uz: "QR-kodni skanerlashni so‘rashmoqda",
+    en: "Asks you to scan a QR code",
+  },
+  relative_in_distress: {
+    ru: "«Родственник/друг в беде» — срочный перевод",
+    uz: "«Qarindosh/do‘st xavf ostida» — shoshilinch pul",
+    en: "“Relative/friend in distress” money request",
+  },
+  requests_card_digits: {
+    ru: "Просят назвать цифры карты",
+    uz: "Karta raqamlarini aytishni so‘rashmoqda",
+    en: "Asks you to reveal card digits",
+  },
+  threatens_account_block: {
+    ru: "Угрожают блокировкой счёта / карты",
+    uz: "Hisob / kartani bloklash bilan qo‘rqitmoqda",
+    en: "Threatens to block your account / card",
+  },
+  fake_delivery_payment: {
+    ru: "Фейковая оплата доставки / посылки",
+    uz: "Soxta yetkazib berish / posilka to‘lovi",
+    en: "Fake delivery / parcel payment",
+  },
+  fake_boss_request: {
+    ru: "Фейковый руководитель / официальный запрос",
+    uz: "Soxta rahbar / rasmiy so‘rov",
+    en: "Fake boss / official request",
+  },
+  malicious_file_bait: {
+    ru: "Побуждают открыть подозрительный файл",
+    uz: "Shubhali faylni ochishga undashmoqda",
+    en: "Pushes you to open a suspicious file",
+  },
 };
 
 export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[] }> = {

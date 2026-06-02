@@ -20,7 +20,11 @@
 // These exact strings are exported as CB below for reuse by the router.
 
 import { bt } from "@/lib/telegram/bot-i18n";
-import { escapeMarkdownV2, type InlineButton, type InlineKeyboard } from "@/lib/telegram/api.server";
+import {
+  escapeMarkdownV2,
+  type InlineButton,
+  type InlineKeyboard,
+} from "@/lib/telegram/api.server";
 import { t, type Lang } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
@@ -37,7 +41,10 @@ export const RISK_EMOJI: Record<RiskLevel, string> = {
  * Маппинг RiskLevel → ключ метки уровня в i18n (`t_dict`).
  * ВНИМАНИЕ: `high_risk` соответствует ключу `risk_high` (не `risk_high_risk`).
  */
-const RISK_LABEL_KEY: Record<RiskLevel, "risk_safe" | "risk_unknown" | "risk_suspicious" | "risk_high"> = {
+const RISK_LABEL_KEY: Record<
+  RiskLevel,
+  "risk_safe" | "risk_unknown" | "risk_suspicious" | "risk_high"
+> = {
   safe: "risk_safe",
   unknown: "risk_unknown",
   suspicious: "risk_suspicious",

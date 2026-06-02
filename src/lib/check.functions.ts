@@ -5,13 +5,13 @@ import { runCheck, ocrExtractCore } from "./risk/check-core";
 
 const checkSchema = z.object({
   input: z.string().min(1).max(2000),
-  type: z.enum(["phone","telegram","url","text","payment","apk","unknown"]).optional(),
-  lang: z.enum(["ru","uz","en"]).default("ru"),
+  type: z.enum(["phone", "telegram", "url", "text", "payment", "apk", "unknown"]).optional(),
+  lang: z.enum(["ru", "uz", "en"]).default("ru"),
 });
 
 const ocrSchema = z.object({
   image: z.string().min(1).max(6_000_000),
-  lang: z.enum(["ru","uz","en"]).default("ru"),
+  lang: z.enum(["ru", "uz", "en"]).default("ru"),
 });
 
 /** Resolve the caller IP from the request and build the web rate-limit key. */

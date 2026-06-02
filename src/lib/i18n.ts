@@ -45,7 +45,11 @@ export const t_dict: Dict = {
   risk_suspicious: { ru: "Требуется осторожность", uz: "Ehtiyot bo‘ling", en: "Be cautious" },
   risk_high: { ru: "Высокий риск", uz: "Yuqori xavf", en: "High risk" },
 
-  why_title: { ru: "Почему мы так считаем", uz: "Nima uchun shunday hisoblayapmiz", en: "Why we think so" },
+  why_title: {
+    ru: "Почему мы так считаем",
+    uz: "Nima uchun shunday hisoblayapmiz",
+    en: "Why we think so",
+  },
   what_to_do: { ru: "Что делать", uz: "Nima qilish kerak", en: "What to do" },
   ai_explanation: { ru: "Объяснение", uz: "Tushuntirish", en: "Explanation" },
 
@@ -62,30 +66,62 @@ export const t_dict: Dict = {
 
   schemes_title: { ru: "Популярные схемы", uz: "Mashhur sxemalar", en: "Common schemes" },
   how_it_works: { ru: "Как это работает", uz: "Bu qanday ishlaydi", en: "How it works" },
-  step_1: { ru: "Вставьте подозрительное", uz: "Shubhalini joylashtiring", en: "Paste the suspicious thing" },
-  step_1_d: { ru: "Номер, Telegram, ссылка или текст сообщения.", uz: "Raqam, Telegram, havola yoki xabar matni.", en: "Number, Telegram, link or message text." },
+  step_1: {
+    ru: "Вставьте подозрительное",
+    uz: "Shubhalini joylashtiring",
+    en: "Paste the suspicious thing",
+  },
+  step_1_d: {
+    ru: "Номер, Telegram, ссылка или текст сообщения.",
+    uz: "Raqam, Telegram, havola yoki xabar matni.",
+    en: "Number, Telegram, link or message text.",
+  },
   step_2: { ru: "Анализ за секунды", uz: "Bir necha soniyada tahlil", en: "Analysis in seconds" },
   step_2_d: {
     ru: "Правила, база жалоб и AI помогают оценить риск и объяснить признаки мошенничества.",
     uz: "Qoidalar, shikoyatlar bazasi va AI xavfni baholab, firibgarlik belgilarini tushuntiradi.",
     en: "Rules, a reports database and AI help assess risk and explain scam signals.",
   },
-  step_3: { ru: "Понятная оценка риска", uz: "Tushunarli xavf bahosi", en: "Clear risk assessment" },
-  step_3_d: { ru: "С конкретными шагами, что делать дальше.", uz: "Keyingi qadamlar bo‘yicha aniq tavsiyalar bilan.", en: "With concrete next steps to take." },
+  step_3: {
+    ru: "Понятная оценка риска",
+    uz: "Tushunarli xavf bahosi",
+    en: "Clear risk assessment",
+  },
+  step_3_d: {
+    ru: "С конкретными шагами, что делать дальше.",
+    uz: "Keyingi qadamlar bo‘yicha aniq tavsiyalar bilan.",
+    en: "With concrete next steps to take.",
+  },
 
-  emergency_title: { ru: "Уже отправили код или деньги?", uz: "Kod yoki pulni allaqachon yubordingizmi?", en: "Already sent a code or money?" },
+  emergency_title: {
+    ru: "Уже отправили код или деньги?",
+    uz: "Kod yoki pulni allaqachon yubordingizmi?",
+    en: "Already sent a code or money?",
+  },
   emergency_cta: { ru: "Срочные шаги", uz: "Shoshilinch qadamlar", en: "Emergency steps" },
 
-  example_title: { ru: "Так выглядит проверка", uz: "Tekshiruv qanday ko‘rinadi", en: "What a check looks like" },
+  example_title: {
+    ru: "Так выглядит проверка",
+    uz: "Tekshiruv qanday ko‘rinadi",
+    en: "What a check looks like",
+  },
   example_sub: {
     ru: "Вы вставляете подозрительное сообщение — мы показываем оценку риска, причины и шаги.",
     uz: "Siz shubhali xabarni joylashtirasiz — biz xavf bahosi, sabablar va qadamlarni ko‘rsatamiz.",
     en: "You paste the suspicious message — we show the risk level, reasons and steps.",
   },
 
-  footer_made: { ru: "Анти-скам ассистент для Узбекистана", uz: "O‘zbekiston uchun anti-skam yordamchi", en: "Anti-scam assistant for Uzbekistan" },
+  footer_made: {
+    ru: "Анти-скам ассистент для Узбекистана",
+    uz: "O‘zbekiston uchun anti-skam yordamchi",
+    en: "Anti-scam assistant for Uzbekistan",
+  },
 
-  attach_screenshot: { ru: "Прикрепить скриншот", uz: "Skrinshot biriktirish", en: "Attach screenshot" },
+  attach_screenshot: {
+    ru: "Прикрепить скриншот",
+    uz: "Skrinshot biriktirish",
+    en: "Attach screenshot",
+  },
   remove_screenshot: { ru: "Удалить", uz: "O‘chirish", en: "Remove" },
   screenshot_warning: {
     ru: "Перед анализом мы автоматически маскируем OTP-коды, номера карт и телефоны. Картинка не сохраняется в базе — мы храним только обезличенный текст.",
@@ -122,7 +158,6 @@ export const t_dict: Dict = {
     en: "Could not recognize text. Try another screenshot or paste the text manually.",
   },
 };
-
 
 export function t(key: keyof typeof t_dict, lang: Lang) {
   return t_dict[key]?.[lang] ?? key;
