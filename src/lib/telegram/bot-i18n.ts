@@ -199,6 +199,13 @@ export const bot_dict: BotDict = {
     en: "Sorry, I don’t analyze voice, audio or video yet. Please send the message text or a screenshot instead.",
   },
 
+  // ── Document/APK safety response ──────────────────────────────────────────
+  document_safety: {
+    ru: "⚠️ Файлы (APK, документы) не скачиваются и не анализируются ботом.\n\nДля вашей безопасности Ishonch Guard не открывает и не сохраняет такие файлы. Если вам прислали APK от имени банка, оператора или «безопасности» — это сильный признак мошенничества.\n\nЧто делать:\n• Не устанавливайте файл\n• Удалите его\n• Не давайте приложению доступ к SMS, уведомлениям или контактам\n• Если уже установили — отправьте /panic и выберите «Установил APK»",
+    uz: "⚠️ Fayllar (APK, hujjatlar) bot tomonidan yuklanmaydi va tahlil qilinmaydi.\n\nXavfsizligingiz uchun Ishonch Guard bunday fayllarni ochmaydi va saqlamaydi. Agar sizga bank, operator yoki «xavfsizlik xizmati» nomidan APK yuborishgan bo'lsa — bu firibgarlik belgisi.\n\nNima qilish kerak:\n• Faylni o'rnatmang\n• Uni o'chirib tashlang\n• Ilovaga SMS, bildirishnomalar yoki kontaktlarga ruxsat bermang\n• Agar allaqachon o'rnatgan bo'lsangiz — /panic yuboring va «APK o'rnatdim» ni tanlang",
+    en: "⚠️ Files (APK, documents) are not downloaded or analyzed by the bot.\n\nFor your safety, Ishonch Guard does not open or save such files. If someone sent you an APK on behalf of a bank, operator or \"security service\" — this is a strong sign of fraud.\n\nWhat to do:\n• Do not install the file\n• Delete it\n• Do not grant the app access to SMS, notifications or contacts\n• If you already installed it — send /panic and choose \"Installed APK\"",
+  },
+
   // ── Unknown command (R16.2) ───────────────────────────────────────────────
   unknown_command: {
     ru: "Не знаю такой команды. Список команд — /help.",

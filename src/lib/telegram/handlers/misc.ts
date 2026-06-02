@@ -172,6 +172,10 @@ export async function handleOutOfScope(kind: OutOfScopeKind, ctx: HandlerCtx): P
       // suggest sending text or a screenshot instead.
       await sendI18n(ctx.chatId, "out_of_scope", lang);
       break;
+    case "document":
+      // APK/PDF/other documents: never downloaded. Give specific safety advice.
+      await sendI18n(ctx.chatId, "document_safety", lang);
+      break;
     case "sticker":
     case "empty":
       // R16.1 — empty / unsupported content (sticker, geo, etc.): hint about the
