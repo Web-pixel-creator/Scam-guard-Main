@@ -102,7 +102,10 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
       parts.push(escapeMarkdownV2(bt("verified_spoofing_warning", lang)));
     }
   }
-  if (result.explanation !== null) {
+  // Deterministic fallback for hosted URLs without AI explanation
+  if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
+    parts.push(escapeMarkdownV2(bt("hosted_platform_explanation", lang)));
+  } else if (result.explanation !== null) {
     const title = t("ai_explanation", lang);
     parts.push(`${bold(escapeMarkdownV2(title))}\n${escapeMarkdownV2(result.explanation)}`);
   }

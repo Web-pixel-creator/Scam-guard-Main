@@ -370,6 +370,27 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     );
   });
 
+  it("sends /panic with all 10 scenario buttons", async () => {
+    const update = textUpdate({ userId: 1104, chatId: 5104, text: "/panic" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      "panic:1",
+      "panic:2",
+      "panic:3",
+      "panic:4",
+      "panic:5",
+      "panic:6",
+      "panic:7",
+      "panic:8",
+      "panic:9",
+      "panic:10",
+    ]);
+  });
+
   it.each([
     ["check another", CB.checkAnother],
     ["report", CB.report],
@@ -453,6 +474,97 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       ]),
     );
     expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it.each([
+    "panic:1",
+    "panic:2",
+    "panic:3",
+    "panic:4",
+    "panic:5",
+    "panic:7",
+    "panic:8",
+    "panic:9",
+    "panic:10",
+  ])("acknowledges %s and returns concrete panic advice", async (data) => {
+    const update = callbackUpdate({
+      userId: 1110,
+      chatId: 5110,
+      data,
+      id: `cb-${data}`,
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual([`cb-${data}`]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5110);
+    expect(h.sendCalls[0].text.length).toBeGreaterThan(50);
+  });
+
+  it("turns panic:6 into an interactive live-call copilot", async () => {
+    const update = callbackUpdate({
+      userId: 1111,
+      chatId: 5111,
+      data: "panic:6",
+      id: "cb-panic-6",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-panic-6"]);
+    expect(h.sendCalls).toHaveLength(1);
+    const data = callbackData(h.sendCalls[0].keyboard);
+    expect(data).toEqual(
+      expect.arrayContaining([
+        "livecall:hangup",
+        "livecall:what_to_say",
+        "livecall:call_bank",
+        "livecall:sent_code",
+        "livecall:tell_family",
+      ]),
+    );
+  });
+
+  it.each([
+    ["why", CB.why],
+    ["share advice", "share_advice"],
+    ["live call hangup", "livecall:hangup"],
+    ["live call words", "livecall:what_to_say"],
+    ["live call bank", "livecall:call_bank"],
+    ["live call sent code", "livecall:sent_code"],
+    ["live call tell family", "livecall:tell_family"],
+  ])("acknowledges the %s callback and sends a response", async (_label, data) => {
+    const update = callbackUpdate({
+      userId: 1112,
+      chatId: 5112,
+      data,
+      id: `cb-${data}`,
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual([`cb-${data}`]);
+    expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
+    expect(h.sendCalls.every((call) => call.chatId === 5112)).toBe(true);
+  });
+
+  it("acknowledges unknown callback data without sending a message", async () => {
+    const update = callbackUpdate({
+      userId: 1113,
+      chatId: 5113,
+      data: "totally_unknown_callback",
+      id: "cb-unknown",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-unknown"]);
+    expect(h.sendCalls).toHaveLength(0);
   });
 });
 

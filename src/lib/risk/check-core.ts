@@ -116,7 +116,16 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   const reasonList = [...codes];
   const { score, level } = scoreFromCodes(reasonList);
 
-  const explanation = skipAi
+  // Don't call AI if there are no meaningful reason codes for URL type — it would hallucinate.
+  // hosted_app_platform (weight 0) is informational only; it shouldn't trigger AI.
+  // For non-URL types, AI can still provide useful context even without codes.
+  const hasSignificantReasons = reasonList.some(
+    (c) => c !== "hosted_app_platform" && c !== "valid_uz_phone",
+  );
+  const shouldSkipAi =
+    skipAi || (detected === "url" && level === "unknown" && !hasSignificantReasons);
+
+  const explanation = shouldSkipAi
     ? null
     : await aiExplain({
         lang,

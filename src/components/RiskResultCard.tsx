@@ -101,6 +101,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isHot = result.level === "high_risk" || result.level === "suspicious";
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
+  const displayScore = Math.min(100, Math.max(0, Math.round(result.score)));
 
   // "Read aloud" — Web Speech API. Cleans up on unmount and on result change.
   const [speaking, setSpeaking] = useState(false);
@@ -162,8 +163,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
             </span>
             <span className="apex-mono text-right tabular-nums">
               {isUnknown
-                ? { ru: "Оценка · нет", uz: "Baho · yo'q", en: "Score · n/a" }[lang]
-                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${Math.round(result.score)}%`}
+                ? {
+                    ru: "Оценка риска · Недостаточно данных",
+                    uz: "Xavf bahosi · Ma'lumot yetarli emas",
+                    en: "Risk score · Insufficient data",
+                  }[lang]
+                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${displayScore}%`}
             </span>
           </div>
 
@@ -228,6 +233,17 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               {result.explanation && (
                 <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
                   {result.explanation}
+                </p>
+              )}
+              {!result.explanation && result.reasons.includes("hosted_app_platform") && (
+                <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
+                  {
+                    {
+                      ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
+                      uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
+                      en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
+                    }[lang]
+                  }
                 </p>
               )}
 
@@ -299,8 +315,8 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-[#E2E0D8] flex flex-wrap items-center justify-between gap-4">
             <span className="apex-mono text-[#71717A]">
-              {{ ru: "Жалоб", uz: "Shikoyatlar", en: "Reports" }[lang]} ·{" "}
-              {result.knownReports > 0 ? result.knownReports : "00"}
+              {{ ru: "Жалобы", uz: "Shikoyatlar", en: "Reports" }[lang]} ·{" "}
+              {result.knownReports > 0 ? result.knownReports : "0"}
             </span>
 
             <div className="flex flex-wrap gap-3">

@@ -24,6 +24,7 @@ import type { InputType } from "@/lib/risk/detect";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { t, type Lang } from "@/lib/i18n";
 import { escapeMarkdownV2 } from "@/lib/telegram/api.server";
+import { SCAM_PATTERNS } from "@/lib/scam-patterns";
 
 // ---------------------------------------------------------------------------
 // Shared fixtures / generators
@@ -81,6 +82,12 @@ const ALL_REASON_CODES = [
   "relative_in_distress",
   "requests_card_digits",
   "threatens_account_block",
+  "fake_delivery_payment",
+  "fake_boss_request",
+  "malicious_file_bait",
+  "impersonates_official",
+  "suspicious_invite_link",
+  "hosted_app_platform",
 ] as const satisfies readonly ReasonCode[];
 
 /** Generator for an arbitrary, valid RunCheckResult (see check-core.ts). */
@@ -208,5 +215,39 @@ describe("formatCheckResult — header (R4.5, R4.4)", () => {
     for (const code of result.reasons) {
       expect(text).toContain(escapeMarkdownV2(REASON_LABELS[code].ru));
     }
+  });
+});
+
+describe("formatCheckResult - deterministic URL fallback and scam patterns", () => {
+  it("shows hosted-platform guidance instead of an AI explanation when AI is skipped", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "url",
+        level: "unknown",
+        score: 0,
+        reasons: ["hosted_app_platform"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("hosted_platform_explanation", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(t("ai_explanation", "ru")));
+  });
+
+  it("shows matching scam-pattern names for detected reason codes", () => {
+    const otpPattern = SCAM_PATTERNS.find((p) => p.id === "otp-code-scam");
+    expect(otpPattern).toBeDefined();
+
+    const { text } = formatCheckResult(
+      baseResult({
+        reasons: ["asks_for_sms_code"],
+        explanation: null,
+      }),
+      "en",
+    );
+
+    expect(text).toContain("💡 Looks like:");
+    expect(text).toContain(escapeMarkdownV2(otpPattern!.title.en));
   });
 });

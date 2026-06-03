@@ -91,7 +91,7 @@ export default {
 
       // Telegram webhook: handle POST /api/telegram/webhook.
       if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
-        return await handleTelegramWebhook(request);
+        return withSecurityHeaders(await handleTelegramWebhook(request));
       }
 
       const handler = await getServerEntry();
