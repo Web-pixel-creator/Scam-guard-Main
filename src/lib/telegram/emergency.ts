@@ -375,3 +375,17 @@ export function parsePanicCallback(data: string): PanicScenarioId | null {
   if (n >= 1 && n <= 6) return n as PanicScenarioId;
   return null;
 }
+
+/** callback_data prefix for live-call copilot buttons. */
+export const LIVE_CALL_CB_PREFIX = "livecall:";
+
+/** Live call copilot button actions. */
+export type LiveCallAction = "hangup" | "what_to_say" | "call_bank" | "sent_code" | "tell_family";
+
+/** Parse a live-call callback. */
+export function parseLiveCallCallback(data: string): LiveCallAction | null {
+  if (!data.startsWith(LIVE_CALL_CB_PREFIX)) return null;
+  const action = data.slice(LIVE_CALL_CB_PREFIX.length);
+  const valid: LiveCallAction[] = ["hangup", "what_to_say", "call_bank", "sent_code", "tell_family"];
+  return valid.includes(action as LiveCallAction) ? (action as LiveCallAction) : null;
+}

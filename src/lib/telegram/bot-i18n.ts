@@ -291,6 +291,48 @@ export const bot_dict: BotDict = {
     uz: "Shoshilinch yordam",
     en: "Emergency",
   },
+
+  // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
+  live_call_header: {
+    ru: "\u{1F6A8} \u0412\u042B \u0421\u0415\u0419\u0427\u0410\u0421 \u041D\u0410 \u0417\u0412\u041E\u041D\u041A\u0415",
+    uz: "\u{1F6A8} HOZIR QO'NG'IROQDASIZ",
+    en: "\u{1F6A8} YOU'RE ON A CALL RIGHT NOW",
+  },
+  live_call_hangup: {
+    ru: "\u{1F6D1} \u041F\u041E\u041B\u041E\u0416\u0418\u0422\u0415 \u0422\u0420\u0423\u0411\u041A\u0423. \u042D\u0442\u043E \u0441\u0430\u043C\u043E\u0435 \u0432\u0430\u0436\u043D\u043E\u0435.\n\n\u0411\u0430\u043D\u043A \u041D\u0418\u041A\u041E\u0413\u0414\u0410 \u043D\u0435 \u043F\u0440\u043E\u0441\u0438\u0442 \u043A\u043E\u0434 \u043F\u043E \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0443.\n\u0415\u0441\u043B\u0438 \u0433\u043E\u0432\u043E\u0440\u044F\u0442 \u00AB\u043D\u0435 \u043A\u043B\u0430\u0434\u0438\u0442\u0435 \u0442\u0440\u0443\u0431\u043A\u0443\u00BB \u2014 \u044D\u0442\u043E 100% \u043C\u043E\u0448\u0435\u043D\u043D\u0438\u043A.",
+    uz: "\u{1F6D1} GO'SHAKNI QO'YING. Bu eng muhim harakat.\n\nBank HECH QACHON telefon orqali kod so'ramaydi.\nAgar \u00ABgo'shakni qo'ymang\u00BB deyishsa \u2014 bu 100% firibgar.",
+    en: "\u{1F6D1} HANG UP. This is the most important action.\n\nA bank NEVER asks for a code over the phone.\nIf they say \u201Cdon't hang up\u201D \u2014 it's 100% a scammer.",
+  },
+  live_call_what_to_say: {
+    ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C:\n\n\u00AB\u042F \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u043C\u043E\u0433\u0443 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C. \u042F \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u044E \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C.\u00BB\n\n\u0418 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443. \u041D\u0435 \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0439\u0442\u0435, \u043D\u0435 \u0441\u043F\u043E\u0440\u044C\u0442\u0435.",
+    uz: "\u{1F4AC} Nima deyish kerak:\n\n\u00ABHozir gaplasha olmayman. Bankka o'zim qo'ng'iroq qilaman.\u00BB\n\nVa go'shakni qo'ying. Tushuntirmang, tortishmang.",
+    en: "\u{1F4AC} What to say:\n\n\u201CI can't talk right now. I'll call the bank myself.\u201D\n\nAnd hang up. Don't explain, don't argue.",
+  },
+  btn_live_hangup: {
+    ru: "\u{1F6D1} \u041F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443",
+    uz: "\u{1F6D1} Go'shakni qo'yish",
+    en: "\u{1F6D1} Hang up now",
+  },
+  btn_live_what_to_say: {
+    ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C?",
+    uz: "\u{1F4AC} Nima deyish?",
+    en: "\u{1F4AC} What to say?",
+  },
+  btn_live_call_bank: {
+    ru: "\u{1F4DE} \u041F\u043E\u0437\u0432\u043E\u043D\u0438\u0442\u044C \u0432 \u0431\u0430\u043D\u043A",
+    uz: "\u{1F4DE} Bankka qo'ng'iroq",
+    en: "\u{1F4DE} Call the bank",
+  },
+  btn_live_sent_code: {
+    ru: "\u{1F198} \u042F \u0443\u0436\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u043B \u043A\u043E\u0434",
+    uz: "\u{1F198} Kodni allaqachon yubordim",
+    en: "\u{1F198} I already sent the code",
+  },
+  btn_live_tell_family: {
+    ru: "\u{1F46A} \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C \u0431\u043B\u0438\u0437\u043A\u043E\u043C\u0443",
+    uz: "\u{1F46A} Yaqinlarga xabar berish",
+    en: "\u{1F46A} Tell a family member",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;
