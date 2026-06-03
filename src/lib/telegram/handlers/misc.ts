@@ -126,7 +126,13 @@ export async function handleCallback(
     return;
   }
 
-  // 4) «Я уже отправил код/деньги» (Emergency) — send the checklist (R20.1/R20.3).
+  // 4) "Почему я так решил?" — explain how the bot works (Sprint 3.5).
+  if (data === CB.why) {
+    await sendI18n(ctx.chatId, "why_explanation", lang);
+    return;
+  }
+
+  // 4b) «Я уже отправил код/деньги» (Emergency) — send the checklist (R20.1/R20.3).
   if (data === CB.emergency) {
     // formatEmergencyChecklist already returns MarkdownV2-escaped text.
     await sendMessage({ chatId: ctx.chatId, text: formatEmergencyChecklist(lang) });

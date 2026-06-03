@@ -56,6 +56,7 @@ export const CB = {
   report: "report",
   checkAnother: "check_another",
   emergency: "emergency",
+  why: "why",
   lang: (lang: Lang) => `lang:${lang}` as const,
 } as const;
 
@@ -138,7 +139,7 @@ function buildResultKeyboard(level: RiskLevel, lang: Lang): InlineKeyboard {
     { text: bt("btn_report", lang), callback_data: CB.report },
     { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
   ];
-  const keyboard: InlineKeyboard = [row];
+  const keyboard: InlineKeyboard = [row, [{ text: bt("btn_why", lang), callback_data: CB.why }]];
   if (level === "high_risk") {
     keyboard.push([{ text: bt("btn_emergency", lang), callback_data: CB.emergency }]);
   }
