@@ -4,6 +4,24 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
 
+// ── Security headers applied to every response ──────────────────────────────
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+};
+
+/** Add security headers to any Response. */
+function withSecurityHeaders(response: Response): Response {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 // Fixed public endpoint for Telegram updates.
 //
 // This version of TanStack Start (1.168.x) + Nitro v3 exposes NO file-based
@@ -57,33 +75,33 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    let response: Response;
     try {
       const { pathname } = new URL(request.url);
 
-      // Health check: cheap 200, no SSR. Handled before everything else so
-      // platform liveness probes never render React or hit downstream services.
+      // Health check: cheap 200, no SSR.
       if (pathname === HEALTHZ_PATH) {
-        return new Response("ok", {
+        return withSecurityHeaders(new Response("ok", {
           status: 200,
           headers: { "content-type": "text/plain; charset=utf-8" },
-        });
+        }));
       }
 
-      // Telegram webhook: handle POST /api/telegram/webhook here, ahead of the
-      // SSR/server entry. The core fails closed on a missing/invalid token.
+      // Telegram webhook: handle POST /api/telegram/webhook.
       if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
         return await handleTelegramWebhook(request);
       }
 
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      response = await handler.fetch(request, env, ctx);
+      response = await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
+      response = new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
+    return withSecurityHeaders(response);
   },
 };
