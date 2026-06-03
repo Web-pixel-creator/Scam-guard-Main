@@ -28,6 +28,7 @@ import {
 import { t, type Lang } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { findMatchingPatterns } from "@/lib/scam-patterns";
 
 /** Эмодзи-индикатор уровня риска (R4.5). */
 export const RISK_EMOJI: Record<RiskLevel, string> = {
@@ -123,6 +124,17 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
   parts.push(`${bold(escapeMarkdownV2(adviceTitle))}\n${adviceList}`);
 
   // 5) подтверждённые жалобы — только если knownReports > 0 (R4.11).
+  // 6) Matching scam patterns — show "This looks like: ..." (Sprint 4)
+  const matchingPatterns = findMatchingPatterns(result.reasons);
+  if (matchingPatterns.length > 0) {
+    const patternTitle = { ru: "\u{1F4A1} \u041F\u043E\u0445\u043E\u0436\u0435 \u043D\u0430:", uz: "\u{1F4A1} Bunga o\u2018xshaydi:", en: "\u{1F4A1} Looks like:" }[lang];
+    const patternNames = matchingPatterns
+      .slice(0, 3)
+      .map((p) => "\u2022 " + escapeMarkdownV2(p.title[lang]))
+      .join("\n");
+    parts.push(patternTitle + "\n" + patternNames);
+  }
+
   if (result.knownReports > 0) {
     parts.push(escapeMarkdownV2(bt("known_reports", lang, { count: result.knownReports })));
   }
