@@ -5,4 +5,5 @@
 // fake values here. Individual tests can still override these with `vi.stubEnv`.
 process.env.TELEGRAM_BOT_TOKEN ??= "test-telegram-bot-token";
 process.env.TELEGRAM_WEBHOOK_SECRET ??= "test-telegram-webhook-secret";
+process.env.HASH_PEPPER_SECRET ??= "test-pepper-secret-for-vitest-only";
 process.env.OPENAI_API_KEY ??= "test-openai-api-key";
