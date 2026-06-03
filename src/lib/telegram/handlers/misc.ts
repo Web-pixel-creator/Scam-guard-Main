@@ -151,7 +151,7 @@ export async function handleCallback(
     return;
   }
 
-  // 5) Panic scenario button — "panic:1" through "panic:6" (PR #16).
+  // 5) Panic scenario button — "panic:1" through "panic:10".
   const panicId = parsePanicCallback(data);
   if (panicId !== null) {
     // Scenario 6 ("on a call") → show interactive live-call copilot with buttons

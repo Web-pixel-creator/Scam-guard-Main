@@ -501,7 +501,7 @@ export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = 
   10: { ru: "🧒 Мне меньше 18 лет", uz: "🧒 Menga 18 yoshdan kam", en: "🧒 I'm under 18" },
 };
 
-/** callback_data prefix for panic scenario buttons. Full: "panic:1" – "panic:6". */
+/** callback_data prefix for panic scenario buttons. Full: "panic:1" through "panic:10". */
 export const PANIC_CB_PREFIX = "panic:";
 
 /** Build the panic menu prompt text. */
