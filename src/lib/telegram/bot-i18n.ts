@@ -357,6 +357,13 @@ export const bot_dict: BotDict = {
     uz: "\u{1F6E1} Ishonch Guard xabari:\n\nSizga shubhali xabar keldi. Iltimos:\n\n\u274C SMS-kodlarni yubormang\n\u274C Ilovalar o'rnatmang\n\u274C Pul o'tkazmang\n\n\u2705 Go'shakni qo'ying va bankka o'zingiz qo'ng'iroq qiling.\n\nTekshirish: @scamguard_bot",
     en: "\u{1F6E1} Message from Ishonch Guard:\n\nYou received a suspicious message. Please:\n\n\u274C Don't send SMS codes\n\u274C Don't install apps\n\u274C Don't transfer money\n\n\u2705 Hang up and call the bank yourself.\n\nCheck: @scamguard_bot",
   },
+
+  // ── Deterministic fallback for hosted URLs without reason codes ────────────
+  hosted_platform_explanation: {
+    ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
+    uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
+    en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the source of the link.",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;

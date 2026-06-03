@@ -39,7 +39,8 @@ export type ReasonCode =
   | "fake_boss_request"
   | "malicious_file_bait"
   | "impersonates_official"
-  | "suspicious_invite_link";
+  | "suspicious_invite_link"
+  | "hosted_app_platform";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -78,6 +79,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   malicious_file_bait: 35,
   impersonates_official: 35,
   suspicious_invite_link: 25,
+  hosted_app_platform: 0, // informational, no score impact
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -192,8 +194,19 @@ export function evaluateText(text: string): ReasonCode[] {
   return [...codes];
 }
 
+const HOSTED_APP_DOMAINS = [
+  "lovable.app", "vercel.app", "netlify.app", "pages.dev",
+  "web.app", "github.io", "replit.app", "glitch.me", "railway.app",
+  "render.com", "fly.dev", "workers.dev", "surge.sh",
+];
+
 export function evaluateUrl(url: string): ReasonCode[] {
   const codes: ReasonCode[] = [];
+  // Detect hosted app platforms (informational, weight 0)
+  const lowerUrl = url.toLowerCase();
+  if (HOSTED_APP_DOMAINS.some((d) => lowerUrl.includes(d))) {
+    codes.push("hosted_app_platform" as ReasonCode);
+  }
   try {
     const u = new URL(url.startsWith("http") ? url : "https://" + url);
     const host = u.hostname.toLowerCase();
@@ -442,6 +455,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Подозрительная invite-ссылка в закрытую группу",
     uz: "Yopiq guruhga shubhali taklif havolasi",
     en: "Suspicious invite link to a closed group",
+  },
+  hosted_app_platform: {
+    ru: "Размещён на публичной платформе",
+    uz: "Ommaviy platformada joylashgan",
+    en: "Hosted on a public platform",
   },
 };
 
