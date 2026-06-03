@@ -37,7 +37,9 @@ export type ReasonCode =
   | "threatens_account_block"
   | "fake_delivery_payment"
   | "fake_boss_request"
-  | "malicious_file_bait";
+  | "malicious_file_bait"
+  | "impersonates_official"
+  | "suspicious_invite_link";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -74,6 +76,8 @@ const WEIGHTS: Record<ReasonCode, number> = {
   fake_delivery_payment: 35,
   fake_boss_request: 30,
   malicious_file_bait: 35,
+  impersonates_official: 35,
+  suspicious_invite_link: 25,
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -223,9 +227,30 @@ export function evaluatePhone(phone: string): ReasonCode[] {
   return [];
 }
 
-export function evaluateTelegram(_handle: string): ReasonCode[] {
-  // Without lookup we can't tell account age — placeholder
-  return ["unknown_sender"];
+/** Suspicious Telegram username/link heuristics. */
+export function evaluateTelegram(handle: string): ReasonCode[] {
+  const codes: ReasonCode[] = ["unknown_sender"];
+  const lower = handle.toLowerCase().replace(/^@/, "");
+
+  // Suspicious keywords in username (impersonation signals)
+  const SUSPICIOUS_KEYWORDS = [
+    "support", "bank", "security", "operator", "admin", "helper",
+    "oficial", "official", "service", "helpdesk", "moderator",
+    "payme", "click", "uzum", "kapital", "ipak", "anor", "aloqa",
+  ];
+  const hasSuspiciousKeyword = SUSPICIOUS_KEYWORDS.some((kw) => lower.includes(kw));
+
+  // t.me/+... invite links — closed groups used for "investment/lottery" scams
+  const isInviteLink = /^\+[A-Za-z0-9_-]+$/.test(lower) || handle.includes("t.me/+");
+
+  if (hasSuspiciousKeyword) {
+    codes.push("impersonates_official" as ReasonCode);
+  }
+  if (isInviteLink) {
+    codes.push("suspicious_invite_link" as ReasonCode);
+  }
+
+  return codes;
 }
 
 export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: RiskLevel } {
@@ -392,6 +417,16 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Побуждают открыть подозрительный файл",
     uz: "Shubhali faylni ochishga undashmoqda",
     en: "Pushes you to open a suspicious file",
+  },
+  impersonates_official: {
+    ru: "Подражает официальному аккаунту",
+    uz: "Rasmiy akkauntga taqlid qiladi",
+    en: "Impersonates an official account",
+  },
+  suspicious_invite_link: {
+    ru: "Подозрительная invite-ссылка в закрытую группу",
+    uz: "Yopiq guruhga shubhali taklif havolasi",
+    en: "Suspicious invite link to a closed group",
   },
 };
 
