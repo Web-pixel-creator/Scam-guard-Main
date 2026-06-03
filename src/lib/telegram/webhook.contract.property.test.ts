@@ -187,6 +187,28 @@ describe("webhook contract — Property 3: no valid token ⇒ 401, no dispatch, 
   });
 });
 
+describe("webhook contract - oversized bodies", () => {
+  it("acks an oversized body after a valid token without dispatching", async () => {
+    setSecrets("secret", "bot-token");
+    const headers = new Headers({
+      "content-type": "application/json",
+      "content-length": String(1024 * 1024 + 1),
+    });
+    headers.set(SECRET_HEADER, "secret");
+
+    const request = new Request(WEBHOOK_URL, {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+
+    const response = await handleTelegramWebhook(request);
+
+    expect(response.status).toBe(200);
+    expect(hoisted.dispatchCalls).toBe(0);
+  });
+});
+
 describe("webhook contract — Property 7: valid token + valid structure ⇒ always 200", () => {
   // Feature: telegram-bot-mvp, Property 7
   // Validates: Requirements 12.4, 12.5

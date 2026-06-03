@@ -33,6 +33,7 @@ import { installTelegramHandlers } from "@/lib/telegram/handlers";
 
 /** Telegram sends the configured secret in this header (case-insensitive). */
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
 
 /**
  * Handle a single Telegram webhook request. Returns 401 for any token-stage
@@ -63,7 +64,8 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
 
   let update: TelegramUpdate;
   try {
-    const body: unknown = await request.json();
+    const body = await readJsonBodyCapped(request);
+    if (body === null) return new Response("ok", { status: 200 });
     update = telegramUpdateSchema.parse(body);
   } catch {
     // Invalid JSON or unsupported structure → acknowledge + ignore (R12.3).
@@ -82,4 +84,36 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     );
   }
   return new Response("ok", { status: 200 });
+}
+
+async function readJsonBodyCapped(request: Request): Promise<unknown | null> {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_WEBHOOK_BODY_BYTES) return null;
+
+  const reader = request.body?.getReader();
+  if (!reader) {
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_WEBHOOK_BODY_BYTES) return null;
+    return JSON.parse(text) as unknown;
+  }
+
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+
+    received += value.byteLength;
+    if (received > MAX_WEBHOOK_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+
+  text += decoder.decode();
+  return JSON.parse(text) as unknown;
 }
