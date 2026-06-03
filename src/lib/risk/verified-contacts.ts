@@ -526,6 +526,104 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
     usageContext: "support_line",
     verifiedAt: "2026-06-01",
   },
+
+  // ─── Verified Telegram Handles (official bots/channels) ─────────────────
+  {
+    normalized: "@naboruz",
+    display: "@naboruz",
+    contactType: "telegram",
+    org: { ru: "Национальный банк Узбекистана", uz: "O'zbekiston Milliy banki", en: "National Bank of Uzbekistan" },
+    orgType: "bank",
+    description: { ru: "Официальный Telegram-канал NBU", uz: "NBU rasmiy Telegram kanali", en: "NBU official Telegram channel" },
+    source: "nbu.uz (linked from official website)",
+    verificationLevel: "high",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@kapaboruz",
+    display: "@kapaboruz",
+    contactType: "telegram",
+    org: { ru: "Капиталбанк", uz: "Kapitalbank", en: "Kapitalbank" },
+    orgType: "bank",
+    description: { ru: "Официальный Telegram Капиталбанка", uz: "Kapitalbank rasmiy Telegram", en: "Kapitalbank official Telegram" },
+    source: "kapitalbank.uz (linked from official website)",
+    verificationLevel: "high",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@ipaksupport",
+    display: "@IpakSupport",
+    contactType: "telegram",
+    org: { ru: "Ипак Йули Банк", uz: "Ipak Yo'li Banki", en: "Ipak Yuli Bank" },
+    orgType: "bank",
+    description: { ru: "Поддержка Ипак Йули в Telegram", uz: "Ipak Yo'li Telegram qo'llab-quvvatlash", en: "Ipak Yuli Telegram support" },
+    source: "ipakyulibank.uz (official contacts page)",
+    verificationLevel: "high",
+    usageContext: "support_line",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@paylouz",
+    display: "@paylouz",
+    contactType: "telegram",
+    org: { ru: "Payme (Uzum)", uz: "Payme (Uzum)", en: "Payme (Uzum)" },
+    orgType: "payment_system",
+    description: { ru: "Официальный Telegram Payme", uz: "Payme rasmiy Telegram", en: "Payme official Telegram" },
+    source: "payme.uz (linked from official website)",
+    verificationLevel: "medium",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@clickuz",
+    display: "@clickuz",
+    contactType: "telegram",
+    org: { ru: "Click", uz: "Click", en: "Click" },
+    orgType: "payment_system",
+    description: { ru: "Официальный Telegram Click", uz: "Click rasmiy Telegram", en: "Click official Telegram" },
+    source: "click.uz (linked from official website)",
+    verificationLevel: "medium",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@ucaboruz",
+    display: "@ucaboruz",
+    contactType: "telegram",
+    org: { ru: "Ucell", uz: "Ucell", en: "Ucell" },
+    orgType: "telecom",
+    description: { ru: "Официальный Telegram Ucell", uz: "Ucell rasmiy Telegram", en: "Ucell official Telegram" },
+    source: "ucell.uz (linked from official website)",
+    verificationLevel: "medium",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@beelineuz",
+    display: "@beelineuz",
+    contactType: "telegram",
+    org: { ru: "Beeline Uzbekistan", uz: "Beeline Uzbekistan", en: "Beeline Uzbekistan" },
+    orgType: "telecom",
+    description: { ru: "Официальный Telegram Beeline UZ", uz: "Beeline UZ rasmiy Telegram", en: "Beeline UZ official Telegram" },
+    source: "beeline.uz (linked from official website)",
+    verificationLevel: "medium",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
+  {
+    normalized: "@maboruzofficial",
+    display: "@maboruzofficial",
+    contactType: "telegram",
+    org: { ru: "Mobiuz", uz: "Mobiuz", en: "Mobiuz" },
+    orgType: "telecom",
+    description: { ru: "Официальный Telegram Mobiuz", uz: "Mobiuz rasmiy Telegram", en: "Mobiuz official Telegram" },
+    source: "mobiuz.uz (linked from official website)",
+    verificationLevel: "medium",
+    usageContext: "outbound_info",
+    verifiedAt: "2026-06-03",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -541,7 +639,21 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
  * - Full numbers: try exact, then with/without 998 prefix
  */
 export function findVerifiedContact(input: string): VerifiedContact | null {
-  const digits = input.replace(/[^\d]/g, "");
+  const trimmed = input.trim();
+
+  // Telegram handle matching (case-insensitive, with or without @)
+  if (trimmed.startsWith("@") || /^[a-zA-Z][a-zA-Z0-9_]{3,}$/.test(trimmed)) {
+    const normalized = trimmed.toLowerCase().replace(/^@/, "");
+    for (const contact of VERIFIED_CONTACTS) {
+      if (contact.contactType === "telegram") {
+        const contactNorm = contact.normalized.toLowerCase().replace(/^@/, "");
+        if (normalized === contactNorm) return contact;
+      }
+    }
+  }
+
+  // Phone/short-code matching
+  const digits = trimmed.replace(/[^\d]/g, "");
   if (digits.length === 0) return null;
 
   for (const contact of VERIFIED_CONTACTS) {
