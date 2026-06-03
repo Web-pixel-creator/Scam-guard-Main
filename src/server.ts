@@ -81,10 +81,12 @@ export default {
 
       // Health check: cheap 200, no SSR.
       if (pathname === HEALTHZ_PATH) {
-        return withSecurityHeaders(new Response("ok", {
-          status: 200,
-          headers: { "content-type": "text/plain; charset=utf-8" },
-        }));
+        return withSecurityHeaders(
+          new Response("ok", {
+            status: 200,
+            headers: { "content-type": "text/plain; charset=utf-8" },
+          }),
+        );
       }
 
       // Telegram webhook: handle POST /api/telegram/webhook.

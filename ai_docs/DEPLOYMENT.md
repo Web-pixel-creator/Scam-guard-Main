@@ -58,9 +58,9 @@ runtime, which the Nitro node-server already honours. Config-as-code lives in
    same names listed under **Environment variables** below. At minimum:
    `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
-   `VITE_SUPABASE_PROJECT_ID`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`,
-   and optionally `OPENAI_API_KEY` / `OPENAI_MODEL` / `OPENAI_BASE_URL`. Do
-   **not** set `PORT` — Railway provides it.
+   `VITE_SUPABASE_PROJECT_ID`, `HASH_PEPPER_SECRET`, `TELEGRAM_BOT_TOKEN`,
+   `TELEGRAM_WEBHOOK_SECRET`, and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`
+   / `OPENAI_BASE_URL`. Do **not** set `PORT` — Railway provides it.
 3. Deploy. Once a public domain is assigned (service → Settings → Networking →
    Generate Domain), use it as `PUBLIC_APP_URL` for the webhook registration
    step below.
@@ -70,18 +70,24 @@ Or via the CLI:
 ```bash
 railway init           # link/create the project
 railway up             # build & deploy from the Dockerfile
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+railway variables set HASH_PEPPER_SECRET=...
 railway variables set TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=...
 ```
 
 ## Environment variables
 
 Public (in `.env`, prefixed `VITE_`, safe for browser):
+
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (server reads these too)
 
 Server-only **secrets** (set in the host/orchestrator environment, NOT in a
 committed `.env`, never shipped to client):
+
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role client (`client.server.ts`). Bypasses RLS.
+- `HASH_PEPPER_SECRET` — HMAC pepper for identifier hashes. Required in
+  production; without it, identifier checks/reports fail closed.
 - `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible). If
   absent, AI explanation/OCR degrade to `null` gracefully and scoring continues
   by rules.
@@ -120,8 +126,6 @@ in order:
 Apply the SQL migration that creates the bot session table (per-user dialog
 state, service-role only) to your Supabase project:
 
-
-
 ```
 supabase/migrations/20260531090000_0c3c0c8c-225b-435f-9d6f-f6f8363cb56b.sql
 ```
@@ -145,6 +149,7 @@ them in a `.env` committed to the repo, and **never** prefix them with `VITE_`
   `OPENAI_BASE_URL`.
 - Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (service-role,
   server-only).
+- `HASH_PEPPER_SECRET` — required for HMAC identifier hashing.
 
 These are read **per request inside handlers** (`config.server.ts`). The
 webhook fails closed: if `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is
@@ -195,7 +200,7 @@ can authenticate updates.
 - [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
-- [ ] Server-only secrets set in the host environment (Supabase service role + optional AI key), not in `VITE_*`.
+- [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
 - [ ] Verify RLS: anon cannot read `checks`, can only read `confirmed` entities.
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.

@@ -294,35 +294,152 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
     },
     // ─── Sextortion / Romance scenarios (Sprint 3.2) ─────────────────────
     {
-      title: { ru: "7️⃣ Меня шантажируют фото/видео", uz: "7️⃣ Meni foto/video bilan shantaj", en: "7️⃣ Photo/video blackmail" },
+      title: {
+        ru: "7️⃣ Меня шантажируют фото/видео",
+        uz: "7️⃣ Meni foto/video bilan shantaj",
+        en: "7️⃣ Photo/video blackmail",
+      },
       steps: {
-        ru: ["❤️ Вы НЕ виноваты.", "❌ НЕ платите — требования только растут.", "❌ НЕ отправляйте новые фото.", "✅ Заблокируйте шантажиста.", "✅ Сохраните скриншоты.", "✅ Полиция: 102.", "Большинство шантажистов не публикуют, если жертва перестаёт отвечать."],
-        uz: ["❤️ Siz AYBDOR EMASSIZ.", "❌ PUL TO'LAMANG.", "❌ Yangi foto YUBORMANG.", "✅ Shantajchini BLOKLANG.", "✅ Skrinshotlarni saqlang.", "✅ Politsiya: 102.", "Ko'pchilik shantajchilar javob to'xtasa nashr qilmaydi."],
-        en: ["❤️ You are NOT to blame.", "❌ Do NOT pay — demands grow.", "❌ Do NOT send new photos.", "✅ Block the blackmailer.", "✅ Save screenshots.", "✅ Police: 102.", "Most blackmailers don't publish if victim stops responding."],
+        ru: [
+          "❤️ Вы НЕ виноваты.",
+          "❌ НЕ платите — требования только растут.",
+          "❌ НЕ отправляйте новые фото.",
+          "✅ Заблокируйте шантажиста.",
+          "✅ Сохраните скриншоты.",
+          "✅ Полиция: 102.",
+          "Большинство шантажистов не публикуют, если жертва перестаёт отвечать.",
+        ],
+        uz: [
+          "❤️ Siz AYBDOR EMASSIZ.",
+          "❌ PUL TO'LAMANG.",
+          "❌ Yangi foto YUBORMANG.",
+          "✅ Shantajchini BLOKLANG.",
+          "✅ Skrinshotlarni saqlang.",
+          "✅ Politsiya: 102.",
+          "Ko'pchilik shantajchilar javob to'xtasa nashr qilmaydi.",
+        ],
+        en: [
+          "❤️ You are NOT to blame.",
+          "❌ Do NOT pay — demands grow.",
+          "❌ Do NOT send new photos.",
+          "✅ Block the blackmailer.",
+          "✅ Save screenshots.",
+          "✅ Police: 102.",
+          "Most blackmailers don't publish if victim stops responding.",
+        ],
       },
     },
     {
-      title: { ru: "8️⃣ Просят деньги в отношениях", uz: "8️⃣ Munosabatda pul so'rash", en: "8️⃣ Money in relationships" },
+      title: {
+        ru: "8️⃣ Просят деньги в отношениях",
+        uz: "8️⃣ Munosabatda pul so'rash",
+        en: "8️⃣ Money in relationships",
+      },
       steps: {
-        ru: ["⚠️ Признаки romance-скама:", "• Быстрое признание в любви", "• Просьба перейти в другой мессенджер", "• Избегает видеозвонков", "• Просит деньги или крипто-инвестиции", "", "✅ Прекратите переводы.", "✅ Проверьте фото через Google Images.", "✅ Не стыдитесь — это манипуляция.", "✅ Жалоба: 102 или /report."],
-        uz: ["⚠️ Romance-scam belgilari:", "• Tez sevgi e'tirof", "• Boshqa messenjerga o'tish", "• Video qo'ng'iroqdan qochish", "• Pul yoki kripto so'rash", "", "✅ O'tkazmalarni to'xtating.", "✅ Fotoni Google orqali tekshiring.", "✅ Uyalmang — manipulyatsiya.", "✅ Shikoyat: 102 yoki /report."],
-        en: ["⚠️ Romance scam signs:", "• Quick love confession", "• Switch to another messenger", "• Avoids video calls", "• Asks for money/crypto", "", "✅ Stop transfers.", "✅ Reverse-search their photo.", "✅ Don't be ashamed — it's manipulation.", "✅ Report: 102 or /report."],
+        ru: [
+          "⚠️ Признаки romance-скама:",
+          "• Быстрое признание в любви",
+          "• Просьба перейти в другой мессенджер",
+          "• Избегает видеозвонков",
+          "• Просит деньги или крипто-инвестиции",
+          "",
+          "✅ Прекратите переводы.",
+          "✅ Проверьте фото через Google Images.",
+          "✅ Не стыдитесь — это манипуляция.",
+          "✅ Жалоба: 102 или /report.",
+        ],
+        uz: [
+          "⚠️ Romance-scam belgilari:",
+          "• Tez sevgi e'tirof",
+          "• Boshqa messenjerga o'tish",
+          "• Video qo'ng'iroqdan qochish",
+          "• Pul yoki kripto so'rash",
+          "",
+          "✅ O'tkazmalarni to'xtating.",
+          "✅ Fotoni Google orqali tekshiring.",
+          "✅ Uyalmang — manipulyatsiya.",
+          "✅ Shikoyat: 102 yoki /report.",
+        ],
+        en: [
+          "⚠️ Romance scam signs:",
+          "• Quick love confession",
+          "• Switch to another messenger",
+          "• Avoids video calls",
+          "• Asks for money/crypto",
+          "",
+          "✅ Stop transfers.",
+          "✅ Reverse-search their photo.",
+          "✅ Don't be ashamed — it's manipulation.",
+          "✅ Report: 102 or /report.",
+        ],
       },
     },
     {
-      title: { ru: "9️⃣ Угрожают публикацией", uz: "9️⃣ Nashr bilan tahdid", en: "9️⃣ Threats to publish" },
+      title: {
+        ru: "9️⃣ Угрожают публикацией",
+        uz: "9️⃣ Nashr bilan tahdid",
+        en: "9️⃣ Threats to publish",
+      },
       steps: {
-        ru: ["❌ НЕ платите.", "✅ Заблокируйте.", "✅ Сохраните доказательства.", "✅ Полиция: 102.", "✅ Если опубликовано — обратитесь к платформе.", "Вы жертва, не преступник."],
-        uz: ["❌ TO'LAMANG.", "✅ BLOKLANG.", "✅ Dalillarni saqlang.", "✅ Politsiya: 102.", "✅ Chop etilgan bo'lsa — platformaga yozing.", "Siz jabrlanuvchisiz."],
-        en: ["❌ Do NOT pay.", "✅ Block them.", "✅ Save evidence.", "✅ Police: 102.", "✅ If published — contact the platform.", "You are the victim."],
+        ru: [
+          "❌ НЕ платите.",
+          "✅ Заблокируйте.",
+          "✅ Сохраните доказательства.",
+          "✅ Полиция: 102.",
+          "✅ Если опубликовано — обратитесь к платформе.",
+          "Вы жертва, не преступник.",
+        ],
+        uz: [
+          "❌ TO'LAMANG.",
+          "✅ BLOKLANG.",
+          "✅ Dalillarni saqlang.",
+          "✅ Politsiya: 102.",
+          "✅ Chop etilgan bo'lsa — platformaga yozing.",
+          "Siz jabrlanuvchisiz.",
+        ],
+        en: [
+          "❌ Do NOT pay.",
+          "✅ Block them.",
+          "✅ Save evidence.",
+          "✅ Police: 102.",
+          "✅ If published — contact the platform.",
+          "You are the victim.",
+        ],
       },
     },
     {
       title: { ru: "🔟 Мне меньше 18 лет", uz: "🔟 Menga 18 yoshdan kam", en: "🔟 I'm under 18" },
       steps: {
-        ru: ["❤️ Ты НЕ виноват(а).", "✅ Покажи взрослому, которому доверяешь.", "✅ Заблокируй этого человека.", "❌ Не отправляй фото/видео.", "❌ Не плати.", "✅ Позвони: 102.", "", "Тебе помогут. Ты не сделал(а) ничего плохого."],
-        uz: ["❤️ Sen AYBDOR EMASSING.", "✅ Ishonchli kattaga ko'rsat.", "✅ Bu odamni BLOKLA.", "❌ Foto/video YUBORMA.", "❌ TO'LAMA.", "✅ Qo'ng'iroq qil: 102.", "", "Senga yordam berishadi."],
-        en: ["❤️ You are NOT to blame.", "✅ Tell an adult you trust.", "✅ Block this person.", "❌ Do NOT send photos/videos.", "❌ Do NOT pay.", "✅ Call: 102.", "", "You will be helped. You did nothing wrong."],
+        ru: [
+          "❤️ Ты НЕ виноват(а).",
+          "✅ Покажи взрослому, которому доверяешь.",
+          "✅ Заблокируй этого человека.",
+          "❌ Не отправляй фото/видео.",
+          "❌ Не плати.",
+          "✅ Позвони: 102.",
+          "",
+          "Тебе помогут. Ты не сделал(а) ничего плохого.",
+        ],
+        uz: [
+          "❤️ Sen AYBDOR EMASSING.",
+          "✅ Ishonchli kattaga ko'rsat.",
+          "✅ Bu odamni BLOKLA.",
+          "❌ Foto/video YUBORMA.",
+          "❌ TO'LAMA.",
+          "✅ Qo'ng'iroq qil: 102.",
+          "",
+          "Senga yordam berishadi.",
+        ],
+        en: [
+          "❤️ You are NOT to blame.",
+          "✅ Tell an adult you trust.",
+          "✅ Block this person.",
+          "❌ Do NOT send photos/videos.",
+          "❌ Do NOT pay.",
+          "✅ Call: 102.",
+          "",
+          "You will be helped. You did nothing wrong.",
+        ],
       },
     },
   ];
@@ -366,9 +483,21 @@ export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = 
   4: { ru: "💳 Ввёл данные карты", uz: "💳 Karta ma'lumotlari", en: "💳 Entered card data" },
   5: { ru: "🔒 Потерял Telegram", uz: "🔒 Telegram'ni yo'qotdim", en: "🔒 Lost Telegram" },
   6: { ru: "📞 Звонят сейчас", uz: "📞 Hozir qo'ng'iroq", en: "📞 On a call now" },
-  7: { ru: "🔞 Шантаж фото/видео", uz: "🔞 Foto/video bilan shantaj", en: "🔞 Photo/video blackmail" },
-  8: { ru: "💔 Просят деньги в отношениях", uz: "💔 Munosabatda pul so'rashmoqda", en: "💔 Money requests in relationships" },
-  9: { ru: "👤 Угрожают публикацией", uz: "👤 Chop etish bilan tahdid", en: "👤 Threatens to publish" },
+  7: {
+    ru: "🔞 Шантаж фото/видео",
+    uz: "🔞 Foto/video bilan shantaj",
+    en: "🔞 Photo/video blackmail",
+  },
+  8: {
+    ru: "💔 Просят деньги в отношениях",
+    uz: "💔 Munosabatda pul so'rashmoqda",
+    en: "💔 Money requests in relationships",
+  },
+  9: {
+    ru: "👤 Угрожают публикацией",
+    uz: "👤 Chop etish bilan tahdid",
+    en: "👤 Threatens to publish",
+  },
   10: { ru: "🧒 Мне меньше 18 лет", uz: "🧒 Menga 18 yoshdan kam", en: "🧒 I'm under 18" },
 };
 
@@ -423,6 +552,12 @@ export type LiveCallAction = "hangup" | "what_to_say" | "call_bank" | "sent_code
 export function parseLiveCallCallback(data: string): LiveCallAction | null {
   if (!data.startsWith(LIVE_CALL_CB_PREFIX)) return null;
   const action = data.slice(LIVE_CALL_CB_PREFIX.length);
-  const valid: LiveCallAction[] = ["hangup", "what_to_say", "call_bank", "sent_code", "tell_family"];
+  const valid: LiveCallAction[] = [
+    "hangup",
+    "what_to_say",
+    "call_bank",
+    "sent_code",
+    "tell_family",
+  ];
   return valid.includes(action as LiveCallAction) ? (action as LiveCallAction) : null;
 }

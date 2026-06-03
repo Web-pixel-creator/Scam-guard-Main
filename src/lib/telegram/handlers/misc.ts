@@ -37,13 +37,18 @@ import { sendMessage, answerCallbackQuery, escapeMarkdownV2 } from "@/lib/telegr
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
 import { parsePanicCallback, buildPanicScenarioText } from "@/lib/telegram/emergency";
-import { parseLiveCallCallback, LIVE_CALL_CB_PREFIX, type LiveCallAction } from "@/lib/telegram/emergency";
+import {
+  parseLiveCallCallback,
+  LIVE_CALL_CB_PREFIX,
+  type LiveCallAction,
+} from "@/lib/telegram/emergency";
 import { setLanguage, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
+type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say";
 
 /** Parse a "lang:<code>" callback into a supported `Lang`, or `null`. */
 function parseLangCallback(data: string): Lang | null {
@@ -154,17 +159,31 @@ export async function handleCallback(
       const keyboard: import("@/lib/telegram/api.server").InlineKeyboard = [
         [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
         [
-          { text: bt("btn_live_what_to_say", lang), callback_data: `${LIVE_CALL_CB_PREFIX}what_to_say` },
-          { text: bt("btn_live_call_bank", lang), callback_data: `${LIVE_CALL_CB_PREFIX}call_bank` },
+          {
+            text: bt("btn_live_what_to_say", lang),
+            callback_data: `${LIVE_CALL_CB_PREFIX}what_to_say`,
+          },
+          {
+            text: bt("btn_live_call_bank", lang),
+            callback_data: `${LIVE_CALL_CB_PREFIX}call_bank`,
+          },
         ],
         [
-          { text: bt("btn_live_sent_code", lang), callback_data: `${LIVE_CALL_CB_PREFIX}sent_code` },
-          { text: bt("btn_live_tell_family", lang), callback_data: `${LIVE_CALL_CB_PREFIX}tell_family` },
+          {
+            text: bt("btn_live_sent_code", lang),
+            callback_data: `${LIVE_CALL_CB_PREFIX}sent_code`,
+          },
+          {
+            text: bt("btn_live_tell_family", lang),
+            callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
+          },
         ],
       ];
       await sendMessage({
         chatId: ctx.chatId,
-        text: escapeMarkdownV2(bt("live_call_header", lang) + "\n\n" + bt("live_call_hangup", lang)),
+        text: escapeMarkdownV2(
+          bt("live_call_header", lang) + "\n\n" + bt("live_call_hangup", lang),
+        ),
         keyboard,
       });
       return;
@@ -177,10 +196,14 @@ export async function handleCallback(
   // 5b) Live-call copilot buttons — "livecall:hangup" etc.
   const liveAction = parseLiveCallCallback(data);
   if (liveAction !== null) {
-    let responseKey: string;
+    let responseKey: LiveCallResponseKey;
     switch (liveAction) {
-      case "hangup": responseKey = "live_call_hangup"; break;
-      case "what_to_say": responseKey = "live_call_what_to_say"; break;
+      case "hangup":
+        responseKey = "live_call_hangup";
+        break;
+      case "what_to_say":
+        responseKey = "live_call_what_to_say";
+        break;
       case "call_bank": {
         // Show bank numbers from verified contacts
         const scenarioText = buildPanicScenarioText(6, lang);
@@ -193,10 +216,13 @@ export async function handleCallback(
         await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
         return;
       }
-      case "tell_family": responseKey = "live_call_hangup"; break; // For MVP, same as hangup advice
-      default: return;
+      case "tell_family":
+        responseKey = "live_call_hangup";
+        break; // For MVP, same as hangup advice
+      default:
+        return;
     }
-    await sendI18n(ctx.chatId, responseKey as any, lang);
+    await sendI18n(ctx.chatId, responseKey, lang);
     return;
   }
 

@@ -234,9 +234,24 @@ export function evaluateTelegram(handle: string): ReasonCode[] {
 
   // Suspicious keywords in username (impersonation signals)
   const SUSPICIOUS_KEYWORDS = [
-    "support", "bank", "security", "operator", "admin", "helper",
-    "oficial", "official", "service", "helpdesk", "moderator",
-    "payme", "click", "uzum", "kapital", "ipak", "anor", "aloqa",
+    "support",
+    "bank",
+    "security",
+    "operator",
+    "admin",
+    "helper",
+    "oficial",
+    "official",
+    "service",
+    "helpdesk",
+    "moderator",
+    "payme",
+    "click",
+    "uzum",
+    "kapital",
+    "ipak",
+    "anor",
+    "aloqa",
   ];
   const hasSuspiciousKeyword = SUSPICIOUS_KEYWORDS.some((kw) => lower.includes(kw));
 
