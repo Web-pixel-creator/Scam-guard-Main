@@ -345,6 +345,18 @@ export const bot_dict: BotDict = {
     uz: "\u{1F9E0} *Ishonch Guard qanday ishlaydi:*\n\n1\uFE0F\u20E3 Matnni 30+ qoidalar bo'yicha tahlil qilaman: kod so'rash, APK, bosim, soxta bank va h.k.\n2\uFE0F\u20E3 Har bir qoidaning og'irligi bor (10 dan 50 gacha).\n3\uFE0F\u20E3 Yig'indi \u2265 50 = yuqori xavf, \u2265 20 = shubhali.\n4\uFE0F\u20E3 AI (Gemini) oddiy so'zlar bilan tushuntiradi, lekin darajani BELGILAMAYDI.\n5\uFE0F\u20E3 Rasmiy raqamlar verified contacts bazasi orqali tekshiriladi.\n\n\u{1F512} Hech qanday ma'lumot xom holda saqlanmaydi \u2014 faqat xeshlar va maskalar.",
     en: "\u{1F9E0} *How Ishonch Guard works:*\n\n1\uFE0F\u20E3 I analyze text against 30+ rules: code requests, APK, pressure, fake bank, etc.\n2\uFE0F\u20E3 Each rule has a weight (10 to 50).\n3\uFE0F\u20E3 Sum \u2265 50 = high risk, \u2265 20 = suspicious.\n4\uFE0F\u20E3 AI (Gemini) explains in simple words but does NOT decide the level.\n5\uFE0F\u20E3 Official numbers are verified against a trusted contacts database.\n\n\u{1F512} No data is stored raw \u2014 only hashes and masks.",
   },
+
+  // ── Share advice + elder hints (Sprint 3.3 / 3.6) ────────────────────────
+  btn_share_advice: {
+    ru: "\u{1F4E4} \u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u0441\u043E\u0432\u0435\u0442 \u0440\u043E\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u0438\u043A\u0443",
+    uz: "\u{1F4E4} Yaqinga maslahat yuborish",
+    en: "\u{1F4E4} Share advice with family",
+  },
+  share_advice_text: {
+    ru: "\u{1F6E1} \u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 Ishonch Guard:\n\n\u0412\u0430\u043C \u043F\u0440\u0438\u0441\u043B\u0430\u043B\u0438 \u043F\u043E\u0434\u043E\u0437\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430:\n\n\u274C \u041D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 SMS-\u043A\u043E\u0434\u044B\n\u274C \u041D\u0435 \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0439\u0442\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F\n\u274C \u041D\u0435 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442\u0435 \u0434\u0435\u043D\u044C\u0433\u0438\n\n\u2705 \u041F\u043E\u043B\u043E\u0436\u0438\u0442\u0435 \u0442\u0440\u0443\u0431\u043A\u0443 \u0438 \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u0438\u0442\u0435 \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C\u0438.\n\n\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: @scamguard_bot",
+    uz: "\u{1F6E1} Ishonch Guard xabari:\n\nSizga shubhali xabar keldi. Iltimos:\n\n\u274C SMS-kodlarni yubormang\n\u274C Ilovalar o'rnatmang\n\u274C Pul o'tkazmang\n\n\u2705 Go'shakni qo'ying va bankka o'zingiz qo'ng'iroq qiling.\n\nTekshirish: @scamguard_bot",
+    en: "\u{1F6E1} Message from Ishonch Guard:\n\nYou received a suspicious message. Please:\n\n\u274C Don't send SMS codes\n\u274C Don't install apps\n\u274C Don't transfer money\n\n\u2705 Hang up and call the bank yourself.\n\nCheck: @scamguard_bot",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;
