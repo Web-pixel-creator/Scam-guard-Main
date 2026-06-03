@@ -101,6 +101,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isHot = result.level === "high_risk" || result.level === "suspicious";
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
+  const displayScore = Math.min(100, Math.max(0, Math.round(result.score)));
 
   // "Read aloud" — Web Speech API. Cleans up on unmount and on result change.
   const [speaking, setSpeaking] = useState(false);
@@ -167,7 +168,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                     uz: "Xavf bahosi · Ma'lumot yetarli emas",
                     en: "Risk score · Insufficient data",
                   }[lang]
-                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${Math.round(result.score)}%`}
+                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${displayScore}%`}
             </span>
           </div>
 
@@ -234,18 +235,17 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                   {result.explanation}
                 </p>
               )}
-              {!result.explanation &&
-                result.reasons.includes("hosted_app_platform" as ReasonCode) && (
-                  <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
+              {!result.explanation && result.reasons.includes("hosted_app_platform") && (
+                <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
+                  {
                     {
-                      {
-                        ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
-                        uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
-                        en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
-                      }[lang]
-                    }
-                  </p>
-                )}
+                      ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
+                      uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
+                      en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
+                    }[lang]
+                  }
+                </p>
+              )}
 
               {/* Verified official contact match (D-011) */}
               {result.verifiedContact && (

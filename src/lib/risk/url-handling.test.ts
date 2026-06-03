@@ -65,6 +65,7 @@ describe("evaluateUrl — hosted app platform detection", () => {
     "https://project.replit.app",
     "https://app.glitch.me",
     "https://myapp.railway.app",
+    "https://safe-service.onrender.com",
   ];
 
   it.each(hostedDomains)("detects hosted_app_platform for %s", (url) => {
@@ -78,6 +79,8 @@ describe("evaluateUrl — hosted app platform detection", () => {
       "https://bank.uz",
       "https://example.com/page",
       "http://192.168.1.1",
+      "https://example.com/redirect/lovable.app",
+      "https://example.com/?next=https%3A%2F%2Ffoo.lovable.app",
     ];
     for (const url of normalUrls) {
       const codes = evaluateUrl(url);
@@ -176,22 +179,17 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
   });
 
   it("hosted URL with additional suspicious signals DOES call AI", async () => {
-    // A hosted URL that ALSO has a weird TLD-like domain pattern
-    // Use bit.ly to trigger suspicious_short_link (weight 30) on a hosted platform
-    // Actually, let's use a weird domain pattern: IP address on vercel
     const result = await runCheck({
-      input: "https://bit.ly/fakebank",
+      input: "https://fake-bank.lovable.app/update.apk",
       lang: "ru",
       rateLimitKey: nextKey(),
       channel: "telegram",
       skipAi: false,
     });
 
-    // Should have suspicious_short_link
-    expect(result.reasons).toContain("suspicious_short_link");
-    // Level should be suspicious due to suspicious_short_link weight (30)
+    expect(result.reasons).toContain("hosted_app_platform");
+    expect(result.reasons).toContain("apk_download_link");
     expect(result.level).toBe("suspicious");
-    // AI SHOULD have been called since there are significant reasons
     expect(result.explanation).toBe("AI explanation text");
     expect(vi.mocked(fetch)).toHaveBeenCalled();
   });

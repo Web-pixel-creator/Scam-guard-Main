@@ -205,21 +205,24 @@ const HOSTED_APP_DOMAINS = [
   "glitch.me",
   "railway.app",
   "render.com",
+  "onrender.com",
   "fly.dev",
   "workers.dev",
   "surge.sh",
 ];
 
+function isHostedAppHost(host: string): boolean {
+  return HOSTED_APP_DOMAINS.some((domain) => host === domain || host.endsWith("." + domain));
+}
+
 export function evaluateUrl(url: string): ReasonCode[] {
   const codes: ReasonCode[] = [];
-  // Detect hosted app platforms (informational, weight 0)
-  const lowerUrl = url.toLowerCase();
-  if (HOSTED_APP_DOMAINS.some((d) => lowerUrl.includes(d))) {
-    codes.push("hosted_app_platform" as ReasonCode);
-  }
+  const rawUrl = url.trim();
   try {
-    const u = new URL(url.startsWith("http") ? url : "https://" + url);
+    const u = new URL(/^https?:\/\//i.test(rawUrl) ? rawUrl : "https://" + rawUrl);
     const host = u.hostname.toLowerCase();
+    // Detect hosted app platforms by hostname only (informational, weight 0).
+    if (isHostedAppHost(host)) codes.push("hosted_app_platform");
     if (SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith("." + h)))
       codes.push("suspicious_short_link");
     if (/\.apk(\?|$)/i.test(u.pathname)) codes.push("apk_download_link");

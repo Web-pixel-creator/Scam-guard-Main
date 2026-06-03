@@ -94,6 +94,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 10l18 7v13c0 12-7.5 21.5-18 24-10.5-2.5-18-12-18-24V17l18-7z' fill='%2314b8a6'/%3E%3Cpath d='M24 32l5 5 12-14' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      },
       // Preconnect to font CDNs so the display font lands before LCP
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
