@@ -255,25 +255,66 @@ type ChatMessage =
  * message content, or `null` on any failure (missing key, non-2xx, network or
  * parse error). Never throws — callers degrade gracefully.
  */
+
+// ── AI Circuit Breaker ────────────────────────────────────────────────────
+// After AI_CIRCUIT_THRESHOLD consecutive failures, skip AI for
+// AI_CIRCUIT_COOLDOWN_MS to avoid hanging on a dead provider.
+const AI_CIRCUIT_THRESHOLD = 3;
+const AI_CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const AI_TIMEOUT_MS = 10_000; // 10 seconds per request
+
+let aiConsecutiveFailures = 0;
+let aiCircuitOpenUntil = 0;
+
+function isAiCircuitOpen(): boolean {
+  if (aiCircuitOpenUntil === 0) return false;
+  if (Date.now() >= aiCircuitOpenUntil) {
+    // Cooldown elapsed — reset and try again
+    aiCircuitOpenUntil = 0;
+    aiConsecutiveFailures = 0;
+    return false;
+  }
+  return true;
+}
+
+function recordAiFailure(): void {
+  aiConsecutiveFailures++;
+  if (aiConsecutiveFailures >= AI_CIRCUIT_THRESHOLD) {
+    aiCircuitOpenUntil = Date.now() + AI_CIRCUIT_COOLDOWN_MS;
+    console.error(`AI circuit breaker OPEN — skipping AI for ${AI_CIRCUIT_COOLDOWN_MS / 1000}s after ${aiConsecutiveFailures} failures`);
+  }
+}
+
+function recordAiSuccess(): void {
+  aiConsecutiveFailures = 0;
+}
+
 async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
+  if (isAiCircuitOpen()) return null;
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({ model: cfg.model, messages }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) {
-      // Log status only — never the prompt content or the API key.
       console.error(`AI ${label} error`, res.status);
+      recordAiFailure();
       return null;
     }
     const data = await res.json();
     const txt: string | undefined = data?.choices?.[0]?.message?.content;
+    recordAiSuccess();
     return txt?.trim() ?? null;
   } catch (e) {
     console.error(`AI ${label} failed`, e instanceof Error ? e.message : "unknown");
+    recordAiFailure();
     return null;
   }
 }
