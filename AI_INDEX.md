@@ -15,21 +15,21 @@
 
 ## Docs map
 
-| File | Use it for |
-|---|---|
-| `AGENTS.md` | Rules for AI agents, safety constraints, reading order. |
-| `ai_docs/PROJECT_OVERVIEW.md` | Product vision, users, market and competitors. |
-| `ai_docs/SCAM_COVERAGE.md` | Which scam categories we cover, limits, and research-feed notes. |
-| `ai_docs/ARCHITECTURE.md` | Stack, data flow, risk engine, AI provider, Telegram channel. |
-| `ai_docs/FILE_MAP.md` | Folder and key-file map. |
-| `ai_docs/FUNCTIONS_MAP.md` | Important functions, server functions, modules. |
-| `ai_docs/DATABASE.md` | Tables, enums, RLS policies, RPCs, privacy notes. |
-| `ai_docs/API.md` | Server functions, webhook surface, AI integration, future B2B API. |
-| `ai_docs/DEPLOYMENT.md` | Hosting, env vars, secrets, how to run. |
-| `ai_docs/CODING_RULES.md` | Code, color, i18n, privacy and security rules. |
-| `ai_docs/DECISIONS.md` | Decisions made and why. |
-| `ai_docs/CHANGELOG_AI.md` | AI-side documentation change history. |
-| `ai_docs/OPEN_TASKS.md` | Next tasks, fragile spots, unknowns. |
+| File                          | Use it for                                                         |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `AGENTS.md`                   | Rules for AI agents, safety constraints, reading order.            |
+| `ai_docs/PROJECT_OVERVIEW.md` | Product vision, users, market and competitors.                     |
+| `ai_docs/SCAM_COVERAGE.md`    | Which scam categories we cover, limits, and research-feed notes.   |
+| `ai_docs/ARCHITECTURE.md`     | Stack, data flow, risk engine, AI provider, Telegram channel.      |
+| `ai_docs/FILE_MAP.md`         | Folder and key-file map.                                           |
+| `ai_docs/FUNCTIONS_MAP.md`    | Important functions, server functions, modules.                    |
+| `ai_docs/DATABASE.md`         | Tables, enums, RLS policies, RPCs, privacy notes.                  |
+| `ai_docs/API.md`              | Server functions, webhook surface, AI integration, future B2B API. |
+| `ai_docs/DEPLOYMENT.md`       | Hosting, env vars, secrets, how to run.                            |
+| `ai_docs/CODING_RULES.md`     | Code, color, i18n, privacy and security rules.                     |
+| `ai_docs/DECISIONS.md`        | Decisions made and why.                                            |
+| `ai_docs/CHANGELOG_AI.md`     | AI-side documentation change history.                              |
+| `ai_docs/OPEN_TASKS.md`       | Next tasks, fragile spots, unknowns.                               |
 
 ## How to work here
 

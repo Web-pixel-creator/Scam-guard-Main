@@ -8,15 +8,15 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 It does not mean direct browser writes to Supabase tables: sensitive writes to
 `checks` and `reports` are service-role-only behind these handlers.
 
-| RPC | Auth | Input | Returns |
-|---|---|---|---|
-| `checkInput` | public | `{ input: 1-2000, type?, lang }` | `{ type, display, level, score, reasons[], explanation, knownReports }` |
-| `ocrExtract` | public | `{ image: dataURL <= 6MB, lang }` | `{ text }` |
-| `submitReport` | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, lang }` | `{ ok }` or `{ ok:false, error }` |
-| `listReports` | admin | `{ status }` | report rows (<= 200) |
-| `listEntities` | admin | `{ status }` | entity rows (<= 200) |
-| `moderateReport` | admin | `{ reportId, decision, riskLevel }` | `{ ok }` |
-| `adminStats` | admin | none | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }` |
+| RPC              | Auth   | Input                                                                                 | Returns                                                                 |
+| ---------------- | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `checkInput`     | public | `{ input: 1-2000, type?, lang }`                                                      | `{ type, display, level, score, reasons[], explanation, knownReports }` |
+| `ocrExtract`     | public | `{ image: dataURL <= 6MB, lang }`                                                     | `{ text }`                                                              |
+| `submitReport`   | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, lang }` | `{ ok }` or `{ ok:false, error }`                                       |
+| `listReports`    | admin  | `{ status }`                                                                          | report rows (<= 200)                                                    |
+| `listEntities`   | admin  | `{ status }`                                                                          | entity rows (<= 200)                                                    |
+| `moderateReport` | admin  | `{ reportId, decision, riskLevel }`                                                   | `{ ok }`                                                                |
+| `adminStats`     | admin  | none                                                                                  | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }`  |
 
 Input validation is zod. Rate limits throw an error with `status=429` and `retryAfter`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
 

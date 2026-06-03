@@ -36,12 +36,12 @@
     - Превратить `checkInput`/`ocrExtract` в тонкие обёртки: веб извлекает IP → строит `check:<ip>` → вызывает ядро; scoring и запись в `checks` (redacted + hashed) не меняются
     - _Requirements: 4.2, 4.3, 7.1, 7.2, 7.3, 7.4, 13.5, 18.3_
 
-  - [x]* 2.2 Property-тесты ядра: детерминизм и приватность
+  - [x]\* 2.2 Property-тесты ядра: детерминизм и приватность
     - **Property 1: Детерминизм scoring, независимость от AI** — `runCheck(skipAi:true)` и с AI дают одинаковые `level/score/reasons` (AI/сеть мокаются)
     - **Property 2: Sensitive_Data никогда не попадает в БД в сыром виде** — в `checks.insert` уходит только `maskForDisplay`/`input_hash`, без сырых цифр
     - **Validates: Requirements 4.2, 7.1, 7.2, 7.3, 13.5**
 
-  - [x]* 2.3 Unit-тест: веб-контракт `checkInput` не изменился
+  - [x]\* 2.3 Unit-тест: веб-контракт `checkInput` не изменился
     - Проверить, что ключ rate-limit остался `check:<ip>` и формат ответа идентичен дорефакторному
     - _Requirements: 4.2_
 
@@ -50,12 +50,12 @@
     - В `src/lib/risk/rules.ts` добавить в union, `WEIGHTS`, `PATTERNS` (RU **и** UZ Latin) и `REASON_LABELS` (ru/uz/en) коды `asks_to_scan_qr` (вес 50), `relative_in_distress` (30), `requests_card_digits` (45), `threatens_account_block` (20); при необходимости усилить `ADVICE` поведенческими советами; пороги `scoreFromCodes` (≥50 high_risk, ≥20 suspicious) не менять; зафиксировать решение в `DECISIONS.md`
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
 
-  - [x]* 3.2 Property-тесты правил
+  - [x]\* 3.2 Property-тесты правил
     - **Property 6: `asks_to_scan_qr` всегда даёт high_risk** — любой набор кодов, содержащий его, → `level == "high_risk"`
     - **Property 10: Сохранение порогов при добавлении reason codes** — для наборов без новых четырёх кодов вердикт идентичен дорефакторному
     - **Validates: Requirements 14.1, 14.4, 4.2**
 
-  - [x]* 3.3 Unit-тесты regex новых кодов (RU/UZ, позитив/негатив)
+  - [x]\* 3.3 Unit-тесты regex новых кодов (RU/UZ, позитив/негатив)
     - По несколько позитивных и негативных примеров на каждый из 4 кодов на русском и узбекском (латиница)
     - _Requirements: 14.4, 14.5, 14.6, 14.7_
 
@@ -64,7 +64,7 @@
     - Создать `src/lib/telegram/session.server.ts` поверх `telegram_sessions` через `supabaseAdmin`: `loadSession` (дефолт `{ lang:"ru", scenario:"none" }` при отсутствии), `saveSession` (upsert, возвращает `{ ok }`), `setLanguage` (возвращает `{ ok }`, при сбое язык не меняется), `resetScenario`
     - _Requirements: 1.4, 2.2, 2.3, 15.1, 15.2, 15.5_
 
-  - [x]* 4.2 Unit/интеграционные тесты сессии (мок `supabaseAdmin`)
+  - [x]\* 4.2 Unit/интеграционные тесты сессии (мок `supabaseAdmin`)
     - Дефолт `ru` при отсутствии строки; upsert по `telegram_user_id`; `setLanguage` возвращает `ok:false` при ошибке записи и сохраняет прежний язык
     - _Requirements: 1.4, 2.3, 15.2_
 
@@ -73,11 +73,11 @@
     - Создать `src/lib/telegram/api.server.ts`: `sendMessage` (MarkdownV2), `sendChatAction("typing")`, `answerCallbackQuery`, `getFile`, `downloadFileAsDataUrl` (скачивание **только в память**, проверка лимита 6 МБ до скачивания, без записи на диск), `setWebhook`, `escapeMarkdownV2`; токен читать внутри функций
     - _Requirements: 5.3, 5.5, 17.1, 17.2, 18.2, 19.3_
 
-  - [x]* 5.2 Property-тест MarkdownV2-безопасности
+  - [x]\* 5.2 Property-тест MarkdownV2-безопасности
     - **Property 8: MarkdownV2-безопасность** — `escapeMarkdownV2` экранирует все спецсимволы и идемпотентен относительно их набора
     - **Validates: Requirements 4.4, 7.5**
 
-  - [x]* 5.3 Unit-тесты `getFile`/`downloadFileAsDataUrl` (мок `fetch`)
+  - [x]\* 5.3 Unit-тесты `getFile`/`downloadFileAsDataUrl` (мок `fetch`)
     - Файл > 6 МБ не скачивается и отклоняется; валидный файл → data URL в памяти; форма запросов к Bot API
     - _Requirements: 5.3, 5.5_
 
@@ -90,7 +90,7 @@
     - Создать `src/lib/telegram/format.ts`: `RISK_EMOJI`, `formatCheckResult` (эмодзи+метка уровня, блок объяснения только при `explanation!==null`, `REASON_LABELS`, всегда `ADVICE`, строка `knownReports>0`, кнопки Report/Check another, при `high_risk` доп. кнопка Emergency, только `display` — без сырых данных), `formatEmergencyChecklist`, `formatHelp`, `formatSafety`, `formatWelcome`
     - _Requirements: 4.4, 4.5, 4.6, 4.11, 7.5, 8.1, 8.3, 13.1, 13.2, 13.3, 20.1, 20.3_
 
-  - [x]* 6.3 Тесты форматтера
+  - [x]\* 6.3 Тесты форматтера
     - **Property 5: Ответ всегда содержит ADVICE даже при недоступном AI** — текст всегда содержит непустой `ADVICE[level][lang]`
     - Unit: блок объяснения отсутствует при `explanation=null`; кнопка Emergency только при `high_risk`; строка `knownReports` только при `>0`
     - **Validates: Requirements 13.1, 13.2, 13.3, 4.11, 20.3**
@@ -140,16 +140,16 @@
     - Создать `src/server.ts + src/lib/telegram/webhook.server.ts` (`POST /api/telegram/webhook`): сверка `X-Telegram-Bot-Api-Secret-Token` **первой**, до валидации структуры (401 при отсутствии/несовпадении и при отсутствии секретов конфигурации); zod-валидация `telegramUpdateSchema` только после токена (невалидная структура → 200, игнор); `dispatchUpdate` в работу; processing error после валидного токена → лог без Sensitive_Data + 200
     - _Requirements: 11.3, 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 17.4, 19.1, 19.2_
 
-  - [x]* 9.2 Property-тесты контракта webhook
+  - [x]\* 9.2 Property-тесты контракта webhook
     - **Property 3: Webhook без валидного токена не обрабатывает update и не валидирует структуру** — `status==401`, `dispatchUpdate` не вызван, парсинг не выполнялся
     - **Property 7: Webhook после валидного токена и валидной структуры всегда отвечает 200** — даже при броске внутри `dispatchUpdate`
     - **Validates: Requirements 12.1, 12.2, 12.4, 12.5**
 
-  - [x]* 9.3 Интеграционные тесты webhook end-to-end (моки Telegram API + `supabaseAdmin`)
+  - [x]\* 9.3 Интеграционные тесты webhook end-to-end (моки Telegram API + `supabaseAdmin`)
     - Неверный токен → 401, `dispatchUpdate` не вызван; валидный токен + текст → 200 + один `sendMessage` с корректным уровнем; бросок в обработчике → 200; фото → `getFile`+`downloadFileAsDataUrl` (в память) → OCR → check, файл не сохраняется
     - _Requirements: 5.3, 12.2, 12.4, 12.5_
 
-  - [x]* 9.4 Интеграционный тест деградации AI
+  - [x]\* 9.4 Интеграционный тест деградации AI
     - Без `OPENAI_API_KEY` ответ содержит Risk_Level + reasons + ADVICE без блока объяснения; scoring через `scoreFromCodes`
     - _Requirements: 13.1, 13.2, 13.3, 13.5, 18.3_
 

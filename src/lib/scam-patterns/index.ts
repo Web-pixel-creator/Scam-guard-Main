@@ -14,9 +14,7 @@ import type { ScamPattern } from "./types";
 /** Find patterns that match a set of reason codes. */
 export function findMatchingPatterns(codes: ReasonCode[]): ScamPattern[] {
   if (codes.length === 0) return [];
-  return SCAM_PATTERNS.filter((p) =>
-    p.reasonCodes.some((rc) => codes.includes(rc)),
-  );
+  return SCAM_PATTERNS.filter((p) => p.reasonCodes.some((rc) => codes.includes(rc)));
 }
 
 /** Get a single pattern by ID. */

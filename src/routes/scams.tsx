@@ -19,7 +19,10 @@ export const Route = createFileRoute("/scams")({
   component: ScamsPage,
 });
 
-const SEVERITY_STYLES: Record<ScamSeverity, { bg: string; text: string; label: Record<string, string> }> = {
+const SEVERITY_STYLES: Record<
+  ScamSeverity,
+  { bg: string; text: string; label: Record<string, string> }
+> = {
   critical: {
     bg: "bg-red-50 border-red-200",
     text: "text-red-700",
@@ -61,17 +64,15 @@ function ScamCard({ pattern }: { pattern: ScamPattern }) {
   return (
     <div className={`rounded-xl border p-6 ${sev.bg} transition-shadow hover:shadow-md`}>
       <div className="flex items-start justify-between gap-3 mb-4">
-        <h3 className="text-lg font-semibold text-[#18181B]">
-          {pattern.title[lang]}
-        </h3>
-        <span className={`shrink-0 text-xs font-bold uppercase px-2 py-1 rounded ${sev.text} bg-white/60`}>
+        <h3 className="text-lg font-semibold text-[#18181B]">{pattern.title[lang]}</h3>
+        <span
+          className={`shrink-0 text-xs font-bold uppercase px-2 py-1 rounded ${sev.text} bg-white/60`}
+        >
           {sev.label[lang]}
         </span>
       </div>
 
-      <p className="text-[14px] text-[#52525B] mb-4 leading-relaxed">
-        {pattern.description[lang]}
-      </p>
+      <p className="text-[14px] text-[#52525B] mb-4 leading-relaxed">{pattern.description[lang]}</p>
 
       <div className="mb-3">
         <p className="text-[13px] font-semibold text-[#18181B] mb-1">
@@ -126,13 +127,9 @@ function ScamsPage() {
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 mb-4">
           <ShieldAlert className="h-8 w-8 text-[#F97316]" />
-          <h1 className="text-3xl sm:text-4xl font-bold text-[#18181B]">
-            {PAGE_TITLES[lang]}
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#18181B]">{PAGE_TITLES[lang]}</h1>
         </div>
-        <p className="text-[16px] text-[#52525B] max-w-2xl mx-auto">
-          {PAGE_SUBTITLES[lang]}
-        </p>
+        <p className="text-[16px] text-[#52525B] max-w-2xl mx-auto">{PAGE_SUBTITLES[lang]}</p>
       </div>
 
       {/* Pattern cards */}
@@ -147,7 +144,8 @@ function ScamsPage() {
         <Link to="/check">
           <FancyShell>
             <span className="flex items-center gap-2">
-              🔍 {{ ru: "Проверить сообщение", uz: "Xabarni tekshirish", en: "Check a message" }[lang]}
+              🔍{" "}
+              {{ ru: "Проверить сообщение", uz: "Xabarni tekshirish", en: "Check a message" }[lang]}
               <ArrowRight className="h-4 w-4" />
             </span>
           </FancyShell>
@@ -155,7 +153,14 @@ function ScamsPage() {
         <Link to="/report">
           <FancyShell>
             <span className="flex items-center gap-2">
-              📢 {{ ru: "Сообщить о мошеннике", uz: "Firibgar haqida xabar berish", en: "Report a scammer" }[lang]}
+              📢{" "}
+              {
+                {
+                  ru: "Сообщить о мошеннике",
+                  uz: "Firibgar haqida xabar berish",
+                  en: "Report a scammer",
+                }[lang]
+              }
               <ArrowRight className="h-4 w-4" />
             </span>
           </FancyShell>
@@ -164,9 +169,13 @@ function ScamsPage() {
 
       {/* Disclaimer */}
       <p className="mt-8 text-center text-[12px] text-[#A1A1AA]">
-        {{ ru: "Ishonch Guard помогает сориентироваться, но не заменяет банк или правоохранительные органы.",
-           uz: "Ishonch Guard yo'l-yo'riq beradi, lekin bank yoki huquq-tartibot organlarini almashtirmaydi.",
-           en: "Ishonch Guard helps you orient, but does not replace banks or law enforcement." }[lang]}
+        {
+          {
+            ru: "Ishonch Guard помогает сориентироваться, но не заменяет банк или правоохранительные органы.",
+            uz: "Ishonch Guard yo'l-yo'riq beradi, lekin bank yoki huquq-tartibot organlarini almashtirmaydi.",
+            en: "Ishonch Guard helps you orient, but does not replace banks or law enforcement.",
+          }[lang]
+        }
       </p>
     </div>
   );

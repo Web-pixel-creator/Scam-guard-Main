@@ -19,23 +19,23 @@ Telegram-бот добавляется к существующему веб-пр
 
 ## Трассируемость: разделы дизайна → требования
 
-| Раздел дизайна | Покрывает требования |
-|---|---|
-| Общее ядро проверки `check-core.ts` | R4, R7, R10, R13, R14, R18 |
-| Webhook server route + аутентификация токеном | R12, R17 |
-| Telegram Bot API helper (server-only) | R1, R4, R5, R6, R17, R18, R19 |
-| `telegram_sessions` + Session store | R1, R2, R6, R15 |
-| Роутер обновлений | R1–R6, R11, R15, R16, R21, R22 |
-| Новые reason codes (rules.ts) | R14 |
-| Форматтер результата (мультиязык, MarkdownV2) | R2, R4, R5, R8, R13, R20 |
-| OCR-поток без сохранения изображений | R5, R16 |
-| Поток жалобы (`/report`) | R6, R9 |
-| Режим паники `/emergency` | R20 |
-| Контакт-карта | R21 |
-| Границы MVP | R11, R16, R22 |
-| Деградация AI | R13, R18 |
-| Обработка ошибок | R10, R12, R13, R16 |
-| Наблюдаемость / логирование | R17, R19 |
+| Раздел дизайна                                | Покрывает требования           |
+| --------------------------------------------- | ------------------------------ |
+| Общее ядро проверки `check-core.ts`           | R4, R7, R10, R13, R14, R18     |
+| Webhook server route + аутентификация токеном | R12, R17                       |
+| Telegram Bot API helper (server-only)         | R1, R4, R5, R6, R17, R18, R19  |
+| `telegram_sessions` + Session store           | R1, R2, R6, R15                |
+| Роутер обновлений                             | R1–R6, R11, R15, R16, R21, R22 |
+| Новые reason codes (rules.ts)                 | R14                            |
+| Форматтер результата (мультиязык, MarkdownV2) | R2, R4, R5, R8, R13, R20       |
+| OCR-поток без сохранения изображений          | R5, R16                        |
+| Поток жалобы (`/report`)                      | R6, R9                         |
+| Режим паники `/emergency`                     | R20                            |
+| Контакт-карта                                 | R21                            |
+| Границы MVP                                   | R11, R16, R22                  |
+| Деградация AI                                 | R13, R18                       |
+| Обработка ошибок                              | R10, R12, R13, R16             |
+| Наблюдаемость / логирование                   | R17, R19                       |
 
 ## Architecture
 
@@ -157,22 +157,22 @@ import type { ReasonCode, RiskLevel } from "./rules";
 export type CheckChannel = "web" | "telegram";
 
 export interface RunCheckParams {
-  input: string;                 // сырой ввод пользователя (до redaction)
-  type?: InputType;              // опционально; иначе detectInputType
+  input: string; // сырой ввод пользователя (до redaction)
+  type?: InputType; // опционально; иначе detectInputType
   lang: Lang;
-  rateLimitKey: string;          // "check:<ip>" для веба, "tg:<userId>" для бота
-  channel?: CheckChannel;        // default "web"
-  skipAi?: boolean;              // принудительно без AI (например быстрый путь)
+  rateLimitKey: string; // "check:<ip>" для веба, "tg:<userId>" для бота
+  channel?: CheckChannel; // default "web"
+  skipAi?: boolean; // принудительно без AI (например быстрый путь)
 }
 
 export interface RunCheckResult {
   type: InputType;
-  display: string;               // maskForDisplay — безопасно для показа
+  display: string; // maskForDisplay — безопасно для показа
   level: RiskLevel;
   score: number;
   reasons: ReasonCode[];
-  explanation: string | null;    // null при недоступном AI (деградация, R13)
-  knownReports: number;          // >0 только для Confirmed_Entity
+  explanation: string | null; // null при недоступном AI (деградация, R13)
+  knownReports: number; // >0 только для Confirmed_Entity
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -212,8 +212,11 @@ export const checkInput = createServerFn({ method: "POST" })
       getRequestIP({ xForwardedFor: true }) ||
       "unknown";
     return runCheck({
-      input: data.input, type: data.type, lang: data.lang,
-      rateLimitKey: `check:${ip}`, channel: "web",
+      input: data.input,
+      type: data.type,
+      lang: data.lang,
+      rateLimitKey: `check:${ip}`,
+      channel: "web",
     });
   });
 ```
@@ -225,12 +228,15 @@ export const checkInput = createServerFn({ method: "POST" })
 Тонкая обёртка над Telegram Bot API. Токен читается **внутри функций** из `process.env.TELEGRAM_BOT_TOKEN`. Никаких библиотек-фреймворков (см. Open Decision 1 — выбор «ручной helper»).
 
 ```typescript
-export interface InlineButton { text: string; callback_data: string }
+export interface InlineButton {
+  text: string;
+  callback_data: string;
+}
 export type InlineKeyboard = InlineButton[][];
 
 export interface SendMessageOptions {
   chatId: number;
-  text: string;                  // уже экранированный MarkdownV2
+  text: string; // уже экранированный MarkdownV2
   keyboard?: InlineKeyboard;
   parseMode?: "MarkdownV2" | "HTML" | "None";
   disablePreview?: boolean;
@@ -269,13 +275,13 @@ export function escapeMarkdownV2(s: string): string;
 import type { Lang } from "@/lib/i18n";
 
 export type Scenario =
-  | "none"            // нейтральное состояние
-  | "await_check"     // после /check ждём контент
-  | "report_value"    // ждём значение жалобы
-  | "report_desc"     // ждём описание
+  | "none" // нейтральное состояние
+  | "await_check" // после /check ждём контент
+  | "report_value" // ждём значение жалобы
+  | "report_desc" // ждём описание
   | "report_scamType" // опционально
-  | "report_city"     // опционально
-  | "report_amount";  // опционально
+  | "report_city" // опционально
+  | "report_amount"; // опционально
 
 export interface ReportDraft {
   value?: string;
@@ -287,10 +293,10 @@ export interface ReportDraft {
 
 export interface Session {
   telegramUserId: number;
-  lang: Lang;                 // default "ru" если не задан (R1.4)
+  lang: Lang; // default "ru" если не задан (R1.4)
   scenario: Scenario;
   scenarioStep: number;
-  scenarioData: ReportDraft;  // jsonb
+  scenarioData: ReportDraft; // jsonb
   updatedAt: string;
 }
 
@@ -318,16 +324,16 @@ HTTP-эндпоинт для Telegram. Размещается внутри те�
 // Псевдо-контракт обработчика (порядок шагов фиксирован Requirement 12).
 async function handleTelegramWebhook(request: Request): Promise<Response> {
   // R12.1 / R12.2 — токен ПЕРВЫМ, до любой валидации структуры.
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;       // читаем в хендлере
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET; // читаем в хендлере
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!secret || !botToken) {
     // R17.4 — конфиг отсутствует: не обрабатывать, залогировать без значений.
     console.error("telegram webhook misconfigured: missing secrets");
-    return new Response("unauthorized", { status: 401 });   // R12.6 — token-этап = 401
+    return new Response("unauthorized", { status: 401 }); // R12.6 — token-этап = 401
   }
   const header = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
   if (header !== secret) {
-    return new Response("unauthorized", { status: 401 });   // R12.2 — без валидации структуры
+    return new Response("unauthorized", { status: 401 }); // R12.2 — без валидации структуры
   }
 
   // R12.3 — структура валидируется ТОЛЬКО после успешного токена.
@@ -335,14 +341,14 @@ async function handleTelegramWebhook(request: Request): Promise<Response> {
   try {
     update = telegramUpdateSchema.parse(await request.json()); // zod (CODING_RULES)
   } catch {
-    return new Response("ok", { status: 200 });             // невалидная структура — 200, игнор
+    return new Response("ok", { status: 200 }); // невалидная структура — 200, игнор
   }
 
   try {
-    await dispatchUpdate(update);                           // R12.4 — постановка в работу
+    await dispatchUpdate(update); // R12.4 — постановка в работу
   } catch (err) {
     // R12.5 — processing error ПОСЛЕ валидного токена → 200, чтобы Telegram не ретраил.
-    logError("dispatch failed", err);                       // R19 — без Sensitive_Data
+    logError("dispatch failed", err); // R19 — без Sensitive_Data
   }
   return new Response("ok", { status: 200 });
 }
@@ -351,31 +357,49 @@ async function handleTelegramWebhook(request: Request): Promise<Response> {
 **Zod-схема update** (только нужные MVP-поля; неподдерживаемые игнорируются, R12.3):
 
 ```typescript
-const telegramUpdateSchema = z.object({
-  update_id: z.number(),
-  message: z.object({
-    message_id: z.number(),
-    from: z.object({ id: z.number(), language_code: z.string().optional() }),
-    chat: z.object({ id: z.number() }),
-    text: z.string().optional(),
-    caption: z.string().optional(),
-    entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number() })).optional(),
-    photo: z.array(z.object({ file_id: z.string(), file_size: z.number().optional() })).optional(),
-    document: z.object({ file_id: z.string(), mime_type: z.string().optional(), file_size: z.number().optional() }).optional(),
-    contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
-    voice: z.unknown().optional(),     // вне объёма (R22) — распознаётся, чтобы вежливо отклонить
-    audio: z.unknown().optional(),
-    video: z.unknown().optional(),
-    sticker: z.unknown().optional(),
-    forward_origin: z.unknown().optional(), // forward → текст как обычный ввод (R11.5)
-  }).optional(),
-  callback_query: z.object({
-    id: z.string(),
-    from: z.object({ id: z.number() }),
-    message: z.object({ chat: z.object({ id: z.number() }) }).optional(),
-    data: z.string(),
-  }).optional(),
-}).passthrough();
+const telegramUpdateSchema = z
+  .object({
+    update_id: z.number(),
+    message: z
+      .object({
+        message_id: z.number(),
+        from: z.object({ id: z.number(), language_code: z.string().optional() }),
+        chat: z.object({ id: z.number() }),
+        text: z.string().optional(),
+        caption: z.string().optional(),
+        entities: z
+          .array(z.object({ type: z.string(), offset: z.number(), length: z.number() }))
+          .optional(),
+        photo: z
+          .array(z.object({ file_id: z.string(), file_size: z.number().optional() }))
+          .optional(),
+        document: z
+          .object({
+            file_id: z.string(),
+            mime_type: z.string().optional(),
+            file_size: z.number().optional(),
+          })
+          .optional(),
+        contact: z
+          .object({ phone_number: z.string(), first_name: z.string().optional() })
+          .optional(),
+        voice: z.unknown().optional(), // вне объёма (R22) — распознаётся, чтобы вежливо отклонить
+        audio: z.unknown().optional(),
+        video: z.unknown().optional(),
+        sticker: z.unknown().optional(),
+        forward_origin: z.unknown().optional(), // forward → текст как обычный ввод (R11.5)
+      })
+      .optional(),
+    callback_query: z
+      .object({
+        id: z.string(),
+        from: z.object({ id: z.number() }),
+        message: z.object({ chat: z.object({ id: z.number() }) }).optional(),
+        data: z.string(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>;
 ```
@@ -407,7 +431,7 @@ export const dispatchUpdate: Dispatch;
 /** Разбор: команда + аргумент в одном сообщении (например "/check текст"). */
 export interface ParsedCommand {
   command: "/start" | "/lang" | "/help" | "/safety" | "/check" | "/report" | "/emergency";
-  arg: string;          // остаток сообщения после команды (R4.9 — command-initiated)
+  arg: string; // остаток сообщения после команды (R4.9 — command-initiated)
 }
 export function parseCommand(text: string, entities?: unknown[]): ParsedCommand | null;
 
@@ -418,7 +442,10 @@ export function handleCheck(content: string, ctx: HandlerCtx): Promise<void>;
 export function handleImage(fileId: string, ctx: HandlerCtx): Promise<void>;
 export function handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
 export function handleCallback(data: string, ctx: HandlerCtx): Promise<void>;
-export function handleOutOfScope(kind: "voice"|"audio"|"video"|"sticker"|"empty", ctx: HandlerCtx): Promise<void>;
+export function handleOutOfScope(
+  kind: "voice" | "audio" | "video" | "sticker" | "empty",
+  ctx: HandlerCtx,
+): Promise<void>;
 
 export interface HandlerCtx {
   chatId: number;
@@ -428,6 +455,7 @@ export interface HandlerCtx {
 ```
 
 **Правила маршрутизации (из требований):**
+
 - Контент без команды → `handleCheck` (R4.7).
 - `/check` + контент в одном сообщении → command-initiated проверка по `arg` (R4.9).
 - `/check` без аргумента → установить `scenario="await_check"`, запросить контент (R4.1, R4.8).
@@ -448,8 +476,8 @@ export const RISK_EMOJI: Record<RiskLevel, string>;
 // safe "🟢" | unknown "⚪️" | suspicious "🟠" | high_risk "🔴"
 
 export interface FormattedResult {
-  text: string;                 // MarkdownV2, экранированный
-  keyboard: InlineKeyboard;     // Report / Check another / (Emergency при high_risk)
+  text: string; // MarkdownV2, экранированный
+  keyboard: InlineKeyboard; // Report / Check another / (Emergency при high_risk)
 }
 
 /**
@@ -524,14 +552,14 @@ _(Модели данных)_
 
 Хранит язык и шаг сценария по `telegram_user_id`. Доступ — только service-role (бот пишет/читает через `supabaseAdmin`); публичных и authenticated политик нет (как `admin_allowlist`). Очистка устаревших строк — по `updated_at`.
 
-| Колонка | Тип | Назначение |
-|---|---|---|
-| `telegram_user_id` | `BIGINT PRIMARY KEY` | ID пользователя Telegram (числовой, может превышать int4) |
-| `lang` | `TEXT NOT NULL DEFAULT 'ru'` | выбранный язык (`ru`/`uz`/`en`) |
-| `scenario` | `TEXT NOT NULL DEFAULT 'none'` | текущий сценарий |
-| `scenario_step` | `INT NOT NULL DEFAULT 0` | номер шага сценария |
-| `scenario_data` | `JSONB NOT NULL DEFAULT '{}'` | черновик жалобы и пр. |
-| `updated_at` | `TIMESTAMPTZ NOT NULL DEFAULT now()` | для TTL/очистки |
+| Колонка            | Тип                                  | Назначение                                                |
+| ------------------ | ------------------------------------ | --------------------------------------------------------- |
+| `telegram_user_id` | `BIGINT PRIMARY KEY`                 | ID пользователя Telegram (числовой, может превышать int4) |
+| `lang`             | `TEXT NOT NULL DEFAULT 'ru'`         | выбранный язык (`ru`/`uz`/`en`)                           |
+| `scenario`         | `TEXT NOT NULL DEFAULT 'none'`       | текущий сценарий                                          |
+| `scenario_step`    | `INT NOT NULL DEFAULT 0`             | номер шага сценария                                       |
+| `scenario_data`    | `JSONB NOT NULL DEFAULT '{}'`        | черновик жалобы и пр.                                     |
+| `updated_at`       | `TIMESTAMPTZ NOT NULL DEFAULT now()` | для TTL/очистки                                           |
 
 #### SQL-миграция (стиль `supabase/migrations/*`)
 
@@ -567,14 +595,14 @@ REVOKE EXECUTE ON FUNCTION public.prune_telegram_sessions() FROM PUBLIC, anon, a
 
 ### Почему Supabase, а не Node runtime KV (Open Decision 3)
 
-| Критерий | In-memory (текущий rate-limit) | Node runtime KV | **Supabase `telegram_sessions`** |
-|---|---|---|---|
-| Переживает рестарт воркера | ❌ | ✅ | ✅ |
-| Шарится между воркерами/регионами | ❌ | ✅ (eventual) | ✅ (строгая) |
-| Уже в стеке проекта | — | требует нового binding/конфига | ✅ `supabaseAdmin` готов |
-| Согласованность для многошаговых сценариев | — | eventual (риск гонок шагов) | строгая (Postgres) |
-| Реляционная связность/очистка/аналитика | — | ограничена | ✅ SQL + TTL-функция |
-| Стоимость инфраструктуры | 0 | отдельный продукт | в рамках уже оплаченной БД |
+| Критерий                                   | In-memory (текущий rate-limit) | Node runtime KV                | **Supabase `telegram_sessions`** |
+| ------------------------------------------ | ------------------------------ | ------------------------------ | -------------------------------- |
+| Переживает рестарт воркера                 | ❌                             | ✅                             | ✅                               |
+| Шарится между воркерами/регионами          | ❌                             | ✅ (eventual)                  | ✅ (строгая)                     |
+| Уже в стеке проекта                        | —                              | требует нового binding/конфига | ✅ `supabaseAdmin` готов         |
+| Согласованность для многошаговых сценариев | —                              | eventual (риск гонок шагов)    | строгая (Postgres)               |
+| Реляционная связность/очистка/аналитика    | —                              | ограничена                     | ✅ SQL + TTL-функция             |
+| Стоимость инфраструктуры                   | 0                              | отдельный продукт              | в рамках уже оплаченной БД       |
 
 Выбор — **Supabase**: сессия требует строгой согласованности между шагами сценария (R15.3), а проект уже использует service-role клиент для всех серверных записей (R17.3). KV дал бы eventual-consistency и потребовал бы нового binding вне текущей self-hosted Node архитектуры. In-memory исключён требованием R15 (состояние не должно теряться при рестарте).
 
@@ -586,23 +614,23 @@ REVOKE EXECUTE ON FUNCTION public.prune_telegram_sessions() FROM PUBLIC, anon, a
 
 _(Обработка ошибок)_
 
-| Сценарий | Поведение | Требование |
-|---|---|---|
-| Нет/неверный `X-Telegram-Bot-Api-Secret-Token` | `401`, структура НЕ валидируется, update НЕ обрабатывается | R12.1, R12.2 |
-| Ошибка на этапе токена (в т.ч. секреты не сконфигурированы) | `401` (не `200`); лог без значений секретов | R12.6, R17.4 |
-| Невалидная структура update (после валидного токена) | `200`, игнор | R12.3 |
-| Processing error после валидного токена | лог (без Sensitive_Data) + `200` (Telegram не ретраит) | R12.5, R19.2 |
-| Превышен rate-limit (`tg:<userId>`, 10/мин) | `RateLimitedError` → сообщение о лимите с `retryAfter` на текущем языке | R10.2 |
-| AI недоступен (нет ключа/ошибка/таймаут) | `explanation=null`; ответ с Risk_Level + reasons + ADVICE; без тех. ошибки AI | R13.1–R13.3, R18.3 |
-| OCR вернул `null` | сообщение «не удалось распознать, пришлите текстом» | R5.6 |
-| Изображение > 6 МБ | отклонить с понятным сообщением, не качать | R5.5 |
-| Описание жалобы <5 или >5000 / значение >500 | отклонить, запросить корректный ввод | R6.5, R6.6 |
-| Текст проверки > 2000 символов | обрезать/отклонить с сообщением, не слать невалидный запрос | R4.10 |
-| Пустой/неподдерживаемый ввод (стикер/гео) | подсказка о поддерживаемых типах | R16.1 |
-| Голос/аудио/видео | вежливый отказ + предложить текст/скриншот (вне объёма) | R16.1, R22.3 |
-| Неизвестная команда | предложить `/help` | R16.2 |
-| Сбой смены языка (saveSession !ok) | ответ на прежнем языке (или `ru`), лог без Sensitive_Data | R2.3 |
-| Сбой Telegram API (сеть) | обрабатывается независимо от AI; retry/уведомление, не оставлять без ответа | R11.3, R13.4 |
+| Сценарий                                                    | Поведение                                                                     | Требование         |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------ |
+| Нет/неверный `X-Telegram-Bot-Api-Secret-Token`              | `401`, структура НЕ валидируется, update НЕ обрабатывается                    | R12.1, R12.2       |
+| Ошибка на этапе токена (в т.ч. секреты не сконфигурированы) | `401` (не `200`); лог без значений секретов                                   | R12.6, R17.4       |
+| Невалидная структура update (после валидного токена)        | `200`, игнор                                                                  | R12.3              |
+| Processing error после валидного токена                     | лог (без Sensitive_Data) + `200` (Telegram не ретраит)                        | R12.5, R19.2       |
+| Превышен rate-limit (`tg:<userId>`, 10/мин)                 | `RateLimitedError` → сообщение о лимите с `retryAfter` на текущем языке       | R10.2              |
+| AI недоступен (нет ключа/ошибка/таймаут)                    | `explanation=null`; ответ с Risk_Level + reasons + ADVICE; без тех. ошибки AI | R13.1–R13.3, R18.3 |
+| OCR вернул `null`                                           | сообщение «не удалось распознать, пришлите текстом»                           | R5.6               |
+| Изображение > 6 МБ                                          | отклонить с понятным сообщением, не качать                                    | R5.5               |
+| Описание жалобы <5 или >5000 / значение >500                | отклонить, запросить корректный ввод                                          | R6.5, R6.6         |
+| Текст проверки > 2000 символов                              | обрезать/отклонить с сообщением, не слать невалидный запрос                   | R4.10              |
+| Пустой/неподдерживаемый ввод (стикер/гео)                   | подсказка о поддерживаемых типах                                              | R16.1              |
+| Голос/аудио/видео                                           | вежливый отказ + предложить текст/скриншот (вне объёма)                       | R16.1, R22.3       |
+| Неизвестная команда                                         | предложить `/help`                                                            | R16.2              |
+| Сбой смены языка (saveSession !ok)                          | ответ на прежнем языке (или `ru`), лог без Sensitive_Data                     | R2.3               |
+| Сбой Telegram API (сеть)                                    | обрабатывается независимо от AI; retry/уведомление, не оставлять без ответа   | R11.3, R13.4       |
 
 ## Correctness Properties
 
@@ -611,7 +639,9 @@ _(Свойства корректности)_
 Инварианты для property-based тестирования (библиотека **fast-check**, TS). Каждое свойство формулируется через универсальную квантификацию по случайным входам.
 
 ### Property 1: Детерминизм scoring, независимость от AI
+
 Для любого ввода `runCheck` с `skipAi:true` и с доступным AI возвращает **один и тот же** `level`, `score` и `reasons`. AI влияет только на `explanation`.
+
 ```
 ∀ input, lang: runCheck(input, skipAi=true).{level,score,reasons}
               = runCheck(input, skipAi=false).{level,score,reasons}
@@ -620,7 +650,9 @@ _(Свойства корректности)_
 **Validates: Requirements 13.5, 4.2**
 
 ### Property 2: Sensitive_Data никогда не попадает в БД в сыром виде
+
 Для любого ввода, содержащего OTP/карту/телефон, строка, передаваемая в `checks.insert` (`redacted_input`), не содержит исходных цифр; идентификатор хранится только как `input_hash` (`hashIdentifier`).
+
 ```
 ∀ input: insertedRow.redacted_input == maskForDisplay(...) ∧
          insertedRow.input_hash == hashIdentifier(normalized) ∧
@@ -630,7 +662,9 @@ _(Свойства корректности)_
 **Validates: Requirements 7.1, 7.2, 7.3**
 
 ### Property 3: Webhook без валидного токена не обрабатывает update и не валидирует структуру
+
 Для любого тела запроса при отсутствии/несовпадении секрета ответ `401`, `dispatchUpdate` не вызывается, zod-парсинг структуры не выполняется.
+
 ```
 ∀ body, header≠secret: status==401 ∧ dispatchCalls==0 ∧ structureValidated==false
 ```
@@ -638,7 +672,9 @@ _(Свойства корректности)_
 **Validates: Requirements 12.1, 12.2**
 
 ### Property 4: Rate-limit ключ бота всегда основан на telegram_user_id
+
 Для любого update от пользователя `U` ключ лимита == `"tg:" + U`, и никогда не зависит от IP/Chat-заголовков.
+
 ```
 ∀ update(from.id=U): rateLimitKey == "tg:"+U
 ```
@@ -646,7 +682,9 @@ _(Свойства корректности)_
 **Validates: Requirements 10.1, 10.3**
 
 ### Property 5: Ответ всегда содержит ADVICE даже при недоступном AI
+
 Для любого результата проверки отформатированный текст содержит непустой `ADVICE[level][lang]`, независимо от `explanation`.
+
 ```
 ∀ result, lang: formatCheckResult(result, lang).text ⊇ nonEmpty(ADVICE[result.level][lang])
 ```
@@ -654,7 +692,9 @@ _(Свойства корректности)_
 **Validates: Requirements 13.1, 13.2**
 
 ### Property 6: `asks_to_scan_qr` всегда даёт high_risk
+
 Для любого набора reason codes, содержащего `asks_to_scan_qr`, `scoreFromCodes` возвращает `level == "high_risk"`.
+
 ```
 ∀ codes ∋ asks_to_scan_qr: scoreFromCodes(codes).level == "high_risk"
 ```
@@ -662,7 +702,9 @@ _(Свойства корректности)_
 **Validates: Requirements 14.4**
 
 ### Property 7: Webhook после валидного токена и валидной структуры всегда отвечает 200
+
 Даже при брошенной ошибке внутри `dispatchUpdate`, статус ответа == `200` (Telegram не должен ретраить).
+
 ```
 ∀ validToken ∧ validStructure: responseStatus == 200
 ```
@@ -670,7 +712,9 @@ _(Свойства корректности)_
 **Validates: Requirements 12.4, 12.5**
 
 ### Property 8: MarkdownV2-безопасность
+
 Для любой строки результата итоговый текст корректно экранирован: `escapeMarkdownV2` идемпотентен относительно набора спецсимволов и не оставляет неэкранированных управляющих символов.
+
 ```
 ∀ s: isValidMarkdownV2(escapeMarkdownV2(s)) == true
 ```
@@ -678,7 +722,9 @@ _(Свойства корректности)_
 **Validates: Requirements 4.4, 7.5**
 
 ### Property 9: Контакт-карта эквивалентна телефону
+
 Для любого валидного `contact.phone_number` результат `handlePhoneFromContact` совпадает по `{level,score,reasons}` с `runCheck` того же номера как текстового ввода типа `phone`.
+
 ```
 ∀ phone: handlePhoneFromContact(phone).{level,score,reasons}
        = runCheck(phone, type="phone").{level,score,reasons}
@@ -687,7 +733,9 @@ _(Свойства корректности)_
 **Validates: Requirements 21.1, 21.2**
 
 ### Property 10: Сохранение порогов при добавлении reason codes
+
 Добавление новых reason codes не меняет вердикт для входов, их не содержащих: для любого набора кодов без новых четырёх результат `scoreFromCodes` идентичен дорефакторному поведению.
+
 ```
 ∀ codes ∌ {asks_to_scan_qr, relative_in_distress, requests_card_digits, threatens_account_block}:
     scoreFromCodes(codes) == scoreFromCodes_legacy(codes)
@@ -700,6 +748,7 @@ _(Свойства корректности)_
 _(Стратегия тестирования)_
 
 ### Модульные тесты (unit)
+
 - `escapeMarkdownV2`: каждый спецсимвол MarkdownV2 экранируется; идемпотентность.
 - `parseCommand`: `/check`, `/check текст`, `/lang`, неизвестная команда, команда с @botusername.
 - Новые regex-паттерны: позитивные/негативные примеры RU и UZ для `asks_to_scan_qr`, `relative_in_distress`, `requests_card_digits`, `threatens_account_block`.
@@ -707,9 +756,11 @@ _(Стратегия тестирования)_
 - Роутер: приоритет callback > команда > шаг сценария > контент; прерывание сценария командой (R15.4); forward как текст (R11.5).
 
 ### Property-based тесты (fast-check)
+
 Реализуют инварианты 1–10 из раздела Correctness Properties. Особый акцент: №1 (детерминизм без AI), №2 (нет сырых Sensitive_Data в записи — AI/сеть мокаются), №3 и №7 (контракт webhook), №6 (QR → high_risk).
 
 ### Интеграционные тесты
+
 - Webhook end-to-end (мок Telegram API + мок `supabaseAdmin`):
   - неверный токен → 401, `dispatchUpdate` не вызван;
   - валидный токен + текст → 200 + один `sendMessage` с корректным уровнем;
@@ -719,20 +770,22 @@ _(Стратегия тестирования)_
 - Деградация AI: без `OPENAI_API_KEY` ответ содержит уровень + reasons + ADVICE, без блока объяснения.
 
 ### Что мокается
+
 Telegram Bot API (fetch), OpenAI-compatible AI provider (fetch), `supabaseAdmin`. Реальные внешние вызовы в тестах не выполняются. Секреты в тестах — фиктивные значения через окружение.
 
 ## Deployment и секреты
 
 Серверные переменные окружения (только сервер, читаются **внутри** хендлеров — R17.1, CODING_RULES §6):
 
-| Переменная | Назначение |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | авторизация в Telegram Bot API |
-| `TELEGRAM_WEBHOOK_SECRET` | сверка с `X-Telegram-Bot-Api-Secret-Token` |
-| `OPENAI_API_KEY` | AI provider (уже есть; деградация при отсутствии) |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | уже есть; для `supabaseAdmin` |
+| Переменная                                  | Назначение                                        |
+| ------------------------------------------- | ------------------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`                        | авторизация в Telegram Bot API                    |
+| `TELEGRAM_WEBHOOK_SECRET`                   | сверка с `X-Telegram-Bot-Api-Secret-Token`        |
+| `OPENAI_API_KEY`                            | AI provider (уже есть; деградация при отсутствии) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | уже есть; для `supabaseAdmin`                     |
 
 Шаги развёртывания:
+
 1. Применить миграцию `telegram_sessions`; регенерировать `types.ts`.
 2. Задать секреты в окружении self-hosted Node runtime (не в репозитории, не в `VITE_*`).
 3. Один раз вызвать `setWebhook(<публичный URL>/api/telegram/webhook, TELEGRAM_WEBHOOK_SECRET)` (админ-скрипт).
@@ -742,11 +795,11 @@ Telegram Bot API (fetch), OpenAI-compatible AI provider (fetch), `supabaseAdmin`
 
 ## Резюме открытых решений (Open Product Decisions)
 
-| # | Решение в дизайне |
-|---|---|
-| 1. Bot framework | Ручной helper над Telegram Bot API (без grammY/telegraf) — минимум зависимостей, согласуется с «server functions, без отдельного сервера». |
-| 2. Хостинг webhook | Server route внутри текущего приложения (Nitro node-server), путь `/api/telegram/webhook`. |
-| 3. Session_State / Language | Таблица Supabase `telegram_sessions` (service-role), а не in-memory/KV — строгая согласованность для сценариев. |
-| 4. Rate-limit store | Переиспользуем in-memory `checkRateLimit` с ключом `tg:<userId>` — best-effort per-worker (R10.4); общий store вне MVP. |
-| 5. Канал в `checks` | Не добавляем колонку в MVP; `channel` только для логов. |
-| 6. Surface scam alerts | Вне объёма MVP (R22.5). |
+| #                           | Решение в дизайне                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Bot framework            | Ручной helper над Telegram Bot API (без grammY/telegraf) — минимум зависимостей, согласуется с «server functions, без отдельного сервера». |
+| 2. Хостинг webhook          | Server route внутри текущего приложения (Nitro node-server), путь `/api/telegram/webhook`.                                                 |
+| 3. Session_State / Language | Таблица Supabase `telegram_sessions` (service-role), а не in-memory/KV — строгая согласованность для сценариев.                            |
+| 4. Rate-limit store         | Переиспользуем in-memory `checkRateLimit` с ключом `tg:<userId>` — best-effort per-worker (R10.4); общий store вне MVP.                    |
+| 5. Канал в `checks`         | Не добавляем колонку в MVP; `channel` только для логов.                                                                                    |
+| 6. Surface scam alerts      | Вне объёма MVP (R22.5).                                                                                                                    |

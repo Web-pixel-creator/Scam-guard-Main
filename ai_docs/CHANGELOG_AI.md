@@ -31,7 +31,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - PR #13: expanded verified contacts seed to 27 entries (banks, telecoms, payment systems, government, UZCERT).
 - PR #12: initial verified contacts module.
 - PR #11: public README + CONTRIBUTING.md.
-- PR #10: CI workflow, /healthz endpoint, Dockerfile VITE_* ARGs, .gitignore fix.
+- PR #10: CI workflow, /healthz endpoint, Dockerfile VITE\_\* ARGs, .gitignore fix.
 - Supabase migrations applied (8 migrations; consolidated duplicate removed).
 - 215+ tests, CI green, production build verified.
 

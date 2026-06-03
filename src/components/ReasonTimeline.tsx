@@ -56,7 +56,11 @@ export function ReasonTimeline({
       {reasonCodes.length > 0 && (
         <div>
           <p className="text-[#71717A] mb-1">
-            {{ ru: "Сработавшие правила:", uz: "Ishga tushgan qoidalar:", en: "Triggered rules:" }[lang]}
+            {
+              { ru: "Сработавшие правила:", uz: "Ishga tushgan qoidalar:", en: "Triggered rules:" }[
+                lang
+              ]
+            }
           </p>
           <ul className="space-y-0.5 pl-3">
             {reasonCodes.map((code) => (
@@ -87,15 +91,21 @@ export function ReasonTimeline({
       {/* Verified contact */}
       {verifiedContact && (
         <p className="text-green-700">
-          ✅ {{ ru: "Verified:", uz: "Tasdiqlangan:", en: "Verified:" }[lang]} {verifiedContact.orgName}
+          ✅ {{ ru: "Verified:", uz: "Tasdiqlangan:", en: "Verified:" }[lang]}{" "}
+          {verifiedContact.orgName}
         </p>
       )}
 
       {/* AI status */}
       <p className="text-[#A1A1AA]">
-        AI: {hasAiExplanation
-          ? { ru: "объяснение доступно", uz: "tushuntirish mavjud", en: "explanation available" }[lang]
-          : { ru: "нет (только правила)", uz: "yo'q (faqat qoidalar)", en: "none (rules only)" }[lang]}
+        AI:{" "}
+        {hasAiExplanation
+          ? { ru: "объяснение доступно", uz: "tushuntirish mavjud", en: "explanation available" }[
+              lang
+            ]
+          : { ru: "нет (только правила)", uz: "yo'q (faqat qoidalar)", en: "none (rules only)" }[
+              lang
+            ]}
       </p>
     </div>
   );

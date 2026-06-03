@@ -27,6 +27,7 @@
 Смотри [`ai_docs/OPEN_TASKS.md`](ai_docs/OPEN_TASKS.md) — актуальный backlog задач.
 
 Области, где особенно нужна помощь:
+
 - Новые scam-паттерны (regex для RU и UZ Latin) — `src/lib/risk/rules.ts`
 - Перевод на узбекский (проверка существующих строк)
 - UI/UX улучшения

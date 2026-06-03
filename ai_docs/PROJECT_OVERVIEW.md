@@ -26,15 +26,15 @@ Check phone / Telegram / link / APK / text / screenshot → clear risk level (`s
 
 **Reference products (what to learn from each):**
 
-| Product | What it is | Takeaway for us |
-|---|---|---|
-| **ScamShield (Singapore)** | Gov-backed anti-scam suite: app + site + 1799 helpline; check/filter/block across SMS, call, Telegram, WhatsApp, links. 120k+ entities blocked, 900k+ downloads. | Best model. Single trusted place to check, report, block, learn. |
-| **1Lookup** | B2B API: phone/email/IP validation + fraud scoring ("50+ risk factors"), FCC/carrier data. | Future B2B revenue path, not the consumer MVP. |
-| **Truecaller** | Caller ID, spam/scam alerts, reverse lookup; 450M+ users. | Community caller reputation. We go deeper on Telegram + loan scams. |
-| **Hiya** | Voice intelligence, branded/verified calls, AI call screening. | "Verified official number" layer for banks/operators. |
-| **Robokiller / YouMail** | Consumer call/SMS blocking, answer bots, reverse lookup. | Auto-blocking is a later phase (Android first). MVP = check/report. |
-| **Norton Genie / Bitdefender Scamio / Malwarebytes Scam Guard** | AI scam detectors: paste text / screenshot / link / QR → verdict. | The "paste & get a verdict" UX — but localized to RU/UZ. |
-| **Twilio Lookup / IPQualityScore** | Phone/email/IP/URL fraud-scoring APIs. | Enrichment sources for the risk engine later. |
+| Product                                                         | What it is                                                                                                                                                       | Takeaway for us                                                     |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **ScamShield (Singapore)**                                      | Gov-backed anti-scam suite: app + site + 1799 helpline; check/filter/block across SMS, call, Telegram, WhatsApp, links. 120k+ entities blocked, 900k+ downloads. | Best model. Single trusted place to check, report, block, learn.    |
+| **1Lookup**                                                     | B2B API: phone/email/IP validation + fraud scoring ("50+ risk factors"), FCC/carrier data.                                                                       | Future B2B revenue path, not the consumer MVP.                      |
+| **Truecaller**                                                  | Caller ID, spam/scam alerts, reverse lookup; 450M+ users.                                                                                                        | Community caller reputation. We go deeper on Telegram + loan scams. |
+| **Hiya**                                                        | Voice intelligence, branded/verified calls, AI call screening.                                                                                                   | "Verified official number" layer for banks/operators.               |
+| **Robokiller / YouMail**                                        | Consumer call/SMS blocking, answer bots, reverse lookup.                                                                                                         | Auto-blocking is a later phase (Android first). MVP = check/report. |
+| **Norton Genie / Bitdefender Scamio / Malwarebytes Scam Guard** | AI scam detectors: paste text / screenshot / link / QR → verdict.                                                                                                | The "paste & get a verdict" UX — but localized to RU/UZ.            |
+| **Twilio Lookup / IPQualityScore**                              | Phone/email/IP/URL fraud-scoring APIs.                                                                                                                           | Enrichment sources for the risk engine later.                       |
 
 Sources: [ScamShield](https://www.scamshield.gov.sg/), [GovTech](https://www.tech.gov.sg/products-and-services/for-citizens/scam-prevention/scamshield), [1Lookup](https://www.1lookup.io/), [TrustMRR](https://trustmrr.com/startup/1lookup).
 

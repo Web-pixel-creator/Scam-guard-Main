@@ -127,7 +127,11 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
   // 6) Matching scam patterns — show "This looks like: ..." (Sprint 4)
   const matchingPatterns = findMatchingPatterns(result.reasons);
   if (matchingPatterns.length > 0) {
-    const patternTitle = { ru: "\u{1F4A1} \u041F\u043E\u0445\u043E\u0436\u0435 \u043D\u0430:", uz: "\u{1F4A1} Bunga o\u2018xshaydi:", en: "\u{1F4A1} Looks like:" }[lang];
+    const patternTitle = {
+      ru: "\u{1F4A1} \u041F\u043E\u0445\u043E\u0436\u0435 \u043D\u0430:",
+      uz: "\u{1F4A1} Bunga o\u2018xshaydi:",
+      en: "\u{1F4A1} Looks like:",
+    }[lang];
     const patternNames = matchingPatterns
       .slice(0, 3)
       .map((p) => "\u2022 " + escapeMarkdownV2(p.title[lang]))
