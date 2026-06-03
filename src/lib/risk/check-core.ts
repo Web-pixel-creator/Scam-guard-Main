@@ -240,6 +240,40 @@ function getAiConfig(): AiConfig | null {
   return { apiKey, baseUrl, model };
 }
 
+/** Optional fallback provider (used when primary is circuit-broken). */
+function getFallbackAiConfig(): AiConfig | null {
+  const fallbackUrl = process.env.OPENAI_FALLBACK_BASE_URL;
+  if (!fallbackUrl) return null;
+  const apiKey = process.env.OPENAI_FALLBACK_API_KEY ?? process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.OPENAI_FALLBACK_MODEL ?? DEFAULT_AI_MODEL;
+  return { apiKey, baseUrl: fallbackUrl.replace(/\/+$/, ""), model };
+}
+
+/** Low-level: call a specific AI config with timeout. */
+async function chatCompletionWith(cfg: AiConfig, messages: ChatMessage[], label: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({ model: cfg.model, messages }),
+      signal: controller.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      console.error(`AI ${label} error`, res.status);
+      return null;
+    }
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() ?? null;
+  } catch (e) {
+    console.error(`AI ${label} failed`, e instanceof Error ? e.message : "unknown");
+    return null;
+  }
+}
+
 /** Body shape accepted by the OpenAI-compatible Chat Completions API. */
 type ChatMessage =
   | { role: "system" | "user" | "assistant"; content: string }
@@ -292,7 +326,14 @@ function recordAiSuccess(): void {
 async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
-  if (isAiCircuitOpen()) return null;
+  if (isAiCircuitOpen()) {
+    // Primary is broken — try fallback provider if configured
+    const fallback = getFallbackAiConfig();
+    if (fallback) {
+      return chatCompletionWith(fallback, messages, label + "/fallback");
+    }
+    return null;
+  }
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
