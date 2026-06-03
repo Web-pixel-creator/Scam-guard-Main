@@ -195,9 +195,19 @@ export function evaluateText(text: string): ReasonCode[] {
 }
 
 const HOSTED_APP_DOMAINS = [
-  "lovable.app", "vercel.app", "netlify.app", "pages.dev",
-  "web.app", "github.io", "replit.app", "glitch.me", "railway.app",
-  "render.com", "fly.dev", "workers.dev", "surge.sh",
+  "lovable.app",
+  "vercel.app",
+  "netlify.app",
+  "pages.dev",
+  "web.app",
+  "github.io",
+  "replit.app",
+  "glitch.me",
+  "railway.app",
+  "render.com",
+  "fly.dev",
+  "workers.dev",
+  "surge.sh",
 ];
 
 export function evaluateUrl(url: string): ReasonCode[] {

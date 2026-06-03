@@ -81,6 +81,12 @@ const ALL_REASON_CODES = [
   "relative_in_distress",
   "requests_card_digits",
   "threatens_account_block",
+  "fake_delivery_payment",
+  "fake_boss_request",
+  "malicious_file_bait",
+  "impersonates_official",
+  "suspicious_invite_link",
+  "hosted_app_platform",
 ] as const satisfies readonly ReasonCode[];
 
 /** Generator for an arbitrary, valid RunCheckResult (see check-core.ts). */

@@ -103,7 +103,7 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
     }
   }
   // Deterministic fallback for hosted URLs without AI explanation
-  if (result.explanation === null && result.reasons.includes("hosted_app_platform" as any)) {
+  if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
     parts.push(escapeMarkdownV2(bt("hosted_platform_explanation", lang)));
   } else if (result.explanation !== null) {
     const title = t("ai_explanation", lang);
