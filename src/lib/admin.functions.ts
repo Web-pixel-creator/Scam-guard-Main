@@ -95,6 +95,18 @@ export const moderateReport = createServerFn({ method: "POST" })
         report_count: 1,
       });
     }
+    // Audit log: record who made the decision and why.
+    try {
+      await (supabaseAdmin as any).from("admin_actions").insert({
+        admin_user_id: context.userId,
+        action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
+        target_type: "report",
+        target_id: data.reportId,
+        reason: `risk_level: ${data.riskLevel}`,
+      });
+    } catch (e) {
+      console.error("audit log insert failed", e instanceof Error ? e.message : "");
+    }
     return { ok: true };
   });
 

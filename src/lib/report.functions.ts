@@ -23,6 +23,20 @@ export const submitReport = createServerFn({ method: "POST" })
     const description = redactText(data.description);
     const hash = await hashIdentifier(normalized);
 
+    // Report abuse protection: dedupe by hash + today (prevents spam/flooding).
+    // Same entity_hash on the same day = likely duplicate or abuse.
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const { data: existing } = await supabaseAdmin
+      .from("reports")
+      .select("id")
+      .eq("entity_hash", hash)
+      .gte("created_at", `${today}T00:00:00Z`)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      // Silently accept (don't reveal dedup to potential abuser) but don't insert.
+      return { ok: true };
+    }
+
     const { error } = await supabaseAdmin.from("reports").insert({
       entity_type: detected,
       entity_hash: hash,

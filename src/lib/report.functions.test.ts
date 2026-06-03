@@ -35,6 +35,13 @@ vi.mock("@/integrations/supabase/client.server", () => ({
             hoisted.reportRows.push(row);
             return { data: null, error: null };
           },
+          select: () => ({
+            eq: () => ({
+              gte: () => ({
+                limit: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          }),
         };
       }
 
