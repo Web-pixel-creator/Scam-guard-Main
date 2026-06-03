@@ -106,7 +106,7 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
  */
 async function showPanicMenu(ctx: HandlerCtx): Promise<void> {
   const { lang } = ctx.session;
-  const ids: PanicScenarioId[] = [1, 2, 3, 4, 5, 6];
+  const ids: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   // Two buttons per row for readability.
   const keyboard: InlineKeyboard = [];
   for (let i = 0; i < ids.length; i += 2) {
