@@ -251,7 +251,11 @@ function getFallbackAiConfig(): AiConfig | null {
 }
 
 /** Low-level: call a specific AI config with timeout. */
-async function chatCompletionWith(cfg: AiConfig, messages: ChatMessage[], label: string): Promise<string | null> {
+async function chatCompletionWith(
+  cfg: AiConfig,
+  messages: ChatMessage[],
+  label: string,
+): Promise<string | null> {
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -315,7 +319,9 @@ function recordAiFailure(): void {
   aiConsecutiveFailures++;
   if (aiConsecutiveFailures >= AI_CIRCUIT_THRESHOLD) {
     aiCircuitOpenUntil = Date.now() + AI_CIRCUIT_COOLDOWN_MS;
-    console.error(`AI circuit breaker OPEN — skipping AI for ${AI_CIRCUIT_COOLDOWN_MS / 1000}s after ${aiConsecutiveFailures} failures`);
+    console.error(
+      `AI circuit breaker OPEN — skipping AI for ${AI_CIRCUIT_COOLDOWN_MS / 1000}s after ${aiConsecutiveFailures} failures`,
+    );
   }
 }
 

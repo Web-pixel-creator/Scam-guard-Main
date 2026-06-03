@@ -3,6 +3,20 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+type AdminActionInsert = {
+  admin_user_id: string;
+  action: "confirm_report" | "reject_report";
+  target_type: "report";
+  target_id: string;
+  reason: string;
+};
+
+type AuditLogClient = {
+  from(table: "admin_actions"): {
+    insert(payload: AdminActionInsert): Promise<{ error: { message?: string } | null }>;
+  };
+};
+
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
     .from("user_roles")
@@ -97,7 +111,7 @@ export const moderateReport = createServerFn({ method: "POST" })
     }
     // Audit log: record who made the decision and why.
     try {
-      await (supabaseAdmin as any).from("admin_actions").insert({
+      await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
         admin_user_id: context.userId,
         action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
         target_type: "report",
