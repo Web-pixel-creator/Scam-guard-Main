@@ -127,6 +127,13 @@ export async function handleCallback(
   }
 
   // 4) "Почему я так решил?" — explain how the bot works (Sprint 3.5).
+  // 3c) "Share with family" — generate a short shareable text (Sprint 3.6).
+  if (data === "share_advice") {
+    const shareText = bt("share_advice_text", lang);
+    await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(shareText) });
+    return;
+  }
+
   if (data === CB.why) {
     await sendI18n(ctx.chatId, "why_explanation", lang);
     return;
