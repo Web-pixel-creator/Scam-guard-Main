@@ -2,9 +2,26 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, Check, X, LogOut, RefreshCcw, ArrowLeft } from "lucide-react";
+import {
+  Loader2,
+  ShieldCheck,
+  Check,
+  X,
+  LogOut,
+  RefreshCcw,
+  ArrowLeft,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { listReports, listEntities, moderateReport, adminStats } from "@/lib/admin.functions";
+import {
+  listReports,
+  listEntities,
+  moderateReport,
+  adminStats,
+  getEntityCheck,
+} from "@/lib/admin.functions";
+import { ReasonTimeline } from "@/components/ReasonTimeline";
+import type { ReasonCode, RiskLevel } from "@/lib/risk/rules";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -247,23 +264,7 @@ function AdminPage() {
             </thead>
             <tbody>
               {entities.data?.map((e) => (
-                <tr
-                  key={e.id}
-                  className="border-b border-[#E2E0D8] last:border-0 hover:bg-[#FCFBF7] transition-colors"
-                >
-                  <td className="py-3 px-2 sm:px-3 apex-mono uppercase">{e.entity_type}</td>
-                  <td className="py-3 px-2 sm:px-3 font-mono text-[#18181B] break-all">
-                    {e.display_mask}
-                  </td>
-                  <td className="py-3 px-2 sm:px-3 tabular-nums">{e.report_count}</td>
-                  <td className="py-3 px-2 sm:px-3 apex-mono">{e.risk_level}</td>
-                  <td className="py-3 px-2 sm:px-3 apex-mono">
-                    {labelStatus(e.moderation_status)}
-                  </td>
-                  <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA]">
-                    {new Date(e.last_seen_at).toLocaleString()}
-                  </td>
-                </tr>
+                <EntityRow key={e.id} entity={e} />
               ))}
             </tbody>
           </table>
@@ -282,6 +283,76 @@ function AdminPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+/** Expandable entity row with ReasonTimeline from the latest check. */
+function EntityRow({
+  entity,
+}: {
+  entity: {
+    id: string;
+    entity_type: string;
+    display_mask: string;
+    report_count: number;
+    risk_level: string;
+    moderation_status: string;
+    last_seen_at: string;
+    entity_hash?: string;
+  };
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const getCheckFn = useServerFn(getEntityCheck);
+  const check = useQuery({
+    queryKey: ["entity-check", entity.id],
+    enabled: expanded && !!entity.entity_hash,
+    queryFn: () => getCheckFn({ data: { entityHash: entity.entity_hash! } }),
+  });
+
+  return (
+    <>
+      <tr
+        className="border-b border-[#E2E0D8] last:border-0 hover:bg-[#FCFBF7] transition-colors cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <td className="py-3 px-2 sm:px-3 apex-mono uppercase">{entity.entity_type}</td>
+        <td className="py-3 px-2 sm:px-3 font-mono text-[#18181B] break-all">
+          {entity.display_mask}
+        </td>
+        <td className="py-3 px-2 sm:px-3 tabular-nums">{entity.report_count}</td>
+        <td className="py-3 px-2 sm:px-3 apex-mono">{entity.risk_level}</td>
+        <td className="py-3 px-2 sm:px-3 apex-mono">{labelStatus(entity.moderation_status)}</td>
+        <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA] flex items-center gap-1">
+          {new Date(entity.last_seen_at).toLocaleString()}
+          <ChevronDown
+            className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-b border-[#E2E0D8]">
+          <td colSpan={6} className="p-4">
+            {check.isLoading && (
+              <p className="apex-mono text-[#71717A] flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> Загрузка…
+              </p>
+            )}
+            {check.data && (
+              <ReasonTimeline
+                reasonCodes={(check.data.reason_codes ?? []) as ReasonCode[]}
+                riskLevel={(check.data.risk_level ?? "unknown") as RiskLevel}
+                score={check.data.risk_score ?? 0}
+                hasAiExplanation={!!check.data.ai_explanation}
+              />
+            )}
+            {!check.isLoading && !check.data && (
+              <p className="apex-mono text-[#A1A1AA]">Нет проверок для этой сущности</p>
+            )}
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
