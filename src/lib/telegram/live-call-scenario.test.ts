@@ -16,27 +16,26 @@ const LANGS: Lang[] = ["ru", "uz", "en"];
 
 describe("live-call scenario 6 — first message tells user to end the call", () => {
   describe("scenario 6 text starts with instruction to end the call", () => {
-    it("[ru] first step starts with 'ЗАВЕРШИТЕ ЗВОНОК'", () => {
+    it("[ru] first step contains 'ЗАВЕРШИТЕ ЗВОНОК'", () => {
       const text = buildPanicScenarioText(6, "ru");
-      // The first content line after the title is the uppercase action
+      // The first content line after the title is the uppercase action (may have ⚡ prefix)
       const lines = text.split("\n");
-      // Line 0 = title ("6️⃣ Подозрительный звонок"), line 1 = empty, line 2 = first step
       const firstStep = lines[2];
-      expect(firstStep).toMatch(/^ЗАВЕРШИТЕ ЗВОНОК/);
+      expect(firstStep).toMatch(/ЗАВЕРШИТЕ ЗВОНОК/);
     });
 
-    it("[uz] first step starts with 'QO'NG'IROQNI TUGATING'", () => {
+    it("[uz] first step contains 'QO'NG'IROQNI TUGATING'", () => {
       const text = buildPanicScenarioText(6, "uz");
       const lines = text.split("\n");
       const firstStep = lines[2];
-      expect(firstStep).toMatch(/^QO'NG'IROQNI TUGATING/);
+      expect(firstStep).toMatch(/QO'NG'IROQNI TUGATING/);
     });
 
-    it("[en] first step starts with 'HANG UP'", () => {
+    it("[en] first step contains 'HANG UP'", () => {
       const text = buildPanicScenarioText(6, "en");
       const lines = text.split("\n");
       const firstStep = lines[2];
-      expect(firstStep).toMatch(/^HANG UP/);
+      expect(firstStep).toMatch(/HANG UP/);
     });
   });
 
