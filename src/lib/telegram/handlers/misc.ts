@@ -155,10 +155,13 @@ export async function handleCallback(
     return;
   }
 
-  // 4b) «Я уже отправил код/деньги» (Emergency) — send the checklist (R20.1/R20.3).
+  // 4b) «Я уже отправил код/деньги» (Emergency) — show the panic menu with scenario selection.
+  // Previously sent the full emergency text but it exceeds Telegram's 4096 char limit.
+  // Now opens the paginated panic menu (same as /panic command).
   if (data === CB.emergency) {
-    // formatEmergencyChecklist already returns MarkdownV2-escaped text.
-    await sendMessage({ chatId: ctx.chatId, text: formatEmergencyChecklist(lang) });
+    const menuText = escapeMarkdownV2(buildPanicMenuText(lang));
+    const keyboard = buildPanicKeyboardPage1(lang);
+    await sendMessage({ chatId: ctx.chatId, text: menuText, keyboard });
     return;
   }
 
