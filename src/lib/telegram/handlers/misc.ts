@@ -33,10 +33,21 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase). Never
 // import into the client bundle.
-import { sendMessage, answerCallbackQuery, escapeMarkdownV2 } from "@/lib/telegram/api.server";
+import {
+  sendMessage,
+  editMessageText,
+  answerCallbackQuery,
+  escapeMarkdownV2,
+} from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
-import { parsePanicCallback, buildPanicScenarioText } from "@/lib/telegram/emergency";
+import {
+  parsePanicCallback,
+  buildPanicScenarioText,
+  buildPanicKeyboardPage1,
+  buildPanicKeyboardPage2,
+  buildPanicMenuText,
+} from "@/lib/telegram/emergency";
 import {
   parseLiveCallCallback,
   LIVE_CALL_CB_PREFIX,
@@ -48,7 +59,7 @@ import type { Lang } from "@/lib/i18n";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
-type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say";
+type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say" | "live_call_tell_family";
 
 /** Parse a "lang:<code>" callback into a supported `Lang`, or `null`. */
 function parseLangCallback(data: string): Lang | null {
@@ -151,7 +162,48 @@ export async function handleCallback(
     return;
   }
 
-  // 5) Panic scenario button — "panic:1" through "panic:10".
+  // 5) Panic menu pagination — "panic:more" / "panic:back".
+  if (data === "panic:more") {
+    const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
+    const keyboard = buildPanicKeyboardPage2(lang);
+    if (ctx.messageId) {
+      const editResult = await editMessageText({
+        chatId: ctx.chatId,
+        messageId: ctx.messageId,
+        text: pageText,
+        keyboard,
+      });
+      if (!editResult.ok) {
+        // Graceful degradation: send as new message if edit fails.
+        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+      }
+    } else {
+      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+    }
+    return;
+  }
+
+  if (data === "panic:back") {
+    const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
+    const keyboard = buildPanicKeyboardPage1(lang);
+    if (ctx.messageId) {
+      const editResult = await editMessageText({
+        chatId: ctx.chatId,
+        messageId: ctx.messageId,
+        text: pageText,
+        keyboard,
+      });
+      if (!editResult.ok) {
+        // Graceful degradation: send as new message if edit fails.
+        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+      }
+    } else {
+      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+    }
+    return;
+  }
+
+  // 5b) Panic scenario button — "panic:1" through "panic:10".
   const panicId = parsePanicCallback(data);
   if (panicId !== null) {
     // Scenario 6 ("on a call") → show interactive live-call copilot with buttons
@@ -188,6 +240,7 @@ export async function handleCallback(
       });
       return;
     }
+    // Send scenario text as a NEW message (not edit) to preserve the menu for further interaction.
     const scenarioText = buildPanicScenarioText(panicId, lang);
     await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
     return;
@@ -217,8 +270,8 @@ export async function handleCallback(
         return;
       }
       case "tell_family":
-        responseKey = "live_call_hangup";
-        break; // For MVP, same as hangup advice
+        responseKey = "live_call_tell_family";
+        break;
       default:
         return;
     }
