@@ -150,3 +150,20 @@ export const adminStats = createServerFn({ method: "POST" })
       checks_total: checksTotal.count ?? 0,
     };
   });
+
+/** Fetch the latest check for an entity (by hash) — used by ReasonTimeline in admin. */
+export const getEntityCheck = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ entityHash: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: row, error } = await supabaseAdmin
+      .from("checks")
+      .select("risk_level, risk_score, reason_codes, ai_explanation, created_at")
+      .eq("input_hash", data.entityHash)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row ?? null;
+  });

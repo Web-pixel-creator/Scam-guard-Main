@@ -100,6 +100,7 @@ vi.mock("@/lib/report.functions", () => ({
     h.submitCalls.push(arg);
     return h.submitImpl.current(arg);
   },
+  checkReportRateLimit: () => ({ ok: true, retryAfterSec: 0 }),
 }));
 
 import { startReport, handleScenarioStep, handleReportSkip, REPORT_SKIP_CALLBACK } from "./report";

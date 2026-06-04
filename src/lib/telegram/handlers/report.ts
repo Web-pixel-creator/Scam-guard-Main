@@ -35,7 +35,7 @@ import { sendMessage, escapeMarkdownV2, type InlineKeyboard } from "@/lib/telegr
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
-import { submitReport } from "@/lib/report.functions";
+import { submitReport, checkReportRateLimit } from "@/lib/report.functions";
 import type { Lang } from "@/lib/i18n";
 
 // ── Limits (mirror reportSchema in report.functions.ts) ─────────────────────
@@ -232,6 +232,17 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
   }
 
   try {
+    // Rate-limit: 3 reports / 10 min per Telegram user.
+    const rl = checkReportRateLimit(ctx.userId);
+    if (!rl.ok) {
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(bt("rate_limited", lang, { seconds: rl.retryAfterSec })),
+      });
+      await resetScenario(ctx.userId);
+      return;
+    }
+
     // submitReport is the existing server function (createServerFn). Calling it
     // server-side runs its handler, which performs the moderated upsert into
     // `entities` (moderation_status='new', R9.1) — we do NOT bypass it (R9.3).
