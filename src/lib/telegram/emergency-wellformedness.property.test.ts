@@ -71,33 +71,29 @@ function startsWithUppercase(line: string): boolean {
 describe("Emergency text — Property 4: Emergency text well-formedness", () => {
   it("satisfies well-formedness constraints for all scenarios × langs (fast-check, ≥100 iterations)", () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...SCENARIO_IDS),
-        fc.constantFrom(...LANGS),
-        (id, lang) => {
-          const text = buildPanicScenarioText(id, lang);
+      fc.property(fc.constantFrom(...SCENARIO_IDS), fc.constantFrom(...LANGS), (id, lang) => {
+        const text = buildPanicScenarioText(id, lang);
 
-          // (1) ≤1500 characters
-          expect(text.length).toBeLessThanOrEqual(1500);
+        // (1) ≤1500 characters
+        expect(text.length).toBeLessThanOrEqual(1500);
 
-          // (2) First content line starts with uppercase action word
-          const firstContent = getFirstContentLine(text);
-          expect(
-            firstContent.length,
-            `Scenario ${id} (${lang}): first content line should not be empty`,
-          ).toBeGreaterThan(0);
-          expect(
-            startsWithUppercase(firstContent),
-            `Scenario ${id} (${lang}): first content line "${firstContent}" must start with an uppercase letter`,
-          ).toBe(true);
+        // (2) First content line starts with uppercase action word
+        const firstContent = getFirstContentLine(text);
+        expect(
+          firstContent.length,
+          `Scenario ${id} (${lang}): first content line should not be empty`,
+        ).toBeGreaterThan(0);
+        expect(
+          startsWithUppercase(firstContent),
+          `Scenario ${id} (${lang}): first content line "${firstContent}" must start with an uppercase letter`,
+        ).toBe(true);
 
-          // (3) Contains at least one phone/short-code from VERIFIED_CONTACTS
-          expect(
-            containsVerifiedContact(text),
-            `Scenario ${id} (${lang}): text must contain at least one verified contact number`,
-          ).toBe(true);
-        },
-      ),
+        // (3) Contains at least one phone/short-code from VERIFIED_CONTACTS
+        expect(
+          containsVerifiedContact(text),
+          `Scenario ${id} (${lang}): text must contain at least one verified contact number`,
+        ).toBe(true);
+      }),
       { numRuns: 100 },
     );
   });

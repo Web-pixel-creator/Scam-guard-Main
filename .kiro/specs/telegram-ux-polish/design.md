@@ -8,7 +8,7 @@ This design covers five independent UX improvements to the Ishonch Guard Telegra
 
 This feature delivers five independent improvements to the Ishonch Guard Telegram bot. Each maps to its own module or modification, with no cross-dependencies between the five changes:
 
-1. **Command Menu Localization** — new script `scripts/register-telegram-commands.ts`
+1. **Command Menu Localization** — refactored script `scripts/set-bot-commands.ts`
 2. **Why_Explanation Rewrite** — text update in `src/lib/telegram/bot-i18n.ts`
 3. **Card Number Detector Fix** — logic change in `src/lib/risk/detect.ts` (`redactText`)
 4. **Panic Menu Pagination** — handler change in `src/lib/telegram/handlers/misc.ts` + `commands.ts`
@@ -20,12 +20,12 @@ All changes remain server-side (no client bundle impact). The existing TypeScrip
 
 ## Components and Interfaces
 
-### 1. setMyCommands Script (`scripts/register-telegram-commands.ts`)
+### 1. setMyCommands Script (`scripts/set-bot-commands.ts`)
 
 A standalone one-shot script (same pattern as `register-telegram-webhook.ts`) that calls the Telegram Bot API `setMyCommands` method for each supported language.
 
 ```typescript
-// scripts/register-telegram-commands.ts
+// scripts/set-bot-commands.ts
 
 interface CommandPayload {
   commands: { command: string; description: string }[];
@@ -40,6 +40,7 @@ async function main(): Promise<void>;
 ```
 
 **Behavior:**
+
 - Reads bot token via `getTelegramBotToken()` (same accessor as webhook script)
 - Builds 4 payloads: one per lang (`ru`, `uz`, `en`) + one default (no `language_code`)
 - Registered commands: `start`, `check`, `report`, `panic`, `safety`, `lang`
@@ -49,6 +50,7 @@ async function main(): Promise<void>;
 ### 2. Why_Explanation Rewrite (`src/lib/telegram/bot-i18n.ts`)
 
 The `why_explanation` entry in `bot_dict` is rewritten to:
+
 - Remove all numeric weights, thresholds ("≥ 50", "≥ 20"), and technical terms
 - Use a numbered list of ≤5 plain-language steps
 - Preserve the 🔒 privacy note at the end
@@ -66,7 +68,7 @@ The existing `redactText` function's `CARD_RE` logic is replaced with a context-
 /** Context words that signal a digit sequence is likely a card number */
 export const CARD_CONTEXT_WORDS: string[];
 
-/** 
+/**
  * Determine if a 13-19 digit sequence should be treated as a card number.
  * Returns true if:
  *   - The sequence is exactly 16 digits and passes the Luhn check, OR
@@ -76,7 +78,7 @@ export function shouldRedactAsCard(
   digitSequence: string,
   surroundingText: string,
   matchStart: number,
-  matchEnd: number
+  matchEnd: number,
 ): boolean;
 
 /**
@@ -87,11 +89,13 @@ export function luhnCheck(digits: string): boolean;
 ```
 
 **CARD_CONTEXT_WORDS** includes (case-insensitive):
+
 - Russian: карта, карту, банк, пин
 - Uzbek: karta, bank, pin
 - English: card, bank, cvv, cvc, pin
 
 **redactText changes:**
+
 - `CARD_RE` match → call `shouldRedactAsCard` with surrounding text context
 - If `shouldRedactAsCard` returns false → leave digits unredacted
 - Phone and OTP patterns remain unchanged (applied before card logic)
@@ -111,14 +115,17 @@ export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard;
 ```
 
 **Page 1 layout** (shown on `/panic`):
+
 - 6 scenario buttons (IDs 1–6), 2 per row
 - 1 "Другие ситуации" / "Boshqa vaziyatlar" / "Other situations" button
 
 **Page 2 layout** (shown on "more" tap):
+
 - 4 scenario buttons (IDs 7–10), 2 per row
 - 1 "← Назад" / "← Orqaga" / "← Back" button
 
 **Interaction model:**
+
 - `/panic` → `sendMessage` with page 1
 - "panic:more" → `editMessageText` on the original message → page 2
 - "panic:back" → `editMessageText` → page 1
@@ -152,6 +159,7 @@ export interface HandlerCtx {
 ### 5. Emergency Text Shortening (`src/lib/telegram/emergency.ts`)
 
 Each scenario's `steps` arrays are shortened to keep per-scenario output ≤1500 characters per lang. The structure remains the same (`buildPanicScenarioText`), but:
+
 - Each scenario starts with the most critical action in UPPERCASE
 - Filler phrases and redundant reminders are removed
 - The disclaimer is shortened
@@ -165,6 +173,7 @@ No interface changes — same `buildPanicScenarioText(id, lang)` signature.
 No new database tables or persistent storage. All changes are in-memory text generation and Telegram API payloads.
 
 **Command payload structure** (for Telegram `setMyCommands`):
+
 ```typescript
 interface TelegramSetMyCommandsBody {
   commands: Array<{ command: string; description: string }>;
@@ -177,23 +186,24 @@ interface TelegramSetMyCommandsBody {
 
 ## Error Handling
 
-| Component | Error Condition | Handling |
-|-----------|----------------|----------|
-| setMyCommands script | Missing bot token | `process.exit(1)` with error message (no secret values logged) |
-| setMyCommands script | API call failure | Print error, exit non-zero |
-| editMessageText | Network/API error | Return `{ ok: false }`, no throw (same as sendMessage) |
-| redactText | Malformed input | Graceful fallback: if regex processing fails, return original text |
-| Panic pagination | Unknown callback_data | Acknowledge callback (clear spinner), no action |
+| Component            | Error Condition       | Handling                                                           |
+| -------------------- | --------------------- | ------------------------------------------------------------------ |
+| setMyCommands script | Missing bot token     | `process.exit(1)` with error message (no secret values logged)     |
+| setMyCommands script | API call failure      | Print error, exit non-zero                                         |
+| editMessageText      | Network/API error     | Return `{ ok: false }`, no throw (same as sendMessage)             |
+| redactText           | Malformed input       | Graceful fallback: if regex processing fails, return original text |
+| Panic pagination     | Unknown callback_data | Acknowledge callback (clear spinner), no action                    |
 
 ---
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Why_Explanation well-formedness
 
-*For any* supported language (ru, uz, en), the `why_explanation` text in `bot_dict` SHALL:
+_For any_ supported language (ru, uz, en), the `why_explanation` text in `bot_dict` SHALL:
+
 - contain no more than 800 characters,
 - contain no numeric weight/threshold patterns (e.g., digits followed by "=", "≥" prefix),
 - have at most 5 numbered list items,
@@ -203,19 +213,20 @@ interface TelegramSetMyCommandsBody {
 
 ### Property 2: Context-word gated card redaction
 
-*For any* string containing a sequence of 13–19 digits (with optional space/dash separators) that does NOT pass the Luhn-16 check, the `redactText` function SHALL redact that sequence if and only if at least one context word from `CARD_CONTEXT_WORDS` appears within 120 characters of the digit sequence.
+_For any_ string containing a sequence of 13–19 digits (with optional space/dash separators) that does NOT pass the Luhn-16 check, the `redactText` function SHALL redact that sequence if and only if at least one context word from `CARD_CONTEXT_WORDS` appears within 120 characters of the digit sequence.
 
 **Validates: Requirements 3.1, 3.2, 3.3, 5.6**
 
 ### Property 3: Luhn-16 unconditional redaction
 
-*For any* string containing a 16-digit sequence that passes the Luhn checksum, the `redactText` function SHALL redact that sequence regardless of whether any context word is present in the surrounding text.
+_For any_ string containing a 16-digit sequence that passes the Luhn checksum, the `redactText` function SHALL redact that sequence regardless of whether any context word is present in the surrounding text.
 
 **Validates: Requirements 3.4, 5.6**
 
 ### Property 4: Emergency text well-formedness
 
-*For any* panic scenario ID (1–10) and *for any* supported language (ru, uz, en), the output of `buildPanicScenarioText(id, lang)` SHALL:
+_For any_ panic scenario ID (1–10) and _for any_ supported language (ru, uz, en), the output of `buildPanicScenarioText(id, lang)` SHALL:
+
 - not exceed 1500 characters in length,
 - begin its first content line (after the title) with an uppercase word or phrase signaling the most important action,
 - contain at least one phone number or short code that exists in the `VERIFIED_CONTACTS` array.
@@ -224,7 +235,7 @@ interface TelegramSetMyCommandsBody {
 
 ### Property 5: Phone and OTP redaction invariance
 
-*For any* string containing a phone number pattern (7+ digits with international prefix) or an OTP pattern (4-8 consecutive digits), applying the updated `redactText` function SHALL still redact those patterns identically to the prior behavior — the card-detection changes do not alter phone/OTP masking.
+_For any_ string containing a phone number pattern (7+ digits with international prefix) or an OTP pattern (4-8 consecutive digits), applying the updated `redactText` function SHALL still redact those patterns identically to the prior behavior — the card-detection changes do not alter phone/OTP masking.
 
 **Validates: Requirements 3.5**
 
@@ -233,12 +244,14 @@ interface TelegramSetMyCommandsBody {
 ## Testing Strategy
 
 **Unit tests** (Vitest):
+
 - setMyCommands payload generation: verify 4 payloads with correct structure per lang
 - Panic menu keyboard structure: verify page 1 has 7 buttons, page 2 has 5 buttons
 - editMessageText integration: verify callback routing for "panic:more" and "panic:back"
 - Scenario 6 live-call header text verification
 
 **Property-based tests** (fast-check + Vitest):
+
 - Property 1: Why_Explanation well-formedness — iterate over all 3 langs
 - Property 2: Context-word gated card redaction — generate random digit sequences (13-19 digits) with/without context words at varying distances
 - Property 3: Luhn-16 unconditional redaction — generate Luhn-valid 16-digit sequences in arbitrary surrounding text

@@ -33,7 +33,12 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase). Never
 // import into the client bundle.
-import { sendMessage, editMessageText, answerCallbackQuery, escapeMarkdownV2 } from "@/lib/telegram/api.server";
+import {
+  sendMessage,
+  editMessageText,
+  answerCallbackQuery,
+  escapeMarkdownV2,
+} from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
 import {
@@ -54,7 +59,7 @@ import type { Lang } from "@/lib/i18n";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
-type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say";
+type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say" | "live_call_tell_family";
 
 /** Parse a "lang:<code>" callback into a supported `Lang`, or `null`. */
 function parseLangCallback(data: string): Lang | null {
@@ -265,8 +270,8 @@ export async function handleCallback(
         return;
       }
       case "tell_family":
-        responseKey = "live_call_hangup";
-        break; // For MVP, same as hangup advice
+        responseKey = "live_call_tell_family";
+        break;
       default:
         return;
     }

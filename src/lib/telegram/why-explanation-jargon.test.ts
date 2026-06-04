@@ -30,10 +30,9 @@ describe("why_explanation — no technical jargon", () => {
       const text = bot_dict.why_explanation[lang];
 
       for (const pattern of FORBIDDEN_PATTERNS) {
-        expect(
-          text,
-          `Found jargon pattern ${pattern} in [${lang}] why_explanation`,
-        ).not.toMatch(pattern);
+        expect(text, `Found jargon pattern ${pattern} in [${lang}] why_explanation`).not.toMatch(
+          pattern,
+        );
       }
     });
   }

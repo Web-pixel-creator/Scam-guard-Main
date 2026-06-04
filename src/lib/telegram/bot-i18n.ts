@@ -296,7 +296,7 @@ export const bot_dict: BotDict = {
   live_call_header: {
     ru: "📞 Завершите звонок. Скажите: «Я сам перезвоню по официальному номеру.»",
     uz: "📞 Qo'ng'iroqni tugating. Ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
-    en: "📞 End the call. Say: \"I'll call back on the official number myself.\"",
+    en: '📞 End the call. Say: "I\'ll call back on the official number myself."',
   },
   live_call_hangup: {
     ru: "🛑 Не называйте SMS-код, PIN, CVV, пароль.\nЕсли давят «не кладите трубку» — это мошенничество.\n\nПеревоните в банк сами по официальному номеру.",
@@ -307,6 +307,11 @@ export const bot_dict: BotDict = {
     ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C:\n\n\u00AB\u042F \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u043C\u043E\u0433\u0443 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C. \u042F \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u044E \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C.\u00BB\n\n\u0418 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443. \u041D\u0435 \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0439\u0442\u0435, \u043D\u0435 \u0441\u043F\u043E\u0440\u044C\u0442\u0435.",
     uz: "\u{1F4AC} Nima deyish kerak:\n\n\u00ABHozir gaplasha olmayman. Bankka o'zim qo'ng'iroq qilaman.\u00BB\n\nVa go'shakni qo'ying. Tushuntirmang, tortishmang.",
     en: "\u{1F4AC} What to say:\n\n\u201CI can't talk right now. I'll call the bank myself.\u201D\n\nAnd hang up. Don't explain, don't argue.",
+  },
+  live_call_tell_family: {
+    ru: "👪 Сообщите близкому: «Мне звонили от имени банка/службы поддержки и просили код, деньги или приложение. Пожалуйста, помоги мне проверить это».\n\nНе пересылайте SMS-код, PIN, CVV или пароль. Достаточно описать ситуацию.",
+    uz: "👪 Yaqiningizga yozing: «Menga bank/yordam xizmati nomidan qo'ng'iroq qilishdi va kod, pul yoki ilova so'rashdi. Iltimos, buni tekshirishga yordam ber».\n\nSMS-kod, PIN, CVV yoki parolni yubormang. Faqat vaziyatni tushuntiring.",
+    en: '👪 Tell a trusted person: "Someone called claiming to be a bank/support service and asked for a code, money or an app. Please help me check this."\n\nDo not forward SMS codes, PINs, CVVs or passwords. Describe the situation only.',
   },
   btn_live_hangup: {
     ru: "✅ Я положил трубку",
@@ -343,7 +348,7 @@ export const bot_dict: BotDict = {
   why_explanation: {
     ru: "🧠 *Как я проверяю*\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком в Telegram или звонят с неизвестного номера\n5\uFE0F\u20E3 Просят перевести деньги на «безопасный счёт» или по ссылке\n\nЕсли таких признаков нет — я пишу «недостаточно данных».\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
     uz: "🧠 *Qanday tekshiraman*\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Telegramda bank nomidan yozadi yoki noma'lum raqamdan qo'ng'iroq qiladi\n5\uFE0F\u20E3 «Xavfsiz hisob»ga yoki havola orqali pul o'tkazishni so'raydi\n\nAgar bunday belgilar topilmasa — «ma'lumot yetarli emas» deb yozaman.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",
-    en: "🧠 *How I check*\n\nI don't guess and I don't call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a \"secure app\"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying \"don't hang up\"\n4\uFE0F\u20E3 Claiming to be a bank via Telegram or calling from an unknown number\n5\uFE0F\u20E3 Asking you to transfer money to a \"safe account\" or via a link\n\nIf none of these signs are found, I say \"not enough data.\"\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.",
+    en: '🧠 *How I check*\n\nI don\'t guess and I don\'t call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a "secure app"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying "don\'t hang up"\n4\uFE0F\u20E3 Claiming to be a bank via Telegram or calling from an unknown number\n5\uFE0F\u20E3 Asking you to transfer money to a "safe account" or via a link\n\nIf none of these signs are found, I say "not enough data."\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.',
   },
 
   // ── Share advice + elder hints (Sprint 3.3 / 3.6) ────────────────────────

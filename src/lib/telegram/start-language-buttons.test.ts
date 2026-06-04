@@ -39,22 +39,19 @@ describe("/start inline language buttons", () => {
     },
   );
 
-  it.each(LANGS)(
-    "formatWelcome(%s) language buttons have non-empty text labels",
-    (lang) => {
-      const { keyboard } = formatWelcome(lang);
+  it.each(LANGS)("formatWelcome(%s) language buttons have non-empty text labels", (lang) => {
+    const { keyboard } = formatWelcome(lang);
 
-      const langRow = keyboard.find((row) =>
-        row.some((btn) => btn.callback_data.startsWith("lang:")),
-      );
-      expect(langRow).toBeDefined();
+    const langRow = keyboard.find((row) =>
+      row.some((btn) => btn.callback_data.startsWith("lang:")),
+    );
+    expect(langRow).toBeDefined();
 
-      // Every button in the language row must have non-empty text
-      for (const btn of langRow!) {
-        expect(btn.text.trim().length).toBeGreaterThan(0);
-      }
-    },
-  );
+    // Every button in the language row must have non-empty text
+    for (const btn of langRow!) {
+      expect(btn.text.trim().length).toBeGreaterThan(0);
+    }
+  });
 
   it("formatWelcome returns text content (welcome message is not empty)", () => {
     for (const lang of LANGS) {
@@ -73,11 +70,7 @@ describe("/start inline language buttons", () => {
       // First row should be the language selection row
       const firstRow = keyboard[0];
       expect(firstRow.length).toBe(3); // exactly 3 language buttons
-      expect(firstRow.map((btn) => btn.callback_data)).toEqual([
-        "lang:ru",
-        "lang:uz",
-        "lang:en",
-      ]);
+      expect(firstRow.map((btn) => btn.callback_data)).toEqual(["lang:ru", "lang:uz", "lang:en"]);
     }
   });
 });

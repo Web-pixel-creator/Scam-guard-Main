@@ -70,7 +70,9 @@ export const telegramUpdateSchema = z
       .object({
         id: z.string(),
         from: z.object({ id: z.number() }),
-        message: z.object({ chat: z.object({ id: z.number() }), message_id: z.number().optional() }).optional(),
+        message: z
+          .object({ chat: z.object({ id: z.number() }), message_id: z.number().optional() })
+          .optional(),
         data: z.string(),
       })
       .optional(),

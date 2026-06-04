@@ -17,9 +17,12 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Stub fetch so the script's top-level main() does not hit the network.
-vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-  json: () => Promise.resolve({ ok: true }),
-}));
+vi.stubGlobal(
+  "fetch",
+  vi.fn().mockResolvedValue({
+    json: () => Promise.resolve({ ok: true }),
+  }),
+);
 
 import { buildCommandPayloads, type CommandPayload } from "../../../scripts/set-bot-commands";
 
