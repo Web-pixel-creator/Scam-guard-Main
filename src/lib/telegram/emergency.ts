@@ -16,6 +16,7 @@
 // save evidence → report.
 
 import type { Lang } from "@/lib/i18n";
+import type { InlineKeyboard } from "@/lib/telegram/api.server";
 import { VERIFIED_CONTACTS, type VerifiedContact } from "@/lib/risk/verified-contacts";
 
 // ── Contact helpers ─────────────────────────────────────────────────────────
@@ -61,9 +62,9 @@ const TITLES: Record<Lang, string> = {
 };
 
 const DISCLAIMER: Record<Lang, string> = {
-  ru: "⚠️ Ishonch Guard помогает сориентироваться, но не заменяет банк или правоохранительные органы. Для официальных действий обращайтесь напрямую.",
-  uz: "⚠️ Ishonch Guard yo'l-yo'riq beradi, lekin bank yoki huquq-tartibot organlarini almashtirmaydi. Rasmiy harakatlar uchun to'g'ridan-to'g'ri murojaat qiling.",
-  en: "⚠️ Ishonch Guard helps you orient, but does not replace banks or law enforcement. For official action, contact them directly.",
+  ru: "⚠️ Ishonch Guard помогает сориентироваться, но не заменяет банк или правоохранительные органы.",
+  uz: "⚠️ Ishonch Guard yo'l-yo'riq beradi, lekin bank yoki huquq-tartibot organlarini almashtirmaydi.",
+  en: "⚠️ Ishonch Guard helps you orient, but does not replace banks or law enforcement.",
 };
 
 interface Scenario {
@@ -79,6 +80,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
   const cyberLine = (lang: Lang) => (contacts.cyber ? fmtContact(contacts.cyber, lang) : "");
 
   return [
+    // ─── Scenario 1: SMS-code / OTP ───────────────────────────────────────
     {
       title: {
         ru: "1️⃣ Я отправил SMS-код / OTP",
@@ -87,34 +89,47 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "Немедленно позвоните в банк и заблокируйте карту/онлайн-банк:",
+          "ПОЗВОНИТЕ В БАНК И ЗАБЛОКИРУЙТЕ КАРТУ",
+          "",
+          "Что сделать сейчас:",
+          "1. Заблокируйте карту и онлайн-банк.",
+          "2. Смените пароль онлайн-банка и Telegram.",
+          "3. Не переходите по ссылкам из новых сообщений.",
+          `4. Сохраните скриншоты и подайте заявление: ${policeLine("ru")}`,
+          "",
+          "Контакты:",
           bankList("ru"),
           paymentList("ru"),
-          "Смените пароль от онлайн-банка и Telegram.",
-          "Не переходите по ссылкам из сообщений, которые придут после.",
-          `Подайте заявление: ${policeLine("ru")}`,
-          "Сохраните скриншоты как доказательства.",
         ],
         uz: [
-          "Darhol bankka qo'ng'iroq qilib, karta/onlayn-bankni bloklang:",
+          "BANKKA QO'NG'IROQ QILIB, KARTANI BLOKLANG",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Karta va onlayn-bankni bloklang.",
+          "2. Onlayn-bank va Telegram parolini o'zgartiring.",
+          "3. Yangi xabarlardagi havolalarga o'tmang.",
+          `4. Skrinshotlarni saqlang va ariza bering: ${policeLine("uz")}`,
+          "",
+          "Kontaktlar:",
           bankList("uz"),
           paymentList("uz"),
-          "Onlayn-bank va Telegram parolini o'zgartiring.",
-          "Keyin kelgan xabarlardagi havolalarga o'tmang.",
-          `Ariza bering: ${policeLine("uz")}`,
-          "Skrinshotlarni dalil sifatida saqlang.",
         ],
         en: [
-          "Immediately call your bank and block the card/online banking:",
+          "CALL YOUR BANK AND BLOCK THE CARD",
+          "",
+          "What to do now:",
+          "1. Block your card and online banking.",
+          "2. Change your online banking and Telegram passwords.",
+          "3. Do not click links in new messages.",
+          `4. Save screenshots and file a report: ${policeLine("en")}`,
+          "",
+          "Contacts:",
           bankList("en"),
           paymentList("en"),
-          "Change your online banking and Telegram passwords.",
-          "Do not click links in follow-up messages.",
-          `File a report: ${policeLine("en")}`,
-          "Save screenshots as evidence.",
         ],
       },
     },
+    // ─── Scenario 2: Installed APK ────────────────────────────────────────
     {
       title: {
         ru: "2️⃣ Я установил APK / приложение",
@@ -123,34 +138,47 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "Включите авиарежим СЕЙЧАС (отключит удалённый доступ).",
-          "Удалите подозрительное приложение.",
-          "Заблокируйте карты через банк:",
+          "ВКЛЮЧИТЕ АВИАРЕЖИМ ПРЯМО СЕЙЧАС",
+          "",
+          "Что сделать сейчас:",
+          "1. Удалите подозрительное приложение.",
+          "2. Заблокируйте карты через банк.",
+          "3. Смените все пароли с другого устройства.",
+          `4. Подайте заявление: ${policeLine("ru")}`,
+          cyberLine("ru") ? `5. Сообщите: ${cyberLine("ru")}` : "",
+          "",
+          "Контакты:",
           bankList("ru"),
-          "Смените все пароли (банк, Telegram, email) с другого устройства.",
-          `Подайте заявление: ${policeLine("ru")}`,
-          cyberLine("ru") ? `Сообщите в UZCERT: ${cyberLine("ru")}` : "",
         ].filter(Boolean),
         uz: [
-          "Hoziroq aviarezhimni yoqing (masofadan boshqaruvni uzadi).",
-          "Shubhali ilovani o'chirib tashlang.",
-          "Bank orqali kartalarni bloklang:",
+          "HOZIROQ AVIAREZHIMNI YOQING",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Shubhali ilovani o'chiring.",
+          "2. Kartalarni bank orqali bloklang.",
+          "3. Barcha parollarni boshqa qurilmadan o'zgartiring.",
+          `4. Ariza bering: ${policeLine("uz")}`,
+          cyberLine("uz") ? `5. Xabar bering: ${cyberLine("uz")}` : "",
+          "",
+          "Kontaktlar:",
           bankList("uz"),
-          "Barcha parollarni (bank, Telegram, email) boshqa qurilmadan o'zgartiring.",
-          `Ariza bering: ${policeLine("uz")}`,
-          cyberLine("uz") ? `UZCERT'ga xabar bering: ${cyberLine("uz")}` : "",
         ].filter(Boolean),
         en: [
-          "Turn on airplane mode NOW (cuts remote access).",
-          "Delete the suspicious app.",
-          "Block your cards through the bank:",
+          "TURN ON AIRPLANE MODE RIGHT NOW",
+          "",
+          "What to do now:",
+          "1. Delete the suspicious app.",
+          "2. Block your cards through your bank.",
+          "3. Change all passwords from another device.",
+          `4. File a report: ${policeLine("en")}`,
+          cyberLine("en") ? `5. Report: ${cyberLine("en")}` : "",
+          "",
+          "Contacts:",
           bankList("en"),
-          "Change all passwords (bank, Telegram, email) from another device.",
-          `File a report: ${policeLine("en")}`,
-          cyberLine("en") ? `Report to UZCERT: ${cyberLine("en")}` : "",
         ].filter(Boolean),
       },
     },
+    // ─── Scenario 3: Transferred money ────────────────────────────────────
     {
       title: {
         ru: "3️⃣ Я перевёл деньги",
@@ -159,34 +187,47 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "Позвоните в банк НЕМЕДЛЕННО — попросите отменить/заморозить перевод:",
+          "ЗВОНИТЕ В БАНК — ПРОСИТЕ ЗАМОРОЗИТЬ ПЕРЕВОД",
+          "",
+          "Что сделать сейчас:",
+          "1. Позвоните в банк немедленно.",
+          `2. Подайте заявление: ${policeLine("ru")}`,
+          "3. Сохраните чек, переписку, номер получателя.",
+          "4. «Переведите повторно для отмены» — это вторая схема.",
+          "",
+          "Контакты:",
           bankList("ru"),
           paymentList("ru"),
-          "Чем быстрее — тем больше шансов вернуть деньги.",
-          `Подайте заявление в полицию: ${policeLine("ru")}`,
-          "Сохраните чек перевода, переписку, номер получателя.",
-          "Не переводите «повторно для отмены» — это вторая схема обмана.",
         ],
         uz: [
-          "DARHOL bankka qo'ng'iroq qiling — o'tkazmani bekor/muzlashni so'rang:",
+          "BANKKA QO'NG'IROQ QILING — O'TKAZMANI MUZLATISHNI SO'RANG",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Bankka darhol qo'ng'iroq qiling.",
+          `2. Ariza bering: ${policeLine("uz")}`,
+          "3. Chekni, yozishmani, qabul qiluvchi raqamini saqlang.",
+          "4. «Bekor qilish uchun qayta o'tkazing» — bu ikkinchi firibgarlik.",
+          "",
+          "Kontaktlar:",
           bankList("uz"),
           paymentList("uz"),
-          "Qanchalik tez — pulni qaytarish imkoniyati shuncha ko'p.",
-          `Politsiyaga ariza bering: ${policeLine("uz")}`,
-          "O'tkazma chekini, yozishmani, qabul qiluvchi raqamini saqlang.",
-          "«Bekor qilish uchun qayta o'tkazing» demang — bu ikkinchi firibgarlik sxemasi.",
         ],
         en: [
-          "Call your bank IMMEDIATELY — ask to cancel/freeze the transfer:",
+          "CALL YOUR BANK — ASK TO FREEZE THE TRANSFER",
+          "",
+          "What to do now:",
+          "1. Call your bank immediately.",
+          `2. File a police report: ${policeLine("en")}`,
+          "3. Save the receipt, chat history, recipient's number.",
+          "4. \"Transfer again to cancel\" — that's a second scam.",
+          "",
+          "Contacts:",
           bankList("en"),
           paymentList("en"),
-          "The faster you act, the better the chance of getting money back.",
-          `File a police report: ${policeLine("en")}`,
-          "Save the transfer receipt, chat history, recipient's number.",
-          "Do NOT transfer again 'to cancel' — that's a second scam scheme.",
         ],
       },
     },
+    // ─── Scenario 4: Entered card details ─────────────────────────────────
     {
       title: {
         ru: "4️⃣ Я ввёл данные карты",
@@ -195,31 +236,47 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "Заблокируйте карту через банк немедленно:",
+          "ЗАБЛОКИРУЙТЕ КАРТУ НЕМЕДЛЕННО",
+          "",
+          "Что сделать сейчас:",
+          "1. Позвоните в банк и заблокируйте карту.",
+          "2. Смените PIN и пароль онлайн-банка.",
+          "3. Проверьте операции — оспорьте неизвестные.",
+          `4. Подайте заявление: ${policeLine("ru")}`,
+          "",
+          "Контакты:",
           bankList("ru"),
           paymentList("ru"),
-          "Смените PIN и пароль онлайн-банка.",
-          "Проверьте последние операции — оспорьте неизвестные.",
-          `Подайте заявление: ${policeLine("ru")}`,
         ],
         uz: [
-          "Kartani darhol bank orqali bloklang:",
+          "KARTANI DARHOL BLOKLANG",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Bankka qo'ng'iroq qilib, kartani bloklang.",
+          "2. PIN va onlayn-bank parolini o'zgartiring.",
+          "3. Operatsiyalarni tekshiring — noma'lumlarini bahslang.",
+          `4. Ariza bering: ${policeLine("uz")}`,
+          "",
+          "Kontaktlar:",
           bankList("uz"),
           paymentList("uz"),
-          "PIN va onlayn-bank parolini o'zgartiring.",
-          "Oxirgi operatsiyalarni tekshiring — noma'lumlarini bahslang.",
-          `Ariza bering: ${policeLine("uz")}`,
         ],
         en: [
-          "Block your card through the bank immediately:",
+          "BLOCK YOUR CARD IMMEDIATELY",
+          "",
+          "What to do now:",
+          "1. Call your bank and block the card.",
+          "2. Change your PIN and online banking password.",
+          "3. Check transactions — dispute unknown ones.",
+          `4. File a report: ${policeLine("en")}`,
+          "",
+          "Contacts:",
           bankList("en"),
           paymentList("en"),
-          "Change your PIN and online banking password.",
-          "Check recent transactions — dispute unknown ones.",
-          `File a report: ${policeLine("en")}`,
         ],
       },
     },
+    // ─── Scenario 5: Lost Telegram access ─────────────────────────────────
     {
       title: {
         ru: "5️⃣ Я потерял доступ к Telegram",
@@ -228,71 +285,90 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "Попробуйте восстановить через SMS-код на ваш номер.",
-          "Если не удаётся — свяжитесь с оператором для блокировки SIM:",
+          "ВОССТАНОВИТЕ ЧЕРЕЗ SMS НА ВАШ НОМЕР",
+          "",
+          "Что сделать сейчас:",
+          "1. Не получается — блокируйте SIM через оператора.",
+          "2. Telegram: @recover или Settings → Ask a Question.",
+          "3. Предупредите контакты другим способом.",
+          `4. Подайте заявление: ${policeLine("ru")}`,
+          "",
+          "Контакты:",
           telecomList("ru"),
-          "Свяжитесь с поддержкой Telegram: @recover или Settings → Ask a Question.",
-          "Предупредите контакты (другим способом), что ваш аккаунт мог быть взломан.",
-          `Подайте заявление: ${policeLine("ru")}`,
         ],
         uz: [
-          "Raqamingizga kelgan SMS-kod orqali tiklashga harakat qiling.",
-          "Iloji bo'lmasa — SIM-kartani bloklash uchun operatorga murojaat qiling:",
+          "SMS-KOD ORQALI TIKLANG",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Iloji bo'lmasa — SIM-kartani operator orqali bloklang.",
+          "2. Telegram: @recover yoki Settings → Ask a Question.",
+          "3. Kontaktlaringizni boshqa yo'l bilan ogohlantiring.",
+          `4. Ariza bering: ${policeLine("uz")}`,
+          "",
+          "Kontaktlar:",
           telecomList("uz"),
-          "Telegram qo'llab-quvvatlashga yozing: @recover yoki Settings → Ask a Question.",
-          "Kontaktlaringizni (boshqa yo'l bilan) ogohlantiring — akkauntingiz buzilgan bo'lishi mumkin.",
-          `Ariza bering: ${policeLine("uz")}`,
         ],
         en: [
-          "Try to recover via SMS code sent to your number.",
-          "If you can't — contact your operator to block the SIM:",
+          "RECOVER VIA SMS CODE TO YOUR NUMBER",
+          "",
+          "What to do now:",
+          "1. If you can't — block SIM through your operator.",
+          "2. Telegram: @recover or Settings → Ask a Question.",
+          "3. Warn your contacts via other means.",
+          `4. File a report: ${policeLine("en")}`,
+          "",
+          "Contacts:",
           telecomList("en"),
-          "Contact Telegram support: @recover or Settings → Ask a Question.",
-          "Warn your contacts (via other means) that your account may have been compromised.",
-          `File a report: ${policeLine("en")}`,
         ],
       },
     },
+    // ─── Scenario 6: Suspicious call ──────────────────────────────────────
     {
       title: {
-        ru: "6️⃣ Мне звонят прямо сейчас",
-        uz: "6️⃣ Menga hozir qo'ng'iroq qilyapti",
-        en: "6️⃣ I'm on a suspicious call right now",
+        ru: "6️⃣ Подозрительный звонок",
+        uz: "6️⃣ Shubhali qo'ng'iroq",
+        en: "6️⃣ Suspicious call",
       },
       steps: {
         ru: [
-          "ПОЛОЖИТЕ ТРУБКУ. Это самое важное действие.",
-          "Если давят «не кладите трубку» — это 100% мошенничество.",
-          "Не называйте SMS-код, PIN, CVV, пароль. Никогда.",
-          "Не устанавливайте приложения по их указке.",
-          "Не переводите деньги «на безопасный счёт».",
-          "Сами перезвоните в организацию по официальному номеру:",
+          "ЗАВЕРШИТЕ ЗВОНОК. СКАЖИТЕ: «Я САМ ПЕРЕЗВОНЮ.»",
+          "",
+          "Что сделать сейчас:",
+          "1. Не называйте SMS-код, PIN, CVV, пароль.",
+          "2. «Не кладите трубку» = мошенничество.",
+          "3. Перезвоните сами по официальному номеру.",
+          "",
+          "Контакты:",
           bankList("ru"),
           telecomList("ru"),
         ],
         uz: [
-          "GO'SHAKNI QO'YING. Bu eng muhim harakat.",
-          "«Go'shakni qo'ymang» deb bosim qilishsa — bu 100% firibgarlik.",
-          "SMS-kod, PIN, CVV, parolni aytmang. Hech qachon.",
-          "Ularning ko'rsatmasi bilan ilova o'rnatmang.",
-          "«Xavfsiz hisobga» pul o'tkazmang.",
-          "Tashkilotga rasmiy raqami orqali o'zingiz qo'ng'iroq qiling:",
+          "QO'NG'IROQNI TUGATING. «O'ZIM QO'NG'IROQ QILAMAN» DENG.",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. SMS-kod, PIN, CVV, parolni aytmang.",
+          "2. «Go'shakni qo'ymang» = firibgarlik.",
+          "3. Rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
+          "",
+          "Kontaktlar:",
           bankList("uz"),
           telecomList("uz"),
         ],
         en: [
-          "HANG UP. This is the most important action.",
-          "If they pressure you to 'stay on the line' — it's 100% a scam.",
-          "Never give your SMS code, PIN, CVV or password.",
-          "Don't install apps they tell you to.",
-          "Don't transfer money to a 'safe account'.",
-          "Call the organization yourself on the official number:",
+          "HANG UP. SAY: \"I'LL CALL BACK MYSELF.\"",
+          "",
+          "What to do now:",
+          "1. Never give SMS code, PIN, CVV, or password.",
+          "2. \"Stay on the line\" = scam.",
+          "3. Call the organization yourself at the official number.",
+          "",
+          "Contacts:",
           bankList("en"),
           telecomList("en"),
         ],
       },
     },
-    // ─── Sextortion / Romance scenarios (Sprint 3.2) ─────────────────────
+    // ─── Scenario 7: Sextortion (photo/video blackmail) ───────────────────
     {
       title: {
         ru: "7️⃣ Меня шантажируют фото/видео",
@@ -301,34 +377,50 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
+          "НЕ ПЛАТИТЕ — ОПЛАТА ПРИВОДИТ К НОВЫМ ТРЕБОВАНИЯМ",
+          "",
           "❤️ Вы НЕ виноваты.",
-          "❌ НЕ платите — требования только растут.",
-          "❌ НЕ отправляйте новые фото.",
-          "✅ Заблокируйте шантажиста.",
-          "✅ Сохраните скриншоты.",
-          "✅ Полиция: 102.",
-          "Большинство шантажистов не публикуют, если жертва перестаёт отвечать.",
+          "",
+          "Что сделать сейчас:",
+          "1. Заблокируйте шантажиста.",
+          "2. Не отправляйте новые фото/видео.",
+          "3. Сохраните скриншоты переписки.",
+          `4. Обратитесь в полицию: ${policeLine("ru")}`,
+          "",
+          "Многие шантажисты используют страх, чтобы заставить вас платить. Оплата часто приводит к новым требованиям.",
+          "Если вам меньше 18 лет — обратитесь к взрослому, которому доверяете.",
         ],
         uz: [
+          "TO'LAMANG — TO'LOV YANGI TALABLARGA OLIB KELADI",
+          "",
           "❤️ Siz AYBDOR EMASSIZ.",
-          "❌ PUL TO'LAMANG.",
-          "❌ Yangi foto YUBORMANG.",
-          "✅ Shantajchini BLOKLANG.",
-          "✅ Skrinshotlarni saqlang.",
-          "✅ Politsiya: 102.",
-          "Ko'pchilik shantajchilar javob to'xtasa nashr qilmaydi.",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Shantajchini bloklang.",
+          "2. Yangi foto/video yubormang.",
+          "3. Yozishma skrinshotlarini saqlang.",
+          `4. Politsiyaga murojaat qiling: ${policeLine("uz")}`,
+          "",
+          "Ko'plab shantajchilar qo'rquvdan foydalanadi. To'lov ko'pincha yangi talablarga olib keladi.",
+          "Agar 18 yoshdan kichik bo'lsangiz — ishonchli kattaga ayting.",
         ],
         en: [
+          "DO NOT PAY — PAYMENT LEADS TO MORE DEMANDS",
+          "",
           "❤️ You are NOT to blame.",
-          "❌ Do NOT pay — demands grow.",
-          "❌ Do NOT send new photos.",
-          "✅ Block the blackmailer.",
-          "✅ Save screenshots.",
-          "✅ Police: 102.",
-          "Most blackmailers don't publish if victim stops responding.",
+          "",
+          "What to do now:",
+          "1. Block the blackmailer.",
+          "2. Do not send new photos/videos.",
+          "3. Save screenshots of the conversation.",
+          `4. Contact police: ${policeLine("en")}`,
+          "",
+          "Many blackmailers use fear to make you pay. Payment often leads to more demands.",
+          "If you are under 18 — tell an adult you trust.",
         ],
       },
     },
+    // ─── Scenario 8: Romance scam ────────────────────────────────────────
     {
       title: {
         ru: "8️⃣ Просят деньги в отношениях",
@@ -337,43 +429,47 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "⚠️ Признаки romance-скама:",
-          "• Быстрое признание в любви",
-          "• Просьба перейти в другой мессенджер",
-          "• Избегает видеозвонков",
-          "• Просит деньги или крипто-инвестиции",
+          "ПРЕКРАТИТЕ ПЕРЕВОДЫ ПРЯМО СЕЙЧАС",
           "",
-          "✅ Прекратите переводы.",
-          "✅ Проверьте фото через Google Images.",
-          "✅ Не стыдитесь — это манипуляция.",
-          "✅ Жалоба: 102 или /report.",
+          "❤️ Вы НЕ виноваты — это манипуляция.",
+          "",
+          "Что сделать сейчас:",
+          "1. Прекратите все переводы.",
+          "2. Проверьте фото через Google Images.",
+          "3. Признаки: быстрая «любовь», просит деньги/крипто, избегает видео.",
+          `4. Жалоба: ${policeLine("ru")} или /report`,
+          "",
+          "Если вам меньше 18 лет — обратитесь к взрослому, которому доверяете.",
         ],
         uz: [
-          "⚠️ Romance-scam belgilari:",
-          "• Tez sevgi e'tirof",
-          "• Boshqa messenjerga o'tish",
-          "• Video qo'ng'iroqdan qochish",
-          "• Pul yoki kripto so'rash",
+          "O'TKAZMALARNI HOZIROQ TO'XTATING",
           "",
-          "✅ O'tkazmalarni to'xtating.",
-          "✅ Fotoni Google orqali tekshiring.",
-          "✅ Uyalmang — manipulyatsiya.",
-          "✅ Shikoyat: 102 yoki /report.",
+          "❤️ Siz AYBDOR EMASSIZ — bu manipulyatsiya.",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Barcha o'tkazmalarni to'xtating.",
+          "2. Fotoni Google orqali tekshiring.",
+          "3. Belgilari: tez «sevgi», pul/kripto so'raydi, videodan qochadi.",
+          `4. Shikoyat: ${policeLine("uz")} yoki /report`,
+          "",
+          "Agar 18 yoshdan kichik bo'lsangiz — ishonchli kattaga ayting.",
         ],
         en: [
-          "⚠️ Romance scam signs:",
-          "• Quick love confession",
-          "• Switch to another messenger",
-          "• Avoids video calls",
-          "• Asks for money/crypto",
+          "STOP ALL TRANSFERS NOW",
           "",
-          "✅ Stop transfers.",
-          "✅ Reverse-search their photo.",
-          "✅ Don't be ashamed — it's manipulation.",
-          "✅ Report: 102 or /report.",
+          "❤️ You are NOT to blame — it's manipulation.",
+          "",
+          "What to do now:",
+          "1. Stop all money transfers.",
+          "2. Reverse-search their photo via Google Images.",
+          "3. Signs: quick \"love\", asks for money/crypto, avoids video calls.",
+          `4. Report: ${policeLine("en")} or /report`,
+          "",
+          "If you are under 18 — tell an adult you trust.",
         ],
       },
     },
+    // ─── Scenario 9: Threats to publish ───────────────────────────────────
     {
       title: {
         ru: "9️⃣ Угрожают публикацией",
@@ -382,61 +478,89 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
       },
       steps: {
         ru: [
-          "❌ НЕ платите.",
-          "✅ Заблокируйте.",
-          "✅ Сохраните доказательства.",
-          "✅ Полиция: 102.",
-          "✅ Если опубликовано — обратитесь к платформе.",
-          "Вы жертва, не преступник.",
+          "НЕ ПЛАТИТЕ — ВЫ ЖЕРТВА, НЕ ПРЕСТУПНИК",
+          "",
+          "❤️ Вы НЕ виноваты.",
+          "",
+          "Что сделать сейчас:",
+          "1. Заблокируйте угрожающего.",
+          "2. Сохраните доказательства (скриншоты).",
+          `3. Обратитесь в полицию: ${policeLine("ru")}`,
+          "4. Если опубликовано — напишите в поддержку платформы.",
+          "",
+          "Многие шантажисты используют страх, чтобы заставить вас платить. Оплата часто приводит к новым требованиям.",
+          "Если вам меньше 18 лет — обратитесь к взрослому, которому доверяете.",
         ],
         uz: [
-          "❌ TO'LAMANG.",
-          "✅ BLOKLANG.",
-          "✅ Dalillarni saqlang.",
-          "✅ Politsiya: 102.",
-          "✅ Chop etilgan bo'lsa — platformaga yozing.",
-          "Siz jabrlanuvchisiz.",
+          "TO'LAMANG — SIZ JABRLANUVCHISIZ, JINOYATCHI EMAS",
+          "",
+          "❤️ Siz AYBDOR EMASSIZ.",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Tahdid qiluvchini bloklang.",
+          "2. Dalillarni saqlang (skrinshotlar).",
+          `3. Politsiyaga murojaat qiling: ${policeLine("uz")}`,
+          "4. Nashr etilgan bo'lsa — platforma qo'llab-quvvatlashiga yozing.",
+          "",
+          "Ko'plab shantajchilar qo'rquvdan foydalanadi. To'lov ko'pincha yangi talablarga olib keladi.",
+          "Agar 18 yoshdan kichik bo'lsangiz — ishonchli kattaga ayting.",
         ],
         en: [
-          "❌ Do NOT pay.",
-          "✅ Block them.",
-          "✅ Save evidence.",
-          "✅ Police: 102.",
-          "✅ If published — contact the platform.",
-          "You are the victim.",
+          "DO NOT PAY — YOU ARE THE VICTIM, NOT THE CRIMINAL",
+          "",
+          "❤️ You are NOT to blame.",
+          "",
+          "What to do now:",
+          "1. Block the person threatening you.",
+          "2. Save evidence (screenshots).",
+          `3. Contact police: ${policeLine("en")}`,
+          "4. If published — write to the platform's support.",
+          "",
+          "Many blackmailers use fear to make you pay. Payment often leads to more demands.",
+          "If you are under 18 — tell an adult you trust.",
         ],
       },
     },
+    // ─── Scenario 10: Under 18 ───────────────────────────────────────────
     {
       title: { ru: "🔟 Мне меньше 18 лет", uz: "🔟 Menga 18 yoshdan kam", en: "🔟 I'm under 18" },
       steps: {
         ru: [
+          "РАССКАЖИ ВЗРОСЛОМУ, КОТОРОМУ ДОВЕРЯЕШЬ",
+          "",
           "❤️ Ты НЕ виноват(а).",
-          "✅ Покажи взрослому, которому доверяешь.",
-          "✅ Заблокируй этого человека.",
-          "❌ Не отправляй фото/видео.",
-          "❌ Не плати.",
-          "✅ Позвони: 102.",
+          "",
+          "Что сделать сейчас:",
+          "1. Покажи это сообщение взрослому.",
+          "2. Заблокируй этого человека.",
+          "3. Не отправляй фото/видео и не плати.",
+          `4. Позвони: ${policeLine("ru")}`,
           "",
           "Тебе помогут. Ты не сделал(а) ничего плохого.",
         ],
         uz: [
+          "ISHONCHLI KATTAGA AYTIB BER",
+          "",
           "❤️ Sen AYBDOR EMASSING.",
-          "✅ Ishonchli kattaga ko'rsat.",
-          "✅ Bu odamni BLOKLA.",
-          "❌ Foto/video YUBORMA.",
-          "❌ TO'LAMA.",
-          "✅ Qo'ng'iroq qil: 102.",
+          "",
+          "Hozir nima qilish kerak:",
+          "1. Bu xabarni kattaga ko'rsat.",
+          "2. Bu odamni blokla.",
+          "3. Foto/video yuborma va to'lama.",
+          `4. Qo'ng'iroq qil: ${policeLine("uz")}`,
           "",
           "Senga yordam berishadi.",
         ],
         en: [
+          "TELL AN ADULT YOU TRUST",
+          "",
           "❤️ You are NOT to blame.",
-          "✅ Tell an adult you trust.",
-          "✅ Block this person.",
-          "❌ Do NOT send photos/videos.",
-          "❌ Do NOT pay.",
-          "✅ Call: 102.",
+          "",
+          "What to do now:",
+          "1. Show this message to an adult.",
+          "2. Block this person.",
+          "3. Do not send photos/videos and do not pay.",
+          `4. Call: ${policeLine("en")}`,
           "",
           "You will be helped. You did nothing wrong.",
         ],
@@ -534,12 +658,64 @@ export function buildPanicScenarioText(id: PanicScenarioId, lang: Lang): string 
   return parts.join("\n");
 }
 
-/** Parse a panic callback_data ("panic:1" → 1, invalid → null). */
+/** Parse a panic callback_data ("panic:1" → 1, "panic:more"/"panic:back" → null for ID, handle separately). */
 export function parsePanicCallback(data: string): PanicScenarioId | null {
   if (!data.startsWith(PANIC_CB_PREFIX)) return null;
-  const n = Number(data.slice(PANIC_CB_PREFIX.length));
+  const suffix = data.slice(PANIC_CB_PREFIX.length);
+  if (suffix === "more" || suffix === "back") return null;
+  const n = Number(suffix);
   if (n >= 1 && n <= 10) return n as PanicScenarioId;
   return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PANIC KEYBOARD PAGINATION — split 10 scenarios into 2 pages (6+4)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Build panic keyboard page 1: scenarios 1–6 (2 per row) + "Другие ситуации" button.
+ * This is the default page shown on `/panic`.
+ */
+export function buildPanicKeyboardPage1(lang: Lang): InlineKeyboard {
+  const rows: InlineKeyboard = [];
+  // Scenarios 1–6, 2 per row
+  for (let i = 1; i <= 6; i += 2) {
+    rows.push([
+      { text: PANIC_MENU_TITLES[i as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i}` },
+      { text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i + 1}` },
+    ]);
+  }
+  // "More" button
+  const moreLabel: Record<Lang, string> = {
+    ru: "Другие ситуации ➡️",
+    uz: "Boshqa vaziyatlar ➡️",
+    en: "Other situations ➡️",
+  };
+  rows.push([{ text: moreLabel[lang], callback_data: `${PANIC_CB_PREFIX}more` }]);
+  return rows;
+}
+
+/**
+ * Build panic keyboard page 2: scenarios 7–10 (2 per row) + "← Назад" button.
+ * Shown when user taps "Другие ситуации".
+ */
+export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
+  const rows: InlineKeyboard = [];
+  // Scenarios 7–10, 2 per row
+  for (let i = 7; i <= 10; i += 2) {
+    rows.push([
+      { text: PANIC_MENU_TITLES[i as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i}` },
+      { text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i + 1}` },
+    ]);
+  }
+  // "Back" button
+  const backLabel: Record<Lang, string> = {
+    ru: "← Назад",
+    uz: "← Orqaga",
+    en: "← Back",
+  };
+  rows.push([{ text: backLabel[lang], callback_data: `${PANIC_CB_PREFIX}back` }]);
+  return rows;
 }
 
 /** callback_data prefix for live-call copilot buttons. */

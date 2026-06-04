@@ -99,17 +99,148 @@ export function maskForDisplay(value: string, type: InputType): string {
   return redactText(value).slice(0, 240) + (value.length > 240 ? "…" : "");
 }
 
-const CARD_RE = /\b(?:\d[ -]?){13,19}\b/g;
+const CARD_DIGIT_RE = /\b(?:\d[ -]?){13,19}\b/g;
 const OTP_RE = /\b\d{4,8}\b/g;
 const PHONE_INLINE_RE = /\+?\d[\d\s\-()]{7,}\d/g;
 
 export function redactText(s: string): string {
-  return s
-    .replace(CARD_RE, "•••• •••• •••• ••••")
-    .replace(PHONE_INLINE_RE, (m) => {
-      const d = m.replace(/\D/g, "");
-      if (d.length < 7) return m;
-      return "+" + d.slice(0, 3) + "•••••" + d.slice(-2);
-    })
-    .replace(OTP_RE, "••••");
+  type Replacement = { start: number; end: number; replacement: string };
+  const replacements: Replacement[] = [];
+
+  // Step 1: Collect phone matches first (highest priority — never double-matched)
+  // A match is treated as a phone only if it contains formatting chars (+, spaces, dashes, parens)
+  // OR has fewer than 13 pure digits. Pure 13-19 digit runs are left for card detection.
+  PHONE_INLINE_RE.lastIndex = 0;
+  let phoneMatch: RegExpExecArray | null;
+  while ((phoneMatch = PHONE_INLINE_RE.exec(s)) !== null) {
+    const raw = phoneMatch[0];
+    const d = raw.replace(/\D/g, "");
+    if (d.length < 7) continue;
+
+    // If pure digits are 13-19 and there are NO formatting chars, skip — let card logic handle it
+    const hasFormatting = /[+\s\-()]/.test(raw);
+    if (!hasFormatting && d.length >= 13 && d.length <= 19) continue;
+
+    replacements.push({
+      start: phoneMatch.index,
+      end: phoneMatch.index + raw.length,
+      replacement: "+" + d.slice(0, 3) + "•••••" + d.slice(-2),
+    });
+  }
+
+  // Step 2: Collect context-aware card matches (skip regions already claimed by phones)
+  CARD_DIGIT_RE.lastIndex = 0;
+  let cardMatch: RegExpExecArray | null;
+  while ((cardMatch = CARD_DIGIT_RE.exec(s)) !== null) {
+    const start = cardMatch.index;
+    const end = start + cardMatch[0].length;
+
+    // Skip if this region overlaps with a phone match
+    const overlapsPhone = replacements.some(
+      (r) => start < r.end && end > r.start,
+    );
+    if (overlapsPhone) continue;
+
+    const digits = cardMatch[0].replace(/\D/g, "");
+    if (digits.length < 13 || digits.length > 19) continue;
+
+    if (shouldRedactAsCard(digits, s, start, end)) {
+      replacements.push({
+        start,
+        end,
+        replacement: "•••• •••• •••• ••••",
+      });
+    }
+  }
+
+  // Apply all replacements from end to start (preserves earlier offsets)
+  replacements.sort((a, b) => b.start - a.start);
+  let result = s;
+  for (const r of replacements) {
+    result = result.slice(0, r.start) + r.replacement + result.slice(r.end);
+  }
+
+  // Step 3: Redact OTP patterns last (on already-processed text)
+  result = result.replace(OTP_RE, "••••");
+
+  return result;
+}
+
+/**
+ * Context words that signal a digit sequence is likely a card number.
+ * Matched case-insensitively in the surrounding text.
+ */
+export const CARD_CONTEXT_WORDS: string[] = [
+  "карта",
+  "карту",
+  "банк",
+  "пин",
+  "cvv",
+  "cvc",
+  "pin",
+  "karta",
+  "bank",
+  "card",
+  "uzcard",
+  "humo",
+  "оплата",
+  "перевод",
+  "реквизиты",
+  "срок действия",
+];
+
+/**
+ * Determine if a 13–19 digit sequence should be treated as a card number.
+ *
+ * Returns true if:
+ *   1. The sequence is exactly 16 digits AND passes the Luhn check → unconditional redaction.
+ *   2. Otherwise, at least one context word from CARD_CONTEXT_WORDS appears within
+ *      120 characters of the digit sequence (case-insensitive).
+ *
+ * Pure function — no side effects.
+ */
+export function shouldRedactAsCard(
+  digitSequence: string,
+  surroundingText: string,
+  matchStart: number,
+  matchEnd: number,
+): boolean {
+  // Unconditional: 16-digit Luhn-valid sequences are always treated as cards
+  if (digitSequence.length === 16 && luhnCheck(digitSequence)) {
+    return true;
+  }
+
+  // Context-word gating: check a 120-char window around the match
+  const windowStart = Math.max(0, matchStart - 120);
+  const windowEnd = Math.min(surroundingText.length, matchEnd + 120);
+  const window = surroundingText.slice(windowStart, windowEnd).toLowerCase();
+
+  return CARD_CONTEXT_WORDS.some((word) => window.includes(word.toLowerCase()));
+}
+
+/**
+ * Luhn checksum validation for card number detection.
+ * Takes a string of digits (no spaces/dashes) and returns true if it passes the Luhn algorithm.
+ */
+export function luhnCheck(digits: string): boolean {
+  const len = digits.length;
+  if (len === 0) return false;
+
+  let sum = 0;
+  let alternate = false;
+
+  for (let i = len - 1; i >= 0; i--) {
+    let n = parseInt(digits[i], 10);
+    if (isNaN(n)) return false;
+
+    if (alternate) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+
+    sum += n;
+    alternate = !alternate;
+  }
+
+  return sum % 10 === 0;
 }

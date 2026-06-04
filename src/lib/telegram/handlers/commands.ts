@@ -36,9 +36,7 @@ import {
 } from "@/lib/telegram/format";
 import {
   buildPanicMenuText,
-  PANIC_MENU_TITLES,
-  PANIC_CB_PREFIX,
-  type PanicScenarioId,
+  buildPanicKeyboardPage1,
 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
@@ -101,28 +99,13 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
 }
 
 /**
- * Show the panic/emergency scenario selection menu (inline buttons).
- * User picks their situation → bot replies with specific steps + verified numbers.
+ * Show the panic/emergency scenario selection menu (paginated inline buttons).
+ * Page 1 shows scenarios 1–6 + "More" button. User picks their situation →
+ * bot replies with specific steps + verified numbers.
  */
 async function showPanicMenu(ctx: HandlerCtx): Promise<void> {
   const { lang } = ctx.session;
-  const ids: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  // Two buttons per row for readability.
-  const keyboard: InlineKeyboard = [];
-  for (let i = 0; i < ids.length; i += 2) {
-    const row: { text: string; callback_data: string }[] = [];
-    row.push({
-      text: PANIC_MENU_TITLES[ids[i]][lang],
-      callback_data: `${PANIC_CB_PREFIX}${ids[i]}`,
-    });
-    if (ids[i + 1]) {
-      row.push({
-        text: PANIC_MENU_TITLES[ids[i + 1]][lang],
-        callback_data: `${PANIC_CB_PREFIX}${ids[i + 1]}`,
-      });
-    }
-    keyboard.push(row);
-  }
+  const keyboard = buildPanicKeyboardPage1(lang);
   await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildPanicMenuText(lang)),

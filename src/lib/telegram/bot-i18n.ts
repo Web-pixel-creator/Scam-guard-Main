@@ -294,14 +294,14 @@ export const bot_dict: BotDict = {
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
   live_call_header: {
-    ru: "\u{1F6A8} \u0412\u042B \u0421\u0415\u0419\u0427\u0410\u0421 \u041D\u0410 \u0417\u0412\u041E\u041D\u041A\u0415",
-    uz: "\u{1F6A8} HOZIR QO'NG'IROQDASIZ",
-    en: "\u{1F6A8} YOU'RE ON A CALL RIGHT NOW",
+    ru: "📞 Завершите звонок. Скажите: «Я сам перезвоню по официальному номеру.»",
+    uz: "📞 Qo'ng'iroqni tugating. Ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
+    en: "📞 End the call. Say: \"I'll call back on the official number myself.\"",
   },
   live_call_hangup: {
-    ru: "\u{1F6D1} \u041F\u041E\u041B\u041E\u0416\u0418\u0422\u0415 \u0422\u0420\u0423\u0411\u041A\u0423. \u042D\u0442\u043E \u0441\u0430\u043C\u043E\u0435 \u0432\u0430\u0436\u043D\u043E\u0435.\n\n\u0411\u0430\u043D\u043A \u041D\u0418\u041A\u041E\u0413\u0414\u0410 \u043D\u0435 \u043F\u0440\u043E\u0441\u0438\u0442 \u043A\u043E\u0434 \u043F\u043E \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0443.\n\u0415\u0441\u043B\u0438 \u0433\u043E\u0432\u043E\u0440\u044F\u0442 \u00AB\u043D\u0435 \u043A\u043B\u0430\u0434\u0438\u0442\u0435 \u0442\u0440\u0443\u0431\u043A\u0443\u00BB \u2014 \u044D\u0442\u043E 100% \u043C\u043E\u0448\u0435\u043D\u043D\u0438\u043A.",
-    uz: "\u{1F6D1} GO'SHAKNI QO'YING. Bu eng muhim harakat.\n\nBank HECH QACHON telefon orqali kod so'ramaydi.\nAgar \u00ABgo'shakni qo'ymang\u00BB deyishsa \u2014 bu 100% firibgar.",
-    en: "\u{1F6D1} HANG UP. This is the most important action.\n\nA bank NEVER asks for a code over the phone.\nIf they say \u201Cdon't hang up\u201D \u2014 it's 100% a scammer.",
+    ru: "🛑 Не называйте SMS-код, PIN, CVV, пароль.\nЕсли давят «не кладите трубку» — это мошенничество.\n\nПеревоните в банк сами по официальному номеру.",
+    uz: "🛑 SMS-kod, PIN, CVV, parolni aytmang.\n«Go'shakni qo'ymang» deb bosim qilishsa — bu firibgarlik.\n\nBankka rasmiy raqam orqali o'zingiz qo'ng'iroq qiling.",
+    en: "🛑 Never give your SMS code, PIN, CVV or password.\nIf they say \"don't hang up\" — it's a scam.\n\nCall the bank yourself on the official number.",
   },
   live_call_what_to_say: {
     ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C:\n\n\u00AB\u042F \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u043C\u043E\u0433\u0443 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C. \u042F \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u044E \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C.\u00BB\n\n\u0418 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443. \u041D\u0435 \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0439\u0442\u0435, \u043D\u0435 \u0441\u043F\u043E\u0440\u044C\u0442\u0435.",
@@ -309,9 +309,9 @@ export const bot_dict: BotDict = {
     en: "\u{1F4AC} What to say:\n\n\u201CI can't talk right now. I'll call the bank myself.\u201D\n\nAnd hang up. Don't explain, don't argue.",
   },
   btn_live_hangup: {
-    ru: "\u{1F6D1} \u041F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443",
-    uz: "\u{1F6D1} Go'shakni qo'yish",
-    en: "\u{1F6D1} Hang up now",
+    ru: "✅ Я положил трубку",
+    uz: "✅ Go'shakni qo'ydim",
+    en: "✅ I hung up",
   },
   btn_live_what_to_say: {
     ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C?",
@@ -341,9 +341,9 @@ export const bot_dict: BotDict = {
     en: "\u2753 How do I decide?",
   },
   why_explanation: {
-    ru: "\u{1F9E0} *\u041A\u0430\u043A \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 Ishonch Guard:*\n\n1\uFE0F\u20E3 \u042F \u0430\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0443\u044E \u0442\u0435\u043A\u0441\u0442 \u043F\u043E 30+ \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u043C: \u043F\u0440\u043E\u0441\u044C\u0431\u0430 \u043A\u043E\u0434\u0430, APK, \u0434\u0430\u0432\u043B\u0435\u043D\u0438\u0435, \u0444\u0435\u0439\u043A\u043E\u0432\u044B\u0439 \u0431\u0430\u043D\u043A \u0438 \u0442.\u0434.\n2\uFE0F\u20E3 \u041A\u0430\u0436\u0434\u043E\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u043E \u0438\u043C\u0435\u0435\u0442 \u0432\u0435\u0441 (\u043E\u0442 10 \u0434\u043E 50).\n3\uFE0F\u20E3 \u0421\u0443\u043C\u043C\u0430 \u2265 50 = \u0432\u044B\u0441\u043E\u043A\u0438\u0439 \u0440\u0438\u0441\u043A, \u2265 20 = \u043F\u043E\u0434\u043E\u0437\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E.\n4\uFE0F\u20E3 AI \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0435\u0442 \u043F\u0440\u043E\u0441\u0442\u044B\u043C\u0438 \u0441\u043B\u043E\u0432\u0430\u043C\u0438, \u043D\u043E \u041D\u0415 \u0440\u0435\u0448\u0430\u0435\u0442 \u0443\u0440\u043E\u0432\u0435\u043D\u044C.\n5\uFE0F\u20E3 \u041E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0435 \u043D\u043E\u043C\u0435\u0440\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u044E\u0442\u0441\u044F \u043F\u043E \u0431\u0430\u0437\u0435 verified contacts.\n\n\u{1F512} \u041D\u0438\u043A\u0430\u043A\u0438\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043D\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044E\u0442\u0441\u044F \u0432 \u0441\u044B\u0440\u043E\u043C \u0432\u0438\u0434\u0435 \u2014 \u0442\u043E\u043B\u044C\u043A\u043E \u0445\u0435\u0448\u0438 \u0438 \u043C\u0430\u0441\u043A\u0438.",
-    uz: "\u{1F9E0} *Ishonch Guard qanday ishlaydi:*\n\n1\uFE0F\u20E3 Matnni 30+ qoidalar bo'yicha tahlil qilaman: kod so'rash, APK, bosim, soxta bank va h.k.\n2\uFE0F\u20E3 Har bir qoidaning og'irligi bor (10 dan 50 gacha).\n3\uFE0F\u20E3 Yig'indi \u2265 50 = yuqori xavf, \u2265 20 = shubhali.\n4\uFE0F\u20E3 AI oddiy so'zlar bilan tushuntiradi, lekin darajani BELGILAMAYDI.\n5\uFE0F\u20E3 Rasmiy raqamlar verified contacts bazasi orqali tekshiriladi.\n\n\u{1F512} Hech qanday ma'lumot xom holda saqlanmaydi \u2014 faqat xeshlar va maskalar.",
-    en: "\u{1F9E0} *How Ishonch Guard works:*\n\n1\uFE0F\u20E3 I analyze text against 30+ rules: code requests, APK, pressure, fake bank, etc.\n2\uFE0F\u20E3 Each rule has a weight (10 to 50).\n3\uFE0F\u20E3 Sum \u2265 50 = high risk, \u2265 20 = suspicious.\n4\uFE0F\u20E3 AI explains in simple words but does NOT decide the level.\n5\uFE0F\u20E3 Official numbers are verified against a trusted contacts database.\n\n\u{1F512} No data is stored raw \u2014 only hashes and masks.",
+    ru: "🧠 *Как я проверяю*\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком в Telegram или звонят с неизвестного номера\n5\uFE0F\u20E3 Просят перевести деньги на «безопасный счёт» или по ссылке\n\nЕсли таких признаков нет — я пишу «недостаточно данных».\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
+    uz: "🧠 *Qanday tekshiraman*\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Telegramda bank nomidan yozadi yoki noma'lum raqamdan qo'ng'iroq qiladi\n5\uFE0F\u20E3 «Xavfsiz hisob»ga yoki havola orqali pul o'tkazishni so'raydi\n\nAgar bunday belgilar topilmasa — «ma'lumot yetarli emas» deb yozaman.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",
+    en: "🧠 *How I check*\n\nI don't guess and I don't call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a \"secure app\"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying \"don't hang up\"\n4\uFE0F\u20E3 Claiming to be a bank via Telegram or calling from an unknown number\n5\uFE0F\u20E3 Asking you to transfer money to a \"safe account\" or via a link\n\nIf none of these signs are found, I say \"not enough data.\"\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.",
   },
 
   // ── Share advice + elder hints (Sprint 3.3 / 3.6) ────────────────────────

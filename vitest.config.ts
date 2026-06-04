@@ -3,11 +3,19 @@
 // TanStack Start + Nitro production pipeline; unit/property tests only need
 // server-side TypeScript and path aliases.
 // Path aliases (`@/...`) are resolved via vite-tsconfig-paths, reading tsconfig.json.
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  resolve: {
+    alias: {
+      // Explicit alias ensures @/ resolves for ALL imported files (including
+      // scripts/ which sits outside tsconfig's `include` array).
+      "@/": path.resolve(__dirname, "src") + "/",
+    },
+  },
   test: {
     // Server logic runs on Node, not in a browser/jsdom environment.
     environment: "node",
