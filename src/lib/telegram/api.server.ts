@@ -24,6 +24,14 @@ export interface SendMessageOptions {
   disablePreview?: boolean;
 }
 
+export interface EditMessageOptions {
+  chatId: number;
+  messageId: number;
+  text: string;
+  keyboard?: InlineKeyboard;
+  parseMode?: "MarkdownV2" | "HTML" | "None";
+}
+
 /** Telegram OCR_Pipeline upper bound on downloaded files: 6 MB (R5.5). */
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 
@@ -82,6 +90,27 @@ export async function sendMessage(opts: SendMessageOptions): Promise<{ ok: boole
   if (opts.disablePreview) body.disable_web_page_preview = true;
 
   const res = await callBotApi("sendMessage", body);
+  return { ok: res?.ok === true };
+}
+
+/**
+ * Редактирование существующего сообщения (inline-клавиатура pagination и т.п.).
+ * Следует той же конвенции, что и `sendMessage`: возвращает `{ ok: false }` при
+ * ошибке или отсутствии токена, никогда не бросает (R13.4).
+ */
+export async function editMessageText(opts: EditMessageOptions): Promise<{ ok: boolean }> {
+  const body: Record<string, unknown> = {
+    chat_id: opts.chatId,
+    message_id: opts.messageId,
+    text: opts.text,
+  };
+  const parseMode = opts.parseMode ?? "MarkdownV2";
+  if (parseMode !== "None") body.parse_mode = parseMode;
+  if (opts.keyboard && opts.keyboard.length > 0) {
+    body.reply_markup = { inline_keyboard: opts.keyboard };
+  }
+
+  const res = await callBotApi("editMessageText", body);
   return { ok: res?.ok === true };
 }
 

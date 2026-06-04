@@ -370,7 +370,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     );
   });
 
-  it("sends /panic with all 10 scenario buttons", async () => {
+  it("sends /panic with paginated scenario buttons (page 1)", async () => {
     const update = textUpdate({ userId: 1104, chatId: 5104, text: "/panic" });
 
     const response = await handleTelegramWebhook(webhookRequest(update));
@@ -384,10 +384,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       "panic:4",
       "panic:5",
       "panic:6",
-      "panic:7",
-      "panic:8",
-      "panic:9",
-      "panic:10",
+      "panic:more",
     ]);
   });
 

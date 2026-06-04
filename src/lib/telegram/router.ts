@@ -70,7 +70,7 @@ export const telegramUpdateSchema = z
       .object({
         id: z.string(),
         from: z.object({ id: z.number() }),
-        message: z.object({ chat: z.object({ id: z.number() }) }).optional(),
+        message: z.object({ chat: z.object({ id: z.number() }), message_id: z.number().optional() }).optional(),
         data: z.string(),
       })
       .optional(),
@@ -154,6 +154,8 @@ export interface HandlerCtx {
   chatId: number;
   userId: number;
   session: Session;
+  /** Message ID of the message containing inline keyboard (from callback_query). */
+  messageId?: number;
 }
 
 /**
@@ -393,6 +395,11 @@ export async function dispatchUpdate(
   }
 
   const ctx: HandlerCtx = { chatId, userId, session };
+
+  // Populate messageId from callback_query.message.message_id when available.
+  if (update.callback_query?.message?.message_id != null) {
+    ctx.messageId = update.callback_query.message.message_id;
+  }
 
   switch (action.kind) {
     case "callback":
