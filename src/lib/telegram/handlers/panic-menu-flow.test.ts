@@ -29,8 +29,18 @@ vi.mock("@/lib/telegram/api.server", () => ({
     h.sendCalls.push({ chatId: opts.chatId, text: opts.text, keyboard: opts.keyboard });
     return Promise.resolve({ ok: true });
   },
-  editMessageText: (opts: { chatId: number; messageId: number; text: string; keyboard?: unknown }) => {
-    h.editCalls.push({ chatId: opts.chatId, messageId: opts.messageId, text: opts.text, keyboard: opts.keyboard });
+  editMessageText: (opts: {
+    chatId: number;
+    messageId: number;
+    text: string;
+    keyboard?: unknown;
+  }) => {
+    h.editCalls.push({
+      chatId: opts.chatId,
+      messageId: opts.messageId,
+      text: opts.text,
+      keyboard: opts.keyboard,
+    });
     return Promise.resolve(h.editResult.current);
   },
   answerCallbackQuery: (id: string) => {
@@ -48,7 +58,12 @@ vi.mock("@/lib/telegram/session.server", () => ({
 }));
 
 import { handleCallback } from "./misc";
-import { buildPanicKeyboardPage1, buildPanicKeyboardPage2, buildPanicMenuText } from "@/lib/telegram/emergency";
+import { bt } from "@/lib/telegram/bot-i18n";
+import {
+  buildPanicKeyboardPage1,
+  buildPanicKeyboardPage2,
+  buildPanicMenuText,
+} from "@/lib/telegram/emergency";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -224,5 +239,21 @@ describe("panic:N — scenario text sent as a new message", () => {
     expect(h.sendCalls).toHaveLength(1);
     // No keyboard passed for scenario texts
     expect(h.sendCalls[0].keyboard).toBeUndefined();
+  });
+});
+
+// ===========================================================================
+// livecall:tell_family — distinct guidance, not a duplicate hangup response
+// ===========================================================================
+
+describe("livecall:tell_family — sends family-sharing guidance", () => {
+  it("sends a dedicated family guidance response", async () => {
+    const ctx = makeCtx();
+    await handleCallback("livecall:tell_family", ctx);
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toBe(bt("live_call_tell_family", "ru"));
+    expect(h.sendCalls[0].text).not.toBe(bt("live_call_hangup", "ru"));
   });
 });

@@ -19,18 +19,18 @@ const LANGS = ["ru", "uz", "en"] as const;
  * in the user-facing why_explanation text.
  */
 const FORBIDDEN_PATTERNS: RegExp[] = [
-  /\d+\s*[≥=]/,         // digits followed by ≥ or = (threshold patterns like "50≥", "30=")
-  /[≥=]\s*\d+/,         // ≥ or = followed by digits (e.g., "≥ 50", "= 20")
-  /\bscore\b/i,         // "score" in any case
-  /\bвес\b/i,           // Russian "вес" (weight)
-  /\bпорог\b/i,         // Russian "порог" (threshold)
-  /\bhash\b/i,          // "hash"
-  /\bmask\b/i,          // "mask"
-  /\b30\+/,             // "30+" pattern (referring to "30+ rules")
-  /\bхеш\b/i,          // Russian "хеш" (hash)
-  /\bмаск\b/i,         // Russian "маск" (mask)
-  /\bweight\b/i,        // "weight"
-  /\bthreshold\b/i,     // "threshold"
+  /\d+\s*[≥=]/, // digits followed by ≥ or = (threshold patterns like "50≥", "30=")
+  /[≥=]\s*\d+/, // ≥ or = followed by digits (e.g., "≥ 50", "= 20")
+  /\bscore\b/i, // "score" in any case
+  /\bвес\b/i, // Russian "вес" (weight)
+  /\bпорог\b/i, // Russian "порог" (threshold)
+  /\bhash\b/i, // "hash"
+  /\bmask\b/i, // "mask"
+  /\b30\+/, // "30+" pattern (referring to "30+ rules")
+  /\bхеш\b/i, // Russian "хеш" (hash)
+  /\bмаск\b/i, // Russian "маск" (mask)
+  /\bweight\b/i, // "weight"
+  /\bthreshold\b/i, // "threshold"
 ];
 
 /**
@@ -51,40 +51,37 @@ function countNumberedItems(text: string): number {
 describe("Why_Explanation — Property 1: Why_Explanation well-formedness", () => {
   it("satisfies well-formedness constraints for all langs (fast-check, ≥100 iterations)", () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...LANGS),
-        (lang) => {
-          const text = bot_dict.why_explanation[lang];
+      fc.property(fc.constantFrom(...LANGS), (lang) => {
+        const text = bot_dict.why_explanation[lang];
 
-          // (1) ≤800 characters
-          expect(text.length).toBeLessThanOrEqual(800);
+        // (1) ≤800 characters
+        expect(text.length).toBeLessThanOrEqual(800);
 
-          // (2) No weight/threshold/technical jargon patterns
-          for (const pattern of FORBIDDEN_PATTERNS) {
-            expect(
-              pattern.test(text),
-              `Forbidden pattern ${pattern} found in "${lang}" why_explanation`,
-            ).toBe(false);
-          }
-
-          // (3) ≤5 numbered items
-          const itemCount = countNumberedItems(text);
-          expect(itemCount).toBeLessThanOrEqual(5);
-
-          // (4) Ends with 🔒 privacy note
-          const trimmed = text.trimEnd();
+        // (2) No weight/threshold/technical jargon patterns
+        for (const pattern of FORBIDDEN_PATTERNS) {
           expect(
-            trimmed.includes("🔒"),
-            `"${lang}" why_explanation must contain 🔒 privacy note`,
-          ).toBe(true);
-          // The 🔒 should be in the last portion of the text (final paragraph)
-          const lastParagraph = trimmed.split("\n\n").pop() ?? "";
-          expect(
-            lastParagraph.includes("🔒"),
-            `"${lang}" why_explanation must end with a paragraph containing 🔒`,
-          ).toBe(true);
-        },
-      ),
+            pattern.test(text),
+            `Forbidden pattern ${pattern} found in "${lang}" why_explanation`,
+          ).toBe(false);
+        }
+
+        // (3) ≤5 numbered items
+        const itemCount = countNumberedItems(text);
+        expect(itemCount).toBeLessThanOrEqual(5);
+
+        // (4) Ends with 🔒 privacy note
+        const trimmed = text.trimEnd();
+        expect(
+          trimmed.includes("🔒"),
+          `"${lang}" why_explanation must contain 🔒 privacy note`,
+        ).toBe(true);
+        // The 🔒 should be in the last portion of the text (final paragraph)
+        const lastParagraph = trimmed.split("\n\n").pop() ?? "";
+        expect(
+          lastParagraph.includes("🔒"),
+          `"${lang}" why_explanation must end with a paragraph containing 🔒`,
+        ).toBe(true);
+      }),
       { numRuns: 100 },
     );
   });

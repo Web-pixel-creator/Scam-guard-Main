@@ -9,11 +9,7 @@
 // _Requirements: 4.1, 4.6_
 
 import { describe, it, expect } from "vitest";
-import {
-  buildPanicKeyboardPage1,
-  buildPanicKeyboardPage2,
-  PANIC_CB_PREFIX,
-} from "./emergency";
+import { buildPanicKeyboardPage1, buildPanicKeyboardPage2, PANIC_CB_PREFIX } from "./emergency";
 import type { Lang } from "@/lib/i18n";
 
 const LANGS: Lang[] = ["ru", "uz", "en"];

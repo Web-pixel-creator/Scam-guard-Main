@@ -219,7 +219,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           "1. Call your bank immediately.",
           `2. File a police report: ${policeLine("en")}`,
           "3. Save the receipt, chat history, recipient's number.",
-          "4. \"Transfer again to cancel\" — that's a second scam.",
+          '4. "Transfer again to cancel" — that\'s a second scam.',
           "",
           "Contacts:",
           bankList("en"),
@@ -355,11 +355,11 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           telecomList("uz"),
         ],
         en: [
-          "HANG UP. SAY: \"I'LL CALL BACK MYSELF.\"",
+          'HANG UP. SAY: "I\'LL CALL BACK MYSELF."',
           "",
           "What to do now:",
           "1. Never give SMS code, PIN, CVV, or password.",
-          "2. \"Stay on the line\" = scam.",
+          '2. "Stay on the line" = scam.',
           "3. Call the organization yourself at the official number.",
           "",
           "Contacts:",
@@ -462,7 +462,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           "What to do now:",
           "1. Stop all money transfers.",
           "2. Reverse-search their photo via Google Images.",
-          "3. Signs: quick \"love\", asks for money/crypto, avoids video calls.",
+          '3. Signs: quick "love", asks for money/crypto, avoids video calls.',
           `4. Report: ${policeLine("en")} or /report`,
           "",
           "If you are under 18 — tell an adult you trust.",
@@ -681,8 +681,14 @@ export function buildPanicKeyboardPage1(lang: Lang): InlineKeyboard {
   // Scenarios 1–6, 2 per row
   for (let i = 1; i <= 6; i += 2) {
     rows.push([
-      { text: PANIC_MENU_TITLES[i as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i}` },
-      { text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i + 1}` },
+      {
+        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i}`,
+      },
+      {
+        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
+      },
     ]);
   }
   // "More" button
@@ -704,8 +710,14 @@ export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
   // Scenarios 7–10, 2 per row
   for (let i = 7; i <= 10; i += 2) {
     rows.push([
-      { text: PANIC_MENU_TITLES[i as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i}` },
-      { text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang], callback_data: `${PANIC_CB_PREFIX}${i + 1}` },
+      {
+        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i}`,
+      },
+      {
+        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
+      },
     ]);
   }
   // "Back" button

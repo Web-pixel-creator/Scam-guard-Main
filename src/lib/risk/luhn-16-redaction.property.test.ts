@@ -89,9 +89,7 @@ describe("Feature: telegram-ux-polish, Property 3: Luhn-16 unconditional redacti
           }
 
           // shouldRedactAsCard must return true — unconditional for Luhn-16
-          expect(
-            shouldRedactAsCard(cardNumber, surroundingText, matchStart, matchEnd),
-          ).toBe(true);
+          expect(shouldRedactAsCard(cardNumber, surroundingText, matchStart, matchEnd)).toBe(true);
         },
       ),
       { numRuns: 100 },

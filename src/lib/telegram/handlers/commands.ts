@@ -34,10 +34,7 @@ import {
   formatSafety,
   formatWelcome,
 } from "@/lib/telegram/format";
-import {
-  buildPanicMenuText,
-  buildPanicKeyboardPage1,
-} from "@/lib/telegram/emergency";
+import { buildPanicMenuText, buildPanicKeyboardPage1 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { saveSession } from "@/lib/telegram/session.server";

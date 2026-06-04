@@ -11,29 +11,23 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import {
-  CARD_CONTEXT_WORDS,
-  luhnCheck,
-  shouldRedactAsCard,
-} from "../detect";
+import { CARD_CONTEXT_WORDS, luhnCheck, shouldRedactAsCard } from "../detect";
 
 /**
  * Generates a random digit sequence of length 13–19 that does NOT pass the
  * Luhn check when its length is 16. This avoids triggering the unconditional
  * Luhn-16 redaction path so we test context-word gating only.
  */
-const nonLuhn16DigitSequence: fc.Arbitrary<string> = fc
-  .integer({ min: 13, max: 19 })
-  .chain((len) =>
-    fc
-      .array(fc.integer({ min: 0, max: 9 }), { minLength: len, maxLength: len })
-      .map((digits) => digits.join(""))
-      .filter((seq) => {
-        // If length is 16, ensure it does NOT pass Luhn
-        if (seq.length === 16) return !luhnCheck(seq);
-        return true;
-      }),
-  );
+const nonLuhn16DigitSequence: fc.Arbitrary<string> = fc.integer({ min: 13, max: 19 }).chain((len) =>
+  fc
+    .array(fc.integer({ min: 0, max: 9 }), { minLength: len, maxLength: len })
+    .map((digits) => digits.join(""))
+    .filter((seq) => {
+      // If length is 16, ensure it does NOT pass Luhn
+      if (seq.length === 16) return !luhnCheck(seq);
+      return true;
+    }),
+);
 
 /**
  * Generates filler text of a specified length using safe characters that won't
@@ -83,14 +77,16 @@ describe("Feature: telegram-ux-polish, Property 2: Context-word gated card redac
 
           if (wordBefore) {
             // [padding][contextWord][filler][digits][padding]
+            // Spaces keep the context term as a real word, not a substring.
             const prefix = safeFiller(10);
-            surroundingText = prefix + contextWord + filler + digits + safeFiller(10);
-            matchStart = prefix.length + contextWord.length + filler.length;
+            surroundingText = prefix + " " + contextWord + " " + filler + digits + safeFiller(10);
+            matchStart = prefix.length + 1 + contextWord.length + 1 + filler.length;
             matchEnd = matchStart + digits.length;
           } else {
             // [padding][digits][filler][contextWord][padding]
+            // Spaces keep the context term as a real word, not a substring.
             const prefix = safeFiller(10);
-            surroundingText = prefix + digits + filler + contextWord + safeFiller(10);
+            surroundingText = prefix + digits + filler + " " + contextWord + " " + safeFiller(10);
             matchStart = prefix.length;
             matchEnd = matchStart + digits.length;
           }

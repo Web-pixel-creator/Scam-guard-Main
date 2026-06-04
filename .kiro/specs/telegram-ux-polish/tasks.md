@@ -17,7 +17,7 @@
     - Keep inline language buttons on `/start` for onboarding unchanged — this task does NOT modify the /start handler
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-  - [x]* 1.2 Write unit tests for `buildCommandPayloads`
+  - [x]\* 1.2 Write unit tests for `buildCommandPayloads`
     - Verify exactly 4 payloads (ru, uz, en, default)
     - Verify each payload contains the 6 required commands
     - Verify `language_code` set correctly per payload (absent for default)
@@ -26,7 +26,7 @@
     - Verify descriptions are within Telegram 3–256 char limit
     - _Requirements: 5.7_
 
-  - [x]* 1.3 Write test that `/start` still has inline language buttons
+  - [x]\* 1.3 Write test that `/start` still has inline language buttons
     - Verify `/start` handler still sends inline keyboard with language selection buttons (ru/uz/en)
     - Ensure command menu changes do not affect onboarding flow
     - _Requirements: 1.1_
@@ -45,12 +45,12 @@
     - Technical/admin explanation can exist separately if needed, but the default user-facing text must be plain language only
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [x]* 3.2 Write property test for Why_Explanation well-formedness
+  - [x]\* 3.2 Write property test for Why_Explanation well-formedness
     - **Property 1: Why_Explanation well-formedness**
     - For all 3 langs verify: ≤800 chars, no weight/threshold patterns (digits + "≥", "=", "score", "вес", "порог", "hash", "mask", "30+" patterns), ≤5 numbered items, ends with 🔒 privacy note
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4**
 
-  - [x]* 3.3 Write test that "Как я решаю?" has no technical jargon
+  - [x]\* 3.3 Write test that "Как я решаю?" has no technical jargon
     - Verify text does not contain: "score", "weight", "threshold", "hash", "mask", "вес", "порог", "хеш", "маск", "30+"
     - Verify for all 3 langs (ru, uz, en)
     - _Requirements: 2.1_
@@ -77,22 +77,22 @@
     - Beverage ad / barcode screenshots with digit sequences must NOT trigger card risk
     - _Requirements: 3.1, 3.2, 3.5_
 
-  - [x]* 5.4 Write property test for context-word gated card redaction
+  - [x]\* 5.4 Write property test for context-word gated card redaction
     - **Property 2: Context-word gated card redaction**
     - Generate random 13–19 digit sequences (non-Luhn-16-passing) with/without context words at varying distances; verify redaction occurs iff context word within 120 chars
     - **Validates: Requirements 3.1, 3.2, 3.3, 5.6**
 
-  - [x]* 5.5 Write property test for Luhn-16 unconditional redaction
+  - [x]\* 5.5 Write property test for Luhn-16 unconditional redaction
     - **Property 3: Luhn-16 unconditional redaction**
     - Generate Luhn-valid 16-digit sequences in arbitrary surrounding text (no context words); verify always redacted
     - **Validates: Requirements 3.4, 5.6**
 
-  - [x]* 5.6 Write property test for phone/OTP redaction invariance
+  - [x]\* 5.6 Write property test for phone/OTP redaction invariance
     - **Property 5: Phone and OTP redaction invariance**
     - Generate phone-like (7+ digits with +prefix) and OTP-like (4-8 digit) patterns; verify still masked after card-detection refactor
     - **Validates: Requirements 3.5**
 
-  - [x]* 5.7 Write test that barcode/ad OCR does not trigger card risk
+  - [x]\* 5.7 Write test that barcode/ad OCR does not trigger card risk
     - Test with real-world-like inputs: EAN-13 barcode digits, tracking numbers, beverage ad screenshots — verify no card redaction without payment context
     - _Requirements: 3.1, 3.2_
 
@@ -137,14 +137,14 @@
     - Send via `sendMessage` (initial message)
     - _Requirements: 4.1_
 
-  - [x]* 7.7 Write tests for panic menu submenu/edit flow
+  - [x]\* 7.7 Write tests for panic menu submenu/edit flow
     - Verify `panic:more` triggers `editMessageText` with page 2
     - Verify `panic:back` triggers `editMessageText` with page 1
     - Verify fallback: when edit fails, a new message is sent
     - Verify `panic:N` sends a new message (not edit)
     - _Requirements: 4.2, 4.3, 4.5_
 
-  - [x]* 7.8 Write test that live-call first message tells user to end the call
+  - [x]\* 7.8 Write test that live-call first message tells user to end the call
     - Verify scenario 6 text starts with "Завершите звонок" (ru) / equivalents (uz, en)
     - Verify button text is "Я положил трубку" or "Что делать после звонка", not "Положить трубку"
     - _Requirements: 4.4_
@@ -163,19 +163,19 @@
     - Keep contact numbers pulled dynamically from verified-contacts module
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [x]* 9.2 Write property test for emergency text well-formedness
+  - [x]\* 9.2 Write property test for emergency text well-formedness
     - **Property 4: Emergency text well-formedness**
     - For all 10 scenarios × 3 langs: verify ≤1500 chars, first content line starts with uppercase action word, contains at least one phone/short-code from VERIFIED_CONTACTS
     - **Validates: Requirements 5.1, 5.2, 5.4, 5.5**
 
-  - [x]* 9.3 Write unit tests for panic keyboard structure
+  - [x]\* 9.3 Write unit tests for panic keyboard structure
     - Verify `buildPanicKeyboardPage1` returns 7 buttons (6 scenarios + "more")
     - Verify `buildPanicKeyboardPage2` returns 5 buttons (4 scenarios + "back")
     - Verify all callback_data strings are `panic:` prefixed
     - Test for all 3 langs (ru, uz, en)
     - _Requirements: 4.1, 4.6_
 
-  - [x]* 9.4 Write tests for RU/UZ/EN string completeness
+  - [x]\* 9.4 Write tests for RU/UZ/EN string completeness
     - Verify all user-facing strings in emergency.ts, bot-i18n.ts, and command payloads exist for all 3 langs
     - Verify no lang variant is empty or falls back to a different lang silently
     - _Requirements: 1.2, 2.3, 5.1_

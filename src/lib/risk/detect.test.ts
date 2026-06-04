@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { detectInputType, looksLikePaymentInput, luhnCheck, redactText } from "./detect";
+import {
+  detectInputType,
+  looksLikePaymentInput,
+  luhnCheck,
+  redactText,
+  shouldRedactAsCard,
+} from "./detect";
 
 describe("looksLikePaymentInput", () => {
   it.each([
@@ -71,7 +77,6 @@ describe("luhnCheck", () => {
   });
 });
 
-
 describe("redactText — context-aware card detection", () => {
   it("redacts card-like digits when context word is present", () => {
     const text = "Переведите на карту 8600123456789012 до завтра";
@@ -92,6 +97,25 @@ describe("redactText — context-aware card detection", () => {
     const result = redactText(text);
     // No context word → no redaction (unless it happens to be Luhn-16-valid)
     expect(result).not.toContain("•••• •••• •••• ••••");
+  });
+
+  it("does NOT treat card context words as substrings inside unrelated words", () => {
+    const digits = "1234567890123";
+    const text = `Shipping reference ${digits} is printed on the parcel label`;
+    const start = text.indexOf(digits);
+    const end = start + digits.length;
+
+    expect(shouldRedactAsCard(digits, text, start, end)).toBe(false);
+    expect(redactText(text)).toContain(digits);
+  });
+
+  it("accepts separated card-like digits when a real context word is nearby", () => {
+    const digits = "8600 1234 5678 9012";
+    const text = `Переведите на карту ${digits}`;
+    const start = text.indexOf(digits);
+    const end = start + digits.length;
+
+    expect(shouldRedactAsCard(digits, text, start, end)).toBe(true);
   });
 
   it("unconditionally redacts 16-digit Luhn-valid sequences", () => {

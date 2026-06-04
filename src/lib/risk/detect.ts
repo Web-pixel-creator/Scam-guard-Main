@@ -136,9 +136,7 @@ export function redactText(s: string): string {
     const end = start + cardMatch[0].length;
 
     // Skip if this region overlaps with a phone match
-    const overlapsPhone = replacements.some(
-      (r) => start < r.end && end > r.start,
-    );
+    const overlapsPhone = replacements.some((r) => start < r.end && end > r.start);
     if (overlapsPhone) continue;
 
     const digits = cardMatch[0].replace(/\D/g, "");
@@ -189,6 +187,20 @@ export const CARD_CONTEXT_WORDS: string[] = [
   "срок действия",
 ];
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasCardContextWord(window: string): boolean {
+  return CARD_CONTEXT_WORDS.some((word) => {
+    const pattern = new RegExp(
+      `(?:^|[^\\p{L}\\p{N}_])${escapeRegExp(word.toLowerCase())}(?=$|[^\\p{L}\\p{N}_])`,
+      "u",
+    );
+    return pattern.test(window);
+  });
+}
+
 /**
  * Determine if a 13–19 digit sequence should be treated as a card number.
  *
@@ -205,8 +217,11 @@ export function shouldRedactAsCard(
   matchStart: number,
   matchEnd: number,
 ): boolean {
+  const digits = digitSequence.replace(/\D/g, "");
+  if (digits.length < 13 || digits.length > 19) return false;
+
   // Unconditional: 16-digit Luhn-valid sequences are always treated as cards
-  if (digitSequence.length === 16 && luhnCheck(digitSequence)) {
+  if (digits.length === 16 && luhnCheck(digits)) {
     return true;
   }
 
@@ -215,7 +230,7 @@ export function shouldRedactAsCard(
   const windowEnd = Math.min(surroundingText.length, matchEnd + 120);
   const window = surroundingText.slice(windowStart, windowEnd).toLowerCase();
 
-  return CARD_CONTEXT_WORDS.some((word) => window.includes(word.toLowerCase()));
+  return hasCardContextWord(window);
 }
 
 /**
