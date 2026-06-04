@@ -40,7 +40,8 @@ export type ReasonCode =
   | "malicious_file_bait"
   | "impersonates_official"
   | "suspicious_invite_link"
-  | "hosted_app_platform";
+  | "hosted_app_platform"
+  | "brand_impersonation";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -80,6 +81,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   impersonates_official: 35,
   suspicious_invite_link: 25,
   hosted_app_platform: 0, // informational, no score impact
+  brand_impersonation: 40,
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -473,6 +475,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Размещён на публичной платформе",
     uz: "Ommaviy platformada joylashgan",
     en: "Hosted on a public platform",
+  },
+  brand_impersonation: {
+    ru: "Подражает известному бренду",
+    uz: "Taniqli brendga taqlid qilmoqda",
+    en: "Impersonates a known brand",
   },
 };
 

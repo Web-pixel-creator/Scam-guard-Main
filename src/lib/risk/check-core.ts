@@ -31,6 +31,9 @@ import {
 import { hashIdentifier } from "./hash";
 import { checkRateLimit } from "./rate-limit";
 import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
+import { matchBrandInUrl, matchBrandInText, type BrandEvidence } from "./brand-matcher";
+import { normalizeDomain } from "./domain-normalizer";
+import { formatBrandImpersonationExplanations } from "./brand-formatter";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -54,6 +57,8 @@ export interface RunCheckResult {
   knownReports: number; // >0 только для Confirmed_Entity
   /** Verified official contact match (D-011). null if not matched. */
   verifiedContact: { orgName: string; orgType: string; source: string } | null;
+  /** Brand impersonation evidence objects. Empty array if no brand impersonation detected. */
+  brandEvidence: BrandEvidence[];
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -99,6 +104,36 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     evaluateUrl(normalized).forEach((c) => codes.add(c));
   if (detected === "apk") codes.add("apk_download_link");
 
+  // ── Brand Impersonation Detection ────────────────────────────────────────
+  // Runs after evaluateUrl/evaluateText. Wrapped in try/catch for graceful
+  // degradation: if brand detection fails, existing rules still work (R9.7).
+  let brandEvidence: BrandEvidence[] = [];
+  try {
+    if (detected === "url" || detected === "apk") {
+      // URL input: normalize domain and check for brand impersonation in URL
+      const normalizedDomain = normalizeDomain(normalized);
+      const urlResult = matchBrandInUrl(normalizedDomain, normalizedDomain.hostname);
+      if (urlResult.detected) {
+        codes.add("brand_impersonation");
+        brandEvidence = urlResult.evidence;
+      }
+    }
+
+    if (detected === "text" || detected === "unknown") {
+      // Text input: check for brand mentions with suspicious context
+      const reasonList = [...codes] as ReasonCode[];
+      const textResult = matchBrandInText(safeInput, [], reasonList);
+      if (textResult.detected) {
+        codes.add("brand_impersonation");
+        brandEvidence = [...brandEvidence, ...textResult.evidence];
+      }
+    }
+  } catch (e) {
+    // Graceful degradation: log and continue without brand_impersonation.
+    // Existing rules (weird_domain, hosted_app_platform, etc.) still provide protection.
+    console.error("brand detection failed", e instanceof Error ? e.message : "unknown");
+  }
+
   let knownReports = 0;
   if (["phone", "telegram", "url", "apk"].includes(detected)) {
     const hash = await hashIdentifier(normalized);
@@ -134,6 +169,25 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         redacted: display,
         reasons: reasonList,
       });
+
+  // ── Brand impersonation explanation (formatter integration) ─────────────
+  // When brand impersonation is detected, append formatted brand explanations
+  // to the AI explanation (or use them as the explanation if AI is unavailable).
+  let finalExplanation = explanation;
+  if (brandEvidence.length > 0) {
+    try {
+      const brandExplanations = formatBrandImpersonationExplanations(brandEvidence, lang);
+      const brandText = brandExplanations.join("\n");
+      if (finalExplanation) {
+        finalExplanation = finalExplanation + "\n\n" + brandText;
+      } else {
+        finalExplanation = brandText;
+      }
+    } catch (e) {
+      // If formatter fails, keep the existing explanation (or null)
+      console.error("brand formatter failed", e instanceof Error ? e.message : "unknown");
+    }
+  }
 
   // ── Verified contact lookup (D-011) ──────────────────────────────────────
   // Check if the input matches a known official contact. Works for:
@@ -182,7 +236,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       risk_level: finalLevel,
       risk_score: score,
       reason_codes: reasonList,
-      ai_explanation: explanation,
+      ai_explanation: finalExplanation,
       language: lang,
     });
   } catch (e) {
@@ -195,9 +249,10 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     level: finalLevel,
     score,
     reasons: reasonList,
-    explanation,
+    explanation: finalExplanation,
     knownReports,
     verifiedContact,
+    brandEvidence,
   };
 }
 

@@ -1,0 +1,206 @@
+// Domain Normalizer — Preprocesses domains before brand matching
+//
+// Pipeline: strip protocol → strip www → lowercase → decode punycode → apply homoglyphs
+// On punycode decode failure, falls back to raw ASCII representation.
+
+/**
+ * Result of domain normalization: a fully normalized hostname and path.
+ */
+export interface NormalizedDomain {
+  /** Fully normalized hostname (lowercase, no protocol/www, punycode decoded, homoglyphs replaced) */
+  hostname: string;
+  /** Path component (lowercase, homoglyphs applied) */
+  path: string;
+}
+
+/**
+ * Homoglyph map: visually similar characters that attackers substitute to
+ * bypass brand detection. Maps confusable chars → their Latin equivalents.
+ */
+const HOMOGLYPH_MAP: ReadonlyMap<string, string> = new Map([
+  // Cyrillic → Latin
+  ["\u0430", "a"], // Cyrillic а → Latin a
+  ["\u0435", "e"], // Cyrillic е → Latin e
+  ["\u043E", "o"], // Cyrillic о → Latin o
+  ["\u0440", "p"], // Cyrillic р → Latin p
+  ["\u0441", "c"], // Cyrillic с → Latin c
+  // Digit → Letter
+  ["0", "o"], // zero → o
+  ["1", "l"], // one → l
+]);
+
+/**
+ * Apply homoglyph normalization: replace known confusable characters
+ * with their canonical Latin equivalents.
+ */
+function applyHomoglyphs(input: string): string {
+  let result = "";
+  for (const char of input) {
+    result += HOMOGLYPH_MAP.get(char) ?? char;
+  }
+  return result;
+}
+
+/**
+ * Decode a single punycode-encoded label (e.g., "xn--..." segment).
+ * Falls back to the raw ASCII label on any decode failure.
+ */
+function decodePunycodeLabel(label: string): string {
+  if (!label.startsWith("xn--")) {
+    return label;
+  }
+  try {
+    return punycodeDecode(label.slice(4));
+  } catch {
+    // Fallback to raw ASCII on invalid punycode
+    return label;
+  }
+}
+
+/**
+ * Minimal punycode decoder for IDNA labels.
+ * Implements RFC 3492 bootstring decoding.
+ * Falls back to raw input on any failure.
+ */
+function punycodeDecode(encoded: string): string {
+  const base = 36;
+  const tMin = 1;
+  const tMax = 26;
+  const skew = 38;
+  const damp = 700;
+  const initialBias = 72;
+  const initialN = 128;
+
+  const output: number[] = [];
+  let i = 0;
+  let n = initialN;
+  let bias = initialBias;
+
+  // Find the last delimiter (basic code points are before it)
+  const lastDelim = encoded.lastIndexOf("-");
+  const basicLength = lastDelim >= 0 ? lastDelim : 0;
+
+  for (let j = 0; j < basicLength; j++) {
+    const cp = encoded.charCodeAt(j);
+    if (cp >= 128) throw new Error("Invalid basic code point");
+    output.push(cp);
+  }
+
+  let index = lastDelim >= 0 ? lastDelim + 1 : 0;
+
+  while (index < encoded.length) {
+    const oldi = i;
+    let w = 1;
+    let k = base;
+
+    while (true) {
+      if (index >= encoded.length) throw new Error("Invalid input");
+      const code = encoded.charCodeAt(index++);
+      let digit: number;
+
+      if (code >= 0x61 && code <= 0x7a) {
+        digit = code - 0x61; // a-z → 0-25
+      } else if (code >= 0x41 && code <= 0x5a) {
+        digit = code - 0x41; // A-Z → 0-25
+      } else if (code >= 0x30 && code <= 0x39) {
+        digit = code - 0x30 + 26; // 0-9 → 26-35
+      } else {
+        throw new Error("Invalid digit");
+      }
+
+      i += digit * w;
+      const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
+
+      if (digit < t) break;
+      w *= base - t;
+      k += base;
+    }
+
+    const out = output.length + 1;
+    bias = adapt(i - oldi, out, oldi === 0);
+    n += Math.floor(i / out);
+    i %= out;
+
+    output.splice(i, 0, n);
+    i++;
+  }
+
+  return String.fromCodePoint(...output);
+}
+
+/** Bias adaptation function per RFC 3492 */
+function adapt(delta: number, numPoints: number, firstTime: boolean): number {
+  const base = 36;
+  const tMin = 1;
+  const tMax = 26;
+  const skew = 38;
+  const damp = 700;
+
+  let d = firstTime ? Math.floor(delta / damp) : Math.floor(delta / 2);
+  d += Math.floor(d / numPoints);
+
+  let k = 0;
+  while (d > ((base - tMin) * tMax) / 2) {
+    d = Math.floor(d / (base - tMin));
+    k += base;
+  }
+  return k + Math.floor(((base - tMin + 1) * d) / (d + skew));
+}
+
+/**
+ * Decode all punycode-encoded labels in a hostname.
+ * Each dot-separated label starting with "xn--" is decoded individually.
+ * On failure for any label, that label remains in raw ASCII form.
+ */
+function decodePunycodeHostname(hostname: string): string {
+  return hostname
+    .split(".")
+    .map((label) => decodePunycodeLabel(label))
+    .join(".");
+}
+
+/**
+ * Normalize a raw URL string for brand matching.
+ *
+ * Steps:
+ * 1. Strip protocol scheme (http://, https://)
+ * 2. Strip `www.` prefix
+ * 3. Lowercase all characters
+ * 4. Decode Punycode/IDNA segments to Unicode (fallback to raw ASCII on failure)
+ * 5. Apply homoglyph normalization
+ */
+export function normalizeDomain(rawUrl: string): NormalizedDomain {
+  let url = rawUrl.trim();
+
+  // 1. Strip protocol scheme
+  url = url.replace(/^https?:\/\//i, "");
+
+  // 2. Separate hostname and path
+  const slashIndex = url.indexOf("/");
+  let hostname: string;
+  let path: string;
+
+  if (slashIndex === -1) {
+    hostname = url;
+    path = "";
+  } else {
+    hostname = url.slice(0, slashIndex);
+    path = url.slice(slashIndex);
+  }
+
+  // 3. Strip www. prefix from hostname
+  hostname = hostname.replace(/^www\./i, "");
+
+  // 4. Lowercase
+  hostname = hostname.toLowerCase();
+  path = path.toLowerCase();
+
+  // 5. Decode punycode labels in hostname
+  hostname = decodePunycodeHostname(hostname);
+
+  // 6. Apply homoglyph normalization
+  hostname = applyHomoglyphs(hostname);
+  path = applyHomoglyphs(path);
+
+  return { hostname, path };
+}
