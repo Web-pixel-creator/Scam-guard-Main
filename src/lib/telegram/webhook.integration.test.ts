@@ -20,8 +20,8 @@
 //        in-memory fake records every `from()` / `insert` / `upsert` so we can
 //        assert WHAT is persisted (and prove the screenshot is NOT).
 //   • `@/lib/risk/check-core`                 — partial mock: `runCheck` is kept
-//        REAL (real scoring) while `ocrExtractCore` is replaced with a stub that
-//        returns controllable text (per the task approach for the photo case).
+//        REAL (real scoring) while `analyzeImageCore` is replaced with a stub
+//        that returns controllable structured evidence for the photo case.
 //   • global `fetch`                          — AI gateway. Stubbed so
 //        `runCheck`'s `aiExplain` never hits the network.
 //   • `@/lib/report.functions`                — `submitReport` stub (never hit on
@@ -51,9 +51,10 @@ const h = vi.hoisted(() => ({
   downloadCalls: [] as string[],
   sendShouldThrow: false,
 
-  // OCR core stub
+  // Image analysis core stub
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
   ocrText: null as string | null,
+  imageEvidence: null as unknown,
 
   // Stub data URL returned by the (mocked) downloader — contains a sentinel we
   // assert NEVER lands in any persisted payload.
@@ -127,14 +128,23 @@ vi.mock("@/integrations/supabase/client.server", () => {
   };
 });
 
-// ── check-core: keep runCheck real, stub ocrExtractCore (photo path). ────────
+// ── check-core: keep runCheck real, stub analyzeImageCore (photo path). ──────
 vi.mock("@/lib/risk/check-core", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/risk/check-core")>();
   return {
     ...actual,
-    ocrExtractCore: vi.fn(async (dataUrl: string, lang: string, key: string) => {
+    analyzeImageCore: vi.fn(async (dataUrl: string, lang: string, key: string) => {
       h.ocrCalls.push({ dataUrl, lang, key });
-      return { text: h.ocrText };
+      if (h.imageEvidence) return h.imageEvidence;
+      if (h.ocrText === null) return null;
+      return {
+        text: h.ocrText,
+        visualCategory: "unknown",
+        confidence: "medium",
+        qr: { present: /qr/i.test(h.ocrText), visibleUrl: null, purpose: "unknown" },
+        riskHints: [],
+        summary: null,
+      };
     }),
   };
 });
@@ -271,6 +281,7 @@ beforeEach(() => {
   h.upserts.length = 0;
   h.sendShouldThrow = false;
   h.ocrText = null;
+  h.imageEvidence = null;
   h.entityRow = null;
   h.sessionRow = null;
 
@@ -850,5 +861,74 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw"); // the base64 sentinel
     expect(h.fromCalls).not.toContain("storage");
     expect(h.fromCalls).not.toContain("objects");
+  });
+
+  it("keeps a normal delivery pickup SMS screenshot out of high risk", async () => {
+    h.imageEvidence = {
+      text: "kutadi\nBuyurtma 106894935 sizni topshirish punktida kutmoqda. Uni 23.05.2026gacha olib keting",
+      visualCategory: "delivery_sms",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Похоже на SMS о выдаче заказа.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1010, chatId: 5010 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.safe);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.high_risk);
+    expect(h.sendCalls[0].text).toContain("доставке");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
+  });
+
+  it("does not flag a restaurant QR menu as high risk without dangerous requests", async () => {
+    h.imageEvidence = {
+      text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
+      visualCategory: "restaurant_menu_qr",
+      confidence: "high",
+      qr: { present: true, visibleUrl: "https://chenson.uz/loyalty", purpose: "menu" },
+      riskHints: [],
+      summary: "Похоже на ресторанное меню и QR программы лояльности.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1011, chatId: 5011 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.safe);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.high_risk);
+    expect(h.sendCalls[0].text).toContain("Сам QR\\-код не является признаком скама");
+
+    const checkInsert = h.inserts.find((i) => i.table === "checks");
+    expect(JSON.stringify(checkInsert)).not.toContain("asks_to_scan_qr");
+  });
+
+  it("still flags a QR login screenshot as high risk", async () => {
+    h.imageEvidence = {
+      text: "Отсканируйте QR-код, чтобы войти в личный кабинет и подтвердить операцию",
+      visualCategory: "qr_login_or_payment",
+      confidence: "high",
+      qr: { present: true, visibleUrl: null, purpose: "login" },
+      riskHints: ["qr_login"],
+      summary: "QR используется для входа или подтверждения аккаунта.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1012, chatId: 5012 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expect(JSON.stringify(h.inserts)).toContain("asks_to_scan_qr");
   });
 });

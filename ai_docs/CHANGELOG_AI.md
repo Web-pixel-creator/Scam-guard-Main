@@ -1,5 +1,12 @@
 # Changelog (AI memory)
 
+## 2026-06-06 - Telegram Image Intelligence v2
+
+- Added `.kiro/specs/telegram-image-intelligence-v2/`.
+- Added structured image evidence for Telegram photos/screenshots: visual category, QR purpose, risk hints, redacted OCR text and short explanation.
+- Benign delivery SMS and restaurant/menu QR screenshots no longer become high-risk from negative safety wording; dangerous QR login/payment still scores through reason codes.
+- Updated architecture, API, database, file/function maps and decisions.
+
 ## 2026-06-05 - Emergency Copilot v2
 
 - Added a new Telegram emergency copilot layer for post-`/panic` follow-up questions.

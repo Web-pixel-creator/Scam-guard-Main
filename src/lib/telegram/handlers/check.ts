@@ -22,7 +22,7 @@
 // Server-only: pulls in `*.server.ts` modules (Bot API + service-role core).
 // This module is wired into the router later (task 9.1) via `setHandlers`; it
 // deliberately does NOT import sibling handler modules or touch the aggregator.
-import { runCheck, ocrExtractCore, type RateLimitedError } from "@/lib/risk/check-core";
+import { analyzeImageCore, runCheck, type RateLimitedError } from "@/lib/risk/check-core";
 import {
   sendMessage,
   sendChatAction,
@@ -39,6 +39,12 @@ import {
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
 } from "@/lib/telegram/emergency";
+import {
+  buildImageCheckInput,
+  buildImageUserExplanation,
+  hasUsableImageEvidence,
+  isBenignImageContext,
+} from "@/lib/risk/image-intelligence";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -164,7 +170,7 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
  *
  * Поток: getFile (метаданные) → проверка лимита 6 МБ ДО скачивания (R5.5) →
  * downloadFileAsDataUrl (ТОЛЬКО в память, без записи на диск/в БД/storage, R5.3)
- * → ocrExtractCore → runCheck. При `null`/пустом результате OCR — подсказка
+ * → analyzeImageCore → runCheck. При `null`/пустом результате анализа — подсказка
  * прислать текст (R5.6); каждый вызов обрабатывает ровно одно изображение, т.е.
  * несколько фото обрабатываются по одному за раз (R16.3).
  */
@@ -189,18 +195,30 @@ export async function handleImage(fileId: string, ctx: HandlerCtx): Promise<void
       const dataUrl = await downloadFileAsDataUrl(meta.filePath);
       if (!dataUrl) return { kind: "ocr_failed" as const };
 
-      // 3) OCR (с редактированием Sensitive_Data внутри ядра).
-      const { text } = await ocrExtractCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
-      if (text === null || text.trim().length === 0) return { kind: "ocr_failed" as const };
+      // 3) Structured image evidence (OCR + visual category + QR purpose).
+      const evidence = await analyzeImageCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      if (!evidence || !hasUsableImageEvidence(evidence)) return { kind: "ocr_failed" as const };
 
-      // 4) Тот же конвейер проверки, что и для текста (R5.2, R5.4).
+      const checkInput = buildImageCheckInput(evidence);
+      if (checkInput.trim().length === 0) return { kind: "ocr_failed" as const };
+
+      // 4) Тот же rules-first конвейер, что и для текста, но без второго AI:
+      // explanation уже строится из структурированного image evidence.
       const result = await runCheck({
-        input: text,
+        input: checkInput,
         lang,
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
+        skipAi: true,
+        safeIfNoReasons: isBenignImageContext(evidence),
       });
-      return { kind: "ok" as const, result };
+      return {
+        kind: "ok" as const,
+        result: {
+          ...result,
+          explanation: buildImageUserExplanation(evidence, result.level, lang),
+        },
+      };
     });
 
     if (outcome.kind === "ocr_failed") {

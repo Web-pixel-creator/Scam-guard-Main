@@ -16,7 +16,7 @@
 // the update is loaded with extra noise fields.
 //
 // External dependencies are mocked so no real network / DB calls happen:
-//   - `@/lib/risk/check-core` — `runCheck` / `ocrExtractCore` capture the key.
+//   - `@/lib/risk/check-core` — `runCheck` / `analyzeImageCore` capture the key.
 //   - `@/lib/telegram/api.server` — Bot API helpers are safe no-op stubs.
 import fc from "fast-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,9 +47,16 @@ vi.mock("@/lib/risk/check-core", () => ({
     hoisted.runCheckKeys.push(params.rateLimitKey);
     return Promise.resolve(FAKE_RESULT);
   },
-  ocrExtractCore: (_dataUrl: string, _lang: string, rateLimitKey: string) => {
+  analyzeImageCore: (_dataUrl: string, _lang: string, rateLimitKey: string) => {
     hoisted.ocrKeys.push(rateLimitKey);
-    return Promise.resolve({ text: "extracted suspicious text" });
+    return Promise.resolve({
+      text: "extracted suspicious text",
+      visualCategory: "chat_screenshot",
+      confidence: "medium",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: null,
+    });
   },
 }));
 

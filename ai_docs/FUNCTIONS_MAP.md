@@ -34,7 +34,15 @@ Signatures and intent only. See file paths for source.
 
 - `runCheck(params)` is the transport-independent check pipeline.
 - `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline.
+- `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots.
 - Private AI helpers call an OpenAI-compatible Chat Completions provider and degrade to `null`.
+
+**`src/lib/risk/image-intelligence.ts`**
+
+- `sanitizeImageIntelligence(raw)` parses/clamps model JSON and merges deterministic risk hints.
+- `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid.
+- `buildImageCheckInput(evidence)` converts benign/dangerous image evidence into a rules-safe input string.
+- `buildImageUserExplanation(evidence, level, lang)` creates the short Telegram explanation for image results.
 
 **`src/lib/risk/hash.ts`**: `hashIdentifier(value)`.
 
@@ -49,7 +57,7 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic follow-up questions before `runCheck`, while URL/phone/username/code/long payloads still reach the risk pipeline.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic follow-up questions before `runCheck`, handles structured image intelligence for photos, while URL/phone/username/code/long payloads still reach the risk pipeline.
 - `src/lib/telegram/handlers/misc.ts`: stores minimal panic context (`lastPanicId`, `lastPanicAt`) and handles `panicctx:*` follow-up callbacks.
 
 ## Auth and integration
