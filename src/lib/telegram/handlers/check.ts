@@ -34,6 +34,11 @@ import { formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import {
+  buildEmergencyFollowUpKeyboard,
+  buildEmergencyFollowUpText,
+  classifyEmergencyFollowUp,
+} from "@/lib/telegram/emergency";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -126,6 +131,18 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
   if (trimmed.length > MAX_TEXT_LENGTH) {
     // R4.10 — отклоняем слишком длинный ввод вместо передачи невалидного запроса.
     await replyText(ctx.chatId, bt("text_too_long", lang));
+    return;
+  }
+
+  const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
+  if (emergencyFollowUp !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
+      ),
+      keyboard: buildEmergencyFollowUpKeyboard(lang),
+    });
     return;
   }
 

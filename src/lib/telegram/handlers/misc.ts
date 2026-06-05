@@ -47,6 +47,13 @@ import {
   buildPanicKeyboardPage1,
   buildPanicKeyboardPage2,
   buildPanicMenuText,
+  asPanicScenarioId,
+  buildEmergencyFollowUpKeyboard,
+  buildEmergencyFollowUpText,
+  parsePanicContextCallback,
+  withPanicContextData,
+  type EmergencyFollowUpAction,
+  type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
   parseLiveCallCallback,
@@ -73,6 +80,27 @@ function parseLangCallback(data: string): Lang | null {
 /** Send a plain bot-i18n string, MarkdownV2-escaped. */
 async function sendI18n(chatId: number, key: Parameters<typeof bt>[0], lang: Lang): Promise<void> {
   await sendMessage({ chatId, text: escapeMarkdownV2(bt(key, lang)) });
+}
+
+async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+  await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: withPanicContextData(undefined, panicId),
+  });
+}
+
+async function sendEmergencyFollowUp(
+  ctx: HandlerCtx,
+  action: EmergencyFollowUpAction,
+  panicId: PanicScenarioId,
+): Promise<void> {
+  const lang = ctx.session.lang;
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
+    keyboard: buildEmergencyFollowUpKeyboard(lang),
+  });
 }
 
 export async function handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void> {
@@ -244,9 +272,18 @@ export async function handleCallback(
     return;
   }
 
+  // 5a) Emergency Copilot v2 follow-up buttons — "panicctx:contacts" etc.
+  const panicContextAction = parsePanicContextCallback(data);
+  if (panicContextAction !== null) {
+    const panicId = asPanicScenarioId(ctx.session.scenarioData.lastPanicId) ?? 6;
+    await sendEmergencyFollowUp(ctx, panicContextAction, panicId);
+    return;
+  }
+
   // 5b) Panic scenario button — "panic:1" through "panic:10".
   const panicId = parsePanicCallback(data);
   if (panicId !== null) {
+    await rememberPanicContext(ctx, panicId);
     // Scenario 6 ("on a call") → show interactive live-call copilot with buttons
     if (panicId === 6) {
       const keyboard: import("@/lib/telegram/api.server").InlineKeyboard = [
@@ -283,13 +320,18 @@ export async function handleCallback(
     }
     // Send scenario text as a NEW message (not edit) to preserve the menu for further interaction.
     const scenarioText = buildPanicScenarioText(panicId, lang);
-    await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(scenarioText),
+      keyboard: buildEmergencyFollowUpKeyboard(lang),
+    });
     return;
   }
 
   // 5b) Live-call copilot buttons — "livecall:hangup" etc.
   const liveAction = parseLiveCallCallback(data);
   if (liveAction !== null) {
+    await rememberPanicContext(ctx, liveAction === "sent_code" ? 1 : 6);
     let responseKey: LiveCallResponseKey;
     switch (liveAction) {
       case "hangup":
@@ -299,24 +341,30 @@ export async function handleCallback(
         responseKey = "live_call_what_to_say";
         break;
       case "call_bank": {
-        // Show bank numbers from verified contacts
-        const scenarioText = buildPanicScenarioText(6, lang);
-        await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
+        await sendEmergencyFollowUp(ctx, "contacts", 6);
         return;
       }
       case "sent_code": {
         // Redirect to panic scenario 1 (sent OTP)
         const scenarioText = buildPanicScenarioText(1, lang);
-        await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(scenarioText) });
+        await sendMessage({
+          chatId: ctx.chatId,
+          text: escapeMarkdownV2(scenarioText),
+          keyboard: buildEmergencyFollowUpKeyboard(lang),
+        });
         return;
       }
       case "tell_family":
-        responseKey = "live_call_tell_family";
-        break;
+        await sendEmergencyFollowUp(ctx, "trusted_person", 6);
+        return;
       default:
         return;
     }
-    await sendI18n(ctx.chatId, responseKey, lang);
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt(responseKey, lang)),
+      keyboard: buildEmergencyFollowUpKeyboard(lang),
+    });
     return;
   }
 

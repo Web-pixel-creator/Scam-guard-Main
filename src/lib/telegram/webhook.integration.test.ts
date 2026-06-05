@@ -232,6 +232,27 @@ function callbackData(keyboard: unknown): string[] {
     .filter((d): d is string => typeof d === "string");
 }
 
+function loadLatestSessionUpsert(userId: number): void {
+  const upsert = [...h.upserts].reverse().find((entry) => entry.table === "telegram_sessions")
+    ?.payload as
+    | {
+        lang?: string;
+        scenario?: string;
+        scenario_step?: number;
+        scenario_data?: unknown;
+      }
+    | undefined;
+
+  h.sessionRow = {
+    telegram_user_id: userId,
+    lang: upsert?.lang ?? "ru",
+    scenario: upsert?.scenario ?? "none",
+    scenario_step: upsert?.scenario_step ?? 0,
+    scenario_data: upsert?.scenario_data ?? {},
+    updated_at: new Date().toISOString(),
+  };
+}
+
 // A Russian text whose ONLY matched rule is `asks_to_scan_qr` (weight 50) →
 // deterministic high_risk via `scoreFromCodes` (≥50). "Отсканируйте QR" matches
 // the `скан.{0,15}qr` pattern; detectInputType → "text" (so no entities lookup).
@@ -663,6 +684,92 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.answerCalls).toEqual([`cb-${data}`]);
     expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
     expect(h.sendCalls.every((call) => call.chatId === 5112)).toBe(true);
+  });
+
+  it("answers an APK panic follow-up with contextual next steps", async () => {
+    const userId = 1120;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5120, data: "panic:2", id: "cb-apk" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId: 5120, text: "Что еще посоветуешь?" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("авиарежим");
+    expect(h.sendCalls[0].text).toContain("С другого телефона");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
+      expect.arrayContaining(["panicctx:contacts", "panicctx:trusted_person"]),
+    );
+  });
+
+  it("answers a card-data panic follow-up with verified bank contact guidance", async () => {
+    const userId = 1121;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5121, data: "panic:4", id: "cb-card" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId: 5121, text: "дай номер банка" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Официальный обратный звонок");
+    expect(h.sendCalls[0].text).toContain("Не звоните по номеру");
+    expect(h.sendCalls[0].text).toContain("1340");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("answers live-call wording questions with a ready script", async () => {
+    const userId = 1122;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5122, data: "panic:6", id: "cb-call" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId: 5122, text: "что сказать?" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Готовая фраза");
+    expect(h.sendCalls[0].text).toContain("Я сам перезвоню");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("keeps suspicious payloads on the risk pipeline even after panic context", async () => {
+    const userId = 1123;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5123, data: "panic:2", id: "cb-risk" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId: 5123,
+          text: "Проверь https://kapitalbank.uz.evil.com",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).not.toContain("Следующий безопасный шаг");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
   });
 
   it("acknowledges unknown callback data without sending a message", async () => {

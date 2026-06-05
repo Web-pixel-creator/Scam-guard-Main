@@ -25,6 +25,12 @@ export interface ReportDraft {
   scamType?: string;
   city?: string;
   amountLostUzs?: number;
+  /**
+   * Emergency Copilot v2 context. Stores only a scenario id + timestamp,
+   * never raw user evidence, codes, phone numbers, links or card data.
+   */
+  lastPanicId?: number;
+  lastPanicAt?: string;
 }
 
 export interface Session {

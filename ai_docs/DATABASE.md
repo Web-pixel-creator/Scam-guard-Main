@@ -41,6 +41,8 @@ Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, s
 
 RLS: no public access. Service-role only. Used so bot state survives process restarts and multi-instance deploys.
 
+`scenario_data` is also used for Emergency Copilot context after `/panic`: only `lastPanicId` and `lastPanicAt` are stored. Raw URLs, phone numbers, OTPs, card data, screenshots and user evidence must not be stored there by the panic flow.
+
 ### `user_roles`
 
 RBAC rows: `id, user_id, role, created_at`, unique by `(user_id, role)`.

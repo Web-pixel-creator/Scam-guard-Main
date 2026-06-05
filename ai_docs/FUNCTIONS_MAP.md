@@ -48,6 +48,9 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
+- `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic follow-up questions before `runCheck`, while URL/phone/username/code/long payloads still reach the risk pipeline.
+- `src/lib/telegram/handlers/misc.ts`: stores minimal panic context (`lastPanicId`, `lastPanicAt`) and handles `panicctx:*` follow-up callbacks.
 
 ## Auth and integration
 
