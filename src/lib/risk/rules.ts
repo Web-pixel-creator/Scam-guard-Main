@@ -134,10 +134,6 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
     re: /(переведите.{0,30}(счёт|карту|safe)|pul.{0,30}o['’]tkazing)/i,
   },
   {
-    code: "asks_to_scan_qr",
-    re: /(qr.?код.{0,30}(скан|отскан|войти|подтверд|вериф)|скан.{0,15}qr|qr.?(kod).{0,30}(skaner|kiring|tasdiq)|scan.{0,10}qr)/i,
-  },
-  {
     code: "relative_in_distress",
     re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i,
   },
@@ -155,7 +151,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "payment_before_service",
-    re: /(предоплат|аванс|задаток|брон[ьи]|оплатите.{0,30}(до|сначала)|oldindan.{0,20}to['’]lov|avans|zaklad|bron|xizmatdan oldin|first.{0,20}pay|prepay)/i,
+    re: /(предоплат|аванс|задаток|оплатите.{0,30}(до|сначала)|брон[ьи].{0,30}(оплат|предоплат|аванс|задаток)|оплат.{0,30}брон|oldindan.{0,20}to['’]lov|avans|zaklad|bron.{0,30}(to['’]lov|tolov|pay|deposit|avans)|xizmatdan oldin|first.{0,20}pay|prepay|deposit)/i,
   },
   {
     code: "fake_boss_request",
@@ -166,6 +162,17 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
     re: /(открой|скачай|скачайте|посмотр|получите|open|download|ko['’]r|och|yuklab).{0,50}(gif|гиф|стикер|sticker|stiker|greeting card|открытк|fayl|file|файл|archive|архив|apk)/i,
   },
 ];
+
+const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
+const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
+const QR_DANGEROUS_CONTEXT_RE =
+  /(войти|вход|авториз|личн.{0,12}кабинет|аккаунт|подтверд|вериф|смс.{0,20}код|sms.{0,20}code|код.{0,20}(смс|sms|подтвержд)|парол|pin|cvv|карт|банк|оплат|перевод|выигрыш|приз|розыгрыш|kiring|tizimga|hisob|akkaunt|tasdiq|tasdiq.{0,20}kod|parol|karta|bank|to['’]?lov|pul|sovrin|yutuq|login|account|verify|confirm|verification.{0,20}code|password|payment|transfer|card|bank|prize|giveaway|lottery)/i;
+
+function shouldFlagQrScan(text: string): boolean {
+  return (
+    QR_MENTION_RE.test(text) && QR_SCAN_ACTION_RE.test(text) && QR_DANGEROUS_CONTEXT_RE.test(text)
+  );
+}
 
 const SHORT_LINK_HOSTS = [
   "bit.ly",
@@ -183,6 +190,7 @@ const SHORT_LINK_HOSTS = [
 export function evaluateText(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
   for (const { code, re } of PATTERNS) if (re.test(text)) codes.add(code);
+  if (shouldFlagQrScan(text)) codes.add("asks_to_scan_qr");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -300,6 +308,9 @@ export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: Ris
   let score = 0;
   for (const c of codes) score += WEIGHTS[c] ?? 0;
   if (codes.includes("verified_official")) return { score: 0, level: "safe" };
+  if (codes.includes("brand_impersonation") && codes.includes("hosted_app_platform")) {
+    score = Math.max(score, 50);
+  }
   if (score >= 50) return { score, level: "high_risk" };
   if (score >= 20) return { score, level: "suspicious" };
   if (score > 0) return { score, level: "unknown" };

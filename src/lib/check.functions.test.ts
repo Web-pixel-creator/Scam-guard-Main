@@ -42,6 +42,7 @@ const CORE_RESULT: RunCheckResult = {
   explanation: "AI explanation text",
   knownReports: 0,
   verifiedContact: null,
+  brandEvidence: [],
 };
 
 // Mock createServerFn: capture the real validator + handler, expose a callable
@@ -149,17 +150,18 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     expect(hoisted.runCheckCalls[1].lang).toBe("ru");
   });
 
-  it("returns the core RunCheckResult verbatim (response format unchanged)", async () => {
+  it("returns the core RunCheckResult verbatim (including brand evidence)", async () => {
     hoisted.requestIp = "192.0.2.1";
 
     const result = await checkInput({ data: { input: "+998901234567", lang: "ru" } });
 
     // Same value …
     expect(result).toEqual(CORE_RESULT);
-    // … and the EXACT same key set as the documented pre-refactor shape:
+    // … and the EXACT same key set as the documented web response shape:
     // no fields added, removed or renamed by the wrapper.
     expect(Object.keys(result).sort()).toEqual(
       [
+        "brandEvidence",
         "display",
         "explanation",
         "knownReports",
