@@ -19,16 +19,24 @@
 //   "lang:ru" | "lang:uz" | "lang:en" → switch Language (welcome buttons)
 // These exact strings are exported as CB below for reuse by the router.
 
-import { bt } from "@/lib/telegram/bot-i18n";
+import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import {
   escapeMarkdownV2,
   type InlineButton,
   type InlineKeyboard,
 } from "@/lib/telegram/api.server";
 import { t, type Lang } from "@/lib/i18n";
-import { ADVICE, REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
+import { REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { findMatchingPatterns } from "@/lib/scam-patterns";
+import {
+  TEMPLATES,
+  SECTION_EMOJI,
+  SECTION_TITLE_KEY,
+  type SectionId,
+} from "@/lib/telegram/templates";
+import { truncateExplanation } from "@/lib/telegram/truncate";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
 
 /** Эмодзи-индикатор уровня риска (R4.5). */
 export const RISK_EMOJI: Record<RiskLevel, string> = {
@@ -52,12 +60,23 @@ const RISK_LABEL_KEY: Record<
   high_risk: "risk_high",
 };
 
+/** Verdict line key per risk level. */
+const VERDICT_KEY: Record<RiskLevel, BotStringKey> = {
+  safe: "verdict_safe",
+  unknown: "verdict_unknown",
+  suspicious: "verdict_suspicious",
+  high_risk: "verdict_high_risk",
+};
+
 /** Стабильные callback_data строки (см. контракт выше; используются роутером). */
 export const CB = {
   report: "report",
   checkAnother: "check_another",
   emergency: "emergency",
   why: "why",
+  showLang: "show_lang",
+  safety: "safety",
+  howItWorks: "how_it_works",
   lang: (lang: Lang) => `lang:${lang}` as const,
 } as const;
 
@@ -71,30 +90,28 @@ function bold(escaped: string): string {
   return `*${escaped}*`;
 }
 
+/** Thin separator between sections (MarkdownV2-escaped). */
+const THIN_SEPARATOR = escapeMarkdownV2("┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈");
+
+/** Telegram message character limit. */
+const TELEGRAM_MAX_CHARS = 4096;
+
+// ── Section Sub-Renderers ───────────────────────────────────────────────────
+
 /**
- * Формат ответа проверки (порядок блоков — из дизайна):
- *  1) эмодзи + локализованная метка уровня (t risk_*),
- *  2) блок объяснения ТОЛЬКО если explanation !== null (R13.3),
- *  3) список REASON_LABELS[reason][lang] (R4.4),
- *  4) ADVICE[level][lang] — ВСЕГДА присутствует, даже без AI (R13.1, R13.2),
- *  5) knownReports>0 → строка о подтверждённых жалобах (R4.11),
- *  6) кнопки Report / Check another; при high_risk доп. кнопка Emergency (R20.3).
- * Гарантия: текст использует только result.display (маскированное) — никогда
- * сырой ввод (R7.5).
+ * Renders the risk header: emoji + bold label + thick separator + verified badge.
  */
-export function formatCheckResult(result: RunCheckResult, lang: Lang): FormattedResult {
+function renderRiskHeader(result: RunCheckResult, lang: Lang): string {
   const parts: string[] = [];
 
-  // 1) эмодзи + метка уровня (метка — пользовательская строка, экранируем).
   const levelLabel = t(RISK_LABEL_KEY[result.level], lang);
   parts.push(
     `${RISK_EMOJI[result.level]} ${bold(escapeMarkdownV2(levelLabel))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`,
   );
 
-  // 1b) Verified contact badge + spoofing warning (D-011).
+  // Verified contact badge (D-011).
   if (result.verifiedContact) {
     const orgName = result.verifiedContact.orgName;
-    // If level is still high_risk/suspicious despite the match → dangerous behavior detected.
     if (result.level === "high_risk" || result.level === "suspicious") {
       parts.push(escapeMarkdownV2(bt("verified_with_danger", lang, { org: orgName })));
     } else {
@@ -102,52 +119,287 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
       parts.push(escapeMarkdownV2(bt("verified_spoofing_warning", lang)));
     }
   }
-  // Deterministic fallback for hosted URLs without AI explanation
+
+  return parts.join("\n\n");
+}
+
+/**
+ * Renders the verdict line from bot_dict.
+ */
+function renderVerdict(result: RunCheckResult, lang: Lang): string {
+  const verdictText = bt(VERDICT_KEY[result.level], lang);
+  return escapeMarkdownV2(verdictText);
+}
+
+/**
+ * Renders the brief AI explanation section (uses truncateExplanation).
+ * Returns empty string if no explanation is available.
+ */
+function renderBrief(result: RunCheckResult, lang: Lang): string {
+  let content: string;
+
   if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
-    parts.push(escapeMarkdownV2(bt("hosted_platform_explanation", lang)));
+    content = bt("hosted_platform_explanation", lang);
   } else if (result.explanation !== null) {
-    const title = t("ai_explanation", lang);
-    parts.push(`${bold(escapeMarkdownV2(title))}\n${escapeMarkdownV2(result.explanation)}`);
+    content = truncateExplanation(result.explanation);
+  } else {
+    return "";
   }
 
-  // 3) список обнаруженных reason-кодов через REASON_LABELS (R4.4).
+  return formatSectionBlock("brief", lang, escapeMarkdownV2(content));
+}
+
+/**
+ * Renders reason labels as a bullet list (max 3 items).
+ */
+function renderReasons(result: RunCheckResult, lang: Lang): string {
   const reasonLines = result.reasons
     .map((code) => REASON_LABELS[code]?.[lang])
-    .filter((label): label is string => Boolean(label));
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 3);
+
+  if (reasonLines.length === 0) return "";
+
+  const list = reasonLines.map((label) => `• ${escapeMarkdownV2(label)}`).join("\n");
+  return formatSectionBlock("reasons", lang, list);
+}
+
+/**
+ * Renders context-aware advice as a bullet list (max 3 items).
+ */
+function renderAdvice(result: RunCheckResult, lang: Lang): string {
+  const adviceItems = filterAdvice(result.level, result.reasons, lang);
+
+  if (adviceItems.length === 0) return "";
+
+  const list = adviceItems
+    .slice(0, 3)
+    .map((item) => `• ${escapeMarkdownV2(item)}`)
+    .join("\n");
+  return formatSectionBlock("safe_steps", lang, list);
+}
+
+/**
+ * Renders the "what was noticed" section — reason labels + scam patterns.
+ */
+function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
+  const parts: string[] = [];
+
+  // Reason labels
+  const reasonLines = result.reasons
+    .map((code) => REASON_LABELS[code]?.[lang])
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 3);
   if (reasonLines.length > 0) {
-    const whyTitle = t("why_title", lang);
-    const list = reasonLines.map((label) => `• ${escapeMarkdownV2(label)}`).join("\n");
-    parts.push(`${bold(escapeMarkdownV2(whyTitle))}\n${list}`);
+    parts.push(...reasonLines.map((label) => `• ${escapeMarkdownV2(label)}`));
   }
 
-  // 4) ADVICE — ВСЕГДА присутствует, даже при explanation === null (R13.1, R13.2).
-  const adviceTitle = t("what_to_do", lang);
-  const adviceItems = ADVICE[result.level][lang];
-  const adviceList = adviceItems.map((item) => `• ${escapeMarkdownV2(item)}`).join("\n");
-  parts.push(`${bold(escapeMarkdownV2(adviceTitle))}\n${adviceList}`);
-
-  // 5) подтверждённые жалобы — только если knownReports > 0 (R4.11).
-  // 6) Matching scam patterns — show "This looks like: ..." (Sprint 4)
+  // Matching scam patterns
   const matchingPatterns = findMatchingPatterns(result.reasons);
   if (matchingPatterns.length > 0) {
-    const patternTitle = {
-      ru: "\u{1F4A1} \u041F\u043E\u0445\u043E\u0436\u0435 \u043D\u0430:",
-      uz: "\u{1F4A1} Bunga o\u2018xshaydi:",
-      en: "\u{1F4A1} Looks like:",
-    }[lang];
-    const patternNames = matchingPatterns
-      .slice(0, 3)
-      .map((p) => "\u2022 " + escapeMarkdownV2(p.title[lang]))
-      .join("\n");
-    parts.push(patternTitle + "\n" + patternNames);
+    matchingPatterns.slice(0, 3).forEach((p) => {
+      parts.push(`• ${escapeMarkdownV2(p.title[lang])}`);
+    });
   }
 
+  // Known reports
   if (result.knownReports > 0) {
     parts.push(escapeMarkdownV2(bt("known_reports", lang, { count: result.knownReports })));
   }
 
+  if (parts.length === 0) return "";
+
+  // Limit combined to 3 lines
+  const content = parts.slice(0, 3).join("\n");
+  return formatSectionBlock("what_noticed", lang, content);
+}
+
+/**
+ * Renders the "why dangerous" section for high_risk level.
+ */
+function renderWhyDangerous(result: RunCheckResult, lang: Lang): string {
+  const parts: string[] = [];
+
+  // Reason labels
+  const reasonLines = result.reasons
+    .map((code) => REASON_LABELS[code]?.[lang])
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 3);
+  if (reasonLines.length > 0) {
+    parts.push(...reasonLines.map((label) => `• ${escapeMarkdownV2(label)}`));
+  }
+
+  // Explanation as supplementary context
+  if (result.explanation !== null) {
+    const truncated = truncateExplanation(result.explanation);
+    parts.push(escapeMarkdownV2(truncated));
+  }
+
+  if (parts.length === 0) return "";
+
+  const content = parts.join("\n");
+  return formatSectionBlock("why_dangerous", lang, content);
+}
+
+/**
+ * Renders the "where to report" section.
+ */
+function renderWhereReport(result: RunCheckResult, lang: Lang): string {
+  // Reporting instructions (static, trilingual)
+  const reportInstructions: Record<Lang, string[]> = {
+    ru: [
+      "Сохраните скриншоты переписки",
+      "Подайте заявление: Cyber Police — 102",
+      "Заблокируйте контакт",
+    ],
+    uz: [
+      "Yozishmalar skrinshotini saqlang",
+      "Ariza bering: Cyber Police — 102",
+      "Kontaktni bloklang",
+    ],
+    en: ["Save chat screenshots", "File a report: Cyber Police — 102", "Block the contact"],
+  };
+
+  const items = reportInstructions[lang].slice(0, 3);
+  const list = items.map((item) => `• ${escapeMarkdownV2(item)}`).join("\n");
+  return formatSectionBlock("where_report", lang, list);
+}
+
+/**
+ * Renders the "send more context" prompt for unknown level.
+ */
+function renderMoreContext(result: RunCheckResult, lang: Lang): string {
+  const content = bt("prompt_more_context", lang);
+  return escapeMarkdownV2(content);
+}
+
+/**
+ * Renders the "action now" section for high_risk — urgent steps.
+ */
+function renderActionNow(result: RunCheckResult, lang: Lang): string {
+  const adviceItems = filterAdvice(result.level, result.reasons, lang);
+
+  // Fallback to generic urgent steps if no specific advice
+  const items =
+    adviceItems.length > 0 ? adviceItems.slice(0, 3) : [bt("advice_send_more_context", lang)];
+
+  const list = items.map((item) => `• ${escapeMarkdownV2(item)}`).join("\n");
+  return formatSectionBlock("action_now", lang, list);
+}
+
+/**
+ * Helper: format a section block with emoji header + bold title + content.
+ * If the section has no title key, returns only the content.
+ */
+function formatSectionBlock(sectionId: SectionId, lang: Lang, content: string): string {
+  const emoji = SECTION_EMOJI[sectionId];
+  const titleKey = SECTION_TITLE_KEY[sectionId];
+
+  if (!titleKey) {
+    // Sections like verdict / more_context_prompt that have no title line
+    return content;
+  }
+
+  const title = bt(titleKey, lang);
+  const header = emoji
+    ? `${emoji} ${bold(escapeMarkdownV2(title))}`
+    : bold(escapeMarkdownV2(title));
+
+  return `${header}\n${content}`;
+}
+
+/**
+ * Dispatches to the correct sub-renderer for a given section ID.
+ */
+function renderSection(sectionId: SectionId, result: RunCheckResult, lang: Lang): string {
+  switch (sectionId) {
+    case "verdict":
+      return renderVerdict(result, lang);
+    case "brief":
+      return renderBrief(result, lang);
+    case "reasons":
+      return renderReasons(result, lang);
+    case "what_noticed":
+      return renderWhatNoticed(result, lang);
+    case "action_now":
+      return renderActionNow(result, lang);
+    case "safe_steps":
+      return renderAdvice(result, lang);
+    case "why_dangerous":
+      return renderWhyDangerous(result, lang);
+    case "where_report":
+      return renderWhereReport(result, lang);
+    case "more_context_prompt":
+      return renderMoreContext(result, lang);
+    default:
+      return "";
+  }
+}
+
+/**
+ * Applies 4096-char overflow protection.
+ * Progressively drops trailing sections while keeping:
+ * - Risk_Header (always)
+ * - Verdict (always — first section in template)
+ * - First action section (index 1 in rendered sections, i.e. index 2 in the template)
+ */
+function applyOverflowProtection(header: string, sections: string[]): string {
+  // Always keep header separate; sections[0] is verdict, sections[1] is first action section
+  const minKeep = Math.min(2, sections.length); // Keep at least verdict + first action section
+
+  let candidate = joinSections(header, sections);
+  if (candidate.length <= TELEGRAM_MAX_CHARS) return candidate;
+
+  // Progressively drop from the end
+  let kept = sections.slice();
+  while (kept.length > minKeep) {
+    kept = kept.slice(0, -1);
+    candidate = joinSections(header, kept);
+    if (candidate.length <= TELEGRAM_MAX_CHARS) return candidate;
+  }
+
+  return candidate;
+}
+
+/**
+ * Joins risk header + rendered section blocks with thin separators.
+ */
+function joinSections(header: string, sections: string[]): string {
+  const nonEmpty = sections.filter((s) => s.length > 0);
+  if (nonEmpty.length === 0) return header;
+
+  const sectionBlock = nonEmpty.join(`\n${THIN_SEPARATOR}\n`);
+  return `${header}\n\n${sectionBlock}`;
+}
+
+/**
+ * Template-driven result formatter (Result Message UX v2).
+ *
+ * 1. Renders the Risk_Header
+ * 2. Looks up TEMPLATES[result.level] for section order
+ * 3. For each section in the template, calls the appropriate sub-renderer
+ * 4. Filters out empty results
+ * 5. Joins with thin separator (┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈)
+ * 6. Applies 4096 overflow protection
+ * 7. Returns { text, keyboard }
+ */
+export function formatCheckResult(result: RunCheckResult, lang: Lang): FormattedResult {
+  // Render Risk_Header (always present)
+  const header = renderRiskHeader(result, lang);
+
+  // Look up template for this risk level
+  const template = TEMPLATES[result.level];
+
+  // Render each section
+  const renderedSections = template
+    .map((sectionId) => renderSection(sectionId, result, lang))
+    .filter((s) => s.length > 0);
+
+  // Apply overflow protection and join with separators
+  const text = applyOverflowProtection(header, renderedSections);
+
   return {
-    text: parts.join("\n\n"), // blocks separated by double newline; visual separators added inline
+    text,
     keyboard: buildResultKeyboard(result.level, lang),
   };
 }
@@ -189,15 +441,17 @@ export function formatSafety(lang: Lang): string {
 export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeyboard } {
   const keyboard: InlineKeyboard = [
     [
-      { text: bt("btn_lang_ru", lang), callback_data: CB.lang("ru") },
-      { text: bt("btn_lang_uz", lang), callback_data: CB.lang("uz") },
-      { text: bt("btn_lang_en", lang), callback_data: CB.lang("en") },
+      { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
+      { text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency },
     ],
     [
-      { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
       { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
+      { text: "\u{1F6E1} " + bt("btn_quick_safety", lang), callback_data: CB.safety },
     ],
-    [{ text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency }],
+    [
+      { text: "\u{1F310} " + bt("btn_quick_lang", lang), callback_data: CB.showLang },
+      { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
+    ],
   ];
   return {
     text: escapeMarkdownV2(bt("welcome", lang)),

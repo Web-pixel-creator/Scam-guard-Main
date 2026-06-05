@@ -25,6 +25,7 @@
 // Server-only: pulls in `session.server.ts` (service-role Supabase) at runtime.
 // Never import this module into the client bundle.
 import { z } from "zod";
+import { classifyMetaIntent, type MetaIntent } from "@/lib/meta-intent";
 import {
   loadSession as loadSessionImpl,
   resetScenario as resetScenarioImpl,
@@ -89,6 +90,7 @@ export type TelegramMessage = z.infer<typeof messageSchema>;
 /** Commands the bot understands. `command` keeps its leading slash (design.md). */
 export type BotCommand =
   | "/start"
+  | "/menu"
   | "/lang"
   | "/help"
   | "/safety"
@@ -99,6 +101,7 @@ export type BotCommand =
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/start",
+  "/menu",
   "/lang",
   "/help",
   "/safety",
@@ -172,6 +175,8 @@ export interface Handlers {
   handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void>;
   /** Free text / forwarded text → Check_Pipeline (8.3). */
   handleCheck(content: string, ctx: HandlerCtx): Promise<void>;
+  /** Plain questions about the bot itself → localized help response. */
+  handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void>;
   /** Photo / image-document → OCR → Check_Pipeline (8.3). */
   handleImage(fileId: string, ctx: HandlerCtx): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
@@ -319,6 +324,9 @@ const stubHandlers: Handlers = {
   async handleCheck() {
     console.warn("telegram router: no handler wired for check");
   },
+  async handleMetaIntent(intent) {
+    console.warn(`telegram router: no handler wired for meta intent (${intent})`);
+  },
   async handleImage() {
     console.warn("telegram router: no handler wired for image");
   },
@@ -416,9 +424,17 @@ export async function dispatchUpdate(
     case "scenarioStep":
       await handlers.handleScenarioStep(action.text, ctx);
       break;
-    case "check":
+    case "check": {
+      const intent = classifyMetaIntent(action.content, {
+        isForwarded: update.message?.forward_origin != null,
+      });
+      if (intent) {
+        await handlers.handleMetaIntent(intent, ctx);
+        break;
+      }
       await handlers.handleCheck(action.content, ctx);
       break;
+    }
     case "image":
       await handlers.handleImage(action.fileId, ctx);
       break;

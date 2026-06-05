@@ -560,7 +560,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
       "Не сканируйте чужой QR-код: это может дать мошеннику доступ к вашему Telegram-аккаунту.",
       "Завершите разговор и перезвоните в банк по официальному номеру.",
       "Сделайте скриншоты переписки и сохраните номер.",
-      "Сообщите о случае через форму «Сообщить о мошеннике».",
+      "Сообщите о случае через форму «Сообщить о случае».",
     ],
     uz: [
       "Kod yubormang, karta ma’lumotlarini aytmang.",
@@ -569,7 +569,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
       "Birovning QR-kodini skanerlamang: bu firibgarga Telegram hisobingizdan foydalanish imkonini berishi mumkin.",
       "Suhbatni tugatib, bankka rasmiy raqami orqali qo‘ng‘iroq qiling.",
       "Yozishmalarning skrinshotini saqlang.",
-      "“Firibgarni xabar qilish” formasi orqali habar bering.",
+      "“Holat haqida xabar berish” formasi orqali xabar bering.",
     ],
     en: [
       "Don’t send codes or share card details.",
@@ -578,7 +578,7 @@ export const ADVICE: Record<RiskLevel, { ru: string[]; uz: string[]; en: string[
       "Don’t scan someone else’s QR code: it can give a scammer access to your Telegram account.",
       "End the call and dial your bank using the official number.",
       "Take screenshots of the chat and save the number.",
-      "Submit the case via the “Report a scammer” form.",
+      "Submit the case via the “Report an incident” form.",
     ],
   },
 };

@@ -106,6 +106,7 @@ function makeSpyHandlers(): {
     handleCommand: record("handleCommand"),
     handleScenarioStep: record("handleScenarioStep"),
     handleCheck: record("handleCheck"),
+    handleMetaIntent: record("handleMetaIntent"),
     handleImage: record("handleImage"),
     handlePhoneFromContact: record("handlePhoneFromContact"),
     handleCallback: record("handleCallback"),
@@ -167,6 +168,7 @@ describe("parseCommand (R4.9)", () => {
   it("recognises every known command", () => {
     for (const cmd of [
       "/start",
+      "/menu",
       "/lang",
       "/help",
       "/safety",
@@ -402,6 +404,27 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls[0].arg).toBe("check me");
   });
 
+  it("dispatches a plain meta-question to handleMetaIntent before handleCheck", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({ text: "Почему ты не смог проанализировать картинку?" }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleMetaIntent");
+    expect(calls[0].arg).toBe("why_failed");
+  });
+
+  it("keeps scam-context text in handleCheck even when it contains help wording", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({ text: "помогите, мне прислали ссылку https://example.com" }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+  });
+
   it("dispatches a scenario-step message to handleScenarioStep when a scenario is active", async () => {
     const session = makeSession({ scenario: "report_desc", scenarioStep: 2 });
     const { deps, calls, resetScenario } = makeDeps(session);
@@ -507,5 +530,19 @@ describe("dispatchUpdate — forwarded message routed as a check (R11.5)", () =>
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCheck");
     expect(calls[0].arg).toBe("Поздравляем! Вы выиграли приз, перейдите по ссылке");
+  });
+
+  it("forwarded meta-looking text also goes to handleCheck", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({
+        text: "почему это опасно",
+        forward_origin: { type: "hidden_user" },
+      }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("почему это опасно");
   });
 });

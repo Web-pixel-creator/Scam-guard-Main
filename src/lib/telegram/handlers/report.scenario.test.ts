@@ -52,6 +52,7 @@ interface SavePatch {
 interface SubmitArg {
   data: {
     value?: string;
+    type?: "phone" | "telegram" | "url" | "text" | "payment" | "apk" | "unknown";
     description?: string;
     scamType?: string;
     city?: string;
@@ -60,7 +61,7 @@ interface SubmitArg {
   };
   rateLimitKey?: string;
 }
-type SubmitResult = { ok: true } | { ok: false; error?: string };
+type SubmitResult = { ok: true } | { ok: false; error?: string; retryAfterSec?: number };
 
 const h = vi.hoisted(() => ({
   saveCalls: [] as { userId: number; patch: SavePatch }[],
@@ -105,7 +106,16 @@ vi.mock("@/lib/report.functions", () => ({
   reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
 }));
 
-import { startReport, handleScenarioStep, handleReportSkip, REPORT_SKIP_CALLBACK } from "./report";
+import {
+  startReport,
+  handleScenarioStep,
+  handleReportSkip,
+  handleReportNoValue,
+  handleReportRetry,
+  REPORT_NO_VALUE_CALLBACK,
+  REPORT_RETRY_CALLBACK,
+  REPORT_SKIP_CALLBACK,
+} from "./report";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -155,6 +165,13 @@ function sentTexts(): string[] {
   return h.sendCalls.map((c) => c.text);
 }
 
+function sentKeyboardData(index = h.sendCalls.length - 1): string[] {
+  const keyboard = h.sendCalls[index]?.keyboard as
+    | Array<Array<{ callback_data?: string }>>
+    | undefined;
+  return keyboard?.flatMap((row) => row.map((button) => button.callback_data ?? "")) ?? [];
+}
+
 beforeEach(() => {
   h.saveCalls.length = 0;
   h.resetCalls.length = 0;
@@ -183,6 +200,7 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
     });
     // Asks for the value on the current language.
     expect(sentTexts()).toContain(bt("report_ask_value", "ru"));
+    expect(sentKeyboardData()).toContain(REPORT_NO_VALUE_CALLBACK);
   });
 
   it("advances value → desc → scamType → city → amount, saving each transition", async () => {
@@ -259,6 +277,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(h.submitCalls[0].rateLimitKey).toBe(`report:tg:${USER_ID}`);
     expect(h.submitCalls[0].data).toEqual({
       value: "@scammer_bank",
+      type: undefined,
       description: "Просили подтвердить последние 4 цифры карты",
       scamType: "OTP-кража",
       city: "Самарканд",
@@ -286,7 +305,35 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(h.submitCalls).toHaveLength(1);
     expect(h.submitCalls[0].data).toEqual({
       value: "https://fake-bank.example",
+      type: undefined,
       description: "Сайт просит ввести логин и пароль от банка",
+      scamType: undefined,
+      city: undefined,
+      amountLostUzs: undefined,
+      lang: "ru",
+    });
+    expect(sentTexts()).toContain(bt("report_confirm", "ru"));
+    expect(h.resetCalls).toEqual([USER_ID]);
+  });
+
+  it("submits a situation-only report when the user has no number or link", async () => {
+    const ctx = makeCtx({ scenario: "none" });
+    await startReport(ctx);
+    applyPatch(ctx, h.saveCalls[0].patch);
+
+    await handleReportNoValue(ctx);
+    applyPatch(ctx, h.saveCalls[h.saveCalls.length - 1].patch);
+    await runStep(ctx, "Пытались украсть аккаунт, просили прислать код из Telegram");
+    await runStep(ctx, "-");
+    await runStep(ctx, "-");
+    await runStep(ctx, "-");
+
+    expect(REPORT_NO_VALUE_CALLBACK).toBe("report_no_value");
+    expect(h.submitCalls).toHaveLength(1);
+    expect(h.submitCalls[0].data).toEqual({
+      value: "Пытались украсть аккаунт, просили прислать код из Telegram",
+      type: "text",
+      description: "Пытались украсть аккаунт, просили прислать код из Telegram",
       scamType: undefined,
       city: undefined,
       amountLostUzs: undefined,
@@ -322,7 +369,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
 // ===========================================================================
 
 describe("/report — submit failure handling (R6.8, R15.5)", () => {
-  it("shows a retry message and resets when submitReport returns { ok:false }", async () => {
+  it("shows a retry message and keeps the draft when submitReport returns { ok:false }", async () => {
     h.submitImpl.current = async () => ({ ok: false, error: "db down" });
 
     const ctx = makeCtx({
@@ -335,10 +382,24 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
     expect(h.submitCalls).toHaveLength(1);
     expect(sentTexts()).toContain(bt("report_error", "ru"));
     expect(sentTexts()).not.toContain(bt("report_confirm", "ru"));
-    expect(h.resetCalls).toEqual([USER_ID]);
+    expect(sentKeyboardData()).toContain(REPORT_RETRY_CALLBACK);
+    expect(h.saveCalls).toEqual([
+      {
+        userId: USER_ID,
+        patch: {
+          scenario: "report_amount",
+          scenarioStep: 4,
+          scenarioData: {
+            value: "+998900000000",
+            description: "Достаточно длинное описание",
+          },
+        },
+      },
+    ]);
+    expect(h.resetCalls).toEqual([]);
   });
 
-  it("never crashes and resets when submitReport throws", async () => {
+  it("never crashes and keeps the draft when submitReport throws", async () => {
     h.submitImpl.current = async () => {
       throw new Error("network boom");
     };
@@ -352,6 +413,27 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
     await expect(handleScenarioStep("-", ctx)).resolves.toBeUndefined();
     expect(h.submitCalls).toHaveLength(1);
     expect(sentTexts()).toContain(bt("report_error", "ru"));
+    expect(sentKeyboardData()).toContain(REPORT_RETRY_CALLBACK);
+    expect(h.saveCalls).toHaveLength(1);
+    expect(h.saveCalls[0].patch.scenario).toBe("report_amount");
+    expect(h.resetCalls).toEqual([]);
+  });
+
+  it("can retry a saved draft and resets after a successful retry", async () => {
+    const ctx = makeCtx({
+      scenario: "report_amount",
+      scenarioStep: 4,
+      scenarioData: {
+        value: "+998900000000",
+        description: "Достаточно длинное описание",
+      },
+    });
+
+    expect(REPORT_RETRY_CALLBACK).toBe("report_retry");
+    await handleReportRetry(ctx);
+
+    expect(h.submitCalls).toHaveLength(1);
+    expect(sentTexts()).toContain(bt("report_confirm", "ru"));
     expect(h.resetCalls).toEqual([USER_ID]);
   });
 
@@ -385,12 +467,27 @@ describe("/report — validation keeps the step in place (R6.5, R6.6)", () => {
     expect(ctx.session.scenario).toBe("report_value");
   });
 
-  it("accepts a value of exactly 500 chars and advances (R6.6 boundary)", async () => {
+  it("rejects generic text as the report value without advancing", async () => {
     const ctx = makeCtx({ scenario: "report_value", scenarioStep: 0, scenarioData: {} });
-    await handleScenarioStep("a".repeat(500), ctx);
+    await handleScenarioStep("на мошенников", ctx);
+
+    expect(sentTexts()).toContain(bt("report_value_invalid", "ru"));
+    expect(sentKeyboardData()).toContain(REPORT_NO_VALUE_CALLBACK);
+    expect(h.saveCalls).toHaveLength(0);
+    expect(ctx.session.scenario).toBe("report_value");
+  });
+
+  it("treats explicit no-identifier text as a situation-only report", async () => {
+    const ctx = makeCtx({ scenario: "report_value", scenarioStep: 0, scenarioData: {} });
+    await handleScenarioStep("нет номера", ctx);
 
     expect(h.saveCalls).toHaveLength(1);
-    expect(h.saveCalls[0].patch.scenario).toBe("report_desc");
+    expect(h.saveCalls[0].patch).toEqual({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { noValue: true },
+    });
+    expect(sentTexts()).toContain(bt("report_ask_description", "ru"));
   });
 
   it("re-asks for the value (no advance) when the value is empty", async () => {

@@ -13,13 +13,13 @@ export const Route = createFileRoute("/report")({
   validateSearch: reportSearchSchema,
   head: () => ({
     meta: [
-      { title: "Сообщить о мошеннике — Ishonch Guard" },
+      { title: "Сообщить о случае — Ishonch Guard" },
       {
         name: "description",
         content:
           "Отправьте подозрительный номер, Telegram, ссылку или сообщение — мы добавим в антискам-базу после модерации.",
       },
-      { property: "og:title", content: "Сообщить о мошеннике — Ishonch Guard" },
+      { property: "og:title", content: "Сообщить о случае — Ishonch Guard" },
     ],
   }),
   component: ReportPage,
@@ -93,7 +93,7 @@ function ReportPage() {
   }
 
   const labels = {
-    title: { ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" },
+    title: { ru: "Сообщить о случае", uz: "Holat haqida xabar berish", en: "Report an incident" },
     sub: {
       ru: "Каждая жалоба проходит модерацию. Не публикуйте чужие персональные данные.",
       uz: "Har bir shikoyat moderatsiyadan o'tadi. Boshqalarning shaxsiy ma'lumotlarini joylashtirmang.",
@@ -251,18 +251,18 @@ function ReportPage() {
               {
                 ru: (
                   <>
-                    Сообщить о <span className="font-serif-italic text-[#8B8B92]">мошеннике</span>
+                    Сообщить о <span className="font-serif-italic text-[#8B8B92]">случае</span>
                   </>
                 ),
                 uz: (
                   <>
-                    Firibgarni{" "}
-                    <span className="font-serif-italic text-[#8B8B92]">xabar qilish</span>
+                    Holat haqida{" "}
+                    <span className="font-serif-italic text-[#8B8B92]">xabar berish</span>
                   </>
                 ),
                 en: (
                   <>
-                    Report a <span className="font-serif-italic text-[#8B8B92]">scammer</span>
+                    Report an <span className="font-serif-italic text-[#8B8B92]">incident</span>
                   </>
                 ),
               }[lang]

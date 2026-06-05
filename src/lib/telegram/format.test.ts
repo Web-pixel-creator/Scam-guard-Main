@@ -1,14 +1,13 @@
-// Tests for the Telegram response formatter (`format.ts`, task 6.2).
+// Tests for the Telegram response formatter (`format.ts`).
 //
-// Covers task 6.3 of the telegram-bot-mvp spec:
-//   • Property 5 — the reply ALWAYS contains the non-empty ADVICE[level][lang],
-//     regardless of `explanation` (AI degradation, R13.1 / R13.2). Single
-//     fast-check test, >= 100 runs.
-//   • Unit checks (design.md → Testing Strategy):
-//       - the explanation block is absent when explanation === null (R13.3);
-//       - the Emergency button appears ONLY for level "high_risk" (R20.3),
-//         while Report / Check another are always present (R4.6);
-//       - the knownReports line appears ONLY when knownReports > 0 (R4.11).
+// Updated for Result Message UX v2 (template-driven rendering).
+// Covers:
+//   • Template-driven output structure
+//   • Verdict line presence
+//   • Emergency button logic (R4.6, R20.3)
+//   • Known reports integration in "what_noticed" section
+//   • Brief section with truncated explanation
+//   • Scam pattern integration in "what_noticed" section
 //
 // `format.ts` is a pure module, but importing it pulls in `api.server.ts`
 // (escapeMarkdownV2). That module reads the bot token only inside its network
@@ -18,11 +17,11 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
 import { formatCheckResult, CB, RISK_EMOJI } from "@/lib/telegram/format";
-import { ADVICE, REASON_LABELS, type RiskLevel, type ReasonCode } from "@/lib/risk/rules";
+import { REASON_LABELS, type RiskLevel, type ReasonCode } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import type { InputType } from "@/lib/risk/detect";
-import { bt } from "@/lib/telegram/bot-i18n";
-import { t, type Lang } from "@/lib/i18n";
+import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
+import type { Lang } from "@/lib/i18n";
 import { escapeMarkdownV2 } from "@/lib/telegram/api.server";
 import { SCAM_PATTERNS } from "@/lib/scam-patterns";
 
@@ -125,28 +124,146 @@ function callbacks(keyboard: { callback_data: string }[][]): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Property 5 — ADVICE is always present, even with no AI explanation
+// Property: Verdict line is always present for any result and language
 // ---------------------------------------------------------------------------
 
-// Feature: telegram-bot-mvp, Property 5: Ответ всегда содержит ADVICE даже при недоступном AI
-describe("formatCheckResult — Property 5: ADVICE всегда присутствует (R13.1, R13.2)", () => {
-  it("текст содержит непустой ADVICE[level][lang] для любого результата и языка (fast-check, >= 100 прогонов)", () => {
+// Feature: telegram-menu-visual-polish, Property 6: Verdict Line Presence
+describe("formatCheckResult — Verdict line always present", () => {
+  it("текст содержит verdict line для любого результата и языка (fast-check, >= 100 прогонов)", () => {
     fc.assert(
       fc.property(runCheckResultArb, (result) => {
         for (const lang of LANGS) {
-          const advice = ADVICE[result.level][lang];
-
-          // The advice list itself must be non-empty for every level/lang.
-          expect(advice.length).toBeGreaterThan(0);
-          const firstNonEmpty = advice.find((item) => item.trim().length > 0);
-          expect(firstNonEmpty).toBeDefined();
+          const verdictKey = (
+            {
+              safe: "verdict_safe",
+              unknown: "verdict_unknown",
+              suspicious: "verdict_suspicious",
+              high_risk: "verdict_high_risk",
+            } satisfies Record<RiskLevel, BotStringKey>
+          )[result.level];
+          const expectedVerdict = bt(verdictKey, lang);
 
           const { text } = formatCheckResult(result, lang);
 
-          // The formatter renders each advice item as `• ${escapeMarkdownV2(item)}`,
-          // so the response text — regardless of `explanation` — must contain the
-          // MarkdownV2-escaped advice item.
-          expect(text).toContain(escapeMarkdownV2(firstNonEmpty as string));
+          // The verdict line (escaped for MarkdownV2) must always be present
+          expect(text).toContain(escapeMarkdownV2(expectedVerdict));
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Property 1: Message Length Invariant
+// For any valid RunCheckResult and any Lang, output.text.length ≤ 4096
+// **Validates: Requirements 9.1**
+// ---------------------------------------------------------------------------
+
+describe("formatCheckResult — Message length ≤ 4096", () => {
+  it("output text never exceeds Telegram 4096 char limit for any result and lang (fast-check, >= 100 runs)", () => {
+    fc.assert(
+      fc.property(runCheckResultArb, (result) => {
+        for (const lang of LANGS) {
+          const { text } = formatCheckResult(result, lang);
+          expect(text.length).toBeLessThanOrEqual(4096);
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Property 5: MarkdownV2 Validity
+// The output of formatCheckResult contains no unescaped MarkdownV2 special
+// characters outside intentional bold marker pairs (*...*).
+// **Validates: Requirements 10.1, 10.2, 10.3, 10.4**
+// ---------------------------------------------------------------------------
+
+/**
+ * MarkdownV2 special characters that must be escaped in normal text.
+ * Bold markers (*) are handled separately since they are intentional formatting.
+ */
+const MARKDOWN_V2_SPECIAL_CHARS = new Set([
+  "_",
+  "[",
+  "]",
+  "(",
+  ")",
+  "~",
+  "`",
+  ">",
+  "#",
+  "+",
+  "-",
+  "=",
+  "|",
+  "{",
+  "}",
+  ".",
+  "!",
+]);
+
+/**
+ * Validates that MarkdownV2 output has no unescaped special characters
+ * outside of bold markers (*...*).
+ *
+ * Strategy:
+ * 1. Strip bold marker pairs (*content*) and treat their content separately.
+ * 2. In the remaining text (outside bold), check that every special char is
+ *    preceded by a backslash (i.e., properly escaped).
+ *
+ * Note: Inside bold markers, the same escaping rules apply to the content,
+ * so we validate the full text uniformly — bold markers are structural only.
+ */
+function validateMarkdownV2(text: string): { valid: boolean; issue?: string } {
+  // We iterate character by character, tracking whether the previous char
+  // was a backslash (escape character).
+  // Bold markers (*) that are NOT escaped are structural — they open/close bold.
+  // All other special chars must be preceded by \.
+
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (ch === "\\") {
+      // Escape character — skip the next character (it's the escaped special)
+      i += 2;
+      continue;
+    }
+
+    if (ch === "*") {
+      // Unescaped * is a bold marker (structural) — allowed
+      i++;
+      continue;
+    }
+
+    if (MARKDOWN_V2_SPECIAL_CHARS.has(ch)) {
+      return {
+        valid: false,
+        issue: `Unescaped special char '${ch}' at position ${i} (context: "...${text.slice(Math.max(0, i - 10), i + 10)}...")`,
+      };
+    }
+
+    i++;
+  }
+
+  return { valid: true };
+}
+
+describe("formatCheckResult — MarkdownV2 validity", () => {
+  it("output has no unescaped special chars for any result and lang (fast-check, >= 100 runs)", () => {
+    fc.assert(
+      fc.property(runCheckResultArb, (result) => {
+        for (const lang of LANGS) {
+          const { text } = formatCheckResult(result, lang);
+          const validation = validateMarkdownV2(text);
+          if (!validation.valid) {
+            throw new Error(
+              `MarkdownV2 validation failed for level=${result.level}, lang=${lang}: ${validation.issue}`,
+            );
+          }
         }
       }),
       { numRuns: 100 },
@@ -158,49 +275,71 @@ describe("formatCheckResult — Property 5: ADVICE всегда присутст
 // Unit checks
 // ---------------------------------------------------------------------------
 
-describe("formatCheckResult — explanation block (R13.3)", () => {
-  it("опускает блок объяснения, когда explanation === null", () => {
-    const { text } = formatCheckResult(baseResult({ explanation: null }), "ru");
-    // The explanation block is headed by the i18n `ai_explanation` title.
-    expect(text).not.toContain(escapeMarkdownV2(t("ai_explanation", "ru")));
+describe("formatCheckResult — brief/explanation section (UX v2)", () => {
+  it("опускает brief section, когда explanation === null и нет hosted_app_platform", () => {
+    // For "safe" template which has "brief" section
+    const { text } = formatCheckResult(baseResult({ level: "safe", explanation: null }), "ru");
+    // The brief section title should not be present when there's nothing to show
+    expect(text).not.toContain(escapeMarkdownV2(bt("section_brief", "ru")));
   });
 
-  it("включает блок объяснения, когда explanation задан", () => {
+  it("включает brief section с truncated explanation для уровней с brief в шаблоне", () => {
     const explanation = "Это похоже на попытку мошенничества.";
-    const { text } = formatCheckResult(baseResult({ explanation }), "ru");
-    expect(text).toContain(escapeMarkdownV2(t("ai_explanation", "ru")));
+    // "safe" template includes "brief"
+    const { text } = formatCheckResult(baseResult({ level: "safe", explanation }), "ru");
+    expect(text).toContain(escapeMarkdownV2(bt("section_brief", "ru")));
     expect(text).toContain(escapeMarkdownV2(explanation));
   });
 });
 
 describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
-  it("кнопка Emergency присутствует ТОЛЬКО при high_risk (и есть Report / Check another)", () => {
+  it("кнопка Emergency присутствует ТОЛЬКО при high_risk (и есть Report / Check another / Why)", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
     const cbs = callbacks(keyboard);
     expect(cbs).toContain(CB.emergency);
     expect(cbs).toContain(CB.report);
     expect(cbs).toContain(CB.checkAnother);
+    expect(cbs).toContain(CB.why);
   });
 
-  it("для прочих уровней кнопки Emergency нет, но Report / Check another присутствуют", () => {
+  it("для прочих уровней кнопки Emergency нет, но Report / Check another / Why присутствуют", () => {
     for (const level of ["safe", "unknown", "suspicious"] as const) {
       const { keyboard } = formatCheckResult(baseResult({ level }), "ru");
       const cbs = callbacks(keyboard);
       expect(cbs).not.toContain(CB.emergency);
       expect(cbs).toContain(CB.report);
       expect(cbs).toContain(CB.checkAnother);
+      expect(cbs).toContain(CB.why);
     }
+  });
+
+  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, Emergency in row 3 for high_risk", () => {
+    const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
+    expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard[2].map((b) => b.callback_data)).toEqual([CB.emergency]);
+  });
+
+  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, no row 3 for non-high_risk", () => {
+    const { keyboard } = formatCheckResult(baseResult({ level: "safe" }), "ru");
+    expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard).toHaveLength(2);
   });
 });
 
 describe("formatCheckResult — known reports line (R4.11)", () => {
-  it("строка о подтверждённых жалобах присутствует при knownReports > 0", () => {
-    const { text } = formatCheckResult(baseResult({ knownReports: 3 }), "ru");
+  it("строка о подтверждённых жалобах присутствует при knownReports > 0 (в шаблоне с what_noticed)", () => {
+    // "safe" template has "what_noticed" section that renders knownReports
+    const { text } = formatCheckResult(
+      baseResult({ level: "safe", knownReports: 3, reasons: ["valid_uz_phone"] }),
+      "ru",
+    );
     expect(text).toContain(escapeMarkdownV2(bt("known_reports", "ru", { count: 3 })));
   });
 
   it("строка о подтверждённых жалобах отсутствует при knownReports === 0", () => {
-    const { text } = formatCheckResult(baseResult({ knownReports: 0 }), "ru");
+    const { text } = formatCheckResult(baseResult({ level: "safe", knownReports: 0 }), "ru");
     // Count-independent fragment unique to the known_reports string.
     expect(text).not.toContain(escapeMarkdownV2("подтверждённых жалоб"));
   });
@@ -222,6 +361,7 @@ describe("formatCheckResult — header (R4.5, R4.4)", () => {
 
 describe("formatCheckResult - deterministic URL fallback and scam patterns", () => {
   it("shows hosted-platform guidance instead of an AI explanation when AI is skipped", () => {
+    // "unknown" template has "brief" section which will show the hosted platform fallback
     const { text } = formatCheckResult(
       baseResult({
         type: "url",
@@ -234,22 +374,23 @@ describe("formatCheckResult - deterministic URL fallback and scam patterns", () 
     );
 
     expect(text).toContain(escapeMarkdownV2(bt("hosted_platform_explanation", "ru")));
-    expect(text).not.toContain(escapeMarkdownV2(t("ai_explanation", "ru")));
   });
 
-  it("shows matching scam-pattern names for detected reason codes", () => {
+  it("shows matching scam-pattern names for detected reason codes in what_noticed section", () => {
     const otpPattern = SCAM_PATTERNS.find((p) => p.id === "otp-code-scam");
     expect(otpPattern).toBeDefined();
 
+    // "safe" template has "what_noticed" section where patterns appear
     const { text } = formatCheckResult(
       baseResult({
+        level: "safe",
         reasons: ["asks_for_sms_code"],
         explanation: null,
       }),
       "en",
     );
 
-    expect(text).toContain("💡 Looks like:");
+    // Pattern title should appear in the what_noticed section
     expect(text).toContain(escapeMarkdownV2(otpPattern!.title.en));
   });
 });

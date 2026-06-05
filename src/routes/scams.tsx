@@ -156,9 +156,9 @@ function ScamsPage() {
               📢{" "}
               {
                 {
-                  ru: "Сообщить о мошеннике",
-                  uz: "Firibgar haqida xabar berish",
-                  en: "Report a scammer",
+                  ru: "Сообщить о случае",
+                  uz: "Holat haqida xabar berish",
+                  en: "Report an incident",
                 }[lang]
               }
               <ArrowRight className="h-4 w-4" />

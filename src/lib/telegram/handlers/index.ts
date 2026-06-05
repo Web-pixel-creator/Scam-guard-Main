@@ -32,11 +32,16 @@ import { handleCommand } from "@/lib/telegram/handlers/commands";
 import { handleCheck, handleImage, handlePhoneFromContact } from "@/lib/telegram/handlers/check";
 import {
   handleScenarioStep as handleReportScenarioStep,
+  handleReportNoValue,
+  handleReportRetry,
   handleReportSkip,
+  REPORT_NO_VALUE_CALLBACK,
+  REPORT_RETRY_CALLBACK,
   REPORT_SKIP_CALLBACK,
 } from "@/lib/telegram/handlers/report";
 import {
   handleCallback as miscHandleCallback,
+  handleMetaIntent,
   handleOutOfScope,
 } from "@/lib/telegram/handlers/misc";
 
@@ -90,6 +95,20 @@ async function handleCallback(
     await handleReportSkip(ctx);
     return;
   }
+  if (data === REPORT_NO_VALUE_CALLBACK && ctx.session.scenario === "report_value") {
+    if (callbackQueryId !== undefined) {
+      await answerCallbackQuery(callbackQueryId);
+    }
+    await handleReportNoValue(ctx);
+    return;
+  }
+  if (data === REPORT_RETRY_CALLBACK && isReportScenario(ctx.session.scenario)) {
+    if (callbackQueryId !== undefined) {
+      await answerCallbackQuery(callbackQueryId);
+    }
+    await handleReportRetry(ctx);
+    return;
+  }
   await miscHandleCallback(data, ctx, callbackQueryId);
 }
 
@@ -98,6 +117,7 @@ export const telegramHandlers: Handlers = {
   handleCommand,
   handleScenarioStep,
   handleCheck,
+  handleMetaIntent,
   handleImage,
   handlePhoneFromContact,
   handleCallback,

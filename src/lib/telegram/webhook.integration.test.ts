@@ -143,6 +143,8 @@ vi.mock("@/lib/risk/check-core", async (importActual) => {
 //    handler aggregator's import graph hermetic (no real createServerFn run). ──
 vi.mock("@/lib/report.functions", () => ({
   submitReport: vi.fn(async () => ({ ok: true })),
+  submitReportCore: vi.fn(async () => ({ ok: true })),
+  reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
 }));
 
 // Import AFTER the mocks are registered. The handler aggregator installs the
@@ -150,6 +152,7 @@ vi.mock("@/lib/report.functions", () => ({
 // webhook.server re-installs them (idempotent) before dispatching.
 import { handleTelegramWebhook } from "./webhook.server";
 import { CB, RISK_EMOJI } from "./format";
+import { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK } from "./report-flow";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -341,6 +344,23 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
     // The real core logged the check (redacted) into `checks`.
     expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
   });
+
+  it("answers a meta-question to the bot without running the risk pipeline", async () => {
+    const update = textUpdate({
+      userId: 1004,
+      chatId: 5004,
+      text: "Почему ты не смог проанализировать картинку?",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5004);
+    expect(h.sendCalls[0].text).toContain("изображение");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((i) => i.table === "checks")).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -360,14 +380,31 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     const data = callbackData(h.sendCalls[0].keyboard);
     expect(data).toEqual(
       expect.arrayContaining([
-        CB.lang("ru"),
-        CB.lang("uz"),
-        CB.lang("en"),
         CB.checkAnother,
         CB.report,
         CB.emergency,
+        CB.safety,
+        CB.showLang,
+        CB.howItWorks,
       ]),
     );
+  });
+
+  it("sends /menu with the same quick-action main menu as /start", async () => {
+    const update = textUpdate({ userId: 1105, chatId: 5105, text: "/menu" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      CB.checkAnother,
+      CB.emergency,
+      CB.report,
+      CB.safety,
+      CB.showLang,
+      CB.howItWorks,
+    ]);
   });
 
   it("sends /panic with paginated scenario buttons (page 1)", async () => {
@@ -393,6 +430,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["report", CB.report],
     ["emergency", CB.emergency],
     ["panic scenario", "panic:1"],
+    ["show language picker", CB.showLang],
+    ["safety", CB.safety],
+    ["how it works", CB.howItWorks],
     ["language switch", CB.lang("uz")],
   ])("acknowledges the %s callback and sends a response", async (_label, data) => {
     const update = callbackUpdate({
@@ -436,6 +476,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       ]),
     );
     expect(h.sendCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(REPORT_NO_VALUE_CALLBACK);
   });
 
   it("acknowledges report skip callbacks before advancing the report scenario", async () => {
@@ -471,6 +512,81 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       ]),
     );
     expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("acknowledges the report no-value callback and advances to description", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1105,
+      lang: "ru",
+      scenario: "report_value",
+      scenario_step: 0,
+      scenario_data: {},
+      updated_at: new Date(0).toISOString(),
+    };
+    const update = callbackUpdate({
+      userId: 1105,
+      chatId: 5105,
+      data: REPORT_NO_VALUE_CALLBACK,
+      id: "cb-report-no-value",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-report-no-value"]);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: 1105,
+            scenario: "report_desc",
+            scenario_step: 1,
+            scenario_data: { noValue: true },
+          }),
+        }),
+      ]),
+    );
+    expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("acknowledges the report retry callback and clears the draft after success", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1106,
+      lang: "ru",
+      scenario: "report_amount",
+      scenario_step: 4,
+      scenario_data: {
+        value: "+998900000000",
+        description: "Достаточно длинное описание",
+      },
+      updated_at: new Date(0).toISOString(),
+    };
+    const update = callbackUpdate({
+      userId: 1106,
+      chatId: 5106,
+      data: REPORT_RETRY_CALLBACK,
+      id: "cb-report-retry",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-report-retry"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: 1106,
+            scenario: "none",
+            scenario_step: 0,
+            scenario_data: {},
+          }),
+        }),
+      ]),
+    );
   });
 
   it.each([

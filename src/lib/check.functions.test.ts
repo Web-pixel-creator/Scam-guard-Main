@@ -174,6 +174,31 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     );
   });
 
+  it("returns a meta-intent response for questions to the bot without calling runCheck", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    const result = await checkInput({
+      data: { input: "Почему ты не смог проанализировать картинку?", lang: "ru" },
+    });
+
+    expect(result).toMatchObject({
+      metaIntent: "why_failed",
+      response: expect.stringContaining("изображение"),
+    });
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+  });
+
+  it("still routes URL/phone/scam-context text to runCheck even with help wording", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    const result = await checkInput({
+      data: { input: "помогите, мне прислали ссылку https://example.com", lang: "ru" },
+    });
+
+    expect(result).toEqual(CORE_RESULT);
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+  });
+
   it("rejects invalid input via the unchanged schema (min length / unknown type)", async () => {
     hoisted.requestIp = "192.0.2.1";
 
