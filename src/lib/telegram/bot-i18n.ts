@@ -361,7 +361,7 @@ export const bot_dict: BotDict = {
     en: '📞 End the call. Say: "I\'ll call back on the official number myself."',
   },
   live_call_hangup: {
-    ru: "🛑 Не называйте SMS-код, PIN, CVV, пароль.\nЕсли давят «не кладите трубку» — это мошенничество.\n\nПеревоните в банк сами по официальному номеру.",
+    ru: "🛑 Не называйте SMS-код, PIN, CVV, пароль.\nЕсли давят «не кладите трубку» — это мошенничество.\n\nПерезвоните в банк сами по официальному номеру.",
     uz: "🛑 SMS-kod, PIN, CVV, parolni aytmang.\n«Go'shakni qo'ymang» deb bosim qilishsa — bu firibgarlik.\n\nBankka rasmiy raqam orqali o'zingiz qo'ng'iroq qiling.",
     en: "🛑 Never give your SMS code, PIN, CVV or password.\nIf they say \"don't hang up\" — it's a scam.\n\nCall the bank yourself on the official number.",
   },
@@ -371,9 +371,9 @@ export const bot_dict: BotDict = {
     en: "\u{1F4AC} What to say:\n\n\u201CI can't talk right now. I'll call the bank myself.\u201D\n\nAnd hang up. Don't explain, don't argue.",
   },
   live_call_tell_family: {
-    ru: "👪 Сообщите близкому: «Мне звонили от имени банка/службы поддержки и просили код, деньги или приложение. Пожалуйста, помоги мне проверить это».\n\nНе пересылайте SMS-код, PIN, CVV или пароль. Достаточно описать ситуацию.",
-    uz: "👪 Yaqiningizga yozing: «Menga bank/yordam xizmati nomidan qo'ng'iroq qilishdi va kod, pul yoki ilova so'rashdi. Iltimos, buni tekshirishga yordam ber».\n\nSMS-kod, PIN, CVV yoki parolni yubormang. Faqat vaziyatni tushuntiring.",
-    en: '👪 Tell a trusted person: "Someone called claiming to be a bank/support service and asked for a code, money or an app. Please help me check this."\n\nDo not forward SMS codes, PINs, CVVs or passwords. Describe the situation only.',
+    ru: "👪 Позовите человека, которому доверяете.\n\nЕсли вы пожилой человек или сильно волнуетесь, не разбирайтесь в одиночку. Скажите: «Мне сейчас звонили от имени банка и просили код, деньги или приложение. Побудь со мной и помоги позвонить в банк по официальному номеру».\n\nНе пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
+    uz: "👪 Ishonchli yaqiningizni chaqiring.\n\nAgar yoshi katta bo'lsangiz yoki juda hayajonlansangiz, yolg'iz qaror qilmang. Ayting: «Menga bank nomidan qo'ng'iroq qilib, kod, pul yoki ilova so'rashdi. Yonimda bo'ling va bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».\n\nSMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
+    en: '👪 Call someone you trust.\n\nIf you are elderly or stressed, do not handle this alone. Say: "Someone called claiming to be my bank and asked for a code, money, or an app. Please stay with me and help me call the bank using an official number."\n\nDo not forward SMS codes, PINs, CVVs, passwords, or card photos.',
   },
   btn_live_hangup: {
     ru: "✅ Я положил трубку",

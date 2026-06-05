@@ -27,6 +27,7 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 - Handler: `src/lib/telegram/webhook.server.ts`.
 - Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal `TELEGRAM_WEBHOOK_SECRET`.
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
+- `/panic` now behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
 
 ## Auth flow
 

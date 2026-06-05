@@ -90,6 +90,14 @@ function makeCtx(overrides: Partial<HandlerCtx> = {}): HandlerCtx {
   };
 }
 
+function callbackData(keyboard: unknown): string[] {
+  if (!Array.isArray(keyboard)) return [];
+  return (keyboard as { callback_data?: string }[][])
+    .flat()
+    .map((b) => b.callback_data)
+    .filter((d): d is string => typeof d === "string");
+}
+
 beforeEach(() => {
   h.sendCalls.length = 0;
   h.editCalls.length = 0;
@@ -232,13 +240,14 @@ describe("panic:N — scenario text sent as a new message", () => {
     expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
   });
 
-  it("does not use keyboard for scenario text messages", async () => {
+  it("adds contextual follow-up buttons to scenario text messages", async () => {
     const ctx = makeCtx();
     await handleCallback("panic:3", ctx);
 
     expect(h.sendCalls).toHaveLength(1);
-    // No keyboard passed for scenario texts
-    expect(h.sendCalls[0].keyboard).toBeUndefined();
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
+      expect.arrayContaining(["panicctx:contacts", "panicctx:script", "panicctx:trusted_person"]),
+    );
   });
 });
 
@@ -253,7 +262,11 @@ describe("livecall:tell_family — sends family-sharing guidance", () => {
 
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.sendCalls[0].text).toBe(bt("live_call_tell_family", "ru"));
+    expect(h.sendCalls[0].text).toContain("Позовите человека");
+    expect(h.sendCalls[0].text).toContain("побудь со мной");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
+      expect.arrayContaining(["panicctx:contacts", "panicctx:full"]),
+    );
     expect(h.sendCalls[0].text).not.toBe(bt("live_call_hangup", "ru"));
   });
 });

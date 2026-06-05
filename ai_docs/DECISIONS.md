@@ -65,3 +65,12 @@ Those tables can contain sensitive scam evidence even after masking, so all
 writes must pass through server functions that validate, redact and hash before
 using the service-role client. This also prevents public stat pollution through
 direct `checks` inserts.
+
+## D-016 - Panic mode is a contextual copilot
+
+After a user selects a `/panic` scenario, the Telegram bot stores only the
+scenario id and timestamp so short follow-up questions can stay contextual
+("what next?", "bank number", "what should I say?"). The router remains
+conservative: URLs, phone numbers, Telegram usernames, code-like secrets and
+long suspicious text still go through the risk pipeline. This gives stressed or
+elderly users guided next steps without storing raw emergency evidence.

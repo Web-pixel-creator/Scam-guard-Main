@@ -1,5 +1,12 @@
 # Changelog (AI memory)
 
+## 2026-06-05 - Emergency Copilot v2
+
+- Added a new Telegram emergency copilot layer for post-`/panic` follow-up questions.
+- Panic context now stores only `lastPanicId` and `lastPanicAt` in `telegram_sessions.scenario_data`.
+- Short follow-ups like "what next?", "bank number" and "what should I say?" get contextual replies; suspicious payloads still route to the risk pipeline.
+- Added the `.kiro/specs/telegram-emergency-copilot-v2/` spec and updated file/function/API/database decision docs.
+
 ## 2026-06-02 - Live QA hardening
 
 - Fixed Telegram inline callback acknowledgement: router now forwards

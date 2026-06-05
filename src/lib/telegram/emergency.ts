@@ -863,3 +863,525 @@ export function parseLiveCallCallback(data: string): LiveCallAction | null {
   ];
   return valid.includes(action as LiveCallAction) ? (action as LiveCallAction) : null;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMERGENCY COPILOT V2 — contextual follow-up after panic scenarios
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const PANIC_CONTEXT_CB_PREFIX = "panicctx:";
+
+export type EmergencyFollowUpAction = "more" | "contacts" | "script" | "trusted_person" | "full";
+
+export interface EmergencyContextData {
+  lastPanicId?: unknown;
+  lastPanicAt?: unknown;
+}
+
+export interface EmergencyFollowUpMatch {
+  action: EmergencyFollowUpAction;
+  panicId: PanicScenarioId;
+}
+
+const PANIC_CONTEXT_TTL_MS = 2 * 60 * 60 * 1000;
+
+const FOLLOWUP_URL_RE =
+  /(?:https?:\/\/|www\.|[a-z0-9-]+\.(?:uz|com|net|org|ru|io|app|site|info|me|online|xyz|top|shop|click|bank)\b)/i;
+const FOLLOWUP_PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/;
+const FOLLOWUP_TELEGRAM_RE = /(?:t\.me\/|telegram\.me\/|@[a-zA-Z0-9_]{3,})/i;
+const FOLLOWUP_APK_LINK_RE = /(?:https?:\/\/\S+\.apk\b|\b\S+\.apk\b)/i;
+const FOLLOWUP_SECRET_RE =
+  /(?:\b(?:otp|sms|смс|код|pin|пин|cvv|cvc|пароль|password)\b[^\d\n]{0,20}\d{3,8}\b|\b\d{3,8}\b[^\n]{0,20}\b(?:otp|sms|смс|код|pin|пин|cvv|cvc)\b)/i;
+const FOLLOWUP_LONG_TEXT_LIMIT = 220;
+
+const FOLLOWUP_CONTACTS_RE =
+  /(?:номер|телефон|позвон|контакт)[\s\S]{0,35}(?:банк|карта)|(?:банк|карты?)[\s\S]{0,35}(?:номер|телефон|контакт|позвон)|(?:bank|card)[\s\S]{0,35}(?:number|phone|contact|call)|(?:call|phone)[\s\S]{0,35}(?:bank|card)|(?:bank|karta)[\s\S]{0,35}(?:raqam|telefon|qo'ng'iroq|qongiroq)/i;
+const FOLLOWUP_SCRIPT_RE =
+  /(?:что|как)\s+(?:сказать|ответить)|(?:текст|фраза|фразу|скрипт|слова)\b|what\s+to\s+say|script|nima\s+(?:deyish|aytish)|qanday\s+(?:aytaman|gaplashaman)/i;
+const FOLLOWUP_TRUSTED_RE =
+  /(?:близк|родствен|семь|семья|мам|пап|сын|дочь|пожил|пенсион|доверя)|(?:family|relative|trusted|elder|parent|mother|father|son|daughter)|(?:yaqin|qarindosh|ishonchli|ota|ona|farzand|keks)/i;
+const FOLLOWUP_MORE_RE =
+  /(?:что|что-то)\s+(?:еще|ещё|дальше)|(?:дальше|следующий\s+шаг|посовет|что\s+делать)|what\s+next|next\s+steps|more\s+advice|what\s+else|yana\s+nima|keyin\s+nima|nima\s+qil/i;
+
+const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = {
+  more: { ru: "🧭 Что дальше", uz: "🧭 Keyingi qadam", en: "🧭 Next step" },
+  contacts: { ru: "📞 Номера банков", uz: "📞 Bank raqamlari", en: "📞 Bank numbers" },
+  script: { ru: "💬 Что сказать", uz: "💬 Nima deyish", en: "💬 What to say" },
+  trusted_person: {
+    ru: "👪 Позвать близкого",
+    uz: "👪 Yaqinni chaqirish",
+    en: "👪 Call someone trusted",
+  },
+  full: { ru: "📋 Весь чеклист", uz: "📋 To'liq ro'yxat", en: "📋 Full checklist" },
+};
+
+function normalizeFollowUpText(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(/[’‘`]/g, "'")
+    .replace(/ё/g, "е")
+    .replace(/Ё/g, "Е")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("ru");
+}
+
+function hasRiskPayloadForFollowUp(text: string): boolean {
+  const normalized = normalizeFollowUpText(text);
+  return (
+    normalized.length > FOLLOWUP_LONG_TEXT_LIMIT ||
+    FOLLOWUP_URL_RE.test(normalized) ||
+    FOLLOWUP_PHONE_RE.test(normalized) ||
+    FOLLOWUP_TELEGRAM_RE.test(normalized) ||
+    FOLLOWUP_APK_LINK_RE.test(normalized) ||
+    FOLLOWUP_SECRET_RE.test(normalized)
+  );
+}
+
+export function asPanicScenarioId(value: unknown): PanicScenarioId | null {
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isInteger(n) && n >= 1 && n <= 10 ? (n as PanicScenarioId) : null;
+}
+
+function isRecentPanicContext(context: EmergencyContextData, now: Date): boolean {
+  const id = asPanicScenarioId(context.lastPanicId);
+  if (id === null || typeof context.lastPanicAt !== "string") return false;
+  const timestamp = Date.parse(context.lastPanicAt);
+  if (!Number.isFinite(timestamp)) return false;
+  const age = now.getTime() - timestamp;
+  return age >= 0 && age <= PANIC_CONTEXT_TTL_MS;
+}
+
+export function withPanicContextData<T extends object>(
+  existing: T | undefined,
+  panicId: PanicScenarioId,
+  now: Date = new Date(),
+): T & { lastPanicId: PanicScenarioId; lastPanicAt: string } {
+  return {
+    ...(existing ?? ({} as T)),
+    lastPanicId: panicId,
+    lastPanicAt: now.toISOString(),
+  };
+}
+
+export function parsePanicContextCallback(data: string): EmergencyFollowUpAction | null {
+  if (!data.startsWith(PANIC_CONTEXT_CB_PREFIX)) return null;
+  const action = data.slice(PANIC_CONTEXT_CB_PREFIX.length);
+  const valid: EmergencyFollowUpAction[] = ["more", "contacts", "script", "trusted_person", "full"];
+  return valid.includes(action as EmergencyFollowUpAction)
+    ? (action as EmergencyFollowUpAction)
+    : null;
+}
+
+export function classifyEmergencyFollowUp(
+  text: string,
+  context: EmergencyContextData,
+  now: Date = new Date(),
+): EmergencyFollowUpMatch | null {
+  if (!isRecentPanicContext(context, now)) return null;
+  if (hasRiskPayloadForFollowUp(text)) return null;
+
+  const panicId = asPanicScenarioId(context.lastPanicId);
+  if (panicId === null) return null;
+  const normalized = normalizeFollowUpText(text);
+  if (!normalized) return null;
+
+  if (FOLLOWUP_CONTACTS_RE.test(normalized)) return { action: "contacts", panicId };
+  if (FOLLOWUP_SCRIPT_RE.test(normalized)) return { action: "script", panicId };
+  if (FOLLOWUP_TRUSTED_RE.test(normalized)) return { action: "trusted_person", panicId };
+  if (FOLLOWUP_MORE_RE.test(normalized)) return { action: "more", panicId };
+  return null;
+}
+
+export function buildEmergencyFollowUpKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [
+      {
+        text: FOLLOWUP_BUTTONS.contacts[lang],
+        callback_data: `${PANIC_CONTEXT_CB_PREFIX}contacts`,
+      },
+      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
+    ],
+    [
+      {
+        text: FOLLOWUP_BUTTONS.trusted_person[lang],
+        callback_data: `${PANIC_CONTEXT_CB_PREFIX}trusted_person`,
+      },
+      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+    ],
+  ];
+}
+
+function followUpTitle(panicId: PanicScenarioId, lang: Lang): string {
+  return PANIC_MENU_TITLES[panicId][lang];
+}
+
+function verifiedCallbackDirectory(lang: Lang): string {
+  const contacts = getEmergencyContacts();
+  const banks = contacts.banks.slice(0, 6);
+  const payments = contacts.payments.slice(0, 3);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "📞 Официальный обратный звонок",
+      "",
+      "1. Сначала смотрите номер на карте, в банковском приложении или на официальном сайте.",
+      "2. Не звоните по номеру, который продиктовал собеседник или прислал в SMS.",
+      "3. Если вы волнуетесь, попросите близкого набрать номер вместе с вами.",
+      "",
+      "Проверенные короткие номера:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+    uz: [
+      "📞 Rasmiy qayta qo'ng'iroq",
+      "",
+      "1. Avval raqamni karta orqasidan, bank ilovasidan yoki rasmiy saytdan oling.",
+      "2. Suhbatdosh aytgan yoki SMSda kelgan raqamga qo'ng'iroq qilmang.",
+      "3. Hayajonlansangiz, ishonchli yaqiningiz bilan birga qo'ng'iroq qiling.",
+      "",
+      "Tekshirilgan qisqa raqamlar:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+    en: [
+      "📞 Official callback",
+      "",
+      "1. First use the number on your card, in the bank app, or on the official site.",
+      "2. Do not call the number the caller dictated or sent by SMS.",
+      "3. If you feel stressed, ask someone trusted to dial with you.",
+      "",
+      "Verified short numbers:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+  };
+  return lines[lang].filter(Boolean).join("\n");
+}
+
+function trustedPersonText(panicId: PanicScenarioId, lang: Lang): string {
+  const title = followUpTitle(panicId, lang);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "👪 Позовите человека, которому доверяете",
+      "",
+      "Если вы пожилой человек, сильно волнуетесь или вас торопят — не разбирайтесь в одиночку. Позвоните близкому и попросите быть рядом, пока вы связываетесь с банком.",
+      "",
+      `Скажите прямо: «Мне нужна помощь. Ситуация: ${title}. Пожалуйста, побудь со мной и помоги позвонить в банк по официальному номеру».`,
+      "",
+      "Не пересылайте SMS-код, PIN, CVV, пароль или фото карты. Можно показать переписку без кодов и попросить проверить шаги вместе.",
+    ],
+    uz: [
+      "👪 Ishonchli yaqiningizni chaqiring",
+      "",
+      "Agar yoshi katta bo'lsangiz, hayajonlansangiz yoki sizni shoshirishsa — yolg'iz qaror qilmang. Yaqiningizga qo'ng'iroq qiling va bank bilan bog'lanayotganda yoningizda bo'lishini so'rang.",
+      "",
+      `Shunday deng: «Menga yordam kerak. Vaziyat: ${title}. Iltimos, yonimda bo'ling va bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».`,
+      "",
+      "SMS-kod, PIN, CVV, parol yoki karta rasmini yubormang. Kodlarsiz yozishmani ko'rsatib, qadamlarni birga tekshirish mumkin.",
+    ],
+    en: [
+      "👪 Call someone you trust",
+      "",
+      "If you are elderly, stressed, or being rushed, do not handle it alone. Call a trusted person and ask them to stay with you while you contact the bank.",
+      "",
+      `Say: "I need help. Situation: ${title}. Please stay with me and help me call the bank using an official number."`,
+      "",
+      "Do not forward SMS codes, PINs, CVVs, passwords, or card photos. You can show the chat without codes and check the steps together.",
+    ],
+  };
+  return lines[lang].join("\n");
+}
+
+function scriptText(panicId: PanicScenarioId, lang: Lang): string {
+  const title = followUpTitle(panicId, lang);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "💬 Готовая фраза",
+      "",
+      "Если вам звонят прямо сейчас, скажите:",
+      "",
+      "«Я не обсуждаю деньги и коды по входящему звонку. Я сам перезвоню в организацию по официальному номеру».",
+      "",
+      "Потом завершите звонок. Не спорьте и не объясняйте. Если нужно сказать близкому:",
+      `«У меня ситуация: ${title}. Помоги мне спокойно проверить и позвонить в банк».`,
+    ],
+    uz: [
+      "💬 Tayyor jumla",
+      "",
+      "Agar hozir qo'ng'iroq qilishayotgan bo'lsa, ayting:",
+      "",
+      "«Men kiruvchi qo'ng'iroqda pul va kodlarni muhokama qilmayman. Tashkilotga rasmiy raqam orqali o'zim qo'ng'iroq qilaman».",
+      "",
+      "Keyin go'shakni qo'ying. Tortishmang va tushuntirmang. Yaqiningizga:",
+      `«Vaziyatim: ${title}. Iltimos, xotirjam tekshirishga va bankka qo'ng'iroq qilishga yordam ber».`,
+    ],
+    en: [
+      "💬 Ready phrase",
+      "",
+      "If someone is calling right now, say:",
+      "",
+      '"I do not discuss money or codes on an incoming call. I will call the organization myself using an official number."',
+      "",
+      "Then hang up. Do not argue or explain. To a trusted person:",
+      `"My situation is: ${title}. Please help me check calmly and call the bank."`,
+    ],
+  };
+  return lines[lang].join("\n");
+}
+
+function moreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
+  const byScenario: Record<PanicScenarioId, Record<Lang, string[]>> = {
+    1: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Позвоните в банк по официальному номеру и скажите: «Я сообщил SMS-код, заблокируйте карту и онлайн-банк».",
+        "2. Смените пароль банка и Telegram с другого устройства.",
+        "3. Сохраните переписку и номера, но больше ничего не отправляйте.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Bankka rasmiy raqam orqali qo'ng'iroq qiling: «SMS-kod berdim, karta va onlayn-bankni bloklang».",
+        "2. Bank va Telegram parollarini boshqa qurilmadan o'zgartiring.",
+        "3. Yozishma va raqamlarni saqlang, boshqa hech narsa yubormang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Call your bank on an official number: “I gave an SMS code; block my card and online banking.”",
+        "2. Change banking and Telegram passwords from another device.",
+        "3. Save chats and numbers, but send nothing else.",
+      ],
+    },
+    2: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Оставьте авиарежим включенным, пока не удалите приложение.",
+        "2. С другого телефона позвоните в банк и попросите временно заблокировать карты.",
+        "3. С чистого устройства смените пароли банка, Telegram и почты.",
+        "4. Если приложение просило доступ к SMS/уведомлениям — считайте это высоким риском.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Ilovani o'chirmaguningizcha aviarejimni yoqilgan holda qoldiring.",
+        "2. Boshqa telefondan bankka qo'ng'iroq qilib, kartalarni vaqtincha bloklashni so'rang.",
+        "3. Toza qurilmadan bank, Telegram va email parollarini almashtiring.",
+        "4. Ilova SMS/bildirishnoma ruxsatini so'ragan bo'lsa — bu yuqori xavf.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Keep airplane mode on until the app is removed.",
+        "2. From another phone, call the bank and ask to temporarily block cards.",
+        "3. From a clean device, change bank, Telegram, and email passwords.",
+        "4. If the app asked for SMS/notification access, treat it as high risk.",
+      ],
+    },
+    3: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Позвоните в банк и попросите заморозить/оспорить перевод.",
+        "2. Не делайте «возвратный перевод» — это частая вторая схема.",
+        "3. Сохраните чек, чат, номер получателя и время операции.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Bankka qo'ng'iroq qilib, o'tkazmani muzlatish/bahslashishni so'rang.",
+        "2. «Qaytarish uchun yana o'tkazing» demang — bu ko'p uchraydigan ikkinchi sxema.",
+        "3. Chek, chat, qabul qiluvchi raqami va vaqtni saqlang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Call your bank and ask to freeze/dispute the transfer.",
+        "2. Do not make a “return transfer” — that is a common second scam.",
+        "3. Save the receipt, chat, recipient number, and transaction time.",
+      ],
+    },
+    4: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Заблокируйте карту в приложении или по официальному номеру банка.",
+        "2. Проверьте последние операции и попросите оспорить неизвестные.",
+        "3. Если вводили пароль онлайн-банка — смените его с другого устройства.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Kartani ilova orqali yoki bankning rasmiy raqami orqali bloklang.",
+        "2. Oxirgi operatsiyalarni tekshiring va noma'lumlarini bahslashishni so'rang.",
+        "3. Onlayn-bank parolini kiritgan bo'lsangiz, uni boshqa qurilmadan almashtiring.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Block the card in the app or via the bank’s official number.",
+        "2. Check recent transactions and ask to dispute unknown ones.",
+        "3. If you entered an online banking password, change it from another device.",
+      ],
+    },
+    5: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Зайдите в Telegram с другого устройства и завершите неизвестные сеансы.",
+        "2. Включите двухэтапный пароль.",
+        "3. Предупредите близких: от вашего имени могут просить деньги или код.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Telegramga boshqa qurilmadan kiring va noma'lum seanslarni tugating.",
+        "2. Ikki bosqichli parolni yoqing.",
+        "3. Yaqinlarni ogohlantiring: sizning nomingizdan pul yoki kod so'rashlari mumkin.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Log into Telegram from another device and terminate unknown sessions.",
+        "2. Enable two-step password.",
+        "3. Warn close contacts: someone may ask for money or codes from your account.",
+      ],
+    },
+    6: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Положите трубку и не продолжайте разговор.",
+        "2. Перезвоните сами по официальному номеру банка или организации.",
+        "3. Если вы уже сказали код или данные карты — переходите к сценарию «SMS-код» или «данные карты».",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Go'shakni qo'ying va suhbatni davom ettirmang.",
+        "2. Bank yoki tashkilotga rasmiy raqam orqali o'zingiz qo'ng'iroq qiling.",
+        "3. Kod yoki karta ma'lumotini aytgan bo'lsangiz — «SMS-kod» yoki «karta ma'lumotlari» ssenariysiga o'ting.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Hang up and do not continue the call.",
+        "2. Call the bank or organization yourself using an official number.",
+        "3. If you already gave a code or card data, use the “SMS code” or “card data” scenario.",
+      ],
+    },
+    7: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Не платите и не отправляйте новые фото/видео.",
+        "2. Сохраните угрозы скриншотами.",
+        "3. Заблокируйте человека и обратитесь к доверенному взрослому или в полицию.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. To'lamang va yangi foto/video yubormang.",
+        "2. Tahdidlarni skrinshot qilib saqlang.",
+        "3. Odamni bloklang va ishonchli kattaga yoki politsiyaga murojaat qiling.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Do not pay and do not send more photos/videos.",
+        "2. Save threats as screenshots.",
+        "3. Block the person and contact a trusted adult or the police.",
+      ],
+    },
+    8: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Остановите переводы и не берите кредиты.",
+        "2. Проверьте фото через обратный поиск.",
+        "3. Попросите близкого посмотреть переписку со стороны.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. O'tkazmalarni to'xtating va kredit olmang.",
+        "2. Suratni teskari qidiruv orqali tekshiring.",
+        "3. Yaqiningizdan yozishmani tashqaridan ko'rib berishni so'rang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Stop transfers and do not take loans.",
+        "2. Reverse-search the photo.",
+        "3. Ask someone trusted to review the chat from the outside.",
+      ],
+    },
+    9: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Не платите: оплата часто приводит к новым требованиям.",
+        "2. Сохраните доказательства и заблокируйте угрожающего.",
+        "3. Если контент опубликован, пишите в поддержку платформы и полицию.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. To'lamang: to'lov ko'pincha yangi talablarni keltiradi.",
+        "2. Dalillarni saqlang va tahdid qiluvchini bloklang.",
+        "3. Kontent e'lon qilingan bo'lsa, platforma qo'llab-quvvatlashiga va politsiyaga yozing.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Do not pay: payment often leads to more demands.",
+        "2. Save evidence and block the person threatening you.",
+        "3. If content is published, contact platform support and police.",
+      ],
+    },
+    10: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Покажите это сообщение взрослому, которому доверяете.",
+        "2. Ничего не отправляйте и не платите.",
+        "3. Если есть угрозы, сохраните скриншоты и звоните 102.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Bu xabarni ishonchli kattaga ko'rsating.",
+        "2. Hech narsa yubormang va to'lamang.",
+        "3. Tahdid bo'lsa, skrinshotlarni saqlang va 102 ga qo'ng'iroq qiling.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Show this message to an adult you trust.",
+        "2. Do not send anything and do not pay.",
+        "3. If there are threats, save screenshots and call 102.",
+      ],
+    },
+  };
+  return byScenario[panicId][lang].join("\n");
+}
+
+export function buildEmergencyFollowUpText(
+  action: EmergencyFollowUpAction,
+  panicId: PanicScenarioId,
+  lang: Lang,
+): string {
+  switch (action) {
+    case "contacts":
+      return verifiedCallbackDirectory(lang);
+    case "script":
+      return scriptText(panicId, lang);
+    case "trusted_person":
+      return trustedPersonText(panicId, lang);
+    case "full":
+      return buildPanicScenarioText(panicId, lang);
+    case "more":
+      return moreAdviceText(panicId, lang);
+  }
+}
