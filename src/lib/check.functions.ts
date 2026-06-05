@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { runCheck, ocrExtractCore } from "./risk/check-core";
+import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "./meta-intent";
+
+export interface MetaIntentCheckResult {
+  metaIntent: MetaIntent;
+  response: string;
+}
 
 const checkSchema = z.object({
   input: z.string().min(1).max(2000),
@@ -30,6 +36,14 @@ function webRateLimitKey(): string {
 export const checkInput = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => checkSchema.parse(data))
   .handler(async ({ data }) => {
+    const metaIntent = classifyMetaIntent(data.input);
+    if (metaIntent) {
+      return {
+        metaIntent,
+        response: getMetaIntentResponse(metaIntent, data.lang),
+      } satisfies MetaIntentCheckResult;
+    }
+
     return runCheck({
       input: data.input,
       type: data.type,

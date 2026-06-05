@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
 import { FancyShell } from "@/components/FancyButton";
 
 export type CheckResult = {
@@ -97,7 +98,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const { lang } = useLang();
   const s = LEVEL_STYLES[result.level];
   const Icon = s.icon;
-  const advice = ADVICE[result.level][lang];
+  const contextualAdvice = filterAdvice(result.level, result.reasons, lang);
+  const fallbackAdvice = ADVICE[result.level][lang].slice(
+    0,
+    result.level === "safe" || result.level === "unknown" ? 2 : 3,
+  );
+  const advice = contextualAdvice.length > 0 ? contextualAdvice : fallbackAdvice;
   const isHot = result.level === "high_risk" || result.level === "suspicious";
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;

@@ -35,8 +35,16 @@ import { sendMessage, escapeMarkdownV2, type InlineKeyboard } from "@/lib/telegr
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
-import { submitReport, checkReportRateLimit } from "@/lib/report.functions";
+import { submitReportCore, reportRateLimitKeyForTelegram } from "@/lib/report.functions";
 import type { Lang } from "@/lib/i18n";
+import {
+  REPORT_NO_VALUE_CALLBACK,
+  REPORT_RETRY_CALLBACK,
+  REPORT_SKIP_CALLBACK,
+  reportRetryKeyboard,
+  reportSkipKeyboard,
+  reportValueKeyboard,
+} from "@/lib/telegram/report-flow";
 
 // ── Limits (mirror reportSchema in report.functions.ts) ─────────────────────
 const VALUE_MAX = 500; // R6.6
@@ -45,9 +53,7 @@ const DESC_MAX = 5000; // R6.5
 const OPTIONAL_FIELD_MAX = 80; // scamType / city column bound (reportSchema)
 const AMOUNT_MAX = 10_000_000_000; // amountLostUzs bound (reportSchema)
 
-/** callback_data emitted by the «Skip» button on optional steps. Routed to
- *  `handleReportSkip` by task 8.5 / 9.1. */
-export const REPORT_SKIP_CALLBACK = "report_skip";
+export { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK, REPORT_SKIP_CALLBACK };
 
 // ---------------------------------------------------------------------------
 // Small send helpers
@@ -67,15 +73,58 @@ async function sendText(
   });
 }
 
-/** Inline keyboard with a single «Skip» button for the optional steps. */
-function skipKeyboard(lang: Lang): InlineKeyboard {
-  return [[{ text: bt("btn_skip", lang), callback_data: REPORT_SKIP_CALLBACK }]];
-}
-
 /** A textual skip: "-", "—" or an empty/whitespace-only message. */
 function isSkip(text: string): boolean {
   const trimmed = text.trim();
   return trimmed === "" || trimmed === "-" || trimmed === "—";
+}
+
+function isNoValueInput(text: string): boolean {
+  const normalized = text
+    .trim()
+    .toLowerCase()
+    .replace(/[.,!?;:()[\]{}"']/g, "")
+    .replace(/\s+/g, " ");
+
+  return [
+    "нет",
+    "нету",
+    "нет номера",
+    "нет ссылки",
+    "нет номера и ссылки",
+    "нет номера/ссылки",
+    "не знаю",
+    "неизвестно",
+    "без номера",
+    "без ссылки",
+    "no",
+    "none",
+    "unknown",
+    "no number",
+    "no link",
+    "yoq",
+    "yo'q",
+    "raqam yoq",
+    "raqam yo'q",
+    "havola yoq",
+    "havola yo'q",
+  ].includes(normalized);
+}
+
+function looksLikeReportIdentifier(value: string): boolean {
+  const trimmed = value.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (/^@[a-z0-9_]{3,32}$/i.test(trimmed)) return true;
+  if (/^(?=.*[_0-9])[a-z0-9_]{5,32}$/i.test(trimmed)) return true;
+  if (/(?:^|\b)(?:https?:\/\/)?(?:t\.me|telegram\.me)\/[a-z0-9_]{3,32}(?:\b|\/|\?)/i.test(lower)) {
+    return true;
+  }
+  if (/^(?:https?:\/\/|www\.)[^\s]+\.[a-z]{2,24}(?:[/?#].*)?$/i.test(lower)) return true;
+  if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+(?::\d{2,5})?(?:[/?#].*)?$/i.test(lower)) return true;
+
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +132,7 @@ function isSkip(text: string): boolean {
 // ---------------------------------------------------------------------------
 
 async function askValue(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_value", lang);
+  await sendText(ctx, "report_ask_value", lang, reportValueKeyboard(lang));
 }
 
 async function askDescription(ctx: HandlerCtx, lang: Lang): Promise<void> {
@@ -91,15 +140,15 @@ async function askDescription(ctx: HandlerCtx, lang: Lang): Promise<void> {
 }
 
 async function askScamType(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_scam_type", lang, skipKeyboard(lang));
+  await sendText(ctx, "report_ask_scam_type", lang, reportSkipKeyboard(lang));
 }
 
 async function askCity(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_city", lang, skipKeyboard(lang));
+  await sendText(ctx, "report_ask_city", lang, reportSkipKeyboard(lang));
 }
 
 async function askAmount(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_amount", lang, skipKeyboard(lang));
+  await sendText(ctx, "report_ask_amount", lang, reportSkipKeyboard(lang));
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +189,14 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
     await sendText(ctx, "report_value_too_long", lang);
     return;
   }
+  if (isNoValueInput(value)) {
+    await advanceWithoutIdentifier(ctx);
+    return;
+  }
+  if (!looksLikeReportIdentifier(value)) {
+    await sendText(ctx, "report_value_invalid", lang, reportValueKeyboard(lang));
+    return;
+  }
 
   const draft: ReportDraft = { ...ctx.session.scenarioData, value };
   await saveSession(ctx.userId, {
@@ -148,6 +205,18 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
     scenarioData: draft,
   });
   await askDescription(ctx, lang);
+}
+
+async function advanceWithoutIdentifier(ctx: HandlerCtx): Promise<void> {
+  const lang = ctx.session.lang;
+  const draft: ReportDraft = { ...ctx.session.scenarioData, noValue: true };
+  delete draft.value;
+  await saveSession(ctx.userId, {
+    scenario: "report_desc",
+    scenarioStep: 1,
+    scenarioData: draft,
+  });
+  await askDescription({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang);
 }
 
 async function stepDescription(text: string, ctx: HandlerCtx): Promise<void> {
@@ -225,53 +294,62 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
 
   // Guard: value + description are guaranteed present by the flow, but never
   // call submitReport with an invalid payload (it would throw on zod parse).
-  if (!draft.value || !draft.description) {
+  if ((!draft.value && !draft.noValue) || !draft.description) {
     await sendText(ctx, "report_error", lang);
     await resetScenario(ctx.userId);
     return;
   }
+  const reportValue = draft.noValue
+    ? draft.description.slice(0, VALUE_MAX)
+    : (draft.value as string);
+
+  async function keepDraftForRetry(): Promise<void> {
+    await saveSession(ctx.userId, {
+      scenario: "report_amount",
+      scenarioStep: 4,
+      scenarioData: draft,
+    });
+  }
 
   try {
-    // Rate-limit: 3 reports / 10 min per Telegram user.
-    const rl = checkReportRateLimit(ctx.userId);
-    if (!rl.ok) {
-      await sendMessage({
-        chatId: ctx.chatId,
-        text: escapeMarkdownV2(bt("rate_limited", lang, { seconds: rl.retryAfterSec })),
-      });
-      await resetScenario(ctx.userId);
-      return;
-    }
-
-    // submitReport is the existing server function (createServerFn). Calling it
-    // server-side runs its handler, which performs the moderated upsert into
-    // `entities` (moderation_status='new', R9.1) — we do NOT bypass it (R9.3).
-    const result = await submitReport({
-      data: {
-        value: draft.value,
+    const result = await submitReportCore(
+      {
+        value: reportValue,
+        type: draft.noValue ? "text" : undefined,
         description: draft.description,
         scamType: draft.scamType,
         city: draft.city,
         amountLostUzs: draft.amountLostUzs,
         lang,
       },
-    });
+      reportRateLimitKeyForTelegram(ctx.userId),
+    );
+
+    if (!result.ok && result.error === "rate_limited") {
+      await keepDraftForRetry();
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(bt("rate_limited", lang, { seconds: result.retryAfterSec ?? 60 })),
+        keyboard: reportRetryKeyboard(lang),
+      });
+      return;
+    }
 
     if (result.ok) {
       // R6.7 — confirm receipt + "public only after moderation".
       await sendText(ctx, "report_confirm", lang);
+      await resetScenario(ctx.userId);
     } else {
       // R6.8 — pipeline reported failure: friendly retry message.
-      await sendText(ctx, "report_error", lang);
+      await keepDraftForRetry();
+      await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
     }
   } catch (e) {
     // R6.8 — never crash; log without Sensitive_Data (R19.2).
     console.error("telegram submitReport failed", e instanceof Error ? e.message : "unknown");
-    await sendText(ctx, "report_error", lang);
+    await keepDraftForRetry();
+    await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
   }
-
-  // R15.5 — flow finished (success or failure): back to neutral state.
-  await resetScenario(ctx.userId);
 }
 
 // ---------------------------------------------------------------------------
@@ -327,4 +405,14 @@ export async function handleReportSkip(ctx: HandlerCtx): Promise<void> {
       // Skip pressed outside an optional step — ignore.
       break;
   }
+}
+
+export async function handleReportNoValue(ctx: HandlerCtx): Promise<void> {
+  if (ctx.session.scenario !== "report_value") return;
+  await advanceWithoutIdentifier(ctx);
+}
+
+export async function handleReportRetry(ctx: HandlerCtx): Promise<void> {
+  if (!ctx.session.scenario.startsWith("report_")) return;
+  await finalizeReport(ctx, { ...ctx.session.scenarioData });
 }

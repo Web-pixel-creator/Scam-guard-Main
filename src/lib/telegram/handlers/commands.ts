@@ -6,7 +6,8 @@
 // session language (`ctx.session.lang`, default "ru" — R1.4).
 //
 // Owned commands (fully implemented here):
-//   /start     → welcome + inline language buttons        (R1.1, R1.3*, R1.5, R20… n/a)
+//   /start     → main menu with quick-action buttons      (R1.1, R1.3*, R1.5, R20… n/a)
+//   /menu      → same main menu as /start
 //   /lang      → show language selection buttons           (R2.1, R2.5)
 //   /help      → command list                              (R3.1)
 //   /safety    → basic safety rules + scope reminder       (R3.2, R3.3)
@@ -40,6 +41,7 @@ import { bt } from "@/lib/telegram/bot-i18n";
 import { saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
+import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 
 /**
  * Language selection keyboard (R2.1). Mirrors the welcome keyboard built by
@@ -92,6 +94,7 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
   await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(bt("report_ask_value", ctx.session.lang)),
+    keyboard: reportValueKeyboard(ctx.session.lang),
   });
 }
 
@@ -120,7 +123,13 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
 
   switch (cmd.command) {
     case "/start": {
-      // Greeting + language buttons (R1.1, R1.5). Text is already escaped.
+      // Greeting + quick-action menu (R1.1, R1.5). Text is already escaped.
+      const { text, keyboard } = formatWelcome(lang);
+      await sendMessage({ chatId: ctx.chatId, text, keyboard });
+      return;
+    }
+
+    case "/menu": {
       const { text, keyboard } = formatWelcome(lang);
       await sendMessage({ chatId: ctx.chatId, text, keyboard });
       return;

@@ -38,7 +38,11 @@ export const t_dict: Dict = {
     en: "Takes a few seconds. We don’t store full numbers or codes.",
   },
   checking: { ru: "Анализирую…", uz: "Tahlil qilinmoqda…", en: "Analyzing…" },
-  report_btn: { ru: "Сообщить о мошеннике", uz: "Firibgarni xabar qilish", en: "Report a scammer" },
+  report_btn: {
+    ru: "Сообщить о случае",
+    uz: "Holat haqida xabar berish",
+    en: "Report an incident",
+  },
 
   risk_safe: { ru: "Безопасно", uz: "Xavfsiz", en: "Safe" },
   risk_unknown: { ru: "Недостаточно данных", uz: "Ma’lumot yetarli emas", en: "Not enough data" },

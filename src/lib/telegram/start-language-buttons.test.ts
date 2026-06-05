@@ -1,9 +1,8 @@
-// Test: /start command still sends inline keyboard with language selection buttons (ru/uz/en).
+// Test: /start command sends the compact main menu with quick-action buttons.
 //
-// Verifies that the onboarding flow (inline language buttons on /start) is
-// unaffected by command menu localization changes. The /start handler uses
-// `formatWelcome(lang)` which includes a first row of language buttons with
-// callback_data "lang:ru", "lang:uz", "lang:en".
+// System Telegram command menu is intentionally simple; the richer menu lives
+// inside the chat as inline buttons. The language picker is opened from the
+// dedicated "show_lang" button, then shows ru/uz/en choices.
 //
 // _Requirements: 1.1_
 
@@ -13,42 +12,29 @@ import type { Lang } from "@/lib/i18n";
 
 const LANGS: Lang[] = ["ru", "uz", "en"];
 
-describe("/start inline language buttons", () => {
-  it.each(LANGS)(
-    "formatWelcome(%s) includes an inline keyboard row with ru/uz/en language buttons",
-    (lang) => {
-      const { keyboard } = formatWelcome(lang);
-
-      // The keyboard must exist and have at least one row
-      expect(keyboard).toBeDefined();
-      expect(keyboard.length).toBeGreaterThanOrEqual(1);
-
-      // Find the row containing language buttons (callback_data starts with "lang:")
-      const langRow = keyboard.find((row) =>
-        row.some((btn) => btn.callback_data.startsWith("lang:")),
-      );
-      expect(langRow).toBeDefined();
-
-      // Extract callback_data values from the language row
-      const callbackDataValues = langRow!.map((btn) => btn.callback_data);
-
-      // Must contain all three language buttons
-      expect(callbackDataValues).toContain(CB.lang("ru"));
-      expect(callbackDataValues).toContain(CB.lang("uz"));
-      expect(callbackDataValues).toContain(CB.lang("en"));
-    },
-  );
-
-  it.each(LANGS)("formatWelcome(%s) language buttons have non-empty text labels", (lang) => {
+describe("/start main menu inline buttons", () => {
+  it.each(LANGS)("formatWelcome(%s) includes the main six quick actions", (lang) => {
     const { keyboard } = formatWelcome(lang);
 
-    const langRow = keyboard.find((row) =>
-      row.some((btn) => btn.callback_data.startsWith("lang:")),
-    );
-    expect(langRow).toBeDefined();
+    expect(keyboard).toBeDefined();
+    expect(keyboard).toHaveLength(3);
+    expect(keyboard.every((row) => row.length === 2)).toBe(true);
 
-    // Every button in the language row must have non-empty text
-    for (const btn of langRow!) {
+    const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
+    expect(callbackDataValues).toEqual([
+      CB.checkAnother,
+      CB.emergency,
+      CB.report,
+      CB.safety,
+      CB.showLang,
+      CB.howItWorks,
+    ]);
+  });
+
+  it.each(LANGS)("formatWelcome(%s) quick action buttons have non-empty labels", (lang) => {
+    const { keyboard } = formatWelcome(lang);
+
+    for (const btn of keyboard.flat()) {
       expect(btn.text.trim().length).toBeGreaterThan(0);
     }
   });
@@ -60,17 +46,13 @@ describe("/start inline language buttons", () => {
     }
   });
 
-  it("command menu localization does not affect /start onboarding keyboard structure", () => {
+  it("command menu localization does not affect /start main-menu structure", () => {
     // The /start handler delegates to formatWelcome, which is a pure function.
-    // This test ensures the keyboard structure (language row) remains stable
+    // This test ensures the keyboard structure remains stable
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-
-      // First row should be the language selection row
-      const firstRow = keyboard[0];
-      expect(firstRow.length).toBe(3); // exactly 3 language buttons
-      expect(firstRow.map((btn) => btn.callback_data)).toEqual(["lang:ru", "lang:uz", "lang:en"]);
+      expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2]);
     }
   });
 });

@@ -1,4 +1,4 @@
-// Bot-specific trilingual strings for the Telegram bot (Ishonch Guard).
+﻿// Bot-specific trilingual strings for the Telegram bot (Ishonch Guard).
 //
 // Form mirrors `t_dict` in `src/lib/i18n.ts`: every entry MUST provide all three
 // languages (ru / uz / en) — required by CODING_RULES (i18n). Uzbek is Latin script.
@@ -19,9 +19,9 @@ type BotDict = Record<string, { ru: string; uz: string; en: string }>;
 export const bot_dict: BotDict = {
   // ── /start: greeting + capabilities (R1.1, R1.5) ──────────────────────────
   welcome: {
-    ru: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nПомогаю распознать мошенников в Узбекистане.\n\n📌 *Что я умею:*\n• Проверить номер, ссылку или скриншот\n• Оценить подозрительное сообщение\n• Дать срочные шаги при обмане\n\n👇 *Отправьте что-нибудь для проверки* или выберите язык:",
-    uz: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nO'zbekistonda firibgarlarni tanib olishga yordam beraman.\n\n📌 *Nima qila olaman:*\n• Raqam, havola yoki skrinshotni tekshirish\n• Shubhali xabarni baholash\n• Aldov holatida shoshilinch qadamlar\n\n👇 *Tekshirish uchun biror narsa yuboring* yoki tilni tanlang:",
-    en: "🛡 *Ishonch Guard*\n━━━━━━━━━━━━━━━━━━━━\n\nI help you spot scammers in Uzbekistan.\n\n📌 *What I can do:*\n• Check a number, link or screenshot\n• Assess a suspicious message\n• Give emergency steps if scammed\n\n👇 *Send something to check* or choose a language:",
+    ru: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nПроверю номер, ссылку, скриншот или сообщение и подскажу безопасный следующий шаг.\n\nВыберите действие:",
+    uz: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nRaqam, havola, skrinshot yoki xabarni tekshiraman va xavfsiz keyingi qadamni aytaman.\n\nHarakatni tanlang:",
+    en: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nI can check a number, link, screenshot, or message and suggest a safe next step.\n\nChoose an action:",
   },
 
   // Prompt shown when asking the user to pick/switch a language (R2.1) ────────
@@ -59,9 +59,41 @@ export const bot_dict: BotDict = {
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 *Команды бота*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Начать работу\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о мошеннике\n🆘 /panic — Экстренная помощь\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 *Bot buyruqlari*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Boshlash\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Firibgar haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 *Bot Commands*\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Get started\n🔍 /check — Check a number or link\n📢 /report — Report a scammer\n🆘 /panic — Emergency help\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+  },
+
+  // ── Meta-intent answers: questions TO the bot, not scam content ───────────
+  meta_how_to_use: {
+    ru: "Можно просто отправить мне то, что вызывает сомнение: номер телефона, Telegram-username, ссылку, текст сообщения или скриншот. Если это QR-код, лучше пришлите ссылку, которая открывается после сканирования, или опишите, что просят сделать.\n\nЯ отвечу уровнем риска и короткими шагами. Команды: /check, /report, /panic, /safety.",
+    uz: "Shubhali narsani shunchaki yuboring: telefon raqami, Telegram-username, havola, xabar matni yoki skrinshot. Agar bu QR-kod bo'lsa, skanerdan keyin ochiladigan havolani yuboring yoki sizdan nima so'ralganini yozing.\n\nMen xavf darajasi va qisqa qadamlar bilan javob beraman. Buyruqlar: /check, /report, /panic, /safety.",
+    en: "Just send what feels suspicious: a phone number, Telegram username, link, message text, or screenshot. If it is a QR code, it is better to send the link it opens or describe what you are asked to do.\n\nI will reply with a risk level and short next steps. Commands: /check, /report, /panic, /safety.",
+  },
+  meta_what_can_you_do: {
+    ru: "Я помогаю проверить подозрительные номера, Telegram-аккаунты, ссылки, SMS, скриншоты и описания ситуаций. Могу подсказать срочные шаги, если вы уже отправили код, установили приложение или перевели деньги.\n\nЯ не читаю ваши чаты сам и не называю людей мошенниками без признаков — анализирую только то, что вы прислали.",
+    uz: "Men shubhali raqamlar, Telegram akkauntlar, havolalar, SMS, skrinshotlar va vaziyat tavsiflarini tekshirishga yordam beraman. Agar kod yuborgan, ilova o'rnatgan yoki pul o'tkazgan bo'lsangiz, shoshilinch qadamlarni aytaman.\n\nMen chatlaringizni o'zim o'qimayman va asossiz hech kimni firibgar demayman — faqat siz yuborgan narsani tahlil qilaman.",
+    en: "I help check suspicious numbers, Telegram accounts, links, SMS messages, screenshots, and situation descriptions. I can also give urgent steps if you already sent a code, installed an app, or transferred money.\n\nI do not read your chats by myself, and I do not call people scammers without signals — I only analyze what you send.",
+  },
+  meta_how_do_you_check: {
+    ru: "Я ищу конкретные признаки риска: просьбу назвать SMS-код, PIN, CVV или пароль; установить APK; перейти по подозрительной ссылке; перевести деньги; давление и срочность; имитацию банка или госоргана.\n\nЕсли таких признаков нет, я пишу «недостаточно данных». Даже официальный номер на экране может быть подменён, поэтому при сомнении лучше перезвонить самому.",
+    uz: "Men aniq xavf belgilarini qidiraman: SMS-kod, PIN, CVV yoki parol so'rash; APK o'rnatish; shubhali havolaga o'tish; pul o'tkazish; bosim va shoshiltirish; bank yoki davlat tashkiloti nomidan yozish.\n\nBunday belgilar bo'lmasa, «ma'lumot yetarli emas» deb javob beraman. Ekrandagi rasmiy raqam ham soxtalashtirilishi mumkin, shuning uchun shubhada o'zingiz qayta qo'ng'iroq qiling.",
+    en: "I look for concrete risk signs: asking for an SMS code, PIN, CVV, or password; installing an APK; opening a suspicious link; transferring money; pressure and urgency; impersonating a bank or government agency.\n\nIf those signs are missing, I say “not enough data.” Even an official-looking caller ID can be spoofed, so when in doubt, call back yourself.",
+  },
+  meta_why_failed: {
+    ru: "Иногда изображение не удаётся прочитать надёжно: текст размытый, мелкий, закрыт бликами, QR-код слишком маленький или в кадре много лишнего. Я лучше скажу честно, чем буду выдумывать угрозу.\n\nЧто поможет: отправьте текст из SMS/чата вручную, ссылку из QR или коротко напишите, что вас просят сделать.",
+    uz: "Ba'zan rasmni ishonchli o'qib bo'lmaydi: matn xira, juda kichik, yorug'lik tushgan, QR-kod kichkina yoki kadrda ortiqcha narsa ko'p. Men xavfni o'ylab topgandan ko'ra, buni ochiq aytganim yaxshiroq.\n\nYordam beradigan narsa: SMS/chat matnini qo'lda yuboring, QR havolasini kiriting yoki sizdan nima so'ralganini qisqa yozing.",
+    en: "Sometimes an image cannot be read reliably: the text is blurry, tiny, covered by glare, the QR is too small, or there is too much extra content in the frame. I would rather say that honestly than invent a threat.\n\nWhat helps: paste the SMS/chat text, send the QR link, or briefly write what you are being asked to do.",
+  },
+  meta_explain_risk: {
+    ru: "Уровни риска простые: «безопасно» — опасных признаков не найдено; «недостаточно данных» — мало контекста; «требуется осторожность» — есть подозрительные признаки; «высокий риск» — есть сильные признаки обмана.\n\nЭто подсказка, а не юридический приговор. Если просят код, пароль, APK или деньги — остановитесь и проверьте через официальный канал.",
+    uz: "Xavf darajalari oddiy: «xavfsiz» — xavfli belgi topilmadi; «ma'lumot yetarli emas» — kontekst kam; «ehtiyot bo'ling» — shubhali belgilar bor; «yuqori xavf» — aldov belgilari kuchli.\n\nBu maslahat, yuridik hukm emas. Agar kod, parol, APK yoki pul so'rashsa — to'xtang va rasmiy kanal orqali tekshiring.",
+    en: "Risk levels are simple: “safe” means no dangerous signs found; “not enough data” means too little context; “be cautious” means suspicious signs exist; “high risk” means strong fraud signs.\n\nThis is guidance, not a legal verdict. If someone asks for a code, password, APK, or money, stop and verify through an official channel.",
+  },
+  meta_help: {
+    ru: "Я рядом. Отправьте номер, username, ссылку, текст подозрительного сообщения или скриншот — я проверю. Если вы уже сообщили код, установили приложение или перевели деньги, нажмите /panic.\n\nПолезные команды: /check — проверка, /report — сообщить о случае, /safety — правила безопасности, /lang — язык.",
+    uz: "Men yordam beraman. Raqam, username, havola, shubhali xabar matni yoki skrinshot yuboring — tekshiraman. Agar kod yuborgan, ilova o'rnatgan yoki pul o'tkazgan bo'lsangiz, /panic ni bosing.\n\nFoydali buyruqlar: /check — tekshirish, /report — holat haqida xabar berish, /safety — xavfsizlik qoidalari, /lang — til.",
+    en: "I am here to help. Send a number, username, link, suspicious message text, or screenshot — I will check it. If you already sent a code, installed an app, or transferred money, use /panic.\n\nUseful commands: /check — check, /report — report a case, /safety — safety rules, /lang — language.",
   },
 
   // ── /safety: basic safety rules + scope reminder (R3.2, R3.3) ─────────────
@@ -80,9 +112,9 @@ export const bot_dict: BotDict = {
 
   // ── /report scenario step prompts (R6.1–R6.7) ────────────────────────────
   report_ask_value: {
-    ru: "На кого жалуемся? Пришлите значение: номер телефона, Telegram-username или ссылку.",
-    uz: "Kim haqida shikoyat qilamiz? Qiymatni yuboring: telefon raqami, Telegram-username yoki havola.",
-    en: "Who are you reporting? Send the value: a phone number, Telegram username or link.",
+    ru: "На кого жалуемся? Пришлите номер телефона, Telegram-username или ссылку. Если их нет, нажмите «Нет номера/ссылки».",
+    uz: "Kim haqida shikoyat qilamiz? Telefon raqami, Telegram-username yoki havolani yuboring. Agar ular bo'lmasa, «Raqam/havola yo'q» tugmasini bosing.",
+    en: "Who are you reporting? Send a phone number, Telegram username, or link. If you don't have one, tap “No number/link”.",
   },
   report_ask_description: {
     ru: "Коротко опишите ситуацию: что произошло и что просили сделать.",
@@ -115,6 +147,11 @@ export const bot_dict: BotDict = {
     ru: "Значение слишком длинное (максимум 500 символов). Пришлите номер, username или ссылку покороче.",
     uz: "Qiymat juda uzun (maksimum 500 belgi). Qisqaroq raqam, username yoki havola yuboring.",
     en: "The value is too long (max 500 characters). Send a shorter number, username or link.",
+  },
+  report_value_invalid: {
+    ru: "Здесь нужен номер телефона, Telegram-username или ссылка. Если их нет, нажмите «Нет номера/ссылки» — тогда я приму жалобу по описанию ситуации.",
+    uz: "Bu yerda telefon raqami, Telegram-username yoki havola kerak. Agar ular bo'lmasa, «Raqam/havola yo'q» tugmasini bosing — shunda holat tavsifi bo'yicha qabul qilaman.",
+    en: "This step needs a phone number, Telegram username, or link. If you don't have one, tap “No number/link” and I will accept the report from the situation description.",
   },
   report_description_too_short: {
     ru: "Описание слишком короткое (нужно минимум 5 символов). Опишите ситуацию чуть подробнее.",
@@ -160,9 +197,9 @@ export const bot_dict: BotDict = {
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
   ocr_failed: {
-    ru: "Не удалось распознать текст на изображении. Пришлите содержимое текстом, пожалуйста.",
-    uz: "Rasmdagi matnni aniqlab bo‘lmadi. Iltimos, ma’lumotni matn ko‘rinishida yuboring.",
-    en: "Couldn’t read the text in the image. Please send the content as text instead.",
+    ru: "Я вижу, что это изображение, но не смог надёжно прочитать текст или QR. Пришлите текст из SMS/чата вручную, ссылку под QR или коротко опишите, что просят сделать.\n\nЕсли на картинке QR-код: открывайте его только когда уверены в источнике. Не вводите SMS-код, PIN, CVV, пароль или данные карты после перехода по QR.",
+    uz: "Bu rasm ekanini ko‘ryapman, lekin matn yoki QR-kodni ishonchli o‘qiy olmadim. SMS/chat matnini qo‘lda yuboring, QR ostidagi havolani kiriting yoki sizdan nima so‘rashganini qisqacha yozing.\n\nAgar rasmda QR-kod bo‘lsa: manbaga ishonchingiz komil bo‘lgandagina oching. QR orqali o‘tgandan keyin SMS-kod, PIN, CVV, parol yoki karta ma’lumotlarini kiritmang.",
+    en: "I can see this is an image, but I couldn’t reliably read the text or QR. Please paste the SMS/chat text, send the link under the QR, or briefly describe what you are asked to do.\n\nIf the image contains a QR code: open it only when you trust the source. Do not enter an SMS code, PIN, CVV, password, or card details after following a QR.",
   },
   multiple_images: {
     ru: "За один раз я обрабатываю одно изображение. Проверяю первое из присланных.",
@@ -187,9 +224,9 @@ export const bot_dict: BotDict = {
 
   // ── Empty / unsupported input (R16.1) ─────────────────────────────────────
   unsupported_input: {
-    ru: "Я не смог обработать это сообщение. Пришлите номер телефона, Telegram-username, ссылку, текст сообщения или скриншот. Команды — /help.",
-    uz: "Bu xabarni qayta ishlay olmadim. Telefon raqami, Telegram-username, havola, xabar matni yoki skrinshot yuboring. Buyruqlar — /help.",
-    en: "I couldn’t handle this message. Send a phone number, Telegram username, link, message text or screenshot. Commands — /help.",
+    ru: "Пока не умею анализировать этот тип сообщения. Пришлите номер телефона, Telegram-username, ссылку, текст сообщения или изображение как фото/скриншот. Если проверяете QR — лучше отправьте ссылку, которая под ним открывается. Команды — /help.",
+    uz: "Bu turdagi xabarni hozircha tahlil qila olmayman. Telefon raqami, Telegram-username, havola, xabar matni yoki rasm/skrinshot yuboring. QR tekshirayotgan bo‘lsangiz, uning ochadigan havolasini yuborgan yaxshi. Buyruqlar — /help.",
+    en: "I can’t analyze this message type yet. Send a phone number, Telegram username, link, message text, or an image as a photo/screenshot. If you are checking a QR, it is better to send the link it opens. Commands — /help.",
   },
 
   // ── Out-of-scope content: voice/audio/video (R22.3) ───────────────────────
@@ -227,19 +264,29 @@ export const bot_dict: BotDict = {
     en: "📢 Report",
   },
   btn_check_another: {
-    ru: "🔄 Проверить ещё",
-    uz: "🔄 Yana tekshirish",
-    en: "🔄 Check another",
+    ru: "🔁 Проверить ещё",
+    uz: "🔁 Yana tekshirish",
+    en: "🔁 Check another",
   },
   btn_emergency: {
-    ru: "🆘 Я уже отправил код/деньги",
-    uz: "Men kod/pul yuborib qo‘ydim",
-    en: "🆘 I already sent a code/money",
+    ru: "🆘 Что делать срочно",
+    uz: "🆘 Shoshilinch qadamlar",
+    en: "🆘 Emergency steps",
   },
   btn_skip: {
     ru: "⏭ Пропустить",
     uz: "O‘tkazib yuborish",
     en: "⏭ Skip",
+  },
+  btn_report_no_value: {
+    ru: "Нет номера/ссылки",
+    uz: "Raqam/havola yo'q",
+    en: "No number/link",
+  },
+  btn_report_retry: {
+    ru: "Повторить отправку",
+    uz: "Qayta yuborish",
+    en: "Retry submit",
   },
   // Language buttons keep the language’s own name in every locale (like LANGS in i18n.ts).
   btn_lang_ru: {
@@ -282,14 +329,29 @@ export const bot_dict: BotDict = {
     en: "Check",
   },
   btn_quick_report: {
-    ru: "Пожаловаться",
-    uz: "Shikoyat",
+    ru: "Сообщить",
+    uz: "Xabar berish",
     en: "Report",
   },
   btn_quick_panic: {
     ru: "Экстренная помощь",
     uz: "Shoshilinch yordam",
     en: "Emergency",
+  },
+  btn_quick_safety: {
+    ru: "Правила",
+    uz: "Qoidalar",
+    en: "Safety",
+  },
+  btn_quick_lang: {
+    ru: "Язык",
+    uz: "Til",
+    en: "Language",
+  },
+  btn_quick_how: {
+    ru: "Как работает",
+    uz: "Qanday ishlaydi",
+    en: "How it works",
   },
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
@@ -341,9 +403,9 @@ export const bot_dict: BotDict = {
 
   // ── "Why" explanation button (Sprint 3.5) ─────────────────────────────────
   btn_why: {
-    ru: "\u2753 \u041A\u0430\u043A \u044F \u0440\u0435\u0448\u0430\u044E?",
-    uz: "\u2753 Qanday qaror qilaman?",
-    en: "\u2753 How do I decide?",
+    ru: "❓ Почему так?",
+    uz: "❓ Nima uchun?",
+    en: "❓ Why?",
   },
   why_explanation: {
     ru: "🧠 *Как я проверяю*\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком в Telegram или звонят с неизвестного номера\n5\uFE0F\u20E3 Просят перевести деньги на «безопасный счёт» или по ссылке\n\nЕсли таких признаков нет — я пишу «недостаточно данных».\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
@@ -368,6 +430,82 @@ export const bot_dict: BotDict = {
     ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
     uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
     en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the source of the link.",
+  },
+
+  // ── Verdict lines (Result Message UX v2) ──────────────────────────────────
+  verdict_safe: {
+    ru: "⚪ Явных признаков скама не найдено",
+    uz: "⚪ Aniq firibgarlik belgilari topilmadi",
+    en: "⚪ No obvious scam signs found",
+  },
+  verdict_unknown: {
+    ru: "🟡 Недостаточно данных для точной оценки",
+    uz: "🟡 Aniq baho berish uchun ma'lumot yetarli emas",
+    en: "🟡 Not enough data for a precise assessment",
+  },
+  verdict_suspicious: {
+    ru: "⚠️ Есть подозрительные признаки",
+    uz: "⚠️ Shubhali belgilar mavjud",
+    en: "⚠️ Suspicious signs found",
+  },
+  verdict_high_risk: {
+    ru: "🚨 Высокий риск мошенничества",
+    uz: "🚨 Firibgarlik xavfi yuqori",
+    en: "🚨 High fraud risk",
+  },
+
+  // ── Context-specific advice (Result Message UX v2) ────────────────────────
+  advice_crypto_topic_only: {
+    ru: "Я вижу тему крипто/инвестиций, но без ссылки или номера точный вывод невозможен.",
+    uz: "Kripto/investitsiya mavzusini ko'ryapman, lekin havola yoki raqamsiz aniq xulosa chiqarib bo'lmaydi.",
+    en: "I see a crypto/investment topic, but without a link or number a precise conclusion isn't possible.",
+  },
+  advice_send_more_context: {
+    ru: "Пришлите ссылку, номер телефона или текст сообщения — тогда смогу дать точную оценку.",
+    uz: "Havola, telefon raqami yoki xabar matnini yuboring — shunda aniq baho bera olaman.",
+    en: "Send a link, phone number, or message text — then I can give a precise assessment.",
+  },
+  prompt_more_context: {
+    ru: "Для точной оценки нужно больше данных. Пришлите ссылку, номер или полный текст сообщения.",
+    uz: "Aniq baho berish uchun ko'proq ma'lumot kerak. Havola, raqam yoki to'liq xabar matnini yuboring.",
+    en: "I need more data for a precise assessment. Send a link, number, or the full message text.",
+  },
+
+  // ── Section titles (Result Message UX v2) ─────────────────────────────────
+  section_brief: {
+    ru: "Кратко",
+    uz: "Qisqacha",
+    en: "Brief",
+  },
+  section_reasons: {
+    ru: "Причины",
+    uz: "Sabablar",
+    en: "Reasons",
+  },
+  section_noticed: {
+    ru: "Что заметил",
+    uz: "Nimani payqadim",
+    en: "What I noticed",
+  },
+  section_action_now: {
+    ru: "Что сделать",
+    uz: "Nima qilish",
+    en: "What to do",
+  },
+  section_safe_steps: {
+    ru: "Что делать",
+    uz: "Nima qilish",
+    en: "What to do",
+  },
+  section_why_danger: {
+    ru: "Почему опасно",
+    uz: "Xavf sababi",
+    en: "Why dangerous",
+  },
+  section_where_report: {
+    ru: "Куда обратиться",
+    uz: "Kimga murojaat",
+    en: "Where to report",
   },
 };
 

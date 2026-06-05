@@ -31,6 +31,9 @@ import {
 import { hashIdentifier } from "./hash";
 import { checkRateLimit } from "./rate-limit";
 import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
+import { matchBrandInUrl, matchBrandInText, type BrandEvidence } from "./brand-matcher";
+import { normalizeDomain } from "./domain-normalizer";
+import { formatBrandImpersonationExplanations } from "./brand-formatter";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -54,6 +57,8 @@ export interface RunCheckResult {
   knownReports: number; // >0 только для Confirmed_Entity
   /** Verified official contact match (D-011). null if not matched. */
   verifiedContact: { orgName: string; orgType: string; source: string } | null;
+  /** Brand impersonation evidence objects. Empty array if no brand impersonation detected. */
+  brandEvidence: BrandEvidence[];
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -99,6 +104,36 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     evaluateUrl(normalized).forEach((c) => codes.add(c));
   if (detected === "apk") codes.add("apk_download_link");
 
+  // ── Brand Impersonation Detection ────────────────────────────────────────
+  // Runs after evaluateUrl/evaluateText. Wrapped in try/catch for graceful
+  // degradation: if brand detection fails, existing rules still work (R9.7).
+  let brandEvidence: BrandEvidence[] = [];
+  try {
+    if (detected === "url" || detected === "apk") {
+      // URL input: normalize domain and check for brand impersonation in URL
+      const normalizedDomain = normalizeDomain(normalized);
+      const urlResult = matchBrandInUrl(normalizedDomain, normalizedDomain.hostname);
+      if (urlResult.detected) {
+        codes.add("brand_impersonation");
+        brandEvidence = urlResult.evidence;
+      }
+    }
+
+    if (detected === "text" || detected === "unknown") {
+      // Text input: check for brand mentions with suspicious context
+      const reasonList = [...codes] as ReasonCode[];
+      const textResult = matchBrandInText(safeInput, [], reasonList);
+      if (textResult.detected) {
+        codes.add("brand_impersonation");
+        brandEvidence = [...brandEvidence, ...textResult.evidence];
+      }
+    }
+  } catch (e) {
+    // Graceful degradation: log and continue without brand_impersonation.
+    // Existing rules (weird_domain, hosted_app_platform, etc.) still provide protection.
+    console.error("brand detection failed", e instanceof Error ? e.message : "unknown");
+  }
+
   let knownReports = 0;
   if (["phone", "telegram", "url", "apk"].includes(detected)) {
     const hash = await hashIdentifier(normalized);
@@ -134,6 +169,25 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         redacted: display,
         reasons: reasonList,
       });
+
+  // ── Brand impersonation explanation (formatter integration) ─────────────
+  // When brand impersonation is detected, append formatted brand explanations
+  // to the AI explanation (or use them as the explanation if AI is unavailable).
+  let finalExplanation = explanation;
+  if (brandEvidence.length > 0) {
+    try {
+      const brandExplanations = formatBrandImpersonationExplanations(brandEvidence, lang);
+      const brandText = brandExplanations.join("\n");
+      if (finalExplanation) {
+        finalExplanation = finalExplanation + "\n\n" + brandText;
+      } else {
+        finalExplanation = brandText;
+      }
+    } catch (e) {
+      // If formatter fails, keep the existing explanation (or null)
+      console.error("brand formatter failed", e instanceof Error ? e.message : "unknown");
+    }
+  }
 
   // ── Verified contact lookup (D-011) ──────────────────────────────────────
   // Check if the input matches a known official contact. Works for:
@@ -182,7 +236,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       risk_level: finalLevel,
       risk_score: score,
       reason_codes: reasonList,
-      ai_explanation: explanation,
+      ai_explanation: finalExplanation,
       language: lang,
     });
   } catch (e) {
@@ -195,9 +249,10 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     level: finalLevel,
     score,
     reasons: reasonList,
-    explanation,
+    explanation: finalExplanation,
     knownReports,
     verifiedContact,
+    brandEvidence,
   };
 }
 
@@ -383,8 +438,8 @@ async function aiExplain(opts: {
   reasons: string[];
 }): Promise<string | null> {
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
-  const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, 2-4 short sentences. Explain WHY the input may be risky based on the listed reason codes. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
-  const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the explanation.`;
+  const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
+  const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the user-facing explanation.`;
   return chatCompletion(
     [
       { role: "system", content: sys },
@@ -401,7 +456,7 @@ async function aiExplain(opts: {
  * We additionally run `redactText` as a defence-in-depth step.
  */
 async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null> {
-  const sys = `You are an OCR + privacy filter. Extract ALL readable text from the image. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add commentary or translation — return only the cleaned, redacted text exactly as it appears. Reply language: ${lang}.`;
+  const sys = `You are an OCR + privacy filter for an anti-scam bot. Extract ALL readable text from the image, including sender names, visible domains, labels near QR codes, and short context like "SMS screenshot", "restaurant menu", or "QR code visible" when it is obvious from the image. If a QR URL is visibly printed next to the QR, include that URL; do not guess or claim to decode a QR that is not visibly readable. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add advice, verdicts, translation, or analysis — return only the cleaned, redacted text/context. Reply language: ${lang}.`;
   const text = await chatCompletion(
     [
       { role: "system", content: sys },

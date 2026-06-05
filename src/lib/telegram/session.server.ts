@@ -20,6 +20,7 @@ export type Scenario =
 
 export interface ReportDraft {
   value?: string;
+  noValue?: boolean;
   description?: string;
   scamType?: string;
   city?: string;

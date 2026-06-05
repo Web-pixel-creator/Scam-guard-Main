@@ -276,9 +276,9 @@ function EmergencyPage() {
             <FancyShell>
               {
                 {
-                  ru: "Сообщить о мошеннике",
-                  uz: "Firibgarni xabar qilish",
-                  en: "Report a scammer",
+                  ru: "Сообщить о случае",
+                  uz: "Holat haqida xabar berish",
+                  en: "Report an incident",
                 }[lang]
               }
             </FancyShell>

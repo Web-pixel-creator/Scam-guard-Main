@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
-import { checkInput, ocrExtract } from "@/lib/check.functions";
+import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -23,6 +23,16 @@ const MIN_INPUT_CHARS = 3;
 const MAX_INPUT_CHARS = 2000;
 
 type Status = "idle" | "loading" | "success" | "error";
+
+function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "metaIntent" in value &&
+    "response" in value &&
+    typeof (value as { response?: unknown }).response === "string"
+  );
+}
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -62,6 +72,7 @@ export function CheckInput({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CheckResult | null>(null);
+  const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +88,7 @@ export function CheckInput({
     ? "error"
     : loading || ocrLoading
       ? "loading"
-      : result
+      : result || metaResponse
         ? "success"
         : "idle";
 
@@ -142,6 +153,7 @@ export function CheckInput({
     setLoading(true);
     setError(null);
     setResult(null);
+    setMetaResponse(null);
     try {
       const input = ocrPreviewOpen
         ? value.trim()
@@ -149,6 +161,12 @@ export function CheckInput({
           : ocrText.trim()
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
+      if (isMetaIntentResult(r)) {
+        setMetaResponse(r.response);
+        onResult?.(null);
+        if (ocrPreviewOpen) clearImage();
+        return;
+      }
       setResult(r as CheckResult);
       onResult?.(r as CheckResult);
       if (ocrPreviewOpen) clearImage();
@@ -195,6 +213,7 @@ export function CheckInput({
               setResult(null);
               onResult?.(null);
             }
+            if (metaResponse) setMetaResponse(null);
           }}
           onBlur={() => setTouched(true)}
           placeholder={t("input_placeholder", lang)}
@@ -380,6 +399,18 @@ export function CheckInput({
         <div className="mt-3 flex items-start gap-2 rounded-[6px] border border-[#DC2626]/30 bg-[#DC2626]/5 px-3 py-2.5">
           <AlertTriangle className="h-3.5 w-3.5 text-[#B91C1C] mt-0.5 shrink-0" />
           <p className="text-[12px] text-[#991B1B] apex-mono leading-relaxed">{error}</p>
+        </div>
+      )}
+      {metaResponse && (
+        <div className="mt-6 rounded-[6px] border border-[#E2E0D8] bg-white p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-[#FED7AA] bg-[#FFF7ED] text-[#C2410C]">
+              <Info className="h-4 w-4" strokeWidth={2} />
+            </span>
+            <p className="text-[14.5px] leading-[1.7] text-[#3F3F46] whitespace-pre-line">
+              {metaResponse}
+            </p>
+          </div>
         </div>
       )}
       {result && !hideInlineResult && (

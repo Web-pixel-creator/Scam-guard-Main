@@ -1,0 +1,196 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatCheckResult — UX v2 snapshots > lang=en > high_risk level 1`] = `
+"🔴 *High risk*
+━━━━━━━━━━━━━━━━━━━━
+
+🚨 High fraud risk
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🚨 *What to do*
+• Do not share your SMS code or PIN
+• Calmly hang up — pressure is a sign of fraud
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Why dangerous*
+• Asks for an SMS confirmation code
+• Uses urgency pressure
+• Threatens to block your account / card
+Сообщение содержит типичные признаки мошенничества\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🧾 *Where to report*
+• Save chat screenshots
+• File a report: Cyber Police — 102
+• Block the contact"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=en > safe level 1`] = `
+"🟢 *Safe*
+━━━━━━━━━━━━━━━━━━━━
+
+⚪ No obvious scam signs found
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Brief*
+Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *What I noticed*
+• Valid Uzbek phone"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=en > suspicious level 1`] = `
+"🟠 *Be cautious*
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ Suspicious signs found
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+⚠️ *Reasons*
+• Shortened link
+• Suspicious domain
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *What to do*
+• Do not click the link or install the APK"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=en > unknown level 1`] = `
+"⚪️ *Not enough data*
+━━━━━━━━━━━━━━━━━━━━
+
+🟡 Not enough data for a precise assessment
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *What I noticed*
+• Unknown sender
+• Fake bank in Telegram
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *What to do*
+• I see a crypto/investment topic, but without a link or number a precise conclusion isn't possible\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+I need more data for a precise assessment\\. Send a link, number, or the full message text\\."
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=ru > high_risk level 1`] = `
+"🔴 *Высокий риск*
+━━━━━━━━━━━━━━━━━━━━
+
+🚨 Высокий риск мошенничества
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🚨 *Что сделать*
+• Не сообщайте SMS\\-код или PIN
+• Спокойно положите трубку — давление это признак обмана
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Почему опасно*
+• Просят SMS\\-код подтверждения
+• Создают ощущение срочности
+• Угрожают блокировкой счёта / карты
+Сообщение содержит типичные признаки мошенничества\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🧾 *Куда обратиться*
+• Сохраните скриншоты переписки
+• Подайте заявление: Cyber Police — 102
+• Заблокируйте контакт"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=ru > safe level 1`] = `
+"🟢 *Безопасно*
+━━━━━━━━━━━━━━━━━━━━
+
+⚪ Явных признаков скама не найдено
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Кратко*
+Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Что заметил*
+• Корректный узбекский номер"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=ru > suspicious level 1`] = `
+"🟠 *Требуется осторожность*
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ Есть подозрительные признаки
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+⚠️ *Причины*
+• Сокращённая ссылка
+• Подозрительный домен
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Что делать*
+• Не переходите по ссылке и не устанавливайте APK"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=ru > unknown level 1`] = `
+"⚪️ *Недостаточно данных*
+━━━━━━━━━━━━━━━━━━━━
+
+🟡 Недостаточно данных для точной оценки
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Что заметил*
+• Отправитель неизвестен
+• Фейковый банк в Telegram
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Что делать*
+• Я вижу тему крипто/инвестиций, но без ссылки или номера точный вывод невозможен\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+Для точной оценки нужно больше данных\\. Пришлите ссылку, номер или полный текст сообщения\\."
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=uz > high_risk level 1`] = `
+"🔴 *Yuqori xavf*
+━━━━━━━━━━━━━━━━━━━━
+
+🚨 Firibgarlik xavfi yuqori
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🚨 *Nima qilish*
+• SMS\\-kod yoki PIN\\-ni aytmang
+• Xotirjam go'shakni qo'ying — bosim aldov belgisi
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Xavf sababi*
+• SMS tasdiqlash kodini so‘rashmoqda
+• Shoshilinchlik bosimi yaratmoqda
+• Hisob / kartani bloklash bilan qo‘rqitmoqda
+Сообщение содержит типичные признаки мошенничества\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🧾 *Kimga murojaat*
+• Yozishmalar skrinshotini saqlang
+• Ariza bering: Cyber Police — 102
+• Kontaktni bloklang"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=uz > safe level 1`] = `
+"🟢 *Xavfsiz*
+━━━━━━━━━━━━━━━━━━━━
+
+⚪ Aniq firibgarlik belgilari topilmadi
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Qisqacha*
+Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Nimani payqadim*
+• To‘g‘ri O‘zbek raqami"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=uz > suspicious level 1`] = `
+"🟠 *Ehtiyot bo‘ling*
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ Shubhali belgilar mavjud
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+⚠️ *Sabablar*
+• Qisqartirilgan havola
+• Shubhali domen
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Nima qilish*
+• Havolaga o'tmang va APK o'rnatmang"
+`;
+
+exports[`formatCheckResult — UX v2 snapshots > lang=uz > unknown level 1`] = `
+"⚪️ *Ma’lumot yetarli emas*
+━━━━━━━━━━━━━━━━━━━━
+
+🟡 Aniq baho berish uchun ma'lumot yetarli emas
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+📌 *Nimani payqadim*
+• Yuboruvchi noma’lum
+• Telegram'da soxta bank
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Nima qilish*
+• Kripto/investitsiya mavzusini ko'ryapman, lekin havola yoki raqamsiz aniq xulosa chiqarib bo'lmaydi\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+Aniq baho berish uchun ko'proq ma'lumot kerak\\. Havola, raqam yoki to'liq xabar matnini yuboring\\."
+`;

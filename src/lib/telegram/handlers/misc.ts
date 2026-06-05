@@ -40,7 +40,7 @@ import {
   escapeMarkdownV2,
 } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
-import { CB, formatEmergencyChecklist } from "@/lib/telegram/format";
+import { CB, formatEmergencyChecklist, formatSafety } from "@/lib/telegram/format";
 import {
   parsePanicCallback,
   buildPanicScenarioText,
@@ -56,6 +56,8 @@ import {
 import { setLanguage, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
+import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
+import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
@@ -71,6 +73,13 @@ function parseLangCallback(data: string): Lang | null {
 /** Send a plain bot-i18n string, MarkdownV2-escaped. */
 async function sendI18n(chatId: number, key: Parameters<typeof bt>[0], lang: Lang): Promise<void> {
   await sendMessage({ chatId, text: escapeMarkdownV2(bt(key, lang)) });
+}
+
+export async function handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void> {
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(getMetaIntentResponse(intent, ctx.session.lang)),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -132,13 +141,42 @@ export async function handleCallback(
       scenarioStep: 0,
       scenarioData: {},
     });
-    await sendI18n(ctx.chatId, "report_ask_value", lang);
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("report_ask_value", lang)),
+      keyboard: reportValueKeyboard(lang),
+    });
     return;
   }
 
   // 3) «Проверить ещё» (Check another) — prompt for new content (R4.1).
   if (data === CB.checkAnother) {
     await sendI18n(ctx.chatId, "check_prompt", lang);
+    return;
+  }
+
+  if (data === CB.showLang) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("choose_language", lang)),
+      keyboard: [
+        [
+          { text: bt("btn_lang_ru", lang), callback_data: CB.lang("ru") },
+          { text: bt("btn_lang_uz", lang), callback_data: CB.lang("uz") },
+          { text: bt("btn_lang_en", lang), callback_data: CB.lang("en") },
+        ],
+      ],
+    });
+    return;
+  }
+
+  if (data === CB.safety) {
+    await sendMessage({ chatId: ctx.chatId, text: formatSafety(lang) });
+    return;
+  }
+
+  if (data === CB.howItWorks) {
+    await sendI18n(ctx.chatId, "meta_how_do_you_check", lang);
     return;
   }
 

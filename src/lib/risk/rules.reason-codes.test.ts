@@ -33,6 +33,10 @@ describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
       name: "RU показать чужой QR на входе (без сканирования/входа-глагола)",
       text: "Покажите ваш QR-код на входе в музей",
     },
+    {
+      name: "RU ресторанное QR-меню без входа/оплаты/кодов",
+      text: "Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
+    },
     { name: "UZ нейтральная покупка", text: "Men bugun dokondan non sotib oldim" },
   ];
 
@@ -149,6 +153,18 @@ describe("integration — block threat + urgency → suspicious (R14.7)", () => 
   });
 });
 
+describe("integration — benign restaurant QR menu stays below high risk", () => {
+  it("does not mark a normal restaurant QR menu as high_risk", () => {
+    const text =
+      "Сервисный сбор 15% от счета. Зарегистрируйтесь в нашем Telegram-боте, отсканировав QR-код ниже. Посетите сайт chenson.uz, чтобы узнать больше о меню, акциях и онлайн-бронировании столов.";
+    const codes = evaluateText(text);
+
+    expect(codes).not.toContain("asks_to_scan_qr");
+    expect(codes).not.toContain("payment_before_service");
+    expect(scoreFromCodes(codes).level).not.toBe("high_risk");
+  });
+});
+
 describe("evaluateText — fake_delivery_payment (research feed)", () => {
   const positives: { name: string; text: string }[] = [
     {
@@ -193,6 +209,10 @@ describe("evaluateText — payment_before_service marketplace patterns", () => {
 
   const negatives: { name: string; text: string }[] = [
     { name: "RU neutral payment", text: "Оплата при получении после проверки товара" },
+    {
+      name: "RU restaurant table booking without upfront payment",
+      text: "Узнайте больше о меню, актуальных акциях и онлайн-бронировании столов",
+    },
     { name: "UZ pay after service", text: "Tovarni tekshirgandan keyin to'lov qilasiz" },
   ];
 
