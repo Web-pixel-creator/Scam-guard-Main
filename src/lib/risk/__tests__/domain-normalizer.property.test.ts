@@ -23,10 +23,13 @@ const mixedCaseLabel: fc.Arbitrary<string> = fc
 const mixedCasePath: fc.Arbitrary<string> = fc.oneof(
   fc.constant(""),
   fc
-    .array(fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_")), {
-      minLength: 1,
-      maxLength: 20,
-    })
+    .array(
+      fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_")),
+      {
+        minLength: 1,
+        maxLength: 20,
+      },
+    )
     .map((chars) => "/" + chars.join("")),
 );
 
@@ -47,14 +50,23 @@ const urlWithMixedCaseAndProtocol: fc.Arbitrary<string> = fc
  * Generator: domains with Cyrillic а (U+0430), digit 0, and digit 1 substitutions.
  * Produces hostnames where Latin chars are replaced with known homoglyphs.
  */
-const domainWithHomoglyphs: fc.Arbitrary<{ input: string; expectedMappings: Array<{ from: string; to: string }> }> = fc
+const domainWithHomoglyphs: fc.Arbitrary<{
+  input: string;
+  expectedMappings: Array<{ from: string; to: string }>;
+}> = fc
   .record({
     // Base domain parts using only safe lowercase chars that won't be homoglyph-mapped
     prefix: fc
-      .array(fc.constantFrom(...Array.from("bcdefghijkmnpqrstuvwxyz")), { minLength: 2, maxLength: 6 })
+      .array(fc.constantFrom(...Array.from("bcdefghijkmnpqrstuvwxyz")), {
+        minLength: 2,
+        maxLength: 6,
+      })
       .map((chars) => chars.join("")),
     suffix: fc
-      .array(fc.constantFrom(...Array.from("bcdefghijkmnpqrstuvwxyz")), { minLength: 2, maxLength: 4 })
+      .array(fc.constantFrom(...Array.from("bcdefghijkmnpqrstuvwxyz")), {
+        minLength: 2,
+        maxLength: 4,
+      })
       .map((chars) => chars.join("")),
     // Which homoglyph substitution to inject
     substitution: fc.constantFrom(

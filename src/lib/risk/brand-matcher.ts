@@ -70,14 +70,18 @@ function isNewsDomain(hostname: string): boolean {
  * Split a hostname into segments by "." and "-" for matching.
  */
 function getHostnameSegments(hostname: string): string[] {
-  return hostname.split(/[.\-]/).filter((s) => s.length > 0);
+  return hostname.split(/[.-]/).filter((s) => s.length > 0);
 }
 
 /**
  * Split a path into segments by word boundaries: "/", "-", ".", whitespace.
  */
 function getPathSegments(path: string): string[] {
-  return path.split(/[/\-.\s]/).filter((s) => s.length > 0);
+  return path.split(/[/.\s-]/).filter((s) => s.length > 0);
+}
+
+function hasNonAscii(value: string): boolean {
+  return Array.from(value).some((char) => char.charCodeAt(0) > 0x7f);
 }
 
 /**
@@ -116,7 +120,7 @@ function getCanonicalAliases(brand: BrandEntry): Set<string> {
   // Cyrillic transliterations are canonical (not typosquats)
   // Heuristic: aliases containing non-ASCII chars are transliterations
   for (const alias of brand.aliases) {
-    if (/[^\x00-\x7F]/.test(alias)) {
+    if (hasNonAscii(alias)) {
       canonical.add(alias.toLowerCase());
     }
   }
@@ -151,7 +155,7 @@ function getCanonicalAliases(brand: BrandEntry): Set<string> {
  */
 export function matchBrandInUrl(
   normalizedUrl: NormalizedDomain,
-  rawHostname: string
+  rawHostname: string,
 ): BrandMatchResult {
   const evidence: BrandEvidence[] = [];
   const { hostname, path } = normalizedUrl;
@@ -334,7 +338,11 @@ function isGenericFalsePositive(text: string, aliasLower: string): boolean {
 
   if (aliasLower === "click") {
     // "click" followed by common action words = just an English word
-    if (/\bclick\s+(here|this|that|on|the|it|below|above|now|to|for|and|a|link|button|url)/i.test(text)) {
+    if (
+      /\bclick\s+(here|this|that|on|the|it|below|above|now|to|for|and|a|link|button|url)/i.test(
+        text,
+      )
+    ) {
       return true;
     }
     // "click" preceded by verbs like "please", "just", "don't"
@@ -393,7 +401,7 @@ function hasNonOfficialUrl(urls: string[], brand: BrandEntry): boolean {
  * that indicate a suspicious/deceptive context.
  */
 function hasHighRiskCodes(otherReasonCodes: ReasonCode[]): boolean {
-  return otherReasonCodes.some((code) => HIGH_RISK_CODES.includes(code as any));
+  return otherReasonCodes.some((code) => HIGH_RISK_CODES.includes(code));
 }
 
 /**
@@ -416,7 +424,7 @@ function hasHighRiskCodes(otherReasonCodes: ReasonCode[]): boolean {
 export function matchBrandInText(
   text: string,
   urls: string[],
-  otherReasonCodes: ReasonCode[]
+  otherReasonCodes: ReasonCode[],
 ): BrandMatchResult {
   const evidence: BrandEvidence[] = [];
 
@@ -448,7 +456,10 @@ export function matchBrandInText(
           officialDomains: [...brand.officialDomains],
           confidence: getConfidence(brand, matchedAlias),
         });
-      } else if (hasSuspiciousKeywords(text) && (allUrls.length > 0 || hasHighRiskCodes(otherReasonCodes))) {
+      } else if (
+        hasSuspiciousKeywords(text) &&
+        (allUrls.length > 0 || hasHighRiskCodes(otherReasonCodes))
+      ) {
         // Generic brand + suspicious keywords + (URL or high-risk codes) → detect
         evidence.push({
           brandId: brand.id,

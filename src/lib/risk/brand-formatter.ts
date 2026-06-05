@@ -60,7 +60,7 @@ function getLocalizedBrandName(evidence: BrandEvidence, lang: Lang): string {
 export function formatBrandImpersonationExplanation(
   evidence: BrandEvidence,
   lang: Lang,
-  verifiedCallbackNumber?: string
+  verifiedCallbackNumber?: string,
 ): string {
   const brandName = getLocalizedBrandName(evidence, lang);
   const officialDomain = evidence.officialDomains[0] ?? "";
@@ -86,9 +86,9 @@ export function formatBrandImpersonationExplanation(
 export function formatBrandImpersonationExplanations(
   evidenceList: BrandEvidence[],
   lang: Lang,
-  verifiedCallbackNumber?: string
+  verifiedCallbackNumber?: string,
 ): string[] {
   return evidenceList.map((evidence) =>
-    formatBrandImpersonationExplanation(evidence, lang, verifiedCallbackNumber)
+    formatBrandImpersonationExplanation(evidence, lang, verifiedCallbackNumber),
   );
 }

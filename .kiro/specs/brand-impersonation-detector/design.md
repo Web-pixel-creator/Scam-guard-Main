@@ -60,7 +60,7 @@ export interface BrandEntry {
   category: OrgCategory;
   /** Official domains (at least one required) */
   officialDomains: string[];
-  /** 
+  /**
    * All known name variants: canonical, transliterations, common typosquats.
    * Stored lowercase for matching.
    */
@@ -88,6 +88,7 @@ export function normalizeDomain(rawUrl: string): NormalizedDomain;
 ```
 
 Steps:
+
 1. Strip protocol scheme (`http://`, `https://`)
 2. Strip `www.` prefix
 3. Lowercase all characters
@@ -115,10 +116,17 @@ export interface BrandMatchResult {
 }
 
 /** Evaluate a URL for brand impersonation */
-export function matchBrandInUrl(normalizedUrl: NormalizedDomain, rawHostname: string): BrandMatchResult;
+export function matchBrandInUrl(
+  normalizedUrl: NormalizedDomain,
+  rawHostname: string,
+): BrandMatchResult;
 
 /** Evaluate text for brand impersonation (requires presence of URL or other risk signals) */
-export function matchBrandInText(text: string, urls: string[], otherReasonCodes: ReasonCode[]): BrandMatchResult;
+export function matchBrandInText(
+  text: string,
+  urls: string[],
+  otherReasonCodes: ReasonCode[],
+): BrandMatchResult;
 ```
 
 #### URL Matching Logic
@@ -143,6 +151,7 @@ export function matchBrandInText(text: string, urls: string[], otherReasonCodes:
 #### Official Domain Validation
 
 A hostname is considered official for a brand if:
+
 - It exactly matches an official domain, OR
 - It ends with `.` + official domain (i.e., is a subdomain)
 
@@ -153,6 +162,7 @@ A hostname that contains the official domain as a substring but does NOT satisfy
 **Word Boundary Detection**: Brand names must match at word boundaries (split on `-`, `.`, `/`, whitespace) to avoid false matches within unrelated words.
 
 **Generic Brand Handling**: Brands like "Click" and "Payme" whose names coincide with common words require:
+
 - In URLs: exact segment match in hostname or subdomain
 - In text: must appear alongside card/OTP/payment/login/verify keywords or a suspicious URL
 
@@ -163,6 +173,7 @@ A hostname that contains the official domain as a substring but does NOT satisfy
 The `brand_impersonation` reason code is added to the `ReasonCode` type and `WEIGHTS` record with weight 40.
 
 **High-risk escalation rules** (combined score ≥ 50):
+
 - `brand_impersonation` (40) + support/login/verify/security keywords in URL path → high_risk
 - `brand_impersonation` (40) + hosted on public platform (lovable.app, vercel.app, etc.) → high_risk
 - `brand_impersonation` (40) + OTP/PIN/CVV/card keywords in text → high_risk
@@ -178,11 +189,12 @@ The existing formatter receives the Evidence Object and renders explanations:
 export function formatBrandImpersonationExplanation(
   evidence: BrandEvidence,
   lang: Lang,
-  verifiedCallbackNumber?: string
+  verifiedCallbackNumber?: string,
 ): string;
 ```
 
 Templates:
+
 - **RU**: "Похоже на имитацию {brandName}. Ссылка использует название бренда, но домен не совпадает с официальным. Официальный сайт: {officialDomain}"
 - **UZ**: "{brandName} ga o'xshash taqlid aniqlandi. Havola brend nomini ishlatadi, lekin domen rasmiy domenga mos kelmaydi. Rasmiy sayt: {officialDomain}"
 - **EN**: "Possible {brandName} impersonation detected. The link uses the brand name, but the domain does not match the official one. Official site: {officialDomain}"
@@ -206,7 +218,11 @@ const BRAND_REGISTRY: readonly BrandEntry[] = [
   },
   {
     id: "nbu",
-    name: { ru: "Национальный банк Узбекистана", uz: "O'zbekiston Milliy banki", en: "National Bank of Uzbekistan" },
+    name: {
+      ru: "Национальный банк Узбекистана",
+      uz: "O'zbekiston Milliy banki",
+      en: "National Bank of Uzbekistan",
+    },
     category: "bank",
     officialDomains: ["nbu.uz"],
     aliases: ["nbu", "milliybank", "национальныйбанк"],
@@ -315,13 +331,13 @@ const BRAND_REGISTRY: readonly BrandEntry[] = [
 
 ```typescript
 interface BrandEvidence {
-  brandId: string;           // "kapitalbank"
-  brandName: string;         // "Kapitalbank" (canonical display name in detected lang)
-  matchedAlias: string;      // "kapitalbank" or "kapitolbank" (the actual string matched)
+  brandId: string; // "kapitalbank"
+  brandName: string; // "Kapitalbank" (canonical display name in detected lang)
+  matchedAlias: string; // "kapitalbank" or "kapitolbank" (the actual string matched)
   matchedIn: "hostname" | "path" | "text";
-  checkedDomain: string;     // "kapitalbank-support.lovable.app"
+  checkedDomain: string; // "kapitalbank-support.lovable.app"
   officialDomains: string[]; // ["kapitalbank.uz"]
-  confidence: "medium" | "high";  // "high" for exact match, "medium" for typosquat/partial
+  confidence: "medium" | "high"; // "high" for exact match, "medium" for typosquat/partial
 }
 ```
 
@@ -344,98 +360,97 @@ const NEWS_DOMAIN_WHITELIST: string[] = [
 
 The existing `HOSTED_APP_DOMAINS` array in `rules.ts` is reused for the high-risk escalation check.
 
-
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Brand alias in non-official domain triggers detection
 
-*For any* brand in the registry and *for any* alias of that brand, when the alias appears as a segment (split by `.` or `-`) in a hostname that is NOT an official domain or subdomain of one, the Brand Matcher SHALL emit the `brand_impersonation` reason code identifying that brand.
+_For any_ brand in the registry and _for any_ alias of that brand, when the alias appears as a segment (split by `.` or `-`) in a hostname that is NOT an official domain or subdomain of one, the Brand Matcher SHALL emit the `brand_impersonation` reason code identifying that brand.
 
 **Validates: Requirements 2.1, 2.2, 2.3, 2.5**
 
 ### Property 2: Official domain or subdomain never triggers detection
 
-*For any* brand in the registry and *for any* official domain of that brand, a URL whose hostname either exactly matches the official domain OR ends with "." + official domain SHALL NOT produce a `brand_impersonation` reason code.
+_For any_ brand in the registry and _for any_ official domain of that brand, a URL whose hostname either exactly matches the official domain OR ends with "." + official domain SHALL NOT produce a `brand_impersonation` reason code.
 
 **Validates: Requirements 2.4, 2.6, 6.1**
 
 ### Property 3: Official domain as substring without suffix triggers detection
 
-*For any* brand official domain, when a hostname contains the official domain as a substring but does NOT end with it (e.g., `brand.uz.evil.com`, `brand-uz.com`), the Brand Matcher SHALL emit the `brand_impersonation` reason code.
+_For any_ brand official domain, when a hostname contains the official domain as a substring but does NOT end with it (e.g., `brand.uz.evil.com`, `brand-uz.com`), the Brand Matcher SHALL emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 2.7**
 
 ### Property 4: Text with brand name and non-official URL triggers detection
 
-*For any* non-generic brand name and *for any* URL that does not belong to that brand's official domain list, when both appear in the same text input, the Brand Matcher SHALL emit the `brand_impersonation` reason code.
+_For any_ non-generic brand name and _for any_ URL that does not belong to that brand's official domain list, when both appear in the same text input, the Brand Matcher SHALL emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 3.1**
 
 ### Property 5: Brand name in plain text without URL or risk signals does not trigger
 
-*For any* brand name mentioned in text that contains no URLs and no other high-risk reason codes, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
+_For any_ brand name mentioned in text that contains no URLs and no other high-risk reason codes, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 3.2, 6.2**
 
 ### Property 6: News domain whitelist suppresses detection
 
-*For any* brand alias and *for any* domain in the news domain whitelist, when the brand alias appears only in the URL path on that domain, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
+_For any_ brand alias and _for any_ domain in the news domain whitelist, when the brand alias appears only in the URL path on that domain, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 6.3**
 
 ### Property 7: Word boundary detection prevents substring false matches
 
-*For any* brand alias, when the alias appears only as a strict substring within a larger word (not at a word boundary defined by `-`, `.`, `/`, or whitespace), the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
+_For any_ brand alias, when the alias appears only as a strict substring within a larger word (not at a word boundary defined by `-`, `.`, `/`, or whitespace), the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 6.4**
 
 ### Property 8: Generic brand name in normal conversation does not trigger
 
-*For any* generic brand name (e.g., "click", "payme") and *for any* conversational phrase not containing URLs, payment/card/OTP/login/verify keywords, or hostname context, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
+_For any_ generic brand name (e.g., "click", "payme") and _for any_ conversational phrase not containing URLs, payment/card/OTP/login/verify keywords, or hostname context, the Brand Matcher SHALL NOT emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 6.5**
 
 ### Property 9: Generic brand name in hostname or with suspicious keywords triggers detection
 
-*For any* generic brand name, when the brand name appears as an exact segment in a URL hostname or subdomain, OR appears in text alongside card/OTP/payment/login/verify keywords with a non-official URL, the Brand Matcher SHALL emit the `brand_impersonation` reason code.
+_For any_ generic brand name, when the brand name appears as an exact segment in a URL hostname or subdomain, OR appears in text alongside card/OTP/payment/login/verify keywords with a non-official URL, the Brand Matcher SHALL emit the `brand_impersonation` reason code.
 
 **Validates: Requirements 6.6**
 
 ### Property 10: Formatter explanation contains brand name and official domain in all languages
 
-*For any* BrandEvidence object and *for any* language (ru, uz, en), the formatted explanation string SHALL contain the brand's display name and at least one official domain.
+_For any_ BrandEvidence object and _for any_ language (ru, uz, en), the formatted explanation string SHALL contain the brand's display name and at least one official domain.
 
 **Validates: Requirements 5.1, 5.2, 5.3, 5.4**
 
 ### Property 11: Multiple brand detections produce multiple explanations
 
-*For any* list of N distinct BrandEvidence objects (N ≥ 1), the formatter SHALL produce exactly N explanation strings, one per detected brand.
+_For any_ list of N distinct BrandEvidence objects (N ≥ 1), the formatter SHALL produce exactly N explanation strings, one per detected brand.
 
 **Validates: Requirements 5.5**
 
 ### Property 12: Evidence matchedIn field accurately reflects detection location
 
-*For any* detected impersonation, if the brand alias was found in the hostname the Evidence Object SHALL have matchedIn = "hostname"; if found in the path, matchedIn = "path"; if found in text (not within a URL), matchedIn = "text".
+_For any_ detected impersonation, if the brand alias was found in the hostname the Evidence Object SHALL have matchedIn = "hostname"; if found in the path, matchedIn = "path"; if found in text (not within a URL), matchedIn = "text".
 
 **Validates: Requirements 9.2, 9.3, 9.4**
 
 ### Property 13: Evidence confidence reflects match type
 
-*For any* detected impersonation, if the matched alias is a canonical/exact brand name then confidence SHALL be "high"; if the matched alias is a typosquat variant or partial match then confidence SHALL be "medium".
+_For any_ detected impersonation, if the matched alias is a canonical/exact brand name then confidence SHALL be "high"; if the matched alias is a typosquat variant or partial match then confidence SHALL be "medium".
 
 **Validates: Requirements 9.5, 9.6**
 
 ### Property 14: Domain normalization produces lowercase output with no protocol or www prefix
 
-*For any* input URL string, after domain normalization the resulting hostname SHALL be entirely lowercase, contain no protocol scheme (`http://`, `https://`), and have no `www.` prefix.
+_For any_ input URL string, after domain normalization the resulting hostname SHALL be entirely lowercase, contain no protocol scheme (`http://`, `https://`), and have no `www.` prefix.
 
 **Validates: Requirements 10.1, 10.2**
 
 ### Property 15: Homoglyph normalization maps known substitutions
 
-*For any* domain containing Cyrillic `а` (→ `a`), digit `0` (→ `o`), or digit `1` (→ `l`) in place of their Latin counterparts, domain normalization SHALL produce the Latin equivalent, ensuring brand detection is not bypassed by character substitution.
+_For any_ domain containing Cyrillic `а` (→ `a`), digit `0` (→ `o`), or digit `1` (→ `l`) in place of their Latin counterparts, domain normalization SHALL produce the Latin equivalent, ensuring brand detection is not bypassed by character substitution.
 
 **Validates: Requirements 10.4**
 
@@ -443,43 +458,44 @@ The existing `HOSTED_APP_DOMAINS` array in `rules.ts` is reused for the high-ris
 
 ### Input Validation Errors
 
-| Error Condition | Handling Strategy | User Impact |
-|---|---|---|
-| Malformed URL (cannot parse) | Return empty BrandMatchResult (no detection), let existing `weird_domain` rule handle scoring | No false positive from brand matcher; existing rules still flag suspicious input |
-| Empty input string | Short-circuit: return no detection | No impact |
-| URL with no hostname (e.g., `file://` scheme) | Skip brand matching, return empty result | No impact |
+| Error Condition                               | Handling Strategy                                                                             | User Impact                                                                      |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Malformed URL (cannot parse)                  | Return empty BrandMatchResult (no detection), let existing `weird_domain` rule handle scoring | No false positive from brand matcher; existing rules still flag suspicious input |
+| Empty input string                            | Short-circuit: return no detection                                                            | No impact                                                                        |
+| URL with no hostname (e.g., `file://` scheme) | Skip brand matching, return empty result                                                      | No impact                                                                        |
 
 ### Registry Errors
 
-| Error Condition | Handling Strategy | User Impact |
-|---|---|---|
+| Error Condition                       | Handling Strategy                                                         | User Impact                                 |
+| ------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
 | Brand entry missing `officialDomains` | Validation at build/load time; entry rejected if officialDomains is empty | None at runtime (caught during development) |
-| Duplicate brand IDs in registry | Validation at build/load time; throw error | None at runtime |
+| Duplicate brand IDs in registry       | Validation at build/load time; throw error                                | None at runtime                             |
 
 ### Normalization Errors
 
-| Error Condition | Handling Strategy | User Impact |
-|---|---|---|
-| Punycode decode failure (invalid encoding) | Fall back to the raw ASCII representation for matching | Detection still works on raw form; may miss some homoglyph attacks but avoids crash |
-| Homoglyph map encounters unmapped character | Pass character through unchanged | Graceful degradation — most common homoglyphs are covered |
+| Error Condition                             | Handling Strategy                                      | User Impact                                                                         |
+| ------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Punycode decode failure (invalid encoding)  | Fall back to the raw ASCII representation for matching | Detection still works on raw form; may miss some homoglyph attacks but avoids crash |
+| Homoglyph map encounters unmapped character | Pass character through unchanged                       | Graceful degradation — most common homoglyphs are covered                           |
 
 ### Matching Errors
 
-| Error Condition | Handling Strategy | User Impact |
-|---|---|---|
+| Error Condition                     | Handling Strategy                                                                                                                   | User Impact                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Regex timeout on pathological input | Avoid regex for segment matching; use string splitting + includes. If a match operation takes > 50ms, short-circuit to no detection | No crash; possible missed detection on adversarial input (low probability) |
-| Multiple brands match the same URL | Return ALL matching brands in the evidence array | User sees explanations for each impersonated brand |
+| Multiple brands match the same URL  | Return ALL matching brands in the evidence array                                                                                    | User sees explanations for each impersonated brand                         |
 
 ### Integration Errors
 
-| Error Condition | Handling Strategy | User Impact |
-|---|---|---|
-| Verified Contacts module unavailable | Omit verified callback number from explanation; proceed with detection | Slightly less helpful explanation; no functional impact |
-| Formatter receives malformed Evidence Object | Log warning, produce fallback generic explanation without brand-specific details | User still sees a warning, just less specific |
+| Error Condition                              | Handling Strategy                                                                | User Impact                                             |
+| -------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Verified Contacts module unavailable         | Omit verified callback number from explanation; proceed with detection           | Slightly less helpful explanation; no functional impact |
+| Formatter receives malformed Evidence Object | Log warning, produce fallback generic explanation without brand-specific details | User still sees a warning, just less specific           |
 
 ### Graceful Degradation Principle
 
 The brand impersonation detector follows the same graceful degradation pattern as the rest of the risk engine:
+
 - If brand detection fails for any reason, the pipeline continues without the `brand_impersonation` code
 - Existing rules (`weird_domain`, `brand_name_typo`, `hosted_app_platform`) still provide baseline protection
 - No error in brand detection should crash the overall `runCheck` pipeline
@@ -509,7 +525,7 @@ Unit tests cover specific scenarios, edge cases, and static data validation:
 
 3. **Scoring integration**:
    - `brand_impersonation` alone → score 40, level `suspicious` (not `high_risk`)
-   - `brand_impersonation` + `hosted_app_platform` → score 40
+   - `brand_impersonation` + `hosted_app_platform` → score 50, level `high_risk`
    - `brand_impersonation` + `suspicious_short_link` → score 70, level `high_risk`
    - `brand_impersonation` + `asks_for_otp` → score 85, level `high_risk`
 
@@ -523,27 +539,28 @@ Unit tests cover specific scenarios, edge cases, and static data validation:
 
 Property-based tests validate universal correctness properties using `fast-check`. Each test runs a minimum of 100 iterations with generated inputs.
 
-| Property | Test Description | Generator Strategy |
-|---|---|---|
-| Property 1 | Brand alias in non-official domain → detect | Pick random brand, random alias, embed in random non-official hostname with separators |
-| Property 2 | Official domain/subdomain → no detect | Pick random brand, pick official domain, optionally prepend random subdomain prefix |
-| Property 3 | Official domain substring without suffix → detect | Pick random brand official domain, append `.` + random evil domain |
-| Property 4 | Text brand + non-official URL → detect | Generate text with random non-generic brand name + random non-official URL |
-| Property 5 | Plain text brand → no detect | Generate text with random brand name, no URLs, no suspicious keywords |
-| Property 6 | News domain whitelist → suppress | Pick random brand alias, pick random news domain, put alias in path |
-| Property 7 | Word boundary prevents false match | Pick random brand alias, embed inside random larger word without boundaries |
-| Property 8 | Generic brand in conversation → no detect | Pick generic brand, generate casual sentence without URLs/keywords |
-| Property 9 | Generic brand in hostname/with keywords → detect | Pick generic brand, place as exact hostname segment OR pair with suspicious keywords + URL |
-| Property 10 | Formatter explanation completeness | Generate random BrandEvidence, pick random lang, verify output contains brand name + official domain |
-| Property 11 | Multiple brands → multiple explanations | Generate list of 1-5 random BrandEvidence objects, verify count matches |
-| Property 12 | matchedIn accuracy | Generate detection in hostname vs path vs text, verify matchedIn field |
-| Property 13 | Confidence reflects match type | Generate exact-alias matches and typosquat matches, verify confidence levels |
-| Property 14 | Normalization: lowercase + no protocol/www | Generate random URLs with mixed case, protocols, www prefix; verify normalized output |
-| Property 15 | Homoglyph normalization | Generate domains with Cyrillic а, 0, 1 substitutions; verify normalized to Latin equivalents |
+| Property    | Test Description                                  | Generator Strategy                                                                                   |
+| ----------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Property 1  | Brand alias in non-official domain → detect       | Pick random brand, random alias, embed in random non-official hostname with separators               |
+| Property 2  | Official domain/subdomain → no detect             | Pick random brand, pick official domain, optionally prepend random subdomain prefix                  |
+| Property 3  | Official domain substring without suffix → detect | Pick random brand official domain, append `.` + random evil domain                                   |
+| Property 4  | Text brand + non-official URL → detect            | Generate text with random non-generic brand name + random non-official URL                           |
+| Property 5  | Plain text brand → no detect                      | Generate text with random brand name, no URLs, no suspicious keywords                                |
+| Property 6  | News domain whitelist → suppress                  | Pick random brand alias, pick random news domain, put alias in path                                  |
+| Property 7  | Word boundary prevents false match                | Pick random brand alias, embed inside random larger word without boundaries                          |
+| Property 8  | Generic brand in conversation → no detect         | Pick generic brand, generate casual sentence without URLs/keywords                                   |
+| Property 9  | Generic brand in hostname/with keywords → detect  | Pick generic brand, place as exact hostname segment OR pair with suspicious keywords + URL           |
+| Property 10 | Formatter explanation completeness                | Generate random BrandEvidence, pick random lang, verify output contains brand name + official domain |
+| Property 11 | Multiple brands → multiple explanations           | Generate list of 1-5 random BrandEvidence objects, verify count matches                              |
+| Property 12 | matchedIn accuracy                                | Generate detection in hostname vs path vs text, verify matchedIn field                               |
+| Property 13 | Confidence reflects match type                    | Generate exact-alias matches and typosquat matches, verify confidence levels                         |
+| Property 14 | Normalization: lowercase + no protocol/www        | Generate random URLs with mixed case, protocols, www prefix; verify normalized output                |
+| Property 15 | Homoglyph normalization                           | Generate domains with Cyrillic а, 0, 1 substitutions; verify normalized to Latin equivalents         |
 
 **PBT Library**: `fast-check` (already available in the project ecosystem via Vitest)
 
 **Configuration**:
+
 - Minimum 100 iterations per property (`numRuns: 100`)
 - Each test tagged: `// Feature: brand-impersonation-detector, Property N: <title>`
 

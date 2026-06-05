@@ -53,7 +53,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Kapitalbank https://evil.com/login",
         ["https://evil.com/login"],
-        []
+        [],
       );
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("kapitalbank");
@@ -64,7 +64,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Уважаемый клиент Капиталбанк! Пройдите верификацию: https://kapitalbank-verify.evil.com",
         [],
-        []
+        [],
       );
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("kapitalbank");
@@ -74,7 +74,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Visit Kapitalbank at https://kapitalbank.uz/services",
         ["https://kapitalbank.uz/services"],
-        []
+        [],
       );
       expect(result.detected).toBe(false);
     });
@@ -83,11 +83,7 @@ describe("matchBrandInText", () => {
   describe("Non-generic brand + high-risk codes (Req 3.3)", () => {
     it("brand + asks_for_otp → detects impersonation", () => {
       const codes: ReasonCode[] = ["asks_for_otp"];
-      const result = matchBrandInText(
-        "Kapitalbank: please enter your OTP code",
-        [],
-        codes
-      );
+      const result = matchBrandInText("Kapitalbank: please enter your OTP code", [], codes);
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("kapitalbank");
       expect(result.evidence[0].matchedIn).toBe("text");
@@ -95,22 +91,14 @@ describe("matchBrandInText", () => {
 
     it("brand + asks_for_card_cvv → detects", () => {
       const codes: ReasonCode[] = ["asks_for_card_cvv"];
-      const result = matchBrandInText(
-        "Humo security team: confirm your card CVV",
-        [],
-        codes
-      );
+      const result = matchBrandInText("Humo security team: confirm your card CVV", [], codes);
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("humo");
     });
 
     it("brand + non-high-risk code (uses_urgency) → no detection", () => {
       const codes: ReasonCode[] = ["uses_urgency"];
-      const result = matchBrandInText(
-        "Kapitalbank has a new promotion",
-        [],
-        codes
-      );
+      const result = matchBrandInText("Kapitalbank has a new promotion", [], codes);
       expect(result.detected).toBe(false);
     });
   });
@@ -120,7 +108,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Click payment verification required: https://click-verify.evil.com",
         ["https://click-verify.evil.com"],
-        []
+        [],
       );
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("click");
@@ -130,7 +118,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Payme: подтвердите вашу карту https://payme-fake.com",
         ["https://payme-fake.com"],
-        []
+        [],
       );
       expect(result.detected).toBe(true);
       expect(result.evidence[0].brandId).toBe("payme");
@@ -142,7 +130,7 @@ describe("matchBrandInText", () => {
       const result = matchBrandInText(
         "Beeline support: https://beeline-fake.com/login",
         ["https://beeline-fake.com/login"],
-        []
+        [],
       );
       expect(result.detected).toBe(true);
       expect(result.evidence[0].matchedIn).toBe("text");

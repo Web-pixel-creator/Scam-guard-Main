@@ -43,12 +43,16 @@ function isMatchableAlias(alias: string): boolean {
   return true;
 }
 
+function hasNonAscii(value: string): boolean {
+  return Array.from(value).some((char) => char.charCodeAt(0) > 0x7f);
+}
+
 /** Non-generic brands only (excludes Click and Payme) */
 const nonGenericBrands = BRAND_REGISTRY.filter((b) => !b.isGenericName);
 
 /** Non-generic brands with at least one matchable alias */
 const nonGenericBrandsWithMatchableAliases = nonGenericBrands.filter((b) =>
-  b.aliases.some((a) => isMatchableAlias(a.toLowerCase()))
+  b.aliases.some((a) => isMatchableAlias(a.toLowerCase())),
 );
 
 /** TLDs that are NOT .uz (to avoid accidentally matching official domains) */
@@ -118,14 +122,14 @@ describe("Feature: brand-impersonation-detector, Property 1: Brand alias in non-
               // alias.randomdomain.tld
               hostname = `${alias}.${prefix}.${tld}`;
             } else if (style === "dotSuffix") {
-              // randomdomain.alias.tld  
+              // randomdomain.alias.tld
               hostname = `${prefix}.${alias}.${tld}`;
             } else {
               // alias-support.randomdomain.tld
               hostname = `${alias}-support.${prefix}.${tld}`;
             }
             return { brand, alias, hostname };
-          })
+          }),
       );
 
     fc.assert(
@@ -164,7 +168,7 @@ describe("Feature: brand-impersonation-detector, Property 2: Official domain or 
               return `${subdomain}.${officialDomain}`;
             }
             return officialDomain;
-          })
+          }),
     );
 
     fc.assert(
@@ -210,7 +214,7 @@ describe("Feature: brand-impersonation-detector, Property 3: Official domain as 
             // e.g., kapitalbank.uz.evil.com — official domain is a prefix, NOT a suffix
             const hostname = `${officialDomain}.${evilLabel}.${evilTld}`;
             return { brand, hostname };
-          })
+          }),
       );
 
     fc.assert(
@@ -240,30 +244,31 @@ describe("Feature: brand-impersonation-detector, Property 7: Word boundary detec
      * Generator: embed a brand alias INSIDE a larger word without any word boundary separators.
      * The prefix and suffix are alpha chars (no dots, hyphens, or slashes).
      */
-    const aliasInsideWord: fc.Arbitrary<string> = nonGenericBrandAndAlias.chain(({ brand, alias }) =>
-      fc
-        .record({
-          // Prefix must be non-empty alpha chars to avoid the alias starting at a boundary
-          prefix: fc
-            .array(fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyz")), {
-              minLength: 2,
-              maxLength: 5,
-            })
-            .map((chars) => chars.join("")),
-          // Suffix must be non-empty alpha chars to avoid the alias ending at a boundary
-          suffix: fc
-            .array(fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyz")), {
-              minLength: 2,
-              maxLength: 5,
-            })
-            .map((chars) => chars.join("")),
-          tld: randomTld,
-        })
-        .map(({ prefix, suffix, tld }) => {
-          // Build hostname: {prefix}{alias}{suffix}.{tld}
-          // The alias is embedded inside a single segment without separators
-          return `${prefix}${alias}${suffix}.${tld}`;
-        })
+    const aliasInsideWord: fc.Arbitrary<string> = nonGenericBrandAndAlias.chain(
+      ({ brand, alias }) =>
+        fc
+          .record({
+            // Prefix must be non-empty alpha chars to avoid the alias starting at a boundary
+            prefix: fc
+              .array(fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyz")), {
+                minLength: 2,
+                maxLength: 5,
+              })
+              .map((chars) => chars.join("")),
+            // Suffix must be non-empty alpha chars to avoid the alias ending at a boundary
+            suffix: fc
+              .array(fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyz")), {
+                minLength: 2,
+                maxLength: 5,
+              })
+              .map((chars) => chars.join("")),
+            tld: randomTld,
+          })
+          .map(({ prefix, suffix, tld }) => {
+            // Build hostname: {prefix}{alias}{suffix}.{tld}
+            // The alias is embedded inside a single segment without separators
+            return `${prefix}${alias}${suffix}.${tld}`;
+          }),
     );
 
     fc.assert(
@@ -299,7 +304,7 @@ describe("Feature: brand-impersonation-detector, Property 6: News domain whiteli
             // Build URL: newsDomain/article/alias-results
             const fullUrl = `${newsDomain}/${pathPrefix}/${alias}`;
             return { hostname: newsDomain, fullUrl };
-          })
+          }),
       );
 
     fc.assert(
@@ -346,7 +351,7 @@ describe("Feature: brand-impersonation-detector, Property 12: Evidence matchedIn
             url = `${prefix}.${tld}/${alias}/page`;
           }
           return { brand, alias, location, url };
-        })
+        }),
     );
 
     fc.assert(
@@ -388,39 +393,43 @@ describe("Feature: brand-impersonation-detector, Property 13: Evidence confidenc
       brand: BrandEntry;
       alias: string;
       expectedConfidence: "high" | "medium";
-    }> = fc
-      .integer({ min: 0, max: brandsWithTyposquats.length - 1 })
-      .chain((brandIdx) => {
-        const brand = brandsWithTyposquats[brandIdx];
-        const canonical = getCanonicalAliasesForTest(brand);
-        const matchableAliases = brand.aliases.filter((a) => isMatchableAlias(a.toLowerCase()));
-        const canonicalAliases = matchableAliases.filter((a) => canonical.has(a.toLowerCase()));
-        const typosquatAliases = matchableAliases.filter((a) => !canonical.has(a.toLowerCase()));
+    }> = fc.integer({ min: 0, max: brandsWithTyposquats.length - 1 }).chain((brandIdx) => {
+      const brand = brandsWithTyposquats[brandIdx];
+      const canonical = getCanonicalAliasesForTest(brand);
+      const matchableAliases = brand.aliases.filter((a) => isMatchableAlias(a.toLowerCase()));
+      const canonicalAliases = matchableAliases.filter((a) => canonical.has(a.toLowerCase()));
+      const typosquatAliases = matchableAliases.filter((a) => !canonical.has(a.toLowerCase()));
 
-        return fc
-          .constantFrom("canonical" as const, "typosquat" as const)
-          .chain((type) => {
-            if (type === "canonical" && canonicalAliases.length > 0) {
-              return fc.integer({ min: 0, max: canonicalAliases.length - 1 }).map((idx) => ({
-                brand,
-                alias: canonicalAliases[idx].toLowerCase(),
-                expectedConfidence: "high" as const,
-              }));
-            } else if (typosquatAliases.length > 0) {
-              return fc.integer({ min: 0, max: typosquatAliases.length - 1 }).map((idx) => ({
-                brand,
-                alias: typosquatAliases[idx].toLowerCase(),
-                expectedConfidence: "medium" as const,
-              }));
-            }
-            // Fallback to canonical
+      type ConfidenceCase = {
+        brand: BrandEntry;
+        alias: string;
+        expectedConfidence: "high" | "medium";
+      };
+
+      return fc
+        .constantFrom("canonical" as const, "typosquat" as const)
+        .chain<ConfidenceCase>((type) => {
+          if (type === "canonical" && canonicalAliases.length > 0) {
             return fc.integer({ min: 0, max: canonicalAliases.length - 1 }).map((idx) => ({
               brand,
               alias: canonicalAliases[idx].toLowerCase(),
-              expectedConfidence: "high" as const,
+              expectedConfidence: "high",
             }));
-          });
-      });
+          } else if (typosquatAliases.length > 0) {
+            return fc.integer({ min: 0, max: typosquatAliases.length - 1 }).map((idx) => ({
+              brand,
+              alias: typosquatAliases[idx].toLowerCase(),
+              expectedConfidence: "medium",
+            }));
+          }
+          // Fallback to canonical
+          return fc.integer({ min: 0, max: canonicalAliases.length - 1 }).map((idx) => ({
+            brand,
+            alias: canonicalAliases[idx].toLowerCase(),
+            expectedConfidence: "high",
+          }));
+        });
+    });
 
     fc.assert(
       fc.property(
@@ -435,7 +444,7 @@ describe("Feature: brand-impersonation-detector, Property 13: Evidence confidenc
           const ev = result.evidence.find((e) => e.brandId === brand.id);
           expect(ev).toBeDefined();
           expect(ev!.confidence).toBe(expectedConfidence);
-        }
+        },
       ),
       { numRuns: 100 },
     );
@@ -462,7 +471,7 @@ function getCanonicalAliasesForTest(brand: BrandEntry): Set<string> {
   }
   // Cyrillic transliterations are canonical
   for (const alias of brand.aliases) {
-    if (/[^\x00-\x7F]/.test(alias)) {
+    if (hasNonAscii(alias)) {
       canonical.add(alias.toLowerCase());
     }
   }
@@ -477,7 +486,6 @@ function getCanonicalAliasesForTest(brand: BrandEntry): Set<string> {
   }
   return canonical;
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEXT-BASED BRAND DETECTION PROPERTIES
@@ -538,13 +546,13 @@ describe("Feature: brand-impersonation-detector, Property 4: Text with brand nam
     function isTextMatchableAlias(alias: string): boolean {
       if (!isMatchableAlias(alias)) return false;
       // Only Latin ASCII aliases work reliably with \b word boundary in JS regex
-      if (/[^\x00-\x7F]/.test(alias)) return false;
+      if (hasNonAscii(alias)) return false;
       return true;
     }
 
     /** Non-generic brands with at least one text-matchable (Latin) alias */
     const nonGenericBrandsForText = nonGenericBrands.filter((b) =>
-      b.aliases.some((a) => isTextMatchableAlias(a.toLowerCase()))
+      b.aliases.some((a) => isTextMatchableAlias(a.toLowerCase())),
     );
 
     const brandTextWithNonOfficialUrl: fc.Arbitrary<{
@@ -552,24 +560,22 @@ describe("Feature: brand-impersonation-detector, Property 4: Text with brand nam
       alias: string;
       text: string;
       url: string;
-    }> = fc
-      .integer({ min: 0, max: nonGenericBrandsForText.length - 1 })
-      .chain((brandIdx) => {
-        const brand = nonGenericBrandsForText[brandIdx];
-        const matchableAliases = brand.aliases.filter((a) => isTextMatchableAlias(a.toLowerCase()));
-        return fc
-          .record({
-            aliasIdx: fc.integer({ min: 0, max: matchableAliases.length - 1 }),
-            domain: randomNonOfficialDomain,
-            pathSegment: alphaLabel,
-          })
-          .map(({ aliasIdx, domain, pathSegment }) => {
-            const alias = matchableAliases[aliasIdx];
-            const url = `https://${domain}/${pathSegment}`;
-            const text = `Warning from ${alias}: ${url}`;
-            return { brand, alias, text, url };
-          });
-      });
+    }> = fc.integer({ min: 0, max: nonGenericBrandsForText.length - 1 }).chain((brandIdx) => {
+      const brand = nonGenericBrandsForText[brandIdx];
+      const matchableAliases = brand.aliases.filter((a) => isTextMatchableAlias(a.toLowerCase()));
+      return fc
+        .record({
+          aliasIdx: fc.integer({ min: 0, max: matchableAliases.length - 1 }),
+          domain: randomNonOfficialDomain,
+          pathSegment: alphaLabel,
+        })
+        .map(({ aliasIdx, domain, pathSegment }) => {
+          const alias = matchableAliases[aliasIdx];
+          const url = `https://${domain}/${pathSegment}`;
+          const text = `Warning from ${alias}: ${url}`;
+          return { brand, alias, text, url };
+        });
+    });
 
     fc.assert(
       fc.property(brandTextWithNonOfficialUrl, ({ brand, alias, text, url }) => {
@@ -596,20 +602,18 @@ describe("Feature: brand-impersonation-detector, Property 5: Brand name in plain
     const brandInPlainText: fc.Arbitrary<{
       brand: BrandEntry;
       text: string;
-    }> = fc
-      .integer({ min: 0, max: allBrands.length - 1 })
-      .chain((brandIdx) => {
-        const brand = allBrands[brandIdx];
-        // Pick a matchable alias (first one is usually good for non-generic)
-        const alias = brand.aliases[0];
-        return fc
-          .integer({ min: 0, max: safeConversationalTemplates.length - 1 })
-          .map((templateIdx) => {
-            const template = safeConversationalTemplates[templateIdx];
-            const text = template.replace("{brand}", alias);
-            return { brand, text };
-          });
-      });
+    }> = fc.integer({ min: 0, max: allBrands.length - 1 }).chain((brandIdx) => {
+      const brand = allBrands[brandIdx];
+      // Pick a matchable alias (first one is usually good for non-generic)
+      const alias = brand.aliases[0];
+      return fc
+        .integer({ min: 0, max: safeConversationalTemplates.length - 1 })
+        .map((templateIdx) => {
+          const template = safeConversationalTemplates[templateIdx];
+          const text = template.replace("{brand}", alias);
+          return { brand, text };
+        });
+    });
 
     fc.assert(
       fc.property(brandInPlainText, ({ brand, text }) => {

@@ -29,7 +29,7 @@ describe("formatBrandImpersonationExplanation", () => {
       const result = formatBrandImpersonationExplanation(evidence, "ru");
 
       expect(result).toBe(
-        "Похоже на имитацию Капиталбанк. Ссылка использует название бренда, но домен не совпадает с официальным. Официальный сайт: kapitalbank.uz"
+        "Похоже на имитацию Капиталбанк. Ссылка использует название бренда, но домен не совпадает с официальным. Официальный сайт: kapitalbank.uz",
       );
     });
   });
@@ -40,7 +40,7 @@ describe("formatBrandImpersonationExplanation", () => {
       const result = formatBrandImpersonationExplanation(evidence, "uz");
 
       expect(result).toBe(
-        "Kapitalbank ga o'xshash taqlid aniqlandi. Havola brend nomini ishlatadi, lekin domen rasmiy domenga mos kelmaydi. Rasmiy sayt: kapitalbank.uz"
+        "Kapitalbank ga o'xshash taqlid aniqlandi. Havola brend nomini ishlatadi, lekin domen rasmiy domenga mos kelmaydi. Rasmiy sayt: kapitalbank.uz",
       );
     });
   });
@@ -51,7 +51,7 @@ describe("formatBrandImpersonationExplanation", () => {
       const result = formatBrandImpersonationExplanation(evidence, "en");
 
       expect(result).toBe(
-        "Possible Kapitalbank impersonation detected. The link uses the brand name, but the domain does not match the official one. Official site: kapitalbank.uz"
+        "Possible Kapitalbank impersonation detected. The link uses the brand name, but the domain does not match the official one. Official site: kapitalbank.uz",
       );
     });
   });
@@ -64,7 +64,7 @@ describe("formatBrandImpersonationExplanation", () => {
       expect(result).toContain("Номер для проверки: +998712345678");
       // Should be on a new line after the main explanation
       expect(result).toBe(
-        "Похоже на имитацию Капиталбанк. Ссылка использует название бренда, но домен не совпадает с официальным. Официальный сайт: kapitalbank.uz\nНомер для проверки: +998712345678"
+        "Похоже на имитацию Капиталбанк. Ссылка использует название бренда, но домен не совпадает с официальным. Официальный сайт: kapitalbank.uz\nНомер для проверки: +998712345678",
       );
     });
 

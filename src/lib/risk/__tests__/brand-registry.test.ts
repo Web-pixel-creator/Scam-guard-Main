@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  BRAND_REGISTRY,
-  findBrandByAlias,
-  type BrandEntry,
-} from "@/lib/risk/brand-registry";
+import { BRAND_REGISTRY, findBrandByAlias, type BrandEntry } from "@/lib/risk/brand-registry";
 import { REASON_LABELS } from "@/lib/risk/rules";
 
 describe("Brand Registry integrity", () => {
@@ -36,7 +32,7 @@ describe("Brand Registry integrity", () => {
     for (const brand of BRAND_REGISTRY) {
       expect(
         brand.officialDomains.length,
-        `brand "${brand.id}" should have at least one official domain`
+        `brand "${brand.id}" should have at least one official domain`,
       ).toBeGreaterThanOrEqual(1);
     }
   });
@@ -56,15 +52,15 @@ describe("Brand Registry integrity", () => {
   });
 
   describe("REASON_LABELS for brand_impersonation", () => {
-    it("has Russian label: \"Подражает известному бренду\"", () => {
+    it('has Russian label: "Подражает известному бренду"', () => {
       expect(REASON_LABELS.brand_impersonation.ru).toBe("Подражает известному бренду");
     });
 
-    it("has Uzbek label: \"Taniqli brendga taqlid qilmoqda\"", () => {
+    it('has Uzbek label: "Taniqli brendga taqlid qilmoqda"', () => {
       expect(REASON_LABELS.brand_impersonation.uz).toBe("Taniqli brendga taqlid qilmoqda");
     });
 
-    it("has English label: \"Impersonates a known brand\"", () => {
+    it('has English label: "Impersonates a known brand"', () => {
       expect(REASON_LABELS.brand_impersonation.en).toBe("Impersonates a known brand");
     });
   });

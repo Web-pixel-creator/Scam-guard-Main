@@ -64,7 +64,7 @@ Brand Impersonation Detector is a new risk engine module for Ishonch Guard that 
 #### Acceptance Criteria
 
 1. THE Risk_Engine SHALL assign a weight of 40 to the `brand_impersonation` reason code.
-2. WHEN the `brand_impersonation` reason code is emitted alongside `hosted_app_platform`, THE Risk_Engine SHALL compute the combined score using both weights (40 + 0 = 40).
+2. WHEN the `brand_impersonation` reason code is emitted alongside `hosted_app_platform`, THE Risk_Engine SHALL keep `hosted_app_platform` as a zero-weight informational signal, but SHALL apply a combination rule that raises the effective score to at least 50.
 3. WHEN the `brand_impersonation` reason code fires, THE Risk_Engine SHALL include it in the list of detected reason codes returned to the formatter.
 4. WHEN the `brand_impersonation` reason code fires alone without additional risk signals, THE Risk_Engine SHALL NOT classify the result as high_risk.
 5. WHEN the `brand_impersonation` reason code fires AND the URL contains support/login/verify/security keywords in the path or subdomain, THE Risk_Engine SHALL classify the combined result as high_risk.

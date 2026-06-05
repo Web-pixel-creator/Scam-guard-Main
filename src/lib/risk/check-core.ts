@@ -438,8 +438,8 @@ async function aiExplain(opts: {
   reasons: string[];
 }): Promise<string | null> {
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
-  const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, 2-4 short sentences. Explain WHY the input may be risky based on the listed reason codes. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
-  const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the explanation.`;
+  const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
+  const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the user-facing explanation.`;
   return chatCompletion(
     [
       { role: "system", content: sys },
@@ -456,7 +456,7 @@ async function aiExplain(opts: {
  * We additionally run `redactText` as a defence-in-depth step.
  */
 async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null> {
-  const sys = `You are an OCR + privacy filter. Extract ALL readable text from the image. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add commentary or translation — return only the cleaned, redacted text exactly as it appears. Reply language: ${lang}.`;
+  const sys = `You are an OCR + privacy filter for an anti-scam bot. Extract ALL readable text from the image, including sender names, visible domains, labels near QR codes, and short context like "SMS screenshot", "restaurant menu", or "QR code visible" when it is obvious from the image. If a QR URL is visibly printed next to the QR, include that URL; do not guess or claim to decode a QR that is not visibly readable. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add advice, verdicts, translation, or analysis — return only the cleaned, redacted text/context. Reply language: ${lang}.`;
   const text = await chatCompletion(
     [
       { role: "system", content: sys },

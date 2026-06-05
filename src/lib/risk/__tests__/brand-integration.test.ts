@@ -19,16 +19,17 @@ describe("brand_impersonation scoring integration", () => {
   });
 
   /**
-   * Validates: Requirements 4.2
-   * brand_impersonation (40) + hosted_app_platform (0) → score 40
-   * hosted_app_platform is informational with weight 0, so combined score stays at 40.
+   * Validates: Requirements 4.2, 4.6
+   * brand_impersonation (40) + hosted_app_platform (0) → minimum score 50
+   * hosted_app_platform remains informational alone, but a brand on public hosting
+   * is a strong phishing combination and escalates to high_risk.
    */
-  it("brand_impersonation + hosted_app_platform → score 40, level suspicious", () => {
+  it("brand_impersonation + hosted_app_platform → score 50, level high_risk", () => {
     const codes: ReasonCode[] = ["brand_impersonation", "hosted_app_platform"];
     const result = scoreFromCodes(codes);
 
-    expect(result.score).toBe(40);
-    expect(result.level).toBe("suspicious");
+    expect(result.score).toBe(50);
+    expect(result.level).toBe("high_risk");
   });
 
   /**

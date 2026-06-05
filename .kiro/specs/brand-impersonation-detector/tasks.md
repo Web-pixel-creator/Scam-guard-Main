@@ -21,7 +21,7 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Add trilingual `REASON_LABELS` entry: ru="Подражает известному бренду", uz="Taniqli brendga taqlid qilmoqda", en="Impersonates a known brand"
     - _Requirements: 4.1, 8.1, 8.2, 8.3, 8.4_
 
-  - [x]* 1.3 Write unit tests for Brand Registry integrity (`src/lib/risk/__tests__/brand-registry.test.ts`)
+  - [x]\* 1.3 Write unit tests for Brand Registry integrity (`src/lib/risk/__tests__/brand-registry.test.ts`)
     - Verify all 14 brands are present
     - Verify each entry has at least one official domain
     - Verify required fields (id, name, category, officialDomains, aliases)
@@ -39,15 +39,15 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Apply homoglyph normalization (Cyrillic а→a, 0→o, 1→l)
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [x]* 2.2 Write property tests for Domain Normalizer (`src/lib/risk/__tests__/domain-normalizer.property.test.ts`)
+  - [x]\* 2.2 Write property tests for Domain Normalizer (`src/lib/risk/__tests__/domain-normalizer.property.test.ts`)
     - **Property 14: Domain normalization produces lowercase output with no protocol or www prefix**
     - **Validates: Requirements 10.1, 10.2**
 
-  - [x]* 2.3 Write property tests for homoglyph normalization (`src/lib/risk/__tests__/domain-normalizer.property.test.ts`)
+  - [x]\* 2.3 Write property tests for homoglyph normalization (`src/lib/risk/__tests__/domain-normalizer.property.test.ts`)
     - **Property 15: Homoglyph normalization maps known substitutions**
     - **Validates: Requirements 10.4**
 
-  - [x]* 2.4 Write unit tests for Domain Normalizer (`src/lib/risk/__tests__/domain-normalizer.test.ts`)
+  - [x]\* 2.4 Write unit tests for Domain Normalizer (`src/lib/risk/__tests__/domain-normalizer.test.ts`)
     - Test protocol stripping, www removal, lowercasing
     - Test punycode decode fallback behavior
     - Test homoglyph replacement edge cases
@@ -70,27 +70,27 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Set `matchedIn` to "hostname" or "path" based on detection location
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 6.1, 6.3, 6.4, 6.5, 6.6, 6.7, 9.1, 9.2, 9.3, 9.5, 9.6_
 
-  - [x]* 4.2 Write property test: Brand alias in non-official domain triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.2 Write property test: Brand alias in non-official domain triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 1: Brand alias in non-official domain triggers detection**
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.5**
 
-  - [x]* 4.3 Write property test: Official domain or subdomain never triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.3 Write property test: Official domain or subdomain never triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 2: Official domain or subdomain never triggers detection**
     - **Validates: Requirements 2.4, 2.6, 6.1**
 
-  - [x]* 4.4 Write property test: Official domain as substring without suffix triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.4 Write property test: Official domain as substring without suffix triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 3: Official domain as substring without suffix triggers detection**
     - **Validates: Requirements 2.7**
 
-  - [x]* 4.5 Write property test: Word boundary detection prevents substring false matches (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.5 Write property test: Word boundary detection prevents substring false matches (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 7: Word boundary detection prevents substring false matches**
     - **Validates: Requirements 6.4**
 
-  - [x]* 4.6 Write property test: News domain whitelist suppresses detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.6 Write property test: News domain whitelist suppresses detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 6: News domain whitelist suppresses detection**
     - **Validates: Requirements 6.3**
 
-  - [x]* 4.7 Write property test: Evidence matchedIn field and confidence accuracy (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 4.7 Write property test: Evidence matchedIn field and confidence accuracy (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 12: Evidence matchedIn field accurately reflects detection location**
     - **Property 13: Evidence confidence reflects match type**
     - **Validates: Requirements 9.2, 9.3, 9.5, 9.6**
@@ -105,15 +105,15 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Set `matchedIn` to "text" for text-only detections
     - _Requirements: 3.1, 3.2, 3.3, 6.2, 6.5, 6.6, 6.7, 9.4_
 
-  - [x]* 5.2 Write property test: Text with brand name and non-official URL triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 5.2 Write property test: Text with brand name and non-official URL triggers detection (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 4: Text with brand name and non-official URL triggers detection**
     - **Validates: Requirements 3.1**
 
-  - [x]* 5.3 Write property test: Brand name in plain text without URL or risk signals does not trigger (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 5.3 Write property test: Brand name in plain text without URL or risk signals does not trigger (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 5: Brand name in plain text without URL or risk signals does not trigger**
     - **Validates: Requirements 3.2, 6.2**
 
-  - [x]* 5.4 Write property test: Generic brand name handling (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
+  - [x]\* 5.4 Write property test: Generic brand name handling (`src/lib/risk/__tests__/brand-matcher.property.test.ts`)
     - **Property 8: Generic brand name in normal conversation does not trigger**
     - **Property 9: Generic brand name in hostname or with suspicious keywords triggers detection**
     - **Validates: Requirements 6.5, 6.6**
@@ -131,7 +131,7 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Handle multiple brands: produce one explanation per detected brand
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 7.3_
 
-  - [x]* 7.2 Write property tests for Formatter (`src/lib/risk/__tests__/brand-formatter.property.test.ts`)
+  - [x]\* 7.2 Write property tests for Formatter (`src/lib/risk/__tests__/brand-formatter.property.test.ts`)
     - **Property 10: Formatter explanation contains brand name and official domain in all languages**
     - **Property 11: Multiple brand detections produce multiple explanations**
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
@@ -144,14 +144,14 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - Wrap brand detection in try/catch for graceful degradation
     - _Requirements: 4.1, 4.2, 4.3, 7.3, 9.7_
 
-  - [x]* 7.4 Write unit tests for Formatter output (`src/lib/risk/__tests__/brand-formatter.test.ts`)
+  - [x]\* 7.4 Write unit tests for Formatter output (`src/lib/risk/__tests__/brand-formatter.test.ts`)
     - Test Russian, Uzbek, English templates match expected format
     - Test verified callback number inclusion
     - Test multiple brand explanations
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 7.3_
 
 - [x] 8. Implement key detection test scenarios and scoring integration tests
-  - [x]* 8.1 Write unit tests for key detection scenarios (`src/lib/risk/__tests__/brand-matcher.test.ts`)
+  - [x]\* 8.1 Write unit tests for key detection scenarios (`src/lib/risk/__tests__/brand-matcher.test.ts`)
     - `kapitalbank-support.lovable.app` → detects Kapitalbank impersonation
     - `kapitalbank.uz` → no detection
     - `help.kapitalbank.uz` → no detection
@@ -162,9 +162,9 @@ Add a brand impersonation detection module to the Ishonch Guard risk engine. The
     - `payme-verify.pages.dev` → detects Payme impersonation
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8_
 
-  - [x]* 8.2 Write scoring integration tests (`src/lib/risk/__tests__/brand-integration.test.ts`)
+  - [x]\* 8.2 Write scoring integration tests (`src/lib/risk/__tests__/brand-integration.test.ts`)
     - `brand_impersonation` alone → score 40, level `suspicious`
-    - `brand_impersonation` + `hosted_app_platform` → score 40
+    - `brand_impersonation` + `hosted_app_platform` → score 50, level `high_risk`
     - `brand_impersonation` + `suspicious_short_link` → score 70, level `high_risk`
     - `brand_impersonation` + `asks_for_otp` → score 85, level `high_risk`
     - Verify brand_impersonation coexists with other reason codes
