@@ -100,6 +100,7 @@ const runCheckResultArb: fc.Arbitrary<RunCheckResult> = fc.record({
   explanation: fc.option(fc.string()),
   knownReports: fc.nat(),
   verifiedContact: fc.constant(null),
+  brandEvidence: fc.constant([]),
 });
 
 /** A concrete result for the unit tests; fields overridable per case. */
@@ -113,6 +114,7 @@ function baseResult(overrides: Partial<RunCheckResult> = {}): RunCheckResult {
     explanation: null,
     knownReports: 0,
     verifiedContact: null,
+    brandEvidence: [],
     ...overrides,
   };
 }

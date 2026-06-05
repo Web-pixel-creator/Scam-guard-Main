@@ -160,9 +160,9 @@ export const bot_dict: BotDict = {
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
   ocr_failed: {
-    ru: "Не удалось распознать текст на изображении. Пришлите содержимое текстом, пожалуйста.",
-    uz: "Rasmdagi matnni aniqlab bo‘lmadi. Iltimos, ma’lumotni matn ko‘rinishida yuboring.",
-    en: "Couldn’t read the text in the image. Please send the content as text instead.",
+    ru: "Я вижу, что это изображение, но не смог надёжно прочитать текст или QR. Пришлите текст из SMS/чата вручную, ссылку под QR или коротко опишите, что просят сделать.\n\nЕсли на картинке QR-код: открывайте его только когда уверены в источнике. Не вводите SMS-код, PIN, CVV, пароль или данные карты после перехода по QR.",
+    uz: "Bu rasm ekanini ko‘ryapman, lekin matn yoki QR-kodni ishonchli o‘qiy olmadim. SMS/chat matnini qo‘lda yuboring, QR ostidagi havolani kiriting yoki sizdan nima so‘rashganini qisqacha yozing.\n\nAgar rasmda QR-kod bo‘lsa: manbaga ishonchingiz komil bo‘lgandagina oching. QR orqali o‘tgandan keyin SMS-kod, PIN, CVV, parol yoki karta ma’lumotlarini kiritmang.",
+    en: "I can see this is an image, but I couldn’t reliably read the text or QR. Please paste the SMS/chat text, send the link under the QR, or briefly describe what you are asked to do.\n\nIf the image contains a QR code: open it only when you trust the source. Do not enter an SMS code, PIN, CVV, password, or card details after following a QR.",
   },
   multiple_images: {
     ru: "За один раз я обрабатываю одно изображение. Проверяю первое из присланных.",
@@ -187,9 +187,9 @@ export const bot_dict: BotDict = {
 
   // ── Empty / unsupported input (R16.1) ─────────────────────────────────────
   unsupported_input: {
-    ru: "Я не смог обработать это сообщение. Пришлите номер телефона, Telegram-username, ссылку, текст сообщения или скриншот. Команды — /help.",
-    uz: "Bu xabarni qayta ishlay olmadim. Telefon raqami, Telegram-username, havola, xabar matni yoki skrinshot yuboring. Buyruqlar — /help.",
-    en: "I couldn’t handle this message. Send a phone number, Telegram username, link, message text or screenshot. Commands — /help.",
+    ru: "Пока не умею анализировать этот тип сообщения. Пришлите номер телефона, Telegram-username, ссылку, текст сообщения или изображение как фото/скриншот. Если проверяете QR — лучше отправьте ссылку, которая под ним открывается. Команды — /help.",
+    uz: "Bu turdagi xabarni hozircha tahlil qila olmayman. Telefon raqami, Telegram-username, havola, xabar matni yoki rasm/skrinshot yuboring. QR tekshirayotgan bo‘lsangiz, uning ochadigan havolasini yuborgan yaxshi. Buyruqlar — /help.",
+    en: "I can’t analyze this message type yet. Send a phone number, Telegram username, link, message text, or an image as a photo/screenshot. If you are checking a QR, it is better to send the link it opens. Commands — /help.",
   },
 
   // ── Out-of-scope content: voice/audio/video (R22.3) ───────────────────────
