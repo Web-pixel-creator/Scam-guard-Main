@@ -70,7 +70,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import { submitReport } from "./report.functions";
+import { submitReport, submitReportCore, reportRateLimitKeyForTelegram } from "./report.functions";
 
 const maxDigitRun = (s: string): number =>
   Math.max(0, ...(s.match(/\d+/g) ?? []).map((run) => run.length));
@@ -103,5 +103,37 @@ describe("submitReport privacy", () => {
     expect(description).not.toContain("8600 1234 5678 9012");
     expect(description).not.toContain("+998901234567");
     expect(maxDigitRun(description)).toBeLessThanOrEqual(3);
+  });
+
+  it("rate-limits Telegram report submissions per user key", async () => {
+    const base = {
+      value: "@fakebank_support",
+      type: "telegram" as const,
+      description: "Asked for an SMS code during a fake bank support chat.",
+      lang: "ru" as const,
+    };
+    const userAKey = reportRateLimitKeyForTelegram(881001);
+    const userBKey = reportRateLimitKeyForTelegram(881002);
+
+    expect(await submitReportCore({ ...base, value: "@fakebank_support_1" }, userAKey)).toEqual({
+      ok: true,
+    });
+    expect(await submitReportCore({ ...base, value: "@fakebank_support_2" }, userAKey)).toEqual({
+      ok: true,
+    });
+    expect(await submitReportCore({ ...base, value: "@fakebank_support_3" }, userAKey)).toEqual({
+      ok: true,
+    });
+
+    const blocked = await submitReportCore({ ...base, value: "@fakebank_support_4" }, userAKey);
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) {
+      expect(blocked.error).toBe("rate_limited");
+      expect(blocked.retryAfterSec).toBeGreaterThan(0);
+    }
+
+    expect(await submitReportCore({ ...base, value: "@another_fakebank" }, userBKey)).toEqual({
+      ok: true,
+    });
   });
 });

@@ -58,6 +58,7 @@ interface SubmitArg {
     amountLostUzs?: number;
     lang?: string;
   };
+  rateLimitKey?: string;
 }
 type SubmitResult = { ok: true } | { ok: false; error?: string };
 
@@ -96,11 +97,12 @@ vi.mock("@/lib/telegram/api.server", () => ({
 // `entities` upsert (moderation_status='new', R9.1); here we stub it and assert
 // the handler delegates to it with the correct payload (R6.4 / R9.3 — no bypass).
 vi.mock("@/lib/report.functions", () => ({
-  submitReport: (arg: SubmitArg) => {
+  submitReportCore: (data: SubmitArg["data"], rateLimitKey: string) => {
+    const arg = { data, rateLimitKey };
     h.submitCalls.push(arg);
     return h.submitImpl.current(arg);
   },
-  checkReportRateLimit: () => ({ ok: true, retryAfterSec: 0 }),
+  reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
 }));
 
 import { startReport, handleScenarioStep, handleReportSkip, REPORT_SKIP_CALLBACK } from "./report";
@@ -254,6 +256,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
 
     // R6.4 — handed the accumulated draft to the existing Report_Pipeline.
     expect(h.submitCalls).toHaveLength(1);
+    expect(h.submitCalls[0].rateLimitKey).toBe(`report:tg:${USER_ID}`);
     expect(h.submitCalls[0].data).toEqual({
       value: "@scammer_bank",
       description: "Просили подтвердить последние 4 цифры карты",
