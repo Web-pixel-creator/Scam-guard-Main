@@ -27,7 +27,8 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 - Handler: `src/lib/telegram/webhook.server.ts`.
 - Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal `TELEGRAM_WEBHOOK_SECRET`.
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
-- `/panic` now behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
+- `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
+- Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
 
 ## Auth flow
 
@@ -40,7 +41,7 @@ Browser session token (Supabase) is attached by `attachSupabaseAuth` on every se
 ## External integrations
 
 - **Supabase:** Postgres/Auth/RLS via `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-- **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations and screenshot OCR. Missing key or provider error returns `null`; scoring continues.
+- **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations, web screenshot OCR and Telegram structured image analysis. Missing key or provider error returns `null`; scoring continues where text evidence is available.
 - **Telegram Bot API:** used by the bot handlers for replies, file metadata and image downloads.
 
 ## Future B2B API

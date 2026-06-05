@@ -133,11 +133,16 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
         expect(withAi.type).toBe(withoutAi.type);
         expect(withAi.display).toBe(withoutAi.display);
 
-        // AI affects ONLY the explanation: null when skipped, a string otherwise.
+        // AI affects ONLY the explanation. Most skipAi runs yield null, but
+        // brand impersonation can append a deterministic local explanation even
+        // when AI is skipped; that still does not affect scoring.
         // Exception: when shouldSkipAi triggers deterministically (URL with
         // unknown level and no reason codes), both runs yield null — this is
         // correct because we intentionally avoid AI hallucination for such inputs.
-        expect(withoutAi.explanation).toBeNull();
+        if (withoutAi.explanation !== null) {
+          expect(withoutAi.reasons).toContain("brand_impersonation");
+          expect(typeof withoutAi.explanation).toBe("string");
+        }
         if (withAi.explanation !== null) {
           expect(typeof withAi.explanation).toBe("string");
         }

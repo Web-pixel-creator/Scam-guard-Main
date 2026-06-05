@@ -74,3 +74,12 @@ scenario id and timestamp so short follow-up questions can stay contextual
 conservative: URLs, phone numbers, Telegram usernames, code-like secrets and
 long suspicious text still go through the risk pipeline. This gives stressed or
 elderly users guided next steps without storing raw emergency evidence.
+
+## D-017 - Telegram images use structured evidence, not raw OCR scoring
+
+Telegram photos/screenshots now pass through `analyzeImageCore` and
+`image-intelligence.ts` before `runCheck`. The model returns JSON evidence, but
+the app sanitizes it, merges deterministic risk hints from visible text, and
+builds a rules-safe input. Benign restaurant/menu QR and delivery pickup SMS
+screenshots can be shown as safe only when no reason codes match. QR login,
+QR payment, OTP, APK and card-data requests still trigger normal scoring.

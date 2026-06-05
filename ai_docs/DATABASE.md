@@ -43,6 +43,8 @@ RLS: no public access. Service-role only. Used so bot state survives process res
 
 `scenario_data` is also used for Emergency Copilot context after `/panic`: only `lastPanicId` and `lastPanicAt` are stored. Raw URLs, phone numbers, OTPs, card data, screenshots and user evidence must not be stored there by the panic flow.
 
+Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
+
 ### `user_roles`
 
 RBAC rows: `id, user_id, role, created_at`, unique by `(user_id, role)`.
@@ -63,5 +65,5 @@ Emails that become admin on signup. Managed by SQL/service-role only.
 - Identifiers are hashed into `entity_hash` / `input_hash`.
 - Human-visible strings are masked (`display_mask`, `redacted_input`, `redacted_value`).
 - OTP/SMS codes, full card numbers, full phones, PINs, passwords and passport data must be redacted before persistence.
-- Screenshots are OCR'd in memory and discarded; image uploads for reports are not wired yet.
+- Screenshots are OCR'd/analyzed in memory and discarded; image uploads for reports are not wired yet.
 - Public exposure requires admin moderation.

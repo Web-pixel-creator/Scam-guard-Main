@@ -34,6 +34,11 @@ import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
 import { matchBrandInUrl, matchBrandInText, type BrandEvidence } from "./brand-matcher";
 import { normalizeDomain } from "./domain-normalizer";
 import { formatBrandImpersonationExplanations } from "./brand-formatter";
+import {
+  fallbackImageIntelligence,
+  sanitizeImageIntelligence,
+  type ImageIntelligenceResult,
+} from "./image-intelligence";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -45,6 +50,8 @@ export interface RunCheckParams {
   rateLimitKey: string; // "check:<ip>" для веба, "tg:<userId>" для бота
   channel?: CheckChannel; // default "web"
   skipAi?: boolean; // принудительно без AI (например быстрый путь)
+  /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
+  safeIfNoReasons?: boolean;
 }
 
 export interface RunCheckResult {
@@ -81,7 +88,7 @@ function rateLimitedError(retryAfter: number): RateLimitedError {
  *   scoreFromCodes → aiExplain(optional) → insert into checks.
  */
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> {
-  const { input, type, lang, rateLimitKey, skipAi } = params;
+  const { input, type, lang, rateLimitKey, skipAi, safeIfNoReasons } = params;
 
   // ---- Rate limit: 10 checks / minute / key (best-effort, in-memory) ----
   const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
@@ -150,6 +157,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
 
   const reasonList = [...codes];
   const { score, level } = scoreFromCodes(reasonList);
+  const scoredLevel: RiskLevel = safeIfNoReasons && reasonList.length === 0 ? "safe" : level;
 
   // Don't call AI if there are no meaningful reason codes for URL type — it would hallucinate.
   // hosted_app_platform (weight 0) is informational only; it shouldn't trigger AI.
@@ -158,14 +166,14 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     (c) => c !== "hosted_app_platform" && c !== "valid_uz_phone",
   );
   const shouldSkipAi =
-    skipAi || (detected === "url" && level === "unknown" && !hasSignificantReasons);
+    skipAi || (detected === "url" && scoredLevel === "unknown" && !hasSignificantReasons);
 
   const explanation = shouldSkipAi
     ? null
     : await aiExplain({
         lang,
         type: detected,
-        level,
+        level: scoredLevel,
         redacted: display,
         reasons: reasonList,
       });
@@ -196,7 +204,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   // If match + no dangerous reason codes → lower to "safe". Dangerous behavior
   // (OTP/APK/card requests) always overrides verified match.
   let verifiedContact: RunCheckResult["verifiedContact"] = null;
-  let finalLevel = level;
+  let finalLevel = scoredLevel;
 
   const isShortCode = /^\d{3,5}$/.test(workingInput);
   const shouldLookupVerified = detected === "phone" || isShortCode;
@@ -271,6 +279,27 @@ export async function ocrExtractCore(
   }
   const text = await ocrScreenshot(dataUrl, lang);
   return { text };
+}
+
+/**
+ * Structured image understanding for Telegram photos/screenshots.
+ *
+ * Unlike `ocrExtractCore`, this returns sanitized evidence: visual category,
+ * QR purpose, risk hints and redacted text. The image itself stays in memory
+ * only and is never persisted. Scoring still happens later in `runCheck`.
+ */
+export async function analyzeImageCore(
+  dataUrl: string,
+  lang: Lang,
+  rateLimitKey: string,
+): Promise<ImageIntelligenceResult | null> {
+  const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  if (!rl.ok) {
+    throw rateLimitedError(rl.retryAfterSec);
+  }
+  const raw = await analyzeScreenshotImage(dataUrl, lang);
+  if (!raw) return null;
+  return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }
 
 // ---------------------------------------------------------------------------
@@ -471,4 +500,42 @@ async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null
     "ocr",
   );
   return text ? redactText(text) : null;
+}
+
+async function analyzeScreenshotImage(dataUrl: string, lang: Lang): Promise<string | null> {
+  const sys = `You are a structured image evidence extractor for Ishonch Guard, an anti-scam assistant for Uzbekistan.
+
+Return JSON only. No markdown. No advice. No verdict.
+
+Schema:
+{
+  "text": string|null,
+  "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"payment_request"|"apk_prompt"|"document"|"unknown",
+  "confidence": "low"|"medium"|"high",
+  "qr": { "present": boolean, "visibleUrl": string|null, "purpose": "menu"|"info"|"login"|"payment"|"unknown" },
+  "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation">,
+  "summary": string|null
+}
+
+Rules:
+- Extract only visible text. Do not guess QR contents unless a URL is visibly printed.
+- Redact OTP/SMS codes, PINs, passwords, full card numbers, passport data and full phone numbers.
+- A restaurant menu, restaurant poster, loyalty promo, table booking poster, or informational QR is NOT dangerous by itself. Use riskHints only if it visibly asks for payment, login, card data, SMS code, APK install or money transfer.
+- A normal delivery pickup/order SMS is NOT dangerous by itself. Use riskHints only if there is a link, fee/payment request, OTP/code request, APK install, card data request, or pressure.
+- If text is blurry, set confidence "low" and keep text null or partial.
+- summary must be one short factual sentence in ${lang}.`;
+
+  return chatCompletion(
+    [
+      { role: "system", content: sys },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Extract structured anti-scam evidence from this image." },
+          { type: "image_url", image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    "image-intelligence",
+  );
 }

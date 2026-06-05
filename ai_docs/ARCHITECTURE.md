@@ -19,11 +19,12 @@
 ## Main data flow: a check
 
 1. User submits text/phone/Telegram/url/apk/payment-like text or screenshot.
-2. Screenshot path: `ocrExtract` -> `ocrExtractCore` -> `ocrScreenshot`; the AI output is passed through deterministic `redactText` before returning.
-3. `runCheck` performs rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert.
-4. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
-5. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
-6. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
+2. Web screenshot OCR path: `ocrExtract` -> `ocrExtractCore` -> `ocrScreenshot`; the AI output is passed through deterministic `redactText` before returning.
+3. Telegram image path: `analyzeImageCore` returns structured, redacted image evidence (visual category, QR purpose, risk hints, OCR text). The bot builds a safe rules-input from that evidence, runs `runCheck(skipAi=true)`, and uses the image evidence explanation for the reply.
+4. `runCheck` performs rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert.
+5. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
+6. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
+7. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
 
 ## Risk engine
 
@@ -37,7 +38,7 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - The secret header is checked before body parsing.
 - Invalid bodies after a valid token return 200 so Telegram stops retrying.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
-- Images are downloaded in memory, capped at 6 MB, OCR'd, and discarded.
+- Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
 
 ## Auth and roles
 

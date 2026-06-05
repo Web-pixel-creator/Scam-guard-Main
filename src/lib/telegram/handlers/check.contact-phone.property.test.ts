@@ -111,7 +111,7 @@ vi.mock("@/lib/risk/check-core", () => ({
     return Promise.resolve(result);
   },
   // Not exercised by handlePhoneFromContact, but present so the import resolves.
-  ocrExtractCore: () => Promise.resolve({ text: null }),
+  analyzeImageCore: () => Promise.resolve(null),
 }));
 
 // Mock the Bot API helpers. sendMessage captures the outgoing reply; the rest are
