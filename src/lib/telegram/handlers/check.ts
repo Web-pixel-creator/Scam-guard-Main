@@ -170,7 +170,9 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
   if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildLastCheckFollowUpText(ctx.session.scenarioData.lastCheck, lang)),
+      text: escapeMarkdownV2(
+        buildLastCheckFollowUpText(lastCheckFollowUp, ctx.session.scenarioData.lastCheck, lang),
+      ),
     });
     return;
   }

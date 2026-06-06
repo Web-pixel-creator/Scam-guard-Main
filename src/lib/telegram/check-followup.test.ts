@@ -36,9 +36,62 @@ describe("last check follow-up router", () => {
       now,
     );
 
-    expect(classifyLastCheckFollowUp("Точно?", scenarioWith(snapshot), now)).toBe("confidence");
-    expect(buildLastCheckFollowUpText(snapshot, "ru")).toContain("Не могу гарантировать на 100%");
-    expect(buildLastCheckFollowUpText(snapshot, "ru")).toContain("информационный QR");
+    const action = classifyLastCheckFollowUp("Точно?", scenarioWith(snapshot), now);
+
+    expect(action).toBe("confidence");
+    expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain(
+      "Не могу гарантировать на 100%",
+    );
+    expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain("информационный QR");
+  });
+
+  it("routes a short next-step question to contextual guidance", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({
+        level: "high_risk",
+        reasons: ["asks_for_sms_code", "asks_to_scan_qr"],
+      }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp("Что мне делать дальше?", scenarioWith(snapshot), now);
+
+    expect(action).toBe("next_steps");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+    expect(text).toContain("Следующий безопасный шаг");
+    expect(text).toContain("Не сообщайте SMS-код");
+  });
+
+  it("routes bank-number requests to official contact guidance after a phone check", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ type: "phone", display: "+998 ** *** ** **", reasons: ["valid_uz_phone"] }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp("дай номер банка", scenarioWith(snapshot), now);
+
+    expect(action).toBe("contacts");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+    expect(text).toContain("Официальный обратный звонок");
+    expect(text).toContain("1340");
+    expect(text).not.toContain("+998 **");
+  });
+
+  it("routes short explanation questions without exposing scores", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "suspicious", reasons: ["brand_impersonation"] }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp("Почему так?", scenarioWith(snapshot), now);
+
+    expect(action).toBe("explain");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+    expect(text).toContain("видимые признаки риска");
+    expect(text).not.toMatch(/score|threshold|вес/i);
   });
 
   it("does not intercept real scam payloads that need a fresh check", () => {
@@ -51,6 +104,9 @@ describe("last check follow-up router", () => {
         scenarioWith(snapshot),
         now,
       ),
+    ).toBeNull();
+    expect(
+      classifyLastCheckFollowUp("дай номер банка +998 90 123 45 67", scenarioWith(snapshot), now),
     ).toBeNull();
   });
 

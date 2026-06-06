@@ -1003,6 +1003,98 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.upserts.some((entry) => entry.table === "telegram_sessions")).toBe(true);
   });
 
+  it("answers a bank-number follow-up from the last phone check without re-checking it", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1015, chatId: 5015, text: "+998 90 123 45 67" })),
+    );
+    expect(first.status).toBe(200);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
+
+    loadLatestSessionUpsert(1015);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1015, chatId: 5015, text: "дай номер банка" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Официальный обратный звонок");
+    expect(h.sendCalls[0].text).toContain("1340");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("answers a next-step follow-up after a high-risk check without losing context", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1016, chatId: 5016, text: HIGH_RISK_TEXT })),
+    );
+    expect(first.status).toBe(200);
+
+    loadLatestSessionUpsert(1016);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1016, chatId: 5016, text: "Что делать дальше?" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Следующий безопасный шаг");
+    expect(h.sendCalls[0].text).toContain("Не сообщайте SMS");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("explains the previous result when the user asks why", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1017, chatId: 5017, text: HIGH_RISK_TEXT })),
+    );
+    expect(first.status).toBe(200);
+
+    loadLatestSessionUpsert(1017);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1017, chatId: 5017, text: "Почему так?" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("видимые признаки риска");
+    expect(h.sendCalls[0].text).not.toMatch(/score|threshold|вес/i);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("still sends a suspicious payload after a last check into the risk pipeline", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1018, chatId: 5018, text: HIGH_RISK_TEXT })),
+    );
+    expect(first.status).toBe(200);
+
+    loadLatestSessionUpsert(1018);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const payload = await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId: 1018,
+          chatId: 5018,
+          text: "Проверь https://kapitalbank.uz.evil.com",
+        }),
+      ),
+    );
+
+    expect(payload.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).not.toContain("Следующий безопасный шаг");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
+  });
+
   it("still flags a QR login screenshot as high risk", async () => {
     h.imageEvidence = {
       text: "Отсканируйте QR-код, чтобы войти в личный кабинет и подтвердить операцию",
