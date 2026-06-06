@@ -292,6 +292,93 @@ describe("formatCheckResult — brief/explanation section (UX v2)", () => {
   });
 });
 
+describe("formatCheckResult — calm unknown contexts", () => {
+  it("replaces long crypto/investment AI paragraphs with a compact neutral brief", () => {
+    const longCryptoExplanation =
+      "Представленный текст содержит данные о торгах криптовалютой, операции с которой сопряжены с высокими финансовыми рисками. Подобные графики и обещания быстрого роста часто используются на неофициальных платформах для привлечения граждан в мошеннические инвестиционные схемы. Совершайте любые операции с крипто-активами только через провайдеров услуг, официально лицензированных Национальным агентством перспективных проектов Республики Узбекистан.";
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        reasons: ["unknown_sender"],
+        explanation: longCryptoExplanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_crypto", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_crypto", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2("Национальным агентством"));
+    expect(text).not.toContain(escapeMarkdownV2("неофициальных платформах"));
+  });
+
+  it("treats a restaurant QR/menu as informational unless dangerous requests appear", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        reasons: [],
+        explanation:
+          "На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама.",
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_qr_menu", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_qr_menu", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2("Высокий риск"));
+  });
+
+  it("treats a normal delivery or pickup SMS as insufficient data, not danger", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        reasons: [],
+        explanation:
+          "Похоже на обычное сообщение о доставке или пункте выдачи. В тексте нет ссылки, просьбы оплатить или назвать код.",
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_delivery", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_delivery", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2("Не сообщайте SMS-код"));
+  });
+
+  it("does not map unknown_sender alone to a fake-bank scam pattern", () => {
+    const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
+    expect(fakeBank).toBeDefined();
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        reasons: ["unknown_sender"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(REASON_LABELS.unknown_sender.ru));
+    expect(text).not.toContain(escapeMarkdownV2(fakeBank!.title.ru));
+    expect(text).not.toContain(escapeMarkdownV2("крипто/инвестиций"));
+  });
+
+  it("still shows a scam pattern when a strong linked reason is present", () => {
+    const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
+    expect(fakeBank).toBeDefined();
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        reasons: ["impersonates_official"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(fakeBank!.title.ru));
+  });
+});
+
 describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
   it("кнопка Emergency присутствует ТОЛЬКО при high_risk (и есть Report / Check another / Why)", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
@@ -373,7 +460,8 @@ describe("formatCheckResult - deterministic URL fallback and scam patterns", () 
       "ru",
     );
 
-    expect(text).toContain(escapeMarkdownV2(bt("hosted_platform_explanation", "ru")));
+    expect(text).toContain(escapeMarkdownV2("Этот адрес размещён на публичной платформе"));
+    expect(text).toContain("…");
   });
 
   it("shows matching scam-pattern names for detected reason codes in what_noticed section", () => {

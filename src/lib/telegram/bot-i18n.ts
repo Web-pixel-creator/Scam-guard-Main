@@ -470,6 +470,46 @@ export const bot_dict: BotDict = {
     uz: "Aniq baho berish uchun ko'proq ma'lumot kerak. Havola, raqam yoki to'liq xabar matnini yuboring.",
     en: "I need more data for a precise assessment. Send a link, number, or the full message text.",
   },
+  brief_unknown_crypto: {
+    ru: "Вижу тему крипто/инвестиций, но не вижу ссылки, номера, просьбы оплатить или кода. Пока это не похоже на явный скам.",
+    uz: "Kripto/investitsiya mavzusini ko'ryapman, lekin havola, raqam, to'lov yoki kod so'rovi ko'rinmayapti. Hozircha bu aniq firibgarlikka o'xshamaydi.",
+    en: "I see a crypto/investment topic, but no link, number, payment request, or code request. So far this is not an obvious scam.",
+  },
+  brief_unknown_qr_menu: {
+    ru: "Похоже на меню, акцию или информационный QR. Сам QR не опасен; риск появляется, если после открытия просят оплату, вход, код или карту.",
+    uz: "Bu menyu, aksiya yoki ma'lumot beruvchi QRga o'xshaydi. QRning o'zi xavfli emas; xavf to'lov, login, kod yoki karta so'ralganda paydo bo'ladi.",
+    en: "This looks like a menu, promo, or informational QR. A QR alone is not dangerous; risk starts if it asks for payment, login, a code, or card data.",
+  },
+  brief_unknown_delivery: {
+    ru: "Похоже на уведомление о доставке или заказе. Без ссылки, оплаты, APK или кода это не выглядит как явный скам.",
+    uz: "Bu yetkazib berish yoki buyurtma xabariga o'xshaydi. Havola, to'lov, APK yoki kod so'rovisiz bu aniq firibgarlikka o'xshamaydi.",
+    en: "This looks like a delivery or order notice. Without a link, payment, APK, or code request, it does not look like an obvious scam.",
+  },
+  brief_unknown_phone: {
+    ru: "Номер выглядит как обычный телефонный номер. Сам номер не доказывает риск; важно, что у вас просили в разговоре.",
+    uz: "Raqam oddiy telefon raqamiga o'xshaydi. Raqamning o'zi xavfni isbotlamaydi; suhbatda sizdan nima so'ralgani muhim.",
+    en: "The number looks like a regular phone number. The number alone does not prove risk; what they asked for in the conversation matters.",
+  },
+  prompt_more_context_crypto: {
+    ru: "Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств.",
+    uz: "Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish.",
+    en: "For a precise check, send the link, seller username, or offer text: returns, prepayment, withdrawals.",
+  },
+  prompt_more_context_qr_menu: {
+    ru: "Если после QR открылась страница с оплатой, логином, SMS-кодом или картой — пришлите адрес или скрин следующего экрана.",
+    uz: "QRdan keyin to'lov, login, SMS-kod yoki karta sahifasi ochilsa, manzilni yoki keyingi ekran skrinini yuboring.",
+    en: "If the QR opens a payment, login, SMS-code, or card page, send the address or a screenshot of the next screen.",
+  },
+  prompt_more_context_delivery: {
+    ru: "Если в SMS есть ссылка, просьба оплатить или назвать код — пришлите её отдельно.",
+    uz: "SMSda havola, to'lov yoki kod so'rovi bo'lsa, uni alohida yuboring.",
+    en: "If the SMS has a link, payment request, or code request, send it separately.",
+  },
+  prompt_more_context_phone: {
+    ru: "Если номер звонил и просил код, деньги или приложение — кратко опишите разговор.",
+    uz: "Agar raqam qo'ng'iroq qilib kod, pul yoki ilova so'ragan bo'lsa, suhbatni qisqacha yozing.",
+    en: "If the number called and asked for a code, money, or an app, briefly describe the call.",
+  },
 
   // ── Section titles (Result Message UX v2) ─────────────────────────────────
   section_brief: {

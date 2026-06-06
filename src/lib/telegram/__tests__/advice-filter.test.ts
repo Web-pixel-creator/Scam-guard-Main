@@ -29,19 +29,17 @@ describe("filterAdvice", () => {
     });
   });
 
-  describe("unknown with crypto-only context (topic-only reasons)", () => {
-    it("returns single crypto-topic message for unknown_sender", () => {
+  describe("unknown with non-actionable context reasons", () => {
+    it("does not invent crypto advice for unknown_sender", () => {
       const result = filterAdvice("unknown", ["unknown_sender"], "ru");
 
-      expect(result).toHaveLength(1);
-      // Should be the crypto/topic-only advice string
-      expect(result[0]).toContain("крипто");
+      expect(result).toEqual([]);
     });
 
-    it("returns single message for multiple topic-only reasons", () => {
+    it("returns empty array for multiple weak context reasons", () => {
       const result = filterAdvice("unknown", ["unknown_sender", "new_telegram_account"], "ru");
 
-      expect(result).toHaveLength(1);
+      expect(result).toEqual([]);
     });
   });
 

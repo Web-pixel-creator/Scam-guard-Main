@@ -8,7 +8,6 @@
 
 import type { Lang } from "@/lib/i18n";
 import type { RiskLevel, ReasonCode } from "@/lib/risk/rules";
-import { bt } from "@/lib/telegram/bot-i18n";
 
 // ── Advice category definitions ─────────────────────────────────────────────
 
@@ -107,9 +106,9 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
 
 const ADVICE_PRIORITY = [0, 1, 2, 4, 3] as const;
 
-// ── Topic-only reason codes ─────────────────────────────────────────────────
-// These codes indicate topic detection without actionable scam indicators.
-// When these appear alone (no other codes), the message is purely informational.
+// ── Non-actionable context codes ────────────────────────────────────────────
+// These codes can be useful as observations, but they do not justify generic
+// warnings by themselves. The formatter can still add a contextual prompt.
 
 const TOPIC_ONLY_REASONS: Set<string> = new Set([
   "unknown_sender",
@@ -134,11 +133,11 @@ export function filterAdvice(level: RiskLevel, reasons: string[], lang: Lang): s
     return [];
   }
 
-  // Unknown with only topic-only codes → context-specific message
+  // Unknown with only non-actionable context codes → no generic advice.
   if (level === "unknown" && reasons.length > 0) {
     const allTopicOnly = reasons.every((r) => TOPIC_ONLY_REASONS.has(r));
     if (allTopicOnly) {
-      return [bt("advice_crypto_topic_only", lang)];
+      return [];
     }
   }
 

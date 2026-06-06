@@ -1,5 +1,11 @@
 # Changelog (AI memory)
 
+## 2026-06-06 - Result Message UX live hardening
+
+- Tightened Telegram result messages after live feedback: unknown crypto/investment, restaurant QR/menu, delivery SMS and phone checks now render shorter contextual briefs.
+- Fixed scam-pattern matching so weak context codes such as `unknown_sender` no longer invent a specific scheme like "Fake bank in Telegram".
+- Safe phone results now explain that a number alone does not prove risk and ask for the caller's request if they asked for a code, money or app.
+
 ## 2026-06-06 - Emergency follow-up hardening
 
 - Broadened Telegram Emergency Copilot follow-up routing for live-user phrases like "what should I do next?", "bank hotline", "I'm nervous", and "what should I tell a close person?".

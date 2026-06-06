@@ -25,6 +25,11 @@ Implementation of Result Message UX v2 for the Telegram bot. Refactors the check
 - [x] 17. Add property-based test: for any valid RunCheckResult and any Lang, output length ≤ 4096 and passes MarkdownV2 validation
 - [x] 18. Remove superseded formatting code from `format.ts` and update any existing snapshot tests that reference old format output
 - [x] 19. Verify existing bot router tests pass with new formatted output; fix any broken assertions
+- [x] 20. Apply post-live Result Message UX hardening from Telegram feedback
+  - Make unknown crypto/investment, restaurant QR/menu, delivery SMS, and phone checks use short neutral briefs instead of long generic AI paragraphs
+  - Remove invented scam-pattern matches from weak context codes such as `unknown_sender`
+  - Keep safe phone checks useful by adding a next-step prompt when a caller asked for code, money, or an app
+  - Cover the live-feedback regressions with formatter/advice/snapshot tests
 
 ## Task Dependency Graph
 
@@ -48,4 +53,3 @@ Implementation of Result Message UX v2 for the Telegram bot. Refactors the check
 - The core refactor (tasks 10–14) depends on tasks 1–9 being complete
 - Testing (tasks 15–19) depends on the refactor being complete
 - callback_data values in buttons MUST remain unchanged to avoid breaking the bot router
-
