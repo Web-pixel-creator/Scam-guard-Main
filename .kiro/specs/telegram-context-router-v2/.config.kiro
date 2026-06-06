@@ -1,0 +1,5 @@
+{
+  "workflow": "requirements-first",
+  "feature": "telegram-context-router-v2",
+  "status": "ready-for-implementation"
+}

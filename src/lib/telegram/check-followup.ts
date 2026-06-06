@@ -1,5 +1,6 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 import type { RiskLevel } from "@/lib/risk/rules";
 import type {
   LastCheckContext,
@@ -9,12 +10,19 @@ import type {
 
 const RECENT_CHECK_WINDOW_MS = 20 * 60 * 1000;
 
-const CONFIRMATION_RE =
-  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|really|are\s+you\s+sure|is\s+it\s+safe|aniqmi|rostmi)[\s?!.,]*$/i;
+const CONFIDENCE_RE =
+  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|это\s+безопасно|можно\s+доверять|really|are\s+you\s+sure|is\s+it\s+safe|can\s+i\s+trust|aniqmi|rostmi|xavfsizmi|ishonsa\s+bo'ladimi)[\s?!.,]*$/i;
 const QR_OPEN_RE =
   /(?:можно|безопасно|стоит)\s+(?:открыть|сканировать|перейти).{0,25}qr|qr.{0,25}(?:можно|безопасно|открыть|сканировать|перейти)/i;
+const NEXT_STEPS_RE =
+  /(?:что\s+(?:делать|дальше|посоветуешь)|что\s+мне\s+делать|как\s+(?:поступить|быть)|какой\s+следующий\s+шаг|что\s+еще|что\s+ещё|what\s+(?:should\s+i\s+do|next)|next\s+step|nima\s+qilay|keyin\s+nima|qanday\s+qilay)/i;
+const CONTACTS_RE =
+  /(?:дай|покажи|нужен|нужны|куда|как)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq)/i;
+const EXPLAIN_RE =
+  /^(?:почему|почему\s+так|объясни|поясни|я\s+не\s+понял[а]?|не\s+понял[а]?|что\s+это\s+значит|why|why\s+so|explain|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega|tushunmadim|izohla)[\s?!.,]*$/i;
+
 const SCAM_PAYLOAD_RE =
-  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|otp|cvv|pin|apk|перевед|оплат|карта|bank|банк)/i;
+  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
 
 const CRYPTO_CONTEXT_RE =
   /(крипт|биткоин|bitcoin|binance|trading|трейд|инвест|доходн|прибыл|forex|crypto|investment|investits|kripto|daromad|foyda)/i;
@@ -23,7 +31,7 @@ const QR_MENU_CONTEXT_RE =
 const DELIVERY_CONTEXT_RE =
   /(доставк|заказ|выдач|пункт|курьер|почт|delivery|pickup|order|courier|yetkazib|buyurtma|topshirish)/i;
 
-export type LastCheckFollowUpAction = "confidence";
+export type LastCheckFollowUpAction = "confidence" | "next_steps" | "contacts" | "explain";
 
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);
@@ -85,7 +93,10 @@ export function classifyLastCheckFollowUp(
   if (!snapshot || !isRecent(snapshot, now)) return null;
   if (hasNewerRecentPanicContext(scenarioData, snapshot, now)) return null;
 
-  if (CONFIRMATION_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  if (CONTACTS_RE.test(trimmed)) return "contacts";
+  if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
+  if (EXPLAIN_RE.test(trimmed)) return "explain";
+  if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
   return null;
 }
 
@@ -115,7 +126,17 @@ function levelText(level: RiskLevel, lang: Lang): string {
   return dict[level][lang];
 }
 
-export function buildLastCheckFollowUpText(snapshot: LastCheckSnapshot, lang: Lang): string {
+function bankContacts(lang: Lang): string {
+  const contacts = VERIFIED_CONTACTS.filter(
+    (contact) =>
+      (contact.orgType === "bank" || contact.orgType === "payment_system") &&
+      contact.contactType === "short_code",
+  ).slice(0, 6);
+
+  return contacts.map((contact) => `• ${contact.org[lang]} — ${contact.display}`).join("\n");
+}
+
+function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.context === "qr_menu") {
       return `Aniq kafolat bera olmayman. Ko'rinib turgan rasm bo'yicha ${levelText(snapshot.level, lang)}: bu menyu yoki ma'lumot beruvchi QRga o'xshaydi.\n\nQRni ochsangiz, sahifa manzilini tekshiring. SMS-kod, karta ma'lumoti, login yoki to'lov so'ralsa — to'xtang va keyingi ekran skrinini yuboring.`;
@@ -152,4 +173,82 @@ export function buildLastCheckFollowUpText(snapshot: LastCheckSnapshot, lang: La
     return `Сам номер не даёт 100% вывода: ${levelText(snapshot.level, lang)}.\n\nЕсли в разговоре просили код, деньги, данные карты или приложение — кратко опишите, что именно сказали.`;
   }
   return `Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nЕсли просят код, карту, APK, логин или оплату — остановитесь и пришлите это сообщение.`;
+}
+
+function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  if (lang === "uz") {
+    if (snapshot.level === "high_risk") {
+      return "Keyingi xavfsiz qadam:\n1. Muloqotni to'xtating.\n2. SMS-kod, karta yoki parol bermang.\n3. Bankka faqat rasmiy raqam orqali qo'ng'iroq qiling.\n4. Keyingi xabar yoki ekranni menga yuboring.";
+    }
+    if (snapshot.context === "qr_menu") {
+      return "Keyingi qadam:\n1. QR ochilsa, manzilni tekshiring.\n2. Kod, karta, login yoki to'lov so'ralsa — to'xtang.\n3. Shubhali ekran chiqsa, skrinshot yuboring.";
+    }
+    if (snapshot.context === "phone") {
+      return "Keyingi qadam:\n1. Raqamga qarab xulosa qilmang.\n2. Agar qo'ng'iroq bo'lgan bo'lsa, nima so'rashganini yozing.\n3. Kod, pul yoki ilova so'ralsa — suhbatni to'xtating va rasmiy raqamga qo'ng'iroq qiling.";
+    }
+    return "Keyingi qadam:\n1. Agar havola, kod, karta yoki to'lov bo'lmasa — kuzating.\n2. Yangi xabar yoki so'rov paydo bo'lsa, alohida yuboring.\n3. Shoshirishsa yoki qo'rqitishsa — bu xavf belgisi.";
+  }
+
+  if (lang === "en") {
+    if (snapshot.level === "high_risk") {
+      return "Next safe step:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, or passwords.\n3. Call your bank only using an official number.\n4. Send me the next message or screen.";
+    }
+    if (snapshot.context === "qr_menu") {
+      return "Next step:\n1. If you open the QR, check the page address.\n2. If it asks for a code, card, login, or payment — stop.\n3. If another screen looks suspicious, send a screenshot.";
+    }
+    if (snapshot.context === "phone") {
+      return "Next step:\n1. Do not judge by the number alone.\n2. If it was a call, write what they asked you to do.\n3. If they ask for a code, money, or an app — hang up and call an official number.";
+    }
+    return "Next step:\n1. If there is no link, code, card, or payment request, watch calmly.\n2. Send any new message or request separately.\n3. Pressure or threats are a warning sign.";
+  }
+
+  if (snapshot.level === "high_risk") {
+    return "Следующий безопасный шаг:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту или пароль.\n3. Перезвоните в банк только по официальному номеру.\n4. Пришлите мне следующий экран или сообщение.";
+  }
+  if (snapshot.context === "qr_menu") {
+    return "Следующий шаг:\n1. Если открываете QR — проверьте адрес страницы.\n2. Если просят код, карту, логин или оплату — остановитесь.\n3. Если появится новый подозрительный экран, пришлите скриншот.";
+  }
+  if (snapshot.context === "phone") {
+    return "Следующий шаг:\n1. Не делайте вывод только по номеру.\n2. Если был звонок — напишите, что именно просили сделать.\n3. Если просят код, деньги или приложение — завершите разговор и звоните по официальному номеру.";
+  }
+  return "Следующий шаг:\n1. Если нет ссылки, кода, карты или оплаты — спокойно наблюдайте.\n2. Новое сообщение или просьбу пришлите отдельно.\n3. Давление, срочность и угрозы — тревожный признак.";
+}
+
+function contactsText(lang: Lang): string {
+  const contacts = bankContacts(lang);
+
+  if (lang === "uz") {
+    return `Rasmiy qayta qo'ng'iroq:\n1. Shubhali xabardagi yoki qo'ng'iroqdagi raqamga qo'ng'iroq qilmang.\n2. Raqamni karta orqasidan, bank ilovasidan yoki rasmiy saytdan oling.\n\nTekshirilgan qisqa raqamlar:\n${contacts}`;
+  }
+  if (lang === "en") {
+    return `Official callback:\n1. Do not call the number from the suspicious message or incoming call.\n2. Use the number on your card, in the bank app, or on the official website.\n\nVerified short numbers:\n${contacts}`;
+  }
+  return `Официальный обратный звонок:\n1. Не звоните по номеру из подозрительного сообщения или входящего звонка.\n2. Возьмите номер с карты, из приложения банка или с официального сайта.\n\nПроверенные короткие номера:\n${contacts}`;
+}
+
+function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  if (lang === "uz") {
+    return `Qisqacha: men oldingi xabarda ko'rinib turgan xavf belgilarini tekshirdim. Natija: ${levelText(snapshot.level, lang)}.\n\nMen ichki ballarni ko'rsatmayman. Muhimi: kod, karta, parol, APK, pul o'tkazish yoki bosim bo'lsa — xavf oshadi. Bunday narsa yo'q bo'lsa, xulosa ehtiyotkor bo'ladi.`;
+  }
+  if (lang === "en") {
+    return `Briefly: I checked the visible risk signs in the previous item. Result: ${levelText(snapshot.level, lang)}.\n\nI do not show internal scores. What matters: codes, card data, passwords, APKs, money transfers, and pressure increase risk. Without those, the verdict stays cautious.`;
+  }
+  return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск. Если этого нет, вывод остаётся осторожным.`;
+}
+
+export function buildLastCheckFollowUpText(
+  action: LastCheckFollowUpAction,
+  snapshot: LastCheckSnapshot,
+  lang: Lang,
+): string {
+  switch (action) {
+    case "confidence":
+      return confidenceText(snapshot, lang);
+    case "next_steps":
+      return nextStepsText(snapshot, lang);
+    case "contacts":
+      return contactsText(lang);
+    case "explain":
+      return explainText(snapshot, lang);
+  }
 }
