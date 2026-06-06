@@ -87,6 +87,9 @@ const ALL_REASON_CODES = [
   "impersonates_official",
   "suspicious_invite_link",
   "hosted_app_platform",
+  "brand_impersonation",
+  "telegram_account_takeover_phishing",
+  "dropper_recruitment",
 ] as const satisfies readonly ReasonCode[];
 
 /** Generator for an arbitrary, valid RunCheckResult (see check-core.ts). */

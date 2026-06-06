@@ -102,9 +102,27 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Call the organization back on the official number",
     },
   },
+  // Telegram account takeover phishing -> check sessions, don't press "cancel"
+  {
+    reasons: new Set<ReasonCode>(["telegram_account_takeover_phishing"]),
+    advice: {
+      ru: "Не нажимайте «Отмена» и не вводите код — проверьте Telegram → Устройства вручную",
+      uz: "«Bekor qilish»ni bosmang va kod kiritmang — Telegram → Qurilmalarni qo'lda tekshiring",
+      en: "Do not press “Cancel” or enter codes — check Telegram → Devices manually",
+    },
+  },
+  // Dropper recruitment -> never hand over financial/identity access
+  {
+    reasons: new Set<ReasonCode>(["dropper_recruitment"]),
+    advice: {
+      ru: "Не передавайте карту, SIM, аккаунт или OneID третьим лицам",
+      uz: "Karta, SIM, akkaunt yoki OneID'ni boshqa odamga bermang",
+      en: "Do not hand over your card, SIM, account, or OneID to anyone else",
+    },
+  },
 ];
 
-const ADVICE_PRIORITY = [0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic

@@ -27,6 +27,11 @@ Use `https://t.me/pressauz` as a research feed for Uzbekistan scam patterns. Do 
 
 Recent useful feed themes: suspicious foreign calls asking for SMS/card data, malicious Telegram files/GIFs, fake boss/official requests, APK "security app" theft, fake service/payment intermediaries.
 
+Completed research-feed themes now covered by deterministic rules:
+
+- Telegram account deletion / "Cancel" phishing -> `telegram_account_takeover_phishing`.
+- Card/SIM/account transfer or dropper recruitment -> `dropper_recruitment`.
+
 ## Later / scaling
 
 - [ ] Native mobile app (Android first for SMS/call protection).

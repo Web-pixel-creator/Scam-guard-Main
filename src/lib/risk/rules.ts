@@ -41,7 +41,9 @@ export type ReasonCode =
   | "impersonates_official"
   | "suspicious_invite_link"
   | "hosted_app_platform"
-  | "brand_impersonation";
+  | "brand_impersonation"
+  | "telegram_account_takeover_phishing"
+  | "dropper_recruitment";
 
 const WEIGHTS: Record<ReasonCode, number> = {
   asks_for_otp: 45,
@@ -82,6 +84,8 @@ const WEIGHTS: Record<ReasonCode, number> = {
   suspicious_invite_link: 25,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
+  telegram_account_takeover_phishing: 50,
+  dropper_recruitment: 35,
 };
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
@@ -163,6 +167,27 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
 ];
 
+const TELEGRAM_ACCOUNT_DELETE_CONTEXT_RE =
+  /(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob).{0,100}(удал[её]н|удалени|заявк.{0,20}удален|заявк.{0,20}удалени|заблокир|блокиров|delete|deletion|blocked|o['’]?chir|bekor)|(удал[её]н|удалени|delete|deletion|blocked).{0,100}(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob)/i;
+const TELEGRAM_ACCOUNT_ACTION_RE =
+  /(отмена|отменить|спасти|сохранить|восстанов|нажм|кнопк|перейд|ссылк|введите|укажите|код|sms|otp|парол|номер|cancel|restore|save|button|link|enter|code|password|phone|raqam|kod|parol)/i;
+
+function shouldFlagTelegramAccountTakeoverPhishing(text: string): boolean {
+  return TELEGRAM_ACCOUNT_DELETE_CONTEXT_RE.test(text) && TELEGRAM_ACCOUNT_ACTION_RE.test(text);
+}
+
+const DROPPER_TARGET_RE =
+  /(дроппер|дроп|банковск.{0,20}карт|кар(та|ту|ты)|sim|сим.{0,5}карт|номер|oneid|аккаунт|кошел[её]к|криптокошел|bank card|sim card|phone number|account|wallet|crypto wallet|karta|sim karta|raqam|hisob|hamyon|akkaunt)/i;
+const DROPPER_ACTION_RE =
+  /(продай|продам|сдам|аренд|оформ.{0,30}(на себя|для нас|на вас)|открой.{0,30}(на себя|для нас|на вас)|передай|дай доступ|доступ.{0,20}(передай|дай)|за.{0,30}(сум|тыс|ming|so['’]?m)|вознагражд|sot|ijara|ochib ber|topshir|berib tur|mukofot|pul|rent|sell|open.{0,30}for us|reward)/i;
+const DROPPER_SAFETY_CONTEXT_RE =
+  /(не передавай|не передавайте|не продавай|не продавайте|не сдавай|не сдавайте|нельзя передавать|do not sell|don't sell|do not transfer|sotmang|bermang|topshirmang)/i;
+
+function shouldFlagDropperRecruitment(text: string): boolean {
+  if (DROPPER_SAFETY_CONTEXT_RE.test(text)) return false;
+  return DROPPER_TARGET_RE.test(text) && DROPPER_ACTION_RE.test(text);
+}
+
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
 const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
 const QR_DANGEROUS_CONTEXT_RE =
@@ -191,6 +216,9 @@ export function evaluateText(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
   for (const { code, re } of PATTERNS) if (re.test(text)) codes.add(code);
   if (shouldFlagQrScan(text)) codes.add("asks_to_scan_qr");
+  if (shouldFlagTelegramAccountTakeoverPhishing(text))
+    codes.add("telegram_account_takeover_phishing");
+  if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -491,6 +519,16 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Подражает известному бренду",
     uz: "Taniqli brendga taqlid qilmoqda",
     en: "Impersonates a known brand",
+  },
+  telegram_account_takeover_phishing: {
+    ru: "Похоже на попытку угнать Telegram-аккаунт",
+    uz: "Telegram akkauntini egallashga urinishga o'xshaydi",
+    en: "Looks like a Telegram account takeover attempt",
+  },
+  dropper_recruitment: {
+    ru: "Просят передать карту, SIM или аккаунт третьим лицам",
+    uz: "Karta, SIM yoki akkauntni boshqa odamga berishni so'rashmoqda",
+    en: "Asks to hand over a card, SIM, or account to someone else",
   },
 };
 

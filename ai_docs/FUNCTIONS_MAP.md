@@ -27,6 +27,7 @@ Signatures and intent only. See file paths for source.
 
 - `ReasonCode` union + weights.
 - `evaluateText`, `evaluateUrl`, `evaluatePhone`, `evaluateTelegram`.
+- Research-feed v1 text rules include `telegram_account_takeover_phishing` and `dropper_recruitment`.
 - `scoreFromCodes(codes) -> { score, level }`.
 - `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
 
