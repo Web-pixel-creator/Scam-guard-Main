@@ -18,7 +18,7 @@
   - Scoring assertions.
   - Telegram formatting sanity check.
 
-- [ ] 5. Verify and release
+- [x] 5. Verify and release
   - Run targeted tests.
   - Run full tests, type-check, lint, audit, build.
   - Open PR, merge after CI, deploy, smoke test Railway.
