@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
   withPanicContextData,
@@ -25,6 +26,44 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(classifyEmergencyFollowUp("дай номер банка", context, now)).toEqual({
       action: "contacts",
       panicId: 4,
+    });
+    expect(classifyEmergencyFollowUp("куда звонить в банк?", context, now)).toEqual({
+      action: "contacts",
+      panicId: 4,
+    });
+    expect(classifyEmergencyFollowUp("дай горячую линию банка", context, now)).toEqual({
+      action: "contacts",
+      panicId: 4,
+    });
+  });
+
+  it("routes stress and close-person wording to trusted-person guidance", () => {
+    const context = withPanicContextData({}, 6, recent);
+
+    expect(classifyEmergencyFollowUp("я нервничаю, позови близкого", context, now)).toEqual({
+      action: "trusted_person",
+      panicId: 6,
+    });
+    expect(classifyEmergencyFollowUp("что сказать близкому?", context, now)).toEqual({
+      action: "trusted_person",
+      panicId: 6,
+    });
+    expect(classifyEmergencyFollowUp("я пожилой человек и мне страшно", context, now)).toEqual({
+      action: "trusted_person",
+      panicId: 6,
+    });
+  });
+
+  it("routes broader next-step wording to scenario-specific advice", () => {
+    const context = withPanicContextData({}, 2, recent);
+
+    expect(classifyEmergencyFollowUp("что мне делать дальше?", context, now)).toEqual({
+      action: "more",
+      panicId: 2,
+    });
+    expect(classifyEmergencyFollowUp("как быть?", context, now)).toEqual({
+      action: "more",
+      panicId: 2,
     });
   });
 
@@ -58,5 +97,21 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(text).toContain("Официальный обратный звонок");
     expect(text).toContain("Не звоните по номеру");
     expect(text).toContain("1340");
+  });
+
+  it("includes a one-tap next-step button in the follow-up keyboard", () => {
+    const callbackData = buildEmergencyFollowUpKeyboard("ru")
+      .flat()
+      .map((button) => button.callback_data);
+
+    expect(callbackData).toEqual(
+      expect.arrayContaining([
+        "panicctx:more",
+        "panicctx:contacts",
+        "panicctx:script",
+        "panicctx:trusted_person",
+        "panicctx:full",
+      ]),
+    );
   });
 });

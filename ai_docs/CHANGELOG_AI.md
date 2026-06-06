@@ -1,5 +1,11 @@
 # Changelog (AI memory)
 
+## 2026-06-06 - Emergency follow-up hardening
+
+- Broadened Telegram Emergency Copilot follow-up routing for live-user phrases like "what should I do next?", "bank hotline", "I'm nervous", and "what should I tell a close person?".
+- Added a one-tap `panicctx:more` button so users can continue from an emergency answer without typing.
+- Added regression tests for exact post-panic follow-up phrases that previously felt like dead ends.
+
 ## 2026-06-06 - Telegram Image Intelligence v2
 
 - Added `.kiro/specs/telegram-image-intelligence-v2/`.

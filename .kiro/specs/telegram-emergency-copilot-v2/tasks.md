@@ -11,6 +11,11 @@
 - [x] 7. Add unit tests for follow-up classification and formatting
 - [x] 8. Add webhook integration tests for APK/card/live-call follow-ups
 - [x] 9. Verify lint, typecheck, tests, build, deploy
+- [x] 10. Harden natural follow-up UX after live feedback
+  - Add one-tap "what next" follow-up button
+  - Broaden free-text matching for bank hotlines, stress, elderly users and trusted-person phrasing
+  - Prefer trusted-person help when a message combines "what to say" with family/close-person wording
+  - Add regression tests for the exact phrases seen in live Telegram testing
 
 ## Notes
 
