@@ -22,7 +22,15 @@ export type CheckResult = {
   reasons: ReasonCode[];
   explanation: string | null;
   knownReports: number;
-  verifiedContact: { orgName: string; orgType: string; source: string } | null;
+  verifiedContact: {
+    orgName: string;
+    orgType: string;
+    source: string;
+    display: string;
+    contactType: string;
+    verificationLevel: "high" | "medium";
+    description: string;
+  } | null;
 };
 
 type LevelStyle = {
@@ -260,19 +268,49 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                     ✅{" "}
                     {
                       {
-                        ru: "Номер совпадает с официальным контактом:",
-                        uz: "Raqam rasmiy kontakt bilan mos keladi:",
-                        en: "Number matches an official contact:",
+                        ru: "Точное совпадение в официальном справочнике:",
+                        uz: "Rasmiy ma'lumotnomada aniq moslik:",
+                        en: "Exact match in the official directory:",
                       }[lang]
                     }{" "}
                     {result.verifiedContact.orgName}
                   </p>
+                  <p className="text-[13px] text-[#3F3F46] leading-[1.5] mb-2">
+                    {
+                      {
+                        ru: "Контакт",
+                        uz: "Kontakt",
+                        en: "Contact",
+                      }[lang]
+                    }
+                    : {result.verifiedContact.display}. {result.verifiedContact.description}.{" "}
+                    {
+                      {
+                        ru: "Проверка",
+                        uz: "Tekshiruv",
+                        en: "Verification",
+                      }[lang]
+                    }
+                    :{" "}
+                    {
+                      {
+                        ru:
+                          result.verifiedContact.verificationLevel === "high"
+                            ? "высокая"
+                            : "средняя",
+                        uz:
+                          result.verifiedContact.verificationLevel === "high" ? "yuqori" : "o'rta",
+                        en: result.verifiedContact.verificationLevel,
+                      }[lang]
+                    }
+                    .
+                  </p>
                   <p className="text-[13px] text-[#52525B] leading-[1.5]">
                     {
                       {
-                        ru: "⚠️ Caller ID может быть подменён. Если вас просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — завершите разговор и перезвоните самостоятельно по официальному номеру.",
-                        uz: "⚠️ Caller ID soxta bo'lishi mumkin. Agar sizdan SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
-                        en: "⚠️ Caller ID can be spoofed. If someone asks for your SMS code, PIN, CVV, password, to install an app or transfer money — hang up and call back using the official number yourself.",
+                        ru: "⚠️ Это не доказывает, что входящий звонок безопасен. Номер на экране могут подменить. Если просят код, карту, приложение или перевод — положите трубку и перезвоните сами.",
+                        uz: "⚠️ Bu kiruvchi qo'ng'iroq xavfsizligini isbotlamaydi. Ekrandagi raqam soxtalashtirilishi mumkin. Kod, karta, ilova yoki pul so'rashsa — go'shakni qo'ying va o'zingiz qayta qo'ng'iroq qiling.",
+                        en: "⚠️ This does not prove an incoming call is safe. Caller ID can be spoofed. If they ask for a code, card, app or transfer — hang up and call back yourself.",
                       }[lang]
                     }
                   </p>

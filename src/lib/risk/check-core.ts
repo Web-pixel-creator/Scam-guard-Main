@@ -63,7 +63,15 @@ export interface RunCheckResult {
   explanation: string | null; // null при недоступном AI (деградация, R13)
   knownReports: number; // >0 только для Confirmed_Entity
   /** Verified official contact match (D-011). null if not matched. */
-  verifiedContact: { orgName: string; orgType: string; source: string } | null;
+  verifiedContact: {
+    orgName: string;
+    orgType: VerifiedContact["orgType"];
+    source: string;
+    display: string;
+    contactType: VerifiedContact["contactType"];
+    verificationLevel: VerifiedContact["verificationLevel"];
+    description: string;
+  } | null;
   /** Brand impersonation evidence objects. Empty array if no brand impersonation detected. */
   brandEvidence: BrandEvidence[];
 }
@@ -73,12 +81,34 @@ export type RateLimitedError = Error & { status: 429; retryAfter: number };
 /** Web/bot share the same best-effort limit: 10 requests / minute / key. */
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
+const POSSIBLE_VERIFIED_CONTACT_RE = /@[a-zA-Z][a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{2,}\d/g;
 
 function rateLimitedError(retryAfter: number): RateLimitedError {
   const err = new Error("rate_limited") as RateLimitedError;
   err.status = 429;
   err.retryAfter = retryAfter;
   return err;
+}
+
+function findVerifiedContactForCheck(
+  input: string,
+  detected: InputType,
+  normalized: string,
+): VerifiedContact | null {
+  const trimmed = input.trim();
+  const isShortCode = /^\d{3,5}$/.test(trimmed);
+
+  if (detected === "phone" || isShortCode) {
+    return findVerifiedContact(detected === "phone" ? normalized : trimmed);
+  }
+
+  const candidates = trimmed.match(POSSIBLE_VERIFIED_CONTACT_RE) ?? [];
+  for (const candidate of candidates) {
+    const match = findVerifiedContact(candidate);
+    if (match) return match;
+  }
+
+  return null;
 }
 
 /**
@@ -206,31 +236,34 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   let verifiedContact: RunCheckResult["verifiedContact"] = null;
   let finalLevel = scoredLevel;
 
-  const isShortCode = /^\d{3,5}$/.test(workingInput);
-  const shouldLookupVerified = detected === "phone" || isShortCode;
-
-  if (shouldLookupVerified) {
-    const lookupValue = detected === "phone" ? normalized : workingInput;
-    const match = findVerifiedContact(lookupValue);
-    if (match) {
-      verifiedContact = {
-        orgName: match.org.en,
-        orgType: match.orgType,
-        source: match.source,
-      };
-      const DANGEROUS_CODES: readonly string[] = [
-        "asks_for_sms_code",
-        "asks_for_otp",
-        "requests_card_digits",
-        "asks_to_install_apk",
-        "apk_download_link",
-        "asks_to_scan_qr",
-        "payment_before_service",
-      ];
-      const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
-      if (!hasDangerous) {
-        finalLevel = "safe";
-      }
+  const match = findVerifiedContactForCheck(workingInput, detected, normalized);
+  if (match) {
+    verifiedContact = {
+      orgName: match.org[lang],
+      orgType: match.orgType,
+      source: match.source,
+      display: match.display,
+      contactType: match.contactType,
+      verificationLevel: match.verificationLevel,
+      description: match.description[lang],
+    };
+    const DANGEROUS_CODES: readonly string[] = [
+      "asks_for_sms_code",
+      "asks_for_otp",
+      "asks_for_card_cvv",
+      "asks_for_pin",
+      "asks_to_share_screen",
+      "asks_to_transfer_to_safe_account",
+      "requests_personal_data",
+      "requests_card_digits",
+      "asks_to_install_apk",
+      "apk_download_link",
+      "asks_to_scan_qr",
+      "payment_before_service",
+    ];
+    const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
+    if (!hasDangerous) {
+      finalLevel = "safe";
     }
   }
 

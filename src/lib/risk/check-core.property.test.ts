@@ -264,4 +264,66 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.reasons).not.toContain("asks_to_install_apk");
     expect(result.level).toBe("high_risk");
   });
+
+  it("localizes verified official contact metadata", async () => {
+    const cases = [
+      ["ru", "Национальный банк Узбекистана"],
+      ["uz", "O'zbekiston Milliy banki"],
+      ["en", "National Bank of Uzbekistan"],
+    ] as const;
+
+    for (const [lang, expectedName] of cases) {
+      const result = await runCheck({
+        input: "1344",
+        lang,
+        rateLimitKey: nextKey(),
+        channel: "telegram",
+        skipAi: true,
+      });
+
+      expect(result.level).toBe("safe");
+      expect(result.verifiedContact).not.toBeNull();
+      expect(result.verifiedContact!.orgName).toContain(expectedName);
+      expect(result.verifiedContact!.display).toBe("1344");
+      expect(result.verifiedContact!.verificationLevel).toBe("high");
+      expect(result.verifiedContact!.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("dangerous requests override a verified official-looking contact", async () => {
+    const result = await runCheck({
+      input: "Позвоните 1344 и срочно скажите SMS-код 123456",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.verifiedContact).not.toBeNull();
+    expect(result.verifiedContact!.orgName).toContain("Национальный банк");
+    expect(result.reasons).toContain("asks_for_sms_code");
+    expect(result.level).toBe("high_risk");
+  });
+
+  it("card and remote-access requests also override official contact matches", async () => {
+    const cases = [
+      ["Позвоните 1344 и назовите CVV карты", "asks_for_card_cvv"],
+      ["Позвоните 1344 и включите демонстрацию экрана AnyDesk", "asks_to_share_screen"],
+      ["Позвоните 1344 и переведите деньги на безопасный счёт", "asks_to_transfer_to_safe_account"],
+    ] as const;
+
+    for (const [input, code] of cases) {
+      const result = await runCheck({
+        input,
+        lang: "ru",
+        rateLimitKey: nextKey(),
+        channel: "telegram",
+        skipAi: true,
+      });
+
+      expect(result.verifiedContact).not.toBeNull();
+      expect(result.reasons).toContain(code);
+      expect(result.level).not.toBe("safe");
+    }
+  });
 });

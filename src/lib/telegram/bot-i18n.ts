@@ -307,14 +307,29 @@ export const bot_dict: BotDict = {
 
   // ── Verified contacts (D-011) ─────────────────────────────────────────────
   verified_match: {
-    ru: "✅ Номер совпадает с официальным контактом: {org}.",
-    uz: "✅ Raqam rasmiy kontakt bilan mos keladi: {org}.",
-    en: "✅ Number matches an official contact: {org}.",
+    ru: "✅ Есть точное совпадение в официальном справочнике: {org}.",
+    uz: "✅ Rasmiy ma'lumotnomada aniq moslik bor: {org}.",
+    en: "✅ Exact match in the official directory: {org}.",
+  },
+  verified_directory_details: {
+    ru: "Контакт: {contact}. Назначение: {description}. Проверка: {level}.",
+    uz: "Kontakt: {contact}. Vazifasi: {description}. Tekshiruv: {level}.",
+    en: "Contact: {contact}. Used for: {description}. Verification: {level}.",
+  },
+  verified_level_high: {
+    ru: "высокая",
+    uz: "yuqori",
+    en: "high",
+  },
+  verified_level_medium: {
+    ru: "средняя",
+    uz: "o'rta",
+    en: "medium",
   },
   verified_spoofing_warning: {
-    ru: "⚠️ Важно: номер на экране может быть подменён (Caller ID spoofing). Если вам звонят с этого номера и просят SMS-код, PIN, CVV, пароль, установить приложение или перевести деньги — это опасно.\n\nБезопаснее завершить разговор и самостоятельно перезвонить по официальному номеру.",
-    uz: "⚠️ Muhim: ekrandagi raqam soxta bo'lishi mumkin (Caller ID spoofing). Agar sizga ushbu raqamdan qo'ng'iroq qilib, SMS-kod, PIN, CVV, parol so'rashsa yoki ilova o'rnatishni/pul o'tkazishni aytishsa — bu xavfli.\n\nXavfsizroq: suhbatni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
-    en: "⚠️ Important: Caller ID can be spoofed. If someone calls from this number and asks for your SMS code, PIN, CVV, password, to install an app or transfer money — it's still dangerous.\n\nSafer: hang up and call back using the official number yourself.",
+    ru: "⚠️ Важно: это не доказывает, что входящий звонок безопасен. Номер на экране могут подменить. Если просят код, карту, приложение или перевод — положите трубку и перезвоните сами.",
+    uz: "⚠️ Muhim: bu kiruvchi qo'ng'iroq xavfsizligini isbotlamaydi. Ekrandagi raqam soxtalashtirilishi mumkin. Kod, karta, ilova yoki pul so'rashsa — go'shakni qo'ying va o'zingiz qayta qo'ng'iroq qiling.",
+    en: "⚠️ Important: this does not prove an incoming call is safe. Caller ID can be spoofed. If they ask for a code, card, app or transfer — hang up and call back yourself.",
   },
   verified_with_danger: {
     ru: "🚨 Номер похож на официальный контакт ({org}), но сообщение содержит опасные признаки. Даже официальный номер на экране может быть подменён. Не выполняйте инструкции и свяжитесь с организацией самостоятельно.",
@@ -486,9 +501,9 @@ export const bot_dict: BotDict = {
     en: "This looks like a delivery or order notice. Without a link, payment, APK, or code request, it does not look like an obvious scam.",
   },
   brief_unknown_phone: {
-    ru: "Номер выглядит как обычный телефонный номер. Сам номер не доказывает риск; важно, что у вас просили в разговоре.",
-    uz: "Raqam oddiy telefon raqamiga o'xshaydi. Raqamning o'zi xavfni isbotlamaydi; suhbatda sizdan nima so'ralgani muhim.",
-    en: "The number looks like a regular phone number. The number alone does not prove risk; what they asked for in the conversation matters.",
+    ru: "Похоже на обычный узбекский номер. Я не могу назвать владельца без официального источника. Риск зависит от того, что просили во время звонка.",
+    uz: "Bu oddiy O'zbekiston raqamiga o'xshaydi. Rasmiy manbasiz egasini ayta olmayman. Xavf qo'ng'iroqda sizdan nima so'ralganiga bog'liq.",
+    en: "This looks like a regular Uzbek phone number. I cannot name the owner without an official source. Risk depends on what they asked during the call.",
   },
   prompt_more_context_crypto: {
     ru: "Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств.",
@@ -506,9 +521,9 @@ export const bot_dict: BotDict = {
     en: "If the SMS has a link, payment request, or code request, send it separately.",
   },
   prompt_more_context_phone: {
-    ru: "Если номер звонил и просил код, деньги или приложение — кратко опишите разговор.",
-    uz: "Agar raqam qo'ng'iroq qilib kod, pul yoki ilova so'ragan bo'lsa, suhbatni qisqacha yozing.",
-    en: "If the number called and asked for a code, money, or an app, briefly describe the call.",
+    ru: "Напишите, что просили: SMS-код, данные карты, перевод, APK, QR-вход или удалённый доступ.",
+    uz: "Nima so'rashganini yozing: SMS-kod, karta ma'lumoti, pul o'tkazma, APK, QR-login yoki masofaviy kirish.",
+    en: "Write what they asked for: SMS code, card data, transfer, APK, QR login, or remote access.",
   },
 
   // ── Section titles (Result Message UX v2) ─────────────────────────────────
