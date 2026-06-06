@@ -179,6 +179,11 @@ export async function handleCallback(
 
   // 3) «Проверить ещё» (Check another) — prompt for new content (R4.1).
   if (data === CB.checkAnother) {
+    await saveSession(ctx.userId, {
+      scenario: "await_check",
+      scenarioStep: 0,
+      scenarioData: {},
+    });
     await sendI18n(ctx.chatId, "check_prompt", lang);
     return;
   }

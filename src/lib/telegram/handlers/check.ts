@@ -34,11 +34,17 @@ import { formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { saveSession } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
 } from "@/lib/telegram/emergency";
+import {
+  buildLastCheckFollowUpText,
+  buildLastCheckSnapshot,
+  classifyLastCheckFollowUp,
+} from "@/lib/telegram/check-followup";
 import {
   buildImageCheckInput,
   buildImageUserExplanation,
@@ -80,6 +86,14 @@ async function replyText(chatId: number, plain: string): Promise<void> {
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
   await sendMessage({ chatId: ctx.chatId, text: formatted.text, keyboard: formatted.keyboard });
+  await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: {
+      ...ctx.session.scenarioData,
+      lastCheck: buildLastCheckSnapshot(result),
+    },
+  });
 }
 
 /**
@@ -148,6 +162,15 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
         buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
       ),
       keyboard: buildEmergencyFollowUpKeyboard(lang),
+    });
+    return;
+  }
+
+  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, ctx.session.scenarioData);
+  if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildLastCheckFollowUpText(ctx.session.scenarioData.lastCheck, lang)),
     });
     return;
   }

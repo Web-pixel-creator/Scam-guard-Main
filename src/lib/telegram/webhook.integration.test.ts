@@ -867,9 +867,9 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
 
     // ── The image is NOT saved anywhere ───────────────────────────────────
-    // No upsert at all on this path, and the only insert is the redacted
-    // `checks` row — never a storage bucket or a raw-file table.
-    expect(h.upserts).toHaveLength(0);
+    // Session metadata may be upserted, but the image never goes to storage or
+    // a raw-file table; the `checks` row is redacted by the risk core.
+    expect(h.upserts.every((i) => i.table === "telegram_sessions")).toBe(true);
     expect(h.inserts.every((i) => i.table === "checks")).toBe(true);
     expect(h.inserts.length).toBeGreaterThanOrEqual(1);
 
@@ -929,6 +929,78 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
 
     const checkInsert = h.inserts.find((i) => i.table === "checks");
     expect(JSON.stringify(checkInsert)).not.toContain("asks_to_scan_qr");
+  });
+
+  it("answers 'Точно?' from the last QR/menu check context instead of re-checking it", async () => {
+    h.imageEvidence = {
+      text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов.",
+      visualCategory: "restaurant_menu_qr",
+      confidence: "high",
+      qr: { present: true, visibleUrl: "https://chenson.uz/loyalty", purpose: "menu" },
+      riskHints: [],
+      summary: "Похоже на ресторанное меню и QR программы лояльности.",
+    };
+
+    const first = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1013, chatId: 5013 })),
+    );
+    expect(first.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+
+    loadLatestSessionUpsert(1013);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1013, chatId: 5013, text: "Точно?" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Не могу гарантировать на 100%");
+    expect(h.sendCalls[0].text).toContain("информационный QR");
+    expect(h.sendCalls[0].text).toContain("SMS");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts).toHaveLength(0);
+  });
+
+  it("keeps result buttons routed as callbacks, not as last-check follow-ups", async () => {
+    h.imageEvidence = {
+      text: "Уважаемые гости! Меню и информационный QR ресторана.",
+      visualCategory: "restaurant_menu_qr",
+      confidence: "high",
+      qr: { present: true, visibleUrl: "https://chenson.uz/menu", purpose: "menu" },
+      riskHints: [],
+      summary: "Похоже на ресторанное меню.",
+    };
+
+    const first = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1014, chatId: 5014 })),
+    );
+    expect(first.status).toBe(200);
+    loadLatestSessionUpsert(1014);
+
+    h.sendCalls.length = 0;
+    const why = await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId: 1014, chatId: 5014, data: CB.why })),
+    );
+
+    expect(why.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Как я проверяю");
+    expect(h.sendCalls[0].text).not.toContain("Не могу гарантировать");
+
+    h.sendCalls.length = 0;
+    h.upserts.length = 0;
+    const checkAnother = await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId: 1014, chatId: 5014, data: CB.checkAnother })),
+    );
+
+    expect(checkAnother.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Пришлите");
+    expect(h.sendCalls[0].text).not.toContain("Не могу гарантировать");
+    expect(h.upserts.some((entry) => entry.table === "telegram_sessions")).toBe(true);
   });
 
   it("still flags a QR login screenshot as high risk", async () => {

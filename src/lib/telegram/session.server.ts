@@ -8,6 +8,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Lang } from "@/lib/i18n";
+import type { InputType } from "@/lib/risk/detect";
+import type { RiskLevel } from "@/lib/risk/rules";
 
 export type Scenario =
   | "none" // нейтральное состояние
@@ -31,6 +33,21 @@ export interface ReportDraft {
    */
   lastPanicId?: number;
   lastPanicAt?: string;
+  /**
+   * Last check context for short follow-up questions like "точно?".
+   * Stores only non-sensitive summary metadata: no raw input, OCR text,
+   * phone numbers, URLs, card data, codes or image bytes.
+   */
+  lastCheck?: LastCheckSnapshot;
+}
+
+export type LastCheckContext = "qr_menu" | "delivery" | "crypto" | "phone" | "generic";
+
+export interface LastCheckSnapshot {
+  level: RiskLevel;
+  type: InputType;
+  context: LastCheckContext;
+  at: string;
 }
 
 export interface Session {
