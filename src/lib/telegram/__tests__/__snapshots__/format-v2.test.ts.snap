@@ -29,10 +29,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > safe level 1`] = `
 ⚪ No obvious scam signs found
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Brief*
-Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+The number looks like a regular phone number\\. The number alone does not prove risk; what they asked for in the conversation matters\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *What I noticed*
-• Valid Uzbek phone"
+• Valid Uzbek phone
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *What to do*
+• If the number called and asked for a code, money, or an app, briefly describe the call\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=en > suspicious level 1`] = `
@@ -55,14 +58,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > unknown level 1`] = `
 
 🟡 Not enough data for a precise assessment
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Brief*
+I see a crypto/investment topic, but no link, number, payment request, or code request\\. So far this is not an obvious scam\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *What I noticed*
 • Unknown sender
-• Fake bank in Telegram
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-✅ *What to do*
-• I see a crypto/investment topic, but without a link or number a precise conclusion isn't possible\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-I need more data for a precise assessment\\. Send a link, number, or the full message text\\."
+For a precise check, send the link, seller username, or offer text: returns, prepayment, withdrawals\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=ru > high_risk level 1`] = `
@@ -94,10 +96,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > safe level 1`] = `
 ⚪ Явных признаков скама не найдено
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Кратко*
-Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+Номер выглядит как обычный телефонный номер\\. Сам номер не доказывает риск; важно, что у вас просили в разговоре\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Что заметил*
-• Корректный узбекский номер"
+• Корректный узбекский номер
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Что делать*
+• Если номер звонил и просил код, деньги или приложение — кратко опишите разговор\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=ru > suspicious level 1`] = `
@@ -120,14 +125,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > unknown level 1`] = `
 
 🟡 Недостаточно данных для точной оценки
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Кратко*
+Вижу тему крипто/инвестиций, но не вижу ссылки, номера, просьбы оплатить или кода\\. Пока это не похоже на явный скам\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Что заметил*
 • Отправитель неизвестен
-• Фейковый банк в Telegram
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-✅ *Что делать*
-• Я вижу тему крипто/инвестиций, но без ссылки или номера точный вывод невозможен\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-Для точной оценки нужно больше данных\\. Пришлите ссылку, номер или полный текст сообщения\\."
+Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=uz > high_risk level 1`] = `
@@ -159,10 +163,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > safe level 1`] = `
 ⚪ Aniq firibgarlik belgilari topilmadi
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Qisqacha*
-Номер зарегистрирован в Узбекистане, явных рисков нет\\.
+Raqam oddiy telefon raqamiga o'xshaydi\\. Raqamning o'zi xavfni isbotlamaydi; suhbatda sizdan nima so'ralgani muhim\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Nimani payqadim*
-• To‘g‘ri O‘zbek raqami"
+• To‘g‘ri O‘zbek raqami
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+✅ *Nima qilish*
+• Agar raqam qo'ng'iroq qilib kod, pul yoki ilova so'ragan bo'lsa, suhbatni qisqacha yozing\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=uz > suspicious level 1`] = `
@@ -185,12 +192,11 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > unknown level 1`] = `
 
 🟡 Aniq baho berish uchun ma'lumot yetarli emas
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+💡 *Qisqacha*
+Kripto/investitsiya mavzusini ko'ryapman, lekin havola, raqam, to'lov yoki kod so'rovi ko'rinmayapti\\. Hozircha bu aniq firibgarlikka o'xshamaydi\\.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Nimani payqadim*
 • Yuboruvchi noma’lum
-• Telegram'da soxta bank
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-✅ *Nima qilish*
-• Kripto/investitsiya mavzusini ko'ryapman, lekin havola yoki raqamsiz aniq xulosa chiqarib bo'lmaydi\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-Aniq baho berish uchun ko'proq ma'lumot kerak\\. Havola, raqam yoki to'liq xabar matnini yuboring\\."
+Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish\\."
 `;

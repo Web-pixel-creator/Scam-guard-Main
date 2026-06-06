@@ -96,6 +96,49 @@ const THIN_SEPARATOR = escapeMarkdownV2("┈┈┈┈┈┈┈┈┈┈┈┈┈
 /** Telegram message character limit. */
 const TELEGRAM_MAX_CHARS = 4096;
 
+type NeutralContext = "crypto" | "qr_menu" | "delivery" | "phone";
+
+const NEUTRAL_CONTEXT_BRIEF_KEY: Record<NeutralContext, BotStringKey> = {
+  crypto: "brief_unknown_crypto",
+  qr_menu: "brief_unknown_qr_menu",
+  delivery: "brief_unknown_delivery",
+  phone: "brief_unknown_phone",
+};
+
+const NEUTRAL_CONTEXT_PROMPT_KEY: Record<NeutralContext, BotStringKey> = {
+  crypto: "prompt_more_context_crypto",
+  qr_menu: "prompt_more_context_qr_menu",
+  delivery: "prompt_more_context_delivery",
+  phone: "prompt_more_context_phone",
+};
+
+const CRYPTO_CONTEXT_RE =
+  /(крипт|биткоин|bitcoin|binance|trading|трейд|инвест|доходн|прибыл|forex|crypto|investment|investits|kripto|daromad|foyda)/i;
+const QR_MENU_CONTEXT_RE =
+  /(меню|ресторан|кафе|акци[яи]|лояльност|qr.{0,30}(меню|info|информац)|restaurant|menu|promo|loyalty|restoran|aksiya|ma'lumot)/i;
+const DELIVERY_CONTEXT_RE =
+  /(доставк|заказ|выдач|пункт|курьер|почт|delivery|pickup|order|courier|yetkazib|buyurtma|topshirish)/i;
+
+function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
+  if (result.level !== "unknown" && result.level !== "safe") return null;
+  if (result.verifiedContact) return null;
+
+  const haystack = `${result.type}\n${result.display}\n${result.explanation ?? ""}`;
+
+  if (DELIVERY_CONTEXT_RE.test(haystack)) return "delivery";
+  if (QR_MENU_CONTEXT_RE.test(haystack)) return "qr_menu";
+  if (CRYPTO_CONTEXT_RE.test(haystack)) return "crypto";
+  if (
+    result.type === "phone" ||
+    result.reasons.includes("valid_uz_phone") ||
+    result.reasons.includes("non_uz_phone")
+  ) {
+    return "phone";
+  }
+
+  return null;
+}
+
 // ── Section Sub-Renderers ───────────────────────────────────────────────────
 
 /**
@@ -137,11 +180,16 @@ function renderVerdict(result: RunCheckResult, lang: Lang): string {
  */
 function renderBrief(result: RunCheckResult, lang: Lang): string {
   let content: string;
+  const neutralContext = detectNeutralContext(result);
+  const truncateOptions =
+    result.level === "unknown" ? { maxLines: 3, maxChars: 190 } : { maxLines: 4, maxChars: 230 };
 
-  if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
-    content = bt("hosted_platform_explanation", lang);
+  if (neutralContext) {
+    content = bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang);
+  } else if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
+    content = truncateExplanation(bt("hosted_platform_explanation", lang), truncateOptions);
   } else if (result.explanation !== null) {
-    content = truncateExplanation(result.explanation);
+    content = truncateExplanation(result.explanation, truncateOptions);
   } else {
     return "";
   }
@@ -168,7 +216,15 @@ function renderReasons(result: RunCheckResult, lang: Lang): string {
  * Renders context-aware advice as a bullet list (max 3 items).
  */
 function renderAdvice(result: RunCheckResult, lang: Lang): string {
-  const adviceItems = filterAdvice(result.level, result.reasons, lang);
+  let adviceItems = filterAdvice(result.level, result.reasons, lang);
+
+  if (
+    adviceItems.length === 0 &&
+    result.level === "safe" &&
+    detectNeutralContext(result) === "phone"
+  ) {
+    adviceItems = [bt("prompt_more_context_phone", lang)];
+  }
 
   if (adviceItems.length === 0) return "";
 
@@ -269,7 +325,10 @@ function renderWhereReport(result: RunCheckResult, lang: Lang): string {
  * Renders the "send more context" prompt for unknown level.
  */
 function renderMoreContext(result: RunCheckResult, lang: Lang): string {
-  const content = bt("prompt_more_context", lang);
+  const neutralContext = detectNeutralContext(result);
+  const content = neutralContext
+    ? bt(NEUTRAL_CONTEXT_PROMPT_KEY[neutralContext], lang)
+    : bt("prompt_more_context", lang);
   return escapeMarkdownV2(content);
 }
 

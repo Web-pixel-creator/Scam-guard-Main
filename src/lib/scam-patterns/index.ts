@@ -11,10 +11,28 @@ import type { ReasonCode } from "@/lib/risk/rules";
 import { SCAM_PATTERNS } from "./patterns";
 import type { ScamPattern } from "./types";
 
+const WEAK_CONTEXT_CODES = new Set<ReasonCode>([
+  "unknown_sender",
+  "new_telegram_account",
+  "valid_uz_phone",
+  "non_uz_phone",
+  "hosted_app_platform",
+]);
+
 /** Find patterns that match a set of reason codes. */
 export function findMatchingPatterns(codes: ReasonCode[]): ScamPattern[] {
   if (codes.length === 0) return [];
-  return SCAM_PATTERNS.filter((p) => p.reasonCodes.some((rc) => codes.includes(rc)));
+  const codeSet = new Set(codes);
+
+  return SCAM_PATTERNS.filter((p) => {
+    const strongCodes = p.reasonCodes.filter((rc) => !WEAK_CONTEXT_CODES.has(rc));
+
+    if (strongCodes.length > 0) {
+      return strongCodes.some((rc) => codeSet.has(rc));
+    }
+
+    return p.reasonCodes.some((rc) => codeSet.has(rc));
+  });
 }
 
 /** Get a single pattern by ID. */
