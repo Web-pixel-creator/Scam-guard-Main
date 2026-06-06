@@ -29,13 +29,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > safe level 1`] = `
 ⚪ No obvious scam signs found
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Brief*
-The number looks like a regular phone number\\. The number alone does not prove risk; what they asked for in the conversation matters\\.
+This looks like a regular Uzbek phone number\\. I cannot name the owner without an official source\\. Risk depends on what they asked during the call\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *What I noticed*
 • Valid Uzbek phone
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *What to do*
-• If the number called and asked for a code, money, or an app, briefly describe the call\\."
+• Write what they asked for: SMS code, card data, transfer, APK, QR login, or remote access\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=en > suspicious level 1`] = `
@@ -96,13 +96,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > safe level 1`] = `
 ⚪ Явных признаков скама не найдено
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Кратко*
-Номер выглядит как обычный телефонный номер\\. Сам номер не доказывает риск; важно, что у вас просили в разговоре\\.
+Похоже на обычный узбекский номер\\. Я не могу назвать владельца без официального источника\\. Риск зависит от того, что просили во время звонка\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Что заметил*
 • Корректный узбекский номер
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *Что делать*
-• Если номер звонил и просил код, деньги или приложение — кратко опишите разговор\\."
+• Напишите, что просили: SMS\\-код, данные карты, перевод, APK, QR\\-вход или удалённый доступ\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=ru > suspicious level 1`] = `
@@ -163,13 +163,13 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > safe level 1`] = `
 ⚪ Aniq firibgarlik belgilari topilmadi
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Qisqacha*
-Raqam oddiy telefon raqamiga o'xshaydi\\. Raqamning o'zi xavfni isbotlamaydi; suhbatda sizdan nima so'ralgani muhim\\.
+Bu oddiy O'zbekiston raqamiga o'xshaydi\\. Rasmiy manbasiz egasini ayta olmayman\\. Xavf qo'ng'iroqda sizdan nima so'ralganiga bog'liq\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 📌 *Nimani payqadim*
 • To‘g‘ri O‘zbek raqami
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *Nima qilish*
-• Agar raqam qo'ng'iroq qilib kod, pul yoki ilova so'ragan bo'lsa, suhbatni qisqacha yozing\\."
+• Nima so'rashganini yozing: SMS\\-kod, karta ma'lumoti, pul o'tkazma, APK, QR\\-login yoki masofaviy kirish\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=uz > suspicious level 1`] = `

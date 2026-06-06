@@ -432,6 +432,57 @@ describe("formatCheckResult — known reports line (R4.11)", () => {
   });
 });
 
+describe("formatCheckResult — Phone Directory v1", () => {
+  it("shows verified contact details and spoofing warning", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        level: "safe",
+        score: 0,
+        reasons: ["valid_uz_phone"],
+        verifiedContact: {
+          orgName: "Капиталбанк",
+          orgType: "bank",
+          source: "kapitalbank.uz (official contacts)",
+          display: "1340",
+          contactType: "short_code",
+          verificationLevel: "high",
+          description: "Колл-центр для физ. лиц",
+        },
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("официальном справочнике"));
+    expect(text).toContain(escapeMarkdownV2("Капиталбанк"));
+    expect(text).toContain(escapeMarkdownV2("Контакт: 1340"));
+    expect(text).toContain(escapeMarkdownV2("не доказывает, что входящий звонок безопасен"));
+  });
+
+  it("does not infer an owner for unknown Uzbek phone numbers", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        display: "+998 90 ••• 67",
+        level: "safe",
+        score: 0,
+        reasons: ["valid_uz_phone"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(
+      escapeMarkdownV2("не могу назвать владельца без официального источника"),
+    );
+    expect(text).toContain(escapeMarkdownV2("SMS-код"));
+    expect(text).toContain(escapeMarkdownV2("удалённый доступ"));
+    expect(text).not.toContain("Uzonline");
+    expect(text).not.toContain("Uztelecom");
+    expect(text).not.toContain("901234567");
+  });
+});
+
 describe("formatCheckResult — header (R4.5, R4.4)", () => {
   it("содержит эмодзи уровня и метки обнаруженных reason-кодов", () => {
     const result = baseResult({

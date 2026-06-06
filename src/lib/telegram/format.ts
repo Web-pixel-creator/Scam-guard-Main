@@ -154,11 +154,23 @@ function renderRiskHeader(result: RunCheckResult, lang: Lang): string {
 
   // Verified contact badge (D-011).
   if (result.verifiedContact) {
-    const orgName = result.verifiedContact.orgName;
+    const contact = result.verifiedContact;
+    const orgName = contact.orgName;
+    const levelKey: BotStringKey =
+      contact.verificationLevel === "high" ? "verified_level_high" : "verified_level_medium";
     if (result.level === "high_risk" || result.level === "suspicious") {
       parts.push(escapeMarkdownV2(bt("verified_with_danger", lang, { org: orgName })));
     } else {
       parts.push(escapeMarkdownV2(bt("verified_match", lang, { org: orgName })));
+      parts.push(
+        escapeMarkdownV2(
+          bt("verified_directory_details", lang, {
+            contact: contact.display,
+            description: contact.description,
+            level: bt(levelKey, lang),
+          }),
+        ),
+      );
       parts.push(escapeMarkdownV2(bt("verified_spoofing_warning", lang)));
     }
   }

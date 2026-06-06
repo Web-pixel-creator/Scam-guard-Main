@@ -1,0 +1,5 @@
+{
+  "workflow": "requirements-first",
+  "feature": "phone-directory-v1",
+  "status": "ready-for-implementation"
+}
