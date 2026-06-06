@@ -32,4 +32,4 @@
 - [x] Run targeted tests.
 - [x] Run full tests, typecheck, lint, build and audit.
 - [x] Run diff-focused security scan.
-- [ ] Open PR, merge after CI, deploy to Railway and smoke-test production.
+- [x] Open PR, merge after CI, deploy to Railway and smoke-test production.
