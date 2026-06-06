@@ -246,7 +246,12 @@ describe("panic:N — scenario text sent as a new message", () => {
 
     expect(h.sendCalls).toHaveLength(1);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:contacts", "panicctx:script", "panicctx:trusted_person"]),
+      expect.arrayContaining([
+        "panicctx:more",
+        "panicctx:contacts",
+        "panicctx:script",
+        "panicctx:trusted_person",
+      ]),
     );
   });
 });
@@ -265,7 +270,7 @@ describe("livecall:tell_family — sends family-sharing guidance", () => {
     expect(h.sendCalls[0].text).toContain("Позовите человека");
     expect(h.sendCalls[0].text).toContain("побудь со мной");
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:contacts", "panicctx:full"]),
+      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "panicctx:full"]),
     );
     expect(h.sendCalls[0].text).not.toBe(bt("live_call_hangup", "ru"));
   });

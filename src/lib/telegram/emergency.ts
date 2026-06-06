@@ -894,13 +894,13 @@ const FOLLOWUP_SECRET_RE =
 const FOLLOWUP_LONG_TEXT_LIMIT = 220;
 
 const FOLLOWUP_CONTACTS_RE =
-  /(?:номер|телефон|позвон|контакт)[\s\S]{0,35}(?:банк|карта)|(?:банк|карты?)[\s\S]{0,35}(?:номер|телефон|контакт|позвон)|(?:bank|card)[\s\S]{0,35}(?:number|phone|contact|call)|(?:call|phone)[\s\S]{0,35}(?:bank|card)|(?:bank|karta)[\s\S]{0,35}(?:raqam|telefon|qo'ng'iroq|qongiroq)/i;
+  /(?:номер|телефон|позвон|контакт|горяч[а-я]*\s+лини[а-я]*|куда\s+звонить|кому\s+звонить)[\s\S]{0,45}(?:банк|карта|служба|оператор)|(?:банк|банка|банку|карты?|служба)[\s\S]{0,45}(?:номер|телефон|контакт|позвон|горяч[а-я]*\s+лини[а-я]*|куда\s+звонить|кому\s+звонить)|(?:bank|card|hotline|support)[\s\S]{0,45}(?:number|phone|contact|call|hotline)|(?:call|phone|contact)[\s\S]{0,45}(?:bank|card|support)|(?:bank|karta)[\s\S]{0,45}(?:raqam|telefon|qo'ng'iroq|qongiroq)/i;
 const FOLLOWUP_SCRIPT_RE =
-  /(?:что|как)\s+(?:сказать|ответить)|(?:текст|фраза|фразу|скрипт|слова)\b|what\s+to\s+say|script|nima\s+(?:deyish|aytish)|qanday\s+(?:aytaman|gaplashaman)/i;
+  /(?:что|как)\s+(?:сказать|ответить|говорить|объяснить)|(?:текст|фраза|фразу|скрипт|слова)\b|what\s+to\s+say|what\s+should\s+i\s+say|script|nima\s+(?:deyish|aytish)|qanday\s+(?:aytaman|gaplashaman)/i;
 const FOLLOWUP_TRUSTED_RE =
-  /(?:близк|родствен|семь|семья|мам|пап|сын|дочь|пожил|пенсион|доверя)|(?:family|relative|trusted|elder|parent|mother|father|son|daughter)|(?:yaqin|qarindosh|ishonchli|ota|ona|farzand|keks)/i;
+  /(?:близк|родствен|семь|семья|мам|пап|сын|дочь|пожил|пенсион|доверя|нервнича|волнуюсь|страшно|паник|один|одна|позвать|позови|со\s+мной|рядом)|(?:family|relative|trusted|elder|parent|mother|father|son|daughter|nervous|scared|panic|alone)|(?:yaqin|qarindosh|ishonchli|ota|ona|farzand|keks|qo'rq|xavotir|yolg'iz)/i;
 const FOLLOWUP_MORE_RE =
-  /(?:что|что-то)\s+(?:еще|ещё|дальше)|(?:дальше|следующий\s+шаг|посовет|что\s+делать)|what\s+next|next\s+steps|more\s+advice|what\s+else|yana\s+nima|keyin\s+nima|nima\s+qil/i;
+  /(?:что|что-то)\s+(?:еще|ещё|дальше)|(?:что\s+мне\s+делать|что\s+делать\s+дальше|как\s+быть|дальше|следующий\s+шаг|посовет|подскажи|помоги\s+дальше)|what\s+next|next\s+steps|more\s+advice|what\s+else|what\s+should\s+i\s+do|yana\s+nima|keyin\s+nima|nima\s+qil/i;
 
 const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = {
   more: { ru: "🧭 Что дальше", uz: "🧭 Keyingi qadam", en: "🧭 Next step" },
@@ -986,8 +986,8 @@ export function classifyEmergencyFollowUp(
   if (!normalized) return null;
 
   if (FOLLOWUP_CONTACTS_RE.test(normalized)) return { action: "contacts", panicId };
-  if (FOLLOWUP_SCRIPT_RE.test(normalized)) return { action: "script", panicId };
   if (FOLLOWUP_TRUSTED_RE.test(normalized)) return { action: "trusted_person", panicId };
+  if (FOLLOWUP_SCRIPT_RE.test(normalized)) return { action: "script", panicId };
   if (FOLLOWUP_MORE_RE.test(normalized)) return { action: "more", panicId };
   return null;
 }
@@ -995,19 +995,20 @@ export function classifyEmergencyFollowUp(
 export function buildEmergencyFollowUpKeyboard(lang: Lang): InlineKeyboard {
   return [
     [
+      { text: FOLLOWUP_BUTTONS.more[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}more` },
       {
         text: FOLLOWUP_BUTTONS.contacts[lang],
         callback_data: `${PANIC_CONTEXT_CB_PREFIX}contacts`,
       },
-      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
     ],
     [
+      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
       {
         text: FOLLOWUP_BUTTONS.trusted_person[lang],
         callback_data: `${PANIC_CONTEXT_CB_PREFIX}trusted_person`,
       },
-      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
     ],
+    [{ text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` }],
   ];
 }
 

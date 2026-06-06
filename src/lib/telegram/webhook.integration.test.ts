@@ -715,7 +715,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("С другого телефона");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:contacts", "panicctx:trusted_person"]),
+      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "panicctx:trusted_person"]),
     );
   });
 
@@ -728,7 +728,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     h.sendCalls.length = 0;
 
     const response = await handleTelegramWebhook(
-      webhookRequest(textUpdate({ userId, chatId: 5121, text: "дай номер банка" })),
+      webhookRequest(textUpdate({ userId, chatId: 5121, text: "Дай мне номер банка" })),
     );
 
     expect(response.status).toBe(200);
@@ -736,6 +736,25 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("Официальный обратный звонок");
     expect(h.sendCalls[0].text).toContain("Не звоните по номеру");
     expect(h.sendCalls[0].text).toContain("1340");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("answers stress wording with trusted-person guidance after a panic scenario", async () => {
+    const userId = 1124;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5124, data: "panic:6", id: "cb-stress" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId: 5124, text: "Я нервничаю, позови близкого" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Позовите человека");
+    expect(h.sendCalls[0].text).toContain("побудь со мной");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
   });
 
