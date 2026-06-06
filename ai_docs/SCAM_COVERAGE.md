@@ -42,6 +42,8 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 21  | Fake job offer                               | future pattern/content                                                   | Planned |
 | 22  | Malicious Telegram GIF/file bait             | `malicious_file_bait`, APK coverage and out-of-scope handling            | Covered |
 | 23  | Fake boss/official/workplace request         | `fake_boss_request` + personal-data rules                                | Covered |
+| 24  | Telegram account deletion / "Cancel" phishing | `telegram_account_takeover_phishing`                                     | Covered |
+| 25  | Card/SIM/account dropper recruitment         | `dropper_recruitment`                                                    | Covered |
 
 ## Research feed: pressauz
 
@@ -52,6 +54,10 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 - fake manager/boss/official messages requesting personal data (`fake_boss_request`);
 - APK "security" apps that steal payment data;
 - fake delivery/service/payment intermediaries (`payment` detector, `fake_delivery_payment`, `payment_before_service`) and offline social-engineering scripts.
+- Telegram account-deletion/cancel phishing (`telegram_account_takeover_phishing`), based on the public channel post at `https://t.me/s/pressauz` and related pressa.uz coverage patterns;
+- card/SIM/account transfer or "dropper" recruitment (`dropper_recruitment`), based on pressa.uz coverage of card/SIM/account transfer risks:
+  - `https://pressa.uz/ugolovnoe-nakazanie-za-peredachu-bankovskih-kart/`
+  - `https://pressa.uz/v-uzbekistane-vvedut-otvetstvennost-za-peredachu-bankovskih-kart-i-sim-kart-moshennikam/`
 
 Before adding a new detection rule, summarize the tactic, map it to a reason code, add RU/UZ/EN labels/advice, and write tests.
 

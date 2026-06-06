@@ -16,7 +16,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `supabase/config.toml`          | Supabase project config.                                                                                                            |
 | `supabase/migrations/*.sql`     | DB schema history.                                                                                                                  |
 | `.kiro/specs/telegram-bot-mvp/` | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                            |
-| `.kiro/specs/*/`                | Feature specs for Telegram UX, brand impersonation, meta intent, image intelligence, menu/result polish and emergency copilot work. |
+| `.kiro/specs/*/`                | Feature specs for Telegram UX, brand impersonation, meta intent, image intelligence, menu/result polish, emergency copilot, phone directory and research-feed work. |
 | `.lovable/project.json`         | Historical template marker only; not a production runtime target.                                                                   |
 
 ## `src/` entry points

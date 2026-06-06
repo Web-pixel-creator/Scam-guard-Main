@@ -291,3 +291,101 @@ describe("integration — research-feed codes reach expected risk levels", () =>
     expect(level).toBe("high_risk");
   });
 });
+
+describe("evaluateText - telegram_account_takeover_phishing (research feed v1)", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU Telegram deletion cancel button",
+      text: "Ваш Telegram аккаунт будет удален. Нажмите кнопку Отмена, чтобы сохранить профиль.",
+    },
+    {
+      name: "RU profile deletion link",
+      text: "Заявка на удаление профиля Telegram уже создана, перейдите по ссылке и введите код.",
+    },
+    {
+      name: "UZ Telegram account cancel",
+      text: "Telegram akkaunt o'chiriladi. Bekor qilish uchun linkga o'ting va kodni kiriting.",
+    },
+    {
+      name: "EN Telegram deletion cancel",
+      text: "Your Telegram account deletion request is active. Press Cancel and enter the verification code.",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    {
+      name: "RU general question",
+      text: "В Telegram действительно можно удалить аккаунт через настройки?",
+    },
+    {
+      name: "RU account safety article",
+      text: "Как защитить аккаунт Telegram: включите облачный пароль и проверьте устройства.",
+    },
+    {
+      name: "UZ neutral settings",
+      text: "Telegram akkaunt sozlamalarida qurilmalarni tekshirish mumkin.",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("telegram_account_takeover_phishing");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("telegram_account_takeover_phishing");
+  });
+
+  it("reaches high_risk on its own", () => {
+    expect(scoreFromCodes(["telegram_account_takeover_phishing"]).level).toBe("high_risk");
+  });
+});
+
+describe("evaluateText - dropper_recruitment (research feed v1)", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU sell bank card",
+      text: "Оформи банковскую карту на себя и передай нам доступ, заплатим 200 тысяч сум.",
+    },
+    {
+      name: "RU SIM card rent",
+      text: "Сдам SIM-карту и аккаунт за вознаграждение, нужен только номер.",
+    },
+    {
+      name: "UZ card for money",
+      text: "Karta ochib ber, hisobni topshir, evaziga pul beramiz.",
+    },
+    {
+      name: "EN wallet rent",
+      text: "Open a bank card and crypto wallet for us, we pay a reward.",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    {
+      name: "RU safety warning",
+      text: "Не передавайте банковскую карту, SIM-карту или аккаунт третьим лицам.",
+    },
+    {
+      name: "RU family card use",
+      text: "Я дал карту супруге для покупки продуктов.",
+    },
+    {
+      name: "UZ neutral bank card",
+      text: "Bank kartamni yangi raqamga bog'lashim kerak.",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("dropper_recruitment");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("dropper_recruitment");
+  });
+
+  it("is suspicious without changing global thresholds", () => {
+    const { score, level } = scoreFromCodes(["dropper_recruitment"]);
+    expect(score).toBe(35);
+    expect(level).toBe("suspicious");
+  });
+});

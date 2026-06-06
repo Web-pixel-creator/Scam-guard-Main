@@ -1,5 +1,12 @@
 # Changelog (AI memory)
 
+## 2026-06-06 - Scam Research Feed v1
+
+- Added `.kiro/specs/scam-research-feed-v1/`.
+- Added deterministic rules for Telegram account deletion/"Cancel" phishing and card/SIM/account dropper recruitment.
+- Added context-specific Telegram advice so these cases do not fall back to unrelated generic guidance.
+- Updated scam coverage and open-task docs with source-backed research-feed handling.
+
 ## 2026-06-06 - Result Message UX live hardening
 
 - Tightened Telegram result messages after live feedback: unknown crypto/investment, restaurant QR/menu, delivery SMS and phone checks now render shorter contextual briefs.

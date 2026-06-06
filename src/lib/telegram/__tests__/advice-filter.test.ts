@@ -98,6 +98,26 @@ describe("filterAdvice", () => {
     });
   });
 
+  describe("research feed v1 advice", () => {
+    it("uses account takeover advice for Telegram deletion phishing", () => {
+      const result = filterAdvice("high_risk", ["telegram_account_takeover_phishing"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("Telegram");
+      expect(result[0]).toContain("Устройства");
+      expect(result[0]).not.toContain("безопасный счёт");
+    });
+
+    it("uses card/SIM/account transfer advice for dropper recruitment", () => {
+      const result = filterAdvice("suspicious", ["dropper_recruitment"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("карту");
+      expect(result[0]).toContain("SIM");
+      expect(result[0]).not.toContain("APK");
+    });
+  });
+
   describe("trilingual consistency", () => {
     it("returns same number of items for ru, uz, and en", () => {
       const reasons = [

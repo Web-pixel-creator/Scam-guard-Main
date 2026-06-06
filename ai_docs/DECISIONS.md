@@ -83,3 +83,12 @@ the app sanitizes it, merges deterministic risk hints from visible text, and
 builds a rules-safe input. Benign restaurant/menu QR and delivery pickup SMS
 screenshots can be shown as safe only when no reason codes match. QR login,
 QR payment, OTP, APK and card-data requests still trigger normal scoring.
+
+## D-018 - Research feed v1 remains narrow and test-backed
+
+Public news/Telegram feeds are research input, not product copy. The first
+v1 pack adds two generalized tactics only after tests: Telegram account
+deletion/"Cancel" phishing (`telegram_account_takeover_phishing`, 50) and
+card/SIM/account transfer recruitment (`dropper_recruitment`, 35). The first is
+high-risk because it is an account-takeover action request. The second is
+suspicious by itself and uses legally soft wording about financial/legal risk.
