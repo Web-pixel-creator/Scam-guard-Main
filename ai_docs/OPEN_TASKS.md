@@ -4,7 +4,7 @@
 
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
-- **Telegram account metadata enrichment is shallow:** `evaluateTelegram` covers unknown sender, suspicious private invites and betting/prediction promo context, but no public metadata lookup/age/reputation layer exists yet.
+- **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, but Telegram Bot API does not give reliable account age, hidden scam labels, report counts or spam history to this bot.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
@@ -13,7 +13,8 @@
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
-- [ ] Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.
+- [x] ~~Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.~~ Done in Telegram Public Metadata v1.
+- [ ] Add moderated Telegram/phone reputation directory before showing community report labels on public profiles or numbers.
 - [ ] Production operational verification on Railway: endpoint responds, but confirm billing, env secrets, Supabase migrations, webhook registration and `/start` live flow.
 
 ## Research feed

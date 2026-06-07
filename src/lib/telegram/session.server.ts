@@ -41,7 +41,13 @@ export interface ReportDraft {
   lastCheck?: LastCheckSnapshot;
 }
 
-export type LastCheckContext = "qr_menu" | "delivery" | "crypto" | "phone" | "generic";
+export type LastCheckContext =
+  | "qr_menu"
+  | "delivery"
+  | "crypto"
+  | "phone"
+  | "telegram_profile"
+  | "generic";
 
 export interface LastCheckSnapshot {
   level: RiskLevel;

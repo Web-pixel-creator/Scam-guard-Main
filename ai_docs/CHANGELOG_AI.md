@@ -1,5 +1,13 @@
 # Changelog (AI memory)
 
+## 2026-06-07 - Telegram Public Metadata v1
+
+- Added `.kiro/specs/telegram-public-metadata-v1/`.
+- Added Bot API `getChatInfo` and Telegram-channel enrichment for public `@username` / `t.me/...` checks.
+- Private invite/internal Telegram links now get an explicit limitation brief instead of a generic answer.
+- Added `telegram_profile` last-check context so short follow-ups stay contextual.
+- Suspicious Telegram results can render a short `brief` block when an explanation is available.
+
 ## 2026-06-07 - Telegram Media & Link Intelligence v1
 
 - Added `.kiro/specs/telegram-media-link-intelligence-v1/`.

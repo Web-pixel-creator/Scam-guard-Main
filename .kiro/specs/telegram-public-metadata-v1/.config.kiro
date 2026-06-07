@@ -1,0 +1,6 @@
+{
+  "name": "telegram-public-metadata-v1",
+  "type": "feature",
+  "workflow": "requirements-first",
+  "status": "implementation"
+}

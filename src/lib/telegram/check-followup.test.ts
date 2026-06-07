@@ -142,4 +142,16 @@ describe("last check follow-up router", () => {
     expect(snapshot.context).toBe("phone");
     expect(JSON.stringify(snapshot)).not.toContain("+998");
   });
+
+  it("answers confidence questions after Telegram profile checks with profile-specific limits", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ type: "telegram" }), now);
+
+    expect(snapshot.context).toBe("telegram_profile");
+    const action = classifyLastCheckFollowUp("Точно?", scenarioWith(snapshot), now);
+    expect(action).toBe("confidence");
+    expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain(
+      "по Telegram-профилю или каналу",
+    );
+  });
 });

@@ -92,3 +92,12 @@ deletion/"Cancel" phishing (`telegram_account_takeover_phishing`, 50) and
 card/SIM/account transfer recruitment (`dropper_recruitment`, 35). The first is
 high-risk because it is an account-takeover action request. The second is
 suspicious by itself and uses legally soft wording about financial/legal risk.
+
+## D-019 - Telegram public metadata is presentation-only
+
+Public `@username` and `t.me/...` checks may call Bot API `getChat` after the
+rules-first verdict. The result can improve the explanation, but it must not
+change score/level/reasons and must not invent account age, hidden scam labels,
+spam history or report counts. Unknown or inaccessible Telegram targets should
+ask for visible evidence: message text, screenshot, URL, payment request or code
+request.

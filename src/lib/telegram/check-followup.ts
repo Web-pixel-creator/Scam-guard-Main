@@ -66,6 +66,7 @@ export function detectLastCheckContext(result: RunCheckResult): LastCheckContext
   ) {
     return "phone";
   }
+  if (result.type === "telegram") return "telegram_profile";
   return "generic";
 }
 
@@ -147,6 +148,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "phone") {
       return `Raqamning o'zi yakuniy dalil emas: ${levelText(snapshot.level, lang)}.\n\nAgar suhbatda kod, pul, karta yoki ilova so'ralgan bo'lsa, nima deyishganini qisqacha yozing.`;
     }
+    if (snapshot.context === "telegram_profile") {
+      return `100% kafolat bera olmayman: Telegram profili yoki kanal bo'yicha faqat ochiq belgilar ko'rinadi. Hozirgi natija: ${levelText(snapshot.level, lang)}.\n\nMuhimi profil emas, u nima so'rayotgani: kod, pul, karta, APK yoki bosim bo'lsa — to'xtang va xabarni yuboring.`;
+    }
     return `100% kafolat emas: men faqat ko'rinib turgan belgilarni tekshiraman. Hozirgi natija bo'yicha ${levelText(snapshot.level, lang)}.\n\nAgar kod, karta, APK, login yoki to'lov so'ralsa — to'xtang va shu xabarni yuboring.`;
   }
 
@@ -160,6 +164,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "phone") {
       return `The number alone is not final proof: ${levelText(snapshot.level, lang)}.\n\nIf the caller asked for a code, money, card data, or an app, briefly describe the call.`;
     }
+    if (snapshot.context === "telegram_profile") {
+      return `I cannot guarantee it 100%: for a Telegram profile or channel I can only check visible/public signs. Previous result: ${levelText(snapshot.level, lang)}.\n\nWhat matters is the request: codes, money, card data, APKs, or pressure are the real danger signs.`;
+    }
     return `Not a 100% guarantee: I check only visible risk signs. In the previous result, ${levelText(snapshot.level, lang)}.\n\nIf someone asks for a code, card data, APK, login, or payment, stop and send that message.`;
   }
 
@@ -171,6 +178,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
   if (snapshot.context === "phone") {
     return `Сам номер не даёт 100% вывода: ${levelText(snapshot.level, lang)}.\n\nЕсли в разговоре просили код, деньги, данные карты или приложение — кратко опишите, что именно сказали.`;
+  }
+  if (snapshot.context === "telegram_profile") {
+    return `Не могу гарантировать на 100%: по Telegram-профилю или каналу я вижу только открытые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nГлавное — не сам профиль, а что он просит: код, деньги, карту, APK или давление. Если это есть, остановитесь и пришлите сообщение.`;
   }
   return `Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nЕсли просят код, карту, APK, логин или оплату — остановитесь и пришлите это сообщение.`;
 }
@@ -186,6 +196,9 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "phone") {
       return "Keyingi qadam:\n1. Raqamga qarab xulosa qilmang.\n2. Agar qo'ng'iroq bo'lgan bo'lsa, nima so'rashganini yozing.\n3. Kod, pul yoki ilova so'ralsa — suhbatni to'xtating va rasmiy raqamga qo'ng'iroq qiling.";
     }
+    if (snapshot.context === "telegram_profile") {
+      return "Keyingi qadam:\n1. Profilga qarab yakuniy xulosa qilmang.\n2. U so'ragan narsani tekshiring: kod, pul, karta, APK yoki havola.\n3. Shubhali xabar, skrinshot yoki linkni alohida yuboring.";
+    }
     return "Keyingi qadam:\n1. Agar havola, kod, karta yoki to'lov bo'lmasa — kuzating.\n2. Yangi xabar yoki so'rov paydo bo'lsa, alohida yuboring.\n3. Shoshirishsa yoki qo'rqitishsa — bu xavf belgisi.";
   }
 
@@ -199,6 +212,9 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "phone") {
       return "Next step:\n1. Do not judge by the number alone.\n2. If it was a call, write what they asked you to do.\n3. If they ask for a code, money, or an app — hang up and call an official number.";
     }
+    if (snapshot.context === "telegram_profile") {
+      return "Next step:\n1. Do not judge by the profile alone.\n2. Check what it asks for: codes, money, card data, APKs, or links.\n3. Send the suspicious message, screenshot, or link separately.";
+    }
     return "Next step:\n1. If there is no link, code, card, or payment request, watch calmly.\n2. Send any new message or request separately.\n3. Pressure or threats are a warning sign.";
   }
 
@@ -210,6 +226,9 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
   if (snapshot.context === "phone") {
     return "Следующий шаг:\n1. Не делайте вывод только по номеру.\n2. Если был звонок — напишите, что именно просили сделать.\n3. Если просят код, деньги или приложение — завершите разговор и звоните по официальному номеру.";
+  }
+  if (snapshot.context === "telegram_profile") {
+    return "Следующий шаг:\n1. Не делайте вывод только по профилю.\n2. Смотрите, что именно он просит: код, деньги, карту, APK или ссылку.\n3. Подозрительное сообщение, скриншот или ссылку пришлите отдельно.";
   }
   return "Следующий шаг:\n1. Если нет ссылки, кода, карты или оплаты — спокойно наблюдайте.\n2. Новое сообщение или просьбу пришлите отдельно.\n3. Давление, срочность и угрозы — тревожный признак.";
 }

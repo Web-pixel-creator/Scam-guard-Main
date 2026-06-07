@@ -34,7 +34,7 @@ export type RiskTemplate = SectionId[];
 export const TEMPLATES: Record<RiskLevel, RiskTemplate> = {
   safe: ["verdict", "brief", "what_noticed", "safe_steps"],
   unknown: ["verdict", "brief", "what_noticed", "safe_steps", "more_context_prompt"],
-  suspicious: ["verdict", "reasons", "safe_steps"],
+  suspicious: ["verdict", "brief", "reasons", "safe_steps"],
   high_risk: ["verdict", "action_now", "why_dangerous", "where_report"],
 };
 

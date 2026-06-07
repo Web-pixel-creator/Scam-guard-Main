@@ -51,6 +51,7 @@ import {
   hasUsableImageEvidence,
   isBenignImageContext,
 } from "@/lib/risk/image-intelligence";
+import { enrichTelegramPublicMetadata } from "@/lib/telegram/public-metadata.server";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -186,7 +187,8 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
         channel: CHANNEL,
       }),
     );
-    await sendCheckResult(ctx, result);
+    const enriched = await enrichTelegramPublicMetadata(trimmed, result, lang);
+    await sendCheckResult(ctx, enriched);
   });
 }
 

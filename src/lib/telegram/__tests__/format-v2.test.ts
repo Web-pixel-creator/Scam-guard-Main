@@ -35,7 +35,7 @@ const suspiciousFixture: RunCheckResult = {
   level: "suspicious",
   score: 35,
   reasons: ["suspicious_short_link", "weird_domain"],
-  explanation: "Ссылка ведёт на подозрительный домен.",
+  explanation: null,
   knownReports: 2,
   verifiedContact: null,
   brandEvidence: [],
@@ -83,5 +83,18 @@ describe("formatCheckResult — UX v2 snapshots", () => {
       const result = formatCheckResult(fixtures.high_risk, lang);
       expect(result.text).toMatchSnapshot();
     });
+  });
+
+  it("renders a short brief for suspicious results when an explanation is available", () => {
+    const result = formatCheckResult(
+      {
+        ...suspiciousFixture,
+        explanation: "Ссылка ведёт на подозрительный домен.",
+      },
+      "ru",
+    );
+
+    expect(result.text).toContain("💡 *Кратко*");
+    expect(result.text).toContain("Ссылка ведёт на подозрительный домен");
   });
 });

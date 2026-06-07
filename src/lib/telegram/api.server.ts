@@ -16,6 +16,29 @@ export interface InlineButton {
 }
 export type InlineKeyboard = InlineButton[][];
 
+export interface TelegramChatFullInfo {
+  id: number;
+  type: "private" | "group" | "supergroup" | "channel";
+  title?: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  active_usernames?: string[];
+  bio?: string;
+  description?: string;
+  join_to_send_messages?: true;
+  join_by_request?: true;
+  has_private_forwards?: true;
+  has_protected_content?: true;
+  has_visible_history?: true;
+  has_aggressive_anti_spam_enabled?: true;
+  has_hidden_members?: true;
+}
+
+export type GetChatInfoResult =
+  | { ok: true; chat: TelegramChatFullInfo }
+  | { ok: false; errorCode?: number; description?: string };
+
 export interface SendMessageOptions {
   chatId: number;
   text: string; // уже экранированный MarkdownV2
@@ -47,7 +70,7 @@ const FILE_BASE = "https://api.telegram.org/file/bot";
 async function callBotApi(
   method: string,
   body: Record<string, unknown>,
-): Promise<{ ok: boolean; result?: unknown } | null> {
+): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
   const token = getTelegramBotToken();
   if (!token) {
     // R17.4 — not configured: fail closed, do not throw, do not log the value.
@@ -60,15 +83,43 @@ async function callBotApi(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    const envelope = await readBotApiEnvelope(res);
     if (!res.ok) {
       console.error(`telegram ${method} non-ok`, res.status);
-      return null;
+      return envelope;
     }
-    return (await res.json()) as { ok: boolean; result?: unknown };
+    return envelope;
   } catch (e) {
     console.error(`telegram ${method} threw`, e instanceof Error ? e.message : "unknown");
     return null;
   }
+}
+
+async function readBotApiEnvelope(
+  res: Response,
+): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+  try {
+    return (await res.json()) as {
+      ok: boolean;
+      result?: unknown;
+      description?: string;
+      error_code?: number;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isTelegramChatFullInfo(value: unknown): value is TelegramChatFullInfo {
+  if (!value || typeof value !== "object") return false;
+  const chat = value as Partial<TelegramChatFullInfo>;
+  return (
+    typeof chat.id === "number" &&
+    (chat.type === "private" ||
+      chat.type === "group" ||
+      chat.type === "supergroup" ||
+      chat.type === "channel")
+  );
 }
 
 /**
@@ -130,6 +181,23 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
   const body: Record<string, unknown> = { callback_query_id: callbackQueryId };
   if (text !== undefined) body.text = text;
   await callBotApi("answerCallbackQuery", body);
+}
+
+/**
+ * Best-effort Bot API getChat wrapper for public Telegram metadata.
+ * It returns a typed error envelope instead of throwing, so check processing can
+ * explain platform limits without depending on Telegram availability.
+ */
+export async function getChatInfo(chatId: string): Promise<GetChatInfoResult> {
+  const res = await callBotApi("getChat", { chat_id: chatId });
+  if (!res) return { ok: false };
+  if (res.ok !== true) {
+    return { ok: false, errorCode: res.error_code, description: res.description };
+  }
+  if (!isTelegramChatFullInfo(res.result)) {
+    return { ok: false, description: "invalid getChat result" };
+  }
+  return { ok: true, chat: res.result };
 }
 
 /**
