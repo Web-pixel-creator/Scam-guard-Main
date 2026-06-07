@@ -67,3 +67,13 @@ The bot SHALL keep result messages compact enough for mobile Telegram.
 1. WHEN representative safe, unknown, suspicious, and high-risk results are formatted THEN each message SHALL be at most 4096 characters.
 2. WHEN result actions are shown THEN the keyboard SHALL contain report, check-another, and why actions; high-risk results SHALL also include emergency help.
 3. WHEN an unknown neutral context is formatted THEN the response SHALL be cautious and ask for the missing context instead of inventing a threat.
+
+### Requirement 7: Bot profile metadata is localized
+
+The bot SHALL present a useful Telegram profile description in the default, Russian, Uzbek, and English scopes.
+
+#### Acceptance Criteria
+
+1. WHEN bot profile descriptions are built THEN they SHALL include default, `ru`, `uz`, and `en` payloads.
+2. WHEN profile descriptions are built THEN each `description` SHALL be at most 512 characters and each `short_description` SHALL be at most 120 characters.
+3. WHEN profile descriptions are built THEN the copy SHALL describe anti-scam checks and safe next steps without accusing people.

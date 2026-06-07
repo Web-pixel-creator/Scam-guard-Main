@@ -13,6 +13,7 @@ The test suite imports stable public helpers:
 - `buildLastCheckSnapshot`, `classifyLastCheckFollowUp`, and `buildLastCheckFollowUpText`
 - `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, and `withPanicContextData`
 - `buildTelegramPublicMetadataBrief`
+- `buildDescriptionPayloads`
 
 It uses deterministic `RunCheckResult` fixtures and fixed timestamps so session recency behavior is reproducible.
 
@@ -39,10 +40,21 @@ The suite covers:
 - emergency copilot follow-ups
 - Telegram public metadata limitations
 - result keyboard invariants and length limits
+- localized bot profile descriptions
 
 ## Data Models
 
 No new production data models are introduced. The suite reuses existing `RunCheckResult`, `LastCheckSnapshot`, and `ReportDraft` types.
+
+The bot profile script exposes:
+
+```ts
+interface DescriptionPayload {
+  description: string;
+  short_description: string;
+  language_code?: "ru" | "uz" | "en";
+}
+```
 
 ## Error Handling
 
@@ -58,6 +70,7 @@ Run with:
 
 ```bash
 npm run test:run -- src/lib/telegram/bot-qa-matrix.test.ts
+npm run test:run -- src/lib/telegram/set-bot-description.test.ts
 ```
 
 The full verification remains:
