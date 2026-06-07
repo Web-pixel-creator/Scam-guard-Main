@@ -120,9 +120,27 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not hand over your card, SIM, account, or OneID to anyone else",
     },
   },
+  // Betting/prediction promos -> do not pay for closed-channel access or "guaranteed" wins
+  {
+    reasons: new Set<ReasonCode>(["gambling_prediction_promo"]),
+    advice: {
+      ru: "Не платите за «прогноз», доступ в закрытый канал или гарантированный выигрыш",
+      uz: "«Prognoz», yopiq kanal yoki kafolatlangan yutuq uchun pul to'lamang",
+      en: "Do not pay for a “prediction”, closed-channel access, or a guaranteed win",
+    },
+  },
+  // Private invite links -> avoid joining/paying without context
+  {
+    reasons: new Set<ReasonCode>(["suspicious_invite_link"]),
+    advice: {
+      ru: "Не вводите данные карты или Telegram-код после перехода по invite-ссылке",
+      uz: "Invite havolasidan keyin karta ma'lumotlari yoki Telegram kodini kiritmang",
+      en: "Do not enter card details or a Telegram code after following an invite link",
+    },
+  },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 7, 8, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic

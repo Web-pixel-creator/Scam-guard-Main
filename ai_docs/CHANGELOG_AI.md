@@ -1,5 +1,13 @@
 # Changelog (AI memory)
 
+## 2026-06-07 - Telegram Media & Link Intelligence v1
+
+- Added `.kiro/specs/telegram-media-link-intelligence-v1/`.
+- Fixed Telegram routing so video/audio/voice/non-image document captions are analyzed before unsupported-media fallback.
+- Added private invite normalization for `t.me/+...` links.
+- Added `gambling_prediction_promo` for closed betting/prediction invite channels with false-positive guards for ordinary sports/news/restaurant QR contexts.
+- Added context-specific advice for betting/prediction invite links and a more useful unsupported-media fallback.
+
 ## 2026-06-06 - Scam Research Feed v1
 
 - Added `.kiro/specs/scam-research-feed-v1/`.

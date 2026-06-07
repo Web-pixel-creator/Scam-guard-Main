@@ -116,6 +116,24 @@ describe("filterAdvice", () => {
       expect(result[0]).toContain("SIM");
       expect(result[0]).not.toContain("APK");
     });
+
+    it("uses betting-channel advice for closed prediction promos", () => {
+      const result = filterAdvice("high_risk", ["gambling_prediction_promo"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("прогноз");
+      expect(result[0]).toContain("закрытый канал");
+      expect(result[0]).not.toContain("SMS");
+    });
+
+    it("uses invite-link advice without unrelated APK wording", () => {
+      const result = filterAdvice("suspicious", ["suspicious_invite_link"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("invite-ссылке");
+      expect(result[0]).toContain("Telegram-код");
+      expect(result[0]).not.toContain("APK");
+    });
   });
 
   describe("trilingual consistency", () => {

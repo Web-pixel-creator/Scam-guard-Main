@@ -281,6 +281,33 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "outOfScope", reason });
   });
 
+  it.each(["voice", "audio", "video"] as const)(
+    "routes a %s caption as check content before out-of-scope fallback",
+    (field) => {
+      const update = messageUpdate({
+        [field]: { file_id: "x" },
+        caption: "СЕГОДНЯ СТАВЛЮ НА МАТЧ https://t.me/+fdOETKx56pozNTBi",
+      });
+      const action = decideRoute(update, makeSession());
+      expect(action).toEqual({
+        kind: "check",
+        content: "СЕГОДНЯ СТАВЛЮ НА МАТЧ https://t.me/+fdOETKx56pozNTBi",
+      });
+    },
+  );
+
+  it("routes a non-image document caption as check content before document fallback", () => {
+    const update = messageUpdate({
+      document: { file_id: "doc1", mime_type: "application/pdf", file_size: 2048 },
+      caption: "Проверьте ссылку https://t.me/+fdOETKx56pozNTBi",
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "Проверьте ссылку https://t.me/+fdOETKx56pozNTBi",
+    });
+  });
+
   it("routes an empty message as out-of-scope (empty)", () => {
     const update = messageUpdate({});
     const action = decideRoute(update, makeSession());

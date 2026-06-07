@@ -3,6 +3,7 @@ import {
   detectInputType,
   looksLikePaymentInput,
   luhnCheck,
+  normalizeTelegram,
   redactText,
   shouldRedactAsCard,
 } from "./detect";
@@ -44,6 +45,18 @@ describe("detectInputType payment priority", () => {
 
   it("keeps pure phones as phone", () => {
     expect(detectInputType("+998 90 123 45 67")).toBe("phone");
+  });
+});
+
+describe("normalizeTelegram", () => {
+  it("extracts private invite codes from t.me/+ links", () => {
+    expect(normalizeTelegram("https://t.me/+fdOETKx56pozNTBi")).toBe("+fdOETKx56pozNTBi");
+  });
+
+  it("extracts a private invite code from a longer caption", () => {
+    const caption = "СЕГОДНЯ СТАВЛЮ НА МАТЧ. Прогноз бесплатно: https://t.me/+fdOETKx56pozNTBi";
+
+    expect(normalizeTelegram(caption)).toBe("+fdOETKx56pozNTBi");
   });
 });
 

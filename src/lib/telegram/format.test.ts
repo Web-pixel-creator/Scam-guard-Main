@@ -86,6 +86,7 @@ const ALL_REASON_CODES = [
   "malicious_file_bait",
   "impersonates_official",
   "suspicious_invite_link",
+  "gambling_prediction_promo",
   "hosted_app_platform",
   "brand_impersonation",
   "telegram_account_takeover_phishing",

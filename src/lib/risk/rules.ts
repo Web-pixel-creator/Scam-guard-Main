@@ -40,6 +40,7 @@ export type ReasonCode =
   | "malicious_file_bait"
   | "impersonates_official"
   | "suspicious_invite_link"
+  | "gambling_prediction_promo"
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
@@ -82,6 +83,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   malicious_file_bait: 35,
   impersonates_official: 35,
   suspicious_invite_link: 25,
+  gambling_prediction_promo: 20,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
@@ -188,6 +190,18 @@ function shouldFlagDropperRecruitment(text: string): boolean {
   return DROPPER_TARGET_RE.test(text) && DROPPER_ACTION_RE.test(text);
 }
 
+const GAMBLING_CONTEXT_RE =
+  /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|stavka|prognoz|bukmeker|kazino)/i;
+const GAMBLING_ACTION_RE =
+  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз|джекпот|100[ .]?000|гарантир|доход|прибыл|vip|subscribe|channel|free|win|profit|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
+const GAMBLING_NEUTRAL_CONTEXT_RE =
+  /(новости спорта|спортивные новости|расписание матча|счет матча|счёт матча|смотреть матч|sports news|match schedule|match score|natija|jadval)/i;
+
+function shouldFlagGamblingPredictionPromo(text: string): boolean {
+  if (GAMBLING_NEUTRAL_CONTEXT_RE.test(text)) return false;
+  return GAMBLING_CONTEXT_RE.test(text) && GAMBLING_ACTION_RE.test(text);
+}
+
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
 const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
 const QR_DANGEROUS_CONTEXT_RE =
@@ -219,6 +233,7 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagTelegramAccountTakeoverPhishing(text))
     codes.add("telegram_account_takeover_phishing");
   if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
+  if (shouldFlagGamblingPredictionPromo(text)) codes.add("gambling_prediction_promo");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -312,6 +327,10 @@ export function evaluateTelegram(handle: string): ReasonCode[] {
     "payme",
     "click",
     "uzum",
+    "luxebet",
+    "stavka",
+    "prognoz",
+    "betting",
     "kapital",
     "ipak",
     "anor",
@@ -509,6 +528,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Подозрительная invite-ссылка в закрытую группу",
     uz: "Yopiq guruhga shubhali taklif havolasi",
     en: "Suspicious invite link to a closed group",
+  },
+  gambling_prediction_promo: {
+    ru: "Закрытый канал со ставками или прогнозами",
+    uz: "Yopiq stavka yoki prognoz kanali",
+    en: "Closed betting or prediction channel",
   },
   hosted_app_platform: {
     ru: "Размещён на публичной платформе",

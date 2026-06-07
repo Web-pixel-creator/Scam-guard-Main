@@ -46,6 +46,8 @@ export function normalizePhone(raw: string): string {
 }
 
 export function normalizeTelegram(raw: string): string {
+  const invite = raw.match(/(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(\+[A-Za-z0-9_-]{4,})/i);
+  if (invite) return invite[1];
   const m = raw.match(/(?:t\.me\/|telegram\.me\/|@)([a-zA-Z][a-zA-Z0-9_]{3,31})/);
   if (m) return "@" + m[1];
   if (raw.startsWith("@")) return raw;

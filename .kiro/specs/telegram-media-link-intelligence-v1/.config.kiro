@@ -1,0 +1,6 @@
+{
+  "name": "telegram-media-link-intelligence-v1",
+  "type": "feature",
+  "workflow": "requirements-first",
+  "status": "implementation"
+}

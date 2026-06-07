@@ -4,7 +4,7 @@
 
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
-- **Telegram risk enrichment is shallow:** `evaluateTelegram` returns `unknown_sender`; no account-age/metadata lookup yet.
+- **Telegram account metadata enrichment is shallow:** `evaluateTelegram` covers unknown sender, suspicious private invites and betting/prediction promo context, but no public metadata lookup/age/reputation layer exists yet.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
@@ -13,7 +13,7 @@
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
-- [ ] Improve Telegram/account enrichment beyond `unknown_sender` (account age, official handles, metadata where legally available).
+- [ ] Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.
 - [ ] Production operational verification on Railway: endpoint responds, but confirm billing, env secrets, Supabase migrations, webhook registration and `/start` live flow.
 
 ## Research feed
@@ -31,6 +31,7 @@ Completed research-feed themes now covered by deterministic rules:
 
 - Telegram account deletion / "Cancel" phishing -> `telegram_account_takeover_phishing`.
 - Card/SIM/account transfer or dropper recruitment -> `dropper_recruitment`.
+- Closed betting/prediction invite channel -> `gambling_prediction_promo`.
 
 ## Later / scaling
 

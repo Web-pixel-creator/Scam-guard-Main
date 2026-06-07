@@ -199,6 +199,50 @@ describe("evaluateText — fake_delivery_payment (research feed)", () => {
   });
 });
 
+describe("evaluateText — gambling_prediction_promo (Telegram betting feed)", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU betting prediction with private invite",
+      text: "СЕГОДНЯ СТАВЛЮ НА МАТЧ США - ГЕРМАНИЯ. Посмотреть прогноз бесплатно: https://t.me/+fdOETKx56pozNTBi",
+    },
+    {
+      name: "RU closed channel with guaranteed win",
+      text: "Закрытый канал со ставками, гарантирую выигрыш 100.000Р, подпишись прямо сейчас",
+    },
+    {
+      name: "EN betting channel",
+      text: "Free betting prediction in our private channel, guaranteed profit: https://t.me/+abcdef12345",
+    },
+    {
+      name: "UZ betting channel",
+      text: "Yopiq kanal: stavka prognoz bepul, yutuq 100000 so'm",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    {
+      name: "RU ordinary match schedule",
+      text: "Расписание матча США - Германия сегодня вечером, смотрим футбол с друзьями",
+    },
+    {
+      name: "EN sports news without promo",
+      text: "Sports news: the match score was updated after the second half",
+    },
+    {
+      name: "RU restaurant promo with QR",
+      text: "Акция ресторана: меню и бонусы по QR-коду, без ставок и прогнозов",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("gambling_prediction_promo");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("gambling_prediction_promo");
+  });
+});
+
 describe("evaluateText — payment_before_service marketplace patterns", () => {
   const positives: { name: string; text: string }[] = [
     { name: "RU prepayment", text: "Сначала внесите предоплату за бронь товара, потом я отправлю" },

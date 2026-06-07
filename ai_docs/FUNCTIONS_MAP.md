@@ -27,7 +27,7 @@ Signatures and intent only. See file paths for source.
 
 - `ReasonCode` union + weights.
 - `evaluateText`, `evaluateUrl`, `evaluatePhone`, `evaluateTelegram`.
-- Research-feed v1 text rules include `telegram_account_takeover_phishing` and `dropper_recruitment`.
+- Research-feed text rules include `telegram_account_takeover_phishing`, `dropper_recruitment` and `gambling_prediction_promo`.
 - `scoreFromCodes(codes) -> { score, level }`.
 - `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
 
@@ -53,7 +53,7 @@ Signatures and intent only. See file paths for source.
 
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
-- `src/lib/telegram/router.ts`: parses updates and routes commands/content; forwards `callback_query.id` so inline-button spinners are acknowledged.
+- `src/lib/telegram/router.ts`: parses updates and routes commands/content; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback.
 - `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.

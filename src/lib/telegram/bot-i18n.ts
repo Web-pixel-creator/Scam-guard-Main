@@ -231,9 +231,9 @@ export const bot_dict: BotDict = {
 
   // ── Out-of-scope content: voice/audio/video (R22.3) ───────────────────────
   out_of_scope: {
-    ru: "Извините, голосовые, аудио и видео я пока не анализирую. Пришлите, пожалуйста, текст сообщения или скриншот.",
-    uz: "Kechirasiz, ovozli, audio va video xabarlarni hozircha tahlil qilmayman. Iltimos, xabar matnini yoki skrinshotni yuboring.",
-    en: "Sorry, I don’t analyze voice, audio or video yet. Please send the message text or a screenshot instead.",
+    ru: "Я пока не слушаю голосовые и не смотрю видео целиком. Но я могу проверить текст, ссылку или скриншот из него.\n\nПришлите ссылку из описания, текст сообщения, скрин с QR/реквизитами или коротко напишите, что вам обещают и что просят сделать.",
+    uz: "Hozircha ovozli xabarlarni eshitmayman va videoni to'liq ko'rmayman. Lekin undagi matn, havola yoki skrinshotni tekshira olaman.\n\nTavsifdagi havolani, xabar matnini, QR/rekvizitlar skrinshotini yuboring yoki sizga nima va'da qilishgani hamda nima so'rashganini qisqa yozing.",
+    en: "I do not listen to voice messages or watch full videos yet. But I can check the text, link, or screenshot from them.\n\nSend the link from the caption, the message text, a screenshot with the QR/payment details, or briefly write what they promise and what they ask you to do.",
   },
 
   // ── Document/APK safety response ──────────────────────────────────────────

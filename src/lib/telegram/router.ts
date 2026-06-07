@@ -237,6 +237,10 @@ function largestPhotoFileId(photo: NonNullable<TelegramMessage["photo"]>): strin
   return best.file_id;
 }
 
+function messageCaption(m: TelegramMessage): string {
+  return (m.caption ?? "").trim();
+}
+
 /**
  * Decide what to do with an update given the user's current Session. PURE:
  * no I/O, no session mutation. The PRIORITY ordering is:
@@ -283,6 +287,10 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   ) {
     return { kind: "image", fileId: m.document.file_id };
   }
+  const caption = messageCaption(m);
+  if (caption && (m.document || m.voice != null || m.audio != null || m.video != null)) {
+    return { kind: "check", content: caption };
+  }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
   if (m.document) {
     return { kind: "outOfScope", reason: "document" };
@@ -296,7 +304,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
 
   // Plain text (including forwarded text, R11.5) → Check_Pipeline.
-  const content = (m.text ?? m.caption ?? "").trim();
+  const content = (m.text ?? caption).trim();
   if (content) return { kind: "check", content };
 
   // Empty / anything else we can't act on → supported-input hint (R16.1).
