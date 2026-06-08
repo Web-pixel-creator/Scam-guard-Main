@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
+import { safeCheckErrorMessage } from "@/lib/client-error";
 import { useServerFn } from "@tanstack/react-start";
 import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
@@ -172,10 +173,7 @@ export function CheckInput({
       if (ocrPreviewOpen) clearImage();
     } catch (e: unknown) {
       console.error(e);
-      const msg = (e as { message?: string })?.message ?? "";
-      if (msg.includes("rate_limited") || msg.includes("429")) setError(t("rate_limited", lang));
-      else if (msg && !msg.startsWith("[")) setError(msg);
-      else setError("Что-то пошло не так. Попробуйте ещё раз.");
+      setError(safeCheckErrorMessage(e, lang));
     } finally {
       setLoading(false);
     }

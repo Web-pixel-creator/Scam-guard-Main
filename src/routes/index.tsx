@@ -1987,10 +1987,10 @@ function Index() {
               }
             </p>
             <nav aria-label="Footer" className="flex items-center gap-4 sm:gap-8 shrink-0">
-              <Link to="/" className="footer-link apex-mono">
+              <Link to="/privacy" className="footer-link apex-mono">
                 {{ ru: "ПРИВАТНОСТЬ", uz: "MAXFIYLIK", en: "PRIVACY" }[lang]}
               </Link>
-              <Link to="/" className="footer-link apex-mono">
+              <Link to="/emergency" className="footer-link apex-mono">
                 {{ ru: "ПОМОЩЬ", uz: "YORDAM", en: "HELP" }[lang]}
               </Link>
             </nav>
