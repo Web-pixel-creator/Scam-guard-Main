@@ -38,6 +38,7 @@ import {
   editMessageText,
   answerCallbackQuery,
   escapeMarkdownV2,
+  type InlineKeyboard,
 } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist, formatSafety } from "@/lib/telegram/format";
@@ -78,8 +79,26 @@ function parseLangCallback(data: string): Lang | null {
 }
 
 /** Send a plain bot-i18n string, MarkdownV2-escaped. */
-async function sendI18n(chatId: number, key: Parameters<typeof bt>[0], lang: Lang): Promise<void> {
-  await sendMessage({ chatId, text: escapeMarkdownV2(bt(key, lang)) });
+async function sendI18n(
+  chatId: number,
+  key: Parameters<typeof bt>[0],
+  lang: Lang,
+  keyboard?: InlineKeyboard,
+): Promise<void> {
+  await sendMessage({ chatId, text: escapeMarkdownV2(bt(key, lang)), keyboard });
+}
+
+export function buildUnsupportedMediaKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [
+      { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+    ],
+    [
+      { text: bt("btn_report", lang), callback_data: CB.report },
+      { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
+    ],
+  ];
 }
 
 async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
@@ -398,8 +417,9 @@ export async function handleOutOfScope(kind: OutOfScopeKind, ctx: HandlerCtx): P
     case "audio":
     case "video":
       // R22.3 — voice/audio/video are out of MVP scope: decline politely and
-      // suggest sending text or a screenshot instead.
-      await sendI18n(ctx.chatId, "out_of_scope", lang);
+      // suggest sending text or a screenshot instead, with immediate next-step
+      // buttons so the user is not left in a dead end.
+      await sendI18n(ctx.chatId, "out_of_scope", lang, buildUnsupportedMediaKeyboard(lang));
       break;
     case "document":
       // APK/PDF/other documents: never downloaded. Give specific safety advice.

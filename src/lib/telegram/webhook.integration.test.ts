@@ -215,6 +215,19 @@ function photoUpdate(opts: { userId: number; chatId: number }): unknown {
   };
 }
 
+/** A video update without caption: should not be downloaded, only guide the user. */
+function videoUpdate(opts: { userId: number; chatId: number }): unknown {
+  return {
+    update_id: opts.userId,
+    message: {
+      message_id: 1,
+      from: { id: opts.userId, language_code: "ru" },
+      chat: { id: opts.chatId },
+      video: { file_id: "video_1", file_size: 1024, duration: 2 },
+    },
+  };
+}
+
 /** A callback query update from an inline keyboard button. */
 function callbackUpdate(opts: {
   userId: number;
@@ -454,6 +467,23 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       "panic:5",
       "panic:6",
       "panic:more",
+    ]);
+  });
+
+  it("answers unsupported video with next-step buttons instead of a dead end", async () => {
+    const update = videoUpdate({ userId: 1106, chatId: 5106 });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("не смотрю видео целиком");
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      CB.checkAnother,
+      CB.emergency,
+      CB.report,
+      CB.howItWorks,
     ]);
   });
 

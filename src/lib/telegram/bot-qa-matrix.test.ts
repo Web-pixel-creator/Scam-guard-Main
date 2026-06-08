@@ -13,6 +13,7 @@ import {
   withPanicContextData,
 } from "@/lib/telegram/emergency";
 import { CB, formatCheckResult, formatHelp, formatWelcome } from "@/lib/telegram/format";
+import { buildUnsupportedMediaKeyboard } from "@/lib/telegram/handlers/misc";
 import { buildTelegramPublicMetadataBrief } from "@/lib/telegram/public-metadata.server";
 import type { LastCheckSnapshot, ReportDraft } from "@/lib/telegram/session.server";
 
@@ -71,12 +72,14 @@ describe("Telegram Bot QA Matrix v1", () => {
 
   it("gives a useful fallback for unsupported video, audio, and voice", () => {
     const text = bt("out_of_scope", "ru");
+    const keyboard = buildUnsupportedMediaKeyboard("ru");
 
     expect(text).toContain("не смотрю видео целиком");
     expect(text).toContain("текст, ссылку или скриншот");
     expect(text).toContain("QR/реквизитами");
     expect(text).toContain("что вам обещают");
     expect(text).toContain("что просят сделать");
+    expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.howItWorks]);
   });
 
   it("answers confidence questions after a QR/menu check instead of rechecking the phrase", () => {
