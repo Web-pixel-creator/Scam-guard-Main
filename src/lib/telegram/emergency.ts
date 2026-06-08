@@ -18,6 +18,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { InlineKeyboard } from "@/lib/telegram/api.server";
 import { VERIFIED_CONTACTS, type VerifiedContact } from "@/lib/risk/verified-contacts";
+import { bt } from "@/lib/telegram/bot-i18n";
 
 // ── Contact helpers ─────────────────────────────────────────────────────────
 
@@ -1008,6 +1009,7 @@ export function buildEmergencyFollowUpKeyboard(lang: Lang): InlineKeyboard {
         callback_data: `${PANIC_CONTEXT_CB_PREFIX}trusted_person`,
       },
     ],
+    [{ text: bt("btn_share_advice", lang), callback_data: "share_advice" }],
     [{ text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` }],
   ];
 }

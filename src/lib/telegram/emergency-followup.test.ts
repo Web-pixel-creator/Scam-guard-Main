@@ -110,6 +110,7 @@ describe("Emergency Copilot v2 follow-up routing", () => {
         "panicctx:contacts",
         "panicctx:script",
         "panicctx:trusted_person",
+        "share_advice",
         "panicctx:full",
       ]),
     );
