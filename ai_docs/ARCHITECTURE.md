@@ -41,6 +41,7 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
 - Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
 - Telegram `@username` / `t.me/...` checks use a best-effort Bot API enrichment layer after deterministic scoring. It classifies public usernames, public links, private invite links and internal/private links; summarizes public chat type/title/access hints when visible; adds compact visible risk signals and next steps; and explicitly does not infer account age, hidden Telegram scam labels, Telegram report counts or spam history.
+- Telegram reputation is stored separately in `telegram_reputation_targets` using HMAC-hashed targets and masked display hints. New checks can record first/last seen observations, but user-facing reputation labels are shown only after admin-moderated Ishonch Guard reports or future official sources.
 
 ## Auth and roles
 

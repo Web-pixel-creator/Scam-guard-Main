@@ -54,17 +54,17 @@ Telegram Link & Account Intelligence v2 improves how Ishonch Guard responds to T
 4. THE bot SHALL distinguish "not found/unavailable" from "dangerous".
 5. THE bot SHALL use cautious wording for all unverified public usernames.
 
-### Requirement 5: Persistence Roadmap
+### Requirement 5: Persistence And Reputation
 
-**User Story:** As a product owner, I want a clear path toward account reputation, so that later versions can add real history without compromising privacy.
+**User Story:** As a product owner, I want account reputation to be source-backed and privacy-safe, so that the bot can become more useful without inventing hidden Telegram facts.
 
 #### Acceptance Criteria
 
-1. THE v2 no-DB phase SHALL work without adding new database tables.
-2. A future DB-backed phase SHALL store only hashed identifiers, normalized target type, first_seen_at, last_seen_at, moderated report counters, and source metadata.
-3. Future reputation labels SHALL include source type and confidence level.
-4. Future labels SHALL be moderated before affecting public risk.
-5. Future implementation SHALL be covered by RLS and service-role-only writes.
+1. THE DB-backed phase SHALL store only hashed identifiers, normalized target type, masked display hint, first_seen_at, last_seen_at, moderated report counters, and source metadata.
+2. Reputation labels SHALL include source type and confidence level.
+3. User-submitted unverified reports SHALL NOT affect public risk or user-facing scam labels.
+4. Moderated reports SHALL be synced into Telegram reputation only after admin confirmation.
+5. The reputation table SHALL be covered by RLS and service-role-only writes.
 
 ### Requirement 6: Test Coverage
 

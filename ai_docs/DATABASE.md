@@ -42,6 +42,20 @@ Aggregated suspicious identifiers: `id, entity_type, entity_hash, display_mask, 
 
 RLS: public can select only `moderation_status='confirmed'`; admins select/update; service-role writes. This prevents unmoderated public accusations.
 
+### `telegram_reputation_targets`
+
+DB-backed reputation for Telegram usernames/links: `id, target_hash, target_type,
+display_hint, source_type, confidence, risk_level, moderation_status,
+unverified_report_count, moderated_report_count, first_seen_at, last_seen_at,
+metadata, created_at, updated_at`.
+
+RLS/grants: public can read only confirmed rows from official or moderated-report
+sources with at least one moderated report. Admins can read via RBAC; service
+role writes. Raw Telegram usernames, invite tokens, public titles and public
+descriptions are not stored. New checks may update only observation timestamps;
+user-submitted unverified reports do not affect public risk or user-facing scam
+labels.
+
 ### `telegram_sessions`
 
 Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, scenario_data, updated_at`.

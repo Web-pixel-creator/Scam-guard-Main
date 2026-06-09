@@ -77,7 +77,9 @@ type TelegramPublicMetadata =
   | { status: "not_telegram" };
 ```
 
-Future DB-backed reputation should use a separate table with hashed identifiers and moderated source metadata. It is intentionally out of scope for this no-DB phase.
+DB-backed reputation uses a separate `telegram_reputation_targets` table with hashed identifiers and moderated source metadata. The table stores masked display hints, source type, confidence, first/last seen timestamps and unverified/moderated report counters. It does not store raw usernames, invite tokens, Telegram titles or descriptions.
+
+User-submitted unverified reports are stored only as admin review candidates. Public/user-facing reputation text is shown only for confirmed moderated reports (or future official sources) and includes the source and confidence label.
 
 ## Correctness Properties
 

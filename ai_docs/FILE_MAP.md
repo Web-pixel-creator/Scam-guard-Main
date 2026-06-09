@@ -68,6 +68,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `telegram/webhook.server.ts`         | Framework-agnostic webhook handler (token-first, fail-closed).                                                                                |
 | `telegram/api.server.ts`             | Telegram Bot API helpers (sendMessage, getFile, escapeMarkdownV2, etc.).                                                                      |
 | `telegram/public-metadata.server.ts` | Best-effort Telegram username/link enrichment: target extraction, public `getChat`, private-link limitations, visible signals and next steps. |
+| `telegram/reputation.server.ts`      | Privacy-safe Telegram reputation helpers: hashed target observation, moderated report sync, source/confidence user-facing brief.              |
 | `telegram/session.server.ts`         | Session store (telegram_sessions table via supabaseAdmin).                                                                                    |
 | `telegram/bot-i18n.ts`               | Bot-specific trilingual strings (ru/uz/en).                                                                                                   |
 | `telegram/format.ts`                 | Telegram response formatter (MarkdownV2, keyboards, verified badge).                                                                          |

@@ -6,6 +6,7 @@ import { INCIDENT_ONLY_HASH_PREFIX, INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/r
 import { detectInputType, normalize, maskForDisplay, redactText } from "./risk/detect";
 import { hashIdentifier } from "./risk/hash";
 import { checkRateLimit } from "./risk/rate-limit";
+import { registerTelegramReportCandidate } from "@/lib/telegram/reputation.server";
 
 const reportSchema = z.object({
   value: z.string().min(1).max(500),
@@ -106,6 +107,10 @@ export async function submitReportCore(
 
   if (incidentOnly) {
     return { ok: true };
+  }
+
+  if (detected === "telegram") {
+    await registerTelegramReportCandidate({ entityHash: hash, displayHint: display });
   }
 
   // Bump entity counter (server-managed)

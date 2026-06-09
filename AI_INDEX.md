@@ -11,7 +11,7 @@
 - Stage: **working MVP** with real code, DB migrations, tests and a Telegram bot channel.
 - Runtime target: **self-hosted Node SSR** via Nitro `node-server`; Docker/Railway-ready. Lovable was used only to author the initial UI design.
 - AI layer: **provider-neutral OpenAI-compatible Chat Completions** (`OPENAI_API_KEY`, optional `OPENAI_MODEL`, `OPENAI_BASE_URL`). If no key is present, scoring still works and explanations/OCR degrade to `null`.
-- Last AI memory update: 2026-06-01.
+- Last AI memory update: 2026-06-09.
 
 ## Docs map
 

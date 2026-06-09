@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - Telegram Reputation Targets v1
+
+- Added `telegram_reputation_targets` as a privacy-safe DB layer for Telegram targets.
+- Telegram target observations and report candidates use HMAC-hashed identifiers and masked display hints only.
+- Unverified user reports stay hidden from user-facing reputation; confirmed moderator decisions can add source/confidence labels.
+- Updated Telegram Link & Account Intelligence v2 tasks 11-13 from future work to implemented.
+
 ## 2026-06-09 - Telegram Account Limits Help
 
 - Extended `.kiro/specs/meta-intent-router/` from six to seven intents with `telegram_account_limits`.

@@ -4,6 +4,7 @@ const hoisted = vi.hoisted(() => ({
   reportRows: [] as Array<Record<string, unknown>>,
   entityInserts: [] as Array<Record<string, unknown>>,
   entityUpdates: [] as Array<Record<string, unknown>>,
+  reputationUpserts: [] as Array<Record<string, unknown>>,
   existingEntity: null as null | { id: string; report_count: number },
 }));
 
@@ -65,6 +66,26 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         };
       }
 
+      if (table === "telegram_reputation_targets") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null, error: null }),
+            }),
+          }),
+          insert: async (row: Record<string, unknown>) => {
+            hoisted.reputationUpserts.push(row);
+            return { data: null, error: null };
+          },
+          update: (row: Record<string, unknown>) => ({
+            eq: async () => {
+              hoisted.reputationUpserts.push(row);
+              return { data: null, error: null };
+            },
+          }),
+        };
+      }
+
       throw new Error(`unexpected table: ${table}`);
     },
   },
@@ -80,6 +101,7 @@ beforeEach(() => {
   hoisted.reportRows.length = 0;
   hoisted.entityInserts.length = 0;
   hoisted.entityUpdates.length = 0;
+  hoisted.reputationUpserts.length = 0;
   hoisted.existingEntity = null;
 });
 
@@ -150,6 +172,14 @@ describe("submitReport privacy", () => {
       display_mask: "@fa•••ty",
       moderation_status: "new",
       report_count: 1,
+    });
+    expect(hoisted.reputationUpserts).toHaveLength(1);
+    expect(hoisted.reputationUpserts[0]).toMatchObject({
+      target_type: "public_username",
+      source_type: "user_submitted_unverified",
+      confidence: "low",
+      moderation_status: "new",
+      unverified_report_count: 1,
     });
   });
 

@@ -117,3 +117,14 @@ or payment target, the report is stored as incident evidence but must not create
 or increment an `entities` row. This keeps the report flow useful for scared or
 elderly users while protecting unrelated people/accounts from description-only
 public reputation.
+
+## D-022 - Telegram reputation is app-owned and moderated
+
+Telegram Bot API does not expose reliable account age, hidden SCAM labels,
+Telegram report counts or spam-recipient history. Ishonch Guard therefore stores
+its own Telegram reputation in `telegram_reputation_targets` using HMAC-hashed
+targets and masked display hints. Checks may update observation timestamps, and
+unverified reports may create admin-review candidates, but user-facing
+reputation labels require confirmed moderated reports or a future official
+source. The bot must label the source and confidence and must not present this
+as a hidden Telegram-internal verdict.

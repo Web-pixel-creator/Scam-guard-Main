@@ -41,6 +41,10 @@ vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: () => Promise.resolve(),
 }));
 
+vi.mock("@/lib/telegram/reputation.server", () => ({
+  enrichTelegramReputation: (_input: string, result: unknown) => Promise.resolve(result),
+}));
+
 import { handleCheck } from "@/lib/telegram/handlers/check";
 import type { Session } from "@/lib/telegram/session.server";
 

@@ -60,8 +60,9 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic and post-check follow-up questions before `runCheck`, handles structured image intelligence for photos, and enriches Telegram username/link checks with best-effort public metadata after scoring.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic and post-check follow-up questions before `runCheck`, handles structured image intelligence for photos, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation after scoring.
 - `src/lib/telegram/public-metadata.server.ts`: extracts public Telegram targets, skips lookup for private/internal links, calls `getChatInfo` via an injectable lookup for public usernames, and builds safe RU/UZ/EN metadata briefs with visible risk signals and next steps without changing scoring.
+- `src/lib/telegram/reputation.server.ts`: observes Telegram targets by HMAC hash, registers unverified Telegram report candidates, syncs confirmed report counts after admin moderation, and renders source/confidence labels only for moderated reputation.
 - `src/lib/telegram/handlers/misc.ts`: stores minimal panic context (`lastPanicId`, `lastPanicAt`) and handles `panicctx:*` follow-up callbacks.
 
 ## Auth and integration

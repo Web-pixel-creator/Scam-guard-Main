@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { isIncidentOnlyReportProjection } from "@/lib/report-boundary";
+import { syncTelegramReputationAfterModeration } from "@/lib/telegram/reputation.server";
 
 type AdminActionInsert = {
   admin_user_id: string;
@@ -113,6 +114,14 @@ export async function moderateReportCore(data: ModerateReportInput, adminUserId:
         moderation_status: data.decision,
         risk_level: data.decision === "confirmed" ? data.riskLevel : "unknown",
         report_count: 1,
+      });
+    }
+
+    if (rep.entity_type === "telegram") {
+      await syncTelegramReputationAfterModeration({
+        entityHash: rep.entity_hash,
+        displayHint: rep.redacted_value,
+        riskLevel: data.decision === "confirmed" ? data.riskLevel : "unknown",
       });
     }
   }

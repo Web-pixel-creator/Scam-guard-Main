@@ -98,6 +98,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      telegram_reputation_targets: {
+        Row: {
+          confidence: string;
+          created_at: string;
+          display_hint: string;
+          first_seen_at: string;
+          id: string;
+          last_seen_at: string;
+          metadata: Json;
+          moderated_report_count: number;
+          moderation_status: Database["public"]["Enums"]["report_status"];
+          risk_level: Database["public"]["Enums"]["risk_level"];
+          source_type: string;
+          target_hash: string;
+          target_type: string;
+          unverified_report_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          confidence?: string;
+          created_at?: string;
+          display_hint: string;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          metadata?: Json;
+          moderated_report_count?: number;
+          moderation_status?: Database["public"]["Enums"]["report_status"];
+          risk_level?: Database["public"]["Enums"]["risk_level"];
+          source_type?: string;
+          target_hash: string;
+          target_type: string;
+          unverified_report_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          confidence?: string;
+          created_at?: string;
+          display_hint?: string;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          metadata?: Json;
+          moderated_report_count?: number;
+          moderation_status?: Database["public"]["Enums"]["report_status"];
+          risk_level?: Database["public"]["Enums"]["risk_level"];
+          source_type?: string;
+          target_hash?: string;
+          target_type?: string;
+          unverified_report_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       reports: {
         Row: {
           amount_lost_uzs: number | null;

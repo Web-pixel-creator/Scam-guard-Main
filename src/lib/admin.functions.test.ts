@@ -15,6 +15,9 @@ const hoisted = vi.hoisted(() => ({
   entityInserts: [] as Array<Record<string, unknown>>,
   entityUpdates: [] as Array<Record<string, unknown>>,
   auditInserts: [] as Array<Record<string, unknown>>,
+  reputationUpserts: [] as Array<Record<string, unknown>>,
+  confirmedReportCount: 1,
+  unverifiedReportCount: 0,
 }));
 
 vi.mock("@tanstack/react-start", () => ({
@@ -42,15 +45,27 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from: (table: string) => {
       if (table === "reports") {
+        const countChain = {
+          eq: (_column: string, value: string) => {
+            if (value === "confirmed") {
+              return Promise.resolve({ count: hoisted.confirmedReportCount, error: null });
+            }
+            return countChain;
+          },
+          in: () => Promise.resolve({ count: hoisted.unverifiedReportCount, error: null }),
+        };
         return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: hoisted.reportRow,
-                error: hoisted.reportRow ? null : { message: "not found" },
-              }),
-            }),
-          }),
+          select: (_columns?: string, opts?: { count?: string; head?: boolean }) =>
+            opts?.head
+              ? countChain
+              : {
+                  eq: () => ({
+                    maybeSingle: async () => ({
+                      data: hoisted.reportRow,
+                      error: hoisted.reportRow ? null : { message: "not found" },
+                    }),
+                  }),
+                },
           update: (row: Record<string, unknown>) => ({
             eq: async () => {
               hoisted.reportUpdates.push(row);
@@ -77,6 +92,15 @@ vi.mock("@/integrations/supabase/client.server", () => ({
               return { data: null, error: null };
             },
           }),
+        };
+      }
+
+      if (table === "telegram_reputation_targets") {
+        return {
+          upsert: async (row: Record<string, unknown>) => {
+            hoisted.reputationUpserts.push(row);
+            return { data: null, error: null };
+          },
         };
       }
 
@@ -107,6 +131,9 @@ beforeEach(() => {
   hoisted.entityInserts.length = 0;
   hoisted.entityUpdates.length = 0;
   hoisted.auditInserts.length = 0;
+  hoisted.reputationUpserts.length = 0;
+  hoisted.confirmedReportCount = 1;
+  hoisted.unverifiedReportCount = 0;
 });
 
 describe("moderateReportCore reputation boundary", () => {
@@ -128,6 +155,7 @@ describe("moderateReportCore reputation boundary", () => {
     expect(hoisted.entityInserts).toHaveLength(0);
     expect(hoisted.entityUpdates).toHaveLength(0);
     expect(hoisted.auditInserts).toHaveLength(1);
+    expect(hoisted.reputationUpserts).toHaveLength(0);
   });
 
   it("still creates an entity moderation record when a report names a target", async () => {
@@ -150,11 +178,22 @@ describe("moderateReportCore reputation boundary", () => {
       },
     ]);
     expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.reputationUpserts[0]).toMatchObject({
+      target_hash: "hash-target",
+      display_hint: "@fake_support",
+      source_type: "moderated_report",
+      confidence: "medium",
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+      moderated_report_count: 1,
+    });
     expect(hoisted.auditInserts).toHaveLength(1);
   });
 
   it("updates an existing entity instead of inserting a duplicate", async () => {
     hoisted.existingEntity = { id: "entity-1" };
+    hoisted.confirmedReportCount = 0;
+    hoisted.unverifiedReportCount = 0;
 
     await expect(
       moderateReportCore(
@@ -176,6 +215,14 @@ describe("moderateReportCore reputation boundary", () => {
       target_type: "report",
       target_id: REPORT_ID,
       reason: "risk_level: suspicious",
+    });
+    expect(hoisted.reputationUpserts[0]).toMatchObject({
+      target_hash: "hash-target",
+      source_type: "user_submitted_unverified",
+      confidence: "low",
+      moderation_status: "new",
+      risk_level: "unknown",
+      moderated_report_count: 0,
     });
   });
 });
