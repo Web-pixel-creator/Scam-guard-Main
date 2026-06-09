@@ -65,7 +65,7 @@ async function handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void> 
     await resetScenario(ctx.userId);
     await handleCheck(text, {
       ...ctx,
-      session: { ...ctx.session, scenario: "none", scenarioStep: 0, scenarioData: {} },
+      session: { ...ctx.session, scenario: "none", scenarioStep: 0 },
     });
     return;
   }

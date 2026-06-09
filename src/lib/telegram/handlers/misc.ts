@@ -201,7 +201,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "await_check",
       scenarioStep: 0,
-      scenarioData: {},
+      scenarioData: ctx.session.scenarioData,
     });
     await sendI18n(ctx.chatId, "check_prompt", lang);
     return;

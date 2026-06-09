@@ -1049,6 +1049,21 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain("Пришлите");
     expect(h.sendCalls[0].text).not.toContain("Не могу гарантировать");
     expect(h.upserts.some((entry) => entry.table === "telegram_sessions")).toBe(true);
+
+    loadLatestSessionUpsert(1014);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUpAfterPrompt = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1014, chatId: 5014, text: "Точно?" })),
+    );
+
+    expect(followUpAfterPrompt.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Не могу гарантировать");
+    expect(h.sendCalls[0].text).toContain("QR");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
 
   it("answers a bank-number follow-up from the last phone check without re-checking it", async () => {
