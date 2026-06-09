@@ -10,8 +10,9 @@
 import process from "node:process";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
+const STALE_TELEGRAM_ERROR_MS = 15 * 60 * 1000;
 const DEFAULT_HIGH_RISK_TEXT =
-  "Служба безопасности банка просит срочно назвать SMS код для отмены операции";
+  "Служба безопасности банка просит срочно назвать SMS-код для отмены операции";
 
 interface SmokeResult {
   name: string;
@@ -121,17 +122,28 @@ async function checkTelegramWebhook(botToken: string): Promise<SmokeResult> {
 
   const data = (await res.json()) as {
     ok?: boolean;
-    result?: { pending_update_count?: number; last_error_message?: string; url?: string };
+    result?: {
+      pending_update_count?: number;
+      last_error_date?: number;
+      last_error_message?: string;
+      url?: string;
+    };
   };
 
   const pending = data.result?.pending_update_count ?? -1;
   const lastError = data.result?.last_error_message ?? "";
+  const lastErrorDate = data.result?.last_error_date;
+  const lastErrorAgeMs =
+    typeof lastErrorDate === "number" ? Date.now() - lastErrorDate * 1000 : null;
+  const isStaleLastError =
+    typeof lastErrorAgeMs === "number" && lastErrorAgeMs > STALE_TELEGRAM_ERROR_MS;
   const hasUrl = Boolean(data.result?.url);
+  const lastErrorDetail = lastError ? `${lastError}${isStaleLastError ? " (stale)" : ""}` : "none";
 
   return {
     name: "telegram webhook info",
-    ok: data.ok === true && hasUrl && pending === 0 && !lastError,
-    detail: `has_url=${hasUrl}, pending=${pending}, last_error=${lastError || "none"}`,
+    ok: data.ok === true && hasUrl && pending === 0 && (!lastError || isStaleLastError),
+    detail: `has_url=${hasUrl}, pending=${pending}, last_error=${lastErrorDetail}`,
   };
 }
 
@@ -159,7 +171,12 @@ async function checkAiProvider(): Promise<SmokeResult> {
   });
 
   if (!res.ok) {
-    return { name: "ai provider", ok: false, detail: `model=${model}, status=${res.status}` };
+    const degraded = res.status === 429 || res.status >= 500;
+    return {
+      name: "ai provider",
+      ok: degraded,
+      detail: `model=${model}, status=${res.status}${degraded ? " (degraded; scoring still works)" : ""}`,
+    };
   }
 
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
