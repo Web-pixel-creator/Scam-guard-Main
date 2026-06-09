@@ -15,8 +15,9 @@ AI explanations and screenshot intelligence are useful, but the risk engine must
 ### R2. Non-Retryable Errors
 
 1. WHEN the AI provider returns HTTP 400, 401, 403, or 404, THE system SHALL NOT retry.
-2. THE system SHALL continue to return `null` for AI output on non-retryable errors.
-3. THE risk score and deterministic reason codes SHALL remain unaffected by any AI failure.
+2. WHEN an AI request is aborted by the local timeout, THE system SHALL NOT retry the aborted request.
+3. THE system SHALL continue to return `null` for AI output on non-retryable errors.
+4. THE risk score and deterministic reason codes SHALL remain unaffected by any AI failure.
 
 ### R3. Circuit Breaker Compatibility
 
@@ -33,4 +34,5 @@ AI explanations and screenshot intelligence are useful, but the risk engine must
 
 1. Tests SHALL verify a transient 503 followed by 200 returns the AI explanation.
 2. Tests SHALL verify a 401 is not retried and degrades to `null`.
-3. Tests SHALL verify repeated transient failures still degrade safely without changing scoring.
+3. Tests SHALL verify an aborted request is not retried and degrades to `null`.
+4. Tests SHALL verify repeated transient failures still degrade safely without changing scoring.

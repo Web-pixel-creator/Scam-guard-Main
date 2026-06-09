@@ -375,6 +375,26 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     expect(result.level).toBe("suspicious");
   });
 
+  it("does not retry aborted provider requests", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    const abortError = Object.assign(new Error("request timed out"), { name: "AbortError" });
+    const fetchMock = vi.fn(async () => {
+      throw abortError;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: SUSPICIOUS_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.explanation).toBeNull();
+    expect(result.level).toBe("suspicious");
+  });
+
   it("exhausts transient retries and still keeps rules-only scoring", async () => {
     process.env.OPENAI_API_KEY = "test-openai-api-key";
     const fetchMock = vi.fn(async () => ({

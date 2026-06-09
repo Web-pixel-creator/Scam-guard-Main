@@ -441,6 +441,10 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === "AbortError";
+}
+
 async function callChatCompletionOnce(
   cfg: AiConfig,
   messages: ChatMessage[],
@@ -469,12 +473,13 @@ async function callChatCompletionOnce(
     const txt: string | undefined = data?.choices?.[0]?.message?.content;
     return { kind: "success", text: txt?.trim() ?? null };
   } catch (e) {
+    const transient = !isAbortError(e);
     console.error(
-      `AI ${label} failed (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=true): ${
+      `AI ${label} failed (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient}): ${
         e instanceof Error ? e.message : "unknown"
       }`,
     );
-    return { kind: "failure", transient: true };
+    return { kind: "failure", transient };
   } finally {
     clearTimeout(timeout);
   }

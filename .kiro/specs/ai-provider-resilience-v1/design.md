@@ -22,6 +22,7 @@ flowchart TD
 ## Components
 
 - `isTransientAiStatus(status)`: returns true for 429, 500, 502, 503, 504.
+- `isAbortError(error)`: identifies local request timeouts so a hung provider is not retried.
 - `AI_MAX_ATTEMPTS`: three total attempts: initial request plus two retries.
 - `AI_RETRY_BACKOFF_MS`: short deterministic backoff values for tests and bounded latency.
 - `callChatCompletionWithRetry(cfg, messages, label)`: performs one sanitized AI call loop and returns `{ ok, text }`.
@@ -30,15 +31,15 @@ flowchart TD
 ## Correctness Properties
 
 1. Retryable statuses may be attempted up to three times.
-2. Non-retryable statuses are attempted exactly once.
+2. Non-retryable statuses and local aborts are attempted exactly once.
 3. No failure path throws to callers.
 4. A successful retry is equivalent to first-attempt success for callers.
 5. Failure logging never includes prompt or response body content.
 
 ## Error Handling
 
-Network throws and aborts are treated as transient attempt failures. After all attempts fail, the helper returns `null`; caller behavior stays unchanged.
+Network throws are treated as transient attempt failures. Local aborts/timeouts are treated as non-retryable so a hung provider cannot multiply webhook latency. After all allowed attempts fail, the helper returns `null`; caller behavior stays unchanged.
 
 ## Testing Strategy
 
-Use existing AI degradation integration tests. Add cases for 503 then 200, 401 no retry, and repeated 503 safe degradation.
+Use existing AI degradation integration tests. Add cases for 503 then 200, 401 no retry, AbortError no retry, and repeated 503 safe degradation.
