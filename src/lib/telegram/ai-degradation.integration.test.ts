@@ -395,6 +395,36 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     expect(result.level).toBe("suspicious");
   });
 
+  it("does not retry quota-exhausted 429 provider errors", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 429,
+      json: async () => ({}),
+      text: async () =>
+        JSON.stringify({
+          error: {
+            code: 429,
+            status: "RESOURCE_EXHAUSTED",
+            message:
+              "You exceeded your current quota. Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests",
+          },
+        }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: HIGH_RISK_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.explanation).toBeNull();
+    expect(result.level).toBe("high_risk");
+  });
+
   it("exhausts transient retries and still keeps rules-only scoring", async () => {
     process.env.OPENAI_API_KEY = "test-openai-api-key";
     const fetchMock = vi.fn(async () => ({

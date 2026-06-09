@@ -10,6 +10,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
 ## 2026-06-09 - AI Provider Resilience v1
 
 - Added bounded retry for transient OpenAI-compatible provider failures (`429`, `500`, `502`, `503`, `504`) in the shared AI chat-completion helper.
+- Provider `429` responses that contain Gemini/GCP-style quota exhaustion (`RESOURCE_EXHAUSTED`, `quota exceeded`, `generate_content_free_tier_requests`) are now treated as non-retryable, so one user check does not burn multiple quota attempts.
 - Non-retryable provider errors such as `401` still degrade immediately to rules-only results.
 - Local AI request aborts/timeouts are not retried, preventing a hung provider from multiplying Telegram webhook latency.
 - Circuit-breaker accounting now treats exhausted retries as one logical AI failure, while a successful retry resets the failure counter.

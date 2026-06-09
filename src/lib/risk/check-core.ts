@@ -429,7 +429,15 @@ function recordAiSuccess(): void {
   aiConsecutiveFailures = 0;
 }
 
-function isTransientAiStatus(status: number): boolean {
+function isAiQuotaExhausted(status: number, body: string): boolean {
+  return (
+    status === 429 &&
+    /RESOURCE_EXHAUSTED|quota exceeded|generate_content_free_tier_requests/i.test(body)
+  );
+}
+
+function isTransientAiStatus(status: number, body = ""): boolean {
+  if (isAiQuotaExhausted(status, body)) return false;
   return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
@@ -443,6 +451,14 @@ function delay(ms: number): Promise<void> {
 
 function isAbortError(e: unknown): boolean {
   return e instanceof Error && e.name === "AbortError";
+}
+
+async function safeResponseText(res: Response): Promise<string> {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
 }
 
 async function callChatCompletionOnce(
@@ -462,9 +478,11 @@ async function callChatCompletionOnce(
     });
 
     if (!res.ok) {
-      const transient = isTransientAiStatus(res.status);
+      const body = await safeResponseText(res);
+      const transient = isTransientAiStatus(res.status, body);
+      const quotaExhausted = isAiQuotaExhausted(res.status, body);
       console.error(
-        `AI ${label} error ${res.status} (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient})`,
+        `AI ${label} error ${res.status} (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient}, quota_exhausted=${quotaExhausted})`,
       );
       return { kind: "failure", transient };
     }
@@ -489,15 +507,16 @@ async function chatCompletionWithRetry(
   cfg: AiConfig,
   messages: ChatMessage[],
   label: string,
-): Promise<string | null> {
+): Promise<{ text: string | null; transientFailure: boolean }> {
   for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
     const attempt = i + 1;
     const result = await callChatCompletionOnce(cfg, messages, label, attempt);
-    if (result.kind === "success") return result.text;
-    if (!result.transient || attempt >= AI_MAX_ATTEMPTS) return null;
+    if (result.kind === "success") return { text: result.text, transientFailure: false };
+    if (!result.transient) return { text: null, transientFailure: false };
+    if (attempt >= AI_MAX_ATTEMPTS) return { text: null, transientFailure: true };
     await delay(retryDelay(i));
   }
-  return null;
+  return { text: null, transientFailure: true };
 }
 
 async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
@@ -507,17 +526,18 @@ async function chatCompletion(messages: ChatMessage[], label: string): Promise<s
     // Primary is broken — try fallback provider if configured
     const fallback = getFallbackAiConfig();
     if (fallback) {
-      return chatCompletionWithRetry(fallback, messages, label + "/fallback");
+      const fallbackResult = await chatCompletionWithRetry(fallback, messages, label + "/fallback");
+      return fallbackResult.text;
     }
     return null;
   }
-  const txt = await chatCompletionWithRetry(cfg, messages, label);
-  if (txt !== null) {
+  const result = await chatCompletionWithRetry(cfg, messages, label);
+  if (result.text !== null) {
     recordAiSuccess();
-    return txt;
+    return result.text;
   }
 
-  recordAiFailure();
+  if (result.transientFailure) recordAiFailure();
   return null;
 }
 

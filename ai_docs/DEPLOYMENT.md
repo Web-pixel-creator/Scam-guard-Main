@@ -206,6 +206,12 @@ provider. It never prints secret values.
 railway run npm run prod:smoke -- https://your-app.example.com
 ```
 
+If the AI check fails with `status=429` on a Gemini/OpenAI-compatible endpoint,
+the app should still degrade to rules-only scoring, but production AI
+explanations/OCR will be unreliable until the provider quota is restored. Treat
+that as an operational issue: enable billing/credits for the provider, reduce
+manual probes, or configure an `OPENAI_FALLBACK_*` provider.
+
 To also send one synthetic high-risk text through the latest Telegram session
 (this sends a real bot reply to that latest chat), add:
 
