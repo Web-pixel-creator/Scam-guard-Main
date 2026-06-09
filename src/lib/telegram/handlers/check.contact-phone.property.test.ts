@@ -52,6 +52,7 @@ const hoisted = vi.hoisted(() => {
     explanation: string | null;
     knownReports: number;
     verifiedContact: null;
+    brandEvidence: [];
   }
 
   const runCheckCalls: Array<{ params: Params; result: FakeResult }> = [];
@@ -91,6 +92,7 @@ const hoisted = vi.hoisted(() => {
       explanation: null,
       knownReports: 0,
       verifiedContact: null,
+      brandEvidence: [],
     };
   };
 
@@ -126,7 +128,14 @@ vi.mock("@/lib/telegram/api.server", () => ({
   sendChatAction: () => Promise.resolve(),
   getFile: () => Promise.resolve(null),
   downloadFileAsDataUrl: () => Promise.resolve(null),
+  getChatInfo: () => Promise.resolve({ ok: false, errorCode: 400, description: "chat not found" }),
   escapeMarkdownV2: (s: string) => s,
+}));
+
+vi.mock("@/lib/telegram/session.server", () => ({
+  saveSession: () => Promise.resolve(),
+  loadSession: () => Promise.resolve(null),
+  resetScenario: () => Promise.resolve(),
 }));
 
 import { handlePhoneFromContact } from "./check";

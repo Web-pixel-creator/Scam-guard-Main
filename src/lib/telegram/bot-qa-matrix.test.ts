@@ -197,16 +197,15 @@ describe("Telegram Bot QA Matrix v1", () => {
       "ru",
     );
 
-    expect(found).toContain("Это не гарантия безопасности");
+    expect(found).toContain("Это не гарантия");
     expect(found).not.toMatch(/есть жалоб|spam.+извест|создан недавно/i);
     expect(notFound).toMatch(/это не доказательство скама/i);
-    expect(notFound).toContain("scam-label");
-    expect(notFound).toContain("код, деньги, карту или APK");
+    expect(notFound).toContain("SCAM-метка");
+    expect(notFound).toContain("код, деньги, карту, APK");
     expect(invite).toContain("закрытый чат/канал");
     expect(invite).toContain("не вижу");
-    expect(invite).toContain("оцениваю саму ссылку и контекст");
-    expect(invite).toContain("Telegram-превью");
-    expect(invite).toContain("гарантированный доход");
+    expect(invite).toContain("оцениваю только ссылку");
+    expect(invite).toContain("не вводите код/карту");
   });
 
   it("explains what Telegram account data the bot can and cannot see", () => {

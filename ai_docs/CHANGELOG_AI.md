@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - Telegram Link/Account QA Polish
+
+- Telegram username and invite-link result cards now use shorter "what I can see / what I cannot see / safe next step" copy.
+- Telegram profile-only checks now get a dedicated context prompt asking for the suspicious message or screenshot instead of a generic "send link/number/full text" fallback.
+- High-risk Telegram invite/support-name results now show the Telegram limitation brief before reason labels, so useful context is not truncated behind generic reasons.
+- Test mocks for Telegram handler property tests were updated to cover metadata enrichment without accidental Supabase or Bot API noise.
+
 ## 2026-06-09 - Emergency Copilot Guided UX
 
 - Live-call panic mode now starts with a guided "say this, hang up, then tap the button" flow instead of a plain warning.

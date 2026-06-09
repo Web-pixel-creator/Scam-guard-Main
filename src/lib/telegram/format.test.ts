@@ -366,6 +366,22 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).not.toContain(escapeMarkdownV2("крипто/инвестиций"));
   });
 
+  it("uses Telegram-specific context prompts for profile-only checks", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "telegram",
+        level: "unknown",
+        reasons: ["unknown_sender"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_telegram_profile", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context", "ru")));
+  });
+
   it("still shows a scam pattern when a strong linked reason is present", () => {
     const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
     expect(fakeBank).toBeDefined();

@@ -133,22 +133,22 @@ function foundBrief(username: string, chat: TelegramChatFullInfo, lang: Lang): s
   const accessPart = accessHints(chat, lang);
 
   if (lang === "uz") {
-    return `Telegram: @${username} bo'yicha ochiq ma'lumot bor — ${label}${titlePart}${accessPart}. Bu xavfsizlik kafolati emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.`;
+    return `Telegram: @${username} bo'yicha ochiq ma'lumot ko'rinadi — ${label}${titlePart}${accessPart}. Bu kafolat emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.`;
   }
   if (lang === "en") {
-    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a safety guarantee: I cannot see account age, hidden reports, or spam history.`;
+    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a guarantee: I cannot see account age, hidden reports, or spam history.`;
   }
-  return `Telegram: публичные данные @${username} доступны — ${label}${titlePart}${accessPart}. Это не гарантия безопасности: мне недоступны возраст аккаунта, скрытые жалобы и spam-история.`;
+  return `Telegram: вижу публичные данные @${username} — ${label}${titlePart}${accessPart}. Это не гарантия: возраст аккаунта, скрытые жалобы и spam-история мне недоступны.`;
 }
 
 function notFoundBrief(username: string, lang: Lang): string {
   if (lang === "uz") {
-    return `Telegram: @${username} topilmadi yoki ko'rinmayapti; bu scam isboti emas, scam-label, akkaunt yoshi va spam tarixi menga ko'rinmaydi.`;
+    return `Telegram: @${username} Bot API orqali ko'rinmayapti. Bu scam isboti emas: yashirin SCAM belgisi, akkaunt yoshi va spam tarixi menga ko'rinmaydi.`;
   }
   if (lang === "en") {
-    return `Telegram: @${username} is unavailable or not found; this is not proof of a scam, and I cannot see scam labels, account age, or spam history.`;
+    return `Telegram: @${username} is not visible through the Bot API. This is not proof of a scam: hidden SCAM labels, account age, and spam history are not visible to me.`;
   }
-  return `Telegram: @${username} недоступен или не найден; это не доказательство скама, scam-label, возраст аккаунта и spam-история мне недоступны.`;
+  return `Telegram: @${username} не виден через Bot API. Это не доказательство скама: скрытая SCAM-метка, возраст аккаунта и spam-история мне недоступны.`;
 }
 
 function unavailableBrief(username: string, lang: Lang): string {
@@ -163,22 +163,22 @@ function unavailableBrief(username: string, lang: Lang): string {
 
 function privateInviteBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Telegram: bu yopiq chat/kanalga invite-havola. Men uning ichini, a'zolarini yoki yashirin shikoyatlarni Telegram Bot API orqali ko'ra olmayman. Shuning uchun xulosani havolaning o'zi va siz yuborgan kontekst bo'yicha beraman.";
+    return "Telegram: bu yopiq chat/kanalga invite-havola. Ichidagi postlar, a'zolar va yashirin shikoyatlar menga ko'rinmaydi; faqat havola va yuborgan kontekstingizni baholayman.";
   }
   if (lang === "en") {
-    return "Telegram: this is an invite link to a closed chat/channel. Through the Telegram Bot API I cannot inspect its content, members, or hidden reports. I judge only the invite itself and the context you send with it.";
+    return "Telegram: this is an invite link to a closed chat/channel. I cannot see its posts, members, or hidden reports; I judge only the invite and the context you sent.";
   }
-  return "Telegram: это invite-ссылка в закрытый чат/канал. Через Telegram Bot API я не вижу содержимое, участников и скрытые жалобы. Поэтому оцениваю саму ссылку и контекст, который вы прислали рядом с ней.";
+  return "Telegram: это invite-ссылка в закрытый чат/канал. Я не вижу содержимое, участников и скрытые жалобы; оцениваю только ссылку и присланный рядом контекст.";
 }
 
 function internalLinkBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Telegram: bu ichki yoki yopiq havolaga o'xshaydi. Men yopiq chat ma'lumotlarini ko'ra olmayman.";
+    return "Telegram: bu ichki yoki yopiq havolaga o'xshaydi. Yopiq chat ichini ko'ra olmayman; matn, preview yoki skrin yuboring.";
   }
   if (lang === "en") {
-    return "Telegram: this looks like an internal or private link. I cannot see closed-chat data.";
+    return "Telegram: this looks like an internal or private link. I cannot see closed-chat content; send the text, preview, or screenshot.";
   }
-  return "Telegram: это похоже на внутреннюю или закрытую ссылку. Я не вижу данные закрытого чата.";
+  return "Telegram: это похоже на внутреннюю или закрытую ссылку. Я не вижу содержимое закрытого чата; пришлите текст, превью или скрин.";
 }
 
 const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
@@ -229,9 +229,9 @@ function telegramSignalText(
 
   if (labels.length === 0) return "";
   const prefix: Record<Lang, string> = {
-    ru: "Сигналы:",
-    uz: "Belgilar:",
-    en: "Signals:",
+    ru: "Что видно:",
+    uz: "Nima ko'rinadi:",
+    en: "Visible signs:",
   };
   return `${prefix[lang]} ${labels.slice(0, 3).join("; ")}.`;
 }
@@ -283,28 +283,29 @@ function telegramNextStep(
 
   if (lang === "uz") {
     if (hasBetting)
-      return "Keyin: kirish/prognoz uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
-    if (hasCredentialRisk) return "Keyin: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
+      return "Xavfsiz qadam: prognoz/VIP uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
+    if (hasCredentialRisk)
+      return "Xavfsiz qadam: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
     if (hasInvite)
-      return "Keyin: Telegram preview, kanal tavsifi yoki post skrinini yuboring. Agar u stavka, kripto, kafolatlangan foyda yoki yopiq kirish uchun to'lov va'da qilsa — pul to'lamang va kod/karta kiritmang.";
-    return "Keyin: xabar matni/skrinini yuboring; kod, pul, karta yoki APK so'rashyaptimi — tekshiraman.";
+      return "Xavfsiz qadam: invite orqali kod/karta kiritmang; Telegram preview, tavsif yoki post skrinini yuboring.";
+    return "Aniq tekshiruv uchun xabar/skrin yuboring: kod, pul, karta, APK yoki havola so'rashyaptimi?";
   }
   if (lang === "en") {
     if (hasBetting)
-      return "Next: do not pay for access/predictions; send a screenshot of the channel description or post.";
+      return "Safe step: do not pay for predictions/VIP access; send a screenshot of the channel description or post.";
     if (hasCredentialRisk)
-      return "Next: do not share codes, card data, or APK access; send a chat screenshot.";
+      return "Safe step: do not share codes, card data, or APK access; send a chat screenshot.";
     if (hasInvite)
-      return "Next: send the Telegram preview, channel description, or post screenshot. If it promises betting picks, crypto profit, guaranteed income, or paid closed access, do not pay or enter codes/card data.";
-    return "Next: send the message text/screenshot; I will check whether they ask for codes, money, card data, or APK.";
+      return "Safe step: do not enter codes/card data through the invite; send the Telegram preview, description, or post screenshot.";
+    return "For a real check, send the message/screenshot: are they asking for codes, money, card data, APK, or a link?";
   }
   if (hasBetting)
-    return "Дальше: не оплачивайте доступ/прогнозы; пришлите скрин описания канала или поста.";
+    return "Безопасный шаг: не платите за прогноз/VIP; пришлите скрин описания канала или поста.";
   if (hasCredentialRisk)
-    return "Дальше: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
+    return "Безопасный шаг: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
   if (hasInvite)
-    return "Дальше: пришлите Telegram-превью, описание канала или скрин поста. Если там ставки, крипта, «гарантированный доход» или платный доступ в закрытый канал — не платите и не вводите код/карту.";
-  return "Дальше: пришлите текст/скрин сообщения; я проверю просьбы про код, деньги, карту или APK.";
+    return "Безопасный шаг: не вводите код/карту через invite; пришлите Telegram-превью, описание или скрин поста.";
+  return "Для проверки по делу пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?";
 }
 
 function chatTypeLabel(type: TelegramChatFullInfo["type"], lang: Lang): string {

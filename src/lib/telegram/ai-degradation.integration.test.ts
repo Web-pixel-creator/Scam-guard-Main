@@ -67,6 +67,12 @@ vi.mock("@/lib/telegram/api.server", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/telegram/session.server", () => ({
+  saveSession: () => Promise.resolve(),
+  loadSession: () => Promise.resolve(null),
+  resetScenario: () => Promise.resolve(),
+}));
+
 import { runCheck, type RunCheckResult } from "@/lib/risk/check-core";
 import { formatCheckResult } from "@/lib/telegram/format";
 import { handleCheck } from "@/lib/telegram/handlers/check";

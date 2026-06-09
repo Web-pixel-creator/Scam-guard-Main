@@ -96,13 +96,14 @@ const THIN_SEPARATOR = escapeMarkdownV2("┈┈┈┈┈┈┈┈┈┈┈┈┈
 /** Telegram message character limit. */
 const TELEGRAM_MAX_CHARS = 4096;
 
-type NeutralContext = "crypto" | "qr_menu" | "delivery" | "phone";
+type NeutralContext = "crypto" | "qr_menu" | "delivery" | "phone" | "telegram_profile";
 
 const NEUTRAL_CONTEXT_BRIEF_KEY: Record<NeutralContext, BotStringKey> = {
   crypto: "brief_unknown_crypto",
   qr_menu: "brief_unknown_qr_menu",
   delivery: "brief_unknown_delivery",
   phone: "brief_unknown_phone",
+  telegram_profile: "brief_unknown_telegram_profile",
 };
 
 const NEUTRAL_CONTEXT_PROMPT_KEY: Record<NeutralContext, BotStringKey> = {
@@ -110,6 +111,7 @@ const NEUTRAL_CONTEXT_PROMPT_KEY: Record<NeutralContext, BotStringKey> = {
   qr_menu: "prompt_more_context_qr_menu",
   delivery: "prompt_more_context_delivery",
   phone: "prompt_more_context_phone",
+  telegram_profile: "prompt_more_context_telegram_profile",
 };
 
 const CRYPTO_CONTEXT_RE =
@@ -135,6 +137,7 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   ) {
     return "phone";
   }
+  if (result.type === "telegram") return "telegram_profile";
 
   return null;
 }
@@ -194,9 +197,13 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   let content: string;
   const neutralContext = detectNeutralContext(result);
   const truncateOptions =
-    result.level === "unknown" ? { maxLines: 3, maxChars: 190 } : { maxLines: 4, maxChars: 230 };
+    result.type === "telegram"
+      ? { maxLines: 5, maxChars: 340 }
+      : result.level === "unknown"
+        ? { maxLines: 3, maxChars: 190 }
+        : { maxLines: 4, maxChars: 230 };
 
-  if (neutralContext) {
+  if (neutralContext && !(neutralContext === "telegram_profile" && result.explanation !== null)) {
     content = bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang);
   } else if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
     content = truncateExplanation(bt("hosted_platform_explanation", lang), truncateOptions);
@@ -288,17 +295,22 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
 function renderWhyDangerous(result: RunCheckResult, lang: Lang): string {
   const parts: string[] = [];
 
+  if (result.type === "telegram" && result.explanation !== null) {
+    const truncated = truncateExplanation(result.explanation, { maxLines: 4, maxChars: 340 });
+    parts.push(escapeMarkdownV2(truncated));
+  }
+
   // Reason labels
   const reasonLines = result.reasons
     .map((code) => REASON_LABELS[code]?.[lang])
     .filter((label): label is string => Boolean(label))
-    .slice(0, 3);
+    .slice(0, result.type === "telegram" ? 2 : 3);
   if (reasonLines.length > 0) {
     parts.push(...reasonLines.map((label) => `• ${escapeMarkdownV2(label)}`));
   }
 
   // Explanation as supplementary context
-  if (result.explanation !== null) {
+  if (result.type !== "telegram" && result.explanation !== null) {
     const truncated = truncateExplanation(result.explanation);
     parts.push(escapeMarkdownV2(truncated));
   }

@@ -39,6 +39,7 @@ const FAKE_RESULT = {
   explanation: null,
   knownReports: 0,
   verifiedContact: null,
+  brandEvidence: [],
 };
 
 // Mock the transport-independent core: capture the rateLimitKey it receives.
@@ -67,7 +68,14 @@ vi.mock("@/lib/telegram/api.server", () => ({
   sendChatAction: () => Promise.resolve(),
   getFile: () => Promise.resolve({ filePath: "photos/file_0.jpg", fileSize: 12_345 }),
   downloadFileAsDataUrl: () => Promise.resolve("data:image/jpeg;base64,AAAA"),
+  getChatInfo: () => Promise.resolve({ ok: false, errorCode: 400, description: "chat not found" }),
   escapeMarkdownV2: (s: string) => s,
+}));
+
+vi.mock("@/lib/telegram/session.server", () => ({
+  saveSession: () => Promise.resolve(),
+  loadSession: () => Promise.resolve(null),
+  resetScenario: () => Promise.resolve(),
 }));
 
 import { handleCheck, handleImage, handlePhoneFromContact } from "./check";

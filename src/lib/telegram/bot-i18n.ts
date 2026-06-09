@@ -510,6 +510,11 @@ export const bot_dict: BotDict = {
     uz: "Bu oddiy O'zbekiston raqamiga o'xshaydi. Rasmiy manbasiz egasini ayta olmayman. Xavf qo'ng'iroqda sizdan nima so'ralganiga bog'liq.",
     en: "This looks like a regular Uzbek phone number. I cannot name the owner without an official source. Risk depends on what they asked during the call.",
   },
+  brief_unknown_telegram_profile: {
+    ru: "По одному Telegram-профилю нельзя честно подтвердить риск. Я проверяю только видимые признаки: username, публичное описание и то, что аккаунт просит сделать.",
+    uz: "Faqat Telegram profili bo'yicha xavfni halol tasdiqlab bo'lmaydi. Men faqat ko'rinadigan belgilarni tekshiraman: username, ochiq tavsif va akkaunt sizdan nima so'rayotgani.",
+    en: "A Telegram profile alone is not enough to confirm risk honestly. I check only visible signs: username, public description, and what the account asks you to do.",
+  },
   prompt_more_context_crypto: {
     ru: "Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств.",
     uz: "Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish.",
@@ -529,6 +534,11 @@ export const bot_dict: BotDict = {
     ru: "Напишите, что просили: SMS-код, данные карты, перевод, APK, QR-вход или удалённый доступ.",
     uz: "Nima so'rashganini yozing: SMS-kod, karta ma'lumoti, pul o'tkazma, APK, QR-login yoki masofaviy kirish.",
     en: "Write what they asked for: SMS code, card data, transfer, APK, QR login, or remote access.",
+  },
+  prompt_more_context_telegram_profile: {
+    ru: "Пришлите сообщение или скрин: просят код, деньги, карту, APK, QR-вход, подписку/VIP или перейти по ссылке?",
+    uz: "Xabar yoki skrin yuboring: kod, pul, karta, APK, QR-login, obuna/VIP yoki havola so'ralyaptimi?",
+    en: "Send the message or screenshot: are they asking for a code, money, card data, APK, QR login, VIP/subscription, or a link?",
   },
 
   // ── Section titles (Result Message UX v2) ─────────────────────────────────
