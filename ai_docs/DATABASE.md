@@ -29,6 +29,13 @@ RLS/grants: public direct inserts are revoked. Reports are accepted through
 before service-role insert. Anonymous by default; admins moderate through admin
 server functions.
 
+Situation-only reports from Telegram (`/report` with no number/link/username)
+are stored as incident evidence with the reserved redacted value
+`__ishonch_guard_incident_only__`. They do not upsert or increment `entities`,
+and admin moderation skips entity sync for that marker. This avoids turning a
+description-only complaint into public reputation for an unknown person or
+account.
+
 ### `entities`
 
 Aggregated suspicious identifiers: `id, entity_type, entity_hash, display_mask, risk_level, report_count, moderation_status, last_seen_at, created_at`.
@@ -67,3 +74,5 @@ Emails that become admin on signup. Managed by SQL/service-role only.
 - OTP/SMS codes, full card numbers, full phones, PINs, passwords and passport data must be redacted before persistence.
 - Screenshots are OCR'd/analyzed in memory and discarded; image uploads for reports are not wired yet.
 - Public exposure requires admin moderation.
+- Description-only incident reports are useful for review/research, but they do
+  not affect public entity reputation.

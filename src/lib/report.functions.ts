@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { INCIDENT_ONLY_HASH_PREFIX, INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/report-boundary";
 import { detectInputType, normalize, maskForDisplay, redactText } from "./risk/detect";
 import { hashIdentifier } from "./risk/hash";
 import { checkRateLimit } from "./risk/rate-limit";
@@ -13,10 +14,11 @@ const reportSchema = z.object({
   scamType: z.string().max(80).optional(),
   city: z.string().max(80).optional(),
   amountLostUzs: z.number().int().nonnegative().max(10_000_000_000).optional(),
+  incidentOnly: z.boolean().default(false),
   lang: z.enum(["ru", "uz", "en"]).default("ru"),
 });
 
-type ReportInput = z.infer<typeof reportSchema>;
+type ReportInput = z.input<typeof reportSchema>;
 type SubmitReportResult = { ok: true } | { ok: false; error: string; retryAfterSec?: number };
 
 /** Rate limit: 3 reports / 10 minutes per IP. Prevents report spam/flooding. */
@@ -51,15 +53,25 @@ export async function submitReportCore(
   data: ReportInput,
   rateLimitKey: string,
 ): Promise<SubmitReportResult> {
+  const report = reportSchema.parse(data);
   const rl = checkRateLimit(rateLimitKey, REPORT_RATE_LIMIT, REPORT_RATE_WINDOW_MS);
   if (!rl.ok) {
     return { ok: false, error: "rate_limited", retryAfterSec: rl.retryAfterSec };
   }
 
-  const detected = data.type && data.type !== "unknown" ? data.type : detectInputType(data.value);
-  const normalized = normalize(data.value, detected);
-  const display = maskForDisplay(normalized, detected);
-  const description = redactText(data.description);
+  const description = redactText(report.description);
+  const incidentOnly = report.incidentOnly === true;
+  const detected = incidentOnly
+    ? "text"
+    : report.type && report.type !== "unknown"
+      ? report.type
+      : detectInputType(report.value);
+  const normalized = incidentOnly
+    ? `${INCIDENT_ONLY_HASH_PREFIX}${description}`
+    : normalize(report.value, detected);
+  const display = incidentOnly
+    ? INCIDENT_ONLY_REDACTED_VALUE
+    : maskForDisplay(normalized, detected);
   const hash = await hashIdentifier(normalized);
 
   // Report abuse protection: dedupe by hash + today (prevents spam/flooding).
@@ -81,15 +93,19 @@ export async function submitReportCore(
     entity_hash: hash,
     redacted_value: display,
     description,
-    scam_type: data.scamType ?? null,
-    city: data.city ?? null,
-    amount_lost_uzs: data.amountLostUzs ?? null,
-    language: data.lang,
+    scam_type: report.scamType ?? null,
+    city: report.city ?? null,
+    amount_lost_uzs: report.amountLostUzs ?? null,
+    language: report.lang,
   });
 
   if (error) {
     console.error("submit report failed", error);
     return { ok: false, error: "submit_failed" };
+  }
+
+  if (incidentOnly) {
+    return { ok: true };
   }
 
   // Bump entity counter (server-managed)

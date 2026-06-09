@@ -4,15 +4,15 @@ Signatures and intent only. See file paths for source.
 
 ## Server functions
 
-| Function                                                                              | File                          | Auth   | Purpose                                                                        |
-| ------------------------------------------------------------------------------------- | ----------------------------- | ------ | ------------------------------------------------------------------------------ |
-| `checkInput({ input, type?, lang })`                                                  | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; rate-limited 10/min/IP.                         |
-| `ocrExtract({ image, lang })`                                                         | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction. |
-| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report and upserts/bumps `entities`.                        |
-| `listReports({ status })`                                                             | `src/lib/admin.functions.ts`  | admin  | Lists reports by status.                                                       |
-| `listEntities({ status })`                                                            | `src/lib/admin.functions.ts`  | admin  | Lists moderated/known entities.                                                |
-| `moderateReport({ reportId, decision, riskLevel })`                                   | `src/lib/admin.functions.ts`  | admin  | Confirms/rejects a report and syncs entity reputation.                         |
-| `adminStats()`                                                                        | `src/lib/admin.functions.ts`  | admin  | Dashboard counts.                                                              |
+| Function                                                                                             | File                          | Auth   | Purpose                                                                                     |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; rate-limited 10/min/IP.                                      |
+| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.              |
+| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present. |
+| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`  | admin  | Lists reports by status.                                                                    |
+| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`  | admin  | Lists moderated/known entities.                                                             |
+| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`  | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.  |
+| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`  | admin  | Dashboard counts.                                                                           |
 
 ## Risk engine
 

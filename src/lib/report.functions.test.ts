@@ -70,6 +70,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
+import { INCIDENT_ONLY_REDACTED_VALUE } from "./report-boundary";
 import { submitReport, submitReportCore, reportRateLimitKeyForTelegram } from "./report.functions";
 
 const maxDigitRun = (s: string): number =>
@@ -103,6 +104,53 @@ describe("submitReport privacy", () => {
     expect(description).not.toContain("8600 1234 5678 9012");
     expect(description).not.toContain("+998901234567");
     expect(maxDigitRun(description)).toBeLessThanOrEqual(3);
+  });
+
+  it("stores situation-only reports without creating or updating public entities", async () => {
+    const result = await submitReportCore(
+      {
+        value: INCIDENT_ONLY_REDACTED_VALUE,
+        type: "text",
+        description: "Victim reports pressure in chat, but has no phone, username, or link.",
+        scamType: "social-engineering",
+        lang: "ru",
+        incidentOnly: true,
+      },
+      "report:test:incident-only",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "text",
+      redacted_value: INCIDENT_ONLY_REDACTED_VALUE,
+      scam_type: "social-engineering",
+    });
+    expect(String(hoisted.reportRows[0].description)).toContain("Victim reports pressure");
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(0);
+  });
+
+  it("continues to create an entity candidate when a report names a target", async () => {
+    const result = await submitReportCore(
+      {
+        value: "@fakebank_support_entity",
+        type: "telegram",
+        description: "Asked for an SMS code during a fake bank support chat.",
+        lang: "ru",
+      },
+      "report:test:target-entity",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.entityInserts).toHaveLength(1);
+    expect(hoisted.entityInserts[0]).toMatchObject({
+      entity_type: "telegram",
+      display_mask: "@fa•••ty",
+      moderation_status: "new",
+      report_count: 1,
+    });
   });
 
   it("rate-limits Telegram report submissions per user key", async () => {

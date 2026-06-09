@@ -109,3 +109,11 @@ the first brief sentence because Telegram result cards intentionally truncate
 long explanations. For unavailable usernames the bot says that this is not proof
 of scam and that scam-label/account-age/spam-history data is unavailable before
 showing follow-up advice.
+
+## D-021 - Situation-only reports do not affect entity reputation
+
+When a user reports a situation without a concrete phone, URL, Telegram username
+or payment target, the report is stored as incident evidence but must not create
+or increment an `entities` row. This keeps the report flow useful for scared or
+elderly users while protecting unrelated people/accounts from description-only
+public reputation.

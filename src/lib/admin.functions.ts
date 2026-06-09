@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { isIncidentOnlyReportProjection } from "@/lib/report-boundary";
 
 type AdminActionInsert = {
   admin_user_id: string;
@@ -16,6 +17,14 @@ type AuditLogClient = {
     insert(payload: AdminActionInsert): Promise<{ error: { message?: string } | null }>;
   };
 };
+
+const moderateReportInputSchema = z.object({
+  reportId: z.string().uuid(),
+  decision: z.enum(["confirmed", "rejected"]),
+  riskLevel: z.enum(["safe", "unknown", "suspicious", "high_risk"]).default("high_risk"),
+});
+
+type ModerateReportInput = z.infer<typeof moderateReportInputSchema>;
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -65,27 +74,24 @@ export const listEntities = createServerFn({ method: "POST" })
 
 export const moderateReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        reportId: z.string().uuid(),
-        decision: z.enum(["confirmed", "rejected"]),
-        riskLevel: z.enum(["safe", "unknown", "suspicious", "high_risk"]).default("high_risk"),
-      })
-      .parse(d),
-  )
+  .inputValidator((d: unknown) => moderateReportInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const { data: rep, error } = await supabaseAdmin
-      .from("reports")
-      .select("entity_hash, entity_type, redacted_value")
-      .eq("id", data.reportId)
-      .maybeSingle();
-    if (error || !rep) throw new Error("Report not found");
+    return moderateReportCore(data, context.userId);
+  });
 
-    await supabaseAdmin.from("reports").update({ status: data.decision }).eq("id", data.reportId);
+export async function moderateReportCore(data: ModerateReportInput, adminUserId: string) {
+  const { data: rep, error } = await supabaseAdmin
+    .from("reports")
+    .select("entity_hash, entity_type, redacted_value")
+    .eq("id", data.reportId)
+    .maybeSingle();
+  if (error || !rep) throw new Error("Report not found");
 
-    // Sync corresponding entity
+  await supabaseAdmin.from("reports").update({ status: data.decision }).eq("id", data.reportId);
+
+  if (!isIncidentOnlyReportProjection(rep)) {
+    // Sync corresponding entity only for reports that name a target.
     const { data: ent } = await supabaseAdmin
       .from("entities")
       .select("id")
@@ -109,20 +115,21 @@ export const moderateReport = createServerFn({ method: "POST" })
         report_count: 1,
       });
     }
-    // Audit log: record who made the decision and why.
-    try {
-      await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
-        admin_user_id: context.userId,
-        action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
-        target_type: "report",
-        target_id: data.reportId,
-        reason: `risk_level: ${data.riskLevel}`,
-      });
-    } catch (e) {
-      console.error("audit log insert failed", e instanceof Error ? e.message : "");
-    }
-    return { ok: true };
-  });
+  }
+  // Audit log: record who made the decision and why.
+  try {
+    await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
+      admin_user_id: adminUserId,
+      action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
+      target_type: "report",
+      target_id: data.reportId,
+      reason: `risk_level: ${data.riskLevel}`,
+    });
+  } catch (e) {
+    console.error("audit log insert failed", e instanceof Error ? e.message : "");
+  }
+  return { ok: true };
+}
 
 export const adminStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

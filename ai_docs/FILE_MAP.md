@@ -47,8 +47,9 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | Path                                 | Purpose                                                                                                                                       |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `check.functions.ts`                 | Web server functions wrapping check/OCR core.                                                                                                 |
-| `report.functions.ts`                | Public report server function; redacts descriptions before insert.                                                                            |
-| `admin.functions.ts`                 | Admin moderation server functions.                                                                                                            |
+| `report.functions.ts`                | Public report server function; redacts descriptions before insert and keeps situation-only reports out of entity reputation.                  |
+| `report-boundary.ts`                 | Shared incident-only report marker/helpers used by report submission and admin moderation.                                                    |
+| `admin.functions.ts`                 | Admin moderation server functions; skips entity sync for situation-only reports.                                                              |
 | `risk/check-core.ts`                 | Transport-independent rules-first check, OCR and structured image-analysis pipelines.                                                         |
 | `risk/image-intelligence.ts`         | Structured Telegram image evidence: visual category, QR purpose, risk hints, safe input.                                                      |
 | `risk/detect.ts`                     | Input detection, normalization, masking, redaction.                                                                                           |

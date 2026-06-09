@@ -38,6 +38,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { ReportDraft, Session } from "@/lib/telegram/session.server";
 import { bt } from "@/lib/telegram/bot-i18n";
+import { INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/report-boundary";
 
 // ---------------------------------------------------------------------------
 // Hoisted capture buffers — referenced inside the (hoisted) vi.mock factories.
@@ -57,6 +58,7 @@ interface SubmitArg {
     scamType?: string;
     city?: string;
     amountLostUzs?: number;
+    incidentOnly?: boolean;
     lang?: string;
   };
   rateLimitKey?: string;
@@ -282,6 +284,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
       scamType: "OTP-кража",
       city: "Самарканд",
       amountLostUzs: 1_200_000, // digits-only parse of "1 200 000 сум"
+      incidentOnly: false,
       lang: "ru",
     });
 
@@ -310,6 +313,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
       scamType: undefined,
       city: undefined,
       amountLostUzs: undefined,
+      incidentOnly: false,
       lang: "ru",
     });
     expect(sentTexts()).toContain(bt("report_confirm", "ru"));
@@ -331,12 +335,13 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(REPORT_NO_VALUE_CALLBACK).toBe("report_no_value");
     expect(h.submitCalls).toHaveLength(1);
     expect(h.submitCalls[0].data).toEqual({
-      value: "Пытались украсть аккаунт, просили прислать код из Telegram",
+      value: INCIDENT_ONLY_REDACTED_VALUE,
       type: "text",
       description: "Пытались украсть аккаунт, просили прислать код из Telegram",
       scamType: undefined,
       city: undefined,
       amountLostUzs: undefined,
+      incidentOnly: true,
       lang: "ru",
     });
     expect(sentTexts()).toContain(bt("report_confirm", "ru"));

@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - Report Flow Reputation Boundary v1
+
+- Added `.kiro/specs/report-flow-reputation-boundary-v1/`.
+- Added an incident-only report boundary for Telegram `/report` flows with no concrete target.
+- Situation-only reports are stored for moderation/research but do not upsert or increment public `entities`.
+- Admin moderation now skips entity sync for the incident-only marker, preserving audit logging.
+
 ## 2026-06-09 - Telegram Link & Account Intelligence v2
 
 - Added `.kiro/specs/telegram-link-account-intelligence-v2/`.

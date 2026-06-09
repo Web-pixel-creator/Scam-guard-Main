@@ -36,6 +36,7 @@ import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import { submitReportCore, reportRateLimitKeyForTelegram } from "@/lib/report.functions";
+import { INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/report-boundary";
 import type { Lang } from "@/lib/i18n";
 import {
   REPORT_NO_VALUE_CALLBACK,
@@ -299,9 +300,8 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
     await resetScenario(ctx.userId);
     return;
   }
-  const reportValue = draft.noValue
-    ? draft.description.slice(0, VALUE_MAX)
-    : (draft.value as string);
+  const incidentOnly = draft.noValue === true;
+  const reportValue = incidentOnly ? INCIDENT_ONLY_REDACTED_VALUE : (draft.value as string);
 
   async function keepDraftForRetry(): Promise<void> {
     await saveSession(ctx.userId, {
@@ -315,11 +315,12 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
     const result = await submitReportCore(
       {
         value: reportValue,
-        type: draft.noValue ? "text" : undefined,
+        type: incidentOnly ? "text" : undefined,
         description: draft.description,
         scamType: draft.scamType,
         city: draft.city,
         amountLostUzs: draft.amountLostUzs,
+        incidentOnly,
         lang,
       },
       reportRateLimitKeyForTelegram(ctx.userId),
