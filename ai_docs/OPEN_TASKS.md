@@ -18,7 +18,7 @@
 - [x] ~~Keep description-only Telegram reports out of public reputation.~~ Done in Report Flow Reputation Boundary v1.
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [ ] Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.
-- [ ] Production operational verification on Railway: endpoint responds, but confirm billing, env secrets, Supabase migrations, webhook registration and `/start` live flow.
+- [ ] Production operational verification on Railway: `npm run prod:smoke` now covers endpoint, healthcheck, webhook auth, Telegram pending state and AI provider; still confirm billing, Supabase migrations and real `/start` UX manually.
 
 ## Research feed
 

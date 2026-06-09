@@ -77,3 +77,11 @@ Signatures and intent only. See file paths for source.
 ## DB functions
 
 `has_role(uuid, app_role)`, `handle_new_user_role()`, `get_check_stats()`, `prune_telegram_sessions()`.
+
+## Operational scripts
+
+- `scripts/prod-smoke.ts`: one-shot production smoke test. Checks the public
+  app, `/healthz`, Telegram webhook secret behavior, Telegram webhook pending
+  state and the configured OpenAI-compatible AI provider. With `--live-telegram`
+  it sends one synthetic high-risk text through the latest Telegram session
+  without printing token, secret or chat id values.

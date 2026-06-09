@@ -195,6 +195,24 @@ can authenticate updates.
   reply. A `401` from the endpoint means the `TELEGRAM_WEBHOOK_SECRET` in the
   environment does not match what was registered in step 3.
 
+### 5. Run the production smoke script
+
+After every Railway deploy or important env change, run the smoke script from a
+shell that has the production variables available. It checks the public app,
+`/healthz`, Telegram webhook auth, Telegram pending errors and the configured AI
+provider. It never prints secret values.
+
+```bash
+railway run npm run prod:smoke -- https://your-app.example.com
+```
+
+To also send one synthetic high-risk text through the latest Telegram session
+(this sends a real bot reply to that latest chat), add:
+
+```bash
+railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --live-telegram
+```
+
 ## Deploy checklist
 
 - [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
@@ -208,3 +226,5 @@ can authenticate updates.
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Webhook registered via `scripts/register-telegram-webhook.ts`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
+- [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally
+      `--live-telegram` after user approval).
