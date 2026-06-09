@@ -188,6 +188,21 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     expect(hoisted.runCheckCalls).toHaveLength(0);
   });
 
+  it("returns Telegram-account capability help without pretending to inspect hidden data", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    const result = await checkInput({
+      data: { input: "ты видишь scam метку и возраст Telegram аккаунта?", lang: "ru" },
+    });
+
+    expect(result).toMatchObject({
+      metaIntent: "telegram_account_limits",
+      response: expect.stringContaining("скрытую метку SCAM"),
+    });
+    expect(JSON.stringify(result)).toContain("возраст аккаунта");
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+  });
+
   it("still routes URL/phone/scam-context text to runCheck even with help wording", async () => {
     hoisted.requestIp = "192.0.2.1";
 

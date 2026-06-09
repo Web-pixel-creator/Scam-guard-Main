@@ -49,11 +49,13 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/risk/rate-limit.ts`**: in-memory sliding-window limiter.
 
+**`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
+
 ## Telegram
 
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
-- `src/lib/telegram/router.ts`: parses updates and routes commands/content; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback.
+- `src/lib/telegram/router.ts`: parses updates and routes commands/content; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`.
 - `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.

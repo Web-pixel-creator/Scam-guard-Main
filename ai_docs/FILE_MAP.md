@@ -57,6 +57,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/hash.ts`                       | Identifier hashing.                                                                                                                           |
 | `risk/rate-limit.ts`                 | In-memory rate limit.                                                                                                                         |
 | `risk/verified-contacts.ts`          | Official Uzbekistan contacts (banks, telecom, gov, payments). Lookup for pipeline.                                                            |
+| `meta-intent.ts`                     | Deterministic classifier for questions to the bot itself, including Telegram-account visibility limits.                                       |
 | `telegram/emergency.ts`              | Dynamic emergency checklist builder, panic menus and Emergency Copilot follow-up routing.                                                     |
 | `telegram/router.ts`                 | Telegram update router (dispatch, parseCommand, decideRoute).                                                                                 |
 | `telegram/handlers/index.ts`         | Handler aggregator — wires commands/check/report/misc into the router.                                                                        |

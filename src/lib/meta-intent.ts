@@ -7,6 +7,7 @@ export type MetaIntent =
   | "how_do_you_check"
   | "why_failed"
   | "explain_risk"
+  | "telegram_account_limits"
   | "help";
 
 export interface ClassifyMetaIntentOptions {
@@ -24,6 +25,7 @@ export const ALL_META_INTENTS: readonly MetaIntent[] = [
   "how_do_you_check",
   "why_failed",
   "explain_risk",
+  "telegram_account_limits",
   "help",
 ] as const;
 
@@ -48,6 +50,10 @@ export const CANONICAL_META_PHRASES: ReadonlyArray<{ intent: MetaIntent; text: s
   { intent: "explain_risk", text: "почему высокий риск" },
   { intent: "explain_risk", text: "why is it dangerous" },
   { intent: "explain_risk", text: "nega bu xavfli" },
+  { intent: "telegram_account_limits", text: "ты видишь scam метку telegram аккаунта" },
+  { intent: "telegram_account_limits", text: "можешь узнать возраст аккаунта" },
+  { intent: "telegram_account_limits", text: "can you see telegram scam labels" },
+  { intent: "telegram_account_limits", text: "telegram akkaunt yoshini bilasanmi" },
   { intent: "help", text: "помощь" },
   { intent: "help", text: "help" },
   { intent: "help", text: "yordam" },
@@ -59,7 +65,7 @@ const PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/;
 const TELEGRAM_RE = /(?:t\.me\/|telegram\.me\/|@[a-zA-Z0-9_]{3,})/i;
 const APK_RE = /(?:apk|android package|андроид\s*прилож|приложени[ея]|ilova|dastur)/i;
 const BANK_PAYMENT_RE =
-  /(?:банк|банка|bank|karta|карта|plastik|cvv|cvc|pin|пин|otp|sms[\s-]?(?:код|kod)|смс[\s-]?код|код\s+из\s+смс|парол[ья]|password|перевод|перевести|pul|to'?lov|o'?tkazma|transfer|payme|click|uzcard|humo|kapitalbank|ipoteka|hamkorbank|xavfsizlik|безопасн)/i;
+  /(?:банк|банка|bank|karta|карта|plastik|cvv|cvc|pin|пин|otp|sms[\s-]?(?:код|kod)|смс[\s-]?код|код\s+из\s+смс|парол[ья]|password|перевод|перевести|деньг|оплат|плат[её]ж|payment|pul|to'?lov|o'?tkazma|transfer|payme|click|uzcard|humo|kapitalbank|ipoteka|hamkorbank|xavfsizlik|безопасн)/i;
 const LONG_TEXT_LIMIT = 200;
 
 const SCAM_WORDING_PATTERNS: readonly RegExp[] = [
@@ -110,6 +116,18 @@ const INTENT_PATTERNS: readonly IntentPattern[] = [
       /how\s+to\s+check\s+(?:a\s+)?(?:number|link|message|username)/i,
       /qanday\s+(?:tekshirasan|aniqlaysan|qaror)/i,
       /qanday\s+tekshirish/i,
+    ],
+  },
+  {
+    intent: "telegram_account_limits",
+    patterns: [
+      /(?:видишь|видно|можешь\s+(?:увидеть|узнать|проверить)|покажешь)\s+.*(?:scam|скам|метк[ауи]|жалоб[ыау]?|репорт[ыа]?|спам|возраст|дат[ау]\s+создани[яю])/i,
+      /(?:ты|бот|можешь|можно|видно|проверяешь|умеешь)\s+.*(?:telegram|телеграм|аккаунт|акк|юзер|username|профил)\s+.*(?:scam|скам|метк[ауи]|жалоб[ыау]?|репорт[ыа]?|спам|возраст|дат[ау]\s+создани[яю])/i,
+      /(?:ты|бот|можешь|можно|видно|проверяешь|умеешь)\s+.*(?:недавно|давно)\s+.*(?:создан|зарегистрирован)\s+.*(?:аккаунт|профил|telegram|телеграм)/i,
+      /(?:can|do)\s+you\s+.*(?:see|check|know|detect)\s+.*(?:telegram\s+)?(?:scam\s+label|account\s+age|report\s+count|reports|spam\s+history)/i,
+      /(?:telegram\s+)?(?:scam\s+label|account\s+age|report\s+count|spam\s+history)\s+.*(?:visible|available|known|check)/i,
+      /(?:telegram|akkaunt|profil)\s+.*(?:scam\s+belgi\w*|yosh\w*|qachon\s+ochilgan|shikoyat\w*|spam)\s+.*(?:bilasanmi|ko['‘’`]?rasanmi|tekshira\s+olasanmi)/i,
+      /(?:scam\s+belgi\w*|yosh\w*|shikoyat\w*|spam)\s+.*(?:telegram|akkaunt|profil)\s+.*(?:bilasanmi|ko['‘’`]?rasanmi|tekshira\s+olasanmi)/i,
     ],
   },
   {

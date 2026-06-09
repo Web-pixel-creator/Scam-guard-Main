@@ -8,11 +8,11 @@ Implement a lightweight, deterministic meta-intent classification layer that det
 
 - [x] 1. Create meta-intent classifier module
   - [x] 1.1 Create `src/lib/meta-intent.ts` with types, scam-context signal detection, and classification logic
-    - Define `MetaIntent` type union: `how_to_use | what_can_you_do | how_do_you_check | why_failed | explain_risk | help`
+    - Define `MetaIntent` type union: `how_to_use | what_can_you_do | how_do_you_check | why_failed | explain_risk | telegram_account_limits | help`
     - Define `ClassifyOptions` interface with `isForwarded?: boolean`
     - Implement `hasScamContextSignal(text)` — detect URLs, phone numbers, Telegram links, bank/payment terms, APK references, text >200 chars
     - Implement `hasScamWordingPattern(text)` — detect scam phrases like "безопасный счёт", "не кладите трубку", "xavfsiz hisob"
-    - Implement intent keyword/regex patterns for all 6 intents across ru/uz/en
+    - Implement intent keyword/regex patterns for all 7 intents across ru/uz/en
     - Implement `classifyMetaIntent(text, options?)` — check forwarded → scam signals → scam wording → keyword match → null
     - Implement `getMetaIntentResponse(intent, lang)` — lookup response template from `bot_dict`
     - Export `classifyMetaIntent` and `getMetaIntentResponse`
@@ -45,16 +45,17 @@ Implement a lightweight, deterministic meta-intent classification layer that det
 
   - [x]\* 1.6 Write unit tests for meta-intent classifier
     - Create `src/lib/meta-intent.test.ts`
-    - Test specific scenarios from Requirement 6.7: (a) URL + help wording → null; (b) "почему это опасно?" → explain_risk; (c) "как проверить номер?" → how_do_you_check; (d) forwarded text → null; (e) URL + help → null; (f) all 6 intents in RU/UZ/EN; (g) empty/whitespace → null
+    - Test specific scenarios from Requirement 6.7: (a) URL + help wording → null; (b) "почему это опасно?" → explain_risk; (c) "как проверить номер?" → how_do_you_check; (d) forwarded text → null; (e) URL + help → null; (f) all 7 intents in RU/UZ/EN; (g) Telegram account visibility limits → `telegram_account_limits`; (h) empty/whitespace → null
     - _Requirements: 6.7_
 
 - [x] 2. Add response templates to bot-i18n
-  - [x] 2.1 Add six `meta_*` entries to `bot_dict` in `src/lib/telegram/bot-i18n.ts`
+  - [x] 2.1 Add seven `meta_*` entries to `bot_dict` in `src/lib/telegram/bot-i18n.ts`
     - Add `meta_how_to_use` — explain how to use the bot (ru/uz/en)
     - Add `meta_what_can_you_do` — explain bot capabilities (ru/uz/en)
     - Add `meta_how_do_you_check` — explain methodology without exposing scoring weights (ru/uz/en)
     - Add `meta_why_failed` — explain OCR/image limitations, suggest sending text manually (ru/uz/en)
     - Add `meta_explain_risk` — describe risk levels (safe, unknown, suspicious, high_risk) in practical terms (ru/uz/en)
+    - Add `meta_telegram_account_limits` — explain visible Telegram account checks and hidden-data limitations (ru/uz/en)
     - Add `meta_help` — general help response (ru/uz/en)
     - Each template must be under 1000 characters per language
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 6.6_

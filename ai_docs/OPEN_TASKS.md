@@ -13,7 +13,7 @@
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
-- [x] ~~Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.~~ Done in Telegram Public Metadata v1 and Telegram Link & Account Intelligence v2 no-DB phase.
+- [x] ~~Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.~~ Done in Telegram Public Metadata v1 and Telegram Link & Account Intelligence v2 no-DB phase, including a Telegram-account "what I can/cannot check" help screen.
 - [x] ~~Keep description-only Telegram reports out of public reputation.~~ Done in Report Flow Reputation Boundary v1.
 - [ ] Add moderated Telegram/phone reputation directory before showing community report labels, first-seen dates or confidence labels on public profiles or numbers.
 - [ ] Production operational verification on Railway: endpoint responds, but confirm billing, env secrets, Supabase migrations, webhook registration and `/start` live flow.

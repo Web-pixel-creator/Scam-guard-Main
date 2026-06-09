@@ -205,6 +205,16 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(invite).toContain("не вижу");
   });
 
+  it("explains what Telegram account data the bot can and cannot see", () => {
+    const text = bt("meta_telegram_account_limits", "ru");
+
+    expect(text).toContain("только видимые признаки");
+    expect(text).toContain("скрытую метку SCAM");
+    expect(text).toContain("возраст аккаунта");
+    expect(text).toContain("сообщением или скриншотом");
+    expect(text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
+  });
+
   it.each(["safe", "unknown", "suspicious", "high_risk"] as const)(
     "formats %s result cards within Telegram limits and with expected actions",
     (level) => {

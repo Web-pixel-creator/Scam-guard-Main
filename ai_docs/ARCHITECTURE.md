@@ -21,10 +21,11 @@
 1. User submits text/phone/Telegram/url/apk/payment-like text or screenshot.
 2. Web screenshot OCR path: `ocrExtract` -> `ocrExtractCore` -> `ocrScreenshot`; the AI output is passed through deterministic `redactText` before returning.
 3. Telegram image path: `analyzeImageCore` returns structured, redacted image evidence (visual category, QR purpose, risk hints, OCR text). The bot builds a safe rules-input from that evidence, runs `runCheck(skipAi=true)`, and uses the image evidence explanation for the reply.
-4. `runCheck` performs rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert.
-5. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
-6. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
-7. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
+4. Short questions to the bot itself go through `meta-intent.ts` before scoring; concrete URLs, phones, usernames, forwarded text, bank/payment terms, APK mentions and long text bypass this and still reach `runCheck`.
+5. `runCheck` performs rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert.
+6. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
+7. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
+8. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
 
 ## Risk engine
 

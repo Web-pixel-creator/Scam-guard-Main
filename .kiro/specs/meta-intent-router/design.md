@@ -44,6 +44,7 @@ export type MetaIntent =
   | "how_do_you_check"
   | "why_failed"
   | "explain_risk"
+  | "telegram_account_limits"
   | "help";
 
 /** Options passed alongside the raw text */
@@ -73,16 +74,17 @@ function matchIntent(normalizedText: string): MetaIntent | null;
 
 ### Response templates (in `bot_dict` at `src/lib/telegram/bot-i18n.ts`)
 
-Six new entries added to `bot_dict`:
+Seven `meta_*` entries exist in `bot_dict`:
 
-| Key                     | MetaIntent         |
-| ----------------------- | ------------------ |
-| `meta_how_to_use`       | `how_to_use`       |
-| `meta_what_can_you_do`  | `what_can_you_do`  |
-| `meta_how_do_you_check` | `how_do_you_check` |
-| `meta_why_failed`       | `why_failed`       |
-| `meta_explain_risk`     | `explain_risk`     |
-| `meta_help`             | `help`             |
+| Key                            | MetaIntent                |
+| ------------------------------ | ------------------------- |
+| `meta_how_to_use`              | `how_to_use`              |
+| `meta_what_can_you_do`         | `what_can_you_do`         |
+| `meta_how_do_you_check`        | `how_do_you_check`        |
+| `meta_why_failed`              | `why_failed`              |
+| `meta_explain_risk`            | `explain_risk`            |
+| `meta_telegram_account_limits` | `telegram_account_limits` |
+| `meta_help`                    | `help`                    |
 
 Each entry provides `{ ru: string; uz: string; en: string }` following the existing `BotDict` pattern.
 
@@ -130,7 +132,7 @@ The web response type is extended with an optional `metaIntent` discriminator so
 
 ## Data Models
 
-### MetaIntent type (enum of 6 string literals)
+### MetaIntent type (enum of 7 string literals)
 
 ```typescript
 type MetaIntent =
@@ -139,6 +141,7 @@ type MetaIntent =
   | "how_do_you_check"
   | "why_failed"
   | "explain_risk"
+  | "telegram_account_limits"
   | "help";
 ```
 
@@ -172,6 +175,7 @@ Example patterns:
 - `how_do_you_check`: `/как.*провер/i`, `/qanday tekshir/i`, `/how do you check/i`
 - `why_failed`: `/почему не.*получил/i`, `/nima uchun.*ishlamadi/i`, `/why.*fail/i`
 - `explain_risk`: `/что.*значит.*риск/i`, `/почему.*опасно/i`, `/xavf.*nima/i`, `/what.*risk.*mean/i`
+- `telegram_account_limits`: `/scam.*метк/i`, `/возраст.*аккаунт/i`, `/account age/i`, `/scam label/i`, `/akkaunt.*yosh/i`
 - `help`: `/^помо[гщ]/i`, `/^yordam/i`, `/^help$/i`, `/помоги/i`
 
 ### Classification algorithm (pseudocode)
@@ -272,16 +276,17 @@ Each property test is tagged with a comment referencing the design property:
 
 **Test file:** `src/lib/meta-intent.test.ts`
 
-Covers the 8 specific scenarios from Requirement 6.7:
+Covers the 9 specific scenarios from Requirement 6.7:
 
 1. "помогите, мне прислали ссылку https://example.com" → routes to check (null)
 2. "почему это опасно?" → routes to `explain_risk` (no scam artifact)
 3. "как проверить номер?" → routes to `how_do_you_check`
 4. Forwarded long scam text → routes to check (null)
 5. URL combined with help wording → routes to check (null)
-6. RU/UZ/EN examples for each of the 6 intents
+6. RU/UZ/EN examples for each of the 7 intents
 7. Commands (/help, /start) are not intercepted (tested at router level)
 8. Text during active report flow is not intercepted (tested at router level)
+9. Telegram account visibility questions (scam-label, account age, reports, spam history) return `telegram_account_limits` unless a concrete username/link is present
 
 ### Integration Tests
 

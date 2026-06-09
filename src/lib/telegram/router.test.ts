@@ -442,12 +442,30 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls[0].arg).toBe("why_failed");
   });
 
+  it("dispatches Telegram account capability questions to handleMetaIntent", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({ text: "Ты видишь scam метку и возраст Telegram аккаунта?" }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleMetaIntent");
+    expect(calls[0].arg).toBe("telegram_account_limits");
+  });
+
   it("keeps scam-context text in handleCheck even when it contains help wording", async () => {
     const { deps, calls } = makeDeps(makeSession());
     await dispatchUpdate(
       messageUpdate({ text: "помогите, мне прислали ссылку https://example.com" }),
       deps,
     );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+  });
+
+  it("keeps concrete Telegram usernames in handleCheck even inside capability wording", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(messageUpdate({ text: "ты видишь scam метку @unknown_manager" }), deps);
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCheck");
   });

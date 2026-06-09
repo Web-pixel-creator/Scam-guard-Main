@@ -406,6 +406,24 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(h.inserts.some((i) => i.table === "checks")).toBe(false);
   });
+
+  it("explains Telegram account visibility limits instead of returning insufficient data", async () => {
+    const update = textUpdate({
+      userId: 1005,
+      chatId: 5005,
+      text: "Ты видишь scam метку и возраст Telegram аккаунта?",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5005);
+    expect(h.sendCalls[0].text).toContain("скрытую метку SCAM");
+    expect(h.sendCalls[0].text).toContain("возраст аккаунта");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((i) => i.table === "checks")).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

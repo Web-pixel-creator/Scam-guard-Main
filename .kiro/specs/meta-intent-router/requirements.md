@@ -7,7 +7,7 @@ Meta Intent Router — a lightweight, deterministic classification layer that de
 ## Glossary
 
 - **Meta_Intent_Classifier**: A pure, synchronous, deterministic TypeScript function that accepts user text and options, and returns either a matched Meta_Intent identifier or `null` (no match — continue to risk pipeline). No external API or LLM calls.
-- **Meta_Intent**: A category of user question directed at the bot itself rather than content to be risk-checked. Supported intents: `how_to_use`, `what_can_you_do`, `how_do_you_check`, `why_failed`, `explain_risk`, `help`
+- **Meta_Intent**: A category of user question directed at the bot itself rather than content to be risk-checked. Supported intents: `how_to_use`, `what_can_you_do`, `how_do_you_check`, `why_failed`, `explain_risk`, `telegram_account_limits`, `help`
 - **Intent_Response_Templates**: A set of trilingual (ru/uz/en) response strings in `bot_dict` keyed by Meta_Intent, returned to the user when a meta-question is detected
 - **Router**: The Telegram update dispatch module at `src/lib/telegram/router.ts` that determines how each incoming message is handled
 - **Risk_Pipeline**: The `runCheck` function in `src/lib/risk/check-core.ts` that performs scam-risk scoring
@@ -24,7 +24,7 @@ Meta Intent Router — a lightweight, deterministic classification layer that de
 
 #### Acceptance Criteria
 
-1. WHEN user text is received and no Scam_Context_Signal is present, THE Meta_Intent_Classifier SHALL classify the text against the following Meta_Intent categories: `how_to_use`, `what_can_you_do`, `how_do_you_check`, `why_failed`, `explain_risk`, `help`.
+1. WHEN user text is received and no Scam_Context_Signal is present, THE Meta_Intent_Classifier SHALL classify the text against the following Meta_Intent categories: `how_to_use`, `what_can_you_do`, `how_do_you_check`, `why_failed`, `explain_risk`, `telegram_account_limits`, `help`.
 2. THE Meta_Intent_Classifier SHALL detect meta-questions in all three Lang variants (Russian, Uzbek Latin, English) using deterministic keyword and pattern matching.
 3. WHEN the Meta_Intent_Classifier matches a Meta_Intent, THE Meta_Intent_Classifier SHALL return the matched intent identifier.
 4. WHEN no Meta_Intent is matched, THE Meta_Intent_Classifier SHALL return `null` to indicate the text should proceed to the Risk_Pipeline.
@@ -50,12 +50,13 @@ Meta Intent Router — a lightweight, deterministic classification layer that de
 #### Acceptance Criteria
 
 1. WHEN a Meta_Intent is detected, THE Bot SHALL respond with the corresponding Intent_Response_Template in the user's current session Lang.
-2. THE Intent_Response_Templates SHALL provide distinct responses for each of the six Meta_Intent categories.
+2. THE Intent_Response_Templates SHALL provide distinct responses for each of the seven Meta_Intent categories.
 3. THE Intent_Response_Templates SHALL be defined in `bot_dict` (at `src/lib/telegram/bot-i18n.ts`) with entries for all three Lang variants following the existing trilingual string pattern.
 4. THE `why_failed` Intent_Response_Template SHALL explain OCR and image-processing limitations and suggest the user send text manually.
 5. THE `how_do_you_check` Intent_Response_Template SHALL explain the rules-based methodology without exposing internal scoring weights or thresholds.
 6. THE `explain_risk` Intent_Response_Template SHALL describe what the risk levels (safe, unknown, suspicious, high_risk) mean in practical terms.
-7. WHEN the user's Lang cannot be determined (no session data available), THE Bot SHALL default to the user's Telegram `language_code` preference, falling back to `ru` if unavailable.
+7. THE `telegram_account_limits` Intent_Response_Template SHALL explain that the bot can inspect only visible Telegram account/link signals and message context, and SHALL NOT claim hidden Telegram scam labels, account age, report history, spam history or recipient history.
+8. WHEN the user's Lang cannot be determined (no session data available), THE Bot SHALL default to the user's Telegram `language_code` preference, falling back to `ru` if unavailable.
 
 ### Requirement 4: Strict Router Integration Priority
 
@@ -93,4 +94,4 @@ Meta Intent Router — a lightweight, deterministic classification layer that de
 4. THE module SHALL have property-based tests verifying that texts containing Scam_Context_Signals (URLs, phone numbers, Telegram usernames, bank terms, long text) are never classified as meta-questions regardless of keyword presence.
 5. FOR ALL valid Meta_Intent identifiers, classifying a canonical example and then looking up the response template SHALL produce a non-empty string (round-trip property between classifier and response templates).
 6. THE Intent_Response_Templates SHALL each be under 1000 characters per Lang to remain readable on mobile screens.
-7. THE test suite SHALL include the following specific scenarios: (a) "помогите, мне прислали ссылку https://example.com" routes to check, not help; (b) "почему это опасно?" routes to explain_risk only when no scam artifact is present; (c) "как проверить номер?" routes to how_do_you_check; (d) forwarded long scam text routes to check; (e) URL combined with help wording routes to check; (f) RU/UZ/EN examples for each of the six intents; (g) commands (/help, /start) are not intercepted by Meta_Intent_Classifier; (h) text during active report flow state is not intercepted by Meta_Intent_Classifier.
+7. THE test suite SHALL include the following specific scenarios: (a) "помогите, мне прислали ссылку https://example.com" routes to check, not help; (b) "почему это опасно?" routes to explain_risk only when no scam artifact is present; (c) "как проверить номер?" routes to how_do_you_check; (d) forwarded long scam text routes to check; (e) URL combined with help wording routes to check; (f) RU/UZ/EN examples for each of the seven intents; (g) commands (/help, /start) are not intercepted by Meta_Intent_Classifier; (h) text during active report flow state is not intercepted by Meta_Intent_Classifier; (i) Telegram account visibility questions such as scam-label, account age, reports and spam history return `telegram_account_limits` when no concrete username/link is present.

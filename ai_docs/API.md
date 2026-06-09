@@ -8,15 +8,15 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 It does not mean direct browser writes to Supabase tables: sensitive writes to
 `checks` and `reports` are service-role-only behind these handlers.
 
-| RPC              | Auth   | Input                                                                                                | Returns                                                                 |
-| ---------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `checkInput`     | public | `{ input: 1-2000, type?, lang }`                                                                     | `{ type, display, level, score, reasons[], explanation, knownReports }` |
-| `ocrExtract`     | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                              |
-| `submitReport`   | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                       |
-| `listReports`    | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                    |
-| `listEntities`   | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                    |
-| `moderateReport` | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                |
-| `adminStats`     | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }`  |
+| RPC              | Auth   | Input                                                                                                | Returns                                                                |
+| ---------------- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `checkInput`     | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot     |
+| `ocrExtract`     | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                             |
+| `submitReport`   | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                      |
+| `listReports`    | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                   |
+| `listEntities`   | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                   |
+| `moderateReport` | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                               |
+| `adminStats`     | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }` |
 
 Input validation is zod. Rate limits throw an error with `status=429` and `retryAfter`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
 
@@ -31,6 +31,7 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 - `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
+- Plain questions to the bot are routed through `src/lib/meta-intent.ts` before risk scoring. Telegram account visibility questions explain that hidden scam labels, account age, report history and spam history are not available unless the user sends real context or a future moderated source exists.
 
 ## Auth flow
 

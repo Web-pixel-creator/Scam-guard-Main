@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - Telegram Account Limits Help
+
+- Extended `.kiro/specs/meta-intent-router/` from six to seven intents with `telegram_account_limits`.
+- Added a user-facing RU/UZ/EN explanation of what Telegram account data the bot can and cannot see.
+- Marked Telegram Link & Account Intelligence v2 task 14 complete.
+- Covered scam-label/account-age/report-history questions so they no longer fall into generic "insufficient data" replies.
+
 ## 2026-06-09 - Report Flow Reputation Boundary v1
 
 - Added `.kiro/specs/report-flow-reputation-boundary-v1/`.
