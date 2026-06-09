@@ -376,34 +376,6 @@ function getFallbackAiConfig(): AiConfig | null {
   return { apiKey, baseUrl: fallbackUrl.replace(/\/+$/, ""), model };
 }
 
-/** Low-level: call a specific AI config with timeout. */
-async function chatCompletionWith(
-  cfg: AiConfig,
-  messages: ChatMessage[],
-  label: string,
-): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages }),
-      signal: controller.signal,
-    });
-    clearTimeout(t);
-    if (!res.ok) {
-      console.error(`AI ${label} error`, res.status);
-      return null;
-    }
-    const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch (e) {
-    console.error(`AI ${label} failed`, e instanceof Error ? e.message : "unknown");
-    return null;
-  }
-}
-
 /** Body shape accepted by the OpenAI-compatible Chat Completions API. */
 type ChatMessage =
   | { role: "system" | "user" | "assistant"; content: string }
@@ -426,6 +398,8 @@ type ChatMessage =
 const AI_CIRCUIT_THRESHOLD = 3;
 const AI_CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const AI_TIMEOUT_MS = 10_000; // 10 seconds per request
+const AI_MAX_ATTEMPTS = 3; // initial attempt + 2 retries
+const AI_RETRY_BACKOFF_MS = [50, 150] as const;
 
 let aiConsecutiveFailures = 0;
 let aiCircuitOpenUntil = 0;
@@ -455,6 +429,72 @@ function recordAiSuccess(): void {
   aiConsecutiveFailures = 0;
 }
 
+function isTransientAiStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function retryDelay(attemptIndex: number): number {
+  return AI_RETRY_BACKOFF_MS[attemptIndex] ?? AI_RETRY_BACKOFF_MS[AI_RETRY_BACKOFF_MS.length - 1];
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callChatCompletionOnce(
+  cfg: AiConfig,
+  messages: ChatMessage[],
+  label: string,
+  attempt: number,
+): Promise<{ kind: "success"; text: string | null } | { kind: "failure"; transient: boolean }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({ model: cfg.model, messages }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const transient = isTransientAiStatus(res.status);
+      console.error(
+        `AI ${label} error ${res.status} (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient})`,
+      );
+      return { kind: "failure", transient };
+    }
+
+    const data = await res.json();
+    const txt: string | undefined = data?.choices?.[0]?.message?.content;
+    return { kind: "success", text: txt?.trim() ?? null };
+  } catch (e) {
+    console.error(
+      `AI ${label} failed (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=true): ${
+        e instanceof Error ? e.message : "unknown"
+      }`,
+    );
+    return { kind: "failure", transient: true };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function chatCompletionWithRetry(
+  cfg: AiConfig,
+  messages: ChatMessage[],
+  label: string,
+): Promise<string | null> {
+  for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
+    const attempt = i + 1;
+    const result = await callChatCompletionOnce(cfg, messages, label, attempt);
+    if (result.kind === "success") return result.text;
+    if (!result.transient || attempt >= AI_MAX_ATTEMPTS) return null;
+    await delay(retryDelay(i));
+  }
+  return null;
+}
+
 async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
@@ -462,34 +502,18 @@ async function chatCompletion(messages: ChatMessage[], label: string): Promise<s
     // Primary is broken — try fallback provider if configured
     const fallback = getFallbackAiConfig();
     if (fallback) {
-      return chatCompletionWith(fallback, messages, label + "/fallback");
+      return chatCompletionWithRetry(fallback, messages, label + "/fallback");
     }
     return null;
   }
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      console.error(`AI ${label} error`, res.status);
-      recordAiFailure();
-      return null;
-    }
-    const data = await res.json();
-    const txt: string | undefined = data?.choices?.[0]?.message?.content;
+  const txt = await chatCompletionWithRetry(cfg, messages, label);
+  if (txt !== null) {
     recordAiSuccess();
-    return txt?.trim() ?? null;
-  } catch (e) {
-    console.error(`AI ${label} failed`, e instanceof Error ? e.message : "unknown");
-    recordAiFailure();
-    return null;
+    return txt;
   }
+
+  recordAiFailure();
+  return null;
 }
 
 async function aiExplain(opts: {

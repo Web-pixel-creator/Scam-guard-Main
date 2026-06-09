@@ -36,7 +36,7 @@ Signatures and intent only. See file paths for source.
 - `runCheck(params)` is the transport-independent check pipeline.
 - `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline.
 - `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots.
-- Private AI helpers call an OpenAI-compatible Chat Completions provider and degrade to `null`.
+- Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`.
 
 **`src/lib/risk/image-intelligence.ts`**
 

@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - AI Provider Resilience v1
+
+- Added bounded retry for transient OpenAI-compatible provider failures (`429`, `500`, `502`, `503`, `504`) in the shared AI chat-completion helper.
+- Non-retryable provider errors such as `401` still degrade immediately to rules-only results.
+- Circuit-breaker accounting now treats exhausted retries as one logical AI failure, while a successful retry resets the failure counter.
+
 ## 2026-06-09 - Telegram Link/Account QA Polish
 
 - Telegram username and invite-link result cards now use shorter "what I can see / what I cannot see / safe next step" copy.

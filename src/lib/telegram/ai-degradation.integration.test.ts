@@ -321,6 +321,83 @@ describe("AI degradation — ошибка AI-провайдера при нал�
   });
 });
 
+describe("AI provider resilience v1 — transient retry policy", () => {
+  it("retries a transient 503 and uses the successful explanation", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({}),
+        text: async () => "temporary unavailable",
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{ message: { content: "Временный сбой пережит. Не сообщайте SMS-код." } }],
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: HIGH_RISK_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.explanation).toBe("Временный сбой пережит. Не сообщайте SMS-код.");
+    expect(result.level).toBe("high_risk");
+  });
+
+  it("does not retry non-retryable 401 provider errors", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+      text: async () => "unauthorized",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: SUSPICIOUS_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.explanation).toBeNull();
+    expect(result.level).toBe("suspicious");
+  });
+
+  it("exhausts transient retries and still keeps rules-only scoring", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+      text: async () => "temporary unavailable",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: HIGH_RISK_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.explanation).toBeNull();
+    expect(result.level).toBe("high_risk");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // 4) Light end-to-end via handleCheck: the message sent to Telegram contains
 //    the rules-based verdict + ADVICE, without an AI explanation block (R13).
