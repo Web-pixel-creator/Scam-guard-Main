@@ -198,10 +198,11 @@ describe("Telegram Bot QA Matrix v1", () => {
 
     expect(found).toContain("Это не гарантия безопасности");
     expect(found).not.toMatch(/есть жалоб|spam.+извест|создан недавно/i);
-    expect(notFound).toContain("Это не доказательство скама");
-    expect(notFound).toContain("код, деньги, карту, APK или ссылку");
+    expect(notFound).toMatch(/это не доказательство скама/i);
+    expect(notFound).toContain("scam-label");
+    expect(notFound).toContain("код, деньги, карту или APK");
     expect(invite).toContain("закрытый чат/канал");
-    expect(invite).toContain("не могу видеть");
+    expect(invite).toContain("не вижу");
   });
 
   it.each(["safe", "unknown", "suspicious", "high_risk"] as const)(

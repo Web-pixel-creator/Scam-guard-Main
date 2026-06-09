@@ -29,7 +29,7 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
-- Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. This is presentation-only: score, level and reason codes remain deterministic.
+- Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
 
 ## Auth flow
 

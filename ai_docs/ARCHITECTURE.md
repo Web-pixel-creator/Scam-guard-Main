@@ -39,7 +39,7 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - Invalid bodies after a valid token return 200 so Telegram stops retrying.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
 - Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
-- Telegram `@username` / public `t.me/...` checks use a best-effort Bot API `getChat` enrichment layer after deterministic scoring. It can summarize public chat type/title/access hints, but it does not infer account age, hidden Telegram scam labels, report counts or spam history.
+- Telegram `@username` / `t.me/...` checks use a best-effort Bot API enrichment layer after deterministic scoring. It classifies public usernames, public links, private invite links and internal/private links; summarizes public chat type/title/access hints when visible; adds compact visible risk signals and next steps; and explicitly does not infer account age, hidden Telegram scam labels, Telegram report counts or spam history.
 
 ## Auth and roles
 

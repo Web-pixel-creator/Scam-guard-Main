@@ -62,7 +62,7 @@ describe("telegram public metadata", () => {
       "ru",
     );
 
-    expect(brief).toContain("Telegram вернул публичные данные");
+    expect(brief).toContain("Telegram: публичные данные");
     expect(brief).toContain("канал");
     expect(brief).toContain("Это не гарантия безопасности");
     expect(brief).not.toMatch(/есть жалоб|spam history known|создан недавно/i);
@@ -77,8 +77,9 @@ describe("telegram public metadata", () => {
 
     expect(metadata).toEqual({ status: "not_found", username: "UiWebWeb" });
     const brief = buildTelegramPublicMetadataBrief(metadata, "ru");
-    expect(brief).toContain("Не удалось получить публичные данные @UiWebWeb");
-    expect(brief).toContain("Это не доказательство скама");
+    expect(brief).toContain("@UiWebWeb недоступен");
+    expect(brief).toMatch(/это не доказательство скама/i);
+    expect(brief).toContain("scam-label");
   });
 
   it("does not call getChat for private invites", async () => {
@@ -91,6 +92,41 @@ describe("telegram public metadata", () => {
     expect(calls).toBe(0);
     expect(metadata.status).toBe("private_invite");
     expect(buildTelegramPublicMetadataBrief(metadata, "ru")).toContain("закрытый чат");
+  });
+
+  it("adds visible risk signals and next steps for private invite betting promos", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      { status: "private_invite", value: "+fdOETKx56pozNTBi" },
+      "ru",
+      {
+        reasons: ["unknown_sender", "suspicious_invite_link", "gambling_prediction_promo"],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("закрытый чат/канал");
+    expect(brief).toContain("Сигналы:");
+    expect(brief).toContain("ставки/прогнозы/выигрыш");
+    expect(brief).toContain("не оплачивайте доступ/прогнозы");
+    expect(brief).not.toMatch(/создан недавно|spam.+извест|scam label есть/i);
+  });
+
+  it("adds cautious next steps for unavailable public usernames with official-looking names", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      { status: "not_found", username: "kapitalbank_support" },
+      "ru",
+      {
+        reasons: ["unknown_sender", "impersonates_official"],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("@kapitalbank_support");
+    expect(brief).toContain("поддержку/официальный аккаунт");
+    expect(brief).toContain("пришлите текст/скрин");
+    expect(brief).toContain("возраст аккаунта");
+    expect(brief).toContain("недоступны");
+    expect(brief).not.toMatch(/точно мошенник|есть scam-label/i);
   });
 
   it("enriches explanation without changing deterministic verdict fields", async () => {
@@ -112,6 +148,7 @@ describe("telegram public metadata", () => {
     expect(enriched.knownReports).toBe(result.knownReports);
     expect(enriched.verifiedContact).toBe(result.verifiedContact);
     expect(enriched.brandEvidence).toEqual(result.brandEvidence);
-    expect(enriched.explanation).toContain("Не удалось получить публичные данные @UiWebWeb");
+    expect(enriched.explanation).toContain("@UiWebWeb недоступен");
+    expect(enriched.explanation).toContain("Сигналы:");
   });
 });

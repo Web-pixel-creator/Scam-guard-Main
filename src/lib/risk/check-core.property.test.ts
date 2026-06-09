@@ -243,6 +243,31 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(maxDigitRun(text)).toBeLessThanOrEqual(3);
   });
 
+  it("keeps Telegram invite surrounding text as scoring evidence", async () => {
+    const result = await runCheck({
+      input:
+        "СЕГОДНЯ СТАВЛЮ НА МАТЧ США - ГЕРМАНИЯ. Прогноз бесплатно: https://t.me/+fdOETKx56pozNTBi",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.type).toBe("telegram");
+    expect(result.reasons).toEqual(
+      expect.arrayContaining([
+        "unknown_sender",
+        "suspicious_invite_link",
+        "gambling_prediction_promo",
+      ]),
+    );
+    expect(result.level).toBe("high_risk");
+    expect(result.display).toContain("@+f");
+    expect(hoisted.insertCalls.at(-1)?.reason_codes).toEqual(
+      expect.arrayContaining(["suspicious_invite_link", "gambling_prediction_promo"]),
+    );
+  });
+
   it("confirmed high-risk entities use the dedicated known_reported reason code", async () => {
     hoisted.entityRow = {
       report_count: 7,

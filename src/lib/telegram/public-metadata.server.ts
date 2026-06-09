@@ -1,6 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { redactText } from "@/lib/risk/detect";
+import { REASON_LABELS, type ReasonCode } from "@/lib/risk/rules";
 import {
   getChatInfo,
   type GetChatInfoResult,
@@ -90,7 +91,7 @@ export async function enrichTelegramPublicMetadata(
   if (result.type !== "telegram" || result.verifiedContact) return result;
 
   const metadata = await lookupTelegramPublicMetadata(input, lookup);
-  const brief = buildTelegramPublicMetadataBrief(metadata, lang);
+  const brief = buildTelegramPublicMetadataBrief(metadata, lang, result);
   if (!brief) return result;
 
   return {
@@ -102,18 +103,24 @@ export async function enrichTelegramPublicMetadata(
 export function buildTelegramPublicMetadataBrief(
   metadata: TelegramPublicMetadata,
   lang: Lang,
+  result?: Pick<RunCheckResult, "reasons" | "knownReports">,
 ): string | null {
   switch (metadata.status) {
     case "found":
-      return foundBrief(metadata.username, metadata.chat, lang);
+      return withTelegramSignals(
+        foundBrief(metadata.username, metadata.chat, lang),
+        metadata,
+        lang,
+        result,
+      );
     case "not_found":
-      return notFoundBrief(metadata.username, lang);
+      return withTelegramSignals(notFoundBrief(metadata.username, lang), metadata, lang, result);
     case "unavailable":
-      return unavailableBrief(metadata.username, lang);
+      return withTelegramSignals(unavailableBrief(metadata.username, lang), metadata, lang, result);
     case "private_invite":
-      return privateInviteBrief(lang);
+      return withTelegramSignals(privateInviteBrief(lang), metadata, lang, result);
     case "internal_or_private":
-      return internalLinkBrief(lang);
+      return withTelegramSignals(internalLinkBrief(lang), metadata, lang, result);
     case "not_telegram":
       return null;
   }
@@ -126,52 +133,178 @@ function foundBrief(username: string, chat: TelegramChatFullInfo, lang: Lang): s
   const accessPart = accessHints(chat, lang);
 
   if (lang === "uz") {
-    return `Telegram @${username} bo'yicha ochiq ma'lumot qaytardi: ${label}${titlePart}${accessPart}. Bu xavfsizlik kafolati emas: menga akkaunt yoshi, yashirin shikoyatlar va spam tarixi ko'rinmaydi. Kod, karta, pul, APK yoki bosim bo'lsa, xavf oshadi.`;
+    return `Telegram: @${username} bo'yicha ochiq ma'lumot bor — ${label}${titlePart}${accessPart}. Bu xavfsizlik kafolati emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.`;
   }
   if (lang === "en") {
-    return `Telegram returned public data for @${username}: ${label}${titlePart}${accessPart}. This is not a safety guarantee: I cannot see account age, hidden reports, or spam history. Risk depends on requests for codes, cards, money, APKs, or pressure.`;
+    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a safety guarantee: I cannot see account age, hidden reports, or spam history.`;
   }
-  return `Telegram вернул публичные данные для @${username}: ${label}${titlePart}${accessPart}. Это не гарантия безопасности: мне недоступны возраст аккаунта, скрытые жалобы и spam-история. Риск зависит от просьб про код, карту, деньги, APK или давления.`;
+  return `Telegram: публичные данные @${username} доступны — ${label}${titlePart}${accessPart}. Это не гарантия безопасности: мне недоступны возраст аккаунта, скрытые жалобы и spam-история.`;
 }
 
 function notFoundBrief(username: string, lang: Lang): string {
   if (lang === "uz") {
-    return `@${username} bo'yicha ochiq Telegram ma'lumotlarini ololmadim. Bu scam isboti emas: profil yopiq, o'zgartirilgan yoki botga ko'rinmas bo'lishi mumkin. Xabar/skrin yuboring: kod, pul, karta, APK yoki havola so'ralganmi?`;
+    return `Telegram: @${username} topilmadi yoki ko'rinmayapti; bu scam isboti emas, scam-label, akkaunt yoshi va spam tarixi menga ko'rinmaydi.`;
   }
   if (lang === "en") {
-    return `I could not retrieve public Telegram data for @${username}. This is not proof of a scam: the profile may be private, renamed, or unavailable to the bot. Send the message/screenshot showing any code, money, card, APK, or link request.`;
+    return `Telegram: @${username} is unavailable or not found; this is not proof of a scam, and I cannot see scam labels, account age, or spam history.`;
   }
-  return `Не удалось получить публичные данные @${username} через Telegram. Это не доказательство скама: профиль может быть приватным, переименованным или недоступным боту. Пришлите текст/скрин, где просят код, деньги, карту, APK или ссылку.`;
+  return `Telegram: @${username} недоступен или не найден; это не доказательство скама, scam-label, возраст аккаунта и spam-история мне недоступны.`;
 }
 
 function unavailableBrief(username: string, lang: Lang): string {
   if (lang === "uz") {
-    return `Hozir @${username} bo'yicha Telegram metama'lumotlarini so'rash imkoni bo'lmadi. API xatosi o'zi xavf belgisi emas. Ko'rinib turgan xabar/skrin yoki aniq so'rovni yuboring.`;
+    return `Telegram: hozir @${username} bo'yicha ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.`;
   }
   if (lang === "en") {
-    return `I could not request Telegram metadata for @${username} right now. An API error alone is not a risk signal. Send the visible message, screenshot, or exact request for context.`;
+    return `Telegram: I could not request public data for @${username} right now. An API error alone is not a risk signal.`;
   }
-  return `Сейчас не удалось запросить Telegram-метаданные @${username}. Сама ошибка API не означает риск. Пришлите видимое сообщение, скриншот или точную просьбу для проверки.`;
+  return `Telegram: сейчас не удалось запросить публичные данные @${username}. Сама ошибка API не означает риск.`;
 }
 
 function privateInviteBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Bu yopiq chat/kanalga invite-havola. Men uning ichini Telegram Bot API orqali ko'ra olmayman. Faqat ko'rinib turgan matnni baholayman: yutuq, kafolatlangan daromad, to'lov, kod yoki karta so'ralsa, ehtiyot bo'ling.";
+    return "Telegram: bu yopiq chat/kanalga invite-havola. Men uning ichini, a'zolarini yoki yashirin shikoyatlarni Telegram Bot API orqali ko'ra olmayman.";
   }
   if (lang === "en") {
-    return "This is an invite link to a closed chat/channel. I cannot inspect its contents through the Telegram Bot API. I can only assess visible text: be careful if it promises winnings, guaranteed profit, payment access, codes, or card data.";
+    return "Telegram: this is an invite link to a closed chat/channel. Through the Telegram Bot API I cannot inspect its content, members, or hidden reports.";
   }
-  return "Это invite-ссылка в закрытый чат/канал. Я не могу видеть его содержимое через Telegram Bot API. Оцениваю только видимый текст: опаснее, если обещают выигрыш/доход, просят оплату, код или карту.";
+  return "Telegram: это invite-ссылка в закрытый чат/канал. Через Telegram Bot API я не вижу содержимое, участников и скрытые жалобы.";
 }
 
 function internalLinkBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Bu Telegram ichki yoki yopiq havolasiga o'xshaydi. Men yopiq chat ma'lumotlarini ko'ra olmayman. Tekshiruv uchun xabar matni, skrinshot yoki aniq so'rovni yuboring.";
+    return "Telegram: bu ichki yoki yopiq havolaga o'xshaydi. Men yopiq chat ma'lumotlarini ko'ra olmayman.";
   }
   if (lang === "en") {
-    return "This looks like an internal or private Telegram link. I cannot see closed-chat data. Send the message text, screenshot, or exact request for a better check.";
+    return "Telegram: this looks like an internal or private link. I cannot see closed-chat data.";
   }
-  return "Это похоже на внутреннюю или закрытую Telegram-ссылку. Я не вижу данные закрытого чата. Для точной проверки пришлите текст сообщения, скриншот или конкретную просьбу.";
+  return "Telegram: это похоже на внутреннюю или закрытую ссылку. Я не вижу данные закрытого чата.";
+}
+
+const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
+  "known_reported",
+  "verified_official",
+  "telegram_account_takeover_phishing",
+  "gambling_prediction_promo",
+  "suspicious_invite_link",
+  "impersonates_official",
+  "telegram_bank_contact",
+  "asks_for_sms_code",
+  "asks_for_otp",
+  "requests_card_digits",
+  "asks_to_install_apk",
+  "asks_to_transfer_to_safe_account",
+  "payment_before_service",
+  "unknown_sender",
+];
+
+function withTelegramSignals(
+  base: string,
+  metadata: TelegramPublicMetadata,
+  lang: Lang,
+  result?: Pick<RunCheckResult, "reasons" | "knownReports">,
+): string {
+  const signals = telegramSignalText(result?.reasons ?? [], result?.knownReports ?? 0, lang);
+  const next = telegramNextStep(metadata, result?.reasons ?? [], lang);
+  return [base, signals, next].filter(Boolean).join("\n");
+}
+
+function telegramSignalText(
+  reasons: readonly ReasonCode[],
+  knownReports: number,
+  lang: Lang,
+): string {
+  const labels = TELEGRAM_SIGNAL_ORDER.filter((reason) => reasons.includes(reason))
+    .map((reason) => compactTelegramReason(reason, lang) ?? REASON_LABELS[reason]?.[lang])
+    .filter((label): label is string => Boolean(label));
+
+  if (knownReports > 0) {
+    const reports: Record<Lang, string> = {
+      ru: `${knownReports} подтвержд. жалоб в Ishonch Guard`,
+      uz: `Ishonch Guard: ${knownReports} tasdiqlangan shikoyat`,
+      en: `${knownReports} confirmed Ishonch Guard reports`,
+    };
+    labels.unshift(reports[lang]);
+  }
+
+  if (labels.length === 0) return "";
+  const prefix: Record<Lang, string> = {
+    ru: "Сигналы:",
+    uz: "Belgilar:",
+    en: "Signals:",
+  };
+  return `${prefix[lang]} ${labels.slice(0, 3).join("; ")}.`;
+}
+
+function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
+  const labels: Partial<Record<ReasonCode, Record<Lang, string>>> = {
+    unknown_sender: {
+      ru: "отправитель не подтверждён",
+      uz: "jo'natuvchi tasdiqlanmagan",
+      en: "sender is not verified",
+    },
+    suspicious_invite_link: {
+      ru: "закрытая invite-ссылка",
+      uz: "yopiq invite-havola",
+      en: "closed invite link",
+    },
+    gambling_prediction_promo: {
+      ru: "ставки/прогнозы/выигрыш",
+      uz: "stavka/prognoz/yutuq",
+      en: "betting/prediction/win promo",
+    },
+    impersonates_official: {
+      ru: "похоже на поддержку/официальный аккаунт",
+      uz: "qo'llab-quvvatlash/rasmiy akkauntga o'xshaydi",
+      en: "looks like support/official account",
+    },
+    known_reported: {
+      ru: "есть подтверждённые жалобы",
+      uz: "tasdiqlangan shikoyatlar bor",
+      en: "confirmed reports exist",
+    },
+  };
+  return labels[reason]?.[lang] ?? null;
+}
+
+function telegramNextStep(
+  metadata: TelegramPublicMetadata,
+  reasons: readonly ReasonCode[],
+  lang: Lang,
+): string {
+  const hasBetting = reasons.includes("gambling_prediction_promo");
+  const hasInvite =
+    metadata.status === "private_invite" || reasons.includes("suspicious_invite_link");
+  const hasCredentialRisk =
+    reasons.includes("asks_for_sms_code") ||
+    reasons.includes("asks_for_otp") ||
+    reasons.includes("requests_card_digits") ||
+    reasons.includes("asks_to_install_apk");
+
+  if (lang === "uz") {
+    if (hasBetting)
+      return "Keyin: kirish/prognoz uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
+    if (hasCredentialRisk) return "Keyin: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
+    if (hasInvite)
+      return "Keyin: kanal tavsifi yoki post skrinini yuboring; kod va karta ma'lumotlarini kiritmang.";
+    return "Keyin: xabar matni/skrinini yuboring; kod, pul, karta yoki APK so'rashyaptimi — tekshiraman.";
+  }
+  if (lang === "en") {
+    if (hasBetting)
+      return "Next: do not pay for access/predictions; send a screenshot of the channel description or post.";
+    if (hasCredentialRisk)
+      return "Next: do not share codes, card data, or APK access; send a chat screenshot.";
+    if (hasInvite)
+      return "Next: send the channel description or post screenshot; do not enter codes or card data.";
+    return "Next: send the message text/screenshot; I will check whether they ask for codes, money, card data, or APK.";
+  }
+  if (hasBetting)
+    return "Дальше: не оплачивайте доступ/прогнозы; пришлите скрин описания канала или поста.";
+  if (hasCredentialRisk)
+    return "Дальше: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
+  if (hasInvite)
+    return "Дальше: пришлите описание канала или скрин поста; не вводите коды и данные карты.";
+  return "Дальше: пришлите текст/скрин сообщения; я проверю просьбы про код, деньги, карту или APK.";
 }
 
 function chatTypeLabel(type: TelegramChatFullInfo["type"], lang: Lang): string {

@@ -101,3 +101,11 @@ change score/level/reasons and must not invent account age, hidden scam labels,
 spam history or report counts. Unknown or inaccessible Telegram targets should
 ask for visible evidence: message text, screenshot, URL, payment request or code
 request.
+
+## D-020 - Telegram link intelligence must show limits first
+
+Telegram Link & Account Intelligence v2 keeps the most important limitation in
+the first brief sentence because Telegram result cards intentionally truncate
+long explanations. For unavailable usernames the bot says that this is not proof
+of scam and that scam-label/account-age/spam-history data is unavailable before
+showing follow-up advice.

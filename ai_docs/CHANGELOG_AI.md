@@ -1,5 +1,14 @@
 # Changelog (AI memory)
 
+Newest first. This tracks documentation/memory files, not every code commit.
+
+## 2026-06-09 - Telegram Link & Account Intelligence v2
+
+- Added `.kiro/specs/telegram-link-account-intelligence-v2/`.
+- Extended Telegram username/link enrichment with compact visible risk signals and next steps.
+- Clarified public/private/internal Telegram link handling and the no-false-authority boundary: no account age, hidden scam labels, Telegram report counts or spam history unless a real source is added later.
+- Added regression coverage for private invite betting/prediction links and rendered not-found username limitations.
+
 ## 2026-06-07 - Telegram Public Metadata v1
 
 - Added `.kiro/specs/telegram-public-metadata-v1/`.
@@ -67,8 +76,6 @@
   through server functions/service-role after validation, redaction and hashing.
 - Updated `DATABASE.md`, `API.md` and `DECISIONS.md` to reflect the security
   boundary.
-
-Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-06-01 — Production deploy + pre-deploy hardening
 
