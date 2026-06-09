@@ -905,8 +905,8 @@ const FOLLOWUP_MORE_RE =
 
 const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = {
   more: { ru: "🧭 Что дальше", uz: "🧭 Keyingi qadam", en: "🧭 Next step" },
-  contacts: { ru: "📞 Номера банков", uz: "📞 Bank raqamlari", en: "📞 Bank numbers" },
-  script: { ru: "💬 Что сказать", uz: "💬 Nima deyish", en: "💬 What to say" },
+  contacts: { ru: "📞 Позвонить безопасно", uz: "📞 Xavfsiz qo'ng'iroq", en: "📞 Safe callback" },
+  script: { ru: "💬 Готовая фраза", uz: "💬 Tayyor jumla", en: "💬 Ready phrase" },
   trusted_person: {
     ru: "👪 Позвать близкого",
     uz: "👪 Yaqinni chaqirish",
@@ -1370,6 +1370,176 @@ function moreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
   return byScenario[panicId][lang].join("\n");
 }
 
+function guidedCallbackDirectory(lang: Lang): string {
+  const contacts = getEmergencyContacts();
+  const banks = contacts.banks.slice(0, 6);
+  const payments = contacts.payments.slice(0, 3);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "📞 Официальный обратный звонок: как сделать безопасно",
+      "",
+      "1. Если звонок ещё идёт — сначала положите трубку.",
+      "2. Откройте приложение банка, карту или номер на официальном сайте. Не звоните по номеру из SMS или входящего звонка.",
+      "3. Наберите номер сами. Если волнуетесь, попросите близкого быть рядом.",
+      "",
+      "Что сказать оператору:",
+      "«Мне звонили и просили код, деньги или приложение. Проверьте мой счёт и заблокируйте рискованные операции.»",
+      "",
+      "Проверенные короткие номера:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+    uz: [
+      "📞 Rasmiy qayta qo'ng'iroq: xavfsiz tartib",
+      "",
+      "1. Qo'ng'iroq davom etayotgan bo'lsa — avval go'shakni qo'ying.",
+      "2. Bank ilovasi, karta yoki rasmiy saytdagi raqamni oling. SMS yoki kiruvchi qo'ng'iroqdagi raqamdan foydalanmang.",
+      "3. Raqamni o'zingiz tering. Hayajonlansangiz, yaqiningiz yoningizda bo'lsin.",
+      "",
+      "Operatorga shunday deng:",
+      "«Menga qo'ng'iroq qilib kod, pul yoki ilova so'rashdi. Hisobimni tekshirib, xavfli operatsiyalarni bloklang.»",
+      "",
+      "Tekshirilgan qisqa raqamlar:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+    en: [
+      "📞 Official callback: safe steps",
+      "",
+      "1. If the call is still active, hang up first.",
+      "2. Use the bank app, your card, or the official website. Do not use a number from an SMS or incoming call.",
+      "3. Dial the number yourself. If you are stressed, ask someone trusted to stay with you.",
+      "",
+      "What to say to the operator:",
+      "“Someone called and asked for a code, money, or an app. Please check my account and block risky operations.”",
+      "",
+      "Verified short numbers:",
+      contactList(banks, lang),
+      contactList(payments, lang),
+    ],
+  };
+  return lines[lang].join("\n");
+}
+
+function guidedTrustedPersonText(panicId: PanicScenarioId, lang: Lang): string {
+  const title = followUpTitle(panicId, lang);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "👪 Позовите человека, которому доверяете",
+      "",
+      "Это не слабость. В мошеннических звонках специально торопят, чтобы человек остался один и ошибся.",
+      "",
+      "Сделайте так:",
+      "1. Позвоните близкому или отправьте готовый текст ниже.",
+      "2. Попросите: «Пожалуйста, побудь со мной 5 минут, пока я звоню в банк по официальному номеру».",
+      "3. Не пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
+      "",
+      `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Я волнуюсь, побудь со мной и помоги спокойно проверить это по официальному номеру».`,
+    ],
+    uz: [
+      "👪 Ishonchli yaqiningizni chaqiring",
+      "",
+      "Bu zaiflik emas. Firibgarlar odam yolg'iz qolib xato qilishi uchun ataylab shoshiradi.",
+      "",
+      "Shunday qiling:",
+      "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+      "2. So'rang: «Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
+      "3. SMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
+      "",
+      `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Hayajondaman. Yonimda bo'lib, buni rasmiy raqam orqali xotirjam tekshirishga yordam bering».`,
+    ],
+    en: [
+      "👪 Call someone you trust",
+      "",
+      "This is not weakness. Scam calls deliberately rush people so they stay alone and make a mistake.",
+      "",
+      "Do this:",
+      "1. Call a trusted person or send the ready text below.",
+      "2. Ask: “Stay with me for 5 minutes while I call the bank using an official number.”",
+      "3. Do not send SMS codes, PINs, CVVs, passwords, or card photos.",
+      "",
+      `Ready text: “I need help. Situation: ${title}. I am worried. Please stay with me and help me check this calmly using an official number.”`,
+    ],
+  };
+  return lines[lang].join("\n");
+}
+
+function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
+  const title = followUpTitle(panicId, lang);
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      "💬 Готовая фраза",
+      "",
+      "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+      "",
+      "«Я не обсуждаю деньги, коды, карты и приложения по входящему звонку. Я сам перезвоню по официальному номеру.»",
+      "",
+      "Если рядом близкий, скажите ему:",
+      `«Ситуация: ${title}. Помоги мне не торопиться и позвонить в банк по официальному номеру».`,
+    ],
+    uz: [
+      "💬 Tayyor jumla",
+      "",
+      "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+      "",
+      "«Kiruvchi qo'ng'iroqda pul, kod, karta va ilovalarni muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
+      "",
+      "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+      `«Vaziyat: ${title}. Shoshilmasdan bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».`,
+    ],
+    en: [
+      "💬 Ready phrase",
+      "",
+      "If the person is still on the line, do not argue. Read one sentence and end the call:",
+      "",
+      "“I do not discuss money, codes, cards, or apps on an incoming call. I will call back myself using the official number.”",
+      "",
+      "If someone trusted is nearby, tell them:",
+      `“Situation: ${title}. Help me slow down and call the bank using an official number.”`,
+    ],
+  };
+  return lines[lang].join("\n");
+}
+
+function guidedMoreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
+  if (panicId === 6) {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "🧭 После звонка: один шаг за раз",
+        "",
+        "1. Убедитесь, что звонок завершён. Не перезванивайте на входящий номер.",
+        "2. Если код, карту и пароль не называли — просто перезвоните в банк по официальному номеру и спросите, был ли запрос.",
+        "3. Если уже назвали код или данные карты — срочно блокируйте карту/онлайн-банк и выберите в /panic сценарий «SMS-код» или «Данные карты».",
+        "4. Сохраните номер, время звонка и скрин переписки, если она была.",
+      ],
+      uz: [
+        "🧭 Qo'ng'iroqdan keyin: bitta qadamdan",
+        "",
+        "1. Qo'ng'iroq tugaganiga ishonch hosil qiling. Kiruvchi raqamga qayta qo'ng'iroq qilmang.",
+        "2. Kod, karta va parol aytmagan bo'lsangiz — bankka rasmiy raqam orqali qo'ng'iroq qilib, so'rov bo'lgan-bo'lmaganini so'rang.",
+        "3. Kod yoki karta ma'lumotini aytgan bo'lsangiz — karta/onlayn-bankni zudlik bilan bloklang va /panic ichida «SMS-kod» yoki «karta ma'lumotlari» ssenariysini tanlang.",
+        "4. Raqam, qo'ng'iroq vaqti va yozishma skrinini saqlang.",
+      ],
+      en: [
+        "🧭 After the call: one step at a time",
+        "",
+        "1. Make sure the call is over. Do not call back the incoming number.",
+        "2. If you did not share a code, card, or password, call the bank using an official number and ask whether there was a real request.",
+        "3. If you already shared a code or card data, urgently block the card/online bank and choose the “SMS code” or “card data” scenario in /panic.",
+        "4. Save the number, call time, and chat screenshot if there was one.",
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  const prefix: Record<Lang, string> = {
+    ru: "Я рядом. Давайте без паники: только один безопасный шаг за раз.",
+    uz: "Men yoningizdaman. Vahimasiz: bir vaqtning o'zida faqat bitta xavfsiz qadam.",
+    en: "I am with you. No panic: one safe step at a time.",
+  };
+  return `${prefix[lang]}\n\n${moreAdviceText(panicId, lang)}`;
+}
+
 export function buildEmergencyFollowUpText(
   action: EmergencyFollowUpAction,
   panicId: PanicScenarioId,
@@ -1377,14 +1547,14 @@ export function buildEmergencyFollowUpText(
 ): string {
   switch (action) {
     case "contacts":
-      return verifiedCallbackDirectory(lang);
+      return guidedCallbackDirectory(lang);
     case "script":
-      return scriptText(panicId, lang);
+      return guidedScriptText(panicId, lang);
     case "trusted_person":
-      return trustedPersonText(panicId, lang);
+      return guidedTrustedPersonText(panicId, lang);
     case "full":
       return buildPanicScenarioText(panicId, lang);
     case "more":
-      return moreAdviceText(panicId, lang);
+      return guidedMoreAdviceText(panicId, lang);
   }
 }

@@ -376,24 +376,24 @@ export const bot_dict: BotDict = {
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
   live_call_header: {
-    ru: "📞 Завершите звонок. Скажите: «Я сам перезвоню по официальному номеру.»",
-    uz: "📞 Qo'ng'iroqni tugating. Ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
-    en: '📞 End the call. Say: "I\'ll call back on the official number myself."',
+    ru: "📞 Похоже, вы на подозрительном звонке.\n\nСейчас не спорьте и не отвечайте на вопросы. Просто скажите короткую фразу ниже и завершите звонок.",
+    uz: "📞 Bu shubhali qo'ng'iroqqa o'xshaydi.\n\nHozir tortishmang va savollarga javob bermang. Quyidagi qisqa jumlani ayting va qo'ng'iroqni tugating.",
+    en: "📞 This looks like a suspicious call.\n\nDo not argue or answer questions now. Say the short phrase below and end the call.",
   },
   live_call_hangup: {
-    ru: "🛑 Не называйте SMS-код, PIN, CVV, пароль.\nЕсли давят «не кладите трубку» — это мошенничество.\n\nПерезвоните в банк сами по официальному номеру.",
-    uz: "🛑 SMS-kod, PIN, CVV, parolni aytmang.\n«Go'shakni qo'ymang» deb bosim qilishsa — bu firibgarlik.\n\nBankka rasmiy raqam orqali o'zingiz qo'ng'iroq qiling.",
-    en: "🛑 Never give your SMS code, PIN, CVV or password.\nIf they say \"don't hang up\" — it's a scam.\n\nCall the bank yourself on the official number.",
+    ru: "Скажите: «Я сам перезвоню по официальному номеру.»\n\nПотом положите трубку и нажмите «✅ Я положил трубку».\n\nНе называйте SMS-код, PIN, CVV, пароль или данные карты. Если давят «не кладите трубку» — это сильный признак мошенничества.",
+    uz: "Ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nKeyin go'shakni qo'ying va «✅ Go'shakni qo'ydim» tugmasini bosing.\n\nSMS-kod, PIN, CVV, parol yoki karta ma'lumotlarini aytmang. «Go'shakni qo'ymang» deb bosim qilishsa — bu firibgarlik belgisi.",
+    en: "Say: “I will call back myself using the official number.”\n\nThen hang up and tap “✅ I hung up”.\n\nDo not share SMS codes, PIN, CVV, passwords, or card data. If they pressure you not to hang up, treat it as a strong scam signal.",
   },
   live_call_what_to_say: {
-    ru: "\u{1F4AC} \u0427\u0442\u043E \u0441\u043A\u0430\u0437\u0430\u0442\u044C:\n\n\u00AB\u042F \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u043C\u043E\u0433\u0443 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C. \u042F \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u044E \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C.\u00BB\n\n\u0418 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0442\u0440\u0443\u0431\u043A\u0443. \u041D\u0435 \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0439\u0442\u0435, \u043D\u0435 \u0441\u043F\u043E\u0440\u044C\u0442\u0435.",
-    uz: "\u{1F4AC} Nima deyish kerak:\n\n\u00ABHozir gaplasha olmayman. Bankka o'zim qo'ng'iroq qilaman.\u00BB\n\nVa go'shakni qo'ying. Tushuntirmang, tortishmang.",
-    en: "\u{1F4AC} What to say:\n\n\u201CI can't talk right now. I'll call the bank myself.\u201D\n\nAnd hang up. Don't explain, don't argue.",
+    ru: "💬 Скажите ровно это:\n\n«Я не обсуждаю деньги, коды и карты по входящему звонку. Я сам перезвоню по официальному номеру.»\n\nПосле этой фразы сразу завершите звонок. Не объясняйте причину: мошенники специально удерживают разговор.",
+    uz: "💬 Aniq shuni ayting:\n\n«Kiruvchi qo'ng'iroqda pul, kod va kartani muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nShundan keyin darhol go'shakni qo'ying. Sabab tushuntirmang: firibgarlar suhbatni cho'zishga urinadi.",
+    en: "💬 Say exactly this:\n\n“I do not discuss money, codes, or cards on an incoming call. I will call back myself using the official number.”\n\nThen end the call immediately. Do not explain: scammers try to keep you talking.",
   },
   live_call_tell_family: {
-    ru: "👪 Позовите человека, которому доверяете.\n\nЕсли вы пожилой человек или сильно волнуетесь, не разбирайтесь в одиночку. Скажите: «Мне сейчас звонили от имени банка и просили код, деньги или приложение. Побудь со мной и помоги позвонить в банк по официальному номеру».\n\nНе пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
-    uz: "👪 Ishonchli yaqiningizni chaqiring.\n\nAgar yoshi katta bo'lsangiz yoki juda hayajonlansangiz, yolg'iz qaror qilmang. Ayting: «Menga bank nomidan qo'ng'iroq qilib, kod, pul yoki ilova so'rashdi. Yonimda bo'ling va bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».\n\nSMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
-    en: '👪 Call someone you trust.\n\nIf you are elderly or stressed, do not handle this alone. Say: "Someone called claiming to be my bank and asked for a code, money, or an app. Please stay with me and help me call the bank using an official number."\n\nDo not forward SMS codes, PINs, CVVs, passwords, or card photos.',
+    ru: "👪 Позовите близкого как помощника, не как судью.\n\nСкопируйте или прочитайте ему:\n«Мне сейчас звонили от имени банка/службы поддержки и торопили. Я волнуюсь. Побудь со мной 5 минут и помоги набрать официальный номер банка.»\n\nНе пересылайте SMS-код, PIN, CVV, пароль или фото карты. Близкому можно показать переписку без кодов.",
+    uz: "👪 Yaqiningizni yordamchi sifatida chaqiring.\n\nUnga shuni o'qing yoki yuboring:\n«Menga bank/qo'llab-quvvatlash nomidan qo'ng'iroq qilishdi va shoshirishdi. Hayajondaman. 5 daqiqa yonimda bo'lib, bankning rasmiy raqamini topishga yordam bering.»\n\nSMS-kod, PIN, CVV, parol yoki karta rasmini yubormang. Yozishmani kodlarsiz ko'rsatish mumkin.",
+    en: "👪 Call someone trusted as a helper, not as a judge.\n\nRead or send them this:\n“Someone called claiming to be my bank/support and rushed me. I am worried. Please stay with me for 5 minutes and help me call the bank using an official number.”\n\nDo not forward SMS codes, PINs, CVVs, passwords, or card photos. You can show the chat without codes.",
   },
   btn_live_hangup: {
     ru: "✅ Я положил трубку",

@@ -59,7 +59,7 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
-- `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`.
+- `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. Follow-up answers are guided for stressed/elderly users and keep safe-callback boundaries.
 - `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-check and orphan helper follow-up questions before `runCheck`, handles structured image intelligence for photos, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation after scoring.
 - `src/lib/telegram/check-followup.ts`: classifies and renders safe post-check follow-ups, including orphan phrases such as "Точно?", "что дальше?" and "дай номер банка" when no last-check snapshot is available.
 - `src/lib/telegram/public-metadata.server.ts`: extracts public Telegram targets, skips lookup for private/internal links, calls `getChatInfo` via an injectable lookup for public usernames, and builds safe RU/UZ/EN metadata briefs with visible risk signals and next steps without changing scoring.

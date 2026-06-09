@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-09 - Emergency Copilot Guided UX
+
+- Live-call panic mode now starts with a guided "say this, hang up, then tap the button" flow instead of a plain warning.
+- Emergency follow-up buttons were made more action-oriented: "Позвонить безопасно" and "Готовая фраза".
+- Bank callback, trusted-person and post-call follow-ups now use step-by-step language for stressed or elderly users, while preserving the no-SMS-code/no-card-data safety boundary.
+
 ## 2026-06-09 - Telegram Orphan Follow-Up UX
 
 - Short follow-up phrases without a stored last-check context, such as "Точно?", "что дальше?" and "дай номер банка", now receive helper guidance instead of a generic "insufficient data" risk card.

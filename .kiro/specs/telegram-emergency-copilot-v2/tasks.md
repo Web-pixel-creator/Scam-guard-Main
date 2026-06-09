@@ -16,6 +16,11 @@
   - Broaden free-text matching for bank hotlines, stress, elderly users and trusted-person phrasing
   - Prefer trusted-person help when a message combines "what to say" with family/close-person wording
   - Add regression tests for the exact phrases seen in live Telegram testing
+- [x] 11. Polish live-call and trusted-person guidance after production feedback
+  - Make the first live-call answer a guided "say this, hang up, then tap" flow
+  - Rename follow-up buttons to action-oriented labels
+  - Rewrite safe-callback, ready-phrase and trusted-person answers for stressed/elderly users
+  - Add regression tests for guided live-call follow-up text
 
 ## Notes
 

@@ -100,9 +100,8 @@ describe("Emergency Copilot v2 follow-up routing", () => {
   });
 
   it("includes a one-tap next-step button in the follow-up keyboard", () => {
-    const callbackData = buildEmergencyFollowUpKeyboard("ru")
-      .flat()
-      .map((button) => button.callback_data);
+    const buttons = buildEmergencyFollowUpKeyboard("ru").flat();
+    const callbackData = buttons.map((button) => button.callback_data);
 
     expect(callbackData).toEqual(
       expect.arrayContaining([
@@ -114,5 +113,20 @@ describe("Emergency Copilot v2 follow-up routing", () => {
         "panicctx:full",
       ]),
     );
+    expect(buttons.map((button) => button.text)).toEqual(
+      expect.arrayContaining(["📞 Позвонить безопасно", "💬 Готовая фраза"]),
+    );
+  });
+
+  it("formats live-call follow-up as a guided post-call flow", () => {
+    const more = buildEmergencyFollowUpText("more", 6, "ru");
+    const contacts = buildEmergencyFollowUpText("contacts", 6, "ru");
+    const script = buildEmergencyFollowUpText("script", 6, "ru");
+
+    expect(more).toContain("После звонка: один шаг за раз");
+    expect(more).toContain("Не перезванивайте на входящий номер");
+    expect(contacts).toContain("Проверьте мой счёт");
+    expect(contacts).toContain("Не звоните по номеру");
+    expect(script).toContain("Я не обсуждаю деньги, коды, карты и приложения");
   });
 });
