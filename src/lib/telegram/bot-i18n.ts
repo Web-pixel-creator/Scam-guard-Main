@@ -240,6 +240,11 @@ export const bot_dict: BotDict = {
     uz: "Hozircha videoni to'liq ko'rmayman va ovozli xabarni eshitmayman, lekin undagi asosiy narsani tekshira olaman.\n\nShulardan birini yuboring:\n• tavsif yoki izohdagi havola;\n• QR, username, rekvizit yoki va'da ko'ringan kadr skrinshoti;\n• matn: nima va'da qilishdi va nima qilishni so'rashdi.\n\nVideoda stavka, kripto, «kafolatlangan daromad», APK yoki QR orqali kirish bo'lsa — tekshirmaguncha pul to'lamang va ma'lumot kiritmang.",
     en: "I cannot watch full videos or listen to voice messages yet, but I can check the useful evidence from them.\n\nSend one of these:\n• the link from the description or comment;\n• a screenshot frame with a QR, username, payment details, or promise;\n• a short text: what they promise and what they ask you to do.\n\nIf the video mentions betting, crypto, “guaranteed income”, APKs, or QR login, do not pay or enter data before we check it.",
   },
+  media_capture_help: {
+    ru: "📸 Как прислать видео на проверку\n\nЯ не смотрю ролик целиком, поэтому нужен кусок доказательства:\n• поставьте видео на паузу и пришлите скрин кадра с QR, username, ссылкой, реквизитами или обещанием дохода;\n• скопируйте ссылку из описания, комментария или кнопки под видео;\n• коротко напишите: что обещают и что просят сделать — оплатить, подписаться, ввести код, карту или установить приложение.\n\nДо проверки не платите за «прогнозы», VIP-доступ, крипто-доход и не вводите коды/данные карты.",
+    uz: "📸 Videoni tekshirish uchun qanday yuborish kerak\n\nMen rolikni to'liq ko'ra olmayman, shuning uchun dalil kerak:\n• videoni pauza qiling va QR, username, havola, rekvizit yoki daromad va'dasi ko'ringan kadr skrinini yuboring;\n• tavsif, izoh yoki video ostidagi tugmadan havolani ko'chiring;\n• qisqa yozing: nima va'da qilishdi va nima so'rashyapti — to'lov, obuna, kod, karta yoki ilova o'rnatish.\n\nTekshirmaguncha «prognoz», VIP kirish, kripto daromad uchun pul to'lamang va kod/karta ma'lumotlarini kiritmang.",
+    en: "📸 How to send a video for checking\n\nI cannot watch the full clip, so send the useful evidence:\n• pause the video and send a screenshot frame with a QR, username, link, payment details, or income promise;\n• copy the link from the description, comment, or button under the video;\n• briefly write what they promise and what they ask you to do: pay, subscribe, enter a code/card, or install an app.\n\nBefore checking, do not pay for predictions, VIP access, crypto income, or enter codes/card data.",
+  },
 
   // ── Document/APK safety response ──────────────────────────────────────────
   document_safety: {
@@ -292,6 +297,11 @@ export const bot_dict: BotDict = {
     ru: "Повторить отправку",
     uz: "Qayta yuborish",
     en: "Retry submit",
+  },
+  btn_media_tips: {
+    ru: "📸 Что прислать?",
+    uz: "📸 Nima yuborish?",
+    en: "📸 What to send?",
   },
   // Language buttons keep the language’s own name in every locale (like LANGS in i18n.ts).
   btn_lang_ru: {

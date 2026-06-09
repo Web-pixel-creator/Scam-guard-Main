@@ -77,6 +77,7 @@ export const CB = {
   showLang: "show_lang",
   safety: "safety",
   howItWorks: "how_it_works",
+  mediaTips: "media_tips",
   lang: (lang: Lang) => `lang:${lang}` as const,
 } as const;
 

@@ -96,7 +96,7 @@ export function buildUnsupportedMediaKeyboard(lang: Lang): InlineKeyboard {
     ],
     [
       { text: bt("btn_report", lang), callback_data: CB.report },
-      { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
+      { text: bt("btn_media_tips", lang), callback_data: CB.mediaTips },
     ],
   ];
 }
@@ -232,7 +232,12 @@ export async function handleCallback(
     return;
   }
 
-  // 4) "Почему я так решил?" — explain how the bot works (Sprint 3.5).
+  // Media fallback helper: show what evidence to extract from a video/audio message.
+  if (data === CB.mediaTips) {
+    await sendI18n(ctx.chatId, "media_capture_help", lang, buildUnsupportedMediaKeyboard(lang));
+    return;
+  }
+
   // 3c) "Share with family" — generate a short shareable text (Sprint 3.6).
   if (data === "share_advice") {
     const shareText = bt("share_advice_text", lang);

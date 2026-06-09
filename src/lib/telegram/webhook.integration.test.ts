@@ -504,7 +504,25 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       CB.checkAnother,
       CB.emergency,
       CB.report,
-      CB.howItWorks,
+      CB.mediaTips,
+    ]);
+  });
+
+  it("answers media tips callback with concrete capture instructions", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId: 1106, chatId: 5106, data: CB.mediaTips })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Как прислать видео");
+    expect(h.sendCalls[0].text).toContain("скрин кадра");
+    expect(h.sendCalls[0].text).toContain("ссылку из описания");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      CB.checkAnother,
+      CB.emergency,
+      CB.report,
+      CB.mediaTips,
     ]);
   });
 
@@ -529,6 +547,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["show language picker", CB.showLang],
     ["safety", CB.safety],
     ["how it works", CB.howItWorks],
+    ["media tips", CB.mediaTips],
     ["language switch", CB.lang("uz")],
   ])("acknowledges the %s callback and sends a response", async (_label, data) => {
     const update = callbackUpdate({

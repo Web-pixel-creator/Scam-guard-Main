@@ -30,3 +30,8 @@
   - [x] 6.3 Add risk-rule tests
   - [x] 6.4 Add advice-filter tests
 - [x] 6.5 Run targeted tests, full tests, typecheck, build
+
+- [x] 7. Live-feedback polish for unsupported video/audio
+  - [x] 7.1 Replace the generic "how it works" fallback button with a media-specific "What to send?" action.
+  - [x] 7.2 Add RU/UZ/EN capture instructions: screenshot frame, caption/comment link, QR target, username, payment details, promise/action summary.
+  - [x] 7.3 Add webhook and QA matrix regression tests.

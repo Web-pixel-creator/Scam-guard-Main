@@ -80,7 +80,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("гарантированный доход");
     expect(text).toContain("что обещают");
     expect(text).toContain("что просят сделать");
-    expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.howItWorks]);
+    expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.mediaTips]);
   });
 
   it("answers confidence questions after a QR/menu check instead of rechecking the phrase", () => {
