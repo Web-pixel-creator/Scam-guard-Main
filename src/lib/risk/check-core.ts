@@ -522,9 +522,10 @@ async function chatCompletionWithRetry(
 async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
+  const fallback = getFallbackAiConfig();
+
   if (isAiCircuitOpen()) {
-    // Primary is broken — try fallback provider if configured
-    const fallback = getFallbackAiConfig();
+    // Primary is broken — try fallback provider if configured.
     if (fallback) {
       const fallbackResult = await chatCompletionWithRetry(fallback, messages, label + "/fallback");
       return fallbackResult.text;
@@ -535,6 +536,14 @@ async function chatCompletion(messages: ChatMessage[], label: string): Promise<s
   if (result.text !== null) {
     recordAiSuccess();
     return result.text;
+  }
+
+  if (fallback) {
+    const fallbackResult = await chatCompletionWithRetry(fallback, messages, label + "/fallback");
+    if (fallbackResult.text !== null) {
+      recordAiSuccess();
+      return fallbackResult.text;
+    }
   }
 
   if (result.transientFailure) recordAiFailure();

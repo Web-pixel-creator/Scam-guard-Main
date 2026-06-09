@@ -125,6 +125,13 @@ function makeSession(lang: Lang): Session {
 
 // Save the seeded fake key so each test can restore the original environment.
 const ORIGINAL_OPENAI_KEY = process.env.OPENAI_API_KEY;
+const ORIGINAL_AI_ENV = {
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+  OPENAI_MODEL: process.env.OPENAI_MODEL,
+  OPENAI_FALLBACK_BASE_URL: process.env.OPENAI_FALLBACK_BASE_URL,
+  OPENAI_FALLBACK_API_KEY: process.env.OPENAI_FALLBACK_API_KEY,
+  OPENAI_FALLBACK_MODEL: process.env.OPENAI_FALLBACK_MODEL,
+};
 
 beforeEach(() => {
   hoisted.insertCalls.length = 0;
@@ -143,6 +150,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
   if (ORIGINAL_OPENAI_KEY === undefined) delete process.env.OPENAI_API_KEY;
   else process.env.OPENAI_API_KEY = ORIGINAL_OPENAI_KEY;
+  for (const [key, value] of Object.entries(ORIGINAL_AI_ENV)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
 });
 
 // Assert the rendered reply honours the degradation contract for a result whose
@@ -422,6 +433,54 @@ describe("AI provider resilience v1 — transient retry policy", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.explanation).toBeNull();
+    expect(result.level).toBe("high_risk");
+  });
+
+  it("uses the fallback provider after a quota-exhausted primary 429", async () => {
+    process.env.OPENAI_API_KEY = "primary-test-key";
+    process.env.OPENAI_BASE_URL = "https://primary.example/v1";
+    process.env.OPENAI_MODEL = "primary-model";
+    process.env.OPENAI_FALLBACK_BASE_URL = "https://fallback.example/v1";
+    process.env.OPENAI_FALLBACK_API_KEY = "fallback-test-key";
+    process.env.OPENAI_FALLBACK_MODEL = "fallback-model";
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("https://primary.example")) {
+        return {
+          ok: false,
+          status: 429,
+          json: async () => ({}),
+          text: async () =>
+            JSON.stringify({
+              error: {
+                status: "RESOURCE_EXHAUSTED",
+                message: "Quota exceeded for metric: generate_content_free_tier_requests",
+              },
+            }),
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{ message: { content: "Fallback explanation from backup model." } }],
+        }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: HIGH_RISK_INPUT,
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("primary.example");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain("fallback.example");
+    expect(result.explanation).toBe("Fallback explanation from backup model.");
     expect(result.level).toBe("high_risk");
   });
 
