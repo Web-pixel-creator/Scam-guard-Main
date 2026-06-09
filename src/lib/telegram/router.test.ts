@@ -254,6 +254,64 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "image", fileId: "large" });
   });
 
+  it("routes a photo caption as check content before OCR", () => {
+    const update = messageUpdate({
+      caption: "100 фриспинов за депозит, ссылка в кнопке",
+      photo: [
+        { file_id: "small", file_size: 100 },
+        { file_id: "large", file_size: 5000 },
+      ],
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "100 фриспинов за депозит, ссылка в кнопке",
+    });
+  });
+
+  it("keeps hidden caption text_link URLs as check evidence", () => {
+    const update = messageUpdate({
+      caption: "Посмотреть прогноз бесплатно",
+      caption_entities: [
+        {
+          type: "text_link",
+          offset: 0,
+          length: 28,
+          url: "https://t.me/+fdOETKx56pozNTBi",
+        },
+      ],
+      photo: [{ file_id: "full", file_size: 5000 }],
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "Посмотреть прогноз бесплатно\nhttps://t.me/+fdOETKx56pozNTBi",
+    });
+  });
+
+  it("keeps inline keyboard button URLs as check evidence", () => {
+    const update = messageUpdate({
+      photo: [{ file_id: "full", file_size: 5000 }],
+      reply_markup: {
+        inline_keyboard: [[{ text: "Участвую", url: "https://t.me/+giftNFT12345" }]],
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "Участвую: https://t.me/+giftNFT12345",
+    });
+  });
+
+  it("preserves media_group_id when a photo still needs OCR", () => {
+    const update = messageUpdate({
+      media_group_id: "album-1",
+      photo: [{ file_id: "full", file_size: 5000 }],
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "image", fileId: "full", mediaGroupId: "album-1" });
+  });
+
   it("routes an image document as an image", () => {
     const update = messageUpdate({
       document: { file_id: "doc1", mime_type: "image/png", file_size: 2048 },

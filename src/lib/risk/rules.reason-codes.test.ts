@@ -217,6 +217,10 @@ describe("evaluateText — gambling_prediction_promo (Telegram betting feed)", (
       name: "UZ betting channel",
       text: "Yopiq kanal: stavka prognoz bepul, yutuq 100000 so'm",
     },
+    {
+      name: "RU casino free-spins deposit promo",
+      text: "Стартовый бонус: 100 фриспинов на Twin. Хочешь с крипты пополнить? До 200% на депозит, ссылка ниже",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
@@ -240,6 +244,39 @@ describe("evaluateText — gambling_prediction_promo (Telegram betting feed)", (
 
   it.each(negatives)("negative: $name", ({ text }) => {
     expect(evaluateText(text)).not.toContain("gambling_prediction_promo");
+  });
+});
+
+describe("evaluateText — giveaway_engagement_bait (NFT / prize engagement bait)", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU NFT giveaway with captcha and reactions",
+      text: "Разыгрываем 3 RANDOM NFT из Банка подарков. Из условий: пройти капчу, поставить 3 реакции и проголосовать за @TonZnatok",
+    },
+    {
+      name: "EN giveaway with voting",
+      text: "NFT giveaway: subscribe to the channel, vote in the poll and complete captcha to claim the prize",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    {
+      name: "ordinary restaurant gift card promo",
+      text: "Ресторан дарит подарочный сертификат постоянным гостям по программе лояльности",
+    },
+    {
+      name: "neutral NFT news",
+      text: "Новости NFT-рынка: обзор коллекций и статистика продаж за неделю",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("giveaway_engagement_bait");
+    expect(scoreFromCodes(evaluateText(text)).level).toBe("suspicious");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("giveaway_engagement_bait");
   });
 });
 

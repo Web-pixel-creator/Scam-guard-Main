@@ -126,6 +126,15 @@ describe("filterAdvice", () => {
       expect(result[0]).not.toContain("SMS");
     });
 
+    it("uses giveaway advice for NFT/prize engagement bait", () => {
+      const result = filterAdvice("suspicious", ["giveaway_engagement_bait"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("капчу");
+      expect(result[0]).toContain("кошелька");
+      expect(result[0]).not.toContain("APK");
+    });
+
     it("uses invite-link advice without unrelated APK wording", () => {
       const result = filterAdvice("suspicious", ["suspicious_invite_link"], "ru");
 

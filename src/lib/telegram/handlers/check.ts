@@ -68,9 +68,26 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
 
+const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
+const mediaGroupOcrFallbacks = new Map<string, number>();
+
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
+}
+
+function shouldSuppressMediaGroupOcrFallback(userId: number, mediaGroupId?: string): boolean {
+  if (!mediaGroupId) return false;
+
+  const now = Date.now();
+  for (const [key, timestamp] of mediaGroupOcrFallbacks) {
+    if (now - timestamp > MEDIA_GROUP_FALLBACK_TTL_MS) mediaGroupOcrFallbacks.delete(key);
+  }
+
+  const key = `${userId}:${mediaGroupId}`;
+  const previous = mediaGroupOcrFallbacks.get(key);
+  mediaGroupOcrFallbacks.set(key, now);
+  return previous !== undefined && now - previous <= MEDIA_GROUP_FALLBACK_TTL_MS;
 }
 
 /** Узкий type-guard на `RateLimitedError` из ядра (status 429 + retryAfter). */
@@ -214,13 +231,18 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
  * прислать текст (R5.6); каждый вызов обрабатывает ровно одно изображение, т.е.
  * несколько фото обрабатываются по одному за раз (R16.3).
  */
-export async function handleImage(fileId: string, ctx: HandlerCtx): Promise<void> {
+export async function handleImage(
+  fileId: string,
+  ctx: HandlerCtx,
+  mediaGroupId?: string,
+): Promise<void> {
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleImage", async () => {
     // 1) Метаданные файла — позволяют отклонить превышение лимита ДО скачивания.
     const meta = await getFile(fileId);
     if (!meta) {
+      if (shouldSuppressMediaGroupOcrFallback(ctx.userId, mediaGroupId)) return;
       await replyText(ctx.chatId, bt("ocr_failed", lang));
       return;
     }
@@ -262,6 +284,7 @@ export async function handleImage(fileId: string, ctx: HandlerCtx): Promise<void
     });
 
     if (outcome.kind === "ocr_failed") {
+      if (shouldSuppressMediaGroupOcrFallback(ctx.userId, mediaGroupId)) return;
       await replyText(ctx.chatId, bt("ocr_failed", lang)); // R5.6
       return;
     }

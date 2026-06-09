@@ -200,13 +200,25 @@ function textUpdate(opts: { userId: number; chatId: number; text: string }): unk
 }
 
 /** A photo message update (two sizes — the router picks the largest). */
-function photoUpdate(opts: { userId: number; chatId: number }): unknown {
+function photoUpdate(opts: {
+  userId: number;
+  chatId: number;
+  messageId?: number;
+  caption?: string;
+  captionEntities?: unknown[];
+  mediaGroupId?: string;
+  replyMarkup?: unknown;
+}): unknown {
   return {
     update_id: opts.userId,
     message: {
-      message_id: 1,
+      message_id: opts.messageId ?? 1,
       from: { id: opts.userId, language_code: "ru" },
       chat: { id: opts.chatId },
+      caption: opts.caption,
+      caption_entities: opts.captionEntities,
+      media_group_id: opts.mediaGroupId,
+      reply_markup: opts.replyMarkup,
       photo: [
         { file_id: "thumb", file_size: 100 },
         { file_id: "full", file_size: 5000 },
@@ -216,13 +228,20 @@ function photoUpdate(opts: { userId: number; chatId: number }): unknown {
 }
 
 /** A video update without caption: should not be downloaded, only guide the user. */
-function videoUpdate(opts: { userId: number; chatId: number }): unknown {
+function videoUpdate(opts: {
+  userId: number;
+  chatId: number;
+  caption?: string;
+  captionEntities?: unknown[];
+}): unknown {
   return {
     update_id: opts.userId,
     message: {
       message_id: 1,
       from: { id: opts.userId, language_code: "ru" },
       chat: { id: opts.chatId },
+      caption: opts.caption,
+      caption_entities: opts.captionEntities,
       video: { file_id: "video_1", file_size: 1024, duration: 2 },
     },
   };
@@ -963,6 +982,92 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw"); // the base64 sentinel
     expect(h.fromCalls).not.toContain("storage");
     expect(h.fromCalls).not.toContain("objects");
+  });
+
+  it("checks a photo caption with hidden Telegram link before OCR", async () => {
+    const update = photoUpdate({
+      userId: 1004,
+      chatId: 5004,
+      caption: "СЕГОДНЯ СТАВЛЮ НА МАТЧ США - ГЕРМАНИЯ. Посмотреть прогноз бесплатно",
+      captionEntities: [
+        {
+          type: "text_link",
+          offset: 45,
+          length: 29,
+          url: "https://t.me/+fdOETKx56pozNTBi",
+        },
+      ],
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expect(JSON.stringify(h.inserts)).toContain("suspicious_invite_link");
+    expect(JSON.stringify(h.inserts)).toContain("gambling_prediction_promo");
+  });
+
+  it("checks inline keyboard URL buttons from forwarded image posts", async () => {
+    const update = photoUpdate({
+      userId: 1005,
+      chatId: 5005,
+      replyMarkup: {
+        inline_keyboard: [[{ text: "Участвую", url: "https://t.me/+giftNFT12345" }]],
+      },
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expect(JSON.stringify(h.inserts)).toContain("suspicious_invite_link");
+    expect(JSON.stringify(h.inserts)).toContain("giveaway_engagement_bait");
+  });
+
+  it("checks a video caption instead of returning unsupported-media fallback", async () => {
+    const update = videoUpdate({
+      userId: 1006,
+      chatId: 5006,
+      caption: "100 фриспинов за депозит, ссылка на Twin",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.suspicious);
+    expect(h.sendCalls[0].text).not.toContain("видео я пока не анализирую");
+    expect(JSON.stringify(h.inserts)).toContain("gambling_prediction_promo");
+  });
+
+  it("sends only one OCR fallback for repeated photos from the same media group", async () => {
+    h.ocrText = null;
+
+    const first = await handleTelegramWebhook(
+      webhookRequest(
+        photoUpdate({ userId: 1007, chatId: 5007, messageId: 1, mediaGroupId: "album-42" }),
+      ),
+    );
+    const second = await handleTelegramWebhook(
+      webhookRequest(
+        photoUpdate({ userId: 1007, chatId: 5007, messageId: 2, mediaGroupId: "album-42" }),
+      ),
+    );
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(2);
+    expect(h.downloadCalls).toHaveLength(2);
+    expect(h.ocrCalls).toHaveLength(2);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("не смог");
   });
 
   it("keeps a normal delivery pickup SMS screenshot out of high risk", async () => {

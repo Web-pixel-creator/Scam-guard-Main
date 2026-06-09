@@ -912,7 +912,11 @@ const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = 
     uz: "👪 Yaqinni chaqirish",
     en: "👪 Call someone trusted",
   },
-  full: { ru: "📋 Весь чеклист", uz: "📋 To'liq ro'yxat", en: "📋 Full checklist" },
+  full: {
+    ru: "📋 Все срочные шаги",
+    uz: "📋 Barcha shoshilinch qadamlar",
+    en: "📋 All urgent steps",
+  },
 };
 
 function normalizeFollowUpText(text: string): string {

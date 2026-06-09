@@ -129,6 +129,15 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not pay for a “prediction”, closed-channel access, or a guaranteed win",
     },
   },
+  // Giveaway / NFT engagement bait -> avoid captcha/vote/wallet traps
+  {
+    reasons: new Set<ReasonCode>(["giveaway_engagement_bait"]),
+    advice: {
+      ru: "Не проходите капчу/голосование ради приза и не вводите данные кошелька или карты",
+      uz: "Sovrin uchun captcha/ovoz berishdan o'tmang, hamyon yoki karta ma'lumotini kiritmang",
+      en: "Do not complete captcha/voting for a prize or enter wallet/card details",
+    },
+  },
   // Private invite links -> avoid joining/paying without context
   {
     reasons: new Set<ReasonCode>(["suspicious_invite_link"]),
@@ -140,7 +149,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 7, 8, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic

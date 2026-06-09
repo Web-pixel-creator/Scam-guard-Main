@@ -38,15 +38,31 @@ import {
 // 9.1) and the router share a single source of truth for the update shape.
 // ---------------------------------------------------------------------------
 
+const messageEntitySchema = z
+  .object({
+    type: z.string(),
+    offset: z.number(),
+    length: z.number(),
+    url: z.string().optional(),
+  })
+  .passthrough();
+
+const inlineKeyboardButtonSchema = z
+  .object({
+    text: z.string().optional(),
+    url: z.string().optional(),
+  })
+  .passthrough();
+
 const messageSchema = z.object({
   message_id: z.number(),
   from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
   chat: z.object({ id: z.number() }),
   text: z.string().optional(),
   caption: z.string().optional(),
-  entities: z
-    .array(z.object({ type: z.string(), offset: z.number(), length: z.number() }))
-    .optional(),
+  entities: z.array(messageEntitySchema).optional(),
+  caption_entities: z.array(messageEntitySchema).optional(),
+  media_group_id: z.string().optional(),
   photo: z.array(z.object({ file_id: z.string(), file_size: z.number().optional() })).optional(),
   document: z
     .object({
@@ -60,6 +76,12 @@ const messageSchema = z.object({
   audio: z.unknown().optional(),
   video: z.unknown().optional(),
   sticker: z.unknown().optional(),
+  reply_markup: z
+    .object({
+      inline_keyboard: z.array(z.array(inlineKeyboardButtonSchema)).optional(),
+    })
+    .passthrough()
+    .optional(),
   forward_origin: z.unknown().optional(), // forward → text handled as ordinary input (R11.5)
 });
 
@@ -178,7 +200,7 @@ export interface Handlers {
   /** Plain questions about the bot itself → localized help response. */
   handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void>;
   /** Photo / image-document → OCR → Check_Pipeline (8.3). */
-  handleImage(fileId: string, ctx: HandlerCtx): Promise<void>;
+  handleImage(fileId: string, ctx: HandlerCtx, mediaGroupId?: string): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
   /** Inline-button callbacks: language / Report / Check another / Emergency (8.5). */
@@ -198,7 +220,7 @@ export type RouteAction =
   | { kind: "unknownCommand" }
   | { kind: "scenarioStep"; text: string }
   | { kind: "check"; content: string }
-  | { kind: "image"; fileId: string }
+  | { kind: "image"; fileId: string; mediaGroupId?: string }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
   | { kind: "ignore" };
@@ -241,6 +263,58 @@ function messageCaption(m: TelegramMessage): string {
   return (m.caption ?? "").trim();
 }
 
+type MessageEntity = NonNullable<TelegramMessage["entities"]>[number];
+
+function extractTextLinkUrls(entities: readonly MessageEntity[] | undefined): string[] {
+  const urls: string[] = [];
+  for (const entity of entities ?? []) {
+    const url = entity.type === "text_link" ? entity.url?.trim() : "";
+    if (url) urls.push(url);
+  }
+  return urls;
+}
+
+function extractInlineKeyboardUrls(m: TelegramMessage): string[] {
+  const keyboard = m.reply_markup?.inline_keyboard ?? [];
+  const urls: string[] = [];
+  for (const row of keyboard) {
+    for (const button of row) {
+      const url = button.url?.trim();
+      if (!url) continue;
+      const label = button.text?.trim();
+      urls.push(label ? `${label}: ${url}` : url);
+    }
+  }
+  return urls;
+}
+
+function appendUniqueEvidence(base: string, extras: readonly string[]): string {
+  const parts: string[] = [];
+  const seen = new Set<string>();
+  const add = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    parts.push(trimmed);
+  };
+  add(base);
+  extras.forEach(add);
+  return parts.join("\n");
+}
+
+function textEvidenceFromMessage(m: TelegramMessage): string {
+  const base = (m.text ?? m.caption ?? "").trim();
+  const entities = m.text != null ? m.entities : m.caption_entities;
+  return appendUniqueEvidence(base, [
+    ...extractTextLinkUrls(entities),
+    ...extractInlineKeyboardUrls(m),
+  ]);
+}
+
+function imageRoute(fileId: string, mediaGroupId?: string): RouteAction {
+  return mediaGroupId ? { kind: "image", fileId, mediaGroupId } : { kind: "image", fileId };
+}
+
 /**
  * Decide what to do with an update given the user's current Session. PURE:
  * no I/O, no session mutation. The PRIORITY ordering is:
@@ -276,20 +350,19 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   }
 
   // 4) Content type (only when no scenario is active).
+  const content = textEvidenceFromMessage(m);
+  if (content) return { kind: "check", content };
+
   if (m.photo && m.photo.length > 0) {
     const fileId = largestPhotoFileId(m.photo);
-    if (fileId) return { kind: "image", fileId };
+    if (fileId) return imageRoute(fileId, m.media_group_id);
   }
   if (
     m.document &&
     typeof m.document.mime_type === "string" &&
     m.document.mime_type.startsWith("image/")
   ) {
-    return { kind: "image", fileId: m.document.file_id };
-  }
-  const caption = messageCaption(m);
-  if (caption && (m.document || m.voice != null || m.audio != null || m.video != null)) {
-    return { kind: "check", content: caption };
+    return imageRoute(m.document.file_id, m.media_group_id);
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
   if (m.document) {
@@ -304,9 +377,6 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
 
   // Plain text (including forwarded text, R11.5) → Check_Pipeline.
-  const content = (m.text ?? caption).trim();
-  if (content) return { kind: "check", content };
-
   // Empty / anything else we can't act on → supported-input hint (R16.1).
   return { kind: "outOfScope", reason: "empty" };
 }
@@ -444,7 +514,7 @@ export async function dispatchUpdate(
       break;
     }
     case "image":
-      await handlers.handleImage(action.fileId, ctx);
+      await handlers.handleImage(action.fileId, ctx, action.mediaGroupId);
       break;
     case "contact":
       await handlers.handlePhoneFromContact(action.phone, ctx);

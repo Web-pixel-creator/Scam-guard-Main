@@ -30,6 +30,7 @@ const RESEARCH_FEED_CODES = [
   "telegram_account_takeover_phishing",
   "dropper_recruitment",
   "gambling_prediction_promo",
+  "giveaway_engagement_bait",
 ] as const satisfies readonly ReasonCode[];
 
 /** The 26 reason codes that existed before the new local-scenario codes. */
@@ -122,8 +123,8 @@ describe("risk rules — property-based scoring invariants", () => {
   it("fixtures cover the full reason-code universe without overlap", () => {
     expect(OLD_CODES.length).toBe(26);
     expect(NEW_CODES.length).toBe(4);
-    expect(RESEARCH_FEED_CODES.length).toBe(7);
-    expect(new Set(ALL_CODES).size).toBe(37);
+    expect(RESEARCH_FEED_CODES.length).toBe(8);
+    expect(new Set(ALL_CODES).size).toBe(38);
     for (const c of [...NEW_CODES, ...RESEARCH_FEED_CODES]) {
       expect(OLD_CODES).not.toContain(c);
     }

@@ -185,6 +185,7 @@ const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
   "known_reported",
   "verified_official",
   "telegram_account_takeover_phishing",
+  "giveaway_engagement_bait",
   "gambling_prediction_promo",
   "suspicious_invite_link",
   "impersonates_official",
@@ -252,6 +253,11 @@ function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
       ru: "ставки/прогнозы/выигрыш",
       uz: "stavka/prognoz/yutuq",
       en: "betting/prediction/win promo",
+    },
+    giveaway_engagement_bait: {
+      ru: "розыгрыш/подарок за действие",
+      uz: "sovg'a/yutuq uchun harakat",
+      en: "giveaway/prize action bait",
     },
     impersonates_official: {
       ru: "похоже на поддержку/официальный аккаунт",

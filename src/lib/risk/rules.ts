@@ -41,6 +41,7 @@ export type ReasonCode =
   | "impersonates_official"
   | "suspicious_invite_link"
   | "gambling_prediction_promo"
+  | "giveaway_engagement_bait"
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
@@ -84,6 +85,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   impersonates_official: 35,
   suspicious_invite_link: 25,
   gambling_prediction_promo: 20,
+  giveaway_engagement_bait: 20,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
@@ -191,15 +193,24 @@ function shouldFlagDropperRecruitment(text: string): boolean {
 }
 
 const GAMBLING_CONTEXT_RE =
-  /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|stavka|prognoz|bukmeker|kazino)/i;
+  /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|фри\s?спин|фриспин|депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|слот|twin|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|free\s?spins?|casino|slots?|stavka|prognoz|bukmeker|kazino)/i;
 const GAMBLING_ACTION_RE =
-  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз|джекпот|100[ .]?000|гарантир|доход|прибыл|vip|subscribe|channel|free|win|profit|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
+  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз|джекпот|бонус|пополн|ссылк|100[ .]?000|гарантир|доход|прибыл|vip|subscribe|channel|free|win|profit|bonus|deposit|link|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
 const GAMBLING_NEUTRAL_CONTEXT_RE =
-  /(новости спорта|спортивные новости|расписание матча|счет матча|счёт матча|смотреть матч|sports news|match schedule|match score|natija|jadval)/i;
+  /(без\s+ставок|без\s+прогнозов|не\s+ставки|не\s+прогноз|новости спорта|спортивные новости|расписание матча|счет матча|счёт матча|смотреть матч|sports news|match schedule|match score|natija|jadval)/i;
 
 function shouldFlagGamblingPredictionPromo(text: string): boolean {
   if (GAMBLING_NEUTRAL_CONTEXT_RE.test(text)) return false;
   return GAMBLING_CONTEXT_RE.test(text) && GAMBLING_ACTION_RE.test(text);
+}
+
+const GIVEAWAY_CONTEXT_RE =
+  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq)/i;
+const GIVEAWAY_ACTION_RE =
+  /(капч|captcha|реакци|reaction|проголос|голос|vote|подпис|subscribe|участв|ishtirok|ovoz|obuna|kanal|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп)/i;
+
+function shouldFlagGiveawayEngagementBait(text: string): boolean {
+  return GIVEAWAY_CONTEXT_RE.test(text) && GIVEAWAY_ACTION_RE.test(text);
 }
 
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
@@ -234,6 +245,7 @@ export function evaluateText(text: string): ReasonCode[] {
     codes.add("telegram_account_takeover_phishing");
   if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
   if (shouldFlagGamblingPredictionPromo(text)) codes.add("gambling_prediction_promo");
+  if (shouldFlagGiveawayEngagementBait(text)) codes.add("giveaway_engagement_bait");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -533,6 +545,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Закрытый канал со ставками или прогнозами",
     uz: "Yopiq stavka yoki prognoz kanali",
     en: "Closed betting or prediction channel",
+  },
+  giveaway_engagement_bait: {
+    ru: "Розыгрыш или подарок за действия",
+    uz: "Harakat evaziga sovg'a yoki yutuq",
+    en: "Giveaway or prize bait",
   },
   hosted_app_platform: {
     ru: "Размещён на публичной платформе",
