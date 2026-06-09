@@ -74,10 +74,11 @@ describe("Telegram Bot QA Matrix v1", () => {
     const text = bt("out_of_scope", "ru");
     const keyboard = buildUnsupportedMediaKeyboard("ru");
 
-    expect(text).toContain("не смотрю видео целиком");
-    expect(text).toContain("текст, ссылку или скриншот");
-    expect(text).toContain("QR/реквизитами");
-    expect(text).toContain("что вам обещают");
+    expect(text).toContain("могу разобрать главное");
+    expect(text).toContain("скрин кадра");
+    expect(text).toContain("QR, username, реквизиты");
+    expect(text).toContain("гарантированный доход");
+    expect(text).toContain("что обещают");
     expect(text).toContain("что просят сделать");
     expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.howItWorks]);
   });
@@ -203,6 +204,9 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(notFound).toContain("код, деньги, карту или APK");
     expect(invite).toContain("закрытый чат/канал");
     expect(invite).toContain("не вижу");
+    expect(invite).toContain("оцениваю саму ссылку и контекст");
+    expect(invite).toContain("Telegram-превью");
+    expect(invite).toContain("гарантированный доход");
   });
 
   it("explains what Telegram account data the bot can and cannot see", () => {

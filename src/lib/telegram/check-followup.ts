@@ -101,6 +101,17 @@ export function classifyLastCheckFollowUp(
   return null;
 }
 
+export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpAction | null {
+  const trimmed = text.trim();
+  if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
+
+  if (CONTACTS_RE.test(trimmed)) return "contacts";
+  if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
+  if (EXPLAIN_RE.test(trimmed)) return "explain";
+  if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  return null;
+}
+
 function levelText(level: RiskLevel, lang: Lang): string {
   const dict: Record<RiskLevel, Record<Lang, string>> = {
     safe: {
@@ -270,4 +281,36 @@ export function buildLastCheckFollowUpText(
     case "explain":
       return explainText(snapshot, lang);
   }
+}
+
+export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, lang: Lang): string {
+  if (action === "contacts") return contactsText(lang);
+
+  if (lang === "uz") {
+    if (action === "confidence") {
+      return "Qaysi tekshiruv haqida so'rayotganingiz ko'rinmayapti. Link, raqam, skrinshot yoki xabarni qayta yuboring — shu bo'yicha aniq javob beraman.\n\nAgar savol QR haqida bo'lsa: QRning o'zi xavf emas. Ochilgandan keyin kod, karta, login yoki to'lov so'ralsa — to'xtang va shu ekranni yuboring.";
+    }
+    if (action === "explain") {
+      return "Men sababni faqat aniq tekshiruv bo'yicha tushuntira olaman. Iltimos, link, raqam, username, skrinshot yoki xabar matnini yuboring.\n\nAgar hozir bosim bo'lsa: kod, PIN, CVV, parol yoki karta ma'lumotlarini bermang.";
+    }
+    return "Hozir xavfsiz yo'l:\n1. SMS-kod, PIN, CVV, parol yoki karta ma'lumotlarini bermang.\n2. Noma'lum APK/ilovani o'rnatmang.\n3. Pul o'tkazmang va QR orqali login qilmang.\n4. Link, raqam, skrinshot yoki xabar matnini yuboring — men aniq tekshiraman.";
+  }
+
+  if (lang === "en") {
+    if (action === "confidence") {
+      return "I cannot see which previous check you mean. Send the link, number, screenshot, or message again and I will answer about that exact item.\n\nIf this is about a QR: the QR itself is not dangerous. If the next page asks for a code, card data, login, or payment, stop and send that screen.";
+    }
+    if (action === "explain") {
+      return "I can explain the reason only for a concrete check. Please send the link, number, username, screenshot, or message text.\n\nIf someone is pressuring you now: do not share SMS codes, PIN, CVV, passwords, or card data.";
+    }
+    return "Safe step right now:\n1. Do not share SMS codes, PIN, CVV, passwords, or card data.\n2. Do not install unknown APKs/apps.\n3. Do not transfer money or log in through QR.\n4. Send the link, number, screenshot, or message text — I will check it precisely.";
+  }
+
+  if (action === "confidence") {
+    return "Я не вижу, к какой именно проверке относится вопрос. Пришлите ссылку, номер, скриншот или сообщение ещё раз — отвечу по нему точно.\n\nЕсли вопрос про QR: сам QR не опасен. Опасно, если после открытия просят код, карту, логин или оплату. В таком случае остановитесь и пришлите следующий экран.";
+  }
+  if (action === "explain") {
+    return "Я могу объяснить причину только по конкретной проверке. Пришлите ссылку, номер, username, скриншот или текст сообщения.\n\nЕсли на вас сейчас давят: не сообщайте SMS-код, PIN, CVV, пароль или данные карты.";
+  }
+  return "Безопасный шаг прямо сейчас:\n1. Не сообщайте SMS-код, PIN, CVV, пароль или данные карты.\n2. Не устанавливайте неизвестные APK/приложения.\n3. Не переводите деньги и не входите через QR.\n4. Пришлите ссылку, номер, скриншот или текст — я проверю точнее.";
 }

@@ -495,7 +495,10 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain("не смотрю видео целиком");
+    expect(h.sendCalls[0].text).toContain("могу разобрать главное");
+    expect(h.sendCalls[0].text).toContain("скрин кадра");
+    expect(h.sendCalls[0].text).toContain("ставки");
+    expect(h.sendCalls[0].text).toContain("гарантированный доход");
     expect(h.getFileCalls).toHaveLength(0);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
       CB.checkAnother,
@@ -503,6 +506,19 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       CB.report,
       CB.howItWorks,
     ]);
+  });
+
+  it("answers orphan follow-up wording with guidance instead of insufficient-data risk card", async () => {
+    const update = textUpdate({ userId: 1107, chatId: 5107, text: "Точно?" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("не вижу, к какой именно проверке");
+    expect(h.sendCalls[0].text).toContain("сам QR не опасен");
+    expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
 
   it.each([

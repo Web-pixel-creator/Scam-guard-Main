@@ -42,7 +42,9 @@ import {
 } from "@/lib/telegram/emergency";
 import {
   buildLastCheckFollowUpText,
+  buildOrphanCheckFollowUpText,
   buildLastCheckSnapshot,
+  classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import {
@@ -175,6 +177,15 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
       text: escapeMarkdownV2(
         buildLastCheckFollowUpText(lastCheckFollowUp, ctx.session.scenarioData.lastCheck, lang),
       ),
+    });
+    return;
+  }
+
+  const orphanFollowUp = classifyOrphanCheckFollowUp(trimmed);
+  if (orphanFollowUp !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildOrphanCheckFollowUpText(orphanFollowUp, lang)),
     });
     return;
   }

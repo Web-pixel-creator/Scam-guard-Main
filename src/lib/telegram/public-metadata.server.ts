@@ -163,12 +163,12 @@ function unavailableBrief(username: string, lang: Lang): string {
 
 function privateInviteBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Telegram: bu yopiq chat/kanalga invite-havola. Men uning ichini, a'zolarini yoki yashirin shikoyatlarni Telegram Bot API orqali ko'ra olmayman.";
+    return "Telegram: bu yopiq chat/kanalga invite-havola. Men uning ichini, a'zolarini yoki yashirin shikoyatlarni Telegram Bot API orqali ko'ra olmayman. Shuning uchun xulosani havolaning o'zi va siz yuborgan kontekst bo'yicha beraman.";
   }
   if (lang === "en") {
-    return "Telegram: this is an invite link to a closed chat/channel. Through the Telegram Bot API I cannot inspect its content, members, or hidden reports.";
+    return "Telegram: this is an invite link to a closed chat/channel. Through the Telegram Bot API I cannot inspect its content, members, or hidden reports. I judge only the invite itself and the context you send with it.";
   }
-  return "Telegram: это invite-ссылка в закрытый чат/канал. Через Telegram Bot API я не вижу содержимое, участников и скрытые жалобы.";
+  return "Telegram: это invite-ссылка в закрытый чат/канал. Через Telegram Bot API я не вижу содержимое, участников и скрытые жалобы. Поэтому оцениваю саму ссылку и контекст, который вы прислали рядом с ней.";
 }
 
 function internalLinkBrief(lang: Lang): string {
@@ -286,7 +286,7 @@ function telegramNextStep(
       return "Keyin: kirish/prognoz uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
     if (hasCredentialRisk) return "Keyin: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
     if (hasInvite)
-      return "Keyin: kanal tavsifi yoki post skrinini yuboring; kod va karta ma'lumotlarini kiritmang.";
+      return "Keyin: Telegram preview, kanal tavsifi yoki post skrinini yuboring. Agar u stavka, kripto, kafolatlangan foyda yoki yopiq kirish uchun to'lov va'da qilsa — pul to'lamang va kod/karta kiritmang.";
     return "Keyin: xabar matni/skrinini yuboring; kod, pul, karta yoki APK so'rashyaptimi — tekshiraman.";
   }
   if (lang === "en") {
@@ -295,7 +295,7 @@ function telegramNextStep(
     if (hasCredentialRisk)
       return "Next: do not share codes, card data, or APK access; send a chat screenshot.";
     if (hasInvite)
-      return "Next: send the channel description or post screenshot; do not enter codes or card data.";
+      return "Next: send the Telegram preview, channel description, or post screenshot. If it promises betting picks, crypto profit, guaranteed income, or paid closed access, do not pay or enter codes/card data.";
     return "Next: send the message text/screenshot; I will check whether they ask for codes, money, card data, or APK.";
   }
   if (hasBetting)
@@ -303,7 +303,7 @@ function telegramNextStep(
   if (hasCredentialRisk)
     return "Дальше: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
   if (hasInvite)
-    return "Дальше: пришлите описание канала или скрин поста; не вводите коды и данные карты.";
+    return "Дальше: пришлите Telegram-превью, описание канала или скрин поста. Если там ставки, крипта, «гарантированный доход» или платный доступ в закрытый канал — не платите и не вводите код/карту.";
   return "Дальше: пришлите текст/скрин сообщения; я проверю просьбы про код, деньги, карту или APK.";
 }
 

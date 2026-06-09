@@ -3,6 +3,8 @@ import type { RunCheckResult } from "@/lib/risk/check-core";
 import {
   buildLastCheckFollowUpText,
   buildLastCheckSnapshot,
+  buildOrphanCheckFollowUpText,
+  classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import type { LastCheckSnapshot, ReportDraft } from "@/lib/telegram/session.server";
@@ -153,5 +155,29 @@ describe("last check follow-up router", () => {
     expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain(
       "по Telegram-профилю или каналу",
     );
+  });
+
+  it("answers orphan confidence follow-ups without running a fake risk check", () => {
+    const action = classifyOrphanCheckFollowUp("Точно?");
+
+    expect(action).toBe("confidence");
+    const text = buildOrphanCheckFollowUpText(action!, "ru");
+    expect(text).toContain("не вижу, к какой именно проверке");
+    expect(text).toContain("сам QR не опасен");
+    expect(text).not.toContain("Недостаточно данных");
+  });
+
+  it("answers orphan bank-contact requests with official callback guidance", () => {
+    const action = classifyOrphanCheckFollowUp("дай номер банка");
+
+    expect(action).toBe("contacts");
+    const text = buildOrphanCheckFollowUpText(action!, "ru");
+    expect(text).toContain("Официальный обратный звонок");
+    expect(text).toContain("1340");
+  });
+
+  it("does not classify orphan follow-ups when the text contains a new artifact", () => {
+    expect(classifyOrphanCheckFollowUp("Точно? https://kapitalbank.uz.evil.com")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("дай номер банка +998 90 123 45 67")).toBeNull();
   });
 });

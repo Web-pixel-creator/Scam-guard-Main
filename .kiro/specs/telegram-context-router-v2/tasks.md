@@ -5,6 +5,7 @@
 - [x] Add typed actions: `confidence`, `next_steps`, `contacts`, `explain`.
 - [x] Add deterministic RU/UZ/EN patterns for short follow-up questions.
 - [x] Keep payload override conservative.
+- [x] Add orphan follow-up handling for short helper phrases when no `lastCheck` snapshot is available.
 
 ## 2. Render Contextual Replies
 
@@ -26,6 +27,7 @@
 - [x] Integration-test phone contact follow-up.
 - [x] Integration-test high-risk next steps.
 - [x] Integration-test callback separation.
+- [x] Integration-test orphan follow-up phrases so they do not create fake insufficient-data checks.
 
 ## 5. Verification And Release
 
