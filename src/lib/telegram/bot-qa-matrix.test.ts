@@ -13,6 +13,7 @@ import {
   withPanicContextData,
 } from "@/lib/telegram/emergency";
 import { CB, formatCheckResult, formatHelp, formatWelcome } from "@/lib/telegram/format";
+import { buildForwardSourceBrief } from "@/lib/telegram/forward-context";
 import { buildUnsupportedMediaKeyboard } from "@/lib/telegram/handlers/misc";
 import { buildTelegramPublicMetadataBrief } from "@/lib/telegram/public-metadata.server";
 import type { LastCheckSnapshot, ReportDraft } from "@/lib/telegram/session.server";
@@ -206,6 +207,34 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(invite).toContain("не вижу");
     expect(invite).toContain("оцениваю только ссылку");
     expect(invite).toContain("не вводите код/карту");
+  });
+
+  it("keeps forwarded Telegram post mini-brief useful after formatting", () => {
+    const explanation = buildForwardSourceBrief(
+      { kind: "channel", title: "LUXEBET Promo", username: "luxebet_promo" },
+      "ru",
+      baseResult({
+        reasons: ["crypto_casino_bonus_funnel", "suspicious_invite_link"],
+      }),
+    );
+
+    const formatted = formatCheckResult(
+      baseResult({
+        level: "suspicious",
+        score: 45,
+        reasons: ["crypto_casino_bonus_funnel", "suspicious_invite_link"],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(formatted.text).toContain("Источник");
+    expect(formatted.text).toContain("LUXEBET Promo");
+    expect(formatted.text).toContain("Схема");
+    expect(formatted.text).toContain("Цель");
+    expect(formatted.text).toContain("Шаг");
+    expect(formatted.text).toContain("скрытые метки");
+    expect(formatted.text).not.toMatch(/создан недавно|спамит|точно мошенник/i);
   });
 
   it("explains what Telegram account data the bot can and cannot see", () => {

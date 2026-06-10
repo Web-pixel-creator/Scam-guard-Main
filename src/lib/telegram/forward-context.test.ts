@@ -76,10 +76,12 @@ describe("Telegram forward source context", () => {
       reasons: base.reasons,
       knownReports: base.knownReports,
     });
-    expect(enriched.explanation).toContain("Источник: пост переслан из Telegram-канала");
+    expect(enriched.explanation).toContain("Источник: Telegram-канал");
     expect(enriched.explanation).toContain("LUXEBET");
-    expect(enriched.explanation).toContain("ставки/казино");
-    expect(enriched.explanation).toContain("Я не вижу скрытую SCAM-метку");
+    expect(enriched.explanation).toContain("Схема: ставки/казино/VIP-бонус");
+    expect(enriched.explanation).toContain("Цель: оплата прогноза");
+    expect(enriched.explanation).toContain("Шаг: не платите");
+    expect(enriched.explanation).toContain("скрытые метки");
   });
 
   it("does not claim hidden Telegram reputation data", () => {
@@ -91,6 +93,6 @@ describe("Telegram forward source context", () => {
 
     expect(brief).toContain("Public Channel");
     expect(brief).not.toMatch(/создан недавно|есть жалобы|спамит|точно мошенник/i);
-    expect(brief).toContain("не вижу");
+    expect(brief).toContain("не видны");
   });
 });

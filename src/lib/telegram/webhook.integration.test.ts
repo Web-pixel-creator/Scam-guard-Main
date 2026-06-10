@@ -448,7 +448,10 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
     expect(h.sendCalls[0].chatId).toBe(5002);
     expect(h.sendCalls[0].text).toContain("Источник");
     expect(h.sendCalls[0].text).toContain("LUXEBET Promo");
-    expect(h.sendCalls[0].text).toContain("не вижу скрытую");
+    expect(h.sendCalls[0].text).toContain("Схема");
+    expect(h.sendCalls[0].text).toContain("Цель");
+    expect(h.sendCalls[0].text).toContain("Шаг");
+    expect(h.sendCalls[0].text).toContain("скрытые метки");
     expect(h.sendCalls[0].text).toContain("казино");
 
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);

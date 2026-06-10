@@ -154,7 +154,9 @@ description.
 
 Telegram forwarded posts can expose a public channel/group title and username.
 The bot may show that visible source in the answer to help the user understand
-context, but it must not append source metadata to the scored input, persist it
-in `checks`, or use it as reputation evidence. Hidden/private user origins stay
+context. When deterministic reason codes identify a tactic, the reply should
+explain the scheme, likely attacker goal and one safe next step in compact
+language. It must not append source metadata to the scored input, persist it in
+`checks`, or use it as reputation evidence. Hidden/private user origins stay
 excluded, and the copy must keep the limitation boundary: no hidden SCAM label,
 account-age, report-history or spam-history claims.

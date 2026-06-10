@@ -197,8 +197,10 @@ function renderVerdict(result: RunCheckResult, lang: Lang): string {
 function renderBrief(result: RunCheckResult, lang: Lang): string {
   let content: string;
   const neutralContext = detectNeutralContext(result);
-  const truncateOptions =
-    result.type === "telegram"
+  const hasForwardSourceBrief = isForwardSourceBrief(result.explanation);
+  const truncateOptions = hasForwardSourceBrief
+    ? { maxLines: 6, maxChars: 380 }
+    : result.type === "telegram"
       ? { maxLines: 5, maxChars: 340 }
       : result.level === "unknown"
         ? { maxLines: 3, maxChars: 190 }
@@ -215,6 +217,11 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   }
 
   return formatSectionBlock("brief", lang, escapeMarkdownV2(content));
+}
+
+function isForwardSourceBrief(explanation: string | null): boolean {
+  if (!explanation) return false;
+  return /^(Источник: Telegram-|Source: Telegram |Manba: Telegram )/u.test(explanation);
 }
 
 /**
@@ -297,7 +304,12 @@ function renderWhyDangerous(result: RunCheckResult, lang: Lang): string {
   const parts: string[] = [];
 
   if (result.type === "telegram" && result.explanation !== null) {
-    const truncated = truncateExplanation(result.explanation, { maxLines: 4, maxChars: 340 });
+    const truncated = truncateExplanation(
+      result.explanation,
+      isForwardSourceBrief(result.explanation)
+        ? { maxLines: 6, maxChars: 380 }
+        : { maxLines: 4, maxChars: 340 },
+    );
     parts.push(escapeMarkdownV2(truncated));
   }
 
@@ -312,7 +324,10 @@ function renderWhyDangerous(result: RunCheckResult, lang: Lang): string {
 
   // Explanation as supplementary context
   if (result.type !== "telegram" && result.explanation !== null) {
-    const truncated = truncateExplanation(result.explanation);
+    const truncated = truncateExplanation(
+      result.explanation,
+      isForwardSourceBrief(result.explanation) ? { maxLines: 6, maxChars: 380 } : undefined,
+    );
     parts.push(escapeMarkdownV2(truncated));
   }
 

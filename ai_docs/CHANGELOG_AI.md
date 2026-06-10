@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Forward Scheme Brief v1
+
+- Added `.kiro/specs/telegram-forward-scheme-brief-v1/`.
+- Forwarded Telegram post replies now preserve a mini-brief with source, likely scheme, likely attacker goal, safe next step and Telegram visibility limit.
+- Formatter truncation was adjusted only for forward-source briefs so scheme/goal/step lines survive mobile result-card formatting.
+- The safety boundary remains unchanged: no hidden SCAM-label, account-age, Telegram report-history or spam-history claims.
+
 ## 2026-06-10 - Telegram Forward Source Context v1
 
 - Added `.kiro/specs/telegram-forward-source-context-v1/`.

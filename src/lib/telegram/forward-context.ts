@@ -47,12 +47,12 @@ function sourceType(source: TelegramForwardSourceContext, lang: Lang): string {
   if (source.kind === "channel") {
     if (lang === "uz") return "Telegram kanali";
     if (lang === "en") return "Telegram channel";
-    return "Telegram-канала";
+    return "Telegram-канал";
   }
 
   if (lang === "uz") return "Telegram guruhi";
   if (lang === "en") return "Telegram group";
-  return "Telegram-группы";
+  return "Telegram-группа";
 }
 
 function sourceName(source: TelegramForwardSourceContext, lang: Lang): string {
@@ -66,16 +66,22 @@ function sourceLine(source: TelegramForwardSourceContext, lang: Lang): string {
   const type = sourceType(source, lang);
   const name = sourceName(source, lang);
 
-  if (lang === "uz") return `Manba: bu post ${type}dan yuborilgan: ${name}.`;
-  if (lang === "en") return `Source: this post was forwarded from ${type}: ${name}.`;
-  return `Источник: пост переслан из ${type} ${name}.`;
+  if (lang === "uz") return `Manba: ${type} ${name}.`;
+  if (lang === "en") return `Source: ${type} ${name}.`;
+  return `Источник: ${type} ${name}.`;
 }
 
 function hasAny(reasons: readonly ReasonCode[], codes: readonly ReasonCode[]): boolean {
   return codes.some((code) => reasons.includes(code));
 }
 
-function scenarioLine(reasons: readonly ReasonCode[], lang: Lang): string | null {
+interface ScenarioBrief {
+  scheme: string;
+  goal: string;
+  step: string;
+}
+
+function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrief | null {
   const accountTakeover = reasons.includes("telegram_account_takeover_phishing");
   const wallet = reasons.includes("wallet_action_urgency");
   const bettingOrCasino = hasAny(reasons, [
@@ -100,54 +106,129 @@ function scenarioLine(reasons: readonly ReasonCode[], lang: Lang): string | null
   ]);
 
   if (lang === "uz") {
-    if (accountTakeover)
-      return "Ko'rinadigan belgilar Telegram akkauntini egallashga o'xshaydi: kod, parol yoki QR-login kiritmang.";
-    if (wallet)
-      return "Ko'rinadigan belgilar Web3/hamyon harakatiga o'xshaydi: wallet ulamang, tranzaksiya imzolamang, seed phrase kiritmang.";
-    if (bettingOrCasino)
-      return "Ko'rinadigan belgilar stavka/kazino/VIP-bonus voronkasiga o'xshaydi: prognoz yoki depozit uchun pul to'lamang.";
-    if (giveawayOrTask)
-      return "Ko'rinadigan belgilar sovrin/NFT/Stars yoki vazifa mukofotiga o'xshaydi: captcha, ovoz, referral, wallet yoki kod so'roviga ehtiyot bo'ling.";
-    if (credentialOrOfficial)
-      return "Ko'rinadigan belgilar xavfli so'rovga o'xshaydi: kod, karta, APK, pul yoki QR-login bermang.";
+    if (accountTakeover) {
+      return {
+        scheme: "Sxema: Telegram akkauntini egallash.",
+        goal: "Maqsad: kod, parol yoki QR-login olish.",
+        step: "Qadam: kod kiritmang, QR skaner qilmang, link ochmang.",
+      };
+    }
+    if (wallet) {
+      return {
+        scheme: "Sxema: Web3/hamyon tuzog'i.",
+        goal: "Maqsad: tranzaksiya imzosi yoki seed phrase.",
+        step: "Qadam: wallet ulamang, seed phrase kiritmang.",
+      };
+    }
+    if (bettingOrCasino) {
+      return {
+        scheme: "Sxema: stavka/kazino/VIP-bonus.",
+        goal: "Maqsad: prognoz, depozit yoki kirish uchun to'lov.",
+        step: "Qadam: pul to'lamang, karta yoki kod kiritmang.",
+      };
+    }
+    if (giveawayOrTask) {
+      return {
+        scheme: "Sxema: sovrin/NFT/Stars yoki vazifa mukofoti.",
+        goal: "Maqsad: ovoz, referral, wallet yoki kodga olib borish.",
+        step: "Qadam: kod/wallet bermang, keyingi ekranni yuboring.",
+      };
+    }
+    if (credentialOrOfficial) {
+      return {
+        scheme: "Sxema: bank/support nomidan xavfli so'rov.",
+        goal: "Maqsad: kod, karta, APK, pul yoki QR-login.",
+        step: "Qadam: faqat rasmiy raqam/sayt orqali tekshiring.",
+      };
+    }
     return null;
   }
 
   if (lang === "en") {
-    if (accountTakeover)
-      return "Visible signs look like Telegram account takeover: do not enter codes, passwords, or QR login.";
-    if (wallet)
-      return "Visible signs look like a Web3/wallet action: do not connect a wallet, sign a transaction, or enter a seed phrase.";
-    if (bettingOrCasino)
-      return "Visible signs look like a betting/casino/VIP-bonus funnel: do not pay for predictions or deposits.";
-    if (giveawayOrTask)
-      return "Visible signs look like a prize/NFT/Stars or task-reward gate: be careful with captcha, voting, referrals, wallet, or code prompts.";
-    if (credentialOrOfficial)
-      return "Visible signs look like a dangerous request: do not share codes, card data, APK access, money, or QR login.";
+    if (accountTakeover) {
+      return {
+        scheme: "Scheme: Telegram account takeover.",
+        goal: "Goal: get your code, password, or QR login.",
+        step: "Step: do not enter codes, scan QR, or open links.",
+      };
+    }
+    if (wallet) {
+      return {
+        scheme: "Scheme: Web3/wallet trap.",
+        goal: "Goal: transaction signature or seed phrase.",
+        step: "Step: do not connect a wallet or enter a seed phrase.",
+      };
+    }
+    if (bettingOrCasino) {
+      return {
+        scheme: "Scheme: betting/casino/VIP-bonus funnel.",
+        goal: "Goal: make you pay for prediction, deposit, or access.",
+        step: "Step: do not pay or enter card/code data.",
+      };
+    }
+    if (giveawayOrTask) {
+      return {
+        scheme: "Scheme: prize/NFT/Stars or task reward.",
+        goal: "Goal: push you to vote, refer, connect wallet, or enter code.",
+        step: "Step: do not share code/wallet; send the next screen.",
+      };
+    }
+    if (credentialOrOfficial) {
+      return {
+        scheme: "Scheme: dangerous bank/support-style request.",
+        goal: "Goal: code, card, APK, money, or QR login.",
+        step: "Step: verify only through the official number/site.",
+      };
+    }
     return null;
   }
 
-  if (accountTakeover)
-    return "По видимым признакам похоже на угон Telegram: не вводите код, пароль или QR-вход.";
-  if (wallet)
-    return "По видимым признакам похоже на Web3/кошелёк: не подключайте wallet, не подписывайте транзакцию и не вводите seed phrase.";
-  if (bettingOrCasino)
-    return "По видимым признакам похоже на ставки/казино/VIP-бонус: не платите за прогноз или депозит.";
-  if (giveawayOrTask)
-    return "По видимым признакам похоже на приз/NFT/Stars или награду за задания: осторожно с капчей, голосованием, referral, wallet или кодом.";
-  if (credentialOrOfficial)
-    return "По видимым признакам похоже на опасную просьбу: не передавайте код, карту, APK, деньги или QR-вход.";
+  if (accountTakeover) {
+    return {
+      scheme: "Схема: угон Telegram-аккаунта.",
+      goal: "Цель: получить код, пароль или QR-вход.",
+      step: "Шаг: не вводите код, не сканируйте QR, не открывайте ссылку.",
+    };
+  }
+  if (wallet) {
+    return {
+      scheme: "Схема: Web3/кошелёк-ловушка.",
+      goal: "Цель: подпись транзакции или seed phrase.",
+      step: "Шаг: не подключайте wallet и не вводите seed phrase.",
+    };
+  }
+  if (bettingOrCasino) {
+    return {
+      scheme: "Схема: ставки/казино/VIP-бонус.",
+      goal: "Цель: оплата прогноза, депозита или доступа.",
+      step: "Шаг: не платите и не вводите карту/код.",
+    };
+  }
+  if (giveawayOrTask) {
+    return {
+      scheme: "Схема: приз/NFT/Stars или награда за задания.",
+      goal: "Цель: привести к голосу, referral, wallet или коду.",
+      step: "Шаг: не вводите код/wallet; пришлите следующий экран.",
+    };
+  }
+  if (credentialOrOfficial) {
+    return {
+      scheme: "Схема: опасная просьба от имени банка/support.",
+      goal: "Цель: код, карта, APK, деньги или QR-вход.",
+      step: "Шаг: проверяйте только через официальный номер/сайт.",
+    };
+  }
   return null;
 }
 
 function limitsLine(lang: Lang): string {
   if (lang === "uz") {
-    return "Men yashirin SCAM-belgi, akkaunt yoshi, shikoyatlar tarixi yoki kimga yozganini ko'ra olmayman.";
+    return "Chegara: yashirin belgilar, yosh va Telegram shikoyatlari ko'rinmaydi.";
   }
   if (lang === "en") {
-    return "I cannot see hidden SCAM labels, account age, report history, or who this source messaged.";
+    return "Limit: hidden labels, age, and Telegram reports are not visible to me.";
   }
-  return "Я не вижу скрытую SCAM-метку, возраст аккаунта, историю жалоб или кому источник писал.";
+  return "Важно: скрытые метки, возраст и жалобы Telegram мне не видны.";
 }
 
 export function buildForwardSourceBrief(
@@ -156,8 +237,15 @@ export function buildForwardSourceBrief(
   result?: Pick<RunCheckResult, "reasons" | "knownReports">,
 ): string | null {
   if (!source) return null;
+  const scenario = scenarioBrief(result?.reasons ?? [], lang);
 
-  return [sourceLine(source, lang), scenarioLine(result?.reasons ?? [], lang), limitsLine(lang)]
+  return [
+    sourceLine(source, lang),
+    scenario?.scheme,
+    scenario?.goal,
+    scenario?.step,
+    limitsLine(lang),
+  ]
     .filter(Boolean)
     .join("\n");
 }
@@ -169,9 +257,10 @@ export function enrichForwardSourceContext(
 ): RunCheckResult {
   const brief = buildForwardSourceBrief(source, lang, result);
   if (!brief) return result;
+  const hasScenario = scenarioBrief(result.reasons, lang) !== null;
 
   return {
     ...result,
-    explanation: result.explanation ? `${brief}\n\n${result.explanation}` : brief,
+    explanation: hasScenario || !result.explanation ? brief : `${brief}\n\n${result.explanation}`,
   };
 }
