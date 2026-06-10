@@ -6,4 +6,4 @@
 - [x] 4. Add router unit tests for thumbnail routing and priority.
 - [x] 5. Add webhook integration tests proving thumbnail-only image processing and no full video download.
 - [x] 6. Update AI docs for the new media boundary.
-- [ ] 7. Run targeted tests, full verification, commit, push, deploy and smoke-test production.
+- [x] 7. Run targeted tests, full verification, commit, push, deploy and smoke-test production.
