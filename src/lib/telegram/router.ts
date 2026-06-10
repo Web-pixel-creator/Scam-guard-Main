@@ -31,6 +31,10 @@ import {
   resetScenario as resetScenarioImpl,
   type Session,
 } from "@/lib/telegram/session.server";
+import {
+  normalizeForwardSource,
+  type TelegramForwardSourceContext,
+} from "@/lib/telegram/forward-context";
 
 // ---------------------------------------------------------------------------
 // Telegram update schema (only the MVP-relevant fields; everything else is
@@ -71,10 +75,27 @@ const videoSchema = z
   })
   .passthrough();
 
+const forwardChatSchema = z
+  .object({
+    type: z.string().optional(),
+    title: z.string().optional(),
+    username: z.string().optional(),
+  })
+  .passthrough();
+
+const forwardOriginSchema = z
+  .object({
+    type: z.string(),
+    chat: forwardChatSchema.optional(),
+    sender_chat: forwardChatSchema.optional(),
+  })
+  .passthrough();
+
 const messageSchema = z.object({
   message_id: z.number(),
   from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
   chat: z.object({ id: z.number() }),
+  sender_chat: forwardChatSchema.optional(),
   text: z.string().optional(),
   caption: z.string().optional(),
   entities: z.array(messageEntitySchema).optional(),
@@ -99,7 +120,7 @@ const messageSchema = z.object({
     })
     .passthrough()
     .optional(),
-  forward_origin: z.unknown().optional(), // forward → text handled as ordinary input (R11.5)
+  forward_origin: forwardOriginSchema.optional(), // public forward source is presentation-only context
 });
 
 export const telegramUpdateSchema = z
@@ -213,11 +234,20 @@ export interface Handlers {
   /** One step of an active multi-step scenario, e.g. /report (8.4). */
   handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void>;
   /** Free text / forwarded text → Check_Pipeline (8.3). */
-  handleCheck(content: string, ctx: HandlerCtx): Promise<void>;
+  handleCheck(
+    content: string,
+    ctx: HandlerCtx,
+    source?: TelegramForwardSourceContext,
+  ): Promise<void>;
   /** Plain questions about the bot itself → localized help response. */
   handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void>;
   /** Photo / image-document → OCR → Check_Pipeline (8.3). */
-  handleImage(fileId: string, ctx: HandlerCtx, mediaGroupId?: string): Promise<void>;
+  handleImage(
+    fileId: string,
+    ctx: HandlerCtx,
+    mediaGroupId?: string,
+    source?: TelegramForwardSourceContext,
+  ): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
   /** Inline-button callbacks: language / Report / Check another / Emergency (8.5). */
@@ -236,8 +266,8 @@ export type RouteAction =
   | { kind: "command"; command: ParsedCommand }
   | { kind: "unknownCommand" }
   | { kind: "scenarioStep"; text: string }
-  | { kind: "check"; content: string }
-  | { kind: "image"; fileId: string; mediaGroupId?: string }
+  | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
+  | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
   | { kind: "ignore" };
@@ -332,8 +362,38 @@ function textEvidenceFromMessage(m: TelegramMessage): string {
   ]);
 }
 
-function imageRoute(fileId: string, mediaGroupId?: string): RouteAction {
-  return mediaGroupId ? { kind: "image", fileId, mediaGroupId } : { kind: "image", fileId };
+function forwardSourceFromMessage(m: TelegramMessage): TelegramForwardSourceContext | undefined {
+  const origin = m.forward_origin;
+  const sourceChat =
+    (origin?.type === "channel" ? origin.chat : undefined) ??
+    (origin?.type === "chat" ? (origin.sender_chat ?? origin.chat) : undefined) ??
+    m.sender_chat;
+
+  if (!sourceChat) return undefined;
+
+  const kind = origin?.type === "channel" || sourceChat.type === "channel" ? "channel" : "chat";
+  return (
+    normalizeForwardSource({
+      kind,
+      title: sourceChat.title,
+      username: sourceChat.username,
+    }) ?? undefined
+  );
+}
+
+function checkRoute(content: string, source?: TelegramForwardSourceContext): RouteAction {
+  return source ? { kind: "check", content, source } : { kind: "check", content };
+}
+
+function imageRoute(
+  fileId: string,
+  mediaGroupId?: string,
+  source?: TelegramForwardSourceContext,
+): RouteAction {
+  const action = mediaGroupId
+    ? { kind: "image" as const, fileId, mediaGroupId }
+    : { kind: "image" as const, fileId };
+  return source ? { ...action, source } : action;
 }
 
 /**
@@ -357,6 +417,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
 
   const m = update.message;
   if (!m) return { kind: "ignore" };
+  const source = forwardSourceFromMessage(m);
 
   // 2) Commands (text starting with "/") — beat an active scenario (R15.4).
   const text = m.text;
@@ -372,18 +433,18 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
 
   // 4) Content type (only when no scenario is active).
   const content = textEvidenceFromMessage(m);
-  if (content) return { kind: "check", content };
+  if (content) return checkRoute(content, source);
 
   if (m.photo && m.photo.length > 0) {
     const fileId = largestPhotoFileId(m.photo);
-    if (fileId) return imageRoute(fileId, m.media_group_id);
+    if (fileId) return imageRoute(fileId, m.media_group_id, source);
   }
   if (
     m.document &&
     typeof m.document.mime_type === "string" &&
     m.document.mime_type.startsWith("image/")
   ) {
-    return imageRoute(m.document.file_id, m.media_group_id);
+    return imageRoute(m.document.file_id, m.media_group_id, source);
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
   if (m.document) {
@@ -394,7 +455,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   }
   if (m.video != null) {
     const fileId = videoThumbnailFileId(m.video);
-    if (fileId) return imageRoute(fileId, m.media_group_id);
+    if (fileId) return imageRoute(fileId, m.media_group_id, source);
     return { kind: "outOfScope", reason: "video" };
   }
   if (m.voice != null) return { kind: "outOfScope", reason: "voice" };
@@ -535,11 +596,11 @@ export async function dispatchUpdate(
         await handlers.handleMetaIntent(intent, ctx);
         break;
       }
-      await handlers.handleCheck(action.content, ctx);
+      await handlers.handleCheck(action.content, ctx, action.source);
       break;
     }
     case "image":
-      await handlers.handleImage(action.fileId, ctx, action.mediaGroupId);
+      await handlers.handleImage(action.fileId, ctx, action.mediaGroupId, action.source);
       break;
     case "contact":
       await handlers.handlePhoneFromContact(action.phone, ctx);

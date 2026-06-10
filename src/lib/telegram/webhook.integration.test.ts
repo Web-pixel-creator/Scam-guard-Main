@@ -188,7 +188,12 @@ function webhookRequest(update: unknown, header: string | null = SECRET): Reques
 }
 
 /** A minimal valid text message update. */
-function textUpdate(opts: { userId: number; chatId: number; text: string }): unknown {
+function textUpdate(opts: {
+  userId: number;
+  chatId: number;
+  text: string;
+  message?: Record<string, unknown>;
+}): unknown {
   return {
     update_id: opts.userId,
     message: {
@@ -196,6 +201,7 @@ function textUpdate(opts: { userId: number; chatId: number; text: string }): unk
       from: { id: opts.userId, language_code: "ru" },
       chat: { id: opts.chatId },
       text: opts.text,
+      ...opts.message,
     },
   };
 }
@@ -414,6 +420,42 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
 
     // The real core logged the check (redacted) into `checks`.
     expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
+  });
+
+  it("shows public forward source context without persisting the source metadata", async () => {
+    const update = textUpdate({
+      userId: 1002,
+      chatId: 5002,
+      text: "100 фриспинов за депозит. Вход по ссылке https://t.me/+giftNFT12345",
+      message: {
+        forward_origin: {
+          type: "channel",
+          chat: {
+            id: -100123,
+            type: "channel",
+            title: "LUXEBET Promo",
+            username: "luxebet_promo",
+          },
+          message_id: 77,
+        },
+      },
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5002);
+    expect(h.sendCalls[0].text).toContain("Источник");
+    expect(h.sendCalls[0].text).toContain("LUXEBET Promo");
+    expect(h.sendCalls[0].text).toContain("не вижу скрытую");
+    expect(h.sendCalls[0].text).toContain("казино");
+
+    const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
+    expect(persisted).toContain("crypto_casino_bonus_funnel");
+    expect(persisted).not.toContain("LUXEBET Promo");
+    expect(persisted).not.toContain("luxebet_promo");
+    expect(persisted).not.toContain("forward_origin");
   });
 
   it("answers a meta-question to the bot without running the risk pipeline", async () => {

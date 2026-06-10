@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Forward Source Context v1
+
+- Added `.kiro/specs/telegram-forward-source-context-v1/`.
+- Forwarded public Telegram channel/group posts now include a short source note in bot replies when Telegram exposes title/username.
+- The source note is reply-only: it is not appended to `runCheck` input, does not affect score/level/reasons and is not persisted in `checks`.
+- Hidden/private forward origins remain excluded, and the copy explicitly avoids hidden SCAM-label, account-age, report-history or spam-history claims.
+
 ## 2026-06-10 - Telegram Video Thumbnail Intelligence v1
 
 - Added `.kiro/specs/telegram-video-thumbnail-intelligence-v1/`.

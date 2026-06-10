@@ -59,6 +59,10 @@ import {
 import { decodeQrFromDataUrl } from "@/lib/risk/qr-decoder";
 import { enrichTelegramPublicMetadata } from "@/lib/telegram/public-metadata.server";
 import { enrichTelegramReputation } from "@/lib/telegram/reputation.server";
+import {
+  enrichForwardSourceContext,
+  type TelegramForwardSourceContext,
+} from "@/lib/telegram/forward-context";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -201,7 +205,11 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
  * сообщением на текущем языке (R4.10); пустой ввод — подсказка о поддерживаемых
  * типах (R16.1).
  */
-export async function handleCheck(content: string, ctx: HandlerCtx): Promise<void> {
+export async function handleCheck(
+  content: string,
+  ctx: HandlerCtx,
+  source?: TelegramForwardSourceContext,
+): Promise<void> {
   const lang = ctx.session.lang;
   const trimmed = content.trim();
 
@@ -258,7 +266,7 @@ export async function handleCheck(content: string, ctx: HandlerCtx): Promise<voi
     );
     const enrichedMetadata = await enrichTelegramPublicMetadata(trimmed, result, lang);
     const enriched = await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
-    await sendCheckResult(ctx, enriched);
+    await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
   });
 }
 
@@ -275,6 +283,7 @@ export async function handleImage(
   fileId: string,
   ctx: HandlerCtx,
   mediaGroupId?: string,
+  source?: TelegramForwardSourceContext,
 ): Promise<void> {
   const lang = ctx.session.lang;
 
@@ -334,7 +343,7 @@ export async function handleImage(
       await replyImageOcrFailed(ctx, mediaGroupId); // R5.6
       return;
     }
-    await sendCheckResult(ctx, outcome.result);
+    await sendCheckResult(ctx, enrichForwardSourceContext(outcome.result, source, lang));
   });
 }
 

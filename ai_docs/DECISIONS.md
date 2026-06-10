@@ -149,3 +149,12 @@ the same in-memory image/QR pipeline used for photos. The video file itself is
 not fetched, decoded or stored. If Telegram gives no usable thumbnail, the bot
 keeps the media-specific fallback asking for a link, screenshot frame or short
 description.
+
+## D-025 - Forwarded source context is reply-only
+
+Telegram forwarded posts can expose a public channel/group title and username.
+The bot may show that visible source in the answer to help the user understand
+context, but it must not append source metadata to the scored input, persist it
+in `checks`, or use it as reputation evidence. Hidden/private user origins stay
+excluded, and the copy must keep the limitation boundary: no hidden SCAM label,
+account-age, report-history or spam-history claims.

@@ -89,18 +89,18 @@ function callbackUpdate(
  */
 function makeSpyHandlers(): {
   handlers: Handlers;
-  calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx; callbackQueryId?: string }[];
+  calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx; extra?: unknown }[];
 } {
   const calls: {
     name: keyof Handlers;
     arg: unknown;
     ctx: HandlerCtx;
-    callbackQueryId?: string;
+    extra?: unknown;
   }[] = [];
   const record =
     (name: keyof Handlers) =>
-    async (arg: unknown, ctx: HandlerCtx, callbackQueryId?: string): Promise<void> => {
-      calls.push({ name, arg, ctx, callbackQueryId });
+    async (arg: unknown, ctx: HandlerCtx, extra?: unknown): Promise<void> => {
+      calls.push({ name, arg, ctx, extra });
     };
   const handlers: Handlers = {
     handleCommand: record("handleCommand"),
@@ -443,6 +443,51 @@ describe("decideRoute forwarded message (R11.5)", () => {
     });
   });
 
+  it("attaches public channel source context to forwarded check content", () => {
+    const update = messageUpdate({
+      text: "100 фриспинов за депозит, ссылка на Twin",
+      forward_origin: {
+        type: "channel",
+        chat: { id: -1001, type: "channel", title: "LUXEBET", username: "luxebet_news" },
+        message_id: 777,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "100 фриспинов за депозит, ссылка на Twin",
+      source: { kind: "channel", title: "LUXEBET", username: "luxebet_news" },
+    });
+  });
+
+  it("does not attach hidden/private user origins as source context", () => {
+    const update = messageUpdate({
+      text: "почему это опасно",
+      forward_origin: { type: "hidden_user", sender_user_name: "Private Sender" },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "check", content: "почему это опасно" });
+  });
+
+  it("keeps a forwarded public-channel image on the image/OCR route with source context", () => {
+    const update = messageUpdate({
+      forward_origin: {
+        type: "channel",
+        chat: { id: -1002, type: "channel", title: "TON Знаток", username: "TonZnatok" },
+      },
+      photo: [
+        { file_id: "small", file_size: 100 },
+        { file_id: "full", file_size: 5000 },
+      ],
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "image",
+      fileId: "full",
+      source: { kind: "channel", title: "TON Знаток", username: "TonZnatok" },
+    });
+  });
+
   it("treats a forwarded message during an active scenario as the scenario step", () => {
     // Forward still arrives as text; while a scenario is active it is the answer
     // to the current step (priority: scenario step > content type).
@@ -517,7 +562,7 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCallback");
     expect(calls[0].arg).toBe("lang:en");
-    expect(calls[0].callbackQueryId).toBe("cb1");
+    expect(calls[0].extra).toBe("cb1");
   });
 
   it("dispatches a command to handleCommand", async () => {
@@ -680,6 +725,28 @@ describe("dispatchUpdate — forwarded message routed as a check (R11.5)", () =>
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCheck");
     expect(calls[0].arg).toBe("Поздравляем! Вы выиграли приз, перейдите по ссылке");
+  });
+
+  it("passes public forward source context to handleCheck", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({
+        text: "100 фриспинов за депозит",
+        forward_origin: {
+          type: "channel",
+          chat: { id: -1001, type: "channel", title: "Twin Bonus", username: "twin_bonus" },
+        },
+      }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("100 фриспинов за депозит");
+    expect(calls[0].extra).toEqual({
+      kind: "channel",
+      title: "Twin Bonus",
+      username: "twin_bonus",
+    });
   });
 
   it("forwarded meta-looking text also goes to handleCheck", async () => {
