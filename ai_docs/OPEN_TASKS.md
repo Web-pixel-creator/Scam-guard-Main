@@ -4,7 +4,7 @@
 
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
-- **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and v2 now adds visible local risk signals/next steps, but Telegram Bot API does not give reliable account age, hidden scam labels, report counts or spam history to this bot.
+- **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.

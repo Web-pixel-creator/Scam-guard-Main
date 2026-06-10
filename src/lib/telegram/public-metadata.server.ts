@@ -210,9 +210,101 @@ function withTelegramSignals(
   lang: Lang,
   result?: Pick<RunCheckResult, "reasons" | "knownReports">,
 ): string {
-  const signals = telegramSignalText(result?.reasons ?? [], result?.knownReports ?? 0, lang);
-  const next = telegramNextStep(metadata, result?.reasons ?? [], lang);
+  const reasons = result?.reasons ?? [];
+  const knownReports = result?.knownReports ?? 0;
+  const scenario = telegramScenarioBrief(metadata, reasons, knownReports, lang);
+  const signals = telegramSignalText(reasons, knownReports, lang);
+  const next = telegramNextStep(metadata, reasons, lang);
+
+  if (scenario) {
+    return [scenario, signals, next, base].filter(Boolean).join("\n");
+  }
+
   return [base, signals, next].filter(Boolean).join("\n");
+}
+
+function telegramScenarioBrief(
+  metadata: TelegramPublicMetadata,
+  reasons: readonly ReasonCode[],
+  knownReports: number,
+  lang: Lang,
+): string {
+  const hasAccountTakeover = reasons.includes("telegram_account_takeover_phishing");
+  const hasCasino = reasons.includes("crypto_casino_bonus_funnel");
+  const hasBetting = reasons.includes("gambling_prediction_promo");
+  const hasGiveaway =
+    reasons.includes("giveaway_engagement_bait") ||
+    reasons.includes("fake_captcha_or_voting") ||
+    reasons.includes("task_reward_engagement_bait") ||
+    reasons.includes("ton_referral_earning_scheme");
+  const hasWallet = reasons.includes("wallet_action_urgency");
+  const hasOfficialOrCredential =
+    reasons.includes("impersonates_official") ||
+    reasons.includes("telegram_bank_contact") ||
+    reasons.includes("asks_for_sms_code") ||
+    reasons.includes("asks_for_otp") ||
+    reasons.includes("requests_card_digits") ||
+    reasons.includes("asks_to_install_apk");
+  const hasInvite =
+    metadata.status === "private_invite" || reasons.includes("suspicious_invite_link");
+
+  if (lang === "uz") {
+    if (hasAccountTakeover)
+      return "Bu Telegram akkauntini egallashga o'xshaydi: kirish, QR, o'chirish/bekor qilish yoki kod-parol so'rovi ko'rinyapti.";
+    if (hasWallet)
+      return "Bu Web3/hamyon tuzog'iga o'xshaydi: foydalanuvchini hamyon ulash, tranzaksiya imzolash yoki seed phrase kiritishga shoshirishadi.";
+    if (hasCasino)
+      return "Bu kazino/frispin/depozit bonusi voronkasiga o'xshaydi. Ayniqsa to'lov, Mini App yoki yopiq kanalga olib kirsa ehtiyot bo'ling.";
+    if (hasBetting)
+      return "Bu prognoz/VIP-stavka yoki kafolatlangan yutuq taklifiga o'xshaydi. Bunday kanallar ko'pincha oldindan to'lov yoki obunaga olib boradi.";
+    if (hasGiveaway)
+      return "Bu sovg'a/NFT/Stars uchun captcha, ovoz, reaksiya, obuna yoki referral harakatlariga o'xshaydi.";
+    if (hasOfficialOrCredential)
+      return "Bu bank yoki qo'llab-quvvatlash nomidan yozishga o'xshaydi. Muhimi avatar emas, so'ralgan harakat: kod, karta, APK yoki pul.";
+    if (hasInvite)
+      return "Bu yopiq Telegram invite. Invite o'zi scam isboti emas, lekin ichidagi postlar menga ko'rinmaydi.";
+    if (knownReports > 0)
+      return "Ishonch Guard'da bu Telegram nishoni bo'yicha tasdiqlangan shikoyatlar bor; baribir faqat ko'rinadigan belgilarni aytaman.";
+    return "";
+  }
+
+  if (lang === "en") {
+    if (hasAccountTakeover)
+      return "This looks like a Telegram account-takeover attempt: login, QR, delete/cancel, code, or password language is visible.";
+    if (hasWallet)
+      return "This looks like a Web3/wallet trap: it pushes you to connect a wallet, sign a transaction, or enter a seed phrase.";
+    if (hasCasino)
+      return "This looks like a casino/free-spins/deposit-bonus funnel, especially risky if it leads to payment, a Mini App, or a closed channel.";
+    if (hasBetting)
+      return "This looks like predictions/VIP betting or a guaranteed-win offer. These channels often lead to prepayment or paid access.";
+    if (hasGiveaway)
+      return "This looks like a giveaway/NFT/Stars gate tied to captcha, voting, reactions, subscription, or referrals.";
+    if (hasOfficialOrCredential)
+      return "This looks like contact in the name of a bank or support. The key issue is the requested action: code, card, APK, or money.";
+    if (hasInvite)
+      return "This is a closed Telegram invite. The invite alone is not proof of scam, but I cannot see the content inside.";
+    if (knownReports > 0)
+      return "Ishonch Guard has confirmed reports for this Telegram target; I still describe only visible, source-backed signs.";
+    return "";
+  }
+
+  if (hasAccountTakeover)
+    return "Похоже на попытку угона Telegram: видны вход, QR, удаление/отмена, код или пароль.";
+  if (hasWallet)
+    return "Похоже на Web3/кошелёк-ловушку: подталкивают подключить кошелёк, подписать транзакцию или ввести seed phrase.";
+  if (hasCasino)
+    return "Похоже на казино/фриспины/депозитный бонус. Особенно рискованно, если ведут к оплате, Mini App или закрытому каналу.";
+  if (hasBetting)
+    return "Похоже на прогнозы/VIP-ставки или «гарантированный выигрыш». Такие каналы часто ведут к предоплате или платному доступу.";
+  if (hasGiveaway)
+    return "Похоже на розыгрыш/NFT/Stars, где приз привязан к капче, голосованию, реакциям, подписке или приглашениям.";
+  if (hasOfficialOrCredential)
+    return "Похоже на контакт от имени банка или поддержки. Важнее не аватарка, а просьба: код, карта, APK или деньги.";
+  if (hasInvite)
+    return "Это закрытый Telegram invite. Сам invite не доказывает скам, но содержимое внутри мне недоступно.";
+  if (knownReports > 0)
+    return "В Ishonch Guard есть подтверждённые жалобы по этому Telegram-объекту; ниже показываю только видимые и подтверждённые признаки.";
+  return "";
 }
 
 function telegramSignalText(
@@ -248,6 +340,11 @@ function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
       ru: "отправитель не подтверждён",
       uz: "jo'natuvchi tasdiqlanmagan",
       en: "sender is not verified",
+    },
+    telegram_account_takeover_phishing: {
+      ru: "риск угона Telegram",
+      uz: "Telegram egallanishi xavfi",
+      en: "Telegram takeover risk",
     },
     suspicious_invite_link: {
       ru: "закрытая invite-ссылка",
@@ -294,6 +391,31 @@ function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
       uz: "qo'llab-quvvatlash/rasmiy akkauntga o'xshaydi",
       en: "looks like support/official account",
     },
+    telegram_bank_contact: {
+      ru: "контакт от имени банка в Telegram",
+      uz: "Telegram'da bank nomidan kontakt",
+      en: "bank contact in Telegram",
+    },
+    asks_for_sms_code: {
+      ru: "просят SMS-код",
+      uz: "SMS-kod so'rashyapti",
+      en: "asks for SMS code",
+    },
+    asks_for_otp: {
+      ru: "просят OTP-код",
+      uz: "OTP-kod so'rashyapti",
+      en: "asks for OTP code",
+    },
+    requests_card_digits: {
+      ru: "просят данные карты",
+      uz: "karta ma'lumotini so'rashyapti",
+      en: "asks for card data",
+    },
+    asks_to_install_apk: {
+      ru: "просят установить APK",
+      uz: "APK o'rnatishni so'rashyapti",
+      en: "asks to install APK",
+    },
     known_reported: {
       ru: "есть подтверждённые жалобы",
       uz: "tasdiqlangan shikoyatlar bor",
@@ -316,6 +438,9 @@ function telegramNextStep(
     reasons.includes("task_reward_engagement_bait") ||
     reasons.includes("ton_referral_earning_scheme");
   const hasWallet = reasons.includes("wallet_action_urgency");
+  const hasAccountTakeover = reasons.includes("telegram_account_takeover_phishing");
+  const hasOfficialRisk =
+    reasons.includes("impersonates_official") || reasons.includes("telegram_bank_contact");
   const hasInvite =
     metadata.status === "private_invite" || reasons.includes("suspicious_invite_link");
   const hasCredentialRisk =
@@ -325,12 +450,16 @@ function telegramNextStep(
     reasons.includes("asks_to_install_apk");
 
   if (lang === "uz") {
+    if (hasAccountTakeover)
+      return "Xavfsiz qadam: Telegram kod/parol kiritmang, QR skaner qilmang va 'cancel/delete' havolasini ochmang; suhbat skrinini yuboring.";
     if (hasBetting)
       return "Xavfsiz qadam: prognoz/VIP/kazino bonus uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
     if (hasWallet)
       return "Xavfsiz qadam: hamyon ulamang, tranzaksiya imzolamang, seed phrase kiritmang; domen yoki post skrinini yuboring.";
     if (hasGiveaway)
       return "Xavfsiz qadam: sovrin uchun captcha/ovoz/reaksiya qilmang va hamyon/kodni kiritmang; post skrinini yuboring.";
+    if (hasOfficialRisk)
+      return "Xavfsiz qadam: rasmiy sayt/raqam orqali tekshiring; kod yoki karta yubormang, xabar/skrin yuboring.";
     if (hasCredentialRisk)
       return "Xavfsiz qadam: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
     if (hasInvite)
@@ -338,24 +467,32 @@ function telegramNextStep(
     return "Aniq tekshiruv uchun xabar/skrin yuboring: kod, pul, karta, APK yoki havola so'rashyaptimi?";
   }
   if (lang === "en") {
+    if (hasAccountTakeover)
+      return "Safe step: do not enter Telegram codes/passwords, scan QR login codes, or open 'cancel/delete' links; send a chat screenshot.";
     if (hasBetting)
       return "Safe step: do not pay for predictions/VIP/casino bonuses; send a screenshot of the channel description or post.";
     if (hasWallet)
       return "Safe step: do not connect a wallet, sign a transaction, or enter a seed phrase; send the domain or post screenshot.";
     if (hasGiveaway)
       return "Safe step: do not complete captcha/voting/reactions for a prize or enter wallet/code data; send the post screenshot.";
+    if (hasOfficialRisk)
+      return "Safe step: verify through the official site or number; do not send codes/card data, and send the message/screenshot.";
     if (hasCredentialRisk)
       return "Safe step: do not share codes, card data, or APK access; send a chat screenshot.";
     if (hasInvite)
       return "Safe step: do not enter codes/card data through the invite; send the Telegram preview, description, or post screenshot.";
     return "For a real check, send the message/screenshot: are they asking for codes, money, card data, APK, or a link?";
   }
+  if (hasAccountTakeover)
+    return "Безопасный шаг: не вводите Telegram-код/пароль, не сканируйте QR-вход и не открывайте ссылки «cancel/delete»; пришлите скрин переписки.";
   if (hasBetting)
     return "Безопасный шаг: не платите за прогноз/VIP/казино-бонус; пришлите скрин описания канала или поста.";
   if (hasWallet)
     return "Безопасный шаг: не подключайте кошелёк, не подписывайте транзакцию и не вводите seed phrase; пришлите домен или скрин поста.";
   if (hasGiveaway)
     return "Безопасный шаг: не проходите капчу/голосование/реакции ради приза и не вводите кошелёк/код; пришлите скрин поста.";
+  if (hasOfficialRisk)
+    return "Безопасный шаг: проверяйте через официальный сайт/номер; не отправляйте коды или карту, пришлите сообщение/скрин.";
   if (hasCredentialRisk)
     return "Безопасный шаг: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
   if (hasInvite)

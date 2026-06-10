@@ -102,13 +102,16 @@ spam history or report counts. Unknown or inaccessible Telegram targets should
 ask for visible evidence: message text, screenshot, URL, payment request or code
 request.
 
-## D-020 - Telegram link intelligence must show limits first
+## D-020 - Telegram link intelligence must not hide limits
 
-Telegram Link & Account Intelligence v2 keeps the most important limitation in
-the first brief sentence because Telegram result cards intentionally truncate
-long explanations. For unavailable usernames the bot says that this is not proof
-of scam and that scam-label/account-age/spam-history data is unavailable before
-showing follow-up advice.
+Telegram Link & Account Intelligence v2 originally kept limitations first
+because result cards truncate long explanations. Telegram Evidence Brief v1
+refines this: profile-only or unavailable usernames without scam context still
+show the limitation first, but when local reason codes reveal a concrete
+scenario (betting, casino, giveaway, wallet urgency, account takeover or
+credential request), the scenario and safe next step come first. The limitation
+must still appear in the brief, and the bot still must not invent account age,
+hidden scam labels, Telegram report counts or spam history.
 
 ## D-021 - Situation-only reports do not affect entity reputation
 

@@ -111,6 +111,64 @@ describe("telegram public metadata", () => {
     expect(brief).not.toMatch(/создан недавно|spam.+извест|scam label есть/i);
   });
 
+  it("puts the Telegram scenario before generic API limitations", () => {
+    const brief =
+      buildTelegramPublicMetadataBrief({ status: "private_invite", value: "+vipForecasts" }, "ru", {
+        reasons: ["suspicious_invite_link", "gambling_prediction_promo"],
+        knownReports: 0,
+      }) ?? "";
+
+    expect(brief).toContain("Похоже на прогнозы/VIP-ставки");
+    expect(brief.indexOf("Похоже на прогнозы/VIP-ставки")).toBeLessThan(
+      brief.indexOf("Telegram: это invite-ссылка"),
+    );
+    expect(brief.indexOf("Безопасный шаг")).toBeLessThan(
+      brief.indexOf("Telegram: это invite-ссылка"),
+    );
+  });
+
+  it("adds a casino/free-spins scenario for public Telegram channels", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      {
+        status: "found",
+        username: "casino_bonus",
+        chat: {
+          id: 2,
+          type: "channel",
+          username: "casino_bonus",
+          title: "Twin bonus",
+        },
+      },
+      "ru",
+      {
+        reasons: ["unknown_sender", "crypto_casino_bonus_funnel"],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("Похоже на казино/фриспины/депозитный бонус");
+    expect(brief).toContain("не платите за прогноз/VIP/казино-бонус");
+    expect(brief).toContain("Telegram: вижу публичные данные");
+    expect(brief).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
+  });
+
+  it("adds a giveaway/captcha scenario without overclaiming Telegram internals", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      { status: "private_invite", value: "+giftGate" },
+      "ru",
+      {
+        reasons: ["suspicious_invite_link", "giveaway_engagement_bait", "fake_captcha_or_voting"],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("Похоже на розыгрыш/NFT/Stars");
+    expect(brief).toContain("капчу/голосование/реакции");
+    expect(brief).toContain("не вводите кошелёк/код");
+    expect(brief).toContain("содержимое, участников и скрытые жалобы");
+    expect(brief).not.toMatch(/Telegram report|скрытая SCAM-метка есть|возраст аккаунта \d/i);
+  });
+
   it("adds visible Web3 promo signals and wallet-safe next steps", () => {
     const brief = buildTelegramPublicMetadataBrief(
       { status: "private_invite", value: "+web3Promo" },
@@ -131,6 +189,22 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("urgent wallet action");
     expect(brief).toContain("do not connect a wallet");
     expect(brief).not.toMatch(/account age|spam history known|scam label exists/i);
+  });
+
+  it("adds an account-takeover scenario for Telegram credential phishing", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      { status: "not_found", username: "telegram_cancel_support" },
+      "ru",
+      {
+        reasons: ["unknown_sender", "telegram_account_takeover_phishing"],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("Похоже на попытку угона Telegram");
+    expect(brief).toContain("не вводите Telegram-код/пароль");
+    expect(brief).toContain("не открывайте ссылки «cancel/delete»");
+    expect(brief).toContain("Это не доказательство скама");
   });
 
   it("adds cautious next steps for unavailable public usernames with official-looking names", () => {
