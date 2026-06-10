@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Public Post Link Boundary
+
+- Public Telegram post links now preserve the post id from `t.me/username/123` and `t.me/s/username/123`.
+- Metadata briefs now say clearly that Bot API can identify the public channel/account but does not read the specific post body from a bare link; users are asked to forward the post, paste the text, or send a screenshot.
+- Added regression coverage so post-link handling stays non-accusatory and does not invent account age, hidden SCAM labels, report history or spam behavior.
+
 ## 2026-06-10 - Telegram Image Intelligence precision pass
 
 - Improved Telegram screenshot explanations so casino/free-spins, NFT/Stars gifts, voting/contest gates, task rewards, wallet/DeFi actions and TON referral posts get scenario-specific copy instead of a generic image-analysis paragraph.

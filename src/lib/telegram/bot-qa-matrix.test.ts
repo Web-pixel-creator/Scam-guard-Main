@@ -235,6 +235,24 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(invite).toContain("не вводите код/карту");
   });
 
+  it("tells users what it can and cannot see for a public Telegram post link", () => {
+    const post = buildTelegramPublicMetadataBrief(
+      {
+        status: "found",
+        username: "TonZnatok",
+        postId: "123",
+        chat: { id: 2, type: "channel", username: "TonZnatok", title: "TON Знаток" },
+      },
+      "ru",
+      { reasons: ["unknown_sender"], knownReports: 0 },
+    );
+
+    expect(post).toContain("пост #123");
+    expect(post).toContain("не читаю текст поста");
+    expect(post).toContain("перешлите пост");
+    expect(post).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
+  });
+
   it("keeps forwarded Telegram post mini-brief useful after formatting", () => {
     const explanation = buildForwardSourceBrief(
       { kind: "channel", title: "LUXEBET Promo", username: "luxebet_promo" },

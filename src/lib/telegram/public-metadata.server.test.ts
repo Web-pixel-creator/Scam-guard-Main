@@ -35,6 +35,19 @@ describe("telegram public metadata", () => {
     expect(extractTelegramPublicTarget("support@example.com")).toEqual({ kind: "none" });
   });
 
+  it("extracts public Telegram post links without losing the post id", () => {
+    expect(extractTelegramPublicTarget("https://t.me/TonZnatok/123")).toEqual({
+      kind: "public_post",
+      username: "TonZnatok",
+      postId: "123",
+    });
+    expect(extractTelegramPublicTarget("https://t.me/s/TonZnatok/456")).toEqual({
+      kind: "public_post",
+      username: "TonZnatok",
+      postId: "456",
+    });
+  });
+
   it("classifies private invite and internal Telegram links without network lookup", () => {
     expect(extractTelegramPublicTarget("https://t.me/+fdOETKx56pozNTBi")).toEqual({
       kind: "private_invite",
@@ -66,6 +79,30 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("канал");
     expect(brief).toContain("Это не гарантия");
     expect(brief).not.toMatch(/есть жалоб|spam history known|создан недавно/i);
+  });
+
+  it("explains the limitation for a public Telegram post link", async () => {
+    const metadata = await lookupTelegramPublicMetadata("https://t.me/TonZnatok/123", async () => ({
+      ok: true,
+      chat: {
+        id: 3,
+        type: "channel",
+        username: "TonZnatok",
+        title: "TON Знаток",
+      },
+    }));
+
+    expect(metadata).toMatchObject({
+      status: "found",
+      username: "TonZnatok",
+      postId: "123",
+    });
+
+    const brief = buildTelegramPublicMetadataBrief(metadata, "ru") ?? "";
+    expect(brief).toContain("пост #123");
+    expect(brief).toContain("не читаю текст поста");
+    expect(brief).toContain("перешлите пост");
+    expect(brief).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
   });
 
   it("returns a helpful not-found limitation brief", async () => {

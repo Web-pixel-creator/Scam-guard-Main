@@ -10,14 +10,15 @@ import {
 
 export type TelegramPublicTarget =
   | { kind: "public_username"; username: string }
+  | { kind: "public_post"; username: string; postId: string }
   | { kind: "private_invite"; value: string }
   | { kind: "internal_or_private"; value: string }
   | { kind: "none" };
 
 export type TelegramPublicMetadata =
-  | { status: "found"; username: string; chat: TelegramChatFullInfo }
-  | { status: "not_found"; username: string }
-  | { status: "unavailable"; username: string }
+  | { status: "found"; username: string; chat: TelegramChatFullInfo; postId?: string }
+  | { status: "not_found"; username: string; postId?: string }
+  | { status: "unavailable"; username: string; postId?: string }
   | { status: "private_invite"; value: string }
   | { status: "internal_or_private"; value: string }
   | { status: "not_telegram" };
@@ -25,7 +26,8 @@ export type TelegramPublicMetadata =
 export type TelegramChatLookup = (chatId: string) => Promise<GetChatInfoResult>;
 
 const PUBLIC_USERNAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{3,31}$/;
-const TELEGRAM_LINK_RE = /(?:https?:\/\/)?(?:t\.me|telegram\.me)\/([^\s?#/]+)(?:[/?#]\S*)?/i;
+const TELEGRAM_LINK_RE =
+  /(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:s\/)?([^\s?#/]+)(?:\/(\d+))?(?:[?#]\S*)?/i;
 const MENTION_RE = /(?:^|[\s([{"'`])@([a-zA-Z][a-zA-Z0-9_]{3,31})(?=$|[^\w])/;
 
 export function extractTelegramPublicTarget(input: string): TelegramPublicTarget {
@@ -35,6 +37,7 @@ export function extractTelegramPublicTarget(input: string): TelegramPublicTarget
   const link = TELEGRAM_LINK_RE.exec(trimmed);
   if (link) {
     const path = link[1];
+    const postId = link[2];
     if (path.startsWith("+") || path.toLowerCase() === "joinchat") {
       return { kind: "private_invite", value: path };
     }
@@ -42,6 +45,7 @@ export function extractTelegramPublicTarget(input: string): TelegramPublicTarget
       return { kind: "internal_or_private", value: path };
     }
     if (PUBLIC_USERNAME_RE.test(path)) {
+      if (postId) return { kind: "public_post", username: path, postId };
       return { kind: "public_username", username: path };
     }
     return { kind: "internal_or_private", value: path };
@@ -72,14 +76,15 @@ export async function lookupTelegramPublicMetadata(
   }
 
   const username = target.username;
+  const postId = target.kind === "public_post" ? target.postId : undefined;
   const result = await lookup(`@${username}`);
-  if (result.ok) return { status: "found", username, chat: result.chat };
+  if (result.ok) return { status: "found", username, chat: result.chat, postId };
 
   const description = result.description?.toLowerCase() ?? "";
   if (description.includes("chat not found") || description.includes("username not found")) {
-    return { status: "not_found", username };
+    return { status: "not_found", username, postId };
   }
-  return { status: "unavailable", username };
+  return { status: "unavailable", username, postId };
 }
 
 export async function enrichTelegramPublicMetadata(
@@ -108,15 +113,25 @@ export function buildTelegramPublicMetadataBrief(
   switch (metadata.status) {
     case "found":
       return withTelegramSignals(
-        foundBrief(metadata.username, metadata.chat, lang),
+        foundBrief(metadata.username, metadata.chat, lang, metadata.postId),
         metadata,
         lang,
         result,
       );
     case "not_found":
-      return withTelegramSignals(notFoundBrief(metadata.username, lang), metadata, lang, result);
+      return withTelegramSignals(
+        notFoundBrief(metadata.username, lang, metadata.postId),
+        metadata,
+        lang,
+        result,
+      );
     case "unavailable":
-      return withTelegramSignals(unavailableBrief(metadata.username, lang), metadata, lang, result);
+      return withTelegramSignals(
+        unavailableBrief(metadata.username, lang, metadata.postId),
+        metadata,
+        lang,
+        result,
+      );
     case "private_invite":
       return withTelegramSignals(privateInviteBrief(lang), metadata, lang, result);
     case "internal_or_private":
@@ -126,39 +141,58 @@ export function buildTelegramPublicMetadataBrief(
   }
 }
 
-function foundBrief(username: string, chat: TelegramChatFullInfo, lang: Lang): string {
+function foundBrief(
+  username: string,
+  chat: TelegramChatFullInfo,
+  lang: Lang,
+  postId?: string,
+): string {
   const label = chatTypeLabel(chat.type, lang);
   const title = publicTitle(chat);
   const titlePart = title ? titleText(title, lang) : "";
   const accessPart = accessHints(chat, lang);
+  const postPart = postLimitationText(postId, lang);
 
   if (lang === "uz") {
-    return `Telegram: @${username} bo'yicha ochiq ma'lumot ko'rinadi — ${label}${titlePart}${accessPart}. Bu kafolat emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.`;
+    return `Telegram: @${username} bo'yicha ochiq ma'lumot ko'rinadi — ${label}${titlePart}${accessPart}. Bu kafolat emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a guarantee: I cannot see account age, hidden reports, or spam history.`;
+    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a guarantee: I cannot see account age, hidden reports, or spam history.${postPart}`;
   }
-  return `Telegram: вижу публичные данные @${username} — ${label}${titlePart}${accessPart}. Это не гарантия: возраст аккаунта, скрытые жалобы и spam-история мне недоступны.`;
+  return `Telegram: вижу публичные данные @${username} — ${label}${titlePart}${accessPart}. Это не гарантия: возраст аккаунта, скрытые жалобы и spam-история мне недоступны.${postPart}`;
 }
 
-function notFoundBrief(username: string, lang: Lang): string {
+function notFoundBrief(username: string, lang: Lang, postId?: string): string {
+  const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram: @${username} Bot API orqali ko'rinmayapti. Bu scam isboti emas: yashirin SCAM belgisi, akkaunt yoshi va spam tarixi menga ko'rinmaydi.`;
+    return `Telegram: @${username} Bot API orqali ko'rinmayapti. Bu scam isboti emas: yashirin SCAM belgisi, akkaunt yoshi va spam tarixi menga ko'rinmaydi.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: @${username} is not visible through the Bot API. This is not proof of a scam: hidden SCAM labels, account age, and spam history are not visible to me.`;
+    return `Telegram: @${username} is not visible through the Bot API. This is not proof of a scam: hidden SCAM labels, account age, and spam history are not visible to me.${postPart}`;
   }
-  return `Telegram: @${username} не виден через Bot API. Это не доказательство скама: скрытая SCAM-метка, возраст аккаунта и spam-история мне недоступны.`;
+  return `Telegram: @${username} не виден через Bot API. Это не доказательство скама: скрытая SCAM-метка, возраст аккаунта и spam-история мне недоступны.${postPart}`;
 }
 
-function unavailableBrief(username: string, lang: Lang): string {
+function unavailableBrief(username: string, lang: Lang, postId?: string): string {
+  const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram: hozir @${username} bo'yicha ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.`;
+    return `Telegram: hozir @${username} bo'yicha ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: I could not request public data for @${username} right now. An API error alone is not a risk signal.`;
+    return `Telegram: I could not request public data for @${username} right now. An API error alone is not a risk signal.${postPart}`;
   }
-  return `Telegram: сейчас не удалось запросить публичные данные @${username}. Сама ошибка API не означает риск.`;
+  return `Telegram: сейчас не удалось запросить публичные данные @${username}. Сама ошибка API не означает риск.${postPart}`;
+}
+
+function postLimitationText(postId: string | undefined, lang: Lang): string {
+  if (!postId) return "";
+  if (lang === "uz") {
+    return ` Havola ${postId}-postga o'xshaydi; Bot API orqali post matnini o'qimayman, shuning uchun postni forward qiling yoki skrin yuboring.`;
+  }
+  if (lang === "en") {
+    return ` The link looks like post #${postId}; I cannot read the post body through the Bot API, so forward the post or send a screenshot for a real check.`;
+  }
+  return ` Ссылка похожа на пост #${postId}; через Bot API я не читаю текст поста, поэтому для точной проверки перешлите пост или пришлите скрин.`;
 }
 
 function privateInviteBrief(lang: Lang): string {

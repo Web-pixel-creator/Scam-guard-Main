@@ -182,3 +182,13 @@ connect/sign/seed-phrase risk; TON referrals mention invite/reward loops.
 Ordinary Telegram news, product posts and advertising-exchange posts remain
 non-accusatory and ask for the next screen or link if a later step requests
 sensitive data.
+
+## D-028 - Telegram public post links keep the post-body boundary visible
+
+Public links such as `t.me/channel/123` and `t.me/s/channel/123` are not the
+same as forwarded posts. The bot may use Bot API `getChat` to identify the
+public channel/account, and it may preserve the post id for user-facing wording,
+but it must not claim that it read the body of that post through the link. For
+precise analysis the reply should ask the user to forward the post, paste the
+text, or send a screenshot. This keeps link checks helpful without inventing
+hidden Telegram capabilities.

@@ -9,8 +9,9 @@ Users expect `@username` and `t.me/...` checks to say more than "not enough data
 ### R1. Public Username Extraction
 
 1. WHEN input is `@username`, `t.me/username`, `telegram.me/username`, or a message containing one such public Telegram link, THE Bot SHALL extract the public username.
-2. WHEN input is `t.me/+...`, `telegram.me/+...`, `joinchat/...`, or an internal `t.me/c/...` link, THE Bot SHALL classify it as inaccessible/private for metadata purposes.
-3. THE extractor SHALL ignore non-Telegram URLs and shall not treat emails as Telegram usernames.
+2. WHEN input is a public post link such as `t.me/username/123` or `t.me/s/username/123`, THE Bot SHALL extract both the public username and the post id for reply wording.
+3. WHEN input is `t.me/+...`, `telegram.me/+...`, `joinchat/...`, or an internal `t.me/c/...` link, THE Bot SHALL classify it as inaccessible/private for metadata purposes.
+4. THE extractor SHALL ignore non-Telegram URLs and shall not treat emails as Telegram usernames.
 
 ### R2. Bot API Metadata Lookup
 
@@ -31,7 +32,8 @@ Users expect `@username` and `t.me/...` checks to say more than "not enough data
 1. WHEN metadata is available, THE result message SHALL include a short explanation of what was checked and what it does not prove.
 2. WHEN metadata is unavailable, THE result message SHALL include a helpful limitation message instead of a generic "not enough data" answer.
 3. WHEN the input is an invite/private link, THE result message SHALL state that the bot cannot inspect a closed chat/channel unless the user sends visible content.
-4. THE reply SHALL be localized in RU/UZ/EN and remain readable on mobile.
+4. WHEN the input is a public post link, THE result message SHALL state that Bot API metadata can identify the public channel/account but cannot read the body of the specific post through the link; it SHALL ask the user to forward the post or send a screenshot for precise analysis.
+5. THE reply SHALL be localized in RU/UZ/EN and remain readable on mobile.
 
 ### R5. Follow-Up Context
 
@@ -40,6 +42,6 @@ Users expect `@username` and `t.me/...` checks to say more than "not enough data
 
 ### R6. Tests
 
-1. Unit tests SHALL cover public username extraction, private invite classification, not-found fallback text, found metadata summary, and safe boundaries.
+1. Unit tests SHALL cover public username extraction, public post link extraction, private invite classification, not-found fallback text, found metadata summary, and safe boundaries.
 2. Handler tests SHALL verify that Telegram checks are enriched without changing score, level, or reason codes.
 3. Formatter tests SHALL verify that suspicious results can show a short explanation block.
