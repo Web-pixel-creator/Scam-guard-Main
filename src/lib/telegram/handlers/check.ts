@@ -43,6 +43,7 @@ import {
 import {
   buildLastCheckFollowUpText,
   buildOrphanCheckFollowUpText,
+  buildImageUnreadableSnapshot,
   buildLastCheckSnapshot,
   classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
@@ -69,25 +70,43 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 const TYPING_DELAY_MS = 3000;
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
+const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
 const mediaGroupOcrFallbacks = new Map<string, number>();
+const recentImageOcrFallbacks = new Map<number, number>();
 
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
 }
 
-function shouldSuppressMediaGroupOcrFallback(userId: number, mediaGroupId?: string): boolean {
-  if (!mediaGroupId) return false;
-
-  const now = Date.now();
+function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [key, timestamp] of mediaGroupOcrFallbacks) {
     if (now - timestamp > MEDIA_GROUP_FALLBACK_TTL_MS) mediaGroupOcrFallbacks.delete(key);
   }
+  for (const [userId, timestamp] of recentImageOcrFallbacks) {
+    if (now - timestamp > IMAGE_OCR_REPEAT_TTL_MS) recentImageOcrFallbacks.delete(userId);
+  }
+}
 
-  const key = `${userId}:${mediaGroupId}`;
-  const previous = mediaGroupOcrFallbacks.get(key);
-  mediaGroupOcrFallbacks.set(key, now);
-  return previous !== undefined && now - previous <= MEDIA_GROUP_FALLBACK_TTL_MS;
+type OcrFallbackReply = "long" | "short" | "suppress";
+
+function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbackReply {
+  const now = Date.now();
+  pruneOcrFallbackMemory(now);
+
+  if (mediaGroupId) {
+    const key = `${userId}:${mediaGroupId}`;
+    const previous = mediaGroupOcrFallbacks.get(key);
+    mediaGroupOcrFallbacks.set(key, now);
+    recentImageOcrFallbacks.set(userId, now);
+    return previous !== undefined && now - previous <= MEDIA_GROUP_FALLBACK_TTL_MS
+      ? "suppress"
+      : "long";
+  }
+
+  const previous = recentImageOcrFallbacks.get(userId);
+  recentImageOcrFallbacks.set(userId, now);
+  return previous !== undefined && now - previous <= IMAGE_OCR_REPEAT_TTL_MS ? "short" : "long";
 }
 
 /** Узкий type-guard на `RateLimitedError` из ядра (status 429 + retryAfter). */
@@ -113,6 +132,24 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
     scenarioData: {
       ...ctx.session.scenarioData,
       lastCheck: buildLastCheckSnapshot(result),
+    },
+  });
+}
+
+async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Promise<void> {
+  const reply = nextOcrFallbackReply(ctx.userId, mediaGroupId);
+  if (reply === "suppress") return;
+
+  await replyText(
+    ctx.chatId,
+    bt(reply === "short" ? "ocr_failed_repeat" : "ocr_failed", ctx.session.lang),
+  );
+  await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: {
+      ...ctx.session.scenarioData,
+      lastCheck: buildImageUnreadableSnapshot(),
     },
   });
 }
@@ -242,8 +279,7 @@ export async function handleImage(
     // 1) Метаданные файла — позволяют отклонить превышение лимита ДО скачивания.
     const meta = await getFile(fileId);
     if (!meta) {
-      if (shouldSuppressMediaGroupOcrFallback(ctx.userId, mediaGroupId)) return;
-      await replyText(ctx.chatId, bt("ocr_failed", lang));
+      await replyImageOcrFailed(ctx, mediaGroupId);
       return;
     }
     if (meta.fileSize > MAX_IMAGE_BYTES) {
@@ -284,8 +320,7 @@ export async function handleImage(
     });
 
     if (outcome.kind === "ocr_failed") {
-      if (shouldSuppressMediaGroupOcrFallback(ctx.userId, mediaGroupId)) return;
-      await replyText(ctx.chatId, bt("ocr_failed", lang)); // R5.6
+      await replyImageOcrFailed(ctx, mediaGroupId); // R5.6
       return;
     }
     await sendCheckResult(ctx, outcome.result);

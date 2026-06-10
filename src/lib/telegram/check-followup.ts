@@ -11,7 +11,7 @@ import type {
 const RECENT_CHECK_WINDOW_MS = 20 * 60 * 1000;
 
 const CONFIDENCE_RE =
-  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|это\s+безопасно|можно\s+доверять|really|are\s+you\s+sure|is\s+it\s+safe|can\s+i\s+trust|aniqmi|rostmi|xavfsizmi|ishonsa\s+bo'ladimi)[\s?!.,]*$/i;
+  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|это\s+безопасно|можно\s+доверять|sure|really|are\s+you\s+sure|is\s+it\s+safe|can\s+i\s+trust|aniqmi|rostmi|xavfsizmi|ishonsa\s+bo'ladimi)[\s?!.,]*$/i;
 const QR_OPEN_RE =
   /(?:можно|безопасно|стоит)\s+(?:открыть|сканировать|перейти).{0,25}qr|qr.{0,25}(?:можно|безопасно|открыть|сканировать|перейти)/i;
 const NEXT_STEPS_RE =
@@ -78,6 +78,15 @@ export function buildLastCheckSnapshot(
     level: result.level,
     type: result.type,
     context: detectLastCheckContext(result),
+    at: now.toISOString(),
+  };
+}
+
+export function buildImageUnreadableSnapshot(now = new Date()): LastCheckSnapshot {
+  return {
+    level: "unknown",
+    type: "unknown",
+    context: "image_unreadable",
     at: now.toISOString(),
   };
 }
@@ -150,6 +159,9 @@ function bankContacts(lang: Lang): string {
 
 function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
+    if (snapshot.context === "image_unreadable") {
+      return "Bu rasm bo'yicha aniq ayta olmayman: matn yoki QR ishonchli o'qilmadi.\n\nMen xavfni o'ylab topmayman. Aniq tekshirish uchun SMS/chat matnini, QR ochadigan havolani yoki sizdan nima so'rashganini yuboring.";
+    }
     if (snapshot.context === "qr_menu") {
       return `Aniq kafolat bera olmayman. Ko'rinib turgan rasm bo'yicha ${levelText(snapshot.level, lang)}: bu menyu yoki ma'lumot beruvchi QRga o'xshaydi.\n\nQRni ochsangiz, sahifa manzilini tekshiring. SMS-kod, karta ma'lumoti, login yoki to'lov so'ralsa — to'xtang va keyingi ekran skrinini yuboring.`;
     }
@@ -166,6 +178,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
 
   if (lang === "en") {
+    if (snapshot.context === "image_unreadable") {
+      return "I cannot be sure from that image: the text or QR was not readable enough.\n\nI will not invent a risk from a blurry picture. For a precise check, send the SMS/chat text, the link opened by the QR, or what they ask you to do.";
+    }
     if (snapshot.context === "qr_menu") {
       return `I cannot guarantee it 100%. Based on the visible screenshot, ${levelText(snapshot.level, lang)}: it looks like a menu or informational QR.\n\nIf you open it, check the page address. If it asks for an SMS code, card data, login, or payment, stop and send me the next screen.`;
     }
@@ -181,6 +196,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return `Not a 100% guarantee: I check only visible risk signs. In the previous result, ${levelText(snapshot.level, lang)}.\n\nIf someone asks for a code, card data, APK, login, or payment, stop and send that message.`;
   }
 
+  if (snapshot.context === "image_unreadable") {
+    return "По этой картинке я не могу сказать точно: текст или QR не прочитались достаточно надёжно.\n\nЯ не буду выдумывать риск по мутному скрину. Для точной проверки пришлите текст из SMS/чата, ссылку, которая открывается по QR, или коротко: что вас просят сделать.";
+  }
   if (snapshot.context === "qr_menu") {
     return `Не могу гарантировать на 100%. По видимому скриншоту ${levelText(snapshot.level, lang)}: это похоже на меню или информационный QR.\n\nЕсли открываете QR — проверьте адрес страницы. Если попросят SMS-код, карту, логин или оплату, остановитесь и пришлите следующий экран.`;
   }
@@ -198,6 +216,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
 
 function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
+    if (snapshot.context === "image_unreadable") {
+      return "Keyingi qadam:\n1. SMS/chat matnini qo'lda yuboring.\n2. QR ochilsa, ochilgan havolani yuboring.\n3. Agar faqat video/rasm bo'lsa, QR, username, rekvizit yoki va'da ko'ringan yaqinroq skrin yuboring.";
+    }
     if (snapshot.level === "high_risk") {
       return "Keyingi xavfsiz qadam:\n1. Muloqotni to'xtating.\n2. SMS-kod, karta yoki parol bermang.\n3. Bankka faqat rasmiy raqam orqali qo'ng'iroq qiling.\n4. Keyingi xabar yoki ekranni menga yuboring.";
     }
@@ -214,6 +235,9 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
 
   if (lang === "en") {
+    if (snapshot.context === "image_unreadable") {
+      return "Next step:\n1. Paste the SMS/chat text manually.\n2. If it is a QR, send the link it opens.\n3. If it is only a video/image, send a closer screenshot showing the QR, username, payment details, or promise.";
+    }
     if (snapshot.level === "high_risk") {
       return "Next safe step:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, or passwords.\n3. Call your bank only using an official number.\n4. Send me the next message or screen.";
     }
@@ -229,6 +253,9 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return "Next step:\n1. If there is no link, code, card, or payment request, watch calmly.\n2. Send any new message or request separately.\n3. Pressure or threats are a warning sign.";
   }
 
+  if (snapshot.context === "image_unreadable") {
+    return "Следующий шаг:\n1. Пришлите текст из SMS/чата вручную.\n2. Если это QR — пришлите ссылку, которая открывается.\n3. Если это видео/картинка — пришлите более близкий скрин, где видны QR, username, реквизиты или обещание.";
+  }
   if (snapshot.level === "high_risk") {
     return "Следующий безопасный шаг:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту или пароль.\n3. Перезвоните в банк только по официальному номеру.\n4. Пришлите мне следующий экран или сообщение.";
   }
@@ -258,10 +285,19 @@ function contactsText(lang: Lang): string {
 
 function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
+    if (snapshot.context === "image_unreadable") {
+      return "Sabab: rasmda matn/QR yetarlicha aniq ko'rinmadi. Bunday holatda men xavfni taxmin qilib aytmayman.\n\nEng yaxshi dalil: xabar matni, QR havolasi yoki sizdan nima so'ralgani.";
+    }
     return `Qisqacha: men oldingi xabarda ko'rinib turgan xavf belgilarini tekshirdim. Natija: ${levelText(snapshot.level, lang)}.\n\nMen ichki ballarni ko'rsatmayman. Muhimi: kod, karta, parol, APK, pul o'tkazish yoki bosim bo'lsa — xavf oshadi. Bunday narsa yo'q bo'lsa, xulosa ehtiyotkor bo'ladi.`;
   }
   if (lang === "en") {
+    if (snapshot.context === "image_unreadable") {
+      return "Reason: the image did not show readable text/QR clearly enough. In that case I do not guess or invent a threat.\n\nBest evidence: the message text, QR link, or what they ask you to do.";
+    }
     return `Briefly: I checked the visible risk signs in the previous item. Result: ${levelText(snapshot.level, lang)}.\n\nI do not show internal scores. What matters: codes, card data, passwords, APKs, money transfers, and pressure increase risk. Without those, the verdict stays cautious.`;
+  }
+  if (snapshot.context === "image_unreadable") {
+    return "Причина: на изображении не было достаточно читаемого текста или QR. В такой ситуации я не угадываю и не придумываю угрозу.\n\nЛучшее доказательство: текст сообщения, ссылка из QR или короткое описание, что вас просят сделать.";
   }
   return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск. Если этого нет, вывод остаётся осторожным.`;
 }

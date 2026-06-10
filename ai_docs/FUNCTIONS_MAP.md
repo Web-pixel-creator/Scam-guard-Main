@@ -42,6 +42,7 @@ Signatures and intent only. See file paths for source.
 
 - `sanitizeImageIntelligence(raw)` parses/clamps model JSON and merges deterministic risk hints.
 - `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid.
+- `hasUsableImageEvidence(evidence)` rejects low-information model output such as "could not read the image" so blurry screenshots stay in the explicit fallback path.
 - `buildImageCheckInput(evidence)` converts benign/dangerous image evidence into a rules-safe input string.
 - `buildImageUserExplanation(evidence, level, lang)` creates the short Telegram explanation for image results.
 
@@ -60,8 +61,8 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText`, panic keyboard builders, live-call callback parser, plus Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. Follow-up answers are guided for stressed/elderly users and keep safe-callback boundaries.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-check and orphan helper follow-up questions before `runCheck`, handles structured image intelligence for photos, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation after scoring.
-- `src/lib/telegram/check-followup.ts`: classifies and renders safe post-check follow-ups, including orphan phrases such as "Точно?", "что дальше?" and "дай номер банка" when no last-check snapshot is available.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-check and orphan helper follow-up questions before `runCheck`, handles structured image intelligence for photos, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks and shortens repeated standalone image fallbacks, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation after scoring.
+- `src/lib/telegram/check-followup.ts`: classifies and renders safe post-check follow-ups, including orphan phrases such as "Точно?", "что дальше?", "sure?" and "дай номер банка"; unreadable-image follow-ups explain the vision limitation and ask for concrete evidence instead of running a fake insufficient-data check.
 - `src/lib/telegram/handlers/misc.ts`: handles callbacks and unsupported input; video/audio/voice fallback includes media-specific capture instructions and next-step buttons.
 - `src/lib/telegram/public-metadata.server.ts`: extracts public Telegram targets, skips lookup for private/internal links, calls `getChatInfo` via an injectable lookup for public usernames, and builds compact safe RU/UZ/EN metadata briefs with visible risk signals, hard Bot API limitations and next steps without changing scoring.
 - `src/lib/telegram/format.ts`: formats result cards; Telegram profile/invite checks use a dedicated context prompt and high-risk Telegram explanations are shown before generic reason labels.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import {
+  buildImageUnreadableSnapshot,
   buildLastCheckFollowUpText,
   buildLastCheckSnapshot,
   buildOrphanCheckFollowUpText,
@@ -155,6 +156,31 @@ describe("last check follow-up router", () => {
     expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain(
       "по Telegram-профилю или каналу",
     );
+  });
+
+  it("answers confidence questions after an unreadable image without inventing risk", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildImageUnreadableSnapshot(now);
+
+    const action = classifyLastCheckFollowUp("Sure?", scenarioWith(snapshot), now);
+
+    expect(action).toBe("confidence");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "en");
+    expect(text).toContain("cannot be sure from that image");
+    expect(text).toContain("will not invent a risk");
+  });
+
+  it("answers next-step questions after an unreadable image with concrete capture guidance", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildImageUnreadableSnapshot(now);
+
+    const action = classifyLastCheckFollowUp("what next?", scenarioWith(snapshot), now);
+
+    expect(action).toBe("next_steps");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "en");
+    expect(text).toContain("link it opens");
+    expect(text).toContain("closer screenshot");
+    expect(JSON.stringify(snapshot)).not.toContain("data:image");
   });
 
   it("answers orphan confidence follow-ups without running a fake risk check", () => {

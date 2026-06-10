@@ -42,6 +42,7 @@ export interface ReportDraft {
 }
 
 export type LastCheckContext =
+  | "image_unreadable"
   | "qr_menu"
   | "delivery"
   | "crypto"

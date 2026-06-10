@@ -206,6 +206,11 @@ export const bot_dict: BotDict = {
     uz: "Bu rasm ekanini ko‘ryapman, lekin matn yoki QR-kodni ishonchli o‘qiy olmadim. SMS/chat matnini qo‘lda yuboring, QR ostidagi havolani kiriting yoki sizdan nima so‘rashganini qisqacha yozing.\n\nAgar rasmda QR-kod bo‘lsa: manbaga ishonchingiz komil bo‘lgandagina oching. QR orqali o‘tgandan keyin SMS-kod, PIN, CVV, parol yoki karta ma’lumotlarini kiritmang.",
     en: "I can see this is an image, but I couldn’t reliably read the text or QR. Please paste the SMS/chat text, send the link under the QR, or briefly describe what you are asked to do.\n\nIf the image contains a QR code: open it only when you trust the source. Do not enter an SMS code, PIN, CVV, password, or card details after following a QR.",
   },
+  ocr_failed_repeat: {
+    ru: "Получил ещё одно изображение, но текст или QR всё ещё не читается достаточно надёжно.\n\nЛучше пришлите: 1) текст из сообщения, 2) ссылку из QR, 3) крупный скрин участка с QR, username, реквизитами или обещанием выгоды.",
+    uz: "Yana bir rasm oldim, lekin matn yoki QR hali ham yetarlicha aniq o‘qilmadi.\n\nYaxshisi yuboring: 1) xabardagi matn, 2) QR ichidagi havola, 3) QR, username, rekvizit yoki va’da ko‘ringan yaqinroq skrin.",
+    en: "I received another image, but the text or QR still is not readable enough.\n\nPlease send: 1) the message text, 2) the QR link, or 3) a closer screenshot showing the QR, username, payment details, or promised benefit.",
+  },
   multiple_images: {
     ru: "За один раз я обрабатываю одно изображение. Проверяю первое из присланных.",
     uz: "Men bir vaqtning o‘zida bitta rasmni qayta ishlayman. Yuborilganlardan birinchisini tekshiraman.",

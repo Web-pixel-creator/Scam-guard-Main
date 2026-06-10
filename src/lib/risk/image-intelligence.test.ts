@@ -4,6 +4,7 @@ import {
   buildImageCheckInput,
   buildImageUserExplanation,
   fallbackImageIntelligence,
+  hasUsableImageEvidence,
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
@@ -111,6 +112,34 @@ describe("image intelligence evidence builder", () => {
     const { reasons } = scoreImageEvidence(fallback);
     expect(reasons).toContain("asks_to_scan_qr");
     expect(reasons).toContain("asks_for_sms_code");
+  });
+
+  it("does not treat a model refusal to read the image as usable evidence", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: "I could not read or recognize the text in this blurry image.",
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: { present: true, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "The screenshot is too blurry to extract details.",
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(hasUsableImageEvidence(evidence!)).toBe(false);
+  });
+
+  it("keeps a visible QR URL usable even when the image text is weak", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: "Not readable",
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: { present: true, visibleUrl: "https://example.com/menu", purpose: "unknown" },
+      riskHints: [],
+      summary: null,
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(hasUsableImageEvidence(evidence!)).toBe(true);
   });
 
   it("builds a calm user explanation for benign QR menu images", () => {

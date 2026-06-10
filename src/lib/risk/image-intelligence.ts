@@ -65,6 +65,8 @@ const RISK_HINTS: readonly ImageRiskHint[] = [
 ];
 
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/i;
+const LOW_INFORMATION_IMAGE_TEXT_RE =
+  /(?:не\s+(?:смог|удалось|получилось).{0,40}(?:прочита|распозна|увид)|не\s+читается|размыт|blurry|could(?:n'?t| not).{0,40}(?:read|recognize|extract)|can(?:not|'?t).{0,40}(?:read|recognize|extract)|not\s+readable|unable\s+to\s+read|o['’]?qiy\s+olmad|aniq\s+ko['’]?rinmay)/i;
 
 const DELIVERY_RE =
   /(buyurtma|заказ|доставк|посылк|pickup|delivery|parcel|topshirish|punkt|olib keting|кутмоқ|kutmoqda|курьер|kuryer)/i;
@@ -222,11 +224,17 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
 }
 
 export function hasUsableImageEvidence(evidence: ImageIntelligenceResult): boolean {
+  const hasReadableText = Boolean(
+    evidence.text && !LOW_INFORMATION_IMAGE_TEXT_RE.test(evidence.text),
+  );
+  const hasKnownQrPurpose = evidence.qr.purpose !== "unknown";
+  const hasVisibleQrUrl = Boolean(evidence.qr.visibleUrl);
+
   return Boolean(
-    evidence.text ||
-    evidence.summary ||
+    hasReadableText ||
+    hasVisibleQrUrl ||
+    hasKnownQrPurpose ||
     evidence.visualCategory !== "unknown" ||
-    evidence.qr.present ||
     evidence.riskHints.length > 0,
   );
 }

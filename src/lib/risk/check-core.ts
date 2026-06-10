@@ -610,6 +610,7 @@ Schema:
 
 Rules:
 - Extract only visible text. Do not guess QR contents unless a URL is visibly printed.
+- For Telegram post screenshots and video frames, preserve visible channel names, usernames, domains, link previews, button labels, captions, promo conditions, reward amounts, and any words about casino, free spins, NFT, Stars, TON, wallet, voting, captcha, deposits, invite/referral, or urgent actions.
 - Redact OTP/SMS codes, PINs, passwords, full card numbers, passport data and full phone numbers.
 - A restaurant menu, restaurant poster, loyalty promo, table booking poster, or informational QR is NOT dangerous by itself. Use riskHints only if it visibly asks for payment, login, card data, SMS code, APK install or money transfer.
 - A normal delivery pickup/order SMS is NOT dangerous by itself. Use riskHints only if there is a link, fee/payment request, OTP/code request, APK install, card data request, or pressure.

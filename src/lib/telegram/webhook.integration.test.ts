@@ -1070,6 +1070,80 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain("не смог");
   });
 
+  it("uses a short repeat fallback for repeated unreadable standalone images", async () => {
+    h.ocrText = null;
+    h.sessionRow = {
+      telegram_user_id: 1008,
+      lang: "en",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {},
+      updated_at: new Date().toISOString(),
+    };
+
+    const first = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1008, chatId: 5008, messageId: 1 })),
+    );
+    const second = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1008, chatId: 5008, messageId: 2 })),
+    );
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(2);
+    expect(h.downloadCalls).toHaveLength(2);
+    expect(h.ocrCalls).toHaveLength(2);
+    expect(h.sendCalls).toHaveLength(2);
+    expect(h.sendCalls[0].text).toContain("reliably read the text or QR");
+    expect(h.sendCalls[1].text).toContain("received another image");
+    expect(h.sendCalls[1].text).toContain("closer screenshot");
+    expect(h.sendCalls[1].text).not.toContain("open it only when you trust");
+
+    const persisted = JSON.stringify(h.upserts);
+    expect(persisted).toContain("image_unreadable");
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("photos/file_42.jpg");
+  });
+
+  it("answers 'Sure?' from unreadable-image context instead of running an unknown risk check", async () => {
+    h.ocrText = null;
+    h.sessionRow = {
+      telegram_user_id: 1009,
+      lang: "en",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {},
+      updated_at: new Date().toISOString(),
+    };
+
+    const first = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1009, chatId: 5009 })),
+    );
+    expect(first.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+
+    loadLatestSessionUpsert(1009);
+    h.sessionRow = {
+      ...(h.sessionRow as Record<string, unknown>),
+      lang: "en",
+    };
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+    h.upserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1009, chatId: 5009, text: "Sure?" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("cannot be sure from that image");
+    expect(h.sendCalls[0].text).toContain("will not invent a risk");
+    expect(h.sendCalls[0].text).not.toContain("Insufficient data");
+    expect(h.inserts).toHaveLength(0);
+    expect(h.upserts).toHaveLength(0);
+  });
+
   it("keeps a normal delivery pickup SMS screenshot out of high risk", async () => {
     h.imageEvidence = {
       text: "kutadi\nBuyurtma 106894935 sizni topshirish punktida kutmoqda. Uni 23.05.2026gacha olib keting",
