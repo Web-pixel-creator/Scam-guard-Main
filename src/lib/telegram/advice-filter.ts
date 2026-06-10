@@ -122,7 +122,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Betting/prediction promos -> do not pay for closed-channel access or "guaranteed" wins
   {
-    reasons: new Set<ReasonCode>(["gambling_prediction_promo"]),
+    reasons: new Set<ReasonCode>(["gambling_prediction_promo", "crypto_casino_bonus_funnel"]),
     advice: {
       ru: "Не платите за «прогноз», доступ в закрытый канал или гарантированный выигрыш",
       uz: "«Prognoz», yopiq kanal yoki kafolatlangan yutuq uchun pul to'lamang",
@@ -131,11 +131,25 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Giveaway / NFT engagement bait -> avoid captcha/vote/wallet traps
   {
-    reasons: new Set<ReasonCode>(["giveaway_engagement_bait"]),
+    reasons: new Set<ReasonCode>([
+      "giveaway_engagement_bait",
+      "fake_captcha_or_voting",
+      "task_reward_engagement_bait",
+      "ton_referral_earning_scheme",
+    ]),
     advice: {
       ru: "Не проходите капчу/голосование ради приза и не вводите данные кошелька или карты",
       uz: "Sovrin uchun captcha/ovoz berishdan o'tmang, hamyon yoki karta ma'lumotini kiritmang",
       en: "Do not complete captcha/voting for a prize or enter wallet/card details",
+    },
+  },
+  // Wallet / DeFi urgency -> avoid signing/seed phrase traps
+  {
+    reasons: new Set<ReasonCode>(["wallet_action_urgency"]),
+    advice: {
+      ru: "Не подключайте кошелёк, не подписывайте транзакции и не вводите seed phrase по срочной ссылке",
+      uz: "Shoshilinch havola orqali hamyon ulamang, tranzaksiya imzolamang va seed phrase kiritmang",
+      en: "Do not connect a wallet, sign transactions, or enter a seed phrase through an urgent link",
     },
   },
   // Private invite links -> avoid joining/paying without context
@@ -149,7 +163,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic

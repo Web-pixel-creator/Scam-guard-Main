@@ -272,11 +272,100 @@ describe("evaluateText — giveaway_engagement_bait (NFT / prize engagement bait
 
   it.each(positives)("positive: $name", ({ text }) => {
     expect(evaluateText(text)).toContain("giveaway_engagement_bait");
-    expect(scoreFromCodes(evaluateText(text)).level).toBe("suspicious");
+    expect(["suspicious", "high_risk"]).toContain(scoreFromCodes(evaluateText(text)).level);
   });
 
   it.each(negatives)("negative: $name", ({ text }) => {
     expect(evaluateText(text)).not.toContain("giveaway_engagement_bait");
+  });
+});
+
+describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns", () => {
+  it("flags casino/free-spins bonus funnels without making neutral sports news suspicious", () => {
+    const twin =
+      "Стартовый бонус: 100 фриспинов на Twin. Новым игрокам бонус-пак: от 100% до 150% на первые 3 депа. Хочешь с крипты пополнить? Ссылка на Твин, вход на сайт без VPN.";
+    const tonplay =
+      "Licensed casino is now launched in Telegram. No KYC, No Limits, No registration. Always here: @TonPlay";
+    const neutral = "Sports news: match schedule and score, без ставок и прогнозов.";
+
+    expect(evaluateText(twin)).toEqual(expect.arrayContaining(["crypto_casino_bonus_funnel"]));
+    expect(evaluateText(tonplay)).toEqual(expect.arrayContaining(["crypto_casino_bonus_funnel"]));
+    expect(evaluateText(neutral)).not.toContain("crypto_casino_bonus_funnel");
+  });
+
+  it("flags NFT/Stars giveaways that require captcha, reactions or voting", () => {
+    const nft =
+      "Разыгрываем 3 RANDOM NFT из Банка подарков через 48 часов. Из условий: пройти капчу, 3 реакции, проголосовать за @TonZnatok.";
+    const stars =
+      "Напоминаю что ежедневно выдаю NFT и подарки за звёзды. На раздачи выделили 50 000 STARS, раздал более 300 NFT.";
+    const neutral = "Новости NFT-рынка: обзор коллекций и статистика продаж за неделю.";
+
+    expect(evaluateText(nft)).toEqual(
+      expect.arrayContaining(["giveaway_engagement_bait", "fake_captcha_or_voting"]),
+    );
+    expect(evaluateText(stars)).toContain("giveaway_engagement_bait");
+    expect(evaluateText(neutral)).not.toContain("fake_captcha_or_voting");
+  });
+
+  it("flags voting domains when voting is tied to contest or prize mechanics", () => {
+    const text =
+      "Зайдите проголосуйте! https://voting.blockchain-life.com Со сцены пойду забирать статуэтку, какую речь сказать?";
+    const neutral = "Supreme Court expected to release ruling on Trump's tariffs on January 14th.";
+
+    expect(evaluateText(text)).toContain("fake_captcha_or_voting");
+    expect(evaluateText(neutral)).not.toContain("fake_captcha_or_voting");
+  });
+
+  it("flags task/reward campaigns and avoids ordinary Telegram product news", () => {
+    const punk =
+      "Punk City: Battle Royale. Reward Pool: 30 000 USD. $29,000 in PUNK tokens will be raffled among campaign participants. Keep collecting points to be among the winners.";
+    const easyCoin =
+      "Беспроигрышная операция. Выполняй лёгкие действия, прокачивай свой уровень и выбирай топовые призы. EasyCoin обмениваешь на топовые призы.";
+    const neutral =
+      "The recent Telegram update lets people collapse apps and switch between them. Explore TON & Telegram Apps in our catalog.";
+
+    expect(evaluateText(punk)).toContain("task_reward_engagement_bait");
+    expect(evaluateText(easyCoin)).toContain("task_reward_engagement_bait");
+    expect(evaluateText(neutral)).not.toContain("task_reward_engagement_bait");
+  });
+
+  it("flags wallet or DeFi urgency, but not ordinary wallet feature news alone", () => {
+    const rhea =
+      "After a security incident, Rhea Lending has reopened. Users have a 24-hour grace period to settle open positions before the liquidation bot is reactivated. Manage your positions in HOT Wallet Earn tab.";
+    const tonkeeper =
+      "Charge Tonkeeper Battery with $PX. Transfer your PX to Tonkeeper; use PX to purchase battery charges instantly. Use this link to open the app and top up your Battery balance.";
+    const neutral =
+      "Tonkeeper now supports a new token from Not Pixel. Read the product announcement and documentation on tonkeeper.com.";
+    const ordinaryBattery =
+      "Power bank promo: top up your phone battery at the airport lounge. Open the app link to manage your balance.";
+
+    expect(evaluateText(rhea)).toContain("wallet_action_urgency");
+    expect(evaluateText(tonkeeper)).toContain("wallet_action_urgency");
+    expect(evaluateText(neutral)).not.toContain("wallet_action_urgency");
+    expect(evaluateText(ordinaryBattery)).not.toContain("wallet_action_urgency");
+  });
+
+  it("flags TON referral earning schemes", () => {
+    const dating =
+      "Help friends find a match for Valentine's Day. Earn 1 TON per invited friend. Get referral link on ton.dating and send it to friends.";
+    const neutral = "TON ecosystem weekly digest: new apps, games, and catalog updates.";
+
+    expect(evaluateText(dating)).toContain("ton_referral_earning_scheme");
+    expect(evaluateText(neutral)).not.toContain("ton_referral_earning_scheme");
+  });
+
+  it("escalates a private invite plus casino or fake captcha context to high_risk", () => {
+    const casinoCodes = [
+      ...evaluateText("100 фриспинов, депозитный бонус и ссылка на Twin"),
+      "suspicious_invite_link" as const,
+    ];
+    const captchaCodes = [
+      ...evaluateText("NFT giveaway: пройти капчу и проголосовать за приз"),
+      "suspicious_invite_link" as const,
+    ];
+
+    expect(scoreFromCodes(casinoCodes).level).toBe("high_risk");
+    expect(scoreFromCodes(captchaCodes).level).toBe("high_risk");
   });
 });
 

@@ -145,6 +145,39 @@ describe("filterAdvice", () => {
     });
   });
 
+  describe("research feed v2 advice", () => {
+    it("maps casino bonus funnels to betting/casino advice", () => {
+      const result = filterAdvice("suspicious", ["crypto_casino_bonus_funnel"], "en");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("prediction");
+      expect(result[0]).toContain("guaranteed win");
+      expect(result[0]).not.toContain("APK");
+    });
+
+    it("maps fake captcha, task reward and TON referral bait to giveaway advice once", () => {
+      const result = filterAdvice(
+        "high_risk",
+        ["fake_captcha_or_voting", "task_reward_engagement_bait", "ton_referral_earning_scheme"],
+        "en",
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("captcha");
+      expect(result[0]).toContain("wallet");
+      expect(result[0]).not.toContain("APK");
+    });
+
+    it("maps wallet urgency to wallet-specific advice", () => {
+      const result = filterAdvice("suspicious", ["wallet_action_urgency"], "en");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("connect a wallet");
+      expect(result[0]).toContain("seed phrase");
+      expect(result[0]).not.toContain("safe account");
+    });
+  });
+
   describe("trilingual consistency", () => {
     it("returns same number of items for ru, uz, and en", () => {
       const reasons = [

@@ -128,3 +128,12 @@ unverified reports may create admin-review candidates, but user-facing
 reputation labels require confirmed moderated reports or a future official
 source. The bot must label the source and confidence and must not present this
 as a hidden Telegram-internal verdict.
+
+## D-023 - Web3 promo funnels are contextual, not automatic guilt
+
+Telegram/Web3 casino, NFT, Stars, task-reward, wallet and referral posts are
+handled as recurring tactics from a research feed. They add deterministic reason
+codes and contextual advice, but most are suspicious rather than high-risk until
+paired with stronger signals such as private invite links, deposits, credential
+requests, wallet signing or code/card prompts. This keeps the bot useful without
+overclaiming that every promo post is definitely fraud.

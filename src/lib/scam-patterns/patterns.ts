@@ -1,4 +1,4 @@
-// Scam Patterns data — 8 known schemes for Uzbekistan.
+// Scam Patterns data — known schemes for Uzbekistan.
 // Each pattern is linked to reason codes and provides trilingual content.
 
 import type { ScamPattern } from "./types";
@@ -462,6 +462,77 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
       en: [
         "'To enter the contest scan QR: https://fake-tg.com/qr'",
         "'Confirm you're not a bot: scan the QR'",
+      ],
+    },
+  },
+  {
+    id: "telegram-web3-promo-funnel",
+    severity: "high",
+    reasonCodes: [
+      "crypto_casino_bonus_funnel",
+      "fake_captcha_or_voting",
+      "task_reward_engagement_bait",
+      "wallet_action_urgency",
+      "ton_referral_earning_scheme",
+      "giveaway_engagement_bait",
+      "gambling_prediction_promo",
+    ],
+    title: {
+      ru: "Telegram/Web3 промо-ловушка",
+      uz: "Telegram/Web3 promo tuzog'i",
+      en: "Telegram/Web3 promo trap",
+    },
+    description: {
+      ru: "Пост обещает бонус, NFT, Stars, TON, фриспины или приз за простое действие: пройти капчу, проголосовать, подписаться, пополнить баланс, подключить кошелёк или пригласить друзей.",
+      uz: "Post bonus, NFT, Stars, TON, frispin yoki sovrinni oddiy harakat evaziga va'da qiladi: captcha, ovoz, obuna, balans to'ldirish, hamyon ulash yoki do'st taklif qilish.",
+      en: "A post promises a bonus, NFT, Stars, TON, free spins, or a prize for a simple action: captcha, vote, subscribe, top up, connect a wallet, or invite friends.",
+    },
+    redFlags: {
+      ru: [
+        "Приз/бонус дают только после капчи, голосования, реакций или подписки",
+        "Просят пополнить депозит, подключить кошелёк или открыть Mini App",
+        "Есть срочность: 24 часа, 1 day left, reward pool, leaderboard",
+      ],
+      uz: [
+        "Sovrin/bonus captcha, ovoz, reaksiya yoki obunadan keyin beriladi",
+        "Depozit to'ldirish, hamyon ulash yoki Mini App ochishni so'raydi",
+        "Shoshiltiradi: 24 soat, 1 day left, reward pool, leaderboard",
+      ],
+      en: [
+        "Prize/bonus is gated by captcha, voting, reactions, or subscribing",
+        "Asks to deposit, connect a wallet, or open a Mini App",
+        "Uses urgency: 24 hours, 1 day left, reward pool, leaderboard",
+      ],
+    },
+    whatToDo: {
+      ru: [
+        "Не вводите seed phrase, Telegram-код, SMS-код или данные карты",
+        "Не пополняйте депозит ради бонуса или вывода приза",
+        "Проверьте домен и пришлите скрин поста/ссылку для точной оценки",
+      ],
+      uz: [
+        "Seed phrase, Telegram-kod, SMS-kod yoki karta ma'lumotini kiritmang",
+        "Bonus yoki sovrinni chiqarish uchun depozit to'ldirmang",
+        "Domenni tekshiring va aniq baho uchun post skrinini/havolani yuboring",
+      ],
+      en: [
+        "Do not enter a seed phrase, Telegram code, SMS code, or card details",
+        "Do not deposit money to unlock a bonus or withdraw a prize",
+        "Check the domain and send the post screenshot/link for a more precise check",
+      ],
+    },
+    examples: {
+      ru: [
+        "«100 фриспинов за первый депозит, ссылка на Mini App ниже»",
+        "«Розыгрыш NFT: пройти капчу, поставить реакции и проголосовать»",
+      ],
+      uz: [
+        "«Birinchi depozit uchun 100 frispin, Mini App havolasi pastda»",
+        "«NFT yutuq: captcha, reaksiya va ovoz berish shart»",
+      ],
+      en: [
+        "'100 free spins for the first deposit, Mini App link below'",
+        "'NFT giveaway: complete captcha, react, and vote'",
       ],
     },
   },

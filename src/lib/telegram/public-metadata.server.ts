@@ -185,8 +185,13 @@ const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
   "known_reported",
   "verified_official",
   "telegram_account_takeover_phishing",
+  "fake_captcha_or_voting",
   "giveaway_engagement_bait",
+  "crypto_casino_bonus_funnel",
   "gambling_prediction_promo",
+  "wallet_action_urgency",
+  "task_reward_engagement_bait",
+  "ton_referral_earning_scheme",
   "suspicious_invite_link",
   "impersonates_official",
   "telegram_bank_contact",
@@ -259,6 +264,31 @@ function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
       uz: "sovg'a/yutuq uchun harakat",
       en: "giveaway/prize action bait",
     },
+    crypto_casino_bonus_funnel: {
+      ru: "казино/фриспины/депозит",
+      uz: "kazino/frispin/depozit",
+      en: "casino/free-spins/deposit",
+    },
+    fake_captcha_or_voting: {
+      ru: "капча/голосование ради приза",
+      uz: "sovrin uchun captcha/ovoz",
+      en: "captcha/voting for prize",
+    },
+    task_reward_engagement_bait: {
+      ru: "награда за простые действия",
+      uz: "oddiy harakat uchun mukofot",
+      en: "reward for simple tasks",
+    },
+    wallet_action_urgency: {
+      ru: "срочное действие с кошельком",
+      uz: "hamyon bilan shoshilinch amal",
+      en: "urgent wallet action",
+    },
+    ton_referral_earning_scheme: {
+      ru: "TON/крипто за приглашения",
+      uz: "takliflar uchun TON/kripto",
+      en: "TON/crypto referral earning",
+    },
     impersonates_official: {
       ru: "похоже на поддержку/официальный аккаунт",
       uz: "qo'llab-quvvatlash/rasmiy akkauntga o'xshaydi",
@@ -278,7 +308,14 @@ function telegramNextStep(
   reasons: readonly ReasonCode[],
   lang: Lang,
 ): string {
-  const hasBetting = reasons.includes("gambling_prediction_promo");
+  const hasBetting =
+    reasons.includes("gambling_prediction_promo") || reasons.includes("crypto_casino_bonus_funnel");
+  const hasGiveaway =
+    reasons.includes("giveaway_engagement_bait") ||
+    reasons.includes("fake_captcha_or_voting") ||
+    reasons.includes("task_reward_engagement_bait") ||
+    reasons.includes("ton_referral_earning_scheme");
+  const hasWallet = reasons.includes("wallet_action_urgency");
   const hasInvite =
     metadata.status === "private_invite" || reasons.includes("suspicious_invite_link");
   const hasCredentialRisk =
@@ -289,7 +326,11 @@ function telegramNextStep(
 
   if (lang === "uz") {
     if (hasBetting)
-      return "Xavfsiz qadam: prognoz/VIP uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
+      return "Xavfsiz qadam: prognoz/VIP/kazino bonus uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
+    if (hasWallet)
+      return "Xavfsiz qadam: hamyon ulamang, tranzaksiya imzolamang, seed phrase kiritmang; domen yoki post skrinini yuboring.";
+    if (hasGiveaway)
+      return "Xavfsiz qadam: sovrin uchun captcha/ovoz/reaksiya qilmang va hamyon/kodni kiritmang; post skrinini yuboring.";
     if (hasCredentialRisk)
       return "Xavfsiz qadam: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
     if (hasInvite)
@@ -298,7 +339,11 @@ function telegramNextStep(
   }
   if (lang === "en") {
     if (hasBetting)
-      return "Safe step: do not pay for predictions/VIP access; send a screenshot of the channel description or post.";
+      return "Safe step: do not pay for predictions/VIP/casino bonuses; send a screenshot of the channel description or post.";
+    if (hasWallet)
+      return "Safe step: do not connect a wallet, sign a transaction, or enter a seed phrase; send the domain or post screenshot.";
+    if (hasGiveaway)
+      return "Safe step: do not complete captcha/voting/reactions for a prize or enter wallet/code data; send the post screenshot.";
     if (hasCredentialRisk)
       return "Safe step: do not share codes, card data, or APK access; send a chat screenshot.";
     if (hasInvite)
@@ -306,7 +351,11 @@ function telegramNextStep(
     return "For a real check, send the message/screenshot: are they asking for codes, money, card data, APK, or a link?";
   }
   if (hasBetting)
-    return "Безопасный шаг: не платите за прогноз/VIP; пришлите скрин описания канала или поста.";
+    return "Безопасный шаг: не платите за прогноз/VIP/казино-бонус; пришлите скрин описания канала или поста.";
+  if (hasWallet)
+    return "Безопасный шаг: не подключайте кошелёк, не подписывайте транзакцию и не вводите seed phrase; пришлите домен или скрин поста.";
+  if (hasGiveaway)
+    return "Безопасный шаг: не проходите капчу/голосование/реакции ради приза и не вводите кошелёк/код; пришлите скрин поста.";
   if (hasCredentialRisk)
     return "Безопасный шаг: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
   if (hasInvite)

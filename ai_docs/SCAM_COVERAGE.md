@@ -45,6 +45,11 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 24  | Telegram account deletion / "Cancel" phishing | `telegram_account_takeover_phishing`                                     | Covered |
 | 25  | Card/SIM/account dropper recruitment          | `dropper_recruitment`                                                    | Covered |
 | 26  | Closed betting / prediction invite channel    | `gambling_prediction_promo` + `suspicious_invite_link`                   | Covered |
+| 27  | Telegram casino / free-spins bonus funnel     | `crypto_casino_bonus_funnel` + invite/domain/link signals                | Covered |
+| 28  | NFT/Stars giveaway with CAPTCHA/voting gates  | `giveaway_engagement_bait`, `fake_captcha_or_voting`                     | Covered |
+| 29  | Task reward / leaderboard / easy-action bait  | `task_reward_engagement_bait`                                            | Covered |
+| 30  | Wallet/DeFi urgency and token top-up pressure | `wallet_action_urgency`                                                  | Covered |
+| 31  | TON/crypto referral earning scheme            | `ton_referral_earning_scheme`                                            | Covered |
 
 ## Research feed: pressauz
 
@@ -60,6 +65,21 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
   - `https://pressa.uz/ugolovnoe-nakazanie-za-peredachu-bankovskih-kart/`
   - `https://pressa.uz/v-uzbekistane-vvedut-otvetstvennost-za-peredachu-bankovskih-kart-i-sim-kart-moshennikam/`
 - closed betting/prediction invite channels (`gambling_prediction_promo`) when paired with private `t.me/+...` links, subscription prompts, promised wins or profit claims.
+- Telegram/Web3 promo funnels from user-provided Telegram screenshots and public research:
+  - casino/free-spins/no-KYC/no-limits bonus funnels (`crypto_casino_bonus_funnel`);
+  - NFT/Stars/gift giveaways gated by CAPTCHA, reactions or voting (`giveaway_engagement_bait`, `fake_captcha_or_voting`);
+  - task-reward/leaderboard/easy-action reward pools (`task_reward_engagement_bait`);
+  - wallet/DeFi urgency such as security incident, 24-hour grace period, liquidation/top-up/fee prompts (`wallet_action_urgency`);
+  - TON/crypto referral earning promises (`ton_referral_earning_scheme`).
+
+External context used for Scam Research Feed v2 generalization:
+
+- `https://consumer.ftc.gov/consumer-alerts/2026/06/how-spot-captcha-scam`
+- `https://consumer.ftc.gov/consumer-alerts/2024/11/task-scams-create-illusion-making-money`
+- `https://www.fbi.gov/how-we-can-help-you/victim-services/national-crimes-and-victim-resources/cryptocurrency-investment-fraud`
+- `https://www.ic3.gov/PSA/2024/PSA240604`
+- `https://www.kaspersky.com/blog/telegram-mini-app-phishing/55041/`
+- `https://www.kaspersky.com/blog/toncoin-cryptocurrency-scam/51042/`
 
 Before adding a new detection rule, summarize the tactic, map it to a reason code, add RU/UZ/EN labels/advice, and write tests.
 

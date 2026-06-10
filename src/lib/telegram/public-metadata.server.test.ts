@@ -111,6 +111,28 @@ describe("telegram public metadata", () => {
     expect(brief).not.toMatch(/создан недавно|spam.+извест|scam label есть/i);
   });
 
+  it("adds visible Web3 promo signals and wallet-safe next steps", () => {
+    const brief = buildTelegramPublicMetadataBrief(
+      { status: "private_invite", value: "+web3Promo" },
+      "en",
+      {
+        reasons: [
+          "suspicious_invite_link",
+          "fake_captcha_or_voting",
+          "wallet_action_urgency",
+          "ton_referral_earning_scheme",
+        ],
+        knownReports: 0,
+      },
+    );
+
+    expect(brief).toContain("closed chat/channel");
+    expect(brief).toContain("captcha/voting for prize");
+    expect(brief).toContain("urgent wallet action");
+    expect(brief).toContain("do not connect a wallet");
+    expect(brief).not.toMatch(/account age|spam history known|scam label exists/i);
+  });
+
   it("adds cautious next steps for unavailable public usernames with official-looking names", () => {
     const brief = buildTelegramPublicMetadataBrief(
       { status: "not_found", username: "kapitalbank_support" },

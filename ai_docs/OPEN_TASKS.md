@@ -36,6 +36,7 @@ Completed research-feed themes now covered by deterministic rules:
 - Telegram account deletion / "Cancel" phishing -> `telegram_account_takeover_phishing`.
 - Card/SIM/account transfer or dropper recruitment -> `dropper_recruitment`.
 - Closed betting/prediction invite channel -> `gambling_prediction_promo`.
+- Telegram/Web3 promo funnels -> `crypto_casino_bonus_funnel`, `fake_captcha_or_voting`, `task_reward_engagement_bait`, `wallet_action_urgency`, `ton_referral_earning_scheme`.
 
 ## Later / scaling
 

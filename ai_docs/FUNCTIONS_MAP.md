@@ -27,7 +27,7 @@ Signatures and intent only. See file paths for source.
 
 - `ReasonCode` union + weights.
 - `evaluateText`, `evaluateUrl`, `evaluatePhone`, `evaluateTelegram`.
-- Research-feed text rules include `telegram_account_takeover_phishing`, `dropper_recruitment` and `gambling_prediction_promo`.
+- Research-feed text rules include `telegram_account_takeover_phishing`, `dropper_recruitment`, `gambling_prediction_promo`, and Telegram/Web3 promo funnel codes for casino/free-spins, CAPTCHA/voting, task rewards, wallet urgency and TON referral earning.
 - `scoreFromCodes(codes) -> { score, level }`.
 - `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
 

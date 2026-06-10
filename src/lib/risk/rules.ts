@@ -42,6 +42,11 @@ export type ReasonCode =
   | "suspicious_invite_link"
   | "gambling_prediction_promo"
   | "giveaway_engagement_bait"
+  | "crypto_casino_bonus_funnel"
+  | "fake_captcha_or_voting"
+  | "task_reward_engagement_bait"
+  | "wallet_action_urgency"
+  | "ton_referral_earning_scheme"
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
@@ -86,6 +91,11 @@ const WEIGHTS: Record<ReasonCode, number> = {
   suspicious_invite_link: 25,
   gambling_prediction_promo: 20,
   giveaway_engagement_bait: 20,
+  crypto_casino_bonus_funnel: 25,
+  fake_captcha_or_voting: 30,
+  task_reward_engagement_bait: 20,
+  wallet_action_urgency: 30,
+  ton_referral_earning_scheme: 20,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
@@ -207,10 +217,56 @@ function shouldFlagGamblingPredictionPromo(text: string): boolean {
 const GIVEAWAY_CONTEXT_RE =
   /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq)/i;
 const GIVEAWAY_ACTION_RE =
-  /(капч|captcha|реакци|reaction|проголос|голос|vote|подпис|subscribe|участв|ishtirok|ovoz|obuna|kanal|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп)/i;
+  /(капч|captcha|реакци|reaction|проголос|голос|vote|подпис|subscribe|участв|раздач|выда[еёю]|stars?|зв[её]зд|ishtirok|ovoz|obuna|kanal|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп)/i;
 
 function shouldFlagGiveawayEngagementBait(text: string): boolean {
   return GIVEAWAY_CONTEXT_RE.test(text) && GIVEAWAY_ACTION_RE.test(text);
+}
+
+const CRYPTO_CASINO_CONTEXT_RE =
+  /(казино|азартн|слот|слоты|фри\s?спин|фриспин|free\s?spins?|casino|slots?|no\s?kyc|no\s?limits?|без\s?kyc|без\s+регистрации|twin|tonplay|luxe\s?bet|luxebet)/i;
+const CRYPTO_CASINO_ACTION_RE =
+  /(депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|пополн|бонус|ссылк|перейти|вход на сайт|без vpn|регистрац|запущ|bonus|deposit|top\s?up|link|signup|register|launched|always here|no registration|mini\s?app|telegram app|первые\s+\d+\s+деп)/i;
+
+function shouldFlagCryptoCasinoBonusFunnel(text: string): boolean {
+  if (GAMBLING_NEUTRAL_CONTEXT_RE.test(text)) return false;
+  return CRYPTO_CASINO_CONTEXT_RE.test(text) && CRYPTO_CASINO_ACTION_RE.test(text);
+}
+
+const FAKE_CAPTCHA_VOTING_CONTEXT_RE =
+  /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting|verify|verification|проверка|подтверд|confirm)/i;
+const FAKE_CAPTCHA_VOTING_REWARD_RE =
+  /(nft|stars?|зв[её]зд|подар|gift|розыгрыш|разыгр|приз|статуэт|награ|award|contest|airdrop|giveaway|lottery|wallet|кошел|ton|seed|login|telegram.{0,20}code|sms|otp|код|sovrin|yutuq|hamyon)/i;
+
+function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
+  return FAKE_CAPTCHA_VOTING_CONTEXT_RE.test(text) && FAKE_CAPTCHA_VOTING_REWARD_RE.test(text);
+}
+
+const TASK_REWARD_CONTEXT_RE =
+  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз|прокачивай|ochko|topshiriq|vazifa)/i;
+const TASK_REWARD_BENEFIT_RE =
+  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/i;
+
+function shouldFlagTaskRewardEngagementBait(text: string): boolean {
+  return TASK_REWARD_CONTEXT_RE.test(text) && TASK_REWARD_BENEFIT_RE.test(text);
+}
+
+const WALLET_CONTEXT_RE =
+  /(wallet|кошел[её]к|hamyon|tonkeeper(?:\s+battery)?|hot wallet|earn tab|defi|lending|liquidation|transaction fees?|gas fees?|seed phrase|private key|connect wallet|подключ.{0,20}кошел|подпис.{0,20}транзакц|rhea finance|px holders?|\$\s?px\b)/i;
+const WALLET_URGENCY_ACTION_RE =
+  /(security incident|24[\s-]?hour|grace period|act now|reopened|reactivated|settle|open positions?|top\s?up|пополн|сроч|успей|ликвидац|реактив|перевед|transfer|pay fees?|open app|link|manage|баланс|balance|connect|подключ|оплат|комисс)/i;
+
+function shouldFlagWalletActionUrgency(text: string): boolean {
+  return WALLET_CONTEXT_RE.test(text) && WALLET_URGENCY_ACTION_RE.test(text);
+}
+
+const TON_REFERRAL_CONTEXT_RE =
+  /(ton|telegram|mini\s?app|ton dating|stars?|зв[её]зд|crypto|крипт)/i;
+const TON_REFERRAL_REWARD_RE =
+  /(earn|заработ|получа[йе]|приглаш|invited friend|invite friends?|referral link|реферальн|за каждого|per invited|за приглаш|друз|do['’]st|taklif)/i;
+
+function shouldFlagTonReferralEarningScheme(text: string): boolean {
+  return TON_REFERRAL_CONTEXT_RE.test(text) && TON_REFERRAL_REWARD_RE.test(text);
 }
 
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
@@ -246,6 +302,11 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
   if (shouldFlagGamblingPredictionPromo(text)) codes.add("gambling_prediction_promo");
   if (shouldFlagGiveawayEngagementBait(text)) codes.add("giveaway_engagement_bait");
+  if (shouldFlagCryptoCasinoBonusFunnel(text)) codes.add("crypto_casino_bonus_funnel");
+  if (shouldFlagFakeCaptchaOrVoting(text)) codes.add("fake_captcha_or_voting");
+  if (shouldFlagTaskRewardEngagementBait(text)) codes.add("task_reward_engagement_bait");
+  if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
+  if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -550,6 +611,31 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Розыгрыш или подарок за действия",
     uz: "Harakat evaziga sovg'a yoki yutuq",
     en: "Giveaway or prize bait",
+  },
+  crypto_casino_bonus_funnel: {
+    ru: "Казино/фриспины с бонусом или депозитом",
+    uz: "Kazino/frispin bonus yoki depozit bilan",
+    en: "Casino/free-spins bonus funnel",
+  },
+  fake_captcha_or_voting: {
+    ru: "Капча/голосование ради приза",
+    uz: "Sovrin uchun captcha/ovoz berish",
+    en: "Captcha/voting prize gate",
+  },
+  task_reward_engagement_bait: {
+    ru: "Вознаграждение за простые действия",
+    uz: "Oddiy harakatlar uchun mukofot",
+    en: "Reward for simple tasks",
+  },
+  wallet_action_urgency: {
+    ru: "Срочное действие с кошельком или токеном",
+    uz: "Hamyon yoki token bilan shoshilinch amal",
+    en: "Urgent wallet or token action",
+  },
+  ton_referral_earning_scheme: {
+    ru: "TON/крипто за приглашения",
+    uz: "Takliflar uchun TON/kripto",
+    en: "TON/crypto referral earning",
   },
   hosted_app_platform: {
     ru: "Размещён на публичной платформе",
