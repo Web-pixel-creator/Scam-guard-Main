@@ -1,0 +1,5 @@
+{
+  "workflow": "requirements-first",
+  "feature": "telegram-qr-decoder-v1",
+  "status": "implementation-ready"
+}

@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram QR Decoder v1
+
+- Added `.kiro/specs/telegram-qr-decoder-v1/`.
+- Added a bounded pure-JS QR decoder for Telegram PNG/JPEG images; images stay in memory and oversized decoded dimensions fail closed.
+- Decoded QR values now merge into structured image evidence, so QR URLs can be scored even when AI image analysis returns `null`.
+- Added embedded-URL scoring for text/multiline check inputs, allowing decoded QR URLs inside image evidence to trigger existing URL reason codes.
+
 ## 2026-06-10 - Telegram Image Intelligence v3
 
 - Added `.kiro/specs/telegram-image-intelligence-v3/` for forwarded Telegram promo screenshots and video frames.

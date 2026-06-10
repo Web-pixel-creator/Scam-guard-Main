@@ -50,10 +50,13 @@ import {
 } from "@/lib/telegram/check-followup";
 import {
   buildImageCheckInput,
+  fallbackImageIntelligence,
   buildImageUserExplanation,
   hasUsableImageEvidence,
   isBenignImageContext,
+  mergeDecodedQrEvidence,
 } from "@/lib/risk/image-intelligence";
+import { decodeQrFromDataUrl } from "@/lib/risk/qr-decoder";
 import { enrichTelegramPublicMetadata } from "@/lib/telegram/public-metadata.server";
 import { enrichTelegramReputation } from "@/lib/telegram/reputation.server";
 
@@ -293,14 +296,22 @@ export async function handleImage(
       const dataUrl = await downloadFileAsDataUrl(meta.filePath);
       if (!dataUrl) return { kind: "ocr_failed" as const };
 
-      // 3) Structured image evidence (OCR + visual category + QR purpose).
-      const evidence = await analyzeImageCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      // 3) Decode real QR pixels before AI evidence. This stays in memory and
+      // never guesses QR contents when pixel decoding fails.
+      const decodedQr = decodeQrFromDataUrl(dataUrl);
+
+      // 4) Structured image evidence (OCR + visual category + QR purpose).
+      const aiEvidence = await analyzeImageCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      const evidence =
+        decodedQr.values.length > 0
+          ? mergeDecodedQrEvidence(aiEvidence ?? fallbackImageIntelligence(null), decodedQr)
+          : aiEvidence;
       if (!evidence || !hasUsableImageEvidence(evidence)) return { kind: "ocr_failed" as const };
 
       const checkInput = buildImageCheckInput(evidence);
       if (checkInput.trim().length === 0) return { kind: "ocr_failed" as const };
 
-      // 4) Тот же rules-first конвейер, что и для текста, но без второго AI:
+      // 5) Тот же rules-first конвейер, что и для текста, но без второго AI:
       // explanation уже строится из структурированного image evidence.
       const result = await runCheck({
         input: checkInput,

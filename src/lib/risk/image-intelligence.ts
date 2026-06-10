@@ -1,5 +1,6 @@
 import type { Lang } from "@/lib/i18n";
 import { redactText } from "./detect";
+import type { DecodedQrEvidence } from "./qr-decoder";
 import type { RiskLevel } from "./rules";
 
 export type ImageVisualCategory =
@@ -46,6 +47,7 @@ export interface ImageIntelligenceResult {
     present: boolean;
     visibleUrl: string | null;
     purpose: ImageQrPurpose;
+    decodedValues?: string[];
   };
   riskHints: ImageRiskHint[];
   summary: string | null;
@@ -267,6 +269,7 @@ export function fallbackImageIntelligence(text: string | null): ImageIntelligenc
       present: qrPresent,
       visibleUrl: source.match(URL_RE)?.[0] ?? null,
       purpose: deriveQrPurpose(source, hints),
+      decodedValues: [],
     },
     riskHints: hints,
     summary: null,
@@ -307,10 +310,19 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
       present: qrPresent,
       visibleUrl: visibleUrl ? redactText(visibleUrl).slice(0, 500) : null,
       purpose: qrPurpose,
+      decodedValues: [],
     },
     riskHints,
     summary: clampText(rawSummary ? redactText(rawSummary) : null, 320),
   };
+}
+
+function decodedQrValues(evidence: ImageIntelligenceResult): string[] {
+  return evidence.qr.decodedValues ?? [];
+}
+
+function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
+  return decodedQrValues(evidence).map((value) => `Decoded QR URL/value: ${value}`);
 }
 
 export function hasUsableImageEvidence(evidence: ImageIntelligenceResult): boolean {
@@ -319,10 +331,12 @@ export function hasUsableImageEvidence(evidence: ImageIntelligenceResult): boole
   );
   const hasKnownQrPurpose = evidence.qr.purpose !== "unknown";
   const hasVisibleQrUrl = Boolean(evidence.qr.visibleUrl);
+  const hasDecodedQr = decodedQrValues(evidence).length > 0;
 
   return Boolean(
     hasReadableText ||
     hasVisibleQrUrl ||
+    hasDecodedQr ||
     hasKnownQrPurpose ||
     evidence.visualCategory !== "unknown" ||
     evidence.riskHints.length > 0,
@@ -373,6 +387,7 @@ function dangerousHintText(hint: ImageRiskHint): string {
 
 export function buildImageCheckInput(evidence: ImageIntelligenceResult): string {
   const lines: string[] = [];
+  const decodedLines = decodedQrInputLines(evidence);
 
   if (isBenignImageContext(evidence)) {
     if (evidence.visualCategory === "delivery_sms") {
@@ -382,16 +397,62 @@ export function buildImageCheckInput(evidence: ImageIntelligenceResult): string 
     } else {
       lines.push("Контекст изображения: похоже на информационный плакат.");
     }
+    lines.push(...decodedLines);
     return lines.join("\n").slice(0, 2000);
   }
 
   if (evidence.text) lines.push(evidence.text);
   if (evidence.qr.visibleUrl)
     lines.push(`Видимый адрес из QR/изображения: ${evidence.qr.visibleUrl}`);
+  for (const line of decodedLines) {
+    if (
+      !lines.some((existing) => existing.includes(line.replace(/^Decoded QR URL\/value: /, "")))
+    ) {
+      lines.push(line);
+    }
+  }
   for (const hint of evidence.riskHints) lines.push(dangerousHintText(hint));
 
   if (lines.length === 0 && evidence.summary) lines.push(evidence.summary);
   return lines.join("\n").slice(0, 2000);
+}
+
+export function mergeDecodedQrEvidence(
+  evidence: ImageIntelligenceResult,
+  decoded: DecodedQrEvidence,
+): ImageIntelligenceResult {
+  if (decoded.values.length === 0) return evidence;
+
+  const decodedValues = [
+    ...new Set(decoded.values.map((value) => redactText(value).slice(0, 500))),
+  ];
+  const decodedText = decodedValues.map((value) => `Decoded QR URL/value: ${value}`).join("\n");
+  const combinedText = clampText([evidence.text, decodedText].filter(Boolean).join("\n"), 2000);
+  const combinedForHints = [combinedText, decoded.urls.join("\n")].filter(Boolean).join("\n");
+  const riskHints = uniqueHints([...evidence.riskHints, ...deriveHints(combinedForHints)]);
+  const qrPurpose =
+    evidence.qr.purpose !== "unknown"
+      ? evidence.qr.purpose
+      : deriveQrPurpose(combinedForHints, riskHints);
+  const derivedCategory = deriveCategory(combinedForHints, true, riskHints);
+  const visualCategory =
+    evidence.visualCategory !== "unknown" && evidence.visualCategory !== "qr_menu_or_info"
+      ? evidence.visualCategory
+      : derivedCategory;
+
+  return {
+    ...evidence,
+    text: combinedText,
+    visualCategory,
+    riskHints,
+    qr: {
+      ...evidence.qr,
+      present: true,
+      visibleUrl: evidence.qr.visibleUrl ?? decoded.urls[0] ?? null,
+      purpose: qrPurpose,
+      decodedValues,
+    },
+  };
 }
 
 export function buildImageUserExplanation(

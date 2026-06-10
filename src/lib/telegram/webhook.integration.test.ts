@@ -36,6 +36,7 @@
 //      (ocrExtractCore) → runCheck; the image is NEVER persisted (no storage /
 //      no DB row holds the raw file).
 import process from "node:process";
+import QRCode from "qrcode";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -1395,6 +1396,30 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     const persisted = JSON.stringify(h.inserts);
     expect(persisted).toContain("giveaway_engagement_bait");
     expect(persisted).toContain("fake_captcha_or_voting");
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
+  });
+
+  it("uses decoded QR pixels when structured AI image analysis returns null", async () => {
+    h.imageEvidence = null;
+    h.dataUrl = await QRCode.toDataURL("https://kapitalbank.uz.evil.top/login", {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 256,
+    });
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1020, chatId: 5020 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expect(h.sendCalls[0].text).not.toContain("не смог надёжно прочитать");
+    expect(h.ocrCalls).toHaveLength(1);
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("weird_domain");
     expect(persisted).not.toContain("data:image");
     expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
   });

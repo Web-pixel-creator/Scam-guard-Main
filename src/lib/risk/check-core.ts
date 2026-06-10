@@ -82,6 +82,9 @@ export type RateLimitedError = Error & { status: 429; retryAfter: number };
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 const POSSIBLE_VERIFIED_CONTACT_RE = /@[a-zA-Z][a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{2,}\d/g;
+const EMBEDDED_URL_RE =
+  /\bhttps?:\/\/[^\s<>()]+|\b(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
+const TELEGRAM_INVITE_URL_RE = /^(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+/i;
 
 function rateLimitedError(retryAfter: number): RateLimitedError {
   const err = new Error("rate_limited") as RateLimitedError;
@@ -109,6 +112,20 @@ function findVerifiedContactForCheck(
   }
 
   return null;
+}
+
+function cleanEmbeddedUrl(raw: string): string {
+  return raw.replace(/[.,!?;:)\]}>"'`]+$/g, "");
+}
+
+function extractEmbeddedUrls(input: string, max = 5): string[] {
+  const found = new Set<string>();
+  for (const match of input.matchAll(EMBEDDED_URL_RE)) {
+    const cleaned = cleanEmbeddedUrl(match[0]);
+    if (cleaned.length > 0) found.add(cleaned);
+    if (found.size >= max) break;
+  }
+  return [...found];
 }
 
 /**
@@ -139,6 +156,12 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
   if (detected === "url" || detected === "apk")
     evaluateUrl(normalized).forEach((c) => codes.add(c));
+  if (detected === "text" || detected === "unknown") {
+    for (const embeddedUrl of extractEmbeddedUrls(safeInput)) {
+      evaluateUrl(embeddedUrl).forEach((c) => codes.add(c));
+      if (TELEGRAM_INVITE_URL_RE.test(embeddedUrl)) codes.add("suspicious_invite_link");
+    }
+  }
   if (detected === "apk") codes.add("apk_download_link");
 
   // ── Brand Impersonation Detection ────────────────────────────────────────

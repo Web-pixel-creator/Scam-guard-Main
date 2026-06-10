@@ -5,6 +5,7 @@ import {
   buildImageUserExplanation,
   fallbackImageIntelligence,
   hasUsableImageEvidence,
+  mergeDecodedQrEvidence,
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
@@ -140,6 +141,21 @@ describe("image intelligence evidence builder", () => {
 
     expect(evidence).not.toBeNull();
     expect(hasUsableImageEvidence(evidence!)).toBe(true);
+  });
+
+  it("keeps decoded QR values in the image check input", () => {
+    const evidence = fallbackImageIntelligence("QR-код для меню");
+    const merged = mergeDecodedQrEvidence(evidence, {
+      values: ["https://kapitalbank.uz.evil.top/login"],
+      urls: ["https://kapitalbank.uz.evil.top/login"],
+    });
+
+    expect(merged.qr.present).toBe(true);
+    expect(merged.qr.visibleUrl).toBe("https://kapitalbank.uz.evil.top/login");
+    expect(hasUsableImageEvidence(merged)).toBe(true);
+
+    const input = buildImageCheckInput(merged);
+    expect(input).toContain("Decoded QR URL/value: https://kapitalbank.uz.evil.top/login");
   });
 
   it("builds a calm user explanation for benign QR menu images", () => {
