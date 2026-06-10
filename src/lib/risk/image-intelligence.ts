@@ -11,6 +11,11 @@ export type ImageVisualCategory =
   | "payment_request"
   | "apk_prompt"
   | "document"
+  | "telegram_promo_post"
+  | "casino_or_betting_promo"
+  | "crypto_giveaway_or_nft"
+  | "wallet_or_defi_action"
+  | "news_or_channel_post"
   | "unknown";
 
 export type ImageConfidence = "low" | "medium" | "high";
@@ -24,7 +29,14 @@ export type ImageRiskHint =
   | "payment_request"
   | "card_data"
   | "urgent_pressure"
-  | "brand_impersonation";
+  | "brand_impersonation"
+  | "casino_bonus_or_free_spins"
+  | "fake_captcha_or_voting"
+  | "giveaway_or_prize_actions"
+  | "task_reward_or_engagement"
+  | "wallet_or_defi_urgency"
+  | "ton_referral_or_earning"
+  | "telegram_invite_or_private_link";
 
 export interface ImageIntelligenceResult {
   text: string | null;
@@ -48,6 +60,11 @@ const CATEGORIES: readonly ImageVisualCategory[] = [
   "payment_request",
   "apk_prompt",
   "document",
+  "telegram_promo_post",
+  "casino_or_betting_promo",
+  "crypto_giveaway_or_nft",
+  "wallet_or_defi_action",
+  "news_or_channel_post",
   "unknown",
 ];
 
@@ -62,6 +79,13 @@ const RISK_HINTS: readonly ImageRiskHint[] = [
   "card_data",
   "urgent_pressure",
   "brand_impersonation",
+  "casino_bonus_or_free_spins",
+  "fake_captcha_or_voting",
+  "giveaway_or_prize_actions",
+  "task_reward_or_engagement",
+  "wallet_or_defi_urgency",
+  "ton_referral_or_earning",
+  "telegram_invite_or_private_link",
 ];
 
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/i;
@@ -86,6 +110,37 @@ const QR_PAYMENT_RE =
 const URGENCY_RE = /(срочно|немедленно|прямо сейчас|urgent|immediately|hozir|darhol|tezda)/i;
 const BRAND_RE =
   /(банк|central bank|markaziy bank|kapitalbank|uzcard|humo|payme|click|uzum|ucell|beeline|mobiuz|uzmobile|gov|my\.gov)/i;
+const TELEGRAM_POST_RE =
+  /(@[a-z0-9_]{3,}|t\.me\/|telegram\.me\/|telegram|канал|подпис|subscribe|join|button|кнопк|перейти|открыть канал|open channel|комментар|reactions?|реакци|просмотр|views?|бот|mini\s?app)/i;
+const TELEGRAM_PRIVATE_INVITE_RE = /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-z0-9_-]+/i;
+const BETTING_PROMO_RE =
+  /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|лудоман|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|stavka|prognoz|bukmeker|kazino)/i;
+const BETTING_ACTION_RE =
+  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз|джекпот|прибыл|доход|vip|subscribe|channel|free|win|profit|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
+const CASINO_BONUS_RE =
+  /(казино|азартн|слот|слоты|фри\s?спин|фриспин|free\s?spins?|casino|slots?|no\s?kyc|no\s?limits?|без\s?kyc|без\s+регистрации|twin|tonplay|luxe\s?bet|luxebet)/i;
+const CASINO_ACTION_RE =
+  /(депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|пополн|бонус|ссылк|перейти|вход на сайт|без vpn|регистрац|запущ|bonus|deposit|top\s?up|link|signup|register|launched|always here|no registration|mini\s?app|telegram app|первые\s+\d+\s+деп)/i;
+const GIVEAWAY_CONTEXT_RE =
+  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq|stars?|зв[её]зд|ton\s?знаток|tonznatok)/i;
+const GIVEAWAY_ACTION_RE =
+  /(капч|captcha|реакци|reaction|проголос|голос|vote|voting|подпис|subscribe|участв|раздач|выда[еёю]|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп|join|claim|получ)/i;
+const FAKE_CAPTCHA_VOTING_RE =
+  /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting|verify|verification|проверка|подтверд|confirm)/i;
+const TASK_REWARD_RE =
+  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз|прокачивай|ochko|topshiriq|vazifa)/i;
+const REWARD_BENEFIT_RE =
+  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/i;
+const WALLET_CONTEXT_RE =
+  /(wallet|кошел[её]к|hamyon|tonkeeper(?:\s+battery)?|hot wallet|earn tab|defi|lending|liquidation|transaction fees?|gas fees?|seed phrase|private key|connect wallet|подключ.{0,20}кошел|подпис.{0,20}транзакц|rhea finance|px holders?|\$\s?px\b)/i;
+const WALLET_ACTION_RE =
+  /(security incident|24[\s-]?hour|grace period|act now|reopened|reactivated|settle|open positions?|top\s?up|пополн|сроч|успей|ликвидац|реактив|перевед|transfer|pay fees?|open app|link|manage|баланс|balance|connect|подключ|оплат|комисс)/i;
+const TON_REFERRAL_CONTEXT_RE =
+  /(ton|telegram|mini\s?app|ton dating|stars?|зв[её]зд|crypto|крипт)/i;
+const TON_REFERRAL_REWARD_RE =
+  /(earn|заработ|получа[йе]|приглаш|invited friend|invite friends?|referral link|реферальн|за каждого|per invited|за приглаш|друз|do['’]st|taklif)/i;
+const ORDINARY_NEWS_RE =
+  /(supreme court|tariffs?|expected to release|just news|новост|breaking news|pavel durov|telegram apps center|каталог|catalog|categories|management|web3|games)/i;
 
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -130,12 +185,36 @@ function deriveHints(text: string): ImageRiskHint[] {
   if (APK_RE.test(text)) hints.push("apk_install");
   if (QR_LOGIN_RE.test(text)) hints.push("qr_login");
   if (QR_PAYMENT_RE.test(text)) hints.push("qr_payment");
-  if (PAYMENT_RE.test(text)) hints.push("payment_request");
+  if (PAYMENT_RE.test(text) && !WALLET_CONTEXT_RE.test(text)) hints.push("payment_request");
   if (/(cvv|pin|карта|karta|card).{0,40}(номер|raqam|digits|цифр)/i.test(text))
     hints.push("card_data");
   if (URGENCY_RE.test(text)) hints.push("urgent_pressure");
   if (BRAND_RE.test(text) && (SECRET_RE.test(text) || PAYMENT_RE.test(text) || APK_RE.test(text))) {
     hints.push("brand_impersonation");
+  }
+  if (CASINO_BONUS_RE.test(text) && CASINO_ACTION_RE.test(text)) {
+    hints.push("casino_bonus_or_free_spins");
+  }
+  if (BETTING_PROMO_RE.test(text) && BETTING_ACTION_RE.test(text)) {
+    hints.push("casino_bonus_or_free_spins");
+  }
+  if (GIVEAWAY_CONTEXT_RE.test(text) && GIVEAWAY_ACTION_RE.test(text)) {
+    hints.push("giveaway_or_prize_actions");
+  }
+  if (FAKE_CAPTCHA_VOTING_RE.test(text) && GIVEAWAY_CONTEXT_RE.test(text)) {
+    hints.push("fake_captcha_or_voting");
+  }
+  if (TASK_REWARD_RE.test(text) && REWARD_BENEFIT_RE.test(text)) {
+    hints.push("task_reward_or_engagement");
+  }
+  if (WALLET_CONTEXT_RE.test(text) && WALLET_ACTION_RE.test(text)) {
+    hints.push("wallet_or_defi_urgency");
+  }
+  if (TON_REFERRAL_CONTEXT_RE.test(text) && TON_REFERRAL_REWARD_RE.test(text)) {
+    hints.push("ton_referral_or_earning");
+  }
+  if (TELEGRAM_PRIVATE_INVITE_RE.test(text)) {
+    hints.push("telegram_invite_or_private_link");
   }
   return uniqueHints(hints);
 }
@@ -146,11 +225,22 @@ function deriveCategory(
   hints: ImageRiskHint[],
 ): ImageVisualCategory {
   if (hints.includes("apk_install")) return "apk_prompt";
-  if (hints.includes("payment_request") || hints.includes("card_data")) return "payment_request";
   if (hints.includes("qr_login") || hints.includes("qr_payment")) return "qr_login_or_payment";
+  if (hints.includes("casino_bonus_or_free_spins")) return "casino_or_betting_promo";
+  if (hints.includes("giveaway_or_prize_actions") || hints.includes("fake_captcha_or_voting")) {
+    return "crypto_giveaway_or_nft";
+  }
+  if (hints.includes("wallet_or_defi_urgency")) return "wallet_or_defi_action";
+  if (hints.includes("task_reward_or_engagement") || hints.includes("ton_referral_or_earning")) {
+    return "telegram_promo_post";
+  }
+  if (hints.includes("payment_request") || hints.includes("card_data")) return "payment_request";
   if (qrPresent && MENU_RE.test(text)) return "restaurant_menu_qr";
   if (qrPresent) return "qr_menu_or_info";
   if (DELIVERY_RE.test(text)) return "delivery_sms";
+  if (TELEGRAM_POST_RE.test(text)) {
+    return ORDINARY_NEWS_RE.test(text) ? "news_or_channel_post" : "telegram_promo_post";
+  }
   if (/(telegram|whatsapp|sms|чат|переписк|message|xabar)/i.test(text)) return "chat_screenshot";
   return "unknown";
 }
@@ -264,6 +354,20 @@ function dangerousHintText(hint: ImageRiskHint): string {
       return "Торопят или создают срочность.";
     case "brand_impersonation":
       return "Похоже на сообщение от имени банка, сервиса или официальной организации.";
+    case "casino_bonus_or_free_spins":
+      return "Видно казино, ставки или фриспины вместе с бонусом, депозитом, ссылкой или подпиской.";
+    case "fake_captcha_or_voting":
+      return "Розыгрыш, NFT, Stars или подарок привязан к капче, голосованию, реакциям или подтверждению.";
+    case "giveaway_or_prize_actions":
+      return "Обещают приз, NFT, Stars или подарок за действия: подписку, реакции, голосование или участие.";
+    case "task_reward_or_engagement":
+      return "Обещают деньги, токены или призы за простые действия, очки, апгрейды или leaderboard.";
+    case "wallet_or_defi_urgency":
+      return "Видно wallet/DeFi сообщение: security incident, 24-hour grace period, liquidation, top up, fee или balance.";
+    case "ton_referral_or_earning":
+      return "Обещают TON, crypto или Stars за приглашения, referral link или друзей.";
+    case "telegram_invite_or_private_link":
+      return "Есть invite-ссылка в закрытый Telegram-канал или группу.";
   }
 }
 

@@ -601,16 +601,17 @@ Return JSON only. No markdown. No advice. No verdict.
 Schema:
 {
   "text": string|null,
-  "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"payment_request"|"apk_prompt"|"document"|"unknown",
+  "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"payment_request"|"apk_prompt"|"document"|"telegram_promo_post"|"casino_or_betting_promo"|"crypto_giveaway_or_nft"|"wallet_or_defi_action"|"news_or_channel_post"|"unknown",
   "confidence": "low"|"medium"|"high",
   "qr": { "present": boolean, "visibleUrl": string|null, "purpose": "menu"|"info"|"login"|"payment"|"unknown" },
-  "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation">,
+  "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation"|"casino_bonus_or_free_spins"|"fake_captcha_or_voting"|"giveaway_or_prize_actions"|"task_reward_or_engagement"|"wallet_or_defi_urgency"|"ton_referral_or_earning"|"telegram_invite_or_private_link">,
   "summary": string|null
 }
 
 Rules:
 - Extract only visible text. Do not guess QR contents unless a URL is visibly printed.
 - For Telegram post screenshots and video frames, preserve visible channel names, usernames, domains, link previews, button labels, captions, promo conditions, reward amounts, and any words about casino, free spins, NFT, Stars, TON, wallet, voting, captcha, deposits, invite/referral, or urgent actions.
+- Use Telegram/Web3 promo categories and riskHints only when visible text combines a topic with an action or reward: casino/free spins plus deposit/bonus/link; NFT/Stars/gift plus captcha/vote/reaction/subscribe; wallet/DeFi plus urgency/top-up/fees/liquidation; TON/crypto plus invite/referral earning.
 - Redact OTP/SMS codes, PINs, passwords, full card numbers, passport data and full phone numbers.
 - A restaurant menu, restaurant poster, loyalty promo, table booking poster, or informational QR is NOT dangerous by itself. Use riskHints only if it visibly asks for payment, login, card data, SMS code, APK install or money transfer.
 - A normal delivery pickup/order SMS is NOT dangerous by itself. Use riskHints only if there is a link, fee/payment request, OTP/code request, APK install, card data request, or pressure.

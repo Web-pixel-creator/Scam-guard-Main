@@ -1,0 +1,5 @@
+{
+  "workflow": "requirements-first",
+  "feature": "telegram-image-intelligence-v3",
+  "status": "implementation-ready"
+}

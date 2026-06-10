@@ -149,4 +149,94 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).toContain("Сам QR-код не является признаком скама");
     expect(explanation).toContain("код");
   });
+
+  it("surfaces Telegram casino/free-spins screenshots as promo risk evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "orno.tut\nTwin стартовый бонус 100 фриспинов. Хочешь с крипты пополнить? От 150% до 200% и 150 фриспинов. Все акции по ссылке: Ссылка на Твин. Вход на сайт без VPN.",
+    );
+
+    expect(evidence.visualCategory).toBe("casino_or_betting_promo");
+    expect(evidence.riskHints).toContain("casino_bonus_or_free_spins");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("crypto_casino_bonus_funnel");
+    expect(reasons).toContain("gambling_prediction_promo");
+    expect(score.level).toBe("suspicious");
+  });
+
+  it("surfaces NFT or Stars giveaway screenshots with voting/captcha gates", () => {
+    const evidence = fallbackImageIntelligence(
+      'TON Знаток. Разыгрываем 3 RANDOM NFT из "Банка подарков" через 48 часов. Из условий только: пройти капчу, 3 реакции, проголосовать за @TonZnatok.',
+    );
+
+    expect(evidence.visualCategory).toBe("crypto_giveaway_or_nft");
+    expect(evidence.riskHints).toContain("fake_captcha_or_voting");
+    expect(evidence.riskHints).toContain("giveaway_or_prize_actions");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("giveaway_engagement_bait");
+    expect(reasons).toContain("fake_captcha_or_voting");
+    expect(score.level).toBe("high_risk");
+  });
+
+  it("surfaces task-reward Telegram campaign screenshots", () => {
+    const evidence = fallbackImageIntelligence(
+      "Punk City Battle Royale. Reward Pool: 30 000 USD. Campaign participants collect points on the leaderboard to be among winners.",
+    );
+
+    expect(evidence.visualCategory).toBe("telegram_promo_post");
+    expect(evidence.riskHints).toContain("task_reward_or_engagement");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("task_reward_engagement_bait");
+    expect(score.level).toBe("suspicious");
+  });
+
+  it("surfaces wallet urgency screenshots without inventing wallet reputation", () => {
+    const evidence = fallbackImageIntelligence(
+      "HOT Updates: Rhea Finance is back online after a security incident. Users have a 24-hour grace period to settle open positions before the liquidation bot is reactivated. Manage in HOT Wallet Earn tab.",
+    );
+
+    expect(evidence.visualCategory).toBe("wallet_or_defi_action");
+    expect(evidence.riskHints).toContain("wallet_or_defi_urgency");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("wallet_action_urgency");
+    expect(score.level).toBe("suspicious");
+  });
+
+  it("surfaces TON referral earning screenshots", () => {
+    const evidence = fallbackImageIntelligence(
+      "Help friends find a match for Valentine's Day. Earn 1 TON per invited friend. Find your referral link and send it to friends.",
+    );
+
+    expect(evidence.visualCategory).toBe("telegram_promo_post");
+    expect(evidence.riskHints).toContain("ton_referral_or_earning");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("ton_referral_earning_scheme");
+    expect(score.level).toBe("suspicious");
+  });
+
+  it("does not turn ordinary Telegram news/product posts into scam promo reasons", () => {
+    const news = fallbackImageIntelligence(
+      "Just News. Supreme Court expected to release ruling on tariffs on January 14th. @just",
+    );
+    const product = fallbackImageIntelligence(
+      "Trending Apps. Pavel Durov is actively using Telegram Apps Center to keep up-to-date with fresh trending apps in Games, Web3, Management and other categories.",
+    );
+
+    expect(news.visualCategory).toBe("news_or_channel_post");
+    expect(product.visualCategory).toBe("news_or_channel_post");
+
+    for (const evidence of [news, product]) {
+      const { reasons, score } = scoreImageEvidence(evidence);
+      expect(reasons).not.toContain("crypto_casino_bonus_funnel");
+      expect(reasons).not.toContain("fake_captcha_or_voting");
+      expect(reasons).not.toContain("task_reward_engagement_bait");
+      expect(reasons).not.toContain("wallet_action_urgency");
+      expect(reasons).not.toContain("ton_referral_earning_scheme");
+      expect(score.level).not.toBe("high_risk");
+    }
+  });
 });

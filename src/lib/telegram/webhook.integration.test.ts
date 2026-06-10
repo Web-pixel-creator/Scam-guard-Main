@@ -1372,6 +1372,33 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
   });
 
+  it("scores Telegram giveaway/captcha image evidence through the normal check pipeline", async () => {
+    h.imageEvidence = {
+      text: 'TON Знаток. Разыгрываем 3 RANDOM NFT из "Банка подарков" через 48 часов. Из условий только: пройти капчу, 3 реакции, проголосовать за @TonZnatok.',
+      visualCategory: "crypto_giveaway_or_nft",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["fake_captcha_or_voting", "giveaway_or_prize_actions"],
+      summary: "Видно розыгрыш NFT с условиями в виде капчи, реакций и голосования.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1019, chatId: 5019 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expect(h.sendCalls[0].text).toContain("Капча");
+    expect(h.sendCalls[0].text).not.toContain("не смог надёжно прочитать");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("giveaway_engagement_bait");
+    expect(persisted).toContain("fake_captcha_or_voting");
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
+  });
+
   it("still flags a QR login screenshot as high risk", async () => {
     h.imageEvidence = {
       text: "Отсканируйте QR-код, чтобы войти в личный кабинет и подтвердить операцию",
