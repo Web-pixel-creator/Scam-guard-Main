@@ -163,6 +163,7 @@ vi.mock("@/lib/report.functions", () => ({
 // webhook.server re-installs them (idempotent) before dispatching.
 import { handleTelegramWebhook } from "./webhook.server";
 import { CB, RISK_EMOJI } from "./format";
+import { imageTriageCallback } from "./image-fallback";
 import { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK } from "./report-flow";
 
 // ---------------------------------------------------------------------------
@@ -597,6 +598,37 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ]);
   });
 
+  it("answers unreadable-image triage callbacks with scenario-specific safe steps", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1108,
+          chatId: 5108,
+          data: imageTriageCallback("casino"),
+          id: "cb-img-casino",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-img-casino"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Казино");
+    expect(h.sendCalls[0].text).toContain("депозит");
+    expect(h.sendCalls[0].text).toContain("не платите за доступ");
+    expect(h.sendCalls[0].text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      imageTriageCallback("gift"),
+      imageTriageCallback("casino"),
+      imageTriageCallback("wallet"),
+      imageTriageCallback("bank"),
+      imageTriageCallback("qr_menu"),
+      CB.mediaTips,
+      CB.checkAnother,
+      CB.emergency,
+    ]);
+  });
+
   it("answers orphan follow-up wording with guidance instead of insufficient-data risk card", async () => {
     const update = textUpdate({ userId: 1107, chatId: 5107, text: "Точно?" });
 
@@ -619,6 +651,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["safety", CB.safety],
     ["how it works", CB.howItWorks],
     ["media tips", CB.mediaTips],
+    ["image triage", imageTriageCallback("gift")],
     ["language switch", CB.lang("uz")],
   ])("acknowledges the %s callback and sends a response", async (_label, data) => {
     const update = callbackUpdate({
@@ -1153,6 +1186,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.ocrCalls).toHaveLength(2);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain("не смог");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(imageTriageCallback("gift"));
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(imageTriageCallback("casino"));
   });
 
   it("uses a short repeat fallback for repeated unreadable standalone images", async () => {
@@ -1183,6 +1218,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[1].text).toContain("received another image");
     expect(h.sendCalls[1].text).toContain("closer screenshot");
     expect(h.sendCalls[1].text).not.toContain("open it only when you trust");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(imageTriageCallback("wallet"));
+    expect(callbackData(h.sendCalls[1].keyboard)).toContain(imageTriageCallback("qr_menu"));
 
     const persisted = JSON.stringify(h.upserts);
     expect(persisted).toContain("image_unreadable");

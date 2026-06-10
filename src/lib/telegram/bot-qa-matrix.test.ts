@@ -14,6 +14,11 @@ import {
 } from "@/lib/telegram/emergency";
 import { CB, formatCheckResult, formatHelp, formatWelcome } from "@/lib/telegram/format";
 import { buildForwardSourceBrief } from "@/lib/telegram/forward-context";
+import {
+  buildImageTriageKeyboard,
+  buildImageTriageText,
+  imageTriageCallback,
+} from "@/lib/telegram/image-fallback";
 import { buildUnsupportedMediaKeyboard } from "@/lib/telegram/handlers/misc";
 import { buildTelegramPublicMetadataBrief } from "@/lib/telegram/public-metadata.server";
 import type { LastCheckSnapshot, ReportDraft } from "@/lib/telegram/session.server";
@@ -82,6 +87,27 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("что обещают");
     expect(text).toContain("что просят сделать");
     expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.mediaTips]);
+  });
+
+  it("gives unreadable images a practical triage menu instead of a dead end", () => {
+    const keyboard = buildImageTriageKeyboard("ru");
+    const text = buildImageTriageText("gift", "ru");
+
+    expect(callbacks(keyboard)).toEqual([
+      imageTriageCallback("gift"),
+      imageTriageCallback("casino"),
+      imageTriageCallback("wallet"),
+      imageTriageCallback("bank"),
+      imageTriageCallback("qr_menu"),
+      CB.mediaTips,
+      CB.checkAnother,
+      CB.emergency,
+    ]);
+    expect(text).toContain("Подарок");
+    expect(text).toContain("капчу");
+    expect(text).toContain("wallet");
+    expect(text).toContain("следующего экрана");
+    expect(text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
   });
 
   it("answers confidence questions after a QR/menu check instead of rechecking the phrase", () => {

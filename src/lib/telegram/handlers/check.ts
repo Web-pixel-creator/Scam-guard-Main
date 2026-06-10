@@ -29,6 +29,7 @@ import {
   getFile,
   downloadFileAsDataUrl,
   escapeMarkdownV2,
+  type InlineKeyboard,
 } from "@/lib/telegram/api.server";
 import { formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
@@ -63,6 +64,7 @@ import {
   enrichForwardSourceContext,
   type TelegramForwardSourceContext,
 } from "@/lib/telegram/forward-context";
+import { buildImageTriageKeyboard } from "@/lib/telegram/image-fallback";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -125,8 +127,8 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
  * Отправить простой (не отформатированный) текст пользователю. Строки bot-i18n
  * — plain text, поэтому экранируем их под MarkdownV2 (parse_mode по умолчанию).
  */
-async function replyText(chatId: number, plain: string): Promise<void> {
-  await sendMessage({ chatId, text: escapeMarkdownV2(plain) });
+async function replyText(chatId: number, plain: string, keyboard?: InlineKeyboard): Promise<void> {
+  await sendMessage({ chatId, text: escapeMarkdownV2(plain), keyboard });
 }
 
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
@@ -150,6 +152,7 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   await replyText(
     ctx.chatId,
     bt(reply === "short" ? "ocr_failed_repeat" : "ocr_failed", ctx.session.lang),
+    buildImageTriageKeyboard(ctx.session.lang),
   );
   await saveSession(ctx.userId, {
     scenario: "none",

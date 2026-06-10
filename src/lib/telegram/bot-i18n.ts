@@ -202,14 +202,14 @@ export const bot_dict: BotDict = {
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
   ocr_failed: {
-    ru: "Я вижу, что это изображение, но не смог надёжно прочитать текст или QR. Пришлите текст из SMS/чата вручную, ссылку под QR или коротко опишите, что просят сделать.\n\nЕсли на картинке QR-код: открывайте его только когда уверены в источнике. Не вводите SMS-код, PIN, CVV, пароль или данные карты после перехода по QR.",
-    uz: "Bu rasm ekanini ko‘ryapman, lekin matn yoki QR-kodni ishonchli o‘qiy olmadim. SMS/chat matnini qo‘lda yuboring, QR ostidagi havolani kiriting yoki sizdan nima so‘rashganini qisqacha yozing.\n\nAgar rasmda QR-kod bo‘lsa: manbaga ishonchingiz komil bo‘lgandagina oching. QR orqali o‘tgandan keyin SMS-kod, PIN, CVV, parol yoki karta ma’lumotlarini kiritmang.",
-    en: "I can see this is an image, but I couldn’t reliably read the text or QR. Please paste the SMS/chat text, send the link under the QR, or briefly describe what you are asked to do.\n\nIf the image contains a QR code: open it only when you trust the source. Do not enter an SMS code, PIN, CVV, password, or card details after following a QR.",
+    ru: "Я вижу, что это изображение, но не смог надёжно прочитать текст или QR. Я не буду выдумывать риск по размытому кадру.\n\nНажмите ниже, на что это похоже, или пришлите текст из SMS/чата, ссылку под QR либо коротко опишите, что просят сделать.",
+    uz: "Bu rasm ekanini ko‘ryapman, lekin matn yoki QR-kodni ishonchli o‘qiy olmadim. Xira kadr bo‘yicha xavfni o‘ylab topmayman.\n\nQuyida nimaga o‘xshashini tanlang yoki SMS/chat matnini, QR ostidagi havolani yuboring yoxud sizdan nima so‘rashganini qisqa yozing.",
+    en: "I can see this is an image, but I could not reliably read the text or QR. I will not invent risk from a blurry frame.\n\nTap below what it looks like, or paste the SMS/chat text, send the QR link, or briefly describe what you are asked to do.",
   },
   ocr_failed_repeat: {
-    ru: "Получил ещё одно изображение, но текст или QR всё ещё не читается достаточно надёжно.\n\nЛучше пришлите: 1) текст из сообщения, 2) ссылку из QR, 3) крупный скрин участка с QR, username, реквизитами или обещанием выгоды.",
-    uz: "Yana bir rasm oldim, lekin matn yoki QR hali ham yetarlicha aniq o‘qilmadi.\n\nYaxshisi yuboring: 1) xabardagi matn, 2) QR ichidagi havola, 3) QR, username, rekvizit yoki va’da ko‘ringan yaqinroq skrin.",
-    en: "I received another image, but the text or QR still is not readable enough.\n\nPlease send: 1) the message text, 2) the QR link, or 3) a closer screenshot showing the QR, username, payment details, or promised benefit.",
+    ru: "Получил ещё одно изображение, но текст или QR всё ещё не читается достаточно надёжно.\n\nНажмите тип схемы ниже или пришлите крупный скрин участка с QR, username, реквизитами, ссылкой или обещанием выгоды.",
+    uz: "Yana bir rasm oldim, lekin matn yoki QR hali ham yetarlicha aniq o‘qilmadi.\n\nQuyida sxema turini tanlang yoki QR, username, rekvizit, havola yoki foyda va’dasi ko‘ringan yaqinroq skrin yuboring.",
+    en: "I received another image, but the text or QR still is not readable enough.\n\nTap the scheme type below, or send a closer screenshot showing the QR, username, payment details, link, or promised benefit.",
   },
   multiple_images: {
     ru: "За один раз я обрабатываю одно изображение. Проверяю первое из присланных.",
@@ -249,6 +249,56 @@ export const bot_dict: BotDict = {
     ru: "📸 Как прислать видео на проверку\n\nЯ не смотрю ролик целиком, поэтому нужен кусок доказательства:\n• поставьте видео на паузу и пришлите скрин кадра с QR, username, ссылкой, реквизитами или обещанием дохода;\n• скопируйте ссылку из описания, комментария или кнопки под видео;\n• коротко напишите: что обещают и что просят сделать — оплатить, подписаться, ввести код, карту или установить приложение.\n\nДо проверки не платите за «прогнозы», VIP-доступ, крипто-доход и не вводите коды/данные карты.",
     uz: "📸 Videoni tekshirish uchun qanday yuborish kerak\n\nMen rolikni to'liq ko'ra olmayman, shuning uchun dalil kerak:\n• videoni pauza qiling va QR, username, havola, rekvizit yoki daromad va'dasi ko'ringan kadr skrinini yuboring;\n• tavsif, izoh yoki video ostidagi tugmadan havolani ko'chiring;\n• qisqa yozing: nima va'da qilishdi va nima so'rashyapti — to'lov, obuna, kod, karta yoki ilova o'rnatish.\n\nTekshirmaguncha «prognoz», VIP kirish, kripto daromad uchun pul to'lamang va kod/karta ma'lumotlarini kiritmang.",
     en: "📸 How to send a video for checking\n\nI cannot watch the full clip, so send the useful evidence:\n• pause the video and send a screenshot frame with a QR, username, link, payment details, or income promise;\n• copy the link from the description, comment, or button under the video;\n• briefly write what they promise and what they ask you to do: pay, subscribe, enter a code/card, or install an app.\n\nBefore checking, do not pay for predictions, VIP access, crypto income, or enter codes/card data.",
+  },
+  btn_image_triage_gift: {
+    ru: "🎁 NFT/Stars/подарок",
+    uz: "🎁 NFT/Stars/sovg'a",
+    en: "🎁 NFT/Stars/gift",
+  },
+  btn_image_triage_casino: {
+    ru: "🎰 Казино/фриспины",
+    uz: "🎰 Kazino/frispin",
+    en: "🎰 Casino/free spins",
+  },
+  btn_image_triage_wallet: {
+    ru: "💼 TON/Wallet",
+    uz: "💼 TON/Hamyon",
+    en: "💼 TON/Wallet",
+  },
+  btn_image_triage_bank: {
+    ru: "🏦 Банк/код",
+    uz: "🏦 Bank/kod",
+    en: "🏦 Bank/code",
+  },
+  btn_image_triage_qr_menu: {
+    ru: "🍽 Меню/QR",
+    uz: "🍽 Menyu/QR",
+    en: "🍽 Menu/QR",
+  },
+  image_triage_gift: {
+    ru: "🎁 Подарок, NFT, Stars или розыгрыш\n\nЭто часто безопасно только на уровне рекламы. Риск появляется на следующем шаге, если просят: пройти капчу через Telegram, проголосовать, поставить реакции, подключить wallet, оплатить комиссию или ввести код.\n\nБезопасный шаг: ничего не вводите и не подключайте. Пришлите ссылку или скрин следующего экрана, где видно, что именно просят сделать.",
+    uz: "🎁 Sovg'a, NFT, Stars yoki o'yin\n\nReklama sifatida bu har doim ham xavfli emas. Xavf keyingi qadamda paydo bo'ladi: Telegram orqali captcha, ovoz berish, reaksiya, wallet ulash, komissiya to'lovi yoki kod kiritish so'ralsa.\n\nXavfsiz qadam: hech narsa kiritmang va wallet ulamang. Havola yoki keyingi ekranning skrinini yuboring.",
+    en: "🎁 Gift, NFT, Stars, or giveaway\n\nThe ad itself is not always dangerous. Risk starts on the next step if it asks for a Telegram captcha, vote, reactions, wallet connection, fee payment, or a code.\n\nSafe step: do not enter anything or connect a wallet. Send the link or a screenshot of the next screen.",
+  },
+  image_triage_casino: {
+    ru: "🎰 Казино, ставки, фриспины или VIP-прогноз\n\nГлавный риск: вас ведут к депозиту, оплате доступа, «бесплатному» прогнозу, закрытому каналу или вводу карты/кода. Фриспины и бонусы часто используются как крючок.\n\nБезопасный шаг: не пополняйте баланс и не платите за доступ. Пришлите ссылку/username канала или текст условий.",
+    uz: "🎰 Kazino, stavka, frispin yoki VIP prognoz\n\nAsosiy xavf: depozit, pulli kirish, «bepul» prognoz, yopiq kanal yoki karta/kod kiritishga olib borishadi. Frispin va bonuslar ko'pincha tuzoq bo'ladi.\n\nXavfsiz qadam: balans to'ldirmang va kirish uchun pul to'lamang. Kanal havolasi/username yoki shartlar matnini yuboring.",
+    en: "🎰 Casino, betting, free spins, or VIP prediction\n\nMain risk: it may push you to deposit, pay for access, join a closed channel, or enter card/code data. Free spins and bonuses are often the hook.\n\nSafe step: do not top up or pay for access. Send the channel link/username or the offer text.",
+  },
+  image_triage_wallet: {
+    ru: "💼 TON, wallet, DeFi или токены\n\nОпасные признаки: «успейте за 24 часа», liquidation, fee/top up, connect wallet, подпишите транзакцию, seed phrase/private key. Даже если пост выглядит как новость, риск в действии внутри приложения.\n\nБезопасный шаг: не подключайте кошелёк, не подписывайте транзакции и не вводите seed phrase. Пришлите ссылку, которую открывает кнопка.",
+    uz: "💼 TON, wallet, DeFi yoki tokenlar\n\nXavfli belgilar: «24 soat ichida ulgurish», liquidation, fee/top up, connect wallet, tranzaksiyani imzolash, seed phrase/private key. Post yangilikka o'xshasa ham, xavf ilova ichidagi harakatda.\n\nXavfsiz qadam: wallet ulamang, tranzaksiya imzolamang, seed phrase kiritmang. Tugma ochadigan havolani yuboring.",
+    en: "💼 TON, wallet, DeFi, or tokens\n\nDanger signs: “24-hour grace”, liquidation, fee/top up, connect wallet, sign transaction, seed phrase/private key. Even if the post looks like news, the risk is in the app action.\n\nSafe step: do not connect a wallet, sign transactions, or enter a seed phrase. Send the link opened by the button.",
+  },
+  image_triage_bank: {
+    ru: "🏦 Банк, код, карта или APK\n\nЕсли на картинке просят SMS-код, PIN, CVV, пароль, данные карты, установить APK или «защитное приложение» — это сильный риск. Банк не просит такие данные в Telegram.\n\nБезопасный шаг: ничего не отправляйте. Если уже ввели код/карту или установили APK — нажмите /panic и выберите вашу ситуацию.",
+    uz: "🏦 Bank, kod, karta yoki APK\n\nRasmda SMS-kod, PIN, CVV, parol, karta ma'lumoti, APK yoki «xavfsizlik ilovasi» so'ralsa — bu kuchli xavf. Bank Telegram orqali bunday ma'lumot so'ramaydi.\n\nXavfsiz qadam: hech narsa yubormang. Kod/karta kiritgan yoki APK o'rnatgan bo'lsangiz — /panic ni bosing.",
+    en: "🏦 Bank, code, card, or APK\n\nIf the image asks for an SMS code, PIN, CVV, password, card data, APK, or “security app”, treat it as high risk. Banks do not ask for this through Telegram.\n\nSafe step: send nothing. If you already entered a code/card or installed an APK, use /panic and choose your situation.",
+  },
+  image_triage_qr_menu: {
+    ru: "🍽 Меню, ресторанный QR или информационный QR\n\nСам QR не является скамом. Обычно это нормально, если он открывает меню, карту филиалов, акцию или страницу бронирования. Риск появляется, если после QR просят оплату, вход в Telegram, SMS-код, карту или APK.\n\nБезопасный шаг: проверьте адрес страницы после открытия. Если там просят оплату/код/карту — пришлите этот адрес или следующий скрин.",
+    uz: "🍽 Menyu, restoran QR yoki ma'lumot QR\n\nQRning o'zi firibgarlik emas. U menyu, filiallar xaritasi, aksiya yoki bron sahifasini ochsa, odatda xavfsiz. Xavf QRdan keyin to'lov, Telegram login, SMS-kod, karta yoki APK so'ralganda paydo bo'ladi.\n\nXavfsiz qadam: ochilgan sahifa manzilini tekshiring. To'lov/kod/karta so'ralsa, manzilni yoki keyingi skrinni yuboring.",
+    en: "🍽 Menu, restaurant QR, or informational QR\n\nA QR code alone is not a scam. It is usually fine if it opens a menu, branch map, promo, or booking page. Risk starts if it asks for payment, Telegram login, SMS code, card data, or APK.\n\nSafe step: check the page address after opening it. If it asks for payment/code/card, send that address or the next screenshot.",
   },
 
   // ── Document/APK safety response ──────────────────────────────────────────

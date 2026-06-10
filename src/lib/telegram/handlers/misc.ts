@@ -66,6 +66,11 @@ import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
+import {
+  buildImageTriageKeyboard,
+  buildImageTriageText,
+  parseImageTriageCallback,
+} from "@/lib/telegram/image-fallback";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
@@ -235,6 +240,16 @@ export async function handleCallback(
   // Media fallback helper: show what evidence to extract from a video/audio message.
   if (data === CB.mediaTips) {
     await sendI18n(ctx.chatId, "media_capture_help", lang, buildUnsupportedMediaKeyboard(lang));
+    return;
+  }
+
+  const imageTriageKind = parseImageTriageCallback(data);
+  if (imageTriageKind !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
+      keyboard: buildImageTriageKeyboard(lang),
+    });
     return;
   }
 

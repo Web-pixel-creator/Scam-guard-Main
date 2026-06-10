@@ -71,6 +71,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `telegram/public-metadata.server.ts` | Best-effort Telegram username/link enrichment: target extraction, public `getChat`, private-link limitations, visible signals and next steps. |
 | `telegram/reputation.server.ts`      | Privacy-safe Telegram reputation helpers: hashed target observation, moderated report sync, source/confidence user-facing brief.              |
 | `telegram/forward-context.ts`        | Reply-only context for public forwarded Telegram channel/group sources; sanitized title/username, no scoring or persistence impact.           |
+| `telegram/image-fallback.ts`         | Unreadable-image triage callbacks/keyboards for gift, casino, wallet, bank/code and menu/QR scenarios.                                        |
 | `telegram/session.server.ts`         | Session store (telegram_sessions table via supabaseAdmin).                                                                                    |
 | `telegram/bot-i18n.ts`               | Bot-specific trilingual strings (ru/uz/en).                                                                                                   |
 | `telegram/format.ts`                 | Telegram response formatter (MarkdownV2, keyboards, verified badge).                                                                          |

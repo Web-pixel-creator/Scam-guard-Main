@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Image Fallback Triage v1
+
+- Added `.kiro/specs/telegram-image-fallback-triage-v1/`.
+- Unreadable Telegram images now show quick scenario buttons for NFT/Stars gifts, casino/free-spins, TON/wallet, bank/code and menu/QR instead of ending at a generic OCR failure.
+- `imgtriage:*` callbacks return scenario-specific safe steps without changing scoring or persisting checks.
+- Safety boundary: the bot still does not guess unreadable image content or claim hidden Telegram SCAM labels, account age, report history or spam behavior.
+
 ## 2026-06-10 - Telegram Forward Scheme Brief v1
 
 - Added `.kiro/specs/telegram-forward-scheme-brief-v1/`.

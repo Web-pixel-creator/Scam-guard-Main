@@ -1,0 +1,5 @@
+{
+  "workflow": "requirements-first",
+  "feature": "telegram-image-fallback-triage-v1",
+  "status": "implemented"
+}

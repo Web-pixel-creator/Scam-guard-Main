@@ -160,3 +160,14 @@ language. It must not append source metadata to the scored input, persist it in
 `checks`, or use it as reputation evidence. Hidden/private user origins stay
 excluded, and the copy must keep the limitation boundary: no hidden SCAM label,
 account-age, report-history or spam-history claims.
+
+## D-026 - Unreadable images get triage, not guessed verdicts
+
+When photo/OCR/QR analysis cannot produce usable evidence, the bot should not
+invent a risk result from the image. Instead, it keeps the explicit unreadable
+fallback, stores only the safe `image_unreadable` session snapshot, and offers
+scenario triage buttons for common visual categories: NFT/Stars gifts,
+casino/free-spins, TON/wallet, bank/code and menu/QR. Triage callbacks are
+presentation-only: they provide safe next steps and ask for the next concrete
+evidence, but they do not run scoring, create `checks` rows, persist image
+bytes, or claim hidden Telegram reputation.
