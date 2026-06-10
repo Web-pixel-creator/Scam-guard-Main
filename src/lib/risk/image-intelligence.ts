@@ -144,6 +144,11 @@ const TON_REFERRAL_REWARD_RE =
 const ORDINARY_NEWS_RE =
   /(supreme court|tariffs?|expected to release|just news|новост|breaking news|pavel durov|telegram apps center|каталог|catalog|categories|management|web3|games)/i;
 
+const STARS_GIFT_MECHANIC_RE =
+  /((?:nft|stars?|зв[её]зд|подар|gift).{0,80}(?:лудк|лутк|spin|спин|777|slot|слот|разыгр|розыгр|раздач|выда[еёю]|claim|получ|забер)|(?:лудк|лутк|spin|спин|777|slot|слот).{0,80}(?:nft|stars?|зв[её]зд|подар|gift))/i;
+const VOTING_PRIZE_MECHANIC_RE =
+  /(voting\.[a-z0-9.-]+|blockchain-life\.com|проголос|голосован|vote|voting).{0,120}(статуэт|award|contest|prize|приз|подар|nft|stars?|зв[её]зд)|(?:статуэт|award|contest|prize|приз|подар|nft|stars?|зв[её]зд).{0,120}(voting\.[a-z0-9.-]+|blockchain-life\.com|проголос|голосован|vote|voting)/i;
+
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -203,7 +208,13 @@ function deriveHints(text: string): ImageRiskHint[] {
   if (GIVEAWAY_CONTEXT_RE.test(text) && GIVEAWAY_ACTION_RE.test(text)) {
     hints.push("giveaway_or_prize_actions");
   }
-  if (FAKE_CAPTCHA_VOTING_RE.test(text) && GIVEAWAY_CONTEXT_RE.test(text)) {
+  if (STARS_GIFT_MECHANIC_RE.test(text)) {
+    hints.push("giveaway_or_prize_actions");
+  }
+  if (
+    (FAKE_CAPTCHA_VOTING_RE.test(text) && GIVEAWAY_CONTEXT_RE.test(text)) ||
+    VOTING_PRIZE_MECHANIC_RE.test(text)
+  ) {
     hints.push("fake_captcha_or_voting");
   }
   if (TASK_REWARD_RE.test(text) && REWARD_BENEFIT_RE.test(text)) {
@@ -373,7 +384,7 @@ function dangerousHintText(hint: ImageRiskHint): string {
     case "fake_captcha_or_voting":
       return "Розыгрыш, NFT, Stars или подарок привязан к капче, голосованию, реакциям или подтверждению.";
     case "giveaway_or_prize_actions":
-      return "Обещают приз, NFT, Stars или подарок за действия: подписку, реакции, голосование или участие.";
+      return "Обещают приз, NFT, Stars или подарок за действие, участие, спин, бота или ссылку.";
     case "task_reward_or_engagement":
       return "Обещают деньги, токены или призы за простые действия, очки, апгрейды или leaderboard.";
     case "wallet_or_defi_urgency":
@@ -455,6 +466,77 @@ export function mergeDecodedQrEvidence(
   };
 }
 
+function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {
+  const hints = new Set(evidence.riskHints);
+  const category = evidence.visualCategory;
+
+  if (hints.has("casino_bonus_or_free_spins") || category === "casino_or_betting_promo") {
+    if (lang === "uz") {
+      return "Rasm Telegramdagi kazino, stavka yoki free-spins promoga o‘xshaydi: bonus, depozit, havola yoki obuna ko‘rinmoqda. Bunday funnel ko‘pincha balans to‘ldirish, karta/hamyon ulash yoki yopiq kanalga o‘tishga olib boradi. Pul kiritmang va havoladan ro‘yxatdan o‘tmang.";
+    }
+    if (lang === "en") {
+      return "This looks like a Telegram casino/betting promo: free spins, bonus, deposit, link or subscription is visible. This funnel often leads to topping up a balance, connecting a card/wallet, or joining a closed channel. Do not deposit or register through the promo link.";
+    }
+    return "Похоже на Telegram-промо казино/ставок: видны фриспины, бонус, депозит, ссылка или подписка. Такой путь часто ведёт к пополнению баланса, вводу карты/кошелька или закрытому каналу. Не пополняйте баланс и не регистрируйтесь по промо-ссылке.";
+  }
+
+  if (hints.has("wallet_or_defi_urgency") || category === "wallet_or_defi_action") {
+    if (lang === "uz") {
+      return "Rasmda wallet/DeFi yoki token bilan bog‘liq tezkor amal ko‘rinmoqda: top up, fee, liquidation, balance yoki app-link. Xavf shundaki, foydalanuvchini hamyon ulashga, tranzaksiya imzolashga yoki seed phrase kiritishga shoshirishadi. Faqat rasmiy ilovani o‘zingiz ochib tekshiring.";
+    }
+    if (lang === "en") {
+      return "The image shows a wallet/DeFi or token action with urgency: top-up, fee, liquidation, balance, or app link. The danger is being rushed into connecting a wallet, signing a transaction, or entering a seed phrase. Open the official app yourself and verify there.";
+    }
+    return "На изображении wallet/DeFi или токен-действие со срочностью: top up, fee, liquidation, balance или app-link. Риск в том, что вас могут подтолкнуть подключить кошелёк, подписать транзакцию или ввести seed phrase. Откройте официальный кошелёк сами и проверьте там.";
+  }
+
+  if (hints.has("ton_referral_or_earning")) {
+    if (lang === "uz") {
+      return "Ko‘rinib turibdi: TON/crypto/Stars evaziga do‘stlarni taklif qilish yoki referral link yuborish taklif qilinmoqda. Bu har doim firibgarlik degani emas, lekin ko‘pincha odamlarni bot/mini-app ichida ro‘yxatdan o‘tkazish, wallet ulash yoki pulli harakatga olib boradi. Havoladan oldin manbani tekshiring.";
+    }
+    if (lang === "en") {
+      return "I can see a TON/crypto/Stars earning offer tied to inviting friends or referral links. This is not automatically a scam, but it often pulls users into bots/mini-apps, wallet connection, or paid actions. Verify the source before following the link.";
+    }
+    return "Вижу механику “TON/crypto/Stars за приглашения или referral link”. Это не всегда скам, но часто такие посты ведут в бота/mini-app, к подключению кошелька или платному действию. Сначала проверьте источник, не вводите seed phrase, карту или Telegram-код.";
+  }
+
+  if (hints.has("task_reward_or_engagement")) {
+    if (lang === "uz") {
+      return "Bu post oddiy harakatlar, ochkolar, leaderboard yoki campaign evaziga mukofot va’da qilmoqda. Bunday mexanika foydalanuvchini ko‘proq bosishga, botlarga kirishga yoki keyin karta/hamyon ma’lumotini berishga olib borishi mumkin. Mukofot uchun shoshilmang.";
+    }
+    if (lang === "en") {
+      return "This post promises rewards for simple actions, points, leaderboards, or campaign participation. That mechanic can be used to push users into bots, links, and later card/wallet requests. Do not rush because of the reward.";
+    }
+    return "Пост обещает награду за простые действия, очки, leaderboard или участие в кампании. Такая механика часто затягивает в ботов/ссылки, а дальше может попросить карту, кошелёк или оплату. Не торопитесь из‑за обещанного приза.";
+  }
+
+  if (
+    hints.has("fake_captcha_or_voting") ||
+    hints.has("giveaway_or_prize_actions") ||
+    category === "crypto_giveaway_or_nft"
+  ) {
+    if (lang === "uz") {
+      return "Rasmda NFT, Stars, sovg‘a yoki yutuq mexanikasi ko‘rinmoqda. Xavfli joyi: captcha, ovoz berish, reaksiyalar, bot, spin yoki “claim” tugmasi orqali keyin Telegram kodi, wallet yoki karta so‘ralishi mumkin. Sovrin uchun shaxsiy ma’lumot kiritmang.";
+    }
+    if (lang === "en") {
+      return "The image shows an NFT, Stars, gift, or giveaway mechanic. The risky part is the next step: captcha, voting, reactions, bot, spin, or claim buttons can lead to Telegram-code, wallet, or card requests. Do not enter personal data for a prize.";
+    }
+    return "Вижу механику NFT/Stars/подарка или розыгрыша. Опасное место обычно не сам пост, а следующий шаг: капча, голосование, реакции, бот, спин или claim могут привести к запросу Telegram-кода, кошелька или карты. Не вводите личные данные ради приза.";
+  }
+
+  if (hints.has("telegram_invite_or_private_link")) {
+    if (lang === "uz") {
+      return "Rasm yoki matnda yopiq Telegram chat/kanalga invite-havola bor. Men ichidagi kontentni ko‘ra olmayman, shuning uchun faqat ko‘rinib turgan belgilarni baholayman. Invite’dan keyin kod, karta, wallet yoki to‘lov so‘ralsa, to‘xtang.";
+    }
+    if (lang === "en") {
+      return "The image/text contains an invite link to a private Telegram chat or channel. I cannot inspect what is inside, so I only assess visible signals. If it asks for a code, card, wallet, or payment after joining, stop.";
+    }
+    return "Вижу invite-ссылку в закрытый Telegram-чат или канал. Я не могу посмотреть, что внутри, поэтому оцениваю только видимые признаки. Если после перехода попросят код, карту, кошелёк или оплату — остановитесь.";
+  }
+
+  return null;
+}
+
 export function buildImageUserExplanation(
   evidence: ImageIntelligenceResult,
   level: RiskLevel,
@@ -471,6 +553,11 @@ export function buildImageUserExplanation(
     if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
       return "Rasm menyu, aksiya yoki ma’lumot beruvchi QRga o‘xshaydi. QRning o‘zi xavf belgisi emas; xavf kod, karta ma’lumoti, login yoki to‘lov so‘ralganda paydo bo‘ladi. QR ochgan sahifa manzilini tekshiring.";
     }
+    if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
+      return "Rasm Telegram posti yoki reklama xabariga o‘xshaydi. Kod, karta, wallet, APK, to‘lov yoki shoshilinch bosim belgisi ko‘rinmayapti. Agar tugma/havola ochilgandan keyin shaxsiy ma’lumot so‘ralsa, uni alohida yuboring.";
+    }
+    const scenario = scenarioImageExplanation(evidence, lang);
+    if (scenario) return scenario;
     if (evidence.summary) return evidence.summary;
     return "Rasmdagi matn va kontekst tekshirildi. Agar sizdan kod, karta ma’lumoti, APK yoki pul so‘rashsa, avval to‘xtang va rasmiy kanal orqali tekshiring.";
   }
@@ -482,6 +569,11 @@ export function buildImageUserExplanation(
     if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
       return "The image looks like a menu, promo, or informational QR. A QR code alone is not a scam sign; the risk appears when it asks for a code, card data, login, or payment. Check the page address after opening it.";
     }
+    if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
+      return "The image looks like a Telegram post or promo. I do not see a code, card, wallet, APK, payment, or urgency request in the visible content. If a button or link later asks for personal data, send that screen/link separately.";
+    }
+    const scenario = scenarioImageExplanation(evidence, lang);
+    if (scenario) return scenario;
     if (evidence.summary) return evidence.summary;
     return "I checked the visible text and image context. If it asks for a code, card data, APK install, or money transfer, pause and verify through an official channel.";
   }
@@ -492,6 +584,11 @@ export function buildImageUserExplanation(
   if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
     return "На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама; риск появляется, если после него просят код, данные карты, вход в аккаунт или оплату. Проверьте адрес страницы после открытия.";
   }
+  if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
+    return "Похоже на Telegram-пост или рекламное объявление. В видимой части я не вижу запроса кода, карты, кошелька, APK, оплаты или срочного давления. Если после кнопки/ссылки попросят личные данные — пришлите следующий экран или ссылку отдельно.";
+  }
+  const scenario = scenarioImageExplanation(evidence, lang);
+  if (scenario) return scenario;
   if (evidence.summary) return evidence.summary;
   return "Я проверил видимый текст и контекст изображения. Если там просят код, данные карты, APK или перевод денег — остановитесь и проверьте через официальный канал.";
 }

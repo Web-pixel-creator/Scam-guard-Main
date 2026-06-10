@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Image Intelligence precision pass
+
+- Improved Telegram screenshot explanations so casino/free-spins, NFT/Stars gifts, voting/contest gates, task rewards, wallet/DeFi actions and TON referral posts get scenario-specific copy instead of a generic image-analysis paragraph.
+- Added deterministic coverage for Stars/NFT spin/lucky-draw/777 mechanics and public contest/voting domains tied to prizes.
+- Split Telegram promo advice so casino/free-spins, betting predictions, giveaways and task/referral loops no longer share one generic recommendation.
+- Preserved the false-positive boundary for ordinary Telegram news, product announcements and advertising posts.
+
 ## 2026-06-10 - Telegram Image Fallback Triage v1
 
 - Added `.kiro/specs/telegram-image-fallback-triage-v1/`.

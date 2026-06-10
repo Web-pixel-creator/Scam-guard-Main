@@ -131,7 +131,7 @@ describe("filterAdvice", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toContain("капчу");
-      expect(result[0]).toContain("кошелька");
+      expect(result[0]).toContain("кошелёк");
       expect(result[0]).not.toContain("APK");
     });
 
@@ -150,22 +150,25 @@ describe("filterAdvice", () => {
       const result = filterAdvice("suspicious", ["crypto_casino_bonus_funnel"], "en");
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toContain("prediction");
-      expect(result[0]).toContain("guaranteed win");
+      expect(result[0]).toContain("free-spins");
+      expect(result[0]).toContain("card/wallet");
       expect(result[0]).not.toContain("APK");
     });
 
-    it("maps fake captcha, task reward and TON referral bait to giveaway advice once", () => {
+    it("maps fake captcha, task reward and TON referral bait to contextual advice", () => {
       const result = filterAdvice(
         "high_risk",
         ["fake_captcha_or_voting", "task_reward_engagement_bait", "ton_referral_earning_scheme"],
         "en",
       );
 
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0]).toContain("captcha");
-      expect(result[0]).toContain("wallet");
+      expect(result[0]).toContain("NFT/Stars");
+      expect(result[1]).toContain("task/referral");
+      expect(result[1]).toContain("TON");
       expect(result[0]).not.toContain("APK");
+      expect(result[1]).not.toContain("APK");
     });
 
     it("maps wallet urgency to wallet-specific advice", () => {

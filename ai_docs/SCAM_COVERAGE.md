@@ -67,10 +67,11 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 - closed betting/prediction invite channels (`gambling_prediction_promo`) when paired with private `t.me/+...` links, subscription prompts, promised wins or profit claims.
 - Telegram/Web3 promo funnels from user-provided Telegram screenshots and public research:
   - casino/free-spins/no-KYC/no-limits bonus funnels (`crypto_casino_bonus_funnel`);
-  - NFT/Stars/gift giveaways gated by CAPTCHA, reactions or voting (`giveaway_engagement_bait`, `fake_captcha_or_voting`);
+  - NFT/Stars/gift giveaways gated by CAPTCHA, reactions, voting, Telegram bots, spins/lucky draws/777 or claim actions (`giveaway_engagement_bait`, `fake_captcha_or_voting`);
   - task-reward/leaderboard/easy-action reward pools (`task_reward_engagement_bait`);
   - wallet/DeFi urgency such as security incident, 24-hour grace period, liquidation/top-up/fee prompts (`wallet_action_urgency`);
   - TON/crypto referral earning promises (`ton_referral_earning_scheme`).
+  - public contest/voting domains tied to prizes or awards are treated as voting-gate evidence; ordinary Telegram news/product posts remain non-accusatory and ask for the next screen/link if a button later requests sensitive data.
 
 External context used for Scam Research Feed v2 generalization:
 

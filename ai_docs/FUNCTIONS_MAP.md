@@ -41,11 +41,11 @@ Signatures and intent only. See file paths for source.
 **`src/lib/risk/image-intelligence.ts`**
 
 - `sanitizeImageIntelligence(raw)` parses/clamps model JSON and merges deterministic risk hints.
-- `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid, including Telegram promo/Web3 screenshot hints.
+- `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid, including Telegram promo/Web3 screenshot hints. The precision pass also recognizes Stars/NFT spin/lucky-draw/777 mechanics and public voting/contest domains without turning ordinary Telegram news/product posts into scam results.
 - `hasUsableImageEvidence(evidence)` rejects low-information model output such as "could not read the image" so blurry screenshots stay in the explicit fallback path.
 - `mergeDecodedQrEvidence(evidence, decoded)` injects real pixel-decoded QR values into structured image evidence before scoring.
 - `buildImageCheckInput(evidence)` converts benign/dangerous image evidence into a rules-safe input string; Telegram casino/free-spins, NFT/Stars giveaways, vote/captcha gates, task rewards, wallet urgency and TON referral screenshots feed the existing scam-research-feed-v2 reason codes.
-- `buildImageUserExplanation(evidence, level, lang)` creates the short Telegram explanation for image results.
+- `buildImageUserExplanation(evidence, level, lang)` creates the short Telegram explanation for image results, with scenario-specific copy for casino/free-spins, NFT/Stars giveaways, task rewards, wallet/DeFi urgency, TON referrals, private invites and benign Telegram posts.
 
 **`src/lib/risk/qr-decoder.ts`**
 

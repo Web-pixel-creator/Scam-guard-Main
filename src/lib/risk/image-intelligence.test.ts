@@ -178,6 +178,47 @@ describe("image intelligence evidence builder", () => {
     expect(reasons).toContain("crypto_casino_bonus_funnel");
     expect(reasons).toContain("gambling_prediction_promo");
     expect(score.level).toBe("suspicious");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("фриспины");
+    expect(explanation).toContain("пополнению баланса");
+    expect(explanation).not.toContain("Я проверил видимый текст");
+  });
+
+  it("surfaces Stars/NFT spin or lucky-draw posts without inventing captcha", () => {
+    const evidence = fallbackImageIntelligence(
+      "От меня подары на Loyalty с Black фоном всего за 12 Звёзд. Лучшая лудка с дорогими NFT и спином за 12 STARS. 777",
+    );
+
+    expect(evidence.visualCategory).toBe("crypto_giveaway_or_nft");
+    expect(evidence.riskHints).toContain("giveaway_or_prize_actions");
+    expect(evidence.riskHints).not.toContain("fake_captcha_or_voting");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("giveaway_engagement_bait");
+    expect(reasons).not.toContain("fake_captcha_or_voting");
+    expect(score.level).toBe("suspicious");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("NFT/Stars");
+    expect(explanation).toContain("спин");
+  });
+
+  it("surfaces public voting contest domains as high-risk voting gates", () => {
+    const evidence = fallbackImageIntelligence(
+      "Зайдите проголосуйте! https://voting.blockchain-life.com Со сцены когда пойду забирать статуэтку, какую речь сказать?",
+    );
+
+    expect(evidence.visualCategory).toBe("crypto_giveaway_or_nft");
+    expect(evidence.riskHints).toContain("fake_captcha_or_voting");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("fake_captcha_or_voting");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("голосование");
+    expect(explanation).toContain("Telegram-кода");
   });
 
   it("surfaces NFT or Stars giveaway screenshots with voting/captcha gates", () => {
@@ -254,5 +295,21 @@ describe("image intelligence evidence builder", () => {
       expect(reasons).not.toContain("ton_referral_earning_scheme");
       expect(score.level).not.toBe("high_risk");
     }
+  });
+
+  it("explains ordinary Telegram promo posts without a generic risk wall", () => {
+    const evidence = fallbackImageIntelligence(
+      "Уже 600+ каналов на бирже. Добавьте свой Telegram-канал сейчас, чтобы не пропустить первые рекламные размещения.",
+    );
+    const { reasons, score } = scoreImageEvidence(evidence);
+
+    expect(evidence.visualCategory).toBe("telegram_promo_post");
+    expect(reasons).toEqual([]);
+    expect(score.level).toBe("unknown");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("Telegram-пост");
+    expect(explanation).toContain("не вижу запроса кода");
+    expect(explanation).not.toContain("Я проверил видимый текст");
   });
 });

@@ -171,3 +171,14 @@ casino/free-spins, TON/wallet, bank/code and menu/QR. Triage callbacks are
 presentation-only: they provide safe next steps and ask for the next concrete
 evidence, but they do not run scoring, create `checks` rows, persist image
 bytes, or claim hidden Telegram reputation.
+
+## D-027 - Telegram promo image explanations are scenario-first
+
+When a Telegram screenshot is readable, the reply should explain the visible
+mechanic instead of falling back to generic "code/card/APK" wording. Casino and
+free-spins posts mention deposits/top-ups; NFT/Stars giveaways mention
+captcha/voting/bot/spin/claim mechanics; wallet/DeFi posts mention
+connect/sign/seed-phrase risk; TON referrals mention invite/reward loops.
+Ordinary Telegram news, product posts and advertising-exchange posts remain
+non-accusatory and ask for the next screen or link if a later step requests
+sensitive data.

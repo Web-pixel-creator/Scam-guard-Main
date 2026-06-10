@@ -41,6 +41,8 @@ Regex groups mirror existing rule-engine predicates:
 
 - casino/free-spins plus deposit/bonus/link/signup
 - prize/NFT/Stars plus captcha/vote/reaction/subscribe
+- Stars/NFT spin, lucky-draw, 777, bot or claim mechanics
+- public voting/contest domains tied to prizes or awards
 - task/reward/leaderboard/easy actions plus money/tokens/prizes
 - wallet/DeFi/token plus urgency/top-up/liquidation/fees
 - TON/crypto plus referral/invite earning
@@ -50,6 +52,10 @@ Regex groups mirror existing rule-engine predicates:
 
 The builder appends concise evidence lines for risk hints. These lines intentionally contain natural-language phrases already covered by `rules.ts`, so scoring remains centralized.
 
+### Scenario Explanation Builder
+
+`buildImageUserExplanation` chooses scenario-first copy for casino/free-spins, NFT/Stars giveaways, task rewards, wallet/DeFi urgency, TON referrals and private invite links. Benign Telegram news/product/advertising screenshots get a calm "no visible sensitive request" explanation instead of generic code/card/APK advice.
+
 ## Correctness Properties
 
 1. Benign restaurant/menu QR screenshots stay below `high_risk`.
@@ -57,9 +63,11 @@ The builder appends concise evidence lines for risk hints. These lines intention
 3. Unreadable image output is not usable evidence by itself.
 4. Telegram casino bonus screenshots produce casino/betting reason codes.
 5. Giveaway/captcha screenshots produce engagement-gate reason codes.
-6. Wallet urgency screenshots produce wallet urgency reason codes.
-7. Ordinary news/product Telegram screenshots do not produce v2 promo reason codes.
-8. No raw image bytes or data URLs are persisted.
+6. Stars spin/lucky-draw screenshots produce giveaway evidence without inventing captcha/voting.
+7. Public voting/contest-domain screenshots tied to awards produce voting-gate evidence.
+8. Wallet urgency screenshots produce wallet urgency reason codes.
+9. Ordinary news/product Telegram screenshots do not produce v2 promo reason codes.
+10. No raw image bytes or data URLs are persisted.
 
 ## Error Handling
 

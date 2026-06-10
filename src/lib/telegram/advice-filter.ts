@@ -120,9 +120,18 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not hand over your card, SIM, account, or OneID to anyone else",
     },
   },
+  // Casino/free-spins promos -> avoid deposit and payment funnels.
+  {
+    reasons: new Set<ReasonCode>(["crypto_casino_bonus_funnel"]),
+    advice: {
+      ru: "Не пополняйте баланс и не вводите карту/кошелёк по промо-ссылке с фриспинами или бонусом",
+      uz: "Frispin yoki bonus havolasi orqali balans to‘ldirmang, karta/hamyon kiritmang",
+      en: "Do not top up a balance or enter card/wallet details through a free-spins or bonus promo link",
+    },
+  },
   // Betting/prediction promos -> do not pay for closed-channel access or "guaranteed" wins
   {
-    reasons: new Set<ReasonCode>(["gambling_prediction_promo", "crypto_casino_bonus_funnel"]),
+    reasons: new Set<ReasonCode>(["gambling_prediction_promo"]),
     advice: {
       ru: "Не платите за «прогноз», доступ в закрытый канал или гарантированный выигрыш",
       uz: "«Prognoz», yopiq kanal yoki kafolatlangan yutuq uchun pul to'lamang",
@@ -131,16 +140,20 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Giveaway / NFT engagement bait -> avoid captcha/vote/wallet traps
   {
-    reasons: new Set<ReasonCode>([
-      "giveaway_engagement_bait",
-      "fake_captcha_or_voting",
-      "task_reward_engagement_bait",
-      "ton_referral_earning_scheme",
-    ]),
+    reasons: new Set<ReasonCode>(["giveaway_engagement_bait", "fake_captcha_or_voting"]),
     advice: {
-      ru: "Не проходите капчу/голосование ради приза и не вводите данные кошелька или карты",
-      uz: "Sovrin uchun captcha/ovoz berishdan o'tmang, hamyon yoki karta ma'lumotini kiritmang",
-      en: "Do not complete captcha/voting for a prize or enter wallet/card details",
+      ru: "Не проходите капчу, голосование, бота или спин ради NFT/Stars/подарка, если дальше просят код, карту или кошелёк",
+      uz: "NFT/Stars/sovrin uchun captcha, ovoz, bot yoki spin qilmang, agar keyin kod/karta/hamyon so‘ralsa",
+      en: "Do not complete captcha, voting, bot, or spin steps for NFT/Stars/gifts if the next step asks for a code, card, or wallet",
+    },
+  },
+  // Task/reward/referral bait -> avoid engagement loops and referral pressure.
+  {
+    reasons: new Set<ReasonCode>(["task_reward_engagement_bait", "ton_referral_earning_scheme"]),
+    advice: {
+      ru: "Не выполняйте цепочку заданий/рефералов ради обещанного TON, Stars, токенов или лёгкого заработка",
+      uz: "TON, Stars, token yoki oson pul va’dasi uchun topshiriq/referral zanjiriga kirmang",
+      en: "Do not enter task/referral chains for promised TON, Stars, tokens, or easy earnings",
     },
   },
   // Wallet / DeFi urgency -> avoid signing/seed phrase traps
@@ -163,7 +176,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic
