@@ -140,3 +140,12 @@ codes and contextual advice, but most are suspicious rather than high-risk until
 paired with stronger signals such as private invite links, deposits, credential
 requests, wallet signing or code/card prompts. This keeps the bot useful without
 overclaiming that every promo post is definitely fraud.
+
+## D-024 - Video thumbnails are evidence, full videos are not downloaded
+
+Telegram video messages may expose a small preview frame. If a video has no
+caption, hidden link or inline-button URL, the bot may route that thumbnail to
+the same in-memory image/QR pipeline used for photos. The video file itself is
+not fetched, decoded or stored. If Telegram gives no usable thumbnail, the bot
+keeps the media-specific fallback asking for a link, screenshot frame or short
+description.

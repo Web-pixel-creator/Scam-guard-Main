@@ -339,6 +339,53 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "outOfScope", reason });
   });
 
+  it("routes a video thumbnail as an image when no stronger evidence exists", () => {
+    const update = messageUpdate({
+      media_group_id: "video-album-1",
+      video: {
+        file_id: "video-file",
+        file_size: 1024,
+        duration: 4,
+        thumbnail: { file_id: "video-thumb", file_size: 512 },
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "image",
+      fileId: "video-thumb",
+      mediaGroupId: "video-album-1",
+    });
+  });
+
+  it("keeps a video caption as check content before thumbnail OCR", () => {
+    const update = messageUpdate({
+      video: {
+        file_id: "video-file",
+        thumbnail: { file_id: "video-thumb", file_size: 512 },
+      },
+      caption: "100 free spins for deposit",
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "check", content: "100 free spins for deposit" });
+  });
+
+  it("keeps video inline button URLs as check evidence before thumbnail OCR", () => {
+    const update = messageUpdate({
+      video: {
+        file_id: "video-file",
+        thumbnail: { file_id: "video-thumb", file_size: 512 },
+      },
+      reply_markup: {
+        inline_keyboard: [[{ text: "Open VIP", url: "https://t.me/+giftNFT12345" }]],
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "check",
+      content: "Open VIP: https://t.me/+giftNFT12345",
+    });
+  });
+
   it.each(["voice", "audio", "video"] as const)(
     "routes a %s caption as check content before out-of-scope fallback",
     (field) => {

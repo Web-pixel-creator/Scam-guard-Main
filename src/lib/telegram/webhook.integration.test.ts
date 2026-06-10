@@ -228,12 +228,13 @@ function photoUpdate(opts: {
   };
 }
 
-/** A video update without caption: should not be downloaded, only guide the user. */
+/** A video update: text evidence wins; otherwise only thumbnail may be analyzed. */
 function videoUpdate(opts: {
   userId: number;
   chatId: number;
   caption?: string;
   captionEntities?: unknown[];
+  thumbnail?: { file_id: string; file_size?: number };
 }): unknown {
   return {
     update_id: opts.userId,
@@ -243,7 +244,12 @@ function videoUpdate(opts: {
       chat: { id: opts.chatId },
       caption: opts.caption,
       caption_entities: opts.captionEntities,
-      video: { file_id: "video_1", file_size: 1024, duration: 2 },
+      video: {
+        file_id: "video_1",
+        file_size: 1024,
+        duration: 2,
+        thumbnail: opts.thumbnail,
+      },
     },
   };
 }
@@ -985,6 +991,35 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.fromCalls).not.toContain("objects");
   });
 
+  it("uses a video thumbnail as image evidence without fetching the full video", async () => {
+    h.ocrText = HIGH_RISK_TEXT;
+    const update = videoUpdate({
+      userId: 1009,
+      chatId: 5009,
+      thumbnail: { file_id: "video_thumb", file_size: 900 },
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toEqual(["video_thumb"]);
+    expect(h.getFileCalls).not.toContain("video_1");
+    expect(h.downloadCalls).toEqual(["photos/file_42.jpg"]);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(h.ocrCalls[0]).toMatchObject({
+      dataUrl: h.dataUrl,
+      lang: "ru",
+      key: "tg:1009",
+    });
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(5009);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+
+    const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
+  });
+
   it("checks a photo caption with hidden Telegram link before OCR", async () => {
     const update = photoUpdate({
       userId: 1004,
@@ -1037,11 +1072,15 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       userId: 1006,
       chatId: 5006,
       caption: "100 фриспинов за депозит, ссылка на Twin",
+      thumbnail: { file_id: "video_thumb", file_size: 900 },
     });
 
     const response = await handleTelegramWebhook(webhookRequest(update));
 
     expect(response.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    expect(h.ocrCalls).toHaveLength(0);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain(RISK_EMOJI.suspicious);
     expect(h.sendCalls[0].text).not.toContain("видео я пока не анализирую");

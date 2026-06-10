@@ -54,6 +54,23 @@ const inlineKeyboardButtonSchema = z
   })
   .passthrough();
 
+const photoSizeSchema = z
+  .object({
+    file_id: z.string(),
+    file_size: z.number().optional(),
+  })
+  .passthrough();
+
+const videoSchema = z
+  .object({
+    file_id: z.string().optional(),
+    file_size: z.number().optional(),
+    duration: z.number().optional(),
+    thumbnail: photoSizeSchema.optional(),
+    thumb: photoSizeSchema.optional(),
+  })
+  .passthrough();
+
 const messageSchema = z.object({
   message_id: z.number(),
   from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
@@ -63,7 +80,7 @@ const messageSchema = z.object({
   entities: z.array(messageEntitySchema).optional(),
   caption_entities: z.array(messageEntitySchema).optional(),
   media_group_id: z.string().optional(),
-  photo: z.array(z.object({ file_id: z.string(), file_size: z.number().optional() })).optional(),
+  photo: z.array(photoSizeSchema).optional(),
   document: z
     .object({
       file_id: z.string(),
@@ -74,7 +91,7 @@ const messageSchema = z.object({
   contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
   voice: z.unknown().optional(), // out of scope (R22) — recognised only to decline politely
   audio: z.unknown().optional(),
-  video: z.unknown().optional(),
+  video: videoSchema.optional(),
   sticker: z.unknown().optional(),
   reply_markup: z
     .object({
@@ -259,6 +276,10 @@ function largestPhotoFileId(photo: NonNullable<TelegramMessage["photo"]>): strin
   return best.file_id;
 }
 
+function videoThumbnailFileId(video: NonNullable<TelegramMessage["video"]>): string | null {
+  return video.thumbnail?.file_id ?? video.thumb?.file_id ?? null;
+}
+
 function messageCaption(m: TelegramMessage): string {
   return (m.caption ?? "").trim();
 }
@@ -371,9 +392,13 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (m.contact) {
     return { kind: "contact", phone: m.contact.phone_number };
   }
+  if (m.video != null) {
+    const fileId = videoThumbnailFileId(m.video);
+    if (fileId) return imageRoute(fileId, m.media_group_id);
+    return { kind: "outOfScope", reason: "video" };
+  }
   if (m.voice != null) return { kind: "outOfScope", reason: "voice" };
   if (m.audio != null) return { kind: "outOfScope", reason: "audio" };
-  if (m.video != null) return { kind: "outOfScope", reason: "video" };
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
 
   // Plain text (including forwarded text, R11.5) → Check_Pipeline.

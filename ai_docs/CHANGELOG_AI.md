@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-10 - Telegram Video Thumbnail Intelligence v1
+
+- Added `.kiro/specs/telegram-video-thumbnail-intelligence-v1/`.
+- Telegram videos with no caption/link/button evidence now use the Telegram-provided thumbnail as image evidence when available.
+- Full video files are still not downloaded; thumbnail analysis reuses the existing in-memory image/QR/OCR path and size limits.
+- Unsupported-video copy now explains that preview frames are checked automatically when Telegram provides them, otherwise the user should send a link, screenshot frame or short description.
+
 ## 2026-06-10 - Telegram Evidence Brief v1
 
 - Added `.kiro/specs/telegram-evidence-brief-v1/`.

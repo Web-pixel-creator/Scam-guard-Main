@@ -1,0 +1,6 @@
+{
+  "workflow": "requirements-first",
+  "feature": "telegram-video-thumbnail-intelligence-v1",
+  "status": "implementation-ready",
+  "specId": "9a3608c2-cf73-42ea-8d2e-25665333d7ca"
+}
