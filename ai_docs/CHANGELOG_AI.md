@@ -8,6 +8,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Split panic scenario rendering into compact first cards and detailed full checklists.
 - The first `/panic` scenario card now shows one urgent action, a calm cue and three immediate steps; verified contacts remain behind `panicctx:full` / safe-callback buttons.
 - Lightened the default emergency follow-up keyboard by removing the repeated generic share-advice button while keeping the legacy callback supported.
+- Compressed unreadable-image fallback and image triage copy into shorter hook/risk/safe-step answers.
 
 ## 2026-06-11 - Emergency First-Card Human Guidance
 

@@ -23,6 +23,7 @@ The router keeps existing callback data and session memory. Only presentation ch
 - `buildPanicScenarioText(id, lang)`: compact public API kept for existing callers.
 - `buildDetailedPanicScenarioText(id, lang)`: full checklist for explicit detail requests and tests.
 - `buildEmergencyFollowUpKeyboard(lang)`: removes repeated generic share advice while preserving all `panicctx:` actions.
+- `bot_dict.ocr_failed*` and `bot_dict.image_triage_*`: compressed image fallback copy using hook/risk/safe-step wording.
 
 ## Correctness Properties
 
@@ -42,3 +43,4 @@ If a compact card is missing for a scenario, fallback to the detailed scenario t
 - Unit tests for detailed checklist contact preservation.
 - Router/webhook tests updated for lighter keyboard.
 - Existing follow-up routing tests kept unchanged where behavior is still valid.
+- Bot QA matrix and webhook fallback tests cover unreadable-image triage and non-accusatory wording.

@@ -38,3 +38,9 @@ Telegram emergency replies should pass the "5 second panic test": a stressed use
 2. Tests SHALL verify `panicctx:full` still returns the detailed checklist with verified contacts.
 3. Tests SHALL verify legacy callbacks still work.
 4. No change SHALL store new personal data or weaken existing safety boundaries.
+
+### R6. Image Fallback Compression
+
+1. WHEN image text/QR cannot be read, THE Bot SHALL answer with a short honest limitation, not a long generic paragraph.
+2. Image triage answers SHALL use a compact "hook/risk/safe step" structure.
+3. Image triage answers SHALL NOT accuse a sender or claim hidden Telegram reputation signals.
