@@ -100,7 +100,7 @@ describe("telegram public metadata", () => {
 
     const brief = buildTelegramPublicMetadataBrief(metadata, "ru") ?? "";
     expect(brief).toContain("пост #123");
-    expect(brief).toContain("не читаю текст поста");
+    expect(brief).toContain("если публичную web-страницу не удалось прочитать");
     expect(brief).toContain("перешлите пост");
     expect(brief).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
   });

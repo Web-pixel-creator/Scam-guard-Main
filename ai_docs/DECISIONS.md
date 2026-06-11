@@ -192,3 +192,13 @@ but it must not claim that it read the body of that post through the link. For
 precise analysis the reply should ask the user to forward the post, paste the
 text, or send a screenshot. This keeps link checks helpful without inventing
 hidden Telegram capabilities.
+
+## D-029 - Public Telegram post web fetch is visible evidence only
+
+The bot may fetch `https://t.me/s/<username>/<postId>` for validated public
+Telegram post links before falling back to Bot API metadata. This is best-effort
+visible web evidence only: extract short text and visible outbound links, redact
+sensitive digits, score through the existing rules-first pipeline, and clearly
+say that hidden SCAM labels, account age, Telegram reports and spam history are
+not visible. Private invites, internal `t.me/c/...` links and arbitrary URLs are
+never fetched by this feature.

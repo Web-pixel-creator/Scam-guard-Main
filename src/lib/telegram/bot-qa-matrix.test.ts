@@ -248,7 +248,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     );
 
     expect(post).toContain("пост #123");
-    expect(post).toContain("не читаю текст поста");
+    expect(post).toContain("если публичную web-страницу не удалось прочитать");
     expect(post).toContain("перешлите пост");
     expect(post).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
   });

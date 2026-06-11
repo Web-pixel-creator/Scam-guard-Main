@@ -187,12 +187,12 @@ function unavailableBrief(username: string, lang: Lang, postId?: string): string
 function postLimitationText(postId: string | undefined, lang: Lang): string {
   if (!postId) return "";
   if (lang === "uz") {
-    return ` Havola ${postId}-postga o'xshaydi; Bot API orqali post matnini o'qimayman, shuning uchun postni forward qiling yoki skrin yuboring.`;
+    return ` Havola ${postId}-postga o'xshaydi; agar ochiq web-sahifani o'qib bo'lmasa, aniq tekshiruv uchun postni forward qiling yoki skrin yuboring.`;
   }
   if (lang === "en") {
-    return ` The link looks like post #${postId}; I cannot read the post body through the Bot API, so forward the post or send a screenshot for a real check.`;
+    return ` The link looks like post #${postId}; if the public web page cannot be read, forward the post or send a screenshot for a real check.`;
   }
-  return ` Ссылка похожа на пост #${postId}; через Bot API я не читаю текст поста, поэтому для точной проверки перешлите пост или пришлите скрин.`;
+  return ` Ссылка похожа на пост #${postId}; если публичную web-страницу не удалось прочитать, для точной проверки перешлите пост или пришлите скрин.`;
 }
 
 function privateInviteBrief(lang: Lang): string {

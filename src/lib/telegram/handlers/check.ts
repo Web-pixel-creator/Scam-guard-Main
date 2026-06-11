@@ -59,6 +59,10 @@ import {
 } from "@/lib/risk/image-intelligence";
 import { decodeQrFromDataUrl } from "@/lib/risk/qr-decoder";
 import { enrichTelegramPublicMetadata } from "@/lib/telegram/public-metadata.server";
+import {
+  buildTelegramPublicPostCheckEvidence,
+  enrichTelegramPublicPostResult,
+} from "@/lib/telegram/public-post.server";
 import { enrichTelegramReputation } from "@/lib/telegram/reputation.server";
 import {
   enrichForwardSourceContext,
@@ -259,16 +263,24 @@ export async function handleCheck(
   }
 
   await guarded(ctx, "handleCheck", async () => {
+    const rateLimitKey = rateLimitKeyFor(ctx.userId);
+    const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
     const result = await withTypingIndicator(ctx.chatId, () =>
       runCheck({
-        input: trimmed,
+        input: publicPostEvidence?.checkInput ?? trimmed,
+        type: publicPostEvidence ? "text" : undefined,
         lang,
-        rateLimitKey: rateLimitKeyFor(ctx.userId),
+        rateLimitKey,
         channel: CHANNEL,
       }),
     );
-    const enrichedMetadata = await enrichTelegramPublicMetadata(trimmed, result, lang);
-    const enriched = await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+    const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+    const enrichedMetadata = publicPostEvidence
+      ? postResult
+      : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+    const enriched = publicPostEvidence
+      ? enrichedMetadata
+      : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
     await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
   });
 }

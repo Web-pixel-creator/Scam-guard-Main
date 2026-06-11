@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Telegram Public Post Fetch v1
+
+- Added `.kiro/specs/telegram-public-post-fetch-v1/`.
+- Public Telegram post links now get a best-effort fetch of the public `t.me/s/<channel>/<post>` web page before the metadata-only fallback.
+- The parser extracts only visible post text and visible outbound links, redacts sensitive digits, clamps evidence and sends it through the existing rules-first pipeline as text.
+- The user-facing brief keeps the safety boundary: no hidden SCAM labels, account age, Telegram report counts or spam-history claims.
+
 ## 2026-06-10 - Telegram Public Post Link Boundary
 
 - Public Telegram post links now preserve the post id from `t.me/username/123` and `t.me/s/username/123`.

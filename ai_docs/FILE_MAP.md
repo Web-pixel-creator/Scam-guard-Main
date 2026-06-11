@@ -69,6 +69,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `telegram/webhook.server.ts`         | Framework-agnostic webhook handler (token-first, fail-closed).                                                                                |
 | `telegram/api.server.ts`             | Telegram Bot API helpers (sendMessage, getFile, escapeMarkdownV2, etc.).                                                                      |
 | `telegram/public-metadata.server.ts` | Best-effort Telegram username/link enrichment: target extraction, public `getChat`, private-link limitations, visible signals and next steps. |
+| `telegram/public-post.server.ts`     | Best-effort public Telegram post web fetch/parser for `t.me/<channel>/<post>` links; extracts visible text/links with strict limits.          |
 | `telegram/reputation.server.ts`      | Privacy-safe Telegram reputation helpers: hashed target observation, moderated report sync, source/confidence user-facing brief.              |
 | `telegram/forward-context.ts`        | Reply-only context for public forwarded Telegram channel/group sources; sanitized title/username, no scoring or persistence impact.           |
 | `telegram/image-fallback.ts`         | Unreadable-image triage callbacks/keyboards for gift, casino, wallet, bank/code and menu/QR scenarios.                                        |
