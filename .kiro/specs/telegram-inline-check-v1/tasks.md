@@ -35,4 +35,4 @@
 - [x] Add unit and integration tests.
 - [x] Update AI docs and roadmap.
 - [x] Run test/typecheck/lint/build/security checks.
-- [ ] Commit, push and deploy.
+- [x] Commit, push and deploy.
