@@ -210,3 +210,14 @@ previews and inline buttons, redact sensitive digits, score through the existing
 rules-first pipeline, and clearly say that hidden SCAM labels, account age,
 Telegram reports and spam history are not visible. Private invites, internal
 `t.me/c/...` links and arbitrary URLs are never fetched by this feature.
+
+## D-030 - High-risk check results are action-first
+
+The first Telegram card for a `high_risk` check result should pass the panic
+readability test: show the verdict, the safest immediate actions and a short
+evidence summary. Long generic AI explanations, reporting checklists and broad
+educational detail should not appear in the initial result card because they
+push the action below the fold. Short visible-source briefs for forwarded
+Telegram posts may remain because they explain what public evidence was used.
+Reporting and emergency help remain available through inline buttons and the
+emergency flow.

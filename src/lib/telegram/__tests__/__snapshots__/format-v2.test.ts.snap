@@ -10,16 +10,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > high_risk level 1`] =
 • Do not share your SMS code or PIN
 • Calmly hang up — pressure is a sign of fraud
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *Why dangerous*
+📌 *What I noticed*
 • Asks for an SMS confirmation code
 • Uses urgency pressure
-• Threatens to block your account / card
-Сообщение содержит типичные признаки мошенничества\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🧾 *Where to report*
-• Save chat screenshots
-• File a report: Cyber Police — 102
-• Block the contact"
+• Threatens to block your account / card"
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=en > safe level 1`] = `
@@ -77,16 +71,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > high_risk level 1`] =
 • Не сообщайте SMS\\-код или PIN
 • Спокойно положите трубку — давление это признак обмана
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *Почему опасно*
+📌 *Что заметил*
 • Просят SMS\\-код подтверждения
 • Создают ощущение срочности
-• Угрожают блокировкой счёта / карты
-Сообщение содержит типичные признаки мошенничества\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🧾 *Куда обратиться*
-• Сохраните скриншоты переписки
-• Подайте заявление: Cyber Police — 102
-• Заблокируйте контакт"
+• Угрожают блокировкой счёта / карты"
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=ru > safe level 1`] = `
@@ -144,16 +132,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > high_risk level 1`] =
 • SMS\\-kod yoki PIN\\-ni aytmang
 • Xotirjam go'shakni qo'ying — bosim aldov belgisi
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *Xavf sababi*
+📌 *Nimani payqadim*
 • SMS tasdiqlash kodini so‘rashmoqda
 • Shoshilinchlik bosimi yaratmoqda
-• Hisob / kartani bloklash bilan qo‘rqitmoqda
-Сообщение содержит типичные признаки мошенничества\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🧾 *Kimga murojaat*
-• Yozishmalar skrinshotini saqlang
-• Ariza bering: Cyber Police — 102
-• Kontaktni bloklang"
+• Hisob / kartani bloklash bilan qo‘rqitmoqda"
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=uz > safe level 1`] = `

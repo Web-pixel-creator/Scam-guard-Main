@@ -219,7 +219,7 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   return formatSectionBlock("brief", lang, escapeMarkdownV2(content));
 }
 
-function isForwardSourceBrief(explanation: string | null): boolean {
+function isForwardSourceBrief(explanation: string | null): explanation is string {
   if (!explanation) return false;
   return /^(Источник: Telegram-|Source: Telegram |Manba: Telegram )/u.test(explanation);
 }
@@ -266,6 +266,12 @@ function renderAdvice(result: RunCheckResult, lang: Lang): string {
  * Renders the "what was noticed" section — reason labels + scam patterns.
  */
 function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
+  const explanation = result.explanation;
+  if (result.level === "high_risk" && isForwardSourceBrief(explanation)) {
+    const content = truncateExplanation(explanation, { maxLines: 5, maxChars: 420 });
+    return formatSectionBlock("what_noticed", lang, escapeMarkdownV2(content));
+  }
+
   const parts: string[] = [];
 
   // Reason labels

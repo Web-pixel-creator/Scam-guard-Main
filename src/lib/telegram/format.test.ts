@@ -523,6 +523,29 @@ describe("formatCheckResult — header (R4.5, R4.4)", () => {
   });
 });
 
+describe("formatCheckResult — compressed high-risk first card", () => {
+  it("keeps high-risk result action-first and hides long detail sections from the first card", () => {
+    const explanation =
+      "Длинное объяснение: мошенник создаёт ощущение срочности, просит код, давит на пользователя и пытается получить доступ к счёту.";
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        reasons: ["asks_for_sms_code", "uses_urgency", "threatens_account_block"],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("section_action_now", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("section_noticed", "ru")));
+    expect(text).toContain(escapeMarkdownV2(REASON_LABELS.asks_for_sms_code.ru));
+    expect(text).not.toContain(escapeMarkdownV2(bt("section_why_danger", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("section_where_report", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2("Cyber Police"));
+    expect(text).not.toContain(escapeMarkdownV2(explanation));
+  });
+});
+
 describe("formatCheckResult - deterministic URL fallback and scam patterns", () => {
   it("shows hosted-platform guidance instead of an AI explanation when AI is skipped", () => {
     // "unknown" template has "brief" section which will show the hosted platform fallback

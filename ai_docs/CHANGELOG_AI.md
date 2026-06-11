@@ -10,6 +10,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Lightened the default emergency follow-up keyboard by removing the repeated generic share-advice button while keeping the legacy callback supported.
 - Compressed unreadable-image fallback and image triage copy into shorter hook/risk/safe-step answers.
 - Image triage category callbacks now use a compact follow-up keyboard instead of repeating the full category menu under every answer.
+- High-risk check result first cards now show urgent actions plus a short evidence summary; long generic explanation/reporting detail is not printed in the initial result card. Short visible-source briefs for forwarded Telegram posts remain visible.
 
 ## 2026-06-11 - Emergency First-Card Human Guidance
 

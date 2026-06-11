@@ -25,6 +25,7 @@ The router keeps existing callback data and session memory. Only presentation ch
 - `buildEmergencyFollowUpKeyboard(lang)`: removes repeated generic share advice while preserving all `panicctx:` actions.
 - `bot_dict.ocr_failed*` and `bot_dict.image_triage_*`: compressed image fallback copy using hook/risk/safe-step wording.
 - `buildImageTriageFollowUpKeyboard(lang)`: compact post-category keyboard with only check-another, media tips, and emergency actions.
+- `TEMPLATES.high_risk`: uses `verdict`, `action_now`, and `what_noticed` for the first card, leaving long explanation/reporting detail out of the initial message. Public forwarded Telegram source briefs remain visible as short evidence summaries.
 
 ## Correctness Properties
 
@@ -34,6 +35,7 @@ The router keeps existing callback data and session memory. Only presentation ch
 4. `panicctx:full` never returns the compact card.
 5. Legacy `share_advice` callback remains routable.
 6. Image triage category answers do not repeat `imgtriage:*` category buttons.
+7. High-risk first cards do not include `why_dangerous`, `where_report`, or the full AI explanation.
 
 ## Error Handling
 

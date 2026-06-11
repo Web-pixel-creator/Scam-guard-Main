@@ -12,6 +12,7 @@
 - [x] 8. Run targeted tests, full tests, typecheck, lint/build, then deploy.
 - [x] 9. Compress unreadable-image fallback and image triage copy to hook/risk/safe-step wording.
 - [x] 10. Add compact image triage follow-up keyboard so category answers do not repeat the full menu.
+- [x] 11. Compress high-risk check results to urgent actions plus short evidence summary.
 
 ## Notes
 

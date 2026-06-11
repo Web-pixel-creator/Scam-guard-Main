@@ -50,3 +50,11 @@ Telegram emergency replies should pass the "5 second panic test": a stressed use
 1. WHEN a user selects an image triage category, THE Bot SHALL NOT repeat the full category menu under the answer.
 2. THE category answer keyboard SHALL keep only next actions: check another item, media tips, and emergency help.
 3. THE initial unreadable-image fallback SHALL still show the full category menu so the user can choose the closest context.
+
+### R8. Compact High-Risk Check Result
+
+1. WHEN a check result is `high_risk`, THE first Telegram card SHALL show the urgent action section before any explanatory detail.
+2. THE first `high_risk` card SHALL show a short evidence summary instead of the long AI explanation.
+3. Public forwarded Telegram source briefs MAY remain visible when they are short and based only on visible source/scenario evidence.
+4. THE first `high_risk` card SHALL NOT include the full reporting checklist; reporting remains available through the report button and emergency flow.
+5. THE first `high_risk` card SHALL keep the existing `report`, `check_another`, `why`, and `emergency` buttons.
