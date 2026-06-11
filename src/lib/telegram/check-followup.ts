@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
-import type { RiskLevel } from "@/lib/risk/rules";
+import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 import type {
   LastCheckContext,
   LastCheckSnapshot,
@@ -78,6 +78,7 @@ export function buildLastCheckSnapshot(
     level: result.level,
     type: result.type,
     context: detectLastCheckContext(result),
+    reasons: result.reasons.slice(0, 3),
     at: now.toISOString(),
   };
 }
@@ -283,23 +284,78 @@ function contactsText(lang: Lang): string {
   return `Официальный обратный звонок:\n1. Не звоните по номеру из подозрительного сообщения или входящего звонка.\n2. Возьмите номер с карты, из приложения банка или с официального сайта.\n\nПроверенные короткие номера:\n${contacts}`;
 }
 
+function reasonEvidence(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const labels = (snapshot.reasons ?? [])
+    .map((code) => REASON_LABELS[code as ReasonCode]?.[lang])
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 2);
+
+  if (labels.length === 0) return "";
+
+  if (lang === "uz") {
+    return `\n\nNimani ko'rdim:\n${labels.map((label) => `• ${label}`).join("\n")}`;
+  }
+  if (lang === "en") {
+    return `\n\nWhat I saw:\n${labels.map((label) => `• ${label}`).join("\n")}`;
+  }
+  return `\n\nЧто я увидел:\n${labels.map((label) => `• ${label}`).join("\n")}`;
+}
+
 function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const evidence = reasonEvidence(snapshot, lang);
+
   if (lang === "uz") {
     if (snapshot.context === "image_unreadable") {
       return "Sabab: rasmda matn/QR yetarlicha aniq ko'rinmadi. Bunday holatda men xavfni taxmin qilib aytmayman.\n\nEng yaxshi dalil: xabar matni, QR havolasi yoki sizdan nima so'ralgani.";
     }
-    return `Qisqacha: men oldingi xabarda ko'rinib turgan xavf belgilarini tekshirdim. Natija: ${levelText(snapshot.level, lang)}.\n\nMen ichki ballarni ko'rsatmayman. Muhimi: kod, karta, parol, APK, pul o'tkazish yoki bosim bo'lsa — xavf oshadi. Bunday narsa yo'q bo'lsa, xulosa ehtiyotkor bo'ladi.`;
+    if (snapshot.context === "qr_menu") {
+      return `Qisqacha: QRning o'zi firibgarlik emas. Men ko'rinib turgan kontekstni baholadim: menyu/ma'lumot QRga o'xshaydi. Natija: ${levelText(snapshot.level, lang)}.\n\nXavf keyingi sahifada kod, karta, login yoki to'lov so'ralsa paydo bo'ladi.${evidence}`;
+    }
+    if (snapshot.context === "phone") {
+      return `Qisqacha: raqamning o'zi dalil emas. Men egasini yashirin bazadan bilmayman; xavf suhbatda nima so'ralganiga bog'liq. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    if (snapshot.context === "telegram_profile") {
+      return `Qisqacha: Telegram bo'yicha yashirin SCAM belgi, yosh yoki shikoyat tarixini ko'ra olmayman. Men faqat ko'rinadigan belgilar va yuborilgan matnni tekshiraman. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    if (snapshot.context === "crypto") {
+      return `Qisqacha: kripto yoki investitsiya mavzusi yolg'iz o'zi firibgarlik emas. Xavf kafolatlangan daromad, oldindan to'lov, wallet ulash yoki kod so'ralganda oshadi. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    return `Qisqacha: men oldingi xabarda ko'rinib turgan xavf belgilarini tekshirdim. Natija: ${levelText(snapshot.level, lang)}.${evidence}\n\nMen ichki ballarni ko'rsatmayman. Muhimi: kod, karta, parol, APK, pul o'tkazish yoki bosim bo'lsa — xavf oshadi.`;
   }
   if (lang === "en") {
     if (snapshot.context === "image_unreadable") {
       return "Reason: the image did not show readable text/QR clearly enough. In that case I do not guess or invent a threat.\n\nBest evidence: the message text, QR link, or what they ask you to do.";
     }
-    return `Briefly: I checked the visible risk signs in the previous item. Result: ${levelText(snapshot.level, lang)}.\n\nI do not show internal scores. What matters: codes, card data, passwords, APKs, money transfers, and pressure increase risk. Without those, the verdict stays cautious.`;
+    if (snapshot.context === "qr_menu") {
+      return `Briefly: a QR code itself is not fraud. I checked the visible context: it looked like a menu or informational QR. Result: ${levelText(snapshot.level, lang)}.\n\nRisk starts on the next page if it asks for a code, card data, login, or payment.${evidence}`;
+    }
+    if (snapshot.context === "phone") {
+      return `Briefly: the number itself is not proof. I cannot identify the owner from a hidden database; risk depends on what the caller asked for. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    if (snapshot.context === "telegram_profile") {
+      return `Briefly: I cannot see hidden Telegram SCAM labels, account age, or complaint history. I check only visible signs and the text you send. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    if (snapshot.context === "crypto") {
+      return `Briefly: crypto/investment alone is not fraud. Risk rises when there are guaranteed returns, prepayment, wallet connection, or code requests. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
+    }
+    return `Briefly: I checked the visible risk signs in the previous item. Result: ${levelText(snapshot.level, lang)}.${evidence}\n\nI do not show internal scores. What matters: codes, card data, passwords, APKs, transfers, and pressure increase risk.`;
   }
   if (snapshot.context === "image_unreadable") {
     return "Причина: на изображении не было достаточно читаемого текста или QR. В такой ситуации я не угадываю и не придумываю угрозу.\n\nЛучшее доказательство: текст сообщения, ссылка из QR или короткое описание, что вас просят сделать.";
   }
-  return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск. Если этого нет, вывод остаётся осторожным.`;
+  if (snapshot.context === "qr_menu") {
+    return `Коротко: сам QR не является скамом. Я оценил видимый контекст: похоже на меню или информационный QR. Итог: ${levelText(snapshot.level, lang)}.\n\nРиск начинается на следующей странице, если там просят код, карту, логин или оплату.${evidence}`;
+  }
+  if (snapshot.context === "phone") {
+    return `Коротко: сам номер не доказательство. Я не узнаю владельца из скрытой базы; риск зависит от того, что просили в разговоре. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
+  }
+  if (snapshot.context === "telegram_profile") {
+    return `Коротко: я не вижу скрытую Telegram SCAM-метку, возраст аккаунта или историю жалоб. Я проверяю только видимые признаки и текст, который вы прислали. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
+  }
+  if (snapshot.context === "crypto") {
+    return `Коротко: тема крипто/инвестиций сама по себе не скам. Риск растёт, если обещают гарантированный доход, просят предоплату, подключить wallet или ввести код. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
+  }
+  return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.${evidence}\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск.`;
 }
 
 export function buildLastCheckFollowUpText(

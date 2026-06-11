@@ -27,14 +27,14 @@ export type RiskTemplate = SectionId[];
  * Section order per risk level.
  *
  * - safe: calm, reassuring — brief summary + observations + safe advice
- * - unknown: same as safe but with a prompt for more context
- * - suspicious: warning — show reasons + protective steps
+ * - unknown: calm limitation — brief summary + one precise context prompt
+ * - suspicious: warning — short evidence summary + protective steps
  * - high_risk: action-first — urgent action + short evidence summary
  */
 export const TEMPLATES: Record<RiskLevel, RiskTemplate> = {
   safe: ["verdict", "brief", "what_noticed", "safe_steps"],
-  unknown: ["verdict", "brief", "what_noticed", "safe_steps", "more_context_prompt"],
-  suspicious: ["verdict", "brief", "reasons", "safe_steps"],
+  unknown: ["verdict", "brief", "what_noticed", "more_context_prompt"],
+  suspicious: ["verdict", "brief", "what_noticed", "safe_steps"],
   high_risk: ["verdict", "action_now", "what_noticed"],
 };
 

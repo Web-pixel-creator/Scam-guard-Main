@@ -221,3 +221,14 @@ push the action below the fold. Short visible-source briefs for forwarded
 Telegram posts may remain because they explain what public evidence was used.
 Reporting and emergency help remain available through inline buttons and the
 emergency flow.
+
+## D-031 - Result why buttons explain the current case
+
+The inline `why` button under a check result should explain the latest check
+when recent `lastCheck` context exists. The generic "how I check" text remains
+the fallback when there is no recent check. `lastCheck` may store risk level,
+input type, coarse context, timestamp and short reason codes, but it must not
+store raw user text, URLs, phone numbers, OCR text, card data, codes or image
+bytes. Unknown result cards should avoid surfacing weak topic-only observations
+as evidence, while suspicious/high-risk cards should keep concise visible
+evidence and next steps.

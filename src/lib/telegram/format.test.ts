@@ -354,7 +354,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).not.toContain(escapeMarkdownV2("Не сообщайте SMS-код"));
   });
 
-  it("does not map unknown_sender alone to a fake-bank scam pattern", () => {
+  it("does not map or over-surface unknown_sender alone", () => {
     const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
     expect(fakeBank).toBeDefined();
 
@@ -367,7 +367,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "ru",
     );
 
-    expect(text).toContain(escapeMarkdownV2(REASON_LABELS.unknown_sender.ru));
+    expect(text).not.toContain(escapeMarkdownV2(REASON_LABELS.unknown_sender.ru));
     expect(text).not.toContain(escapeMarkdownV2(fakeBank!.title.ru));
     expect(text).not.toContain(escapeMarkdownV2("крипто/инвестиций"));
   });

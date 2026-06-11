@@ -121,6 +121,13 @@ const QR_MENU_CONTEXT_RE =
   /(меню|ресторан|кафе|акци[яи]|лояльност|qr.{0,30}(меню|info|информац)|restaurant|menu|promo|loyalty|restoran|aksiya|ma'lumot)/i;
 const DELIVERY_CONTEXT_RE =
   /(доставк|заказ|выдач|пункт|курьер|почт|delivery|pickup|order|courier|yetkazib|buyurtma|topshirish)/i;
+const TOPIC_ONLY_OBSERVATION_REASONS = new Set([
+  "unknown_sender",
+  "new_telegram_account",
+  "hosted_app_platform",
+  "valid_uz_phone",
+  "non_uz_phone",
+]);
 
 function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   if (result.level !== "unknown" && result.level !== "safe") return null;
@@ -273,9 +280,13 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
 
   const parts: string[] = [];
+  const observableReasons =
+    result.level === "unknown"
+      ? result.reasons.filter((code) => !TOPIC_ONLY_OBSERVATION_REASONS.has(code))
+      : result.reasons;
 
   // Reason labels
-  const reasonLines = result.reasons
+  const reasonLines = observableReasons
     .map((code) => REASON_LABELS[code]?.[lang])
     .filter((label): label is string => Boolean(label))
     .slice(0, 3);
@@ -284,7 +295,7 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
 
   // Matching scam patterns
-  const matchingPatterns = findMatchingPatterns(result.reasons);
+  const matchingPatterns = findMatchingPatterns(observableReasons);
   if (matchingPatterns.length > 0) {
     matchingPatterns.slice(0, 3).forEach((p) => {
       parts.push(`• ${escapeMarkdownV2(p.title[lang])}`);

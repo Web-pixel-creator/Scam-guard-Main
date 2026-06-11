@@ -58,3 +58,17 @@ Telegram emergency replies should pass the "5 second panic test": a stressed use
 3. Public forwarded Telegram source briefs MAY remain visible when they are short and based only on visible source/scenario evidence.
 4. THE first `high_risk` card SHALL NOT include the full reporting checklist; reporting remains available through the report button and emergency flow.
 5. THE first `high_risk` card SHALL keep the existing `report`, `check_another`, `why`, and `emergency` buttons.
+
+### R9. Compact Unknown And Suspicious Results
+
+1. WHEN a check result is `unknown`, THE first card SHALL show a calm limitation and one precise context prompt.
+2. THE first `unknown` card SHALL NOT surface weak topic-only observations such as `unknown_sender` as standalone evidence.
+3. THE first `unknown` card SHALL still show strong observable scam patterns when they exist.
+4. WHEN a check result is `suspicious`, THE first card SHALL use the user-facing `what_noticed` section instead of a dry reasons-only section.
+
+### R10. Contextual Why Button
+
+1. WHEN a user presses the result `why` button after a recent check, THE Bot SHALL explain the latest check context instead of showing the generic "how I check" text.
+2. THE contextual explanation SHALL use only non-sensitive snapshot metadata: risk level, input type, context, timestamp, and reason codes.
+3. THE contextual explanation SHALL NOT store or render raw user input, links, phone numbers, OCR text, card data, codes, or image bytes.
+4. WHEN there is no recent check, THE Bot SHALL keep the generic `why_explanation` fallback.

@@ -38,9 +38,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > suspicious level 1`] 
 
 ⚠️ Suspicious signs found
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-⚠️ *Reasons*
+📌 *What I noticed*
 • Shortened link
 • Suspicious domain
+There are 2 confirmed reports about this contact in our database\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *What to do*
 • Do not click the link or install the APK"
@@ -54,9 +55,6 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > unknown level 1`] = `
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Brief*
 I see a crypto/investment topic, but no link, number, payment request, or code request\\. So far this is not an obvious scam\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *What I noticed*
-• Unknown sender
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 For a precise check, send the link, seller username, or offer text: returns, prepayment, withdrawals\\."
 `;
@@ -99,9 +97,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > suspicious level 1`] 
 
 ⚠️ Есть подозрительные признаки
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-⚠️ *Причины*
+📌 *Что заметил*
 • Сокращённая ссылка
 • Подозрительный домен
+В базе есть 2 подтверждённых жалоб на этот контакт\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *Что делать*
 • Не переходите по ссылке и не устанавливайте APK"
@@ -115,9 +114,6 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > unknown level 1`] = `
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Кратко*
 Вижу тему крипто/инвестиций, но не вижу ссылки, номера, просьбы оплатить или кода\\. Пока это не похоже на явный скам\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *Что заметил*
-• Отправитель неизвестен
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств\\."
 `;
@@ -160,9 +156,10 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > suspicious level 1`] 
 
 ⚠️ Shubhali belgilar mavjud
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-⚠️ *Sabablar*
+📌 *Nimani payqadim*
 • Qisqartirilgan havola
 • Shubhali domen
+Bazada bu kontakt bo‘yicha 2 ta tasdiqlangan shikoyat bor\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *Nima qilish*
 • Havolaga o'tmang va APK o'rnatmang"
@@ -176,9 +173,6 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > unknown level 1`] = `
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Qisqacha*
 Kripto/investitsiya mavzusini ko'ryapman, lekin havola, raqam, to'lov yoki kod so'rovi ko'rinmayapti\\. Hozircha bu aniq firibgarlikka o'xshamaydi\\.
-┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-📌 *Nimani payqadim*
-• Yuboruvchi noma’lum
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish\\."
 `;

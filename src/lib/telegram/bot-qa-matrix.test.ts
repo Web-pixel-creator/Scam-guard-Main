@@ -177,7 +177,7 @@ describe("Telegram Bot QA Matrix v1", () => {
 
     expect(action).toBe("explain");
     expect(text).toContain("видимые признаки риска");
-    expect(text).not.toMatch(/score|threshold|порог|вес/i);
+    expect(text).not.toMatch(/score|threshold|порог|коэффициент|вес\s*(?:риска|=|:)/i);
   });
 
   it("does not swallow a new suspicious payload as a follow-up", () => {

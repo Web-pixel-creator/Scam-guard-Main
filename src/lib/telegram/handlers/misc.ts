@@ -72,6 +72,10 @@ import {
   buildImageTriageText,
   parseImageTriageCallback,
 } from "@/lib/telegram/image-fallback";
+import {
+  buildLastCheckFollowUpText,
+  classifyLastCheckFollowUp,
+} from "@/lib/telegram/check-followup";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
@@ -262,6 +266,16 @@ export async function handleCallback(
   }
 
   if (data === CB.why) {
+    const action = classifyLastCheckFollowUp("Почему так?", ctx.session.scenarioData);
+    const snapshot = ctx.session.scenarioData.lastCheck;
+    if (action === "explain" && snapshot) {
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(buildLastCheckFollowUpText(action, snapshot, lang)),
+      });
+      return;
+    }
+
     await sendI18n(ctx.chatId, "why_explanation", lang);
     return;
   }

@@ -1368,8 +1368,9 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
 
     expect(why.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain("Как я проверяю");
-    expect(h.sendCalls[0].text).not.toContain("Не могу гарантировать");
+    expect(h.sendCalls[0].text).toContain("сам QR не является скамом");
+    expect(h.sendCalls[0].text).toContain("код, карту, логин или оплату");
+    expect(h.sendCalls[0].text).not.toContain("Как я проверяю");
 
     h.sendCalls.length = 0;
     h.upserts.length = 0;

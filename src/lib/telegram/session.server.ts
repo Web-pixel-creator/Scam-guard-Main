@@ -54,6 +54,8 @@ export interface LastCheckSnapshot {
   level: RiskLevel;
   type: InputType;
   context: LastCheckContext;
+  /** Non-sensitive reason codes only; no raw user text, links, numbers, OCR, or image bytes. */
+  reasons?: string[];
   at: string;
 }
 

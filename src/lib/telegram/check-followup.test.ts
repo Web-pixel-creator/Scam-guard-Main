@@ -94,7 +94,7 @@ describe("last check follow-up router", () => {
     expect(action).toBe("explain");
     const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
     expect(text).toContain("видимые признаки риска");
-    expect(text).not.toMatch(/score|threshold|вес/i);
+    expect(text).not.toMatch(/score|threshold|порог|коэффициент|вес\s*(?:риска|=|:)/i);
   });
 
   it("does not intercept real scam payloads that need a fresh check", () => {
