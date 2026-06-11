@@ -150,6 +150,74 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   return null;
 }
 
+function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | null {
+  const passport = result.phoneIntelligence;
+  if (!passport) return null;
+
+  const copy: Record<
+    Lang,
+    {
+      number: string;
+      unknownCountry: string;
+      officialNotFound: string;
+      foreignCallback: string;
+      weakFormat: string;
+      contextMatters: string;
+    }
+  > = {
+    ru: {
+      number: "Номер",
+      unknownCountry: "страну/оператора определить надёжно не удалось",
+      officialNotFound: "В официальном справочнике Ishonch Guard совпадения нет.",
+      foreignCallback:
+        "Это не узбекский номер. Если представляются банком/службой Узбекистана — положите трубку и перезвоните сами.",
+      weakFormat: "Формат номера выглядит неполным или необычным.",
+      contextMatters:
+        "Сам номер не доказывает мошенничество: важнее, просили ли SMS-код, карту, перевод, APK или QR-вход.",
+    },
+    uz: {
+      number: "Raqam",
+      unknownCountry: "mamlakat/operatorni ishonchli aniqlab bo'lmadi",
+      officialNotFound: "Ishonch Guard rasmiy ma'lumotnomasida moslik topilmadi.",
+      foreignCallback:
+        "Bu O'zbekiston raqami emas. Agar o'zini bank/xizmat deb tanishtirsa — qo'ng'iroqni tugating va rasmiy raqamga o'zingiz qo'ng'iroq qiling.",
+      weakFormat: "Raqam formati to'liq emas yoki noodatiy ko'rinadi.",
+      contextMatters:
+        "Raqamning o'zi firibgarlikni isbotlamaydi: SMS-kod, karta, pul o'tkazma, APK yoki QR-login so'ralganmi — shu muhim.",
+    },
+    en: {
+      number: "Number",
+      unknownCountry: "country/operator could not be identified reliably",
+      officialNotFound: "No match in the Ishonch Guard official directory.",
+      foreignCallback:
+        "This is not an Uzbek number. If they claim to be an Uzbek bank/service, hang up and call back yourself.",
+      weakFormat: "The number format looks incomplete or unusual.",
+      contextMatters:
+        "The number alone does not prove a scam; what matters is whether they ask for an SMS code, card, transfer, APK, or QR login.",
+    },
+  };
+
+  const c = copy[lang];
+  const lines: string[] = [];
+  const country = passport.country
+    ? `${passport.country.name[lang]} (+${passport.country.callingCode})`
+    : c.unknownCountry;
+  const operator = passport.uzOperator?.[lang];
+
+  lines.push(operator ? `${c.number}: ${country}, ${operator}.` : `${c.number}: ${country}.`);
+
+  if (!passport.isValidFormat) {
+    lines.push(c.weakFormat);
+  } else if (passport.country && !passport.isUzbekistan) {
+    lines.push(c.foreignCallback);
+  } else if (passport.officialDirectoryStatus === "not_found") {
+    lines.push(c.officialNotFound);
+  }
+
+  lines.push(c.contextMatters);
+  return lines.join("\n");
+}
+
 // ── Section Sub-Renderers ───────────────────────────────────────────────────
 
 /**
@@ -214,7 +282,11 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
         : { maxLines: 4, maxChars: 230 };
 
   if (neutralContext && !(neutralContext === "telegram_profile" && result.explanation !== null)) {
-    content = bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang);
+    content =
+      neutralContext === "phone"
+        ? (renderPhonePassportBrief(result, lang) ??
+          bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang))
+        : bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang);
   } else if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
     content = truncateExplanation(bt("hosted_platform_explanation", lang), truncateOptions);
   } else if (result.explanation !== null) {

@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Roadmap and Phone Intelligence Passport v1
+
+- Added `ai_docs/ROADMAP.md` as the canonical product implementation order.
+- Added `src/lib/risk/phone-intelligence.ts` for honest phone metadata: country/calling code, Uzbekistan prefix/operator hint, format status and official-directory status.
+- `runCheck` now returns `phoneIntelligence` for phone inputs; Telegram result cards use it for compact, useful phone explanations without inventing owner, hidden scam labels, account age, spam history or report volume.
+- Kept moderated phone reputation as a separate next-stage task.
+
 ## 2026-06-11 - Telegram Response UX Compression v1
 
 - Added `.kiro/specs/telegram-response-ux-compression-v1/`.

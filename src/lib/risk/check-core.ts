@@ -39,6 +39,10 @@ import {
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
+import {
+  buildPhoneIntelligencePassport,
+  type PhoneIntelligencePassport,
+} from "./phone-intelligence";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -74,6 +78,8 @@ export interface RunCheckResult {
   } | null;
   /** Brand impersonation evidence objects. Empty array if no brand impersonation detected. */
   brandEvidence: BrandEvidence[];
+  /** Honest phone metadata: country/prefix/official-directory status. No owner inference. */
+  phoneIntelligence?: PhoneIntelligencePassport | null;
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -290,6 +296,9 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     }
   }
 
+  const phoneIntelligence =
+    detected === "phone" ? buildPhoneIntelligencePassport(workingInput, normalized, match) : null;
+
   // ── Persist to checks (with the FINAL level the user sees) ───────────────
   const inputHash = await hashIdentifier(normalized || safeInput);
   try {
@@ -317,6 +326,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     knownReports,
     verifiedContact,
     brandEvidence,
+    phoneIntelligence,
   };
 }
 

@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-030 - Phone intelligence is not reputation
+
+Phone checks may show a "passport" built from public deterministic metadata:
+country/calling code, Uzbekistan prefix/operator hints, format status and
+official-directory match status. This is explanatory metadata only. The bot
+must not claim owner identity, hidden scam labels, Telegram-style account age,
+spam history or report volume unless that claim comes from a moderated Ishonch
+Guard record or a lawful external provider with source/confidence labels.
+
 ## D-029 - Emergency first cards are compressed
 
 `/panic` first responses should pass a 5-second panic test: one urgent action,

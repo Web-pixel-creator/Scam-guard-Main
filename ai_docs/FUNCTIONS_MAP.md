@@ -31,6 +31,10 @@ Signatures and intent only. See file paths for source.
 - `scoreFromCodes(codes) -> { score, level }`.
 - `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
 
+**`src/lib/risk/phone-intelligence.ts`**
+
+- `buildPhoneIntelligencePassport(raw, normalized, verifiedContact)` returns honest phone metadata: country/calling code, Uzbekistan prefix/operator hint, format status and official-directory status. It never infers owner, hidden scam labels, account age, spam history or report volume.
+
 **`src/lib/risk/check-core.ts`**
 
 - `runCheck(params)` is the transport-independent check pipeline.

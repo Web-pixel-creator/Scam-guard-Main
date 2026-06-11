@@ -11,7 +11,7 @@
 - Stage: **working MVP** with real code, DB migrations, tests and a Telegram bot channel.
 - Runtime target: **self-hosted Node SSR** via Nitro `node-server`; Docker/Railway-ready. Lovable was used only to author the initial UI design.
 - AI layer: **provider-neutral OpenAI-compatible Chat Completions** (`OPENAI_API_KEY`, optional `OPENAI_MODEL`, `OPENAI_BASE_URL`). If no key is present, scoring still works and explanations/OCR degrade to `null`.
-- Last AI memory update: 2026-06-09.
+- Last AI memory update: 2026-06-11.
 
 ## Docs map
 
@@ -23,6 +23,7 @@
 | `ai_docs/ARCHITECTURE.md`     | Stack, data flow, risk engine, AI provider, Telegram channel.      |
 | `ai_docs/FILE_MAP.md`         | Folder and key-file map.                                           |
 | `ai_docs/FUNCTIONS_MAP.md`    | Important functions, server functions, modules.                    |
+| `ai_docs/ROADMAP.md`          | Canonical product implementation order and "do not build yet" list. |
 | `ai_docs/DATABASE.md`         | Tables, enums, RLS policies, RPCs, privacy notes.                  |
 | `ai_docs/API.md`              | Server functions, webhook surface, AI integration, future B2B API. |
 | `ai_docs/DEPLOYMENT.md`       | Hosting, env vars, secrets, how to run.                            |

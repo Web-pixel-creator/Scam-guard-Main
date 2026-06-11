@@ -55,6 +55,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/image-intelligence.ts`         | Structured Telegram image evidence: visual category, QR purpose, risk hints, safe input.                                                      |
 | `risk/detect.ts`                     | Input detection, normalization, masking, redaction.                                                                                           |
 | `risk/rules.ts`                      | Reason codes, weights, regex patterns, scoring, labels, advice.                                                                               |
+| `risk/phone-intelligence.ts`         | Honest phone-number passport: country/calling code, Uzbekistan prefix/operator hint and official-directory status without owner inference.     |
 | `risk/hash.ts`                       | Identifier hashing.                                                                                                                           |
 | `risk/rate-limit.ts`                 | In-memory rate limit.                                                                                                                         |
 | `risk/verified-contacts.ts`          | Official Uzbekistan contacts (banks, telecom, gov, payments). Lookup for pipeline.                                                            |

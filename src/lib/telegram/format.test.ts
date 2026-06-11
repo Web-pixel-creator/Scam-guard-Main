@@ -494,18 +494,73 @@ describe("formatCheckResult — Phone Directory v1", () => {
         score: 0,
         reasons: ["valid_uz_phone"],
         explanation: null,
+        phoneIntelligence: {
+          digits: "998901234567",
+          normalized: "+998901234567",
+          kind: "uz_mobile",
+          isValidFormat: true,
+          isUzbekistan: true,
+          country: {
+            iso: "UZ",
+            callingCode: "998",
+            name: { ru: "Узбекистан", uz: "O'zbekiston", en: "Uzbekistan" },
+          },
+          uzPrefix: "90",
+          uzOperator: {
+            ru: "Beeline по префиксу 90",
+            uz: "90 prefiksi bo'yicha Beeline",
+            en: "Beeline by prefix 90",
+          },
+          officialDirectoryStatus: "not_found",
+        },
       }),
       "ru",
     );
 
+    expect(text).toContain(escapeMarkdownV2("Номер: Узбекистан (+998), Beeline по префиксу 90."));
     expect(text).toContain(
-      escapeMarkdownV2("не могу назвать владельца без официального источника"),
+      escapeMarkdownV2("В официальном справочнике Ishonch Guard совпадения нет."),
     );
+    expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
     expect(text).toContain(escapeMarkdownV2("удалённый доступ"));
     expect(text).not.toContain("Uzonline");
     expect(text).not.toContain("Uztelecom");
     expect(text).not.toContain("901234567");
+  });
+
+  it("shows foreign phone country without claiming hidden reputation data", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        display: "+49•••••56",
+        level: "unknown",
+        score: 5,
+        reasons: ["non_uz_phone"],
+        explanation: null,
+        phoneIntelligence: {
+          digits: "4930123456",
+          normalized: "+49 30 123456",
+          kind: "international",
+          isValidFormat: true,
+          isUzbekistan: false,
+          country: {
+            iso: "DE",
+            callingCode: "49",
+            name: { ru: "Германия", uz: "Germaniya", en: "Germany" },
+          },
+          uzPrefix: null,
+          uzOperator: null,
+          officialDirectoryStatus: "not_found",
+        },
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Номер: Германия (+49)."));
+    expect(text).toContain(escapeMarkdownV2("Это не узбекский номер"));
+    expect(text).not.toMatch(/SCAM-метк|возраст аккаунта|истори[яи] жалоб/i);
+    expect(text).not.toContain("4930123456");
   });
 });
 
