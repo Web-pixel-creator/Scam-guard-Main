@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Emergency First-Card Human Guidance
+
+- Added short human reassurance/explanation cues to the first `/panic` scenario cards for SMS-code, APK, transfer, card-data, lost-Telegram and live-call cases.
+- Preserved the urgent action as the first content line so stressed users still see the safest next step immediately.
+- Added regression tests for APK, card-data and live-call first-card wording.
+
 ## 2026-06-11 - Telegram Follow-up Memory v1 regression lock
 
 - Added `.kiro/specs/telegram-followup-memory-v1/`.

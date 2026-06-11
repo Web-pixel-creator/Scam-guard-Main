@@ -764,7 +764,7 @@ export function buildPanicScenarioText(id: PanicScenarioId, lang: Lang): string 
   const scenario = scenarios[id - 1]; // 1-indexed → 0-indexed
 
   const parts: string[] = [scenario.title[lang], ""];
-  for (const step of scenario.steps[lang]) {
+  for (const step of withScenarioHumanCue(scenario.steps[lang], id, lang)) {
     parts.push(step);
   }
   parts.push("");
@@ -772,6 +772,47 @@ export function buildPanicScenarioText(id: PanicScenarioId, lang: Lang): string 
 
   return parts.join("\n");
 }
+
+function withScenarioHumanCue(steps: string[], id: PanicScenarioId, lang: Lang): string[] {
+  const cue = SCENARIO_HUMAN_CUES[id]?.[lang];
+  if (!cue || steps.length === 0) return steps;
+
+  const [firstAction, ...rest] = steps;
+  return [firstAction, "", cue, ...rest];
+}
+
+const SCENARIO_HUMAN_CUES: Partial<Record<PanicScenarioId, Record<Lang, string>>> = {
+  1: {
+    ru: "Я рядом. Главное сейчас — закрыть доступ к деньгам, а детали разберём после звонка в банк.",
+    uz: "Men yoningizdaman. Hozir eng muhimi — pulga kirishni yopish, tafsilotlarni bankka qo'ng'iroqdan keyin ko'ramiz.",
+    en: "I am with you. First we close access to the money; details can wait until after the bank call.",
+  },
+  2: {
+    ru: "Я рядом. Сначала изолируем телефон: так приложение не сможет дальше получать SMS и уведомления.",
+    uz: "Men yoningizdaman. Avval telefonni ajratamiz: ilova SMS va bildirishnomalarni ololmaydi.",
+    en: "I am with you. First isolate the phone so the app cannot keep reading SMS or notifications.",
+  },
+  3: {
+    ru: "Я рядом. Сейчас цель — остановить движение денег и сохранить доказательства, не отправляя ничего повторно.",
+    uz: "Men yoningizdaman. Maqsad — pul harakatini to'xtatish va dalillarni saqlash; qayta pul yubormang.",
+    en: "I am with you. The goal now is to stop money movement and save evidence; do not send anything again.",
+  },
+  4: {
+    ru: "Я рядом. Сначала закрываем карту: даже если списаний нет, данные уже могли попасть к посторонним.",
+    uz: "Men yoningizdaman. Avval kartani yopamiz: yechib olish bo'lmasa ham, ma'lumotlar begonalarga o'tgan bo'lishi mumkin.",
+    en: "I am with you. First block the card: even if nothing was charged, the details may already be exposed.",
+  },
+  5: {
+    ru: "Я рядом. Не спорьте с тем, кто пишет от вашего имени: сначала возвращаем доступ и предупреждаем близких.",
+    uz: "Men yoningizdaman. Sizning nomingizdan yozayotgan odam bilan tortishmang: avval kirishni tiklab, yaqinlarni ogohlantiramiz.",
+    en: "I am with you. Do not argue with whoever is using your account; first recover access and warn people.",
+  },
+  6: {
+    ru: "Я рядом. Не доказывайте ничего по телефону: настоящий банк спокойно дождётся вашего обратного звонка.",
+    uz: "Men yoningizdaman. Telefonda hech narsani isbotlamang: haqiqiy bank sizning qayta qo'ng'irog'ingizni kutadi.",
+    en: "I am with you. You do not need to prove anything on the call; a real bank will wait for your callback.",
+  },
+};
 
 /** Parse a panic callback_data ("panic:1" → 1, "panic:more"/"panic:back" → null for ID, handle separately). */
 export function parsePanicCallback(data: string): PanicScenarioId | null {

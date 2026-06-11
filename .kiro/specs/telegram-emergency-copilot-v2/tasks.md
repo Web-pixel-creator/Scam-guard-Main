@@ -21,6 +21,10 @@
   - Rename follow-up buttons to action-oriented labels
   - Rewrite safe-callback, ready-phrase and trusted-person answers for stressed/elderly users
   - Add regression tests for guided live-call follow-up text
+- [x] 12. Add human guidance cues to the first panic scenario cards
+  - Keep the urgent action as the first content line
+  - Add a short reassurance/explanation cue for scenarios 1-6
+  - Add regression tests for APK, card-data and live-call first-card wording
 
 ## Notes
 
