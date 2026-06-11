@@ -197,8 +197,8 @@ hidden Telegram capabilities.
 
 The bot may fetch `https://t.me/s/<username>/<postId>` for validated public
 Telegram post links before falling back to Bot API metadata. This is best-effort
-visible web evidence only: extract short text and visible outbound links, redact
-sensitive digits, score through the existing rules-first pipeline, and clearly
-say that hidden SCAM labels, account age, Telegram reports and spam history are
-not visible. Private invites, internal `t.me/c/...` links and arbitrary URLs are
-never fetched by this feature.
+visible web evidence only: extract short text, visible outbound links, link
+previews and inline buttons, redact sensitive digits, score through the existing
+rules-first pipeline, and clearly say that hidden SCAM labels, account age,
+Telegram reports and spam history are not visible. Private invites, internal
+`t.me/c/...` links and arbitrary URLs are never fetched by this feature.

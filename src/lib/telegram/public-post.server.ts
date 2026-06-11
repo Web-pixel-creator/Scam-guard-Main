@@ -13,7 +13,21 @@ export interface TelegramPublicPostEvidence {
   target: TelegramPublicPostTarget;
   text: string;
   links: string[];
+  buttons: TelegramPublicPostButton[];
+  previews: TelegramPublicPostPreview[];
   checkInput: string;
+}
+
+export interface TelegramPublicPostButton {
+  text: string;
+  url: string | null;
+}
+
+export interface TelegramPublicPostPreview {
+  siteName: string | null;
+  title: string | null;
+  description: string | null;
+  url: string | null;
 }
 
 export type PublicPostFetcher = (url: string, init?: RequestInit) => Promise<Response>;
@@ -25,6 +39,9 @@ const MAX_HTML_CHARS = 1_000_000;
 const MAX_TEXT_CHARS = 1400;
 const MAX_LINKS = 6;
 const MAX_LINK_CHARS = 180;
+const MAX_BUTTONS = 8;
+const MAX_PREVIEWS = 4;
+const MAX_META_TEXT_CHARS = 240;
 
 export function extractTelegramPublicPostTarget(input: string): TelegramPublicPostTarget | null {
   const target = extractTelegramPublicTarget(input);
@@ -87,18 +104,22 @@ export function parseTelegramPublicPostHtml(
   const textHtml = extractMessageTextHtml(block);
   const text = clampText(redactText(normalizePlainText(stripHtml(textHtml))));
   const links = extractVisibleLinks(block, target);
+  const buttons = extractInlineButtons(block, target);
+  const previews = extractLinkPreviews(block, target);
 
-  if (!text && links.length === 0) return null;
+  if (!text && links.length === 0 && buttons.length === 0 && previews.length === 0) return null;
 
   const checkInput = [
     `Telegram public post: https://t.me/${target.username}/${target.postId}`,
     text ? `Public post text:\n${text}` : "",
+    previews.length > 0 ? `Visible link previews:\n${previews.map(formatPreview).join("\n")}` : "",
+    buttons.length > 0 ? `Visible buttons:\n${buttons.map(formatButton).join("\n")}` : "",
     links.length > 0 ? `Visible post links:\n${links.join("\n")}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
 
-  return { target, text, links, checkInput };
+  return { target, text, links, buttons, previews, checkInput };
 }
 
 export function enrichTelegramPublicPostResult(
@@ -181,6 +202,51 @@ function extractMessageTextHtml(block: string): string {
   return match?.[1] ?? "";
 }
 
+function extractInlineButtons(
+  block: string,
+  target: TelegramPublicPostTarget,
+): TelegramPublicPostButton[] {
+  const buttons: TelegramPublicPostButton[] = [];
+  for (const match of block.matchAll(
+    /<a\b(?=[^>]*\btgme_widget_message_inline_button\b)([^>]*)>([\s\S]*?)<\/a>/gi,
+  )) {
+    const attrs = match[1];
+    const inner = match[2];
+    const text = sanitizeMetaText(inner);
+    const href = normalizeHref(decodeHtmlEntities(getAttr(attrs, "href") ?? "").trim());
+    const url = href && !isTelegramSelfLink(href, target) ? href : null;
+    if (!text && !url) continue;
+    buttons.push({ text: text || "button", url });
+    if (buttons.length >= MAX_BUTTONS) break;
+  }
+  return buttons;
+}
+
+function extractLinkPreviews(
+  block: string,
+  target: TelegramPublicPostTarget,
+): TelegramPublicPostPreview[] {
+  const previews: TelegramPublicPostPreview[] = [];
+  for (const match of block.matchAll(
+    /<a\b(?=[^>]*\btgme_widget_message_link_preview\b)([^>]*)>([\s\S]*?)<\/a>/gi,
+  )) {
+    const attrs = match[1];
+    const inner = match[2];
+    const href = normalizeHref(decodeHtmlEntities(getAttr(attrs, "href") ?? "").trim());
+    const url = href && !isTelegramSelfLink(href, target) ? href : null;
+    const preview: TelegramPublicPostPreview = {
+      siteName: extractClassText(inner, "link_preview_site_name"),
+      title: extractClassText(inner, "link_preview_title"),
+      description: extractClassText(inner, "link_preview_description"),
+      url,
+    };
+    if (!preview.siteName && !preview.title && !preview.description && !preview.url) continue;
+    previews.push(preview);
+    if (previews.length >= MAX_PREVIEWS) break;
+  }
+  return previews;
+}
+
 function extractVisibleLinks(block: string, target: TelegramPublicPostTarget): string[] {
   const links = new Set<string>();
   for (const match of block.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi)) {
@@ -191,6 +257,25 @@ function extractVisibleLinks(block: string, target: TelegramPublicPostTarget): s
     if (links.size >= MAX_LINKS) break;
   }
   return [...links];
+}
+
+function getAttr(attrs: string, name: string): string | null {
+  const re = new RegExp(`\\b${escapeRegExp(name)}=["']([^"']+)["']`, "i");
+  return re.exec(attrs)?.[1] ?? null;
+}
+
+function extractClassText(html: string, className: string): string | null {
+  const re = new RegExp(
+    `<(?:div|span)\\b(?=[^>]*\\bclass=["'][^"']*${escapeRegExp(className)}[^"']*["'])[^>]*>([\\s\\S]*?)<\\/(?:div|span)>`,
+    "i",
+  );
+  const text = sanitizeMetaText(re.exec(html)?.[1] ?? "");
+  return text || null;
+}
+
+function sanitizeMetaText(html: string): string {
+  const text = redactText(normalizePlainText(stripHtml(html)));
+  return text.length > MAX_META_TEXT_CHARS ? `${text.slice(0, MAX_META_TEXT_CHARS - 1)}…` : text;
 }
 
 function normalizeHref(href: string): string | null {
@@ -214,6 +299,18 @@ function isTelegramSelfLink(href: string, target: TelegramPublicPostTarget): boo
   } catch {
     return false;
   }
+}
+
+function formatButton(button: TelegramPublicPostButton): string {
+  return `- ${button.text}${button.url ? ` -> ${button.url}` : ""}`;
+}
+
+function formatPreview(preview: TelegramPublicPostPreview): string {
+  const parts = [preview.siteName, preview.title, preview.description]
+    .filter((part): part is string => Boolean(part))
+    .join(" | ");
+  const label = parts || "link preview";
+  return `- ${label}${preview.url ? ` -> ${preview.url}` : ""}`;
 }
 
 function stripHtml(html: string): string {
@@ -275,10 +372,10 @@ function escapeRegExp(value: string): string {
 function publicPostBrief(evidence: TelegramPublicPostEvidence, lang: Lang): string {
   const post = `@${evidence.target.username}/${evidence.target.postId}`;
   if (lang === "uz") {
-    return `Manba: Telegram ochiq posti ${post}. Men faqat ochiq web-sahifadagi ko'rinadigan matn/havolalarni tekshirdim; yashirin SCAM belgisi, akkaunt yoshi va Telegram shikoyatlari menga ko'rinmaydi.`;
+    return `Manba: Telegram ochiq posti ${post}. Men faqat ochiq web-sahifadagi ko'rinadigan matn, havola, tugma va previewlarni tekshirdim; yashirin SCAM belgisi, akkaunt yoshi va Telegram shikoyatlari menga ko'rinmaydi.`;
   }
   if (lang === "en") {
-    return `Source: public Telegram post ${post}. I checked only visible text/links from the public web page; hidden SCAM labels, account age and Telegram reports are not visible to me.`;
+    return `Source: public Telegram post ${post}. I checked only visible text, links, buttons and previews from the public web page; hidden SCAM labels, account age and Telegram reports are not visible to me.`;
   }
-  return `Источник: публичный Telegram-пост ${post}. Я проверил только видимый текст/ссылки с публичной web-страницы; скрытые SCAM-метки, возраст аккаунта и жалобы Telegram мне не видны.`;
+  return `Источник: публичный Telegram-пост ${post}. Я проверил только видимый текст, ссылки, кнопки и превью с публичной web-страницы; скрытые SCAM-метки, возраст аккаунта и жалобы Telegram мне не видны.`;
 }

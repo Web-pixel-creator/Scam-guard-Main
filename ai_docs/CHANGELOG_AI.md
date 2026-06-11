@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Telegram Public Post Evidence v2
+
+- Added `.kiro/specs/telegram-public-post-evidence-v2/`.
+- Public Telegram post checks now include visible link preview fields and inline-button labels/URLs in the rules-first evidence.
+- This improves detection of visible casino/free-spins, betting/VIP, NFT/Stars, voting/captcha and reward mechanics hidden in Telegram previews/buttons.
+- False-positive coverage keeps ordinary Telegram news/product previews and buttons non-accusatory.
+
 ## 2026-06-11 - Telegram Public Post Fetch v1
 
 - Added `.kiro/specs/telegram-public-post-fetch-v1/`.

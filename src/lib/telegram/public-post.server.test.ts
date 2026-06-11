@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { evaluateText, scoreFromCodes } from "@/lib/risk/rules";
 import {
   buildTelegramPublicPostCheckEvidence,
   enrichTelegramPublicPostResult,
@@ -81,6 +82,110 @@ describe("telegram public post fetch", () => {
     expect(evidence?.checkInput).toContain("Public post text:");
     expect(evidence?.checkInput).toContain("Visible post links:");
     expect(evidence?.checkInput).not.toContain("<br");
+    expect(evidence?.buttons).toEqual([]);
+    expect(evidence?.previews).toEqual([]);
+  });
+
+  it("extracts visible link previews and inline buttons as scoring evidence", () => {
+    const evidence = parseTelegramPublicPostHtml(
+      telegramHtml(`
+        <div class="tgme_widget_message_text js-message_text" dir="auto">
+          СЕГОДНЯ СТАВЛЮ НА МАТЧ: США - ГЕРМАНИЯ. Посмотреть прогноз бесплатно.
+        </div>
+        <a class="tgme_widget_message_link_preview" href="https://t.me/+fdOETKx56pozNTBi">
+          <div class="link_preview_site_name accent_color" dir="auto">Telegram</div>
+          <div class="link_preview_title" dir="auto">LUXEBET</div>
+          <div class="link_preview_description" dir="auto">Азартные игры могут вызывать зависимость. Играйте ответственно. 18+</div>
+        </a>
+        <div class="tgme_widget_message_inline_keyboard">
+          <a class="tgme_widget_message_inline_button" href="https://t.me/+fdOETKx56pozNTBi">
+            <span class="tgme_widget_message_inline_button_text">ПРОГНОЗ НА 100.000₽</span>
+          </a>
+          <a class="tgme_widget_message_inline_button" href="https://example.com/vip">
+            <span class="tgme_widget_message_inline_button_text">Подписывайся</span>
+          </a>
+        </div>
+      `),
+      { username: "TonZnatok", postId: "123" },
+    );
+
+    expect(evidence).not.toBeNull();
+    expect(evidence?.previews).toEqual([
+      {
+        siteName: "Telegram",
+        title: "LUXEBET",
+        description: "Азартные игры могут вызывать зависимость. Играйте ответственно. 18+",
+        url: "https://t.me/+fdOETKx56pozNTBi",
+      },
+    ]);
+    expect(evidence?.buttons).toEqual([
+      { text: "ПРОГНОЗ НА 100.000₽", url: "https://t.me/+fdOETKx56pozNTBi" },
+      { text: "Подписывайся", url: "https://example.com/vip" },
+    ]);
+    expect(evidence?.checkInput).toContain("Visible link previews:");
+    expect(evidence?.checkInput).toContain("Visible buttons:");
+    expect(evidence?.checkInput).toContain("LUXEBET");
+    expect(evidence?.checkInput).toContain("ПРОГНОЗ НА");
+
+    const reasons = evaluateText(evidence!.checkInput);
+    expect(reasons).toEqual(expect.arrayContaining(["gambling_prediction_promo"]));
+  });
+
+  it("uses preview/button evidence for public giveaway voting mechanics", () => {
+    const evidence = parseTelegramPublicPostHtml(
+      telegramHtml(`
+        <div class="tgme_widget_message_text js-message_text" dir="auto">
+          Разыгрываем 3 RANDOM NFT из Банка подарков через 48 часов.
+        </div>
+        <a class="tgme_widget_message_link_preview" href="https://voting.blockchain-life.com">
+          <div class="link_preview_site_name" dir="auto">InvestZone</div>
+          <div class="link_preview_title" dir="auto">Зайдите проголосуйте</div>
+          <div class="link_preview_description" dir="auto">Со сцены пойду забирать статуэтку</div>
+        </a>
+        <div class="tgme_widget_message_inline_keyboard">
+          <a class="tgme_widget_message_inline_button" href="https://voting.blockchain-life.com">
+            <span class="tgme_widget_message_inline_button_text">Участвую!</span>
+          </a>
+        </div>
+      `),
+      { username: "TonZnatok", postId: "123" },
+    );
+
+    const reasons = evaluateText(evidence!.checkInput);
+    expect(reasons).toEqual(
+      expect.arrayContaining(["giveaway_engagement_bait", "fake_captcha_or_voting"]),
+    );
+    expect(scoreFromCodes(reasons).level).toBe("high_risk");
+  });
+
+  it("keeps ordinary public post previews and buttons non-accusatory", () => {
+    const evidence = parseTelegramPublicPostHtml(
+      telegramHtml(`
+        <div class="tgme_widget_message_text js-message_text" dir="auto">
+          Huge Telegram update — 10 major new features and 200+ improvements.
+        </div>
+        <a class="tgme_widget_message_link_preview" href="https://telegram.org/blog/ai-bot-revolution-11-new-features">
+          <div class="link_preview_site_name" dir="auto">Telegram</div>
+          <div class="link_preview_title" dir="auto">AI Bot Revolution</div>
+          <div class="link_preview_description" dir="auto">New features for developers and users.</div>
+        </a>
+        <div class="tgme_widget_message_inline_keyboard">
+          <a class="tgme_widget_message_inline_button" href="https://telegram.org/blog/ai-bot-revolution-11-new-features">
+            <span class="tgme_widget_message_inline_button_text">Read more</span>
+          </a>
+        </div>
+      `),
+      { username: "TonZnatok", postId: "123" },
+    );
+
+    expect(evidence).not.toBeNull();
+    const reasons = evaluateText(evidence!.checkInput);
+    expect(reasons).not.toContain("crypto_casino_bonus_funnel");
+    expect(reasons).not.toContain("giveaway_engagement_bait");
+    expect(reasons).not.toContain("fake_captcha_or_voting");
+    expect(reasons).not.toContain("task_reward_engagement_bait");
+    expect(reasons).not.toContain("wallet_action_urgency");
+    expect(reasons).not.toContain("ton_referral_earning_scheme");
   });
 
   it("redacts sensitive digits before building risk evidence", () => {
@@ -195,7 +300,7 @@ describe("telegram public post fetch", () => {
     expect(enriched.score).toBe(result.score);
     expect(enriched.reasons).toEqual(result.reasons);
     expect(enriched.explanation).toContain("публичный Telegram-пост @TonZnatok/123");
-    expect(enriched.explanation).toContain("только видимый текст/ссылки");
+    expect(enriched.explanation).toContain("только видимый текст, ссылки, кнопки и превью");
     expect(enriched.explanation).toContain("SCAM-метки");
     expect(enriched.explanation).toContain("Detected visible giveaway language.");
   });

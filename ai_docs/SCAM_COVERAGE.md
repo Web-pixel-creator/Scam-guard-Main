@@ -72,6 +72,7 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
   - wallet/DeFi urgency such as security incident, 24-hour grace period, liquidation/top-up/fee prompts (`wallet_action_urgency`);
   - TON/crypto referral earning promises (`ton_referral_earning_scheme`).
   - public contest/voting domains tied to prizes or awards are treated as voting-gate evidence; ordinary Telegram news/product posts remain non-accusatory and ask for the next screen/link if a button later requests sensitive data.
+  - public Telegram post checks use only visible web evidence: message text, outbound links, link previews and inline-button labels/URLs. Hidden Telegram SCAM labels, account age, report counts and spam history remain unavailable.
 
 External context used for Scam Research Feed v2 generalization:
 
