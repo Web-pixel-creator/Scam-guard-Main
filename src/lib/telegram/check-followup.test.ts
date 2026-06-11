@@ -97,6 +97,45 @@ describe("last check follow-up router", () => {
     expect(text).not.toMatch(/score|threshold|порог|коэффициент|вес\s*(?:риска|=|:)/i);
   });
 
+  it("answers real Russian high-risk confidence follow-ups with action-first guidance", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["asks_for_sms_code"] }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp("Точно?", scenarioWith(snapshot), now);
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+
+    expect(action).toBe("confidence");
+    expect(text).toContain("Я бы действовал как при реальном риске");
+    expect(text).toContain("Не сообщайте SMS-код");
+    expect(text).toContain("эти шаги вам не навредят");
+    expect(text).not.toContain("Не могу гарантировать на 100%");
+  });
+
+  it("does not expose weak topic-only evidence in unknown explanations", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const phone = buildLastCheckSnapshot(
+      baseResult({ type: "phone", level: "unknown", reasons: ["valid_uz_phone"] }),
+      now,
+    );
+    const profile = buildLastCheckSnapshot(
+      baseResult({ type: "telegram", level: "unknown", reasons: ["unknown_sender"] }),
+      now,
+    );
+
+    const phoneText = buildLastCheckFollowUpText("explain", phone, "ru");
+    const profileText = buildLastCheckFollowUpText("explain", profile, "ru");
+
+    expect(phoneText).toContain("сам номер не доказательство");
+    expect(phoneText).not.toContain("Что я увидел");
+    expect(phoneText).not.toContain("Корректный узбекский номер");
+    expect(profileText).toContain("я не вижу скрытую Telegram SCAM-метку");
+    expect(profileText).not.toContain("Что я увидел");
+    expect(profileText).not.toContain("Отправитель неизвестен");
+  });
+
   it("does not intercept real scam payloads that need a fresh check", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
     const snapshot = buildLastCheckSnapshot(baseResult(), now);

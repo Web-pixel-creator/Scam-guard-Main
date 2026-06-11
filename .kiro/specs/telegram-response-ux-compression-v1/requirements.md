@@ -72,3 +72,9 @@ Telegram emergency replies should pass the "5 second panic test": a stressed use
 2. THE contextual explanation SHALL use only non-sensitive snapshot metadata: risk level, input type, context, timestamp, and reason codes.
 3. THE contextual explanation SHALL NOT store or render raw user input, links, phone numbers, OCR text, card data, codes, or image bytes.
 4. WHEN there is no recent check, THE Bot SHALL keep the generic `why_explanation` fallback.
+
+### R11. Follow-Up Confidence Polish
+
+1. WHEN a recent check is `high_risk` and the user asks a confidence question such as "Точно?", THE Bot SHALL answer with action-first safety guidance instead of leading with generic uncertainty.
+2. WHEN a recent `unknown` phone or Telegram-profile check is explained, THE Bot SHALL NOT present weak topic-only signals such as a valid phone format or unknown sender as standalone evidence.
+3. THE Bot SHALL keep the boundary that Telegram hidden SCAM labels, account age, complaint history and phone ownership are not visible unless backed by a supported source.

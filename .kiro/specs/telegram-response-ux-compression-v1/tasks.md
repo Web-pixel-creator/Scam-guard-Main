@@ -14,6 +14,7 @@
 - [x] 10. Add compact image triage follow-up keyboard so category answers do not repeat the full menu.
 - [x] 11. Compress high-risk check results to urgent actions plus short evidence summary.
 - [x] 12. Compress unknown/suspicious check results and make the `why` result button contextual.
+- [x] 13. Polish confidence/explanation follow-ups after live QA: high-risk confidence is action-first, and unknown phone/profile explanations hide weak topic-only evidence.
 
 ## Notes
 
