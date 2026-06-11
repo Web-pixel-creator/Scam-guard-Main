@@ -5,4 +5,4 @@
 - [x] Add handler-level regression proving follow-ups bypass `runCheck`.
 - [x] Update AI docs.
 - [x] Run targeted tests, full tests, typecheck, lint and build.
-- [ ] Commit, push, deploy and smoke production bot.
+- [x] Commit, push, deploy and smoke production bot.
