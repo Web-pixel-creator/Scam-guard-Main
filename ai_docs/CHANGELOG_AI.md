@@ -218,6 +218,13 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added a one-tap `panicctx:more` button so users can continue from an emergency answer without typing.
 - Added regression tests for exact post-panic follow-up phrases that previously felt like dead ends.
 
+# 2026-06-11 - Phone Reputation v1
+
+- Added `.kiro/specs/phone-reputation-v1/`.
+- Added a confirmed-only phone reputation summary built from moderated `entities` rows.
+- Telegram result cards now show Ishonch Guard moderated report count and confidence for confirmed phone numbers, while explicitly avoiding owner/carrier/hidden-label claims.
+- Updated roadmap, database, architecture, file/function maps and decisions.
+
 ## 2026-06-06 - Telegram Image Intelligence v2
 
 - Added `.kiro/specs/telegram-image-intelligence-v2/`.

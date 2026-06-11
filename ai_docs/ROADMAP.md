@@ -24,7 +24,7 @@ Status: in progress.
 
 ### 1A. Phone Intelligence Passport v1
 
-Status: in progress.
+Status: shipped.
 
 Goal: make phone checks immediately useful without pretending we know the caller.
 
@@ -38,16 +38,17 @@ Shipped behavior:
 
 ### 1B. Moderated Phone Reputation v1
 
-Status: next.
+Status: shipped as a minimal v1.
 
 Goal: "there are confirmed reports about this number" only after moderation.
 
 Scope:
 
-- Store phone targets by HMAC hash, not raw number.
-- Add admin moderation source/confidence fields.
-- Surface counts only for confirmed records.
-- Add appeal/removal and false-positive handling before public launch.
+- Reuses the existing `entities` HMAC hash and moderation boundary.
+- Surfaces counts only for confirmed phone records with positive report counts.
+- Shows source and confidence as Ishonch Guard moderated reports, not carrier data.
+- Never claims owner, SIM age, hidden scam label, spam history or unmoderated community reputation.
+- Appeal/removal flow and richer admin source fields remain later compliance work.
 
 ### 1C. Optional Paid Enrichment
 

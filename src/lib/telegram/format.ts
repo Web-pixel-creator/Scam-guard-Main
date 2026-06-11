@@ -28,6 +28,7 @@ import {
 import { t, type Lang } from "@/lib/i18n";
 import { REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import type { PhoneReputationConfidence } from "@/lib/risk/phone-reputation";
 import { findMatchingPatterns } from "@/lib/scam-patterns";
 import {
   TEMPLATES,
@@ -218,6 +219,27 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
   return lines.join("\n");
 }
 
+function phoneReputationConfidenceLabel(confidence: PhoneReputationConfidence, lang: Lang): string {
+  const labels: Record<PhoneReputationConfidence, Record<Lang, string>> = {
+    low: { ru: "низкая", uz: "past", en: "low" },
+    medium: { ru: "средняя", uz: "o'rtacha", en: "medium" },
+    high: { ru: "высокая", uz: "yuqori", en: "high" },
+  };
+  return labels[confidence][lang];
+}
+
+function renderPhoneReputationObservation(result: RunCheckResult, lang: Lang): string | null {
+  const reputation = result.phoneReputation;
+  if (!reputation) return null;
+
+  const summary = bt("phone_reputation_reports", lang, {
+    count: reputation.confirmedReportCount,
+    confidence: phoneReputationConfidenceLabel(reputation.confidence, lang),
+  });
+  const limit = bt("phone_reputation_limit", lang);
+  return escapeMarkdownV2(`${summary} ${limit}`);
+}
+
 // ── Section Sub-Renderers ───────────────────────────────────────────────────
 
 /**
@@ -375,7 +397,10 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
 
   // Known reports
-  if (result.knownReports > 0) {
+  const phoneReputationLine = renderPhoneReputationObservation(result, lang);
+  if (phoneReputationLine) {
+    parts.push(phoneReputationLine);
+  } else if (result.knownReports > 0) {
     parts.push(escapeMarkdownV2(bt("known_reports", lang, { count: result.knownReports })));
   }
 

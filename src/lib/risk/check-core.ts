@@ -43,6 +43,7 @@ import {
   buildPhoneIntelligencePassport,
   type PhoneIntelligencePassport,
 } from "./phone-intelligence";
+import { buildPhoneReputationSummary, type PhoneReputationSummary } from "./phone-reputation";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -80,6 +81,8 @@ export interface RunCheckResult {
   brandEvidence: BrandEvidence[];
   /** Honest phone metadata: country/prefix/official-directory status. No owner inference. */
   phoneIntelligence?: PhoneIntelligencePassport | null;
+  /** Confirmed, moderated Ishonch Guard reports for this phone. No owner inference. */
+  phoneReputation?: PhoneReputationSummary | null;
 }
 
 export type RateLimitedError = Error & { status: 429; retryAfter: number };
@@ -201,6 +204,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   }
 
   let knownReports = 0;
+  let phoneReputation: PhoneReputationSummary | null = null;
   if (["phone", "telegram", "url", "apk"].includes(detected)) {
     const hash = await hashIdentifier(normalized);
     const { data: ent } = await supabaseAdmin
@@ -210,6 +214,9 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       .maybeSingle();
     if (ent && ent.moderation_status === "confirmed") {
       knownReports = ent.report_count;
+      if (detected === "phone") {
+        phoneReputation = buildPhoneReputationSummary(ent);
+      }
       if (ent.risk_level === "high_risk") codes.add("known_reported");
     }
   }
@@ -327,6 +334,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     verifiedContact,
     brandEvidence,
     phoneIntelligence,
+    phoneReputation,
   };
 }
 

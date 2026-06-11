@@ -285,6 +285,12 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     });
 
     expect(result.knownReports).toBe(7);
+    expect(result.phoneReputation).toMatchObject({
+      source: "ishonch_guard_moderated_reports",
+      confirmedReportCount: 7,
+      confidence: "high",
+      publicScope: "confirmed_moderated_reports_only",
+    });
     expect(result.reasons).toContain("known_reported");
     expect(result.reasons).not.toContain("asks_to_install_apk");
     expect(result.level).toBe("high_risk");

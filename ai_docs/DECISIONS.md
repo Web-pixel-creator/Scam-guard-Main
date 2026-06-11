@@ -138,6 +138,14 @@ or increment an `entities` row. This keeps the report flow useful for scared or
 elderly users while protecting unrelated people/accounts from description-only
 public reputation.
 
+## D-022 - Phone reputation is moderated evidence, not caller identity
+
+Phone checks may show Ishonch Guard confirmed report counts only after the
+existing `entities` moderation gate. The app must not infer owner, SIM age,
+carrier-private data, hidden scam labels, Telegram report history or spam
+history for a number. Confidence is derived only from confirmed moderated report
+count until a lawful external provider is explicitly integrated.
+
 ## D-022 - Telegram reputation is app-owned and moderated
 
 Telegram Bot API does not expose reliable account age, hidden SCAM labels,

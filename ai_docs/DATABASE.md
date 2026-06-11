@@ -42,6 +42,11 @@ Aggregated suspicious identifiers: `id, entity_type, entity_hash, display_mask, 
 
 RLS: public can select only `moderation_status='confirmed'`; admins select/update; service-role writes. This prevents unmoderated public accusations.
 
+Phone Reputation v1 reads confirmed phone rows from this table only after
+moderation. User-facing output may show the Ishonch Guard confirmed report count
+and derived confidence, but must not claim a number owner, carrier-private data,
+hidden scam labels, account age or spam history.
+
 ### `telegram_reputation_targets`
 
 DB-backed reputation for Telegram usernames/links: `id, target_hash, target_type,

@@ -456,6 +456,33 @@ describe("formatCheckResult — known reports line (R4.11)", () => {
     // Count-independent fragment unique to the known_reports string.
     expect(text).not.toContain(escapeMarkdownV2("подтверждённых жалоб"));
   });
+
+  it("shows phone reputation with source, confidence and limits instead of hidden-data claims", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        display: "+998 90 ••• 67",
+        level: "high_risk",
+        knownReports: 3,
+        reasons: ["known_reported"],
+        phoneReputation: {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: 3,
+          confidence: "medium",
+          riskLevel: "high_risk",
+          publicScope: "confirmed_moderated_reports_only",
+        },
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Ishonch Guard"));
+    expect(text).toContain(escapeMarkdownV2("3 подтверждённых жалоб"));
+    expect(text).toContain(escapeMarkdownV2("Уверенность: средняя"));
+    expect(text).toContain(escapeMarkdownV2("не определяет владельца номера"));
+    expect(text).not.toMatch(/скрыт(ая|ой).*баз/i);
+    expect(text).not.toContain("901234567");
+  });
 });
 
 describe("formatCheckResult — Phone Directory v1", () => {

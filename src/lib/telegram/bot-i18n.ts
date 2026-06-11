@@ -224,6 +224,16 @@ export const bot_dict: BotDict = {
     uz: "Bazada bu kontakt bo‘yicha {count} ta tasdiqlangan shikoyat bor.",
     en: "There are {count} confirmed reports about this contact in our database.",
   },
+  phone_reputation_reports: {
+    ru: "Ishonch Guard: {count} подтверждённых жалоб после модерации. Уверенность: {confidence}.",
+    uz: "Ishonch Guard: moderatsiyadan keyin {count} ta tasdiqlangan shikoyat. Ishonch: {confidence}.",
+    en: "Ishonch Guard: {count} confirmed moderated report(s). Confidence: {confidence}.",
+  },
+  phone_reputation_limit: {
+    ru: "Это не определяет владельца номера и не является данными оператора.",
+    uz: "Bu raqam egasini aniqlamaydi va operator ma'lumoti emas.",
+    en: "This does not identify the number owner and is not carrier data.",
+  },
 
   // ── Contact card (R21.4) ──────────────────────────────────────────────────
   contact_no_number: {

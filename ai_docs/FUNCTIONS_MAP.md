@@ -35,6 +35,11 @@ Signatures and intent only. See file paths for source.
 
 - `buildPhoneIntelligencePassport(raw, normalized, verifiedContact)` returns honest phone metadata: country/calling code, Uzbekistan prefix/operator hint, format status and official-directory status. It never infers owner, hidden scam labels, account age, spam history or report volume.
 
+**`src/lib/risk/phone-reputation.ts`**
+
+- `buildPhoneReputationSummary(row)` exposes confirmed phone reputation only from moderated `entities` rows with positive report counts.
+- `phoneReputationConfidence(count)` maps confirmed report counts to conservative `low | medium | high` confidence labels.
+
 **`src/lib/risk/check-core.ts`**
 
 - `runCheck(params)` is the transport-independent check pipeline.
