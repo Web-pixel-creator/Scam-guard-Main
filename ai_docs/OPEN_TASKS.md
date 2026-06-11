@@ -20,6 +20,7 @@
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [x] ~~Add honest phone intelligence before reputation claims.~~ Done in Phone Intelligence Passport v1: country/calling-code, Uzbekistan prefix/operator hints and official-directory status without owner/scam-label inference.
 - [x] ~~Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.~~ Minimal v1 shipped using confirmed `entities` rows only: Telegram shows Ishonch Guard moderated report count + confidence, while owner/carrier/hidden-label claims stay forbidden.
+- [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews; BotFather `/setinline` still must be enabled operationally.
 - [ ] Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.
 - [ ] Production operational verification on Railway: `npm run prod:smoke` now covers endpoint, healthcheck, webhook auth, Telegram pending state and AI provider; still confirm billing, Supabase migrations and real `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
 

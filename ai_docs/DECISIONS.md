@@ -2,6 +2,13 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-031 - Inline checks are previews, not analytics events
+
+Telegram inline mode fires while the user types in another chat. Inline checks
+therefore run rules-only (`skipAi=true`) and non-persistent (`persist=false`):
+they may use deterministic scoring, verified contacts and moderated reputation,
+but they must not call AI/OCR or insert partial queries into `checks`.
+
 ## D-030 - Phone intelligence is not reputation
 
 Phone checks may show a "passport" built from public deterministic metadata:

@@ -181,7 +181,21 @@ not-ok. `setWebhook` does send the secret token to Telegram over HTTPS — that
 is by design; Telegram then echoes it back in the request header so the webhook
 can authenticate updates.
 
-### 4. Verify no secrets leak to logs or the client bundle
+### 4. Enable Telegram inline mode
+
+The code can answer `inline_query` updates, but Telegram requires inline mode
+to be enabled for the bot in BotFather:
+
+1. Open BotFather.
+2. Run `/setinline`.
+3. Choose `@scamguard_bot`.
+4. Set a short placeholder such as `Введите номер, ссылку или текст для проверки`.
+
+After that, users can type `@scamguard_bot <number/link/text>` in any Telegram
+chat and insert a compact risk card. Inline previews are rules-only and
+non-persistent.
+
+### 5. Verify no secrets leak to logs or the client bundle
 
 - Confirm logs around webhook registration and runtime show **only** event
   type / `Input_Type` / `Risk_Level`, never raw user content, identifiers, or
@@ -195,7 +209,7 @@ can authenticate updates.
   reply. A `401` from the endpoint means the `TELEGRAM_WEBHOOK_SECRET` in the
   environment does not match what was registered in step 3.
 
-### 5. Run the production smoke script
+### 6. Run the production smoke script
 
 After every Railway deploy or important env change, run the smoke script from a
 shell that has the production variables available. It checks the public app,

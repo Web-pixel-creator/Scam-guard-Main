@@ -18,7 +18,7 @@
 // _Requirements: 5.3, 5.5_
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getTelegramBotToken } from "@/lib/config.server";
-import { getFile, downloadFileAsDataUrl } from "./api.server";
+import { getFile, downloadFileAsDataUrl, answerInlineQuery } from "./api.server";
 
 // Мокаем источник токена. Фабрика hoisted наверх — реализацию переопределяем
 // в каждом тесте через vi.mocked(getTelegramBotToken).
@@ -113,6 +113,66 @@ describe("getFile", () => {
 
     expect(await getFile("id")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// answerInlineQuery
+// ---------------------------------------------------------------------------
+
+describe("answerInlineQuery", () => {
+  it("posts article results to Telegram with inline-mode options", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: true }), { status: 200 }),
+    );
+
+    const result = await answerInlineQuery({
+      inlineQueryId: "inline-1",
+      cacheTime: 2,
+      isPersonal: true,
+      results: [
+        {
+          type: "article",
+          id: "check-high",
+          title: "High risk",
+          description: "Do not send codes",
+          input_message_content: {
+            message_text: "High risk",
+            parse_mode: "MarkdownV2",
+            disable_web_page_preview: true,
+          },
+          reply_markup: {
+            inline_keyboard: [[{ text: "Open", url: "https://t.me/scamguard_bot" }]],
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/answerInlineQuery`);
+    expect(JSON.parse(init.body)).toEqual({
+      inline_query_id: "inline-1",
+      cache_time: 2,
+      is_personal: true,
+      results: [
+        {
+          type: "article",
+          id: "check-high",
+          title: "High risk",
+          description: "Do not send codes",
+          input_message_content: {
+            message_text: "High risk",
+            parse_mode: "MarkdownV2",
+            disable_web_page_preview: true,
+          },
+          reply_markup: {
+            inline_keyboard: [[{ text: "Open", url: "https://t.me/scamguard_bot" }]],
+          },
+        },
+      ],
+    });
   });
 });
 

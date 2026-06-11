@@ -2,6 +2,14 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Telegram Inline Check v1
+
+- Added `.kiro/specs/telegram-inline-check-v1/`.
+- Telegram webhook/router now handles `inline_query` updates without requiring a chat id.
+- Added `answerInlineQuery` Bot API helper and `src/lib/telegram/handlers/inline.ts` for compact inline result articles.
+- Inline checks call `runCheck(skipAi:true, persist:false)`, so typed previews do not call AI/OCR and do not insert partial queries into `checks`.
+- Deployment docs now call out the BotFather `/setinline` operational step.
+
 ## 2026-06-11 - Roadmap and Phone Intelligence Passport v1
 
 - Added `ai_docs/ROADMAP.md` as the canonical product implementation order.

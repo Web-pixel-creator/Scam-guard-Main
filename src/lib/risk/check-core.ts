@@ -54,6 +54,8 @@ export interface RunCheckParams {
   lang: Lang;
   rateLimitKey: string; // "check:<ip>" для веба, "tg:<userId>" для бота
   channel?: CheckChannel; // default "web"
+  /** Set false for non-final previews such as Telegram inline typing. */
+  persist?: boolean;
   skipAi?: boolean; // принудительно без AI (например быстрый путь)
   /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
   safeIfNoReasons?: boolean;
@@ -144,7 +146,7 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
  *   scoreFromCodes → aiExplain(optional) → insert into checks.
  */
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> {
-  const { input, type, lang, rateLimitKey, skipAi, safeIfNoReasons } = params;
+  const { input, type, lang, rateLimitKey, skipAi, persist, safeIfNoReasons } = params;
 
   // ---- Rate limit: 10 checks / minute / key (best-effort, in-memory) ----
   const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
@@ -307,20 +309,22 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     detected === "phone" ? buildPhoneIntelligencePassport(workingInput, normalized, match) : null;
 
   // ── Persist to checks (with the FINAL level the user sees) ───────────────
-  const inputHash = await hashIdentifier(normalized || safeInput);
-  try {
-    await supabaseAdmin.from("checks").insert({
-      input_type: detected,
-      redacted_input: display,
-      input_hash: inputHash,
-      risk_level: finalLevel,
-      risk_score: score,
-      reason_codes: reasonList,
-      ai_explanation: finalExplanation,
-      language: lang,
-    });
-  } catch (e) {
-    console.error("log check failed", e);
+  if (persist !== false) {
+    const inputHash = await hashIdentifier(normalized || safeInput);
+    try {
+      await supabaseAdmin.from("checks").insert({
+        input_type: detected,
+        redacted_input: display,
+        input_hash: inputHash,
+        risk_level: finalLevel,
+        risk_score: score,
+        reason_codes: reasonList,
+        ai_explanation: finalExplanation,
+        language: lang,
+      });
+    } catch (e) {
+      console.error("log check failed", e);
+    }
   }
 
   return {

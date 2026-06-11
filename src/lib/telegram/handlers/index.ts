@@ -30,6 +30,7 @@ import { answerCallbackQuery } from "@/lib/telegram/api.server";
 
 import { handleCommand } from "@/lib/telegram/handlers/commands";
 import { handleCheck, handleImage, handlePhoneFromContact } from "@/lib/telegram/handlers/check";
+import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
 import {
   handleScenarioStep as handleReportScenarioStep,
   handleReportNoValue,
@@ -122,6 +123,7 @@ export const telegramHandlers: Handlers = {
   handlePhoneFromContact,
   handleCallback,
   handleOutOfScope,
+  handleInlineQuery,
 };
 
 let installed = false;

@@ -123,10 +123,20 @@ const messageSchema = z.object({
   forward_origin: forwardOriginSchema.optional(), // public forward source is presentation-only context
 });
 
+const inlineQuerySchema = z
+  .object({
+    id: z.string(),
+    from: z.object({ id: z.number(), language_code: z.string().optional() }),
+    query: z.string(),
+    offset: z.string().optional(),
+  })
+  .passthrough();
+
 export const telegramUpdateSchema = z
   .object({
     update_id: z.number(),
     message: messageSchema.optional(),
+    inline_query: inlineQuerySchema.optional(),
     callback_query: z
       .object({
         id: z.string(),
@@ -142,6 +152,7 @@ export const telegramUpdateSchema = z
 
 export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>;
 export type TelegramMessage = z.infer<typeof messageSchema>;
+export type TelegramInlineQuery = z.infer<typeof inlineQuerySchema>;
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -223,6 +234,13 @@ export interface HandlerCtx {
   messageId?: number;
 }
 
+/** Context for Telegram inline mode. Inline queries have a user, but no chat. */
+export interface InlineQueryCtx {
+  userId: number;
+  session: Session;
+  languageCode?: string;
+}
+
 /**
  * The set of handlers the router dispatches to. Tasks 8.2–8.5 provide the
  * concrete implementation and register it via `setHandlers(...)`. The router
@@ -254,6 +272,8 @@ export interface Handlers {
   handleCallback(data: string, ctx: HandlerCtx, callbackQueryId?: string): Promise<void>;
   /** Empty / unsupported / out-of-scope input and unknown commands (8.5 / R16, R22). */
   handleOutOfScope(kind: OutOfScopeKind, ctx: HandlerCtx): Promise<void>;
+  /** Telegram inline mode: @scamguard_bot <query> in any chat. */
+  handleInlineQuery(query: string, ctx: InlineQueryCtx, inlineQueryId: string): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -503,6 +523,9 @@ const stubHandlers: Handlers = {
   async handleOutOfScope(kind) {
     console.warn(`telegram router: no handler wired for out-of-scope (${kind})`);
   },
+  async handleInlineQuery() {
+    console.warn("telegram router: no handler wired for inline query");
+  },
 };
 
 let registeredHandlers: Handlers | null = null;
@@ -551,6 +574,18 @@ export async function dispatchUpdate(
   const handlers = deps?.handlers ?? getHandlers();
   const loadSession = deps?.loadSession ?? loadSessionImpl;
   const resetScenario = deps?.resetScenario ?? resetScenarioImpl;
+
+  if (update.inline_query) {
+    const query = update.inline_query;
+    const userId = query.from.id;
+    const session = await loadSession(userId);
+    await handlers.handleInlineQuery(
+      query.query,
+      { userId, session, languageCode: query.from.language_code },
+      query.id,
+    );
+    return;
+  }
 
   const target = extractTarget(update);
   if (!target) return; // nothing/no-one to respond to

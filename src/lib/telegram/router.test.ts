@@ -25,6 +25,7 @@ import {
   type TelegramUpdate,
   type Handlers,
   type HandlerCtx,
+  type InlineQueryCtx,
   type DispatchDeps,
 } from "./router";
 import type { Session, Scenario } from "./session.server";
@@ -82,6 +83,23 @@ function callbackUpdate(
   } as unknown as TelegramUpdate;
 }
 
+/** An `inline_query` update. Inline mode has from.id but no chat id. */
+function inlineQueryUpdate(
+  query: string,
+  opts: { userId?: number; id?: string } = {},
+): TelegramUpdate {
+  const userId = opts.userId ?? 100;
+  return {
+    update_id: 1,
+    inline_query: {
+      id: opts.id ?? "inline1",
+      from: { id: userId, language_code: "ru" },
+      query,
+      offset: "",
+    },
+  } as unknown as TelegramUpdate;
+}
+
 /**
  * Build a fake `Handlers` whose methods only record that they were called and
  * with what context. Lets the dispatch tests assert exactly one handler fired
@@ -89,17 +107,22 @@ function callbackUpdate(
  */
 function makeSpyHandlers(): {
   handlers: Handlers;
-  calls: { name: keyof Handlers; arg: unknown; ctx: HandlerCtx; extra?: unknown }[];
+  calls: {
+    name: keyof Handlers;
+    arg: unknown;
+    ctx: HandlerCtx | InlineQueryCtx;
+    extra?: unknown;
+  }[];
 } {
   const calls: {
     name: keyof Handlers;
     arg: unknown;
-    ctx: HandlerCtx;
+    ctx: HandlerCtx | InlineQueryCtx;
     extra?: unknown;
   }[] = [];
   const record =
     (name: keyof Handlers) =>
-    async (arg: unknown, ctx: HandlerCtx, extra?: unknown): Promise<void> => {
+    async (arg: unknown, ctx: HandlerCtx | InlineQueryCtx, extra?: unknown): Promise<void> => {
       calls.push({ name, arg, ctx, extra });
     };
   const handlers: Handlers = {
@@ -111,6 +134,7 @@ function makeSpyHandlers(): {
     handlePhoneFromContact: record("handlePhoneFromContact"),
     handleCallback: record("handleCallback"),
     handleOutOfScope: record("handleOutOfScope"),
+    handleInlineQuery: record("handleInlineQuery"),
   };
   return { handlers, calls };
 }
@@ -556,6 +580,17 @@ function makeDeps(session: Session): {
 }
 
 describe("dispatchUpdate priority routing", () => {
+  it("dispatches an inline query without requiring a chat target", async () => {
+    const { deps, calls, loadSession } = makeDeps(makeSession());
+    await dispatchUpdate(inlineQueryUpdate("+998901234567", { userId: 777, id: "iq1" }), deps);
+    expect(loadSession).toHaveBeenCalledWith(777);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleInlineQuery");
+    expect(calls[0].arg).toBe("+998901234567");
+    expect(calls[0].ctx).toMatchObject({ userId: 777, languageCode: "ru" });
+    expect(calls[0].extra).toBe("iq1");
+  });
+
   it("dispatches a callback to handleCallback", async () => {
     const { deps, calls } = makeDeps(makeSession());
     await dispatchUpdate(callbackUpdate("lang:en"), deps);

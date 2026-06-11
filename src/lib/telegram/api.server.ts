@@ -55,6 +55,29 @@ export interface EditMessageOptions {
   parseMode?: "MarkdownV2" | "HTML" | "None";
 }
 
+export interface InlineQueryResultArticle {
+  type: "article";
+  id: string;
+  title: string;
+  description?: string;
+  input_message_content: {
+    message_text: string;
+    parse_mode?: "MarkdownV2" | "HTML";
+    disable_web_page_preview?: boolean;
+  };
+  reply_markup?: {
+    inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
+  };
+}
+
+export interface AnswerInlineQueryOptions {
+  inlineQueryId: string;
+  results: InlineQueryResultArticle[];
+  cacheTime?: number;
+  isPersonal?: boolean;
+  nextOffset?: string;
+}
+
 /** Telegram OCR_Pipeline upper bound on downloaded files: 6 MB (R5.5). */
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 
@@ -181,6 +204,20 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
   const body: Record<string, unknown> = { callback_query_id: callbackQueryId };
   if (text !== undefined) body.text = text;
   await callBotApi("answerCallbackQuery", body);
+}
+
+/** Answer an inline-mode query with compact article results. Best-effort. */
+export async function answerInlineQuery(opts: AnswerInlineQueryOptions): Promise<{ ok: boolean }> {
+  const body: Record<string, unknown> = {
+    inline_query_id: opts.inlineQueryId,
+    results: opts.results,
+  };
+  if (opts.cacheTime !== undefined) body.cache_time = opts.cacheTime;
+  if (opts.isPersonal !== undefined) body.is_personal = opts.isPersonal;
+  if (opts.nextOffset !== undefined) body.next_offset = opts.nextOffset;
+
+  const res = await callBotApi("answerInlineQuery", body);
+  return { ok: res?.ok === true };
 }
 
 /**

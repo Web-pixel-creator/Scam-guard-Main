@@ -90,6 +90,21 @@ const maxDigitRun = (s: string): number =>
 const digitsOnly = (s: string): string => s.replace(/\D/g, "");
 
 describe("check-core property tests (telegram-bot-mvp)", () => {
+  it("does not persist checks when persist=false", async () => {
+    const result = await runCheck({
+      input: "Срочно назовите SMS код из банка",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      persist: false,
+    });
+
+    expect(result.level).toBe("high_risk");
+    expect(hoisted.insertCalls).toHaveLength(0);
+  });
+
   // Feature: telegram-bot-mvp, Property 1: Детерминизм scoring, независимость от AI.
   // For any input, runCheck with skipAi:true and with the AI available returns
   // the same level/score/reasons; AI only influences `explanation`.

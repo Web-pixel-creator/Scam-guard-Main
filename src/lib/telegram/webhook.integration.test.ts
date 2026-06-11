@@ -48,6 +48,7 @@ const h = vi.hoisted(() => ({
   sendCalls: [] as { chatId: number; text: string; keyboard?: unknown }[],
   chatActionCalls: [] as number[],
   answerCalls: [] as string[],
+  inlineAnswerCalls: [] as Array<{ inlineQueryId: string; results: unknown[] }>,
   getFileCalls: [] as string[],
   downloadCalls: [] as string[],
   sendShouldThrow: false,
@@ -84,6 +85,10 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
     }),
     answerCallbackQuery: vi.fn(async (id: string) => {
       h.answerCalls.push(id);
+    }),
+    answerInlineQuery: vi.fn(async (opts: { inlineQueryId: string; results: unknown[] }) => {
+      h.inlineAnswerCalls.push(opts);
+      return { ok: true };
     }),
     getFile: vi.fn(async (fileId: string) => {
       h.getFileCalls.push(fileId);
@@ -207,6 +212,19 @@ function textUpdate(opts: {
   };
 }
 
+/** A minimal valid inline-mode update. It intentionally has no chat id. */
+function inlineQueryUpdate(opts: { userId: number; query: string; id?: string }): unknown {
+  return {
+    update_id: opts.userId,
+    inline_query: {
+      id: opts.id ?? `inline-${opts.userId}`,
+      from: { id: opts.userId, language_code: "ru" },
+      query: opts.query,
+      offset: "",
+    },
+  };
+}
+
 /** A photo message update (two sizes — the router picks the largest). */
 function photoUpdate(opts: {
   userId: number;
@@ -319,6 +337,7 @@ beforeEach(() => {
   h.sendCalls.length = 0;
   h.chatActionCalls.length = 0;
   h.answerCalls.length = 0;
+  h.inlineAnswerCalls.length = 0;
   h.getFileCalls.length = 0;
   h.downloadCalls.length = 0;
   h.ocrCalls.length = 0;
@@ -421,6 +440,23 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
 
     // The real core logged the check (redacted) into `checks`.
     expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
+  });
+
+  it("answers inline queries without chat id and without persisting partial previews", async () => {
+    const update = inlineQueryUpdate({
+      userId: 1099,
+      id: "inline-check-1",
+      query: "Срочно назовите SMS код от банка",
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(0);
+    expect(h.inlineAnswerCalls).toHaveLength(1);
+    expect(h.inlineAnswerCalls[0].inlineQueryId).toBe("inline-check-1");
+    expect(h.inlineAnswerCalls[0].results).toHaveLength(1);
+    expect(h.inserts.some((i) => i.table === "checks")).toBe(false);
   });
 
   it("shows public forward source context without persisting the source metadata", async () => {

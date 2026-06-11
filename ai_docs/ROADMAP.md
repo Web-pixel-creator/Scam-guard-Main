@@ -70,7 +70,7 @@ Disallowed claims:
 
 ## Stage 2 - Telegram-First Wow Features
 
-1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>`.
+1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code; requires BotFather inline mode to be enabled.
 2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions.
 3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap.
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users.
