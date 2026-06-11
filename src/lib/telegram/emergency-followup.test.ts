@@ -109,13 +109,23 @@ describe("Emergency Copilot v2 follow-up routing", () => {
         "panicctx:contacts",
         "panicctx:script",
         "panicctx:trusted_person",
-        "share_advice",
         "panicctx:full",
       ]),
     );
+    expect(callbackData).not.toContain("share_advice");
+    expect(buttons).toHaveLength(5);
     expect(buttons.map((button) => button.text)).toEqual(
       expect.arrayContaining(["📞 Позвонить безопасно", "💬 Готовая фраза"]),
     );
+  });
+
+  it("keeps the full checklist behind the explicit full button", () => {
+    const firstCard = buildEmergencyFollowUpText("more", 1, "ru");
+    const full = buildEmergencyFollowUpText("full", 1, "ru");
+
+    expect(firstCard).not.toContain("Национальный банк Узбекистана");
+    expect(full).toContain("Национальный банк Узбекистана");
+    expect(full).toContain("Ishonch Guard помогает");
   });
 
   it("formats live-call follow-up as a guided post-call flow", () => {

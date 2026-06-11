@@ -2,6 +2,13 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Telegram Response UX Compression v1
+
+- Added `.kiro/specs/telegram-response-ux-compression-v1/`.
+- Split panic scenario rendering into compact first cards and detailed full checklists.
+- The first `/panic` scenario card now shows one urgent action, a calm cue and three immediate steps; verified contacts remain behind `panicctx:full` / safe-callback buttons.
+- Lightened the default emergency follow-up keyboard by removing the repeated generic share-advice button while keeping the legacy callback supported.
+
 ## 2026-06-11 - Emergency First-Card Human Guidance
 
 - Added short human reassurance/explanation cues to the first `/panic` scenario cards for SMS-code, APK, transfer, card-data, lost-Telegram and live-call cases.

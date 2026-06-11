@@ -2,6 +2,14 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-029 - Emergency first cards are compressed
+
+`/panic` first responses should pass a 5-second panic test: one urgent action,
+a calm human cue and a maximum of three immediate steps. Full contacts,
+evidence guidance and disclaimers remain available through explicit follow-up
+buttons, especially `panicctx:full` and `panicctx:contacts`. This preserves
+safety information while avoiding a wall of text for stressed users.
+
 ## D-001 - Consumer-first, Telegram-first
 
 Local pain is consumer scams: calls, SMS, Telegram pressure and fake payment flows. Build a consumer check/report tool first; keep B2B APIs as a later path.

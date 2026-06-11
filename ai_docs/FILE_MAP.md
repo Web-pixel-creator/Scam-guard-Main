@@ -4,21 +4,21 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## Root
 
-| Path                            | Purpose                                                                                                                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `package.json`                  | Scripts: `dev`, `build`, `start`, `preview`, `lint`, `format`, `test`, `test:run`.                                                                                       |
-| `vite.config.ts`                | TanStack/Vite/Nitro config. Forces Nitro `node-server` preset and `src/server.ts` entry.                                                                                 |
-| `Dockerfile`, `.dockerignore`   | Multi-stage production image for the Node SSR artifact.                                                                                                                  |
-| `.github/workflows/ci.yml`      | GitHub Actions verification: install, typecheck, tests, production build.                                                                                                |
-| `railway.toml`                  | Railway config: Docker builder, `/healthz`, restart policy.                                                                                                              |
-| `.env.example`                  | Documented runtime env vars. Real `.env` is local-only and ignored.                                                                                                      |
-| `bun.lock`, `bunfig.toml`       | Bun package manager files. npm also works for scripts.                                                                                                                   |
-| `supabase/config.toml`          | Supabase project config.                                                                                                                                                 |
-| `supabase/migrations/*.sql`     | DB schema history.                                                                                                                                                       |
-| `scripts/prod-smoke.ts`         | One-shot production smoke test for the public app, Telegram webhook, Telegram pending state and AI provider; can optionally send one live Telegram synthetic update.     |
-| `.kiro/specs/telegram-bot-mvp/` | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                                                                 |
-| `.kiro/specs/*/`                | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, menu/result polish, emergency copilot, phone directory and research-feed work. |
-| `.lovable/project.json`         | Historical template marker only; not a production runtime target.                                                                                                        |
+| Path                            | Purpose                                                                                                                                                                                        |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                  | Scripts: `dev`, `build`, `start`, `preview`, `lint`, `format`, `test`, `test:run`.                                                                                                             |
+| `vite.config.ts`                | TanStack/Vite/Nitro config. Forces Nitro `node-server` preset and `src/server.ts` entry.                                                                                                       |
+| `Dockerfile`, `.dockerignore`   | Multi-stage production image for the Node SSR artifact.                                                                                                                                        |
+| `.github/workflows/ci.yml`      | GitHub Actions verification: install, typecheck, tests, production build.                                                                                                                      |
+| `railway.toml`                  | Railway config: Docker builder, `/healthz`, restart policy.                                                                                                                                    |
+| `.env.example`                  | Documented runtime env vars. Real `.env` is local-only and ignored.                                                                                                                            |
+| `bun.lock`, `bunfig.toml`       | Bun package manager files. npm also works for scripts.                                                                                                                                         |
+| `supabase/config.toml`          | Supabase project config.                                                                                                                                                                       |
+| `supabase/migrations/*.sql`     | DB schema history.                                                                                                                                                                             |
+| `scripts/prod-smoke.ts`         | One-shot production smoke test for the public app, Telegram webhook, Telegram pending state and AI provider; can optionally send one live Telegram synthetic update.                           |
+| `.kiro/specs/telegram-bot-mvp/` | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                                                                                       |
+| `.kiro/specs/*/`                | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, menu/result polish, emergency copilot, response compression, phone directory and research-feed work. |
+| `.lovable/project.json`         | Historical template marker only; not a production runtime target.                                                                                                                              |
 
 ## `src/` entry points
 

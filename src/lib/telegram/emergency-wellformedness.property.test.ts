@@ -3,13 +3,17 @@
 // Property 4 (design.md → "Emergency text well-formedness", Validates: Requirements 5.1, 5.2, 5.4, 5.5):
 // For any panic scenario ID (1–10) and for any supported language (ru, uz, en),
 // the output of `buildPanicScenarioText(id, lang)` SHALL:
-// - not exceed 1500 characters in length,
+// - not exceed 900 characters in length,
 // - begin its first content line (after the title) with an uppercase word or phrase
 //   signaling the most important action,
-// - contain at least one phone number or short code that exists in the VERIFIED_CONTACTS array.
+// The detailed `panicctx:full` checklist SHALL preserve verified contact numbers.
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { buildPanicScenarioText, type PanicScenarioId } from "@/lib/telegram/emergency";
+import {
+  buildDetailedPanicScenarioText,
+  buildPanicScenarioText,
+  type PanicScenarioId,
+} from "@/lib/telegram/emergency";
 import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 
 /** Validates: Requirements 5.1, 5.2, 5.4, 5.5 */
@@ -74,8 +78,8 @@ describe("Emergency text — Property 4: Emergency text well-formedness", () => 
       fc.property(fc.constantFrom(...SCENARIO_IDS), fc.constantFrom(...LANGS), (id, lang) => {
         const text = buildPanicScenarioText(id, lang);
 
-        // (1) ≤1500 characters
-        expect(text.length).toBeLessThanOrEqual(1500);
+        // (1) Compact first card: ≤900 characters
+        expect(text.length).toBeLessThanOrEqual(900);
 
         // (2) First content line starts with uppercase action word
         const firstContent = getFirstContentLine(text);
@@ -87,14 +91,20 @@ describe("Emergency text — Property 4: Emergency text well-formedness", () => 
           startsWithUppercase(firstContent),
           `Scenario ${id} (${lang}): first content line "${firstContent}" must start with an uppercase letter`,
         ).toBe(true);
-
-        // (3) Contains at least one phone/short-code from VERIFIED_CONTACTS
-        expect(
-          containsVerifiedContact(text),
-          `Scenario ${id} (${lang}): text must contain at least one verified contact number`,
-        ).toBe(true);
       }),
       { numRuns: 100 },
     );
+  });
+
+  it("keeps verified contacts in the detailed full checklist", () => {
+    for (const id of SCENARIO_IDS) {
+      for (const lang of LANGS) {
+        const text = buildDetailedPanicScenarioText(id, lang);
+        expect(
+          containsVerifiedContact(text),
+          `Scenario ${id} (${lang}): detailed checklist must contain a verified contact number`,
+        ).toBe(true);
+      }
+    }
   });
 });
