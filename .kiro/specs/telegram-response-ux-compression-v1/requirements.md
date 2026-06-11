@@ -44,3 +44,9 @@ Telegram emergency replies should pass the "5 second panic test": a stressed use
 1. WHEN image text/QR cannot be read, THE Bot SHALL answer with a short honest limitation, not a long generic paragraph.
 2. Image triage answers SHALL use a compact "hook/risk/safe step" structure.
 3. Image triage answers SHALL NOT accuse a sender or claim hidden Telegram reputation signals.
+
+### R7. Compact Image Triage Follow-Up Keyboard
+
+1. WHEN a user selects an image triage category, THE Bot SHALL NOT repeat the full category menu under the answer.
+2. THE category answer keyboard SHALL keep only next actions: check another item, media tips, and emergency help.
+3. THE initial unreadable-image fallback SHALL still show the full category menu so the user can choose the closest context.

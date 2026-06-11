@@ -618,15 +618,12 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("не платите за доступ");
     expect(h.sendCalls[0].text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
-      imageTriageCallback("gift"),
-      imageTriageCallback("casino"),
-      imageTriageCallback("wallet"),
-      imageTriageCallback("bank"),
-      imageTriageCallback("qr_menu"),
-      CB.mediaTips,
       CB.checkAnother,
+      CB.mediaTips,
       CB.emergency,
     ]);
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain(imageTriageCallback("gift"));
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain(imageTriageCallback("casino"));
   });
 
   it("answers orphan follow-up wording with guidance instead of insufficient-data risk card", async () => {

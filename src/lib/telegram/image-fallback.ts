@@ -59,6 +59,16 @@ export function buildImageTriageKeyboard(lang: Lang): InlineKeyboard {
   ];
 }
 
+export function buildImageTriageFollowUpKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [
+      { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
+      { text: bt("btn_media_tips", lang), callback_data: CB.mediaTips },
+    ],
+    [{ text: bt("btn_emergency", lang), callback_data: CB.emergency }],
+  ];
+}
+
 export function buildImageTriageText(kind: ImageTriageKind, lang: Lang): string {
   return bt(TRIAGE_TEXT_KEY[kind], lang);
 }

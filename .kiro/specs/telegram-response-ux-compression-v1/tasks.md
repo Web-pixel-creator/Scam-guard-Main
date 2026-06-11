@@ -11,6 +11,7 @@
 - [x] 7. Update and add tests for compact cards, full checklists, and keyboard shape.
 - [x] 8. Run targeted tests, full tests, typecheck, lint/build, then deploy.
 - [x] 9. Compress unreadable-image fallback and image triage copy to hook/risk/safe-step wording.
+- [x] 10. Add compact image triage follow-up keyboard so category answers do not repeat the full menu.
 
 ## Notes
 

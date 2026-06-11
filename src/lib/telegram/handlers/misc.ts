@@ -67,6 +67,7 @@ import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 import {
+  buildImageTriageFollowUpKeyboard,
   buildImageTriageKeyboard,
   buildImageTriageText,
   parseImageTriageCallback,
@@ -248,7 +249,7 @@ export async function handleCallback(
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
-      keyboard: buildImageTriageKeyboard(lang),
+      keyboard: buildImageTriageFollowUpKeyboard(lang),
     });
     return;
   }

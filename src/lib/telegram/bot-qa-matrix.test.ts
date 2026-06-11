@@ -15,6 +15,7 @@ import {
 import { CB, formatCheckResult, formatHelp, formatWelcome } from "@/lib/telegram/format";
 import { buildForwardSourceBrief } from "@/lib/telegram/forward-context";
 import {
+  buildImageTriageFollowUpKeyboard,
   buildImageTriageKeyboard,
   buildImageTriageText,
   imageTriageCallback,
@@ -108,6 +109,14 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("wallet");
     expect(text).toContain("следующего экрана");
     expect(text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
+  });
+
+  it("keeps image triage category answers compact instead of repeating the full menu", () => {
+    const keyboard = buildImageTriageFollowUpKeyboard("ru");
+
+    expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.mediaTips, CB.emergency]);
+    expect(callbacks(keyboard)).not.toContain(imageTriageCallback("gift"));
+    expect(callbacks(keyboard)).not.toContain(imageTriageCallback("casino"));
   });
 
   it("answers confidence questions after a QR/menu check instead of rechecking the phrase", () => {

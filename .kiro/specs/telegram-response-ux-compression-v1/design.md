@@ -24,6 +24,7 @@ The router keeps existing callback data and session memory. Only presentation ch
 - `buildDetailedPanicScenarioText(id, lang)`: full checklist for explicit detail requests and tests.
 - `buildEmergencyFollowUpKeyboard(lang)`: removes repeated generic share advice while preserving all `panicctx:` actions.
 - `bot_dict.ocr_failed*` and `bot_dict.image_triage_*`: compressed image fallback copy using hook/risk/safe-step wording.
+- `buildImageTriageFollowUpKeyboard(lang)`: compact post-category keyboard with only check-another, media tips, and emergency actions.
 
 ## Correctness Properties
 
@@ -32,6 +33,7 @@ The router keeps existing callback data and session memory. Only presentation ch
 3. Detailed cards contain at least one verified contact where the scenario requires official follow-up.
 4. `panicctx:full` never returns the compact card.
 5. Legacy `share_advice` callback remains routable.
+6. Image triage category answers do not repeat `imgtriage:*` category buttons.
 
 ## Error Handling
 
