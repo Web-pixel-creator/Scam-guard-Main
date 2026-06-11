@@ -15,6 +15,7 @@
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [ ] Add screenshot report upload path only after retention policy is defined.
 - [x] ~~Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.~~ Done in Telegram Public Metadata v1 and Telegram Link & Account Intelligence v2 no-DB phase, including a Telegram-account "what I can/cannot check" help screen.
+- [x] ~~Keep short Telegram follow-ups from becoming fake "not enough data" checks.~~ Done in Telegram Follow-up Memory v1 regression lock: post-check and orphan phrases such as "Точно?", "Что еще посоветуешь?" and "дай номер банка" bypass `runCheck` when no new artifact is present.
 - [x] ~~Keep description-only Telegram reports out of public reputation.~~ Done in Report Flow Reputation Boundary v1.
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [ ] Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.

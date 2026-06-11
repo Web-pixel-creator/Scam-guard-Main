@@ -2,6 +2,12 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-11 - Telegram Follow-up Memory v1 regression lock
+
+- Added `.kiro/specs/telegram-followup-memory-v1/`.
+- Added handler-level regression coverage proving short Telegram follow-ups such as "Точно?", "Что еще посоветуешь?" and "дай номер банка" bypass `runCheck` when no new artifact is present.
+- This keeps post-check and orphan helper questions from rendering a fake "Недостаточно данных" risk card.
+
 ## 2026-06-11 - Telegram Public Post Evidence v2
 
 - Added `.kiro/specs/telegram-public-post-evidence-v2/`.
