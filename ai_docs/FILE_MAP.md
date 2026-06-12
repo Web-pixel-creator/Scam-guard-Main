@@ -16,6 +16,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `supabase/config.toml`                | Supabase project config.                                                                                                                                                                                     |
 | `supabase/migrations/*.sql`           | DB schema history.                                                                                                                                                                                           |
 | `scripts/prod-smoke.ts`               | One-shot production smoke test for the public app, Telegram webhook, Telegram pending state and AI provider; can optionally send one live Telegram synthetic update.                                         |
+| `scripts/prod-monitor.ts`             | Recurring production monitor for public app, `/healthz`, Telegram webhook state and AI provider; can send sanitized Telegram alerts to an operator chat.                                                     |
 | `scripts/prod-family-shield-smoke.ts` | One-shot production smoke test for Family Shield invite/accept/notify/revoke storage paths using synthetic Telegram ids and no secret output.                                                                |
 | `.kiro/specs/telegram-bot-mvp/`       | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                                                                                                     |
 | `.kiro/specs/*/`                      | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, inline check, menu/result polish, emergency copilot, response compression, phone directory and research-feed work. |
@@ -97,5 +98,6 @@ Browser client, service-role server client, auth middleware/attacher and generat
 Production smoke scripts:
 
 - `prod-smoke.ts`: public app, `/healthz`, webhook auth, Telegram pending state and AI provider.
+- `prod-monitor.ts`: recurring public app/webhook/AI monitor with optional sanitized Telegram alerting.
 - `prod-family-shield-smoke.ts`: synthetic Family Shield invite/accept/notify/revoke/cleanup.
 - `prod-security-smoke.ts`: RLS/security checks for sensitive tables and maintenance/stat RPC access.

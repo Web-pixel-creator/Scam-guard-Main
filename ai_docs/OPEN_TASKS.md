@@ -17,6 +17,8 @@
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
 - [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done as an in-memory LRU for the current single-instance deploy.
 - [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.
+- [x] ~~Add production monitor script for app/webhook/Telegram/AI failures.~~ Done as `npm run monitor:prod` with optional sanitized Telegram alerts.
+- [ ] Attach `npm run monitor:prod` to a real scheduler and set `MONITOR_ALERT_CHAT_ID` for operator alerts.
 - [ ] Add official-number lookalike detection after Family Shield/webhook hardening.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 

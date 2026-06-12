@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Production Monitor v1
+
+- Added `scripts/prod-monitor.ts` plus `npm run monitor:prod` for recurring
+  production checks: homepage, `/healthz`, Telegram webhook auth,
+  `getWebhookInfo`, pending/recent Telegram errors and AI provider status.
+- Added optional sanitized Telegram operator alerts via
+  `MONITOR_ALERT_CHAT_ID`, using `TELEGRAM_BOT_TOKEN` by default or
+  `MONITOR_ALERT_BOT_TOKEN` for a separate operations bot.
+- Documented monitor variables and runbook in `DEPLOYMENT.md`, `.env.example`,
+  `FILE_MAP.md`, `FUNCTIONS_MAP.md`, `ROADMAP.md` and `OPEN_TASKS.md`.
+
 ## 2026-06-12 - Retention cleanup and RLS hardening
 
 - Added Retention Cleanup v1: `private.prune_app_retention()` defines explicit

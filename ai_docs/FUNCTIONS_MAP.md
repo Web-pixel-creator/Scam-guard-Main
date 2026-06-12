@@ -106,6 +106,11 @@ Signatures and intent only. See file paths for source.
   state and the configured OpenAI-compatible AI provider. With `--live-telegram`
   it sends one synthetic high-risk text through the latest Telegram session
   without printing token, secret or chat id values.
+- `scripts/prod-monitor.ts`: recurring production monitor for the public app,
+  `/healthz`, Telegram webhook secret behavior, Telegram Bot API health,
+  webhook URL/pending/recent-error state and the configured AI provider. It can
+  send sanitized Telegram alerts to an operator chat without printing token,
+  secret or chat id values.
 - `scripts/prod-family-shield-smoke.ts`: one-shot production smoke test for
   Family Shield. It creates a synthetic invite, accepts it, verifies the safe
   notification failure path, revokes the relationship and confirms no open

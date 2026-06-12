@@ -129,6 +129,42 @@ Retention cleanup is explicit, not scheduled. The migration creates
 `private.prune_app_retention()`, but no rows are deleted until a trusted
 operator or future maintenance job runs it.
 
+## Production monitor / alerting
+
+For recurring checks, use the lightweight production monitor. It checks the
+public homepage, `/healthz`, Telegram webhook auth, Bot API `getMe`, Telegram
+`getWebhookInfo` (`url`, pending updates and recent errors), and the configured
+AI provider. It exits non-zero on hard failures and does not print secrets.
+
+```bash
+railway run npm run monitor:prod -- https://your-app.example.com
+```
+
+Useful environment variables:
+
+- `PUBLIC_APP_URL` - optional fallback instead of passing the URL argument.
+- `MONITOR_LABEL` - label in console/alerts, for example `production`.
+- `MONITOR_TIMEOUT_MS` - per-check timeout, default `8000`.
+- `MONITOR_MAX_PENDING_UPDATES` - allowed Telegram pending update count, default
+  `0`.
+- `MONITOR_STALE_TELEGRAM_ERROR_MS` - how long a Telegram last-error can remain
+  before it is ignored as stale, default `900000` (15 minutes).
+- `MONITOR_FAIL_ON_WARN=true` - make warnings fail the command.
+
+Optional Telegram alerting:
+
+```powershell
+$env:MONITOR_ALERT_CHAT_ID = "<admin-chat-id>"
+railway run npm run monitor:prod -- https://your-app.example.com
+```
+
+`MONITOR_ALERT_CHAT_ID` enables alerts. The script uses `TELEGRAM_BOT_TOKEN` by
+default for delivery, or `MONITOR_ALERT_BOT_TOKEN` if you want a separate
+operations bot. Set `MONITOR_ALERT_ON_WARN=true` if provider quota warnings
+should also send alerts. Alert messages include only check names and sanitized
+details; they do not include tokens, webhook secrets, chat ids, user content or
+Supabase keys.
+
 ## Telegram bot webhook deployment
 
 The Telegram bot is a **new channel** to the same app. There is no separate

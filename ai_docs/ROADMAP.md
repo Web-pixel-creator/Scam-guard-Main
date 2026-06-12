@@ -35,11 +35,12 @@ Already shipped:
 - Retention Cleanup v1: explicit cleanup windows and private maintenance function, plus production RLS/security smoke.
 - Security Definer Hardening v1: browser stats moved behind a server function and admin RLS helper moved to private schema.
 - GitHub security baseline: secret scanning, push protection and Dependabot security updates are enabled.
+- Production Monitor v1: recurring app/webhook/Telegram/AI monitor script with optional sanitized Telegram alerts.
 
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Production monitoring/alerting for Railway and webhook failures.
+2. Attach the production monitor to a real scheduler/alert chat and document the on-call runbook.
 3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
 
 Next visible "wow" feature after stabilization:
