@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Audit action plan, Family Shield hardening and webhook dedup
+
+- Updated `ROADMAP.md` with the post-audit checkpoint: shipped phone/Telegram
+  trust work, Family Shield production verification, and the immediate order of
+  Family Shield hardening -> webhook dedup -> retention/compliance -> security
+  hygiene.
+- Marked Family Shield v1.1 as shipped: active-link guard, invite TTL,
+  trusted-contact opt-out, env-driven bot username and redacted trusted alerts.
+- Added Telegram webhook `update_id` deduplication as an in-memory LRU for the
+  current single-instance Railway deploy, with docs noting the shared-store
+  requirement before multi-instance scaling.
+- Kept official-number lookalike detection as the next visible trust feature.
+- Documented Family Shield storage and webhook behavior in `DATABASE.md`,
+  `API.md`, `FILE_MAP.md` and `FUNCTIONS_MAP.md`.
+
 ## 2026-06-12 - Family Shield production verification
 
 - Applied the `telegram_family_shield` production migration through Supabase SQL

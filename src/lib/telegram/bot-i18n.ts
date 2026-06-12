@@ -551,6 +551,11 @@ export const bot_dict: BotDict = {
     uz: "🗑 O'chirish",
     en: "🗑 Disable",
   },
+  family_btn_trusted_stop_alerts: {
+    ru: "Отключить эти сигналы",
+    uz: "Bu signallarni o'chirish",
+    en: "Stop these alerts",
+  },
   family_menu_text: {
     ru: "👪 *Семейный щит*\n\nМожно заранее подключить человека, которому вы доверяете. Если будет высокий риск или срочная ситуация, я помогу позвать его одной кнопкой.\n\nВажно: Telegram разрешит мне писать близкому только после того, как он сам откроет бота и примет приглашение.",
     uz: "👪 *Oila qalqoni*\n\nOldindan ishonchli insonni ulab qo'yish mumkin. Xavf yuqori bo'lsa yoki shoshilinch holatda men uni bitta tugma bilan chaqirishga yordam beraman.\n\nMuhim: Telegram menga yaqin insoningizga yozishga faqat u botni ochib, taklifni qabul qilgandan keyin ruxsat beradi.",
@@ -561,10 +566,15 @@ export const bot_dict: BotDict = {
     uz: "🔗 *Taklif yaratildi*\n\nBu tugmani ishonchli insonga yuboring. U ochib Start bosgandan keyin aloqa yoqiladi.\n\nMen unga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
     en: "🔗 *Invite created*\n\nSend this button to the person you trust. After they open it and tap Start, the link becomes active.\n\nI will not send them your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
   },
+  family_already_linked: {
+    ru: "Близкий уже подключён.\n\nЧтобы создать новое приглашение, сначала отключите текущую связь. Если ситуация срочная, можно сразу позвать подключённого близкого.",
+    uz: "Yaqin inson allaqachon ulangan.\n\nYangi taklif yaratish uchun avval hozirgi aloqani o'chiring. Agar vaziyat shoshilinch bo'lsa, ulangan yaqin insonni hoziroq chaqirishingiz mumkin.",
+    en: "A trusted person is already linked.\n\nTo create a new invite, disable the current link first. If this is urgent, you can notify the linked trusted person now.",
+  },
   family_private_chat_only: {
-    ru: "Семейный щит настраивается только в личном чате с ботом, чтобы не раскрыть приглашение в группе. Откройте @scamguard_bot в личных сообщениях и нажмите /family.",
-    uz: "Oila qalqoni faqat bot bilan shaxsiy chatda sozlanadi, taklif guruhda ko'rinib qolmasligi uchun. @scamguard_bot ni shaxsiy xabarlarda oching va /family bosing.",
-    en: "Family Shield can be set up only in a private chat with the bot, so the invite is not exposed in a group. Open @scamguard_bot privately and tap /family.",
+    ru: "Семейный щит настраивается только в личном чате с ботом, чтобы не раскрыть приглашение в группе. Откройте бота в личных сообщениях и нажмите /family.",
+    uz: "Oila qalqoni faqat bot bilan shaxsiy chatda sozlanadi, taklif guruhda ko'rinib qolmasligi uchun. Botni shaxsiy xabarlarda oching va /family bosing.",
+    en: "Family Shield can be set up only in a private chat with the bot, so the invite is not exposed in a group. Open the bot privately and tap /family.",
   },
   family_accept_ok: {
     ru: "✅ Готово. Вы стали доверенным контактом Ishonch Guard.\n\nЕсли близкий человек попросит срочную помощь, я пришлю короткий сигнал без его личных данных, кодов, ссылок и скриншотов.",
@@ -580,6 +590,11 @@ export const bot_dict: BotDict = {
     ru: "Ссылка приглашения недействительна или уже использована. Попросите создать новое приглашение через /family.",
     uz: "Taklif havolasi yaroqsiz yoki allaqachon ishlatilgan. /family orqali yangi taklif yaratishni so'rang.",
     en: "This invite link is invalid or already used. Ask them to create a new invite with /family.",
+  },
+  family_accept_expired: {
+    ru: "Ссылка приглашения устарела. Попросите создать новое приглашение через /family.",
+    uz: "Taklif havolasi eskirgan. /family orqali yangi taklif yaratishni so'rang.",
+    en: "This invite link has expired. Ask them to create a new invite with /family.",
   },
   family_accept_self: {
     ru: "Нельзя подключить самого себя как доверенный контакт. Отправьте приглашение другому человеку.",
@@ -620,6 +635,16 @@ export const bot_dict: BotDict = {
     ru: "Сейчас нет активного или ожидающего доверенного контакта.",
     uz: "Hozir faol yoki kutilayotgan ishonchli kontakt yo'q.",
     en: "There is no active or pending trusted contact right now.",
+  },
+  family_trusted_opt_out_ok: {
+    ru: "Готово. Я отключил эти сигналы для вас. Если человек снова захочет подключить вас как близкого, он отправит новое приглашение.",
+    uz: "Tayyor. Siz uchun bu signallarni o'chirdim. Agar u inson sizni yana ishonchli kontakt qilmoqchi bo'lsa, yangi taklif yuboradi.",
+    en: "Done. I stopped these alerts for you. If this person wants to link you again, they will send a new invite.",
+  },
+  family_trusted_opt_out_empty: {
+    ru: "Активных сигналов для вас сейчас нет.",
+    uz: "Siz uchun hozir faol signal yo'q.",
+    en: "There are no active alerts linked to you right now.",
   },
 
   // ── Deterministic fallback for hosted URLs without reason codes ────────────

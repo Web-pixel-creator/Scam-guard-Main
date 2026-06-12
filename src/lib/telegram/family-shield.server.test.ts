@@ -6,7 +6,7 @@ const hoisted = vi.hoisted(() => ({
   rows: [] as FamilyRow[],
   inserts: [] as FamilyRow[],
   updates: [] as FamilyRow[],
-  sent: [] as Array<{ chatId: number; text: string }>,
+  sent: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
 }));
 
 function matches(row: FamilyRow, filters: Array<{ column: string; value: unknown }>): boolean {
@@ -16,7 +16,15 @@ function matches(row: FamilyRow, filters: Array<{ column: string; value: unknown
 function makeTable() {
   return {
     insert: async (row: FamilyRow) => {
-      const stored = { id: `row-${hoisted.rows.length + 1}`, ...row };
+      const now = new Date().toISOString();
+      const stored = {
+        id: `row-${hoisted.rows.length + 1}`,
+        created_at: now,
+        accepted_at: null,
+        revoked_at: null,
+        last_notified_at: null,
+        ...row,
+      };
       hoisted.rows.push(stored);
       hoisted.inserts.push(stored);
       return { data: null, error: null };
@@ -86,8 +94,8 @@ vi.mock("@/lib/telegram/api.server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/telegram/api.server")>();
   return {
     ...actual,
-    sendMessage: async (opts: { chatId: number; text: string }) => {
-      hoisted.sent.push({ chatId: opts.chatId, text: opts.text });
+    sendMessage: async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
+      hoisted.sent.push({ chatId: opts.chatId, text: opts.text, keyboard: opts.keyboard });
       return { ok: true };
     },
   };
@@ -99,9 +107,11 @@ import {
   createFamilyInvite,
   notifyTrustedContact,
   parseFamilyStartArg,
+  revokeFamilyShieldForTrusted,
 } from "./family-shield.server";
 
 beforeEach(() => {
+  vi.unstubAllEnvs();
   vi.stubEnv("HASH_PEPPER_SECRET", "family-shield-test-pepper");
   hoisted.rows.length = 0;
   hoisted.inserts.length = 0;
@@ -123,6 +133,16 @@ describe("Family Shield v1", () => {
     });
     expect(hoisted.inserts[0].invite_code_hash).not.toContain(token);
     expect(JSON.stringify(hoisted.inserts[0])).not.toContain(result.inviteUrl);
+  });
+
+  it("uses TELEGRAM_BOT_USERNAME for invite links when configured", async () => {
+    vi.stubEnv("TELEGRAM_BOT_USERNAME", "@custom_guard_bot");
+
+    const result = await createFamilyInvite(1002);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.inviteUrl).toMatch(/^https:\/\/t\.me\/custom_guard_bot\?start=family_/);
   });
 
   it("rejects linking the guardian account as its own trusted contact", async () => {
@@ -156,14 +176,77 @@ describe("Family Shield v1", () => {
     });
     expect(accepted.ok).toBe(true);
 
-    const first = await notifyTrustedContact({ guardianTelegramUserId: 2001, lang: "ru" });
+    const first = await notifyTrustedContact({
+      guardianTelegramUserId: 2001,
+      lang: "ru",
+      guardianDisplayName: "Akmal",
+    });
     const second = await notifyTrustedContact({ guardianTelegramUserId: 2001, lang: "ru" });
 
     expect(first).toEqual({ ok: true, trustedChatId: 4001 });
     expect(second).toEqual({ ok: false, reason: "cooldown" });
     expect(hoisted.sent).toHaveLength(1);
     expect(hoisted.sent[0].text).toContain("Ishonch Guard");
+    expect(hoisted.sent[0].text).toContain("Akmal");
+    expect(JSON.stringify(hoisted.sent[0].keyboard)).toContain("family:trusted_opt_out");
     expect(hoisted.sent[0].text).not.toMatch(/\+998|https?:\/\/|@fake|123456|CVV 123/i);
+  });
+
+  it("does not create a second invite while an active trusted contact exists", async () => {
+    const invite = await createFamilyInvite(2101);
+    expect(invite.ok).toBe(true);
+    if (!invite.ok) return;
+
+    const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+    expect(token).toBeTruthy();
+    const accepted = await acceptFamilyInvite({
+      token: token!,
+      trustedTelegramUserId: 3101,
+      trustedChatId: 4101,
+    });
+    expect(accepted.ok).toBe(true);
+
+    const secondInvite = await createFamilyInvite(2101);
+
+    expect(secondInvite).toEqual({ ok: false, reason: "already_linked" });
+    expect(hoisted.inserts).toHaveLength(1);
+  });
+
+  it("expires stale pending invites before accepting them", async () => {
+    const invite = await createFamilyInvite(2201);
+    expect(invite.ok).toBe(true);
+    if (!invite.ok) return;
+    hoisted.rows[0].created_at = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+
+    const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+    expect(token).toBeTruthy();
+    const accepted = await acceptFamilyInvite({
+      token: token!,
+      trustedTelegramUserId: 3201,
+      trustedChatId: 4201,
+    });
+
+    expect(accepted).toEqual({ ok: false, reason: "expired" });
+    expect(hoisted.rows[0]).toMatchObject({ status: "revoked" });
+  });
+
+  it("lets the trusted contact opt out from future alerts", async () => {
+    const invite = await createFamilyInvite(2301);
+    expect(invite.ok).toBe(true);
+    if (!invite.ok) return;
+    const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+    expect(token).toBeTruthy();
+    await acceptFamilyInvite({
+      token: token!,
+      trustedTelegramUserId: 3301,
+      trustedChatId: 4301,
+    });
+
+    const revoked = await revokeFamilyShieldForTrusted(3301);
+    const notified = await notifyTrustedContact({ guardianTelegramUserId: 2301, lang: "ru" });
+
+    expect(revoked).toEqual({ ok: true });
+    expect(notified).toEqual({ ok: false, reason: "not_linked" });
   });
 
   it("keeps the trusted alert focused on safe support, not accusation", () => {

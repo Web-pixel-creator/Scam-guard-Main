@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-11.
+Last updated: 2026-06-12.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -19,6 +19,29 @@ Status: in progress.
 - Keep this file as the single roadmap.
 - Keep feature specs in `.kiro/specs/*` aligned with implementation state.
 - Keep `OPEN_TASKS.md` only for current risks, blockers and near-term work.
+
+### Current checkpoint after the 2026-06-12 audit
+
+Already shipped:
+
+- Phone Intelligence Passport v1.
+- Moderated Phone Reputation v1.
+- Telegram inline check code path.
+- Result/message UX compression and follow-up memory.
+- Public Telegram post visible-evidence parsing.
+- Family Shield v1 code, production migration and production smoke test.
+- Family Shield Hardening v1.1: active-link handling, invite TTL, trusted-contact opt-out, env-driven bot username, guardian-language notification and clearer trusted alerts.
+- Telegram webhook `update_id` deduplication as an in-memory LRU for the current single-instance deploy.
+
+Immediate hardening order before new large features:
+
+1. Retention and compliance pass for `telegram_sessions`, `checks`, `reports` and future screenshots.
+2. Security hygiene: RLS review, GitHub secret scanning/push protection, monitoring and separate CRLF normalization if needed.
+3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
+
+Next visible "wow" feature after stabilization:
+
+- Official-number lookalike detection: compare checked phone numbers with verified official contacts and explain near-miss numbers without making unsupported accusations.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -72,7 +95,7 @@ Disallowed claims:
 
 1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code; requires BotFather inline mode to be enabled.
 2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions.
-3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap.
+3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap. v1 and v1.1 hardening are shipped.
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users.
 5. Weekly scam digest from the research feed: short, local, shareable.
 

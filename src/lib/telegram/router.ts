@@ -100,7 +100,13 @@ const chatSchema = z
 
 const messageSchema = z.object({
   message_id: z.number(),
-  from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
+  from: z
+    .object({
+      id: z.number(),
+      first_name: z.string().optional(),
+      language_code: z.string().optional(),
+    })
+    .optional(),
   chat: chatSchema,
   sender_chat: forwardChatSchema.optional(),
   text: z.string().optional(),
@@ -133,7 +139,11 @@ const messageSchema = z.object({
 const inlineQuerySchema = z
   .object({
     id: z.string(),
-    from: z.object({ id: z.number(), language_code: z.string().optional() }),
+    from: z.object({
+      id: z.number(),
+      first_name: z.string().optional(),
+      language_code: z.string().optional(),
+    }),
     query: z.string(),
     offset: z.string().optional(),
   })
@@ -147,7 +157,7 @@ export const telegramUpdateSchema = z
     callback_query: z
       .object({
         id: z.string(),
-        from: z.object({ id: z.number() }),
+        from: z.object({ id: z.number(), first_name: z.string().optional() }),
         message: z.object({ chat: chatSchema, message_id: z.number().optional() }).optional(),
         data: z.string(),
       })
@@ -239,6 +249,7 @@ export interface HandlerCtx {
   userId: number;
   chatType?: TelegramChatType;
   session: Session;
+  displayName?: string;
   /** Message ID of the message containing inline keyboard (from callback_query). */
   messageId?: number;
 }
@@ -306,6 +317,7 @@ export interface RouteTarget {
   userId: number;
   chatId: number;
   chatType?: TelegramChatType;
+  displayName?: string;
 }
 
 /**
@@ -319,12 +331,14 @@ export function extractTarget(update: TelegramUpdate): RouteTarget | null {
   if (cb) {
     const target: RouteTarget = { userId: cb.from.id, chatId: cb.message?.chat.id ?? cb.from.id };
     if (cb.message?.chat.type) target.chatType = cb.message.chat.type;
+    if (cb.from.first_name) target.displayName = cb.from.first_name;
     return target;
   }
   const m = update.message;
   if (m?.from) {
     const target: RouteTarget = { userId: m.from.id, chatId: m.chat.id };
     if (m.chat.type) target.chatType = m.chat.type;
+    if (m.from.first_name) target.displayName = m.from.first_name;
     return target;
   }
   return null;
@@ -604,7 +618,7 @@ export async function dispatchUpdate(
   const target = extractTarget(update);
   if (!target) return; // nothing/no-one to respond to
 
-  const { userId, chatId, chatType } = target;
+  const { userId, chatId, chatType, displayName } = target;
   let session = await loadSession(userId);
   const action = decideRoute(update, session);
 
@@ -618,6 +632,7 @@ export async function dispatchUpdate(
   }
 
   const ctx: HandlerCtx = { chatId, userId, chatType, session };
+  if (displayName) ctx.displayName = displayName;
 
   // Populate messageId from callback_query.message.message_id when available.
   if (update.callback_query?.message?.message_id != null) {

@@ -38,12 +38,13 @@ import {
 import { buildPanicMenuText, buildPanicKeyboardPage1 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
-import { saveSession } from "@/lib/telegram/session.server";
+import { loadSession, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 import {
   acceptFamilyInvite,
+  buildFamilyAlreadyLinkedKeyboard,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
   createFamilyInvite,
@@ -148,6 +149,14 @@ async function sendFamilyInvite(ctx: HandlerCtx): Promise<void> {
   const { lang } = ctx.session;
   const invite = await createFamilyInvite(ctx.userId);
   if (!invite.ok) {
+    if (invite.reason === "already_linked") {
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(bt("family_already_linked", lang)),
+        keyboard: buildFamilyAlreadyLinkedKeyboard(lang),
+      });
+      return;
+    }
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(bt("family_storage_error", lang)),
@@ -176,9 +185,10 @@ async function acceptFamilyStartLink(cmd: ParsedCommand, ctx: HandlerCtx): Promi
 
   if (accepted.ok) {
     await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(bt("family_accept_ok", lang)) });
+    const guardianSession = await loadSession(accepted.guardianTelegramUserId);
     await sendMessage({
       chatId: accepted.guardianTelegramUserId,
-      text: escapeMarkdownV2(bt("family_guardian_linked", lang)),
+      text: escapeMarkdownV2(bt("family_guardian_linked", guardianSession.lang)),
     });
     return true;
   }
@@ -191,7 +201,12 @@ async function acceptFamilyStartLink(cmd: ParsedCommand, ctx: HandlerCtx): Promi
     return true;
   }
 
-  const key = accepted.reason === "invalid" ? "family_accept_invalid" : "family_storage_error";
+  const key =
+    accepted.reason === "invalid"
+      ? "family_accept_invalid"
+      : accepted.reason === "expired"
+        ? "family_accept_expired"
+        : "family_storage_error";
   await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(bt(key, lang)) });
   return true;
 }

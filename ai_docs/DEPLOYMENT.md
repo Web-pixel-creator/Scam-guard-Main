@@ -97,6 +97,8 @@ committed `.env`, never shipped to client):
   `https://api.openai.com/v1`; point at OpenAI, OpenRouter, Together, a local
   server, etc.).
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — Telegram bot (see below).
+- `TELEGRAM_BOT_USERNAME` - optional public username used for Family Shield
+  invite links; defaults to `scamguard_bot` if unset.
 
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
 
@@ -144,6 +146,8 @@ them in a `.env` committed to the repo, and **never** prefix them with `VITE_`
 - `TELEGRAM_BOT_TOKEN` — Bot API auth token.
 - `TELEGRAM_WEBHOOK_SECRET` — value compared against the
   `X-Telegram-Bot-Api-Secret-Token` header on every incoming update.
+- `TELEGRAM_BOT_USERNAME` - optional public username for deep links such as
+  Family Shield invites. Set it without `@`; defaults to `scamguard_bot`.
 - `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible; the
   bot/check degrade to no explanation if missing). Optionally `OPENAI_MODEL` /
   `OPENAI_BASE_URL`.

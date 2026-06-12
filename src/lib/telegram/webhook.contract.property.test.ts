@@ -56,7 +56,7 @@ vi.mock("@/lib/telegram/handlers", () => ({
   installTelegramHandlers: () => {},
 }));
 
-import { handleTelegramWebhook } from "./webhook.server";
+import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
 
 const WEBHOOK_URL = "https://example.com/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -110,6 +110,7 @@ function buildRequest(opts: { header: string | null; body: string; spyJson?: boo
 beforeEach(() => {
   hoisted.dispatchCalls = 0;
   hoisted.dispatchShouldThrow = false;
+  __resetTelegramWebhookDedupeForTests();
   // The misconfig branch logs via console.error — silence it across runs.
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -187,6 +188,32 @@ describe("webhook contract — Property 3: no valid token ⇒ 401, no dispatch, 
   });
 });
 
+describe("webhook contract - duplicate update ids", () => {
+  it("acks duplicate update_id deliveries without dispatching twice", async () => {
+    setSecrets("secret", "bot-token");
+    const update = {
+      update_id: 4242,
+      message: {
+        message_id: 1,
+        from: { id: 1001, language_code: "ru" },
+        chat: { id: 5001 },
+        text: "hello",
+      },
+    };
+
+    const first = await handleTelegramWebhook(
+      buildRequest({ header: "secret", body: JSON.stringify(update) }).request,
+    );
+    const second = await handleTelegramWebhook(
+      buildRequest({ header: "secret", body: JSON.stringify(update) }).request,
+    );
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(hoisted.dispatchCalls).toBe(1);
+  });
+});
+
 describe("webhook contract - oversized bodies", () => {
   it("acks an oversized body after a valid token without dispatching", async () => {
     setSecrets("secret", "bot-token");
@@ -246,6 +273,7 @@ describe("webhook contract — Property 7: valid token + valid structure ⇒ alw
         async (secret, token, update, shouldThrow) => {
           hoisted.dispatchCalls = 0;
           hoisted.dispatchShouldThrow = shouldThrow;
+          __resetTelegramWebhookDedupeForTests();
           setSecrets(secret, token);
 
           // Matching token + a JSON body that parses cleanly with the real schema.

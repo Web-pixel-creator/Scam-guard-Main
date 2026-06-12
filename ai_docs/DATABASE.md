@@ -71,6 +71,20 @@ RLS: no public access. Service-role only. Used so bot state survives process res
 
 Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
 
+### `telegram_family_shield`
+
+Private trusted-contact mapping for Family Shield:
+`id, guardian_telegram_user_id, trusted_telegram_user_id, trusted_chat_id,
+invite_code_hash, status, created_at, accepted_at, revoked_at,
+last_notified_at, updated_at`.
+
+RLS/grants: no public access; service-role only. Invite tokens are HMAC-hashed
+before storage and raw deep links are not persisted. v1 allows one open
+`pending` or `active` relationship per guardian. Pending invites expire in app
+logic after 24 hours, trusted contacts can opt out, and alerts intentionally do
+not include checked numbers, links, OCR text, screenshots, SMS codes, card data
+or report descriptions.
+
 ### `user_roles`
 
 RBAC rows: `id, user_id, role, created_at`, unique by `(user_id, role)`.

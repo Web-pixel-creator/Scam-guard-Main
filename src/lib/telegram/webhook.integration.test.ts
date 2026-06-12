@@ -166,7 +166,7 @@ vi.mock("@/lib/report.functions", () => ({
 // Import AFTER the mocks are registered. The handler aggregator installs the
 // REAL handlers into the REAL router via its module-load side effect, and
 // webhook.server re-installs them (idempotent) before dispatching.
-import { handleTelegramWebhook } from "./webhook.server";
+import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
 import { CB, RISK_EMOJI } from "./format";
 import { imageTriageCallback } from "./image-fallback";
 import { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK } from "./report-flow";
@@ -181,6 +181,11 @@ const TOKEN = "test-bot-token";
 
 const ORIG_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const ORIG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+let syntheticUpdateId = 10_000;
+
+function nextSyntheticUpdateId(): number {
+  return syntheticUpdateId++;
+}
 
 /** Build a synthetic webhook Request. `header === null` → header absent. */
 function webhookRequest(update: unknown, header: string | null = SECRET): Request {
@@ -201,7 +206,7 @@ function textUpdate(opts: {
   message?: Record<string, unknown>;
 }): unknown {
   return {
-    update_id: opts.userId,
+    update_id: nextSyntheticUpdateId(),
     message: {
       message_id: 1,
       from: { id: opts.userId, language_code: "ru" },
@@ -215,7 +220,7 @@ function textUpdate(opts: {
 /** A minimal valid inline-mode update. It intentionally has no chat id. */
 function inlineQueryUpdate(opts: { userId: number; query: string; id?: string }): unknown {
   return {
-    update_id: opts.userId,
+    update_id: nextSyntheticUpdateId(),
     inline_query: {
       id: opts.id ?? `inline-${opts.userId}`,
       from: { id: opts.userId, language_code: "ru" },
@@ -236,7 +241,7 @@ function photoUpdate(opts: {
   replyMarkup?: unknown;
 }): unknown {
   return {
-    update_id: opts.userId,
+    update_id: nextSyntheticUpdateId(),
     message: {
       message_id: opts.messageId ?? 1,
       from: { id: opts.userId, language_code: "ru" },
@@ -262,7 +267,7 @@ function videoUpdate(opts: {
   thumbnail?: { file_id: string; file_size?: number };
 }): unknown {
   return {
-    update_id: opts.userId,
+    update_id: nextSyntheticUpdateId(),
     message: {
       message_id: 1,
       from: { id: opts.userId, language_code: "ru" },
@@ -287,7 +292,7 @@ function callbackUpdate(opts: {
   id?: string;
 }): unknown {
   return {
-    update_id: opts.userId,
+    update_id: nextSyntheticUpdateId(),
     callback_query: {
       id: opts.id ?? `cb-${opts.userId}`,
       from: { id: opts.userId },
@@ -334,6 +339,8 @@ const HIGH_RISK_TEXT = "Отсканируйте QR код для входа в 
 
 beforeEach(() => {
   // Reset capture state.
+  syntheticUpdateId = 10_000;
+  __resetTelegramWebhookDedupeForTests();
   h.sendCalls.length = 0;
   h.chatActionCalls.length = 0;
   h.answerCalls.length = 0;

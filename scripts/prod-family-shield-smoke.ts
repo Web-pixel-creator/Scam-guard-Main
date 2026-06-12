@@ -148,10 +148,9 @@ async function main(): Promise<void> {
     const failed = results.filter((result) => !result.ok);
     if (failed.length > 0) {
       process.exitCode = 1;
-      return;
+    } else {
+      console.log("OK Family Shield production smoke passed.");
     }
-
-    console.log("OK Family Shield production smoke passed.");
   }
 }
 

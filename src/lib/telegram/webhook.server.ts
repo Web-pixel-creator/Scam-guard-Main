@@ -34,6 +34,10 @@ import { installTelegramHandlers } from "@/lib/telegram/handlers";
 /** Telegram sends the configured secret in this header (case-insensitive). */
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
+const PROCESSED_UPDATE_TTL_MS = 10 * 60 * 1000;
+const MAX_PROCESSED_UPDATES = 5_000;
+
+const processedUpdateIds = new Map<number, number>();
 
 /**
  * Handle a single Telegram webhook request. Returns 401 for any token-stage
@@ -73,6 +77,10 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   }
 
   // ── Step 4 — dispatch the valid update; any later error → log + 200. ──
+  if (!markUpdateForProcessing(update.update_id)) {
+    return new Response("ok", { status: 200 });
+  }
+
   try {
     await dispatchUpdate(update);
   } catch (err) {
@@ -84,6 +92,32 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     );
   }
   return new Response("ok", { status: 200 });
+}
+
+function markUpdateForProcessing(updateId: number, nowMs = Date.now()): boolean {
+  pruneProcessedUpdateIds(nowMs);
+
+  const expiresAt = processedUpdateIds.get(updateId);
+  if (expiresAt !== undefined && expiresAt > nowMs) return false;
+
+  processedUpdateIds.set(updateId, nowMs + PROCESSED_UPDATE_TTL_MS);
+  while (processedUpdateIds.size > MAX_PROCESSED_UPDATES) {
+    const oldest = processedUpdateIds.keys().next().value as number | undefined;
+    if (oldest === undefined) break;
+    processedUpdateIds.delete(oldest);
+  }
+
+  return true;
+}
+
+function pruneProcessedUpdateIds(nowMs: number): void {
+  for (const [updateId, expiresAt] of processedUpdateIds) {
+    if (expiresAt <= nowMs) processedUpdateIds.delete(updateId);
+  }
+}
+
+export function __resetTelegramWebhookDedupeForTests(): void {
+  processedUpdateIds.clear();
 }
 
 async function readJsonBodyCapped(request: Request): Promise<unknown | null> {

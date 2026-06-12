@@ -49,3 +49,13 @@ export function getTelegramBotToken(): string | undefined {
 export function getTelegramWebhookSecret(): string | undefined {
   return process.env.TELEGRAM_WEBHOOK_SECRET;
 }
+
+/**
+ * Public Telegram bot username used only to build deep links.
+ * Falls back to the current production username if the optional env var is not
+ * configured, and ignores malformed values instead of creating broken links.
+ */
+export function getTelegramBotUsername(): string {
+  const raw = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, "");
+  return raw && /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : "scamguard_bot";
+}

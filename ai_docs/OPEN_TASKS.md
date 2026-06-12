@@ -2,6 +2,8 @@
 
 ## Fragile / risky spots
 
+- **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale invite expiry, trusted-contact opt-out, env-driven invite URLs, guardian-language notification and redacted trusted alerts are now covered by tests.
+- **Telegram webhook `update_id` dedup is in-memory per Node process.** Good for the current single Railway instance; move it to Redis/KV/Postgres before running multiple instances so Telegram retries cannot be reprocessed on another worker.
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
@@ -10,6 +12,10 @@
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
 ## Near-term product tasks
+
+- [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
+- [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done as an in-memory LRU for the current single-instance deploy.
+- [ ] Add official-number lookalike detection after Family Shield/webhook hardening.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

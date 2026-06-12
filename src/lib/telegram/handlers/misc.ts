@@ -77,6 +77,7 @@ import {
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import {
+  buildFamilyAlreadyLinkedKeyboard,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
   createFamilyInvite,
@@ -84,6 +85,7 @@ import {
   notifyTrustedContact,
   parseFamilyCallback,
   revokeFamilyShield,
+  revokeFamilyShieldForTrusted,
 } from "@/lib/telegram/family-shield.server";
 
 const LANG_PREFIX = "lang:";
@@ -159,6 +161,14 @@ async function sendFamilyInvite(ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
   const invite = await createFamilyInvite(ctx.userId);
   if (!invite.ok) {
+    if (invite.reason === "already_linked") {
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(bt("family_already_linked", lang)),
+        keyboard: buildFamilyAlreadyLinkedKeyboard(lang),
+      });
+      return;
+    }
     await sendI18n(ctx.chatId, "family_storage_error", lang);
     return;
   }
@@ -172,7 +182,11 @@ async function sendFamilyInvite(ctx: HandlerCtx): Promise<void> {
 async function sendTrustedNotificationOrSetup(ctx: HandlerCtx): Promise<void> {
   if (!(await requirePrivateFamilyChat(ctx))) return;
   const lang = ctx.session.lang;
-  const result = await notifyTrustedContact({ guardianTelegramUserId: ctx.userId, lang });
+  const result = await notifyTrustedContact({
+    guardianTelegramUserId: ctx.userId,
+    lang,
+    guardianDisplayName: ctx.displayName,
+  });
 
   if (result.ok) {
     await sendI18n(ctx.chatId, "family_notify_ok", lang);
@@ -230,6 +244,18 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
       await sendI18n(ctx.chatId, "family_revoke_ok", lang);
     } else if (revoked.reason === "not_linked") {
       await sendI18n(ctx.chatId, "family_revoke_empty", lang);
+    } else {
+      await sendI18n(ctx.chatId, "family_storage_error", lang);
+    }
+    return true;
+  }
+
+  if (action === FAMILY_CB.trustedOptOut) {
+    const revoked = await revokeFamilyShieldForTrusted(ctx.userId);
+    if (revoked.ok) {
+      await sendI18n(ctx.chatId, "family_trusted_opt_out_ok", lang);
+    } else if (revoked.reason === "not_linked") {
+      await sendI18n(ctx.chatId, "family_trusted_opt_out_empty", lang);
     } else {
       await sendI18n(ctx.chatId, "family_storage_error", lang);
     }
