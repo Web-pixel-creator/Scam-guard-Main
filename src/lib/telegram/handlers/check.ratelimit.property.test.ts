@@ -26,6 +26,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const hoisted = vi.hoisted(() => ({
   runCheckKeys: [] as string[],
   ocrKeys: [] as string[],
+  voiceKeys: [] as string[],
 }));
 
 // A valid RunCheckResult shape returned by the mocked core. `level` must be a
@@ -59,6 +60,10 @@ vi.mock("@/lib/risk/check-core", () => ({
       summary: null,
     });
   },
+  transcribeVoiceCore: (_dataUrl: string, _lang: string, rateLimitKey: string) => {
+    hoisted.voiceKeys.push(rateLimitKey);
+    return Promise.resolve({ text: "caller asks for SMS code" });
+  },
 }));
 
 // Mock the Bot API helpers — all best-effort no-ops; escapeMarkdownV2 is needed
@@ -78,7 +83,7 @@ vi.mock("@/lib/telegram/session.server", () => ({
   resetScenario: () => Promise.resolve(),
 }));
 
-import { handleCheck, handleImage, handlePhoneFromContact } from "./check";
+import { handleCheck, handleImage, handlePhoneFromContact, handleVoice } from "./check";
 import { extractTarget, type HandlerCtx, type TelegramUpdate } from "@/lib/telegram/router";
 import type { Session } from "@/lib/telegram/session.server";
 
@@ -106,7 +111,7 @@ const phoneArb = fc
 
 const fileIdArb = fc.string({ minLength: 1, maxLength: 30 }).map((s) => `AgAC${s}`);
 
-const handlerKindArb = fc.constantFrom("text", "contact", "image");
+const handlerKindArb = fc.constantFrom("text", "contact", "image", "voice");
 
 const IP_RE = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
 
@@ -152,6 +157,7 @@ function makeCtx(userId: number, chatId: number, lang: (typeof LANGS)[number]): 
 beforeEach(() => {
   hoisted.runCheckKeys.length = 0;
   hoisted.ocrKeys.length = 0;
+  hoisted.voiceKeys.length = 0;
 });
 
 afterEach(() => {
@@ -172,6 +178,7 @@ describe("check handlers — Property 4: rate-limit key is always tg:<telegram_u
         async (userId, chatId, lang, kind, content, phone, fileId) => {
           hoisted.runCheckKeys.length = 0;
           hoisted.ocrKeys.length = 0;
+          hoisted.voiceKeys.length = 0;
 
           const ctx = makeCtx(userId, chatId, lang);
 
@@ -179,8 +186,10 @@ describe("check handlers — Property 4: rate-limit key is always tg:<telegram_u
             await handleCheck(content, ctx);
           } else if (kind === "contact") {
             await handlePhoneFromContact(phone, ctx);
-          } else {
+          } else if (kind === "image") {
             await handleImage(fileId, ctx);
+          } else {
+            await handleVoice(fileId, ctx, { fileSize: 12_345, duration: 5 });
           }
 
           const expected = `tg:${userId}`;
@@ -191,11 +200,16 @@ describe("check handlers — Property 4: rate-limit key is always tg:<telegram_u
           // Image path also runs OCR — it must use the SAME user-based key.
           if (kind === "image") {
             expect(hoisted.ocrKeys).toHaveLength(1);
+            expect(hoisted.voiceKeys).toHaveLength(0);
+          } else if (kind === "voice") {
+            expect(hoisted.ocrKeys).toHaveLength(0);
+            expect(hoisted.voiceKeys).toHaveLength(1);
           } else {
             expect(hoisted.ocrKeys).toHaveLength(0);
+            expect(hoisted.voiceKeys).toHaveLength(0);
           }
 
-          for (const key of [...hoisted.runCheckKeys, ...hoisted.ocrKeys]) {
+          for (const key of [...hoisted.runCheckKeys, ...hoisted.ocrKeys, ...hoisted.voiceKeys]) {
             // (1) Always strictly "tg:" + telegram_user_id.
             expect(key).toBe(expected);
             // (2) Always namespaced with "tg:" — never the web "check:<ip>" form.

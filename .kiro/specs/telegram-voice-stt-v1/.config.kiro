@@ -1,0 +1,5 @@
+{
+  "feature": "telegram-voice-stt-v1",
+  "workflow": "requirements-first",
+  "status": "ready-for-implementation"
+}

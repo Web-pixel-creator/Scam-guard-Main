@@ -29,7 +29,12 @@ import { resetScenario } from "@/lib/telegram/session.server";
 import { answerCallbackQuery } from "@/lib/telegram/api.server";
 
 import { handleCommand } from "@/lib/telegram/handlers/commands";
-import { handleCheck, handleImage, handlePhoneFromContact } from "@/lib/telegram/handlers/check";
+import {
+  handleCheck,
+  handleImage,
+  handlePhoneFromContact,
+  handleVoice,
+} from "@/lib/telegram/handlers/check";
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
 import {
   handleScenarioStep as handleReportScenarioStep,
@@ -120,6 +125,7 @@ export const telegramHandlers: Handlers = {
   handleCheck,
   handleMetaIntent,
   handleImage,
+  handleVoice,
   handlePhoneFromContact,
   handleCallback,
   handleOutOfScope,

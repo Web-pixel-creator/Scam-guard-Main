@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Telegram Voice STT v1
+
+- Added `.kiro/specs/telegram-voice-stt-v1/`.
+- Telegram `message.voice` now routes to a dedicated handler when no stronger
+  text/caption/link evidence exists.
+- Short voice files are downloaded only in memory, transcribed through the
+  configured AI provider, redacted and passed into the existing rules-first
+  `runCheck` pipeline.
+- STT supports Gemini native audio for `generativelanguage.googleapis.com`
+  providers and OpenAI-compatible `/audio/transcriptions` for other providers.
+- If STT is unavailable, oversized or unreliable, the bot gives a localized
+  fallback asking for one short typed summary and offers emergency actions.
+
 ## 2026-06-12 - Shared Rate Limits v1
 
 - Added service-role-only `rate_limit_buckets` and `claim_rate_limit()` for

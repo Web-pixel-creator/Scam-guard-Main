@@ -201,6 +201,16 @@ export const bot_dict: BotDict = {
     uz: "Rasm juda katta (maksimum 6 MB). Kichikroq fayl yuboring yoki matnni qo‘lda joylashtiring.",
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
+  voice_too_large: {
+    ru: "Голосовое слишком большое. Пришлите короткое голосовое до 2 минут или напишите 1-2 фразы: что обещают и что просят сделать.",
+    uz: "Ovozli xabar juda katta. 2 daqiqagacha qisqa ovozli xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
+    en: "The voice note is too large. Send a short voice note up to 2 minutes, or type 1-2 sentences: what they promise and what they ask you to do.",
+  },
+  voice_transcription_failed: {
+    ru: "Я пока не смог надёжно разобрать голосовое.\n\nНапишите коротко: что вам обещают и что просят сделать — код, карту, перевод, APK, QR или ссылку.\n\nЕсли вы уже отправили код, установили приложение или сейчас на звонке — нажмите «Что делать срочно».",
+    uz: "Ovozli xabarni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
+    en: "I could not reliably understand the voice note yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
+  },
   ocr_failed: {
     ru: "Я не смог надёжно прочитать текст или QR на картинке. Я не буду угадывать риск по размытому кадру.\n\nВыберите ниже, на что это похоже, или пришлите: текст из SMS/чата, ссылку из QR, крупный скрин нужного места.",
     uz: "Rasmdagi matn yoki QRni ishonchli o‘qiy olmadim. Xira kadr bo‘yicha xavfni taxmin qilmayman.\n\nQuyida nimaga o‘xshashini tanlang yoki yuboring: SMS/chat matni, QR havolasi, kerakli joyning yaqinroq skrinshoti.",
@@ -249,11 +259,11 @@ export const bot_dict: BotDict = {
     en: "I can’t analyze this message type yet. Send a phone number, Telegram username, link, message text, or an image as a photo/screenshot. If you are checking a QR, it is better to send the link it opens. Commands — /help.",
   },
 
-  // ── Out-of-scope content: voice/audio/video (R22.3) ───────────────────────
+  // ── Out-of-scope content: long audio/video (R22.3) ───────────────────────
   out_of_scope: {
-    ru: "Я пока не смотрю видео и не слушаю голосовые целиком, но могу разобрать главное из них. Если Telegram даст кадр-превью, я попробую проверить его автоматически.\n\nЕсли я ответил этим сообщением, пришлите одно из этого:\n• ссылку из описания или комментария;\n• скрин кадра, где видны QR, username, реквизиты или обещание;\n• текст: что обещают и что просят сделать.\n\nЕсли в видео про ставки, крипту, «гарантированный доход», APK или вход по QR — лучше не платить и не вводить данные, пока не проверим.",
-    uz: "Hozircha videoni to'liq ko'rmayman va ovozli xabarni eshitmayman, lekin undagi asosiy narsani tekshira olaman. Telegram kadr-prevyu bersa, uni avtomatik tekshirib ko'raman.\n\nAgar shu xabarni olgan bo'lsangiz, shulardan birini yuboring:\n• tavsif yoki izohdagi havola;\n• QR, username, rekvizit yoki va'da ko'ringan kadr skrinshoti;\n• matn: nima va'da qilishdi va nima qilishni so'rashdi.\n\nVideoda stavka, kripto, «kafolatlangan daromad», APK yoki QR orqali kirish bo'lsa — tekshirmaguncha pul to'lamang va ma'lumot kiritmang.",
-    en: "I cannot watch full videos or listen to voice messages yet, but I can check the useful evidence from them. If Telegram provides a preview frame, I will try to check it automatically.\n\nIf you see this message, send one of these:\n• the link from the description or comment;\n• a screenshot frame with a QR, username, payment details, or promise;\n• a short text: what they promise and what they ask you to do.\n\nIf the video mentions betting, crypto, “guaranteed income”, APKs, or QR login, do not pay or enter data before we check it.",
+    ru: "Я пока не смотрю видео и длинные аудиофайлы целиком, но могу разобрать главное из них. Короткое голосовое можно прислать отдельно — я попробую перевести его в текст.\n\nЕсли я ответил этим сообщением, пришлите одно из этого:\n• ссылку из описания или комментария;\n• скрин кадра, где видны QR, username, реквизиты или обещание;\n• текст: что обещают и что просят сделать.\n\nЕсли в видео про ставки, крипту, «гарантированный доход», APK или вход по QR — лучше не платить и не вводить данные, пока не проверим.",
+    uz: "Hozircha videoni va uzun audio fayllarni to'liq tekshirmayman, lekin ulardagi asosiy dalilni tekshira olaman. Qisqa ovozli xabarni alohida yuborishingiz mumkin — uni matnga aylantirishga harakat qilaman.\n\nAgar shu xabarni olgan bo'lsangiz, shulardan birini yuboring:\n• tavsif yoki izohdagi havola;\n• QR, username, rekvizit yoki va'da ko'ringan kadr skrinshoti;\n• matn: nima va'da qilishdi va nima qilishni so'rashdi.\n\nVideoda stavka, kripto, «kafolatlangan daromad», APK yoki QR orqali kirish bo'lsa — tekshirmaguncha pul to'lamang va ma'lumot kiritmang.",
+    en: "I cannot watch full videos or long audio files yet, but I can check the useful evidence from them. You can send a short voice note separately — I will try to transcribe it.\n\nIf you see this message, send one of these:\n• the link from the description or comment;\n• a screenshot frame with a QR, username, payment details, or promise;\n• a short text: what they promise and what they ask you to do.\n\nIf the video mentions betting, crypto, “guaranteed income”, APKs, or QR login, do not pay or enter data before we check it.",
   },
   media_capture_help: {
     ru: "📸 Как прислать видео на проверку\n\nЯ не смотрю ролик целиком, поэтому нужен кусок доказательства:\n• поставьте видео на паузу и пришлите скрин кадра с QR, username, ссылкой, реквизитами или обещанием дохода;\n• скопируйте ссылку из описания, комментария или кнопки под видео;\n• коротко напишите: что обещают и что просят сделать — оплатить, подписаться, ввести код, карту или установить приложение.\n\nДо проверки не платите за «прогнозы», VIP-доступ, крипто-доход и не вводите коды/данные карты.",

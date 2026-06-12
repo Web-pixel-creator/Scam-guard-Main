@@ -380,6 +380,36 @@ export async function analyzeImageCore(
   return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }
 
+/**
+ * Voice-note transcription for Telegram.
+ *
+ * Audio stays in memory as a data URL. The returned text is redacted and clipped
+ * before the Telegram handler passes it into `runCheck`, so persistence still
+ * sees only sanitized check input.
+ */
+export async function transcribeVoiceCore(
+  dataUrl: string,
+  lang: Lang,
+  rateLimitKey: string,
+): Promise<{ text: string | null }> {
+  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  if (!rl.ok) {
+    throw rateLimitedError(rl.retryAfterSec);
+  }
+
+  const cfg = getAiConfig();
+  if (!cfg) return { text: null };
+
+  const parsed = parseDataUrlPayload(dataUrl);
+  if (!parsed || !parsed.mimeType.startsWith("audio/")) return { text: null };
+
+  const raw = isGeminiConfig(cfg)
+    ? await transcribeAudioWithGemini(cfg, parsed, lang)
+    : await transcribeAudioWithOpenAiCompatible(cfg, parsed, lang);
+
+  return { text: sanitizeTranscript(raw) };
+}
+
 // ---------------------------------------------------------------------------
 // AI helpers (private). Secrets are read INSIDE the functions (per-request,
 // CODING_RULES §6), never at module scope.
@@ -391,11 +421,18 @@ export async function analyzeImageCore(
 
 const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_AI_MODEL = "gpt-4o-mini";
+const DEFAULT_TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe";
+const MAX_TRANSCRIPT_CHARS = 2000;
 
 interface AiConfig {
   apiKey: string;
   baseUrl: string; // no trailing slash
   model: string;
+}
+
+interface DataUrlPayload {
+  mimeType: string;
+  base64: string;
 }
 
 /**
@@ -419,6 +456,127 @@ function getFallbackAiConfig(): AiConfig | null {
   if (!apiKey) return null;
   const model = process.env.OPENAI_FALLBACK_MODEL ?? DEFAULT_AI_MODEL;
   return { apiKey, baseUrl: fallbackUrl.replace(/\/+$/, ""), model };
+}
+
+function getTranscriptionModel(cfg: AiConfig): string {
+  return process.env.OPENAI_TRANSCRIBE_MODEL ?? process.env.OPENAI_AUDIO_MODEL ?? cfg.model;
+}
+
+function parseDataUrlPayload(dataUrl: string): DataUrlPayload | null {
+  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUrl.trim());
+  if (!match) return null;
+  const mimeType = match[1].trim().toLowerCase();
+  const base64 = match[2].replace(/\s+/g, "");
+  if (!mimeType || !base64) return null;
+  return { mimeType, base64 };
+}
+
+function sanitizeTranscript(raw: string | null): string | null {
+  const text = raw?.trim();
+  if (!text) return null;
+  const redacted = redactText(text).trim();
+  if (!redacted) return null;
+  return redacted.length > MAX_TRANSCRIPT_CHARS
+    ? redacted.slice(0, MAX_TRANSCRIPT_CHARS).trim()
+    : redacted;
+}
+
+function isGeminiConfig(cfg: AiConfig): boolean {
+  return /generativelanguage\.googleapis\.com/i.test(cfg.baseUrl);
+}
+
+function geminiNativeModelName(model: string): string {
+  return model.replace(/^models\//, "");
+}
+
+function extractGeminiText(data: unknown): string | null {
+  const candidate = (data as { candidates?: unknown[] })?.candidates?.[0] as
+    | { content?: { parts?: Array<{ text?: unknown }> } }
+    | undefined;
+  const parts = candidate?.content?.parts ?? [];
+  const text = parts
+    .map((part) => (typeof part.text === "string" ? part.text : ""))
+    .join("")
+    .trim();
+  return text || null;
+}
+
+async function transcribeAudioWithGemini(
+  cfg: AiConfig,
+  payload: DataUrlPayload,
+  lang: Lang,
+): Promise<string | null> {
+  const model = geminiNativeModelName(getTranscriptionModel(cfg));
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model,
+  )}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+  const langName = { ru: "Russian", uz: "Uzbek or Russian", en: "English" }[lang];
+  const prompt = `Transcribe this Telegram voice note for an anti-scam assistant. Keep the speaker's language when possible (${langName}). Return only the transcript, no advice. Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number. If speech is not understandable, return an empty string.`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: payload.mimeType, data: payload.base64 } },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.error(`AI voice transcription error ${res.status}`);
+      return null;
+    }
+    return extractGeminiText(await res.json());
+  } catch (e) {
+    console.error(`AI voice transcription failed: ${e instanceof Error ? e.message : "unknown"}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function transcribeAudioWithOpenAiCompatible(
+  cfg: AiConfig,
+  payload: DataUrlPayload,
+  lang: Lang,
+): Promise<string | null> {
+  const bytes = Uint8Array.from(Buffer.from(payload.base64, "base64"));
+  const form = new FormData();
+  form.set("model", getTranscriptionModel({ ...cfg, model: DEFAULT_TRANSCRIBE_MODEL }));
+  form.set("response_format", "json");
+  if (lang === "ru" || lang === "en") form.set("language", lang);
+  form.set("file", new Blob([bytes], { type: payload.mimeType }), "telegram-voice.ogg");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${cfg.apiKey}` },
+      body: form,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.error(`AI voice transcription error ${res.status}`);
+      return null;
+    }
+    const data = (await res.json()) as { text?: unknown };
+    return typeof data.text === "string" ? data.text.trim() : null;
+  } catch (e) {
+    console.error(`AI voice transcription failed: ${e instanceof Error ? e.message : "unknown"}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /** Body shape accepted by the OpenAI-compatible Chat Completions API. */

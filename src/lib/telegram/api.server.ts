@@ -408,6 +408,14 @@ const EXT_MIME: Record<string, string> = {
   gif: "image/gif",
   bmp: "image/bmp",
   heic: "image/heic",
+  oga: "audio/ogg",
+  ogg: "audio/ogg",
+  opus: "audio/ogg",
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+  webm: "audio/webm",
+  mp4: "video/mp4",
 };
 
 /**

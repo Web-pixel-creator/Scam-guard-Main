@@ -39,6 +39,8 @@ Already shipped:
 - Scheduled Production Monitor v1: GitHub Actions cron runs production checks every 30 minutes; repository secrets are configured for webhook, Telegram and AI provider checks.
 - Shared Rate Limits v1: public check/report/Telegram throttling now uses
   Supabase HMAC-hashed buckets across Node instances with in-memory fallback.
+- Telegram Voice STT v1: short voice notes are transcribed in memory, redacted
+  and checked by the existing rules pipeline.
 
 Immediate hardening order before new large features:
 
@@ -104,7 +106,7 @@ Disallowed claims:
 1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code; requires BotFather inline mode to be enabled.
 2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions.
 3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap. v1 and v1.1 hardening are shipped.
-4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users.
+4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users - shipped as v1.
 5. Weekly scam digest from the research feed: short, local, shareable.
 
 ## Stage 3 - Website Trust And Distribution

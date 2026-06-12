@@ -131,6 +131,7 @@ function makeSpyHandlers(): {
     handleCheck: record("handleCheck"),
     handleMetaIntent: record("handleMetaIntent"),
     handleImage: record("handleImage"),
+    handleVoice: record("handleVoice"),
     handlePhoneFromContact: record("handlePhoneFromContact"),
     handleCallback: record("handleCallback"),
     handleOutOfScope: record("handleOutOfScope"),
@@ -353,8 +354,21 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "contact", phone: "+998901234567" });
   });
 
+  it("routes a voice message to the voice handler", () => {
+    const update = messageUpdate({
+      voice: { file_id: "voice-1", file_size: 12345, duration: 9, mime_type: "audio/ogg" },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "voice",
+      fileId: "voice-1",
+      fileSize: 12345,
+      duration: 9,
+      mimeType: "audio/ogg",
+    });
+  });
+
   it.each([
-    ["voice", "voice"],
     ["audio", "audio"],
     ["video", "video"],
     ["sticker", "sticker"],

@@ -15,7 +15,7 @@
 
 **Ishonch Guard** — открытая платформа (веб + Telegram-бот), которая:
 
-- 🔍 **Проверяет** номера, ссылки, Telegram-юзернеймы, скриншоты (OCR) и текстовые сообщения
+- 🔍 **Проверяет** номера, ссылки, Telegram-юзернеймы, скриншоты (OCR), голосовые описания и текстовые сообщения
 - ⚖️ **Оценивает риск** по правилам (детерминированно, без «галлюцинаций» AI)
 - 🤖 **Объясняет** почему подозрительно — через AI (опционально; при недоступности AI работает и без него)
 - 📢 **Принимает жалобы** на мошенников (модерируемая база)
@@ -97,7 +97,7 @@ src/
 ├── components/      # React-компоненты
 ├── lib/
 │   ├── risk/        # Risk engine (rules, check-core, detect, hash)
-│   ├── telegram/    # Telegram-бот (router, handlers, format, i18n)
+│   ├── telegram/    # Telegram-бот (router, handlers, voice/image/check, format, i18n)
 │   ├── *.functions.ts  # Server functions (RPC)
 │   └── config.server.ts
 ├── integrations/    # Supabase client

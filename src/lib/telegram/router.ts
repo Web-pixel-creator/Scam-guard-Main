@@ -75,6 +75,15 @@ const videoSchema = z
   })
   .passthrough();
 
+const voiceSchema = z
+  .object({
+    file_id: z.string(),
+    file_size: z.number().optional(),
+    duration: z.number().optional(),
+    mime_type: z.string().optional(),
+  })
+  .passthrough();
+
 const forwardChatSchema = z
   .object({
     type: z.string().optional(),
@@ -123,7 +132,7 @@ const messageSchema = z.object({
     })
     .optional(),
   contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
-  voice: z.unknown().optional(), // out of scope (R22) — recognised only to decline politely
+  voice: voiceSchema.optional(),
   audio: z.unknown().optional(),
   video: videoSchema.optional(),
   sticker: z.unknown().optional(),
@@ -286,6 +295,11 @@ export interface Handlers {
     mediaGroupId?: string,
     source?: TelegramForwardSourceContext,
   ): Promise<void>;
+  handleVoice(
+    fileId: string,
+    ctx: HandlerCtx,
+    meta?: { fileSize?: number; duration?: number; mimeType?: string },
+  ): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
   /** Inline-button callbacks: language / Report / Check another / Emergency (8.5). */
@@ -308,6 +322,7 @@ export type RouteAction =
   | { kind: "scenarioStep"; text: string }
   | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
   | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
+  | { kind: "voice"; fileId: string; fileSize?: number; duration?: number; mimeType?: string }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
   | { kind: "ignore" };
@@ -506,7 +521,15 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     if (fileId) return imageRoute(fileId, m.media_group_id, source);
     return { kind: "outOfScope", reason: "video" };
   }
-  if (m.voice != null) return { kind: "outOfScope", reason: "voice" };
+  if (m.voice != null) {
+    return {
+      kind: "voice",
+      fileId: m.voice.file_id,
+      fileSize: m.voice.file_size,
+      duration: m.voice.duration,
+      mimeType: m.voice.mime_type,
+    };
+  }
   if (m.audio != null) return { kind: "outOfScope", reason: "audio" };
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
 
@@ -541,6 +564,9 @@ const stubHandlers: Handlers = {
   },
   async handleImage() {
     console.warn("telegram router: no handler wired for image");
+  },
+  async handleVoice() {
+    console.warn("telegram router: no handler wired for voice");
   },
   async handlePhoneFromContact() {
     console.warn("telegram router: no handler wired for contact");
@@ -665,6 +691,13 @@ export async function dispatchUpdate(
     }
     case "image":
       await handlers.handleImage(action.fileId, ctx, action.mediaGroupId, action.source);
+      break;
+    case "voice":
+      await handlers.handleVoice(action.fileId, ctx, {
+        fileSize: action.fileSize,
+        duration: action.duration,
+        mimeType: action.mimeType,
+      });
       break;
     case "contact":
       await handlers.handlePhoneFromContact(action.phone, ctx);

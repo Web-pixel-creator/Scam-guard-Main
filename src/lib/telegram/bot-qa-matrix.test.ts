@@ -79,7 +79,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(formatHelp("ru")).toContain("/family");
   });
 
-  it("gives a useful fallback for unsupported video, audio, and voice", () => {
+  it("gives a useful fallback for unsupported video and audio", () => {
     const text = bt("out_of_scope", "ru");
     const keyboard = buildUnsupportedMediaKeyboard("ru");
 

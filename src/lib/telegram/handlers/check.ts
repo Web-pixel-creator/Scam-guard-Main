@@ -22,7 +22,12 @@
 // Server-only: pulls in `*.server.ts` modules (Bot API + service-role core).
 // This module is wired into the router later (task 9.1) via `setHandlers`; it
 // deliberately does NOT import sibling handler modules or touch the aggregator.
-import { analyzeImageCore, runCheck, type RateLimitedError } from "@/lib/risk/check-core";
+import {
+  analyzeImageCore,
+  runCheck,
+  transcribeVoiceCore,
+  type RateLimitedError,
+} from "@/lib/risk/check-core";
 import {
   sendMessage,
   sendChatAction,
@@ -31,7 +36,7 @@ import {
   escapeMarkdownV2,
   type InlineKeyboard,
 } from "@/lib/telegram/api.server";
-import { formatCheckResult } from "@/lib/telegram/format";
+import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
@@ -78,6 +83,8 @@ const MAX_TEXT_LENGTH = 2000;
 
 /** Верхний предел размера скачиваемого изображения: 6 МБ (R5.5). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_VOICE_BYTES = 2 * 1024 * 1024;
+const MAX_VOICE_DURATION_SEC = 120;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
@@ -133,6 +140,24 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
  */
 async function replyText(chatId: number, plain: string, keyboard?: InlineKeyboard): Promise<void> {
   await sendMessage({ chatId, text: escapeMarkdownV2(plain), keyboard });
+}
+
+function buildVoiceFallbackKeyboard(lang: HandlerCtx["session"]["lang"]): InlineKeyboard {
+  return [
+    [
+      { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+    ],
+    [{ text: bt("btn_media_tips", lang), callback_data: CB.mediaTips }],
+  ];
+}
+
+function estimateBase64DataUrlBytes(dataUrl: string): number {
+  const comma = dataUrl.indexOf(",");
+  if (comma < 0) return 0;
+  const base64 = dataUrl.slice(comma + 1).replace(/\s+/g, "");
+  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 }
 
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
@@ -359,6 +384,76 @@ export async function handleImage(
       return;
     }
     await sendCheckResult(ctx, enrichForwardSourceContext(outcome.result, source, lang));
+  });
+}
+
+export async function handleVoice(
+  fileId: string,
+  ctx: HandlerCtx,
+  meta?: { fileSize?: number; duration?: number; mimeType?: string },
+): Promise<void> {
+  const lang = ctx.session.lang;
+
+  await guarded(ctx, "handleVoice", async () => {
+    const declaredSize = meta?.fileSize ?? 0;
+    if (
+      declaredSize > MAX_VOICE_BYTES ||
+      (meta?.duration !== undefined && meta.duration > MAX_VOICE_DURATION_SEC)
+    ) {
+      await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      return;
+    }
+
+    const fileMeta = await getFile(fileId);
+    if (!fileMeta) {
+      await replyText(
+        ctx.chatId,
+        bt("voice_transcription_failed", lang),
+        buildVoiceFallbackKeyboard(lang),
+      );
+      return;
+    }
+
+    const fileSize = fileMeta.fileSize || declaredSize;
+    if (fileSize > MAX_VOICE_BYTES) {
+      await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      return;
+    }
+
+    const outcome = await withTypingIndicator(ctx.chatId, async () => {
+      const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
+      if (!dataUrl) return { kind: "failed" as const };
+      if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
+        return { kind: "too_large" as const };
+      }
+
+      const transcript = await transcribeVoiceCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      if (!transcript.text) return { kind: "failed" as const };
+
+      const result = await runCheck({
+        input: transcript.text,
+        type: "text",
+        lang,
+        rateLimitKey: rateLimitKeyFor(ctx.userId),
+        channel: CHANNEL,
+      });
+      return { kind: "ok" as const, result };
+    });
+
+    if (outcome.kind === "failed") {
+      await replyText(
+        ctx.chatId,
+        bt("voice_transcription_failed", lang),
+        buildVoiceFallbackKeyboard(lang),
+      );
+      return;
+    }
+    if (outcome.kind === "too_large") {
+      await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      return;
+    }
+
+    await sendCheckResult(ctx, outcome.result);
   });
 }
 
