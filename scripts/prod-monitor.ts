@@ -29,6 +29,7 @@ interface MonitorConfig {
   label: string;
   maxPendingUpdates: number;
   staleTelegramErrorMs: number;
+  requireSecretChecks: boolean;
   failOnWarn: boolean;
   alertOnWarn: boolean;
   alertChatId: string | null;
@@ -40,10 +41,12 @@ function env(name: string): string | null {
   return value ? value : null;
 }
 
-function requiredEnv(name: string): string {
-  const value = env(name);
-  if (!value) throw new Error(`${name} is not set`);
-  return value;
+function skippedSecretCheck(name: string, secretName: string, config: MonitorConfig): MonitorCheck {
+  return result(
+    name,
+    config.requireSecretChecks ? "fail" : "warn",
+    `skipped: ${secretName} is not set`,
+  );
 }
 
 function numberEnv(name: string, fallback: number): number {
@@ -89,6 +92,7 @@ function parseConfig(): MonitorConfig {
       "MONITOR_STALE_TELEGRAM_ERROR_MS",
       DEFAULT_STALE_TELEGRAM_ERROR_MS,
     ),
+    requireSecretChecks: boolEnv("MONITOR_REQUIRE_SECRET_CHECKS"),
     failOnWarn: boolEnv("MONITOR_FAIL_ON_WARN"),
     alertOnWarn: boolEnv("MONITOR_ALERT_ON_WARN"),
     alertChatId,
@@ -142,7 +146,11 @@ async function checkStatus(
 }
 
 async function checkWebhookSecretFlow(config: MonitorConfig): Promise<MonitorCheck[]> {
-  const webhookSecret = requiredEnv("TELEGRAM_WEBHOOK_SECRET");
+  const webhookSecret = env("TELEGRAM_WEBHOOK_SECRET");
+  if (!webhookSecret) {
+    return [skippedSecretCheck("webhook secret flow", "TELEGRAM_WEBHOOK_SECRET", config)];
+  }
+
   const webhookUrl = `${config.publicUrl}${WEBHOOK_PATH}`;
   const baseUpdate = () => ({
     update_id: 1_782_000_000 + Math.floor(Math.random() * 1_000_000),
@@ -197,7 +205,11 @@ async function postWebhook(
 }
 
 async function checkTelegramBot(config: MonitorConfig): Promise<MonitorCheck[]> {
-  const botToken = requiredEnv("TELEGRAM_BOT_TOKEN");
+  const botToken = env("TELEGRAM_BOT_TOKEN");
+  if (!botToken) {
+    return [skippedSecretCheck("telegram bot api", "TELEGRAM_BOT_TOKEN", config)];
+  }
+
   const checks: MonitorCheck[] = [];
 
   try {

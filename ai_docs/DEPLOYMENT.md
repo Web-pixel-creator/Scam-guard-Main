@@ -149,6 +149,9 @@ Useful environment variables:
   `0`.
 - `MONITOR_STALE_TELEGRAM_ERROR_MS` - how long a Telegram last-error can remain
   before it is ignored as stale, default `900000` (15 minutes).
+- `MONITOR_REQUIRE_SECRET_CHECKS=true` - fail if Telegram bot/webhook secrets are
+  missing. Use this for private schedulers such as Railway; keep it unset for
+  public GitHub cron until all secrets are configured there.
 - `MONITOR_FAIL_ON_WARN=true` - make warnings fail the command.
 
 Optional Telegram alerting:
@@ -164,6 +167,19 @@ operations bot. Set `MONITOR_ALERT_ON_WARN=true` if provider quota warnings
 should also send alerts. Alert messages include only check names and sanitized
 details; they do not include tokens, webhook secrets, chat ids, user content or
 Supabase keys.
+
+The repository also includes `.github/workflows/prod-monitor.yml`, which runs
+the monitor on a 30-minute GitHub Actions schedule. By default it always checks
+the public app and `/healthz`; secret-backed checks become active after these
+GitHub repository secrets are added:
+
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_WEBHOOK_SECRET`
+- `OPENAI_API_KEY`
+- optional `OPENAI_BASE_URL`
+- optional `OPENAI_MODEL`
+- optional `MONITOR_ALERT_CHAT_ID`
+- optional `MONITOR_ALERT_BOT_TOKEN`
 
 ## Telegram bot webhook deployment
 

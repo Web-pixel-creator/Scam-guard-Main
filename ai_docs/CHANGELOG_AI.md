@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Scheduled Production Monitor
+
+- Added `.github/workflows/prod-monitor.yml` to run public production checks every
+  30 minutes and on manual dispatch.
+- Updated `prod-monitor` so secret-backed Telegram checks are skipped as warnings
+  when secrets are absent, while private schedulers can enforce them with
+  `MONITOR_REQUIRE_SECRET_CHECKS=true`.
+- Documented the GitHub secrets needed for full scheduled monitoring and alerts.
+
 ## 2026-06-12 - Production Monitor v1
 
 - Added `scripts/prod-monitor.ts` plus `npm run monitor:prod` for recurring
