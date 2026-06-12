@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Family Shield production verification
+
+- Applied the `telegram_family_shield` production migration through Supabase SQL
+  Editor and verified service-role-only access.
+- Added `scripts/prod-family-shield-smoke.ts` plus `npm run prod:family-smoke`
+  for repeatable invite/accept/notify/revoke production checks with synthetic
+  Telegram ids and no secret output.
+- Updated Family Shield documentation to match the actual invite hash prefix
+  used by the implementation.
+
 ## 2026-06-11 - Telegram Inline Check v1
 
 - Added `.kiro/specs/telegram-inline-check-v1/`.

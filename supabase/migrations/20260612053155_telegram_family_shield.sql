@@ -1,7 +1,7 @@
 -- Family Shield v1: one trusted Telegram contact per protected user.
 --
 -- Privacy model:
--- - invite_code_hash is HMAC-SHA256("family_invite:" || raw_token).
+-- - invite_code_hash is HMAC-SHA256("family_" || raw_token).
 -- - raw invite tokens, checked messages, URLs, phone numbers, OCR text, codes,
 --   screenshots, and report descriptions are never stored in this table.
 -- - The table is private to server-side bot code via service_role.

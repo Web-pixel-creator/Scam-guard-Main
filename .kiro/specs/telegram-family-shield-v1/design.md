@@ -9,7 +9,7 @@ Family Shield v1 adds a small server-side Telegram feature around a private Supa
 Flow:
 
 1. Guardian taps `/family` or a Family Shield button.
-2. Server generates a high-entropy token and stores only `hashIdentifier("family_invite:" + token)`.
+2. Server generates a high-entropy token and stores only `hashIdentifier("family_" + token)`.
 3. Bot sends `https://t.me/scamguard_bot?start=family_<token>` as a URL button.
 4. Trusted contact opens the link. `/start family_<token>` activates the relationship.
 5. High-risk and panic callbacks call `notifyTrustedContact`.

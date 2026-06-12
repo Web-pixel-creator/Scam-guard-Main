@@ -220,6 +220,15 @@ provider. It never prints secret values.
 railway run npm run prod:smoke -- https://your-app.example.com
 ```
 
+After Family Shield migrations or related bot secret changes, also run the
+dedicated Family Shield smoke. It creates and revokes a synthetic relationship,
+verifies service-role DB access, and checks the safe notification failure path
+without printing tokens, invite URLs or chat ids.
+
+```bash
+railway run npm run prod:family-smoke
+```
+
 If the AI check fails with `status=429` on a Gemini/OpenAI-compatible endpoint,
 the app should still degrade to rules-only scoring, but production AI
 explanations/OCR will be unreliable until the provider quota is restored. Treat
@@ -249,3 +258,5 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally
       `--live-telegram` after user approval).
+- [ ] Family Shield smoke passes after its migration or related env changes
+      (`npm run prod:family-smoke`).
