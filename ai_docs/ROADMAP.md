@@ -32,11 +32,13 @@ Already shipped:
 - Family Shield v1 code, production migration and production smoke test.
 - Family Shield Hardening v1.1: active-link handling, invite TTL, trusted-contact opt-out, env-driven bot username, guardian-language notification and clearer trusted alerts.
 - Telegram webhook `update_id` deduplication as an in-memory LRU for the current single-instance deploy.
+- Retention Cleanup v1: explicit cleanup windows and private maintenance function, plus production RLS/security smoke.
+- Security Definer Hardening v1: browser stats moved behind a server function and admin RLS helper moved to private schema.
 
 Immediate hardening order before new large features:
 
-1. Retention and compliance pass for `telegram_sessions`, `checks`, `reports` and future screenshots.
-2. Security hygiene: RLS review, GitHub secret scanning/push protection, monitoring and separate CRLF normalization if needed.
+1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
+2. GitHub secret scanning/push protection and production monitoring.
 3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
 
 Next visible "wow" feature after stabilization:

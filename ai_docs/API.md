@@ -12,6 +12,7 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 | ---------------- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `checkInput`     | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot     |
 | `ocrExtract`     | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                             |
+| `getPublicStats` | public | none                                                                                                 | `{ total, today, confirmed_entities }`                                 |
 | `submitReport`   | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                      |
 | `listReports`    | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                   |
 | `listEntities`   | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                   |
@@ -41,9 +42,10 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 
 Browser session token (Supabase) is attached by `attachSupabaseAuth` on every server-function call. Admin functions validate it server-side (`requireSupabaseAuth`) and check the `admin` role in `user_roles`.
 
-## Public DB RPC
+## Database RPC
 
-- `get_check_stats()` returns aggregate homepage counts without exposing the `checks` table.
+- `get_check_stats()` is service-role-only. The browser no longer calls it directly; `getPublicStats` calls it through a server function.
+- `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
 
 ## External integrations
 

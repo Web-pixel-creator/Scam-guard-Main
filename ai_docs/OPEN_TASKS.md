@@ -4,6 +4,7 @@
 
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale invite expiry, trusted-contact opt-out, env-driven invite URLs, guardian-language notification and redacted trusted alerts are now covered by tests.
 - **Telegram webhook `update_id` dedup is in-memory per Node process.** Good for the current single Railway instance; move it to Redis/KV/Postgres before running multiple instances so Telegram retries cannot be reprocessed on another worker.
+- **Retention cleanup is explicit, not scheduled.** `private.prune_app_retention()` defines the current windows and returns deletion counts, but no cron runs it yet.
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
@@ -16,6 +17,7 @@
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
 - [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done as an in-memory LRU for the current single-instance deploy.
 - [ ] Add official-number lookalike detection after Family Shield/webhook hardening.
+- [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
@@ -28,7 +30,7 @@
 - [x] ~~Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.~~ Minimal v1 shipped using confirmed `entities` rows only: Telegram shows Ishonch Guard moderated report count + confidence, while owner/carrier/hidden-label claims stay forbidden.
 - [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews; BotFather `/setinline` still must be enabled operationally.
 - [ ] Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.
-- [ ] Production operational verification on Railway: `npm run prod:smoke` now covers endpoint, healthcheck, webhook auth, Telegram pending state and AI provider; still confirm billing, Supabase migrations and real `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
+- [ ] Production operational verification on Railway: `npm run prod:smoke` covers endpoint, healthcheck, webhook auth, Telegram pending state and AI provider; `npm run prod:family-smoke` covers Family Shield; `npm run prod:security-smoke` covers RLS/sensitive-table access. Still confirm billing and real `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
 
 ## Research feed
 
@@ -58,5 +60,5 @@ Completed research-feed themes now covered by deterministic rules:
 ## Compliance / legal
 
 - [ ] Review UZ personal-data law for `redacted_value`, `description`, `amount_lost_uzs`, `city`.
-- [ ] Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.
+- [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.~~ Implemented as explicit `private.prune_app_retention()` cleanup windows; scheduling remains a separate decision.
 - [ ] Moderation guidelines + admin audit log.

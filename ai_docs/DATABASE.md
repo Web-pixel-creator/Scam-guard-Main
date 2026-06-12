@@ -17,8 +17,8 @@ Risk-check log: `id, input_type, redacted_input, input_hash, risk_level, risk_sc
 
 RLS/grants: public direct inserts are revoked. Writes go through server functions
 using the service-role client after validation, redaction and hashing. Public
-cannot select; admins can read via admin server functions. Stores redacted/hashed
-data only.
+cannot select; admins can read via admin server functions. Rows older than 90
+days are eligible for retention cleanup. Stores redacted/hashed data only.
 
 ### `reports`
 
@@ -27,7 +27,9 @@ User-submitted reports: `id, entity_type, redacted_value, entity_hash, descripti
 RLS/grants: public direct inserts are revoked. Reports are accepted through
 `submitReport`, which validates payloads and redacts free-form `description`
 before service-role insert. Anonymous by default; admins moderate through admin
-server functions.
+server functions. Terminal reports (`confirmed`, `rejected`, `duplicate`) older
+than 365 days and stale open reports (`new`, `reviewing`) older than 180 days
+are eligible for retention cleanup.
 
 Situation-only reports from Telegram (`/report` with no number/link/username)
 are stored as incident evidence with the reserved redacted value
@@ -59,7 +61,9 @@ sources with at least one moderated report. Admins can read via RBAC; service
 role writes. Raw Telegram usernames, invite tokens, public titles and public
 descriptions are not stored. New checks may update only observation timestamps;
 user-submitted unverified reports do not affect public risk or user-facing scam
-labels.
+labels. Unconfirmed system/public/unverified observations older than 180 days
+are eligible for retention cleanup; confirmed rows are retained until moderated
+removal.
 
 ### `telegram_sessions`
 
@@ -68,6 +72,7 @@ Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, s
 RLS: no public access. Service-role only. Used so bot state survives process restarts and multi-instance deploys.
 
 `scenario_data` is also used for Emergency Copilot context after `/panic`: only `lastPanicId` and `lastPanicAt` are stored. Raw URLs, phone numbers, OTPs, card data, screenshots and user evidence must not be stored there by the panic flow.
+Rows idle for more than 30 days are eligible for retention cleanup.
 
 Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
 
@@ -83,7 +88,9 @@ before storage and raw deep links are not persisted. v1 allows one open
 `pending` or `active` relationship per guardian. Pending invites expire in app
 logic after 24 hours, trusted contacts can opt out, and alerts intentionally do
 not include checked numbers, links, OCR text, screenshots, SMS codes, card data
-or report descriptions.
+or report descriptions. Revoked links older than 30 days and stale pending rows
+older than 7 days are eligible for retention cleanup. Active trusted-contact
+relationships are retained until revoked.
 
 ### `user_roles`
 
@@ -95,10 +102,24 @@ Emails that become admin on signup. Managed by SQL/service-role only.
 
 ## Functions / triggers
 
-- `has_role(_user_id uuid, _role app_role) -> boolean`
+- `private.has_role(_user_id uuid, _role app_role) -> boolean` is the private RLS helper for admin policies.
+- `has_role(_user_id uuid, _role app_role) -> boolean` remains as a legacy service-role-only helper; public/authenticated RPC execution is revoked.
 - `handle_new_user_role()` signup trigger
-- `get_check_stats() -> (total, today, confirmed_entities)`
-- `prune_telegram_sessions()` deletes sessions idle for more than 30 days
+- `get_check_stats() -> (total, today, confirmed_entities)` is service-role-only and called through the web server function, not directly from the browser.
+- `private.prune_app_retention(as_of timestamptz default now()) -> jsonb` deletes rows eligible under the retention windows and returns per-table counts.
+- `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.
+
+## Retention windows
+
+Retention cleanup is explicit, not automatic. Run
+`select private.prune_app_retention();` only from a trusted SQL/maintenance
+context after reviewing the expected policy.
+
+- `checks`: 90 days.
+- `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
+- `telegram_sessions`: 30 days after last update.
+- `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.
+- `telegram_family_shield`: revoked rows after 30 days; stale pending rows after 7 days; active relationships retained until revoked.
 
 ## Privacy model
 

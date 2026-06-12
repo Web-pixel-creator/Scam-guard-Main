@@ -48,7 +48,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 | Path                                 | Purpose                                                                                                                                       |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check.functions.ts`                 | Web server functions wrapping check/OCR core.                                                                                                 |
+| `check.functions.ts`                 | Web server functions wrapping check/OCR core plus service-role-backed public stats.                                                           |
 | `report.functions.ts`                | Public report server function; redacts descriptions before insert and keeps situation-only reports out of entity reputation.                  |
 | `report-boundary.ts`                 | Shared incident-only report marker/helpers used by report submission and admin moderation.                                                    |
 | `admin.functions.ts`                 | Admin moderation server functions; skips entity sync for situation-only reports.                                                              |
@@ -70,7 +70,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `telegram/handlers/inline.ts`        | Telegram inline-mode handler for `@scamguard_bot <query>`; returns compact rules-only non-persistent result articles.                         |
 | `telegram/handlers/report.ts`        | Multi-step /report scenario.                                                                                                                  |
 | `telegram/handlers/misc.ts`          | Callbacks (language, report, check_another, emergency, panic) + out-of-scope.                                                                 |
-| `telegram/webhook.server.ts`         | Framework-agnostic webhook handler (token-first, fail-closed).                                                                                |
+| `telegram/webhook.server.ts`         | Framework-agnostic webhook handler (token-first, fail-closed, `update_id` dedup).                                                             |
 | `telegram/api.server.ts`             | Telegram Bot API helpers (sendMessage, getFile, escapeMarkdownV2, etc.).                                                                      |
 | `telegram/public-metadata.server.ts` | Best-effort Telegram username/link enrichment: target extraction, public `getChat`, private-link limitations, visible signals and next steps. |
 | `telegram/public-post.server.ts`     | Best-effort public Telegram post web fetch/parser for `t.me/<channel>/<post>` links; extracts visible text, links, buttons and previews.      |
@@ -91,3 +91,11 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 ## `src/integrations/supabase/`
 
 Browser client, service-role server client, auth middleware/attacher and generated DB types.
+
+## `scripts/`
+
+Production smoke scripts:
+
+- `prod-smoke.ts`: public app, `/healthz`, webhook auth, Telegram pending state and AI provider.
+- `prod-family-shield-smoke.ts`: synthetic Family Shield invite/accept/notify/revoke/cleanup.
+- `prod-security-smoke.ts`: RLS/security checks for sensitive tables and maintenance/stat RPC access.

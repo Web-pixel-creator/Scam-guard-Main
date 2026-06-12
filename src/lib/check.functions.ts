@@ -3,10 +3,17 @@ import { z } from "zod";
 import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { runCheck, ocrExtractCore } from "./risk/check-core";
 import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "./meta-intent";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export interface MetaIntentCheckResult {
   metaIntent: MetaIntent;
   response: string;
+}
+
+export interface PublicStats {
+  total: number;
+  today: number;
+  confirmed_entities: number;
 }
 
 const checkSchema = z.object({
@@ -59,3 +66,14 @@ export const ocrExtract = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     return ocrExtractCore(data.image, data.lang, webRateLimitKey());
   });
+
+export const getPublicStats = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin.rpc("get_check_stats");
+  if (error) throw new Error("Unable to load public stats");
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    total: Number(row?.total ?? 0),
+    today: Number(row?.today ?? 0),
+    confirmed_entities: Number(row?.confirmed_entities ?? 0),
+  } satisfies PublicStats;
+});

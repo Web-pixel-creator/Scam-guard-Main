@@ -1,20 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { getPublicStats, type PublicStats } from "@/lib/check.functions";
 import { useLang } from "@/lib/lang-context";
 import { Activity, ShieldCheck, Calendar } from "lucide-react";
-
-type Stats = { total: number; today: number; confirmed_entities: number };
-
-async function fetchStats(): Promise<Stats> {
-  const { data, error } = await supabase.rpc("get_check_stats");
-  if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  return {
-    total: Number(row?.total ?? 0),
-    today: Number(row?.today ?? 0),
-    confirmed_entities: Number(row?.confirmed_entities ?? 0),
-  };
-}
 
 function formatNum(n: number, lang: string) {
   try {
@@ -28,9 +16,10 @@ function formatNum(n: number, lang: string) {
 
 export function StatsStrip() {
   const { lang } = useLang();
+  const statsFn = useServerFn(getPublicStats);
   const { data, isLoading } = useQuery({
     queryKey: ["check-stats"],
-    queryFn: fetchStats,
+    queryFn: () => statsFn({ data: undefined as never }) as Promise<PublicStats>,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Retention cleanup and RLS hardening
+
+- Added Retention Cleanup v1: `private.prune_app_retention()` defines explicit
+  cleanup windows for `checks`, `reports`, `telegram_sessions`,
+  `telegram_reputation_targets` and `telegram_family_shield`. It returns
+  deletion counts and does not run automatically.
+- Added `scripts/prod-security-smoke.ts` plus `npm run prod:security-smoke` to
+  verify anon cannot read/write sensitive tables or execute maintenance/stat
+  RPCs, while service-role can count required tables.
+- Moved homepage stats behind `getPublicStats()` server function and hardened
+  `get_check_stats()` to service-role-only `SECURITY INVOKER`.
+- Moved the admin RLS helper to `private.has_role()` and revoked public
+  execution of legacy `public.has_role()`.
+
 ## 2026-06-12 - Audit action plan, Family Shield hardening and webhook dedup
 
 - Updated `ROADMAP.md` with the post-audit checkpoint: shipped phone/Telegram

@@ -4,15 +4,16 @@ Signatures and intent only. See file paths for source.
 
 ## Server functions
 
-| Function                                                                                             | File                          | Auth   | Purpose                                                                                     |
-| ---------------------------------------------------------------------------------------------------- | ----------------------------- | ------ | ------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; rate-limited 10/min/IP.                                      |
-| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.              |
-| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present. |
-| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`  | admin  | Lists reports by status.                                                                    |
-| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`  | admin  | Lists moderated/known entities.                                                             |
-| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`  | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.  |
-| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`  | admin  | Dashboard counts.                                                                           |
+| Function                                                                                             | File                          | Auth   | Purpose                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; rate-limited 10/min/IP.                                         |
+| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                 |
+| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`  | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC. |
+| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present.    |
+| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`  | admin  | Lists reports by status.                                                                       |
+| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`  | admin  | Lists moderated/known entities.                                                                |
+| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`  | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.     |
+| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`  | admin  | Dashboard counts.                                                                              |
 
 ## Risk engine
 
@@ -96,7 +97,7 @@ Signatures and intent only. See file paths for source.
 
 ## DB functions
 
-`has_role(uuid, app_role)`, `handle_new_user_role()`, `get_check_stats()`, `prune_telegram_sessions()`.
+`private.has_role(uuid, app_role)`, legacy service-role-only `has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only `get_check_stats()`, `private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.
 
 ## Operational scripts
 
@@ -109,3 +110,6 @@ Signatures and intent only. See file paths for source.
   Family Shield. It creates a synthetic invite, accepts it, verifies the safe
   notification failure path, revokes the relationship and confirms no open
   synthetic rows remain.
+- `scripts/prod-security-smoke.ts`: one-shot production RLS/security smoke test.
+  It verifies anon cannot read/write sensitive tables or execute maintenance/stat
+  RPCs, while service-role can count required tables and execute stats.

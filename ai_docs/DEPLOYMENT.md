@@ -111,6 +111,24 @@ SQL migrations live in `supabase/migrations/`. Apply them to your Supabase
 project via the Supabase CLI (`supabase db push`) or the dashboard SQL editor.
 The latest consolidated migration defines the full current schema.
 
+Recommended CLI flow:
+
+```bash
+supabase migration list --linked
+supabase db push --linked --include-all --dry-run
+supabase db push --linked --include-all --yes
+```
+
+After DB/RLS migrations, run:
+
+```bash
+railway run npm run prod:security-smoke
+```
+
+Retention cleanup is explicit, not scheduled. The migration creates
+`private.prune_app_retention()`, but no rows are deleted until a trusted
+operator or future maintenance job runs it.
+
 ## Telegram bot webhook deployment
 
 The Telegram bot is a **new channel** to the same app. There is no separate
@@ -123,18 +141,19 @@ file-based server-route API**, so there is intentionally no
 Once the Node server is deployed behind a public HTTPS URL, follow these steps
 in order:
 
-### 1. Apply the `telegram_sessions` migration
+### 1. Apply database migrations
 
-Apply the SQL migration that creates the bot session table (per-user dialog
-state, service-role only) to your Supabase project:
+Apply pending SQL migrations to your Supabase project. At minimum the Telegram
+bot requires `telegram_sessions`; newer deployments also include Family Shield,
+retention cleanup and security-definer hardening migrations.
 
+```bash
+supabase db push --linked --include-all --yes
 ```
-supabase/migrations/20260531090000_0c3c0c8c-225b-435f-9d6f-f6f8363cb56b.sql
-```
 
-It creates `public.telegram_sessions` with RLS enabled and **no**
-anon/authenticated policies (server-only access via `supabaseAdmin`). After it
-is applied, regenerate `src/integrations/supabase/types.ts` (do not hand-edit).
+After migrations that change table/function shapes, regenerate
+`src/integrations/supabase/types.ts` when the project workflow needs fresh DB
+types (do not hand-edit that file).
 
 ### 2. Set the bot secrets in the server environment
 
@@ -233,6 +252,14 @@ without printing tokens, invite URLs or chat ids.
 railway run npm run prod:family-smoke
 ```
 
+After DB/RLS/security migrations, run the dedicated security smoke. It verifies
+anon cannot read/write sensitive tables or execute maintenance/stat RPCs, while
+service-role can read required operational tables.
+
+```bash
+railway run npm run prod:security-smoke
+```
+
 If the AI check fails with `status=429` on a Gemini/OpenAI-compatible endpoint,
 the app should still degrade to rules-only scoring, but production AI
 explanations/OCR will be unreliable until the provider quota is restored. Treat
@@ -254,7 +281,7 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
-- [ ] Verify RLS: anon cannot read `checks`, can only read `confirmed` entities.
+- [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`).
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.
 - [ ] `telegram_sessions` migration applied (Telegram bot session state).
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
