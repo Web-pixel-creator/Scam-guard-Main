@@ -34,11 +34,12 @@ Already shipped:
 - Telegram webhook `update_id` deduplication as an in-memory LRU for the current single-instance deploy.
 - Retention Cleanup v1: explicit cleanup windows and private maintenance function, plus production RLS/security smoke.
 - Security Definer Hardening v1: browser stats moved behind a server function and admin RLS helper moved to private schema.
+- GitHub security baseline: secret scanning, push protection and Dependabot security updates are enabled.
 
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. GitHub secret scanning/push protection and production monitoring.
+2. Production monitoring/alerting for Railway and webhook failures.
 3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
 
 Next visible "wow" feature after stabilization:

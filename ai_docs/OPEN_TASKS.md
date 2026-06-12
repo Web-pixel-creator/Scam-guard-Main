@@ -16,6 +16,7 @@
 
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
 - [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done as an in-memory LRU for the current single-instance deploy.
+- [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.
 - [ ] Add official-number lookalike detection after Family Shield/webhook hardening.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
@@ -30,7 +31,8 @@
 - [x] ~~Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.~~ Minimal v1 shipped using confirmed `entities` rows only: Telegram shows Ishonch Guard moderated report count + confidence, while owner/carrier/hidden-label claims stay forbidden.
 - [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews; BotFather `/setinline` still must be enabled operationally.
 - [ ] Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.
-- [ ] Production operational verification on Railway: `npm run prod:smoke` covers endpoint, healthcheck, webhook auth, Telegram pending state and AI provider; `npm run prod:family-smoke` covers Family Shield; `npm run prod:security-smoke` covers RLS/sensitive-table access. Still confirm billing and real `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
+- [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
+- [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
 
 ## Research feed
 

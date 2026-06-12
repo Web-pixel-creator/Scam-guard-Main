@@ -15,6 +15,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `get_check_stats()` to service-role-only `SECURITY INVOKER`.
 - Moved the admin RLS helper to `private.has_role()` and revoked public
   execution of legacy `public.has_role()`.
+- Applied both production migrations and verified Railway production with
+  `prod:smoke`, `prod:family-smoke`, `prod:security-smoke` and Supabase
+  Security Advisors (`No issues found`).
+- Confirmed GitHub secret scanning and push protection are enabled, then enabled
+  Dependabot security updates for dependency vulnerability PRs.
 
 ## 2026-06-12 - Audit action plan, Family Shield hardening and webhook dedup
 
