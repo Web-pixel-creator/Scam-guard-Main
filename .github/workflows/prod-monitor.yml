@@ -48,4 +48,4 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run monitor
-        run: bun run monitor:prod -- "$PUBLIC_APP_URL"
+        run: bun scripts/prod-monitor.ts "$PUBLIC_APP_URL"
