@@ -3,7 +3,10 @@
 ## Fragile / risky spots
 
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale invite expiry, trusted-contact opt-out, env-driven invite URLs, guardian-language notification and redacted trusted alerts are now covered by tests.
-- **Telegram webhook `update_id` dedup is in-memory per Node process.** Good for the current single Railway instance; move it to Redis/KV/Postgres before running multiple instances so Telegram retries cannot be reprocessed on another worker.
+- **Telegram webhook `update_id` dedup is shared now.** The webhook uses an
+  in-memory fast path plus service-role claims in `telegram_webhook_updates`, so
+  Telegram retries are deduped across Node instances. If Supabase is temporarily
+  unavailable, it fails open to local dedup so user messages are not dropped.
 - **Retention cleanup is explicit, not scheduled.** `private.prune_app_retention()` defines the current windows and returns deletion counts, but no cron runs it yet.
 - **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
@@ -15,7 +18,7 @@
 ## Near-term product tasks
 
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
-- [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done as an in-memory LRU for the current single-instance deploy.
+- [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done first as an in-memory LRU, then upgraded to shared Postgres `telegram_webhook_updates` claims for multi-instance safety.
 - [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.
 - [x] ~~Add production monitor script for app/webhook/Telegram/AI failures.~~ Done as `npm run monitor:prod` with optional sanitized Telegram alerts.
 - [x] ~~Attach the production monitor to a real scheduler for public checks.~~ Done as `.github/workflows/prod-monitor.yml` every 30 minutes.
@@ -60,7 +63,7 @@ Completed research-feed themes now covered by deterministic rules:
 
 - [ ] Native mobile app (Android first for SMS/call protection).
 - [ ] B2B API with API-key auth.
-- [ ] Shared cache/rate-limit layer.
+- [ ] Shared cache/rate-limit layer for API/check/report rate limits.
 - [ ] Privacy-safe analytics on scam trends.
 
 ## Compliance / legal

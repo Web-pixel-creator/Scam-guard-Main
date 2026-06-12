@@ -76,6 +76,17 @@ Rows idle for more than 30 days are eligible for retention cleanup.
 
 Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
 
+### `telegram_webhook_updates`
+
+Short-lived Telegram webhook idempotency claims: `update_id, first_seen_at,
+expires_at`.
+
+RLS/grants: no public access; service-role only. The table stores only Telegram
+`update_id` values for retry deduplication across multiple Node instances. It
+does not store chat ids, user ids, usernames, message text, URLs, phone numbers,
+OCR text or screenshots. Rows are eligible for cleanup after 2 days or when
+`expires_at <= now()`.
+
 ### `telegram_family_shield`
 
 Private trusted-contact mapping for Family Shield:
@@ -118,6 +129,7 @@ context after reviewing the expected policy.
 - `checks`: 90 days.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
 - `telegram_sessions`: 30 days after last update.
+- `telegram_webhook_updates`: 2 days / `expires_at <= as_of`.
 - `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.
 - `telegram_family_shield`: revoked rows after 30 days; stale pending rows after 7 days; active relationships retained until revoked.
 

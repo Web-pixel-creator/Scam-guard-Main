@@ -78,8 +78,9 @@ async function expectServiceCanCount(
   client: SupabaseClient,
   label: string,
   table: string,
+  columns = "id",
 ): Promise<void> {
-  const { error, count } = await client.from(table).select("id", { count: "exact", head: true });
+  const { error, count } = await client.from(table).select(columns, { count: "exact", head: true });
   record(
     label,
     !error,
@@ -126,6 +127,12 @@ async function main(): Promise<void> {
     "anon cannot read telegram_family_shield",
     "telegram_family_shield",
     "id",
+  );
+  await expectNoRowsOrDenied(
+    anon,
+    "anon cannot read telegram_webhook_updates",
+    "telegram_webhook_updates",
+    "update_id",
   );
 
   const { data: hiddenEntities, error: hiddenEntitiesError } = await anon
@@ -199,6 +206,12 @@ async function main(): Promise<void> {
     service,
     "service can count telegram_family_shield",
     "telegram_family_shield",
+  );
+  await expectServiceCanCount(
+    service,
+    "service can count telegram_webhook_updates",
+    "telegram_webhook_updates",
+    "update_id",
   );
 
   const { error: serviceStatsError } = await service.rpc("get_check_stats");

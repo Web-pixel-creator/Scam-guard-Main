@@ -56,6 +56,10 @@ vi.mock("@/lib/telegram/handlers", () => ({
   installTelegramHandlers: () => {},
 }));
 
+vi.mock("@/lib/telegram/webhook-dedup.server", () => ({
+  claimTelegramWebhookUpdate: vi.fn(async () => "claimed"),
+}));
+
 import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
 
 const WEBHOOK_URL = "https://example.com/api/telegram/webhook";

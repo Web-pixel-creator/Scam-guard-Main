@@ -69,7 +69,8 @@ Signatures and intent only. See file paths for source.
 
 ## Telegram
 
-- `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and in-memory `update_id` dedup for Telegram retry deliveries.
+- `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and `update_id` dedup via an in-memory fast path plus shared Postgres claims.
+- `src/lib/telegram/webhook-dedup.server.ts`: `claimTelegramWebhookUpdate(updateId)` inserts a service-role-only idempotency row into `telegram_webhook_updates`, returns `duplicate` for unique violations and `unavailable` for storage failures so the webhook can fail open to local dedup.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
 - `src/lib/telegram/router.ts`: parses updates and routes commands/content; handles `inline_query` before chat-target extraction; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes Telegram video thumbnails to the image pipeline when no stronger caption/link/button evidence exists; attaches sanitized public forward channel/group source context to check/image actions.
 - `src/lib/telegram/handlers/*`: `/start`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
@@ -116,5 +117,6 @@ Signatures and intent only. See file paths for source.
   notification failure path, revokes the relationship and confirms no open
   synthetic rows remain.
 - `scripts/prod-security-smoke.ts`: one-shot production RLS/security smoke test.
-  It verifies anon cannot read/write sensitive tables or execute maintenance/stat
-  RPCs, while service-role can count required tables and execute stats.
+  It verifies anon cannot read/write sensitive tables, including
+  `telegram_webhook_updates`, or execute maintenance/stat RPCs, while
+  service-role can count required tables and execute stats.

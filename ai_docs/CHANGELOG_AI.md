@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Telegram Webhook Shared Dedup v1
+
+- Added service-role-only `telegram_webhook_updates` table for short-lived
+  Telegram `update_id` idempotency claims across production Node instances.
+- Added `claimTelegramWebhookUpdate(updateId)` and wired the webhook to use
+  local in-memory dedup as a fast path plus shared Postgres dedup as the source
+  of truth.
+- Chose fail-open behavior when the shared store is unavailable: the webhook
+  keeps processing through local dedup rather than dropping user updates.
+- Extended retention cleanup and production security smoke coverage for the new
+  service-only table.
+
 ## 2026-06-12 - Scheduled Production Monitor
 
 - Added `.github/workflows/prod-monitor.yml` to run public production checks every

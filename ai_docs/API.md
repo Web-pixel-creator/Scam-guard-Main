@@ -28,7 +28,12 @@ Input validation is zod. Rate limits throw an error with `status=429` and `retry
 - Handler: `src/lib/telegram/webhook.server.ts`.
 - Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal `TELEGRAM_WEBHOOK_SECRET`.
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
-- Duplicate valid `update_id` deliveries are acknowledged with HTTP 200 and ignored by an in-memory LRU dedup cache. This protects the current single-instance Railway deployment from Telegram retry duplicates; move the cache to a shared store before multi-instance scaling.
+- Duplicate valid `update_id` deliveries are acknowledged with HTTP 200 and
+  ignored. The handler uses an in-memory fast path plus the shared Supabase
+  `telegram_webhook_updates` table, so Telegram retry duplicates are deduped
+  across production instances. If the shared store is temporarily unavailable,
+  the webhook falls back to local dedup and still processes the update rather
+  than dropping user messages.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
 - `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.

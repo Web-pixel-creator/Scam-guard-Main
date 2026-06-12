@@ -38,6 +38,11 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - Webhook auth fails closed when `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is missing.
 - The secret header is checked before body parsing.
 - Invalid bodies after a valid token return 200 so Telegram stops retrying.
+- Telegram `update_id` dedup uses an in-memory fast path plus the shared
+  Supabase `telegram_webhook_updates` table, so retry deliveries are processed
+  once across production instances. If the shared store is temporarily
+  unavailable, the webhook fails open to local dedup so user updates are not
+  dropped.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
 - Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
 - Telegram `@username` / `t.me/...` checks use a best-effort Bot API enrichment layer after deterministic scoring. It classifies public usernames, public links, private invite links and internal/private links; summarizes public chat type/title/access hints when visible; adds compact visible risk signals and next steps; and explicitly does not infer account age, hidden Telegram scam labels, Telegram report counts or spam history.

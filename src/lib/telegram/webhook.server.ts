@@ -30,6 +30,7 @@
 import { getTelegramBotToken, getTelegramWebhookSecret } from "@/lib/config.server";
 import { dispatchUpdate, telegramUpdateSchema, type TelegramUpdate } from "@/lib/telegram/router";
 import { installTelegramHandlers } from "@/lib/telegram/handlers";
+import { claimTelegramWebhookUpdate } from "@/lib/telegram/webhook-dedup.server";
 
 /** Telegram sends the configured secret in this header (case-insensitive). */
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -77,7 +78,7 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   }
 
   // ── Step 4 — dispatch the valid update; any later error → log + 200. ──
-  if (!markUpdateForProcessing(update.update_id)) {
+  if (!(await markUpdateForProcessing(update.update_id))) {
     return new Response("ok", { status: 200 });
   }
 
@@ -94,7 +95,7 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   return new Response("ok", { status: 200 });
 }
 
-function markUpdateForProcessing(updateId: number, nowMs = Date.now()): boolean {
+async function markUpdateForProcessing(updateId: number, nowMs = Date.now()): Promise<boolean> {
   pruneProcessedUpdateIds(nowMs);
 
   const expiresAt = processedUpdateIds.get(updateId);
@@ -106,6 +107,9 @@ function markUpdateForProcessing(updateId: number, nowMs = Date.now()): boolean 
     if (oldest === undefined) break;
     processedUpdateIds.delete(oldest);
   }
+
+  const claim = await claimTelegramWebhookUpdate(updateId, nowMs);
+  if (claim === "duplicate") return false;
 
   return true;
 }

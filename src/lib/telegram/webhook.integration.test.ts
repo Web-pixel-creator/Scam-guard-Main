@@ -1120,8 +1120,10 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     // Session metadata may be upserted, but the image never goes to storage or
     // a raw-file table; the `checks` row is redacted by the risk core.
     expect(h.upserts.every((i) => i.table === "telegram_sessions")).toBe(true);
-    expect(h.inserts.every((i) => i.table === "checks")).toBe(true);
-    expect(h.inserts.length).toBeGreaterThanOrEqual(1);
+    expect(h.inserts.every((i) => ["telegram_webhook_updates", "checks"].includes(i.table))).toBe(
+      true,
+    );
+    expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
 
     // No persisted payload (nor any DB table touched) carries the raw image
     // bytes / data URL — the screenshot lived only in memory.
@@ -1325,7 +1327,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain("cannot be sure from that image");
     expect(h.sendCalls[0].text).toContain("will not invent a risk");
     expect(h.sendCalls[0].text).not.toContain("Insufficient data");
-    expect(h.inserts).toHaveLength(0);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
     expect(h.upserts).toHaveLength(0);
   });
 
@@ -1408,7 +1410,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain("информационный QR");
     expect(h.sendCalls[0].text).toContain("SMS");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
-    expect(h.inserts).toHaveLength(0);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
 
   it("keeps result buttons routed as callbacks, not as last-check follow-ups", async () => {

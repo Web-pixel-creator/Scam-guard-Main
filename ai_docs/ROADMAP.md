@@ -31,7 +31,7 @@ Already shipped:
 - Public Telegram post visible-evidence parsing.
 - Family Shield v1 code, production migration and production smoke test.
 - Family Shield Hardening v1.1: active-link handling, invite TTL, trusted-contact opt-out, env-driven bot username, guardian-language notification and clearer trusted alerts.
-- Telegram webhook `update_id` deduplication as an in-memory LRU for the current single-instance deploy.
+- Telegram webhook `update_id` deduplication as an in-memory fast path plus shared Postgres `telegram_webhook_updates` claims.
 - Retention Cleanup v1: explicit cleanup windows and private maintenance function, plus production RLS/security smoke.
 - Security Definer Hardening v1: browser stats moved behind a server function and admin RLS helper moved to private schema.
 - GitHub security baseline: secret scanning, push protection and Dependabot security updates are enabled.
@@ -42,7 +42,7 @@ Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
 2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call runbook.
-3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
+3. Shared Redis/KV rate-limit layer before running more than one high-traffic production instance. Webhook retry dedup is already shared through Postgres.
 
 Next visible "wow" feature after stabilization:
 
@@ -114,7 +114,7 @@ Disallowed claims:
 
 ## Stage 4 - Reliability And Security
 
-1. Redis/KV-backed rate limits before multiple production instances.
+1. Redis/KV-backed rate limits before multiple high-traffic production instances.
 2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals.
 3. Production observability: error rate, provider quota, Telegram webhook latency.
 4. Compliance review for Uzbekistan personal-data law and retention windows.
