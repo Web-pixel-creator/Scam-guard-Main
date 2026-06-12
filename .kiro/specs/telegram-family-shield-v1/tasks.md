@@ -18,5 +18,6 @@
 - [x] 6. Deploy code and smoke-test production
   - Run tests/build, commit, push, deploy to Railway, register Telegram commands, and run production smoke.
 
-- [ ] 7. Apply production Supabase migration
-  - Apply `20260612053155_telegram_family_shield.sql` to the linked Supabase project once `SUPABASE_ACCESS_TOKEN`/SQL Editor access is available.
+- [x] 7. Apply production Supabase migration
+  - Applied `20260612053155_telegram_family_shield.sql` through Supabase SQL Editor.
+  - Verified production access: service-role reads succeed, public key is denied, and production smoke passes.
