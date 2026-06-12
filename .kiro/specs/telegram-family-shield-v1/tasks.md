@@ -15,5 +15,8 @@
 - [x] 5. Add tests and verification
   - Cover privacy, self-link rejection, cooldown, degradation, command routing, and callback routing.
 
-- [ ] 6. Deploy
-  - Run tests/build, commit, push, deploy to Railway, and smoke-test the bot.
+- [x] 6. Deploy code and smoke-test production
+  - Run tests/build, commit, push, deploy to Railway, register Telegram commands, and run production smoke.
+
+- [ ] 7. Apply production Supabase migration
+  - Apply `20260612053155_telegram_family_shield.sql` to the linked Supabase project once `SUPABASE_ACCESS_TOKEN`/SQL Editor access is available.
