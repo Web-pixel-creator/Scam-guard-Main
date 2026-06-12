@@ -10,6 +10,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
   when secrets are absent, while private schedulers can enforce them with
   `MONITOR_REQUIRE_SECRET_CHECKS=true`.
 - Documented the GitHub secrets needed for full scheduled monitoring and alerts.
+- Configured repository secrets for scheduled webhook, Telegram Bot API and AI
+  provider checks; manual `Production Monitor` workflow run passed.
 
 ## 2026-06-12 - Production Monitor v1
 

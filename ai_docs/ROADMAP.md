@@ -36,12 +36,12 @@ Already shipped:
 - Security Definer Hardening v1: browser stats moved behind a server function and admin RLS helper moved to private schema.
 - GitHub security baseline: secret scanning, push protection and Dependabot security updates are enabled.
 - Production Monitor v1: recurring app/webhook/Telegram/AI monitor script with optional sanitized Telegram alerts.
-- Scheduled Production Monitor v1: GitHub Actions cron runs public production checks every 30 minutes.
+- Scheduled Production Monitor v1: GitHub Actions cron runs production checks every 30 minutes; repository secrets are configured for webhook, Telegram and AI provider checks.
 
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Add production GitHub secrets for deep scheduled monitor checks and alert chat delivery, then document the on-call runbook.
+2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call runbook.
 3. Shared Redis/KV/Postgres dedup/rate-limit layer before running more than one production instance.
 
 Next visible "wow" feature after stabilization:
