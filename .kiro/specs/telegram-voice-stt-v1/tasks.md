@@ -26,4 +26,4 @@
 
 - [x] 4.1 Update AI docs and deployment notes.
 - [x] 4.2 Run tests, lint, build, security scan.
-- [ ] 4.3 Commit, push, deploy, and run production smoke.
+- [x] 4.3 Commit, push, deploy, and run production smoke.
