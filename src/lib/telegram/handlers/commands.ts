@@ -42,6 +42,13 @@ import { saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
+import {
+  acceptFamilyInvite,
+  buildFamilyInviteKeyboard,
+  buildFamilySetupKeyboard,
+  createFamilyInvite,
+  parseFamilyStartArg,
+} from "@/lib/telegram/family-shield.server";
 
 /**
  * Language selection keyboard (R2.1). Mirrors the welcome keyboard built by
@@ -113,6 +120,82 @@ async function showPanicMenu(ctx: HandlerCtx): Promise<void> {
   });
 }
 
+function isPrivateChat(ctx: HandlerCtx): boolean {
+  return ctx.chatType == null || ctx.chatType === "private";
+}
+
+async function requirePrivateFamilyChat(ctx: HandlerCtx): Promise<boolean> {
+  if (isPrivateChat(ctx)) return true;
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("family_private_chat_only", ctx.session.lang)),
+  });
+  return false;
+}
+
+async function showFamilyMenu(ctx: HandlerCtx): Promise<void> {
+  if (!(await requirePrivateFamilyChat(ctx))) return;
+  const { lang } = ctx.session;
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("family_menu_text", lang)),
+    keyboard: buildFamilySetupKeyboard(lang),
+  });
+}
+
+async function sendFamilyInvite(ctx: HandlerCtx): Promise<void> {
+  if (!(await requirePrivateFamilyChat(ctx))) return;
+  const { lang } = ctx.session;
+  const invite = await createFamilyInvite(ctx.userId);
+  if (!invite.ok) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("family_storage_error", lang)),
+    });
+    return;
+  }
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("family_invite_text", lang)),
+    keyboard: buildFamilyInviteKeyboard(invite.inviteUrl, lang),
+  });
+}
+
+async function acceptFamilyStartLink(cmd: ParsedCommand, ctx: HandlerCtx): Promise<boolean> {
+  const token = parseFamilyStartArg(cmd.arg);
+  if (!token) return false;
+
+  if (!(await requirePrivateFamilyChat(ctx))) return true;
+
+  const { lang } = ctx.session;
+  const accepted = await acceptFamilyInvite({
+    token,
+    trustedTelegramUserId: ctx.userId,
+    trustedChatId: ctx.chatId,
+  });
+
+  if (accepted.ok) {
+    await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(bt("family_accept_ok", lang)) });
+    await sendMessage({
+      chatId: accepted.guardianTelegramUserId,
+      text: escapeMarkdownV2(bt("family_guardian_linked", lang)),
+    });
+    return true;
+  }
+
+  if (accepted.reason === "self_link") {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("family_accept_self", lang)),
+    });
+    return true;
+  }
+
+  const key = accepted.reason === "invalid" ? "family_accept_invalid" : "family_storage_error";
+  await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(bt(key, lang)) });
+  return true;
+}
+
 /**
  * Dispatch a parsed bot command to its handler, replying on the current
  * session language. Matches the `Handlers["handleCommand"]` signature so task
@@ -123,6 +206,7 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
 
   switch (cmd.command) {
     case "/start": {
+      if (await acceptFamilyStartLink(cmd, ctx)) return;
       // Greeting + quick-action menu (R1.1, R1.5). Text is already escaped.
       const { text, keyboard } = formatWelcome(lang);
       await sendMessage({ chatId: ctx.chatId, text, keyboard });
@@ -151,6 +235,10 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
 
     case "/safety":
       await sendMessage({ chatId: ctx.chatId, text: formatSafety(lang) });
+      return;
+
+    case "/family":
+      await showFamilyMenu(ctx);
       return;
 
     case "/emergency":

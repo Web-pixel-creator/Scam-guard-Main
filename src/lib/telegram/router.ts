@@ -91,10 +91,17 @@ const forwardOriginSchema = z
   })
   .passthrough();
 
+const chatSchema = z
+  .object({
+    id: z.number(),
+    type: z.enum(["private", "group", "supergroup", "channel"]).optional(),
+  })
+  .passthrough();
+
 const messageSchema = z.object({
   message_id: z.number(),
   from: z.object({ id: z.number(), language_code: z.string().optional() }).optional(),
-  chat: z.object({ id: z.number() }),
+  chat: chatSchema,
   sender_chat: forwardChatSchema.optional(),
   text: z.string().optional(),
   caption: z.string().optional(),
@@ -141,9 +148,7 @@ export const telegramUpdateSchema = z
       .object({
         id: z.string(),
         from: z.object({ id: z.number() }),
-        message: z
-          .object({ chat: z.object({ id: z.number() }), message_id: z.number().optional() })
-          .optional(),
+        message: z.object({ chat: chatSchema, message_id: z.number().optional() }).optional(),
         data: z.string(),
       })
       .optional(),
@@ -153,6 +158,7 @@ export const telegramUpdateSchema = z
 export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>;
 export type TelegramMessage = z.infer<typeof messageSchema>;
 export type TelegramInlineQuery = z.infer<typeof inlineQuerySchema>;
+export type TelegramChatType = z.infer<typeof chatSchema>["type"];
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -165,6 +171,7 @@ export type BotCommand =
   | "/lang"
   | "/help"
   | "/safety"
+  | "/family"
   | "/check"
   | "/report"
   | "/emergency"
@@ -176,6 +183,7 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/lang",
   "/help",
   "/safety",
+  "/family",
   "/check",
   "/report",
   "/emergency",
@@ -229,6 +237,7 @@ export type OutOfScopeKind =
 export interface HandlerCtx {
   chatId: number;
   userId: number;
+  chatType?: TelegramChatType;
   session: Session;
   /** Message ID of the message containing inline keyboard (from callback_query). */
   messageId?: number;
@@ -296,6 +305,7 @@ export type RouteAction =
 export interface RouteTarget {
   userId: number;
   chatId: number;
+  chatType?: TelegramChatType;
 }
 
 /**
@@ -307,11 +317,15 @@ export interface RouteTarget {
 export function extractTarget(update: TelegramUpdate): RouteTarget | null {
   const cb = update.callback_query;
   if (cb) {
-    return { userId: cb.from.id, chatId: cb.message?.chat.id ?? cb.from.id };
+    const target: RouteTarget = { userId: cb.from.id, chatId: cb.message?.chat.id ?? cb.from.id };
+    if (cb.message?.chat.type) target.chatType = cb.message.chat.type;
+    return target;
   }
   const m = update.message;
   if (m?.from) {
-    return { userId: m.from.id, chatId: m.chat.id };
+    const target: RouteTarget = { userId: m.from.id, chatId: m.chat.id };
+    if (m.chat.type) target.chatType = m.chat.type;
+    return target;
   }
   return null;
 }
@@ -590,7 +604,7 @@ export async function dispatchUpdate(
   const target = extractTarget(update);
   if (!target) return; // nothing/no-one to respond to
 
-  const { userId, chatId } = target;
+  const { userId, chatId, chatType } = target;
   let session = await loadSession(userId);
   const action = decideRoute(update, session);
 
@@ -603,7 +617,7 @@ export async function dispatchUpdate(
     session = { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} };
   }
 
-  const ctx: HandlerCtx = { chatId, userId, session };
+  const ctx: HandlerCtx = { chatId, userId, chatType, session };
 
   // Populate messageId from callback_query.message.message_id when available.
   if (update.callback_query?.message?.message_id != null) {

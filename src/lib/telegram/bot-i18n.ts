@@ -59,16 +59,16 @@ export const bot_dict: BotDict = {
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
   },
 
   // ── Meta-intent answers: questions TO the bot, not scam content ───────────
   meta_how_to_use: {
-    ru: "Можно просто отправить мне то, что вызывает сомнение: номер телефона, Telegram-username, ссылку, текст сообщения или скриншот. Если это QR-код, лучше пришлите ссылку, которая открывается после сканирования, или опишите, что просят сделать.\n\nЯ отвечу уровнем риска и короткими шагами. Команды: /check, /report, /panic, /safety.",
-    uz: "Shubhali narsani shunchaki yuboring: telefon raqami, Telegram-username, havola, xabar matni yoki skrinshot. Agar bu QR-kod bo'lsa, skanerdan keyin ochiladigan havolani yuboring yoki sizdan nima so'ralganini yozing.\n\nMen xavf darajasi va qisqa qadamlar bilan javob beraman. Buyruqlar: /check, /report, /panic, /safety.",
-    en: "Just send what feels suspicious: a phone number, Telegram username, link, message text, or screenshot. If it is a QR code, it is better to send the link it opens or describe what you are asked to do.\n\nI will reply with a risk level and short next steps. Commands: /check, /report, /panic, /safety.",
+    ru: "Можно просто отправить мне то, что вызывает сомнение: номер телефона, Telegram-username, ссылку, текст сообщения или скриншот. Если это QR-код, лучше пришлите ссылку, которая открывается после сканирования, или опишите, что просят сделать.\n\nЯ отвечу уровнем риска и короткими шагами. Команды: /check, /report, /panic, /family, /safety.",
+    uz: "Shubhali narsani shunchaki yuboring: telefon raqami, Telegram-username, havola, xabar matni yoki skrinshot. Agar bu QR-kod bo'lsa, skanerdan keyin ochiladigan havolani yuboring yoki sizdan nima so'ralganini yozing.\n\nMen xavf darajasi va qisqa qadamlar bilan javob beraman. Buyruqlar: /check, /report, /panic, /family, /safety.",
+    en: "Just send what feels suspicious: a phone number, Telegram username, link, message text, or screenshot. If it is a QR code, it is better to send the link it opens or describe what you are asked to do.\n\nI will reply with a risk level and short next steps. Commands: /check, /report, /panic, /family, /safety.",
   },
   meta_what_can_you_do: {
     ru: "Я помогаю проверить подозрительные номера, Telegram-аккаунты, ссылки, SMS, скриншоты и описания ситуаций. Могу подсказать срочные шаги, если вы уже отправили код, установили приложение или перевели деньги.\n\nЯ не читаю ваши чаты сам и не называю людей мошенниками без признаков — анализирую только то, что вы прислали.",
@@ -96,9 +96,9 @@ export const bot_dict: BotDict = {
     en: "👤 Telegram account checks\n\nI can check only visible signals: a username or t.me link, public title/description if Telegram exposes it to the bot, and the context: whether they ask for a code, money, card details, APK, QR login, or a link.\n\nI cannot see hidden SCAM labels, account age, report history, or who they messaged — Telegram usually does not expose that to bots.\n\nBest: send the @username together with the message or screenshot showing what the person asks you to do.",
   },
   meta_help: {
-    ru: "Я рядом. Отправьте номер, username, ссылку, текст подозрительного сообщения или скриншот — я проверю. Если вы уже сообщили код, установили приложение или перевели деньги, нажмите /panic.\n\nПолезные команды: /check — проверка, /report — сообщить о случае, /safety — правила безопасности, /lang — язык.",
-    uz: "Men yordam beraman. Raqam, username, havola, shubhali xabar matni yoki skrinshot yuboring — tekshiraman. Agar kod yuborgan, ilova o'rnatgan yoki pul o'tkazgan bo'lsangiz, /panic ni bosing.\n\nFoydali buyruqlar: /check — tekshirish, /report — holat haqida xabar berish, /safety — xavfsizlik qoidalari, /lang — til.",
-    en: "I am here to help. Send a number, username, link, suspicious message text, or screenshot — I will check it. If you already sent a code, installed an app, or transferred money, use /panic.\n\nUseful commands: /check — check, /report — report a case, /safety — safety rules, /lang — language.",
+    ru: "Я рядом. Отправьте номер, username, ссылку, текст подозрительного сообщения или скриншот — я проверю. Если вы уже сообщили код, установили приложение или перевели деньги, нажмите /panic.\n\nПолезные команды: /check — проверка, /report — сообщить о случае, /family — подключить близкого, /safety — правила безопасности, /lang — язык.",
+    uz: "Men yordam beraman. Raqam, username, havola, shubhali xabar matni yoki skrinshot yuboring — tekshiraman. Agar kod yuborgan, ilova o'rnatgan yoki pul o'tkazgan bo'lsangiz, /panic ni bosing.\n\nFoydali buyruqlar: /check — tekshirish, /report — holat haqida xabar berish, /family — yaqin insonni ulash, /safety — xavfsizlik qoidalari, /lang — til.",
+    en: "I am here to help. Send a number, username, link, suspicious message text, or screenshot — I will check it. If you already sent a code, installed an app, or transferred money, use /panic.\n\nUseful commands: /check — check, /report — report a case, /family — link trusted person, /safety — safety rules, /lang — language.",
   },
 
   // ── /safety: basic safety rules + scope reminder (R3.2, R3.3) ─────────────
@@ -518,6 +518,108 @@ export const bot_dict: BotDict = {
     ru: "\u{1F6E1} \u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 Ishonch Guard:\n\n\u0412\u0430\u043C \u043F\u0440\u0438\u0441\u043B\u0430\u043B\u0438 \u043F\u043E\u0434\u043E\u0437\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430:\n\n\u274C \u041D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 SMS-\u043A\u043E\u0434\u044B\n\u274C \u041D\u0435 \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0439\u0442\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F\n\u274C \u041D\u0435 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442\u0435 \u0434\u0435\u043D\u044C\u0433\u0438\n\n\u2705 \u041F\u043E\u043B\u043E\u0436\u0438\u0442\u0435 \u0442\u0440\u0443\u0431\u043A\u0443 \u0438 \u043F\u0435\u0440\u0435\u0437\u0432\u043E\u043D\u0438\u0442\u0435 \u0432 \u0431\u0430\u043D\u043A \u0441\u0430\u043C\u0438.\n\n\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: @scamguard_bot",
     uz: "\u{1F6E1} Ishonch Guard xabari:\n\nSizga shubhali xabar keldi. Iltimos:\n\n\u274C SMS-kodlarni yubormang\n\u274C Ilovalar o'rnatmang\n\u274C Pul o'tkazmang\n\n\u2705 Go'shakni qo'ying va bankka o'zingiz qo'ng'iroq qiling.\n\nTekshirish: @scamguard_bot",
     en: "\u{1F6E1} Message from Ishonch Guard:\n\nYou received a suspicious message. Please:\n\n\u274C Don't send SMS codes\n\u274C Don't install apps\n\u274C Don't transfer money\n\n\u2705 Hang up and call the bank yourself.\n\nCheck: @scamguard_bot",
+  },
+
+  // ── Family Shield v1 ─────────────────────────────────────────────────────
+  btn_quick_family: {
+    ru: "Близкий",
+    uz: "Yaqin kishi",
+    en: "Trusted person",
+  },
+  btn_notify_trusted: {
+    ru: "👪 Позвать близкого",
+    uz: "👪 Yaqinni chaqirish",
+    en: "👪 Notify trusted person",
+  },
+  family_btn_create_invite: {
+    ru: "🔗 Создать приглашение",
+    uz: "🔗 Taklif yaratish",
+    en: "🔗 Create invite",
+  },
+  family_btn_open_invite: {
+    ru: "📨 Открыть приглашение",
+    uz: "📨 Taklifni ochish",
+    en: "📨 Open invite",
+  },
+  family_btn_notify: {
+    ru: "👪 Позвать близкого",
+    uz: "👪 Yaqinni chaqirish",
+    en: "👪 Notify trusted person",
+  },
+  family_btn_revoke: {
+    ru: "🗑 Отключить",
+    uz: "🗑 O'chirish",
+    en: "🗑 Disable",
+  },
+  family_menu_text: {
+    ru: "👪 *Семейный щит*\n\nМожно заранее подключить человека, которому вы доверяете. Если будет высокий риск или срочная ситуация, я помогу позвать его одной кнопкой.\n\nВажно: Telegram разрешит мне писать близкому только после того, как он сам откроет бота и примет приглашение.",
+    uz: "👪 *Oila qalqoni*\n\nOldindan ishonchli insonni ulab qo'yish mumkin. Xavf yuqori bo'lsa yoki shoshilinch holatda men uni bitta tugma bilan chaqirishga yordam beraman.\n\nMuhim: Telegram menga yaqin insoningizga yozishga faqat u botni ochib, taklifni qabul qilgandan keyin ruxsat beradi.",
+    en: "👪 *Family Shield*\n\nYou can link someone you trust in advance. If a high-risk or emergency situation happens, I can help notify them with one tap.\n\nImportant: Telegram lets me message them only after they open the bot and accept the invite.",
+  },
+  family_invite_text: {
+    ru: "🔗 *Приглашение создано*\n\nОтправьте эту кнопку человеку, которому доверяете. После открытия он нажмёт Start, и связь включится.\n\nЯ не буду отправлять ему ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
+    uz: "🔗 *Taklif yaratildi*\n\nBu tugmani ishonchli insonga yuboring. U ochib Start bosgandan keyin aloqa yoqiladi.\n\nMen unga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
+    en: "🔗 *Invite created*\n\nSend this button to the person you trust. After they open it and tap Start, the link becomes active.\n\nI will not send them your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
+  },
+  family_private_chat_only: {
+    ru: "Семейный щит настраивается только в личном чате с ботом, чтобы не раскрыть приглашение в группе. Откройте @scamguard_bot в личных сообщениях и нажмите /family.",
+    uz: "Oila qalqoni faqat bot bilan shaxsiy chatda sozlanadi, taklif guruhda ko'rinib qolmasligi uchun. @scamguard_bot ni shaxsiy xabarlarda oching va /family bosing.",
+    en: "Family Shield can be set up only in a private chat with the bot, so the invite is not exposed in a group. Open @scamguard_bot privately and tap /family.",
+  },
+  family_accept_ok: {
+    ru: "✅ Готово. Вы стали доверенным контактом Ishonch Guard.\n\nЕсли близкий человек попросит срочную помощь, я пришлю короткий сигнал без его личных данных, кодов, ссылок и скриншотов.",
+    uz: "✅ Tayyor. Siz Ishonch Guard ishonchli kontakti bo'ldingiz.\n\nYaqin insoningiz shoshilinch yordam so'rasa, men shaxsiy ma'lumotlar, kodlar, havolalar va skrinshotlarsiz qisqa signal yuboraman.",
+    en: "✅ Done. You are now an Ishonch Guard trusted contact.\n\nIf your trusted person asks for urgent help, I will send a short alert without personal data, codes, links, or screenshots.",
+  },
+  family_guardian_linked: {
+    ru: "✅ Близкий подключён. Теперь в срочной ситуации вы сможете позвать его одной кнопкой.",
+    uz: "✅ Yaqin inson ulandi. Endi shoshilinch holatda uni bitta tugma bilan chaqira olasiz.",
+    en: "✅ Trusted person linked. In an emergency, you can now notify them with one tap.",
+  },
+  family_accept_invalid: {
+    ru: "Ссылка приглашения недействительна или уже использована. Попросите создать новое приглашение через /family.",
+    uz: "Taklif havolasi yaroqsiz yoki allaqachon ishlatilgan. /family orqali yangi taklif yaratishni so'rang.",
+    en: "This invite link is invalid or already used. Ask them to create a new invite with /family.",
+  },
+  family_accept_self: {
+    ru: "Нельзя подключить самого себя как доверенный контакт. Отправьте приглашение другому человеку.",
+    uz: "O'zingizni ishonchli kontakt qilib ulab bo'lmaydi. Taklifni boshqa insonga yuboring.",
+    en: "You cannot link yourself as your own trusted contact. Send the invite to another person.",
+  },
+  family_storage_error: {
+    ru: "Семейный щит сейчас недоступен. Срочный совет: позвоните близкому вручную и скажите: «Побудь со мной 5 минут, я сам перезвоню в банк по официальному номеру».",
+    uz: "Oila qalqoni hozir ishlamayapti. Shoshilinch maslahat: yaqiningizga o'zingiz qo'ng'iroq qiling va ayting: «5 daqiqa yonimda bo'ling, bankka rasmiy raqam orqali o'zim qo'ng'iroq qilaman».",
+    en: "Family Shield is unavailable right now. Urgent fallback: call someone trusted yourself and say: “Stay with me for 5 minutes while I call the bank back using an official number.”",
+  },
+  family_not_linked: {
+    ru: "Близкий ещё не подключён.\n\nСначала создайте приглашение и отправьте его человеку, которому доверяете. После принятия я смогу позвать его одной кнопкой.",
+    uz: "Yaqin inson hali ulanmagan.\n\nAvval taklif yarating va ishonchli insonga yuboring. U qabul qilgandan keyin men uni bitta tugma bilan chaqira olaman.",
+    en: "No trusted person is linked yet.\n\nCreate an invite and send it to someone you trust. After they accept, I can notify them with one tap.",
+  },
+  family_notify_ok: {
+    ru: "✅ Я отправил близкому короткий сигнал помощи. Теперь не пересылайте ему коды, PIN, CVV, пароли, фото карты или подозрительные файлы.",
+    uz: "✅ Yaqiningizga qisqa yordam signali yubordim. Endi unga kodlar, PIN, CVV, parollar, karta rasmi yoki shubhali fayllarni yubormang.",
+    en: "✅ I sent your trusted person a short help alert. Do not forward codes, PIN, CVV, passwords, card photos, or suspicious files.",
+  },
+  family_notify_cooldown: {
+    ru: "Сигнал уже отправлен недавно. Чтобы не спамить близкому, подождите пару минут. Если срочно — позвоните ему вручную.",
+    uz: "Signal yaqinda yuborilgan. Yaqiningizga spam bo'lmasligi uchun bir necha daqiqa kuting. Juda shoshilinch bo'lsa — o'zingiz qo'ng'iroq qiling.",
+    en: "An alert was sent recently. To avoid spamming your trusted person, wait a couple of minutes. If urgent, call them yourself.",
+  },
+  family_notify_failed: {
+    ru: "Не удалось отправить сигнал близкому. Позвоните ему вручную и скажите: «Мне нужна помощь. Побудь со мной 5 минут, пока я перезвоню в банк по официальному номеру».",
+    uz: "Yaqiningizga signal yuborib bo'lmadi. Unga o'zingiz qo'ng'iroq qiling va ayting: «Menga yordam kerak. Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
+    en: "I could not send the alert. Call them yourself and say: “I need help. Stay with me for 5 minutes while I call the bank back using an official number.”",
+  },
+  family_revoke_ok: {
+    ru: "Готово. Семейный щит отключён для этого контакта.",
+    uz: "Tayyor. Bu kontakt uchun Oila qalqoni o'chirildi.",
+    en: "Done. Family Shield is disabled for this contact.",
+  },
+  family_revoke_empty: {
+    ru: "Сейчас нет активного или ожидающего доверенного контакта.",
+    uz: "Hozir faol yoki kutilayotgan ishonchli kontakt yo'q.",
+    en: "There is no active or pending trusted contact right now.",
   },
 
   // ── Deterministic fallback for hosted URLs without reason codes ────────────

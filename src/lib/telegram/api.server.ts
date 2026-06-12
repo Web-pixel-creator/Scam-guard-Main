@@ -12,7 +12,8 @@ import { getTelegramBotToken } from "@/lib/config.server";
 
 export interface InlineButton {
   text: string;
-  callback_data: string;
+  callback_data?: string;
+  url?: string;
 }
 export type InlineKeyboard = InlineButton[][];
 

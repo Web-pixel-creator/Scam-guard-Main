@@ -2,7 +2,7 @@
 //
 // Verifies:
 //   - Exactly 4 payloads are returned (ru, uz, en, default)
-//   - Each payload contains the 6 required commands
+//   - Each payload contains the required commands
 //   - `language_code` is set correctly per payload (absent for default)
 //   - Descriptions are single-language (no multi-language combined strings)
 //   - `/report` description uses "Сообщить о случае" (ru), not "мошеннике"
@@ -30,7 +30,15 @@ import { buildCommandPayloads, type CommandPayload } from "../../../scripts/set-
 // Helpers
 // ---------------------------------------------------------------------------
 
-const REQUIRED_COMMANDS = ["start", "check", "report", "panic", "safety", "lang"] as const;
+const REQUIRED_COMMANDS = [
+  "start",
+  "check",
+  "report",
+  "panic",
+  "family",
+  "safety",
+  "lang",
+] as const;
 
 /** Characters that strongly signal a multi-language combined string (e.g. " / " separator). */
 const MULTI_LANG_SEPARATOR_RE = /\s\/\s/;
@@ -46,13 +54,13 @@ describe("buildCommandPayloads — structure", () => {
     expect(payloads).toHaveLength(4);
   });
 
-  it("each payload contains exactly 6 commands", () => {
+  it("each payload contains exactly 7 commands", () => {
     for (const payload of payloads) {
-      expect(payload.commands).toHaveLength(6);
+      expect(payload.commands).toHaveLength(7);
     }
   });
 
-  it("each payload contains the 6 required command names", () => {
+  it("each payload contains the required command names", () => {
     for (const payload of payloads) {
       const names = payload.commands.map((c) => c.command);
       for (const cmd of REQUIRED_COMMANDS) {

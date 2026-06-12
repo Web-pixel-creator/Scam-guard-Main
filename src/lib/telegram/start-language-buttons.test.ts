@@ -13,12 +13,12 @@ import type { Lang } from "@/lib/i18n";
 const LANGS: Lang[] = ["ru", "uz", "en"];
 
 describe("/start main menu inline buttons", () => {
-  it.each(LANGS)("formatWelcome(%s) includes the main six quick actions", (lang) => {
+  it.each(LANGS)("formatWelcome(%s) includes the main quick actions", (lang) => {
     const { keyboard } = formatWelcome(lang);
 
     expect(keyboard).toBeDefined();
-    expect(keyboard).toHaveLength(3);
-    expect(keyboard.every((row) => row.length === 2)).toBe(true);
+    expect(keyboard).toHaveLength(4);
+    expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2, 1]);
 
     const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
     expect(callbackDataValues).toEqual([
@@ -28,6 +28,7 @@ describe("/start main menu inline buttons", () => {
       CB.safety,
       CB.showLang,
       CB.howItWorks,
+      CB.familyMenu,
     ]);
   });
 
@@ -52,7 +53,7 @@ describe("/start main menu inline buttons", () => {
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-      expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2]);
+      expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2, 1]);
     }
   });
 });

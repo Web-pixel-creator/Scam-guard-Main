@@ -250,7 +250,7 @@ describe("panic:N — scenario text sent as a new message", () => {
         "panicctx:more",
         "panicctx:contacts",
         "panicctx:script",
-        "panicctx:trusted_person",
+        "family:notify",
       ]),
     );
   });
@@ -260,18 +260,16 @@ describe("panic:N — scenario text sent as a new message", () => {
 // livecall:tell_family — distinct guidance, not a duplicate hangup response
 // ===========================================================================
 
-describe("livecall:tell_family — sends family-sharing guidance", () => {
-  it("sends a dedicated family guidance response", async () => {
+describe("livecall:tell_family — routes to Family Shield notify", () => {
+  it("sends a dedicated family response (manual fallback when storage is unavailable)", async () => {
     const ctx = makeCtx();
     await handleCallback("livecall:tell_family", ctx);
 
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.sendCalls[0].text).toContain("Позовите человека");
-    expect(h.sendCalls[0].text).toContain("побудь со мной");
-    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "panicctx:full"]),
-    );
+    // In tests Supabase is not available, so the real notify attempt degrades
+    // to the manual "call a relative yourself" advice instead of failing silently.
+    expect(h.sendCalls[0].text).toContain("позвоните близкому вручную");
     expect(h.sendCalls[0].text).not.toBe(bt("live_call_hangup", "ru"));
   });
 });

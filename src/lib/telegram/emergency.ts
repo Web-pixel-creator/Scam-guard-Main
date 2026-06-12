@@ -1420,7 +1420,7 @@ export function buildEmergencyFollowUpKeyboard(lang: Lang): InlineKeyboard {
       { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
       {
         text: FOLLOWUP_BUTTONS.trusted_person[lang],
-        callback_data: `${PANIC_CONTEXT_CB_PREFIX}trusted_person`,
+        callback_data: "family:notify",
       },
     ],
     [{ text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` }],

@@ -79,6 +79,8 @@ export const CB = {
   safety: "safety",
   howItWorks: "how_it_works",
   mediaTips: "media_tips",
+  familyMenu: "family:menu",
+  notifyTrusted: "family:notify",
   lang: (lang: Lang) => `lang:${lang}` as const,
 } as const;
 
@@ -625,7 +627,10 @@ function buildResultKeyboard(level: RiskLevel, lang: Lang): InlineKeyboard {
   ];
   const keyboard: InlineKeyboard = [row, [{ text: bt("btn_why", lang), callback_data: CB.why }]];
   if (level === "high_risk") {
-    keyboard.push([{ text: bt("btn_emergency", lang), callback_data: CB.emergency }]);
+    keyboard.push([
+      { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+    ]);
   }
   return keyboard;
 }
@@ -665,6 +670,7 @@ export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeybo
       { text: "\u{1F310} " + bt("btn_quick_lang", lang), callback_data: CB.showLang },
       { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
     ],
+    [{ text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu }],
   ];
   return {
     text: escapeMarkdownV2(bt("welcome", lang)),

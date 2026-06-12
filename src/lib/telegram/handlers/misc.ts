@@ -76,6 +76,15 @@ import {
   buildLastCheckFollowUpText,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
+import {
+  buildFamilyInviteKeyboard,
+  buildFamilySetupKeyboard,
+  createFamilyInvite,
+  FAMILY_CB,
+  notifyTrustedContact,
+  parseFamilyCallback,
+  revokeFamilyShield,
+} from "@/lib/telegram/family-shield.server";
 
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
@@ -132,6 +141,104 @@ async function sendEmergencyFollowUp(
   });
 }
 
+function isPrivateChat(ctx: HandlerCtx): boolean {
+  return ctx.chatType == null || ctx.chatType === "private";
+}
+
+async function requirePrivateFamilyChat(ctx: HandlerCtx): Promise<boolean> {
+  if (isPrivateChat(ctx)) return true;
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("family_private_chat_only", ctx.session.lang)),
+  });
+  return false;
+}
+
+async function sendFamilyInvite(ctx: HandlerCtx): Promise<void> {
+  if (!(await requirePrivateFamilyChat(ctx))) return;
+  const lang = ctx.session.lang;
+  const invite = await createFamilyInvite(ctx.userId);
+  if (!invite.ok) {
+    await sendI18n(ctx.chatId, "family_storage_error", lang);
+    return;
+  }
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("family_invite_text", lang)),
+    keyboard: buildFamilyInviteKeyboard(invite.inviteUrl, lang),
+  });
+}
+
+async function sendTrustedNotificationOrSetup(ctx: HandlerCtx): Promise<void> {
+  if (!(await requirePrivateFamilyChat(ctx))) return;
+  const lang = ctx.session.lang;
+  const result = await notifyTrustedContact({ guardianTelegramUserId: ctx.userId, lang });
+
+  if (result.ok) {
+    await sendI18n(ctx.chatId, "family_notify_ok", lang);
+    return;
+  }
+
+  if (result.reason === "not_linked") {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("family_not_linked", lang)),
+      keyboard: buildFamilySetupKeyboard(lang),
+    });
+    return;
+  }
+
+  if (result.reason === "cooldown") {
+    await sendI18n(ctx.chatId, "family_notify_cooldown", lang);
+    return;
+  }
+
+  const key =
+    result.reason === "storage_unavailable" ? "family_storage_error" : "family_notify_failed";
+  await sendI18n(ctx.chatId, key, lang);
+}
+
+async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<boolean> {
+  const action = parseFamilyCallback(data);
+  if (action === null) return false;
+
+  if (!(await requirePrivateFamilyChat(ctx))) return true;
+
+  const lang = ctx.session.lang;
+  if (action === FAMILY_CB.menu) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("family_menu_text", lang)),
+      keyboard: buildFamilySetupKeyboard(lang),
+    });
+    return true;
+  }
+
+  if (action === FAMILY_CB.invite) {
+    await sendFamilyInvite(ctx);
+    return true;
+  }
+
+  if (action === FAMILY_CB.notify) {
+    await sendTrustedNotificationOrSetup(ctx);
+    return true;
+  }
+
+  if (action === FAMILY_CB.revoke) {
+    const revoked = await revokeFamilyShield(ctx.userId);
+    if (revoked.ok) {
+      await sendI18n(ctx.chatId, "family_revoke_ok", lang);
+    } else if (revoked.reason === "not_linked") {
+      await sendI18n(ctx.chatId, "family_revoke_empty", lang);
+    } else {
+      await sendI18n(ctx.chatId, "family_storage_error", lang);
+    }
+    return true;
+  }
+
+  return false;
+}
+
 export async function handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void> {
   await sendMessage({
     chatId: ctx.chatId,
@@ -172,6 +279,7 @@ export async function handleCallback(
   }
 
   const lang = ctx.session.lang;
+  if (await handleFamilyCallback(data, ctx)) return;
 
   // 1) Language selection — "lang:ru" | "lang:uz" | "lang:en".
   const selected = parseLangCallback(data);
@@ -414,7 +522,7 @@ export async function handleCallback(
         return;
       }
       case "tell_family":
-        await sendEmergencyFollowUp(ctx, "trusted_person", 6);
+        await sendTrustedNotificationOrSetup(ctx);
         return;
       default:
         return;

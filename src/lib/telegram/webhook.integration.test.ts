@@ -557,6 +557,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
         CB.safety,
         CB.showLang,
         CB.howItWorks,
+        CB.familyMenu,
       ]),
     );
   });
@@ -575,7 +576,28 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       CB.safety,
       CB.showLang,
       CB.howItWorks,
+      CB.familyMenu,
     ]);
+  });
+
+  it("does not expose Family Shield invite links in group chats", async () => {
+    const update = {
+      update_id: 1108,
+      callback_query: {
+        id: "cb-family-group",
+        from: { id: 1108 },
+        message: { chat: { id: -5108, type: "group" } },
+        data: "family:invite",
+      },
+    };
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(-5108);
+    expect(h.sendCalls[0].text).toContain("личном чате");
+    expect(JSON.stringify(h.sendCalls[0])).not.toContain("https://t.me/");
   });
 
   it("sends /panic with paginated scenario buttons (page 1)", async () => {
@@ -683,6 +705,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["show language picker", CB.showLang],
     ["safety", CB.safety],
     ["how it works", CB.howItWorks],
+    ["family menu", CB.familyMenu],
     ["media tips", CB.mediaTips],
     ["image triage", imageTriageCallback("gift")],
     ["language switch", CB.lang("uz")],
@@ -935,7 +958,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("С другого телефона");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "panicctx:trusted_person"]),
+      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "family:notify"]),
     );
   });
 

@@ -94,7 +94,11 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error("\u2717", e.message);
-  process.exit(1);
-});
+// Do not run the CLI when this module is merely imported by tests
+// (vitest sets VITEST=true). vite-node / node direct runs are unaffected.
+if (!process.env.VITEST) {
+  main().catch((e) => {
+    console.error("✗", e.message);
+    process.exit(1);
+  });
+}

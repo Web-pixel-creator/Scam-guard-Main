@@ -31,7 +31,7 @@ export interface CommandPayload {
 /**
  * Build the 4 setMyCommands payloads: one per language (ru, uz, en) plus one
  * default scope without `language_code`. Each payload contains localized
- * descriptions for the 6 registered commands.
+ * descriptions for the registered commands.
  */
 export function buildCommandPayloads(): CommandPayload[] {
   const ru: CommandPayload = {
@@ -41,6 +41,7 @@ export function buildCommandPayloads(): CommandPayload[] {
       { command: "check", description: "Проверить номер или ссылку" },
       { command: "report", description: "Сообщить о случае" },
       { command: "panic", description: "Экстренная помощь" },
+      { command: "family", description: "Подключить близкого" },
       { command: "safety", description: "Правила безопасности" },
       { command: "lang", description: "Сменить язык" },
     ],
@@ -53,6 +54,7 @@ export function buildCommandPayloads(): CommandPayload[] {
       { command: "check", description: "Raqam yoki havolani tekshirish" },
       { command: "report", description: "Hodisa haqida xabar berish" },
       { command: "panic", description: "Shoshilinch yordam" },
+      { command: "family", description: "Yaqin insonni ulash" },
       { command: "safety", description: "Xavfsizlik qoidalari" },
       { command: "lang", description: "Tilni o'zgartirish" },
     ],
@@ -65,6 +67,7 @@ export function buildCommandPayloads(): CommandPayload[] {
       { command: "check", description: "Check a number or link" },
       { command: "report", description: "Report an incident" },
       { command: "panic", description: "Emergency help" },
+      { command: "family", description: "Link trusted person" },
       { command: "safety", description: "Safety rules" },
       { command: "lang", description: "Change language" },
     ],
@@ -77,6 +80,7 @@ export function buildCommandPayloads(): CommandPayload[] {
       { command: "check", description: "Check a number or link" },
       { command: "report", description: "Report an incident" },
       { command: "panic", description: "Emergency help" },
+      { command: "family", description: "Link trusted person" },
       { command: "safety", description: "Safety rules" },
       { command: "lang", description: "Change language" },
     ],
@@ -136,6 +140,10 @@ async function main(): Promise<void> {
   console.log("✓ All command scopes registered successfully.");
 }
 
-main().catch((err: unknown) => {
-  fail(`unexpected error: ${err instanceof Error ? err.message : "unknown"}`);
-});
+// Do not run the CLI when this module is merely imported by tests
+// (vitest sets VITEST=true). vite-node / node direct runs are unaffected.
+if (!process.env.VITEST) {
+  main().catch((err: unknown) => {
+    fail(`unexpected error: ${err instanceof Error ? err.message : "unknown"}`);
+  });
+}

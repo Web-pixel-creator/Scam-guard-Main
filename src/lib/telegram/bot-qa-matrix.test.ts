@@ -50,8 +50,8 @@ function textOf(action: ReturnType<typeof classifyLastCheckFollowUp>, snapshot: 
   return buildLastCheckFollowUpText(action, snapshot, "ru");
 }
 
-function callbacks(keyboard: { callback_data: string }[][]): string[] {
-  return keyboard.flat().map((button) => button.callback_data);
+function callbacks(keyboard: { callback_data?: string }[][]): string[] {
+  return keyboard.flat().flatMap((button) => (button.callback_data ? [button.callback_data] : []));
 }
 
 function makeSnapshot(result: Partial<RunCheckResult>): LastCheckSnapshot {
@@ -70,11 +70,13 @@ describe("Telegram Bot QA Matrix v1", () => {
         CB.safety,
         CB.showLang,
         CB.howItWorks,
+        CB.familyMenu,
       ]),
     );
     expect(formatHelp("ru")).toContain("/check");
     expect(formatHelp("ru")).toContain("/report");
     expect(formatHelp("ru")).toContain("/panic");
+    expect(formatHelp("ru")).toContain("/family");
   });
 
   it("gives a useful fallback for unsupported video, audio, and voice", () => {
