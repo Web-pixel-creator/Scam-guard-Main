@@ -129,6 +129,12 @@ Retention cleanup is explicit, not scheduled. The migration creates
 `private.prune_app_retention()`, but no rows are deleted until a trusted
 operator or future maintenance job runs it.
 
+Shared public rate limits are stored in `rate_limit_buckets` through the
+service-role-only `claim_rate_limit()` RPC. `HASH_PEPPER_SECRET` is required in
+production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
+before persistence. If Supabase or the pepper is missing in local/test
+environments, the app falls back to the in-memory limiter.
+
 ## Production monitor / alerting
 
 For recurring checks, use the lightweight production monitor. It checks the
@@ -305,8 +311,9 @@ railway run npm run prod:family-smoke
 ```
 
 After DB/RLS/security migrations, run the dedicated security smoke. It verifies
-anon cannot read/write sensitive tables or execute maintenance/stat RPCs, while
-service-role can read required operational tables.
+anon cannot read/write sensitive tables or execute maintenance/stat/rate-limit
+RPCs, while service-role can read required operational tables and claim a shared
+rate-limit bucket.
 
 ```bash
 railway run npm run prod:security-smoke

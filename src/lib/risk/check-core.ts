@@ -29,7 +29,7 @@ import {
   type RiskLevel,
 } from "./rules";
 import { hashIdentifier } from "./hash";
-import { checkRateLimit } from "./rate-limit";
+import { checkSharedRateLimit } from "./shared-rate-limit.server";
 import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
 import { matchBrandInUrl, matchBrandInText, type BrandEvidence } from "./brand-matcher";
 import { normalizeDomain } from "./domain-normalizer";
@@ -148,8 +148,8 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> {
   const { input, type, lang, rateLimitKey, skipAi, persist, safeIfNoReasons } = params;
 
-  // ---- Rate limit: 10 checks / minute / key (best-effort, in-memory) ----
-  const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  // ---- Rate limit: 10 checks / minute / key (shared in production) ----
+  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
@@ -351,7 +351,7 @@ export async function ocrExtractCore(
   lang: Lang,
   rateLimitKey: string,
 ): Promise<{ text: string | null }> {
-  const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
@@ -371,7 +371,7 @@ export async function analyzeImageCore(
   lang: Lang,
   rateLimitKey: string,
 ): Promise<ImageIntelligenceResult | null> {
-  const rl = checkRateLimit(rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }

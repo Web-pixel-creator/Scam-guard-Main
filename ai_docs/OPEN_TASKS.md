@@ -8,7 +8,10 @@
   Telegram retries are deduped across Node instances. If Supabase is temporarily
   unavailable, it fails open to local dedup so user messages are not dropped.
 - **Retention cleanup is explicit, not scheduled.** `private.prune_app_retention()` defines the current windows and returns deletion counts, but no cron runs it yet.
-- **In-memory rate limit** is per Node process. Good for MVP; use Redis/KV before scaling to multiple instances or hostile traffic.
+- **Shared rate limit is shipped.** Public checks, reports, Telegram check/OCR/image
+  paths and public Telegram post fetches use Supabase `rate_limit_buckets` with
+  HMAC-hashed keys across Node instances. Local/test fallback remains
+  in-memory; watch Postgres bucket write volume before deciding on Redis/KV.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations and screenshot OCR return `null`.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
@@ -63,7 +66,7 @@ Completed research-feed themes now covered by deterministic rules:
 
 - [ ] Native mobile app (Android first for SMS/call protection).
 - [ ] B2B API with API-key auth.
-- [ ] Shared cache/rate-limit layer for API/check/report rate limits.
+- [x] ~~Shared cache/rate-limit layer for API/check/report rate limits.~~ Done as Shared Rate Limits v1 with service-role-only Supabase buckets and local fallback.
 - [ ] Privacy-safe analytics on scam trends.
 
 ## Compliance / legal

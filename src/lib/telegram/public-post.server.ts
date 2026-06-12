@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { redactText } from "@/lib/risk/detect";
-import { checkRateLimit } from "@/lib/risk/rate-limit";
+import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 import { extractTelegramPublicTarget } from "@/lib/telegram/public-metadata.server";
 
 export interface TelegramPublicPostTarget {
@@ -57,7 +57,12 @@ export async function buildTelegramPublicPostCheckEvidence(
   const target = extractTelegramPublicPostTarget(input);
   if (!target) return null;
 
-  const rl = checkRateLimit(`tgpost:${rateLimitKey}`, FETCH_LIMIT, FETCH_WINDOW_MS);
+  const rl = await checkSharedRateLimit(
+    "telegram_public_post",
+    `tgpost:${rateLimitKey}`,
+    FETCH_LIMIT,
+    FETCH_WINDOW_MS,
+  );
   if (!rl.ok) return null;
 
   return fetchTelegramPublicPost(target, fetcher);

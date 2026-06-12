@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-032 - Shared rate limits use Postgres first
+
+For the current Railway/Supabase production topology, public check/report and
+Telegram throttling use a service-role-only Postgres bucket table instead of a
+new Redis/KV dependency. Raw rate-limit keys are HMAC-hashed before persistence,
+and the app falls back to the existing in-memory limiter if shared storage is
+unavailable or unconfigured locally. Redis/KV remains a later scaling option
+only if Postgres bucket writes become a bottleneck.
+
 ## D-031 - Inline checks are previews, not analytics events
 
 Telegram inline mode fires while the user types in another chat. Inline checks

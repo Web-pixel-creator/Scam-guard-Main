@@ -6,6 +6,7 @@ import { INCIDENT_ONLY_HASH_PREFIX, INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/r
 import { detectInputType, normalize, maskForDisplay, redactText } from "./risk/detect";
 import { hashIdentifier } from "./risk/hash";
 import { checkRateLimit } from "./risk/rate-limit";
+import { checkSharedRateLimit } from "./risk/shared-rate-limit.server";
 import { registerTelegramReportCandidate } from "@/lib/telegram/reputation.server";
 
 const reportSchema = z.object({
@@ -55,7 +56,12 @@ export async function submitReportCore(
   rateLimitKey: string,
 ): Promise<SubmitReportResult> {
   const report = reportSchema.parse(data);
-  const rl = checkRateLimit(rateLimitKey, REPORT_RATE_LIMIT, REPORT_RATE_WINDOW_MS);
+  const rl = await checkSharedRateLimit(
+    "report",
+    rateLimitKey,
+    REPORT_RATE_LIMIT,
+    REPORT_RATE_WINDOW_MS,
+  );
   if (!rl.ok) {
     return { ok: false, error: "rate_limited", retryAfterSec: rl.retryAfterSec };
   }

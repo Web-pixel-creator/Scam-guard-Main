@@ -134,6 +134,12 @@ async function main(): Promise<void> {
     "telegram_webhook_updates",
     "update_id",
   );
+  await expectNoRowsOrDenied(
+    anon,
+    "anon cannot read rate_limit_buckets",
+    "rate_limit_buckets",
+    "scope,key_hash",
+  );
 
   const { data: hiddenEntities, error: hiddenEntitiesError } = await anon
     .from("entities")
@@ -200,6 +206,22 @@ async function main(): Promise<void> {
     anonStatsError ? `denied (${anonStatsError.code ?? "no_code"})` : "rpc unexpectedly succeeded",
   );
 
+  const rateLimitSmokeHash = "f".repeat(64);
+  const rateLimitSmokeArgs = {
+    p_scope: "check",
+    p_key_hash: rateLimitSmokeHash,
+    p_limit: 1000,
+    p_window_seconds: 60,
+  };
+  const { error: anonRateLimitError } = await anon.rpc("claim_rate_limit", rateLimitSmokeArgs);
+  record(
+    "anon cannot execute claim_rate_limit",
+    Boolean(anonRateLimitError),
+    anonRateLimitError
+      ? `denied (${anonRateLimitError.code ?? "no_code"})`
+      : "rpc unexpectedly succeeded",
+  );
+
   await expectServiceCanCount(service, "service can count checks", "checks");
   await expectServiceCanCount(service, "service can count reports", "reports");
   await expectServiceCanCount(
@@ -213,6 +235,12 @@ async function main(): Promise<void> {
     "telegram_webhook_updates",
     "update_id",
   );
+  await expectServiceCanCount(
+    service,
+    "service can count rate_limit_buckets",
+    "rate_limit_buckets",
+    "scope",
+  );
 
   const { error: serviceStatsError } = await service.rpc("get_check_stats");
   record(
@@ -221,6 +249,18 @@ async function main(): Promise<void> {
     serviceStatsError
       ? `service rpc failed (${serviceStatsError.code ?? "no_code"})`
       : "service rpc ok",
+  );
+
+  const { data: serviceRateLimitData, error: serviceRateLimitError } = await service.rpc(
+    "claim_rate_limit",
+    rateLimitSmokeArgs,
+  );
+  record(
+    "service can execute claim_rate_limit",
+    !serviceRateLimitError && Array.isArray(serviceRateLimitData),
+    serviceRateLimitError
+      ? `service rpc failed (${serviceRateLimitError.code ?? "no_code"})`
+      : `service rpc ok (${Array.isArray(serviceRateLimitData) ? serviceRateLimitData.length : 0})`,
   );
 
   const failed = results.filter((result) => !result.ok);

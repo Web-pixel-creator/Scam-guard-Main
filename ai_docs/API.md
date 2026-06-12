@@ -19,7 +19,9 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 | `moderateReport` | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                               |
 | `adminStats`     | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }` |
 
-Input validation is zod. Rate limits throw an error with `status=429` and `retryAfter`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
+Input validation is zod. Check/OCR rate limits throw an error with `status=429`
+and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
+retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
 
 ## Telegram webhook
 
@@ -50,6 +52,9 @@ Browser session token (Supabase) is attached by `attachSupabaseAuth` on every se
 ## Database RPC
 
 - `get_check_stats()` is service-role-only. The browser no longer calls it directly; `getPublicStats` calls it through a server function.
+- `claim_rate_limit()` is service-role-only. Server code calls it to atomically
+  increment HMAC-hashed shared buckets for public checks, reports and Telegram
+  public-post fetches.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
 
 ## External integrations

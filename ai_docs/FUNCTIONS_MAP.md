@@ -6,7 +6,7 @@ Signatures and intent only. See file paths for source.
 
 | Function                                                                                             | File                          | Auth   | Purpose                                                                                        |
 | ---------------------------------------------------------------------------------------------------- | ----------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; rate-limited 10/min/IP.                                         |
+| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                  |
 | `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                 |
 | `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`  | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC. |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present.    |
@@ -43,9 +43,9 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/risk/check-core.ts`**
 
-- `runCheck(params)` is the transport-independent check pipeline. `persist:false` is reserved for non-final previews such as Telegram inline typing and skips the `checks` insert while preserving deterministic scoring.
-- `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline.
-- `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots.
+- `runCheck(params)` is the transport-independent check pipeline. It uses the shared production limiter with a local fallback. `persist:false` is reserved for non-final previews such as Telegram inline typing and skips the `checks` insert while preserving deterministic scoring.
+- `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline and uses the same shared check limiter.
+- `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots and uses the same shared check limiter.
 - Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`.
 
 **`src/lib/risk/image-intelligence.ts`**
@@ -63,7 +63,13 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/risk/hash.ts`**: `hashIdentifier(value)`.
 
-**`src/lib/risk/rate-limit.ts`**: in-memory sliding-window limiter.
+**`src/lib/risk/rate-limit.ts`**: in-memory sliding-window limiter for local/test fallback.
+
+**`src/lib/risk/shared-rate-limit.server.ts`**
+
+- `checkSharedRateLimit(scope, key, limit, windowMs)` HMAC-hashes the raw key,
+  calls service-role-only `claim_rate_limit()` in production, and falls back to
+  local in-memory throttling when shared storage is unavailable or unconfigured.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
 
@@ -85,7 +91,7 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/check-followup.ts`: classifies and renders safe post-check follow-ups, including orphan phrases such as "Точно?", "что дальше?", "sure?" and "дай номер банка"; unreadable-image follow-ups explain the vision limitation and ask for concrete evidence instead of running a fake insufficient-data check; `explain` follow-ups use context-specific wording and short reason labels without exposing internal scores.
 - `src/lib/telegram/handlers/misc.ts`: handles callbacks and unsupported input; video/audio/voice fallback includes media-specific capture instructions and next-step buttons; `imgtriage:*` callbacks answer with scenario-specific safe steps for unreadable images and avoid repeating the full category menu; result `why` callbacks use recent `lastCheck` context when available.
 - `src/lib/telegram/public-metadata.server.ts`: extracts public Telegram targets, preserves public post ids from `t.me/username/123` and `t.me/s/username/123`, skips lookup for private/internal links, calls `getChatInfo` via an injectable lookup for public usernames, and builds compact safe RU/UZ/EN metadata briefs. When Telegram/Web3 risk reasons exist, it renders a scenario-first evidence brief before hard Bot API limitations; profile-only checks keep limitation-first wording. Public post fallback copy says to forward/paste/screenshot the post when the public web page cannot be read. Enrichment never changes scoring.
-- `src/lib/telegram/public-post.server.ts`: validates public Telegram post links, fetches only `https://t.me/s/<username>/<postId>` with timeout/body/rate limits, parses visible post text, outbound links, link previews and inline buttons from Telegram web HTML, redacts sensitive digits, builds rules-safe check input, and prepends a source limitation brief without changing score/level/reasons.
+- `src/lib/telegram/public-post.server.ts`: validates public Telegram post links, fetches only `https://t.me/s/<username>/<postId>` with timeout/body/shared rate limits, parses visible post text, outbound links, link previews and inline buttons from Telegram web HTML, redacts sensitive digits, builds rules-safe check input, and prepends a source limitation brief without changing score/level/reasons.
 - `src/lib/telegram/format.ts`: formats result cards; Telegram profile/invite checks use a dedicated context prompt, unknown cards hide weak topic-only observations, suspicious cards use a compact "what noticed" evidence section, and high-risk first cards are compressed to urgent actions plus a short evidence summary instead of long generic explanation/reporting blocks. Visible-source briefs for forwarded Telegram posts remain as compact evidence.
 - `src/lib/telegram/reputation.server.ts`: observes Telegram targets by HMAC hash, registers unverified Telegram report candidates, syncs confirmed report counts after admin moderation, and renders source/confidence labels only for moderated reputation.
 - `src/lib/telegram/handlers/misc.ts`: stores minimal panic context (`lastPanicId`, `lastPanicAt`) and handles `panicctx:*` follow-up callbacks.
@@ -98,7 +104,7 @@ Signatures and intent only. See file paths for source.
 
 ## DB functions
 
-`private.has_role(uuid, app_role)`, legacy service-role-only `has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only `get_check_stats()`, `private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.
+`private.has_role(uuid, app_role)`, legacy service-role-only `has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only `get_check_stats()`, service-role-only `claim_rate_limit(text,text,int,int)`, `private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.
 
 ## Operational scripts
 
@@ -118,5 +124,6 @@ Signatures and intent only. See file paths for source.
   synthetic rows remain.
 - `scripts/prod-security-smoke.ts`: one-shot production RLS/security smoke test.
   It verifies anon cannot read/write sensitive tables, including
-  `telegram_webhook_updates`, or execute maintenance/stat RPCs, while
-  service-role can count required tables and execute stats.
+  `telegram_webhook_updates` and `rate_limit_buckets`, or execute
+  maintenance/stat/rate-limit RPCs, while service-role can count required
+  tables and execute stats/rate-limit claims.

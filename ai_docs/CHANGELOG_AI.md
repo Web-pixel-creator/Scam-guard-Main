@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-12 - Shared Rate Limits v1
+
+- Added service-role-only `rate_limit_buckets` and `claim_rate_limit()` for
+  cross-instance public check/report/Telegram throttling.
+- Added `checkSharedRateLimit(scope, key, limit, windowMs)`, which HMAC-hashes
+  raw keys before persistence and falls back to the existing in-memory limiter
+  when Supabase or `HASH_PEPPER_SECRET` is unavailable locally.
+- Wired `runCheck`, OCR/image analysis, report submission and public Telegram
+  post fetch limits to the shared limiter.
+- Extended retention cleanup and production security smoke coverage for the new
+  table/RPC, and moved the roadmap task from pending to shipped.
+
 ## 2026-06-12 - Telegram Webhook Shared Dedup v1
 
 - Added service-role-only `telegram_webhook_updates` table for short-lived

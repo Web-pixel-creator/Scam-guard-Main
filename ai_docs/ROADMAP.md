@@ -37,12 +37,15 @@ Already shipped:
 - GitHub security baseline: secret scanning, push protection and Dependabot security updates are enabled.
 - Production Monitor v1: recurring app/webhook/Telegram/AI monitor script with optional sanitized Telegram alerts.
 - Scheduled Production Monitor v1: GitHub Actions cron runs production checks every 30 minutes; repository secrets are configured for webhook, Telegram and AI provider checks.
+- Shared Rate Limits v1: public check/report/Telegram throttling now uses
+  Supabase HMAC-hashed buckets across Node instances with in-memory fallback.
 
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
 2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call runbook.
-3. Shared Redis/KV rate-limit layer before running more than one high-traffic production instance. Webhook retry dedup is already shared through Postgres.
+3. Watch shared Postgres rate-limit behavior under real traffic; consider
+   Redis/KV only if bucket writes become a bottleneck.
 
 Next visible "wow" feature after stabilization:
 
@@ -114,7 +117,7 @@ Disallowed claims:
 
 ## Stage 4 - Reliability And Security
 
-1. Redis/KV-backed rate limits before multiple high-traffic production instances.
+1. Monitor shared Postgres-backed rate limits; move to Redis/KV only if scale requires it.
 2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals.
 3. Production observability: error rate, provider quota, Telegram webhook latency.
 4. Compliance review for Uzbekistan personal-data law and retention windows.

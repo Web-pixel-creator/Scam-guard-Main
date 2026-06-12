@@ -87,6 +87,19 @@ does not store chat ids, user ids, usernames, message text, URLs, phone numbers,
 OCR text or screenshots. Rows are eligible for cleanup after 2 days or when
 `expires_at <= now()`.
 
+### `rate_limit_buckets`
+
+Short-lived shared rate-limit buckets:
+`scope, key_hash, bucket_start, window_seconds, count, expires_at, created_at,
+updated_at`.
+
+RLS/grants: no public access; service-role only. The table stores only
+HMAC-SHA256 hashes of rate-limit keys such as `check:<ip>` or `tg:<userId>`.
+Raw IPs, Telegram ids, phone numbers, URLs, message text, OCR text and
+screenshots are never stored here. Used by public web checks, report submission,
+Telegram checks/OCR/image analysis and public Telegram post fetch throttling.
+Rows are eligible for cleanup when `expires_at <= now()`.
+
 ### `telegram_family_shield`
 
 Private trusted-contact mapping for Family Shield:
@@ -117,6 +130,7 @@ Emails that become admin on signup. Managed by SQL/service-role only.
 - `has_role(_user_id uuid, _role app_role) -> boolean` remains as a legacy service-role-only helper; public/authenticated RPC execution is revoked.
 - `handle_new_user_role()` signup trigger
 - `get_check_stats() -> (total, today, confirmed_entities)` is service-role-only and called through the web server function, not directly from the browser.
+- `claim_rate_limit(scope, key_hash, limit, window_seconds) -> (allowed, remaining, retry_after_sec, current_count)` is service-role-only and atomically increments one shared rate-limit bucket.
 - `private.prune_app_retention(as_of timestamptz default now()) -> jsonb` deletes rows eligible under the retention windows and returns per-table counts.
 - `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.
 
@@ -130,6 +144,7 @@ context after reviewing the expected policy.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
 - `telegram_sessions`: 30 days after last update.
 - `telegram_webhook_updates`: 2 days / `expires_at <= as_of`.
+- `rate_limit_buckets`: `expires_at <= as_of` (normally one request window plus a short buffer).
 - `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.
 - `telegram_family_shield`: revoked rows after 30 days; stale pending rows after 7 days; active relationships retained until revoked.
 
