@@ -14,8 +14,8 @@
   - [x] Add honest loss wording
   - [x] Link the component into the homepage
 
-- [ ] 4. Verify and ship
+- [x] 4. Verify and ship
   - [x] Run targeted tests, typecheck, lint, full tests and build
   - [x] Browser-check homepage on desktop/mobile
   - [x] Update AI docs
-  - [ ] Commit, push and verify Railway production
+  - [x] Commit, push and verify Railway production

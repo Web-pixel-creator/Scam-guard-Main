@@ -12,6 +12,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added `src/lib/trust/impact-stats.ts` with normalization/formatting tests.
 - Recorded the safety boundary: these counters do not expose raw reports,
   targets, descriptions or unsupported "money saved" claims.
+- Railway deployment `0629556b-1fda-4c76-a703-e5db2983f66e` passed
+  `prod:smoke` and `monitor:prod`; the homepage returned 200 with the impact
+  counter section.
 
 ## 2026-06-13 - Website Public Scheme Trends v1
 
