@@ -262,7 +262,7 @@ export async function handleCheck(
       text: escapeMarkdownV2(
         buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
       ),
-      keyboard: buildEmergencyFollowUpKeyboard(lang),
+      keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId),
     });
     return;
   }

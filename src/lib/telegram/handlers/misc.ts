@@ -51,15 +51,13 @@ import {
   asPanicScenarioId,
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
+  buildLiveCallActiveKeyboard,
+  buildLiveCallPhraseKeyboard,
   parsePanicContextCallback,
+  parseLiveCallCallback,
   withPanicContextData,
   type EmergencyFollowUpAction,
   type PanicScenarioId,
-} from "@/lib/telegram/emergency";
-import {
-  parseLiveCallCallback,
-  LIVE_CALL_CB_PREFIX,
-  type LiveCallAction,
 } from "@/lib/telegram/emergency";
 import { setLanguage, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
@@ -139,7 +137,7 @@ async function sendEmergencyFollowUp(
   await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
-    keyboard: buildEmergencyFollowUpKeyboard(lang),
+    keyboard: buildEmergencyFollowUpKeyboard(lang, panicId),
   });
 }
 
@@ -479,35 +477,12 @@ export async function handleCallback(
     await rememberPanicContext(ctx, panicId);
     // Scenario 6 ("on a call") → show interactive live-call copilot with buttons
     if (panicId === 6) {
-      const keyboard: import("@/lib/telegram/api.server").InlineKeyboard = [
-        [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
-        [
-          {
-            text: bt("btn_live_what_to_say", lang),
-            callback_data: `${LIVE_CALL_CB_PREFIX}what_to_say`,
-          },
-          {
-            text: bt("btn_live_call_bank", lang),
-            callback_data: `${LIVE_CALL_CB_PREFIX}call_bank`,
-          },
-        ],
-        [
-          {
-            text: bt("btn_live_sent_code", lang),
-            callback_data: `${LIVE_CALL_CB_PREFIX}sent_code`,
-          },
-          {
-            text: bt("btn_live_tell_family", lang),
-            callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
-          },
-        ],
-      ];
       await sendMessage({
         chatId: ctx.chatId,
         text: escapeMarkdownV2(
           bt("live_call_header", lang) + "\n\n" + bt("live_call_hangup", lang),
         ),
-        keyboard,
+        keyboard: buildLiveCallActiveKeyboard(lang),
       });
       return;
     }
@@ -516,7 +491,7 @@ export async function handleCallback(
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(scenarioText),
-      keyboard: buildEmergencyFollowUpKeyboard(lang),
+      keyboard: buildEmergencyFollowUpKeyboard(lang, panicId),
     });
     return;
   }
@@ -528,8 +503,8 @@ export async function handleCallback(
     let responseKey: LiveCallResponseKey;
     switch (liveAction) {
       case "hangup":
-        responseKey = "live_call_hangup";
-        break;
+        await sendEmergencyFollowUp(ctx, "more", 6);
+        return;
       case "what_to_say":
         responseKey = "live_call_what_to_say";
         break;
@@ -543,7 +518,7 @@ export async function handleCallback(
         await sendMessage({
           chatId: ctx.chatId,
           text: escapeMarkdownV2(scenarioText),
-          keyboard: buildEmergencyFollowUpKeyboard(lang),
+          keyboard: buildEmergencyFollowUpKeyboard(lang, 1),
         });
         return;
       }
@@ -556,7 +531,7 @@ export async function handleCallback(
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(bt(responseKey, lang)),
-      keyboard: buildEmergencyFollowUpKeyboard(lang),
+      keyboard: buildLiveCallPhraseKeyboard(lang),
     });
     return;
   }

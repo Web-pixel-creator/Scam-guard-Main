@@ -44,6 +44,9 @@ Already shipped:
 - Official-number Lookalike v1: phone/short-code checks now compare unknown
   numbers with the verified contact directory and explain near misses without
   unsupported accusations.
+- Live-call Copilot Polish v1: the active-call flow now starts with one safe
+  action, hides safe-callback until hangup, and uses compact context-specific
+  follow-up buttons.
 
 Immediate hardening order before new large features:
 
@@ -54,8 +57,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Live-call copilot polish: even shorter step-by-step call guidance with fewer
-  repeated buttons and one next best action per screen.
+- Weekly scam digest from the research feed: short, local, shareable Telegram
+  updates that teach current schemes without exposing personal data.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -110,7 +113,7 @@ Disallowed claims:
 ## Stage 2 - Telegram-First Wow Features
 
 1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code; requires BotFather inline mode to be enabled.
-2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions.
+2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions - shipped as v1.
 3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap. v1 and v1.1 hardening are shipped.
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users - shipped as v1.
 5. Weekly scam digest from the research feed: short, local, shareable.

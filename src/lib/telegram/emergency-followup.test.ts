@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
+  buildLiveCallActiveKeyboard,
+  buildLiveCallPhraseKeyboard,
   classifyEmergencyFollowUp,
   withPanicContextData,
 } from "@/lib/telegram/emergency";
@@ -9,6 +11,13 @@ import {
 const now = new Date("2026-06-05T12:00:00.000Z");
 const recent = new Date("2026-06-05T11:30:00.000Z");
 const expired = new Date("2026-06-05T08:00:00.000Z");
+
+function callbackData(keyboard: ReturnType<typeof buildEmergencyFollowUpKeyboard>): string[] {
+  return keyboard
+    .flat()
+    .map((button) => button.callback_data)
+    .filter((data): data is string => typeof data === "string");
+}
 
 describe("Emergency Copilot v2 follow-up routing", () => {
   it("routes short next-step questions to the last panic scenario", () => {
@@ -94,8 +103,8 @@ describe("Emergency Copilot v2 follow-up routing", () => {
   it("formats callback contact guidance without trusting caller-provided numbers", () => {
     const text = buildEmergencyFollowUpText("contacts", 4, "ru");
 
-    expect(text).toContain("Официальный обратный звонок");
-    expect(text).toContain("Не звоните по номеру");
+    expect(text).toContain("Безопасный обратный звонок");
+    expect(text).toContain("Не звоните на входящий номер");
     expect(text).toContain("1340");
   });
 
@@ -133,10 +142,41 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const contacts = buildEmergencyFollowUpText("contacts", 6, "ru");
     const script = buildEmergencyFollowUpText("script", 6, "ru");
 
-    expect(more).toContain("После звонка: один шаг за раз");
-    expect(more).toContain("Не перезванивайте на входящий номер");
+    expect(more).toContain("Хорошо, звонок завершён");
+    expect(more).toContain("перезвоните в банк только по номеру");
     expect(contacts).toContain("Проверьте мой счёт");
-    expect(contacts).toContain("Не звоните по номеру");
+    expect(contacts).toContain("Не звоните на входящий номер");
     expect(script).toContain("Я не обсуждаю деньги, коды, карты и приложения");
+  });
+
+  it("keeps active live-call buttons focused on ending the call first", () => {
+    const data = callbackData(buildLiveCallActiveKeyboard("ru"));
+
+    expect(data).toEqual([
+      "livecall:hangup",
+      "livecall:what_to_say",
+      "livecall:sent_code",
+      "livecall:tell_family",
+    ]);
+    expect(data).not.toContain("livecall:call_bank");
+  });
+
+  it("uses a compact post-call keyboard for live-call follow-ups", () => {
+    const data = callbackData(buildEmergencyFollowUpKeyboard("ru", 6));
+
+    expect(data).toEqual([
+      "panicctx:contacts",
+      "family:notify",
+      "panicctx:script",
+      "panicctx:full",
+    ]);
+    expect(data).not.toContain("panicctx:more");
+  });
+
+  it("keeps the ready-phrase keyboard focused on hangup and trusted help", () => {
+    expect(callbackData(buildLiveCallPhraseKeyboard("ru"))).toEqual([
+      "livecall:hangup",
+      "livecall:tell_family",
+    ]);
   });
 });

@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Live-call Copilot Polish v1
+
+- Added `.kiro/specs/telegram-live-call-copilot-polish-v1/`.
+- The active live-call emergency screen now focuses on ending the call first and
+  no longer offers safe callback before the user confirms hangup.
+- `livecall:hangup` now routes to a compact post-call next step with safe
+  callback, trusted-person support, ready phrase and full checklist actions.
+- Ready-phrase callbacks use a smaller keyboard focused on hangup confirmation
+  and trusted help.
+- Updated targeted webhook/emergency tests for the compressed live-call flow.
+
 ## 2026-06-13 - Official-number Lookalike v1
 
 - Added `.kiro/specs/official-number-lookalike-v1/`.

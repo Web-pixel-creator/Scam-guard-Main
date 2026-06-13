@@ -1275,6 +1275,40 @@ export function parseLiveCallCallback(data: string): LiveCallAction | null {
   return valid.includes(action as LiveCallAction) ? (action as LiveCallAction) : null;
 }
 
+export function buildLiveCallActiveKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
+    [
+      {
+        text: bt("btn_live_what_to_say", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}what_to_say`,
+      },
+      {
+        text: bt("btn_live_sent_code", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}sent_code`,
+      },
+    ],
+    [
+      {
+        text: bt("btn_live_tell_family", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
+      },
+    ],
+  ];
+}
+
+export function buildLiveCallPhraseKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
+    [
+      {
+        text: bt("btn_live_tell_family", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
+      },
+    ],
+  ];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // EMERGENCY COPILOT V2 — contextual follow-up after panic scenarios
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1407,7 +1441,31 @@ export function classifyEmergencyFollowUp(
   return null;
 }
 
-export function buildEmergencyFollowUpKeyboard(lang: Lang): InlineKeyboard {
+export function buildLiveCallPostHangupKeyboard(lang: Lang): InlineKeyboard {
+  return [
+    [
+      {
+        text: FOLLOWUP_BUTTONS.contacts[lang],
+        callback_data: `${PANIC_CONTEXT_CB_PREFIX}contacts`,
+      },
+      {
+        text: FOLLOWUP_BUTTONS.trusted_person[lang],
+        callback_data: "family:notify",
+      },
+    ],
+    [
+      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
+      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+    ],
+  ];
+}
+
+export function buildEmergencyFollowUpKeyboard(
+  lang: Lang,
+  panicId?: PanicScenarioId,
+): InlineKeyboard {
+  if (panicId === 6) return buildLiveCallPostHangupKeyboard(lang);
+
   return [
     [
       { text: FOLLOWUP_BUTTONS.more[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}more` },
@@ -1789,44 +1847,44 @@ function guidedCallbackDirectory(lang: Lang): string {
   const payments = contacts.payments.slice(0, 3);
   const lines: Record<Lang, string[]> = {
     ru: [
-      "📞 Официальный обратный звонок: как сделать безопасно",
+      "📞 Безопасный обратный звонок",
       "",
-      "1. Если звонок ещё идёт — сначала положите трубку.",
-      "2. Откройте приложение банка, карту или номер на официальном сайте. Не звоните по номеру из SMS или входящего звонка.",
+      "1. Не звоните на входящий номер и на номер из SMS.",
+      "2. Откройте приложение банка, карту или номер на официальном сайте.",
       "3. Наберите номер сами. Если волнуетесь, попросите близкого быть рядом.",
       "",
       "Что сказать оператору:",
-      "«Мне звонили и просили код, деньги или приложение. Проверьте мой счёт и заблокируйте рискованные операции.»",
+      "«Мне звонили и просили код, деньги или приложение. Проверьте мой счёт и заблокируйте рискованные операции».",
       "",
-      "Проверенные короткие номера:",
+      "Проверенные номера:",
       contactList(banks, lang),
       contactList(payments, lang),
     ],
     uz: [
-      "📞 Rasmiy qayta qo'ng'iroq: xavfsiz tartib",
+      "📞 Xavfsiz qayta qo'ng'iroq",
       "",
-      "1. Qo'ng'iroq davom etayotgan bo'lsa — avval go'shakni qo'ying.",
-      "2. Bank ilovasi, karta yoki rasmiy saytdagi raqamni oling. SMS yoki kiruvchi qo'ng'iroqdagi raqamdan foydalanmang.",
+      "1. Kiruvchi raqamga yoki SMSdagi raqamga qo'ng'iroq qilmang.",
+      "2. Bank ilovasi, karta yoki rasmiy saytni oching.",
       "3. Raqamni o'zingiz tering. Hayajonlansangiz, yaqiningiz yoningizda bo'lsin.",
       "",
       "Operatorga shunday deng:",
-      "«Menga qo'ng'iroq qilib kod, pul yoki ilova so'rashdi. Hisobimni tekshirib, xavfli operatsiyalarni bloklang.»",
+      "«Menga qo'ng'iroq qilib kod, pul yoki ilova so'rashdi. Hisobimni tekshirib, xavfli operatsiyalarni bloklang».",
       "",
-      "Tekshirilgan qisqa raqamlar:",
+      "Tekshirilgan raqamlar:",
       contactList(banks, lang),
       contactList(payments, lang),
     ],
     en: [
-      "📞 Official callback: safe steps",
+      "📞 Safe callback",
       "",
-      "1. If the call is still active, hang up first.",
-      "2. Use the bank app, your card, or the official website. Do not use a number from an SMS or incoming call.",
+      "1. Do not call the incoming number or a number from SMS.",
+      "2. Open the bank app, your card, or the official website.",
       "3. Dial the number yourself. If you are stressed, ask someone trusted to stay with you.",
       "",
       "What to say to the operator:",
       "“Someone called and asked for a code, money, or an app. Please check my account and block risky operations.”",
       "",
-      "Verified short numbers:",
+      "Verified numbers:",
       contactList(banks, lang),
       contactList(payments, lang),
     ],
@@ -1918,28 +1976,28 @@ function guidedMoreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
   if (panicId === 6) {
     const lines: Record<Lang, string[]> = {
       ru: [
-        "🧭 После звонка: один шаг за раз",
+        "✅ Хорошо, звонок завершён",
         "",
-        "1. Убедитесь, что звонок завершён. Не перезванивайте на входящий номер.",
-        "2. Если код, карту и пароль не называли — просто перезвоните в банк по официальному номеру и спросите, был ли запрос.",
-        "3. Если уже назвали код или данные карты — срочно блокируйте карту/онлайн-банк и выберите в /panic сценарий «SMS-код» или «Данные карты».",
-        "4. Сохраните номер, время звонка и скрин переписки, если она была.",
+        "Следующий безопасный шаг: перезвоните в банк только по номеру из приложения, карты или официального сайта.",
+        "",
+        "Если код или карту не называли — просто спросите, был ли реальный запрос.",
+        "Если уже назвали — нажмите «Все срочные шаги» или выберите в /panic сценарий про SMS-код/карту.",
       ],
       uz: [
-        "🧭 Qo'ng'iroqdan keyin: bitta qadamdan",
+        "✅ Yaxshi, qo'ng'iroq tugadi",
         "",
-        "1. Qo'ng'iroq tugaganiga ishonch hosil qiling. Kiruvchi raqamga qayta qo'ng'iroq qilmang.",
-        "2. Kod, karta va parol aytmagan bo'lsangiz — bankka rasmiy raqam orqali qo'ng'iroq qilib, so'rov bo'lgan-bo'lmaganini so'rang.",
-        "3. Kod yoki karta ma'lumotini aytgan bo'lsangiz — karta/onlayn-bankni zudlik bilan bloklang va /panic ichida «SMS-kod» yoki «karta ma'lumotlari» ssenariysini tanlang.",
-        "4. Raqam, qo'ng'iroq vaqti va yozishma skrinini saqlang.",
+        "Keyingi xavfsiz qadam: bankka faqat ilova, karta yoki rasmiy saytdagi raqam orqali qo'ng'iroq qiling.",
+        "",
+        "Kod yoki karta aytmagan bo'lsangiz — haqiqiy so'rov bo'lganmi, shuni so'rang.",
+        "Aytgan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing yoki /panic ichida SMS-kod/karta ssenariysini tanlang.",
       ],
       en: [
-        "🧭 After the call: one step at a time",
+        "✅ Good, the call is over",
         "",
-        "1. Make sure the call is over. Do not call back the incoming number.",
-        "2. If you did not share a code, card, or password, call the bank using an official number and ask whether there was a real request.",
-        "3. If you already shared a code or card data, urgently block the card/online bank and choose the “SMS code” or “card data” scenario in /panic.",
-        "4. Save the number, call time, and chat screenshot if there was one.",
+        "Next safe step: call the bank only from the app, your card, or the official website.",
+        "",
+        "If you did not share a code or card data, ask whether there was a real request.",
+        "If you already shared it, tap “All urgent steps” or choose the SMS-code/card scenario in /panic.",
       ],
     };
     return lines[lang].join("\n");

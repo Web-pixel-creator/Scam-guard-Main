@@ -916,11 +916,11 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       expect.arrayContaining([
         "livecall:hangup",
         "livecall:what_to_say",
-        "livecall:call_bank",
         "livecall:sent_code",
         "livecall:tell_family",
       ]),
     );
+    expect(data).not.toContain("livecall:call_bank");
   });
 
   it.each([
@@ -983,8 +983,8 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain("Официальный обратный звонок");
-    expect(h.sendCalls[0].text).toContain("Не звоните по номеру");
+    expect(h.sendCalls[0].text).toContain("Безопасный обратный звонок");
+    expect(h.sendCalls[0].text).toContain("Не звоните на входящий номер");
     expect(h.sendCalls[0].text).toContain("1340");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
   });

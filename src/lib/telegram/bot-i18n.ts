@@ -461,19 +461,19 @@ export const bot_dict: BotDict = {
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
   live_call_header: {
-    ru: "📞 Похоже, вы на подозрительном звонке.\n\nСейчас не спорьте и не отвечайте на вопросы. Просто скажите короткую фразу ниже и завершите звонок.",
-    uz: "📞 Bu shubhali qo'ng'iroqqa o'xshaydi.\n\nHozir tortishmang va savollarga javob bermang. Quyidagi qisqa jumlani ayting va qo'ng'iroqni tugating.",
-    en: "📞 This looks like a suspicious call.\n\nDo not argue or answer questions now. Say the short phrase below and end the call.",
+    ru: "📞 Похоже, звонок рискованный.\n\nГлавное сейчас — завершить разговор. Не спорьте и не отвечайте на вопросы.",
+    uz: "📞 Qo'ng'iroq xavfli bo'lishi mumkin.\n\nHozir eng muhimi — suhbatni tugatish. Tortishmang va savollarga javob bermang.",
+    en: "📞 This call may be risky.\n\nThe safe move is to end it now. Do not argue or answer questions.",
   },
   live_call_hangup: {
-    ru: "Скажите: «Я сам перезвоню по официальному номеру.»\n\nПотом положите трубку и нажмите «✅ Я положил трубку».\n\nНе называйте SMS-код, PIN, CVV, пароль или данные карты. Если давят «не кладите трубку» — это сильный признак мошенничества.",
-    uz: "Ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nKeyin go'shakni qo'ying va «✅ Go'shakni qo'ydim» tugmasini bosing.\n\nSMS-kod, PIN, CVV, parol yoki karta ma'lumotlarini aytmang. «Go'shakni qo'ymang» deb bosim qilishsa — bu firibgarlik belgisi.",
-    en: "Say: “I will call back myself using the official number.”\n\nThen hang up and tap “✅ I hung up”.\n\nDo not share SMS codes, PIN, CVV, passwords, or card data. If they pressure you not to hang up, treat it as a strong scam signal.",
+    ru: "Скажите одну фразу: «Я сам перезвоню по официальному номеру.»\n\nПоложите трубку и нажмите «✅ Я положил трубку».\n\nКод, PIN, CVV, пароль и данные карты не называйте.",
+    uz: "Bitta jumla ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nGo'shakni qo'ying va «✅ Go'shakni qo'ydim» tugmasini bosing.\n\nKod, PIN, CVV, parol va karta ma'lumotini aytmang.",
+    en: "Say one sentence: “I will call back myself using the official number.”\n\nHang up and tap “✅ I hung up”.\n\nDo not share codes, PIN, CVV, passwords, or card data.",
   },
   live_call_what_to_say: {
-    ru: "💬 Скажите ровно это:\n\n«Я не обсуждаю деньги, коды и карты по входящему звонку. Я сам перезвоню по официальному номеру.»\n\nПосле этой фразы сразу завершите звонок. Не объясняйте причину: мошенники специально удерживают разговор.",
-    uz: "💬 Aniq shuni ayting:\n\n«Kiruvchi qo'ng'iroqda pul, kod va kartani muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nShundan keyin darhol go'shakni qo'ying. Sabab tushuntirmang: firibgarlar suhbatni cho'zishga urinadi.",
-    en: "💬 Say exactly this:\n\n“I do not discuss money, codes, or cards on an incoming call. I will call back myself using the official number.”\n\nThen end the call immediately. Do not explain: scammers try to keep you talking.",
+    ru: "💬 Прочитайте и завершите звонок:\n\n«Я не обсуждаю деньги, коды и карты по входящему звонку. Я сам перезвоню по официальному номеру.»\n\nНе объясняйте причину — просто положите трубку.",
+    uz: "💬 O'qing va qo'ng'iroqni tugating:\n\n«Kiruvchi qo'ng'iroqda pul, kod va kartani muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nSabab tushuntirmang — go'shakni qo'ying.",
+    en: "💬 Read this and end the call:\n\n“I do not discuss money, codes, or cards on an incoming call. I will call back myself using the official number.”\n\nDo not explain — just hang up.",
   },
   live_call_tell_family: {
     ru: "👪 Позовите близкого как помощника, не как судью.\n\nСкопируйте или прочитайте ему:\n«Мне сейчас звонили от имени банка/службы поддержки и торопили. Я волнуюсь. Побудь со мной 5 минут и помоги набрать официальный номер банка.»\n\nНе пересылайте SMS-код, PIN, CVV, пароль или фото карты. Близкому можно показать переписку без кодов.",
