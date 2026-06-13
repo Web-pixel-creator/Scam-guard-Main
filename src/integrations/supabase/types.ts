@@ -227,6 +227,12 @@ export type Database = {
         Args: never;
         Returns: {
           confirmed_entities: number;
+          dangerous: number;
+          high_risk: number;
+          reported_loss_uzs: number;
+          reports_total: number;
+          reports_with_loss_amount: number;
+          suspicious: number;
           today: number;
           total: number;
         }[];

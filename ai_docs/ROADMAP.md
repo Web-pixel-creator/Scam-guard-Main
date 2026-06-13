@@ -56,6 +56,9 @@ Already shipped:
 - Website Public Scheme Trends v1: the website now has `/scam-trends`, a
   searchable public map of scam tactics using only research-feed categories,
   deterministic reason-code coverage and non-personal educational metadata.
+- Website Honest Impact Counters v1: the homepage now shows aggregate checks,
+  risk alerts, moderated records and user-reported loss totals with conservative
+  wording and no public raw report data.
 
 Immediate hardening order before new large features:
 
@@ -66,8 +69,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Add honest impact counters: checks, dangerous results and a prevented-loss
-  survey total without exposing private reports.
+- Embeddable check widget for trusted media/community sites after the impact
+  counters have run in production for a short observation window.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -132,7 +135,7 @@ Disallowed claims:
 
 1. Public official-number directory page for banks, payment systems, telecoms and agencies - shipped as Website Trust Surface v1.
 2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data - shipped as Website Public Scheme Trends v1.
-3. Honest impact counters: checks, dangerous results, prevented-loss survey totals.
+3. Honest impact counters: checks, dangerous results, user-reported loss totals - shipped as Website Honest Impact Counters v1.
 4. Embeddable check widget for media, banks and community sites.
 5. "Verified by Ishonch Guard" badge only after manual moderation.
 

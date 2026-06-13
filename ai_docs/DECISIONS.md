@@ -285,3 +285,10 @@ hooks, goals and safe steps. It must not publish raw reports, phone numbers,
 Telegram usernames, URLs, screenshots, OCR text, hidden Telegram labels,
 account age, spam history or unmoderated accusations. A trend is a tactic to
 recognize, not a claim that a specific person, channel or number is a scammer.
+
+## D-034 - Public impact counters must be aggregate-only
+
+Homepage impact counters may show aggregate checks, risk-alert counts,
+moderated records and user-reported loss totals. They must not expose raw
+check/report rows or claim "money saved" unless the user explicitly supplies
+that outcome through a privacy-reviewed survey.

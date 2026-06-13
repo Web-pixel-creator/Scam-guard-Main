@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Website Honest Impact Counters v1
+
+- Added `.kiro/specs/website-honest-impact-counters-v1/`.
+- Added aggregate-only homepage impact counters for checks, risk alerts,
+  moderated records and user-reported loss totals.
+- Extended `get_check_stats()` migration and the TanStack server function with
+  backward-compatible count fallbacks.
+- Added `src/lib/trust/impact-stats.ts` with normalization/formatting tests.
+- Recorded the safety boundary: these counters do not expose raw reports,
+  targets, descriptions or unsupported "money saved" claims.
+
 ## 2026-06-13 - Website Public Scheme Trends v1
 
 - Added `.kiro/specs/website-public-scheme-trends-v1/`.

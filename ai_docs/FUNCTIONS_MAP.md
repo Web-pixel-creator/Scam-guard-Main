@@ -93,6 +93,14 @@ Signatures and intent only. See file paths for source.
   reason-code labels without touching private checks/reports.
 - `getTopSchemeTrends(limit)` returns severity-ordered homepage teaser entries.
 
+**`src/lib/trust/impact-stats.ts`**
+
+- `normalizePublicStatsRow(row, overrides?)` converts RPC/server aggregate rows
+  into the public stats contract, defaulting missing fields to zero.
+- `formatImpactNumber(value, lang)` formats aggregate counts for public cards.
+- `formatUzsCompact(value, lang)` formats user-reported UZS loss totals without
+  implying recovered or prevented money.
+
 ## Telegram
 
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and `update_id` dedup via an in-memory fast path plus shared Postgres claims.

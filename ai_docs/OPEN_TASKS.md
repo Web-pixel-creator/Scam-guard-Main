@@ -41,9 +41,10 @@
       non-personal data and moderated/research-feed categories.~~ Done:
       `/scam-trends`, homepage teaser, safe source labels, deterministic
       reason-code coverage and no raw reports/targets.
-- [ ] Add honest impact counters: checks, dangerous results and prevented-loss
+- [x] ~~Add honest impact counters: checks, dangerous results and prevented-loss
       survey totals without exposing private reports or unsupported savings
-      claims.
+      claims.~~ Done as Website Honest Impact Counters v1 with aggregate-only
+      checks, risk alerts, moderated records and user-reported loss wording.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.

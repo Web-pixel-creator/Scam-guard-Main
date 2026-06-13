@@ -30,6 +30,7 @@ import { UnicornBackground } from "@/components/UnicornBackground";
 import { StatsStrip } from "@/components/StatsStrip";
 import { HomeTrustSurface } from "@/components/HomeTrustSurface";
 import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
+import { HomeImpactCounters } from "@/components/HomeImpactCounters";
 import { QuickReportForm } from "@/components/QuickReportForm";
 
 export const Route = createFileRoute("/")({
@@ -324,6 +325,8 @@ function Index() {
 
         {/* SOCIAL PROOF — live counters plus verified official-contact coverage */}
         <StatsStrip />
+
+        <HomeImpactCounters />
 
         <HomeTrustSurface />
 
