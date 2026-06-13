@@ -590,6 +590,55 @@ describe("formatCheckResult — Phone Directory v1", () => {
     expect(text).not.toMatch(/SCAM-метк|возраст аккаунта|истори[яи] жалоб/i);
     expect(text).not.toContain("4930123456");
   });
+
+  it("shows official-number lookalikes as near matches, not accusations", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        display: "+998 90 ••• 40",
+        level: "unknown",
+        score: 0,
+        reasons: [],
+        explanation: null,
+        phoneIntelligence: {
+          digits: "998901231340",
+          normalized: "+998901231340",
+          kind: "uz_mobile",
+          isValidFormat: true,
+          isUzbekistan: true,
+          country: {
+            iso: "UZ",
+            callingCode: "998",
+            name: { ru: "Узбекистан", uz: "O'zbekiston", en: "Uzbekistan" },
+          },
+          uzPrefix: "90",
+          uzOperator: {
+            ru: "Beeline по префиксу 90",
+            uz: "90 prefiksi bo'yicha Beeline",
+            en: "Beeline by prefix 90",
+          },
+          officialDirectoryStatus: "not_found",
+          officialLookalike: {
+            org: { ru: "Капиталбанк", uz: "Kapitalbank", en: "Kapitalbank" },
+            orgType: "bank",
+            display: "1340",
+            contactType: "short_code",
+            reason: "short_code_suffix",
+            confidence: "low",
+          },
+        },
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(
+      escapeMarkdownV2("Похож на официальный контакт, но не совпадает: Капиталбанк — 1340."),
+    );
+    expect(text).toContain(escapeMarkdownV2("не перезванивайте по входящему номеру"));
+    expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
+    expect(text).not.toMatch(/мошенник|точно фейк|SCAM-метк/i);
+    expect(text).not.toContain("998901231340");
+  });
 });
 
 describe("formatCheckResult — header (R4.5, R4.4)", () => {

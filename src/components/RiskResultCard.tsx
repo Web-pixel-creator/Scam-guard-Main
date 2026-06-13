@@ -31,6 +31,13 @@ export type CheckResult = {
     verificationLevel: "high" | "medium";
     description: string;
   } | null;
+  phoneIntelligence?: {
+    officialLookalike?: {
+      org: Record<"ru" | "uz" | "en", string>;
+      display: string;
+      confidence: "low" | "medium";
+    } | null;
+  } | null;
 };
 
 type LevelStyle = {
@@ -311,6 +318,31 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                         ru: "⚠️ Это не доказывает, что входящий звонок безопасен. Номер на экране могут подменить. Если просят код, карту, приложение или перевод — положите трубку и перезвоните сами.",
                         uz: "⚠️ Bu kiruvchi qo'ng'iroq xavfsizligini isbotlamaydi. Ekrandagi raqam soxtalashtirilishi mumkin. Kod, karta, ilova yoki pul so'rashsa — go'shakni qo'ying va o'zingiz qayta qo'ng'iroq qiling.",
                         en: "⚠️ This does not prove an incoming call is safe. Caller ID can be spoofed. If they ask for a code, card, app or transfer — hang up and call back yourself.",
+                      }[lang]
+                    }
+                  </p>
+                </div>
+              )}
+              {!result.verifiedContact && result.phoneIntelligence?.officialLookalike && (
+                <div className="mt-5 p-4 rounded-lg border border-[#FCD34D]/70 bg-[#FFFBEB]">
+                  <p className="text-[14px] font-medium text-[#92400E] mb-2">
+                    ⚠️{" "}
+                    {
+                      {
+                        ru: "Похож на официальный контакт, но не совпадает:",
+                        uz: "Rasmiy kontaktga o'xshaydi, lekin aniq mos emas:",
+                        en: "Similar to an official contact, but not an exact match:",
+                      }[lang]
+                    }{" "}
+                    {result.phoneIntelligence.officialLookalike.org[lang]} —{" "}
+                    {result.phoneIntelligence.officialLookalike.display}
+                  </p>
+                  <p className="text-[13px] text-[#52525B] leading-[1.5]">
+                    {
+                      {
+                        ru: "Это не доказывает мошенничество. Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
+                        uz: "Bu firibgarlikni isbotlamaydi. Kiruvchi raqamga qayta qo'ng'iroq qilmang: ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
+                        en: "This does not prove fraud. Do not call back via the incoming number: use the app, card, official site, or verified contact.",
                       }[lang]
                     }
                   </p>

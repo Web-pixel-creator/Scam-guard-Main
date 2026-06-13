@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Official-number Lookalike v1
+
+- Added `.kiro/specs/official-number-lookalike-v1/`.
+- Extended `PhoneIntelligencePassport` with optional verified-contact lookalike
+  evidence for near-miss phone numbers and short codes.
+- Telegram and web result cards now say when a number is similar to an official
+  contact but not an exact match, and advise safe callback through the app,
+  card, official site or verified directory.
+- The feature does not change score/level/reasons and does not claim owner,
+  hidden spam history, SCAM labels or fraud by itself.
+- Updated roadmap/open-tasks/file/function/architecture docs.
+
 ## 2026-06-12 - Telegram Voice STT v1
 
 - Added `.kiro/specs/telegram-voice-stt-v1/`.

@@ -305,8 +305,11 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     }
   }
 
+  const isShortCodeInput = /^\d{3,5}$/.test(workingInput);
   const phoneIntelligence =
-    detected === "phone" ? buildPhoneIntelligencePassport(workingInput, normalized, match) : null;
+    detected === "phone" || isShortCodeInput
+      ? buildPhoneIntelligencePassport(workingInput, normalized, match)
+      : null;
 
   // ── Persist to checks (with the FINAL level the user sees) ───────────────
   if (persist !== false) {

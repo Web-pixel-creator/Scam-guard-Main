@@ -351,6 +351,28 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.level).toBe("high_risk");
   });
 
+  it("enriches official-number near misses without changing risk scoring", async () => {
+    const result = await runCheck({
+      input: "1258",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.verifiedContact).toBeNull();
+    expect(result.phoneIntelligence?.kind).toBe("short_code");
+    expect(result.phoneIntelligence?.officialDirectoryStatus).toBe("not_found");
+    expect(result.phoneIntelligence?.officialLookalike).toMatchObject({
+      display: "1257",
+      reason: "short_code_near_miss",
+      confidence: "medium",
+    });
+    expect(result.level).toBe("unknown");
+    expect(result.score).toBe(0);
+    expect(result.reasons).toEqual([]);
+  });
+
   it("card and remote-access requests also override official contact matches", async () => {
     const cases = [
       ["Позвоните 1344 и назовите CVV карты", "asks_for_card_cvv"],

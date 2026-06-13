@@ -1,5 +1,5 @@
 import type { Lang } from "@/lib/i18n";
-import type { VerifiedContact } from "./verified-contacts";
+import { VERIFIED_CONTACTS, type VerifiedContact } from "./verified-contacts";
 
 export type PhoneNumberKind =
   | "short_code"
@@ -8,11 +8,25 @@ export type PhoneNumberKind =
   | "international"
   | "unknown";
 export type OfficialDirectoryStatus = "matched" | "not_found" | "not_applicable";
+export type OfficialLookalikeReason =
+  | "full_number_near_miss"
+  | "short_code_near_miss"
+  | "short_code_suffix";
+export type OfficialLookalikeConfidence = "low" | "medium";
 
 export interface PhoneCountryInfo {
   iso: string;
   callingCode: string;
   name: Record<Lang, string>;
+}
+
+export interface OfficialContactLookalike {
+  org: VerifiedContact["org"];
+  orgType: VerifiedContact["orgType"];
+  display: string;
+  contactType: VerifiedContact["contactType"];
+  reason: OfficialLookalikeReason;
+  confidence: OfficialLookalikeConfidence;
 }
 
 export interface PhoneIntelligencePassport {
@@ -25,6 +39,7 @@ export interface PhoneIntelligencePassport {
   uzPrefix: string | null;
   uzOperator: Record<Lang, string> | null;
   officialDirectoryStatus: OfficialDirectoryStatus;
+  officialLookalike?: OfficialContactLookalike | null;
 }
 
 const COUNTRY_CODES: readonly PhoneCountryInfo[] = [
@@ -171,6 +186,134 @@ function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+function boundedEditDistance(a: string, b: string, maxDistance: number): number | null {
+  if (Math.abs(a.length - b.length) > maxDistance) return null;
+
+  const previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  const current = new Array<number>(b.length + 1);
+
+  for (let i = 1; i <= a.length; i++) {
+    current[0] = i;
+    let rowMin = current[0];
+
+    for (let j = 1; j <= b.length; j++) {
+      const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1;
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + substitutionCost,
+      );
+      rowMin = Math.min(rowMin, current[j]);
+    }
+
+    if (rowMin > maxDistance) return null;
+    previous.splice(0, previous.length, ...current);
+  }
+
+  const distance = previous[b.length];
+  return distance <= maxDistance ? distance : null;
+}
+
+function isPhoneDirectoryContact(contact: VerifiedContact): boolean {
+  return ["phone", "short_code", "toll_free"].includes(contact.contactType);
+}
+
+function orgPriority(contact: VerifiedContact): number {
+  switch (contact.orgType) {
+    case "bank":
+    case "payment_system":
+    case "cybersecurity":
+      return 0;
+    case "telecom":
+      return 1;
+    case "government":
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+function findOfficialContactLookalike(
+  digits: string,
+  verifiedContact: VerifiedContact | null,
+): OfficialContactLookalike | null {
+  if (verifiedContact || digits.length < 3) return null;
+
+  type Candidate = OfficialContactLookalike & { distance: number; priority: number };
+  const candidates: Candidate[] = [];
+
+  for (const contact of VERIFIED_CONTACTS) {
+    if (!isPhoneDirectoryContact(contact)) continue;
+
+    const contactDigits = digitsOnly(contact.normalized);
+    if (contactDigits.length < 3 || digits === contactDigits) continue;
+
+    if (digits.length >= 9 && contactDigits.length >= 9 && digits.length === contactDigits.length) {
+      const distance = boundedEditDistance(digits, contactDigits, 2);
+      if (distance !== null && distance > 0) {
+        candidates.push({
+          org: contact.org,
+          orgType: contact.orgType,
+          display: contact.display,
+          contactType: contact.contactType,
+          reason: "full_number_near_miss",
+          confidence: "medium",
+          distance,
+          priority: orgPriority(contact),
+        });
+      }
+      continue;
+    }
+
+    if (digits.length >= 3 && digits.length <= 5 && digits.length === contactDigits.length) {
+      const distance = boundedEditDistance(digits, contactDigits, 1);
+      if (distance === 1) {
+        candidates.push({
+          org: contact.org,
+          orgType: contact.orgType,
+          display: contact.display,
+          contactType: contact.contactType,
+          reason: "short_code_near_miss",
+          confidence: "medium",
+          distance,
+          priority: orgPriority(contact),
+        });
+      }
+      continue;
+    }
+
+    if (
+      digits.length >= 9 &&
+      contactDigits.length >= 4 &&
+      contact.contactType !== "phone" &&
+      digits.endsWith(contactDigits)
+    ) {
+      candidates.push({
+        org: contact.org,
+        orgType: contact.orgType,
+        display: contact.display,
+        contactType: contact.contactType,
+        reason: "short_code_suffix",
+        confidence: "low",
+        distance: 3,
+        priority: orgPriority(contact),
+      });
+    }
+  }
+
+  const best = candidates.sort(
+    (a, b) =>
+      a.distance - b.distance ||
+      a.priority - b.priority ||
+      b.display.length - a.display.length ||
+      a.display.localeCompare(b.display),
+  )[0];
+
+  if (!best) return null;
+  const { distance: _distance, priority: _priority, ...lookalike } = best;
+  return lookalike;
+}
+
 function detectCountry(digits: string): PhoneCountryInfo | null {
   return COUNTRY_CODES.find((country) => digits.startsWith(country.callingCode)) ?? null;
 }
@@ -222,6 +365,7 @@ export function buildPhoneIntelligencePassport(
     : digits.length >= 3
       ? "not_found"
       : "not_applicable";
+  const officialLookalike = findOfficialContactLookalike(digits, verifiedContact);
 
   return {
     digits,
@@ -233,5 +377,6 @@ export function buildPhoneIntelligencePassport(
     uzPrefix,
     uzOperator,
     officialDirectoryStatus,
+    officialLookalike,
   };
 }

@@ -142,6 +142,7 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   if (QR_MENU_CONTEXT_RE.test(haystack)) return "qr_menu";
   if (CRYPTO_CONTEXT_RE.test(haystack)) return "crypto";
   if (
+    result.phoneIntelligence ||
     result.type === "phone" ||
     result.reasons.includes("valid_uz_phone") ||
     result.reasons.includes("non_uz_phone")
@@ -166,6 +167,8 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       foreignCallback: string;
       weakFormat: string;
       contextMatters: string;
+      lookalike: (org: string, contact: string) => string;
+      lookalikeCallback: string;
     }
   > = {
     ru: {
@@ -177,6 +180,10 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       weakFormat: "Формат номера выглядит неполным или необычным.",
       contextMatters:
         "Сам номер не доказывает мошенничество: важнее, просили ли SMS-код, карту, перевод, APK или QR-вход.",
+      lookalike: (org, contact) =>
+        `Похож на официальный контакт, но не совпадает: ${org} — ${contact}.`,
+      lookalikeCallback:
+        "Безопасный шаг: не перезванивайте по входящему номеру; используйте приложение, карту, официальный сайт или проверенный контакт.",
     },
     uz: {
       number: "Raqam",
@@ -187,6 +194,10 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       weakFormat: "Raqam formati to'liq emas yoki noodatiy ko'rinadi.",
       contextMatters:
         "Raqamning o'zi firibgarlikni isbotlamaydi: SMS-kod, karta, pul o'tkazma, APK yoki QR-login so'ralganmi — shu muhim.",
+      lookalike: (org, contact) =>
+        `Rasmiy kontaktga o'xshaydi, lekin aniq mos emas: ${org} — ${contact}.`,
+      lookalikeCallback:
+        "Xavfsiz qadam: kiruvchi raqamga qayta qo'ng'iroq qilmang; ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
     },
     en: {
       number: "Number",
@@ -197,6 +208,10 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       weakFormat: "The number format looks incomplete or unusual.",
       contextMatters:
         "The number alone does not prove a scam; what matters is whether they ask for an SMS code, card, transfer, APK, or QR login.",
+      lookalike: (org, contact) =>
+        `Looks similar to an official contact, but it is not an exact match: ${org} — ${contact}.`,
+      lookalikeCallback:
+        "Safe step: do not call back via the incoming number; use the app, card, official site, or the verified contact.",
     },
   };
 
@@ -213,6 +228,11 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
     lines.push(c.weakFormat);
   } else if (passport.country && !passport.isUzbekistan) {
     lines.push(c.foreignCallback);
+  } else if (passport.officialLookalike) {
+    lines.push(
+      c.lookalike(passport.officialLookalike.org[lang], passport.officialLookalike.display),
+    );
+    lines.push(c.lookalikeCallback);
   } else if (passport.officialDirectoryStatus === "not_found") {
     lines.push(c.officialNotFound);
   }

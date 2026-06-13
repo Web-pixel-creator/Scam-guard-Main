@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-12.
+Last updated: 2026-06-13.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -41,6 +41,9 @@ Already shipped:
   Supabase HMAC-hashed buckets across Node instances with in-memory fallback.
 - Telegram Voice STT v1: short voice notes are transcribed in memory, redacted
   and checked by the existing rules pipeline.
+- Official-number Lookalike v1: phone/short-code checks now compare unknown
+  numbers with the verified contact directory and explain near misses without
+  unsupported accusations.
 
 Immediate hardening order before new large features:
 
@@ -51,7 +54,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Official-number lookalike detection: compare checked phone numbers with verified official contacts and explain near-miss numbers without making unsupported accusations.
+- Live-call copilot polish: even shorter step-by-step call guidance with fewer
+  repeated buttons and one next best action per screen.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -66,6 +70,8 @@ Shipped behavior:
 - Detect country/calling code for common numbers.
 - Detect Uzbekistan mobile/landline prefix where possible.
 - Show whether the number matches the official Ishonch Guard directory.
+- Show when a number is only similar to a verified official contact, while
+  clearly saying it is not an exact match and not proof of fraud.
 - For foreign numbers, explain the callback risk when someone claims to be an Uzbek bank/service.
 - Never claim owner, hidden scam label, account age, spam history or report volume without a real source.
 
