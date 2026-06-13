@@ -4,23 +4,23 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## Root
 
-| Path                                  | Purpose                                                                                                                                                                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `package.json`                        | Scripts: `dev`, `build`, `start`, `preview`, `lint`, `format`, `test`, `test:run`.                                                                                                                                                              |
-| `vite.config.ts`                      | TanStack/Vite/Nitro config. Forces Nitro `node-server` preset and `src/server.ts` entry.                                                                                                                                                        |
-| `Dockerfile`, `.dockerignore`         | Multi-stage production image for the Node SSR artifact.                                                                                                                                                                                         |
-| `.github/workflows/ci.yml`            | GitHub Actions verification: install, typecheck, tests, production build.                                                                                                                                                                       |
-| `railway.toml`                        | Railway config: Docker builder, `/healthz`, restart policy.                                                                                                                                                                                     |
-| `.env.example`                        | Documented runtime env vars. Real `.env` is local-only and ignored.                                                                                                                                                                             |
-| `bun.lock`, `bunfig.toml`             | Bun package manager files. npm also works for scripts.                                                                                                                                                                                          |
-| `supabase/config.toml`                | Supabase project config.                                                                                                                                                                                                                        |
-| `supabase/migrations/*.sql`           | DB schema history.                                                                                                                                                                                                                              |
-| `scripts/prod-smoke.ts`               | One-shot production smoke test for the public app, Telegram webhook, Telegram pending state and AI provider; can optionally send one live Telegram synthetic update.                                                                            |
-| `scripts/prod-monitor.ts`             | Recurring production monitor for public app, `/healthz`, Telegram webhook state and AI provider; can send sanitized Telegram alerts to an operator chat.                                                                                        |
-| `scripts/prod-family-shield-smoke.ts` | One-shot production smoke test for Family Shield invite/accept/notify/revoke storage paths using synthetic Telegram ids and no secret output.                                                                                                   |
-| `.kiro/specs/telegram-bot-mvp/`       | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                                                                                                                                        |
-| `.kiro/specs/*/`                      | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, inline check, menu/result polish, emergency copilot, response compression, phone directory, webhook dedup, shared rate limits and research-feed work. |
-| `.lovable/project.json`               | Historical template marker only; not a production runtime target.                                                                                                                                                                               |
+| Path                                  | Purpose                                                                                                                                                                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                        | Scripts: `dev`, `build`, `start`, `preview`, `lint`, `format`, `test`, `test:run`.                                                                                                                                                                                     |
+| `vite.config.ts`                      | TanStack/Vite/Nitro config. Forces Nitro `node-server` preset and `src/server.ts` entry.                                                                                                                                                                               |
+| `Dockerfile`, `.dockerignore`         | Multi-stage production image for the Node SSR artifact.                                                                                                                                                                                                                |
+| `.github/workflows/ci.yml`            | GitHub Actions verification: install, typecheck, tests, production build.                                                                                                                                                                                              |
+| `railway.toml`                        | Railway config: Docker builder, `/healthz`, restart policy.                                                                                                                                                                                                            |
+| `.env.example`                        | Documented runtime env vars. Real `.env` is local-only and ignored.                                                                                                                                                                                                    |
+| `bun.lock`, `bunfig.toml`             | Bun package manager files. npm also works for scripts.                                                                                                                                                                                                                 |
+| `supabase/config.toml`                | Supabase project config.                                                                                                                                                                                                                                               |
+| `supabase/migrations/*.sql`           | DB schema history.                                                                                                                                                                                                                                                     |
+| `scripts/prod-smoke.ts`               | One-shot production smoke test for the public app, Telegram webhook, Telegram pending state and AI provider; can optionally send one live Telegram synthetic update.                                                                                                   |
+| `scripts/prod-monitor.ts`             | Recurring production monitor for public app, `/healthz`, Telegram webhook state and AI provider; can send sanitized Telegram alerts to an operator chat.                                                                                                               |
+| `scripts/prod-family-shield-smoke.ts` | One-shot production smoke test for Family Shield invite/accept/notify/revoke storage paths using synthetic Telegram ids and no secret output.                                                                                                                          |
+| `.kiro/specs/telegram-bot-mvp/`       | Kiro requirements/design/tasks for the Telegram bot MVP.                                                                                                                                                                                                               |
+| `.kiro/specs/*/`                      | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, inline check, menu/result polish, emergency copilot, response compression, phone directory, webhook dedup, shared rate limits, research-feed and website trust-surface work. |
+| `.lovable/project.json`               | Historical template marker only; not a production runtime target.                                                                                                                                                                                                      |
 
 ## `src/` entry points
 
@@ -34,16 +34,17 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## `src/routes/`
 
-| File            | URL          | Notes                                              |
-| --------------- | ------------ | -------------------------------------------------- |
-| `__root.tsx`    | app shell    | Providers, Header/Footer, SEO meta, language sync. |
-| `index.tsx`     | `/`          | Main experience and landing content. Large file.   |
-| `check.tsx`     | `/check`     | Dedicated check page.                              |
-| `report.tsx`    | `/report`    | Scam report form.                                  |
-| `emergency.tsx` | `/emergency` | First-hours recovery checklist.                    |
-| `privacy.tsx`   | `/privacy`   | Privacy notice.                                    |
-| `login.tsx`     | `/login`     | Supabase email auth.                               |
-| `admin.tsx`     | `/admin`     | Moderation dashboard.                              |
+| File                   | URL                 | Notes                                                                                             |
+| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------- |
+| `__root.tsx`           | app shell           | Providers, Header/Footer, SEO meta, language sync.                                                |
+| `index.tsx`            | `/`                 | Main experience and landing content. Large file.                                                  |
+| `check.tsx`            | `/check`            | Dedicated check page.                                                                             |
+| `report.tsx`           | `/report`           | Scam report form.                                                                                 |
+| `emergency.tsx`        | `/emergency`        | First-hours recovery checklist.                                                                   |
+| `official-numbers.tsx` | `/official-numbers` | Public verified-contact directory for safe callback numbers and official Telegram/email contacts. |
+| `privacy.tsx`          | `/privacy`          | Privacy notice.                                                                                   |
+| `login.tsx`            | `/login`            | Supabase email auth.                                                                              |
+| `admin.tsx`            | `/admin`            | Moderation dashboard.                                                                             |
 
 ## `src/lib/`
 
@@ -63,6 +64,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/rate-limit.ts`                 | In-memory sliding-window rate limit used as local/test fallback.                                                                                                             |
 | `risk/shared-rate-limit.server.ts`   | Service-role shared rate limit backed by Supabase `claim_rate_limit()`, persisting only HMAC-hashed bucket keys and falling back locally.                                    |
 | `risk/verified-contacts.ts`          | Official Uzbekistan contacts (banks, telecom, gov, payments). Lookup for pipeline.                                                                                           |
+| `trust/official-directory.ts`        | Static public-directory helpers: stats, search/filter, contact actions and source-link detection for verified contacts.                                                      |
 | `meta-intent.ts`                     | Deterministic classifier for questions to the bot itself, including Telegram-account visibility limits.                                                                      |
 | `telegram/emergency.ts`              | Dynamic emergency checklist builder, panic menus and Emergency Copilot follow-up routing.                                                                                    |
 | `telegram/router.ts`                 | Telegram update router (dispatch, parseCommand, decideRoute).                                                                                                                |
@@ -89,7 +91,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## `src/components/`
 
-`CheckInput`, `RiskResultCard`, `QuickReportForm`, `StatsStrip`, `Layout`, `LanguageSwitcher`, `A11yPanel`, `FancyButton`, `UnicornBackground`; `components/ui/*` are shadcn primitives.
+`CheckInput`, `RiskResultCard`, `QuickReportForm`, `StatsStrip`, `HomeTrustSurface`, `OfficialContactsDirectory`, `Layout`, `LanguageSwitcher`, `A11yPanel`, `FancyButton`, `UnicornBackground`; `components/ui/*` are shadcn primitives.
 
 ## `src/integrations/supabase/`
 

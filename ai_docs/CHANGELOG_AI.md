@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Website Trust Surface v1
+
+- Added `.kiro/specs/website-trust-surface-v1/`.
+- Added `/official-numbers`, a searchable public directory backed only by
+  `VERIFIED_CONTACTS`.
+- Added homepage trust block and a verified-contact count in `StatsStrip`.
+- Changed aggregate reputation wording from direct "confirmed scammers" to
+  moderated risk records.
+- Recorded the safety boundary: official contacts are callback destinations,
+  not proof that an incoming caller ID is safe.
+
 ## 2026-06-13 - Weekly Scam Digest v1
 
 - Added `.kiro/specs/telegram-weekly-scam-digest-v1/`.

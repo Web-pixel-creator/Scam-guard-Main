@@ -50,6 +50,9 @@ Already shipped:
 - Weekly Scam Digest v1: Telegram `/digest` and the main menu now show a
   compact deterministic RU/UZ/EN digest for casino/frispin, NFT/Stars, TON,
   bank/SMS-code and APK funnels, with check/report/emergency next actions.
+- Website Trust Surface v1: the website now has `/official-numbers`, a
+  searchable verified-contact directory, safer homepage trust counters and a
+  callback guidance block that warns caller ID can be spoofed.
 
 Immediate hardening order before new large features:
 
@@ -60,8 +63,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Improve website trust surface: public official-number directory and homepage
-  trust counters/trends using aggregated, non-personal data.
+- Add public scheme map/trends using aggregated, non-personal data and the
+  already-shipped research-feed categories.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -124,7 +127,7 @@ Disallowed claims:
 
 ## Stage 3 - Website Trust And Distribution
 
-1. Public official-number directory page for banks, payment systems, telecoms and agencies.
+1. Public official-number directory page for banks, payment systems, telecoms and agencies - shipped as Website Trust Surface v1.
 2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data.
 3. Honest impact counters: checks, dangerous results, prevented-loss survey totals.
 4. Embeddable check widget for media, banks and community sites.

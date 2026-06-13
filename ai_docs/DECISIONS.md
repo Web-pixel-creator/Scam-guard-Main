@@ -265,3 +265,13 @@ store raw user text, URLs, phone numbers, OCR text, card data, codes or image
 bytes. Unknown result cards should avoid surfacing weak topic-only observations
 as evidence, while suspicious/high-risk cards should keep concise visible
 evidence and next steps.
+
+## D-032 - Official contacts are callback destinations, not caller-ID proof
+
+The public website may expose `VERIFIED_CONTACTS` as a searchable official
+contact directory. This directory is static public data and must not read
+private reports, raw checks, OCR text or user identifiers. User-facing copy
+must frame listed numbers as safe callback destinations only: caller ID can be
+spoofed, so a directory match never proves that an incoming call is safe and
+never overrides dangerous behavior such as SMS-code, PIN, CVV, password, APK or
+transfer requests.

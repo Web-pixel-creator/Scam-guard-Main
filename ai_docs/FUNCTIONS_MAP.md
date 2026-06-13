@@ -73,6 +73,15 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
 
+## Website trust surface
+
+**`src/lib/trust/official-directory.ts`**
+
+- `getOfficialDirectoryStats()` returns static public counts from `VERIFIED_CONTACTS`.
+- `filterOfficialContacts(query, filter)` performs case-insensitive search across organization names, display values, descriptions and sources.
+- `getContactAction(contact)` returns `tel:`, Telegram or email actions where appropriate.
+- `isUrlSource(source)` distinguishes external source links from plain source notes.
+
 ## Telegram
 
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and `update_id` dedup via an in-memory fast path plus shared Postgres claims.

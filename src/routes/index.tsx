@@ -28,6 +28,7 @@ import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { UnicornBackground } from "@/components/UnicornBackground";
 import { StatsStrip } from "@/components/StatsStrip";
+import { HomeTrustSurface } from "@/components/HomeTrustSurface";
 import { QuickReportForm } from "@/components/QuickReportForm";
 
 export const Route = createFileRoute("/")({
@@ -320,8 +321,10 @@ function Index() {
           </div>
         </section>
 
-        {/* SOCIAL PROOF — live counters from the DB (today / total / confirmed scammers) */}
+        {/* SOCIAL PROOF — live counters plus verified official-contact coverage */}
         <StatsStrip />
+
+        <HomeTrustSurface />
 
         {/* MARQUEE — APEX: stripes texture + edge fade mask */}
         <section

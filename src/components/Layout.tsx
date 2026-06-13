@@ -60,6 +60,9 @@ export function Header() {
           <Link to="/emergency" className="nav-link">
             {t("nav_emergency", lang)}
           </Link>
+          <Link to="/official-numbers" className="nav-link">
+            {{ ru: "Номера", uz: "Raqamlar", en: "Numbers" }[lang]}
+          </Link>
           <Link to="/privacy" className="nav-link">
             {t("nav_privacy", lang)}
           </Link>
@@ -88,6 +91,9 @@ export function Footer() {
           </Link>
           <Link to="/emergency" className="hover:text-[#18181B] transition-colors">
             {t("nav_emergency", lang)}
+          </Link>
+          <Link to="/official-numbers" className="hover:text-[#18181B] transition-colors">
+            {{ ru: "Номера", uz: "Raqamlar", en: "Numbers" }[lang]}
           </Link>
         </div>
       </div>

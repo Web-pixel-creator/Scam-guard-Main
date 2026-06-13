@@ -34,6 +34,11 @@
 - [x] ~~Add Weekly Scam Digest v1 as the next visible Telegram wow feature.~~
       Done: `/digest`, main-menu button, command-menu registration and compact
       RU/UZ/EN deterministic digest with check/report/emergency actions.
+- [x] ~~Add Website Trust Surface v1 for official callback numbers.~~ Done:
+      `/official-numbers`, homepage verified-contact count, trust block and
+      non-accusatory moderated-risk wording.
+- [ ] Add public scheme map/trends for Uzbekistan using only aggregated,
+      non-personal data and moderated/research-feed categories.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.

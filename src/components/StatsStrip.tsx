@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPublicStats, type PublicStats } from "@/lib/check.functions";
 import { useLang } from "@/lib/lang-context";
-import { Activity, ShieldCheck, Calendar } from "lucide-react";
+import { Activity, ShieldCheck, Calendar, PhoneCall } from "lucide-react";
+import { VERIFIED_CONTACTS_COUNT } from "@/lib/risk/verified-contacts";
 
 function formatNum(n: number, lang: string) {
   try {
@@ -43,9 +44,19 @@ export function StatsStrip() {
       icon: ShieldCheck,
       value: data?.confirmed_entities ?? 0,
       label: {
-        ru: "Подтверждённых мошенников",
-        uz: "Tasdiqlangan firibgarlar",
-        en: "Confirmed scammers",
+        ru: "Модерированных рисковых записей",
+        uz: "Moderatsiyalangan xavf yozuvlari",
+        en: "Moderated risk records",
+      }[lang],
+    },
+    {
+      key: "official",
+      icon: PhoneCall,
+      value: VERIFIED_CONTACTS_COUNT,
+      label: {
+        ru: "Проверенных официальных контактов",
+        uz: "Tekshirilgan rasmiy kontaktlar",
+        en: "Verified official contacts",
       }[lang],
     },
   ];
@@ -79,7 +90,7 @@ export function StatsStrip() {
         {/* Top hairline accent */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C2410C] via-[#FB923C] to-[#F97316]" />
 
-        <ul className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E0D8]">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E0D8]">
           {items.map((it) => (
             <li
               key={it.key}
