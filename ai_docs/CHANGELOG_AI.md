@@ -12,6 +12,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Ready-phrase callbacks use a smaller keyboard focused on hangup confirmation
   and trusted help.
 - Updated targeted webhook/emergency tests for the compressed live-call flow.
+- Railway deployment `b6b29704-d119-4053-a3dc-d209cc5722ef` passed
+  `prod:smoke`, `prod:security-smoke`, `prod:family-smoke` and `monitor:prod`.
 
 ## 2026-06-13 - Official-number Lookalike v1
 

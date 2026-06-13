@@ -7,4 +7,4 @@
 - [x] 3. Shorten live-call text and post-call guidance.
 - [x] 4. Route live-call callbacks to context-specific keyboards.
 - [x] 5. Add tests for active-call and post-call button behavior.
-- [ ] 6. Run verification, commit, push, and deploy.
+- [x] 6. Run verification, commit, push, and deploy.
