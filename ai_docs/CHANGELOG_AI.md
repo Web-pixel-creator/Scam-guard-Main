@@ -12,6 +12,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
   card, official site or verified directory.
 - The feature does not change score/level/reasons and does not claim owner,
   hidden spam history, SCAM labels or fraud by itself.
+- Railway production deploy passed `prod:smoke`, `prod:security-smoke`,
+  `prod:family-smoke` and `monitor:prod`.
 - Updated roadmap/open-tasks/file/function/architecture docs.
 
 ## 2026-06-12 - Telegram Voice STT v1

@@ -8,4 +8,4 @@
 - [x] 4. Render short Telegram guidance for lookalike numbers.
 - [x] 5. Add unit and formatter tests.
 - [x] 6. Update AI docs and open tasks.
-- [ ] 7. Run verification, commit, push and deploy.
+- [x] 7. Run verification, commit, push and deploy.
