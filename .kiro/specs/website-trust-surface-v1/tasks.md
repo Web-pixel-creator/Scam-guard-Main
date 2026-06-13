@@ -14,8 +14,8 @@
   - [x] Add homepage trust block linking to the directory
   - [x] Avoid accusatory wording in aggregate labels
 
-- [ ] 4. Verify and ship
+- [x] 4. Verify and ship
   - [x] Run targeted tests, typecheck, lint, full tests and build
   - [x] Browser-check homepage and directory on desktop/mobile
   - [x] Update AI docs
-  - [ ] Commit, push and verify Railway production
+  - [x] Commit, push and verify Railway production

@@ -12,6 +12,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   moderated risk records.
 - Recorded the safety boundary: official contacts are callback destinations,
   not proof that an incoming caller ID is safe.
+- Railway deployment `766306d6-ba44-4fb5-9ce2-5abe3eb16415` passed
+  `prod:smoke` and `monitor:prod`; `/official-numbers` returned 200 with
+  directory content.
 
 ## 2026-06-13 - Weekly Scam Digest v1
 
