@@ -59,9 +59,9 @@ export const bot_dict: BotDict = {
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
   },
 
   // ── Meta-intent answers: questions TO the bot, not scam content ───────────
@@ -457,6 +457,11 @@ export const bot_dict: BotDict = {
     ru: "Как работает",
     uz: "Qanday ishlaydi",
     en: "How it works",
+  },
+  btn_quick_digest: {
+    ru: "Схемы недели",
+    uz: "Haftalik sxemalar",
+    en: "Weekly scams",
   },
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────

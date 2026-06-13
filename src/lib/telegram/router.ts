@@ -189,6 +189,7 @@ export type BotCommand =
   | "/menu"
   | "/lang"
   | "/help"
+  | "/digest"
   | "/safety"
   | "/family"
   | "/check"
@@ -201,6 +202,7 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/menu",
   "/lang",
   "/help",
+  "/digest",
   "/safety",
   "/family",
   "/check",

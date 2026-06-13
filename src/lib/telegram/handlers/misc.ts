@@ -42,6 +42,7 @@ import {
 } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB, formatEmergencyChecklist, formatSafety } from "@/lib/telegram/format";
+import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
 import {
   parsePanicCallback,
   buildPanicScenarioText,
@@ -371,6 +372,12 @@ export async function handleCallback(
 
   if (data === CB.howItWorks) {
     await sendI18n(ctx.chatId, "meta_how_do_you_check", lang);
+    return;
+  }
+
+  if (data === CB.digest) {
+    const { text, keyboard } = formatWeeklyScamDigest(lang);
+    await sendMessage({ chatId: ctx.chatId, text, keyboard });
     return;
   }
 

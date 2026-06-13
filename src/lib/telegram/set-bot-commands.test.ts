@@ -36,6 +36,7 @@ const REQUIRED_COMMANDS = [
   "report",
   "panic",
   "family",
+  "digest",
   "safety",
   "lang",
 ] as const;
@@ -54,9 +55,9 @@ describe("buildCommandPayloads — structure", () => {
     expect(payloads).toHaveLength(4);
   });
 
-  it("each payload contains exactly 7 commands", () => {
+  it("each payload contains exactly 8 commands", () => {
     for (const payload of payloads) {
-      expect(payload.commands).toHaveLength(7);
+      expect(payload.commands).toHaveLength(8);
     }
   });
 

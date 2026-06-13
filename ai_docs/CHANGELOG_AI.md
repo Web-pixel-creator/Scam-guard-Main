@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Weekly Scam Digest v1
+
+- Added `.kiro/specs/telegram-weekly-scam-digest-v1/`.
+- Added deterministic Telegram `/digest` with compact RU/UZ/EN wording for
+  casino/frispin/VIP forecast, NFT/Stars/gift, TON/wallet, bank/SMS-code and
+  APK funnels.
+- Added a digest entry to `/start` and `/menu`, plus callback routing and
+  localized `setMyCommands` registration.
+- The digest avoids raw reports, copied Telegram posts and unverifiable
+  accusations; it offers check/report/emergency next actions.
+- Added unit/QA coverage for digest length, content, keyboard callbacks, command
+  menus and welcome-menu structure.
+
 ## 2026-06-13 - Live-call Copilot Polish v1
 
 - Added `.kiro/specs/telegram-live-call-copilot-polish-v1/`.

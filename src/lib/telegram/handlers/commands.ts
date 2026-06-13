@@ -35,6 +35,7 @@ import {
   formatSafety,
   formatWelcome,
 } from "@/lib/telegram/format";
+import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
 import { buildPanicMenuText, buildPanicKeyboardPage1 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
@@ -247,6 +248,12 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
     case "/help":
       await sendMessage({ chatId: ctx.chatId, text: formatHelp(lang) });
       return;
+
+    case "/digest": {
+      const { text, keyboard } = formatWeeklyScamDigest(lang);
+      await sendMessage({ chatId: ctx.chatId, text, keyboard });
+      return;
+    }
 
     case "/safety":
       await sendMessage({ chatId: ctx.chatId, text: formatSafety(lang) });

@@ -31,6 +31,9 @@
 - [x] ~~Polish live-call copilot after official-number lookalikes.~~ Done:
       active-call buttons now focus on hangup first, safe callback appears after
       hangup, and live-call follow-ups use compact context-specific keyboards.
+- [x] ~~Add Weekly Scam Digest v1 as the next visible Telegram wow feature.~~
+      Done: `/digest`, main-menu button, command-menu registration and compact
+      RU/UZ/EN deterministic digest with check/report/emergency actions.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
@@ -58,6 +61,10 @@ Use `https://t.me/pressauz` as a research feed for Uzbekistan scam patterns. Do 
 4. tests before enabling a scoring rule.
 
 Recent useful feed themes: suspicious foreign calls asking for SMS/card data, malicious Telegram files/GIFs, fake boss/official requests, APK "security app" theft, fake service/payment intermediaries.
+
+Weekly Digest v1 currently summarizes recurring themes manually and safely. Do
+not automate feed ingestion until moderation, retention and source attribution
+rules are reviewed.
 
 Completed research-feed themes now covered by deterministic rules:
 

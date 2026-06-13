@@ -47,6 +47,9 @@ Already shipped:
 - Live-call Copilot Polish v1: the active-call flow now starts with one safe
   action, hides safe-callback until hangup, and uses compact context-specific
   follow-up buttons.
+- Weekly Scam Digest v1: Telegram `/digest` and the main menu now show a
+  compact deterministic RU/UZ/EN digest for casino/frispin, NFT/Stars, TON,
+  bank/SMS-code and APK funnels, with check/report/emergency next actions.
 
 Immediate hardening order before new large features:
 
@@ -57,8 +60,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Weekly scam digest from the research feed: short, local, shareable Telegram
-  updates that teach current schemes without exposing personal data.
+- Improve website trust surface: public official-number directory and homepage
+  trust counters/trends using aggregated, non-personal data.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -116,7 +119,8 @@ Disallowed claims:
 2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions - shipped as v1.
 3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap. v1 and v1.1 hardening are shipped.
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users - shipped as v1.
-5. Weekly scam digest from the research feed: short, local, shareable.
+5. Weekly scam digest from the research feed: shipped as Telegram v1; later can
+   be automated from moderated aggregate trends.
 
 ## Stage 3 - Website Trust And Distribution
 

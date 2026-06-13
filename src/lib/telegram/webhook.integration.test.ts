@@ -564,6 +564,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
         CB.safety,
         CB.showLang,
         CB.howItWorks,
+        CB.digest,
         CB.familyMenu,
       ]),
     );
@@ -583,6 +584,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       CB.safety,
       CB.showLang,
       CB.howItWorks,
+      CB.digest,
       CB.familyMenu,
     ]);
   });

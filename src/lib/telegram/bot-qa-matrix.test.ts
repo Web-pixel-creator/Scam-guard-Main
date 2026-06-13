@@ -70,6 +70,7 @@ describe("Telegram Bot QA Matrix v1", () => {
         CB.safety,
         CB.showLang,
         CB.howItWorks,
+        CB.digest,
         CB.familyMenu,
       ]),
     );
@@ -77,6 +78,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(formatHelp("ru")).toContain("/report");
     expect(formatHelp("ru")).toContain("/panic");
     expect(formatHelp("ru")).toContain("/family");
+    expect(formatHelp("ru")).toContain("/digest");
   });
 
   it("gives a useful fallback for unsupported video and audio", () => {

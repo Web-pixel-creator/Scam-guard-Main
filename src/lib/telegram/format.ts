@@ -78,6 +78,7 @@ export const CB = {
   showLang: "show_lang",
   safety: "safety",
   howItWorks: "how_it_works",
+  digest: "digest",
   mediaTips: "media_tips",
   familyMenu: "family:menu",
   notifyTrusted: "family:notify",
@@ -690,7 +691,10 @@ export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeybo
       { text: "\u{1F310} " + bt("btn_quick_lang", lang), callback_data: CB.showLang },
       { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
     ],
-    [{ text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu }],
+    [
+      { text: "\u{1F4F0} " + bt("btn_quick_digest", lang), callback_data: CB.digest },
+      { text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu },
+    ],
   ];
   return {
     text: escapeMarkdownV2(bt("welcome", lang)),
