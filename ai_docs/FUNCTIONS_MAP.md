@@ -82,6 +82,17 @@ Signatures and intent only. See file paths for source.
 - `getContactAction(contact)` returns `tel:`, Telegram or email actions where appropriate.
 - `isUrlSource(source)` distinguishes external source links from plain source notes.
 
+**`src/lib/trust/scheme-trends.ts`**
+
+- `PUBLIC_SCHEME_TRENDS` contains public, non-personal scam tactic entries for
+  bank/SMS-code calls, APK, casino/free-spins, NFT/Stars, TON/wallet,
+  Telegram account-takeover, delivery/payment links and dropper recruitment.
+- `getSchemeTrendStats()` returns static public counts for trends, active-watch
+  entries, critical scenarios, categories and linked reason codes.
+- `filterSchemeTrends({ category, query })` searches public RU/UZ/EN text and
+  reason-code labels without touching private checks/reports.
+- `getTopSchemeTrends(limit)` returns severity-ordered homepage teaser entries.
+
 ## Telegram
 
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and `update_id` dedup via an in-memory fast path plus shared Postgres claims.

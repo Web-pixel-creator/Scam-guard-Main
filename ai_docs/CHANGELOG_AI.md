@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-13 - Website Public Scheme Trends v1
+
+- Added `.kiro/specs/website-public-scheme-trends-v1/`.
+- Added `/scam-trends`, a public non-personal trend map of common tactics:
+  bank/SMS-code calls, APK, casino/free-spins, NFT/Stars, TON/wallet,
+  Telegram account-takeover, delivery/payment links and dropper recruitment.
+- Added homepage scheme-trends teaser and navigation/footer entry points.
+- Added `src/lib/trust/scheme-trends.ts` with stats, category filters,
+  severity ordering and tests.
+- Recorded the safety boundary: trends describe tactics, not accused people,
+  channels, numbers or raw reports.
+
 ## 2026-06-13 - Website Trust Surface v1
 
 - Added `.kiro/specs/website-trust-surface-v1/`.

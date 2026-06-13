@@ -53,6 +53,9 @@ Already shipped:
 - Website Trust Surface v1: the website now has `/official-numbers`, a
   searchable verified-contact directory, safer homepage trust counters and a
   callback guidance block that warns caller ID can be spoofed.
+- Website Public Scheme Trends v1: the website now has `/scam-trends`, a
+  searchable public map of scam tactics using only research-feed categories,
+  deterministic reason-code coverage and non-personal educational metadata.
 
 Immediate hardening order before new large features:
 
@@ -63,8 +66,8 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Add public scheme map/trends using aggregated, non-personal data and the
-  already-shipped research-feed categories.
+- Add honest impact counters: checks, dangerous results and a prevented-loss
+  survey total without exposing private reports.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -128,7 +131,7 @@ Disallowed claims:
 ## Stage 3 - Website Trust And Distribution
 
 1. Public official-number directory page for banks, payment systems, telecoms and agencies - shipped as Website Trust Surface v1.
-2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data.
+2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data - shipped as Website Public Scheme Trends v1.
 3. Honest impact counters: checks, dangerous results, prevented-loss survey totals.
 4. Embeddable check widget for media, banks and community sites.
 5. "Verified by Ishonch Guard" badge only after manual moderation.

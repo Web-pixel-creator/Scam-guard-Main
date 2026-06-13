@@ -37,8 +37,13 @@
 - [x] ~~Add Website Trust Surface v1 for official callback numbers.~~ Done:
       `/official-numbers`, homepage verified-contact count, trust block and
       non-accusatory moderated-risk wording.
-- [ ] Add public scheme map/trends for Uzbekistan using only aggregated,
-      non-personal data and moderated/research-feed categories.
+- [x] ~~Add public scheme map/trends for Uzbekistan using only aggregated,
+      non-personal data and moderated/research-feed categories.~~ Done:
+      `/scam-trends`, homepage teaser, safe source labels, deterministic
+      reason-code coverage and no raw reports/targets.
+- [ ] Add honest impact counters: checks, dangerous results and prevented-loss
+      survey totals without exposing private reports or unsupported savings
+      claims.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.

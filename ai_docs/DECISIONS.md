@@ -275,3 +275,13 @@ must frame listed numbers as safe callback destinations only: caller ID can be
 spoofed, so a directory match never proves that an incoming call is safe and
 never overrides dangerous behavior such as SMS-code, PIN, CVV, password, APK or
 transfer requests.
+
+## D-033 - Public scheme trends describe tactics, not targets
+
+The website may show a public scheme-trends map for Uzbekistan, but the first
+version must be static/aggregate and education-only. It may use research-feed
+categories, deterministic reason-code coverage and non-personal descriptions of
+hooks, goals and safe steps. It must not publish raw reports, phone numbers,
+Telegram usernames, URLs, screenshots, OCR text, hidden Telegram labels,
+account age, spam history or unmoderated accusations. A trend is a tactic to
+recognize, not a claim that a specific person, channel or number is a scammer.

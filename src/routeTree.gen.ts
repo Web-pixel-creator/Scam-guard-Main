@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScamsRouteImport } from './routes/scams'
+import { Route as ScamTrendsRouteImport } from './routes/scam-trends'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OfficialNumbersRouteImport } from './routes/official-numbers'
@@ -22,6 +23,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ScamsRoute = ScamsRouteImport.update({
   id: '/scams',
   path: '/scams',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScamTrendsRoute = ScamTrendsRouteImport.update({
+  id: '/scam-trends',
+  path: '/scam-trends',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportRoute = ReportRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/official-numbers': typeof OfficialNumbersRoute
   '/privacy': typeof PrivacyRoute
   '/report': typeof ReportRoute
+  '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/official-numbers': typeof OfficialNumbersRoute
   '/privacy': typeof PrivacyRoute
   '/report': typeof ReportRoute
+  '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/official-numbers': typeof OfficialNumbersRoute
   '/privacy': typeof PrivacyRoute
   '/report': typeof ReportRoute
+  '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/official-numbers'
     | '/privacy'
     | '/report'
+    | '/scam-trends'
     | '/scams'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/official-numbers'
     | '/privacy'
     | '/report'
+    | '/scam-trends'
     | '/scams'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/official-numbers'
     | '/privacy'
     | '/report'
+    | '/scam-trends'
     | '/scams'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   OfficialNumbersRoute: typeof OfficialNumbersRoute
   PrivacyRoute: typeof PrivacyRoute
   ReportRoute: typeof ReportRoute
+  ScamTrendsRoute: typeof ScamTrendsRoute
   ScamsRoute: typeof ScamsRoute
 }
 
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/scams'
       fullPath: '/scams'
       preLoaderRoute: typeof ScamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scam-trends': {
+      id: '/scam-trends'
+      path: '/scam-trends'
+      fullPath: '/scam-trends'
+      preLoaderRoute: typeof ScamTrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/report': {
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   OfficialNumbersRoute: OfficialNumbersRoute,
   PrivacyRoute: PrivacyRoute,
   ReportRoute: ReportRoute,
+  ScamTrendsRoute: ScamTrendsRoute,
   ScamsRoute: ScamsRoute,
 }
 export const routeTree = rootRouteImport

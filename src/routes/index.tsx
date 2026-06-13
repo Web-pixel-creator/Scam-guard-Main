@@ -29,6 +29,7 @@ import { t } from "@/lib/i18n";
 import { UnicornBackground } from "@/components/UnicornBackground";
 import { StatsStrip } from "@/components/StatsStrip";
 import { HomeTrustSurface } from "@/components/HomeTrustSurface";
+import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
 import { QuickReportForm } from "@/components/QuickReportForm";
 
 export const Route = createFileRoute("/")({
@@ -325,6 +326,8 @@ function Index() {
         <StatsStrip />
 
         <HomeTrustSurface />
+
+        <HomeSchemeTrends />
 
         {/* MARQUEE — APEX: stripes texture + edge fade mask */}
         <section
