@@ -14,6 +14,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   accusations; it offers check/report/emergency next actions.
 - Added unit/QA coverage for digest length, content, keyboard callbacks, command
   menus and welcome-menu structure.
+- Railway deployment `bd6ff05b-abde-44eb-8203-ffe4ede4e736` passed
+  `prod:smoke`, `monitor:prod`, `prod:security-smoke` and
+  `prod:family-smoke`; Telegram command scopes were registered successfully.
 
 ## 2026-06-13 - Live-call Copilot Polish v1
 

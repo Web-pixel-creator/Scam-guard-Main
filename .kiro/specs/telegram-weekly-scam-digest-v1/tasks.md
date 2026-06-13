@@ -6,4 +6,4 @@
 - [x] 4. Add digest entry to main menu and Telegram command registration
 - [x] 5. Add unit tests for text length, callbacks, and command menus
 - [x] 6. Run typecheck, lint, tests, build
-- [ ] 7. Commit, push, deploy, and smoke-test production
+- [x] 7. Commit, push, deploy, and smoke-test production
