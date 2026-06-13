@@ -13,6 +13,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   severity ordering and tests.
 - Recorded the safety boundary: trends describe tactics, not accused people,
   channels, numbers or raw reports.
+- Railway deployment `16633468-c6b6-4466-9d97-ab5b7899ad0a` passed
+  `prod:smoke` and `monitor:prod`; `/scam-trends` returned 200 with trend
+  content.
 
 ## 2026-06-13 - Website Trust Surface v1
 
