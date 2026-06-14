@@ -10,6 +10,7 @@
 //   /menu      → same main menu as /start
 //   /lang      → show language selection buttons           (R2.1, R2.5)
 //   /help      → command list                              (R3.1)
+//   /appeal    → public correction form for reputation labels
 //   /safety    → basic safety rules + scope reminder       (R3.2, R3.3)
 //   /emergency → numbered emergency checklist              (R20.1, R20.2, R20.5)
 //
@@ -43,6 +44,7 @@ import { loadSession, saveSession } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
+import { getPublicAppUrl } from "@/lib/config.server";
 import {
   acceptFamilyInvite,
   buildFamilyAlreadyLinkedKeyboard,
@@ -142,6 +144,18 @@ async function showFamilyMenu(ctx: HandlerCtx): Promise<void> {
     chatId: ctx.chatId,
     text: escapeMarkdownV2(bt("family_menu_text", lang)),
     keyboard: buildFamilySetupKeyboard(lang),
+  });
+}
+
+async function showAppealHelp(ctx: HandlerCtx): Promise<void> {
+  const { lang } = ctx.session;
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("appeal_help", lang)),
+    keyboard: [
+      [{ text: bt("btn_open_appeal", lang), url: `${getPublicAppUrl()}/appeal` }],
+      [{ text: bt("btn_report", lang), callback_data: CB.report }],
+    ],
   });
 }
 
@@ -254,6 +268,10 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
       await sendMessage({ chatId: ctx.chatId, text, keyboard });
       return;
     }
+
+    case "/appeal":
+      await showAppealHelp(ctx);
+      return;
 
     case "/safety":
       await sendMessage({ chatId: ctx.chatId, text: formatSafety(lang) });

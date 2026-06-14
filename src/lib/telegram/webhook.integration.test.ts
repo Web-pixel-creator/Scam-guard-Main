@@ -589,6 +589,18 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ]);
   });
 
+  it("sends /appeal with a public correction form button and report fallback", async () => {
+    const update = textUpdate({ userId: 1109, chatId: 5109, text: "/appeal" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Исправить запись");
+    expect(JSON.stringify(h.sendCalls[0].keyboard)).toContain("/appeal");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.report);
+  });
+
   it("does not expose Family Shield invite links in group chats", async () => {
     const update = {
       update_id: 1108,

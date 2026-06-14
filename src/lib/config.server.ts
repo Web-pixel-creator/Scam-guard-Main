@@ -59,3 +59,23 @@ export function getTelegramBotUsername(): string {
   const raw = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, "");
   return raw && /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : "scamguard_bot";
 }
+
+/**
+ * Public app URL used for Telegram URL buttons and operational links.
+ * This value is not secret. It falls back to the current Railway production
+ * domain so bot entrypoints keep working even when PUBLIC_APP_URL is omitted.
+ */
+export function getPublicAppUrl(): string {
+  const fallback = "https://scam-guard-main-production.up.railway.app";
+  const raw = process.env.PUBLIC_APP_URL?.trim();
+  if (!raw) return fallback;
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return fallback;
+  }
+}

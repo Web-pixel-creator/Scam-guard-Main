@@ -59,9 +59,20 @@ export const bot_dict: BotDict = {
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🧾 /appeal — Исправить ошибочную запись\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🧾 /appeal — Xato yozuvni tuzatish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🧾 /appeal — Correct a wrong record\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+  },
+
+  appeal_help: {
+    ru: "🧾 Исправить запись\n\nЭто не новая жалоба на мошенника. Используйте эту форму, если ваш номер, Telegram-аккаунт, ссылка или APK уже получили публичную метку Ishonch Guard и вы считаете, что запись ошибочная или устарела.\n\nДля нового случая нажмите «Сообщить о случае». Для исправления откройте форму и коротко объясните, почему запись нужно пересмотреть.\n\nНе отправляйте SMS-коды, PIN, CVV, пароли, seed-фразы или фото документов.",
+    uz: "🧾 Yozuvni tuzatish\n\nBu yangi firibgarlik shikoyati emas. Raqamingiz, Telegram akkauntingiz, havolangiz yoki APK havolangiz Ishonch Guard'da ommaviy belgi olgan bo'lsa va yozuv xato yoki eskirgan deb hisoblasangiz, shu formadan foydalaning.\n\nYangi holat uchun «Hodisa haqida xabar berish»ni bosing. Tuzatish uchun formani oching va nega yozuv qayta ko'rilishi kerakligini qisqa yozing.\n\nSMS-kod, PIN, CVV, parol, seed-fraza yoki hujjat fotosini yubormang.",
+    en: "🧾 Correct a record\n\nThis is not a new scam report. Use this form only if your number, Telegram account, link, or APK URL already has a public Ishonch Guard label and you believe the record is wrong or outdated.\n\nFor a new incident, tap “Report an incident”. To correct a record, open the form and briefly explain why it should be reviewed.\n\nDo not send SMS codes, PINs, CVVs, passwords, seed phrases, or document photos.",
+  },
+  btn_open_appeal: {
+    ru: "🧾 Открыть форму исправления",
+    uz: "🧾 Tuzatish formasini ochish",
+    en: "🧾 Open correction form",
   },
 
   // ── Meta-intent answers: questions TO the bot, not scam content ───────────

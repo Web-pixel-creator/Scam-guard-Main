@@ -1,7 +1,17 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, Home, Loader2, RotateCcw, ShieldCheck, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FileWarning,
+  Home,
+  ListChecks,
+  Loader2,
+  RotateCcw,
+  ShieldCheck,
+  Send,
+} from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { submitReputationAppeal } from "@/lib/reputation-appeal.functions";
 
@@ -53,9 +63,55 @@ function AppealPage() {
       en: "Correct a reputation record",
     },
     subtitle: {
-      ru: "Если номер, Telegram-аккаунт или ссылка отображаются у нас неверно, отправьте запрос. Мы проверим только модерированные данные Ishonch Guard и не публикуем ваши личные данные.",
-      uz: "Agar raqam, Telegram akkaunt yoki havola bizda noto'g'ri ko'rinsa, so'rov yuboring. Biz faqat Ishonch Guard moderatsiyalangan yozuvlarini tekshiramiz va shaxsiy ma'lumotingizni e'lon qilmaymiz.",
-      en: "If a number, Telegram account, or link appears incorrectly in our reputation data, send a request. We review only Ishonch Guard moderated records and do not publish your personal data.",
+      ru: "Эта форма нужна только для исправления уже существующей публичной метки Ishonch Guard. Новые случаи мошенничества отправляйте как жалобу — так модератор получит правильный контекст.",
+      uz: "Bu forma faqat Ishonch Guard'dagi mavjud ommaviy belgini tuzatish uchun. Yangi firibgarlik holatlarini shikoyat sifatida yuboring — moderator to'g'ri kontekst oladi.",
+      en: "This form is only for correcting an existing public Ishonch Guard label. New scam incidents should be submitted as reports so moderators get the right context.",
+    },
+    useForTitle: { ru: "Используйте здесь", uz: "Bu yerda ishlating", en: "Use this for" },
+    useForItems: {
+      ru: [
+        "ваш номер или username помечен ошибочно",
+        "запись устарела или доказательства неверные",
+        "нужно пересмотреть URL или APK-ссылку",
+      ],
+      uz: [
+        "raqam yoki username xato belgilangan",
+        "yozuv eskirgan yoki dalil noto'g'ri",
+        "URL yoki APK havolasini qayta ko'rish kerak",
+      ],
+      en: [
+        "your number or username was labeled by mistake",
+        "the record is outdated or evidence is wrong",
+        "a URL or APK link needs review",
+      ],
+    },
+    notForTitle: { ru: "Не для этого", uz: "Buning uchun emas", en: "Not for this" },
+    notForItems: {
+      ru: [
+        "новый звонок, SMS или подозрительная ссылка",
+        "массовые жалобы без доказательств",
+        "сообщения с SMS-кодами, PIN, CVV или паролями",
+      ],
+      uz: [
+        "yangi qo'ng'iroq, SMS yoki shubhali havola",
+        "dalilsiz ommaviy shikoyatlar",
+        "SMS-kod, PIN, CVV yoki parolli xabarlar",
+      ],
+      en: [
+        "a new call, SMS, or suspicious link",
+        "mass complaints without evidence",
+        "messages containing SMS codes, PINs, CVVs, or passwords",
+      ],
+    },
+    examplesTitle: {
+      ru: "Что можно указать",
+      uz: "Nimani ko'rsatish mumkin",
+      en: "What you can enter",
+    },
+    examples: {
+      ru: ["+998 90 ...", "@username", "https://site.uz", "APK-ссылка"],
+      uz: ["+998 90 ...", "@username", "https://site.uz", "APK havola"],
+      en: ["+998 90 ...", "@username", "https://site.uz", "APK URL"],
     },
     target: {
       ru: "Номер, Telegram или ссылка",
@@ -80,9 +136,9 @@ function AppealPage() {
       en: "This request is already queued",
     },
     doneText: {
-      ru: "Мы проверим запись вручную. Если публичная репутация ошибочна или устарела, администратор снимет метку.",
-      uz: "Yozuv qo'lda tekshiriladi. Agar ommaviy reputatsiya noto'g'ri yoki eskirgan bo'lsa, administrator belgini olib tashlaydi.",
-      en: "We will review the record manually. If the public reputation is wrong or outdated, an admin will remove the label.",
+      ru: "Мы проверим запись вручную. Если метка ошибочна или устарела, администратор снимет её или обновит данные. Ваши личные контакты не станут публичными.",
+      uz: "Yozuv qo'lda tekshiriladi. Agar belgi xato yoki eskirgan bo'lsa, administrator uni olib tashlaydi yoki ma'lumotni yangilaydi. Shaxsiy kontaktingiz ommaga chiqmaydi.",
+      en: "We will review the record manually. If the label is wrong or outdated, an admin will remove it or update the data. Your personal contact details will not become public.",
     },
     unsupported: {
       ru: "Укажите номер телефона, Telegram-username/ссылку или URL. Свободный текст лучше отправить как жалобу.",
@@ -173,29 +229,36 @@ function AppealPage() {
           </h1>
           <p className="mt-5 text-[16px] leading-[1.7] text-[#52525B]">{copy.subtitle[lang]}</p>
 
-          <div className="mt-8 grid gap-3 text-[14px] leading-relaxed text-[#3F3F46]">
-            {[
-              {
-                ru: "Подходит для номера, Telegram-username/ссылки или URL.",
-                uz: "Raqam, Telegram username/havola yoki URL uchun mos.",
-                en: "Use this for a number, Telegram username/link, or URL.",
-              }[lang],
-              {
-                ru: "Мы не принимаем массовые жалобы без доказательств.",
-                uz: "Dalilsiz ommaviy shikoyatlar qabul qilinmaydi.",
-                en: "We do not accept mass complaints without evidence.",
-              }[lang],
-              {
-                ru: "Решение администратора записывается в журнал действий.",
-                uz: "Administrator qarori audit jurnaliga yoziladi.",
-                en: "Admin decisions are recorded in the audit log.",
-              }[lang],
-            ].map((item) => (
-              <p key={item} className="flex gap-2">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F97316]" />
-                <span>{item}</span>
+          <div className="mt-8 grid gap-6 text-[14px] leading-relaxed text-[#3F3F46] sm:grid-cols-2">
+            <div className="border-t border-[#E2E0D8] pt-4">
+              <p className="apex-mono mb-3 inline-flex items-center gap-2 text-emerald-700">
+                <ListChecks aria-hidden="true" className="h-3.5 w-3.5" />
+                {copy.useForTitle[lang]}
               </p>
-            ))}
+              <ul className="space-y-2">
+                {copy.useForItems[lang].map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-[#E2E0D8] pt-4">
+              <p className="apex-mono mb-3 inline-flex items-center gap-2 text-[#C2410C]">
+                <FileWarning aria-hidden="true" className="h-3.5 w-3.5" />
+                {copy.notForTitle[lang]}
+              </p>
+              <ul className="space-y-2">
+                {copy.notForItems[lang].map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F97316]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -225,6 +288,17 @@ function AppealPage() {
             </div>
           ) : (
             <form onSubmit={onSubmit} className="space-y-5" aria-busy={loading}>
+              <div className="border-y border-dashed border-[#D7D3C7] py-4">
+                <p className="apex-label mb-3">{copy.examplesTitle[lang]}</p>
+                <div className="flex flex-wrap gap-2">
+                  {copy.examples[lang].map((example) => (
+                    <span key={example} className="apex-pill">
+                      {example}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="appeal-target" className="apex-label">
                   {copy.target[lang]}
