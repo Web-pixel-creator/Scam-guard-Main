@@ -156,6 +156,15 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not enter task/referral chains for promised TON, Stars, tokens, or easy earnings",
     },
   },
+  // Investment fast-profit pitches -> avoid deposit/signal/withdrawal-fee funnels.
+  {
+    reasons: new Set<ReasonCode>(["investment_fast_profit_pitch"]),
+    advice: {
+      ru: "Не вносите депозит и не платите за сигналы, пока не проверены лицензия, договор и официальный сайт",
+      uz: "Litsenziya, shartnoma va rasmiy sayt tekshirilmaguncha depozit kiritmang va signal uchun to'lamang",
+      en: "Do not deposit or pay for signals until the license, contract, and official site are verified",
+    },
+  },
   // Wallet / DeFi urgency -> avoid signing/seed phrase traps
   {
     reasons: new Set<ReasonCode>(["wallet_action_urgency"]),
@@ -176,7 +185,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic

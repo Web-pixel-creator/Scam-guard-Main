@@ -14,7 +14,7 @@
 //
 // ── callback_data contract (consumed by the router, task 8.x) ───────────────
 //   "report"         → start the /report scenario (btn «Сообщить»)
-//   "check_another"  → prompt for new content to check (btn «Проверить ещё»)
+//   "check_another"  → prompt for new content to check (btn «Новая проверка»)
 //   "emergency"      → send the emergency checklist (btn «Я уже отправил…»)
 //   "lang:ru" | "lang:uz" | "lang:en" → switch Language (welcome buttons)
 // These exact strings are exported as CB below for reuse by the router.

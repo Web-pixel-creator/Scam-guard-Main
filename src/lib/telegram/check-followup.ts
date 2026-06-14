@@ -336,10 +336,10 @@ function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
       return `Qisqacha: raqamning o'zi dalil emas. Men egasini yashirin bazadan bilmayman; xavf suhbatda nima so'ralganiga bog'liq. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     if (snapshot.context === "telegram_profile") {
-      return `Qisqacha: Telegram bo'yicha yashirin SCAM belgi, yosh yoki shikoyat tarixini ko'ra olmayman. Men faqat ko'rinadigan belgilar va yuborilgan matnni tekshiraman. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
+      return `Qisqacha: Telegram menga yashirin SCAM belgisi, akkaunt yoshi, shikoyatlar tarixi yoki kimga yozganini ko'rsatmaydi. Shuning uchun @username yakka o'zi xavfsizlikni ham, firibgarlikni ham isbotlamaydi. Men faqat ochiq belgilar va siz yuborgan matn/skrinlarni tekshiraman. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     if (snapshot.context === "crypto") {
-      return `Qisqacha: kripto yoki investitsiya mavzusi yolg'iz o'zi firibgarlik emas. Xavf kafolatlangan daromad, oldindan to'lov, wallet ulash yoki kod so'ralganda oshadi. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
+      return `Qisqacha: kripto/investitsiya mavzusi yolg'iz o'zi firibgarlik emas. Lekin tez daromad, bepul start, pulli signal, depozit yoki «yechish komissiyasi» ko'pincha savdo voronkasining belgisi. Natija: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     return `Qisqacha: men oldingi xabarda ko'rinib turgan xavf belgilarini tekshirdim. Natija: ${levelText(snapshot.level, lang)}.${evidence}\n\nMen ichki ballarni ko'rsatmayman. Muhimi: kod, karta, parol, APK, pul o'tkazish yoki bosim bo'lsa — xavf oshadi.`;
   }
@@ -354,10 +354,10 @@ function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
       return `Briefly: the number itself is not proof. I cannot identify the owner from a hidden database; risk depends on what the caller asked for. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     if (snapshot.context === "telegram_profile") {
-      return `Briefly: I cannot see hidden Telegram SCAM labels, account age, or complaint history. I check only visible signs and the text you send. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
+      return `Briefly: Telegram does not show me hidden SCAM labels, account age, complaint history, or who the account messaged. So a @username alone proves neither safety nor fraud. I check only public signs and the text/screenshots you send. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     if (snapshot.context === "crypto") {
-      return `Briefly: crypto/investment alone is not fraud. Risk rises when there are guaranteed returns, prepayment, wallet connection, or code requests. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
+      return `Briefly: crypto/investment alone is not fraud. But fast profit, free start, paid signals, deposit, or a “withdrawal fee” are common funnel signs. Result: ${levelText(snapshot.level, lang)}.${evidence}`;
     }
     return `Briefly: I checked the visible risk signs in the previous item. Result: ${levelText(snapshot.level, lang)}.${evidence}\n\nI do not show internal scores. What matters: codes, card data, passwords, APKs, transfers, and pressure increase risk.`;
   }
@@ -371,10 +371,10 @@ function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return `Коротко: сам номер не доказательство. Я не узнаю владельца из скрытой базы; риск зависит от того, что просили в разговоре. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
   }
   if (snapshot.context === "telegram_profile") {
-    return `Коротко: я не вижу скрытую Telegram SCAM-метку, возраст аккаунта или историю жалоб. Я проверяю только видимые признаки и текст, который вы прислали. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
+    return `Коротко: Telegram не показывает мне скрытую SCAM-метку, возраст аккаунта, историю жалоб и кому аккаунт писал. Поэтому один @username не доказывает ни безопасность, ни скам. Я проверяю только открытые признаки и текст/скриншоты, которые вы прислали. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
   }
   if (snapshot.context === "crypto") {
-    return `Коротко: тема крипто/инвестиций сама по себе не скам. Риск растёт, если обещают гарантированный доход, просят предоплату, подключить wallet или ввести код. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
+    return `Коротко: тема крипто/инвестиций сама по себе не скам. Но быстрый доход, «старт бесплатно», платные сигналы, депозит или «комиссия за вывод» часто бывают воронкой. Итог: ${levelText(snapshot.level, lang)}.${evidence}`;
   }
   return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.${evidence}\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск.`;
 }

@@ -54,9 +54,9 @@ exports[`formatCheckResult — UX v2 snapshots > lang=en > unknown level 1`] = `
 🟡 Not enough data for a precise assessment
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Brief*
-I see a crypto/investment topic, but no link, number, payment request, or code request\\. So far this is not an obvious scam\\.
+I see an investment/crypto topic, but no link, contact, or payment request yet\\. Treat it as advertising: risk starts if it leads to a deposit, paid signals, a “withdrawal fee”, or wallet connection\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-For a precise check, send the link, seller username, or offer text: returns, prepayment, withdrawals\\."
+For a precise check, send the link, author username, or terms: returns, deposit, paid signals, withdrawals, or fees\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=ru > high_risk level 1`] = `
@@ -113,9 +113,9 @@ exports[`formatCheckResult — UX v2 snapshots > lang=ru > unknown level 1`] = `
 🟡 Недостаточно данных для точной оценки
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Кратко*
-Вижу тему крипто/инвестиций, но не вижу ссылки, номера, просьбы оплатить или кода\\. Пока это не похоже на явный скам\\.
+Вижу тему инвестиций/крипто, но пока нет ссылки, контакта или просьбы оплатить\\. Оценивайте это как рекламу: риск начинается, если дальше ведут к депозиту, платным сигналам, «комиссии за вывод» или подключению кошелька\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств\\."
+Для точной проверки пришлите ссылку, username автора или условия: доходность, депозит, платные сигналы, вывод средств или комиссия\\."
 `;
 
 exports[`formatCheckResult — UX v2 snapshots > lang=uz > high_risk level 1`] = `
@@ -172,7 +172,7 @@ exports[`formatCheckResult — UX v2 snapshots > lang=uz > unknown level 1`] = `
 🟡 Aniq baho berish uchun ma'lumot yetarli emas
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💡 *Qisqacha*
-Kripto/investitsiya mavzusini ko'ryapman, lekin havola, raqam, to'lov yoki kod so'rovi ko'rinmayapti\\. Hozircha bu aniq firibgarlikka o'xshamaydi\\.
+Investitsiya/kripto mavzusini ko'ryapman, lekin hozircha havola, kontakt yoki to'lov so'rovi yo'q\\. Buni reklama sifatida baholang: xavf keyin depozit, pulli signal, «yechish komissiyasi» yoki hamyon ulash so'ralganda boshlanadi\\.
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish\\."
+Aniq tekshirish uchun havola, muallif username'i yoki shartlarni yuboring: daromad, depozit, pulli signal, pul yechish yoki komissiya\\."
 `;

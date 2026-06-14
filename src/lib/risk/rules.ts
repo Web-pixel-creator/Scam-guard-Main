@@ -47,6 +47,7 @@ export type ReasonCode =
   | "task_reward_engagement_bait"
   | "wallet_action_urgency"
   | "ton_referral_earning_scheme"
+  | "investment_fast_profit_pitch"
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
@@ -96,6 +97,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   task_reward_engagement_bait: 20,
   wallet_action_urgency: 30,
   ton_referral_earning_scheme: 20,
+  investment_fast_profit_pitch: 25,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
@@ -269,6 +271,21 @@ function shouldFlagTonReferralEarningScheme(text: string): boolean {
   return TON_REFERRAL_CONTEXT_RE.test(text) && TON_REFERRAL_REWARD_RE.test(text);
 }
 
+const INVESTMENT_FAST_PROFIT_CONTEXT_RE =
+  /(инвест|трейд|торг|trading|trade|forex|gold|золото|валютн|бирж|рынок|крипт|crypto|investment|investits|daromad|foyda)/i;
+const INVESTMENT_FAST_PROFIT_HOOK_RE =
+  /(\+?\s?\d+(?:[.,]\d+)?\s?\$|\$\s?\d+|\d+\s?(?:usd|usdt|у\.?е\.?)|за\s+(?:день|сутки|час|недел|5\s+дней)|новичок|beginner|бесплатн|free|прям[о]?й эфир|механик|начать.{0,20}торг|гарантир|guaranteed|доходн|прибыл|profit|earn|заработ)/i;
+const INVESTMENT_NEUTRAL_CONTEXT_RE =
+  /(новост|обзор|аналитик|котировк|учебн|словар|истори[яи]\s+рынк|не\s+является\s+инвестиц|market\s+news|education|tutorial)/i;
+
+function shouldFlagInvestmentFastProfitPitch(text: string): boolean {
+  const hasFastProfitHook = INVESTMENT_FAST_PROFIT_HOOK_RE.test(text);
+  if (INVESTMENT_NEUTRAL_CONTEXT_RE.test(text) && !hasFastProfitHook) {
+    return false;
+  }
+  return INVESTMENT_FAST_PROFIT_CONTEXT_RE.test(text) && hasFastProfitHook;
+}
+
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
 const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
 const QR_DANGEROUS_CONTEXT_RE =
@@ -307,6 +324,7 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagTaskRewardEngagementBait(text)) codes.add("task_reward_engagement_bait");
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
   if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
+  if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -636,6 +654,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "TON/крипто за приглашения",
     uz: "Takliflar uchun TON/kripto",
     en: "TON/crypto referral earning",
+  },
+  investment_fast_profit_pitch: {
+    ru: "Инвест-питч с быстрым доходом",
+    uz: "Tez daromad va'dasi bilan investitsiya taklifi",
+    en: "Investment pitch with fast-profit promise",
   },
   hosted_app_platform: {
     ru: "Размещён на публичной платформе",

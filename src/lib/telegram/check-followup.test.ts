@@ -131,7 +131,7 @@ describe("last check follow-up router", () => {
     expect(phoneText).toContain("сам номер не доказательство");
     expect(phoneText).not.toContain("Что я увидел");
     expect(phoneText).not.toContain("Корректный узбекский номер");
-    expect(profileText).toContain("я не вижу скрытую Telegram SCAM-метку");
+    expect(profileText).toContain("Telegram не показывает мне скрытую SCAM-метку");
     expect(profileText).not.toContain("Что я увидел");
     expect(profileText).not.toContain("Отправитель неизвестен");
   });

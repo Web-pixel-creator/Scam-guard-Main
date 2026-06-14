@@ -339,7 +339,7 @@ export async function handleCallback(
     return;
   }
 
-  // 3) «Проверить ещё» (Check another) — prompt for new content (R4.1).
+  // 3) «Новая проверка» — prompt for new content (R4.1).
   if (data === CB.checkAnother) {
     await saveSession(ctx.userId, {
       scenario: "await_check",

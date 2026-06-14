@@ -179,6 +179,15 @@ describe("filterAdvice", () => {
       expect(result[0]).toContain("seed phrase");
       expect(result[0]).not.toContain("safe account");
     });
+
+    it("maps investment fast-profit pitches to deposit/signal-specific advice", () => {
+      const result = filterAdvice("suspicious", ["investment_fast_profit_pitch"], "ru");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("депозит");
+      expect(result[0]).toContain("сигналы");
+      expect(result[0]).not.toContain("SMS");
+    });
   });
 
   describe("trilingual consistency", () => {

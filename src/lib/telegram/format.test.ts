@@ -93,6 +93,7 @@ const ALL_REASON_CODES = [
   "task_reward_engagement_bait",
   "wallet_action_urgency",
   "ton_referral_earning_scheme",
+  "investment_fast_profit_pitch",
   "hosted_app_platform",
   "brand_impersonation",
   "telegram_account_takeover_phishing",

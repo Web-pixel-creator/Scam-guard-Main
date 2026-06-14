@@ -47,9 +47,9 @@ export const bot_dict: BotDict = {
 
   // ── /check (R4.1) ─────────────────────────────────────────────────────────
   check_prompt: {
-    ru: "Пришлите, что нужно проверить: номер, username, ссылку, текст сообщения или скриншот.",
-    uz: "Tekshirish kerak bo‘lgan narsani yuboring: raqam, username, havola, xabar matni yoki skrinshot.",
-    en: "Send what you’d like to check: a number, username, link, message text or screenshot.",
+    ru: "Пришлите новый объект проверки: номер, username, ссылку, текст сообщения или скриншот.",
+    uz: "Yangi tekshiruv uchun yuboring: raqam, username, havola, xabar matni yoki skrinshot.",
+    en: "Send a new item to check: a number, username, link, message text, or screenshot.",
   },
   analyzing: {
     ru: "Анализирую…",
@@ -349,9 +349,9 @@ export const bot_dict: BotDict = {
     en: "📢 Report",
   },
   btn_check_another: {
-    ru: "🔁 Проверить ещё",
-    uz: "🔁 Yana tekshirish",
-    en: "🔁 Check another",
+    ru: "🔎 Новая проверка",
+    uz: "🔎 Yangi tekshiruv",
+    en: "🔎 New check",
   },
   btn_emergency: {
     ru: "🆘 Что делать срочно",
@@ -552,9 +552,9 @@ export const bot_dict: BotDict = {
     en: "🔗 Create invite",
   },
   family_btn_open_invite: {
-    ru: "📨 Открыть приглашение",
-    uz: "📨 Taklifni ochish",
-    en: "📨 Open invite",
+    ru: "📤 Отправить близкому",
+    uz: "📤 Yaqinga yuborish",
+    en: "📤 Send to trusted person",
   },
   family_btn_notify: {
     ru: "👪 Позвать близкого",
@@ -572,14 +572,14 @@ export const bot_dict: BotDict = {
     en: "Stop these alerts",
   },
   family_menu_text: {
-    ru: "👪 *Семейный щит*\n\nМожно заранее подключить человека, которому вы доверяете. Если будет высокий риск или срочная ситуация, я помогу позвать его одной кнопкой.\n\nВажно: Telegram разрешит мне писать близкому только после того, как он сам откроет бота и примет приглашение.",
-    uz: "👪 *Oila qalqoni*\n\nOldindan ishonchli insonni ulab qo'yish mumkin. Xavf yuqori bo'lsa yoki shoshilinch holatda men uni bitta tugma bilan chaqirishga yordam beraman.\n\nMuhim: Telegram menga yaqin insoningizga yozishga faqat u botni ochib, taklifni qabul qilgandan keyin ruxsat beradi.",
-    en: "👪 *Family Shield*\n\nYou can link someone you trust in advance. If a high-risk or emergency situation happens, I can help notify them with one tap.\n\nImportant: Telegram lets me message them only after they open the bot and accept the invite.",
+    ru: "👪 *Семейный щит*\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.",
+    uz: "👪 *Oila qalqoni*\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.",
+    en: "👪 *Family Shield*\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.",
   },
   family_invite_text: {
-    ru: "🔗 *Приглашение создано*\n\nОтправьте эту кнопку человеку, которому доверяете. После открытия он нажмёт Start, и связь включится.\n\nЯ не буду отправлять ему ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
-    uz: "🔗 *Taklif yaratildi*\n\nBu tugmani ishonchli insonga yuboring. U ochib Start bosgandan keyin aloqa yoqiladi.\n\nMen unga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
-    en: "🔗 *Invite created*\n\nSend this button to the person you trust. After they open it and tap Start, the link becomes active.\n\nI will not send them your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
+    ru: "🔗 *Приглашение создано*\n\nЧто сделать сейчас:\n1. Нажмите «📤 Отправить близкому».\n2. Выберите в Telegram человека, которому доверяете, и отправьте сообщение.\n3. Когда он откроет бота и нажмёт Start, связь включится.\n\nЯ не буду отправлять ему ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
+    uz: "🔗 *Taklif yaratildi*\n\nHozir nima qilish kerak:\n1. «📤 Yaqinga yuborish»ni bosing.\n2. Telegramda ishonchli insonni tanlab, xabarni yuboring.\n3. U botni ochib Start bosgandan keyin aloqa yoqiladi.\n\nMen unga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
+    en: "🔗 *Invite created*\n\nWhat to do now:\n1. Tap “📤 Send to trusted person”.\n2. Choose the trusted person in Telegram and send the message.\n3. After they open the bot and tap Start, the link becomes active.\n\nI will not send them your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
   },
   family_already_linked: {
     ru: "Близкий уже подключён.\n\nЧтобы создать новое приглашение, сначала отключите текущую связь. Если ситуация срочная, можно сразу позвать подключённого близкого.",
@@ -612,9 +612,9 @@ export const bot_dict: BotDict = {
     en: "This invite link has expired. Ask them to create a new invite with /family.",
   },
   family_accept_self: {
-    ru: "Нельзя подключить самого себя как доверенный контакт. Отправьте приглашение другому человеку.",
-    uz: "O'zingizni ishonchli kontakt qilib ulab bo'lmaydi. Taklifni boshqa insonga yuboring.",
-    en: "You cannot link yourself as your own trusted contact. Send the invite to another person.",
+    ru: "Вы открыли свою же ссылку. Это приглашение должен открыть другой человек.\n\nВернитесь к сообщению с приглашением, нажмите «📤 Отправить близкому» и выберите родственника или друга в Telegram.",
+    uz: "Siz o'zingizning havolangizni ochdingiz. Bu taklifni boshqa inson ochishi kerak.\n\nTaklif xabariga qayting, «📤 Yaqinga yuborish»ni bosing va Telegramda qarindosh yoki do'stingizni tanlang.",
+    en: "You opened your own invite link. Another person must open it.\n\nGo back to the invite message, tap “📤 Send to trusted person”, and choose a relative or friend in Telegram.",
   },
   family_storage_error: {
     ru: "Семейный щит сейчас недоступен. Срочный совет: позвоните близкому вручную и скажите: «Побудь со мной 5 минут, я сам перезвоню в банк по официальному номеру».",
@@ -708,9 +708,9 @@ export const bot_dict: BotDict = {
     en: "I need more data for a precise assessment. Send a link, number, or the full message text.",
   },
   brief_unknown_crypto: {
-    ru: "Вижу тему крипто/инвестиций, но не вижу ссылки, номера, просьбы оплатить или кода. Пока это не похоже на явный скам.",
-    uz: "Kripto/investitsiya mavzusini ko'ryapman, lekin havola, raqam, to'lov yoki kod so'rovi ko'rinmayapti. Hozircha bu aniq firibgarlikka o'xshamaydi.",
-    en: "I see a crypto/investment topic, but no link, number, payment request, or code request. So far this is not an obvious scam.",
+    ru: "Вижу тему инвестиций/крипто, но пока нет ссылки, контакта или просьбы оплатить. Оценивайте это как рекламу: риск начинается, если дальше ведут к депозиту, платным сигналам, «комиссии за вывод» или подключению кошелька.",
+    uz: "Investitsiya/kripto mavzusini ko'ryapman, lekin hozircha havola, kontakt yoki to'lov so'rovi yo'q. Buni reklama sifatida baholang: xavf keyin depozit, pulli signal, «yechish komissiyasi» yoki hamyon ulash so'ralganda boshlanadi.",
+    en: "I see an investment/crypto topic, but no link, contact, or payment request yet. Treat it as advertising: risk starts if it leads to a deposit, paid signals, a “withdrawal fee”, or wallet connection.",
   },
   brief_unknown_qr_menu: {
     ru: "Похоже на меню, акцию или информационный QR. Сам QR не опасен; риск появляется, если после открытия просят оплату, вход, код или карту.",
@@ -728,14 +728,14 @@ export const bot_dict: BotDict = {
     en: "This looks like a regular Uzbek phone number. I cannot name the owner without an official source. Risk depends on what they asked during the call.",
   },
   brief_unknown_telegram_profile: {
-    ru: "По одному Telegram-профилю нельзя честно подтвердить риск. Я проверяю только видимые признаки: username, публичное описание и то, что аккаунт просит сделать.",
-    uz: "Faqat Telegram profili bo'yicha xavfni halol tasdiqlab bo'lmaydi. Men faqat ko'rinadigan belgilarni tekshiraman: username, ochiq tavsif va akkaunt sizdan nima so'rayotgani.",
-    en: "A Telegram profile alone is not enough to confirm risk honestly. I check only visible signs: username, public description, and what the account asks you to do.",
+    ru: "По одному @username нельзя честно сказать «безопасно» или «скам». Telegram не показывает мне скрытую SCAM-метку, возраст аккаунта, жалобы и кому он писал. Я оцениваю только открытые признаки и то, что вы прислали.",
+    uz: "Faqat @username bo'yicha «xavfsiz» yoki «firibgarlik» deb halol aytib bo'lmaydi. Telegram menga yashirin SCAM belgisi, akkaunt yoshi, shikoyatlar va kimga yozganini ko'rsatmaydi. Men faqat ochiq belgilar va siz yuborgan ma'lumotni baholayman.",
+    en: "A @username alone is not enough to honestly say “safe” or “scam”. Telegram does not show me hidden SCAM labels, account age, complaints, or who they messaged. I assess only public signs and what you send.",
   },
   prompt_more_context_crypto: {
-    ru: "Для точной проверки пришлите ссылку, username продавца или текст обещаний: доходность, предоплата, вывод средств.",
-    uz: "Aniq tekshirish uchun havola, sotuvchi username'i yoki va'dalar matnini yuboring: daromad, oldindan to'lov, pul yechish.",
-    en: "For a precise check, send the link, seller username, or offer text: returns, prepayment, withdrawals.",
+    ru: "Для точной проверки пришлите ссылку, username автора или условия: доходность, депозит, платные сигналы, вывод средств или комиссия.",
+    uz: "Aniq tekshirish uchun havola, muallif username'i yoki shartlarni yuboring: daromad, depozit, pulli signal, pul yechish yoki komissiya.",
+    en: "For a precise check, send the link, author username, or terms: returns, deposit, paid signals, withdrawals, or fees.",
   },
   prompt_more_context_qr_menu: {
     ru: "Если после QR открылась страница с оплатой, логином, SMS-кодом или картой — пришлите адрес или скрин следующего экрана.",
@@ -753,9 +753,9 @@ export const bot_dict: BotDict = {
     en: "Write what they asked for: SMS code, card data, transfer, APK, QR login, or remote access.",
   },
   prompt_more_context_telegram_profile: {
-    ru: "Пришлите сообщение или скрин: просят код, деньги, карту, APK, QR-вход, подписку/VIP или перейти по ссылке?",
-    uz: "Xabar yoki skrin yuboring: kod, pul, karta, APK, QR-login, obuna/VIP yoki havola so'ralyaptimi?",
-    en: "Send the message or screenshot: are they asking for a code, money, card data, APK, QR login, VIP/subscription, or a link?",
+    ru: "Лучше пришлите сообщение или скрин переписки: просят код, деньги, карту, APK, QR-вход, подписку/VIP или перейти по ссылке?",
+    uz: "Yaxshisi yozishma xabari yoki skrinini yuboring: kod, pul, karta, APK, QR-login, obuna/VIP yoki havola so'ralyaptimi?",
+    en: "Best next step: send the message or chat screenshot: are they asking for a code, money, card data, APK, QR login, VIP/subscription, or a link?",
   },
 
   // ── Section titles (Result Message UX v2) ─────────────────────────────────

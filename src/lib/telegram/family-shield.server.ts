@@ -83,6 +83,16 @@ function buildInviteUrl(token: string): string {
   return `https://t.me/${getTelegramBotUsername()}?start=${INVITE_PREFIX}${token}`;
 }
 
+function buildInviteShareUrl(inviteUrl: string, lang: Lang): string {
+  const text: Record<Lang, string> = {
+    ru: "Прими приглашение в Семейный щит Ishonch Guard. После Start я смогу позвать тебя, если мне срочно понадобится помощь.",
+    uz: "Ishonch Guard Oila qalqoni taklifini qabul qiling. Start bosgandan keyin menga shoshilinch yordam kerak bo'lsa, sizni chaqira olaman.",
+    en: "Accept my Ishonch Guard Family Shield invite. After Start, I can notify you if I urgently need help.",
+  };
+  const params = new URLSearchParams({ url: inviteUrl, text: text[lang] });
+  return `https://t.me/share/url?${params.toString()}`;
+}
+
 export function parseFamilyStartArg(arg: string): string | null {
   if (!arg.startsWith(INVITE_PREFIX)) return null;
   const token = arg.slice(INVITE_PREFIX.length).trim();
@@ -368,7 +378,7 @@ export async function revokeFamilyShield(
 
 export function buildFamilyInviteKeyboard(inviteUrl: string, lang: Lang): InlineKeyboard {
   return [
-    [{ text: bt("family_btn_open_invite", lang), url: inviteUrl }],
+    [{ text: bt("family_btn_open_invite", lang), url: buildInviteShareUrl(inviteUrl, lang) }],
     [{ text: bt("family_btn_revoke", lang), callback_data: FAMILY_CB.revoke }],
   ];
 }

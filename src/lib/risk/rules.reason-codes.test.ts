@@ -354,6 +354,20 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     expect(evaluateText(neutral)).not.toContain("ton_referral_earning_scheme");
   });
 
+  it("flags investment fast-profit funnels without flagging neutral market commentary", () => {
+    const goldPitch =
+      "Новичок сделал +1.455$ за день на золоте. В понедельник выйдем в прямой эфир, расскажу механику и как начать торговать с нами абсолютно бесплатно.";
+    const forexPitch =
+      "Beginner profit: $350 in one day on forex. Free start, join the live stream and learn how to trade with us.";
+    const neutral =
+      "Новости рынка золота: обзор котировок и аналитика без инвестиционных рекомендаций.";
+
+    expect(evaluateText(goldPitch)).toContain("investment_fast_profit_pitch");
+    expect(evaluateText(forexPitch)).toContain("investment_fast_profit_pitch");
+    expect(scoreFromCodes(evaluateText(goldPitch)).level).toBe("suspicious");
+    expect(evaluateText(neutral)).not.toContain("investment_fast_profit_pitch");
+  });
+
   it("escalates a private invite plus casino or fake captcha context to high_risk", () => {
     const casinoCodes = [
       ...evaluateText("100 фриспинов, депозитный бонус и ссылка на Twin"),
