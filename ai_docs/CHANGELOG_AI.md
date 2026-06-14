@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-14 - Bot Safety Firewall v1
+
+- Added `.kiro/specs/bot-safety-firewall-v1/`.
+- Added `src/lib/risk/ai-output-safety.ts`, a user-facing AI output firewall
+  that blocks prompt-injection leakage and any AI-authored request for SMS/OTP,
+  PIN, CVV/CVC, passwords, card/seed data, APK installs, wallet signing or
+  payments.
+- `aiExplain` now returns `null` for unsafe provider output before it can be
+  persisted in `checks.ai_explanation` or rendered in Telegram/web.
+- Structured image `summary` is also sanitized before it can become fallback
+  user-facing text; OCR evidence remains available for deterministic scoring.
+
 ## 2026-06-14 - Production operational follow-up
 
 - Hardened Telegram Voice STT cost controls: voice notes are now capped at 60

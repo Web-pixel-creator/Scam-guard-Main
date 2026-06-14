@@ -2,6 +2,14 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-033 - AI output is untrusted until filtered
+
+AI explanations may be influenced by user-controlled text, OCR or STT content.
+Before an AI-authored explanation reaches Telegram/web or `checks.ai_explanation`,
+it passes through `ai-output-safety.ts`. Unsafe requests for codes, CVV/PIN,
+passwords, card/seed data, APK installs, wallet actions or payments degrade to
+`null`; deterministic score, reasons and safe advice remain available.
+
 ## D-032 - Shared rate limits use Postgres first
 
 For the current Railway/Supabase production topology, public check/report and

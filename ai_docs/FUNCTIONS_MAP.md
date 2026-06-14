@@ -46,11 +46,16 @@ Signatures and intent only. See file paths for source.
 - `runCheck(params)` is the transport-independent check pipeline. It uses the shared production limiter with a local fallback. `persist:false` is reserved for non-final previews such as Telegram inline typing and skips the `checks` insert while preserving deterministic scoring.
 - `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline and uses the same shared check limiter.
 - `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots and uses the same shared check limiter.
-- Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`.
+- Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`. User-facing AI explanations pass through `sanitizeAiExplanation` before return or persistence.
+
+**`src/lib/risk/ai-output-safety.ts`**
+
+- `findUnsafeAiOutput(text)` detects prompt-injection leakage and AI-authored requests for SMS/OTP/PIN/CVV/password/card/seed data, APK installs, wallet signing/connection or payments.
+- `sanitizeAiExplanation(text)` returns safe trimmed text or `null`; legitimate negated warnings like "do not share SMS code" are preserved.
 
 **`src/lib/risk/image-intelligence.ts`**
 
-- `sanitizeImageIntelligence(raw)` parses/clamps model JSON and merges deterministic risk hints.
+- `sanitizeImageIntelligence(raw)` parses/clamps model JSON, sanitizes the optional AI summary, and merges deterministic risk hints.
 - `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid, including Telegram promo/Web3 screenshot hints. The precision pass also recognizes Stars/NFT spin/lucky-draw/777 mechanics and public voting/contest domains without turning ordinary Telegram news/product posts into scam results.
 - `hasUsableImageEvidence(evidence)` rejects low-information model output such as "could not read the image" so blurry screenshots stay in the explicit fallback path.
 - `mergeDecodedQrEvidence(evidence, decoded)` injects real pixel-decoded QR values into structured image evidence before scoring.

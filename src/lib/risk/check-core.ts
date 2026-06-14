@@ -39,6 +39,7 @@ import {
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
+import { sanitizeAiExplanation } from "./ai-output-safety";
 import {
   buildPhoneIntelligencePassport,
   type PhoneIntelligencePassport,
@@ -761,13 +762,14 @@ async function aiExplain(opts: {
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
   const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
   const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the user-facing explanation.`;
-  return chatCompletion(
+  const explanation = await chatCompletion(
     [
       { role: "system", content: sys },
       { role: "user", content: user },
     ],
     "explain",
   );
+  return sanitizeAiExplanation(explanation);
 }
 
 /**

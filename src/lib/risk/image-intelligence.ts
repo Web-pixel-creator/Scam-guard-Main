@@ -1,4 +1,5 @@
 import type { Lang } from "@/lib/i18n";
+import { sanitizeAiExplanation } from "./ai-output-safety";
 import { redactText } from "./detect";
 import type { DecodedQrEvidence } from "./qr-decoder";
 import type { RiskLevel } from "./rules";
@@ -312,6 +313,7 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
     deriveCategory(text ?? "", qrPresent, riskHints),
   );
   const rawSummary = asString(rec.summary);
+  const summary = sanitizeAiExplanation(clampText(rawSummary ? redactText(rawSummary) : null, 320));
 
   return {
     text,
@@ -324,7 +326,7 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
       decodedValues: [],
     },
     riskHints,
-    summary: clampText(rawSummary ? redactText(rawSummary) : null, 320),
+    summary,
   };
 }
 

@@ -21,6 +21,7 @@
 
 - Use the OpenAI-compatible env contract: `OPENAI_API_KEY`, optional `OPENAI_MODEL`, optional `OPENAI_BASE_URL`.
 - Missing or failing AI must degrade to `null`; scoring must still work.
+- User-facing AI text must pass through `sanitizeAiExplanation` or a stricter structured-output path before return/persistence.
 - Never log prompts, secrets, raw screenshots or sensitive user input.
 
 ## i18n

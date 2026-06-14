@@ -23,7 +23,7 @@
 3. Telegram image path: `analyzeImageCore` returns structured, redacted image evidence (visual category, QR purpose, risk hints, OCR text). The bot builds a safe rules-input from that evidence, runs `runCheck(skipAi=true)`, and uses the image evidence explanation for the reply.
 4. Telegram voice-note path: `handleVoice` accepts short voice files only (60 seconds / 2 MB), checks a separate 5/day STT budget, downloads the file only in memory, calls `transcribeVoiceCore`, redacts/clips the transcript and then runs the same `runCheck` pipeline. Raw audio is never stored; repeated Telegram `file_unique_id` values can reuse a short-lived in-memory redacted transcript cache to avoid paying for duplicate STT.
 5. Short questions to the bot itself go through `meta-intent.ts` before scoring; concrete URLs, phones, usernames, forwarded text, bank/payment terms, APK mentions and long text bypass this and still reach `runCheck`.
-6. `runCheck` performs shared rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert. For phone/short-code inputs it also builds an honest `PhoneIntelligencePassport` with country/calling-code, Uzbekistan prefix/operator hints, official-directory status and optional verified-contact lookalike evidence; this is explanatory metadata and does not claim an owner or change scoring. If a phone `entities` row is confirmed, it also returns `PhoneReputationSummary` with Ishonch Guard moderated report count/confidence only.
+6. `runCheck` performs shared rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert. AI-authored explanations pass through `ai-output-safety.ts` before return or persistence; unsafe requests for OTP/CVV/PIN/password/card/seed data, APK installs, wallet signing or payments degrade to `null` while the deterministic verdict remains. For phone/short-code inputs it also builds an honest `PhoneIntelligencePassport` with country/calling-code, Uzbekistan prefix/operator hints, official-directory status and optional verified-contact lookalike evidence; this is explanatory metadata and does not claim an owner or change scoring. If a phone `entities` row is confirmed, it also returns `PhoneReputationSummary` with Ishonch Guard moderated report count/confidence only.
 7. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
 8. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
 9. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
@@ -32,7 +32,7 @@
 
 The engine is rules-first. `src/lib/risk/rules.ts` maps matched patterns to weighted `ReasonCode`s. Thresholds: score >= 50 => `high_risk`, score >= 20 => `suspicious`, score > 0 => `unknown`; `verified_official` forces `safe`.
 
-AI never decides the score. It only explains the deterministic verdict or performs OCR extraction. If AI is unavailable, the verdict still works.
+AI never decides the score. It only explains the deterministic verdict or performs OCR extraction. If AI is unavailable or its user-facing explanation fails the safety firewall, the verdict still works with rules-only advice.
 
 ## Telegram bot architecture
 
