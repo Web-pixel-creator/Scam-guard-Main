@@ -28,6 +28,7 @@ import {
   transcribeVoiceCore,
   type RateLimitedError,
 } from "@/lib/risk/check-core";
+import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 import {
   sendMessage,
   sendChatAction,
@@ -84,7 +85,10 @@ const MAX_TEXT_LENGTH = 2000;
 /** Верхний предел размера скачиваемого изображения: 6 МБ (R5.5). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_VOICE_BYTES = 2 * 1024 * 1024;
-const MAX_VOICE_DURATION_SEC = 120;
+const MAX_VOICE_DURATION_SEC = 60;
+const VOICE_STT_DAILY_LIMIT = 5;
+const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
@@ -93,10 +97,65 @@ const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
+const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
 
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
+}
+
+function voiceSttBudgetKey(userId: number): string {
+  return `voice-stt:${rateLimitKeyFor(userId)}`;
+}
+
+function voiceCacheKey(userId: number, fileUniqueId?: string): string | null {
+  const id = fileUniqueId?.trim();
+  return id ? `${userId}:${id}` : null;
+}
+
+function pruneVoiceTranscriptCache(now = Date.now()): void {
+  for (const [key, value] of voiceTranscriptCache) {
+    if (now - value.cachedAt > VOICE_TRANSCRIPT_CACHE_TTL_MS) {
+      voiceTranscriptCache.delete(key);
+    }
+  }
+}
+
+function getCachedVoiceTranscript(userId: number, fileUniqueId?: string): string | null {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  if (!key) return null;
+  const now = Date.now();
+  pruneVoiceTranscriptCache(now);
+  const cached = voiceTranscriptCache.get(key);
+  if (!cached) return null;
+  if (now - cached.cachedAt > VOICE_TRANSCRIPT_CACHE_TTL_MS) {
+    voiceTranscriptCache.delete(key);
+    return null;
+  }
+  return cached.text;
+}
+
+function rememberVoiceTranscript(
+  userId: number,
+  fileUniqueId: string | undefined,
+  text: string,
+): void {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  if (!key) return;
+  pruneVoiceTranscriptCache();
+  voiceTranscriptCache.set(key, { text, cachedAt: Date.now() });
+}
+
+async function checkVoiceSttBudget(userId: number): Promise<void> {
+  const result = await checkSharedRateLimit(
+    "check",
+    voiceSttBudgetKey(userId),
+    VOICE_STT_DAILY_LIMIT,
+    VOICE_STT_WINDOW_MS,
+  );
+  if (!result.ok) {
+    throw rateLimitedVoiceSttError(result.retryAfterSec);
+  }
 }
 
 function pruneOcrFallbackMemory(now = Date.now()): void {
@@ -132,6 +191,13 @@ function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbac
 /** Узкий type-guard на `RateLimitedError` из ядра (status 429 + retryAfter). */
 function isRateLimitedError(e: unknown): e is RateLimitedError {
   return e instanceof Error && (e as Partial<RateLimitedError>).status === 429;
+}
+
+function rateLimitedVoiceSttError(retryAfter: number): RateLimitedError {
+  const error = new Error("rate_limited") as RateLimitedError;
+  error.status = 429;
+  error.retryAfter = retryAfter;
+  return error;
 }
 
 /**
@@ -390,7 +456,7 @@ export async function handleImage(
 export async function handleVoice(
   fileId: string,
   ctx: HandlerCtx,
-  meta?: { fileSize?: number; duration?: number; mimeType?: string },
+  meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
 ): Promise<void> {
   const lang = ctx.session.lang;
 
@@ -401,6 +467,19 @@ export async function handleVoice(
       (meta?.duration !== undefined && meta.duration > MAX_VOICE_DURATION_SEC)
     ) {
       await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      return;
+    }
+
+    const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
+    if (cachedTranscript) {
+      const result = await runCheck({
+        input: cachedTranscript,
+        type: "text",
+        lang,
+        rateLimitKey: rateLimitKeyFor(ctx.userId),
+        channel: CHANNEL,
+      });
+      await sendCheckResult(ctx, result);
       return;
     }
 
@@ -420,6 +499,8 @@ export async function handleVoice(
       return;
     }
 
+    await checkVoiceSttBudget(ctx.userId);
+
     const outcome = await withTypingIndicator(ctx.chatId, async () => {
       const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
       if (!dataUrl) return { kind: "failed" as const };
@@ -429,6 +510,7 @@ export async function handleVoice(
 
       const transcript = await transcribeVoiceCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
       if (!transcript.text) return { kind: "failed" as const };
+      rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
 
       const result = await runCheck({
         input: transcript.text,

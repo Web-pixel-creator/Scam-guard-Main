@@ -27,3 +27,11 @@
 - [x] 4.1 Update AI docs and deployment notes.
 - [x] 4.2 Run tests, lint, build, security scan.
 - [x] 4.3 Commit, push, deploy, and run production smoke.
+
+## 5. Cost guard polish
+
+- [x] 5.1 Lower accepted voice duration to 60 seconds.
+- [x] 5.2 Add a separate 5/day STT budget per Telegram user.
+- [x] 5.3 Cache redacted transcripts for repeated `file_unique_id` values.
+- [x] 5.4 Keep STT-core free of user budget decisions so voice does not double-consume the normal check limit.
+- [x] 5.5 Add regression tests for budget, cache reuse and long-voice rejection.

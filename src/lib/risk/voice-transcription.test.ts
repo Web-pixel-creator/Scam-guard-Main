@@ -106,20 +106,26 @@ describe("transcribeVoiceCore", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("throws the shared rate-limit error before provider calls", async () => {
+  it("does not own user budget decisions; callers rate-limit STT before provider calls", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
     hoisted.checkSharedRateLimit.mockResolvedValue({
       ok: false,
       remaining: 0,
       retryAfterSec: 17,
     });
-    const fetchMock = vi.fn();
+    const fetchMock: FetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ text: "Просят SMS код" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(transcribeVoiceCore(DATA_URL, "ru", "tg:42")).rejects.toMatchObject({
-      status: 429,
-      retryAfter: 17,
+    await expect(transcribeVoiceCore(DATA_URL, "ru", "tg:42")).resolves.toMatchObject({
+      text: expect.stringContaining("SMS"),
     });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(hoisted.checkSharedRateLimit).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });

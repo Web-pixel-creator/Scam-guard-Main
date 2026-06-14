@@ -66,6 +66,10 @@ vi.mock("@/lib/risk/check-core", () => ({
   },
 }));
 
+vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
+  checkSharedRateLimit: () => Promise.resolve({ ok: true, remaining: 4, retryAfterSec: 0 }),
+}));
+
 // Mock the Bot API helpers — all best-effort no-ops; escapeMarkdownV2 is needed
 // by the real formatter (`format.ts`) and is fine as the identity here.
 vi.mock("@/lib/telegram/api.server", () => ({

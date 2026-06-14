@@ -393,13 +393,8 @@ export async function analyzeImageCore(
 export async function transcribeVoiceCore(
   dataUrl: string,
   lang: Lang,
-  rateLimitKey: string,
+  _rateLimitKey: string,
 ): Promise<{ text: string | null }> {
-  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
-  if (!rl.ok) {
-    throw rateLimitedError(rl.retryAfterSec);
-  }
-
   const cfg = getAiConfig();
   if (!cfg) return { text: null };
 

@@ -78,6 +78,7 @@ const videoSchema = z
 const voiceSchema = z
   .object({
     file_id: z.string(),
+    file_unique_id: z.string().optional(),
     file_size: z.number().optional(),
     duration: z.number().optional(),
     mime_type: z.string().optional(),
@@ -300,7 +301,7 @@ export interface Handlers {
   handleVoice(
     fileId: string,
     ctx: HandlerCtx,
-    meta?: { fileSize?: number; duration?: number; mimeType?: string },
+    meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
   ): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
@@ -324,7 +325,14 @@ export type RouteAction =
   | { kind: "scenarioStep"; text: string }
   | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
   | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
-  | { kind: "voice"; fileId: string; fileSize?: number; duration?: number; mimeType?: string }
+  | {
+      kind: "voice";
+      fileId: string;
+      fileSize?: number;
+      duration?: number;
+      mimeType?: string;
+      fileUniqueId?: string;
+    }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
   | { kind: "ignore" };
@@ -530,6 +538,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
       fileSize: m.voice.file_size,
       duration: m.voice.duration,
       mimeType: m.voice.mime_type,
+      fileUniqueId: m.voice.file_unique_id,
     };
   }
   if (m.audio != null) return { kind: "outOfScope", reason: "audio" };
@@ -699,6 +708,7 @@ export async function dispatchUpdate(
         fileSize: action.fileSize,
         duration: action.duration,
         mimeType: action.mimeType,
+        fileUniqueId: action.fileUniqueId,
       });
       break;
     case "contact":

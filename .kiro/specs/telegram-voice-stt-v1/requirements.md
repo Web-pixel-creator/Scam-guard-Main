@@ -53,6 +53,8 @@ Telegram users, especially older users, must be able to describe a suspicious ca
 
 #### Acceptance Criteria
 
-1. WHEN a voice file exceeds the configured maximum size THEN the bot SHALL reject it with a localized message.
-2. WHEN a user exceeds check rate limits THEN the bot SHALL return the existing friendly rate-limit message.
-3. WHEN the STT provider is slow or fails THEN the bot SHALL time out and degrade without retry storms.
+1. WHEN a voice file exceeds the configured maximum size or 60 seconds THEN the bot SHALL reject it with a localized message before downloading or calling STT.
+2. WHEN a user exceeds the voice STT daily budget THEN the bot SHALL not download the file or call STT and SHALL return the existing friendly rate-limit message.
+3. WHEN a user resends the same Telegram `file_unique_id` within the cache window THEN the bot SHALL reuse the cached redacted transcript and SHALL not call STT again.
+4. WHEN a user exceeds check rate limits THEN the bot SHALL return the existing friendly rate-limit message.
+5. WHEN the STT provider is slow or fails THEN the bot SHALL time out and degrade without retry storms.

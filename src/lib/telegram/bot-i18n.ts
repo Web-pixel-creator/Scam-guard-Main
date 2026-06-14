@@ -202,9 +202,9 @@ export const bot_dict: BotDict = {
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
   voice_too_large: {
-    ru: "Голосовое слишком большое. Пришлите короткое голосовое до 2 минут или напишите 1-2 фразы: что обещают и что просят сделать.",
-    uz: "Ovozli xabar juda katta. 2 daqiqagacha qisqa ovozli xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
-    en: "The voice note is too large. Send a short voice note up to 2 minutes, or type 1-2 sentences: what they promise and what they ask you to do.",
+    ru: "Голосовое слишком большое. Пришлите короткое голосовое до 60 секунд или напишите 1-2 фразы: что обещают и что просят сделать.",
+    uz: "Ovozli xabar juda katta. 60 soniyagacha qisqa ovozli xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
+    en: "The voice note is too large. Send a short voice note up to 60 seconds, or type 1-2 sentences: what they promise and what they ask you to do.",
   },
   voice_transcription_failed: {
     ru: "Я пока не смог надёжно разобрать голосовое.\n\nНапишите коротко: что вам обещают и что просят сделать — код, карту, перевод, APK, QR или ссылку.\n\nЕсли вы уже отправили код, установили приложение или сейчас на звонке — нажмите «Что делать срочно».",

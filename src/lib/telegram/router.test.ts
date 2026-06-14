@@ -356,7 +356,13 @@ describe("decideRoute content types (no active scenario)", () => {
 
   it("routes a voice message to the voice handler", () => {
     const update = messageUpdate({
-      voice: { file_id: "voice-1", file_size: 12345, duration: 9, mime_type: "audio/ogg" },
+      voice: {
+        file_id: "voice-1",
+        file_unique_id: "voice-unique-1",
+        file_size: 12345,
+        duration: 9,
+        mime_type: "audio/ogg",
+      },
     });
     const action = decideRoute(update, makeSession());
     expect(action).toEqual({
@@ -365,6 +371,7 @@ describe("decideRoute content types (no active scenario)", () => {
       fileSize: 12345,
       duration: 9,
       mimeType: "audio/ogg",
+      fileUniqueId: "voice-unique-1",
     });
   });
 

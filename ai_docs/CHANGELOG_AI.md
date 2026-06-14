@@ -4,6 +4,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-06-14 - Production operational follow-up
 
+- Hardened Telegram Voice STT cost controls: voice notes are now capped at 60
+  seconds / 2 MB, STT has a separate 5/day per-user budget, repeated Telegram
+  `file_unique_id` values reuse a short-lived in-memory redacted transcript
+  cache, and `transcribeVoiceCore` no longer double-consumes the normal check
+  rate limit.
 - Added Supabase migration `20260614064831_schedule_retention_cleanup_v1` to
   enable `pg_cron` and schedule `ishonch_prune_app_retention_daily` at
   `17 20 * * *` (daily 20:17 UTC).

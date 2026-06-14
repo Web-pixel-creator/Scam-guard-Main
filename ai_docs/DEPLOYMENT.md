@@ -142,6 +142,11 @@ production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
 before persistence. If Supabase or the pepper is missing in local/test
 environments, the app falls back to the in-memory limiter.
 
+Telegram voice STT is cost-capped in the app before provider calls: maximum
+60 seconds / 2 MB per voice note, 5 STT calls per Telegram user per 24 hours,
+and a short-lived in-memory cache for repeated Telegram `file_unique_id` values.
+The cache stores only the redacted transcript, never raw audio.
+
 ## Production monitor / alerting
 
 For recurring checks, use the lightweight production monitor. It checks the

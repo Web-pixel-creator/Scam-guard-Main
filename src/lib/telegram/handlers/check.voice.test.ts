@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
   transcribeVoiceCore: vi.fn(),
   runCheck: vi.fn(),
   saveSession: vi.fn(),
+  checkSharedRateLimit: vi.fn(),
 }));
 
 const FAKE_RESULT = {
@@ -27,6 +28,10 @@ vi.mock("@/lib/risk/check-core", () => ({
   runCheck: hoisted.runCheck,
   analyzeImageCore: vi.fn(),
   transcribeVoiceCore: hoisted.transcribeVoiceCore,
+}));
+
+vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
+  checkSharedRateLimit: hoisted.checkSharedRateLimit,
 }));
 
 vi.mock("@/lib/telegram/api.server", () => ({
@@ -64,6 +69,7 @@ beforeEach(() => {
   hoisted.downloadFileAsDataUrl.mockResolvedValue("data:audio/ogg;base64,AAAA");
   hoisted.transcribeVoiceCore.mockResolvedValue({ text: "caller asks for SMS code" });
   hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+  hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
 });
 
 describe("handleVoice", () => {
@@ -72,9 +78,16 @@ describe("handleVoice", () => {
       fileSize: 1024,
       duration: 8,
       mimeType: "audio/ogg",
+      fileUniqueId: "unique-voice-1",
     });
 
     expect(hoisted.getFile).toHaveBeenCalledWith("voice-file-id");
+    expect(hoisted.checkSharedRateLimit).toHaveBeenCalledWith(
+      "check",
+      "voice-stt:tg:42",
+      5,
+      24 * 60 * 60 * 1000,
+    );
     expect(hoisted.transcribeVoiceCore).toHaveBeenCalledWith(
       "data:audio/ogg;base64,AAAA",
       "ru",
@@ -91,6 +104,56 @@ describe("handleVoice", () => {
     );
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ chatId: 100, text: expect.stringContaining("Высокий риск") }),
+    );
+  });
+
+  it("reuses a cached transcript for the same Telegram file_unique_id", async () => {
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-voice",
+    });
+
+    vi.clearAllMocks();
+    hoisted.getFile.mockResolvedValue({ filePath: "voice/file_1.oga", fileSize: 1024 });
+    hoisted.downloadFileAsDataUrl.mockResolvedValue("data:audio/ogg;base64,BBBB");
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: "different paid transcript" });
+    hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+    hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+    await handleVoice("voice-file-id-again", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-voice",
+    });
+
+    expect(hoisted.getFile).not.toHaveBeenCalled();
+    expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
+    expect(hoisted.checkSharedRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({ input: "caller asks for SMS code" }),
+    );
+  });
+
+  it("blocks new STT calls when the daily voice budget is exhausted", async () => {
+    hoisted.checkSharedRateLimit.mockResolvedValue({
+      ok: false,
+      remaining: 0,
+      retryAfterSec: 3600,
+    });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "budget-blocked",
+    });
+
+    expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
+    expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ text: expect.stringContaining("Слишком много запросов") }),
     );
   });
 
@@ -113,13 +176,14 @@ describe("handleVoice", () => {
 
   it("rejects oversized voice files before downloading", async () => {
     await handleVoice("voice-file-id", ctx(), {
-      fileSize: 3 * 1024 * 1024,
-      duration: 8,
+      fileSize: 1024,
+      duration: 61,
       mimeType: "audio/ogg",
     });
 
     expect(hoisted.getFile).not.toHaveBeenCalled();
     expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
+    expect(hoisted.checkSharedRateLimit).not.toHaveBeenCalled();
     expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
     expect(hoisted.runCheck).not.toHaveBeenCalled();
     expect(hoisted.sendMessage).toHaveBeenCalledWith(

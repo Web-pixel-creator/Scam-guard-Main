@@ -39,7 +39,7 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
 - `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
-- Telegram voice notes use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`. Audio is downloaded only in memory, short voice files are capped before transcription, and only the redacted transcript reaches the check pipeline. If STT is missing, slow or unreliable, the bot asks for a short typed summary and offers emergency actions.
+- Telegram voice notes use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`. Audio is downloaded only in memory, voice files are capped at 60 seconds / 2 MB before transcription, and only the redacted transcript reaches the check pipeline. STT calls are protected by a separate 5/day per-user budget and repeated Telegram `file_unique_id` values reuse a short-lived in-memory redacted transcript cache. If STT is missing, slow or unreliable, the bot asks for a short typed summary and offers emergency actions.
 - Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`) and non-persistent (`persist=false`) so partial typed queries do not spam `checks` or AI providers. Enable inline mode separately in BotFather with `/setinline`.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
 - Telegram reputation labels come only from the app-owned `telegram_reputation_targets` source layer. Unverified user reports are not shown to users. Confirmed moderated reports may add a short source/confidence brief, explicitly distinguished from hidden Telegram SCAM labels or Telegram-internal report history.
@@ -54,8 +54,10 @@ Browser session token (Supabase) is attached by `attachSupabaseAuth` on every se
 
 - `get_check_stats()` is service-role-only. The browser no longer calls it directly; `getPublicStats` calls it through a server function.
 - `claim_rate_limit()` is service-role-only. Server code calls it to atomically
-  increment HMAC-hashed shared buckets for public checks, reports and Telegram
-  public-post fetches.
+  increment HMAC-hashed shared buckets for public checks, reports, Telegram
+  public-post fetches and the voice STT daily budget. The voice budget uses a
+  distinct key prefix under the existing `check` scope so no raw Telegram id is
+  persisted.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
 
 ## External integrations
