@@ -66,8 +66,8 @@ Immediate hardening order before new large features:
 
 1. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
-2. Apply and verify Reputation Appeals v1 migration in production, then keep
-   appeal decisions in the regular moderation review loop.
+2. Keep Reputation Appeals v1 decisions in the regular moderation review loop;
+   production migration is applied and service-role-only access is verified.
 3. Keep retention/on-call monitor checks in the regular production smoke loop.
 
 Next visible "wow" feature after stabilization:

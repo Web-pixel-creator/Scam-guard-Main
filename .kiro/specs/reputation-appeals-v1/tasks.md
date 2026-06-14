@@ -6,5 +6,5 @@
 - [x] Add admin list/resolve actions.
 - [x] Add audit log insertion for appeal decisions.
 - [x] Add docs and roadmap updates.
-- [ ] Apply production migration.
+- [x] Apply production migration.
 - [ ] Run production smoke after deploy.

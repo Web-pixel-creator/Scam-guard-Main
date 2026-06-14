@@ -16,6 +16,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `admin_actions`.
 - Added `ai_docs/MODERATION_GUIDELINES.md` and updated the roadmap/open tasks,
   API, database, file/function maps and AI index.
+- Applied the production migration and verified the table exists with RLS
+  enabled, a service-role-only policy and no direct `anon`/`authenticated`
+  table grants.
 
 ## 2026-06-14 - Bot Safety Firewall v1
 

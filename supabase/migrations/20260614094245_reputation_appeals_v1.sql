@@ -41,7 +41,3 @@ CREATE POLICY "Service role manages reputation appeals"
   TO service_role
   USING (true)
   WITH CHECK (true);
-
-INSERT INTO supabase_migrations.schema_migrations (version, name)
-VALUES ('20260614094245', 'reputation_appeals_v1')
-ON CONFLICT DO NOTHING;
