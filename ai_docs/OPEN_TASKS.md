@@ -27,6 +27,7 @@
 - [x] ~~Attach the production monitor to a real scheduler for public checks.~~ Done as `.github/workflows/prod-monitor.yml` every 30 minutes.
 - [x] ~~Add production GitHub secrets for deeper scheduled monitor checks.~~ Done for `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` and `OPENAI_MODEL`; manual GitHub Actions monitor run passed with webhook/Telegram/AI checks.
 - [x] ~~Add `MONITOR_ALERT_CHAT_ID` (and optional `MONITOR_ALERT_BOT_TOKEN`) for sanitized Telegram operator alerts.~~ Done on 2026-06-14: Railway and GitHub Secrets have the alert chat id, and a direct Telegram alert test returned `ok: true`.
+- [x] ~~Document the lightweight on-call runbook for production monitor alerts.~~ Done in `ai_docs/ON_CALL_RUNBOOK.md`.
 - [x] ~~Add official-number lookalike detection after Family Shield/webhook hardening.~~ Done: near-miss phone/short-code checks compare against verified contacts and render "similar but not exact" guidance without changing scoring.
 - [x] ~~Polish live-call copilot after official-number lookalikes.~~ Done:
       active-call buttons now focus on hangup first, safe callback appears after

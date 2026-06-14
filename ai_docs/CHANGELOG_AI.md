@@ -16,6 +16,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
   direct Telegram alert test returned `ok: true`.
 - Inline check code is shipped and tested; BotFather inline mode was enabled
   with the RU placeholder `Введите номер, ссылку или текст для проверки`.
+- Added `ai_docs/ON_CALL_RUNBOOK.md` for sanitized monitor-alert triage,
+  recovery commands and security boundaries.
 
 ## 2026-06-13 - Website Honest Impact Counters v1
 

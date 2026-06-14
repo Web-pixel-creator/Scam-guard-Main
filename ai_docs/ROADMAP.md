@@ -63,8 +63,7 @@ Already shipped:
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Operator Telegram alerts are configured; document the lightweight on-call
-   runbook before broader launch.
+2. Operator Telegram alerts and the lightweight on-call runbook are configured.
 3. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
 

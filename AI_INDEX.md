@@ -27,6 +27,7 @@
 | `ai_docs/DATABASE.md`         | Tables, enums, RLS policies, RPCs, privacy notes.                  |
 | `ai_docs/API.md`              | Server functions, webhook surface, AI integration, future B2B API. |
 | `ai_docs/DEPLOYMENT.md`       | Hosting, env vars, secrets, how to run.                            |
+| `ai_docs/ON_CALL_RUNBOOK.md`  | Production monitor alert triage and recovery steps.                |
 | `ai_docs/CODING_RULES.md`     | Code, color, i18n, privacy and security rules.                     |
 | `ai_docs/DECISIONS.md`        | Decisions made and why.                                            |
 | `ai_docs/CHANGELOG_AI.md`     | AI-side documentation change history.                              |

@@ -179,6 +179,10 @@ should also send alerts. Alert messages include only check names and sanitized
 details; they do not include tokens, webhook secrets, chat ids, user content or
 Supabase keys.
 
+Operator triage steps live in `ai_docs/ON_CALL_RUNBOOK.md`. Keep that runbook
+up to date when monitor checks, alert routing or production recovery commands
+change.
+
 The repository also includes `.github/workflows/prod-monitor.yml`, which runs
 the monitor on a 30-minute GitHub Actions schedule. By default it always checks
 the public app and `/healthz`; secret-backed checks become active after these
