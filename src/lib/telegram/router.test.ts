@@ -128,6 +128,7 @@ function makeSpyHandlers(): {
   const handlers: Handlers = {
     handleCommand: record("handleCommand"),
     handleScenarioStep: record("handleScenarioStep"),
+    handleScenarioImage: record("handleScenarioImage"),
     handleCheck: record("handleCheck"),
     handleMetaIntent: record("handleMetaIntent"),
     handleImage: record("handleImage"),
@@ -255,6 +256,40 @@ describe("decideRoute priority: callback > command > scenario step > content", (
     const session = makeSession({ scenario: "report_desc", scenarioStep: 2 });
     const action = decideRoute(update, session);
     expect(action).toEqual({ kind: "scenarioStep", text: "описание" });
+  });
+
+  it("routes an uncaptained photo during report_desc as scenario image evidence", () => {
+    const update = messageUpdate({
+      photo: [
+        { file_id: "small", file_size: 100 },
+        { file_id: "full", file_size: 5000 },
+      ],
+    });
+    const session = makeSession({ scenario: "report_desc", scenarioStep: 1 });
+    const action = decideRoute(update, session);
+    expect(action).toEqual({ kind: "scenarioImage", fileId: "full" });
+  });
+
+  it("keeps a report_desc photo caption as the typed scenario description", () => {
+    const update = messageUpdate({
+      caption: "Попросили установить APK и прислать SMS-код",
+      photo: [{ file_id: "full", file_size: 5000 }],
+    });
+    const session = makeSession({ scenario: "report_desc", scenarioStep: 1 });
+    const action = decideRoute(update, session);
+    expect(action).toEqual({
+      kind: "scenarioStep",
+      text: "Попросили установить APK и прислать SMS-код",
+    });
+  });
+
+  it("routes a photo during await_check to the normal image pipeline", () => {
+    const update = messageUpdate({
+      photo: [{ file_id: "full", file_size: 5000 }],
+    });
+    const session = makeSession({ scenario: "await_check", scenarioStep: 0 });
+    const action = decideRoute(update, session);
+    expect(action).toEqual({ kind: "image", fileId: "full" });
   });
 
   it("routes plain text (no scenario) as a check", () => {
@@ -687,6 +722,35 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls[0].arg).toBe("это описание");
     // No scenario was interrupted, so no reset.
     expect(resetScenario).not.toHaveBeenCalled();
+  });
+
+  it("dispatches report_desc screenshot evidence to handleScenarioImage", async () => {
+    const session = makeSession({ scenario: "report_desc", scenarioStep: 1 });
+    const { deps, calls, resetScenario } = makeDeps(session);
+    await dispatchUpdate(
+      messageUpdate({
+        photo: [
+          { file_id: "small", file_size: 100 },
+          { file_id: "full", file_size: 5000 },
+        ],
+      }),
+      deps,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleScenarioImage");
+    expect(calls[0].arg).toBe("full");
+    expect(resetScenario).not.toHaveBeenCalled();
+  });
+
+  it("resets await_check before dispatching a screenshot to handleImage", async () => {
+    const session = makeSession({ scenario: "await_check", scenarioStep: 0 });
+    const { deps, calls, resetScenario } = makeDeps(session);
+    await dispatchUpdate(messageUpdate({ photo: [{ file_id: "full", file_size: 5000 }] }), deps);
+    expect(resetScenario).toHaveBeenCalledWith(100);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleImage");
+    expect(calls[0].arg).toBe("full");
+    expect(calls[0].ctx.session.scenario).toBe("none");
   });
 
   it("dispatches an unknown command to handleOutOfScope(unknown_command)", async () => {

@@ -31,13 +31,27 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase) and
 // `report.functions.ts` (server fn). Never import into the client bundle.
-import { sendMessage, escapeMarkdownV2, type InlineKeyboard } from "@/lib/telegram/api.server";
+import {
+  sendMessage,
+  escapeMarkdownV2,
+  getFile,
+  downloadFileAsDataUrl,
+  type InlineKeyboard,
+} from "@/lib/telegram/api.server";
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import { submitReportCore, reportRateLimitKeyForTelegram } from "@/lib/report.functions";
 import { INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/report-boundary";
 import type { Lang } from "@/lib/i18n";
+import { redactText } from "@/lib/risk/detect";
+import { analyzeImageCore, type RateLimitedError } from "@/lib/risk/check-core";
+import {
+  hasUsableImageEvidence,
+  type ImageIntelligenceResult,
+  type ImageRiskHint,
+  type ImageVisualCategory,
+} from "@/lib/risk/image-intelligence";
 import {
   REPORT_NO_VALUE_CALLBACK,
   REPORT_RETRY_CALLBACK,
@@ -53,6 +67,8 @@ const DESC_MIN = 5; // R6.5
 const DESC_MAX = 5000; // R6.5
 const OPTIONAL_FIELD_MAX = 80; // scamType / city column bound (reportSchema)
 const AMOUNT_MAX = 10_000_000_000; // amountLostUzs bound (reportSchema)
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const REPORT_IMAGE_SUMMARY_MAX = 420;
 
 export { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK, REPORT_SKIP_CALLBACK };
 
@@ -126,6 +142,170 @@ function looksLikeReportIdentifier(value: string): boolean {
 
   const digits = trimmed.replace(/\D/g, "");
   return digits.length >= 7 && digits.length <= 15;
+}
+
+function isRateLimitedError(e: unknown): e is RateLimitedError {
+  return e instanceof Error && (e as Partial<RateLimitedError>).status === 429;
+}
+
+function reportImageRateLimitKey(userId: number): string {
+  return `tg:${userId}`;
+}
+
+const RAW_URL_RE =
+  /\bhttps?:\/\/[^\s<>()]+|\b(?:t\.me|telegram\.me)\/[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
+const RAW_TELEGRAM_USERNAME_RE = /@[a-z0-9_]{3,32}/gi;
+
+function redactEvidenceText(value: string): string {
+  return redactText(value)
+    .replace(RAW_URL_RE, "[ссылка скрыта]")
+    .replace(RAW_TELEGRAM_USERNAME_RE, "@•••")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categoryLabel(category: ImageVisualCategory, lang: Lang): string {
+  const labels: Record<ImageVisualCategory, Record<Lang, string>> = {
+    delivery_sms: {
+      ru: "уведомление о доставке",
+      uz: "yetkazib berish xabari",
+      en: "delivery notification",
+    },
+    restaurant_menu_qr: {
+      ru: "меню или ресторанный QR",
+      uz: "menyu yoki restoran QR",
+      en: "menu or restaurant QR",
+    },
+    qr_menu_or_info: {
+      ru: "информационный QR",
+      uz: "ma'lumot QR",
+      en: "information QR",
+    },
+    qr_login_or_payment: {
+      ru: "QR для входа или оплаты",
+      uz: "kirish yoki to'lov QR",
+      en: "login or payment QR",
+    },
+    chat_screenshot: {
+      ru: "скрин переписки",
+      uz: "yozishma skrinshoti",
+      en: "chat screenshot",
+    },
+    payment_request: {
+      ru: "просьба об оплате",
+      uz: "to'lov so'rovi",
+      en: "payment request",
+    },
+    apk_prompt: {
+      ru: "просьба установить приложение/APK",
+      uz: "ilova/APK o'rnatish so'rovi",
+      en: "app/APK install request",
+    },
+    document: {
+      ru: "документ или объявление",
+      uz: "hujjat yoki e'lon",
+      en: "document or notice",
+    },
+    telegram_promo_post: {
+      ru: "Telegram-промо",
+      uz: "Telegram promo",
+      en: "Telegram promo",
+    },
+    casino_or_betting_promo: {
+      ru: "казино, ставки или фриспины",
+      uz: "kazino, stavka yoki free spin",
+      en: "casino, betting, or free spins",
+    },
+    crypto_giveaway_or_nft: {
+      ru: "NFT/Stars/подарок или розыгрыш",
+      uz: "NFT/Stars/sovg'a yoki yutuq",
+      en: "NFT/Stars/gift or giveaway",
+    },
+    wallet_or_defi_action: {
+      ru: "кошелёк, TON или DeFi-действие",
+      uz: "wallet, TON yoki DeFi harakati",
+      en: "wallet, TON, or DeFi action",
+    },
+    news_or_channel_post: {
+      ru: "новость или пост канала",
+      uz: "yangilik yoki kanal posti",
+      en: "news or channel post",
+    },
+    unknown: {
+      ru: "скриншот с неясным контекстом",
+      uz: "konteksti noaniq skrinshot",
+      en: "screenshot with unclear context",
+    },
+  };
+  return labels[category][lang];
+}
+
+function hintLabel(hint: ImageRiskHint, lang: Lang): string {
+  const labels: Record<ImageRiskHint, Record<Lang, string>> = {
+    otp_or_secret: { ru: "код/пароль", uz: "kod/parol", en: "code/password" },
+    apk_install: { ru: "APK/приложение", uz: "APK/ilova", en: "APK/app" },
+    qr_login: { ru: "QR-вход", uz: "QR kirish", en: "QR login" },
+    qr_payment: { ru: "QR-оплата", uz: "QR to'lov", en: "QR payment" },
+    payment_request: { ru: "оплата/перевод", uz: "to'lov/o'tkazma", en: "payment/transfer" },
+    card_data: { ru: "данные карты", uz: "karta ma'lumoti", en: "card data" },
+    urgent_pressure: { ru: "срочность/давление", uz: "shoshirish/bosim", en: "urgency/pressure" },
+    brand_impersonation: { ru: "имитация бренда", uz: "brendga o'xshash", en: "brand imitation" },
+    casino_bonus_or_free_spins: {
+      ru: "казино/бонус",
+      uz: "kazino/bonus",
+      en: "casino/bonus",
+    },
+    fake_captcha_or_voting: {
+      ru: "капча/голосование",
+      uz: "captcha/ovoz berish",
+      en: "captcha/voting",
+    },
+    giveaway_or_prize_actions: { ru: "подарок/приз", uz: "sovg'a/yutuq", en: "gift/prize" },
+    task_reward_or_engagement: {
+      ru: "задания за награду",
+      uz: "mukofotli vazifa",
+      en: "reward tasks",
+    },
+    wallet_or_defi_urgency: {
+      ru: "wallet/DeFi срочность",
+      uz: "wallet/DeFi shoshilinch",
+      en: "wallet/DeFi urgency",
+    },
+    ton_referral_or_earning: {
+      ru: "TON/реферал",
+      uz: "TON/referal",
+      en: "TON/referral",
+    },
+    telegram_invite_or_private_link: {
+      ru: "закрытый Telegram-инвайт",
+      uz: "yopiq Telegram taklifi",
+      en: "private Telegram invite",
+    },
+  };
+  return labels[hint][lang];
+}
+
+function buildReportImageDescription(evidence: ImageIntelligenceResult, lang: Lang): string {
+  const parts: string[] = [];
+  const category = categoryLabel(evidence.visualCategory, lang);
+  const hints = evidence.riskHints.slice(0, 4).map((hint) => hintLabel(hint, lang));
+  const summary = evidence.summary ? redactEvidenceText(evidence.summary) : "";
+
+  if (lang === "uz") {
+    parts.push(`Skrinshot: ${category}.`);
+    if (hints.length > 0) parts.push(`Ko'rinadigan belgilar: ${hints.join(", ")}.`);
+    if (summary) parts.push(`Qisqa mazmun: ${summary}.`);
+  } else if (lang === "en") {
+    parts.push(`Screenshot: ${category}.`);
+    if (hints.length > 0) parts.push(`Visible signals: ${hints.join(", ")}.`);
+    if (summary) parts.push(`Short summary: ${summary}.`);
+  } else {
+    parts.push(`Скриншот: ${category}.`);
+    if (hints.length > 0) parts.push(`Видимые признаки: ${hints.join(", ")}.`);
+    if (summary) parts.push(`Кратко: ${summary}.`);
+  }
+
+  return redactEvidenceText(parts.join(" ")).slice(0, REPORT_IMAGE_SUMMARY_MAX).trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +422,72 @@ async function stepDescription(text: string, ctx: HandlerCtx): Promise<void> {
     scenarioData: draft,
   });
   await askScamType(ctx, lang);
+}
+
+export async function handleScenarioImage(
+  fileId: string,
+  ctx: HandlerCtx,
+  _mediaGroupId?: string,
+): Promise<void> {
+  const lang = ctx.session.lang;
+  if (ctx.session.scenario !== "report_desc") return;
+
+  async function askForTypedDescription(): Promise<void> {
+    await sendText(ctx, "report_image_unreadable", lang);
+  }
+
+  try {
+    const meta = await getFile(fileId);
+    if (!meta) {
+      await askForTypedDescription();
+      return;
+    }
+    if (meta.fileSize > MAX_IMAGE_BYTES) {
+      await sendText(ctx, "image_too_large", lang);
+      return;
+    }
+
+    const dataUrl = await downloadFileAsDataUrl(meta.filePath);
+    if (!dataUrl) {
+      await askForTypedDescription();
+      return;
+    }
+
+    const evidence = await analyzeImageCore(dataUrl, lang, reportImageRateLimitKey(ctx.userId));
+    if (!evidence || !hasUsableImageEvidence(evidence)) {
+      await askForTypedDescription();
+      return;
+    }
+
+    const description = buildReportImageDescription(evidence, lang);
+    if (description.length < DESC_MIN) {
+      await askForTypedDescription();
+      return;
+    }
+
+    const draft: ReportDraft = { ...ctx.session.scenarioData, description };
+    await saveSession(ctx.userId, {
+      scenario: "report_scamType",
+      scenarioStep: 2,
+      scenarioData: draft,
+    });
+
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("report_image_added", lang, { summary: description })),
+    });
+    await askScamType({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang);
+  } catch (e) {
+    if (isRateLimitedError(e)) {
+      await sendMessage({
+        chatId: ctx.chatId,
+        text: escapeMarkdownV2(bt("rate_limited", lang, { seconds: e.retryAfter })),
+      });
+      return;
+    }
+    console.error("telegram report image failed", e instanceof Error ? e.message : "unknown");
+    await askForTypedDescription();
+  }
 }
 
 async function stepScamType(text: string, ctx: HandlerCtx): Promise<void> {

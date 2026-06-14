@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-14 - Report Screenshot Evidence v1
+
+- Added `.kiro/specs/report-screenshot-evidence-v1/`.
+- Telegram `/report` now accepts screenshots during the description step and
+  converts usable structured image evidence into a short redacted report
+  description.
+- The feature intentionally avoids Supabase Storage: raw images, data URLs,
+  decoded QR payloads and full OCR text are not persisted.
+- Router and report handler tests cover screenshot routing, unreadable-image
+  fallback, oversized images and redaction of URLs/usernames/phones/codes in
+  saved report drafts.
+
 ## 2026-06-14 - Reputation Appeals v1
 
 - Added `.kiro/specs/reputation-appeals-v1/`.

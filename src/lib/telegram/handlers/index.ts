@@ -10,6 +10,7 @@
 //   handleCommand          → commands.handleCommand
 //   handleScenarioStep     → composite: await_check → check.handleCheck,
 //                            report_* → report.handleScenarioStep
+//   handleScenarioImage    → report.handleScenarioImage for screenshot evidence
 //   handleCheck            → check.handleCheck
 //   handleImage            → check.handleImage
 //   handlePhoneFromContact → check.handlePhoneFromContact
@@ -38,6 +39,7 @@ import {
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
 import {
   handleScenarioStep as handleReportScenarioStep,
+  handleScenarioImage as handleReportScenarioImage,
   handleReportNoValue,
   handleReportRetry,
   handleReportSkip,
@@ -76,6 +78,16 @@ async function handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void> 
     return;
   }
   await handleReportScenarioStep(text, ctx);
+}
+
+async function handleScenarioImage(
+  fileId: string,
+  ctx: HandlerCtx,
+  mediaGroupId?: string,
+): Promise<void> {
+  if (ctx.session.scenario === "report_desc") {
+    await handleReportScenarioImage(fileId, ctx, mediaGroupId);
+  }
 }
 
 /**
@@ -122,6 +134,7 @@ async function handleCallback(
 export const telegramHandlers: Handlers = {
   handleCommand,
   handleScenarioStep,
+  handleScenarioImage,
   handleCheck,
   handleMetaIntent,
   handleImage,

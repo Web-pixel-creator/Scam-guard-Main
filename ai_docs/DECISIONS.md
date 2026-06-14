@@ -308,3 +308,13 @@ Homepage impact counters may show aggregate checks, risk-alert counts,
 moderated records and user-reported loss totals. They must not expose raw
 check/report rows or claim "money saved" unless the user explicitly supplies
 that outcome through a privacy-reviewed survey.
+
+## D-035 - Report screenshots are transient evidence, not stored files
+
+Telegram `/report` may accept a screenshot while the user is describing the
+incident, but the first version must not add Supabase Storage or persist raw
+media. The bot downloads the image only in memory, uses the existing structured
+image analysis path, stores a short redacted summary in the report draft, and
+asks for a typed description when evidence is unreadable. Raw images, data
+URLs, decoded QR payloads, full OCR text, phone numbers, card data, OTPs and
+links must not be stored in `telegram_sessions` or `reports`.

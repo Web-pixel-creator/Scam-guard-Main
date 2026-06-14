@@ -72,6 +72,29 @@ const h = vi.hoisted(() => ({
   submitCalls: [] as SubmitArg[],
   // Mutable submitReport behaviour, swapped per test.
   submitImpl: { current: (async () => ({ ok: true })) as (a: SubmitArg) => Promise<SubmitResult> },
+  fileMeta: {
+    current: { fileSize: 1024, filePath: "photos/file.jpg" } as {
+      fileSize: number;
+      filePath: string;
+    } | null,
+  },
+  dataUrl: { current: "data:image/jpeg;base64,ZmFrZQ==" as string | null },
+  imageEvidence: {
+    current: null as {
+      text: string | null;
+      visualCategory: string;
+      confidence: string;
+      qr: {
+        present: boolean;
+        visibleUrl: string | null;
+        purpose: string;
+        decodedValues?: string[];
+      };
+      riskHints: string[];
+      summary: string | null;
+    } | null,
+  },
+  imageError: { current: null as Error | null },
 }));
 
 // Session store — capture the persisted patches, never hit Supabase.
@@ -94,6 +117,15 @@ vi.mock("@/lib/telegram/api.server", () => ({
     return Promise.resolve({ ok: true });
   },
   escapeMarkdownV2: (s: string) => s,
+  getFile: () => Promise.resolve(h.fileMeta.current),
+  downloadFileAsDataUrl: () => Promise.resolve(h.dataUrl.current),
+}));
+
+vi.mock("@/lib/risk/check-core", () => ({
+  analyzeImageCore: async () => {
+    if (h.imageError.current) throw h.imageError.current;
+    return h.imageEvidence.current;
+  },
 }));
 
 // Report_Pipeline — the existing server fn. The real handler runs the moderated
@@ -111,6 +143,7 @@ vi.mock("@/lib/report.functions", () => ({
 import {
   startReport,
   handleScenarioStep,
+  handleScenarioImage,
   handleReportSkip,
   handleReportNoValue,
   handleReportRetry,
@@ -180,6 +213,10 @@ beforeEach(() => {
   h.sendCalls.length = 0;
   h.submitCalls.length = 0;
   h.submitImpl.current = async () => ({ ok: true });
+  h.fileMeta.current = { fileSize: 1024, filePath: "photos/file.jpg" };
+  h.dataUrl.current = "data:image/jpeg;base64,ZmFrZQ==";
+  h.imageEvidence.current = null;
+  h.imageError.current = null;
 });
 
 afterEach(() => {
@@ -366,6 +403,85 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
       scenarioStep: 3,
       scenarioData: { value: "@x", description: "достаточно длинное описание" },
     });
+  });
+});
+
+// ===========================================================================
+// Screenshot evidence during report description
+// ===========================================================================
+
+describe("/report — screenshot evidence in report_desc", () => {
+  it("turns usable screenshot evidence into a short redacted draft description", async () => {
+    h.imageEvidence.current = {
+      text: null,
+      visualCategory: "qr_login_or_payment",
+      confidence: "high",
+      qr: {
+        present: true,
+        visibleUrl: "https://evil.example/login",
+        purpose: "login",
+        decodedValues: ["https://evil.example/login"],
+      },
+      riskHints: ["otp_or_secret", "telegram_invite_or_private_link"],
+      summary:
+        "Пользователя просят открыть https://evil.example/login, написать @bad_actor и ввести код 123456. Телефон +998 90 123 45 67.",
+    };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { value: "@scammer_bank" },
+    });
+
+    await handleScenarioImage("photo-file-id", ctx);
+
+    expect(h.saveCalls).toHaveLength(1);
+    expect(h.saveCalls[0].patch.scenario).toBe("report_scamType");
+    expect(h.saveCalls[0].patch.scenarioStep).toBe(2);
+    const description = h.saveCalls[0].patch.scenarioData?.description ?? "";
+    expect(description).toContain("Скриншот:");
+    expect(description).toContain("QR");
+    expect(description).not.toContain("evil.example");
+    expect(description).not.toContain("@bad_actor");
+    expect(description).not.toContain("123456");
+    expect(description).not.toContain("+998 90 123 45 67");
+    expect(description.length).toBeLessThanOrEqual(420);
+    expect(sentTexts().join("\n")).toContain("Само изображение я не сохраняю");
+    expect(sentTexts()).toContain(bt("report_ask_scam_type", "ru"));
+  });
+
+  it("asks for a typed description when screenshot evidence is unreadable", async () => {
+    h.imageEvidence.current = {
+      text: null,
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: { present: false, visibleUrl: null, purpose: "unknown", decodedValues: [] },
+      riskHints: [],
+      summary: null,
+    };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { value: "@scammer_bank" },
+    });
+
+    await handleScenarioImage("photo-file-id", ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(sentTexts()).toContain(bt("report_image_unreadable", "ru"));
+  });
+
+  it("rejects oversized screenshot evidence without downloading it", async () => {
+    h.fileMeta.current = { fileSize: 7 * 1024 * 1024, filePath: "photos/large.jpg" };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { value: "@scammer_bank" },
+    });
+
+    await handleScenarioImage("photo-file-id", ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(sentTexts()).toContain(bt("image_too_large", "ru"));
   });
 });
 

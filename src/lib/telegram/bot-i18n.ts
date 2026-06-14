@@ -133,9 +133,9 @@ export const bot_dict: BotDict = {
     en: "Who are you reporting? Send a phone number, Telegram username, or link. If you don't have one, tap “No number/link”.",
   },
   report_ask_description: {
-    ru: "Коротко опишите ситуацию: что произошло и что просили сделать.",
-    uz: "Vaziyatni qisqacha tasvirlang: nima bo‘ldi va nima qilishni so‘rashdi.",
-    en: "Briefly describe what happened and what you were asked to do.",
+    ru: "Коротко опишите ситуацию: что произошло и что просили сделать. Можно отправить скриншот — я добавлю только безопасное краткое описание.",
+    uz: "Vaziyatni qisqacha tasvirlang: nima bo‘ldi va nima qilishni so‘rashdi. Skrinshot ham yuborishingiz mumkin — men faqat xavfsiz qisqa tavsif qo‘shaman.",
+    en: "Briefly describe what happened and what you were asked to do. You can send a screenshot — I will add only a safe short summary.",
   },
   report_ask_scam_type: {
     ru: "Какой это вид мошенничества? Напишите коротко (например: фейковый банк, кредит, OTP). Можно пропустить — отправьте «-».",
@@ -190,6 +190,16 @@ export const bot_dict: BotDict = {
     ru: "Не удалось отправить жалобу. Попробуйте, пожалуйста, ещё раз чуть позже.",
     uz: "Shikoyatni yuborib bo‘lmadi. Iltimos, birozdan so‘ng qayta urinib ko‘ring.",
     en: "Couldn’t submit the report. Please try again a little later.",
+  },
+  report_image_added: {
+    ru: "Скриншот добавлен к жалобе как краткое описание:\n\n{summary}\n\nСамо изображение я не сохраняю.",
+    uz: "Skrinshot shikoyatga qisqa tavsif sifatida qo‘shildi:\n\n{summary}\n\nRasmning o‘zini saqlamayman.",
+    en: "Screenshot added to the report as a short summary:\n\n{summary}\n\nI do not store the image itself.",
+  },
+  report_image_unreadable: {
+    ru: "Я получил скриншот, но не смог надёжно извлечь суть для жалобы. Напишите 1-2 фразы: что просили сделать и через что с вами связались.",
+    uz: "Skrinshotni oldim, lekin shikoyat uchun mazmunini ishonchli ajrata olmadim. 1-2 jumla yozing: nima qilishni so‘rashdi va siz bilan qayerda bog‘lanishdi.",
+    en: "I received the screenshot, but could not reliably extract the incident details. Type 1-2 sentences: what they asked you to do and where they contacted you.",
   },
 
   // ── Rate limit (R10.2) — {seconds} placeholder filled via bt(..., { seconds }) ─

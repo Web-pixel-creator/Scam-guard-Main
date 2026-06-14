@@ -285,6 +285,8 @@ export interface Handlers {
   handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promise<void>;
   /** One step of an active multi-step scenario, e.g. /report (8.4). */
   handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void>;
+  /** Image evidence sent while an active scenario explicitly accepts screenshots. */
+  handleScenarioImage(fileId: string, ctx: HandlerCtx, mediaGroupId?: string): Promise<void>;
   /** Free text / forwarded text → Check_Pipeline (8.3). */
   handleCheck(
     content: string,
@@ -325,6 +327,7 @@ export type RouteAction =
   | { kind: "command"; command: ParsedCommand }
   | { kind: "unknownCommand" }
   | { kind: "scenarioStep"; text: string }
+  | { kind: "scenarioImage"; fileId: string; mediaGroupId?: string }
   | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
   | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
   | {
@@ -503,6 +506,26 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
 
   // 3) Active scenario → the message is the answer to the current step (R15.3).
   if (session.scenario !== "none") {
+    const content = textEvidenceFromMessage(m);
+    if (content) return { kind: "scenarioStep", text: content };
+
+    const imageFileId =
+      m.photo && m.photo.length > 0
+        ? largestPhotoFileId(m.photo)
+        : m.document?.mime_type?.startsWith("image/")
+          ? m.document.file_id
+          : null;
+
+    if (imageFileId && session.scenario === "report_desc") {
+      return m.media_group_id
+        ? { kind: "scenarioImage", fileId: imageFileId, mediaGroupId: m.media_group_id }
+        : { kind: "scenarioImage", fileId: imageFileId };
+    }
+
+    if (imageFileId && session.scenario === "await_check") {
+      return imageRoute(imageFileId, m.media_group_id, source);
+    }
+
     return { kind: "scenarioStep", text: m.text ?? m.caption ?? "" };
   }
 
@@ -568,6 +591,9 @@ const stubHandlers: Handlers = {
   },
   async handleScenarioStep() {
     console.warn("telegram router: no handler wired for scenario step");
+  },
+  async handleScenarioImage() {
+    console.warn("telegram router: no handler wired for scenario image");
   },
   async handleCheck() {
     console.warn("telegram router: no handler wired for check");
@@ -691,6 +717,9 @@ export async function dispatchUpdate(
     case "scenarioStep":
       await handlers.handleScenarioStep(action.text, ctx);
       break;
+    case "scenarioImage":
+      await handlers.handleScenarioImage(action.fileId, ctx, action.mediaGroupId);
+      break;
     case "check": {
       const intent = classifyMetaIntent(action.content, {
         isForwarded: update.message?.forward_origin != null,
@@ -703,6 +732,16 @@ export async function dispatchUpdate(
       break;
     }
     case "image":
+      if (session.scenario === "await_check") {
+        await resetScenario(userId);
+        await handlers.handleImage(
+          action.fileId,
+          { ...ctx, session: { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} } },
+          action.mediaGroupId,
+          action.source,
+        );
+        break;
+      }
       await handlers.handleImage(action.fileId, ctx, action.mediaGroupId, action.source);
       break;
     case "voice":
