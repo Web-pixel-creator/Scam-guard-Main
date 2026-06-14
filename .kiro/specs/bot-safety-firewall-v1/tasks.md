@@ -7,4 +7,4 @@
 - [x] Add `runCheck` regression tests for return value and DB insert boundary.
 - [x] Run focused tests, typecheck, full test suite and build.
 - [x] Update AI documentation and changelog.
-- [ ] Commit, push and deploy after verification.
+- [x] Commit, push and deploy after verification.
