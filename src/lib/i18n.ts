@@ -13,6 +13,7 @@ export const t_dict: Dict = {
   nav_check: { ru: "Проверка", uz: "Tekshirish", en: "Check" },
   nav_report: { ru: "Сообщить", uz: "Xabar berish", en: "Report" },
   nav_emergency: { ru: "Помощь", uz: "Yordam", en: "Emergency" },
+  nav_appeal: { ru: "Апелляция", uz: "Apellyatsiya", en: "Appeal" },
   nav_privacy: { ru: "Приватность", uz: "Maxfiylik", en: "Privacy" },
 
   hero_title: {

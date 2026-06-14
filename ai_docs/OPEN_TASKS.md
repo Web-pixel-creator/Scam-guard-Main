@@ -62,7 +62,7 @@
 - [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews.
 - [x] ~~Enable BotFather inline mode for `@scamguard_bot` with `/setinline` and a short RU placeholder such as `Введите номер, ссылку или текст для проверки`.~~ Done on 2026-06-14.
 - [x] ~~Add Telegram voice-note STT for elderly/stressed users.~~ Short voice notes are transcribed in memory, redacted and checked by the same rules pipeline; failure falls back to a typed-summary prompt with emergency actions.
-- [ ] Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.
+- [x] ~~Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.~~ Done as Reputation Appeals v1: `/appeal`, privacy-safe `reputation_appeals`, admin review actions and audit logging.
 - [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
 - [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.
 
@@ -99,4 +99,4 @@ Completed research-feed themes now covered by deterministic rules:
 
 - [ ] Review UZ personal-data law for `redacted_value`, `description`, `amount_lost_uzs`, `city`.
 - [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.~~ Implemented as `private.prune_app_retention()` cleanup windows and scheduled through Supabase/Postgres Cron on 2026-06-14.
-- [ ] Moderation guidelines + admin audit log.
+- [ ] Legal/compliance review of moderation guidelines and appeal decisions before high-volume public launch.

@@ -2,6 +2,14 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-035 - Public reputation needs a correction path
+
+Phone, Telegram, URL and APK reputation labels must be removable through a
+moderated appeal flow before wider public launch. Appeals store only hashed
+targets, masked displays and redacted reasons; they do not expose raw evidence
+to public clients. Removing reputation hides the public label but does not
+delete original reports or audit records, preserving moderation traceability.
+
 ## D-033 - AI output is untrusted until filtered
 
 AI explanations may be influenced by user-controlled text, OCR or STT content.

@@ -45,6 +45,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `official-numbers.tsx` | `/official-numbers` | Public verified-contact directory for safe callback numbers and official Telegram/email contacts.   |
 | `scam-trends.tsx`      | `/scam-trends`      | Public non-personal map of current scam tactics, hooks, goals, safe steps and reason-code coverage. |
 | `privacy.tsx`          | `/privacy`          | Privacy notice.                                                                                     |
+| `appeal.tsx`           | `/appeal`           | Privacy-safe reputation correction/removal request page for phone, Telegram, URL and APK targets.   |
 | `login.tsx`            | `/login`            | Supabase email auth.                                                                                |
 | `admin.tsx`            | `/admin`            | Moderation dashboard.                                                                               |
 
@@ -54,10 +55,11 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `check.functions.ts`                 | Web server functions wrapping check/OCR core plus service-role-backed public stats.                                                                                          |
 | `report.functions.ts`                | Public report server function; redacts descriptions before insert and keeps situation-only reports out of entity reputation.                                                 |
+| `reputation-appeal.functions.ts`     | Public reputation appeal server function; accepts only concrete targets, hashes/masks identifiers, redacts reasons and deduplicates active review requests.                  |
 | `report-boundary.ts`                 | Shared incident-only report marker/helpers used by report submission and admin moderation.                                                                                   |
-| `admin.functions.ts`                 | Admin moderation server functions; skips entity sync for situation-only reports.                                                                                             |
+| `admin.functions.ts`                 | Admin moderation server functions; skips entity sync for situation-only reports and reviews reputation appeal/removal requests with audit logging.                           |
 | `risk/check-core.ts`                 | Transport-independent rules-first check, OCR and structured image-analysis pipelines.                                                                                        |
-| `risk/ai-output-safety.ts`           | Safety firewall for AI-authored user-facing explanations; blocks prompt-injection leakage and requests for secrets, APKs, wallet actions or payments.                       |
+| `risk/ai-output-safety.ts`           | Safety firewall for AI-authored user-facing explanations; blocks prompt-injection leakage and requests for secrets, APKs, wallet actions or payments.                        |
 | `risk/image-intelligence.ts`         | Structured Telegram image evidence: visual category, QR purpose, risk hints, safe input.                                                                                     |
 | `risk/detect.ts`                     | Input detection, normalization, masking, redaction.                                                                                                                          |
 | `risk/rules.ts`                      | Reason codes, weights, regex patterns, scoring, labels, advice.                                                                                                              |

@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hashIdentifier } from "./hash";
 import { checkRateLimit, type RateLimitResult } from "./rate-limit";
 
-export type SharedRateLimitScope = "check" | "report" | "telegram_public_post";
+export type SharedRateLimitScope = "check" | "report" | "telegram_public_post" | "appeal";
 
 type ClaimRateLimitRow = {
   allowed: boolean;

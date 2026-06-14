@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-14 - Reputation Appeals v1
+
+- Added `.kiro/specs/reputation-appeals-v1/`.
+- Added privacy-safe `reputation_appeals` storage for correction/removal
+  requests: raw targets and contact details are never stored, direct
+  anon/authenticated access is revoked, and server code writes with service-role
+  after hashing, masking and redaction.
+- Added public `/appeal` page plus `submitReputationAppeal` server function for
+  phone, Telegram, URL and APK targets.
+- Extended the admin dashboard with an appeal queue. Admins can remove public
+  reputation labels or keep them after review; decisions are recorded in
+  `admin_actions`.
+- Added `ai_docs/MODERATION_GUIDELINES.md` and updated the roadmap/open tasks,
+  API, database, file/function maps and AI index.
+
 ## 2026-06-14 - Bot Safety Firewall v1
 
 - Added `.kiro/specs/bot-safety-firewall-v1/`.

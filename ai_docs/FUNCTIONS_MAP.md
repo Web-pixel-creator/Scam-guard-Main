@@ -4,16 +4,18 @@ Signatures and intent only. See file paths for source.
 
 ## Server functions
 
-| Function                                                                                             | File                          | Auth   | Purpose                                                                                        |
-| ---------------------------------------------------------------------------------------------------- | ----------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`  | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                  |
-| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`  | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                 |
-| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`  | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC. |
-| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts` | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present.    |
-| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`  | admin  | Lists reports by status.                                                                       |
-| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`  | admin  | Lists moderated/known entities.                                                                |
-| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`  | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.     |
-| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`  | admin  | Dashboard counts.                                                                              |
+| Function                                                                                             | File                                     | Auth   | Purpose                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                  |
+| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                 |
+| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC. |
+| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present.    |
+| `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public | Creates a privacy-safe appeal/removal request for reputation targets.                          |
+| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`             | admin  | Lists reports by status.                                                                       |
+| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`             | admin  | Lists moderated/known entities.                                                                |
+| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`             | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.     |
+| `listReputationAppeals({ status })` / `resolveReputationAppeal(...)`                                 | `src/lib/admin.functions.ts`             | admin  | Reviews appeal/removal requests and can hide public reputation with audit logging.             |
+| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin  | Dashboard counts.                                                                              |
 
 ## Risk engine
 

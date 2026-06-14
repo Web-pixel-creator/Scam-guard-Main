@@ -59,12 +59,15 @@ Already shipped:
 - Website Honest Impact Counters v1: the homepage now shows aggregate checks,
   risk alerts, moderated records and user-reported loss totals with conservative
   wording and no public raw report data.
+- Reputation Appeals v1: public `/appeal` correction path, privacy-safe
+  appeal queue, admin remove/keep decision and audit logging.
 
 Immediate hardening order before new large features:
 
 1. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
-2. Draft phone reputation appeal/removal rules before broader public launch.
+2. Apply and verify Reputation Appeals v1 migration in production, then keep
+   appeal decisions in the regular moderation review loop.
 3. Keep retention/on-call monitor checks in the regular production smoke loop.
 
 Next visible "wow" feature after stabilization:
@@ -103,6 +106,8 @@ Scope:
 - Shows source and confidence as Ishonch Guard moderated reports, not carrier data.
 - Never claims owner, SIM age, hidden scam label, spam history or unmoderated community reputation.
 - Appeal/removal flow and richer admin source fields remain later compliance work.
+- Appeal/removal v1 exists as a privacy-safe correction path. Richer evidence
+  source fields remain later compliance work.
 
 ### 1C. Optional Paid Enrichment
 
@@ -145,7 +150,7 @@ Disallowed claims:
 2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals.
 3. Production observability: error rate, provider quota, Telegram webhook latency.
 4. Compliance review for Uzbekistan personal-data law and retention windows.
-5. Admin audit log and moderation guidelines before community reputation growth.
+5. Legal review of appeal/removal moderation guidelines before community reputation growth.
 
 ## Do Not Build Yet
 

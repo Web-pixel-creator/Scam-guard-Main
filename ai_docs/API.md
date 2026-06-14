@@ -8,16 +8,19 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 It does not mean direct browser writes to Supabase tables: sensitive writes to
 `checks` and `reports` are service-role-only behind these handlers.
 
-| RPC              | Auth   | Input                                                                                                | Returns                                                                |
-| ---------------- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `checkInput`     | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot     |
-| `ocrExtract`     | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                             |
-| `getPublicStats` | public | none                                                                                                 | `{ total, today, confirmed_entities }`                                 |
-| `submitReport`   | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                      |
-| `listReports`    | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                   |
-| `listEntities`   | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                   |
-| `moderateReport` | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                               |
-| `adminStats`     | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total }` |
+| RPC                       | Auth   | Input                                                                                                | Returns                                                                             |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `checkInput`              | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot                  |
+| `ocrExtract`              | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                                          |
+| `getPublicStats`          | public | none                                                                                                 | `{ total, today, confirmed_entities }`                                              |
+| `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                   |
+| `listReports`             | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                                |
+| `listEntities`            | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                                |
+| `moderateReport`          | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                            |
+| `submitReputationAppeal`  | public | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                  |
+| `listReputationAppeals`   | admin  | `{ status }`                                                                                         | appeal rows                                                                         |
+| `resolveReputationAppeal` | admin  | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                            |
+| `adminStats`              | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }` |
 
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
@@ -38,6 +41,10 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   than dropping user messages.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
 - `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
+- `/appeal` submits a privacy-safe correction/removal request for phone,
+  Telegram, URL or APK reputation. The server stores only target/contact hashes,
+  masked display values and redacted reason text. Admin removal hides the public
+  reputation label without deleting report history.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
 - Telegram voice notes use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`. Audio is downloaded only in memory, voice files are capped at 60 seconds / 2 MB before transcription, and only the redacted transcript reaches the check pipeline. STT calls are protected by a separate 5/day per-user budget and repeated Telegram `file_unique_id` values reuse a short-lived in-memory redacted transcript cache. If STT is missing, slow or unreliable, the bot asks for a short typed summary and offers emergency actions.
 - AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains.

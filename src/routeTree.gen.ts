@@ -17,6 +17,7 @@ import { Route as OfficialNumbersRouteImport } from './routes/official-numbers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as CheckRouteImport } from './routes/check'
+import { Route as AppealRouteImport } from './routes/appeal'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -60,6 +61,11 @@ const CheckRoute = CheckRouteImport.update({
   path: '/check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppealRoute = AppealRouteImport.update({
+  id: '/appeal',
+  path: '/appeal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -74,6 +80,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/appeal'
     | '/check'
     | '/emergency'
     | '/login'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/appeal'
     | '/check'
     | '/emergency'
     | '/login'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/appeal'
     | '/check'
     | '/emergency'
     | '/login'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AppealRoute: typeof AppealRoute
   CheckRoute: typeof CheckRoute
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/appeal': {
+      id: '/appeal'
+      path: '/appeal'
+      fullPath: '/appeal'
+      preLoaderRoute: typeof AppealRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AppealRoute: AppealRoute,
   CheckRoute: CheckRoute,
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,

@@ -16,6 +16,13 @@ const hoisted = vi.hoisted(() => ({
   entityUpdates: [] as Array<Record<string, unknown>>,
   auditInserts: [] as Array<Record<string, unknown>>,
   reputationUpserts: [] as Array<Record<string, unknown>>,
+  reputationUpdates: [] as Array<Record<string, unknown>>,
+  appealRow: null as null | {
+    target_hash: string;
+    target_type: string;
+    target_display: string;
+  },
+  appealUpdates: [] as Array<Record<string, unknown>>,
   confirmedReportCount: 1,
   unverifiedReportCount: 0,
 }));
@@ -101,6 +108,31 @@ vi.mock("@/integrations/supabase/client.server", () => ({
             hoisted.reputationUpserts.push(row);
             return { data: null, error: null };
           },
+          update: (row: Record<string, unknown>) => ({
+            eq: async () => {
+              hoisted.reputationUpdates.push(row);
+              return { data: null, error: null };
+            },
+          }),
+        };
+      }
+
+      if (table === "reputation_appeals") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: hoisted.appealRow,
+                error: hoisted.appealRow ? null : { message: "not found" },
+              }),
+            }),
+          }),
+          update: (row: Record<string, unknown>) => ({
+            eq: async () => {
+              hoisted.appealUpdates.push(row);
+              return { data: null, error: null };
+            },
+          }),
         };
       }
 
@@ -118,7 +150,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import { moderateReportCore } from "./admin.functions";
+import { moderateReportCore, resolveReputationAppealCore } from "./admin.functions";
 
 beforeEach(() => {
   hoisted.reportRow = {
@@ -132,6 +164,13 @@ beforeEach(() => {
   hoisted.entityUpdates.length = 0;
   hoisted.auditInserts.length = 0;
   hoisted.reputationUpserts.length = 0;
+  hoisted.reputationUpdates.length = 0;
+  hoisted.appealRow = {
+    target_hash: "hash-target",
+    target_type: "telegram",
+    target_display: "@fa***rt",
+  };
+  hoisted.appealUpdates.length = 0;
   hoisted.confirmedReportCount = 1;
   hoisted.unverifiedReportCount = 0;
 });
@@ -223,6 +262,63 @@ describe("moderateReportCore reputation boundary", () => {
       moderation_status: "new",
       risk_level: "unknown",
       moderated_report_count: 0,
+    });
+  });
+});
+
+describe("resolveReputationAppealCore", () => {
+  it("removes public reputation for a Telegram target and records an audit action", async () => {
+    await expect(
+      resolveReputationAppealCore(
+        {
+          appealId: "33333333-3333-4333-8333-333333333333",
+          decision: "remove_reputation",
+          note: "Owner verified; old report was not applicable.",
+        },
+        ADMIN_ID,
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(hoisted.appealUpdates[0]).toMatchObject({
+      status: "resolved",
+      resolution: "Owner verified; old report was not applicable.",
+    });
+    expect(hoisted.entityUpdates[0]).toMatchObject({
+      moderation_status: "rejected",
+      risk_level: "unknown",
+    });
+    expect(hoisted.reputationUpdates[0]).toMatchObject({
+      moderation_status: "rejected",
+      risk_level: "unknown",
+    });
+    expect(hoisted.auditInserts[0]).toMatchObject({
+      admin_user_id: ADMIN_ID,
+      action: "remove_reputation",
+      target_type: "reputation_appeal",
+      target_id: "33333333-3333-4333-8333-333333333333",
+    });
+  });
+
+  it("keeps reputation without changing entity records", async () => {
+    await expect(
+      resolveReputationAppealCore(
+        {
+          appealId: "44444444-4444-4444-8444-444444444444",
+          decision: "keep_reputation",
+        },
+        ADMIN_ID,
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(hoisted.appealUpdates[0]).toMatchObject({
+      status: "rejected",
+    });
+    expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.reputationUpdates).toHaveLength(0);
+    expect(hoisted.auditInserts[0]).toMatchObject({
+      action: "keep_reputation",
+      target_type: "reputation_appeal",
+      target_id: "44444444-4444-4444-8444-444444444444",
     });
   });
 });

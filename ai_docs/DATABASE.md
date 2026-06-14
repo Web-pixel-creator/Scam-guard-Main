@@ -65,6 +65,21 @@ labels. Unconfirmed system/public/unverified observations older than 180 days
 are eligible for retention cleanup; confirmed rows are retained until moderated
 removal.
 
+### `reputation_appeals`
+
+Privacy-safe correction/removal queue for public reputation:
+`id, target_type, target_hash, target_display, reason, contact_hash,
+contact_display, status, resolution, created_at, updated_at`.
+
+RLS/grants: enabled; `anon` and `authenticated` have no direct table access.
+Submissions and admin decisions go through server functions using the
+service-role client. Targets and optional contacts are HMAC-hashed before
+storage. Display fields are masked/redacted and intended for admin triage only.
+
+Admin decisions do not delete reports. A successful removal moves the public
+`entities` record to `moderation_status='rejected'` and `risk_level='unknown'`;
+Telegram reputation targets are disabled the same way.
+
 ### `telegram_sessions`
 
 Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, scenario_data, updated_at`.
@@ -147,6 +162,7 @@ under the windows below.
 - `telegram_webhook_updates`: 2 days / `expires_at <= as_of`.
 - `rate_limit_buckets`: `expires_at <= as_of` (normally one request window plus a short buffer).
 - `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.
+- `reputation_appeals`: retained until legal/compliance policy is finalized; contains hashes, masked displays and redacted reason text only.
 - `telegram_family_shield`: revoked rows after 30 days; stale pending rows after 7 days; active relationships retained until revoked.
 
 ## Privacy model
@@ -158,3 +174,5 @@ under the windows below.
 - Public exposure requires admin moderation.
 - Description-only incident reports are useful for review/research, but they do
   not affect public entity reputation.
+- Public reputation has a correction/removal path through `/appeal`; appeals are
+  stored as hashes and masked display values, not raw targets.

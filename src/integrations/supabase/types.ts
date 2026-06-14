@@ -197,6 +197,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      reputation_appeals: {
+        Row: {
+          contact_display: string | null;
+          contact_hash: string | null;
+          created_at: string;
+          id: string;
+          reason: string;
+          resolution: string | null;
+          status: string;
+          target_display: string;
+          target_hash: string;
+          target_type: Database["public"]["Enums"]["input_type"];
+          updated_at: string;
+        };
+        Insert: {
+          contact_display?: string | null;
+          contact_hash?: string | null;
+          created_at?: string;
+          id?: string;
+          reason: string;
+          resolution?: string | null;
+          status?: string;
+          target_display: string;
+          target_hash: string;
+          target_type: Database["public"]["Enums"]["input_type"];
+          updated_at?: string;
+        };
+        Update: {
+          contact_display?: string | null;
+          contact_hash?: string | null;
+          created_at?: string;
+          id?: string;
+          reason?: string;
+          resolution?: string | null;
+          status?: string;
+          target_display?: string;
+          target_hash?: string;
+          target_type?: Database["public"]["Enums"]["input_type"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
           created_at: string;

@@ -16,7 +16,9 @@ import { useAuth } from "@/lib/auth-context";
 import {
   listReports,
   listEntities,
+  listReputationAppeals,
   moderateReport,
+  resolveReputationAppeal,
   adminStats,
   getEntityCheck,
 } from "@/lib/admin.functions";
@@ -32,16 +34,21 @@ export const Route = createFileRoute("/admin")({
 
 const FILTERS = ["new", "confirmed", "rejected", "all"] as const;
 type FilterKey = (typeof FILTERS)[number];
+const APPEAL_FILTERS = ["new", "reviewing", "resolved", "rejected", "all"] as const;
+type AppealFilterKey = (typeof APPEAL_FILTERS)[number];
 
 function AdminPage() {
   const { user, isAdmin, loading, signOut } = useAuth();
   const nav = useNavigate();
   const [status, setStatus] = useState<FilterKey>("new");
+  const [appealStatus, setAppealStatus] = useState<AppealFilterKey>("new");
   const qc = useQueryClient();
 
   const listReportsFn = useServerFn(listReports);
   const listEntitiesFn = useServerFn(listEntities);
+  const listAppealsFn = useServerFn(listReputationAppeals);
   const moderateFn = useServerFn(moderateReport);
+  const resolveAppealFn = useServerFn(resolveReputationAppeal);
   const statsFn = useServerFn(adminStats);
 
   useEffect(() => {
@@ -63,12 +70,29 @@ function AdminPage() {
     enabled: !!user && isAdmin,
     queryFn: () => listEntitiesFn({ data: { status: "all" } }),
   });
+  const appeals = useQuery({
+    queryKey: ["admin-appeals", appealStatus],
+    enabled: !!user && isAdmin,
+    queryFn: () => listAppealsFn({ data: { status: appealStatus } }),
+  });
 
   const moderate = useMutation({
     mutationFn: (v: { reportId: string; decision: "confirmed" | "rejected" }) =>
       moderateFn({ data: { ...v, riskLevel: "high_risk" } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-reports"] });
+      qc.invalidateQueries({ queryKey: ["admin-entities"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+  });
+  const resolveAppeal = useMutation({
+    mutationFn: (v: {
+      appealId: string;
+      decision: "remove_reputation" | "keep_reputation";
+      note?: string;
+    }) => resolveAppealFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-appeals"] });
       qc.invalidateQueries({ queryKey: ["admin-entities"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
@@ -134,6 +158,7 @@ function AdminPage() {
               onClick={() => {
                 qc.invalidateQueries({ queryKey: ["admin-reports"] });
                 qc.invalidateQueries({ queryKey: ["admin-entities"] });
+                qc.invalidateQueries({ queryKey: ["admin-appeals"] });
                 qc.invalidateQueries({ queryKey: ["admin-stats"] });
               }}
               className="apex-btn-outline inline-flex items-center gap-2"
@@ -151,11 +176,12 @@ function AdminPage() {
       </div>
 
       {/* Stats — hairline grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
         <Stat label="Новые жалобы" value={stats.data?.reports_new} highlight />
         <Stat label="Подтверждено" value={stats.data?.reports_confirmed} />
         <Stat label="Сущностей в базе" value={stats.data?.entities_confirmed} />
         <Stat label="Всего проверок" value={stats.data?.checks_total} />
+        <Stat label="Апелляции" value={stats.data?.appeals_new} />
       </div>
 
       {/* Reports */}
@@ -244,10 +270,117 @@ function AdminPage() {
         </div>
       </section>
 
+      {/* Reputation Appeals */}
+      <section className="apex-card apex-frame apex-stripes">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
+          <div>
+            <p className="label-md mb-2">02 — Апелляции</p>
+            <h2 className="apex-h2">Исправление репутации</h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
+              Если апелляция обоснована, снимайте публичную метку. Жалобы остаются в истории
+              модерации, но сущность перестаёт отображаться как подтверждённая.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {APPEAL_FILTERS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setAppealStatus(s)}
+                aria-pressed={appealStatus === s}
+                className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
+                  appealStatus === s
+                    ? "bg-[#0B0B0F] text-white border-[#0B0B0F]"
+                    : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
+                }`}
+              >
+                {labelStatus(s)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {appeals.isLoading && (
+          <p className="apex-mono inline-flex items-center gap-2 text-[#52525B]">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> ЗАГРУЗКА…
+          </p>
+        )}
+        {appeals.data?.length === 0 && (
+          <p className="apex-mono text-[#71717A]">— ПУСТО. НЕТ АПЕЛЛЯЦИЙ —</p>
+        )}
+
+        <div className="grid grid-cols-1 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] mt-1">
+          {appeals.data?.map((a) => (
+            <div key={a.id} className="bg-white/90 backdrop-blur-[4px] p-5 sm:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
+                      {a.target_type}
+                    </span>
+                    <code className="text-[13px] font-mono text-[#18181B] break-all">
+                      {a.target_display}
+                    </code>
+                    <StatusBadge status={a.status} />
+                    {a.contact_display && (
+                      <span className="apex-mono text-[#71717A]">
+                        · контакт: {a.contact_display}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                    {a.reason}
+                  </p>
+                  {a.resolution && (
+                    <p className="mt-3 rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] px-3 py-2 text-[13px] leading-relaxed text-[#52525B]">
+                      Решение: {a.resolution}
+                    </p>
+                  )}
+                  <p className="mt-3 apex-mono text-[#A1A1AA]">
+                    {new Date(a.created_at).toLocaleString()}
+                  </p>
+                </div>
+                {(a.status === "new" || a.status === "reviewing") && (
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={resolveAppeal.isPending}
+                      onClick={() =>
+                        resolveAppeal.mutate({
+                          appealId: a.id,
+                          decision: "remove_reputation",
+                          note: "Public reputation removed after appeal review.",
+                        })
+                      }
+                      className="apex-btn-outline inline-flex items-center gap-1.5"
+                    >
+                      <Check className="h-3.5 w-3.5" aria-hidden="true" /> Снять метку
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resolveAppeal.isPending}
+                      onClick={() =>
+                        resolveAppeal.mutate({
+                          appealId: a.id,
+                          decision: "keep_reputation",
+                          note: "Appeal rejected after moderator review.",
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#0B0B0F] text-white apex-mono hover:bg-[#27272A] transition-colors disabled:opacity-50"
+                    >
+                      <X className="h-3.5 w-3.5" aria-hidden="true" /> Оставить
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Entities */}
       <section className="apex-card apex-frame apex-stripes">
         <div className="mb-6 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
-          <p className="label-md mb-2">02 — База</p>
+          <p className="label-md mb-2">03 — База</p>
           <h2 className="apex-h2">База сущностей</h2>
         </div>
         <div className="overflow-x-auto -mx-2 sm:mx-0">
@@ -388,10 +521,14 @@ function StatusBadge({ status }: { status: string }) {
 function labelStatus(s: string) {
   return (
     (
-      { new: "Новые", confirmed: "Подтверждено", rejected: "Отклонено", all: "Все" } as Record<
-        string,
-        string
-      >
+      {
+        new: "Новые",
+        reviewing: "На проверке",
+        confirmed: "Подтверждено",
+        resolved: "Решено",
+        rejected: "Отклонено",
+        all: "Все",
+      } as Record<string, string>
     )[s] ?? s
   );
 }

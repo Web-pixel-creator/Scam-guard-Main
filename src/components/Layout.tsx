@@ -95,6 +95,9 @@ export function Footer() {
           <Link to="/emergency" className="hover:text-[#18181B] transition-colors">
             {t("nav_emergency", lang)}
           </Link>
+          <Link to="/appeal" className="hover:text-[#18181B] transition-colors">
+            {t("nav_appeal", lang)}
+          </Link>
           <Link to="/official-numbers" className="hover:text-[#18181B] transition-colors">
             {{ ru: "Номера", uz: "Raqamlar", en: "Numbers" }[lang]}
           </Link>
