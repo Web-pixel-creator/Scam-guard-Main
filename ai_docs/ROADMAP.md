@@ -63,9 +63,8 @@ Already shipped:
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call
-   runbook. This needs an explicit operator/ops chat id; do not infer it from
-   ordinary Telegram sessions.
+2. Operator Telegram alerts are configured; document the lightweight on-call
+   runbook before broader launch.
 3. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
 
@@ -126,7 +125,7 @@ Disallowed claims:
 
 ## Stage 2 - Telegram-First Wow Features
 
-1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code; requires BotFather inline mode to be enabled.
+1. Inline check in any Telegram chat: `@scamguard_bot <number/link/text>` - shipped in code and BotFather inline mode enabled on 2026-06-14.
 2. Live-call copilot polish: one step at a time, fewer buttons, "what to say" and "call safely" actions - shipped as v1.
 3. Family Shield: trusted contact setup; high-risk result can notify a relative with one tap. v1 and v1.1 hardening are shipped.
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users - shipped as v1.

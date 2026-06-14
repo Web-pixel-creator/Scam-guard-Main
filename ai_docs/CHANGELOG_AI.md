@@ -12,10 +12,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Telegram `getMe`, and AI provider probe were green.
 - Production AI is currently configured as `gemini-3.5-flash`; the provider
   probe returned `200` during this verification.
-- `MONITOR_ALERT_CHAT_ID` is still not configured in Railway or GitHub Secrets.
-  It requires an explicit operator/ops chat id, not a guessed user id.
-- Inline check code is shipped and tested, but Telegram inline mode still needs
-  the BotFather `/setinline` operational switch.
+- `MONITOR_ALERT_CHAT_ID` is configured in Railway and GitHub Secrets, and a
+  direct Telegram alert test returned `ok: true`.
+- Inline check code is shipped and tested; BotFather inline mode was enabled
+  with the RU placeholder `Введите номер, ссылку или текст для проверки`.
 
 ## 2026-06-13 - Website Honest Impact Counters v1
 
