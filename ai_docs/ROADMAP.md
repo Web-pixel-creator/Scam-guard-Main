@@ -63,7 +63,9 @@ Already shipped:
 Immediate hardening order before new large features:
 
 1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call runbook.
+2. Add `MONITOR_ALERT_CHAT_ID` for operator alerts, then document the on-call
+   runbook. This needs an explicit operator/ops chat id; do not infer it from
+   ordinary Telegram sessions.
 3. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
 

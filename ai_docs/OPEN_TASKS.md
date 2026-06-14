@@ -26,7 +26,7 @@
 - [x] ~~Add production monitor script for app/webhook/Telegram/AI failures.~~ Done as `npm run monitor:prod` with optional sanitized Telegram alerts.
 - [x] ~~Attach the production monitor to a real scheduler for public checks.~~ Done as `.github/workflows/prod-monitor.yml` every 30 minutes.
 - [x] ~~Add production GitHub secrets for deeper scheduled monitor checks.~~ Done for `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` and `OPENAI_MODEL`; manual GitHub Actions monitor run passed with webhook/Telegram/AI checks.
-- [ ] Add `MONITOR_ALERT_CHAT_ID` (and optional `MONITOR_ALERT_BOT_TOKEN`) for sanitized Telegram operator alerts.
+- [ ] Add `MONITOR_ALERT_CHAT_ID` (and optional `MONITOR_ALERT_BOT_TOKEN`) for sanitized Telegram operator alerts. As of 2026-06-14, Railway and GitHub Secrets do not have the alert chat id; do not infer it from ordinary Telegram sessions.
 - [x] ~~Add official-number lookalike detection after Family Shield/webhook hardening.~~ Done: near-miss phone/short-code checks compare against verified contacts and render "similar but not exact" guidance without changing scoring.
 - [x] ~~Polish live-call copilot after official-number lookalikes.~~ Done:
       active-call buttons now focus on hangup first, safe callback appears after
@@ -45,6 +45,8 @@
       survey totals without exposing private reports or unsupported savings
       claims.~~ Done as Website Honest Impact Counters v1 with aggregate-only
       checks, risk alerts, moderated records and user-reported loss wording.
+      Production migration `20260613182647_honest_impact_counters_v1` was
+      applied on 2026-06-14 and `get_check_stats()` was verified.
 - [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
@@ -56,11 +58,12 @@
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [x] ~~Add honest phone intelligence before reputation claims.~~ Done in Phone Intelligence Passport v1: country/calling-code, Uzbekistan prefix/operator hints and official-directory status without owner/scam-label inference.
 - [x] ~~Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.~~ Minimal v1 shipped using confirmed `entities` rows only: Telegram shows Ishonch Guard moderated report count + confidence, while owner/carrier/hidden-label claims stay forbidden.
-- [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews; BotFather `/setinline` still must be enabled operationally.
+- [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews.
+- [ ] Enable BotFather inline mode for `@scamguard_bot` with `/setinline` and a short RU placeholder such as `Введите номер, ссылку или текст для проверки`.
 - [x] ~~Add Telegram voice-note STT for elderly/stressed users.~~ Short voice notes are transcribed in memory, redacted and checked by the same rules pipeline; failure falls back to a typed-summary prompt with emergency actions.
 - [ ] Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.
 - [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
-- [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Current Gemini `gemini-3.5-flash` production probe can return provider quota `429`; the app degrades to rules-only scoring, but reliable AI explanations/OCR need billing/credits or an `OPENAI_FALLBACK_*` provider.
+- [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.
 
 ## Research feed
 

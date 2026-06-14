@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-14 - Production operational follow-up
+
+- Applied Supabase migration `20260613182647_honest_impact_counters_v1` to the
+  linked production project and verified `get_check_stats()` returns the new
+  aggregate-only impact fields.
+- Railway `prod:smoke` and `monitor:prod` passed against
+  `https://scam-guard-main-production.up.railway.app`; Telegram webhook health,
+  Telegram `getMe`, and AI provider probe were green.
+- Production AI is currently configured as `gemini-3.5-flash`; the provider
+  probe returned `200` during this verification.
+- `MONITOR_ALERT_CHAT_ID` is still not configured in Railway or GitHub Secrets.
+  It requires an explicit operator/ops chat id, not a guessed user id.
+- Inline check code is shipped and tested, but Telegram inline mode still needs
+  the BotFather `/setinline` operational switch.
+
 ## 2026-06-13 - Website Honest Impact Counters v1
 
 - Added `.kiro/specs/website-honest-impact-counters-v1/`.
