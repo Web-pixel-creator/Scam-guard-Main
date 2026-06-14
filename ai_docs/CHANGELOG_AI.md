@@ -19,6 +19,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Applied the production migration and verified the table exists with RLS
   enabled, a service-role-only policy and no direct `anon`/`authenticated`
   table grants.
+- Railway deployment `51bbcd7c-1c5c-4d70-89a3-50733674adaa` passed public
+  `/appeal` HTTP smoke, `prod:security-smoke`, `prod:smoke`,
+  `prod:family-smoke` and `monitor:prod`.
 
 ## 2026-06-14 - Bot Safety Firewall v1
 

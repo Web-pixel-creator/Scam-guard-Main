@@ -7,4 +7,4 @@
 - [x] Add audit log insertion for appeal decisions.
 - [x] Add docs and roadmap updates.
 - [x] Apply production migration.
-- [ ] Run production smoke after deploy.
+- [x] Run production smoke after deploy.
