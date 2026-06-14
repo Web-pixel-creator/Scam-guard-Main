@@ -159,6 +159,6 @@ Signatures and intent only. See file paths for source.
   synthetic rows remain.
 - `scripts/prod-security-smoke.ts`: one-shot production RLS/security smoke test.
   It verifies anon cannot read/write sensitive tables, including
-  `telegram_webhook_updates` and `rate_limit_buckets`, or execute
-  maintenance/stat/rate-limit RPCs, while service-role can count required
-  tables and execute stats/rate-limit claims.
+  `reputation_appeals`, `telegram_webhook_updates` and `rate_limit_buckets`, or
+  execute maintenance/stat/rate-limit RPCs, while service-role can count
+  required tables and execute stats/rate-limit claims.

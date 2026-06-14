@@ -130,6 +130,12 @@ async function main(): Promise<void> {
   );
   await expectNoRowsOrDenied(
     anon,
+    "anon cannot read reputation_appeals",
+    "reputation_appeals",
+    "id,target_hash,contact_hash,reason",
+  );
+  await expectNoRowsOrDenied(
+    anon,
     "anon cannot read telegram_webhook_updates",
     "telegram_webhook_updates",
     "update_id",
@@ -191,6 +197,12 @@ async function main(): Promise<void> {
     description: "security smoke report payload",
     language: "ru",
   });
+  await expectInsertDenied(anon, "anon cannot insert reputation_appeals", "reputation_appeals", {
+    target_type: "telegram",
+    target_hash: "security-smoke",
+    target_display: "@security_smoke",
+    reason: "security smoke appeal payload",
+  });
 
   const { error: anonPruneError } = await anon.rpc("prune_telegram_sessions");
   record(
@@ -228,6 +240,11 @@ async function main(): Promise<void> {
     service,
     "service can count telegram_family_shield",
     "telegram_family_shield",
+  );
+  await expectServiceCanCount(
+    service,
+    "service can count reputation_appeals",
+    "reputation_appeals",
   );
   await expectServiceCanCount(
     service,

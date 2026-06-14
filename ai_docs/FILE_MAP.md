@@ -111,4 +111,4 @@ Production smoke scripts:
 - `prod-smoke.ts`: public app, `/healthz`, webhook auth, Telegram pending state and AI provider.
 - `prod-monitor.ts`: recurring public app/webhook/AI monitor with optional sanitized Telegram alerting.
 - `prod-family-shield-smoke.ts`: synthetic Family Shield invite/accept/notify/revoke/cleanup.
-- `prod-security-smoke.ts`: RLS/security checks for sensitive tables, shared rate-limit buckets and maintenance/stat/rate-limit RPC access.
+- `prod-security-smoke.ts`: RLS/security checks for sensitive tables, reputation appeals, shared rate-limit buckets and maintenance/stat/rate-limit RPC access.
