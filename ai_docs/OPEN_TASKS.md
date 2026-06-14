@@ -7,7 +7,7 @@
   in-memory fast path plus service-role claims in `telegram_webhook_updates`, so
   Telegram retries are deduped across Node instances. If Supabase is temporarily
   unavailable, it fails open to local dedup so user messages are not dropped.
-- **Retention cleanup is explicit, not scheduled.** `private.prune_app_retention()` defines the current windows and returns deletion counts, but no cron runs it yet.
+- **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate limit is shipped.** Public checks, reports, Telegram check/OCR/image
   paths and public Telegram post fetches use Supabase `rate_limit_buckets` with
   HMAC-hashed keys across Node instances. Local/test fallback remains
@@ -48,7 +48,7 @@
       checks, risk alerts, moderated records and user-reported loss wording.
       Production migration `20260613182647_honest_impact_counters_v1` was
       applied on 2026-06-14 and `get_check_stats()` was verified.
-- [ ] Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.
+- [x] ~~Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.~~ Done on 2026-06-14 with Supabase/Postgres Cron job `ishonch_prune_app_retention_daily`.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
@@ -98,5 +98,5 @@ Completed research-feed themes now covered by deterministic rules:
 ## Compliance / legal
 
 - [ ] Review UZ personal-data law for `redacted_value`, `description`, `amount_lost_uzs`, `city`.
-- [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.~~ Implemented as explicit `private.prune_app_retention()` cleanup windows; scheduling remains a separate decision.
+- [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.~~ Implemented as `private.prune_app_retention()` cleanup windows and scheduled through Supabase/Postgres Cron on 2026-06-14.
 - [ ] Moderation guidelines + admin audit log.

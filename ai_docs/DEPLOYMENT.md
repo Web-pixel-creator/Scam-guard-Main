@@ -130,9 +130,11 @@ After DB/RLS migrations, run:
 railway run npm run prod:security-smoke
 ```
 
-Retention cleanup is explicit, not scheduled. The migration creates
-`private.prune_app_retention()`, but no rows are deleted until a trusted
-operator or future maintenance job runs it.
+Retention cleanup runs through Supabase/Postgres Cron job
+`ishonch_prune_app_retention_daily` at `17 20 * * *` (daily 20:17 UTC). The job
+executes `select private.prune_app_retention();` and deletes only rows eligible
+under the documented retention windows. After changing retention SQL, verify the
+job still exists and then run `prod:security-smoke`.
 
 Shared public rate limits are stored in `rate_limit_buckets` through the
 service-role-only `claim_rate_limit()` RPC. `HASH_PEPPER_SECRET` is required in

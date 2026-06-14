@@ -4,6 +4,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-06-14 - Production operational follow-up
 
+- Added Supabase migration `20260614064831_schedule_retention_cleanup_v1` to
+  enable `pg_cron` and schedule `ishonch_prune_app_retention_daily` at
+  `17 20 * * *` (daily 20:17 UTC).
+- Verified the production cron job exists exactly once and is active, then ran
+  `prod:security-smoke`, `prod:smoke` and `monitor:prod` successfully.
 - Applied Supabase migration `20260613182647_honest_impact_counters_v1` to the
   linked production project and verified `get_check_stats()` returns the new
   aggregate-only impact fields.

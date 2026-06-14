@@ -136,9 +136,10 @@ Emails that become admin on signup. Managed by SQL/service-role only.
 
 ## Retention windows
 
-Retention cleanup is explicit, not automatic. Run
-`select private.prune_app_retention();` only from a trusted SQL/maintenance
-context after reviewing the expected policy.
+Retention cleanup is scheduled through Supabase/Postgres Cron job
+`ishonch_prune_app_retention_daily` at `17 20 * * *` (daily 20:17 UTC). The job
+runs `select private.prune_app_retention();` and deletes only rows eligible
+under the windows below.
 
 - `checks`: 90 days.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.

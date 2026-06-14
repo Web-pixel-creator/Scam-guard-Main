@@ -62,10 +62,10 @@ Already shipped:
 
 Immediate hardening order before new large features:
 
-1. Schedule retention cleanup only after legal/compliance review confirms the current windows.
-2. Operator Telegram alerts and the lightweight on-call runbook are configured.
-3. Watch shared Postgres rate-limit behavior under real traffic; consider
+1. Watch shared Postgres rate-limit behavior under real traffic; consider
    Redis/KV only if bucket writes become a bottleneck.
+2. Draft phone reputation appeal/removal rules before broader public launch.
+3. Keep retention/on-call monitor checks in the regular production smoke loop.
 
 Next visible "wow" feature after stabilization:
 
