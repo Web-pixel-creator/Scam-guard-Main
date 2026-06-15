@@ -17,19 +17,19 @@ describe("/start main menu inline buttons", () => {
     const { keyboard } = formatWelcome(lang);
 
     expect(keyboard).toBeDefined();
-    expect(keyboard).toHaveLength(4);
-    expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2, 2]);
+    expect(keyboard).toHaveLength(5);
+    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 1]);
 
     const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
     expect(callbackDataValues).toEqual([
-      CB.checkAnother,
       CB.emergency,
+      CB.checkAnother,
+      CB.familyMenu,
+      CB.digest,
       CB.report,
       CB.safety,
-      CB.showLang,
       CB.howItWorks,
-      CB.digest,
-      CB.familyMenu,
+      CB.showLang,
     ]);
   });
 
@@ -54,7 +54,7 @@ describe("/start main menu inline buttons", () => {
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-      expect(keyboard.map((row) => row.length)).toEqual([2, 2, 2, 2]);
+      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 1]);
     }
   });
 });

@@ -15,15 +15,18 @@ Telegram's built-in command menu cannot be styled beyond command descriptions. T
 
 ### R2. Inline Actions
 
-1. THE main menu SHALL show six inline actions in a two-column layout:
-   - Check
-   - Emergency help
+1. THE main menu SHALL show eight quick actions:
+   - Help now
+   - New check
+   - Trusted helper
+   - Weekly scams
    - Report an incident
    - Safety rules
+   - How I decide
    - Change language
-   - How it works
-2. THE emergency action SHALL be visually prominent through the 🆘 emoji.
-3. Existing callback data for check, report, and emergency SHALL remain unchanged.
+2. THE emergency action SHALL be a full-width first-row button and SHALL be visually prominent through the 🆘 emoji.
+3. THE remaining actions SHALL be grouped by user intent: check/support, learn/report, safety/explanation, and language.
+4. Existing callback data for check, report, emergency, digest, family, safety, how-it-works, and language SHALL remain unchanged.
 
 ### R3. Language Picker
 

@@ -19,9 +19,9 @@ type BotDict = Record<string, { ru: string; uz: string; en: string }>;
 export const bot_dict: BotDict = {
   // ── /start: greeting + capabilities (R1.1, R1.5) ──────────────────────────
   welcome: {
-    ru: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nПроверю номер, ссылку, скриншот или сообщение и подскажу безопасный следующий шаг.\n\nВыберите действие:",
-    uz: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nRaqam, havola, skrinshot yoki xabarni tekshiraman va xavfsiz keyingi qadamni aytaman.\n\nHarakatni tanlang:",
-    en: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nI can check a number, link, screenshot, or message and suggest a safe next step.\n\nChoose an action:",
+    ru: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nЯ рядом: помогу спокойно проверить номер, ссылку, username, скриншот, голосовое или сообщение.\n\nЕсли уже сообщили код, установили APK, переводите деньги или вам звонят прямо сейчас — нажмите «Помощь сейчас».",
+    uz: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nMen yoningizdaman: raqam, havola, username, skrinshot, ovozli xabar yoki matnni xotirjam tekshirishga yordam beraman.\n\nAgar kod yuborgan, APK o'rnatgan, pul o'tkazayotgan bo'lsangiz yoki hozir qo'ng'iroq qilishayotgan bo'lsa — «Hozir yordam»ni bosing.",
+    en: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nI am with you: send a number, link, username, screenshot, voice note, or message and I will help you choose a safe next step.\n\nIf you already sent a code, installed an APK, are transferring money, or someone is calling right now — tap “Help now”.",
   },
 
   // Prompt shown when asking the user to pick/switch a language (R2.1) ────────
@@ -450,19 +450,19 @@ export const bot_dict: BotDict = {
 
   // ── Quick action buttons (welcome screen) ─────────────────────────────────
   btn_quick_check: {
-    ru: "Проверить",
-    uz: "Tekshirish",
-    en: "Check",
+    ru: "Проверить новое",
+    uz: "Yangi tekshiruv",
+    en: "New check",
   },
   btn_quick_report: {
-    ru: "Сообщить",
-    uz: "Xabar berish",
-    en: "Report",
+    ru: "Сообщить случай",
+    uz: "Holatni yuborish",
+    en: "Report case",
   },
   btn_quick_panic: {
-    ru: "Экстренная помощь",
-    uz: "Shoshilinch yordam",
-    en: "Emergency",
+    ru: "Помощь сейчас",
+    uz: "Hozir yordam",
+    en: "Help now",
   },
   btn_quick_safety: {
     ru: "Правила",
@@ -475,9 +475,9 @@ export const bot_dict: BotDict = {
     en: "Language",
   },
   btn_quick_how: {
-    ru: "Как работает",
-    uz: "Qanday ishlaydi",
-    en: "How it works",
+    ru: "Как я решаю",
+    uz: "Qanday tekshiraman",
+    en: "How I decide",
   },
   btn_quick_digest: {
     ru: "Схемы недели",
@@ -558,9 +558,9 @@ export const bot_dict: BotDict = {
 
   // ── Family Shield v1 ─────────────────────────────────────────────────────
   btn_quick_family: {
-    ru: "Близкий",
+    ru: "Близкий рядом",
     uz: "Yaqin kishi",
-    en: "Trusted person",
+    en: "Trusted helper",
   },
   btn_notify_trusted: {
     ru: "👪 Позвать близкого",

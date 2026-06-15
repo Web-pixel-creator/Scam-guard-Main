@@ -578,14 +578,14 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
-      CB.checkAnother,
       CB.emergency,
+      CB.checkAnother,
+      CB.familyMenu,
+      CB.digest,
       CB.report,
       CB.safety,
-      CB.showLang,
       CB.howItWorks,
-      CB.digest,
-      CB.familyMenu,
+      CB.showLang,
     ]);
   });
 

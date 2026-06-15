@@ -13,7 +13,7 @@ The in-chat menu reuses the existing `formatWelcome` function so `/start` and `/
 
 1. Add `/menu` to the router command set.
 2. Extend `CB` with callback values for `show_lang`, `safety`, and `how_it_works`.
-3. Update `formatWelcome` to render a two-column quick-action keyboard.
+3. Update `formatWelcome` to render an action-hub keyboard: first-row emergency help, then grouped quick actions.
 4. Update command handling so `/start` and `/menu` call `formatWelcome`.
 5. Update callback handling:
    - `show_lang` sends the language picker.
@@ -24,18 +24,17 @@ The in-chat menu reuses the existing `formatWelcome` function so `/start` and `/
 
 Existing callback data remains stable:
 
-- `check_another`
-- `report`
 - `emergency`
+- `check_another`
+- `family:menu`
+- `digest`
+- `report`
+- `safety`
+- `how_it_works`
+- `show_lang`
 - `lang:ru`
 - `lang:uz`
 - `lang:en`
-
-New callback data:
-
-- `show_lang`
-- `safety`
-- `how_it_works`
 
 ## Error Handling
 

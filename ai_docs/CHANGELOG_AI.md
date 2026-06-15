@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Telegram Main Menu UX v2
+
+- Updated `.kiro/specs/telegram-main-menu-ux/` to match the current eight-action
+  Telegram main menu.
+- `/start` and `/menu` now present the in-chat menu as an action hub: emergency
+  help is the first full-width action, while new check, Family Shield, weekly
+  schemes, reports, safety, explanation and language are grouped below it.
+- Clarified quick-action labels so users understand that "new check" starts a
+  fresh number/link/text/screenshot check instead of repeating the previous
+  result.
+
 ## 2026-06-14 - Report Screenshot Evidence v1
 
 - Added `.kiro/specs/report-screenshot-evidence-v1/`.

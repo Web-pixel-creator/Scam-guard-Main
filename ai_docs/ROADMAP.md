@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-13.
+Last updated: 2026-06-15.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -61,6 +61,9 @@ Already shipped:
   wording and no public raw report data.
 - Reputation Appeals v1: public `/appeal` correction path, privacy-safe
   appeal queue, admin remove/keep decision and audit logging.
+- Telegram Main Menu UX v2: `/start` and `/menu` now behave as an action hub
+  with a full-width emergency entry first, clearer "new check" wording and
+  grouped quick actions for Family Shield, weekly schemes, reports and safety.
 
 Immediate hardening order before new large features:
 
