@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Roadmap correction after Risk Passport feedback
+
+- Promoted Unified Risk Passport v1 to the next implementation task after
+  Website Embed Widget v1.
+- Added `.kiro/specs/risk-passport-v1/` with requirements, design and tasks.
+- Reordered near-term work around the latest Telegram UX feedback: Risk
+  Passport v1, SOS ready phrase fixes, direct `/call`, new SOS scenarios,
+  Guardian Angel, Voice-out/TTS, external URL signals and then public website
+  trust surfaces.
+- Reconfirmed the product boundary: do not copy MTProto-style hidden Telegram
+  facts such as account age, hidden scam labels, DC/country or spam history.
+
 ## 2026-06-15 - Website Embed Widget v1
 
 - Added `.kiro/specs/website-embed-widget-v1/`.

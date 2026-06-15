@@ -20,6 +20,31 @@
 
 ## Near-term product tasks
 
+- [ ] Add Unified Risk Passport v1 for username and phone checks. This is the
+      next implementation task after Website Embed Widget v1. It must replace
+      generic "not enough data" cards for shallow username/phone checks with a
+      compact passport: visible facts, unavailable Telegram/Bot API facts,
+      Ishonch Guard confirmed-report count, official-directory match status,
+      the next useful evidence to send and the best contextual button.
+- [ ] Fix SOS ready phrases so they match the active emergency scenario instead
+      of defaulting to bank/call wording. Cover romance scam, blackmail/minors,
+      fake job/easy money, AI voice-clone family scam, fake delivery/top-up,
+      crypto/TON/card and government-grant situations.
+- [ ] Add direct `/call` live-call entrypoint. Reuse the shipped live-call
+      copilot, but start from one screen with one primary action: "I hung up".
+- [ ] Add new SOS scenarios for AI voice-clone, romance scam, fake job/easy
+      money, fake delivery/top-up, crypto/TON/card and government grant.
+- [ ] Add Guardian Angel v1 after high-risk results: one safe step at a time,
+      trusted-contact help and optional follow-up, without storing raw evidence.
+- [ ] Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak SMS
+      codes, card numbers, seed phrases or other secrets back to the user.
+- [ ] Add external URL signals as additive checks: Google Safe Browsing first,
+      then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.
+- [ ] Add public living-experience stories page after moderation/compliance
+      wording is reviewed. Use anonymized tactics and lessons, not public
+      accusations against unverified people.
+- [ ] Add scam-call trainer as the next viral/education website surface after
+      the current bot safety polish.
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
 - [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done first as an in-memory LRU, then upgraded to shared Postgres `telegram_webhook_updates` claims for multi-instance safety.
 - [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.

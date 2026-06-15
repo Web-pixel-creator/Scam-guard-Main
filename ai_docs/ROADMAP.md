@@ -79,19 +79,45 @@ Already shipped:
   and `/embed/check` renders a compact partner-site checker that reuses the
   existing server-side check pipeline.
 
-Immediate hardening order before new large features:
+Immediate implementation order after the 2026-06-15 product feedback:
 
-1. Watch shared Postgres rate-limit behavior under real traffic; consider
-   Redis/KV only if bucket writes become a bottleneck.
-2. Keep Reputation Appeals v1 decisions in the regular moderation review loop;
-   production migration is applied and service-role-only access is verified.
-3. Keep retention/on-call monitor checks in the regular production smoke loop.
+1. **Unified Risk Passport v1.** This is the next task. The shipped Telegram
+   passport copy/phone polish work is useful, but not enough: username and
+   number checks must consistently render a compact "passport" instead of a
+   generic "not enough data" card. It must show visible facts, Bot API limits,
+   Ishonch Guard confirmed-report counts, exact official-directory matches,
+   what to send next, and which button fits the situation.
+2. **SOS Ready Phrase Fix.** Ready phrases must be context-specific. Bank
+   callback wording is wrong for romance scams, blackmail, minors, fake jobs,
+   voice-clone family scams and delivery/top-up scams.
+3. **Live-call `/call`.** The existing live-call copilot is shipped inside
+   emergency flows, but a direct `/call` command should open a one-screen
+   "someone is calling me right now" flow with one primary button: "I hung up".
+4. **New SOS scenarios.** Add AI voice-clone, romance scam, fake job/easy
+   money, fake delivery/top-up, crypto/TON/card and government-grant scenarios.
+5. **Guardian Angel v1.** After high-risk results, the bot should not end the
+   conversation; it should guide the user through one safe step at a time,
+   offer trusted-contact help, and optionally follow up later.
+6. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
+   guidance, not only read it. This must be opt-in and never speak secrets back.
+7. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
+   line-type/VoIP providers stay optional and paid.
+8. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
+   website features should be public living-experience stories, a scam-call
+   trainer, and later a scam map/index, all using aggregated or moderated data.
 
-Next visible "wow" feature after stabilization:
+Operational hardening that continues in parallel:
 
-- Public "living experience" stories page after moderation/compliance wording
-  is reviewed, or a scam-call trainer if we want a viral education surface
-  before broader reputation growth.
+- Watch shared Postgres rate-limit behavior under real traffic; consider
+  Redis/KV only if bucket writes become a bottleneck.
+- Keep Reputation Appeals v1 decisions in the regular moderation review loop;
+  production migration is applied and service-role-only access is verified.
+- Keep retention/on-call monitor checks in the regular production smoke loop.
+
+Important boundary: do not copy MTProto-style account-age, hidden scam-label,
+DC/country or private spam-history claims from third-party Telegram tools. Our
+"wow" must come from an honest risk passport, moderated app-owned reports,
+official sources and scenario rescue flows.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -152,6 +178,10 @@ Disallowed claims:
 4. Voice messages: voice -> STT -> existing rules pipeline, especially for elderly users - shipped as v1.
 5. Weekly scam digest from the research feed: shipped as Telegram v1; later can
    be automated from moderated aggregate trends.
+6. Unified Risk Passport v1 for username/phone checks - next.
+7. Direct `/call` live-call entrypoint - next after SOS phrase cleanup.
+8. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
+9. Voice-out / TTS v1 for short opt-in safety answers.
 
 ## Stage 3 - Website Trust And Distribution
 
@@ -159,7 +189,10 @@ Disallowed claims:
 2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data - shipped as Website Public Scheme Trends v1.
 3. Honest impact counters: checks, dangerous results, user-reported loss totals - shipped as Website Honest Impact Counters v1.
 4. Embeddable check widget for media, banks and community sites - shipped as v1.
-5. "Verified by Ishonch Guard" badge only after manual moderation.
+5. Public living-experience stories page: moderated, anonymized scam tactics and lessons.
+6. Scam-call trainer: interactive education flow that people can share.
+7. Scam map/index: aggregated trend surface only after data/compliance review.
+8. "Verified by Ishonch Guard" badge only after manual moderation.
 
 ## Stage 4 - Reliability And Security
 
