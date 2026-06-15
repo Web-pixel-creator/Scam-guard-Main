@@ -99,10 +99,21 @@ export async function enrichTelegramPublicMetadata(
   const brief = buildTelegramPublicMetadataBrief(metadata, lang, result);
   if (!brief) return result;
 
+  const shouldAppendOriginal = shouldAppendOriginalTelegramExplanation(result);
+
   return {
     ...result,
-    explanation: result.explanation ? `${brief}\n\n${result.explanation}` : brief,
+    explanation: shouldAppendOriginal ? `${brief}\n\n${result.explanation}` : brief,
   };
+}
+
+const LOW_SIGNAL_TELEGRAM_REASONS = new Set<ReasonCode>(["unknown_sender", "new_telegram_account"]);
+
+function shouldAppendOriginalTelegramExplanation(result: RunCheckResult): boolean {
+  if (!result.explanation) return false;
+  if (result.level === "suspicious" || result.level === "high_risk") return true;
+  if (result.knownReports > 0) return true;
+  return result.reasons.some((reason) => !LOW_SIGNAL_TELEGRAM_REASONS.has(reason));
 }
 
 export function buildTelegramPublicMetadataBrief(
@@ -154,34 +165,34 @@ function foundBrief(
   const postPart = postLimitationText(postId, lang);
 
   if (lang === "uz") {
-    return `Telegram pasport @${username}:\n• Ko'rinadi: ${label}${titlePart}${accessPart}.\n• Ko'rinmaydi: akkaunt yoshi, yashirin SCAM belgisi, Telegram shikoyatlari va kimga yozgani.\nXulosa: bu xavfsizlik kafolati emas; eng muhimi — undan sizdan nima so'ralyapti.${postPart}`;
+    return `📋 Telegram pasport: @${username}\n\n👁 Ko'rinadi\n• ${label}${titlePart}${accessPart}\n\n🚫 Ko'rinmaydi\n• akkaunt yoshi, yashirin SCAM belgisi, Telegram shikoyatlari va kimga yozgani\n\n📌 Xulosa\nBu xavfsizlik kafolati emas. Muhimi — sizdan nima so'ralyapti.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram passport @${username}:\n• Visible: ${label}${titlePart}${accessPart}.\n• Not visible: account age, hidden SCAM labels, Telegram reports, or who they messaged.\nConclusion: this is not a safety guarantee; the key is what they ask you to do.${postPart}`;
+    return `📋 Telegram passport: @${username}\n\n👁 Visible\n• ${label}${titlePart}${accessPart}\n\n🚫 Not visible\n• account age, hidden SCAM labels, Telegram reports, or who they messaged\n\n📌 Bottom line\nThis is not a safety guarantee. The key is what they ask you to do.${postPart}`;
   }
-  return `Telegram-паспорт @${username}:\n• Видно: ${label}${titlePart}${accessPart}.\n• Недоступно: возраст аккаунта, скрытая SCAM-метка, жалобы Telegram и кому он писал.\nВывод: это не гарантия безопасности; важно, что именно он просит сделать.${postPart}`;
+  return `📋 Telegram-паспорт: @${username}\n\n👁 Что видно\n• ${label}${titlePart}${accessPart}\n\n🚫 Что недоступно\n• возраст аккаунта, скрытая SCAM-метка, жалобы Telegram и кому он писал\n\n📌 Вывод\nЭто не гарантия безопасности. Главное — что именно он просит сделать.${postPart}`;
 }
 
 function notFoundBrief(username: string, lang: Lang, postId?: string): string {
   const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram pasport @${username}:\n• Bot API bu username'ni ko'rsatmayapti. Bu scam isboti emas.\n• Ko'rinmaydi: yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani.\nXulosa: bitta username bo'yicha «xavfsiz» yoki «scam» deb halol aytib bo'lmaydi.${postPart}`;
+    return `📋 Telegram pasport: @${username}\n\n👁 Ko'rinadi\n• Bot API bu username'ni ko'rsatmayapti\n• Bu scam isboti emas\n\n🚫 Ko'rinmaydi\n• yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani\n\n📌 Xulosa\nBitta username bo'yicha «xavfsiz» yoki «scam» deb halol aytib bo'lmaydi.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram passport @${username}:\n• The Bot API cannot see this username. This is not proof of a scam.\n• Not visible: hidden SCAM labels, account age, Telegram reports, or who they messaged.\nConclusion: a username alone cannot honestly prove “safe” or “scam”.${postPart}`;
+    return `📋 Telegram passport: @${username}\n\n👁 Visible\n• The Bot API cannot see this username\n• This is not proof of a scam\n\n🚫 Not visible\n• hidden SCAM labels, account age, Telegram reports, or who they messaged\n\n📌 Bottom line\nA username alone cannot honestly prove “safe” or “scam”.${postPart}`;
   }
-  return `Telegram-паспорт @${username}:\n• Bot API не видит этот username. Это не доказательство скама.\n• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.\nВывод: по одному username нельзя честно сказать «безопасно» или «скам».${postPart}`;
+  return `📋 Telegram-паспорт: @${username}\n\n👁 Что видно\n• Bot API не видит этот username\n• Это не доказательство скама\n\n🚫 Что недоступно\n• скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал\n\n📌 Вывод\nПо одному username нельзя честно сказать «безопасно» или «скам».${postPart}`;
 }
 
 function unavailableBrief(username: string, lang: Lang, postId?: string): string {
   const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram pasport @${username}:\n• Hozir ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.\n• Ko'rinmaydi: yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani.\nXulosa: aniqroq tekshiruv uchun xabar matni yoki skrin kerak.${postPart}`;
+    return `📋 Telegram pasport: @${username}\n\n👁 Ko'rinadi\n• Hozir ochiq ma'lumotni so'rab bo'lmadi\n• API xatosi o'zi xavf belgisi emas\n\n🚫 Ko'rinmaydi\n• yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani\n\n📌 Xulosa\nAniqroq tekshiruv uchun xabar matni yoki skrin kerak.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram passport @${username}:\n• I could not request public data right now. An API error alone is not a risk signal.\n• Not visible: hidden SCAM labels, account age, Telegram reports, or who they messaged.\nConclusion: send the message text or screenshot for a more useful check.${postPart}`;
+    return `📋 Telegram passport: @${username}\n\n👁 Visible\n• I could not request public data right now\n• An API error alone is not a risk signal\n\n🚫 Not visible\n• hidden SCAM labels, account age, Telegram reports, or who they messaged\n\n📌 Bottom line\nSend the message text or screenshot for a more useful check.${postPart}`;
   }
-  return `Telegram-паспорт @${username}:\n• Сейчас не удалось запросить публичные данные. Сама ошибка API не означает риск.\n• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.\nВывод: для полезной проверки нужен текст сообщения или скрин.${postPart}`;
+  return `📋 Telegram-паспорт: @${username}\n\n👁 Что видно\n• Сейчас не удалось запросить публичные данные\n• Сама ошибка API не означает риск\n\n🚫 Что недоступно\n• скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал\n\n📌 Вывод\nДля полезной проверки нужен текст сообщения или скрин.${postPart}`;
 }
 
 function postLimitationText(postId: string | undefined, lang: Lang): string {
@@ -369,11 +380,14 @@ function telegramSignalText(
 
   if (labels.length === 0) return "";
   const prefix: Record<Lang, string> = {
-    ru: "Что видно:",
-    uz: "Nima ko'rinadi:",
-    en: "Visible signs:",
+    ru: "🛡 Репутация и признаки",
+    uz: "🛡 Reputatsiya va belgilar",
+    en: "🛡 Reputation and signs",
   };
-  return `${prefix[lang]} ${labels.slice(0, 3).join("; ")}.`;
+  return `${prefix[lang]}\n${labels
+    .slice(0, 3)
+    .map((label) => `• ${label}`)
+    .join("\n")}`;
 }
 
 function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
@@ -493,53 +507,53 @@ function telegramNextStep(
 
   if (lang === "uz") {
     if (hasAccountTakeover)
-      return "Xavfsiz qadam: Telegram kod/parol kiritmang, QR skaner qilmang va 'cancel/delete' havolasini ochmang; suhbat skrinini yuboring.";
+      return "🧭 Xavfsiz qadam\nTelegram kod/parol kiritmang, QR skaner qilmang va 'cancel/delete' havolasini ochmang. Suhbat skrinini yuboring.";
     if (hasBetting)
-      return "Xavfsiz qadam: prognoz/VIP/kazino bonus uchun pul to'lamang; kanal tavsifi yoki post skrinini yuboring.";
+      return "🧭 Xavfsiz qadam\nPrognoz/VIP/kazino bonus uchun pul to'lamang. Kanal tavsifi yoki post skrinini yuboring.";
     if (hasWallet)
-      return "Xavfsiz qadam: hamyon ulamang, tranzaksiya imzolamang, seed phrase kiritmang; domen yoki post skrinini yuboring.";
+      return "🧭 Xavfsiz qadam\nHamyon ulamang, tranzaksiya imzolamang, seed phrase kiritmang. Domen yoki post skrinini yuboring.";
     if (hasGiveaway)
-      return "Xavfsiz qadam: sovrin uchun captcha/ovoz/reaksiya qilmang va hamyon/kodni kiritmang; post skrinini yuboring.";
+      return "🧭 Xavfsiz qadam\nSovrin uchun captcha/ovoz/reaksiya qilmang va hamyon/kodni kiritmang. Post skrinini yuboring.";
     if (hasOfficialRisk)
-      return "Xavfsiz qadam: rasmiy sayt/raqam orqali tekshiring; kod yoki karta yubormang, xabar/skrin yuboring.";
+      return "🧭 Xavfsiz qadam\nRasmiy sayt/raqam orqali tekshiring. Kod yoki karta yubormang, xabar/skrin yuboring.";
     if (hasCredentialRisk)
-      return "Xavfsiz qadam: kod, karta yoki APK bermang; suhbat skrinini yuboring.";
+      return "🧭 Xavfsiz qadam\nKod, karta yoki APK bermang. Suhbat skrinini yuboring.";
     if (hasInvite)
-      return "Xavfsiz qadam: invite orqali kod/karta kiritmang; Telegram preview, tavsif yoki post skrinini yuboring.";
-    return "Aniq tekshiruv uchun xabar/skrin yuboring: kod, pul, karta, APK yoki havola so'rashyaptimi?";
+      return "🧭 Xavfsiz qadam\nInvite orqali kod/karta kiritmang. Telegram preview, tavsif yoki post skrinini yuboring.";
+    return "🧭 Keyingi qadam\nXabar/skrin yuboring: kod, pul, karta, APK yoki havola so'rashyaptimi?";
   }
   if (lang === "en") {
     if (hasAccountTakeover)
-      return "Safe step: do not enter Telegram codes/passwords, scan QR login codes, or open 'cancel/delete' links; send a chat screenshot.";
+      return "🧭 Safe step\nDo not enter Telegram codes/passwords, scan QR login codes, or open 'cancel/delete' links. Send a chat screenshot.";
     if (hasBetting)
-      return "Safe step: do not pay for predictions/VIP/casino bonuses; send a screenshot of the channel description or post.";
+      return "🧭 Safe step\nDo not pay for predictions/VIP/casino bonuses. Send a screenshot of the channel description or post.";
     if (hasWallet)
-      return "Safe step: do not connect a wallet, sign a transaction, or enter a seed phrase; send the domain or post screenshot.";
+      return "🧭 Safe step\nDo not connect a wallet, sign a transaction, or enter a seed phrase. Send the domain or post screenshot.";
     if (hasGiveaway)
-      return "Safe step: do not complete captcha/voting/reactions for a prize or enter wallet/code data; send the post screenshot.";
+      return "🧭 Safe step\nDo not complete captcha/voting/reactions for a prize or enter wallet/code data. Send the post screenshot.";
     if (hasOfficialRisk)
-      return "Safe step: verify through the official site or number; do not send codes/card data, and send the message/screenshot.";
+      return "🧭 Safe step\nVerify through the official site or number. Do not send codes/card data; send the message/screenshot.";
     if (hasCredentialRisk)
-      return "Safe step: do not share codes, card data, or APK access; send a chat screenshot.";
+      return "🧭 Safe step\nDo not share codes, card data, or APK access. Send a chat screenshot.";
     if (hasInvite)
-      return "Safe step: do not enter codes/card data through the invite; send the Telegram preview, description, or post screenshot.";
-    return "For a real check, send the message/screenshot: are they asking for codes, money, card data, APK, or a link?";
+      return "🧭 Safe step\nDo not enter codes/card data through the invite. Send the Telegram preview, description, or post screenshot.";
+    return "🧭 Next step\nSend the message/screenshot: are they asking for codes, money, card data, APK, or a link?";
   }
   if (hasAccountTakeover)
-    return "Безопасный шаг: не вводите Telegram-код/пароль, не сканируйте QR-вход и не открывайте ссылки «cancel/delete»; пришлите скрин переписки.";
+    return "🧭 Безопасный шаг\nНе вводите Telegram-код/пароль, не сканируйте QR-вход и не открывайте ссылки «cancel/delete». Пришлите скрин переписки.";
   if (hasBetting)
-    return "Безопасный шаг: не платите за прогноз/VIP/казино-бонус; пришлите скрин описания канала или поста.";
+    return "🧭 Безопасный шаг\nНе платите за прогноз/VIP/казино-бонус. Пришлите скрин описания канала или поста.";
   if (hasWallet)
-    return "Безопасный шаг: не подключайте кошелёк, не подписывайте транзакцию и не вводите seed phrase; пришлите домен или скрин поста.";
+    return "🧭 Безопасный шаг\nНе подключайте кошелёк, не подписывайте транзакцию и не вводите seed phrase. Пришлите домен или скрин поста.";
   if (hasGiveaway)
-    return "Безопасный шаг: не проходите капчу/голосование/реакции ради приза и не вводите кошелёк/код; пришлите скрин поста.";
+    return "🧭 Безопасный шаг\nНе проходите капчу/голосование/реакции ради приза и не вводите кошелёк/код. Пришлите скрин поста.";
   if (hasOfficialRisk)
-    return "Безопасный шаг: проверяйте через официальный сайт/номер; не отправляйте коды или карту, пришлите сообщение/скрин.";
+    return "🧭 Безопасный шаг\nПроверяйте через официальный сайт/номер. Не отправляйте коды или карту, пришлите сообщение/скрин.";
   if (hasCredentialRisk)
-    return "Безопасный шаг: не сообщайте код, карту и не ставьте APK; пришлите скрин переписки.";
+    return "🧭 Безопасный шаг\nНе сообщайте код, карту и не ставьте APK. Пришлите скрин переписки.";
   if (hasInvite)
-    return "Безопасный шаг: не вводите код/карту через invite; пришлите Telegram-превью, описание или скрин поста.";
-  return "Для проверки по делу пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?";
+    return "🧭 Безопасный шаг\nНе вводите код/карту через invite. Пришлите Telegram-превью, описание или скрин поста.";
+  return "🧭 Следующий шаг\nПришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?";
 }
 
 function chatTypeLabel(type: TelegramChatFullInfo["type"], lang: Lang): string {

@@ -75,8 +75,8 @@ describe("telegram public metadata", () => {
       "ru",
     );
 
-    expect(brief).toContain("Telegram-паспорт @public_channel");
-    expect(brief).toContain("Видно:");
+    expect(brief).toContain("Telegram-паспорт: @public_channel");
+    expect(brief).toContain("Что видно");
     expect(brief).toContain("канал");
     expect(brief).toContain("не гарантия безопасности");
     expect(brief).not.toMatch(/есть жалоб|spam history known|создан недавно/i);
@@ -115,7 +115,7 @@ describe("telegram public metadata", () => {
 
     expect(metadata).toEqual({ status: "not_found", username: "UiWebWeb" });
     const brief = buildTelegramPublicMetadataBrief(metadata, "ru");
-    expect(brief).toContain("Telegram-паспорт @UiWebWeb");
+    expect(brief).toContain("Telegram-паспорт: @UiWebWeb");
     expect(brief).toContain("Bot API не видит этот username");
     expect(brief).toMatch(/это не доказательство скама/i);
     expect(brief).toContain("SCAM-метка");
@@ -144,9 +144,9 @@ describe("telegram public metadata", () => {
     );
 
     expect(brief).toContain("закрытый чат/канал");
-    expect(brief).toContain("Что видно:");
+    expect(brief).toContain("Репутация и признаки");
     expect(brief).toContain("ставки/прогнозы/выигрыш");
-    expect(brief).toContain("не платите за прогноз/VIP");
+    expect(brief).toContain("Не платите за прогноз/VIP");
     expect(brief).not.toMatch(/создан недавно|spam.+извест|scam label есть/i);
   });
 
@@ -186,8 +186,8 @@ describe("telegram public metadata", () => {
     );
 
     expect(brief).toContain("Похоже на казино/фриспины/депозитный бонус");
-    expect(brief).toContain("не платите за прогноз/VIP/казино-бонус");
-    expect(brief).toContain("Telegram-паспорт @casino_bonus");
+    expect(brief).toContain("Не платите за прогноз/VIP/казино-бонус");
+    expect(brief).toContain("Telegram-паспорт: @casino_bonus");
     expect(brief).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
   });
 
@@ -226,7 +226,7 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("closed chat/channel");
     expect(brief).toContain("captcha/voting for prize");
     expect(brief).toContain("urgent wallet action");
-    expect(brief).toContain("do not connect a wallet");
+    expect(brief).toContain("Do not connect a wallet");
     expect(brief).not.toMatch(/account age|spam history known|scam label exists/i);
   });
 
@@ -241,7 +241,7 @@ describe("telegram public metadata", () => {
     );
 
     expect(brief).toContain("Похоже на попытку угона Telegram");
-    expect(brief).toContain("не вводите Telegram-код/пароль");
+    expect(brief).toContain("Не вводите Telegram-код/пароль");
     expect(brief).toContain("не открывайте ссылки «cancel/delete»");
     expect(brief).toContain("Это не доказательство скама");
   });
@@ -260,7 +260,7 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("поддержку/официальный аккаунт");
     expect(brief).toContain("пришлите сообщение/скрин");
     expect(brief).toContain("возраст аккаунта");
-    expect(brief).toContain("Недоступно:");
+    expect(brief).toContain("Что недоступно");
     expect(brief).not.toMatch(/точно мошенник|есть scam-label/i);
   });
 
@@ -285,6 +285,23 @@ describe("telegram public metadata", () => {
     expect(enriched.brandEvidence).toEqual(result.brandEvidence);
     expect(enriched.explanation).toContain("Bot API не видит этот username");
     expect(enriched.explanation).toContain("0 подтвержд. жалоб в Ishonch Guard");
-    expect(enriched.explanation).toContain("Что видно:");
+    expect(enriched.explanation).toContain("Репутация и признаки");
+  });
+
+  it("does not append generic AI text to low-signal username-only passport checks", async () => {
+    const result = baseTelegramResult({
+      explanation:
+        "Этот контакт принадлежит неизвестному отправителю, поэтому определить уровень опасности по одному username невозможно.",
+    });
+
+    const enriched = await enrichTelegramPublicMetadata("@UiWebWeb", result, "ru", async () => ({
+      ok: false,
+      errorCode: 400,
+      description: "Bad Request: chat not found",
+    }));
+
+    expect(enriched.explanation).toContain("📋 Telegram-паспорт: @UiWebWeb");
+    expect(enriched.explanation).toContain("🛡 Репутация и признаки");
+    expect(enriched.explanation).not.toContain("Этот контакт принадлежит неизвестному");
   });
 });

@@ -38,6 +38,7 @@ import {
 } from "@/lib/telegram/templates";
 import { truncateExplanation } from "@/lib/telegram/truncate";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
+import { buildAskedContextKeyboardRows } from "@/lib/telegram/check-context-buttons";
 
 /** Эмодзи-индикатор уровня риска (R4.5). */
 export const RISK_EMOJI: Record<RiskLevel, string> = {
@@ -217,27 +218,86 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
   };
 
   const c = copy[lang];
-  const lines: string[] = [];
+  const labels: Record<
+    Lang,
+    {
+      passport: string;
+      region: string;
+      directory: string;
+      reputation: string;
+      meaning: string;
+      reports: (count: number) => string;
+      foreignWarning: string;
+      weakWarning: string;
+    }
+  > = {
+    ru: {
+      passport: "📋 Паспорт номера",
+      region: "🌍 Страна и оператор",
+      directory: "🏛 Справочник",
+      reputation: "🛡 Репутация Ishonch",
+      meaning: "📌 Что это значит",
+      reports: (count) =>
+        count === 0 ? "0 подтвержд. жалоб" : `${count} подтвержд. жалоб — оценивайте осторожнее`,
+      foreignWarning: "🚩 Важно",
+      weakWarning: "⚠️ Формат",
+    },
+    uz: {
+      passport: "📋 Raqam pasporti",
+      region: "🌍 Mamlakat va operator",
+      directory: "🏛 Ma'lumotnoma",
+      reputation: "🛡 Ishonch reputatsiyasi",
+      meaning: "📌 Bu nimani bildiradi",
+      reports: (count) =>
+        count === 0
+          ? "0 tasdiqlangan shikoyat"
+          : `${count} tasdiqlangan shikoyat — ehtiyotroq baholang`,
+      foreignWarning: "🚩 Muhim",
+      weakWarning: "⚠️ Format",
+    },
+    en: {
+      passport: "📋 Number passport",
+      region: "🌍 Country and operator",
+      directory: "🏛 Directory",
+      reputation: "🛡 Ishonch reputation",
+      meaning: "📌 What this means",
+      reports: (count) =>
+        count === 0 ? "0 confirmed reports" : `${count} confirmed reports — use extra caution`,
+      foreignWarning: "🚩 Important",
+      weakWarning: "⚠️ Format",
+    },
+  };
+  const l = labels[lang];
   const country = passport.country
     ? `${passport.country.name[lang]} (+${passport.country.callingCode})`
     : c.unknownCountry;
   const operator = passport.uzOperator?.[lang];
+  const reportCount = result.phoneReputation?.confirmedReportCount ?? result.knownReports ?? 0;
+  const lines: string[] = [l.passport, "", l.region];
 
-  lines.push(operator ? `${c.number}: ${country}, ${operator}.` : `${c.number}: ${country}.`);
+  lines.push(`• ${c.number}: ${country}`);
+  if (operator) lines.push(`• ${operator}`);
 
   if (!passport.isValidFormat) {
+    lines.push("", l.weakWarning);
     lines.push(c.weakFormat);
   } else if (passport.country && !passport.isUzbekistan) {
+    lines.push("", l.foreignWarning);
     lines.push(c.foreignCallback);
   } else if (passport.officialLookalike) {
+    lines.push("", l.directory);
     lines.push(
       c.lookalike(passport.officialLookalike.org[lang], passport.officialLookalike.display),
     );
     lines.push(c.lookalikeCallback);
   } else if (passport.officialDirectoryStatus === "not_found") {
+    lines.push("", l.directory);
     lines.push(c.officialNotFound);
   }
 
+  lines.push("", l.reputation);
+  lines.push(`• ${l.reports(reportCount)}`);
+  lines.push("", l.meaning);
   lines.push(c.contextMatters);
   return lines.join("\n");
 }
@@ -321,7 +381,7 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   const truncateOptions = hasForwardSourceBrief
     ? { maxLines: 6, maxChars: 380 }
     : result.type === "telegram"
-      ? { maxLines: 8, maxChars: 760 }
+      ? { maxLines: 16, maxChars: 1100 }
       : result.level === "unknown"
         ? { maxLines: 3, maxChars: 190 }
         : { maxLines: 4, maxChars: 230 };
@@ -636,17 +696,22 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
 
   return {
     text,
-    keyboard: buildResultKeyboard(result.level, lang),
+    keyboard: buildResultKeyboard(result, lang),
   };
 }
 
 /** Кнопки результата: Report / Check another, + Emergency при high_risk (R4.6, R20.3). */
-function buildResultKeyboard(level: RiskLevel, lang: Lang): InlineKeyboard {
+function buildResultKeyboard(result: RunCheckResult, lang: Lang): InlineKeyboard {
+  const level = result.level;
   const row: InlineButton[] = [
     { text: bt("btn_report", lang), callback_data: CB.report },
     { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
   ];
-  const keyboard: InlineKeyboard = [row, [{ text: bt("btn_why", lang), callback_data: CB.why }]];
+  const keyboard: InlineKeyboard = [];
+  if (shouldAskWhatTheyRequested(result)) {
+    keyboard.push(...buildAskedContextKeyboardRows(lang));
+  }
+  keyboard.push(row, [{ text: bt("btn_why", lang), callback_data: CB.why }]);
   if (level === "high_risk") {
     keyboard.push([
       { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
@@ -654,6 +719,12 @@ function buildResultKeyboard(level: RiskLevel, lang: Lang): InlineKeyboard {
     ]);
   }
   return keyboard;
+}
+
+function shouldAskWhatTheyRequested(result: RunCheckResult): boolean {
+  if (result.level !== "unknown") return false;
+  const context = detectNeutralContext(result);
+  return context === "phone" || context === "telegram_profile";
 }
 
 import { buildEmergencyText } from "@/lib/telegram/emergency";

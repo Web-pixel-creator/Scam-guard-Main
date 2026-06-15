@@ -246,7 +246,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(invite).toContain("закрытый чат/канал");
     expect(invite).toContain("не вижу");
     expect(invite).toContain("оцениваю только ссылку");
-    expect(invite).toContain("не вводите код/карту");
+    expect(invite).toMatch(/не вводите код\/карту/i);
   });
 
   it("tells users what it can and cannot see for a public Telegram post link", () => {

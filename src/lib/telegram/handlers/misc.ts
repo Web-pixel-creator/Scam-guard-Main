@@ -72,6 +72,11 @@ import {
   parseImageTriageCallback,
 } from "@/lib/telegram/image-fallback";
 import {
+  buildAskedContextFollowUpKeyboard,
+  buildAskedContextText,
+  parseAskedContextCallback,
+} from "@/lib/telegram/check-context-buttons";
+import {
   buildLastCheckFollowUpText,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
@@ -393,6 +398,16 @@ export async function handleCallback(
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
       keyboard: buildImageTriageFollowUpKeyboard(lang),
+    });
+    return;
+  }
+
+  const askedContextKind = parseAskedContextCallback(data);
+  if (askedContextKind !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildAskedContextText(askedContextKind, lang)),
+      keyboard: buildAskedContextFollowUpKeyboard(lang),
     });
     return;
   }

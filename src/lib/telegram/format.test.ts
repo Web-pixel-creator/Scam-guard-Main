@@ -374,7 +374,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
   });
 
   it("uses Telegram-specific context prompts for profile-only checks", () => {
-    const { text } = formatCheckResult(
+    const { text, keyboard } = formatCheckResult(
       baseResult({
         type: "telegram",
         level: "unknown",
@@ -387,16 +387,59 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_telegram_profile", "ru")));
     expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context", "ru")));
+    expect(callbacks(keyboard)).toEqual(
+      expect.arrayContaining([
+        "asked:code",
+        "asked:card",
+        "asked:transfer",
+        "asked:apk",
+        "asked:link_qr",
+        "asked:call",
+      ]),
+    );
+  });
+
+  it("adds quick requested-action buttons for inconclusive phone checks", () => {
+    const { keyboard } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        level: "unknown",
+        reasons: ["valid_uz_phone"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(keyboard[0].map((button) => button.callback_data)).toEqual(["asked:code", "asked:card"]);
+    expect(keyboard[1].map((button) => button.callback_data)).toEqual([
+      "asked:transfer",
+      "asked:apk",
+    ]);
+    expect(keyboard[2].map((button) => button.callback_data)).toEqual([
+      "asked:link_qr",
+      "asked:call",
+    ]);
+    expect(callbacks(keyboard)).toContain(CB.checkAnother);
   });
 
   it("keeps Telegram passport briefs readable instead of cutting off the limitation", () => {
     const explanation = [
-      "Telegram-паспорт @UiWebWeb:",
-      "• Bot API не видит этот username. Это не доказательство скама.",
-      "• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.",
-      "Вывод: по одному username нельзя честно сказать «безопасно» или «скам».",
-      "Что видно: 0 подтвержд. жалоб в Ishonch Guard; отправитель не подтверждён.",
-      "Для проверки по делу пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
+      "📋 Telegram-паспорт: @UiWebWeb",
+      "",
+      "👁 Что видно",
+      "• Bot API не видит этот username",
+      "• Это не доказательство скама",
+      "",
+      "🚫 Что недоступно",
+      "• скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал",
+      "",
+      "📌 Вывод",
+      "По одному username нельзя честно сказать «безопасно» или «скам».",
+      "🛡 Репутация и признаки",
+      "• 0 подтвержд. жалоб в Ishonch Guard",
+      "• отправитель не подтверждён",
+      "🧭 Следующий шаг",
+      "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
     ].join("\n");
 
     const { text } = formatCheckResult(
@@ -409,8 +452,9 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "ru",
     );
 
-    expect(text).toContain(escapeMarkdownV2("Telegram-паспорт @UiWebWeb"));
-    expect(text).toContain(escapeMarkdownV2("Недоступно: скрытая SCAM-метка"));
+    expect(text).toContain(escapeMarkdownV2("Telegram-паспорт: @UiWebWeb"));
+    expect(text).toContain(escapeMarkdownV2("Что недоступно"));
+    expect(text).toContain(escapeMarkdownV2("скрытая SCAM-метка"));
     expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб в Ishonch Guard"));
     expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
     expect(text).not.toContain("…");
@@ -573,13 +617,16 @@ describe("formatCheckResult — Phone Directory v1", () => {
       "ru",
     );
 
-    expect(text).toContain(escapeMarkdownV2("Номер: Узбекистан (+998), Beeline по префиксу 90."));
+    expect(text).toContain(escapeMarkdownV2("📋 Паспорт номера"));
+    expect(text).toContain(escapeMarkdownV2("• Номер: Узбекистан (+998)"));
+    expect(text).toContain(escapeMarkdownV2("• Beeline по префиксу 90"));
     expect(text).toContain(
       escapeMarkdownV2("В официальном справочнике Ishonch Guard совпадения нет."),
     );
+    expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб"));
     expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
-    expect(text).toContain(escapeMarkdownV2("удалённый доступ"));
+    expect(text).toContain(escapeMarkdownV2("QR-вход"));
     expect(text).not.toContain("Uzonline");
     expect(text).not.toContain("Uztelecom");
     expect(text).not.toContain("901234567");
@@ -613,7 +660,8 @@ describe("formatCheckResult — Phone Directory v1", () => {
       "ru",
     );
 
-    expect(text).toContain(escapeMarkdownV2("Номер: Германия (+49)."));
+    expect(text).toContain(escapeMarkdownV2("📋 Паспорт номера"));
+    expect(text).toContain(escapeMarkdownV2("• Номер: Германия (+49)"));
     expect(text).toContain(escapeMarkdownV2("Это не узбекский номер"));
     expect(text).not.toMatch(/SCAM-метк|возраст аккаунта|истори[яи] жалоб/i);
     expect(text).not.toContain("4930123456");

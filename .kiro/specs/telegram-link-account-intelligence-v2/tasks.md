@@ -21,3 +21,4 @@
 - [x] 14. Add a small "what I can/cannot check" help screen for Telegram account checks.
 - [x] 15. Add live QA scenarios for public channel, private invite, bot username, unavailable username, and official-looking support username.
 - [x] 16. Polish Telegram Passport copy for username-only checks: show visible facts, Ishonch Guard confirmed-report count, Bot API limitations and a concrete next step without truncation.
+- [x] 17. Add low-context follow-up buttons for username-only checks: code, card, transfer, APK, link/QR and live call, each answering with a concrete safe next step instead of another generic risk verdict.

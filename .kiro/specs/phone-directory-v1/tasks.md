@@ -14,6 +14,7 @@
 
 - [x] Improve official-contact badge with source/confidence context.
 - [x] Improve unknown phone brief and next-step prompt.
+- [x] Render unknown phone checks as a visual Phone Passport with country/operator, directory status, Ishonch Guard report count and low-context follow-up buttons.
 
 ## 4. Regression Tests
 

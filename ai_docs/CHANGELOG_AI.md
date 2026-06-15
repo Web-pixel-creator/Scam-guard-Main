@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Telegram Passport Context Buttons v1
+
+- Telegram username and phone checks that cannot reach a firm verdict now add
+  compact "what did they ask for?" buttons: code, card, transfer, APK, link/QR
+  or live call.
+- Button callbacks answer with one concrete safe next step instead of routing a
+  user's follow-up question back into the generic risk pipeline.
+- Phone Passport cards now use small visual sections for country/operator,
+  official directory status, Ishonch Guard report count and the honest
+  "number alone is not proof" boundary.
+- Telegram Passport copy now avoids appending a second generic AI paragraph for
+  low-signal username-only checks.
+
 ## 2026-06-15 - Telegram Passport Copy Polish v1
 
 - Telegram username-only checks now render as a small "Telegram Passport":

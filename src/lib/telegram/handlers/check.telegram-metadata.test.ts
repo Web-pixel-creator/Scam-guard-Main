@@ -100,7 +100,7 @@ describe("handleCheck telegram metadata enrichment", () => {
     await handleCheck("@UiWebWeb", { chatId: 100, userId: 42, session });
 
     expect(hoisted.sentMessages).toHaveLength(1);
-    expect(hoisted.sentMessages[0].text).toContain("Telegram-паспорт @UiWebWeb");
+    expect(hoisted.sentMessages[0].text).toContain("Telegram-паспорт: @UiWebWeb");
     expect(hoisted.sentMessages[0].text).toContain("Bot API не видит этот username");
     expect(hoisted.sentMessages[0].text).toMatch(/это не доказательство скама/i);
     expect(hoisted.sentMessages[0].text).toContain("SCAM-метка");

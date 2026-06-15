@@ -68,6 +68,13 @@ Already shipped:
   a structured passport of visible facts, Ishonch Guard confirmed-report count,
   Bot API limitations and the next useful evidence to send, without inventing
   hidden account age, scam labels or Telegram complaint history.
+- Telegram Passport Context Buttons v1: inconclusive username/phone checks now
+  ask what the caller/sender requested via compact buttons for code, card,
+  transfer, APK, link/QR and live call, then answer with a concrete safe next
+  step instead of another generic verdict.
+- Phone Passport UX Polish v1: unknown phone cards now show country/operator,
+  official-directory status, Ishonch Guard report count and the honest
+  "number alone is not proof" boundary as short visual sections.
 
 Immediate hardening order before new large features:
 
