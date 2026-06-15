@@ -21,4 +21,4 @@
   - [x] Add helper tests.
   - [x] Run full lint/test/build.
   - [x] Browser-smoke `/embed` and `/embed/check`.
-  - [ ] Commit, push and production-smoke.
+  - [x] Commit, push and production-smoke.
