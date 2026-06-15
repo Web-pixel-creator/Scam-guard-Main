@@ -15,6 +15,10 @@
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
+- **SOS ready phrases are scenario-specific for current panic IDs.** Existing
+  bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
+  reuse one bank callback script. New SOS categories still need their own menu
+  entries and first cards.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
@@ -24,10 +28,6 @@
       shipped; the remaining follow-up is to reuse the same passport structure
       on the website and iframe widget where it improves shallow username/phone
       checks without making partner embeds too tall.
-- [ ] Fix SOS ready phrases so they match the active emergency scenario instead
-      of defaulting to bank/call wording. Cover romance scam, blackmail/minors,
-      fake job/easy money, AI voice-clone family scam, fake delivery/top-up,
-      crypto/TON/card and government-grant situations.
 - [ ] Add direct `/call` live-call entrypoint. Reuse the shipped live-call
       copilot, but start from one screen with one primary action: "I hung up".
 - [ ] Add new SOS scenarios for AI voice-clone, romance scam, fake job/easy
@@ -80,6 +80,10 @@
       Done: shallow `unknown` username/phone checks now render passport cards
       instead of generic "not enough data" verdict cards, while contextual
       code/card/transfer/APK/link/call buttons stay attached.
+- [x] ~~Fix SOS ready phrases for current emergency scenarios.~~ Done: ready
+      phrases, trusted-person copy and contact/help buttons now differ for
+      financial, APK, Telegram takeover, live-call, romance, blackmail and
+      minor-safety scenarios.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

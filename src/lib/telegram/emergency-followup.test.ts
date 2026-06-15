@@ -46,6 +46,19 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     });
   });
 
+  it("routes personal-safety help requests to non-bank contact guidance", () => {
+    const context = withPanicContextData({}, 7, recent);
+
+    expect(classifyEmergencyFollowUp("куда обратиться?", context, now)).toEqual({
+      action: "contacts",
+      panicId: 7,
+    });
+    expect(classifyEmergencyFollowUp("можно в полицию?", context, now)).toEqual({
+      action: "contacts",
+      panicId: 7,
+    });
+  });
+
   it("routes stress and close-person wording to trusted-person guidance", () => {
     const context = withPanicContextData({}, 6, recent);
 
@@ -108,6 +121,49 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(text).toContain("1340");
   });
 
+  it("formats personal-safety contact guidance without bank callback wording", () => {
+    const text = buildEmergencyFollowUpText("contacts", 7, "ru");
+
+    expect(text).toContain("Куда обратиться");
+    expect(text).toContain("Полиция / МВД");
+    expect(text).toContain("UZCERT");
+    expect(text).not.toContain("Позвоните в банк");
+    expect(text).not.toContain("Проверьте мой счёт");
+  });
+
+  it("formats scenario-specific ready phrases for non-bank SOS cases", () => {
+    const blackmail = buildEmergencyFollowUpText("script", 7, "ru");
+    const romance = buildEmergencyFollowUpText("script", 8, "ru");
+    const telegram = buildEmergencyFollowUpText("script", 5, "ru");
+
+    expect(blackmail).toContain("Я прекращаю переписку");
+    expect(blackmail).toContain("сохраняю доказательства");
+    expect(blackmail).not.toContain("перезвоню по официальному номеру");
+
+    expect(romance).toContain("не перевожу деньги");
+    expect(romance).toContain("проверю ситуацию с близким человеком");
+    expect(romance).not.toContain("входящему звонку");
+
+    expect(telegram).toContain("Мой Telegram могли взломать");
+    expect(telegram).toContain("не отправляйте коды");
+  });
+
+  it("formats trusted-person guidance by scenario instead of always using bank wording", () => {
+    const blackmail = buildEmergencyFollowUpText("trusted_person", 9, "ru");
+    const romance = buildEmergencyFollowUpText("trusted_person", 8, "ru");
+    const apk = buildEmergencyFollowUpText("trusted_person", 2, "ru");
+
+    expect(blackmail).toContain("Мне угрожают");
+    expect(blackmail).toContain("сохранить доказательства");
+    expect(blackmail).not.toContain("звоню в банк");
+
+    expect(romance).toContain("Посмотри переписку со стороны");
+    expect(romance).toContain("Поставьте паузу на переводы");
+
+    expect(apk).toContain("Я установил подозрительное приложение");
+    expect(apk).toContain("изолирую телефон");
+  });
+
   it("includes a one-tap next-step button in the follow-up keyboard", () => {
     const buttons = buildEmergencyFollowUpKeyboard("ru").flat();
     const callbackData = buttons.map((button) => button.callback_data);
@@ -126,6 +182,19 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(buttons.map((button) => button.text)).toEqual(
       expect.arrayContaining(["📞 Позвонить безопасно", "💬 Готовая фраза"]),
     );
+  });
+
+  it("uses a help-directory button for blackmail and minor scenarios", () => {
+    expect(
+      buildEmergencyFollowUpKeyboard("ru", 7)
+        .flat()
+        .map((button) => button.text),
+    ).toContain("🆘 Куда обратиться");
+    expect(
+      buildEmergencyFollowUpKeyboard("ru", 10)
+        .flat()
+        .map((button) => button.text),
+    ).toContain("🆘 Куда обратиться");
   });
 
   it("keeps the full checklist behind the explicit full button", () => {

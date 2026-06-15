@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - SOS Ready Phrase Fix v1
+
+- Added `.kiro/specs/sos-ready-phrase-fix-v1/`.
+- Existing panic follow-ups now choose a scenario profile before rendering
+  ready phrases, trusted-person guidance and contact/help destinations.
+- Financial/APK/live-call cases keep safe official-callback wording, while
+  Telegram takeover, romance, blackmail and minor-safety cases no longer get
+  irrelevant "call the bank" copy.
+- Expanded emergency follow-up routing for "куда обратиться", police/support
+  and UZCERT wording.
+
 ## 2026-06-15 - Unified Risk Passport v1 (Telegram)
 
 - Telegram `unknown` phone and username checks now render as a Risk Passport
