@@ -1,34 +1,17 @@
 import "./lib/error-capture";
 
+import { randomBytes } from "node:crypto";
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  addScriptNonceToContentSecurityPolicy,
+  DEFAULT_CONTENT_SECURITY_POLICY,
+  EMBED_CHECK_CONTENT_SECURITY_POLICY,
+} from "./lib/security/csp";
 import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
 
 // ── Security headers applied to every response ──────────────────────────────
-const DEFAULT_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
-const EMBED_CHECK_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
-  "frame-ancestors 'self' https: http://localhost:* http://127.0.0.1:*",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -39,14 +22,29 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Content-Security-Policy": DEFAULT_CONTENT_SECURITY_POLICY,
 };
 
+function createCspNonce(): string {
+  return randomBytes(16).toString("base64url");
+}
+
 /** Add security headers to any Response. */
-function withSecurityHeaders(response: Response, pathname = ""): Response {
+function withSecurityHeaders(response: Response, pathname = "", cspNonce?: string): Response {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
   }
+  if (cspNonce) {
+    response.headers.set(
+      "Content-Security-Policy",
+      addScriptNonceToContentSecurityPolicy(DEFAULT_CONTENT_SECURITY_POLICY, cspNonce),
+    );
+  }
   if (pathname === EMBED_CHECK_PATH) {
     response.headers.delete("X-Frame-Options");
-    response.headers.set("Content-Security-Policy", EMBED_CHECK_CONTENT_SECURITY_POLICY);
+    response.headers.set(
+      "Content-Security-Policy",
+      cspNonce
+        ? addScriptNonceToContentSecurityPolicy(EMBED_CHECK_CONTENT_SECURITY_POLICY, cspNonce)
+        : EMBED_CHECK_CONTENT_SECURITY_POLICY,
+    );
   }
   return response;
 }
@@ -70,7 +68,11 @@ const HEALTHZ_PATH = "/healthz";
 const EMBED_CHECK_PATH = "/embed/check";
 
 type ServerEntry = {
-  fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+  fetch: (
+    request: Request,
+    opts?: { context?: { nonce?: string } },
+    ctx?: unknown,
+  ) => Promise<Response> | Response;
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
@@ -104,7 +106,8 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 }
 
 export default {
-  async fetch(request: Request, env: unknown, ctx: unknown) {
+  async fetch(request: Request, _env: unknown, ctx: unknown) {
+    const cspNonce = createCspNonce();
     let response: Response;
     try {
       const { pathname } = new URL(request.url);
@@ -126,7 +129,7 @@ export default {
       }
 
       const handler = await getServerEntry();
-      response = await handler.fetch(request, env, ctx);
+      response = await handler.fetch(request, { context: { nonce: cspNonce } }, ctx);
       response = await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
@@ -135,6 +138,6 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
-    return withSecurityHeaders(response, new URL(request.url).pathname);
+    return withSecurityHeaders(response, new URL(request.url).pathname, cspNonce);
   },
 };

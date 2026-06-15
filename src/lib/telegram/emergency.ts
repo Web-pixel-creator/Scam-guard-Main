@@ -2196,9 +2196,147 @@ function guidedTrustedPersonText(panicId: PanicScenarioId, lang: Lang): string {
   return lines[lang].join("\n");
 }
 
+function financialGuidedScriptLines(
+  panicId: PanicScenarioId,
+  title: string,
+  lang: Lang,
+): string[] | null {
+  if (panicId === 1) {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "💬 Готовая фраза",
+        "",
+        "Код уже отправлен. Сейчас цель — закрыть доступ к деньгам.",
+        "",
+        "Если человек ещё на линии — не спорьте. Скажите и кладите трубку:",
+        "",
+        "«Стоп. Я больше ничего не подтверждаю.»",
+        "",
+        "Близкому человеку скажите:",
+        `«Ситуация: ${title}. Мне срочно нужна помощь — позвонить в банк и заблокировать карту и онлайн-банк».`,
+      ],
+      uz: [
+        "💬 Tayyor jumla",
+        "",
+        "Kod allaqachon yuborilgan. Hozir maqsad — pulga kirishni yopish.",
+        "",
+        "Agar odam hali liniyada bo'lsa — tortishmang. Ayting va qo'ng'iroqni tugating:",
+        "",
+        "«To'xtang. Endi hech narsani tasdiqlamayman.»",
+        "",
+        "Yaqiningizga shunday deng:",
+        `«Vaziyat: ${title}. Zudlik bilan yordam kerak — bankka qo'ng'iroq qilib karta va onlayn-bankni bloklash».`,
+      ],
+      en: [
+        "💬 Ready phrase",
+        "",
+        "The code has already been sent. The goal now is to close access to your money.",
+        "",
+        "If the person is still on the line, do not argue. Say this and hang up:",
+        "",
+        "“Stop. I will not confirm anything else.”",
+        "",
+        "Tell someone trusted:",
+        `“Situation: ${title}. I urgently need help calling the bank and blocking my card and online banking.”`,
+      ],
+    };
+    return lines[lang];
+  }
+
+  if (panicId === 3) {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "💬 Готовая фраза",
+        "",
+        "Перевод уже сделан. Сейчас нужна попытка остановить или оспорить операцию.",
+        "",
+        "Банку по телефону скажите:",
+        "",
+        "«Я только что перевёл деньги под давлением. Пожалуйста, заморозьте или оспорьте операцию немедленно.»",
+        "",
+        "Близкому человеку скажите:",
+        `«Ситуация: ${title}. Помоги мне срочно позвонить в банк и сохранить чек».`,
+      ],
+      uz: [
+        "💬 Tayyor jumla",
+        "",
+        "Pul allaqachon o'tkazilgan. Hozir operatsiyani to'xtatish yoki e'tiroz bildirishga urinish kerak.",
+        "",
+        "Bankka telefonda shunday deng:",
+        "",
+        "«Men hozirgina bosim ostida pul o'tkazdim. Iltimos, operatsiyani darhol muzlating yoki e'tiroz bildiring.»",
+        "",
+        "Yaqiningizga shunday deng:",
+        `«Vaziyat: ${title}. Bankka zudlik bilan qo'ng'iroq qilishga va chekni saqlashga yordam bering».`,
+      ],
+      en: [
+        "💬 Ready phrase",
+        "",
+        "The transfer has already been made. Now you need to try to stop or dispute it.",
+        "",
+        "Tell the bank by phone:",
+        "",
+        "“I have just sent money under pressure. Please freeze or dispute the transaction immediately.”",
+        "",
+        "Tell someone trusted:",
+        `“Situation: ${title}. Help me urgently call the bank and save the receipt.”`,
+      ],
+    };
+    return lines[lang];
+  }
+
+  if (panicId === 4) {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "💬 Готовая фраза",
+        "",
+        "Данные карты уже могли попасть к посторонним. Сейчас главное — заблокировать карту.",
+        "",
+        "Банку скажите:",
+        "",
+        "«Я ввёл данные карты на подозрительном сайте/по просьбе. Заблокируйте карту, пожалуйста, возможны списания.»",
+        "",
+        "Близкому человеку скажите:",
+        `«Ситуация: ${title}. Помоги мне заблокировать карту через приложение или официальный номер банка».`,
+      ],
+      uz: [
+        "💬 Tayyor jumla",
+        "",
+        "Karta ma'lumotlari begonalarga o'tgan bo'lishi mumkin. Hozir eng muhimi — kartani bloklash.",
+        "",
+        "Bankka shunday deng:",
+        "",
+        "«Men karta ma'lumotlarini shubhali saytda/so'rov bo'yicha kiritdim. Kartani bloklang, iltimos, yechib olishlar bo'lishi mumkin.»",
+        "",
+        "Yaqiningizga shunday deng:",
+        `«Vaziyat: ${title}. Kartani bank ilovasi yoki rasmiy raqam orqali bloklashga yordam bering».`,
+      ],
+      en: [
+        "💬 Ready phrase",
+        "",
+        "Your card details may already be exposed. The main step now is to block the card.",
+        "",
+        "Tell the bank:",
+        "",
+        "“I entered my card details on a suspicious site/by request. Please block the card; charges may be attempted.”",
+        "",
+        "Tell someone trusted:",
+        `“Situation: ${title}. Help me block the card through the bank app or official number.”`,
+      ],
+    };
+    return lines[lang];
+  }
+
+  return null;
+}
+
 function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
   const title = followUpTitle(panicId, lang);
   const profile = followUpProfile(panicId);
+  const financialLines =
+    profile === "financial" ? financialGuidedScriptLines(panicId, title, lang) : null;
+  if (financialLines) return financialLines.join("\n");
+
   const lines: Record<Lang, string[]> =
     profile === "blackmail" || profile === "minor"
       ? {

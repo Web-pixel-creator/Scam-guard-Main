@@ -17,8 +17,19 @@
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
 - **SOS ready phrases are scenario-specific for current panic IDs.** Existing
   bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
-  reuse one bank callback script. New SOS categories still need their own menu
+  reuse one bank callback script. Already-happened financial cases (SMS-code,
+  transfer and card data) now use their own escalation phrases instead of the
+  generic incoming-call script. New SOS categories still need their own menu
   entries and first cards.
+- **Main-site CSP no longer allows untrusted inline scripts.** `script-src` is
+  restricted to a request-scoped nonce, `'self'` and the pinned Unicorn Studio
+  CDN script; `script-src-attr 'none'` and `object-src 'none'` are enforced.
+  `style-src 'unsafe-inline'` remains intentional because the app still uses
+  React style attributes and generated chart styles.
+- **Embed widget CSP is intentionally frameable.** `/embed/check` keeps
+  `frame-ancestors 'self' https: http://localhost:* http://127.0.0.1:*` so
+  partners can embed it. Add partner allow-listing and origin analytics before
+  broad public distribution.
 - **Direct `/call` is shipped.** It reuses the live-call copilot without
   exposing bank callback before hangup; command-menu registration must be kept
   in the release checklist whenever command payloads change.
@@ -37,6 +48,10 @@
       trusted-contact help and optional follow-up, without storing raw evidence.
 - [ ] Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak SMS
       codes, card numbers, seed phrases or other secrets back to the user.
+- [ ] Add partner allow-listing/logging for `/embed/check` frame origins before
+      broad distribution of the public embed widget.
+- [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
+      data-driven profile map before adding many more SOS scenarios.
 - [ ] Add external URL signals as additive checks: Google Safe Browsing first,
       then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.
 - [ ] Add public living-experience stories page after moderation/compliance
@@ -88,6 +103,11 @@
 - [x] ~~Add direct `/call` live-call entrypoint.~~ Done: `/call` opens the
       active live-call copilot directly, stores only panic context `6`, and is
       included in `/help` plus localized Telegram command payloads.
+- [x] ~~Harden main-site CSP `script-src`.~~ Done: replaced untrusted inline
+      scripts with request-scoped SSR nonces, removed `unsafe-inline` from the
+      main and embed script policies, pinned the one external Unicorn script,
+      added `script-src-attr 'none'` and regression coverage. Embed
+      `frame-ancestors` remains broad by design for the public iframe widget.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

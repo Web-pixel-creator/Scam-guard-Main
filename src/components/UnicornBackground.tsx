@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { UNICORN_STUDIO_SCRIPT_SRC } from "@/lib/security/csp";
+
 declare global {
   interface Window {
     UnicornStudio?: { isInitialized: boolean; init: () => void };
@@ -11,9 +13,6 @@ interface Props {
   className?: string;
   fallbackStyle?: React.CSSProperties;
 }
-
-const SCRIPT_SRC =
-  "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js";
 
 function shouldDisableAnimation(): boolean {
   if (typeof window === "undefined") return true;
@@ -64,10 +63,10 @@ export function UnicornBackground({ projectId, className, fallbackStyle }: Props
       return;
     }
     window.UnicornStudio = { isInitialized: false, init: () => {} };
-    let s = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
+    let s = document.querySelector<HTMLScriptElement>(`script[src="${UNICORN_STUDIO_SCRIPT_SRC}"]`);
     if (!s) {
       s = document.createElement("script");
-      s.src = SCRIPT_SRC;
+      s.src = UNICORN_STUDIO_SCRIPT_SRC;
       s.async = true;
       s.onload = init;
       document.head.appendChild(s);

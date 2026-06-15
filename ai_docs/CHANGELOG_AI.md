@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Financial ready phrases and CSP hardening
+
+- Already-happened financial SOS scenarios now use their own ready phrases:
+  SMS-code sent, transfer made and card data entered no longer reuse the generic
+  incoming-call callback script.
+- Added regression coverage that keeps financial ready phrases scenario-specific
+  and verifies blackmail/minor flows do not fall back to bank-callback copy.
+- Moved CSP policies into `src/lib/security/csp.ts`; main-site and embed
+  `script-src` now use request-scoped SSR nonces instead of `unsafe-inline`,
+  while the Unicorn Studio script is pinned to the exact CDN URL used by the
+  component.
+- Documented the intentional embed boundary: `/embed/check` remains frameable
+  for partner sites, with partner allow-listing/logging tracked as a follow-up.
+
 ## 2026-06-15 - Direct Live-Call `/call` v1
 
 - Added `.kiro/specs/telegram-live-call-direct-entry-v1/`.

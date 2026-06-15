@@ -135,10 +135,15 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const blackmail = buildEmergencyFollowUpText("script", 7, "ru");
     const romance = buildEmergencyFollowUpText("script", 8, "ru");
     const telegram = buildEmergencyFollowUpText("script", 5, "ru");
+    const publicationThreat = buildEmergencyFollowUpText("script", 9, "ru");
 
     expect(blackmail).toContain("Я прекращаю переписку");
     expect(blackmail).toContain("сохраняю доказательства");
     expect(blackmail).not.toContain("перезвоню по официальному номеру");
+
+    expect(publicationThreat).toContain("Я прекращаю переписку");
+    expect(publicationThreat).toContain("сохраняю доказательства");
+    expect(publicationThreat).not.toContain("перезвоню по официальному номеру");
 
     expect(romance).toContain("не перевожу деньги");
     expect(romance).toContain("проверю ситуацию с близким человеком");
@@ -146,6 +151,27 @@ describe("Emergency Copilot v2 follow-up routing", () => {
 
     expect(telegram).toContain("Мой Telegram могли взломать");
     expect(telegram).toContain("не отправляйте коды");
+  });
+
+  it("formats already-happened financial ready phrases without incoming-call fallback", () => {
+    const smsCode = buildEmergencyFollowUpText("script", 1, "ru");
+    const transfer = buildEmergencyFollowUpText("script", 3, "ru");
+    const card = buildEmergencyFollowUpText("script", 4, "ru");
+
+    expect(smsCode).toContain("Код уже отправлен");
+    expect(smsCode).toContain("заблокировать карту и онлайн-банк");
+    expect(smsCode).toContain("Я больше ничего не подтверждаю");
+    expect(smsCode).not.toContain("входящему звонку");
+
+    expect(transfer).toContain("Перевод уже сделан");
+    expect(transfer).toContain("заморозьте или оспорьте операцию");
+    expect(transfer).toContain("сохранить чек");
+    expect(transfer).not.toContain("входящему звонку");
+
+    expect(card).toContain("Данные карты уже могли попасть");
+    expect(card).toContain("Заблокируйте карту");
+    expect(card).toContain("через приложение или официальный номер банка");
+    expect(card).not.toContain("входящему звонку");
   });
 
   it("formats trusted-person guidance by scenario instead of always using bank wording", () => {
