@@ -64,6 +64,10 @@ Already shipped:
 - Telegram Main Menu UX v2: `/start` and `/menu` now behave as an action hub
   with a full-width emergency entry first, clearer "new check" wording and
   grouped quick actions for Family Shield, weekly schemes, reports and safety.
+- Telegram Passport Copy Polish v1: username-only Telegram checks now read as
+  a structured passport of visible facts, Ishonch Guard confirmed-report count,
+  Bot API limitations and the next useful evidence to send, without inventing
+  hidden account age, scam labels or Telegram complaint history.
 
 Immediate hardening order before new large features:
 

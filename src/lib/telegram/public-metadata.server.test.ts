@@ -75,9 +75,10 @@ describe("telegram public metadata", () => {
       "ru",
     );
 
-    expect(brief).toContain("Telegram: вижу публичные данные");
+    expect(brief).toContain("Telegram-паспорт @public_channel");
+    expect(brief).toContain("Видно:");
     expect(brief).toContain("канал");
-    expect(brief).toContain("Это не гарантия");
+    expect(brief).toContain("не гарантия безопасности");
     expect(brief).not.toMatch(/есть жалоб|spam history known|создан недавно/i);
   });
 
@@ -114,7 +115,8 @@ describe("telegram public metadata", () => {
 
     expect(metadata).toEqual({ status: "not_found", username: "UiWebWeb" });
     const brief = buildTelegramPublicMetadataBrief(metadata, "ru");
-    expect(brief).toContain("@UiWebWeb не виден");
+    expect(brief).toContain("Telegram-паспорт @UiWebWeb");
+    expect(brief).toContain("Bot API не видит этот username");
     expect(brief).toMatch(/это не доказательство скама/i);
     expect(brief).toContain("SCAM-метка");
   });
@@ -157,10 +159,10 @@ describe("telegram public metadata", () => {
 
     expect(brief).toContain("Похоже на прогнозы/VIP-ставки");
     expect(brief.indexOf("Похоже на прогнозы/VIP-ставки")).toBeLessThan(
-      brief.indexOf("Telegram: это invite-ссылка"),
+      brief.indexOf("Telegram-паспорт invite-ссылки"),
     );
     expect(brief.indexOf("Безопасный шаг")).toBeLessThan(
-      brief.indexOf("Telegram: это invite-ссылка"),
+      brief.indexOf("Telegram-паспорт invite-ссылки"),
     );
   });
 
@@ -185,7 +187,7 @@ describe("telegram public metadata", () => {
 
     expect(brief).toContain("Похоже на казино/фриспины/депозитный бонус");
     expect(brief).toContain("не платите за прогноз/VIP/казино-бонус");
-    expect(brief).toContain("Telegram: вижу публичные данные");
+    expect(brief).toContain("Telegram-паспорт @casino_bonus");
     expect(brief).not.toMatch(/точно мошенник|создан недавно|spam.+извест/i);
   });
 
@@ -258,7 +260,7 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("поддержку/официальный аккаунт");
     expect(brief).toContain("пришлите сообщение/скрин");
     expect(brief).toContain("возраст аккаунта");
-    expect(brief).toContain("недоступны");
+    expect(brief).toContain("Недоступно:");
     expect(brief).not.toMatch(/точно мошенник|есть scam-label/i);
   });
 
@@ -281,7 +283,8 @@ describe("telegram public metadata", () => {
     expect(enriched.knownReports).toBe(result.knownReports);
     expect(enriched.verifiedContact).toBe(result.verifiedContact);
     expect(enriched.brandEvidence).toEqual(result.brandEvidence);
-    expect(enriched.explanation).toContain("@UiWebWeb не виден");
+    expect(enriched.explanation).toContain("Bot API не видит этот username");
+    expect(enriched.explanation).toContain("0 подтвержд. жалоб в Ishonch Guard");
     expect(enriched.explanation).toContain("Что видно:");
   });
 });

@@ -238,7 +238,7 @@ describe("Telegram Bot QA Matrix v1", () => {
       "ru",
     );
 
-    expect(found).toContain("Это не гарантия");
+    expect(found).toContain("не гарантия безопасности");
     expect(found).not.toMatch(/есть жалоб|spam.+извест|создан недавно/i);
     expect(notFound).toMatch(/это не доказательство скама/i);
     expect(notFound).toContain("SCAM-метка");

@@ -154,34 +154,34 @@ function foundBrief(
   const postPart = postLimitationText(postId, lang);
 
   if (lang === "uz") {
-    return `Telegram: @${username} bo'yicha ochiq ma'lumot ko'rinadi — ${label}${titlePart}${accessPart}. Bu kafolat emas: akkaunt yoshi, yashirin shikoyatlar va spam tarixi menga ko'rinmaydi.${postPart}`;
+    return `Telegram pasport @${username}:\n• Ko'rinadi: ${label}${titlePart}${accessPart}.\n• Ko'rinmaydi: akkaunt yoshi, yashirin SCAM belgisi, Telegram shikoyatlari va kimga yozgani.\nXulosa: bu xavfsizlik kafolati emas; eng muhimi — undan sizdan nima so'ralyapti.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: public data for @${username} is visible — ${label}${titlePart}${accessPart}. This is not a guarantee: I cannot see account age, hidden reports, or spam history.${postPart}`;
+    return `Telegram passport @${username}:\n• Visible: ${label}${titlePart}${accessPart}.\n• Not visible: account age, hidden SCAM labels, Telegram reports, or who they messaged.\nConclusion: this is not a safety guarantee; the key is what they ask you to do.${postPart}`;
   }
-  return `Telegram: вижу публичные данные @${username} — ${label}${titlePart}${accessPart}. Это не гарантия: возраст аккаунта, скрытые жалобы и spam-история мне недоступны.${postPart}`;
+  return `Telegram-паспорт @${username}:\n• Видно: ${label}${titlePart}${accessPart}.\n• Недоступно: возраст аккаунта, скрытая SCAM-метка, жалобы Telegram и кому он писал.\nВывод: это не гарантия безопасности; важно, что именно он просит сделать.${postPart}`;
 }
 
 function notFoundBrief(username: string, lang: Lang, postId?: string): string {
   const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram: @${username} Bot API orqali ko'rinmayapti. Bu scam isboti emas: yashirin SCAM belgisi, akkaunt yoshi va spam tarixi menga ko'rinmaydi.${postPart}`;
+    return `Telegram pasport @${username}:\n• Bot API bu username'ni ko'rsatmayapti. Bu scam isboti emas.\n• Ko'rinmaydi: yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani.\nXulosa: bitta username bo'yicha «xavfsiz» yoki «scam» deb halol aytib bo'lmaydi.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: @${username} is not visible through the Bot API. This is not proof of a scam: hidden SCAM labels, account age, and spam history are not visible to me.${postPart}`;
+    return `Telegram passport @${username}:\n• The Bot API cannot see this username. This is not proof of a scam.\n• Not visible: hidden SCAM labels, account age, Telegram reports, or who they messaged.\nConclusion: a username alone cannot honestly prove “safe” or “scam”.${postPart}`;
   }
-  return `Telegram: @${username} не виден через Bot API. Это не доказательство скама: скрытая SCAM-метка, возраст аккаунта и spam-история мне недоступны.${postPart}`;
+  return `Telegram-паспорт @${username}:\n• Bot API не видит этот username. Это не доказательство скама.\n• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.\nВывод: по одному username нельзя честно сказать «безопасно» или «скам».${postPart}`;
 }
 
 function unavailableBrief(username: string, lang: Lang, postId?: string): string {
   const postPart = postLimitationText(postId, lang);
   if (lang === "uz") {
-    return `Telegram: hozir @${username} bo'yicha ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.${postPart}`;
+    return `Telegram pasport @${username}:\n• Hozir ochiq ma'lumotni so'rab bo'lmadi. API xatosi o'zi xavf belgisi emas.\n• Ko'rinmaydi: yashirin SCAM belgisi, akkaunt yoshi, Telegram shikoyatlari va kimga yozgani.\nXulosa: aniqroq tekshiruv uchun xabar matni yoki skrin kerak.${postPart}`;
   }
   if (lang === "en") {
-    return `Telegram: I could not request public data for @${username} right now. An API error alone is not a risk signal.${postPart}`;
+    return `Telegram passport @${username}:\n• I could not request public data right now. An API error alone is not a risk signal.\n• Not visible: hidden SCAM labels, account age, Telegram reports, or who they messaged.\nConclusion: send the message text or screenshot for a more useful check.${postPart}`;
   }
-  return `Telegram: сейчас не удалось запросить публичные данные @${username}. Сама ошибка API не означает риск.${postPart}`;
+  return `Telegram-паспорт @${username}:\n• Сейчас не удалось запросить публичные данные. Сама ошибка API не означает риск.\n• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.\nВывод: для полезной проверки нужен текст сообщения или скрин.${postPart}`;
 }
 
 function postLimitationText(postId: string | undefined, lang: Lang): string {
@@ -197,22 +197,22 @@ function postLimitationText(postId: string | undefined, lang: Lang): string {
 
 function privateInviteBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Telegram: bu yopiq chat/kanalga invite-havola. Ichidagi postlar, a'zolar va yashirin shikoyatlar menga ko'rinmaydi; faqat havola va yuborgan kontekstingizni baholayman.";
+    return "Telegram pasport invite-havola:\n• Bu yopiq chat/kanal. Ichidagi postlar, a'zolar va yashirin shikoyatlar menga ko'rinmaydi.\nXulosa: faqat havola va yonidagi matn/skrin bo'yicha baholayman.";
   }
   if (lang === "en") {
-    return "Telegram: this is an invite link to a closed chat/channel. I cannot see its posts, members, or hidden reports; I judge only the invite and the context you sent.";
+    return "Telegram invite passport:\n• This is a closed chat/channel. I cannot see posts, members, or hidden reports inside.\nConclusion: I judge only the invite and the text/screenshot you send with it.";
   }
-  return "Telegram: это invite-ссылка в закрытый чат/канал. Я не вижу содержимое, участников и скрытые жалобы; оцениваю только ссылку и присланный рядом контекст.";
+  return "Telegram-паспорт invite-ссылки:\n• Это закрытый чат/канал. Я не вижу содержимое, участников и скрытые жалобы внутри.\nВывод: оцениваю только ссылку и текст/скрин, который вы прислали рядом.";
 }
 
 function internalLinkBrief(lang: Lang): string {
   if (lang === "uz") {
-    return "Telegram: bu ichki yoki yopiq havolaga o'xshaydi. Yopiq chat ichini ko'ra olmayman; matn, preview yoki skrin yuboring.";
+    return "Telegram pasport:\n• Bu ichki yoki yopiq havolaga o'xshaydi. Yopiq chat ichini ko'ra olmayman.\nXulosa: matn, preview yoki skrin yuboring.";
   }
   if (lang === "en") {
-    return "Telegram: this looks like an internal or private link. I cannot see closed-chat content; send the text, preview, or screenshot.";
+    return "Telegram passport:\n• This looks like an internal or private link. I cannot see closed-chat content.\nConclusion: send the text, preview, or screenshot.";
   }
-  return "Telegram: это похоже на внутреннюю или закрытую ссылку. Я не вижу содержимое закрытого чата; пришлите текст, превью или скрин.";
+  return "Telegram-паспорт:\n• Это похоже на внутреннюю или закрытую ссылку. Я не вижу содержимое закрытого чата.\nВывод: пришлите текст, превью или скрин.";
 }
 
 const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
@@ -247,7 +247,7 @@ function withTelegramSignals(
   const reasons = result?.reasons ?? [];
   const knownReports = result?.knownReports ?? 0;
   const scenario = telegramScenarioBrief(metadata, reasons, knownReports, lang);
-  const signals = telegramSignalText(reasons, knownReports, lang);
+  const signals = telegramSignalText(reasons, knownReports, lang, Boolean(result));
   const next = telegramNextStep(metadata, reasons, lang);
 
   if (scenario) {
@@ -345,17 +345,25 @@ function telegramSignalText(
   reasons: readonly ReasonCode[],
   knownReports: number,
   lang: Lang,
+  hasKnownReportContext: boolean,
 ): string {
   const labels = TELEGRAM_SIGNAL_ORDER.filter((reason) => reasons.includes(reason))
     .map((reason) => compactTelegramReason(reason, lang) ?? REASON_LABELS[reason]?.[lang])
     .filter((label): label is string => Boolean(label));
 
-  if (knownReports > 0) {
-    const reports: Record<Lang, string> = {
-      ru: `${knownReports} подтвержд. жалоб в Ishonch Guard`,
-      uz: `Ishonch Guard: ${knownReports} tasdiqlangan shikoyat`,
-      en: `${knownReports} confirmed Ishonch Guard reports`,
-    };
+  if (hasKnownReportContext) {
+    const reports =
+      knownReports > 0
+        ? ({
+            ru: `${knownReports} подтвержд. жалоб в Ishonch Guard`,
+            uz: `Ishonch Guard: ${knownReports} tasdiqlangan shikoyat`,
+            en: `${knownReports} confirmed Ishonch Guard reports`,
+          } satisfies Record<Lang, string>)
+        : ({
+            ru: "0 подтвержд. жалоб в Ishonch Guard",
+            uz: "Ishonch Guard: 0 tasdiqlangan shikoyat",
+            en: "0 confirmed Ishonch Guard reports",
+          } satisfies Record<Lang, string>);
     labels.unshift(reports[lang]);
   }
 

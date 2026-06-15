@@ -318,3 +318,13 @@ image analysis path, stores a short redacted summary in the report draft, and
 asks for a typed description when evidence is unreadable. Raw images, data
 URLs, decoded QR payloads, full OCR text, phone numbers, card data, OTPs and
 links must not be stored in `telegram_sessions` or `reports`.
+
+## D-036 - Telegram username checks are passports, not accusations
+
+Telegram username-only checks should render as a structured passport of visible
+facts and hard limitations: public Bot API visibility, moderated Ishonch Guard
+report count when available, what Bot API does not expose, and the next useful
+evidence to send. They must not claim hidden SCAM labels, account age, Telegram
+complaint history, spam history, country/DC or user creation dates. A missing
+or invisible username is not proof of scam; moderated reputation and dangerous
+requested actions are the evidence that can raise risk.

@@ -321,7 +321,7 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   const truncateOptions = hasForwardSourceBrief
     ? { maxLines: 6, maxChars: 380 }
     : result.type === "telegram"
-      ? { maxLines: 5, maxChars: 340 }
+      ? { maxLines: 8, maxChars: 760 }
       : result.level === "unknown"
         ? { maxLines: 3, maxChars: 190 }
         : { maxLines: 4, maxChars: 230 };

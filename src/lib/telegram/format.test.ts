@@ -389,6 +389,33 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context", "ru")));
   });
 
+  it("keeps Telegram passport briefs readable instead of cutting off the limitation", () => {
+    const explanation = [
+      "Telegram-паспорт @UiWebWeb:",
+      "• Bot API не видит этот username. Это не доказательство скама.",
+      "• Недоступно: скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал.",
+      "Вывод: по одному username нельзя честно сказать «безопасно» или «скам».",
+      "Что видно: 0 подтвержд. жалоб в Ishonch Guard; отправитель не подтверждён.",
+      "Для проверки по делу пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
+    ].join("\n");
+
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "telegram",
+        level: "unknown",
+        reasons: ["unknown_sender"],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Telegram-паспорт @UiWebWeb"));
+    expect(text).toContain(escapeMarkdownV2("Недоступно: скрытая SCAM-метка"));
+    expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб в Ishonch Guard"));
+    expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
+    expect(text).not.toContain("…");
+  });
+
   it("still shows a scam pattern when a strong linked reason is present", () => {
     const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
     expect(fakeBank).toBeDefined();

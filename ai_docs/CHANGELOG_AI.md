@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Telegram Passport Copy Polish v1
+
+- Telegram username-only checks now render as a small "Telegram Passport":
+  visible public facts, Ishonch Guard confirmed-report count, hard Bot API
+  limitations and a concrete next step.
+- Increased Telegram-result explanation truncation only for Telegram Passport
+  cards so the limitation and next-step lines are not cut into an unhelpful
+  ellipsis.
+- Updated regression tests and `.kiro/specs/telegram-link-account-intelligence-v2/tasks.md`.
+
 ## 2026-06-15 - Telegram Main Menu UX v2
 
 - Updated `.kiro/specs/telegram-main-menu-ux/` to match the current eight-action
