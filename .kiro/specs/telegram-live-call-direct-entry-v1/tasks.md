@@ -5,5 +5,5 @@
 - [x] 3. Persist minimal panic context `6` for follow-up memory.
 - [x] 4. Add `/call` to `/help` and localized `setMyCommands` payloads.
 - [x] 5. Add regression tests for parsing, command payloads and webhook behavior.
-- [ ] 6. Register updated Telegram command menus in production.
-- [ ] 7. Run tests, build, deploy and production smoke checks.
+- [x] 6. Register updated Telegram command menus in production.
+- [x] 7. Run tests, build, deploy and production smoke checks.
