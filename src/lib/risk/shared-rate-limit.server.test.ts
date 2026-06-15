@@ -96,6 +96,31 @@ describe("checkSharedRateLimit", () => {
     expect(JSON.stringify(hoisted.rpcCalls[0].args)).not.toContain(rawKey);
   });
 
+  it("supports reputation appeal buckets without persisting the raw key", async () => {
+    enableShared();
+    hoisted.rpcResponse = {
+      data: [{ allowed: true, remaining: 2, retry_after_sec: 0, current_count: 1 }],
+      error: null,
+    };
+
+    const rawKey = "appeal:203.0.113.77";
+    const result = await checkSharedRateLimit("appeal", rawKey, 3, 10 * 60_000);
+
+    expect(result).toEqual({ ok: true, remaining: 2, retryAfterSec: 0 });
+    expect(hoisted.hashInputs).toEqual([`rate-limit:appeal:${rawKey}`]);
+    expect(hoisted.rpcCalls).toHaveLength(1);
+    expect(hoisted.rpcCalls[0]).toMatchObject({
+      name: "claim_rate_limit",
+      args: {
+        p_scope: "appeal",
+        p_key_hash: "a".repeat(64),
+        p_limit: 3,
+        p_window_seconds: 600,
+      },
+    });
+    expect(JSON.stringify(hoisted.rpcCalls[0].args)).not.toContain(rawKey);
+  });
+
   it("maps a blocked shared bucket into retryAfterSec", async () => {
     enableShared();
     hoisted.rpcResponse = {

@@ -44,7 +44,12 @@ Consumer-first and **Telegram-first**, tuned to local scam wording (RU/UZ), loca
 
 ## MVP status vs. plan
 
-The current web app already delivers the core MVP: multi-type check (phone/Telegram/url/apk/text/screenshot), AI explanation, rules-based risk scoring, community reports, and an admin moderation dashboard. Not yet built: Telegram bot, native mobile app, B2B API, automated call/SMS blocking. See `OPEN_TASKS.md`.
+The current product already delivers the core MVP across web and Telegram:
+multi-type check (phone/Telegram/url/apk/text/screenshot/short voice note),
+rules-based risk scoring, optional AI explanations/OCR/STT, community reports,
+moderated reputation, emergency Telegram flows, Family Shield, inline checks,
+public scheme trends and an admin moderation dashboard. Not yet built: native
+mobile app, B2B API and automated call/SMS blocking. See `OPEN_TASKS.md`.
 
 ## Key product risks
 

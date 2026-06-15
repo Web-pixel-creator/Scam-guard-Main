@@ -105,9 +105,8 @@ Scope:
 - Surfaces counts only for confirmed phone records with positive report counts.
 - Shows source and confidence as Ishonch Guard moderated reports, not carrier data.
 - Never claims owner, SIM age, hidden scam label, spam history or unmoderated community reputation.
-- Appeal/removal flow and richer admin source fields remain later compliance work.
 - Appeal/removal v1 exists as a privacy-safe correction path. Richer evidence
-  source fields remain later compliance work.
+  source fields and legal review remain later compliance work.
 
 ### 1C. Optional Paid Enrichment
 
