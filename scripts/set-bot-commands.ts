@@ -39,6 +39,7 @@ export function buildCommandPayloads(): CommandPayload[] {
     commands: [
       { command: "start", description: "Начать работу" },
       { command: "check", description: "Проверить номер или ссылку" },
+      { command: "call", description: "Помощь во время звонка" },
       { command: "report", description: "Сообщить о случае" },
       { command: "panic", description: "Экстренная помощь" },
       { command: "family", description: "Подключить близкого" },
@@ -53,6 +54,7 @@ export function buildCommandPayloads(): CommandPayload[] {
     commands: [
       { command: "start", description: "Boshlash" },
       { command: "check", description: "Raqam yoki havolani tekshirish" },
+      { command: "call", description: "Qo'ng'iroq paytida yordam" },
       { command: "report", description: "Hodisa haqida xabar berish" },
       { command: "panic", description: "Shoshilinch yordam" },
       { command: "family", description: "Yaqin insonni ulash" },
@@ -67,6 +69,7 @@ export function buildCommandPayloads(): CommandPayload[] {
     commands: [
       { command: "start", description: "Get started" },
       { command: "check", description: "Check a number or link" },
+      { command: "call", description: "Help during a call" },
       { command: "report", description: "Report an incident" },
       { command: "panic", description: "Emergency help" },
       { command: "family", description: "Link trusted person" },
@@ -81,6 +84,7 @@ export function buildCommandPayloads(): CommandPayload[] {
     commands: [
       { command: "start", description: "Get started" },
       { command: "check", description: "Check a number or link" },
+      { command: "call", description: "Help during a call" },
       { command: "report", description: "Report an incident" },
       { command: "panic", description: "Emergency help" },
       { command: "family", description: "Link trusted person" },

@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Direct Live-Call `/call` v1
+
+- Added `.kiro/specs/telegram-live-call-direct-entry-v1/`.
+- `/call` is now a known Telegram command and opens the live-call copilot
+  directly, without first showing the broader `/panic` scenario menu.
+- The command stores only the existing panic context id `6` plus timestamp so
+  short follow-up questions stay in live-call context.
+- Added `/call` to `/help`, localized `setMyCommands` payloads and webhook
+  regression coverage.
+
 ## 2026-06-15 - SOS Ready Phrase Fix v1
 
 - Added `.kiro/specs/sos-ready-phrase-fix-v1/`.

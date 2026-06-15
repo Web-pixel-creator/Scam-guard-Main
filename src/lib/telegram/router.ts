@@ -190,6 +190,7 @@ export type BotCommand =
   | "/menu"
   | "/lang"
   | "/help"
+  | "/call"
   | "/digest"
   | "/appeal"
   | "/safety"
@@ -204,6 +205,7 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/menu",
   "/lang",
   "/help",
+  "/call",
   "/digest",
   "/appeal",
   "/safety",
@@ -281,7 +283,7 @@ export interface InlineQueryCtx {
  * depends only on this abstraction, never on the concrete modules.
  */
 export interface Handlers {
-  /** Commands: /start, /lang, /help, /safety, /check, /report, /emergency (8.2). */
+  /** Commands: /start, /call, /lang, /help, /safety, /check, /report, /emergency (8.2). */
   handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promise<void>;
   /** One step of an active multi-step scenario, e.g. /report (8.4). */
   handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void>;

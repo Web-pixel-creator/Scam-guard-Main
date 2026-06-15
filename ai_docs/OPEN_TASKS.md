@@ -19,6 +19,9 @@
   bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
   reuse one bank callback script. New SOS categories still need their own menu
   entries and first cards.
+- **Direct `/call` is shipped.** It reuses the live-call copilot without
+  exposing bank callback before hangup; command-menu registration must be kept
+  in the release checklist whenever command payloads change.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
@@ -28,8 +31,6 @@
       shipped; the remaining follow-up is to reuse the same passport structure
       on the website and iframe widget where it improves shallow username/phone
       checks without making partner embeds too tall.
-- [ ] Add direct `/call` live-call entrypoint. Reuse the shipped live-call
-      copilot, but start from one screen with one primary action: "I hung up".
 - [ ] Add new SOS scenarios for AI voice-clone, romance scam, fake job/easy
       money, fake delivery/top-up, crypto/TON/card and government grant.
 - [ ] Add Guardian Angel v1 after high-risk results: one safe step at a time,
@@ -84,6 +85,9 @@
       phrases, trusted-person copy and contact/help buttons now differ for
       financial, APK, Telegram takeover, live-call, romance, blackmail and
       minor-safety scenarios.
+- [x] ~~Add direct `/call` live-call entrypoint.~~ Done: `/call` opens the
+      active live-call copilot directly, stores only panic context `6`, and is
+      included in `/help` plus localized Telegram command payloads.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

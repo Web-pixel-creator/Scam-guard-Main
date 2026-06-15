@@ -84,22 +84,22 @@ Already shipped:
 - SOS Ready Phrase Fix v1: existing panic follow-ups now use scenario-specific
   ready phrases, trusted-person wording and contact/help destinations for bank,
   APK, Telegram takeover, live call, romance, blackmail and minor-safety cases.
+- Direct Live-call `/call` v1: Telegram users can open the active-call copilot
+  directly from a command, with the hangup-first keyboard and existing
+  live-call follow-up memory.
 
 Immediate implementation order after the 2026-06-15 product feedback:
 
-1. **Live-call `/call`.** The existing live-call copilot is shipped inside
-   emergency flows, but a direct `/call` command should open a one-screen
-   "someone is calling me right now" flow with one primary button: "I hung up".
-2. **New SOS scenarios.** Add AI voice-clone, fake job/easy
+1. **New SOS scenarios.** Add AI voice-clone, fake job/easy
    money, fake delivery/top-up, crypto/TON/card and government-grant scenarios.
-3. **Guardian Angel v1.** After high-risk results, the bot should not end the
+2. **Guardian Angel v1.** After high-risk results, the bot should not end the
    conversation; it should guide the user through one safe step at a time,
    offer trusted-contact help, and optionally follow up later.
-4. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
+3. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
    guidance, not only read it. This must be opt-in and never speak secrets back.
-5. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
+4. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
    line-type/VoIP providers stay optional and paid.
-6. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
+5. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
    website features should be public living-experience stories, a scam-call
    trainer, and later a scam map/index, all using aggregated or moderated data.
 
@@ -177,7 +177,7 @@ Disallowed claims:
    be automated from moderated aggregate trends.
 6. Unified Risk Passport v1 for Telegram username/phone checks - shipped.
 7. SOS ready phrase cleanup for non-bank emergency scenarios - shipped.
-8. Direct `/call` live-call entrypoint - next.
+8. Direct `/call` live-call entrypoint - shipped.
 9. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
 10. Voice-out / TTS v1 for short opt-in safety answers.
 

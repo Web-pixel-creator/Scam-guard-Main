@@ -33,6 +33,7 @@ import { buildCommandPayloads, type CommandPayload } from "../../../scripts/set-
 const REQUIRED_COMMANDS = [
   "start",
   "check",
+  "call",
   "report",
   "panic",
   "family",
@@ -55,9 +56,9 @@ describe("buildCommandPayloads — structure", () => {
     expect(payloads).toHaveLength(4);
   });
 
-  it("each payload contains exactly 8 commands", () => {
+  it("each payload contains exactly 9 commands", () => {
     for (const payload of payloads) {
-      expect(payload.commands).toHaveLength(8);
+      expect(payload.commands).toHaveLength(9);
     }
   });
 

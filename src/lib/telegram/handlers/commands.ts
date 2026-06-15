@@ -10,6 +10,7 @@
 //   /menu      → same main menu as /start
 //   /lang      → show language selection buttons           (R2.1, R2.5)
 //   /help      → command list                              (R3.1)
+//   /call      → live-call copilot direct entry
 //   /appeal    → public correction form for reputation labels
 //   /safety    → basic safety rules + scope reminder       (R3.2, R3.3)
 //   /emergency → numbered emergency checklist              (R20.1, R20.2, R20.5)
@@ -37,7 +38,12 @@ import {
   formatWelcome,
 } from "@/lib/telegram/format";
 import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
-import { buildPanicMenuText, buildPanicKeyboardPage1 } from "@/lib/telegram/emergency";
+import {
+  buildLiveCallActiveKeyboard,
+  buildPanicMenuText,
+  buildPanicKeyboardPage1,
+  withPanicContextData,
+} from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { loadSession, saveSession } from "@/lib/telegram/session.server";
@@ -121,6 +127,20 @@ async function showPanicMenu(ctx: HandlerCtx): Promise<void> {
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildPanicMenuText(lang)),
     keyboard,
+  });
+}
+
+async function startLiveCallCopilot(ctx: HandlerCtx): Promise<void> {
+  const { lang } = ctx.session;
+  await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: withPanicContextData(undefined, 6),
+  });
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(bt("live_call_header", lang) + "\n\n" + bt("live_call_hangup", lang)),
+    keyboard: buildLiveCallActiveKeyboard(lang),
   });
 }
 
@@ -261,6 +281,10 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
 
     case "/help":
       await sendMessage({ chatId: ctx.chatId, text: formatHelp(lang) });
+      return;
+
+    case "/call":
+      await startLiveCallCopilot(ctx);
       return;
 
     case "/digest": {

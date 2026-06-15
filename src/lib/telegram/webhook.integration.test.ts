@@ -639,6 +639,32 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ]);
   });
 
+  it("opens the live-call copilot directly with /call", async () => {
+    const userId = 1110;
+    const update = textUpdate({ userId, chatId: 5110, text: "/call" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Похоже, звонок рискованный");
+    expect(h.sendCalls[0].text).toContain("Я сам перезвоню");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      "livecall:hangup",
+      "livecall:what_to_say",
+      "livecall:sent_code",
+      "livecall:tell_family",
+    ]);
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain("livecall:call_bank");
+
+    loadLatestSessionUpsert(userId);
+    expect(h.sessionRow).toMatchObject({
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: expect.objectContaining({ lastPanicId: 6 }),
+    });
+  });
+
   it("answers unsupported video with next-step buttons instead of a dead end", async () => {
     const update = videoUpdate({ userId: 1106, chatId: 5106 });
 

@@ -39,7 +39,7 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   across production instances. If the shared store is temporarily unavailable,
   the webhook falls back to local dedup and still processes the update rather
   than dropping user messages.
-- `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. Suspicious payloads still go through the normal risk pipeline.
+- `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. `/call` is a direct entrypoint into the same live-call scenario (`lastPanicId=6`) and stores no phone number, call recording or raw evidence. Suspicious payloads still go through the normal risk pipeline.
 - `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
 - `/appeal` submits a privacy-safe correction/removal request for phone,
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
