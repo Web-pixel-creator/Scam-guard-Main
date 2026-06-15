@@ -2005,6 +2005,9 @@ function Index() {
               <Link to="/appeal" className="footer-link apex-mono">
                 {{ ru: "АПЕЛЛЯЦИЯ", uz: "APELLYATSIYA", en: "APPEAL" }[lang]}
               </Link>
+              <Link to="/embed" className="footer-link apex-mono">
+                {{ ru: "ВИДЖЕТ", uz: "VIDJET", en: "WIDGET" }[lang]}
+              </Link>
             </nav>
           </div>
         </footer>

@@ -75,6 +75,9 @@ Already shipped:
 - Phone Passport UX Polish v1: unknown phone cards now show country/operator,
   official-directory status, Ishonch Guard report count and the honest
   "number alone is not proof" boundary as short visual sections.
+- Website Embed Widget v1: `/embed` now generates a sandboxed iframe snippet
+  and `/embed/check` renders a compact partner-site checker that reuses the
+  existing server-side check pipeline.
 
 Immediate hardening order before new large features:
 
@@ -86,8 +89,9 @@ Immediate hardening order before new large features:
 
 Next visible "wow" feature after stabilization:
 
-- Embeddable check widget for trusted media/community sites after the impact
-  counters have run in production for a short observation window.
+- Public "living experience" stories page after moderation/compliance wording
+  is reviewed, or a scam-call trainer if we want a viral education surface
+  before broader reputation growth.
 
 ## Stage 1 - Phone Trust Layer
 
@@ -154,7 +158,7 @@ Disallowed claims:
 1. Public official-number directory page for banks, payment systems, telecoms and agencies - shipped as Website Trust Surface v1.
 2. Public scheme map/trends for Uzbekistan using aggregated, non-personal data - shipped as Website Public Scheme Trends v1.
 3. Honest impact counters: checks, dangerous results, user-reported loss totals - shipped as Website Honest Impact Counters v1.
-4. Embeddable check widget for media, banks and community sites.
+4. Embeddable check widget for media, banks and community sites - shipped as v1.
 5. "Verified by Ishonch Guard" badge only after manual moderation.
 
 ## Stage 4 - Reliability And Security

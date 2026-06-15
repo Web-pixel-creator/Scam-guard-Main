@@ -66,6 +66,9 @@ export function Header() {
           <Link to="/scam-trends" className="nav-link">
             {{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}
           </Link>
+          <Link to="/embed" className="nav-link">
+            {{ ru: "Виджет", uz: "Vidjet", en: "Widget" }[lang]}
+          </Link>
           <Link to="/privacy" className="nav-link">
             {t("nav_privacy", lang)}
           </Link>
@@ -103,6 +106,9 @@ export function Footer() {
           </Link>
           <Link to="/scam-trends" className="hover:text-[#18181B] transition-colors">
             {{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}
+          </Link>
+          <Link to="/embed" className="hover:text-[#18181B] transition-colors">
+            {{ ru: "Виджет", uz: "Vidjet", en: "Widget" }[lang]}
           </Link>
         </div>
       </div>

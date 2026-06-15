@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -138,19 +139,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isEmbedCheck = pathname === "/embed/check";
   return (
     <QueryClientProvider client={queryClient}>
       <LangProvider>
         <AuthProvider>
           <LangSync />
-          <div className="min-h-screen flex flex-col">
-            <Header />
+          <div className={isEmbedCheck ? "min-h-screen" : "min-h-screen flex flex-col"}>
+            {!isEmbedCheck && <Header />}
             <main className="flex-1">
               <Outlet />
             </main>
-            <Footer />
+            {!isEmbedCheck && <Footer />}
           </div>
-          <A11yPanel />
+          {!isEmbedCheck && <A11yPanel />}
         </AuthProvider>
       </LangProvider>
     </QueryClientProvider>

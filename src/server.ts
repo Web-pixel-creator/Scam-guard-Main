@@ -5,6 +5,30 @@ import { renderErrorPage } from "./lib/error-page";
 import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
 
 // ── Security headers applied to every response ──────────────────────────────
+const DEFAULT_CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: https:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
+const EMBED_CHECK_CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: https:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
+  "frame-ancestors 'self' https: http://localhost:* http://127.0.0.1:*",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -12,23 +36,17 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-  "Content-Security-Policy": [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https:",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-  ].join("; "),
+  "Content-Security-Policy": DEFAULT_CONTENT_SECURITY_POLICY,
 };
 
 /** Add security headers to any Response. */
-function withSecurityHeaders(response: Response): Response {
+function withSecurityHeaders(response: Response, pathname = ""): Response {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
+  }
+  if (pathname === EMBED_CHECK_PATH) {
+    response.headers.delete("X-Frame-Options");
+    response.headers.set("Content-Security-Policy", EMBED_CHECK_CONTENT_SECURITY_POLICY);
   }
   return response;
 }
@@ -49,6 +67,7 @@ const TELEGRAM_WEBHOOK_PATH = "/api/telegram/webhook";
 // Answers 200 without touching the SSR renderer, so probes stay cheap and do
 // not depend on React rendering or any downstream service.
 const HEALTHZ_PATH = "/healthz";
+const EMBED_CHECK_PATH = "/embed/check";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -97,12 +116,13 @@ export default {
             status: 200,
             headers: { "content-type": "text/plain; charset=utf-8" },
           }),
+          pathname,
         );
       }
 
       // Telegram webhook: handle POST /api/telegram/webhook.
       if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
-        return withSecurityHeaders(await handleTelegramWebhook(request));
+        return withSecurityHeaders(await handleTelegramWebhook(request), pathname);
       }
 
       const handler = await getServerEntry();
@@ -115,6 +135,6 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
-    return withSecurityHeaders(response);
+    return withSecurityHeaders(response, new URL(request.url).pathname);
   },
 };

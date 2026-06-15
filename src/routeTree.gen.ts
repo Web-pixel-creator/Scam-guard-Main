@@ -16,10 +16,12 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OfficialNumbersRouteImport } from './routes/official-numbers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EmergencyRouteImport } from './routes/emergency'
+import { Route as EmbedRouteImport } from './routes/embed'
 import { Route as CheckRouteImport } from './routes/check'
 import { Route as AppealRouteImport } from './routes/appeal'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmbedCheckRouteImport } from './routes/embed_.check'
 
 const ScamsRoute = ScamsRouteImport.update({
   id: '/scams',
@@ -56,6 +58,11 @@ const EmergencyRoute = EmergencyRouteImport.update({
   path: '/emergency',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmbedRoute = EmbedRouteImport.update({
+  id: '/embed',
+  path: '/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckRoute = CheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -76,12 +83,18 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmbedCheckRoute = EmbedCheckRouteImport.update({
+  id: '/embed_/check',
+  path: '/embed/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
+  '/embed': typeof EmbedRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/official-numbers': typeof OfficialNumbersRoute
@@ -89,12 +102,14 @@ export interface FileRoutesByFullPath {
   '/report': typeof ReportRoute
   '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
+  '/embed/check': typeof EmbedCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
+  '/embed': typeof EmbedRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/official-numbers': typeof OfficialNumbersRoute
@@ -102,6 +117,7 @@ export interface FileRoutesByTo {
   '/report': typeof ReportRoute
   '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
+  '/embed/check': typeof EmbedCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,6 +125,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
+  '/embed': typeof EmbedRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/official-numbers': typeof OfficialNumbersRoute
@@ -116,6 +133,7 @@ export interface FileRoutesById {
   '/report': typeof ReportRoute
   '/scam-trends': typeof ScamTrendsRoute
   '/scams': typeof ScamsRoute
+  '/embed_/check': typeof EmbedCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,6 +142,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/appeal'
     | '/check'
+    | '/embed'
     | '/emergency'
     | '/login'
     | '/official-numbers'
@@ -131,12 +150,14 @@ export interface FileRouteTypes {
     | '/report'
     | '/scam-trends'
     | '/scams'
+    | '/embed/check'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/appeal'
     | '/check'
+    | '/embed'
     | '/emergency'
     | '/login'
     | '/official-numbers'
@@ -144,12 +165,14 @@ export interface FileRouteTypes {
     | '/report'
     | '/scam-trends'
     | '/scams'
+    | '/embed/check'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/appeal'
     | '/check'
+    | '/embed'
     | '/emergency'
     | '/login'
     | '/official-numbers'
@@ -157,6 +180,7 @@ export interface FileRouteTypes {
     | '/report'
     | '/scam-trends'
     | '/scams'
+    | '/embed_/check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,6 +188,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AppealRoute: typeof AppealRoute
   CheckRoute: typeof CheckRoute
+  EmbedRoute: typeof EmbedRoute
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
   OfficialNumbersRoute: typeof OfficialNumbersRoute
@@ -171,6 +196,7 @@ export interface RootRouteChildren {
   ReportRoute: typeof ReportRoute
   ScamTrendsRoute: typeof ScamTrendsRoute
   ScamsRoute: typeof ScamsRoute
+  EmbedCheckRoute: typeof EmbedCheckRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -224,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmergencyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/embed': {
+      id: '/embed'
+      path: '/embed'
+      fullPath: '/embed'
+      preLoaderRoute: typeof EmbedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/check': {
       id: '/check'
       path: '/check'
@@ -252,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/embed_/check': {
+      id: '/embed_/check'
+      path: '/embed/check'
+      fullPath: '/embed/check'
+      preLoaderRoute: typeof EmbedCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -260,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AppealRoute: AppealRoute,
   CheckRoute: CheckRoute,
+  EmbedRoute: EmbedRoute,
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
   OfficialNumbersRoute: OfficialNumbersRoute,
@@ -267,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportRoute: ReportRoute,
   ScamTrendsRoute: ScamTrendsRoute,
   ScamsRoute: ScamsRoute,
+  EmbedCheckRoute: EmbedCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -80,6 +80,26 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
 
+## Website embed widget
+
+**`src/lib/embed-widget.ts`**
+
+- `normalizeEmbedLang(value) -> Lang` falls back unsupported values to `ru`.
+- `sanitizePartner(value) -> string | null` strips markup/control punctuation
+  and clamps partner labels for iframe query params.
+- `buildEmbedWidgetUrl(baseUrl, options) -> string` builds `/embed/check`
+  URLs with language and optional partner label.
+- `buildEmbedIframeSnippet(baseUrl, options) -> string` returns the copyable
+  iframe with fixed height, sandbox and strict-origin referrer policy.
+
+**`src/components/EmbedCheckWidget.tsx`**
+
+- Compact iframe UI for number/link/Telegram/text checks.
+- Calls the existing `checkInput` server function, so shared rate limits,
+  redaction, rules-first scoring and persistence remain centralized.
+- Shows a concise verdict, up to three reasons and up to two safe steps; meta
+  intent answers render as informational text.
+
 ## Website trust surface
 
 **`src/lib/trust/official-directory.ts`**

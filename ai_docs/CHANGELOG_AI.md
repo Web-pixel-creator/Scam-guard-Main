@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Website Embed Widget v1
+
+- Added `.kiro/specs/website-embed-widget-v1/`.
+- Added `/embed`, a partner-facing page that explains the iframe widget, shows a
+  live preview and generates a copyable snippet with sandbox and strict-origin
+  referrer policy.
+- Added `/embed/check`, a compact no-chrome iframe runtime that reuses the
+  existing `checkInput` server function, shared rate limits, redaction and
+  rules-first scoring.
+- Added `src/lib/embed-widget.ts` helper tests for language fallback, partner
+  label sanitization and iframe snippet safety.
+
 ## 2026-06-15 - Telegram Passport Context Buttons v1
 
 - Telegram username and phone checks that cannot reach a firm verdict now add

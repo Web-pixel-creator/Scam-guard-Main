@@ -49,6 +49,10 @@
       Production migration `20260613182647_honest_impact_counters_v1` was
       applied on 2026-06-14 and `get_check_stats()` was verified.
 - [x] ~~Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.~~ Done on 2026-06-14 with Supabase/Postgres Cron job `ishonch_prune_app_retention_daily`.
+- [x] ~~Add embeddable check widget for trusted media/community sites.~~ Done as
+      Website Embed Widget v1: `/embed` generates a sandboxed iframe snippet,
+      and `/embed/check` runs compact checks through the existing server-side
+      pipeline without exposing raw input to the partner page.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
