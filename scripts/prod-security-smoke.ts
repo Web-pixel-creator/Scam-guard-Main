@@ -225,6 +225,11 @@ async function main(): Promise<void> {
     p_limit: 1000,
     p_window_seconds: 60,
   };
+  const appealRateLimitSmokeArgs = {
+    ...rateLimitSmokeArgs,
+    p_scope: "appeal",
+    p_key_hash: "e".repeat(64),
+  };
   const { error: anonRateLimitError } = await anon.rpc("claim_rate_limit", rateLimitSmokeArgs);
   record(
     "anon cannot execute claim_rate_limit",
@@ -278,6 +283,16 @@ async function main(): Promise<void> {
     serviceRateLimitError
       ? `service rpc failed (${serviceRateLimitError.code ?? "no_code"})`
       : `service rpc ok (${Array.isArray(serviceRateLimitData) ? serviceRateLimitData.length : 0})`,
+  );
+
+  const { data: serviceAppealRateLimitData, error: serviceAppealRateLimitError } =
+    await service.rpc("claim_rate_limit", appealRateLimitSmokeArgs);
+  record(
+    "service can execute claim_rate_limit for appeal",
+    !serviceAppealRateLimitError && Array.isArray(serviceAppealRateLimitData),
+    serviceAppealRateLimitError
+      ? `service rpc failed (${serviceAppealRateLimitError.code ?? "no_code"})`
+      : `service rpc ok (${Array.isArray(serviceAppealRateLimitData) ? serviceAppealRateLimitData.length : 0})`,
   );
 
   const failed = results.filter((result) => !result.ok);
