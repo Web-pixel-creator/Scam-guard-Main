@@ -20,12 +20,10 @@
 
 ## Near-term product tasks
 
-- [ ] Add Unified Risk Passport v1 for username and phone checks. This is the
-      next implementation task after Website Embed Widget v1. It must replace
-      generic "not enough data" cards for shallow username/phone checks with a
-      compact passport: visible facts, unavailable Telegram/Bot API facts,
-      Ishonch Guard confirmed-report count, official-directory match status,
-      the next useful evidence to send and the best contextual button.
+- [ ] Add web/embed Risk Passport compact reuse. Telegram Risk Passport v1 is
+      shipped; the remaining follow-up is to reuse the same passport structure
+      on the website and iframe widget where it improves shallow username/phone
+      checks without making partner embeds too tall.
 - [ ] Fix SOS ready phrases so they match the active emergency scenario instead
       of defaulting to bank/call wording. Cover romance scam, blackmail/minors,
       fake job/easy money, AI voice-clone family scam, fake delivery/top-up,
@@ -78,6 +76,10 @@
       Website Embed Widget v1: `/embed` generates a sandboxed iframe snippet,
       and `/embed/check` runs compact checks through the existing server-side
       pipeline without exposing raw input to the partner page.
+- [x] ~~Add Unified Risk Passport v1 for Telegram username and phone checks.~~
+      Done: shallow `unknown` username/phone checks now render passport cards
+      instead of generic "not enough data" verdict cards, while contextual
+      code/card/transfer/APK/link/call buttons stay attached.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

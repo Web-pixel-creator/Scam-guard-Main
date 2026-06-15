@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-15 - Unified Risk Passport v1 (Telegram)
+
+- Telegram `unknown` phone and username checks now render as a Risk Passport
+  card instead of the generic "not enough data" verdict card.
+- The passport keeps the honest boundary: visible facts, app-owned reputation
+  and official-directory signals are allowed; hidden Telegram scam labels,
+  account age, spam history and unmoderated complaints are not claimed.
+- Contextual "what did they ask for?" buttons remain attached to shallow
+  phone/username checks so users can continue with code/card/transfer/APK/QR
+  or live-call guidance.
+- Added formatter regressions that passport cards suppress the old generic
+  unknown verdict while normal result cards still keep their verdict line.
+
 ## 2026-06-15 - Roadmap correction after Risk Passport feedback
 
 - Promoted Unified Risk Passport v1 to the next implementation task after

@@ -134,12 +134,24 @@ function callbacks(keyboard: { callback_data?: string }[][]): string[] {
   return keyboard.flat().flatMap((b) => (b.callback_data ? [b.callback_data] : []));
 }
 
+function isRiskPassportLike(result: RunCheckResult): boolean {
+  return (
+    result.level === "unknown" &&
+    !result.verifiedContact &&
+    (result.type === "phone" ||
+      result.type === "telegram" ||
+      result.reasons.includes("valid_uz_phone") ||
+      result.reasons.includes("non_uz_phone") ||
+      Boolean(result.phoneIntelligence))
+  );
+}
+
 // ---------------------------------------------------------------------------
-// Property: Verdict line is always present for any result and language
+// Property: Verdict line is present except for Risk Passport cards
 // ---------------------------------------------------------------------------
 
 // Feature: telegram-menu-visual-polish, Property 6: Verdict Line Presence
-describe("formatCheckResult — Verdict line always present", () => {
+describe("formatCheckResult — Verdict line except Risk Passport cards", () => {
   it("текст содержит verdict line для любого результата и языка (fast-check, >= 100 прогонов)", () => {
     fc.assert(
       fc.property(runCheckResultArb, (result) => {
@@ -155,6 +167,11 @@ describe("formatCheckResult — Verdict line always present", () => {
           const expectedVerdict = bt(verdictKey, lang);
 
           const { text } = formatCheckResult(result, lang);
+
+          if (isRiskPassportLike(result)) {
+            expect(text).not.toContain(escapeMarkdownV2(expectedVerdict));
+            continue;
+          }
 
           // The verdict line (escaped for MarkdownV2) must always be present
           expect(text).toContain(escapeMarkdownV2(expectedVerdict));
@@ -384,9 +401,11 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "ru",
     );
 
+    expect(text).toContain(escapeMarkdownV2("📋 Telegram-паспорт"));
     expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_telegram_profile", "ru")));
     expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("verdict_unknown", "ru")));
     expect(callbacks(keyboard)).toEqual(
       expect.arrayContaining([
         "asked:code",
@@ -420,6 +439,22 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "asked:call",
     ]);
     expect(callbacks(keyboard)).toContain(CB.checkAnother);
+  });
+
+  it("renders inconclusive phone checks as a number passport, not a generic unknown result", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "phone",
+        level: "unknown",
+        reasons: ["valid_uz_phone"],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("📋 Паспорт номера"));
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_phone", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("verdict_unknown", "ru")));
   });
 
   it("keeps Telegram passport briefs readable instead of cutting off the limitation", () => {

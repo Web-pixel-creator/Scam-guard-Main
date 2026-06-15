@@ -325,6 +325,63 @@ function renderPhoneReputationObservation(result: RunCheckResult, lang: Lang): s
 
 // ── Section Sub-Renderers ───────────────────────────────────────────────────
 
+type RiskPassportKind = "phone" | "telegram";
+
+const RISK_PASSPORT_TITLE: Record<RiskPassportKind, Record<Lang, string>> = {
+  phone: {
+    ru: "📋 Паспорт номера",
+    uz: "📋 Raqam pasporti",
+    en: "📋 Number passport",
+  },
+  telegram: {
+    ru: "📋 Telegram-паспорт",
+    uz: "📋 Telegram pasporti",
+    en: "📋 Telegram passport",
+  },
+};
+
+function detectRiskPassportKind(result: RunCheckResult): RiskPassportKind | null {
+  if (result.level !== "unknown") return null;
+
+  const neutralContext = detectNeutralContext(result);
+  if (neutralContext === "phone") return "phone";
+  if (neutralContext === "telegram_profile") return "telegram";
+  return null;
+}
+
+function renderRiskPassportHeader(kind: RiskPassportKind, lang: Lang): string {
+  const title = RISK_PASSPORT_TITLE[kind][lang];
+  return `${bold(escapeMarkdownV2(title))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`;
+}
+
+function passportBodyAlreadyAsksForContext(body: string): boolean {
+  return /(пришлите|yuboring|send|send me|send the|what they ask|nima so'rashgan)/iu.test(body);
+}
+
+function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {
+  const kind = detectRiskPassportKind(result);
+  if (!kind) return null;
+
+  const body =
+    kind === "phone"
+      ? (renderPhonePassportBrief(result, lang) ?? bt("brief_unknown_phone", lang))
+      : truncateExplanation(result.explanation ?? bt("brief_unknown_telegram_profile", lang), {
+          maxLines: 18,
+          maxChars: 1400,
+        });
+  const prompt =
+    kind === "phone"
+      ? bt("prompt_more_context_phone", lang)
+      : bt("prompt_more_context_telegram_profile", lang);
+
+  const sections = [escapeMarkdownV2(body)];
+  if (!passportBodyAlreadyAsksForContext(body)) {
+    sections.push(escapeMarkdownV2(prompt));
+  }
+
+  return applyOverflowProtection(renderRiskPassportHeader(kind, lang), sections);
+}
+
 /**
  * Renders the risk header: emoji + bold label + thick separator + verified badge.
  */
@@ -680,6 +737,14 @@ function joinSections(header: string, sections: string[]): string {
  * 7. Returns { text, keyboard }
  */
 export function formatCheckResult(result: RunCheckResult, lang: Lang): FormattedResult {
+  const passportText = renderRiskPassport(result, lang);
+  if (passportText) {
+    return {
+      text: passportText,
+      keyboard: buildResultKeyboard(result, lang),
+    };
+  }
+
   // Render Risk_Header (always present)
   const header = renderRiskHeader(result, lang);
 

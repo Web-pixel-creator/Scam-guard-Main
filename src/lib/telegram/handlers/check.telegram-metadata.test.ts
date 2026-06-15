@@ -105,7 +105,7 @@ describe("handleCheck telegram metadata enrichment", () => {
     expect(hoisted.sentMessages[0].text).toMatch(/это не доказательство скама/i);
     expect(hoisted.sentMessages[0].text).toContain("SCAM-метка");
     expect(hoisted.sentMessages[0].text).toContain("0 подтвержд. жалоб в Ishonch Guard");
-    expect(hoisted.sentMessages[0].text).toContain("сообщение или скрин");
+    expect(hoisted.sentMessages[0].text).toContain("сообщение/скрин");
     expect(hoisted.getChatInfoCalls).toBe(1);
     expect(hoisted.reputationCalls).toBe(1);
   });

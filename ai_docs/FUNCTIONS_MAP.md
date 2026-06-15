@@ -80,6 +80,22 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
 
+## Telegram result formatting
+
+**`src/lib/telegram/format.ts`**
+
+- `formatCheckResult(result, lang)` renders Telegram result cards and now routes
+  shallow `unknown` phone/Telegram-profile checks through a Risk Passport card
+  instead of the generic unknown verdict.
+- `renderRiskPassport(result, lang)` is a pure formatter helper for Telegram
+  passport cards. It preserves honest boundaries: visible facts, app-owned
+  reputation and official-directory data may be shown; hidden Telegram scam
+  labels, account age, spam history and unmoderated complaints must not be
+  claimed.
+- `buildResultKeyboard(result, lang)` attaches contextual "what did they ask
+  for?" buttons to inconclusive phone/username checks before report/new-check
+  actions.
+
 ## Website embed widget
 
 **`src/lib/embed-widget.ts`**
