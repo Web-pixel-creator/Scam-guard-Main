@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-037 - AI voice-clone SOS verifies the person, not the voice
+
+AI voice-clone guidance must not claim that the bot can prove whether a voice is
+real from a Telegram call, forwarded voice note or short transcript. The safe
+action is identity verification through an independent channel: call the person
+back using a saved number, ask a family code word/private question and pause all
+money/code requests until identity is confirmed. Bank escalation is shown only
+when money/card access is already at risk.
+
 ## D-035 - Public reputation needs a correction path
 
 Phone, Telegram, URL and APK reputation labels must be removable through a

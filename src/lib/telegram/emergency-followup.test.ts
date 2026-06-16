@@ -4,7 +4,10 @@ import {
   buildEmergencyFollowUpText,
   buildLiveCallActiveKeyboard,
   buildLiveCallPhraseKeyboard,
+  buildPanicKeyboardPage2,
+  buildPanicScenarioText,
   classifyEmergencyFollowUp,
+  parsePanicCallback,
   withPanicContextData,
 } from "@/lib/telegram/emergency";
 
@@ -221,6 +224,38 @@ describe("Emergency Copilot v2 follow-up routing", () => {
         .flat()
         .map((button) => button.text),
     ).toContain("🆘 Куда обратиться");
+    expect(
+      buildEmergencyFollowUpKeyboard("ru", 11)
+        .flat()
+        .map((button) => button.text),
+    ).toContain("🆘 Куда обратиться");
+  });
+
+  it("includes AI voice-clone in the second panic menu page", () => {
+    const data = callbackData(buildPanicKeyboardPage2("ru"));
+
+    expect(data).toContain("panic:11");
+    expect(parsePanicCallback("panic:11")).toBe(11);
+  });
+
+  it("formats AI voice-clone guidance without bank-first wording", () => {
+    const firstCard = buildPanicScenarioText(11, "ru");
+    const more = buildEmergencyFollowUpText("more", 11, "ru");
+    const script = buildEmergencyFollowUpText("script", 11, "ru");
+    const contacts = buildEmergencyFollowUpText("contacts", 11, "ru");
+    const trusted = buildEmergencyFollowUpText("trusted_person", 11, "ru");
+
+    expect(firstCard).toContain("НЕ ПЕРЕВОДИТЕ ДЕНЬГИ ПО ГОЛОСУ");
+    expect(firstCard).toContain("сохранённому номеру");
+    expect(firstCard).toContain("кодовое слово");
+    expect(firstCard).not.toContain("ЗАБЛОКИРУЙТЕ КАРТУ");
+    expect(more).toContain("кодовое слово");
+    expect(more).toContain("не переводите деньги");
+    expect(script).toContain("перезвоню тебе по сохранённому номеру");
+    expect(script).not.toContain("входящему звонку");
+    expect(contacts).toContain("Как проверить голос безопасно");
+    expect(contacts).toContain("Не используйте номер");
+    expect(trusted).toContain("Голос похож на близкого");
   });
 
   it("keeps the full checklist behind the explicit full button", () => {

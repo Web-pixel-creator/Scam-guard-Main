@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - AI Voice-Clone SOS Scenario v1
+
+- Added panic scenario `11` for AI voice-clone / fake relative calls.
+- The second panic-menu page now includes the new scenario and callback parsing
+  accepts `panic:11`.
+- Added compact first-card guidance: verify the person via a saved number,
+  family code word or private question before sending money or codes.
+- Added scenario-specific follow-up copy for next step, ready phrase,
+  trusted-person guidance and help-directory contacts, avoiding bank-first
+  wording unless money was already sent.
+- Updated regression coverage so the voice-clone flow stays in the correct SOS
+  profile.
+
 ## 2026-06-15 - Financial ready phrases and CSP hardening
 
 - Already-happened financial SOS scenarios now use their own ready phrases:

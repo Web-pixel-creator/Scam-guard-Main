@@ -35,7 +35,7 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 14  | Relative/friend in distress                   | `relative_in_distress`                                                   | Covered |
 | 15  | Piecemeal card data extraction                | `requests_card_digits`                                                   | Covered |
 | 16  | Account/card block threat                     | `threatens_account_block` + urgency                                      | Covered |
-| 17  | AI voice-clone call                           | education only; advise callback verification                             | Partial |
+| 17  | AI voice-clone call                           | education + `panic:11` saved-number/code-word verification guidance      | Partial |
 | 18  | Fake courier / delivery surcharge             | `fake_delivery_payment` + URL heuristics                                 | Covered |
 | 19  | Marketplace prepayment / fake buyer-seller    | `payment` detector + `payment_before_service` text patterns              | Covered |
 | 20  | Romance / dating scam                         | future pattern/content                                                   | Planned |

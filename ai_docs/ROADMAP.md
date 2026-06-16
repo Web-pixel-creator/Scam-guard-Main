@@ -87,11 +87,14 @@ Already shipped:
 - Direct Live-call `/call` v1: Telegram users can open the active-call copilot
   directly from a command, with the hangup-first keyboard and existing
   live-call follow-up memory.
+- AI Voice-Clone SOS v1: panic scenario `11` guides users to verify a familiar
+  voice through a saved number, code word/private question and trusted-person
+  help without claiming biometric voice proof.
 
 Immediate implementation order after the 2026-06-15 product feedback:
 
-1. **New SOS scenarios.** Add AI voice-clone, fake job/easy
-   money, fake delivery/top-up, crypto/TON/card and government-grant scenarios.
+1. **Remaining new SOS scenarios.** Add fake job/easy money,
+   fake delivery/top-up, crypto/TON/card and government-grant scenarios.
 2. **Guardian Angel v1.** After high-risk results, the bot should not end the
    conversation; it should guide the user through one safe step at a time,
    offer trusted-contact help, and optionally follow up later.
@@ -178,8 +181,9 @@ Disallowed claims:
 6. Unified Risk Passport v1 for Telegram username/phone checks - shipped.
 7. SOS ready phrase cleanup for non-bank emergency scenarios - shipped.
 8. Direct `/call` live-call entrypoint - shipped.
-9. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
-10. Voice-out / TTS v1 for short opt-in safety answers.
+9. AI voice-clone SOS scenario - shipped.
+10. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
+11. Voice-out / TTS v1 for short opt-in safety answers.
 
 ## Stage 3 - Website Trust And Distribution
 
