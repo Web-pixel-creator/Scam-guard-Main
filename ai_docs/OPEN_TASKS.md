@@ -2,7 +2,10 @@
 
 ## Fragile / risky spots
 
-- **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale invite expiry, trusted-contact opt-out, env-driven invite URLs, guardian-language notification and redacted trusted alerts are now covered by tests.
+- **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale
+  invite expiry, trusted-contact opt-out, env-driven invite URLs,
+  guardian-language notification, redacted trusted alerts and explicit
+  invite-handoff copy are now covered by tests.
 - **Telegram webhook `update_id` dedup is shared now.** The webhook uses an
   in-memory fast path plus service-role claims in `telegram_webhook_updates`, so
   Telegram retries are deduped across Node instances. If Supabase is temporarily
@@ -22,11 +25,12 @@
   generic incoming-call script. AI voice-clone and modern non-bank pressure
   scenarios are now their own SOS flows with scenario-specific first cards,
   ready phrases, trusted-person copy and help directories.
-- **Main-site CSP no longer allows untrusted inline scripts.** `script-src` is
-  restricted to a request-scoped nonce, `'self'` and the pinned Unicorn Studio
-  CDN script; `script-src-attr 'none'` and `object-src 'none'` are enforced.
-  `style-src 'unsafe-inline'` remains intentional because the app still uses
-  React style attributes and generated chart styles.
+- **Main-site CSP no longer allows untrusted inline scripts or broad inline
+  styles.** `script-src` is restricted to a request-scoped nonce, `'self'` and
+  the pinned Unicorn Studio CDN script; `script-src-attr 'none'` and
+  `object-src 'none'` are enforced. Inline styling is now narrowed to
+  `style-src-attr 'unsafe-inline'` for React style attributes; broad
+  `style-src 'unsafe-inline'` is not allowed.
 - **Embed widget CSP is intentionally frameable.** `/embed/check` keeps
   `frame-ancestors 'self' https: http://localhost:* http://127.0.0.1:*` so
   partners can embed it. Add partner allow-listing and origin analytics before

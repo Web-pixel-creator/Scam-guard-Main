@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Family Shield invite UX clarification
+
+- Clarified Family Shield invite copy so the guardian understands the invite
+  link is not for them and must be sent to another Telegram contact.
+- Renamed the invite action to make the Telegram share flow explicit.
+- Improved the self-link error to explain that opening your own invite does not
+  enable the trusted-contact relationship.
+- Added regression coverage for the invite handoff copy and `t.me/share/url`
+  keyboard behavior.
+
 ## 2026-06-16 - Guardian Angel v1
 
 - Added `.kiro/specs/telegram-guardian-angel-v1/`.

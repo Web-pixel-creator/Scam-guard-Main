@@ -573,9 +573,9 @@ export const bot_dict: BotDict = {
     en: "🔗 Create invite",
   },
   family_btn_open_invite: {
-    ru: "📤 Отправить близкому",
-    uz: "📤 Yaqinga yuborish",
-    en: "📤 Send to trusted person",
+    ru: "📤 Отправить в чат близкого",
+    uz: "📤 Yaqin kishiga yuborish",
+    en: "📤 Send invite to trusted person",
   },
   family_btn_notify: {
     ru: "👪 Позвать близкого",
@@ -598,9 +598,9 @@ export const bot_dict: BotDict = {
     en: "👪 *Family Shield*\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.",
   },
   family_invite_text: {
-    ru: "🔗 *Приглашение создано*\n\nЧто сделать сейчас:\n1. Нажмите «📤 Отправить близкому».\n2. Выберите в Telegram человека, которому доверяете, и отправьте сообщение.\n3. Когда он откроет бота и нажмёт Start, связь включится.\n\nЯ не буду отправлять ему ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
-    uz: "🔗 *Taklif yaratildi*\n\nHozir nima qilish kerak:\n1. «📤 Yaqinga yuborish»ni bosing.\n2. Telegramda ishonchli insonni tanlab, xabarni yuboring.\n3. U botni ochib Start bosgandan keyin aloqa yoqiladi.\n\nMen unga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
-    en: "🔗 *Invite created*\n\nWhat to do now:\n1. Tap “📤 Send to trusted person”.\n2. Choose the trusted person in Telegram and send the message.\n3. After they open the bot and tap Start, the link becomes active.\n\nI will not send them your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
+    ru: "🔗 *Приглашение создано*\n\nЭта ссылка не для вас — её должен открыть другой человек.\n\nЧто сделать сейчас:\n1. Нажмите «📤 Отправить в чат близкого».\n2. В открывшемся окне Telegram выберите родственника или друга и отправьте сообщение.\n3. Когда близкий откроет бота и нажмёт Start, связь включится.\n\nЕсли вы случайно открыли ссылку сами — ничего страшного. Вернитесь сюда и отправьте её другому человеку.\n\nЯ не буду отправлять близкому ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
+    uz: "🔗 *Taklif yaratildi*\n\nBu havola siz uchun emas — uni boshqa inson ochishi kerak.\n\nHozir nima qilish kerak:\n1. «📤 Yaqin kishiga yuborish»ni bosing.\n2. Telegram oynasida qarindosh yoki do'stingizni tanlab, xabarni yuboring.\n3. Yaqin inson botni ochib Start bosgandan keyin aloqa yoqiladi.\n\nAgar havolani tasodifan o'zingiz ochsangiz — xavotir olmang. Bu xabarga qaytib, uni boshqa insonga yuboring.\n\nMen yaqin insoningizga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
+    en: "🔗 *Invite created*\n\nThis link is not for you — another person must open it.\n\nWhat to do now:\n1. Tap “📤 Send invite to trusted person”.\n2. In the Telegram share window, choose a relative or friend and send the message.\n3. After they open the bot and tap Start, the link becomes active.\n\nIf you accidentally open the link yourself, that is okay. Come back here and send it to another person.\n\nI will not send your trusted person your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
   },
   family_already_linked: {
     ru: "Близкий уже подключён.\n\nЧтобы создать новое приглашение, сначала отключите текущую связь. Если ситуация срочная, можно сразу позвать подключённого близкого.",
@@ -633,9 +633,9 @@ export const bot_dict: BotDict = {
     en: "This invite link has expired. Ask them to create a new invite with /family.",
   },
   family_accept_self: {
-    ru: "Вы открыли свою же ссылку. Это приглашение должен открыть другой человек.\n\nВернитесь к сообщению с приглашением, нажмите «📤 Отправить близкому» и выберите родственника или друга в Telegram.",
-    uz: "Siz o'zingizning havolangizni ochdingiz. Bu taklifni boshqa inson ochishi kerak.\n\nTaklif xabariga qayting, «📤 Yaqinga yuborish»ni bosing va Telegramda qarindosh yoki do'stingizni tanlang.",
-    en: "You opened your own invite link. Another person must open it.\n\nGo back to the invite message, tap “📤 Send to trusted person”, and choose a relative or friend in Telegram.",
+    ru: "Вы открыли свою же ссылку, поэтому связь не включилась. Это приглашение должен открыть другой человек.\n\nВернитесь к сообщению с приглашением, нажмите «📤 Отправить в чат близкого» и выберите родственника или друга в Telegram.",
+    uz: "Siz o'zingizning havolangizni ochdingiz, shuning uchun aloqa yoqilmadi. Bu taklifni boshqa inson ochishi kerak.\n\nTaklif xabariga qayting, «📤 Yaqin kishiga yuborish»ni bosing va Telegramda qarindosh yoki do'stingizni tanlang.",
+    en: "You opened your own invite link, so the connection was not enabled. Another person must open this invite.\n\nGo back to the invite message, tap “📤 Send invite to trusted person”, and choose a relative or friend in Telegram.",
   },
   family_storage_error: {
     ru: "Семейный щит сейчас недоступен. Срочный совет: позвоните близкому вручную и скажите: «Побудь со мной 5 минут, я сам перезвоню в банк по официальному номеру».",

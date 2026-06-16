@@ -103,12 +103,14 @@ vi.mock("@/lib/telegram/api.server", async (importOriginal) => {
 
 import {
   acceptFamilyInvite,
+  buildFamilyInviteKeyboard,
   buildTrustedAlertText,
   createFamilyInvite,
   notifyTrustedContact,
   parseFamilyStartArg,
   revokeFamilyShieldForTrusted,
 } from "./family-shield.server";
+import { bt } from "./bot-i18n";
 
 beforeEach(() => {
   vi.unstubAllEnvs();
@@ -143,6 +145,23 @@ describe("Family Shield v1", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.inviteUrl).toMatch(/^https:\/\/t\.me\/custom_guard_bot\?start=family_/);
+  });
+
+  it("makes the invite handoff explicit and opens Telegram share flow", () => {
+    const inviteUrl = "https://t.me/scamguard_bot?start=family_testToken123";
+    const keyboard = buildFamilyInviteKeyboard(inviteUrl, "ru");
+    const shareButton = keyboard[0]?.[0] as { text?: string; url?: string };
+
+    expect(bt("family_invite_text", "ru")).toContain("Эта ссылка не для вас");
+    expect(bt("family_invite_text", "ru")).toContain("В открывшемся окне Telegram");
+    expect(bt("family_accept_self", "ru")).toContain("связь не включилась");
+    expect(shareButton.text).toContain("Отправить в чат близкого");
+    expect(shareButton.url).toBeTruthy();
+
+    const shareUrl = new URL(shareButton.url!);
+    expect(shareUrl.origin + shareUrl.pathname).toBe("https://t.me/share/url");
+    expect(shareUrl.searchParams.get("url")).toBe(inviteUrl);
+    expect(shareUrl.searchParams.get("text")).toContain("Прими приглашение");
   });
 
   it("rejects linking the guardian account as its own trusted contact", async () => {
