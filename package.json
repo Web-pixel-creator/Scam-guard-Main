@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "test": "vitest",
     "test:run": "vitest run",
+    "qa:qr-decode": "vite-node scripts/qr-decode-local.ts",
     "qa:telegram-report": "vite-node scripts/telegram-bot-qa-report.ts",
     "qa:telegram-visual": "vite-node scripts/telegram-bot-qa-visual.ts",
     "monitor:prod": "vite-node scripts/prod-monitor.ts",

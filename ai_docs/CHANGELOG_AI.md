@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - QR decoded evidence in Telegram replies
+
+- Telegram image explanations now surface decoded safe QR destinations such as
+  `chenson.uz/loyalty` or `t.me/chensonuz_bot` so restaurant/menu QR results
+  feel evidence-based instead of guessed.
+- Sensitive QR payloads are not echoed: Telegram login tokens and 2FA secrets
+  are summarized as hidden login/authenticator QR values in user-facing copy.
+- Added `npm run qa:qr-decode -- <image>` for local QR checks against real
+  screenshots and regenerated Telegram QA coverage for benign QR and login-QR
+  cases.
+
 ## 2026-06-16 - Telegram visual QA board
 
 - Added `scripts/telegram-bot-qa-visual.ts` and `npm run

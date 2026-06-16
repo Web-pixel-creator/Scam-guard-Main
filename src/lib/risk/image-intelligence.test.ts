@@ -190,6 +190,46 @@ describe("image intelligence evidence builder", () => {
     expect(input).toContain("Decoded QR URL/value: https://kapitalbank.uz.evil.top/login");
   });
 
+  it("tells the user which benign QR domains were actually decoded", () => {
+    const evidence = fallbackImageIntelligence("Меню ресторана. QR-код для акций и бронирования.");
+    const merged = mergeDecodedQrEvidence(evidence, {
+      values: [
+        "https://chenson.uz/loyalty",
+        "https://chenson.uz/",
+        "https://chenson.uz/locations",
+        "https://t.me/chensonuz_bot",
+      ],
+      urls: [
+        "https://chenson.uz/loyalty",
+        "https://chenson.uz/",
+        "https://chenson.uz/locations",
+        "https://t.me/chensonuz_bot",
+      ],
+    });
+
+    const explanation = buildImageUserExplanation(merged, "unknown", "ru");
+
+    expect(explanation).toContain("QR прочитан");
+    expect(explanation).toContain("chenson.uz/loyalty");
+    expect(explanation).toContain("t.me/chensonuz_bot");
+    expect(explanation).toContain("Сам QR-код не является признаком скама");
+  });
+
+  it("does not echo sensitive Telegram login QR tokens in the user explanation", () => {
+    const evidence = fallbackImageIntelligence("Быстрый вход по QR-коду. Подключить устройство.");
+    const merged = mergeDecodedQrEvidence(evidence, {
+      values: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+      urls: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+    });
+    const { score } = scoreImageEvidence(merged);
+    const explanation = buildImageUserExplanation(merged, score.level, "ru");
+
+    expect(explanation).toContain("QR прочитан");
+    expect(explanation).toContain("Telegram login QR (token hidden)");
+    expect(explanation).not.toContain("SECRET_TOKEN_SHOULD_NOT_LEAK");
+    expect(explanation).toContain("Не сканируйте QR");
+  });
+
   it("builds a calm user explanation for benign QR menu images", () => {
     const evidence = fallbackImageIntelligence("Меню ресторана. QR-код для акций и бронирования.");
     const explanation = buildImageUserExplanation(evidence, "unknown", "ru");

@@ -318,6 +318,50 @@ describe("formatCheckResult — brief/explanation section (UX v2)", () => {
     expect(text).toContain(escapeMarkdownV2(bt("section_brief", "ru")));
     expect(text).toContain(escapeMarkdownV2(explanation));
   });
+
+  it("показывает прочитанные QR-домены для нейтрального меню вместо generic fallback", () => {
+    const explanation = [
+      "🔎 QR прочитан: chenson.uz/loyalty, chenson.uz, chenson.uz/locations, t.me/chensonuz_bot.",
+      "",
+      "На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама; риск появляется, если после него просят код, данные карты, вход в аккаунт или оплату.",
+    ].join("\n");
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        score: 0,
+        reasons: [],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("QR прочитан: chenson.uz/loyalty"));
+    expect(text).toContain(escapeMarkdownV2("t.me/chensonuz_bot"));
+    expect(text).not.toContain(escapeMarkdownV2("Я не буду утверждать, что прочитал сам QR"));
+  });
+
+  it("показывает QR-login пояснение без утечки токена в high-risk карточке", () => {
+    const explanation = [
+      "🔎 QR прочитан: Telegram login QR (token hidden).",
+      "",
+      "Похоже на QR для входа, подключения устройства или 2FA. Не сканируйте QR, который прислал другой человек.",
+    ].join("\n");
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        score: 65,
+        reasons: ["asks_to_scan_qr"],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Telegram login QR (token hidden)"));
+    expect(text).toContain(escapeMarkdownV2("Не сканируйте QR"));
+    expect(text).not.toContain("SECRET_TOKEN_SHOULD_NOT_LEAK");
+  });
 });
 
 describe("formatCheckResult — calm unknown contexts", () => {

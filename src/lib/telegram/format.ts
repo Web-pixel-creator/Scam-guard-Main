@@ -437,6 +437,7 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   let content: string;
   const neutralContext = detectNeutralContext(result);
   const hasForwardSourceBrief = isForwardSourceBrief(result.explanation);
+  const hasDecodedQrBrief = isDecodedQrEvidenceBrief(result.explanation);
   const truncateOptions = hasForwardSourceBrief
     ? { maxLines: 6, maxChars: 380 }
     : result.type === "telegram"
@@ -445,7 +446,11 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
         ? { maxLines: 3, maxChars: 190 }
         : { maxLines: 4, maxChars: 230 };
 
-  if (neutralContext && !(neutralContext === "telegram_profile" && result.explanation !== null)) {
+  if (
+    neutralContext &&
+    !(neutralContext === "telegram_profile" && result.explanation !== null) &&
+    !(neutralContext === "qr_menu" && hasDecodedQrBrief)
+  ) {
     content =
       neutralContext === "phone"
         ? (renderPhonePassportBrief(result, lang) ??
@@ -465,6 +470,11 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
 function isForwardSourceBrief(explanation: string | null): explanation is string {
   if (!explanation) return false;
   return /^(Источник: Telegram-|Source: Telegram |Manba: Telegram )/u.test(explanation);
+}
+
+function isDecodedQrEvidenceBrief(explanation: string | null): explanation is string {
+  if (!explanation) return false;
+  return /QR (?:прочитан|decoded|o['’]qildi)/iu.test(explanation);
 }
 
 /**
@@ -520,6 +530,14 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
     result.level === "unknown"
       ? result.reasons.filter((code) => !TOPIC_ONLY_OBSERVATION_REASONS.has(code))
       : result.reasons;
+
+  if (
+    result.level === "high_risk" &&
+    result.reasons.includes("asks_to_scan_qr") &&
+    isDecodedQrEvidenceBrief(explanation)
+  ) {
+    parts.push(escapeMarkdownV2(truncateExplanation(explanation, { maxLines: 4, maxChars: 320 })));
+  }
 
   // Reason labels
   const reasonLines = observableReasons

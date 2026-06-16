@@ -1433,7 +1433,9 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain(RISK_EMOJI.safe);
     expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.high_risk);
-    expect(h.sendCalls[0].text).toContain("не буду утверждать, что прочитал сам QR");
+    expect(h.sendCalls[0].text).toContain("QR прочитан");
+    expect(h.sendCalls[0].text).toContain("chenson\\.uz/loyalty");
+    expect(h.sendCalls[0].text).not.toContain("не буду утверждать, что прочитал сам QR");
 
     const checkInsert = h.inserts.find((i) => i.table === "checks");
     expect(JSON.stringify(checkInsert)).not.toContain("asks_to_scan_qr");

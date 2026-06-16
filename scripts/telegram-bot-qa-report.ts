@@ -17,6 +17,11 @@ import {
 } from "@/lib/telegram/format";
 import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
 import {
+  buildImageUserExplanation,
+  fallbackImageIntelligence,
+  mergeDecodedQrEvidence,
+} from "@/lib/risk/image-intelligence";
+import {
   buildAskedContextFollowUpKeyboard,
   buildAskedContextKeyboardRows,
   buildAskedContextText,
@@ -221,6 +226,54 @@ function suspiciousInviteFixture(): RunCheckResult {
   });
 }
 
+function restaurantQrFixture(): RunCheckResult {
+  const evidence = mergeDecodedQrEvidence(
+    fallbackImageIntelligence("Меню ресторана. QR-код для акций и бронирования."),
+    {
+      values: [
+        "https://chenson.uz/loyalty",
+        "https://chenson.uz/",
+        "https://chenson.uz/locations",
+        "https://t.me/chensonuz_bot",
+      ],
+      urls: [
+        "https://chenson.uz/loyalty",
+        "https://chenson.uz/",
+        "https://chenson.uz/locations",
+        "https://t.me/chensonuz_bot",
+      ],
+    },
+  );
+
+  return resultFixture({
+    type: "text",
+    display: "QR: ресторанное меню",
+    level: "unknown",
+    score: 0,
+    reasons: [],
+    explanation: buildImageUserExplanation(evidence, "unknown", LANG),
+  });
+}
+
+function telegramLoginQrFixture(): RunCheckResult {
+  const evidence = mergeDecodedQrEvidence(
+    fallbackImageIntelligence("Быстрый вход по QR-коду. Подключить устройство."),
+    {
+      values: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+      urls: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+    },
+  );
+
+  return resultFixture({
+    type: "text",
+    display: "QR: вход в Telegram",
+    level: "high_risk",
+    score: 65,
+    reasons: ["asks_to_scan_qr"],
+    explanation: buildImageUserExplanation(evidence, "high_risk", LANG),
+  });
+}
+
 function sections(): Section[] {
   const welcome = formatWelcome(LANG);
   const weekly = formatWeeklyScamDigest(LANG);
@@ -244,6 +297,8 @@ function sections(): Section[] {
     renderCheckResult("Risk result: инвестиции без ссылки", cryptoInvestmentFixture()),
     renderCheckResult("Risk result: закрытая Telegram invite-ссылка", suspiciousInviteFixture()),
     renderCheckResult("Risk result: SMS-код / банк", highRiskSmsFixture()),
+    renderCheckResult("Image QR: ресторанное меню с прочитанными доменами", restaurantQrFixture()),
+    renderCheckResult("Image QR: вход в Telegram без утечки токена", telegramLoginQrFixture()),
     section("Unsupported video/audio fallback", bt("out_of_scope", LANG), [
       [
         { text: bt("btn_check_another", LANG), callback_data: CB.checkAnother },

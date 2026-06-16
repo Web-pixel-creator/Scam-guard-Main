@@ -45,7 +45,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
   Angel, Family Shield and report flow. `npm run qa:telegram-visual` renders
   that report as a Telegram-like HTML review board under `output/playwright/`;
   use Playwright screenshots to inspect mobile/desktop readability when copy or
-  keyboards change. Run these QA commands whenever bot copy/buttons change.
+  keyboards change. `npm run qa:qr-decode -- <image>` checks whether a real
+  screenshot's QR payload is pixel-decoded before Telegram copy review. Run
+  these QA commands whenever bot copy/buttons or image/QR handling change.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
