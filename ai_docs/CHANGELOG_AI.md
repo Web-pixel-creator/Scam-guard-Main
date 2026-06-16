@@ -13,6 +13,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Routed short Telegram `audio` files with `file_id` through the same capped
   voice STT pipeline as voice notes. Oversized or unclear voice/audio messages
   keep the safe text fallback.
+- Clarified Telegram user-facing copy: unsupported-media fallback now says
+  short voice/audio up to 60 seconds is supported, and restaurant/menu QR
+  results no longer imply that the hidden QR payload was definitely decoded.
 
 ## 2026-06-16 - Telegram Voice-out / TTS v1
 

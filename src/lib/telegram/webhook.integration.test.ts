@@ -684,7 +684,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain("могу разобрать главное");
+    expect(h.sendCalls[0].text).toContain("аудиофайл до 60 секунд");
     expect(h.sendCalls[0].text).toContain("скрин кадра");
     expect(h.sendCalls[0].text).toContain("ставки");
     expect(h.sendCalls[0].text).toContain("гарантированный доход");
@@ -1433,7 +1433,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain(RISK_EMOJI.safe);
     expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.high_risk);
-    expect(h.sendCalls[0].text).toContain("Сам QR не опасен");
+    expect(h.sendCalls[0].text).toContain("не буду утверждать, что прочитал сам QR");
 
     const checkInsert = h.inserts.find((i) => i.table === "checks");
     expect(JSON.stringify(checkInsert)).not.toContain("asks_to_scan_qr");

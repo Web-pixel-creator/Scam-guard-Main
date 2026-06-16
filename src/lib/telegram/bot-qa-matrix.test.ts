@@ -86,7 +86,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     const text = bt("out_of_scope", "ru");
     const keyboard = buildUnsupportedMediaKeyboard("ru");
 
-    expect(text).toContain("могу разобрать главное");
+    expect(text).toContain("аудиофайл до 60 секунд");
     expect(text).toContain("скрин кадра");
     expect(text).toContain("QR, username, реквизиты");
     expect(text).toContain("гарантированный доход");
