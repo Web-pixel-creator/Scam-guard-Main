@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "test": "vitest",
     "test:run": "vitest run",
+    "qa:telegram-report": "vite-node scripts/telegram-bot-qa-report.ts",
     "monitor:prod": "vite-node scripts/prod-monitor.ts",
     "prod:smoke": "vite-node scripts/prod-smoke.ts",
     "prod:family-smoke": "vite-node scripts/prod-family-shield-smoke.ts",

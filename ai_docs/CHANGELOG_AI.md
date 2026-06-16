@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Telegram bot QA report
+
+- Added `scripts/telegram-bot-qa-report.ts` and `npm run
+qa:telegram-report`.
+- The generated `ai_docs/TELEGRAM_BOT_QA_REPORT.md` renders current Telegram
+  bot copy and keyboards from TypeScript formatters for product review.
+- Coverage includes main menus, result cards, media fallbacks, image triage,
+  asked-context hints, `/panic`, `/call`, Guardian Angel, Family Shield and
+  report flow.
+- Documented that the report should be regenerated whenever bot copy or
+  buttons change.
+
 ## 2026-06-16 - Family Shield invite UX clarification
 
 - Clarified Family Shield invite copy so the guardian understands the invite

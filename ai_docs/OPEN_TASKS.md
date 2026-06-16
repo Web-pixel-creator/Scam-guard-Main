@@ -38,6 +38,11 @@
 - **Direct `/call` is shipped.** It reuses the live-call copilot without
   exposing bank callback before hangup; command-menu registration must be kept
   in the release checklist whenever command payloads change.
+- **Telegram bot response QA is reproducible now.** `npm run
+qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
+  current TypeScript formatters, covering main menus, result cards, media
+  fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian
+  Angel, Family Shield and report flow. Run it whenever bot copy/buttons change.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
