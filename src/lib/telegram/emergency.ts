@@ -1906,7 +1906,7 @@ const FOLLOWUP_TRUSTED_RE =
 const FOLLOWUP_MORE_RE =
   /(?:что|что-то)\s+(?:еще|ещё|дальше)|(?:что\s+мне\s+делать|что\s+делать\s+дальше|как\s+быть|дальше|следующий\s+шаг|посовет|подскажи|помоги\s+дальше)|what\s+next|next\s+steps|more\s+advice|what\s+else|what\s+should\s+i\s+do|yana\s+nima|keyin\s+nima|nima\s+qil/i;
 
-const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = {
+const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction | "voice", Record<Lang, string>> = {
   more: { ru: "🧭 Что дальше", uz: "🧭 Keyingi qadam", en: "🧭 Next step" },
   contacts: { ru: "📞 Позвонить безопасно", uz: "📞 Xavfsiz qo'ng'iroq", en: "📞 Safe callback" },
   script: { ru: "💬 Готовая фраза", uz: "💬 Tayyor jumla", en: "💬 Ready phrase" },
@@ -1914,6 +1914,11 @@ const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction, Record<Lang, string>> = 
     ru: "👪 Позвать близкого",
     uz: "👪 Yaqinni chaqirish",
     en: "👪 Call someone trusted",
+  },
+  voice: {
+    ru: "🔊 Коротко голосом",
+    uz: "🔊 Qisqa ovoz",
+    en: "🔊 Short voice",
   },
   full: {
     ru: "📋 Все срочные шаги",
@@ -2088,6 +2093,7 @@ export function buildLiveCallPostHangupKeyboard(lang: Lang): InlineKeyboard {
       { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
       { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
     ],
+    [{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" }],
   ];
 }
 
@@ -2112,7 +2118,10 @@ export function buildEmergencyFollowUpKeyboard(
         callback_data: "family:notify",
       },
     ],
-    [{ text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` }],
+    [
+      { text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" },
+      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+    ],
   ];
 }
 

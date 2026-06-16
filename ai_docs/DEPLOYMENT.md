@@ -60,7 +60,8 @@ runtime, which the Nitro node-server already honours. Config-as-code lives in
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
    `VITE_SUPABASE_PROJECT_ID`, `HASH_PEPPER_SECRET`, `TELEGRAM_BOT_TOKEN`,
    `TELEGRAM_WEBHOOK_SECRET`, and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`
-   / `OPENAI_BASE_URL` / `OPENAI_TRANSCRIBE_MODEL`. Do **not** set `PORT` —
+   / `OPENAI_BASE_URL` / `OPENAI_TRANSCRIBE_MODEL` /
+   `OPENAI_TTS_API_KEY`. Do **not** set `PORT` —
    Railway provides it.
 3. Deploy. Once a public domain is assigned (service → Settings → Networking →
    Generate Domain), use it as `PUBLIC_APP_URL` for the webhook registration
@@ -101,6 +102,14 @@ committed `.env`, never shipped to client):
   Telegram voice-note transcription. If unset, Gemini-native audio uses
   `OPENAI_MODEL`; OpenAI-compatible audio transcription defaults to
   `gpt-4o-mini-transcribe`.
+- `OPENAI_TTS_API_KEY` — optional dedicated key for opt-in Telegram Voice-out
+  audio tips. Without it, the bot keeps the same buttons but replies with a
+  short text fallback instead of audio.
+- `OPENAI_TTS_BASE_URL` — optional speech endpoint base URL (default
+  `https://api.openai.com/v1`). Do not point this at Gemini's
+  `generativelanguage.googleapis.com` OpenAI-compatible chat endpoint.
+- `OPENAI_TTS_MODEL` / `OPENAI_TTS_VOICE` — optional speech model and voice
+  overrides (defaults: `gpt-4o-mini-tts` / `alloy`).
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — Telegram bot (see below).
 - `TELEGRAM_BOT_USERNAME` - optional public username used for Family Shield
   invite links; defaults to `scamguard_bot` if unset.

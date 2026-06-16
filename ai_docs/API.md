@@ -63,15 +63,16 @@ Browser session token (Supabase) is attached by `attachSupabaseAuth` on every se
 - `get_check_stats()` is service-role-only. The browser no longer calls it directly; `getPublicStats` calls it through a server function.
 - `claim_rate_limit()` is service-role-only. Server code calls it to atomically
   increment HMAC-hashed shared buckets for public checks, reports, Telegram
-  public-post fetches and the voice STT daily budget. The voice budget uses a
-  distinct key prefix under the existing `check` scope so no raw Telegram id is
-  persisted.
+  public-post fetches, the voice STT daily budget and the opt-in Voice-out/TTS
+  daily budget. Voice budgets use distinct key prefixes under the existing
+  `check` scope so no raw Telegram id is persisted.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
 
 ## External integrations
 
 - **Supabase:** Postgres/Auth/RLS via `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 - **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations, web screenshot OCR and Telegram structured image analysis. Telegram voice STT uses Gemini native audio when `OPENAI_BASE_URL` points to `generativelanguage.googleapis.com`, otherwise OpenAI-compatible `/audio/transcriptions` with `OPENAI_TRANSCRIBE_MODEL` / `OPENAI_AUDIO_MODEL` / `gpt-4o-mini-transcribe`. Missing key, provider error or blocked unsafe explanation returns `null`; scoring continues where text evidence is available.
+- **Telegram Voice-out/TTS:** opt-in SOS/Guardian voice tips call `POST {OPENAI_TTS_BASE_URL}/audio/speech` with `OPENAI_TTS_API_KEY`, `OPENAI_TTS_MODEL` (default `gpt-4o-mini-tts`) and `OPENAI_TTS_VOICE` (default `alloy`). If no dedicated TTS key exists, the bot may reuse `OPENAI_API_KEY` only when `OPENAI_BASE_URL` is not Gemini-like. Gemini/OpenAI-compatible chat endpoints are never treated as speech endpoints. Audio failures degrade to a text fallback; raw user evidence is not spoken back.
 - **Telegram Bot API:** used by the bot handlers for replies, inline query answers, file metadata/image downloads, and best-effort public `getChat` metadata on Telegram username/link checks.
 
 ## Future B2B API

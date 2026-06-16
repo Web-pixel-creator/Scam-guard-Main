@@ -15,7 +15,7 @@
   paths and public Telegram post fetches use Supabase `rate_limit_buckets` with
   HMAC-hashed keys across Node instances. Local/test fallback remains
   in-memory; watch Postgres bucket write volume before deciding on Redis/KV.
-- **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`.
+- **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`. Voice-out/TTS is separately opt-in through `OPENAI_TTS_API_KEY`; without it, the bot sends a short text fallback instead of audio.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
 - **SOS ready phrases are scenario-specific for current panic IDs.** Existing
@@ -66,8 +66,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       Done as immediate post-high-risk guidance: one safe step, done
       confirmation, safe callback, trusted-contact help and full plan. Timed
       reminders remain a later scheduler/opt-out task.
-- [ ] Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak SMS
-      codes, card numbers, seed phrases or other secrets back to the user.
+- [x] ~~Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak
+      SMS codes, card numbers, seed phrases or other secrets back to the
+      user.~~ Done: SOS and Guardian Angel keyboards now include opt-in short
+      voice guidance. The TTS path has its own daily budget, sanitizes links,
+      usernames and long digit runs before synthesis, refuses unsafe
+      code/PIN/CVV/password-like text, and degrades to text when
+      `OPENAI_TTS_API_KEY` is not configured.
 - [ ] Add partner allow-listing/logging for `/embed/check` frame origins before
       broad distribution of the public embed widget.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a

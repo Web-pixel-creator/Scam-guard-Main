@@ -327,6 +327,7 @@ export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
       call: "📞 Позвонить безопасно",
       family: "👪 Позвать близкого",
       plan: "📋 Весь план",
+      voice: "🔊 Коротко голосом",
       check: "🔁 Новая проверка",
     },
     uz: {
@@ -335,6 +336,7 @@ export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
       call: "📞 Xavfsiz qo'ng'iroq",
       family: "👪 Yaqinni chaqirish",
       plan: "📋 To'liq reja",
+      voice: "🔊 Qisqa ovoz",
       check: "🔁 Yangi tekshiruv",
     },
     en: {
@@ -343,6 +345,7 @@ export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
       call: "📞 Safe callback",
       family: "👪 Call trusted person",
       plan: "📋 Full plan",
+      voice: "🔊 Short voice",
       check: "🔁 New check",
     },
   }[lang];
@@ -357,9 +360,10 @@ export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
       { text: text.family, callback_data: "family:notify" },
     ],
     [
+      { text: text.voice, callback_data: "voiceout:guardian" },
       { text: text.plan, callback_data: GUARDIAN_CB.fullPlan },
-      { text: text.check, callback_data: "check_another" },
     ],
+    [{ text: text.check, callback_data: "check_another" }],
   ];
 }
 

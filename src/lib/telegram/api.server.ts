@@ -48,6 +48,18 @@ export interface SendMessageOptions {
   disablePreview?: boolean;
 }
 
+export interface SendAudioFileOptions {
+  chatId: number;
+  audio: Uint8Array;
+  filename: string;
+  mimeType: string;
+  caption?: string;
+  keyboard?: InlineKeyboard;
+  parseMode?: "MarkdownV2" | "HTML" | "None";
+  title?: string;
+  performer?: string;
+}
+
 export interface EditMessageOptions {
   chatId: number;
   messageId: number;
@@ -110,6 +122,36 @@ async function callBotApi(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+      },
+      BOT_API_TIMEOUT_MS,
+    );
+    const envelope = await readBotApiEnvelope(res);
+    if (!res.ok) {
+      console.error(`telegram ${method} non-ok`, res.status);
+      return envelope;
+    }
+    return envelope;
+  } catch (e) {
+    console.error(`telegram ${method} threw`, e instanceof Error ? e.message : "unknown");
+    return null;
+  }
+}
+
+async function callBotApiForm(
+  method: string,
+  form: FormData,
+): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+  const token = getTelegramBotToken();
+  if (!token) {
+    console.error(`telegram ${method} skipped: bot token not configured`);
+    return null;
+  }
+  try {
+    const res = await fetchWithTimeout(
+      `${API_BASE}${token}/${method}`,
+      {
+        method: "POST",
+        body: form,
       },
       BOT_API_TIMEOUT_MS,
     );
@@ -188,6 +230,24 @@ export async function sendMessage(opts: SendMessageOptions): Promise<{ ok: boole
   if (opts.disablePreview) body.disable_web_page_preview = true;
 
   const res = await callBotApi("sendMessage", body);
+  return { ok: res?.ok === true };
+}
+
+/** Send an audio file generated in memory. Used by opt-in Voice-out/TTS. */
+export async function sendAudioFile(opts: SendAudioFileOptions): Promise<{ ok: boolean }> {
+  const form = new FormData();
+  form.set("chat_id", String(opts.chatId));
+  form.set("audio", new Blob([opts.audio], { type: opts.mimeType }), opts.filename);
+  if (opts.caption) form.set("caption", opts.caption);
+  const parseMode = opts.parseMode ?? "MarkdownV2";
+  if (parseMode !== "None") form.set("parse_mode", parseMode);
+  if (opts.title) form.set("title", opts.title);
+  if (opts.performer) form.set("performer", opts.performer);
+  if (opts.keyboard && opts.keyboard.length > 0) {
+    form.set("reply_markup", JSON.stringify({ inline_keyboard: opts.keyboard }));
+  }
+
+  const res = await callBotApiForm("sendAudio", form);
   return { ok: res?.ok === true };
 }
 

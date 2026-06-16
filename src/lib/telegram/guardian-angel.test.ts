@@ -67,6 +67,7 @@ describe("Guardian Angel v1", () => {
       "guardian:done",
       "guardian:safe_call",
       "family:notify",
+      "voiceout:guardian",
       "guardian:full_plan",
       "check_another",
     ]);

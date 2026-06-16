@@ -204,11 +204,12 @@ describe("Emergency Copilot v2 follow-up routing", () => {
         "panicctx:contacts",
         "panicctx:script",
         "family:notify",
+        "voiceout:panic",
         "panicctx:full",
       ]),
     );
     expect(callbackData).not.toContain("share_advice");
-    expect(buttons).toHaveLength(5);
+    expect(buttons).toHaveLength(6);
     expect(buttons.map((button) => button.text)).toEqual(
       expect.arrayContaining(["📞 Позвонить безопасно", "💬 Готовая фраза"]),
     );
@@ -333,6 +334,7 @@ describe("Emergency Copilot v2 follow-up routing", () => {
       "family:notify",
       "panicctx:script",
       "panicctx:full",
+      "voiceout:panic",
     ]);
     expect(data).not.toContain("panicctx:more");
   });

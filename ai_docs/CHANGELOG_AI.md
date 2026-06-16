@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Telegram Voice-out / TTS v1
+
+- Added opt-in `voiceout:*` callbacks for SOS follow-ups and Guardian Angel.
+- Added `src/lib/telegram/voice-out.server.ts` with short RU/UZ/EN safety
+  scripts, a 5/day user budget, TTS endpoint isolation and sanitization before
+  speech synthesis.
+- Voice-out strips links, Telegram usernames and long digit runs, refuses
+  unsafe code/PIN/CVV/password-like text and never treats Gemini chat endpoints
+  as speech endpoints.
+- If `OPENAI_TTS_API_KEY` is missing or TTS fails, the bot sends a short text
+  fallback and keeps the same recovery buttons.
+- Regenerated the Telegram QA report to include Voice-out samples and buttons.
+
 ## 2026-06-16 - Telegram bot QA report
 
 - Added `scripts/telegram-bot-qa-report.ts` and `npm run

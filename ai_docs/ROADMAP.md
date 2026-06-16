@@ -97,14 +97,16 @@ Already shipped:
 - Guardian Angel v1: high-risk Telegram checks now continue with one safe step
   at a time, safe-callback guidance, trusted-contact help, a done confirmation
   and a concise full plan, while storing only safe summary metadata.
+- Voice-out / TTS v1: SOS and Guardian Angel screens now have an opt-in short
+  voice guidance button. The speech path uses a separate TTS configuration,
+  strips unsafe evidence before synthesis and falls back to text when audio is
+  unavailable.
 
 Immediate implementation order after the 2026-06-16 product feedback:
 
-1. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
-   guidance, not only read it. This must be opt-in and never speak secrets back.
-2. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
+1. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
    line-type/VoIP providers stay optional and paid.
-3. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
+2. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
    website features should be public living-experience stories, a scam-call
    trainer, and later a scam map/index, all using aggregated or moderated data.
 
@@ -189,7 +191,7 @@ Disallowed claims:
 11. Guardian Angel v1: step-by-step post-high-risk guidance, done
     confirmation, safe callback and trusted-contact help - shipped as immediate
     v1; timed reminders remain later.
-12. Voice-out / TTS v1 for short opt-in safety answers.
+12. Voice-out / TTS v1 for short opt-in safety answers - shipped with text fallback when TTS is not configured.
 
 ## Stage 3 - Website Trust And Distribution
 

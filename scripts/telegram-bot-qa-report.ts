@@ -51,6 +51,7 @@ import {
   type GuardianAngelAction,
   type GuardianAngelSnapshot,
 } from "@/lib/telegram/guardian-angel";
+import { buildGuardianVoiceOutText, buildPanicVoiceOutText } from "@/lib/telegram/voice-out.server";
 import {
   reportRetryKeyboard,
   reportSkipKeyboard,
@@ -318,6 +319,13 @@ function sections(): Section[] {
       buildGuardianAngelIntro(guardianSnapshot, LANG),
       buildGuardianAngelKeyboard(LANG),
     ),
+    section(
+      "Voice-out: Guardian Angel sample",
+      buildGuardianVoiceOutText(guardianSnapshot, LANG) ?? "Нет безопасного контекста.",
+      buildGuardianAngelKeyboard(LANG),
+    ),
+    section("Voice-out: SOS APK sample", buildPanicVoiceOutText(2, LANG)),
+    section("Voice-out: SOS voice-clone sample", buildPanicVoiceOutText(11, LANG)),
   );
 
   for (const action of GUARDIAN_ACTIONS) {
@@ -377,7 +385,7 @@ function renderReport(items: Section[]): string {
     "Generated from the current TypeScript formatters. This file is meant for product/UX review: if a bot response feels too long, generic, confusing, or unsafe here, fix the formatter and regenerate.",
     "",
     "- Language: `ru`",
-    "- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Family Shield, report flow.",
+    "- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Voice-out/TTS, Family Shield, report flow.",
     "- Privacy note: samples are synthetic and contain no real user secrets.",
     "",
   ];

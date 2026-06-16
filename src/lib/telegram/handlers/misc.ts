@@ -88,6 +88,13 @@ import {
   parseGuardianAngelCallback,
 } from "@/lib/telegram/guardian-angel";
 import {
+  buildGuardianVoiceOutText,
+  buildPanicVoiceOutText,
+  parseVoiceOutCallback,
+  sendVoiceOutResponse,
+  VOICE_OUT_CB,
+} from "@/lib/telegram/voice-out.server";
+import {
   buildFamilyAlreadyLinkedKeyboard,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
@@ -317,6 +324,31 @@ export async function handleCallback(
 
   const lang = ctx.session.lang;
   if (await handleFamilyCallback(data, ctx)) return;
+
+  const voiceOutAction = parseVoiceOutCallback(data);
+  if (voiceOutAction !== null) {
+    if (voiceOutAction === VOICE_OUT_CB.guardian) {
+      const guardian = ctx.session.scenarioData.guardian;
+      await sendVoiceOutResponse({
+        chatId: ctx.chatId,
+        userId: ctx.userId,
+        lang,
+        text: buildGuardianVoiceOutText(guardian, lang),
+        keyboard: guardian ? buildGuardianAngelKeyboard(lang) : undefined,
+      });
+      return;
+    }
+
+    const panicId = asPanicScenarioId(ctx.session.scenarioData.lastPanicId);
+    await sendVoiceOutResponse({
+      chatId: ctx.chatId,
+      userId: ctx.userId,
+      lang,
+      text: panicId ? buildPanicVoiceOutText(panicId, lang) : null,
+      keyboard: panicId ? buildEmergencyFollowUpKeyboard(lang, panicId) : undefined,
+    });
+    return;
+  }
 
   const guardianAction = parseGuardianAngelCallback(data);
   if (guardianAction !== null) {

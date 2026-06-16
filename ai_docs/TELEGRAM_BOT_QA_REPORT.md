@@ -3,7 +3,7 @@
 Generated from the current TypeScript formatters. This file is meant for product/UX review: if a bot response feels too long, generic, confusing, or unsafe here, fix the formatter and regenerate.
 
 - Language: `ru`
-- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Family Shield, report flow.
+- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Voice-out/TTS, Family Shield, report flow.
 - Privacy note: samples are synthetic and contain no real user secrets.
 
 ## 1. /start: главное меню
@@ -675,10 +675,47 @@ image_ocr_failed
 - [✅ Сделал шаг] (callback: guardian:done)
 - [📞 Позвонить безопасно] (callback: guardian:safe_call)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
 - [📋 Весь план] (callback: guardian:full_plan)
 - [🔁 Новая проверка] (callback: check_another)
 
-## 36. Guardian Angel action: guardian:next
+## 36. Voice-out: Guardian Angel sample
+
+```text
+Я рядом. Не называйте код. Завершите разговор и перезвоните в банк только по номеру из приложения, карты или официального сайта.
+```
+
+**Кнопки**
+
+- [🧭 Что дальше] (callback: guardian:next)
+- [✅ Сделал шаг] (callback: guardian:done)
+- [📞 Позвонить безопасно] (callback: guardian:safe_call)
+- [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
+- [📋 Весь план] (callback: guardian:full_plan)
+- [🔁 Новая проверка] (callback: check_another)
+
+## 37. Voice-out: SOS APK sample
+
+```text
+Я рядом. Включите авиарежим прямо сейчас. Удалите подозрительное приложение, а банк проверьте с другого телефона. Если приложение просило доступ к SMS, считайте риск высоким.
+```
+
+**Кнопки**
+
+_Нет кнопок._
+
+## 38. Voice-out: SOS voice-clone sample
+
+```text
+Я рядом. Не отправляйте деньги только потому, что голос похож на близкого. Завершите звонок и перезвоните человеку по сохранённому номеру.
+```
+
+**Кнопки**
+
+_Нет кнопок._
+
+## 39. Guardian Angel action: guardian:next
 
 ```text
 Я рядом. Только один безопасный шаг за раз.
@@ -696,10 +733,11 @@ image_ocr_failed
 - [✅ Сделал шаг] (callback: guardian:done)
 - [📞 Позвонить безопасно] (callback: guardian:safe_call)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
 - [📋 Весь план] (callback: guardian:full_plan)
 - [🔁 Новая проверка] (callback: check_another)
 
-## 37. Guardian Angel action: guardian:done
+## 40. Guardian Angel action: guardian:done
 
 ```text
 ✅ Хорошо, первый шаг сделан.
@@ -717,10 +755,11 @@ image_ocr_failed
 - [✅ Сделал шаг] (callback: guardian:done)
 - [📞 Позвонить безопасно] (callback: guardian:safe_call)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
 - [📋 Весь план] (callback: guardian:full_plan)
 - [🔁 Новая проверка] (callback: check_another)
 
-## 38. Guardian Angel action: guardian:safe_call
+## 41. Guardian Angel action: guardian:safe_call
 
 ```text
 📞 Безопасный обратный звонок
@@ -746,10 +785,11 @@ image_ocr_failed
 - [✅ Сделал шаг] (callback: guardian:done)
 - [📞 Позвонить безопасно] (callback: guardian:safe_call)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
 - [📋 Весь план] (callback: guardian:full_plan)
 - [🔁 Новая проверка] (callback: check_another)
 
-## 39. Guardian Angel action: guardian:full_plan
+## 42. Guardian Angel action: guardian:full_plan
 
 ```text
 📋 Полный безопасный план
@@ -767,10 +807,11 @@ image_ocr_failed
 - [✅ Сделал шаг] (callback: guardian:done)
 - [📞 Позвонить безопасно] (callback: guardian:safe_call)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:guardian)
 - [📋 Весь план] (callback: guardian:full_plan)
 - [🔁 Новая проверка] (callback: check_another)
 
-## 40. Family Shield: menu
+## 43. Family Shield: menu
 
 ```text
 👪 *Семейный щит*
@@ -790,7 +831,7 @@ image_ocr_failed
 - [family_btn_invite] (callback: family:invite)
 - [👪 Позвать близкого] (callback: family:notify)
 
-## 41. Family Shield: invite
+## 44. Family Shield: invite
 
 ```text
 🔗 *Приглашение создано*
@@ -812,7 +853,7 @@ image_ocr_failed
 - [📤 Отправить в чат близкого] (url: https://t.me/share/url?...invite...)
 - [🗑 Отключить] (callback: family:revoke)
 
-## 42. Family Shield: self-opened invite
+## 45. Family Shield: self-opened invite
 
 ```text
 Вы открыли свою же ссылку, поэтому связь не включилась. Это приглашение должен открыть другой человек.
@@ -824,7 +865,7 @@ image_ocr_failed
 
 _Нет кнопок._
 
-## 43. Family Shield: trusted alert
+## 46. Family Shield: trusted alert
 
 ```text
 family_trusted_alert
@@ -834,7 +875,7 @@ family_trusted_alert
 
 - [family_btn_trusted_opt_out] (callback: family:trusted_opt_out)
 
-## 44. SOS 1: 📱 Я уже отправил SMS-код
+## 47. SOS 1: 📱 Я уже отправил SMS-код
 
 ```text
 📱 Я уже отправил SMS-код
@@ -857,9 +898,10 @@ family_trusted_alert
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 45. SOS 1: more
+## 48. SOS 1: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -877,9 +919,10 @@ family_trusted_alert
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 46. SOS 1: contacts
+## 49. SOS 1: contacts
 
 ```text
 📞 Безопасный обратный звонок
@@ -905,9 +948,10 @@ family_trusted_alert
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 47. SOS 1: script
+## 50. SOS 1: script
 
 ```text
 💬 Готовая фраза
@@ -928,9 +972,10 @@ family_trusted_alert
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 48. SOS 1: full
+## 51. SOS 1: full
 
 ```text
 1️⃣ Я отправил SMS-код / OTP
@@ -965,9 +1010,10 @@ family_trusted_alert
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 49. SOS 1: detailed full checklist
+## 52. SOS 1: detailed full checklist
 
 ```text
 1️⃣ Я отправил SMS-код / OTP
@@ -1000,7 +1046,7 @@ family_trusted_alert
 
 _Нет кнопок._
 
-## 50. SOS 2: 📦 Установил APK
+## 53. SOS 2: 📦 Установил APK
 
 ```text
 📦 Установил APK
@@ -1023,9 +1069,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 51. SOS 2: more
+## 54. SOS 2: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1044,9 +1091,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 52. SOS 2: contacts
+## 55. SOS 2: contacts
 
 ```text
 📞 Безопасный обратный звонок
@@ -1072,9 +1120,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 53. SOS 2: script
+## 56. SOS 2: script
 
 ```text
 💬 Готовая фраза
@@ -1093,9 +1142,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 54. SOS 2: full
+## 57. SOS 2: full
 
 ```text
 2️⃣ Я установил APK / приложение
@@ -1126,9 +1176,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 55. SOS 2: detailed full checklist
+## 58. SOS 2: detailed full checklist
 
 ```text
 2️⃣ Я установил APK / приложение
@@ -1157,7 +1208,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 56. SOS 3: 💸 Перевёл деньги
+## 59. SOS 3: 💸 Перевёл деньги
 
 ```text
 💸 Перевёл деньги
@@ -1180,9 +1231,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 57. SOS 3: more
+## 60. SOS 3: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1200,9 +1252,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 58. SOS 3: contacts
+## 61. SOS 3: contacts
 
 ```text
 📞 Безопасный обратный звонок
@@ -1228,9 +1281,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 59. SOS 3: script
+## 62. SOS 3: script
 
 ```text
 💬 Готовая фраза
@@ -1251,9 +1305,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 60. SOS 3: full
+## 63. SOS 3: full
 
 ```text
 3️⃣ Я перевёл деньги
@@ -1288,9 +1343,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 61. SOS 3: detailed full checklist
+## 64. SOS 3: detailed full checklist
 
 ```text
 3️⃣ Я перевёл деньги
@@ -1323,7 +1379,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 62. SOS 4: 💳 Ввёл данные карты
+## 65. SOS 4: 💳 Ввёл данные карты
 
 ```text
 💳 Ввёл данные карты
@@ -1346,9 +1402,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 63. SOS 4: more
+## 66. SOS 4: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1366,9 +1423,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 64. SOS 4: contacts
+## 67. SOS 4: contacts
 
 ```text
 📞 Безопасный обратный звонок
@@ -1394,9 +1452,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 65. SOS 4: script
+## 68. SOS 4: script
 
 ```text
 💬 Готовая фраза
@@ -1417,9 +1476,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 66. SOS 4: full
+## 69. SOS 4: full
 
 ```text
 4️⃣ Я ввёл данные карты
@@ -1454,9 +1514,10 @@ _Нет кнопок._
 - [📞 Позвонить безопасно] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 67. SOS 4: detailed full checklist
+## 70. SOS 4: detailed full checklist
 
 ```text
 4️⃣ Я ввёл данные карты
@@ -1489,7 +1550,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 68. SOS 5: 🔒 Потерял Telegram
+## 71. SOS 5: 🔒 Потерял Telegram
 
 ```text
 🔒 Потерял Telegram
@@ -1512,9 +1573,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 69. SOS 5: more
+## 72. SOS 5: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1532,9 +1594,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 70. SOS 5: contacts
+## 73. SOS 5: contacts
 
 ```text
 🔐 Восстановление Telegram
@@ -1554,9 +1617,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 71. SOS 5: script
+## 74. SOS 5: script
 
 ```text
 💬 Готовая фраза
@@ -1574,9 +1638,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 72. SOS 5: full
+## 75. SOS 5: full
 
 ```text
 5️⃣ Я потерял доступ к Telegram
@@ -1609,9 +1674,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 73. SOS 5: detailed full checklist
+## 76. SOS 5: detailed full checklist
 
 ```text
 5️⃣ Я потерял доступ к Telegram
@@ -1642,7 +1708,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 74. SOS 6: 📞 Звонят сейчас
+## 77. SOS 6: 📞 Звонят сейчас
 
 ```text
 📞 Звонят сейчас
@@ -1663,8 +1729,9 @@ _Нет кнопок._
 - [👪 Позвать близкого] (callback: family:notify)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [📋 Все срочные шаги] (callback: panicctx:full)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 
-## 75. SOS 6: more
+## 78. SOS 6: more
 
 ```text
 ✅ Хорошо, звонок завершён
@@ -1681,8 +1748,9 @@ _Нет кнопок._
 - [👪 Позвать близкого] (callback: family:notify)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [📋 Все срочные шаги] (callback: panicctx:full)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 
-## 76. SOS 6: contacts
+## 79. SOS 6: contacts
 
 ```text
 📞 Безопасный обратный звонок
@@ -1708,8 +1776,9 @@ _Нет кнопок._
 - [👪 Позвать близкого] (callback: family:notify)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [📋 Все срочные шаги] (callback: panicctx:full)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 
-## 77. SOS 6: script
+## 80. SOS 6: script
 
 ```text
 💬 Готовая фраза
@@ -1728,8 +1797,9 @@ _Нет кнопок._
 - [👪 Позвать близкого] (callback: family:notify)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [📋 Все срочные шаги] (callback: panicctx:full)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 
-## 78. SOS 6: full
+## 81. SOS 6: full
 
 ```text
 6️⃣ Подозрительный звонок
@@ -1765,8 +1835,9 @@ _Нет кнопок._
 - [👪 Позвать близкого] (callback: family:notify)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [📋 Все срочные шаги] (callback: panicctx:full)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 
-## 79. SOS 6: detailed full checklist
+## 82. SOS 6: detailed full checklist
 
 ```text
 6️⃣ Подозрительный звонок
@@ -1800,7 +1871,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 80. SOS 7: 🔞 Шантаж фото/видео
+## 83. SOS 7: 🔞 Шантаж фото/видео
 
 ```text
 🔞 Шантаж фото/видео
@@ -1821,9 +1892,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 81. SOS 7: more
+## 84. SOS 7: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1841,9 +1913,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 82. SOS 7: contacts
+## 85. SOS 7: contacts
 
 ```text
 🆘 Куда обратиться
@@ -1865,9 +1938,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 83. SOS 7: script
+## 86. SOS 7: script
 
 ```text
 💬 Готовая фраза
@@ -1886,9 +1960,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 84. SOS 7: full
+## 87. SOS 7: full
 
 ```text
 7️⃣ Меня шантажируют фото/видео
@@ -1919,9 +1994,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 85. SOS 7: detailed full checklist
+## 88. SOS 7: detailed full checklist
 
 ```text
 7️⃣ Меня шантажируют фото/видео
@@ -1950,7 +2026,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 86. SOS 8: 💔 Просят деньги в отношениях
+## 89. SOS 8: 💔 Просят деньги в отношениях
 
 ```text
 💔 Просят деньги в отношениях
@@ -1971,9 +2047,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 87. SOS 8: more
+## 90. SOS 8: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -1991,9 +2068,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 88. SOS 8: contacts
+## 91. SOS 8: contacts
 
 ```text
 🆘 Куда обратиться
@@ -2016,9 +2094,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 89. SOS 8: script
+## 92. SOS 8: script
 
 ```text
 💬 Готовая фраза
@@ -2037,9 +2116,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 90. SOS 8: full
+## 93. SOS 8: full
 
 ```text
 8️⃣ Просят деньги в отношениях
@@ -2068,9 +2148,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 91. SOS 8: detailed full checklist
+## 94. SOS 8: detailed full checklist
 
 ```text
 8️⃣ Просят деньги в отношениях
@@ -2097,7 +2178,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 92. SOS 9: 👤 Угрожают публикацией
+## 95. SOS 9: 👤 Угрожают публикацией
 
 ```text
 👤 Угрожают публикацией
@@ -2118,9 +2199,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 93. SOS 9: more
+## 96. SOS 9: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2138,9 +2220,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 94. SOS 9: contacts
+## 97. SOS 9: contacts
 
 ```text
 🆘 Куда обратиться
@@ -2162,9 +2245,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 95. SOS 9: script
+## 98. SOS 9: script
 
 ```text
 💬 Готовая фраза
@@ -2183,9 +2267,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 96. SOS 9: full
+## 99. SOS 9: full
 
 ```text
 9️⃣ Угрожают публикацией
@@ -2216,9 +2301,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 97. SOS 9: detailed full checklist
+## 100. SOS 9: detailed full checklist
 
 ```text
 9️⃣ Угрожают публикацией
@@ -2247,7 +2333,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 98. SOS 10: 🧒 Мне меньше 18 лет
+## 101. SOS 10: 🧒 Мне меньше 18 лет
 
 ```text
 🧒 Мне меньше 18 лет
@@ -2268,9 +2354,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 99. SOS 10: more
+## 102. SOS 10: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2288,9 +2375,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 100. SOS 10: contacts
+## 103. SOS 10: contacts
 
 ```text
 🆘 Куда обратиться
@@ -2312,9 +2400,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 101. SOS 10: script
+## 104. SOS 10: script
 
 ```text
 💬 Готовая фраза
@@ -2333,9 +2422,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 102. SOS 10: full
+## 105. SOS 10: full
 
 ```text
 🔟 Мне меньше 18 лет
@@ -2364,9 +2454,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 103. SOS 10: detailed full checklist
+## 106. SOS 10: detailed full checklist
 
 ```text
 🔟 Мне меньше 18 лет
@@ -2393,7 +2484,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 104. SOS 11: 🎙️ Голос близкого / AI
+## 107. SOS 11: 🎙️ Голос близкого / AI
 
 ```text
 🎙️ Голос близкого / AI
@@ -2416,9 +2507,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 105. SOS 11: more
+## 108. SOS 11: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2436,9 +2528,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 106. SOS 11: contacts
+## 109. SOS 11: contacts
 
 ```text
 🎙️ Как проверить голос безопасно
@@ -2464,9 +2557,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 107. SOS 11: script
+## 110. SOS 11: script
 
 ```text
 💬 Готовая фраза
@@ -2487,9 +2581,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 108. SOS 11: full
+## 111. SOS 11: full
 
 ```text
 1️⃣1️⃣ AI-голос: якобы близкий просит деньги
@@ -2519,9 +2614,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 109. SOS 11: detailed full checklist
+## 112. SOS 11: detailed full checklist
 
 ```text
 1️⃣1️⃣ AI-голос: якобы близкий просит деньги
@@ -2549,7 +2645,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 110. SOS 12: 💼 Работа / лёгкий доход
+## 113. SOS 12: 💼 Работа / лёгкий доход
 
 ```text
 💼 Работа / лёгкий доход
@@ -2572,9 +2668,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 111. SOS 12: more
+## 114. SOS 12: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2592,9 +2689,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 112. SOS 12: contacts
+## 115. SOS 12: contacts
 
 ```text
 🆘 Куда обратиться
@@ -2619,9 +2717,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 113. SOS 12: script
+## 116. SOS 12: script
 
 ```text
 💬 Готовая фраза
@@ -2640,9 +2739,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 114. SOS 12: full
+## 117. SOS 12: full
 
 ```text
 1️⃣2️⃣ Работа / лёгкий доход
@@ -2672,9 +2772,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 115. SOS 12: detailed full checklist
+## 118. SOS 12: detailed full checklist
 
 ```text
 1️⃣2️⃣ Работа / лёгкий доход
@@ -2702,7 +2803,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 116. SOS 13: 🚚 Доставка / пополнение
+## 119. SOS 13: 🚚 Доставка / пополнение
 
 ```text
 🚚 Доставка / пополнение
@@ -2725,9 +2826,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 117. SOS 13: more
+## 120. SOS 13: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2745,9 +2847,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 118. SOS 13: contacts
+## 121. SOS 13: contacts
 
 ```text
 🚚 Доставка/пополнение: помощь
@@ -2774,9 +2877,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 119. SOS 13: script
+## 122. SOS 13: script
 
 ```text
 💬 Готовая фраза
@@ -2795,9 +2899,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 120. SOS 13: full
+## 123. SOS 13: full
 
 ```text
 1️⃣3️⃣ Доставка / пополнение / «маленькая комиссия»
@@ -2827,9 +2932,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 121. SOS 13: detailed full checklist
+## 124. SOS 13: detailed full checklist
 
 ```text
 1️⃣3️⃣ Доставка / пополнение / «маленькая комиссия»
@@ -2857,7 +2963,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 122. SOS 14: 🪙 Крипто / TON / Wallet
+## 125. SOS 14: 🪙 Крипто / TON / Wallet
 
 ```text
 🪙 Крипто / TON / Wallet
@@ -2880,9 +2986,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 123. SOS 14: more
+## 126. SOS 14: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -2900,9 +3007,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 124. SOS 14: contacts
+## 127. SOS 14: contacts
 
 ```text
 🆘 Крипто/TON: что делать
@@ -2926,9 +3034,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 125. SOS 14: script
+## 128. SOS 14: script
 
 ```text
 💬 Готовая фраза
@@ -2947,9 +3056,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 126. SOS 14: full
+## 129. SOS 14: full
 
 ```text
 1️⃣4️⃣ Крипто / TON / Wallet
@@ -2979,9 +3089,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 127. SOS 14: detailed full checklist
+## 130. SOS 14: detailed full checklist
 
 ```text
 1️⃣4️⃣ Крипто / TON / Wallet
@@ -3009,7 +3120,7 @@ _Нет кнопок._
 
 _Нет кнопок._
 
-## 128. SOS 15: 🏛️ Госвыплата / грант
+## 131. SOS 15: 🏛️ Госвыплата / грант
 
 ```text
 🏛️ Госвыплата / грант
@@ -3032,9 +3143,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 129. SOS 15: more
+## 132. SOS 15: more
 
 ```text
 Я рядом. Давайте без паники: только один безопасный шаг за раз.
@@ -3052,9 +3164,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 130. SOS 15: contacts
+## 133. SOS 15: contacts
 
 ```text
 🏛️ Госвыплата/грант: помощь
@@ -3081,9 +3194,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 131. SOS 15: script
+## 134. SOS 15: script
 
 ```text
 💬 Готовая фраза
@@ -3102,9 +3216,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 132. SOS 15: full
+## 135. SOS 15: full
 
 ```text
 1️⃣5️⃣ Госвыплата / грант / компенсация
@@ -3134,9 +3249,10 @@ _Нет кнопок._
 - [🆘 Куда обратиться] (callback: panicctx:contacts)
 - [💬 Готовая фраза] (callback: panicctx:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🔊 Коротко голосом] (callback: voiceout:panic)
 - [📋 Все срочные шаги] (callback: panicctx:full)
 
-## 133. SOS 15: detailed full checklist
+## 136. SOS 15: detailed full checklist
 
 ```text
 1️⃣5️⃣ Госвыплата / грант / компенсация

@@ -31,6 +31,7 @@ vi.mock("@/lib/telegram/api.server", () => ({
     h.sendCalls.push({ chatId: opts.chatId, text: opts.text, keyboard: opts.keyboard });
     return Promise.resolve({ ok: true });
   },
+  sendAudioFile: () => Promise.resolve({ ok: true }),
   editMessageText: (opts: {
     chatId: number;
     messageId: number;
