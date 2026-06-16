@@ -342,9 +342,13 @@ export async function sendVoiceOutResponse(args: {
     if (sent.ok) return;
   }
 
+  const fallbackResult: Exclude<VoiceOutResult, { ok: true }> = result.ok
+    ? { ok: false, reason: "provider_error" }
+    : result;
+
   await sendMessage({
     chatId: args.chatId,
-    text: escapeMarkdownV2(buildVoiceOutFallbackText(args.lang, result)),
+    text: escapeMarkdownV2(buildVoiceOutFallbackText(args.lang, fallbackResult)),
     keyboard: args.keyboard,
   });
 }

@@ -138,9 +138,12 @@ const messageSchema = z.object({
   document: z
     .object({
       file_id: z.string(),
+      file_unique_id: z.string().optional(),
+      file_name: z.string().optional(),
       mime_type: z.string().optional(),
       file_size: z.number().optional(),
     })
+    .passthrough()
     .optional(),
   contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
   voice: voiceSchema.optional(),
@@ -400,6 +403,16 @@ function videoThumbnailFileId(video: NonNullable<TelegramMessage["video"]>): str
   return video.thumbnail?.file_id ?? video.thumb?.file_id ?? null;
 }
 
+const AUDIO_DOCUMENT_EXT_RE = /\.(?:oga|ogg|opus|mp3|m4a|wav|webm)$/i;
+
+function isAudioDocument(document: NonNullable<TelegramMessage["document"]>): boolean {
+  const mimeType = document.mime_type?.trim().toLowerCase();
+  if (mimeType?.startsWith("audio/")) return true;
+
+  const fileName = document.file_name?.trim();
+  return fileName ? AUDIO_DOCUMENT_EXT_RE.test(fileName) : false;
+}
+
 function messageCaption(m: TelegramMessage): string {
   return (m.caption ?? "").trim();
 }
@@ -555,6 +568,15 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     m.document.mime_type.startsWith("image/")
   ) {
     return imageRoute(m.document.file_id, m.media_group_id, source);
+  }
+  if (m.document && isAudioDocument(m.document)) {
+    return {
+      kind: "voice",
+      fileId: m.document.file_id,
+      fileSize: m.document.file_size,
+      mimeType: m.document.mime_type,
+      fileUniqueId: m.document.file_unique_id,
+    };
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
   if (m.document) {

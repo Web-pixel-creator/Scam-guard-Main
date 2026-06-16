@@ -46,7 +46,14 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   masked display values and redacted reason text. Admin removal hides the public
   reputation label without deleting report history.
 - Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
-- Telegram voice notes use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`. Audio is downloaded only in memory, voice files are capped at 60 seconds / 2 MB before transcription, and only the redacted transcript reaches the check pipeline. STT calls are protected by a separate 5/day per-user budget and repeated Telegram `file_unique_id` values reuse a short-lived in-memory redacted transcript cache. If STT is missing, slow or unreliable, the bot asks for a short typed summary and offers emergency actions.
+- Telegram voice notes, native audio attachments and audio documents such as
+  `.ogg`/`.m4a` use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`.
+  Audio is downloaded only in memory, files are capped at 60 seconds / 2 MB
+  before transcription, and only the redacted transcript reaches the check
+  pipeline. STT calls are protected by a separate 5/day per-user budget and
+  repeated Telegram `file_unique_id` values reuse a short-lived in-memory
+  redacted transcript cache. If STT is missing, slow or unreliable, the bot asks
+  for a short typed summary and offers emergency actions.
 - AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains.
 - Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`) and non-persistent (`persist=false`) so partial typed queries do not spam `checks` or AI providers. Enable inline mode separately in BotFather with `/setinline`.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.

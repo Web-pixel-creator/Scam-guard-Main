@@ -150,7 +150,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Add moderated phone reputation directory before showing community report labels, first-seen dates or confidence labels on numbers.~~ Minimal v1 shipped using confirmed `entities` rows only: Telegram shows Ishonch Guard moderated report count + confidence, while owner/carrier/hidden-label claims stay forbidden.
 - [x] ~~Add Telegram inline check for `@scamguard_bot <number/link/text>`.~~ Code shipped as rules-only, non-persistent previews.
 - [x] ~~Enable BotFather inline mode for `@scamguard_bot` with `/setinline` and a short RU placeholder such as `Введите номер, ссылку или текст для проверки`.~~ Done on 2026-06-14.
-- [x] ~~Add Telegram voice-note STT for elderly/stressed users.~~ Short voice notes are transcribed in memory, redacted and checked by the same rules pipeline; failure falls back to a typed-summary prompt with emergency actions.
+- [x] ~~Add Telegram voice-note STT for elderly/stressed users.~~ Short voice
+      notes, native Telegram audio attachments and audio documents such as
+      `.ogg`/`.m4a` are transcribed in memory, redacted and checked by the same
+      rules pipeline; failure falls back to a typed-summary prompt with
+      emergency actions. Non-audio documents remain unsupported and are not
+      downloaded.
 - [x] ~~Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.~~ Done as Reputation Appeals v1: `/appeal`, privacy-safe `reputation_appeals`, admin review actions and audit logging.
 - [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
 - [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.

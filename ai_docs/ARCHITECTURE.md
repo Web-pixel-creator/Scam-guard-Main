@@ -21,7 +21,13 @@
 1. User submits text/phone/Telegram/url/apk/payment-like text or screenshot.
 2. Web screenshot OCR path: `ocrExtract` -> `ocrExtractCore` -> `ocrScreenshot`; the AI output is passed through deterministic `redactText` before returning.
 3. Telegram image path: `analyzeImageCore` returns structured, redacted image evidence (visual category, QR purpose, risk hints, OCR text). The bot builds a safe rules-input from that evidence, runs `runCheck(skipAi=true)`, and uses the image evidence explanation for the reply.
-4. Telegram voice-note path: `handleVoice` accepts short voice files only (60 seconds / 2 MB), checks a separate 5/day STT budget, downloads the file only in memory, calls `transcribeVoiceCore`, redacts/clips the transcript and then runs the same `runCheck` pipeline. Raw audio is never stored; repeated Telegram `file_unique_id` values can reuse a short-lived in-memory redacted transcript cache to avoid paying for duplicate STT.
+4. Telegram voice/audio path: `handleVoice` accepts short voice notes, native
+   audio attachments and audio documents such as `.ogg`/`.m4a` only (60 seconds
+   / 2 MB), checks a separate 5/day STT budget, downloads the file only in
+   memory, calls `transcribeVoiceCore`, redacts/clips the transcript and then
+   runs the same `runCheck` pipeline. Raw audio is never stored; repeated
+   Telegram `file_unique_id` values can reuse a short-lived in-memory redacted
+   transcript cache to avoid paying for duplicate STT.
 5. Short questions to the bot itself go through `meta-intent.ts` before scoring; concrete URLs, phones, usernames, forwarded text, bank/payment terms, APK mentions and long text bypass this and still reach `runCheck`.
 6. `runCheck` performs shared rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert. AI-authored explanations pass through `ai-output-safety.ts` before return or persistence; unsafe requests for OTP/CVV/PIN/password/card/seed data, APK installs, wallet signing or payments degrade to `null` while the deterministic verdict remains. For phone/short-code inputs it also builds an honest `PhoneIntelligencePassport` with country/calling-code, Uzbekistan prefix/operator hints, official-directory status and optional verified-contact lookalike evidence; this is explanatory metadata and does not claim an owner or change scoring. If a phone `entities` row is confirmed, it also returns `PhoneReputationSummary` with Ishonch Guard moderated report count/confidence only.
 7. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation.
@@ -46,7 +52,13 @@ AI never decides the score. It only explains the deterministic verdict or perfor
   dropped.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
 - Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
-- Short Telegram voice notes are downloaded in memory, capped at 60 seconds / 2 MB before transcription, transcribed through the configured AI provider and discarded. Voice STT has a separate 5/day per-user budget and a short-lived in-memory cache keyed by Telegram `file_unique_id`; only the redacted transcript is reused or sent into `runCheck`. When STT is unavailable the bot gives an actionable fallback instead of pretending to understand the audio.
+- Short Telegram voice notes, native audio attachments and audio documents are
+  downloaded in memory, capped at 60 seconds / 2 MB before transcription,
+  transcribed through the configured AI provider and discarded. Voice STT has a
+  separate 5/day per-user budget and a short-lived in-memory cache keyed by
+  Telegram `file_unique_id`; only the redacted transcript is reused or sent into
+  `runCheck`. When STT is unavailable the bot gives an actionable fallback
+  instead of pretending to understand the audio.
 - Telegram `@username` / `t.me/...` checks use a best-effort Bot API enrichment layer after deterministic scoring. It classifies public usernames, public links, private invite links and internal/private links; summarizes public chat type/title/access hints when visible; adds compact visible risk signals and next steps; and explicitly does not infer account age, hidden Telegram scam labels, Telegram report counts or spam history.
 - Public forwarded Telegram channel/group source context is presentation-only. The router may pass a sanitized source title/public username into the reply so users understand where a forwarded post came from. When reason codes reveal a concrete tactic, the bot renders a compact mini-brief: source, scheme, attacker goal, safe step and Telegram visibility limit. Source metadata is not appended to `runCheck` input, does not affect score/level/reasons and is not persisted in `checks`.
 - Telegram reputation is stored separately in `telegram_reputation_targets` using HMAC-hashed targets and masked display hints. New checks can record first/last seen observations, but user-facing reputation labels are shown only after admin-moderated Ishonch Guard reports or future official sources.

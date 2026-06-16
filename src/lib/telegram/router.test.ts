@@ -433,6 +433,57 @@ describe("decideRoute content types (no active scenario)", () => {
     });
   });
 
+  it("routes an audio document to the voice/STT handler", () => {
+    const update = messageUpdate({
+      document: {
+        file_id: "doc-audio-1",
+        file_unique_id: "doc-audio-unique-1",
+        file_name: "audio_2026-06-15_14-58-19.ogg",
+        mime_type: "audio/ogg",
+        file_size: 12345,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "voice",
+      fileId: "doc-audio-1",
+      fileSize: 12345,
+      mimeType: "audio/ogg",
+      fileUniqueId: "doc-audio-unique-1",
+    });
+  });
+
+  it("routes a filename-only audio document to the voice/STT handler", () => {
+    const update = messageUpdate({
+      document: {
+        file_id: "doc-audio-2",
+        file_unique_id: "doc-audio-unique-2",
+        file_name: "forwarded-voice.m4a",
+        file_size: 54321,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "voice",
+      fileId: "doc-audio-2",
+      fileSize: 54321,
+      fileUniqueId: "doc-audio-unique-2",
+    });
+  });
+
+  it("keeps non-audio documents out-of-scope", () => {
+    const update = messageUpdate({
+      document: {
+        file_id: "doc-video-1",
+        file_name: "clip.mp4",
+        mime_type: "video/mp4",
+        file_size: 12345,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "outOfScope", reason: "document" });
+  });
+
   it.each([
     ["video", "video"],
     ["sticker", "sticker"],

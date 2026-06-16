@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Telegram OGG audio documents route to STT
+
+- Telegram `.ogg`/`.m4a`/audio files sent as `document` messages now route to
+  the same capped voice STT pipeline as voice notes and native Telegram audio.
+- Non-audio documents such as PDF/APK/video files still stay in the safe
+  unsupported-document path and are not downloaded.
+- Fixed TypeScript strictness in Voice-out audio upload/fallback so `tsc`
+  remains clean with the TTS code path.
+
 ## 2026-06-16 - QR decoded evidence in Telegram replies
 
 - Telegram image explanations now surface decoded safe QR destinations such as

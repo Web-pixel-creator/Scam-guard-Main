@@ -236,8 +236,10 @@ export async function sendMessage(opts: SendMessageOptions): Promise<{ ok: boole
 /** Send an audio file generated in memory. Used by opt-in Voice-out/TTS. */
 export async function sendAudioFile(opts: SendAudioFileOptions): Promise<{ ok: boolean }> {
   const form = new FormData();
+  const audioBytes = new Uint8Array(opts.audio.byteLength);
+  audioBytes.set(opts.audio);
   form.set("chat_id", String(opts.chatId));
-  form.set("audio", new Blob([opts.audio], { type: opts.mimeType }), opts.filename);
+  form.set("audio", new Blob([audioBytes.buffer], { type: opts.mimeType }), opts.filename);
   if (opts.caption) form.set("caption", opts.caption);
   const parseMode = opts.parseMode ?? "MarkdownV2";
   if (parseMode !== "None") form.set("parse_mode", parseMode);
