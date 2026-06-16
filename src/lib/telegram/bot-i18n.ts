@@ -223,14 +223,14 @@ export const bot_dict: BotDict = {
     en: "The image is too large (max 6 MB). Send a smaller file or paste the text manually.",
   },
   voice_too_large: {
-    ru: "Голосовое слишком большое. Пришлите короткое голосовое до 60 секунд или напишите 1-2 фразы: что обещают и что просят сделать.",
-    uz: "Ovozli xabar juda katta. 60 soniyagacha qisqa ovozli xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
-    en: "The voice note is too large. Send a short voice note up to 60 seconds, or type 1-2 sentences: what they promise and what they ask you to do.",
+    ru: "Голосовое или аудио слишком большое. Пришлите короткое сообщение до 60 секунд или напишите 1-2 фразы: что обещают и что просят сделать.",
+    uz: "Ovozli xabar yoki audio juda katta. 60 soniyagacha qisqa xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
+    en: "The voice note or audio file is too large. Send a short message up to 60 seconds, or type 1-2 sentences: what they promise and what they ask you to do.",
   },
   voice_transcription_failed: {
-    ru: "Я пока не смог надёжно разобрать голосовое.\n\nНапишите коротко: что вам обещают и что просят сделать — код, карту, перевод, APK, QR или ссылку.\n\nЕсли вы уже отправили код, установили приложение или сейчас на звонке — нажмите «Что делать срочно».",
-    uz: "Ovozli xabarni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
-    en: "I could not reliably understand the voice note yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
+    ru: "Я пока не смог надёжно разобрать голосовое или аудио.\n\nНапишите коротко: что вам обещают и что просят сделать — код, карту, перевод, APK, QR или ссылку.\n\nЕсли вы уже отправили код, установили приложение или сейчас на звонке — нажмите «Что делать срочно».",
+    uz: "Ovozli xabar yoki audioni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
+    en: "I could not reliably understand the voice note or audio file yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
   },
   ocr_failed: {
     ru: "Я не смог надёжно прочитать текст или QR на картинке. Я не буду угадывать риск по размытому кадру.\n\nВыберите ниже, на что это похоже, или пришлите: текст из SMS/чата, ссылку из QR, крупный скрин нужного места.",

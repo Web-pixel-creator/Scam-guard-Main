@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - QR auth and audio-file check polish
+
+- Tightened Telegram image intelligence so QR-login/device-link/2FA screens
+  such as Telegram "connect device", bank QR-login and authenticator QR prompts
+  produce `qr_login` evidence and a QR-specific warning instead of a generic
+  insufficient-data/menu answer.
+- Kept restaurant/menu/program-loyalty QR posters below high risk unless a
+  payment, login, code, card, wallet or APK request appears.
+- Routed short Telegram `audio` files with `file_id` through the same capped
+  voice STT pipeline as voice notes. Oversized or unclear voice/audio messages
+  keep the safe text fallback.
+
 ## 2026-06-16 - Telegram Voice-out / TTS v1
 
 - Added opt-in `voiceout:*` callbacks for SOS follow-ups and Guardian Angel.

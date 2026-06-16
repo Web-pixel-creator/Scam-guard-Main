@@ -187,7 +187,9 @@ describe("handleVoice", () => {
     expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
     expect(hoisted.runCheck).not.toHaveBeenCalled();
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ text: expect.stringContaining("Голосовое слишком большое") }),
+      expect.objectContaining({
+        text: expect.stringContaining("Голосовое или аудио слишком большое"),
+      }),
     );
   });
 
@@ -202,7 +204,9 @@ describe("handleVoice", () => {
     expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
     expect(hoisted.runCheck).not.toHaveBeenCalled();
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ text: expect.stringContaining("Голосовое слишком большое") }),
+      expect.objectContaining({
+        text: expect.stringContaining("Голосовое или аудио слишком большое"),
+      }),
     );
   });
 });

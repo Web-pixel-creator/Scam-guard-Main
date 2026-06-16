@@ -412,8 +412,28 @@ describe("decideRoute content types (no active scenario)", () => {
     });
   });
 
+  it("routes a short audio file to the voice/STT handler", () => {
+    const update = messageUpdate({
+      audio: {
+        file_id: "audio-1",
+        file_unique_id: "audio-unique-1",
+        file_size: 12345,
+        duration: 10,
+        mime_type: "audio/ogg",
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({
+      kind: "voice",
+      fileId: "audio-1",
+      fileSize: 12345,
+      duration: 10,
+      mimeType: "audio/ogg",
+      fileUniqueId: "audio-unique-1",
+    });
+  });
+
   it.each([
-    ["audio", "audio"],
     ["video", "video"],
     ["sticker", "sticker"],
   ] as const)("routes a %s message as out-of-scope (%s)", (field, reason) => {

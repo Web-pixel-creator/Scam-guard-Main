@@ -67,6 +67,38 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("high_risk");
   });
 
+  it("classifies Telegram device-login QR screens as dangerous", () => {
+    const evidence = fallbackImageIntelligence(
+      "Быстрый вход по QR-коду. Откройте Telegram с телефона. Настройки > Устройства > Подключить устройство. Для подтверждения направьте камеру телефона на этот экран.",
+    );
+
+    expect(evidence.visualCategory).toBe("qr_login_or_payment");
+    expect(evidence.qr.purpose).toBe("login");
+    expect(evidence.riskHints).toContain("qr_login");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_scan_qr");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("подключения устройства");
+    expect(explanation).toContain("Не сканируйте QR");
+  });
+
+  it("classifies 2FA authenticator QR screens as dangerous account access QR", () => {
+    const evidence = fallbackImageIntelligence(
+      "Двухфакторная аутентификация. Please use your authentication app such as Google Authenticator to scan this QR code.",
+    );
+
+    expect(evidence.visualCategory).toBe("qr_login_or_payment");
+    expect(evidence.qr.purpose).toBe("login");
+    expect(evidence.riskHints).toContain("qr_login");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_scan_qr");
+    expect(score.level).toBe("high_risk");
+  });
+
   it("keeps QR payment evidence dangerous", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Для брони отсканируйте QR-код и внесите предоплату",

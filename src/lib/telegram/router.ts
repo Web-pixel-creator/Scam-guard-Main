@@ -85,6 +85,16 @@ const voiceSchema = z
   })
   .passthrough();
 
+const audioSchema = z
+  .object({
+    file_id: z.string(),
+    file_unique_id: z.string().optional(),
+    file_size: z.number().optional(),
+    duration: z.number().optional(),
+    mime_type: z.string().optional(),
+  })
+  .passthrough();
+
 const forwardChatSchema = z
   .object({
     type: z.string().optional(),
@@ -134,7 +144,7 @@ const messageSchema = z.object({
     .optional(),
   contact: z.object({ phone_number: z.string(), first_name: z.string().optional() }).optional(),
   voice: voiceSchema.optional(),
-  audio: z.unknown().optional(),
+  audio: audioSchema.optional(),
   video: videoSchema.optional(),
   sticker: z.unknown().optional(),
   reply_markup: z
@@ -568,7 +578,16 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
       fileUniqueId: m.voice.file_unique_id,
     };
   }
-  if (m.audio != null) return { kind: "outOfScope", reason: "audio" };
+  if (m.audio != null) {
+    return {
+      kind: "voice",
+      fileId: m.audio.file_id,
+      fileSize: m.audio.file_size,
+      duration: m.audio.duration,
+      mimeType: m.audio.mime_type,
+      fileUniqueId: m.audio.file_unique_id,
+    };
+  }
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
 
   // Plain text (including forwarded text, R11.5) → Check_Pipeline.

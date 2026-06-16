@@ -107,7 +107,7 @@ const APK_RE =
 const PAYMENT_RE =
   /(предоплат|оплатите|оплата|переведите|перевод|to['’]?lov|pul o['’]?tkaz|payment|transfer|deposit|fee|комисс|карта|karta|uzcard|humo)/i;
 const QR_LOGIN_RE =
-  /(qr.{0,40}(войти|вход|авториз|аккаунт|подтверд|вериф|login|account|verify|confirm|tasdiq|kiring|hisob)|(?:войти|login|confirm|tasdiq).{0,40}qr)/i;
+  /(вход\s+по\s+qr|быстрый\s+вход\s+по\s+qr|qr.{0,80}(войти|вход|авториз|аккаунт|подтверд|вериф|login|sign\s?in|account|verify|confirm|auth(?:enticat(?:e|ion|or))?|2fa|mfa|device|устройств|подключ|сесс|tasdiq|kiring|hisob)|(?:войти|вход|login|sign\s?in|confirm|verify|подтверд|авториз|подключ|устройств|направьте\s+камер).{0,80}qr|двухфакторн.{0,100}qr|authentication\s+app.{0,100}qr|(?:authentication|authenticator|2fa|mfa|sign\s?in|login|device).{0,100}scan.{0,40}qr|подключить\s+устройство|настройки\s*>\s*устройства\s*>\s*подключить\s*устройство)/i;
 const QR_PAYMENT_RE =
   /(qr.{0,40}(оплат|перевод|payment|transfer|to['’]?lov|pul|karta|card)|(?:оплат|payment|transfer|to['’]?lov).{0,40}qr)/i;
 const URGENCY_RE = /(срочно|немедленно|прямо сейчас|urgent|immediately|hozir|darhol|tezda)/i;
@@ -471,6 +471,26 @@ export function mergeDecodedQrEvidence(
 function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {
   const hints = new Set(evidence.riskHints);
   const category = evidence.visualCategory;
+
+  if (hints.has("qr_login") || evidence.qr.purpose === "login") {
+    if (lang === "uz") {
+      return "Bu QR kirish, qurilma ulash yoki 2FA tasdiqlash ekraniga o‘xshaydi. Begona odam yuborgan QRni skanerlamang: u Telegram, bank yoki boshqa akkauntga sessiya ochishi mumkin. QRni faqat o‘zingiz rasmiy ilova yoki saytda ochganingizda skanerlang.";
+    }
+    if (lang === "en") {
+      return "This looks like a QR login, device-linking, or 2FA confirmation screen. Do not scan a QR sent by another person: it can open a session into Telegram, a bank, or another account. Scan QR codes only when you opened them yourself in the official app or website.";
+    }
+    return "Похоже на QR для входа, подключения устройства или 2FA. Не сканируйте QR, который прислал другой человек: так можно открыть сессию в Telegram, банке или другом аккаунте. Сканируйте QR только если вы сами открыли его в официальном приложении или на сайте.";
+  }
+
+  if (hints.has("qr_payment") || evidence.qr.purpose === "payment") {
+    if (lang === "uz") {
+      return "Bu QR to‘lov yoki pul o‘tkazish uchun ishlatilayotganga o‘xshaydi. Chat, reklama yoki qo‘ng‘iroqdan kelgan QR orqali pul yubormang. Xizmat yoki bank ilovasini o‘zingiz oching va manzil/rekvizitni tekshiring.";
+    }
+    if (lang === "en") {
+      return "This looks like a QR for payment or transfer. Do not pay through a QR sent in a chat, ad, or call. Open the official bank/service app yourself and verify the recipient or page address there.";
+    }
+    return "Похоже на QR для оплаты или перевода. Не платите по QR из чата, рекламы или звонка. Откройте официальное приложение банка/сервиса сами и проверьте получателя или адрес страницы там.";
+  }
 
   if (hints.has("casino_bonus_or_free_spins") || category === "casino_or_betting_promo") {
     if (lang === "uz") {
