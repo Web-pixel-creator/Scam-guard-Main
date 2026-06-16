@@ -196,6 +196,7 @@ describe("downloadFileAsDataUrl", () => {
     // URL скачивания идёт на file-эндпоинт: <fileBase><token>/<filePath>.
     expect(fetchMock).toHaveBeenCalledWith(
       `https://api.telegram.org/file/bot${TOKEN}/photos/x.jpg`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

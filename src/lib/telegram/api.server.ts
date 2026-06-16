@@ -81,6 +81,8 @@ export interface AnswerInlineQueryOptions {
 
 /** Telegram OCR_Pipeline upper bound on downloaded files: 6 MB (R5.5). */
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
+const BOT_API_TIMEOUT_MS = 8_000;
+const FILE_DOWNLOAD_TIMEOUT_MS = 12_000;
 
 const API_BASE = "https://api.telegram.org/bot";
 const FILE_BASE = "https://api.telegram.org/file/bot";
@@ -102,11 +104,15 @@ async function callBotApi(
     return null;
   }
   try {
-    const res = await fetch(`${API_BASE}${token}/${method}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await fetchWithTimeout(
+      `${API_BASE}${token}/${method}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      BOT_API_TIMEOUT_MS,
+    );
     const envelope = await readBotApiEnvelope(res);
     if (!res.ok) {
       console.error(`telegram ${method} non-ok`, res.status);
@@ -116,6 +122,23 @@ async function callBotApi(
   } catch (e) {
     console.error(`telegram ${method} threw`, e instanceof Error ? e.message : "unknown");
     return null;
+  }
+}
+
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit | undefined,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: init?.signal ?? controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -269,7 +292,11 @@ export async function downloadFileAsDataUrl(filePath: string): Promise<string | 
     return null;
   }
   try {
-    const res = await fetch(`${FILE_BASE}${token}/${filePath}`);
+    const res = await fetchWithTimeout(
+      `${FILE_BASE}${token}/${filePath}`,
+      undefined,
+      FILE_DOWNLOAD_TIMEOUT_MS,
+    );
     if (!res.ok) {
       console.error("telegram downloadFile non-ok", res.status);
       return null;

@@ -37,6 +37,7 @@ const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
 const PROCESSED_UPDATE_TTL_MS = 10 * 60 * 1000;
 const MAX_PROCESSED_UPDATES = 5_000;
+const DISPATCH_ACK_TIMEOUT_MS = 8_000;
 
 const processedUpdateIds = new Map<number, number>();
 
@@ -82,17 +83,34 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     return new Response("ok", { status: 200 });
   }
 
-  try {
-    await dispatchUpdate(update);
-  } catch (err) {
+  const dispatchPromise = dispatchUpdate(update).catch((err) => {
     // R12.5 / R19.1 / R19.2 — log WITHOUT Sensitive_Data, still answer 200 so
     // Telegram does not retry indefinitely.
     console.error(
       "telegram webhook: dispatch failed",
       err instanceof Error ? err.message : "unknown",
     );
+  });
+
+  const completed = await waitForDispatch(dispatchPromise, DISPATCH_ACK_TIMEOUT_MS);
+  if (!completed) {
+    console.error("telegram webhook: dispatch still running after ack timeout");
   }
   return new Response("ok", { status: 200 });
+}
+
+async function waitForDispatch(promise: Promise<void>, timeoutMs: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise.then(() => true),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 async function markUpdateForProcessing(updateId: number, nowMs = Date.now()): Promise<boolean> {

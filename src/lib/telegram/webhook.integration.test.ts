@@ -52,6 +52,7 @@ const h = vi.hoisted(() => ({
   getFileCalls: [] as string[],
   downloadCalls: [] as string[],
   sendShouldThrow: false,
+  sendNeverResolves: false,
 
   // Image analysis core stub
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
@@ -78,6 +79,7 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
     sendMessage: vi.fn(async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
       h.sendCalls.push(opts);
       if (h.sendShouldThrow) throw new Error("sendMessage boom (simulated handler error)");
+      if (h.sendNeverResolves) return new Promise(() => {});
       return { ok: true };
     }),
     sendChatAction: vi.fn(async (chatId: number) => {
@@ -364,6 +366,7 @@ beforeEach(() => {
   h.inserts.length = 0;
   h.upserts.length = 0;
   h.sendShouldThrow = false;
+  h.sendNeverResolves = false;
   h.ocrText = null;
   h.imageEvidence = null;
   h.entityRow = null;
@@ -399,6 +402,7 @@ afterEach(() => {
   else process.env.TELEGRAM_BOT_TOKEN = ORIG_TOKEN;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 // ---------------------------------------------------------------------------
@@ -1130,6 +1134,19 @@ describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", 
 
     expect(response.status).toBe(200);
     // The handler WAS reached (it attempted to send before throwing).
+    expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("returns 200 after the ack timeout even if dispatch is still running", async () => {
+    vi.useFakeTimers();
+    h.sendNeverResolves = true;
+    const update = textUpdate({ userId: 1004, chatId: 5004, text: "/help" });
+
+    const responsePromise = handleTelegramWebhook(webhookRequest(update));
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    const response = await responsePromise;
+    expect(response.status).toBe(200);
     expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
   });
 });
