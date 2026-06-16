@@ -492,6 +492,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).toContain(escapeMarkdownV2("скрытая SCAM-метка"));
     expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб в Ishonch Guard"));
     expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
+    expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain("…");
   });
 

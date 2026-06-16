@@ -355,7 +355,9 @@ function renderRiskPassportHeader(kind: RiskPassportKind, lang: Lang): string {
 }
 
 function passportBodyAlreadyAsksForContext(body: string): boolean {
-  return /(пришлите|yuboring|send|send me|send the|what they ask|nima so'rashgan)/iu.test(body);
+  return /(?:пришл(?:ите|и)|отправ(?:ьте|ь)|сообщени[ея]\/скрин|скрин(?:шот)?|что просят|yuboring|nima so'rashgan|send|send me|send the|what they ask)/iu.test(
+    body,
+  );
 }
 
 function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {

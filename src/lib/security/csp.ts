@@ -4,14 +4,16 @@ export const UNICORN_STUDIO_SCRIPT_SRC =
 const SCRIPT_SRC_DIRECTIVE_RE = /(^|;\s*)script-src\s+([^;]+)/;
 
 // Keep script-src strict: TanStack/Vite app code is loaded from self, and the
-// optional Unicorn background loads from one pinned CDN URL. Inline styles are
-// still allowed separately because the app uses React style attributes and
-// chart-generated style tags.
+// optional Unicorn background loads from one pinned CDN URL. Inline style
+// attributes are scoped to style-src-attr because the app uses React style
+// props for small dynamic values; inline <style> blocks are not broadly allowed.
 export const DEFAULT_CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   `script-src 'self' ${UNICORN_STUDIO_SCRIPT_SRC}`,
   "script-src-attr 'none'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "style-src 'self' https://fonts.googleapis.com",
+  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src-attr 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
@@ -39,7 +41,9 @@ export const EMBED_CHECK_CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
   "script-src-attr 'none'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "style-src 'self' https://fonts.googleapis.com",
+  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src-attr 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
