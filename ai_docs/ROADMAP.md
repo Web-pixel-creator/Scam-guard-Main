@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-15.
+Last updated: 2026-06-16.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -90,19 +90,21 @@ Already shipped:
 - AI Voice-Clone SOS v1: panic scenario `11` guides users to verify a familiar
   voice through a saved number, code word/private question and trusted-person
   help without claiming biometric voice proof.
+- Telegram Modern SOS Scenarios v1: `/panic` now has a third page for fake
+  job/easy money, delivery/top-up, crypto/TON/wallet and government
+  grant/benefit pressure, with `panic:12..15`, compact first cards, detailed
+  checklists and scenario-specific follow-ups.
 
-Immediate implementation order after the 2026-06-15 product feedback:
+Immediate implementation order after the 2026-06-16 product feedback:
 
-1. **Remaining new SOS scenarios.** Add fake job/easy money,
-   fake delivery/top-up, crypto/TON/card and government-grant scenarios.
-2. **Guardian Angel v1.** After high-risk results, the bot should not end the
+1. **Guardian Angel v1.** After high-risk results, the bot should not end the
    conversation; it should guide the user through one safe step at a time,
    offer trusted-contact help, and optionally follow up later.
-3. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
+2. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
    guidance, not only read it. This must be opt-in and never speak secrets back.
-4. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
+3. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
    line-type/VoIP providers stay optional and paid.
-5. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
+4. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
    website features should be public living-experience stories, a scam-call
    trainer, and later a scam map/index, all using aggregated or moderated data.
 
@@ -182,8 +184,10 @@ Disallowed claims:
 7. SOS ready phrase cleanup for non-bank emergency scenarios - shipped.
 8. Direct `/call` live-call entrypoint - shipped.
 9. AI voice-clone SOS scenario - shipped.
-10. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
-11. Voice-out / TTS v1 for short opt-in safety answers.
+10. Modern SOS Scenarios v1: fake job/easy money, delivery/top-up,
+    crypto/TON/wallet and government grant/benefit panic scenarios - shipped.
+11. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
+12. Voice-out / TTS v1 for short opt-in safety answers.
 
 ## Stage 3 - Website Trust And Distribution
 

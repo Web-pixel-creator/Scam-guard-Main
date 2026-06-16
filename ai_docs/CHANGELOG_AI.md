@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Telegram Modern SOS Scenarios v1
+
+- Added `.kiro/specs/telegram-modern-sos-scenarios-v1/`.
+- Expanded `/panic` to a third page with `panic:12` through `panic:15`:
+  fake job/easy money, delivery/top-up, crypto/TON/wallet and government
+  grant/benefit.
+- Added compact first cards, detailed checklists with verified contact paths
+  and scenario-specific follow-up copy for next step, ready phrase,
+  trusted-person guidance and help-directory actions.
+- Updated regression coverage for page-3 keyboard routing, callback parsing,
+  localization completeness and emergency text well-formedness.
+- Roadmap now moves the next implementation slot to Guardian Angel v1, then
+  opt-in Voice-out/TTS v1.
+
 ## 2026-06-16 - AI Voice-Clone SOS Scenario v1
 
 - Added panic scenario `11` for AI voice-clone / fake relative calls.

@@ -19,9 +19,9 @@
   bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
   reuse one bank callback script. Already-happened financial cases (SMS-code,
   transfer and card data) now use their own escalation phrases instead of the
-  generic incoming-call script. AI voice-clone is now its own SOS scenario with
-  saved-number verification guidance; remaining new SOS categories still need
-  their own menu entries and first cards.
+  generic incoming-call script. AI voice-clone and modern non-bank pressure
+  scenarios are now their own SOS flows with scenario-specific first cards,
+  ready phrases, trusted-person copy and help directories.
 - **Main-site CSP no longer allows untrusted inline scripts.** `script-src` is
   restricted to a request-scoped nonce, `'self'` and the pinned Unicorn Studio
   CDN script; `script-src-attr 'none'` and `object-src 'none'` are enforced.
@@ -47,8 +47,11 @@
       page now includes `panic:11`, with saved-number verification,
       code-word/private-question guidance, help-directory copy and
       scenario-specific ready/trusted-person text.
-- [ ] Add remaining new SOS scenarios for fake job/easy money, fake
-      delivery/top-up, crypto/TON/card and government grant.
+- [x] ~~Add remaining new SOS scenarios for fake job/easy money, fake
+      delivery/top-up, crypto/TON/card and government grant.~~ Done:
+      `/panic` now has a third page with `panic:12` through `panic:15`,
+      modern-scam first cards, detailed checklists with verified contact paths
+      and scenario-specific follow-up copy.
 - [ ] Add Guardian Angel v1 after high-risk results: one safe step at a time,
       trusted-contact help and optional follow-up, without storing raw evidence.
 - [ ] Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak SMS

@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-038 - Modern SOS scenarios are rescue flows, not hidden reputation
+
+Fake job, delivery/top-up, crypto/TON/wallet and government grant panic
+scenarios provide immediate safe actions and official escalation paths. They
+must not claim hidden Telegram facts, provider intelligence, source identity or
+"definite scam" status by themselves. The user value is stopping payment,
+code-entry, wallet connection, APK install or document sharing long enough to
+verify the source through an official channel or trusted person.
+
 ## D-037 - AI voice-clone SOS verifies the person, not the voice
 
 AI voice-clone guidance must not claim that the bot can prove whether a voice is

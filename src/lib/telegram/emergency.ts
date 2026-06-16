@@ -742,6 +742,250 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
         ],
       },
     },
+    // ─── Scenario 12: Fake job / easy money ──────────────────────────────
+    {
+      title: {
+        ru: "1️⃣2️⃣ Работа / лёгкий доход",
+        uz: "1️⃣2️⃣ Ish / oson daromad",
+        en: "1️⃣2️⃣ Job / easy money",
+      },
+      steps: {
+        ru: [
+          "⚡ НЕ ПЛАТИТЕ ЗА ТРУДОУСТРОЙСТВО, ДОСТУП ИЛИ «АКТИВАЦИЮ»",
+          "",
+          "❤️ Настоящий работодатель не просит оплатить оформление, депозит, страховку или «комиссию за вывод».",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Что сделать сейчас:",
+          "",
+          "  1. Не отправляйте паспорт, карту, PIN, SMS-коды или фото документов.",
+          "  2. Не устанавливайте APK и не проходите KYC по ссылке из чата.",
+          "  3. Попросите юридическое название компании, сайт и договор.",
+          "  4. Проверьте вакансию через официальный сайт компании, а не через Telegram.",
+          "  5. Если уже платили — звоните в банк и сохраните чек/переписку.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Если есть давление, угрозы или деньги ушли — обратитесь: ${policeLine("ru")}`,
+        ],
+        uz: [
+          "⚡ ISHGA KIRISH, KIRISH HUQUQI YOKI «FAOLLASHTIRISH» UCHUN TO'LAMANG",
+          "",
+          "❤️ Haqiqiy ish beruvchi rasmiylashtirish, depozit, sug'urta yoki «yechib olish komissiyasi» uchun pul so'ramaydi.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Hozir nima qilish kerak:",
+          "",
+          "  1. Pasport, karta, PIN, SMS-kod yoki hujjat rasmini yubormang.",
+          "  2. APK o'rnatmang va chatdagi havola orqali KYC o'tmang.",
+          "  3. Kompaniyaning yuridik nomi, sayti va shartnomasini so'rang.",
+          "  4. Vakansiyani Telegram orqali emas, kompaniyaning rasmiy saytida tekshiring.",
+          "  5. Pul to'lagan bo'lsangiz — bankka qo'ng'iroq qiling va chek/yozishmani saqlang.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Bosim, tahdid yoki pul ketgan bo'lsa — murojaat qiling: ${policeLine("uz")}`,
+        ],
+        en: [
+          "⚡ DO NOT PAY FOR A JOB, ACCESS, OR “ACTIVATION”",
+          "",
+          "❤️ A real employer does not ask you to pay for hiring, deposits, insurance, or a “withdrawal fee”.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 What to do now:",
+          "",
+          "  1. Do not send passports, cards, PINs, SMS codes, or document photos.",
+          "  2. Do not install APKs or pass KYC through a chat link.",
+          "  3. Ask for the legal company name, website, and contract.",
+          "  4. Verify the vacancy on the company's official website, not in Telegram.",
+          "  5. If you already paid, call your bank and save the receipt/chat.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `If there is pressure, threats, or money was sent, contact: ${policeLine("en")}`,
+        ],
+      },
+    },
+    // ─── Scenario 13: Fake delivery / top-up ─────────────────────────────
+    {
+      title: {
+        ru: "1️⃣3️⃣ Доставка / пополнение / «маленькая комиссия»",
+        uz: "1️⃣3️⃣ Yetkazish / to'lov / «kichik komissiya»",
+        en: "1️⃣3️⃣ Delivery / top-up / small fee",
+      },
+      steps: {
+        ru: [
+          "⚡ НЕ ОПЛАЧИВАЙТЕ ПО ССЫЛКЕ ИЗ ЧАТА И НЕ ВВОДИТЕ КОД",
+          "",
+          "❤️ Схема часто начинается с маленькой суммы: доставка, таможня, пополнение, возврат или подтверждение карты.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Что сделать сейчас:",
+          "",
+          "  1. Откройте доставку/магазин только через официальное приложение или сайт.",
+          "  2. Не вводите SMS-код, PIN, CVV и полный номер карты.",
+          "  3. Не устанавливайте APK «для получения посылки» или «подтверждения».",
+          "  4. Если ввели карту/код — заблокируйте карту и онлайн-банк.",
+          "  5. Сохраните ссылку, чек, чат и номер отправителя.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Если ввели карту/код или деньги ушли — обратитесь: ${policeLine("ru")}`,
+        ],
+        uz: [
+          "⚡ CHATDAGI HAVOLA ORQALI TO'LAMANG VA KOD KIRITMANG",
+          "",
+          "❤️ Sxema ko'pincha kichik summa bilan boshlanadi: yetkazish, bojxona, to'lov, qaytarish yoki kartani tasdiqlash.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Hozir nima qilish kerak:",
+          "",
+          "  1. Yetkazish/do'konni faqat rasmiy ilova yoki sayt orqali oching.",
+          "  2. SMS-kod, PIN, CVV va to'liq karta raqamini kiritmang.",
+          "  3. «Posilkani olish» yoki «tasdiqlash» uchun APK o'rnatmang.",
+          "  4. Karta/kod kiritgan bo'lsangiz — karta va onlayn-bankni bloklang.",
+          "  5. Havola, chek, chat va yuboruvchi raqamini saqlang.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Karta/kod kiritgan yoki pul ketgan bo'lsa — murojaat qiling: ${policeLine("uz")}`,
+        ],
+        en: [
+          "⚡ DO NOT PAY THROUGH A CHAT LINK OR ENTER A CODE",
+          "",
+          "❤️ This scam often starts with a small fee: delivery, customs, top-up, refund, or card confirmation.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 What to do now:",
+          "",
+          "  1. Open delivery/shop only through the official app or website.",
+          "  2. Do not enter SMS codes, PINs, CVVs, or a full card number.",
+          "  3. Do not install APKs “to receive a parcel” or “confirm”.",
+          "  4. If you entered a card/code, block the card and online banking.",
+          "  5. Save the link, receipt, chat, and sender number.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `If you entered a card/code or money was sent, contact: ${policeLine("en")}`,
+        ],
+      },
+    },
+    // ─── Scenario 14: Crypto / TON / Wallet ──────────────────────────────
+    {
+      title: {
+        ru: "1️⃣4️⃣ Крипто / TON / Wallet",
+        uz: "1️⃣4️⃣ Kripto / TON / Wallet",
+        en: "1️⃣4️⃣ Crypto / TON / Wallet",
+      },
+      steps: {
+        ru: [
+          "⚡ НЕ ПОДКЛЮЧАЙТЕ WALLET И НЕ ВВОДИТЕ SEED-ФРАЗУ",
+          "",
+          "❤️ Подарки, Stars, NFT, airdrop и «комиссия за вывод» часто ведут к краже кошелька или депозита.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Что сделать сейчас:",
+          "",
+          "  1. Не вводите seed-фразу, приватный ключ, код Telegram или SMS-код.",
+          "  2. Не подключайте кошелёк к ссылке из чата/канала.",
+          "  3. Не платите комиссию за «разблокировку», «вывод» или «проверку».",
+          "  4. Если seed-фраза уже введена — перенесите активы в новый кошелёк с чистого устройства.",
+          "  5. Сохраните ссылку, адрес кошелька, чек/хэш операции и переписку.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Если были угрозы или деньги ушли — обратитесь: ${policeLine("ru")}`,
+        ],
+        uz: [
+          "⚡ WALLET ULAMANG VA SEED-FRAZANI KIRITMANG",
+          "",
+          "❤️ Sovg'alar, Stars, NFT, airdrop va «yechib olish komissiyasi» ko'pincha hamyon yoki depozit o'g'irlashga olib boradi.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Hozir nima qilish kerak:",
+          "",
+          "  1. Seed-fraza, maxfiy kalit, Telegram-kod yoki SMS-kodni kiritmang.",
+          "  2. Hamyonni chat/kanaldagi havolaga ulamang.",
+          "  3. «Ochish», «yechish» yoki «tekshirish» komissiyasini to'lamang.",
+          "  4. Seed-fraza kiritilgan bo'lsa — aktivlarni toza qurilmadan yangi hamyonga o'tkazing.",
+          "  5. Havola, hamyon manzili, chek/operatsiya xeshi va yozishmani saqlang.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Tahdid bo'lsa yoki pul ketgan bo'lsa — murojaat qiling: ${policeLine("uz")}`,
+        ],
+        en: [
+          "⚡ DO NOT CONNECT WALLET OR ENTER A SEED PHRASE",
+          "",
+          "❤️ Gifts, Stars, NFTs, airdrops, and “withdrawal fees” often lead to wallet or deposit theft.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 What to do now:",
+          "",
+          "  1. Do not enter a seed phrase, private key, Telegram code, or SMS code.",
+          "  2. Do not connect a wallet to a chat/channel link.",
+          "  3. Do not pay a fee for “unlocking”, “withdrawal”, or “verification”.",
+          "  4. If a seed phrase was entered, move assets to a new wallet from a clean device.",
+          "  5. Save the link, wallet address, receipt/transaction hash, and chat.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `If there are threats or money was sent, contact: ${policeLine("en")}`,
+        ],
+      },
+    },
+    // ─── Scenario 15: Government grant / benefit ─────────────────────────
+    {
+      title: {
+        ru: "1️⃣5️⃣ Госвыплата / грант / компенсация",
+        uz: "1️⃣5️⃣ Davlat to'lovi / grant / kompensatsiya",
+        en: "1️⃣5️⃣ Government grant / benefit",
+      },
+      steps: {
+        ru: [
+          "⚡ НЕ ПЛАТИТЕ «КОМИССИЮ ЗА ВЫПЛАТУ» И НЕ ВВОДИТЕ КОД",
+          "",
+          "❤️ Настоящие госуслуги не требуют SMS-код, CVV, PIN или предоплату через Telegram-ссылку.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Что сделать сейчас:",
+          "",
+          "  1. Откройте услугу только через официальный сайт/приложение, набрав адрес сами.",
+          "  2. Не вводите SMS-код, Telegram-код, CVV, PIN или данные карты.",
+          "  3. Не отправляйте фото паспорта/ID в чат без проверки источника.",
+          "  4. Если ввели карту или код — заблокируйте карту/онлайн-банк.",
+          "  5. Сохраните ссылку, чат и имя канала/аккаунта.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Если деньги ушли или есть угрозы — обратитесь: ${policeLine("ru")}`,
+        ],
+        uz: [
+          "⚡ «TO'LOV KOMISSIYASI»NI TO'LAMANG VA KOD KIRITMANG",
+          "",
+          "❤️ Haqiqiy davlat xizmatlari Telegram havolasi orqali SMS-kod, CVV, PIN yoki oldindan to'lov so'ramaydi.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 Hozir nima qilish kerak:",
+          "",
+          "  1. Xizmatni faqat rasmiy sayt/ilova orqali, manzilni o'zingiz terib oching.",
+          "  2. SMS-kod, Telegram-kod, CVV, PIN yoki karta ma'lumotini kiritmang.",
+          "  3. Manbani tekshirmasdan pasport/ID rasmini chatga yubormang.",
+          "  4. Karta yoki kod kiritgan bo'lsangiz — karta/onlayn-bankni bloklang.",
+          "  5. Havola, chat va kanal/akkaunt nomini saqlang.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `Pul ketgan yoki tahdid bo'lsa — murojaat qiling: ${policeLine("uz")}`,
+        ],
+        en: [
+          "⚡ DO NOT PAY A “BENEFIT FEE” OR ENTER A CODE",
+          "",
+          "❤️ Real government services do not ask for SMS codes, CVVs, PINs, or prepayment through a Telegram link.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          "📋 What to do now:",
+          "",
+          "  1. Open the service only through the official site/app by typing the address yourself.",
+          "  2. Do not enter SMS codes, Telegram codes, CVVs, PINs, or card data.",
+          "  3. Do not send passport/ID photos in chat before verifying the source.",
+          "  4. If you entered a card or code, block the card/online banking.",
+          "  5. Save the link, chat, and channel/account name.",
+          "",
+          "━━━━━━━━━━━━━━━━━━━━━━",
+          `If money was sent or there are threats, contact: ${policeLine("en")}`,
+        ],
+      },
+    },
   ];
 }
 
@@ -773,7 +1017,7 @@ export function buildEmergencyText(lang: Lang): string {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Scenario IDs (1-indexed, matching the numbered list above). */
-export type PanicScenarioId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+export type PanicScenarioId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
 
 /** Short titles for the scenario selection menu (inline buttons). */
 export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = {
@@ -808,9 +1052,29 @@ export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = 
     uz: "🎙️ Yaqin ovozi / AI",
     en: "🎙️ Loved one's voice / AI",
   },
+  12: {
+    ru: "💼 Работа / лёгкий доход",
+    uz: "💼 Ish / oson daromad",
+    en: "💼 Job / easy money",
+  },
+  13: {
+    ru: "🚚 Доставка / пополнение",
+    uz: "🚚 Yetkazish / to'lov",
+    en: "🚚 Delivery / top-up",
+  },
+  14: {
+    ru: "🪙 Крипто / TON / Wallet",
+    uz: "🪙 Kripto / TON / Wallet",
+    en: "🪙 Crypto / TON / Wallet",
+  },
+  15: {
+    ru: "🏛️ Госвыплата / грант",
+    uz: "🏛️ Davlat to'lovi / grant",
+    en: "🏛️ Government grant",
+  },
 };
 
-/** callback_data prefix for panic scenario buttons. Full: "panic:1" through "panic:11". */
+/** callback_data prefix for panic scenario buttons. Full: "panic:1" through "panic:15". */
 export const PANIC_CB_PREFIX = "panic:";
 
 /** Build the panic menu prompt text. */
@@ -1245,6 +1509,158 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
       "Until identity is confirmed, do not send money or share codes.",
     ],
   },
+  12: {
+    ru: [
+      "⚡ НЕ ПЛАТИТЕ ЗА РАБОТУ ИЛИ «ВЫВОД»",
+      "",
+      "Я рядом. Лёгкий доход часто используют как крючок: сначала обещают прибыль, потом просят депозит, комиссию или документы.",
+      "",
+      "Сделайте сейчас:",
+      "1. Не отправляйте паспорт, карту, коды или фото документов.",
+      "2. Не устанавливайте APK и не проходите KYC по ссылке из чата.",
+      "3. Попросите юридическое название компании и договор.",
+      "",
+      "Пока нет договора и официального сайта — не платите.",
+    ],
+    uz: [
+      "⚡ ISH YOKI «YECHISH» UCHUN TO'LAMANG",
+      "",
+      "Men yoningizdaman. Oson daromad ko'pincha tuzoq: avval foyda va'da qilinadi, keyin depozit, komissiya yoki hujjat so'raladi.",
+      "",
+      "Hozir qiling:",
+      "1. Pasport, karta, kod yoki hujjat rasmini yubormang.",
+      "2. APK o'rnatmang va chatdagi havola orqali KYC o'tmang.",
+      "3. Kompaniyaning yuridik nomi va shartnomasini so'rang.",
+      "",
+      "Shartnoma va rasmiy sayt bo'lmaguncha to'lamang.",
+    ],
+    en: [
+      "⚡ DO NOT PAY FOR WORK OR “WITHDRAWAL”",
+      "",
+      "I am with you. Easy income is often the hook: first profit is promised, then a deposit, fee, or documents are requested.",
+      "",
+      "Do this now:",
+      "1. Do not send passports, cards, codes, or document photos.",
+      "2. Do not install APKs or pass KYC through a chat link.",
+      "3. Ask for the legal company name and contract.",
+      "",
+      "Until there is a contract and official website, do not pay.",
+    ],
+  },
+  13: {
+    ru: [
+      "⚡ НЕ ОПЛАЧИВАЙТЕ ПО ССЫЛКЕ ИЗ ЧАТА",
+      "",
+      "Я рядом. Доставка, пополнение, возврат или «маленькая комиссия» часто ведут к краже карты.",
+      "",
+      "Сделайте сейчас:",
+      "1. Откройте сервис только через официальное приложение или сайт.",
+      "2. Не вводите SMS-код, PIN, CVV или полный номер карты.",
+      "3. Если уже ввели данные — заблокируйте карту.",
+      "",
+      "Ссылку/скрин следующего экрана можно прислать на проверку.",
+    ],
+    uz: [
+      "⚡ CHATDAGI HAVOLA ORQALI TO'LAMANG",
+      "",
+      "Men yoningizdaman. Yetkazish, to'lov, qaytarish yoki «kichik komissiya» ko'pincha kartani o'g'irlashga olib boradi.",
+      "",
+      "Hozir qiling:",
+      "1. Servisni faqat rasmiy ilova yoki sayt orqali oching.",
+      "2. SMS-kod, PIN, CVV yoki to'liq karta raqamini kiritmang.",
+      "3. Ma'lumot kiritgan bo'lsangiz — kartani bloklang.",
+      "",
+      "Havola/keyingi ekran skrinini tekshiruvga yuborishingiz mumkin.",
+    ],
+    en: [
+      "⚡ DO NOT PAY THROUGH A CHAT LINK",
+      "",
+      "I am with you. Delivery, top-up, refund, or a “small fee” often leads to card theft.",
+      "",
+      "Do this now:",
+      "1. Open the service only through the official app or website.",
+      "2. Do not enter SMS codes, PINs, CVVs, or a full card number.",
+      "3. If you already entered details, block the card.",
+      "",
+      "You can send the link/next screen screenshot for checking.",
+    ],
+  },
+  14: {
+    ru: [
+      "⚡ НЕ ПОДКЛЮЧАЙТЕ WALLET И НЕ ВВОДИТЕ SEED-ФРАЗУ",
+      "",
+      "Я рядом. NFT, Stars, TON-бонусы и airdrop часто ведут к wallet connect, seed-фразе или «комиссии за вывод».",
+      "",
+      "Сделайте сейчас:",
+      "1. Не вводите seed-фразу, приватный ключ или Telegram-код.",
+      "2. Не подключайте кошелёк к ссылке из чата.",
+      "3. Если seed уже ввели — перенесите активы в новый кошелёк с чистого устройства.",
+      "",
+      "Сохраните ссылку и адрес кошелька, если деньги уже ушли.",
+    ],
+    uz: [
+      "⚡ WALLET ULAMANG VA SEED-FRAZA KIRITMANG",
+      "",
+      "Men yoningizdaman. NFT, Stars, TON bonuslari va airdrop ko'pincha wallet connect, seed-fraza yoki «yechish komissiyasi»ga olib boradi.",
+      "",
+      "Hozir qiling:",
+      "1. Seed-fraza, maxfiy kalit yoki Telegram-kodni kiritmang.",
+      "2. Hamyonni chatdagi havolaga ulamang.",
+      "3. Seed kiritilgan bo'lsa — aktivlarni toza qurilmadan yangi hamyonga o'tkazing.",
+      "",
+      "Pul ketgan bo'lsa, havola va hamyon manzilini saqlang.",
+    ],
+    en: [
+      "⚡ DO NOT CONNECT WALLET OR ENTER A SEED PHRASE",
+      "",
+      "I am with you. NFTs, Stars, TON bonuses, and airdrops often lead to wallet connect, seed phrases, or a “withdrawal fee”.",
+      "",
+      "Do this now:",
+      "1. Do not enter a seed phrase, private key, or Telegram code.",
+      "2. Do not connect a wallet to a chat link.",
+      "3. If a seed was entered, move assets to a new wallet from a clean device.",
+      "",
+      "Save the link and wallet address if money was already sent.",
+    ],
+  },
+  15: {
+    ru: [
+      "⚡ НЕ ПЛАТИТЕ «КОМИССИЮ ЗА ВЫПЛАТУ»",
+      "",
+      "Я рядом. Госвыплаты и гранты часто подделывают: обещают компенсацию, а потом просят карту, код или предоплату.",
+      "",
+      "Сделайте сейчас:",
+      "1. Открывайте услугу только через официальный сайт или приложение.",
+      "2. Не вводите SMS-код, CVV, PIN или Telegram-код.",
+      "3. Не отправляйте паспорт/ID в чат без проверки источника.",
+      "",
+      "Если ввели карту или код — заблокируйте карту/онлайн-банк.",
+    ],
+    uz: [
+      "⚡ «TO'LOV KOMISSIYASI»NI TO'LAMANG",
+      "",
+      "Men yoningizdaman. Davlat to'lovlari va grantlar ko'pincha soxtalashtiriladi: kompensatsiya va'da qilinadi, keyin karta, kod yoki oldindan to'lov so'raladi.",
+      "",
+      "Hozir qiling:",
+      "1. Xizmatni faqat rasmiy sayt yoki ilova orqali oching.",
+      "2. SMS-kod, CVV, PIN yoki Telegram-kodni kiritmang.",
+      "3. Manbani tekshirmasdan pasport/IDni chatga yubormang.",
+      "",
+      "Karta yoki kod kiritgan bo'lsangiz — karta/onlayn-bankni bloklang.",
+    ],
+    en: [
+      "⚡ DO NOT PAY A “BENEFIT FEE”",
+      "",
+      "I am with you. Government benefits and grants are often faked: compensation is promised, then card data, a code, or prepayment is requested.",
+      "",
+      "Do this now:",
+      "1. Open the service only through the official site or app.",
+      "2. Do not enter SMS codes, CVVs, PINs, or Telegram codes.",
+      "3. Do not send passport/ID photos in chat before verifying the source.",
+      "",
+      "If you entered a card or code, block the card/online banking.",
+    ],
+  },
 };
 
 /**
@@ -1291,14 +1707,15 @@ function withScenarioHumanCue(steps: string[], id: PanicScenarioId, lang: Lang):
 export function parsePanicCallback(data: string): PanicScenarioId | null {
   if (!data.startsWith(PANIC_CB_PREFIX)) return null;
   const suffix = data.slice(PANIC_CB_PREFIX.length);
-  if (suffix === "more" || suffix === "back") return null;
+  if (suffix === "more" || suffix === "more2" || suffix === "back" || suffix === "back2")
+    return null;
   const n = Number(suffix);
-  if (n >= 1 && n <= 11) return n as PanicScenarioId;
+  if (n >= 1 && n <= 15) return n as PanicScenarioId;
   return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PANIC KEYBOARD PAGINATION — split 11 scenarios into 2 pages (6+5)
+// PANIC KEYBOARD PAGINATION — split scenarios into short pages.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
@@ -1331,7 +1748,7 @@ export function buildPanicKeyboardPage1(lang: Lang): InlineKeyboard {
 }
 
 /**
- * Build panic keyboard page 2: scenarios 7–11 (2 per row) + "← Назад" button.
+ * Build panic keyboard page 2: scenarios 7–11 (2 per row) + next/back buttons.
  * Shown when user taps "Другие ситуации".
  */
 export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
@@ -1352,6 +1769,13 @@ export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
     }
     rows.push(row);
   }
+  const nextLabel: Record<Lang, string> = {
+    ru: "Ещё ситуации ➡️",
+    uz: "Yana vaziyatlar ➡️",
+    en: "More situations ➡️",
+  };
+  rows.push([{ text: nextLabel[lang], callback_data: `${PANIC_CB_PREFIX}more2` }]);
+
   // "Back" button
   const backLabel: Record<Lang, string> = {
     ru: "← Назад",
@@ -1359,6 +1783,34 @@ export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
     en: "← Back",
   };
   rows.push([{ text: backLabel[lang], callback_data: `${PANIC_CB_PREFIX}back` }]);
+  return rows;
+}
+
+/**
+ * Build panic keyboard page 3: scenarios 12–15 + "← Назад" button.
+ * This page keeps newer promo/payment scam cases out of the first emergency screen.
+ */
+export function buildPanicKeyboardPage3(lang: Lang): InlineKeyboard {
+  const rows: InlineKeyboard = [];
+  for (let i = 12; i <= 15; i += 2) {
+    rows.push([
+      {
+        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i}`,
+      },
+      {
+        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
+        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
+      },
+    ]);
+  }
+
+  const backLabel: Record<Lang, string> = {
+    ru: "← Назад",
+    uz: "← Orqaga",
+    en: "← Back",
+  };
+  rows.push([{ text: backLabel[lang], callback_data: `${PANIC_CB_PREFIX}back2` }]);
   return rows;
 }
 
@@ -1495,7 +1947,7 @@ function hasRiskPayloadForFollowUp(text: string): boolean {
 
 export function asPanicScenarioId(value: unknown): PanicScenarioId | null {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  return Number.isInteger(n) && n >= 1 && n <= 11 ? (n as PanicScenarioId) : null;
+  return Number.isInteger(n) && n >= 1 && n <= 15 ? (n as PanicScenarioId) : null;
 }
 
 function isRecentPanicContext(context: EmergencyContextData, now: Date): boolean {
@@ -1556,7 +2008,11 @@ type PanicFollowUpProfile =
   | "blackmail"
   | "romance"
   | "minor"
-  | "voice_clone";
+  | "voice_clone"
+  | "fake_job"
+  | "delivery"
+  | "crypto"
+  | "government_grant";
 
 function followUpProfile(panicId: PanicScenarioId): PanicFollowUpProfile {
   switch (panicId) {
@@ -1579,6 +2035,14 @@ function followUpProfile(panicId: PanicScenarioId): PanicFollowUpProfile {
       return "minor";
     case 11:
       return "voice_clone";
+    case 12:
+      return "fake_job";
+    case 13:
+      return "delivery";
+    case 14:
+      return "crypto";
+    case 15:
+      return "government_grant";
   }
 }
 
@@ -1589,7 +2053,11 @@ function shouldUseHelpDirectory(panicId: PanicScenarioId): boolean {
     profile === "blackmail" ||
     profile === "romance" ||
     profile === "minor" ||
-    profile === "voice_clone"
+    profile === "voice_clone" ||
+    profile === "fake_job" ||
+    profile === "delivery" ||
+    profile === "crypto" ||
+    profile === "government_grant"
   );
 }
 
@@ -1952,6 +2420,98 @@ function moreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
         "3. Until identity is confirmed, do not send money, take loans, or share codes.",
       ],
     },
+    12: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Поставьте паузу: не платите депозит, налог, страховку или комиссию за вывод.",
+        "2. Попросите юридическое название компании, сайт, договор и имя ответственного лица.",
+        "3. Проверьте вакансию через официальный сайт компании или независимый источник.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Pauza qiling: depozit, soliq, sug'urta yoki yechib olish komissiyasini to'lamang.",
+        "2. Kompaniyaning yuridik nomi, sayti, shartnomasi va mas'ul shaxs ismini so'rang.",
+        "3. Vakansiyani kompaniyaning rasmiy sayti yoki mustaqil manba orqali tekshiring.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Pause: do not pay a deposit, tax, insurance, or withdrawal fee.",
+        "2. Ask for the legal company name, website, contract, and responsible person's name.",
+        "3. Verify the vacancy through the company's official site or an independent source.",
+      ],
+    },
+    13: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Закройте ссылку и откройте сервис вручную через официальное приложение или сайт.",
+        "2. Если вводили карту, CVV или SMS-код — заблокируйте карту и онлайн-банк.",
+        "3. Сохраните ссылку, чек и чат; не устанавливайте APK для доставки/возврата.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Havolani yoping va servisni rasmiy ilova yoki sayt orqali qo'lda oching.",
+        "2. Karta, CVV yoki SMS-kod kiritgan bo'lsangiz — karta va onlayn-bankni bloklang.",
+        "3. Havola, chek va chatni saqlang; yetkazish/qaytarish uchun APK o'rnatmang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Close the link and open the service manually through the official app or site.",
+        "2. If you entered card data, CVV, or an SMS code, block the card and online banking.",
+        "3. Save the link, receipt, and chat; do not install delivery/refund APKs.",
+      ],
+    },
+    14: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Не подключайте кошелёк и не вводите seed-фразу/приватный ключ.",
+        "2. Если seed уже ввели — с чистого устройства создайте новый кошелёк и перенесите активы.",
+        "3. Сохраните ссылку, адрес кошелька, хэш операции и переписку.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. Hamyonni ulamang va seed-fraza/maxfiy kalitni kiritmang.",
+        "2. Seed kiritilgan bo'lsa — toza qurilmadan yangi hamyon yarating va aktivlarni o'tkazing.",
+        "3. Havola, hamyon manzili, operatsiya xeshi va yozishmani saqlang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Do not connect the wallet or enter a seed phrase/private key.",
+        "2. If a seed was entered, create a new wallet from a clean device and move assets.",
+        "3. Save the link, wallet address, transaction hash, and chat.",
+      ],
+    },
+    15: {
+      ru: [
+        "🧭 Следующий безопасный шаг",
+        "",
+        "1. Не платите комиссию и не вводите коды для «получения выплаты».",
+        "2. Откройте госуслугу только через официальный сайт/приложение, набрав адрес сами.",
+        "3. Если ввели карту или SMS-код — заблокируйте карту/онлайн-банк.",
+      ],
+      uz: [
+        "🧭 Keyingi xavfsiz qadam",
+        "",
+        "1. «To'lovni olish» uchun komissiya to'lamang va kod kiritmang.",
+        "2. Davlat xizmatini faqat rasmiy sayt/ilova orqali, manzilni o'zingiz terib oching.",
+        "3. Karta yoki SMS-kod kiritgan bo'lsangiz — karta/onlayn-bankni bloklang.",
+      ],
+      en: [
+        "🧭 Next safe step",
+        "",
+        "1. Do not pay a fee or enter codes to “receive a benefit”.",
+        "2. Open the government service only through the official site/app by typing it yourself.",
+        "3. If you entered a card or SMS code, block the card/online banking.",
+      ],
+    },
   };
   return byScenario[panicId][lang].join("\n");
 }
@@ -2122,6 +2682,135 @@ function guidedCallbackDirectory(panicId: PanicScenarioId, lang: Lang): string {
         contactList(protectionContacts, lang),
         contactList(banks, lang),
         contactList(payments, lang),
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  if (profile === "fake_job") {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "🆘 Куда обратиться",
+        "",
+        "1. Если уже оплатили «депозит/комиссию/налог» — звоните в банк по официальному номеру.",
+        "2. Если отправили документы — сохраните переписку и не отправляйте новые фото/коды.",
+        "3. Сохраните ссылку, username, реквизиты, чек и обещания дохода.",
+        "",
+        "Куда можно обратиться:",
+        contactList(protectionContacts, lang),
+        contactList(banks, lang),
+        contactList(payments, lang),
+      ],
+      uz: [
+        "🆘 Qayerga murojaat qilish",
+        "",
+        "1. «Depozit/komissiya/soliq» to'lagan bo'lsangiz — bankka rasmiy raqam orqali qo'ng'iroq qiling.",
+        "2. Hujjat yuborgan bo'lsangiz — yozishmani saqlang va yangi foto/kod yubormang.",
+        "3. Havola, username, rekvizit, chek va daromad va'dalarini saqlang.",
+        "",
+        "Murojaat qilish mumkin:",
+        contactList(protectionContacts, lang),
+        contactList(banks, lang),
+        contactList(payments, lang),
+      ],
+      en: [
+        "🆘 Where to get help",
+        "",
+        "1. If you already paid a “deposit/fee/tax”, call your bank using an official number.",
+        "2. If you sent documents, save the chat and do not send new photos/codes.",
+        "3. Save the link, username, payment details, receipt, and income promises.",
+        "",
+        "You can contact:",
+        contactList(protectionContacts, lang),
+        contactList(banks, lang),
+        contactList(payments, lang),
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  if (profile === "delivery" || profile === "government_grant") {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        profile === "delivery" ? "🚚 Доставка/пополнение: помощь" : "🏛️ Госвыплата/грант: помощь",
+        "",
+        "1. Если вводили карту, CVV или SMS-код — срочно заблокируйте карту и онлайн-банк.",
+        "2. Откройте сервис только вручную через официальный сайт/приложение.",
+        "3. Сохраните ссылку, чат, чек и имя канала/аккаунта.",
+        "",
+        "Проверенные номера:",
+        contactList(banks, lang),
+        contactList(payments, lang),
+        "",
+        "Если есть угрозы, вымогательство или поддельные документы:",
+        contactList(protectionContacts, lang),
+      ],
+      uz: [
+        profile === "delivery" ? "🚚 Yetkazish/to'lov: yordam" : "🏛️ Davlat to'lovi/grant: yordam",
+        "",
+        "1. Karta, CVV yoki SMS-kod kiritgan bo'lsangiz — karta va onlayn-bankni zudlik bilan bloklang.",
+        "2. Servisni faqat rasmiy sayt/ilova orqali qo'lda oching.",
+        "3. Havola, chat, chek va kanal/akkaunt nomini saqlang.",
+        "",
+        "Tekshirilgan raqamlar:",
+        contactList(banks, lang),
+        contactList(payments, lang),
+        "",
+        "Tahdid, tovlamachilik yoki soxta hujjatlar bo'lsa:",
+        contactList(protectionContacts, lang),
+      ],
+      en: [
+        profile === "delivery" ? "🚚 Delivery/top-up help" : "🏛️ Government grant help",
+        "",
+        "1. If you entered card data, CVV, or an SMS code, urgently block the card and online banking.",
+        "2. Open the service only manually through the official site/app.",
+        "3. Save the link, chat, receipt, and channel/account name.",
+        "",
+        "Verified numbers:",
+        contactList(banks, lang),
+        contactList(payments, lang),
+        "",
+        "If there are threats, extortion, or forged documents:",
+        contactList(protectionContacts, lang),
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  if (profile === "crypto") {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "🆘 Крипто/TON: что делать",
+        "",
+        "1. Если seed-фразу или приватный ключ уже ввели — создайте новый кошелёк с чистого устройства и перенесите активы.",
+        "2. Не платите «комиссию за вывод», «разморозку» или «верификацию».",
+        "3. Сохраните ссылку, адрес кошелька, хэш операции и переписку.",
+        "",
+        "Если была карта/перевод через банк — звоните в банк. Если есть угрозы — обращайтесь:",
+        contactList(banks, lang),
+        contactList(protectionContacts, lang),
+      ],
+      uz: [
+        "🆘 Kripto/TON: nima qilish kerak",
+        "",
+        "1. Seed-fraza yoki maxfiy kalit kiritilgan bo'lsa — toza qurilmadan yangi hamyon yarating va aktivlarni o'tkazing.",
+        "2. «Yechib olish», «muzdan tushirish» yoki «verifikatsiya» komissiyasini to'lamang.",
+        "3. Havola, hamyon manzili, operatsiya xeshi va yozishmani saqlang.",
+        "",
+        "Karta/bank o'tkazmasi bo'lgan bo'lsa — bankka qo'ng'iroq qiling. Tahdid bo'lsa — murojaat qiling:",
+        contactList(banks, lang),
+        contactList(protectionContacts, lang),
+      ],
+      en: [
+        "🆘 Crypto/TON: what to do",
+        "",
+        "1. If a seed phrase or private key was entered, create a new wallet from a clean device and move assets.",
+        "2. Do not pay “withdrawal”, “unfreeze”, or “verification” fees.",
+        "3. Save the link, wallet address, transaction hash, and chat.",
+        "",
+        "If a card/bank transfer was involved, call your bank. If there are threats, contact:",
+        contactList(banks, lang),
+        contactList(protectionContacts, lang),
       ],
     };
     return lines[lang].join("\n");
@@ -2373,44 +3062,86 @@ function guidedTrustedPersonText(panicId: PanicScenarioId, lang: Lang): string {
                     `Ready text: “I need help. Situation: ${title}. The voice sounds like someone close, but they are asking for money urgently. Please stay with me and help me verify them using a saved number.”`,
                   ],
                 }
-              : {
-                  ru: [
-                    "👪 Позовите человека, которому доверяете",
-                    "",
-                    "Это не слабость. В мошеннических звонках специально торопят, чтобы человек остался один и ошибся.",
-                    "",
-                    "Сделайте так:",
-                    "1. Позвоните близкому или отправьте готовый текст ниже.",
-                    "2. Попросите: «Пожалуйста, побудь со мной 5 минут, пока я звоню в банк по официальному номеру».",
-                    "3. Не пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
-                    "",
-                    `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Я волнуюсь, побудь со мной и помоги спокойно проверить это по официальному номеру».`,
-                  ],
-                  uz: [
-                    "👪 Ishonchli yaqiningizni chaqiring",
-                    "",
-                    "Bu zaiflik emas. Firibgarlar odam yolg'iz qolib xato qilishi uchun ataylab shoshiradi.",
-                    "",
-                    "Shunday qiling:",
-                    "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
-                    "2. So'rang: «Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
-                    "3. SMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
-                    "",
-                    `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Hayajondaman. Yonimda bo'lib, buni rasmiy raqam orqali xotirjam tekshirishga yordam bering».`,
-                  ],
-                  en: [
-                    "👪 Call someone you trust",
-                    "",
-                    "This is not weakness. Scam calls deliberately rush people so they stay alone and make a mistake.",
-                    "",
-                    "Do this:",
-                    "1. Call a trusted person or send the ready text below.",
-                    "2. Ask: “Stay with me for 5 minutes while I call the bank using an official number.”",
-                    "3. Do not send SMS codes, PINs, CVVs, passwords, or card photos.",
-                    "",
-                    `Ready text: “I need help. Situation: ${title}. I am worried. Please stay with me and help me check this calmly using an official number.”`,
-                  ],
-                };
+              : profile === "fake_job" ||
+                  profile === "delivery" ||
+                  profile === "crypto" ||
+                  profile === "government_grant"
+                ? {
+                    ru: [
+                      "👪 Позовите человека, которому доверяете",
+                      "",
+                      "Это не слабость. В схемах с работой, доставкой, крипто и выплатами специально торопят, чтобы человек не проверил источник.",
+                      "",
+                      "Сделайте так:",
+                      "1. Попросите близкого посмотреть ссылку/переписку со стороны.",
+                      "2. Поставьте паузу на оплату, коды, документы, wallet connect и установку приложений.",
+                      "3. Если уже ввели карту/код или перевели деньги — вместе позвоните в банк по официальному номеру.",
+                      "",
+                      `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Меня торопят перейти по ссылке/оплатить/ввести данные. Побудь со мной и помоги проверить источник».`,
+                    ],
+                    uz: [
+                      "👪 Ishonchli yaqiningizni chaqiring",
+                      "",
+                      "Bu zaiflik emas. Ish, yetkazish, kripto va to'lov sxemalarida manbani tekshirmaslik uchun odamni ataylab shoshirishadi.",
+                      "",
+                      "Shunday qiling:",
+                      "1. Yaqiningizdan havola/yozishmani tashqaridan ko'rib berishni so'rang.",
+                      "2. To'lov, kodlar, hujjatlar, wallet connect va ilova o'rnatishga pauza qiling.",
+                      "3. Karta/kod kiritgan yoki pul yuborgan bo'lsangiz — bankka rasmiy raqam orqali birga qo'ng'iroq qiling.",
+                      "",
+                      `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Meni havolaga o'tish/to'lash/ma'lumot kiritishga shoshirishyapti. Yonimda bo'lib, manbani tekshirishga yordam bering».`,
+                    ],
+                    en: [
+                      "👪 Call someone you trust",
+                      "",
+                      "This is not weakness. Job, delivery, crypto, and benefit scams deliberately rush people before they verify the source.",
+                      "",
+                      "Do this:",
+                      "1. Ask someone trusted to review the link/chat from the outside.",
+                      "2. Pause payments, codes, documents, wallet connect, and app installs.",
+                      "3. If you entered card/code data or sent money, call the bank together using an official number.",
+                      "",
+                      `Ready text: “I need help. Situation: ${title}. I am being rushed to open a link/pay/enter data. Please stay with me and help verify the source.”`,
+                    ],
+                  }
+                : {
+                    ru: [
+                      "👪 Позовите человека, которому доверяете",
+                      "",
+                      "Это не слабость. В мошеннических звонках специально торопят, чтобы человек остался один и ошибся.",
+                      "",
+                      "Сделайте так:",
+                      "1. Позвоните близкому или отправьте готовый текст ниже.",
+                      "2. Попросите: «Пожалуйста, побудь со мной 5 минут, пока я звоню в банк по официальному номеру».",
+                      "3. Не пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
+                      "",
+                      `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Я волнуюсь, побудь со мной и помоги спокойно проверить это по официальному номеру».`,
+                    ],
+                    uz: [
+                      "👪 Ishonchli yaqiningizni chaqiring",
+                      "",
+                      "Bu zaiflik emas. Firibgarlar odam yolg'iz qolib xato qilishi uchun ataylab shoshiradi.",
+                      "",
+                      "Shunday qiling:",
+                      "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+                      "2. So'rang: «Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
+                      "3. SMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
+                      "",
+                      `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Hayajondaman. Yonimda bo'lib, buni rasmiy raqam orqali xotirjam tekshirishga yordam bering».`,
+                    ],
+                    en: [
+                      "👪 Call someone you trust",
+                      "",
+                      "This is not weakness. Scam calls deliberately rush people so they stay alone and make a mistake.",
+                      "",
+                      "Do this:",
+                      "1. Call a trusted person or send the ready text below.",
+                      "2. Ask: “Stay with me for 5 minutes while I call the bank using an official number.”",
+                      "3. Do not send SMS codes, PINs, CVVs, passwords, or card photos.",
+                      "",
+                      `Ready text: “I need help. Situation: ${title}. I am worried. Please stay with me and help me check this calmly using an official number.”`,
+                    ],
+                  };
   return lines[lang].join("\n");
 }
 
@@ -2724,38 +3455,74 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                     `“Situation: ${title}. Help me slow down and verify the voice using a saved number.”`,
                   ],
                 }
-              : {
-                  ru: [
-                    "💬 Готовая фраза",
-                    "",
-                    "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
-                    "",
-                    "«Я не обсуждаю деньги, коды, карты и приложения по входящему звонку. Я сам перезвоню по официальному номеру.»",
-                    "",
-                    "Если рядом близкий, скажите ему:",
-                    `«Ситуация: ${title}. Помоги мне не торопиться и позвонить в банк по официальному номеру».`,
-                  ],
-                  uz: [
-                    "💬 Tayyor jumla",
-                    "",
-                    "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
-                    "",
-                    "«Kiruvchi qo'ng'iroqda pul, kod, karta va ilovalarni muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
-                    "",
-                    "Yaqiningiz yoningizda bo'lsa, shunday deng:",
-                    `«Vaziyat: ${title}. Shoshilmasdan bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».`,
-                  ],
-                  en: [
-                    "💬 Ready phrase",
-                    "",
-                    "If the person is still on the line, do not argue. Read one sentence and end the call:",
-                    "",
-                    "“I do not discuss money, codes, cards, or apps on an incoming call. I will call back myself using the official number.”",
-                    "",
-                    "If someone trusted is nearby, tell them:",
-                    `“Situation: ${title}. Help me slow down and call the bank using an official number.”`,
-                  ],
-                };
+              : profile === "fake_job" ||
+                  profile === "delivery" ||
+                  profile === "crypto" ||
+                  profile === "government_grant"
+                ? {
+                    ru: [
+                      "💬 Готовая фраза",
+                      "",
+                      "Если вас торопят оплатить, перейти по ссылке, подключить wallet или ввести данные — не спорьте. Поставьте паузу:",
+                      "",
+                      "«Я ничего не оплачиваю и не ввожу коды по ссылке из чата. Сначала спокойно проверю источник через официальный сайт или с близким человеком.»",
+                      "",
+                      "Близкому человеку скажите:",
+                      `«Ситуация: ${title}. Помоги мне проверить ссылку/условия со стороны, прежде чем я что-то оплачу или введу данные».`,
+                    ],
+                    uz: [
+                      "💬 Tayyor jumla",
+                      "",
+                      "Agar to'lash, havolaga o'tish, wallet ulash yoki ma'lumot kiritishga shoshirishsa — tortishmang. Pauza qiling:",
+                      "",
+                      "«Chatdagi havola orqali hech narsa to'lamayman va kod kiritmayman. Avval manbani rasmiy sayt yoki yaqin odam bilan xotirjam tekshiraman.»",
+                      "",
+                      "Yaqiningizga shunday deng:",
+                      `«Vaziyat: ${title}. Biror narsa to'lash yoki ma'lumot kiritishdan oldin havola/shartlarni tashqaridan tekshirishga yordam bering».`,
+                    ],
+                    en: [
+                      "💬 Ready phrase",
+                      "",
+                      "If someone rushes you to pay, open a link, connect a wallet, or enter data, do not argue. Pause:",
+                      "",
+                      "“I will not pay or enter codes through a chat link. First I will calmly verify the source through the official site or with someone I trust.”",
+                      "",
+                      "Tell someone trusted:",
+                      `“Situation: ${title}. Help me review the link/terms from the outside before I pay or enter data.”`,
+                    ],
+                  }
+                : {
+                    ru: [
+                      "💬 Готовая фраза",
+                      "",
+                      "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+                      "",
+                      "«Я не обсуждаю деньги, коды, карты и приложения по входящему звонку. Я сам перезвоню по официальному номеру.»",
+                      "",
+                      "Если рядом близкий, скажите ему:",
+                      `«Ситуация: ${title}. Помоги мне не торопиться и позвонить в банк по официальному номеру».`,
+                    ],
+                    uz: [
+                      "💬 Tayyor jumla",
+                      "",
+                      "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+                      "",
+                      "«Kiruvchi qo'ng'iroqda pul, kod, karta va ilovalarni muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
+                      "",
+                      "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+                      `«Vaziyat: ${title}. Shoshilmasdan bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».`,
+                    ],
+                    en: [
+                      "💬 Ready phrase",
+                      "",
+                      "If the person is still on the line, do not argue. Read one sentence and end the call:",
+                      "",
+                      "“I do not discuss money, codes, cards, or apps on an incoming call. I will call back myself using the official number.”",
+                      "",
+                      "If someone trusted is nearby, tell them:",
+                      `“Situation: ${title}. Help me slow down and call the bank using an official number.”`,
+                    ],
+                  };
   return lines[lang].join("\n");
 }
 

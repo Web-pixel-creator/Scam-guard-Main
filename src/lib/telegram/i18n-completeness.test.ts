@@ -13,11 +13,11 @@ import {
 import { buildCommandPayloads } from "@/../scripts/set-bot-commands";
 
 const LANGS = ["ru", "uz", "en"] as const;
-const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-// ─── 1. PANIC_MENU_TITLES: all 10 scenarios have non-empty ru/uz/en titles ──
+// ─── 1. PANIC_MENU_TITLES: all scenarios have non-empty ru/uz/en titles ────
 
-describe("PANIC_MENU_TITLES — all 10 scenarios × 3 langs", () => {
+describe("PANIC_MENU_TITLES — all scenarios × 3 langs", () => {
   for (const id of SCENARIO_IDS) {
     for (const lang of LANGS) {
       it(`scenario ${id} has a non-empty title for "${lang}"`, () => {
@@ -30,9 +30,9 @@ describe("PANIC_MENU_TITLES — all 10 scenarios × 3 langs", () => {
   }
 });
 
-// ─── 2. buildPanicScenarioText — non-empty for all 10 × 3 combos ───────────
+// ─── 2. buildPanicScenarioText — non-empty for all scenarios × 3 combos ─────
 
-describe("buildPanicScenarioText — all 10 scenarios × 3 langs produce non-empty text", () => {
+describe("buildPanicScenarioText — all scenarios × 3 langs produce non-empty text", () => {
   for (const id of SCENARIO_IDS) {
     for (const lang of LANGS) {
       it(`buildPanicScenarioText(${id}, "${lang}") returns non-empty text`, () => {

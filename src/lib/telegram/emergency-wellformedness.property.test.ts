@@ -1,7 +1,7 @@
 // Feature: telegram-ux-polish, Property 4: Emergency text well-formedness
 //
 // Property 4 (design.md → "Emergency text well-formedness", Validates: Requirements 5.1, 5.2, 5.4, 5.5):
-// For any panic scenario ID (1–10) and for any supported language (ru, uz, en),
+// For any panic scenario ID and for any supported language (ru, uz, en),
 // the output of `buildPanicScenarioText(id, lang)` SHALL:
 // - not exceed 900 characters in length,
 // - begin its first content line (after the title) with an uppercase word or phrase
@@ -19,7 +19,7 @@ import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 /** Validates: Requirements 5.1, 5.2, 5.4, 5.5 */
 
 const LANGS = ["ru", "uz", "en"] as const;
-const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 /**
  * Extract phone numbers and short codes from VERIFIED_CONTACTS for matching.

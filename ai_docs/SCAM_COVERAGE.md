@@ -35,11 +35,11 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 14  | Relative/friend in distress                   | `relative_in_distress`                                                   | Covered |
 | 15  | Piecemeal card data extraction                | `requests_card_digits`                                                   | Covered |
 | 16  | Account/card block threat                     | `threatens_account_block` + urgency                                      | Covered |
-| 17  | AI voice-clone call                           | education + `panic:11` saved-number/code-word verification guidance      | Partial |
-| 18  | Fake courier / delivery surcharge             | `fake_delivery_payment` + URL heuristics                                 | Covered |
+| 17  | AI voice-clone call                           | education + `panic:11` saved-number/code-word verification guidance      | Covered |
+| 18  | Fake courier / delivery surcharge             | `fake_delivery_payment` + URL heuristics + `panic:13` rescue flow        | Covered |
 | 19  | Marketplace prepayment / fake buyer-seller    | `payment` detector + `payment_before_service` text patterns              | Covered |
 | 20  | Romance / dating scam                         | future pattern/content                                                   | Planned |
-| 21  | Fake job offer                                | future pattern/content                                                   | Planned |
+| 21  | Fake job offer                                | `panic:12` rescue flow + payment/document/KYC safety guidance            | Covered |
 | 22  | Malicious Telegram GIF/file bait              | `malicious_file_bait`, APK coverage and out-of-scope handling            | Covered |
 | 23  | Fake boss/official/workplace request          | `fake_boss_request` + personal-data rules                                | Covered |
 | 24  | Telegram account deletion / "Cancel" phishing | `telegram_account_takeover_phishing`                                     | Covered |
@@ -48,8 +48,9 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 | 27  | Telegram casino / free-spins bonus funnel     | `crypto_casino_bonus_funnel` + invite/domain/link signals                | Covered |
 | 28  | NFT/Stars giveaway with CAPTCHA/voting gates  | `giveaway_engagement_bait`, `fake_captcha_or_voting`                     | Covered |
 | 29  | Task reward / leaderboard / easy-action bait  | `task_reward_engagement_bait`                                            | Covered |
-| 30  | Wallet/DeFi urgency and token top-up pressure | `wallet_action_urgency`                                                  | Covered |
+| 30  | Wallet/DeFi urgency and token top-up pressure | `wallet_action_urgency` + `panic:14` wallet/seed rescue flow             | Covered |
 | 31  | TON/crypto referral earning scheme            | `ton_referral_earning_scheme`                                            | Covered |
+| 32  | Fake government grant / benefit               | `panic:15` rescue flow + card/code/personal-data rules                   | Covered |
 
 ## Research feed: pressauz
 

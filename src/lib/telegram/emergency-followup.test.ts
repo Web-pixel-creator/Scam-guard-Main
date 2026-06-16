@@ -5,6 +5,7 @@ import {
   buildLiveCallActiveKeyboard,
   buildLiveCallPhraseKeyboard,
   buildPanicKeyboardPage2,
+  buildPanicKeyboardPage3,
   buildPanicScenarioText,
   classifyEmergencyFollowUp,
   parsePanicCallback,
@@ -236,6 +237,15 @@ describe("Emergency Copilot v2 follow-up routing", () => {
 
     expect(data).toContain("panic:11");
     expect(parsePanicCallback("panic:11")).toBe(11);
+    expect(data).toContain("panic:more2");
+  });
+
+  it("includes modern scam SOS scenarios in the third panic menu page", () => {
+    const data = callbackData(buildPanicKeyboardPage3("ru"));
+
+    expect(data).toEqual(["panic:12", "panic:13", "panic:14", "panic:15", "panic:back2"]);
+    expect(parsePanicCallback("panic:12")).toBe(12);
+    expect(parsePanicCallback("panic:15")).toBe(15);
   });
 
   it("formats AI voice-clone guidance without bank-first wording", () => {
@@ -256,6 +266,30 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(contacts).toContain("Как проверить голос безопасно");
     expect(contacts).toContain("Не используйте номер");
     expect(trusted).toContain("Голос похож на близкого");
+  });
+
+  it("formats modern scam SOS guidance without generic bank-call fallback", () => {
+    const job = buildPanicScenarioText(12, "ru");
+    const delivery = buildPanicScenarioText(13, "ru");
+    const crypto = buildPanicScenarioText(14, "ru");
+    const grant = buildPanicScenarioText(15, "ru");
+    const jobScript = buildEmergencyFollowUpText("script", 12, "ru");
+    const cryptoContacts = buildEmergencyFollowUpText("contacts", 14, "ru");
+    const grantTrusted = buildEmergencyFollowUpText("trusted_person", 15, "ru");
+
+    expect(job).toContain("НЕ ПЛАТИТЕ ЗА РАБОТУ");
+    expect(job).toContain("юридическое название компании");
+    expect(delivery).toContain("НЕ ОПЛАЧИВАЙТЕ ПО ССЫЛКЕ");
+    expect(delivery).toContain("официальное приложение");
+    expect(crypto).toContain("НЕ ПОДКЛЮЧАЙТЕ WALLET");
+    expect(crypto).toContain("seed-фразу");
+    expect(grant).toContain("НЕ ПЛАТИТЕ");
+    expect(grant).toContain("официальный сайт");
+    expect(jobScript).toContain("Сначала спокойно проверю источник");
+    expect(jobScript).not.toContain("входящему звонку");
+    expect(cryptoContacts).toContain("Крипто/TON");
+    expect(cryptoContacts).toContain("seed-фразу");
+    expect(grantTrusted).toContain("Поставьте паузу");
   });
 
   it("keeps the full checklist behind the explicit full button", () => {

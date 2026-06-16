@@ -48,6 +48,7 @@ import {
   buildPanicScenarioText,
   buildPanicKeyboardPage1,
   buildPanicKeyboardPage2,
+  buildPanicKeyboardPage3,
   buildPanicMenuText,
   asPanicScenarioId,
   buildEmergencyFollowUpKeyboard,
@@ -465,9 +466,49 @@ export async function handleCallback(
     return;
   }
 
+  if (data === "panic:more2") {
+    const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
+    const keyboard = buildPanicKeyboardPage3(lang);
+    if (ctx.messageId) {
+      const editResult = await editMessageText({
+        chatId: ctx.chatId,
+        messageId: ctx.messageId,
+        text: pageText,
+        keyboard,
+      });
+      if (!editResult.ok) {
+        // Graceful degradation: send as new message if edit fails.
+        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+      }
+    } else {
+      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+    }
+    return;
+  }
+
   if (data === "panic:back") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage1(lang);
+    if (ctx.messageId) {
+      const editResult = await editMessageText({
+        chatId: ctx.chatId,
+        messageId: ctx.messageId,
+        text: pageText,
+        keyboard,
+      });
+      if (!editResult.ok) {
+        // Graceful degradation: send as new message if edit fails.
+        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+      }
+    } else {
+      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
+    }
+    return;
+  }
+
+  if (data === "panic:back2") {
+    const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
+    const keyboard = buildPanicKeyboardPage2(lang);
     if (ctx.messageId) {
       const editResult = await editMessageText({
         chatId: ctx.chatId,
