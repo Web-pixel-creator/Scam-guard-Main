@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Telegram visual QA board
+
+- Added `scripts/telegram-bot-qa-visual.ts` and `npm run
+qa:telegram-visual`.
+- The visual board renders `ai_docs/TELEGRAM_BOT_QA_REPORT.md` as
+  Telegram-like message cards under `output/playwright/` for desktop/mobile
+  screenshot inspection.
+- Updated open tasks so future bot copy/button changes include both textual
+  and visual QA review.
+
 ## 2026-06-16 - QR auth and audio-file check polish
 
 - Tightened Telegram image intelligence so QR-login/device-link/2FA screens

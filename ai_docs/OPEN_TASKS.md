@@ -42,7 +42,10 @@
 qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
   current TypeScript formatters, covering main menus, result cards, media
   fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian
-  Angel, Family Shield and report flow. Run it whenever bot copy/buttons change.
+  Angel, Family Shield and report flow. `npm run qa:telegram-visual` renders
+  that report as a Telegram-like HTML review board under `output/playwright/`;
+  use Playwright screenshots to inspect mobile/desktop readability when copy or
+  keyboards change. Run these QA commands whenever bot copy/buttons change.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 
