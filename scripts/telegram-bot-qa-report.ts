@@ -57,6 +57,7 @@ import {
   type GuardianAngelSnapshot,
 } from "@/lib/telegram/guardian-angel";
 import { buildGuardianVoiceOutText, buildPanicVoiceOutText } from "@/lib/telegram/voice-out.server";
+import { buildTrustedAlertText } from "@/lib/telegram/family-shield.server";
 import {
   reportRetryKeyboard,
   reportSkipKeyboard,
@@ -318,7 +319,7 @@ function sections(): Section[] {
     section("Document/APK fallback", bt("document_safety", LANG)),
     section(
       "Image fallback: triage menu",
-      bt("image_ocr_failed", LANG),
+      bt("ocr_failed", LANG),
       buildImageTriageKeyboard(LANG),
     ),
   ];
@@ -395,7 +396,7 @@ function sections(): Section[] {
 
   output.push(
     section("Family Shield: menu", bt("family_menu_text", LANG), [
-      [{ text: bt("family_btn_invite", LANG), callback_data: "family:invite" }],
+      [{ text: bt("family_btn_create_invite", LANG), callback_data: "family:invite" }],
       [{ text: bt("family_btn_notify", LANG), callback_data: "family:notify" }],
     ]),
     section("Family Shield: invite", bt("family_invite_text", LANG), [
@@ -403,8 +404,8 @@ function sections(): Section[] {
       [{ text: bt("family_btn_revoke", LANG), callback_data: "family:revoke" }],
     ]),
     section("Family Shield: self-opened invite", bt("family_accept_self", LANG)),
-    section("Family Shield: trusted alert", bt("family_trusted_alert", LANG, { guardian: "Web" }), [
-      [{ text: bt("family_btn_trusted_opt_out", LANG), callback_data: "family:trusted_opt_out" }],
+    section("Family Shield: trusted alert", buildTrustedAlertText(LANG, "Web"), [
+      [{ text: bt("family_btn_trusted_stop_alerts", LANG), callback_data: "family:trusted_opt_out" }],
     ]),
   );
 
