@@ -368,3 +368,39 @@ describe("livecall:tell_family — routes to Family Shield notify", () => {
     expect(h.sendCalls[0].text).not.toBe(bt("live_call_hangup", "ru"));
   });
 });
+
+describe("Guardian Angel callbacks", () => {
+  it("answers the next-step callback from stored safe high-risk context", async () => {
+    const ctx = makeCtx({
+      session: {
+        telegramUserId: USER_ID,
+        lang: "ru",
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: {
+          guardian: {
+            level: "high_risk",
+            type: "url",
+            reasons: ["asks_for_sms_code", "impersonates_bank"],
+            at: new Date().toISOString(),
+          },
+        },
+        updatedAt: new Date(0).toISOString(),
+      } as Session,
+    });
+
+    await handleCallback("guardian:next", ctx);
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Следующий безопасный шаг");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("guardian:done");
+  });
+
+  it("does not pretend to remember a high-risk context when none is stored", async () => {
+    await handleCallback("guardian:next", makeCtx());
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("не вижу активной опасной проверки");
+    expect(h.sendCalls[0].keyboard).toBeUndefined();
+  });
+});

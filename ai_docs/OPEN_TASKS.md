@@ -52,8 +52,11 @@
       `/panic` now has a third page with `panic:12` through `panic:15`,
       modern-scam first cards, detailed checklists with verified contact paths
       and scenario-specific follow-up copy.
-- [ ] Add Guardian Angel v1 after high-risk results: one safe step at a time,
-      trusted-contact help and optional follow-up, without storing raw evidence.
+- [x] ~~Add Guardian Angel v1 after high-risk results: one safe step at a time,
+      trusted-contact help and optional follow-up, without storing raw evidence.~~
+      Done as immediate post-high-risk guidance: one safe step, done
+      confirmation, safe callback, trusted-contact help and full plan. Timed
+      reminders remain a later scheduler/opt-out task.
 - [ ] Add opt-in Voice-out / TTS v1 for short safety guidance. Never speak SMS
       codes, card numbers, seed phrases or other secrets back to the user.
 - [ ] Add partner allow-listing/logging for `/embed/check` frame origins before

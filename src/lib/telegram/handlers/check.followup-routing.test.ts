@@ -4,6 +4,7 @@ import type { LastCheckSnapshot, Session } from "@/lib/telegram/session.server";
 const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   runCheckCalls: [] as Array<{ input: string; type?: string }>,
+  saveSessionCalls: [] as Array<{ userId: number; patch: unknown }>,
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
@@ -36,7 +37,10 @@ vi.mock("@/lib/telegram/api.server", () => ({
 }));
 
 vi.mock("@/lib/telegram/session.server", () => ({
-  saveSession: () => Promise.resolve({ ok: true }),
+  saveSession: (userId: number, patch: unknown) => {
+    hoisted.saveSessionCalls.push({ userId, patch });
+    return Promise.resolve({ ok: true });
+  },
 }));
 
 vi.mock("@/lib/telegram/public-post.server", () => ({
@@ -79,6 +83,7 @@ describe("handleCheck follow-up routing", () => {
   beforeEach(() => {
     hoisted.sentMessages.length = 0;
     hoisted.runCheckCalls.length = 0;
+    hoisted.saveSessionCalls.length = 0;
   });
 
   it("answers confidence follow-ups from the last result instead of running a new check", async () => {
@@ -130,6 +135,30 @@ describe("handleCheck follow-up routing", () => {
 
     expect(hoisted.runCheckCalls).toHaveLength(1);
     expect(hoisted.runCheckCalls[0].input).toContain("https://kapitalbank.uz.evil.com/login");
+  });
+
+  it("adds Guardian Angel guidance and stores only safe metadata after high-risk checks", async () => {
+    await handleCheck("https://kapitalbank.uz.evil.com/login", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.sentMessages).toHaveLength(2);
+    expect(hoisted.sentMessages[1].text).toContain("Я рядом");
+    expect(hoisted.sentMessages[1].text).toContain("один безопасный шаг");
+    const callbacks = (hoisted.sentMessages[1].keyboard as { callback_data?: string }[][])
+      .flat()
+      .map((button) => button.callback_data);
+    expect(callbacks).toContain("guardian:next");
+    expect(callbacks).toContain("family:notify");
+
+    expect(hoisted.saveSessionCalls).toHaveLength(1);
+    const saved = JSON.stringify(hoisted.saveSessionCalls[0].patch);
+    expect(saved).toContain('"guardian"');
+    expect(saved).toContain('"high_risk"');
+    expect(saved).not.toContain("kapitalbank.uz.evil.com");
+    expect(saved).not.toContain("Fresh risk check");
   });
 
   it("answers orphan helper phrases without a fake insufficient-data card", async () => {

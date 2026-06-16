@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-16 - Guardian Angel v1
+
+- Added `.kiro/specs/telegram-guardian-angel-v1/`.
+- High-risk Telegram check results now send a short companion message after
+  the verdict: one safe step, done confirmation, safe callback, trusted-contact
+  help, full plan and new-check actions.
+- Added `src/lib/telegram/guardian-angel.ts` with privacy-safe snapshots,
+  tri-lingual guidance, callback parsing and short follow-up routing.
+- `telegram_sessions.scenario_data.guardian` stores only risk level, input
+  type, reason codes and timestamp; raw messages, URLs, phone numbers, OCR,
+  screenshots, codes and card data remain forbidden.
+- Added regressions for snapshot privacy, high-risk companion messages and
+  `guardian:*` callbacks.
+- Roadmap now moves the next implementation slot to opt-in Voice-out/TTS v1.
+
 ## 2026-06-16 - Telegram Modern SOS Scenarios v1
 
 - Added `.kiro/specs/telegram-modern-sos-scenarios-v1/`.

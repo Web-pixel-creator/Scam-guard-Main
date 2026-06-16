@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Lang } from "@/lib/i18n";
 import type { InputType } from "@/lib/risk/detect";
+import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
 import type { RiskLevel } from "@/lib/risk/rules";
 
 export type Scenario =
@@ -39,6 +40,12 @@ export interface ReportDraft {
    * phone numbers, URLs, card data, codes or image bytes.
    */
   lastCheck?: LastCheckSnapshot;
+  /**
+   * Guardian Angel v1 context for post-high-risk guidance.
+   * Stores only summary metadata: no raw input, OCR text, URLs, phone numbers,
+   * screenshots, codes, card data or files.
+   */
+  guardian?: GuardianAngelSnapshot;
 }
 
 export type LastCheckContext =

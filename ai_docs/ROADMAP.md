@@ -94,17 +94,17 @@ Already shipped:
   job/easy money, delivery/top-up, crypto/TON/wallet and government
   grant/benefit pressure, with `panic:12..15`, compact first cards, detailed
   checklists and scenario-specific follow-ups.
+- Guardian Angel v1: high-risk Telegram checks now continue with one safe step
+  at a time, safe-callback guidance, trusted-contact help, a done confirmation
+  and a concise full plan, while storing only safe summary metadata.
 
 Immediate implementation order after the 2026-06-16 product feedback:
 
-1. **Guardian Angel v1.** After high-risk results, the bot should not end the
-   conversation; it should guide the user through one safe step at a time,
-   offer trusted-contact help, and optionally follow up later.
-2. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
+1. **Voice-out / TTS v1.** Let elderly or stressed users hear short safety
    guidance, not only read it. This must be opt-in and never speak secrets back.
-3. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
+2. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
    line-type/VoIP providers stay optional and paid.
-4. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
+3. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
    website features should be public living-experience stories, a scam-call
    trainer, and later a scam map/index, all using aggregated or moderated data.
 
@@ -186,7 +186,9 @@ Disallowed claims:
 9. AI voice-clone SOS scenario - shipped.
 10. Modern SOS Scenarios v1: fake job/easy money, delivery/top-up,
     crypto/TON/wallet and government grant/benefit panic scenarios - shipped.
-11. Guardian Angel v1: step-by-step post-high-risk guidance and optional follow-up.
+11. Guardian Angel v1: step-by-step post-high-risk guidance, done
+    confirmation, safe callback and trusted-contact help - shipped as immediate
+    v1; timed reminders remain later.
 12. Voice-out / TTS v1 for short opt-in safety answers.
 
 ## Stage 3 - Website Trust And Distribution

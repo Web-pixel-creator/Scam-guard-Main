@@ -346,3 +346,14 @@ evidence to send. They must not claim hidden SCAM labels, account age, Telegram
 complaint history, spam history, country/DC or user creation dates. A missing
 or invisible username is not proof of scam; moderated reputation and dangerous
 requested actions are the evidence that can raise risk.
+
+## D-037 - Guardian Angel is post-verdict guidance, not new evidence
+
+Guardian Angel may continue a Telegram high-risk check with one safe step,
+done confirmation, safe callback, trusted-contact help and a concise full plan.
+It must not change risk scoring or invent additional evidence. Session memory
+for this flow may store only risk level, input type, reason codes and timestamp;
+raw user text, URLs, phone numbers, OCR text, screenshots, files, codes, card
+data and passwords remain forbidden. Timed reminders such as "are you okay in
+2 hours?" require a separate scheduler, opt-out and retention design, so they
+are intentionally left out of v1.

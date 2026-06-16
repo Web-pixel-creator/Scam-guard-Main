@@ -311,6 +311,18 @@ function callbackData(keyboard: unknown): string[] {
     .filter((d): d is string => typeof d === "string");
 }
 
+function expectHighRiskResultWithGuardian(chatId: number) {
+  expect(h.sendCalls).toHaveLength(2);
+  const [result, guardian] = h.sendCalls;
+  expect(result.chatId).toBe(chatId);
+  expect(guardian.chatId).toBe(chatId);
+  expect(result.text).toContain(RISK_EMOJI.high_risk);
+  expect(guardian.text).toContain("Я рядом");
+  expect(callbackData(guardian.keyboard)).toContain("guardian:next");
+  expect(callbackData(guardian.keyboard)).toContain("guardian:done");
+  return result;
+}
+
 function loadLatestSessionUpsert(userId: number): void {
   const upsert = [...h.upserts].reverse().find((entry) => entry.table === "telegram_sessions")
     ?.payload as
@@ -428,10 +440,7 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
 
     expect(response.status).toBe(200);
 
-    // Exactly one outgoing message, addressed to the update's chat.
-    expect(h.sendCalls).toHaveLength(1);
-    const sent = h.sendCalls[0];
-    expect(sent.chatId).toBe(5001);
+    const sent = expectHighRiskResultWithGuardian(5001);
 
     // Correct risk level surfaced by the REAL formatter: high_risk emoji + the
     // localized "Высокий риск" label — proof the rules-based level reached format.
@@ -488,15 +497,14 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
     const response = await handleTelegramWebhook(webhookRequest(update));
 
     expect(response.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(5002);
-    expect(h.sendCalls[0].text).toContain("Источник");
-    expect(h.sendCalls[0].text).toContain("LUXEBET Promo");
-    expect(h.sendCalls[0].text).toContain("Схема");
-    expect(h.sendCalls[0].text).toContain("Цель");
-    expect(h.sendCalls[0].text).toContain("Шаг");
-    expect(h.sendCalls[0].text).toContain("скрытые метки");
-    expect(h.sendCalls[0].text).toContain("казино");
+    const sent = expectHighRiskResultWithGuardian(5002);
+    expect(sent.text).toContain("Источник");
+    expect(sent.text).toContain("LUXEBET Promo");
+    expect(sent.text).toContain("Схема");
+    expect(sent.text).toContain("Цель");
+    expect(sent.text).toContain("Шаг");
+    expect(sent.text).toContain("скрытые метки");
+    expect(sent.text).toContain("казино");
 
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).toContain("crypto_casino_bonus_funnel");
@@ -1087,8 +1095,8 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).not.toContain("Следующий безопасный шаг");
+    const sent = expectHighRiskResultWithGuardian(5123);
+    expect(sent.text).not.toContain("Следующий безопасный шаг");
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
   });
 
@@ -1151,10 +1159,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       key: "tg:1003",
     });
 
-    // One result message went out (same format as the text path).
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(5003);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    // Result + Guardian Angel companion went out.
+    expectHighRiskResultWithGuardian(5003);
 
     // ── The image is NOT saved anywhere ───────────────────────────────────
     // Session metadata may be upserted, but the image never goes to storage or
@@ -1194,9 +1200,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       lang: "ru",
       key: "tg:1009",
     });
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(5009);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expectHighRiskResultWithGuardian(5009);
 
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).not.toContain("data:image");
@@ -1224,8 +1228,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.getFileCalls).toHaveLength(0);
     expect(h.downloadCalls).toHaveLength(0);
     expect(h.ocrCalls).toHaveLength(0);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expectHighRiskResultWithGuardian(5004);
     expect(JSON.stringify(h.inserts)).toContain("suspicious_invite_link");
     expect(JSON.stringify(h.inserts)).toContain("gambling_prediction_promo");
   });
@@ -1244,8 +1247,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(response.status).toBe(200);
     expect(h.getFileCalls).toHaveLength(0);
     expect(h.ocrCalls).toHaveLength(0);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expectHighRiskResultWithGuardian(5005);
     expect(JSON.stringify(h.inserts)).toContain("suspicious_invite_link");
     expect(JSON.stringify(h.inserts)).toContain("giveaway_engagement_bait");
   });
@@ -1548,7 +1550,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(followUp.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain("Следующий безопасный шаг");
-    expect(h.sendCalls[0].text).toContain("Не сообщайте SMS");
+    expect(h.sendCalls[0].text).toContain("QR");
+    expect(h.sendCalls[0].text).toContain("код");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
@@ -1595,8 +1598,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     );
 
     expect(payload.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).not.toContain("Следующий безопасный шаг");
+    const sent = expectHighRiskResultWithGuardian(5018);
+    expect(sent.text).not.toContain("Следующий безопасный шаг");
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
   });
 
@@ -1615,10 +1618,9 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     );
 
     expect(response.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
-    expect(h.sendCalls[0].text).toContain("Капча");
-    expect(h.sendCalls[0].text).not.toContain("не смог надёжно прочитать");
+    const sent = expectHighRiskResultWithGuardian(5019);
+    expect(sent.text).toContain("Капча");
+    expect(sent.text).not.toContain("не смог надёжно прочитать");
 
     const persisted = JSON.stringify(h.inserts);
     expect(persisted).toContain("giveaway_engagement_bait");
@@ -1640,9 +1642,8 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     );
 
     expect(response.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
-    expect(h.sendCalls[0].text).not.toContain("не смог надёжно прочитать");
+    const sent = expectHighRiskResultWithGuardian(5020);
+    expect(sent.text).not.toContain("не смог надёжно прочитать");
     expect(h.ocrCalls).toHaveLength(1);
 
     const persisted = JSON.stringify(h.inserts);
@@ -1666,8 +1667,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     );
 
     expect(response.status).toBe(200);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
+    expectHighRiskResultWithGuardian(5012);
     expect(JSON.stringify(h.inserts)).toContain("asks_to_scan_qr");
   });
 });

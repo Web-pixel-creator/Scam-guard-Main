@@ -256,12 +256,17 @@ describe("handlePhoneFromContact — Property 9: contact card ≡ phone-text che
 
           // …and it actually reaches the reply unchanged: the outgoing message is
           // exactly formatCheckResult() of that same verdict.
-          expect(hoisted.sentMessages).toHaveLength(1);
+          expect(hoisted.sentMessages).toHaveLength(direct.level === "high_risk" ? 2 : 1);
           const sent = hoisted.sentMessages[0];
           const expectedFormatted = formatCheckResult(direct as unknown as RunCheckResult, lang);
           expect(sent.chatId).toBe(chatId);
           expect(sent.text).toBe(expectedFormatted.text);
           expect(sent.keyboard).toEqual(expectedFormatted.keyboard);
+          if (direct.level === "high_risk") {
+            expect(hoisted.sentMessages[1].chatId).toBe(chatId);
+            expect(hoisted.sentMessages[1].text.length).toBeGreaterThan(20);
+            expect(JSON.stringify(hoisted.sentMessages[1].keyboard)).toContain("guardian:next");
+          }
         },
       ),
       { numRuns: 100 },

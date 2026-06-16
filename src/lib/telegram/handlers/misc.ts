@@ -82,6 +82,12 @@ import {
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import {
+  buildGuardianAngelKeyboard,
+  buildGuardianAngelNoContextText,
+  buildGuardianAngelText,
+  parseGuardianAngelCallback,
+} from "@/lib/telegram/guardian-angel";
+import {
   buildFamilyAlreadyLinkedKeyboard,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
@@ -311,6 +317,21 @@ export async function handleCallback(
 
   const lang = ctx.session.lang;
   if (await handleFamilyCallback(data, ctx)) return;
+
+  const guardianAction = parseGuardianAngelCallback(data);
+  if (guardianAction !== null) {
+    const guardian = ctx.session.scenarioData.guardian;
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        guardian
+          ? buildGuardianAngelText(guardianAction, guardian, lang)
+          : buildGuardianAngelNoContextText(lang),
+      ),
+      keyboard: guardian ? buildGuardianAngelKeyboard(lang) : undefined,
+    });
+    return;
+  }
 
   // 1) Language selection — "lang:ru" | "lang:uz" | "lang:en".
   const selected = parseLangCallback(data);

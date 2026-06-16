@@ -527,10 +527,12 @@ describe("AI degradation — end-to-end через handleCheck (R13.1, R13.2, R1
 
     await handleCheck(HIGH_RISK_INPUT, ctx);
 
-    // Ровно одно отправленное сообщение с результатом проверки.
-    expect(hoisted.sendCalls).toHaveLength(1);
+    // High-risk now sends the result plus a short Guardian Angel companion.
+    expect(hoisted.sendCalls).toHaveLength(2);
     const sent = hoisted.sendCalls[0];
     expect(sent.chatId).toBe(ctx.chatId);
+    expect(hoisted.sendCalls[1].chatId).toBe(ctx.chatId);
+    expect(hoisted.sendCalls[1].text).toContain("Я рядом");
 
     // Уровень + verdict присутствуют, блок AI-объяснения отсутствует.
     const levelLabel = t("risk_high", "ru");

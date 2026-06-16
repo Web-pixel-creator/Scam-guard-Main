@@ -56,6 +56,13 @@ import {
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import {
+  buildGuardianAngelIntro,
+  buildGuardianAngelKeyboard,
+  buildGuardianAngelSnapshot,
+  buildGuardianAngelText,
+  classifyGuardianAngelFollowUp,
+} from "@/lib/telegram/guardian-angel";
+import {
   buildImageCheckInput,
   fallbackImageIntelligence,
   buildImageUserExplanation,
@@ -229,21 +236,35 @@ function estimateBase64DataUrlBytes(dataUrl: string): number {
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
+  const lastCheck = buildLastCheckSnapshot(result);
+  const guardian = buildGuardianAngelSnapshot(result);
+  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+
   await sendMessage({ chatId: ctx.chatId, text: formatted.text, keyboard: formatted.keyboard });
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {
-      ...ctx.session.scenarioData,
-      lastCheck: buildLastCheckSnapshot(result),
+      ...previousScenarioData,
+      lastCheck,
+      ...(guardian ? { guardian } : {}),
     },
   });
+
+  if (guardian) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildGuardianAngelIntro(guardian, ctx.session.lang)),
+      keyboard: buildGuardianAngelKeyboard(ctx.session.lang),
+    });
+  }
 }
 
 async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Promise<void> {
   const reply = nextOcrFallbackReply(ctx.userId, mediaGroupId);
   if (reply === "suppress") return;
 
+  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
   await replyText(
     ctx.chatId,
     bt(reply === "short" ? "ocr_failed_repeat" : "ocr_failed", ctx.session.lang),
@@ -253,7 +274,7 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {
-      ...ctx.session.scenarioData,
+      ...previousScenarioData,
       lastCheck: buildImageUnreadableSnapshot(),
     },
   });
@@ -329,6 +350,18 @@ export async function handleCheck(
         buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
       ),
       keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId),
+    });
+    return;
+  }
+
+  const guardianFollowUp = classifyGuardianAngelFollowUp(trimmed, ctx.session.scenarioData);
+  if (guardianFollowUp !== null && ctx.session.scenarioData.guardian) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
+      ),
+      keyboard: buildGuardianAngelKeyboard(lang),
     });
     return;
   }

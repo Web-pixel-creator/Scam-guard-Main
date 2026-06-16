@@ -86,7 +86,12 @@ Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, s
 
 RLS: no public access. Service-role only. Used so bot state survives process restarts and multi-instance deploys.
 
-`scenario_data` is also used for Emergency Copilot context after `/panic`: only `lastPanicId` and `lastPanicAt` are stored. Raw URLs, phone numbers, OTPs, card data, screenshots and user evidence must not be stored there by the panic flow.
+`scenario_data` is also used for Emergency Copilot and Guardian Angel context:
+`lastPanicId`, `lastPanicAt`, `lastCheck` summary metadata and `guardian`
+high-risk summary metadata may be stored. Guardian Angel stores only risk
+level, input type, reason codes and timestamp. Raw URLs, phone numbers, OTPs,
+card data, screenshots, OCR text, files and user evidence must not be stored
+there by panic, follow-up or guardian flows.
 Rows idle for more than 30 days are eligible for retention cleanup.
 
 Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
