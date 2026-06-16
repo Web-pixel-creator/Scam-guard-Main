@@ -338,6 +338,10 @@ describe("formatCheckResult — brief/explanation section (UX v2)", () => {
 
     expect(text).toContain(escapeMarkdownV2("QR прочитан: chenson.uz/loyalty"));
     expect(text).toContain(escapeMarkdownV2("t.me/chensonuz_bot"));
+    expect(text).toContain(escapeMarkdownV2(bt("risk_qr_info", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("verdict_qr_info", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("risk_unknown", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("verdict_unknown", "ru")));
     expect(text).not.toContain(escapeMarkdownV2("Я не буду утверждать, что прочитал сам QR"));
   });
 

@@ -390,6 +390,13 @@ function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {
 function renderRiskHeader(result: RunCheckResult, lang: Lang): string {
   const parts: string[] = [];
 
+  if (isDecodedInformationalQr(result)) {
+    parts.push(
+      `🔎 ${bold(escapeMarkdownV2(bt("risk_qr_info", lang)))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`,
+    );
+    return parts.join("\n\n");
+  }
+
   const levelLabel = t(RISK_LABEL_KEY[result.level], lang);
   parts.push(
     `${RISK_EMOJI[result.level]} ${bold(escapeMarkdownV2(levelLabel))}\n${escapeMarkdownV2("━━━━━━━━━━━━━━━━━━━━")}`,
@@ -425,6 +432,10 @@ function renderRiskHeader(result: RunCheckResult, lang: Lang): string {
  * Renders the verdict line from bot_dict.
  */
 function renderVerdict(result: RunCheckResult, lang: Lang): string {
+  if (isDecodedInformationalQr(result)) {
+    return escapeMarkdownV2(bt("verdict_qr_info", lang));
+  }
+
   const verdictText = bt(VERDICT_KEY[result.level], lang);
   return escapeMarkdownV2(verdictText);
 }
@@ -475,6 +486,14 @@ function isForwardSourceBrief(explanation: string | null): explanation is string
 function isDecodedQrEvidenceBrief(explanation: string | null): explanation is string {
   if (!explanation) return false;
   return /QR (?:прочитан|decoded|o['’]qildi)/iu.test(explanation);
+}
+
+function isDecodedInformationalQr(result: RunCheckResult): boolean {
+  return (
+    result.level === "unknown" &&
+    detectNeutralContext(result) === "qr_menu" &&
+    isDecodedQrEvidenceBrief(result.explanation)
+  );
 }
 
 /**

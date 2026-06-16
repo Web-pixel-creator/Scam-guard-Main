@@ -47,7 +47,6 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       "weird_domain",
       "malicious_file_bait",
       "asks_to_share_screen",
-      "asks_to_scan_qr",
     ]),
     advice: {
       ru: "Не переходите по ссылке и не устанавливайте APK",
@@ -183,9 +182,18 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not enter card details or a Telegram code after following an invite link",
     },
   },
+  // QR login/payment traps -> do not scan codes sent by another person.
+  {
+    reasons: new Set<ReasonCode>(["asks_to_scan_qr"]),
+    advice: {
+      ru: "Не сканируйте QR для входа, подключения устройства или оплаты, если его прислал другой человек",
+      uz: "Boshqa odam yuborgan QR orqali login, qurilma ulash yoki to'lov qilmang",
+      en: "Do not scan QR codes for login, device linking, or payment if someone else sent them",
+    },
+  },
 ];
 
-const ADVICE_PRIORITY = [5, 6, 7, 8, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [14, 5, 6, 7, 8, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic
