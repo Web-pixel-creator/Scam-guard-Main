@@ -58,6 +58,10 @@ export interface RunCheckParams {
   /** Set false for non-final previews such as Telegram inline typing. */
   persist?: boolean;
   skipAi?: boolean; // принудительно без AI (например быстрый путь)
+  /** Optional soft budget for non-critical AI explanations. Defaults preserve web/core behaviour. */
+  aiTimeoutMs?: number;
+  /** Optional retry budget for non-critical AI explanations. Defaults preserve web/core behaviour. */
+  aiMaxAttempts?: number;
   /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
   safeIfNoReasons?: boolean;
 }
@@ -147,7 +151,17 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
  *   scoreFromCodes → aiExplain(optional) → insert into checks.
  */
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> {
-  const { input, type, lang, rateLimitKey, skipAi, persist, safeIfNoReasons } = params;
+  const {
+    input,
+    type,
+    lang,
+    rateLimitKey,
+    skipAi,
+    persist,
+    safeIfNoReasons,
+    aiTimeoutMs,
+    aiMaxAttempts,
+  } = params;
 
   // ---- Rate limit: 10 checks / minute / key (shared in production) ----
   const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
@@ -245,6 +259,8 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         level: scoredLevel,
         redacted: display,
         reasons: reasonList,
+        timeoutMs: aiTimeoutMs,
+        maxAttempts: aiMaxAttempts,
       });
 
   // ── Brand impersonation explanation (formatter integration) ─────────────
@@ -603,6 +619,11 @@ const AI_TIMEOUT_MS = 10_000; // 10 seconds per request
 const AI_MAX_ATTEMPTS = 3; // initial attempt + 2 retries
 const AI_RETRY_BACKOFF_MS = [50, 150] as const;
 
+interface ChatCompletionOptions {
+  timeoutMs?: number;
+  maxAttempts?: number;
+}
+
 let aiConsecutiveFailures = 0;
 let aiCircuitOpenUntil = 0;
 
@@ -647,6 +668,16 @@ function retryDelay(attemptIndex: number): number {
   return AI_RETRY_BACKOFF_MS[attemptIndex] ?? AI_RETRY_BACKOFF_MS[AI_RETRY_BACKOFF_MS.length - 1];
 }
 
+function normalizedAiTimeoutMs(timeoutMs: number | undefined): number {
+  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs)) return AI_TIMEOUT_MS;
+  return Math.max(500, Math.min(30_000, Math.floor(timeoutMs)));
+}
+
+function normalizedAiMaxAttempts(maxAttempts: number | undefined): number {
+  if (typeof maxAttempts !== "number" || !Number.isFinite(maxAttempts)) return AI_MAX_ATTEMPTS;
+  return Math.max(1, Math.min(5, Math.floor(maxAttempts)));
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -668,9 +699,11 @@ async function callChatCompletionOnce(
   messages: ChatMessage[],
   label: string,
   attempt: number,
+  maxAttempts: number,
+  timeoutMs: number,
 ): Promise<{ kind: "success"; text: string | null } | { kind: "failure"; transient: boolean }> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
@@ -684,7 +717,7 @@ async function callChatCompletionOnce(
       const transient = isTransientAiStatus(res.status, body);
       const quotaExhausted = isAiQuotaExhausted(res.status, body);
       console.error(
-        `AI ${label} error ${res.status} (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient}, quota_exhausted=${quotaExhausted})`,
+        `AI ${label} error ${res.status} (attempt ${attempt}/${maxAttempts}, transient=${transient}, quota_exhausted=${quotaExhausted})`,
       );
       return { kind: "failure", transient };
     }
@@ -695,7 +728,7 @@ async function callChatCompletionOnce(
   } catch (e) {
     const transient = !isAbortError(e);
     console.error(
-      `AI ${label} failed (attempt ${attempt}/${AI_MAX_ATTEMPTS}, transient=${transient}): ${
+      `AI ${label} failed (attempt ${attempt}/${maxAttempts}, transient=${transient}): ${
         e instanceof Error ? e.message : "unknown"
       }`,
     );
@@ -709,19 +742,33 @@ async function chatCompletionWithRetry(
   cfg: AiConfig,
   messages: ChatMessage[],
   label: string,
+  options: ChatCompletionOptions = {},
 ): Promise<{ text: string | null; transientFailure: boolean }> {
-  for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
+  const timeoutMs = normalizedAiTimeoutMs(options.timeoutMs);
+  const maxAttempts = normalizedAiMaxAttempts(options.maxAttempts);
+  for (let i = 0; i < maxAttempts; i++) {
     const attempt = i + 1;
-    const result = await callChatCompletionOnce(cfg, messages, label, attempt);
+    const result = await callChatCompletionOnce(
+      cfg,
+      messages,
+      label,
+      attempt,
+      maxAttempts,
+      timeoutMs,
+    );
     if (result.kind === "success") return { text: result.text, transientFailure: false };
     if (!result.transient) return { text: null, transientFailure: false };
-    if (attempt >= AI_MAX_ATTEMPTS) return { text: null, transientFailure: true };
+    if (attempt >= maxAttempts) return { text: null, transientFailure: true };
     await delay(retryDelay(i));
   }
   return { text: null, transientFailure: true };
 }
 
-async function chatCompletion(messages: ChatMessage[], label: string): Promise<string | null> {
+async function chatCompletion(
+  messages: ChatMessage[],
+  label: string,
+  options: ChatCompletionOptions = {},
+): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
   const fallback = getFallbackAiConfig();
@@ -729,19 +776,29 @@ async function chatCompletion(messages: ChatMessage[], label: string): Promise<s
   if (isAiCircuitOpen()) {
     // Primary is broken — try fallback provider if configured.
     if (fallback) {
-      const fallbackResult = await chatCompletionWithRetry(fallback, messages, label + "/fallback");
+      const fallbackResult = await chatCompletionWithRetry(
+        fallback,
+        messages,
+        label + "/fallback",
+        options,
+      );
       return fallbackResult.text;
     }
     return null;
   }
-  const result = await chatCompletionWithRetry(cfg, messages, label);
+  const result = await chatCompletionWithRetry(cfg, messages, label, options);
   if (result.text !== null) {
     recordAiSuccess();
     return result.text;
   }
 
   if (fallback) {
-    const fallbackResult = await chatCompletionWithRetry(fallback, messages, label + "/fallback");
+    const fallbackResult = await chatCompletionWithRetry(
+      fallback,
+      messages,
+      label + "/fallback",
+      options,
+    );
     if (fallbackResult.text !== null) {
       recordAiSuccess();
       return fallbackResult.text;
@@ -758,6 +815,8 @@ async function aiExplain(opts: {
   level: string;
   redacted: string;
   reasons: string[];
+  timeoutMs?: number;
+  maxAttempts?: number;
 }): Promise<string | null> {
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
   const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
@@ -768,6 +827,7 @@ async function aiExplain(opts: {
       { role: "user", content: user },
     ],
     "explain",
+    { timeoutMs: opts.timeoutMs, maxAttempts: opts.maxAttempts },
   );
   return sanitizeAiExplanation(explanation);
 }

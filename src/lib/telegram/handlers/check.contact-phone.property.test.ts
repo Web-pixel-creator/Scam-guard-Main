@@ -194,7 +194,16 @@ function verdict(r: { level: string; score: number; reasons: string[] }) {
   return { level: r.level, score: r.score, reasons: r.reasons };
 }
 
-const ALLOWED_PARAM_KEYS = ["input", "type", "lang", "rateLimitKey", "channel", "skipAi"];
+const ALLOWED_PARAM_KEYS = [
+  "input",
+  "type",
+  "lang",
+  "rateLimitKey",
+  "channel",
+  "skipAi",
+  "aiTimeoutMs",
+  "aiMaxAttempts",
+];
 
 beforeEach(() => {
   hoisted.runCheckCalls.length = 0;

@@ -100,12 +100,36 @@ const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
+const TELEGRAM_AI_EXPLANATION_TIMEOUT_MS = readBoundedIntEnv(
+  "TELEGRAM_AI_EXPLANATION_TIMEOUT_MS",
+  2500,
+  500,
+  10_000,
+);
+const TELEGRAM_AI_EXPLANATION_MAX_ATTEMPTS = readBoundedIntEnv(
+  "TELEGRAM_AI_EXPLANATION_MAX_ATTEMPTS",
+  1,
+  1,
+  3,
+);
+const TELEGRAM_AI_EXPLANATION_OPTIONS = {
+  aiTimeoutMs: TELEGRAM_AI_EXPLANATION_TIMEOUT_MS,
+  aiMaxAttempts: TELEGRAM_AI_EXPLANATION_MAX_ATTEMPTS,
+} as const;
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
 const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
+
+function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, value));
+}
 
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
@@ -257,10 +281,7 @@ function buildVoiceTranscriptNote(
   return `🎧 Я распознал голос:\n«${preview}»`;
 }
 
-async function sendVoiceTranscriptNote(
-  ctx: HandlerCtx,
-  transcript: string,
-): Promise<void> {
+async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Promise<void> {
   const note = buildVoiceTranscriptNote(transcript, ctx.session.lang);
   if (!note) return;
   await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(note) });
@@ -464,6 +485,7 @@ export async function handleCheck(
         lang,
         rateLimitKey,
         channel: CHANNEL,
+        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       }),
     );
     const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
@@ -580,6 +602,7 @@ export async function handleVoice(
         lang,
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
+        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       });
       await sendCheckResult(ctx, result);
       return;
@@ -621,6 +644,7 @@ export async function handleVoice(
         lang,
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
+        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       });
       return { kind: "ok" as const, result };
     });
@@ -667,6 +691,7 @@ export async function handlePhoneFromContact(phone: string, ctx: HandlerCtx): Pr
         lang,
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
+        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       }),
     );
     await sendCheckResult(ctx, result);
