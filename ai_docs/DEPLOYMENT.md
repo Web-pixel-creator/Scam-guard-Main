@@ -139,6 +139,13 @@ After DB/RLS migrations, run:
 railway run npm run prod:security-smoke
 ```
 
+After adding or rotating `OPENAI_TTS_API_KEY`, verify the Voice-out provider
+without printing secrets:
+
+```bash
+railway run npm run tts:smoke
+```
+
 Retention cleanup runs through Supabase/Postgres Cron job
 `ishonch_prune_app_retention_daily` at `17 20 * * *` (daily 20:17 UTC). The job
 executes `select private.prune_app_retention();` and deletes only rows eligible

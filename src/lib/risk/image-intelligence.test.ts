@@ -99,6 +99,25 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("high_risk");
   });
 
+  it("classifies bank and Yandex QR login screens as account-access QR", () => {
+    const bankLogin = fallbackImageIntelligence(
+      "Вход по QR. Откройте камеру на смартфоне, где установлено приложение Альфа-Бизнес, и отсканируйте QR-код.",
+    );
+    const yandexLogin = fallbackImageIntelligence(
+      "Обычная камера не подойдет, скачайте и откройте мобильное приложение Яндекса. Сканировать код через приложение Яндекса. Войти через Яндекс.",
+    );
+
+    for (const evidence of [bankLogin, yandexLogin]) {
+      expect(evidence.visualCategory).toBe("qr_login_or_payment");
+      expect(evidence.qr.purpose).toBe("login");
+      expect(evidence.riskHints).toContain("qr_login");
+
+      const { reasons, score } = scoreImageEvidence(evidence);
+      expect(reasons).toContain("asks_to_scan_qr");
+      expect(score.level).toBe("high_risk");
+    }
+  });
+
   it("keeps QR payment evidence dangerous", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Для брони отсканируйте QR-код и внесите предоплату",
@@ -228,6 +247,41 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).toContain("Telegram login QR (token hidden)");
     expect(explanation).not.toContain("SECRET_TOKEN_SHOULD_NOT_LEAK");
     expect(explanation).toContain("Не сканируйте QR");
+
+    const input = buildImageCheckInput(merged);
+    expect(input).toContain("tg://login?token=[hidden]");
+    expect(input).not.toContain("SECRET_TOKEN_SHOULD_NOT_LEAK");
+    expect(merged.qr.visibleUrl).toBe("tg://login?token=[hidden]");
+  });
+
+  it("uses decoded QR protocols to classify login, authenticator and payment QR values", () => {
+    const login = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+      urls: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+    });
+    const authenticator = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["otpauth://totp/GitHub:user@example.com?secret=AUTH_SECRET_SHOULD_NOT_LEAK"],
+      urls: [],
+    });
+    const payment = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["https://payme.uz/checkout/invoice?id=123456"],
+      urls: ["https://payme.uz/checkout/invoice?id=123456"],
+    });
+
+    for (const evidence of [login, authenticator, payment]) {
+      expect(evidence.visualCategory).toBe("qr_login_or_payment");
+      expect(["login", "payment"]).toContain(evidence.qr.purpose);
+
+      const { reasons, score } = scoreImageEvidence(evidence);
+      expect(reasons).toContain("asks_to_scan_qr");
+      expect(score.level).toBe("high_risk");
+    }
+
+    expect(login.riskHints).toContain("qr_login");
+    expect(authenticator.riskHints).toContain("qr_login");
+    expect(payment.riskHints).toContain("qr_payment");
+    expect(buildImageCheckInput(authenticator)).not.toContain("AUTH_SECRET_SHOULD_NOT_LEAK");
+    expect(buildImageCheckInput(authenticator)).toContain("secret=[hidden]");
   });
 
   it("builds a calm user explanation for benign QR menu images", () => {

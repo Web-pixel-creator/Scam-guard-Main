@@ -22,6 +22,13 @@ export type ImageVisualCategory =
 
 export type ImageConfidence = "low" | "medium" | "high";
 export type ImageQrPurpose = "menu" | "info" | "login" | "payment" | "unknown";
+type DecodedQrKind =
+  | "telegram_login"
+  | "authenticator"
+  | "payment"
+  | "wallet_deeplink"
+  | "plain_url"
+  | "unknown";
 
 export type ImageRiskHint =
   | "otp_or_secret"
@@ -107,7 +114,7 @@ const APK_RE =
 const PAYMENT_RE =
   /(предоплат|оплатите|оплата|переведите|перевод|to['’]?lov|pul o['’]?tkaz|payment|transfer|deposit|fee|комисс|карта|karta|uzcard|humo)/i;
 const QR_LOGIN_RE =
-  /(вход\s+по\s+qr|быстрый\s+вход\s+по\s+qr|qr.{0,80}(войти|вход|авториз|аккаунт|подтверд|вериф|login|sign\s?in|account|verify|confirm|auth(?:enticat(?:e|ion|or))?|2fa|mfa|device|устройств|подключ|сесс|tasdiq|kiring|hisob)|(?:войти|вход|login|sign\s?in|confirm|verify|подтверд|авториз|подключ|устройств|направьте\s+камер).{0,80}qr|двухфакторн.{0,100}qr|authentication\s+app.{0,100}qr|(?:authentication|authenticator|2fa|mfa|sign\s?in|login|device).{0,100}scan.{0,40}qr|подключить\s+устройство|настройки\s*>\s*устройства\s*>\s*подключить\s*устройство)/i;
+  /(вход\s+по\s+qr|быстрый\s+вход\s+по\s+qr|qr.{0,80}(войти|вход|авториз|аккаунт|подтверд|вериф|login|sign\s?in|account|verify|confirm|auth(?:enticat(?:e|ion|or))?|2fa|mfa|device|устройств|подключ|сесс|tasdiq|kiring|hisob)|(?:войти|вход|login|sign\s?in|confirm|verify|подтверд|авториз|подключ|устройств|направьте\s+камер|сканировать\s+код).{0,80}qr|двухфакторн.{0,100}qr|authentication\s+app.{0,100}qr|(?:authentication|authenticator|2fa|mfa|sign\s?in|login|device).{0,100}scan.{0,40}qr|подключить\s+устройство|настройки\s*>\s*устройства\s*>\s*подключить\s*устройство|альфа[-\s]?бизнес|alfa[-\s]?business|войти\s+через\s+яндекс|яндекс(?:\.ключ)?|сканировать\s+код\s+через\s+приложение)/i;
 const QR_PAYMENT_RE =
   /(qr.{0,40}(оплат|перевод|payment|transfer|to['’]?lov|pul|karta|card)|(?:оплат|payment|transfer|to['’]?lov).{0,40}qr)/i;
 const URGENCY_RE = /(срочно|немедленно|прямо сейчас|urgent|immediately|hozir|darhol|tezda)/i;
@@ -338,6 +345,85 @@ function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
   return decodedQrValues(evidence).map((value) => `Decoded QR URL/value: ${value}`);
 }
 
+function redactDecodedQrValue(value: string): string {
+  return redactText(value)
+    .replace(/((?:tg|telegram):\/\/login\?token=)[^&\s]+/i, "$1[hidden]")
+    .replace(/((?:otpauth):\/\/[^\s?]+(?:\?[^#\s]*?\bsecret=))[^&\s]+/i, "$1[hidden]")
+    .replace(/([?&](?:token|secret|session|auth|code)=)[^&\s]+/gi, "$1[hidden]");
+}
+
+function classifyDecodedQrValue(value: string): DecodedQrKind {
+  const trimmed = value.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (/^(?:tg|telegram):\/\/login(?:[/?#]|$)/i.test(lower)) return "telegram_login";
+  if (/^otpauth:\/\//i.test(lower)) return "authenticator";
+  if (/^(?:ton|tonkeeper|wc):/i.test(lower) || lower.includes("walletconnect")) {
+    return "wallet_deeplink";
+  }
+  if (/^(?:click|payme|uzcard|humo|uzum|apelsin|paynet):/i.test(lower)) return "payment";
+
+  try {
+    const url = new URL(trimmed);
+    const protocol = url.protocol.toLowerCase();
+    if (protocol === "tg:" || protocol === "telegram:") return "telegram_login";
+    if (protocol === "otpauth:") return "authenticator";
+    if (protocol === "ton:" || protocol === "tonkeeper:" || protocol === "wc:") {
+      return "wallet_deeplink";
+    }
+
+    if (protocol === "http:" || protocol === "https:") {
+      const host = url.hostname.toLowerCase();
+      const pathAndQuery = `${url.pathname} ${url.search}`.toLowerCase();
+      const paymentHost = /(payme|click|uzcard|humo|uzum|apelsin|paynet|octo)/i.test(host);
+      const paymentPath =
+        /(?:^|[/?&=_-])(pay|payment|checkout|invoice|transfer|topup|deposit|merchant|bill|card|oplata|tolov)(?:$|[/?&=_-])/i.test(
+          pathAndQuery,
+        );
+      if (paymentHost && paymentPath) return "payment";
+      if (/\/(?:pay|payment|checkout|invoice|transfer|topup|deposit|oplata|tolov)(?:\/|$)/i.test(url.pathname)) {
+        return "payment";
+      }
+      if (pathAndQuery.includes("walletconnect") || pathAndQuery.includes("connect-wallet")) {
+        return "wallet_deeplink";
+      }
+      return "plain_url";
+    }
+  } catch {
+    if (/^(?:t\.me|telegram\.me)\//i.test(trimmed)) return "plain_url";
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+/i.test(trimmed)) return "plain_url";
+  }
+
+  return "unknown";
+}
+
+function decodedKinds(values: string[]): Set<DecodedQrKind> {
+  return new Set(values.map(classifyDecodedQrValue));
+}
+
+function decodedHints(kinds: Set<DecodedQrKind>): ImageRiskHint[] {
+  const hints: ImageRiskHint[] = [];
+  if (kinds.has("telegram_login") || kinds.has("authenticator")) hints.push("qr_login");
+  if (kinds.has("payment")) hints.push("qr_payment");
+  if (kinds.has("wallet_deeplink")) hints.push("wallet_or_defi_urgency");
+  return hints;
+}
+
+function deriveQrPurposeFromKinds(kinds: Set<DecodedQrKind>): ImageQrPurpose {
+  if (kinds.has("telegram_login") || kinds.has("authenticator")) return "login";
+  if (kinds.has("payment")) return "payment";
+  if (kinds.has("plain_url") || kinds.has("wallet_deeplink")) return "info";
+  return "unknown";
+}
+
+function deriveCategoryFromKinds(kinds: Set<DecodedQrKind>): ImageVisualCategory | null {
+  if (kinds.has("telegram_login") || kinds.has("authenticator") || kinds.has("payment")) {
+    return "qr_login_or_payment";
+  }
+  if (kinds.has("wallet_deeplink")) return "wallet_or_defi_action";
+  return null;
+}
+
 function displayDecodedQrValue(value: string): string | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
@@ -477,17 +563,31 @@ export function mergeDecodedQrEvidence(
   if (decoded.values.length === 0) return evidence;
 
   const decodedValues = [
-    ...new Set(decoded.values.map((value) => redactText(value).slice(0, 500))),
+    ...new Set(decoded.values.map((value) => redactDecodedQrValue(value).slice(0, 500))),
   ];
+  const decodedUrls = [
+    ...new Set(decoded.urls.map((value) => redactDecodedQrValue(value).slice(0, 500))),
+  ];
+  const kinds = decodedKinds(decodedValues);
   const decodedText = decodedValues.map((value) => `Decoded QR URL/value: ${value}`).join("\n");
   const combinedText = clampText([evidence.text, decodedText].filter(Boolean).join("\n"), 2000);
-  const combinedForHints = [combinedText, decoded.urls.join("\n")].filter(Boolean).join("\n");
-  const riskHints = uniqueHints([...evidence.riskHints, ...deriveHints(combinedForHints)]);
+  const combinedForHints = [combinedText, decodedUrls.join("\n")].filter(Boolean).join("\n");
+  const riskHints = uniqueHints([
+    ...evidence.riskHints,
+    ...decodedHints(kinds),
+    ...deriveHints(combinedForHints),
+  ]);
+  const decodedPurpose = deriveQrPurposeFromKinds(kinds);
   const qrPurpose =
-    evidence.qr.purpose !== "unknown"
+    decodedPurpose === "login" || decodedPurpose === "payment"
+      ? decodedPurpose
+      : evidence.qr.purpose !== "unknown"
       ? evidence.qr.purpose
-      : deriveQrPurpose(combinedForHints, riskHints);
-  const derivedCategory = deriveCategory(combinedForHints, true, riskHints);
+      : decodedPurpose !== "unknown"
+        ? decodedPurpose
+        : deriveQrPurpose(combinedForHints, riskHints);
+  const derivedCategory =
+    deriveCategoryFromKinds(kinds) ?? deriveCategory(combinedForHints, true, riskHints);
   const visualCategory =
     evidence.visualCategory !== "unknown" && evidence.visualCategory !== "qr_menu_or_info"
       ? evidence.visualCategory
@@ -501,7 +601,7 @@ export function mergeDecodedQrEvidence(
     qr: {
       ...evidence.qr,
       present: true,
-      visibleUrl: evidence.qr.visibleUrl ?? decoded.urls[0] ?? null,
+      visibleUrl: evidence.qr.visibleUrl ?? decodedUrls[0] ?? null,
       purpose: qrPurpose,
       decodedValues,
     },

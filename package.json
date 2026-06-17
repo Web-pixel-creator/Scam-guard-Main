@@ -19,7 +19,8 @@
     "monitor:prod": "vite-node scripts/prod-monitor.ts",
     "prod:smoke": "vite-node scripts/prod-smoke.ts",
     "prod:family-smoke": "vite-node scripts/prod-family-shield-smoke.ts",
-    "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts"
+    "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts",
+    "tts:smoke": "vite-node scripts/tts-smoke.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
