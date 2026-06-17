@@ -137,7 +137,9 @@ describe("telegram Voice-out / TTS", () => {
       expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe("gemini-tts-key");
       expect(body.contents[0]?.parts[0]?.text.length).toBeGreaterThan(10);
       expect(body.generationConfig.responseModalities).toEqual(["AUDIO"]);
-      expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Kore");
+      expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe(
+        "Kore",
+      );
       return Response.json({
         candidates: [
           {
@@ -157,9 +159,16 @@ describe("telegram Voice-out / TTS", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await synthesizeVoiceOut("РЇ СЂСЏРґРѕРј. Р—Р°РІРµСЂС€РёС‚Рµ Р·РІРѕРЅРѕРє.", 1004);
+    const result = await synthesizeVoiceOut(
+      "РЇ СЂСЏРґРѕРј. Р—Р°РІРµСЂС€РёС‚Рµ Р·РІРѕРЅРѕРє.",
+      1004,
+    );
 
-    expect(result).toMatchObject({ ok: true, mimeType: "audio/wav", filename: "ishonch-guard-voice.wav" });
+    expect(result).toMatchObject({
+      ok: true,
+      mimeType: "audio/wav",
+      filename: "ishonch-guard-voice.wav",
+    });
     expect(result.ok && Buffer.from(result.bytes.subarray(0, 4)).toString("ascii")).toBe("RIFF");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -263,6 +272,97 @@ describe("telegram Voice-out / TTS", () => {
     expect(hoisted.sentMessages).toHaveLength(0);
     expect(hoisted.sentAudio[0]?.caption).toContain("Голосом");
     expect(hoisted.sentAudio[0]?.caption).toContain("Позвоните в банк");
+  });
+
+  it("does not regenerate the same voice tip when the user taps again a few minutes later", async () => {
+    process.env.GEMINI_TTS_API_KEY = "gemini-tts-key";
+    delete process.env.OPENAI_TTS_API_KEY;
+
+    const pcm = new Uint8Array([1, 0, 2, 0]);
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "audio/l16; rate=24000; channels=1",
+                    data: Buffer.from(pcm).toString("base64"),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const now = vi
+      .spyOn(Date, "now")
+      .mockReturnValueOnce(1_000_000)
+      .mockReturnValueOnce(1_000_000 + 3 * 60_000);
+
+    const args = {
+      chatId: 21,
+      userId: 2002,
+      lang: "ru" as const,
+      text: "Я рядом. Позвоните в банк и попросите заморозить перевод.",
+      keyboard: [[{ text: "OK", callback_data: "ok" }]],
+    };
+
+    await sendVoiceOutResponse(args);
+    await sendVoiceOutResponse(args);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.sentAudio).toHaveLength(1);
+    expect(hoisted.sentMessages).toHaveLength(0);
+    now.mockRestore();
+  });
+
+  it("allows a retry after a failed voice-out attempt", async () => {
+    process.env.GEMINI_TTS_API_KEY = "gemini-tts-key";
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_TTS_API_KEY;
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("provider down", { status: 503 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: "audio/l16; rate=24000; channels=1",
+                      data: Buffer.from(new Uint8Array([1, 0, 2, 0])).toString("base64"),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const args = {
+      chatId: 22,
+      userId: 2003,
+      lang: "ru" as const,
+      text: "Я рядом. Завершите звонок и перезвоните по официальному номеру.",
+      keyboard: [[{ text: "OK", callback_data: "ok" }]],
+    };
+
+    await sendVoiceOutResponse(args);
+    await sendVoiceOutResponse(args);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentAudio).toHaveLength(1);
   });
 
   it("falls back to a text message when audio is not configured", async () => {

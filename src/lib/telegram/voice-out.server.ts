@@ -53,7 +53,7 @@ type TtsConfig = OpenAiTtsConfig | GeminiTtsConfig;
 const VOICE_OUT_DAILY_LIMIT = 5;
 const VOICE_OUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_OUT_TIMEOUT_MS = 12_000;
-const VOICE_OUT_DUPLICATE_WINDOW_MS = 45_000;
+const VOICE_OUT_DUPLICATE_WINDOW_MS = 10 * 60_000;
 const MAX_TTS_CHARS = 520;
 const MAX_AUDIO_BYTES = 1_500_000;
 const DEFAULT_TTS_BASE_URL = "https://api.openai.com/v1";
@@ -224,10 +224,14 @@ function orderTtsConfigs(configs: TtsConfig[]): TtsConfig[] {
     .trim()
     .toLowerCase();
   if (preferred === "openai") {
-    return [...configs].sort((a, b) => Number(b.provider === "openai") - Number(a.provider === "openai"));
+    return [...configs].sort(
+      (a, b) => Number(b.provider === "openai") - Number(a.provider === "openai"),
+    );
   }
   if (preferred === "gemini") {
-    return [...configs].sort((a, b) => Number(b.provider === "gemini") - Number(a.provider === "gemini"));
+    return [...configs].sort(
+      (a, b) => Number(b.provider === "gemini") - Number(a.provider === "gemini"),
+    );
   }
   return configs;
 }
@@ -267,6 +271,10 @@ function isDuplicateVoiceOutRequest(key: string, now = Date.now()): boolean {
   }
   recentVoiceOutRequests.set(key, now);
   return false;
+}
+
+function releaseVoiceOutRequest(key: string): void {
+  recentVoiceOutRequests.delete(key);
 }
 
 function buildVoiceOutCaption(lang: Lang, text: string): string {
@@ -350,7 +358,11 @@ async function synthesizeOpenAiSpeech(
       filename: "ishonch-guard-voice.mp3",
     };
   } catch (error) {
-    console.error("voice-out TTS failed", cfg.provider, error instanceof Error ? error.message : "unknown");
+    console.error(
+      "voice-out TTS failed",
+      cfg.provider,
+      error instanceof Error ? error.message : "unknown",
+    );
     return { ok: false, reason: "provider_error" };
   }
 }
@@ -467,7 +479,11 @@ async function synthesizeGeminiSpeech(
       filename: "ishonch-guard-voice.audio",
     };
   } catch (error) {
-    console.error("voice-out TTS failed", cfg.provider, error instanceof Error ? error.message : "unknown");
+    console.error(
+      "voice-out TTS failed",
+      cfg.provider,
+      error instanceof Error ? error.message : "unknown",
+    );
     return { ok: false, reason: "provider_error" };
   }
 }
@@ -558,6 +574,8 @@ export async function sendVoiceOutResponse(args: {
     });
     if (sent.ok) return;
   }
+
+  releaseVoiceOutRequest(duplicateKey);
 
   const fallbackResult: Exclude<VoiceOutResult, { ok: true }> = result.ok
     ? { ok: false, reason: "provider_error" }
