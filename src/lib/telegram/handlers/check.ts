@@ -96,6 +96,7 @@ const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
@@ -233,6 +234,71 @@ function estimateBase64DataUrlBytes(dataUrl: string): number {
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 }
 
+function sanitizeVoiceTranscriptPreview(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(/https?:\/\/\S+|www\.\S+/gi, "ссылка скрыта")
+    .replace(/@[A-Za-z0-9_]{3,}/g, "аккаунт скрыт")
+    .replace(/\b(?:\d[\s-]?){4,}\b/g, "номер скрыт")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+}
+
+function buildVoiceTranscriptNote(
+  transcript: string,
+  lang: HandlerCtx["session"]["lang"],
+): string | null {
+  const preview = sanitizeVoiceTranscriptPreview(transcript);
+  if (!preview) return null;
+
+  if (lang === "uz") return `🎧 Ovozdan o'qidim:\n«${preview}»`;
+  if (lang === "en") return `🎧 I heard this in the voice note:\n"${preview}"`;
+  return `🎧 Я распознал голос:\n«${preview}»`;
+}
+
+async function sendVoiceTranscriptNote(
+  ctx: HandlerCtx,
+  transcript: string,
+): Promise<void> {
+  const note = buildVoiceTranscriptNote(transcript, ctx.session.lang);
+  if (!note) return;
+  await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(note) });
+}
+
+function isQrFocusedResult(result: RunCheckResult): boolean {
+  if (!result.reasons.includes("asks_to_scan_qr")) return false;
+
+  const strongerImmediateReasons = new Set([
+    "asks_for_otp",
+    "asks_for_sms_code",
+    "asks_for_card_cvv",
+    "asks_for_pin",
+    "asks_to_install_apk",
+    "apk_download_link",
+    "asks_to_transfer_to_safe_account",
+    "payment_before_service",
+    "fake_delivery_payment",
+    "requests_card_digits",
+    "brand_impersonation",
+    "weird_domain",
+    "hosted_app_platform",
+  ]);
+  if (result.reasons.some((reason) => strongerImmediateReasons.has(reason))) return false;
+
+  const context = `${result.type}\n${result.display}\n${result.explanation ?? ""}`;
+  if (!/QR (?:прочитан|decoded)|Decoded QR|Telegram login QR|token hidden/i.test(context)) {
+    return false;
+  }
+  return /Telegram login QR|token hidden|2FA|authenticator|QR[^.\n]{0,80}(вход|подключ|login|device)|(?:вход|подключ)[^.\n]{0,80}QR/i.test(
+    context,
+  );
+}
+
+function shouldAutoSendGuardianIntro(result: RunCheckResult): boolean {
+  return !isQrFocusedResult(result);
+}
+
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
@@ -251,7 +317,7 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
     },
   });
 
-  if (guardian) {
+  if (guardian && shouldAutoSendGuardianIntro(result)) {
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildGuardianAngelIntro(guardian, ctx.session.lang)),
@@ -512,6 +578,7 @@ export async function handleVoice(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
       });
+      await sendVoiceTranscriptNote(ctx, cachedTranscript);
       await sendCheckResult(ctx, result);
       return;
     }
@@ -552,7 +619,7 @@ export async function handleVoice(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
       });
-      return { kind: "ok" as const, result };
+      return { kind: "ok" as const, result, transcript: transcript.text };
     });
 
     if (outcome.kind === "failed") {
@@ -568,6 +635,7 @@ export async function handleVoice(
       return;
     }
 
+    await sendVoiceTranscriptNote(ctx, outcome.transcript);
     await sendCheckResult(ctx, outcome.result);
   });
 }

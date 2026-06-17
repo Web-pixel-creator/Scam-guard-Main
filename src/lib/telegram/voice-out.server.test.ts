@@ -222,6 +222,49 @@ describe("telegram Voice-out / TTS", () => {
     );
   });
 
+  it("suppresses duplicate voice-out sends and captions the spoken text", async () => {
+    process.env.GEMINI_TTS_API_KEY = "gemini-tts-key";
+    delete process.env.OPENAI_TTS_API_KEY;
+
+    const pcm = new Uint8Array([1, 0, 2, 0]);
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "audio/l16; rate=24000; channels=1",
+                    data: Buffer.from(pcm).toString("base64"),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const args = {
+      chatId: 20,
+      userId: 2001,
+      lang: "ru" as const,
+      text: "Я рядом. Позвоните в банк по официальному номеру.",
+      keyboard: [[{ text: "OK", callback_data: "ok" }]],
+    };
+
+    await sendVoiceOutResponse(args);
+    await sendVoiceOutResponse(args);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.sentAudio).toHaveLength(1);
+    expect(hoisted.sentMessages).toHaveLength(0);
+    expect(hoisted.sentAudio[0]?.caption).toContain("Голосом");
+    expect(hoisted.sentAudio[0]?.caption).toContain("Позвоните в банк");
+  });
+
   it("falls back to a text message when audio is not configured", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_TTS_API_KEY;

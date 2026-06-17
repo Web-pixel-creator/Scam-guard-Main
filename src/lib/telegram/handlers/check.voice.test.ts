@@ -105,6 +105,15 @@ describe("handleVoice", () => {
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ chatId: 100, text: expect.stringContaining("Высокий риск") }),
     );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ chatId: 100, text: expect.stringContaining("Я распознал голос") }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        text: expect.stringContaining("caller asks for SMS code"),
+      }),
+    );
   });
 
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {

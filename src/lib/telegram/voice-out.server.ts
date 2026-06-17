@@ -53,6 +53,7 @@ type TtsConfig = OpenAiTtsConfig | GeminiTtsConfig;
 const VOICE_OUT_DAILY_LIMIT = 5;
 const VOICE_OUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_OUT_TIMEOUT_MS = 12_000;
+const VOICE_OUT_DUPLICATE_WINDOW_MS = 45_000;
 const MAX_TTS_CHARS = 520;
 const MAX_AUDIO_BYTES = 1_500_000;
 const DEFAULT_TTS_BASE_URL = "https://api.openai.com/v1";
@@ -60,6 +61,7 @@ const DEFAULT_TTS_MODEL = "gpt-4o-mini-tts";
 const DEFAULT_TTS_VOICE = "alloy";
 const DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
 const DEFAULT_GEMINI_TTS_VOICE = "Kore";
+const recentVoiceOutRequests = new Map<string, number>();
 
 export function parseVoiceOutCallback(data: string): VoiceOutAction | null {
   return Object.values(VOICE_OUT_CB).includes(data as VoiceOutAction)
@@ -243,6 +245,46 @@ function safeSpeechInput(text: string): string | null {
   if (!cleaned) return null;
   if (/(sms|смс|код|code|pin|cvv|парол|password).{0,20}\d{3,}/i.test(cleaned)) return null;
   return cleaned;
+}
+
+function voiceOutRequestKey(chatId: number, userId: number, text: string): string {
+  const normalized = (safeSpeechInput(text) ?? text).normalize("NFKC").slice(0, MAX_TTS_CHARS);
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = (Math.imul(hash, 31) + normalized.charCodeAt(i)) | 0;
+  }
+  return `${chatId}:${userId}:${hash}`;
+}
+
+function isDuplicateVoiceOutRequest(key: string, now = Date.now()): boolean {
+  for (const [candidate, timestamp] of recentVoiceOutRequests) {
+    if (now - timestamp > VOICE_OUT_DUPLICATE_WINDOW_MS) recentVoiceOutRequests.delete(candidate);
+  }
+
+  const previous = recentVoiceOutRequests.get(key);
+  if (previous !== undefined && now - previous <= VOICE_OUT_DUPLICATE_WINDOW_MS) {
+    return true;
+  }
+  recentVoiceOutRequests.set(key, now);
+  return false;
+}
+
+function buildVoiceOutCaption(lang: Lang, text: string): string {
+  const preview = safeSpeechInput(text);
+  if (!preview) {
+    return textByLang(lang, {
+      ru: "🔊 Короткая голосовая подсказка. Коды, карты и пароли я не озвучиваю.",
+      uz: "🔊 Qisqa ovozli maslahat. Kod, karta va parollarni ovozda aytmayman.",
+      en: "🔊 Short voice tip. I do not read codes, cards, or passwords aloud.",
+    });
+  }
+
+  const clipped = preview.length > 220 ? `${preview.slice(0, 217)}...` : preview;
+  return textByLang(lang, {
+    ru: `🔊 Голосом: «${clipped}»\n\nКоды, карты и пароли я не озвучиваю.`,
+    uz: `🔊 Ovozda: «${clipped}»\n\nKod, karta va parollarni ovozda aytmayman.`,
+    en: `🔊 Voice tip: "${clipped}"\n\nI do not read codes, cards, or passwords aloud.`,
+  });
 }
 
 async function fetchWithTimeout(
@@ -436,11 +478,11 @@ async function synthesizeWithConfig(cfg: TtsConfig, input: string): Promise<Voic
 }
 
 export async function synthesizeVoiceOut(text: string, userId: number): Promise<VoiceOutResult> {
-  const budget = await claimVoiceOutBudget(userId);
-  if (budget) return budget;
-
   const input = safeSpeechInput(text);
   if (!input) return { ok: false, reason: "unsafe_text" };
+
+  const budget = await claimVoiceOutBudget(userId);
+  if (budget) return budget;
 
   const configs = resolveTtsConfigs();
   if (configs.length === 0) return { ok: false, reason: "not_configured" };
@@ -499,6 +541,9 @@ export async function sendVoiceOutResponse(args: {
     return;
   }
 
+  const duplicateKey = voiceOutRequestKey(args.chatId, args.userId, args.text);
+  if (isDuplicateVoiceOutRequest(duplicateKey)) return;
+
   const result = await synthesizeVoiceOut(args.text, args.userId);
   if (result.ok) {
     const sent = await sendAudioFile({
@@ -508,13 +553,7 @@ export async function sendVoiceOutResponse(args: {
       mimeType: result.mimeType,
       title: "Ishonch Guard",
       performer: "Ishonch Guard",
-      caption: escapeMarkdownV2(
-        textByLang(args.lang, {
-          ru: "🔊 Короткая голосовая подсказка. Коды, карты и пароли я не озвучиваю.",
-          uz: "🔊 Qisqa ovozli maslahat. Kod, karta va parollarni ovozda aytmayman.",
-          en: "🔊 Short voice tip. I do not read codes, cards, or passwords aloud.",
-        }),
-      ),
+      caption: escapeMarkdownV2(buildVoiceOutCaption(args.lang, args.text)),
       keyboard: args.keyboard,
     });
     if (sent.ok) return;
