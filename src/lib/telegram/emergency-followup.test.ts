@@ -211,8 +211,22 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(callbackData).not.toContain("share_advice");
     expect(buttons).toHaveLength(6);
     expect(buttons.map((button) => button.text)).toEqual(
-      expect.arrayContaining(["📞 Позвонить безопасно", "💬 Готовая фраза"]),
+      expect.arrayContaining([
+        "📞 Позвонить безопасно",
+        "💬 Готовая фраза",
+        "🔊 Озвучить главный шаг",
+      ]),
     );
+  });
+
+  it("can hide the voice-out button in contexts where it would replay the same generic step", () => {
+    const regular = callbackData(buildEmergencyFollowUpKeyboard("ru", 1, { includeVoice: false }));
+    const liveCall = callbackData(buildEmergencyFollowUpKeyboard("ru", 6, { includeVoice: false }));
+
+    expect(regular).not.toContain("voiceout:panic");
+    expect(liveCall).not.toContain("voiceout:panic");
+    expect(regular).toContain("panicctx:full");
+    expect(liveCall).toContain("panicctx:full");
   });
 
   it("uses a help-directory button for blackmail and minor scenarios", () => {

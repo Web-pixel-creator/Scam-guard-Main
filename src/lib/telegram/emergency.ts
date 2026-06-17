@@ -1916,9 +1916,9 @@ const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction | "voice", Record<Lang, s
     en: "👪 Call someone trusted",
   },
   voice: {
-    ru: "🔊 Коротко голосом",
-    uz: "🔊 Qisqa ovoz",
-    en: "🔊 Short voice",
+    ru: "🔊 Озвучить главный шаг",
+    uz: "🔊 Asosiy qadam ovozda",
+    en: "🔊 Read main step",
   },
   full: {
     ru: "📋 Все срочные шаги",
@@ -2077,8 +2077,15 @@ function contactsButtonText(lang: Lang, panicId?: PanicScenarioId): string {
   return labels[lang];
 }
 
-export function buildLiveCallPostHangupKeyboard(lang: Lang): InlineKeyboard {
-  return [
+type EmergencyFollowUpKeyboardOptions = {
+  includeVoice?: boolean;
+};
+
+export function buildLiveCallPostHangupKeyboard(
+  lang: Lang,
+  options: EmergencyFollowUpKeyboardOptions = {},
+): InlineKeyboard {
+  const keyboard: InlineKeyboard = [
     [
       {
         text: contactsButtonText(lang, 6),
@@ -2093,17 +2100,21 @@ export function buildLiveCallPostHangupKeyboard(lang: Lang): InlineKeyboard {
       { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
       { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
     ],
-    [{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" }],
   ];
+  if (options.includeVoice !== false) {
+    keyboard.push([{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" }]);
+  }
+  return keyboard;
 }
 
 export function buildEmergencyFollowUpKeyboard(
   lang: Lang,
   panicId?: PanicScenarioId,
+  options: EmergencyFollowUpKeyboardOptions = {},
 ): InlineKeyboard {
-  if (panicId === 6) return buildLiveCallPostHangupKeyboard(lang);
+  if (panicId === 6) return buildLiveCallPostHangupKeyboard(lang, options);
 
-  return [
+  const keyboard: InlineKeyboard = [
     [
       { text: FOLLOWUP_BUTTONS.more[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}more` },
       {
@@ -2118,11 +2129,15 @@ export function buildEmergencyFollowUpKeyboard(
         callback_data: "family:notify",
       },
     ],
-    [
-      { text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" },
-      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
-    ],
   ];
+  const lastRow = [
+    { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+  ];
+  if (options.includeVoice !== false) {
+    lastRow.unshift({ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" });
+  }
+  keyboard.push(lastRow);
+  return keyboard;
 }
 
 function followUpTitle(panicId: PanicScenarioId, lang: Lang): string {

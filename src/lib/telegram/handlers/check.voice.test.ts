@@ -114,6 +114,10 @@ describe("handleVoice", () => {
         text: expect.stringContaining("caller asks for SMS code"),
       }),
     );
+    const sentTexts = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text));
+    expect(sentTexts.findIndex((text) => text.includes("Я распознал голос"))).toBeLessThan(
+      sentTexts.findIndex((text) => text.includes("Высокий риск")),
+    );
   });
 
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {

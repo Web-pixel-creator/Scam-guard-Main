@@ -415,7 +415,9 @@ export async function handleCheck(
       text: escapeMarkdownV2(
         buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
       ),
-      keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId),
+      keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId, {
+        includeVoice: emergencyFollowUp.action !== "script",
+      }),
     });
     return;
   }
@@ -571,6 +573,7 @@ export async function handleVoice(
 
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
+      await sendVoiceTranscriptNote(ctx, cachedTranscript);
       const result = await runCheck({
         input: cachedTranscript,
         type: "text",
@@ -578,7 +581,6 @@ export async function handleVoice(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
       });
-      await sendVoiceTranscriptNote(ctx, cachedTranscript);
       await sendCheckResult(ctx, result);
       return;
     }
@@ -611,6 +613,7 @@ export async function handleVoice(
       const transcript = await transcribeVoiceCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
       if (!transcript.text) return { kind: "failed" as const };
       rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
+      await sendVoiceTranscriptNote(ctx, transcript.text);
 
       const result = await runCheck({
         input: transcript.text,
@@ -619,7 +622,7 @@ export async function handleVoice(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
       });
-      return { kind: "ok" as const, result, transcript: transcript.text };
+      return { kind: "ok" as const, result };
     });
 
     if (outcome.kind === "failed") {
@@ -635,7 +638,6 @@ export async function handleVoice(
       return;
     }
 
-    await sendVoiceTranscriptNote(ctx, outcome.transcript);
     await sendCheckResult(ctx, outcome.result);
   });
 }

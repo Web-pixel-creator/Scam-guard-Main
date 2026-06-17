@@ -157,7 +157,9 @@ async function sendEmergencyFollowUp(
   await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
-    keyboard: buildEmergencyFollowUpKeyboard(lang, panicId),
+    keyboard: buildEmergencyFollowUpKeyboard(lang, panicId, {
+      includeVoice: action !== "script",
+    }),
   });
 }
 
@@ -345,7 +347,9 @@ export async function handleCallback(
       userId: ctx.userId,
       lang,
       text: panicId ? buildPanicVoiceOutText(panicId, lang) : null,
-      keyboard: panicId ? buildEmergencyFollowUpKeyboard(lang, panicId) : undefined,
+      keyboard: panicId
+        ? buildEmergencyFollowUpKeyboard(lang, panicId, { includeVoice: false })
+        : undefined,
     });
     return;
   }
