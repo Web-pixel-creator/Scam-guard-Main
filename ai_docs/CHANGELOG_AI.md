@@ -2,6 +2,14 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-17 - Gemini TTS provider for Voice-out
+
+- Voice-out now prefers `GEMINI_TTS_API_KEY` with
+  `gemini-3.1-flash-tts-preview` and falls back to OpenAI TTS when configured.
+- Gemini `audio/l16` responses are wrapped as WAV before sending to Telegram.
+- `npm run tts:smoke` now verifies Gemini or OpenAI TTS without printing
+  secrets, request bodies, audio, or provider error bodies.
+
 ## 2026-06-16 - Telegram OGG audio documents route to STT
 
 - Telegram `.ogg`/`.m4a`/audio files sent as `document` messages now route to

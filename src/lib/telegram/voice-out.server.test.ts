@@ -40,10 +40,21 @@ const originalEnv = {
   OPENAI_TTS_BASE_URL: process.env.OPENAI_TTS_BASE_URL,
   OPENAI_TTS_MODEL: process.env.OPENAI_TTS_MODEL,
   OPENAI_TTS_VOICE: process.env.OPENAI_TTS_VOICE,
+  GEMINI_TTS_API_KEY: process.env.GEMINI_TTS_API_KEY,
+  GEMINI_TTS_MODEL: process.env.GEMINI_TTS_MODEL,
+  GEMINI_TTS_VOICE: process.env.GEMINI_TTS_VOICE,
+  LEGACY_GEMINI_TTS_API_KEY: process.env["Gemini TTS"],
+  TTS_PROVIDER: process.env.TTS_PROVIDER,
+  VOICE_OUT_TTS_PROVIDER: process.env.VOICE_OUT_TTS_PROVIDER,
 };
 
 function restoreEnv(): void {
   for (const [key, value] of Object.entries(originalEnv)) {
+    if (key === "LEGACY_GEMINI_TTS_API_KEY") {
+      if (value === undefined) delete process.env["Gemini TTS"];
+      else process.env["Gemini TTS"] = value;
+      continue;
+    }
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
@@ -94,6 +105,8 @@ describe("telegram Voice-out / TTS", () => {
   it("does not reuse a Gemini-compatible OpenAI key as a speech endpoint", async () => {
     process.env.OPENAI_API_KEY = "gemini-key";
     process.env.OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
+    delete process.env.GEMINI_TTS_API_KEY;
+    delete process.env["Gemini TTS"];
 
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -105,7 +118,76 @@ describe("telegram Voice-out / TTS", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("uses Gemini TTS first and wraps raw PCM as WAV", async () => {
+    process.env.GEMINI_TTS_API_KEY = "gemini-tts-key";
+    process.env.GEMINI_TTS_MODEL = "gemini-test-tts";
+    process.env.GEMINI_TTS_VOICE = "Kore";
+    delete process.env.OPENAI_TTS_API_KEY;
+
+    const pcm = new Uint8Array([1, 0, 2, 0]);
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as {
+        contents: Array<{ parts: Array<{ text: string }> }>;
+        generationConfig: {
+          responseModalities: string[];
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } };
+        };
+      };
+      expect(String(_url)).toContain("/models/gemini-test-tts:generateContent");
+      expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe("gemini-tts-key");
+      expect(body.contents[0]?.parts[0]?.text.length).toBeGreaterThan(10);
+      expect(body.generationConfig.responseModalities).toEqual(["AUDIO"]);
+      expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Kore");
+      return Response.json({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "audio/l16; rate=24000; channels=1",
+                    data: Buffer.from(pcm).toString("base64"),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await synthesizeVoiceOut("РЇ СЂСЏРґРѕРј. Р—Р°РІРµСЂС€РёС‚Рµ Р·РІРѕРЅРѕРє.", 1004);
+
+    expect(result).toMatchObject({ ok: true, mimeType: "audio/wav", filename: "ishonch-guard-voice.wav" });
+    expect(result.ok && Buffer.from(result.bytes.subarray(0, 4)).toString("ascii")).toBe("RIFF");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to OpenAI TTS when Gemini TTS fails", async () => {
+    process.env.GEMINI_TTS_API_KEY = "gemini-tts-key";
+    process.env.OPENAI_TTS_API_KEY = "openai-tts-key";
+    process.env.OPENAI_TTS_BASE_URL = "https://tts.example/v1";
+    process.env.OPENAI_TTS_MODEL = "test-tts";
+    process.env.OPENAI_TTS_VOICE = "test-voice";
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 500 }))
+      .mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      synthesizeVoiceOut("РЇ СЂСЏРґРѕРј. Р—Р°РІРµСЂС€РёС‚Рµ Р·РІРѕРЅРѕРє.", 1005),
+    ).resolves.toMatchObject({ ok: true, mimeType: "audio/mpeg" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("generativelanguage.googleapis.com");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://tts.example/v1/audio/speech");
+  });
+
   it("uses an explicit TTS key and removes raw links, usernames and long numbers", async () => {
+    delete process.env.GEMINI_TTS_API_KEY;
+    delete process.env["Gemini TTS"];
     process.env.OPENAI_TTS_API_KEY = "tts-key";
     process.env.OPENAI_TTS_BASE_URL = "https://tts.example/v1";
     process.env.OPENAI_TTS_MODEL = "test-tts";
@@ -143,6 +225,8 @@ describe("telegram Voice-out / TTS", () => {
   it("falls back to a text message when audio is not configured", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_TTS_API_KEY;
+    delete process.env.GEMINI_TTS_API_KEY;
+    delete process.env["Gemini TTS"];
     vi.stubGlobal("fetch", vi.fn());
 
     await sendVoiceOutResponse({

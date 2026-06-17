@@ -33,12 +33,22 @@ type VoiceOutResult =
       retryAfterSec?: number;
     };
 
-type TtsConfig = {
+type OpenAiTtsConfig = {
+  provider: "openai";
   apiKey: string;
   baseUrl: string;
   model: string;
   voice: string;
 };
+
+type GeminiTtsConfig = {
+  provider: "gemini";
+  apiKey: string;
+  model: string;
+  voice: string;
+};
+
+type TtsConfig = OpenAiTtsConfig | GeminiTtsConfig;
 
 const VOICE_OUT_DAILY_LIMIT = 5;
 const VOICE_OUT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -48,6 +58,8 @@ const MAX_AUDIO_BYTES = 1_500_000;
 const DEFAULT_TTS_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_TTS_MODEL = "gpt-4o-mini-tts";
 const DEFAULT_TTS_VOICE = "alloy";
+const DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+const DEFAULT_GEMINI_TTS_VOICE = "Kore";
 
 export function parseVoiceOutCallback(data: string): VoiceOutAction | null {
   return Object.values(VOICE_OUT_CB).includes(data as VoiceOutAction)
@@ -163,27 +175,59 @@ function isGeminiLikeBaseUrl(baseUrl: string): boolean {
   return /generativelanguage\.googleapis\.com|googleapis\.com\/.*\/openai/i.test(baseUrl);
 }
 
-function resolveTtsConfig(): TtsConfig | null {
+function resolveTtsConfigs(): TtsConfig[] {
+  const configs: TtsConfig[] = [];
+  const geminiKey =
+    process.env.GEMINI_TTS_API_KEY?.trim() ||
+    process.env.GOOGLE_TTS_API_KEY?.trim() ||
+    process.env["Gemini TTS"]?.trim();
+  if (geminiKey) {
+    configs.push({
+      provider: "gemini",
+      apiKey: geminiKey,
+      model: process.env.GEMINI_TTS_MODEL?.trim() || DEFAULT_GEMINI_TTS_MODEL,
+      voice: process.env.GEMINI_TTS_VOICE?.trim() || DEFAULT_GEMINI_TTS_VOICE,
+    });
+  }
+
   const explicitKey = process.env.OPENAI_TTS_API_KEY?.trim();
   if (explicitKey) {
-    return {
+    configs.push({
+      provider: "openai",
       apiKey: explicitKey,
       baseUrl: (process.env.OPENAI_TTS_BASE_URL ?? DEFAULT_TTS_BASE_URL).replace(/\/+$/, ""),
       model: process.env.OPENAI_TTS_MODEL?.trim() || DEFAULT_TTS_MODEL,
       voice: process.env.OPENAI_TTS_VOICE?.trim() || DEFAULT_TTS_VOICE,
-    };
+    });
+    return orderTtsConfigs(configs);
   }
 
   const sharedKey = process.env.OPENAI_API_KEY?.trim();
   const sharedBase = (process.env.OPENAI_BASE_URL ?? DEFAULT_TTS_BASE_URL).replace(/\/+$/, "");
-  if (!sharedKey || isGeminiLikeBaseUrl(sharedBase)) return null;
+  if (!sharedKey || isGeminiLikeBaseUrl(sharedBase)) return orderTtsConfigs(configs);
 
-  return {
+  configs.push({
+    provider: "openai",
     apiKey: sharedKey,
     baseUrl: sharedBase,
     model: process.env.OPENAI_TTS_MODEL?.trim() || DEFAULT_TTS_MODEL,
     voice: process.env.OPENAI_TTS_VOICE?.trim() || DEFAULT_TTS_VOICE,
-  };
+  });
+
+  return orderTtsConfigs(configs);
+}
+
+function orderTtsConfigs(configs: TtsConfig[]): TtsConfig[] {
+  const preferred = (process.env.TTS_PROVIDER || process.env.VOICE_OUT_TTS_PROVIDER || "")
+    .trim()
+    .toLowerCase();
+  if (preferred === "openai") {
+    return [...configs].sort((a, b) => Number(b.provider === "openai") - Number(a.provider === "openai"));
+  }
+  if (preferred === "gemini") {
+    return [...configs].sort((a, b) => Number(b.provider === "gemini") - Number(a.provider === "gemini"));
+  }
+  return configs;
 }
 
 function safeSpeechInput(text: string): string | null {
@@ -226,16 +270,10 @@ async function claimVoiceOutBudget(userId: number): Promise<VoiceOutResult | nul
   return { ok: false, reason: "rate_limited", retryAfterSec: result.retryAfterSec };
 }
 
-export async function synthesizeVoiceOut(text: string, userId: number): Promise<VoiceOutResult> {
-  const budget = await claimVoiceOutBudget(userId);
-  if (budget) return budget;
-
-  const input = safeSpeechInput(text);
-  if (!input) return { ok: false, reason: "unsafe_text" };
-
-  const cfg = resolveTtsConfig();
-  if (!cfg) return { ok: false, reason: "not_configured" };
-
+async function synthesizeOpenAiSpeech(
+  cfg: OpenAiTtsConfig,
+  input: string,
+): Promise<VoiceOutResult> {
   try {
     const res = await fetchWithTimeout(
       `${cfg.baseUrl}/audio/speech`,
@@ -255,7 +293,7 @@ export async function synthesizeVoiceOut(text: string, userId: number): Promise<
       VOICE_OUT_TIMEOUT_MS,
     );
     if (!res.ok) {
-      console.error("voice-out TTS provider non-ok", res.status);
+      console.error("voice-out TTS provider non-ok", cfg.provider, res.status);
       return { ok: false, reason: "provider_error" };
     }
 
@@ -270,9 +308,149 @@ export async function synthesizeVoiceOut(text: string, userId: number): Promise<
       filename: "ishonch-guard-voice.mp3",
     };
   } catch (error) {
-    console.error("voice-out TTS failed", error instanceof Error ? error.message : "unknown");
+    console.error("voice-out TTS failed", cfg.provider, error instanceof Error ? error.message : "unknown");
     return { ok: false, reason: "provider_error" };
   }
+}
+
+function parseGeminiPcmMime(mimeType: string): { sampleRate: number; channels: number } {
+  const rate = Number(mimeType.match(/\brate=(\d+)/i)?.[1] || 24_000);
+  const channels = Number(mimeType.match(/\bchannels=(\d+)/i)?.[1] || 1);
+  return {
+    sampleRate: Number.isFinite(rate) && rate > 0 ? rate : 24_000,
+    channels: Number.isFinite(channels) && channels > 0 ? channels : 1,
+  };
+}
+
+function pcm16ToWav(pcm: Uint8Array, sampleRate: number, channels: number): Uint8Array {
+  const headerSize = 44;
+  const bytesPerSample = 2;
+  const wav = new Uint8Array(headerSize + pcm.byteLength);
+  const view = new DataView(wav.buffer);
+  const writeAscii = (offset: number, value: string) => {
+    for (let i = 0; i < value.length; i += 1) wav[offset + i] = value.charCodeAt(i);
+  };
+
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + pcm.byteLength, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channels * bytesPerSample, true);
+  view.setUint16(32, channels * bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeAscii(36, "data");
+  view.setUint32(40, pcm.byteLength, true);
+  wav.set(pcm, headerSize);
+  return wav;
+}
+
+async function synthesizeGeminiSpeech(
+  cfg: GeminiTtsConfig,
+  input: string,
+): Promise<VoiceOutResult> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+        cfg.model,
+      )}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": cfg.apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: input }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: cfg.voice,
+                },
+              },
+            },
+          },
+        }),
+      },
+      VOICE_OUT_TIMEOUT_MS,
+    );
+    if (!res.ok) {
+      console.error("voice-out TTS provider non-ok", cfg.provider, res.status);
+      return { ok: false, reason: "provider_error" };
+    }
+
+    const json = (await res.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{
+            inlineData?: { data?: string; mimeType?: string };
+            inline_data?: { data?: string; mime_type?: string };
+          }>;
+        };
+      }>;
+    };
+    const part = json.candidates?.[0]?.content?.parts?.find(
+      (candidate) => candidate.inlineData?.data || candidate.inline_data?.data,
+    );
+    const encoded = part?.inlineData?.data || part?.inline_data?.data;
+    const mimeType = part?.inlineData?.mimeType || part?.inline_data?.mime_type || "";
+    if (!encoded || !mimeType.includes("audio")) return { ok: false, reason: "provider_error" };
+
+    const raw = new Uint8Array(Buffer.from(encoded, "base64"));
+    if (raw.byteLength === 0 || raw.byteLength > MAX_AUDIO_BYTES) {
+      return { ok: false, reason: "provider_error" };
+    }
+
+    if (/audio\/l16/i.test(mimeType)) {
+      const { sampleRate, channels } = parseGeminiPcmMime(mimeType);
+      const wav = pcm16ToWav(raw, sampleRate, channels);
+      if (wav.byteLength > MAX_AUDIO_BYTES) return { ok: false, reason: "provider_error" };
+      return {
+        ok: true,
+        bytes: wav,
+        mimeType: "audio/wav",
+        filename: "ishonch-guard-voice.wav",
+      };
+    }
+
+    return {
+      ok: true,
+      bytes: raw,
+      mimeType,
+      filename: "ishonch-guard-voice.audio",
+    };
+  } catch (error) {
+    console.error("voice-out TTS failed", cfg.provider, error instanceof Error ? error.message : "unknown");
+    return { ok: false, reason: "provider_error" };
+  }
+}
+
+async function synthesizeWithConfig(cfg: TtsConfig, input: string): Promise<VoiceOutResult> {
+  if (cfg.provider === "gemini") return synthesizeGeminiSpeech(cfg, input);
+  return synthesizeOpenAiSpeech(cfg, input);
+}
+
+export async function synthesizeVoiceOut(text: string, userId: number): Promise<VoiceOutResult> {
+  const budget = await claimVoiceOutBudget(userId);
+  if (budget) return budget;
+
+  const input = safeSpeechInput(text);
+  if (!input) return { ok: false, reason: "unsafe_text" };
+
+  const configs = resolveTtsConfigs();
+  if (configs.length === 0) return { ok: false, reason: "not_configured" };
+
+  for (const cfg of configs) {
+    const result = await synthesizeWithConfig(cfg, input);
+    if (result.ok) return result;
+  }
+
+  return { ok: false, reason: "provider_error" };
 }
 
 export function buildVoiceOutFallbackText(

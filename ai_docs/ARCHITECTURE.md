@@ -7,7 +7,7 @@
 - **Backend:** TanStack server functions (`createServerFn`) plus a Node SSR entry at `src/server.ts`.
 - **Runtime:** Nitro v3 `node-server` preset. The production artifact is `dist/server/index.mjs`; it runs on Node 22+ and is Docker/Railway/Render/Fly/VPS-friendly.
 - **Data:** Supabase Postgres + Auth + RLS. The project owns its Supabase project; no Lovable Cloud runtime dependency.
-- **AI:** Provider-neutral OpenAI-compatible Chat Completions plus optional audio transcription and speech output. `OPENAI_API_KEY` enables explanations, screenshot OCR/image understanding and Telegram voice STT; `OPENAI_MODEL`, `OPENAI_BASE_URL` and `OPENAI_TRANSCRIBE_MODEL` are optional. Opt-in Telegram Voice-out uses a separate `OPENAI_TTS_API_KEY`/`OPENAI_TTS_*` path when configured and otherwise falls back to text.
+- **AI:** Provider-neutral OpenAI-compatible Chat Completions plus optional audio transcription and speech output. `OPENAI_API_KEY` enables explanations, screenshot OCR/image understanding and Telegram voice STT; `OPENAI_MODEL`, `OPENAI_BASE_URL` and `OPENAI_TRANSCRIBE_MODEL` are optional. Opt-in Telegram Voice-out prefers Gemini TTS via `GEMINI_TTS_API_KEY`/`GEMINI_TTS_*`, can fall back to `OPENAI_TTS_API_KEY`/`OPENAI_TTS_*`, and otherwise falls back to text.
 - **Tooling:** Vite 7, Bun lockfile, TypeScript, Vitest, ESLint/Prettier.
 
 ## Clients and channels

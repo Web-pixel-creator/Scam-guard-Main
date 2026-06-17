@@ -120,7 +120,8 @@ Signatures and intent only. See file paths for source.
 - `synthesizeVoiceOut(text, userId)` applies a separate 5/day user budget,
   strips URLs, Telegram usernames and long digit runs, refuses
   code/PIN/CVV/password-like text and calls only a configured TTS endpoint.
-  Gemini-like chat endpoints are not used as speech providers.
+  Gemini TTS is preferred when `GEMINI_TTS_API_KEY` exists, OpenAI TTS remains
+  a fallback, and Gemini-like chat endpoints are not used as speech providers.
 - `sendVoiceOutResponse(...)` sends a Telegram audio file when TTS is
   configured and falls back to a short text message when audio is unavailable.
 
