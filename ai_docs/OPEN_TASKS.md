@@ -53,6 +53,37 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 
 ## Near-term product tasks
 
+- [ ] **Emergency callback context binding v1.** Replace new panic follow-up
+      callback payloads with scenario-bound forms such as
+      `panicctx:<panicId>:<action>` and `voiceout:panic:<panicId>`. Keep
+      legacy `panicctx:<action>` / `voiceout:panic` fallback through
+      `lastPanicId`, and add regression tests for stale keyboards from older
+      scenarios.
+- [ ] **Remove unsafe Telegram recovery contacts.** Delete all `@recover` or
+      similar direct-username recovery instructions from Telegram takeover copy.
+      Replace them with official Telegram settings/support guidance and add a
+      regression test that recovery copy does not recommend an arbitrary
+      username.
+- [ ] **Emergency keyboard profile pass.** Audit every `/panic`, `/call` and
+      Guardian Angel keyboard so each scenario shows the right next actions:
+      bank callback for financial cases, help/evidence/trusted-person actions
+      for blackmail/minor/threats, romance-specific pauses, and AI voice-clone
+      verification actions.
+- [ ] **Emergency copy trust polish.** Reduce repeated "I am nearby" wording,
+      make follow-up copy more adult/neutral, and update reputation wording so
+      "0 confirmed complaints" is clearly "not found in Ishonch Guard yet",
+      never a safety guarantee.
+- [ ] **Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
+      confidence-aware fallback, RU/UZ mixed-speech fixtures and direct routing
+      from obvious panic/live-call transcripts to the matching emergency flow.
+- [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
+      toward records with `source`, `status`, `updated_at`, manual publish and
+      safe stale fallback before any automation from research feeds.
+- [ ] **Private moderation chat for reports/appeals.** Add an operator-only
+      Telegram notification path for new reports, appeals and high-signal
+      research items. Notifications must contain redacted summaries and admin
+      links only, not raw report text, screenshots, OCR, codes, card data,
+      full phone numbers or URLs.
 - [ ] Add web/embed Risk Passport compact reuse. Telegram Risk Passport v1 is
       shipped; the remaining follow-up is to reuse the same passport structure
       on the website and iframe widget where it improves shallow username/phone

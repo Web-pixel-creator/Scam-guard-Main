@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Roadmap update after emergency UX feedback
+
+- Updated `ai_docs/ROADMAP.md` with the new canonical implementation order from
+  the 2026-06-18 Telegram bot feedback.
+- The next priority is no longer adding broad new features first; it is closing
+  trust-breaking emergency UX issues: scenario-bound panic callbacks, safe
+  Telegram recovery wording, context-specific emergency keyboards, softer
+  reputation wording and Voice-in v2.
+- Added `OPEN_TASKS.md` items for private redacted moderation-chat
+  notifications, weekly-scheme data modeling and stale-keyboard regression
+  tests.
+- Confirmed that Voice-out/TTS daily limits remain intentional cost protection;
+  future work should improve waiting/idempotency UX rather than removing the
+  quota guard.
+
 ## 2026-06-18 - Telegram timing diagnostics and delivery voice pattern
 
 - Added sanitized `telegram_timing` diagnostics for Telegram text, image and

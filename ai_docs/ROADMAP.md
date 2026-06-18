@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-16.
+Last updated: 2026-06-18.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -102,13 +102,37 @@ Already shipped:
   strips unsafe evidence before synthesis and falls back to text when audio is
   unavailable.
 
-Immediate implementation order after the 2026-06-16 product feedback:
+Immediate implementation order after the 2026-06-18 product feedback:
 
-1. **External signals.** Add Google Safe Browsing / URLhaus / PhishTank first;
-   line-type/VoIP providers stay optional and paid.
-2. **Website distribution and public trust.** Embed Widget v1 is shipped. Next
-   website features should be public living-experience stories, a scam-call
-   trainer, and later a scam map/index, all using aggregated or moderated data.
+1. **Emergency callback context binding.** Stop relying only on
+   `lastPanicId` for panic follow-up buttons. New callbacks should carry the
+   scenario id, for example `panicctx:<panicId>:<action>` and
+   `voiceout:panic:<panicId>`, while legacy callbacks remain a safe fallback.
+   This prevents old keyboards from answering with the wrong emergency context.
+2. **Telegram recovery safety copy.** Remove all direct `@recover`-style
+   username recommendations from Telegram recovery instructions. Use official
+   Telegram settings/support wording only, because unofficial recovery contacts
+   are a common takeover lure.
+3. **Context-specific emergency keyboards.** Financial scenarios can show safe
+   bank callback. Blackmail, minor-safety, threats, romance and social-pressure
+   scenarios should prioritize evidence, trusted-person help and official help
+   destinations instead of repeating bank actions. AI voice-clone should focus
+   on identity verification, saved-number callback and trusted-person support.
+4. **Emergency copy trust polish.** Keep "I am nearby" reassurance only where it
+   helps, avoid repeated giant keyboards, and make `0 confirmed complaints`
+   wording explicit: absence of Ishonch Guard reports is not a safety guarantee.
+5. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
+   confidence-aware fallback, RU/UZ mixed speech tests and direct routing from
+   obvious panic/live-call transcripts.
+6. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+   answers only after the emergency context bugs are closed.
+7. **Weekly schemes data model.** Move the weekly digest from static copy to a
+   source/status/updated-at model with a safe stale fallback before automating
+   any research-feed publishing.
+8. **External signals and public trust surfaces.** Add Google Safe Browsing /
+   URLhaus / PhishTank, public living-experience stories and the scam-call
+   trainer after the bot trust fixes above. Paid line-type/VoIP providers stay
+   optional.
 
 Operational hardening that continues in parallel:
 
@@ -117,6 +141,12 @@ Operational hardening that continues in parallel:
 - Keep Reputation Appeals v1 decisions in the regular moderation review loop;
   production migration is applied and service-role-only access is verified.
 - Keep retention/on-call monitor checks in the regular production smoke loop.
+- Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
+  protection; future tuning should improve the waiting state and idempotency,
+  not remove the budget guard.
+- Consider a private moderator Telegram chat for new reports and appeals. It
+  should receive only redacted summaries and moderation links, never raw codes,
+  cards, screenshots, full OCR text or unredacted phone numbers.
 
 Important boundary: do not copy MTProto-style account-age, hidden scam-label,
 DC/country or private spam-history claims from third-party Telegram tools. Our
