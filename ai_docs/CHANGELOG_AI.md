@@ -10,6 +10,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
   payloads.
 - Documented `TELEGRAM_TIMING_LOGS` and `TELEGRAM_TIMING_LOG_THRESHOLD_MS` for
   short production latency investigations.
+- Added Telegram-specific AI latency budgets for explanations, image
+  intelligence and voice STT, and documented the Railway env overrides.
+- Low-signal username, phone and generic URL passport checks now skip AI so the
+  bot answers quickly and avoids over-explaining when the honest result is
+  "send the message/screen for context".
 - Tightened `fake_delivery_payment` so plain payment-on-delivery text stays
   benign while delivery/card-only wording from voice transcripts becomes a
   risk signal.

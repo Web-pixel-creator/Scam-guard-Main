@@ -102,6 +102,17 @@ committed `.env`, never shipped to client):
   Telegram voice-note transcription. If unset, Gemini-native audio uses
   `OPENAI_MODEL`; OpenAI-compatible audio transcription defaults to
   `gpt-4o-mini-transcribe`.
+- `TELEGRAM_AI_EXPLANATION_TIMEOUT_MS` / `TELEGRAM_AI_EXPLANATION_MAX_ATTEMPTS` -
+  optional Telegram-only budget for non-critical AI explanations (defaults:
+  `2500` ms / `1` attempt). Low-signal username, phone and generic URL
+  passports skip AI automatically to keep replies fast and avoid hallucinated
+  explanations.
+- `TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS` / `TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS` -
+  optional Telegram image-intelligence budget (defaults: `6500` ms / `1`
+  attempt). If the provider is slow, the bot falls back to QR/OCR-safe guidance.
+- `TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS` - optional Telegram voice STT budget
+  (default: `8000` ms). Voice notes still keep the 60 seconds / 2 MB / daily
+  per-user caps.
 - `GEMINI_TTS_API_KEY` — optional Google AI Studio / Gemini API key for opt-in
   Telegram Voice-out audio tips. When present, Gemini TTS is tried first.
 - `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` — optional Gemini speech model and
@@ -177,6 +188,12 @@ These records must stay metadata-only: event name, duration, result type,
 risk level, reason count, file size/duration and similar non-content fields.
 Do not log raw transcripts, links, phone numbers, usernames, OCR text or QR
 payloads.
+
+Latency defaults are conservative for Telegram UX: AI explanations use
+`TELEGRAM_AI_EXPLANATION_TIMEOUT_MS=2500`, image intelligence uses
+`TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS=6500`, and voice STT uses
+`TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS=8000`. Raise these only if quality matters
+more than responsiveness for a specific production incident.
 
 ## Production monitor / alerting
 

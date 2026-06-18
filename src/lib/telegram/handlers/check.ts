@@ -116,6 +116,31 @@ const TELEGRAM_AI_EXPLANATION_OPTIONS = {
   aiTimeoutMs: TELEGRAM_AI_EXPLANATION_TIMEOUT_MS,
   aiMaxAttempts: TELEGRAM_AI_EXPLANATION_MAX_ATTEMPTS,
 } as const;
+const TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS = readBoundedIntEnv(
+  "TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS",
+  6500,
+  1000,
+  15_000,
+);
+const TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS = readBoundedIntEnv(
+  "TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS",
+  1,
+  1,
+  2,
+);
+const TELEGRAM_IMAGE_ANALYSIS_OPTIONS = {
+  timeoutMs: TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS,
+  maxAttempts: TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS,
+} as const;
+const TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS = readBoundedIntEnv(
+  "TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS",
+  8000,
+  1000,
+  15_000,
+);
+const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
+  timeoutMs: TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS,
+} as const;
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
@@ -608,7 +633,12 @@ export async function handleImage(
 
       // 4) Structured image evidence (OCR + visual category + QR purpose).
       const analysisStartedAt = Date.now();
-      const aiEvidence = await analyzeImageCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      const aiEvidence = await analyzeImageCore(
+        dataUrl,
+        lang,
+        rateLimitKeyFor(ctx.userId),
+        TELEGRAM_IMAGE_ANALYSIS_OPTIONS,
+      );
       logTelegramTiming("image.analysis", analysisStartedAt, {
         hasEvidence: Boolean(aiEvidence),
         visualCategory: aiEvidence?.visualCategory ?? null,
@@ -764,7 +794,12 @@ export async function handleVoice(
       }
 
       const sttStartedAt = Date.now();
-      const transcript = await transcribeVoiceCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      const transcript = await transcribeVoiceCore(
+        dataUrl,
+        lang,
+        rateLimitKeyFor(ctx.userId),
+        TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
+      );
       logTelegramTiming("voice.transcribe", sttStartedAt, {
         ok: Boolean(transcript.text),
         transcriptChars: transcript.text?.length ?? 0,

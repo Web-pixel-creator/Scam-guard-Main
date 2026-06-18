@@ -242,14 +242,17 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   const { score, level } = scoreFromCodes(reasonList);
   const scoredLevel: RiskLevel = safeIfNoReasons && reasonList.length === 0 ? "safe" : level;
 
-  // Don't call AI if there are no meaningful reason codes for URL type — it would hallucinate.
-  // hosted_app_platform (weight 0) is informational only; it shouldn't trigger AI.
-  // For non-URL types, AI can still provide useful context even without codes.
+  // Don't call AI for low-signal passports without meaningful reason codes.
+  // hosted_app_platform / valid_uz_phone / unknown_sender are informational only.
+  // For other cases, AI can still provide useful context when risk signals exist.
   const hasSignificantReasons = reasonList.some(
-    (c) => c !== "hosted_app_platform" && c !== "valid_uz_phone",
+    (c) => c !== "hosted_app_platform" && c !== "valid_uz_phone" && c !== "unknown_sender",
   );
   const shouldSkipAi =
-    skipAi || (detected === "url" && scoredLevel === "unknown" && !hasSignificantReasons);
+    skipAi ||
+    ((detected === "url" || detected === "telegram" || detected === "phone") &&
+      scoredLevel === "unknown" &&
+      !hasSignificantReasons);
 
   const explanation = shouldSkipAi
     ? null
@@ -390,12 +393,13 @@ export async function analyzeImageCore(
   dataUrl: string,
   lang: Lang,
   rateLimitKey: string,
+  options: ChatCompletionOptions = {},
 ): Promise<ImageIntelligenceResult | null> {
   const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
-  const raw = await analyzeScreenshotImage(dataUrl, lang);
+  const raw = await analyzeScreenshotImage(dataUrl, lang, options);
   if (!raw) return null;
   return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }
@@ -411,6 +415,7 @@ export async function transcribeVoiceCore(
   dataUrl: string,
   lang: Lang,
   _rateLimitKey: string,
+  options: ChatCompletionOptions = {},
 ): Promise<{ text: string | null }> {
   const cfg = getAiConfig();
   if (!cfg) return { text: null };
@@ -419,8 +424,8 @@ export async function transcribeVoiceCore(
   if (!parsed || !parsed.mimeType.startsWith("audio/")) return { text: null };
 
   const raw = isGeminiConfig(cfg)
-    ? await transcribeAudioWithGemini(cfg, parsed, lang)
-    : await transcribeAudioWithOpenAiCompatible(cfg, parsed, lang);
+    ? await transcribeAudioWithGemini(cfg, parsed, lang, options)
+    : await transcribeAudioWithOpenAiCompatible(cfg, parsed, lang, options);
 
   return { text: sanitizeTranscript(raw) };
 }
@@ -520,6 +525,7 @@ async function transcribeAudioWithGemini(
   cfg: AiConfig,
   payload: DataUrlPayload,
   lang: Lang,
+  options: ChatCompletionOptions = {},
 ): Promise<string | null> {
   const model = geminiNativeModelName(getTranscriptionModel(cfg));
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -529,7 +535,7 @@ async function transcribeAudioWithGemini(
   const prompt = `Transcribe this Telegram voice note for an anti-scam assistant. Keep the speaker's language when possible (${langName}). Return only the transcript, no advice. Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number. If speech is not understandable, return an empty string.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
   try {
     const res = await fetch(endpoint, {
       method: "POST",
@@ -563,6 +569,7 @@ async function transcribeAudioWithOpenAiCompatible(
   cfg: AiConfig,
   payload: DataUrlPayload,
   lang: Lang,
+  options: ChatCompletionOptions = {},
 ): Promise<string | null> {
   const bytes = Uint8Array.from(Buffer.from(payload.base64, "base64"));
   const form = new FormData();
@@ -572,7 +579,7 @@ async function transcribeAudioWithOpenAiCompatible(
   form.set("file", new Blob([bytes], { type: payload.mimeType }), "telegram-voice.ogg");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
   try {
     const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
       method: "POST",
@@ -856,7 +863,11 @@ async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null
   return text ? redactText(text) : null;
 }
 
-async function analyzeScreenshotImage(dataUrl: string, lang: Lang): Promise<string | null> {
+async function analyzeScreenshotImage(
+  dataUrl: string,
+  lang: Lang,
+  options: ChatCompletionOptions = {},
+): Promise<string | null> {
   const sys = `You are a structured image evidence extractor for Ishonch Guard, an anti-scam assistant for Uzbekistan.
 
 Return JSON only. No markdown. No advice. No verdict.
@@ -894,5 +905,6 @@ Rules:
       },
     ],
     "image-intelligence",
+    options,
   );
 }

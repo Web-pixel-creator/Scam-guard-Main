@@ -92,6 +92,7 @@ describe("handleVoice", () => {
       "data:audio/ogg;base64,AAAA",
       "ru",
       "tg:42",
+      expect.objectContaining({ timeoutMs: expect.any(Number) }),
     );
     expect(hoisted.runCheck).toHaveBeenCalledWith(
       expect.objectContaining({

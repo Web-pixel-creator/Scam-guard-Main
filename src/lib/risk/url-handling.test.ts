@@ -146,6 +146,38 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 
+  it("unknown Telegram username passport skips AI to stay fast and honest", async () => {
+    const result = await runCheck({
+      input: "@UiWebWeb",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: false,
+    });
+
+    expect(result.type).toBe("telegram");
+    expect(result.level).toBe("unknown");
+    expect(result.reasons).toEqual(["unknown_sender"]);
+    expect(result.explanation).toBeNull();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it("valid phone passport skips AI when there are no risk signals", async () => {
+    const result = await runCheck({
+      input: "+998712008727",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: false,
+    });
+
+    expect(result.type).toBe("phone");
+    expect(result.level).toBe("unknown");
+    expect(result.reasons).toEqual(["valid_uz_phone"]);
+    expect(result.explanation).toBeNull();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
   it("suspicious URL (short link) DOES call AI", async () => {
     const result = await runCheck({
       input: "https://bit.ly/abc123",
