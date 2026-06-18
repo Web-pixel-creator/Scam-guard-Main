@@ -208,6 +208,11 @@ export const bot_dict: BotDict = {
     uz: "So‘rovlar juda ko‘p. {seconds} soniya kuting va qayta urinib ko‘ring.",
     en: "Too many requests. Please wait {seconds} sec. and try again.",
   },
+  voice_stt_limit_reached: {
+    ru: "🎧 Лимит распознавания голосовых на сегодня закончился. Это защита от спама и лишних расходов.\n\nЯ всё равно рядом: напишите коротко, что обещают и что просят сделать, или нажмите «Помощь сейчас», если вы уже отправили код, перевели деньги, установили приложение или вам звонят.",
+    uz: "🎧 Bugungi ovozli xabarlarni tanish limiti tugadi. Bu spam va ortiqcha xarajatlardan himoya.\n\nMen baribir yoningizdaman: qisqa yozing, nima va'da qilishdi va nima so'rashyapti, yoki kod yuborgan, pul o'tkazgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz «Hozir yordam»ni bosing.",
+    en: "🎧 Today's voice transcription limit is used up. This protects the bot from spam and extra costs.\n\nI am still here: briefly type what they promise and what they ask you to do, or tap “Help now” if you already sent a code, transferred money, installed an app, or are on a call.",
+  },
 
   // ── Input length (R4.10) ──────────────────────────────────────────────────
   text_too_long: {

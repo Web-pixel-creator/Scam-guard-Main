@@ -35,3 +35,10 @@
 - [x] 5.3 Cache redacted transcripts for repeated `file_unique_id` values.
 - [x] 5.4 Keep STT-core free of user budget decisions so voice does not double-consume the normal check limit.
 - [x] 5.5 Add regression tests for budget, cache reuse and long-voice rejection.
+
+## 6. Voice-in UX hardening
+
+- [x] 6.1 Show a fast non-message typing indicator while STT is slow, with repeat actions for long provider calls.
+- [x] 6.2 Add a dedicated exhausted-STT-budget message that explains the spam/cost guard and offers typed summary or emergency actions.
+- [x] 6.3 Route obvious already-happened voice transcripts to the matching emergency flow before the normal risk card.
+- [x] 6.4 Add regression tests for slow-STT waiting state and voice-to-panic routing.

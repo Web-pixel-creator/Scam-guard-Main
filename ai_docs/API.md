@@ -52,8 +52,11 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   before transcription, and only the redacted transcript reaches the check
   pipeline. STT calls are protected by a separate 5/day per-user budget and
   repeated Telegram `file_unique_id` values reuse a short-lived in-memory
-  redacted transcript cache. If STT is missing, slow or unreliable, the bot asks
-  for a short typed summary and offers emergency actions.
+  redacted transcript cache. If STT is slow, the bot shows a Telegram activity
+  indicator; if STT is missing or unreliable, it asks for a short typed summary
+  and offers emergency actions. Clear "already sent code / installed APK /
+  transferred money / entered card / lost Telegram / on a call" transcripts
+  route directly to `/panic` instead of waiting for a generic risk card.
 - AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains.
 - Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`) and non-persistent (`persist=false`) so partial typed queries do not spam `checks` or AI providers. Enable inline mode separately in BotFather with `/setinline`.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.

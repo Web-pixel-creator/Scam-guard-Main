@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Voice-in/STT UX first slice shipped
+
+- `handleVoice` now starts a fast non-message Telegram typing indicator while
+  STT is running, and repeats it for long provider calls so users do not think
+  the bot froze during 5-10 second voice transcription.
+- Voice STT daily-budget exhaustion now uses a dedicated message explaining
+  that the limit protects against spam/cost abuse, then asks for a typed
+  summary or emergency action instead of a generic rate-limit line.
+- Obvious already-happened voice transcripts such as "I sent the SMS code",
+  "installed an APK", "transferred money", "entered card data", "lost Telegram"
+  or "I am on a call" route directly to the matching `/panic` scenario before
+  the normal risk-card path.
+- Added regression coverage for slow-STT waiting state and voice-to-panic
+  routing, and updated the Voice STT spec plus `OPEN_TASKS.md`.
+
 ## 2026-06-18 - Contextual Voice-out hardening shipped
 
 - Voice-out callbacks under SOS follow-ups now preserve the exact originating

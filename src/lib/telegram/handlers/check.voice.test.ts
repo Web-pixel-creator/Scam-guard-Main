@@ -4,6 +4,7 @@ import type { Session } from "@/lib/telegram/session.server";
 
 const hoisted = vi.hoisted(() => ({
   sendMessage: vi.fn(),
+  sendChatAction: vi.fn(),
   getFile: vi.fn(),
   downloadFileAsDataUrl: vi.fn(),
   transcribeVoiceCore: vi.fn(),
@@ -36,7 +37,7 @@ vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
 
 vi.mock("@/lib/telegram/api.server", () => ({
   sendMessage: hoisted.sendMessage,
-  sendChatAction: vi.fn(),
+  sendChatAction: hoisted.sendChatAction,
   getFile: hoisted.getFile,
   downloadFileAsDataUrl: hoisted.downloadFileAsDataUrl,
   getChatInfo: vi.fn(),
@@ -121,6 +122,57 @@ describe("handleVoice", () => {
     );
   });
 
+  it("shows a typing action while voice transcription is slow", async () => {
+    vi.useFakeTimers();
+    hoisted.transcribeVoiceCore.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve({ text: "caller asks for SMS code" }), 1000);
+        }),
+    );
+
+    try {
+      const promise = handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: "slow-voice",
+      });
+
+      await vi.advanceTimersByTimeAsync(600);
+      expect(hoisted.sendChatAction).toHaveBeenCalledWith(100, "typing");
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await promise;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("routes obvious already-happened voice emergencies to the panic flow", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: "Я уже отправил SMS-код мошеннику" });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "sent-code-voice",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({ lastPanicId: 1 }),
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        text: expect.stringContaining("Я уже отправил SMS-код"),
+      }),
+    );
+  });
+
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,
@@ -196,7 +248,7 @@ describe("handleVoice", () => {
     expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
     expect(hoisted.runCheck).not.toHaveBeenCalled();
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ text: expect.stringContaining("Слишком много запросов") }),
+      expect.objectContaining({ text: expect.stringContaining("Лимит распознавания голосовых") }),
     );
   });
 

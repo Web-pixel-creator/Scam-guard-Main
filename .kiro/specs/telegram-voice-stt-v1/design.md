@@ -14,7 +14,9 @@ flowchart TD
   D --> E["downloadFileAsDataUrl in memory"]
   E --> F["transcribeVoiceCore"]
   F --> G["redactText + clamp"]
-  G --> H["runCheck rules pipeline"]
+  G --> X{"Obvious already-happened panic?"}
+  X -->|yes| Y["panic scenario + follow-up keyboard"]
+  X -->|no| H["runCheck rules pipeline"]
   H --> I["formatCheckResult"]
 ```
 
@@ -41,6 +43,8 @@ Responsibilities:
 - download only to a data URL in memory;
 - call `transcribeVoiceCore`;
 - fall back with a calm localized message on failure;
+- show a non-message Telegram typing indicator while STT is slow;
+- route obvious already-happened emergency transcripts to `/panic` first cards;
 - run `runCheck` on redacted transcript on success.
 
 ### STT Core
@@ -86,12 +90,13 @@ No raw audio, raw transcript, or partial transcript is persisted.
 - Missing Telegram file metadata: localized voice fallback.
 - Oversized file: localized size-limit message.
 - STT missing key/provider failure/timeout: localized fallback with emergency actions.
-- Shared rate-limit overflow: existing `rate_limited` response.
+- Voice STT daily budget overflow: dedicated voice-limit response explaining the cost/spam guard and offering typed summary or emergency actions.
+- Shared check rate-limit overflow: existing `rate_limited` response.
 - Unexpected exception: existing `generic_error` response.
 
 ## Testing Strategy
 
 - Router unit tests for voice routing and caption precedence.
-- Handler tests with mocked Bot API and STT core for success, failure, oversize, and rate-limit key.
+- Handler tests with mocked Bot API and STT core for success, failure, oversize, rate-limit key, slow-STT typing indicator, cache reuse and direct emergency routing.
 - STT unit tests for data URL parsing, redaction, Gemini response parsing, and OpenAI fallback response parsing.
 - Existing full test suite, lint, build, production smoke after deploy.

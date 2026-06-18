@@ -131,9 +131,10 @@ Remaining implementation order after the 2026-06-18 product feedback:
 2. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
    was actually decoded, what destination type was found, and why benign menu
    QR differs from login/payment/device-link QR.
-3. **Voice/STT UX hardening.** Keep daily limits, but add clearer STT waiting
-   states, transcript confirmation/edit recovery and better exhausted-limit
-   wording so users understand what happened without retry-spamming.
+3. **Voice/STT UX hardening.** Waiting indicator, exhausted-STT-budget wording
+   and direct voice-to-SOS routing are shipped. Next: transcript
+   confirmation/edit recovery and confidence-aware fallback so users can fix
+   bad recognition without re-spending STT budget.
 4. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
    cache or skip AI on low-signal checks where deterministic output is enough.
 5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline

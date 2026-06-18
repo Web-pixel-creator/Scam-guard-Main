@@ -46,6 +46,9 @@ import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
+  buildPanicScenarioText,
+  withPanicContextData,
+  type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
   buildLastCheckFollowUpText,
@@ -277,7 +280,7 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
 }
 
 function rateLimitedVoiceSttError(retryAfter: number): RateLimitedError {
-  const error = new Error("rate_limited") as RateLimitedError;
+  const error = new Error("voice_stt_rate_limited") as RateLimitedError;
   error.status = 429;
   error.retryAfter = retryAfter;
   return error;
@@ -336,6 +339,96 @@ async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Pro
   const note = buildVoiceTranscriptNote(transcript, ctx.session.lang);
   if (!note) return;
   await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(note) });
+}
+
+function normalizeVoiceIntentText(text: string): string {
+  return text
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
+  const text = normalizeVoiceIntentText(transcript);
+  if (!text) return null;
+
+  if (
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?).{0,60}(смс|sms|otp|код|code)/.test(
+      text,
+    ) ||
+    /(?:смс|sms|otp|код|code).{0,60}(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?)/.test(
+      text,
+    )
+  ) {
+    return 1;
+  }
+
+  if (
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(установил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?).{0,80}(apk|апк|приложени[ея])/.test(
+      text,
+    ) ||
+    /(?:apk|апк|приложени[ея]).{0,80}(доступ к sms|доступ к смс|уведомлени|спец\.? возможност|accessibility)/.test(
+      text,
+    )
+  ) {
+    return 2;
+  }
+
+  if (
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(деньг|перевод|сум|сумов|uzs|кар[тд]|баланс)/.test(
+      text,
+    ) ||
+    /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс).{0,80}(перевел[аи]?|перевёл[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
+      text,
+    )
+  ) {
+    return 3;
+  }
+
+  if (
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
+      text,
+    )
+  ) {
+    return 4;
+  }
+
+  if (
+    /(?:потерял[аи]?|украли|взломали|угнали|забрали).{0,80}(telegram|телеграм|аккаунт)/.test(
+      text,
+    ) ||
+    /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(
+      text,
+    )
+  ) {
+    return 5;
+  }
+
+  if (
+    /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(ят|ит)/.test(text) ||
+    /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
+    /не кладите трубку/.test(text)
+  ) {
+    return 6;
+  }
+
+  return null;
+}
+
+async function sendVoicePanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: withPanicContextData(previousScenarioData, panicId),
+  });
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(buildPanicScenarioText(panicId, ctx.session.lang)),
+    keyboard: buildEmergencyFollowUpKeyboard(ctx.session.lang, panicId),
+  });
 }
 
 function isQrFocusedResult(result: RunCheckResult): boolean {
@@ -423,15 +516,27 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
  * (R18.2): таймер ставится до старта, при завершении до порога — снимается, и
  * лишний `sendChatAction` не отправляется. `sendChatAction` — best-effort.
  */
-async function withTypingIndicator<T>(chatId: number, work: () => Promise<T>): Promise<T> {
+async function withTypingIndicator<T>(
+  chatId: number,
+  work: () => Promise<T>,
+  options: { delayMs?: number; repeatMs?: number } = {},
+): Promise<T> {
+  const delayMs = options.delayMs ?? TYPING_DELAY_MS;
+  let interval: ReturnType<typeof setInterval> | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined = setTimeout(() => {
     timer = undefined;
     void sendChatAction(chatId, "typing");
-  }, TYPING_DELAY_MS);
+    if (options.repeatMs !== undefined && options.repeatMs > 0) {
+      interval = setInterval(() => {
+        void sendChatAction(chatId, "typing");
+      }, options.repeatMs);
+    }
+  }, delayMs);
   try {
     return await work();
   } finally {
     if (timer !== undefined) clearTimeout(timer);
+    if (interval !== undefined) clearInterval(interval);
   }
 }
 
@@ -445,7 +550,8 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
     await work();
   } catch (e) {
     if (isRateLimitedError(e)) {
-      await replyText(ctx.chatId, bt("rate_limited", ctx.session.lang, { seconds: e.retryAfter }));
+      const key = e.message === "voice_stt_rate_limited" ? "voice_stt_limit_reached" : "rate_limited";
+      await replyText(ctx.chatId, bt(key, ctx.session.lang, { seconds: e.retryAfter }));
       return;
     }
     console.error(`telegram ${label} failed`, e instanceof Error ? e.message : "unknown");
@@ -720,6 +826,17 @@ export async function handleVoice(
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
       await sendVoiceTranscriptNote(ctx, cachedTranscript);
+      const panicId = classifyVoicePanicIntent(cachedTranscript);
+      if (panicId !== null) {
+        await sendVoicePanicRoute(ctx, panicId);
+        logTelegramTiming("voice.total", startedAt, {
+          cached: true,
+          routedToPanic: panicId,
+          transcriptChars: cachedTranscript.length,
+          durationSec: meta?.duration ?? null,
+        });
+        return;
+      }
       const checkStartedAt = Date.now();
       const result = await runCheck({
         input: cachedTranscript,
@@ -809,6 +926,10 @@ export async function handleVoice(
       if (!transcript.text) return { kind: "failed" as const };
       rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
       await sendVoiceTranscriptNote(ctx, transcript.text);
+      const panicId = classifyVoicePanicIntent(transcript.text);
+      if (panicId !== null) {
+        return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
+      }
 
       const checkStartedAt = Date.now();
       const result = await runCheck({
@@ -826,7 +947,7 @@ export async function handleVoice(
         reasonCount: result.reasons.length,
       });
       return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
-    });
+    }, { delayMs: 500, repeatMs: 4000 });
 
     if (outcome.kind === "failed") {
       await replyText(
@@ -841,6 +962,16 @@ export async function handleVoice(
       logTelegramTiming("voice.reject", startedAt, {
         reason: "downloaded_size_limit",
         fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
+      return;
+    }
+    if (outcome.kind === "panic") {
+      await sendVoicePanicRoute(ctx, outcome.panicId);
+      logTelegramTiming("voice.total", startedAt, {
+        cached: false,
+        routedToPanic: outcome.panicId,
+        transcriptChars: outcome.transcriptChars,
         durationSec: meta?.duration ?? null,
       });
       return;
