@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
     | { ok: false; retryAfterSec: number },
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   sentAudio: [] as Array<{ chatId: number; audio: Uint8Array; caption?: string }>,
+  sentActions: [] as Array<{ chatId: number; action: string }>,
 }));
 
 vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
@@ -18,6 +19,9 @@ vi.mock("@/lib/telegram/api.server", () => ({
     hoisted.sentAudio.push(opts);
     return { ok: true };
   }),
+  sendChatAction: vi.fn(async (chatId: number, action: string) => {
+    hoisted.sentActions.push({ chatId, action });
+  }),
   sendMessage: vi.fn(async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
     hoisted.sentMessages.push(opts);
     return { ok: true };
@@ -28,6 +32,8 @@ import {
   buildGuardianVoiceOutText,
   buildPanicVoiceOutText,
   parseVoiceOutCallback,
+  parseVoiceOutPanicAction,
+  parseVoiceOutPanicCallback,
   parseVoiceOutPanicId,
   sendVoiceOutResponse,
   synthesizeVoiceOut,
@@ -67,6 +73,7 @@ describe("telegram Voice-out / TTS", () => {
     hoisted.rateLimitResult = { ok: true, remaining: 4, retryAfterSec: 0 };
     hoisted.sentMessages.length = 0;
     hoisted.sentAudio.length = 0;
+    hoisted.sentActions.length = 0;
   });
 
   afterEach(() => {
@@ -78,8 +85,16 @@ describe("telegram Voice-out / TTS", () => {
   it("parses only the explicit voice-out callbacks", () => {
     expect(parseVoiceOutCallback("voiceout:panic")).toBe(VOICE_OUT_CB.panic);
     expect(parseVoiceOutCallback("voiceout:panic:4")).toBe(VOICE_OUT_CB.panic);
+    expect(parseVoiceOutCallback("voiceout:panic:4:script")).toBe(VOICE_OUT_CB.panic);
     expect(parseVoiceOutPanicId("voiceout:panic:4")).toBe(4);
+    expect(parseVoiceOutPanicId("voiceout:panic:4:script")).toBe(4);
+    expect(parseVoiceOutPanicAction("voiceout:panic:4:script")).toBe("script");
+    expect(parseVoiceOutPanicCallback("voiceout:panic:4:script")).toEqual({
+      panicId: 4,
+      action: "script",
+    });
     expect(parseVoiceOutPanicId("voiceout:panic:99")).toBeNull();
+    expect(parseVoiceOutPanicCallback("voiceout:panic:4:unknown")).toBeNull();
     expect(parseVoiceOutCallback("voiceout:guardian")).toBe(VOICE_OUT_CB.guardian);
     expect(parseVoiceOutCallback("panicctx:full")).toBeNull();
   });
@@ -272,6 +287,7 @@ describe("telegram Voice-out / TTS", () => {
     await sendVoiceOutResponse(args);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.sentActions).toEqual([{ chatId: 20, action: "upload_voice" }]);
     expect(hoisted.sentAudio).toHaveLength(1);
     expect(hoisted.sentMessages).toHaveLength(0);
     expect(hoisted.sentAudio[0]?.caption).toContain("Голосом");
@@ -320,6 +336,7 @@ describe("telegram Voice-out / TTS", () => {
     await sendVoiceOutResponse(args);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.sentActions).toEqual([{ chatId: 21, action: "upload_voice" }]);
     expect(hoisted.sentAudio).toHaveLength(1);
     expect(hoisted.sentMessages).toHaveLength(0);
     now.mockRestore();

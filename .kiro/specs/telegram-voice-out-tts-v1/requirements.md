@@ -21,6 +21,9 @@ so that I do not need to read a long message while panicking.
    voice guidance button.
 3. The bot SHALL NOT send voice automatically after checks or SOS actions.
 4. Voice guidance SHALL be available in RU, UZ and EN.
+5. WHEN a voice button is shown under a specific SOS follow-up card THEN the
+   spoken text SHALL match that follow-up card, not only the generic scenario
+   summary.
 
 ### Requirement 2: Privacy And Safety Boundary
 
@@ -64,3 +67,7 @@ TTS cannot be abused to burn quota.
 3. The fallback path SHALL keep the recovery keyboard available.
 4. Tests SHALL cover callback parsing, provider isolation, sanitization,
    fallback and representative SOS/Guardian scripts.
+5. Repeated taps for the same voice text SHALL NOT create duplicate provider
+   calls during the short duplicate window.
+6. The bot SHOULD send a best-effort Telegram voice/upload chat action before
+   synthesis so the user understands that audio generation is in progress.

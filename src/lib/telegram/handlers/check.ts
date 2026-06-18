@@ -489,7 +489,8 @@ export async function handleCheck(
         buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
       ),
       keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId, {
-        includeVoice: emergencyFollowUp.action !== "script",
+        includeVoice: true,
+        voiceAction: emergencyFollowUp.action,
       }),
     });
     return;

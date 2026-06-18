@@ -278,7 +278,7 @@ export async function editMessageText(opts: EditMessageOptions): Promise<{ ok: b
  * Индикатор "печатает…" пока идёт долгая обработка (R18.2). Best-effort —
  * любые ошибки проглатываются, ничего не возвращает.
  */
-export async function sendChatAction(chatId: number, action: "typing"): Promise<void> {
+export async function sendChatAction(chatId: number, action: "typing" | "upload_voice"): Promise<void> {
   await callBotApi("sendChatAction", { chat_id: chatId, action });
 }
 

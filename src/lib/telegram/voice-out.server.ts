@@ -5,9 +5,11 @@ import type { Lang } from "@/lib/i18n";
 import {
   escapeMarkdownV2,
   sendAudioFile,
+  sendChatAction,
   sendMessage,
   type InlineKeyboard,
 } from "@/lib/telegram/api.server";
+import type { EmergencyFollowUpAction } from "@/lib/telegram/emergency";
 
 export const VOICE_OUT_CB = {
   panic: "voiceout:panic",
@@ -17,6 +19,11 @@ export const VOICE_OUT_CB = {
 export type VoiceOutAction = (typeof VOICE_OUT_CB)[keyof typeof VOICE_OUT_CB];
 
 type PanicScenarioId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+
+export interface ParsedVoiceOutPanicCallback {
+  panicId: PanicScenarioId | null;
+  action: EmergencyFollowUpAction | null;
+}
 
 export interface VoiceOutGuardianSnapshot {
   level: "high_risk";
@@ -62,19 +69,45 @@ const DEFAULT_TTS_VOICE = "alloy";
 const DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
 const DEFAULT_GEMINI_TTS_VOICE = "Kore";
 const recentVoiceOutRequests = new Map<string, number>();
+const VOICE_OUT_PANIC_ACTIONS: readonly EmergencyFollowUpAction[] = [
+  "more",
+  "contacts",
+  "script",
+  "trusted_person",
+  "full",
+];
 
 export function parseVoiceOutCallback(data: string): VoiceOutAction | null {
   if (data === VOICE_OUT_CB.guardian) return VOICE_OUT_CB.guardian;
-  if (data === VOICE_OUT_CB.panic || parseVoiceOutPanicId(data) !== null) return VOICE_OUT_CB.panic;
+  if (parseVoiceOutPanicCallback(data) !== null) return VOICE_OUT_CB.panic;
   return null;
 }
 
-export function parseVoiceOutPanicId(data: string): PanicScenarioId | null {
+export function parseVoiceOutPanicCallback(data: string): ParsedVoiceOutPanicCallback | null {
+  if (data === VOICE_OUT_CB.panic) return { panicId: null, action: null };
+
   const prefix = `${VOICE_OUT_CB.panic}:`;
   if (!data.startsWith(prefix)) return null;
 
-  const n = Number(data.slice(prefix.length));
-  return Number.isInteger(n) && n >= 1 && n <= 15 ? (n as PanicScenarioId) : null;
+  const parts = data.slice(prefix.length).split(":");
+  if (parts.length < 1 || parts.length > 2) return null;
+
+  const n = Number(parts[0]);
+  const panicId = Number.isInteger(n) && n >= 1 && n <= 15 ? (n as PanicScenarioId) : null;
+  if (panicId === null) return null;
+
+  if (parts.length === 1) return { panicId, action: null };
+
+  const action = parts[1] as EmergencyFollowUpAction;
+  return VOICE_OUT_PANIC_ACTIONS.includes(action) ? { panicId, action } : null;
+}
+
+export function parseVoiceOutPanicId(data: string): PanicScenarioId | null {
+  return parseVoiceOutPanicCallback(data)?.panicId ?? null;
+}
+
+export function parseVoiceOutPanicAction(data: string): EmergencyFollowUpAction | null {
+  return parseVoiceOutPanicCallback(data)?.action ?? null;
 }
 
 function textByLang<T>(lang: Lang, values: Record<Lang, T>): T {
@@ -283,6 +316,14 @@ function isDuplicateVoiceOutRequest(key: string, now = Date.now()): boolean {
 
 function releaseVoiceOutRequest(key: string): void {
   recentVoiceOutRequests.delete(key);
+}
+
+async function sendVoiceOutChatAction(chatId: number): Promise<void> {
+  try {
+    await sendChatAction(chatId, "upload_voice");
+  } catch {
+    // Best-effort UX hint only; voice generation should continue if Telegram ignores it.
+  }
 }
 
 function buildVoiceOutCaption(lang: Lang, text: string): string {
@@ -567,6 +608,8 @@ export async function sendVoiceOutResponse(args: {
 
   const duplicateKey = voiceOutRequestKey(args.chatId, args.userId, args.text);
   if (isDuplicateVoiceOutRequest(duplicateKey)) return;
+
+  await sendVoiceOutChatAction(args.chatId);
 
   const result = await synthesizeVoiceOut(args.text, args.userId);
   if (result.ok) {

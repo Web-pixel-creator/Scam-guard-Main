@@ -87,9 +87,14 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] **QR clarity pass.** Make every photo/QR response explicit about whether
       a QR was actually decoded, what kind of destination was found, and why a
       menu/loyalty QR differs from Telegram login, payment or device-link QR.
-- [ ] **Voice-out/STT UX hardening.** Keep the daily TTS/STT cost guards, but
-      improve waiting states, duplicate-click idempotency, captions under audio
-      and user-facing wording when daily voice hints are exhausted.
+- [x] ~~Voice-out contextual follow-up hardening.~~ Done: voice buttons under
+      "what next", "ready phrase", contacts and full-plan emergency follow-ups
+      now encode the originating action, show an `upload_voice` Telegram action
+      while synthesis runs and de-duplicate repeated taps for the same text.
+- [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
+      improve STT waiting states, transcript confirmation/edit recovery,
+      confidence-aware fallback and user-facing wording when daily voice
+      transcription or voice hints are exhausted.
 - [ ] **Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
       deterministic output is enough.

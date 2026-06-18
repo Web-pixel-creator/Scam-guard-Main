@@ -257,6 +257,19 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     );
   });
 
+  it("encodes the follow-up action in contextual voice-out callbacks", () => {
+    const scriptData = callbackData(
+      buildEmergencyFollowUpKeyboard("ru", 3, { voiceAction: "script" }),
+    );
+    const contactsData = callbackData(
+      buildEmergencyFollowUpKeyboard("ru", 4, { voiceAction: "contacts" }),
+    );
+
+    expect(scriptData).toContain("voiceout:panic:3:script");
+    expect(scriptData).not.toContain("voiceout:panic:3");
+    expect(contactsData).toContain("voiceout:panic:4:contacts");
+  });
+
   it("profiles SOS follow-up keyboards by scenario instead of reusing the bank template", () => {
     const smsCode = buildEmergencyFollowUpKeyboard("ru", 1).flat();
     const blackmail = buildEmergencyFollowUpKeyboard("ru", 7).flat();

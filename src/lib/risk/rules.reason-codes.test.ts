@@ -188,6 +188,10 @@ describe("evaluateText — fake_delivery_payment (research feed)", () => {
       text: "Слушай, локацию скинул, если там только по карте, доставка у них только по карте",
     },
     {
+      name: "RU full voice delivery card-only transcript",
+      text: "Слушай, локу скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот. Потому что, по-моему, доставка они там только по карте.",
+    },
+    {
       name: "EN delivery card-only",
       text: "The courier says this delivery is card only and asks to pay by card before pickup",
     },

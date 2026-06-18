@@ -117,8 +117,10 @@ Signatures and intent only. See file paths for source.
 **`src/lib/telegram/voice-out.server.ts`**
 
 - `parseVoiceOutCallback(data)` accepts `voiceout:panic`,
-  scenario-bound `voiceout:panic:<panicId>` and `voiceout:guardian`.
-  `parseVoiceOutPanicId(data)` extracts only valid safe panic scenario ids.
+  scenario-bound `voiceout:panic:<panicId>`, follow-up-bound
+  `voiceout:panic:<panicId>:<action>` and `voiceout:guardian`.
+  `parseVoiceOutPanicId(data)` and `parseVoiceOutPanicAction(data)` extract
+  only valid safe panic scenario ids/actions.
 - `buildPanicVoiceOutText(panicId, lang)` and
   `buildGuardianVoiceOutText(snapshot, lang)` generate short safety scripts
   from safe scenario ids / summary metadata, not from raw user evidence.
@@ -129,6 +131,9 @@ Signatures and intent only. See file paths for source.
   a fallback, and Gemini-like chat endpoints are not used as speech providers.
 - `sendVoiceOutResponse(...)` sends a Telegram audio file when TTS is
   configured and falls back to a short text message when audio is unavailable.
+  It sends a best-effort `upload_voice` chat action before synthesis and
+  de-duplicates repeated taps for the same user/text so retries do not burn
+  provider quota.
 
 ## Website embed widget
 

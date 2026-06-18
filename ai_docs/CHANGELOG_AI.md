@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Contextual Voice-out hardening shipped
+
+- Voice-out callbacks under SOS follow-ups now preserve the exact originating
+  follow-up action, so "ready phrase", "what next", contacts and full-plan
+  buttons speak the same short card the user is reading instead of replaying a
+  generic scenario summary.
+- Added a best-effort Telegram `upload_voice` chat action before TTS synthesis
+  and regression coverage that repeated taps do not create duplicate provider
+  calls.
+- Added a regression fixture for the real voice transcript pattern "delivery
+  only by card" so it stays mapped to `fake_delivery_payment` instead of
+  falling back to an empty "not enough data" answer.
+- Updated `FUNCTIONS_MAP.md`, `ROADMAP.md` and `OPEN_TASKS.md` to split the
+  completed Voice-out hardening from the still-open Voice-in/STT UX work.
+
 ## 2026-06-18 - Emergency copy trust polish shipped
 
 - Removed repeated "I am nearby" prefixes from SOS first cards, follow-up

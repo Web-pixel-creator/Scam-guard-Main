@@ -101,6 +101,11 @@ Already shipped:
   voice guidance button. The speech path uses a separate TTS configuration,
   strips unsafe evidence before synthesis and falls back to text when audio is
   unavailable.
+- Voice-out Contextual Follow-ups v1: follow-up voice buttons now preserve the
+  originating action (`more`, `contacts`, `script`, `trusted_person`, `full`)
+  instead of replaying the generic scenario summary. Repeated taps are
+  de-duplicated and Telegram gets an `upload_voice` action while synthesis is
+  running.
 - Emergency Callback Context Binding v1: panic follow-up and Voice-out buttons
   now carry the originating scenario id, while legacy callbacks remain a
   fallback. Stale keyboards from older emergency scenarios no longer answer
@@ -126,9 +131,9 @@ Remaining implementation order after the 2026-06-18 product feedback:
 2. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
    was actually decoded, what destination type was found, and why benign menu
    QR differs from login/payment/device-link QR.
-3. **Voice-out/STT UX hardening.** Keep daily limits, but add clearer waiting
-   states, duplicate-click idempotency and better captions so users understand
-   which short text was spoken and why limits exist.
+3. **Voice/STT UX hardening.** Keep daily limits, but add clearer STT waiting
+   states, transcript confirmation/edit recovery and better exhausted-limit
+   wording so users understand what happened without retry-spamming.
 4. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
    cache or skip AI on low-signal checks where deterministic output is enough.
 5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline

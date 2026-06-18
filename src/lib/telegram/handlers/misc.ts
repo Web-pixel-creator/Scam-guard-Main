@@ -91,7 +91,7 @@ import {
   buildGuardianVoiceOutText,
   buildPanicVoiceOutText,
   parseVoiceOutCallback,
-  parseVoiceOutPanicId,
+  parseVoiceOutPanicCallback,
   sendVoiceOutResponse,
   VOICE_OUT_CB,
 } from "@/lib/telegram/voice-out.server";
@@ -159,7 +159,8 @@ async function sendEmergencyFollowUp(
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
     keyboard: buildEmergencyFollowUpKeyboard(lang, panicId, {
-      includeVoice: action !== "script",
+      includeVoice: true,
+      voiceAction: action,
     }),
   });
 }
@@ -342,16 +343,23 @@ export async function handleCallback(
       return;
     }
 
+    const voiceOutPanic = parseVoiceOutPanicCallback(data);
     const panicId =
-      parseVoiceOutPanicId(data) ?? asPanicScenarioId(ctx.session.scenarioData.lastPanicId);
+      voiceOutPanic?.panicId ?? asPanicScenarioId(ctx.session.scenarioData.lastPanicId);
     if (panicId !== null) {
       await rememberPanicContext(ctx, panicId);
     }
+    const text =
+      panicId && voiceOutPanic?.action
+        ? buildEmergencyFollowUpText(voiceOutPanic.action, panicId, lang)
+        : panicId
+          ? buildPanicVoiceOutText(panicId, lang)
+          : null;
     await sendVoiceOutResponse({
       chatId: ctx.chatId,
       userId: ctx.userId,
       lang,
-      text: panicId ? buildPanicVoiceOutText(panicId, lang) : null,
+      text,
       keyboard: panicId
         ? buildEmergencyFollowUpKeyboard(lang, panicId, { includeVoice: false })
         : undefined,

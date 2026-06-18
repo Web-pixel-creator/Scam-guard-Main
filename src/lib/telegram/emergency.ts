@@ -1995,8 +1995,9 @@ function panicContextCallback(action: EmergencyFollowUpAction, panicId?: PanicSc
     : `${PANIC_CONTEXT_CB_PREFIX}${panicId}:${action}`;
 }
 
-function panicVoiceOutCallback(panicId?: PanicScenarioId): string {
-  return panicId == null ? "voiceout:panic" : `voiceout:panic:${panicId}`;
+function panicVoiceOutCallback(panicId?: PanicScenarioId, action?: EmergencyFollowUpAction): string {
+  if (panicId == null) return "voiceout:panic";
+  return action == null ? `voiceout:panic:${panicId}` : `voiceout:panic:${panicId}:${action}`;
 }
 
 export function parsePanicContextCallbackData(data: string): PanicContextCallbackMatch | null {
@@ -2183,6 +2184,7 @@ function shouldPrioritizeTrustedHelp(panicId?: PanicScenarioId): panicId is Pani
 
 type EmergencyFollowUpKeyboardOptions = {
   includeVoice?: boolean;
+  voiceAction?: EmergencyFollowUpAction;
 };
 
 export function buildLiveCallPostHangupKeyboard(
@@ -2206,7 +2208,9 @@ export function buildLiveCallPostHangupKeyboard(
     ],
   ];
   if (options.includeVoice !== false) {
-    keyboard.push([{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: panicVoiceOutCallback(6) }]);
+    keyboard.push([
+      { text: FOLLOWUP_BUTTONS.voice[lang], callback_data: panicVoiceOutCallback(6, options.voiceAction) },
+    ]);
   }
   return keyboard;
 }
@@ -2257,7 +2261,7 @@ export function buildEmergencyFollowUpKeyboard(
   if (options.includeVoice !== false) {
     lastRow.unshift({
       text: FOLLOWUP_BUTTONS.voice[lang],
-      callback_data: panicVoiceOutCallback(panicId),
+      callback_data: panicVoiceOutCallback(panicId, options.voiceAction),
     });
   }
   keyboard.push(lastRow);

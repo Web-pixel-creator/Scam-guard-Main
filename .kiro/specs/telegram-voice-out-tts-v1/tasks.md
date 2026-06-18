@@ -8,6 +8,9 @@
 - [x] 2. Wire Telegram keyboards and callback handling
   - [x] Add opt-in voice buttons to SOS follow-up keyboards.
   - [x] Add opt-in voice button to Guardian Angel keyboard.
+  - [x] Bind SOS follow-up voice buttons to the originating follow-up action
+        so "what next", "ready phrase", contacts and full-plan cards speak
+        their own short text.
   - [x] Handle callbacks through `misc.ts` without changing old
         `panicctx:*`/`guardian:*` contracts.
 
@@ -18,6 +21,8 @@
 - [x] 4. Add regression coverage
   - [x] Test callback parsing, scripts, Gemini isolation, sanitization and
         fallback.
+  - [x] Test action-bound voice callbacks, duplicate-tap idempotency and
+        Telegram `upload_voice` waiting action.
   - [x] Update Guardian/SOS keyboard tests.
 
 - [x] 5. Update docs and QA artifact
