@@ -23,6 +23,7 @@
         fallback.
   - [x] Test action-bound voice callbacks, duplicate-tap idempotency and
         Telegram `upload_voice` waiting action.
+  - [x] Test callback feedback for first and repeated voice-button taps.
   - [x] Update Guardian/SOS keyboard tests.
 
 - [x] 5. Update docs and QA artifact

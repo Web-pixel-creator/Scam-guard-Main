@@ -321,15 +321,17 @@ export async function handleCallback(
   ctx: HandlerCtx,
   callbackQueryId?: string,
 ): Promise<void> {
+  const voiceOutAction = parseVoiceOutCallback(data);
   // Clear the «часики» spinner as early as possible (best-effort, R-UX).
-  if (callbackQueryId !== undefined) {
+  // Voice-out answers the callback itself so it can show "preparing" or
+  // duplicate-click feedback without starting another TTS request.
+  if (callbackQueryId !== undefined && voiceOutAction === null) {
     await answerCallbackQuery(callbackQueryId);
   }
 
   const lang = ctx.session.lang;
   if (await handleFamilyCallback(data, ctx)) return;
 
-  const voiceOutAction = parseVoiceOutCallback(data);
   if (voiceOutAction !== null) {
     if (voiceOutAction === VOICE_OUT_CB.guardian) {
       const guardian = ctx.session.scenarioData.guardian;
@@ -339,6 +341,7 @@ export async function handleCallback(
         lang,
         text: buildGuardianVoiceOutText(guardian, lang),
         keyboard: guardian ? buildGuardianAngelKeyboard(lang, guardian) : undefined,
+        callbackQueryId,
       });
       return;
     }
@@ -363,6 +366,7 @@ export async function handleCallback(
       keyboard: panicId
         ? buildEmergencyFollowUpKeyboard(lang, panicId, { includeVoice: false })
         : undefined,
+      callbackQueryId,
     });
     return;
   }

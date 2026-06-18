@@ -3,6 +3,7 @@ import type { InputType } from "@/lib/risk/detect";
 import type { ReasonCode } from "@/lib/risk/rules";
 import type { Lang } from "@/lib/i18n";
 import {
+  answerCallbackQuery,
   escapeMarkdownV2,
   sendAudioFile,
   sendChatAction,
@@ -318,6 +319,22 @@ function releaseVoiceOutRequest(key: string): void {
   recentVoiceOutRequests.delete(key);
 }
 
+function buildVoiceOutPreparingText(lang: Lang): string {
+  return textByLang(lang, {
+    ru: "Готовлю короткую голосовую подсказку...",
+    uz: "Qisqa ovozli maslahat tayyorlanmoqda...",
+    en: "Preparing a short voice tip...",
+  });
+}
+
+function buildVoiceOutDuplicateText(lang: Lang): string {
+  return textByLang(lang, {
+    ru: "Голосовая подсказка уже готовится или недавно отправлена.",
+    uz: "Ovozli maslahat allaqachon tayyorlanmoqda yoki yaqinda yuborilgan.",
+    en: "The voice tip is already being prepared or was sent recently.",
+  });
+}
+
 async function sendVoiceOutChatAction(chatId: number): Promise<void> {
   try {
     await sendChatAction(chatId, "upload_voice");
@@ -591,6 +608,7 @@ export async function sendVoiceOutResponse(args: {
   lang: Lang;
   text: string | null;
   keyboard?: InlineKeyboard;
+  callbackQueryId?: string;
 }): Promise<void> {
   if (!args.text) {
     await sendMessage({
@@ -607,7 +625,16 @@ export async function sendVoiceOutResponse(args: {
   }
 
   const duplicateKey = voiceOutRequestKey(args.chatId, args.userId, args.text);
-  if (isDuplicateVoiceOutRequest(duplicateKey)) return;
+  if (isDuplicateVoiceOutRequest(duplicateKey)) {
+    if (args.callbackQueryId !== undefined) {
+      await answerCallbackQuery(args.callbackQueryId, buildVoiceOutDuplicateText(args.lang));
+    }
+    return;
+  }
+
+  if (args.callbackQueryId !== undefined) {
+    await answerCallbackQuery(args.callbackQueryId, buildVoiceOutPreparingText(args.lang));
+  }
 
   await sendVoiceOutChatAction(args.chatId);
 

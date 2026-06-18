@@ -94,7 +94,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Voice-out contextual follow-up hardening.~~ Done: voice buttons under
       "what next", "ready phrase", contacts and full-plan emergency follow-ups
       now encode the originating action, show an `upload_voice` Telegram action
-      while synthesis runs and de-duplicate repeated taps for the same text.
+      while synthesis runs, de-duplicate repeated taps for the same text, and
+      answer repeated voice-button clicks with a short "already preparing/sent"
+      callback hint instead of burning another TTS request.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting

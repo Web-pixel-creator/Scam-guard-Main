@@ -133,7 +133,8 @@ Signatures and intent only. See file paths for source.
   configured and falls back to a short text message when audio is unavailable.
   It sends a best-effort `upload_voice` chat action before synthesis and
   de-duplicates repeated taps for the same user/text so retries do not burn
-  provider quota.
+  provider quota; first/repeated button taps answer the callback with a short
+  "preparing" or "already preparing/sent" hint instead of staying silent.
 
 ## Website embed widget
 

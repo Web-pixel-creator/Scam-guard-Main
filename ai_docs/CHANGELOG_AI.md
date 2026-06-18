@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Voice-out duplicate-click feedback shipped
+
+- Voice-out callbacks now own their `answerCallbackQuery` response: the first
+  tap shows a short "preparing voice" status, while repeated taps for the same
+  text return a duplicate hint instead of silently doing nothing.
+- The duplicate guard still blocks repeated TTS provider calls for the same
+  user/chat/text window, reducing accidental API spend when users tap the
+  voice button several times while waiting.
+
 ## 2026-06-18 - Voice-in/STT UX first slice shipped
 
 - `handleVoice` now starts a fast non-message Telegram typing indicator while

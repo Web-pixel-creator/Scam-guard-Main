@@ -7,6 +7,7 @@ const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   sentAudio: [] as Array<{ chatId: number; audio: Uint8Array; caption?: string }>,
   sentActions: [] as Array<{ chatId: number; action: string }>,
+  answeredCallbacks: [] as Array<{ id: string; text?: string }>,
 }));
 
 vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
@@ -25,6 +26,9 @@ vi.mock("@/lib/telegram/api.server", () => ({
   sendMessage: vi.fn(async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
     hoisted.sentMessages.push(opts);
     return { ok: true };
+  }),
+  answerCallbackQuery: vi.fn(async (id: string, text?: string) => {
+    hoisted.answeredCallbacks.push({ id, text });
   }),
 }));
 
@@ -74,6 +78,7 @@ describe("telegram Voice-out / TTS", () => {
     hoisted.sentMessages.length = 0;
     hoisted.sentAudio.length = 0;
     hoisted.sentActions.length = 0;
+    hoisted.answeredCallbacks.length = 0;
   });
 
   afterEach(() => {
@@ -283,13 +288,17 @@ describe("telegram Voice-out / TTS", () => {
       keyboard: [[{ text: "OK", callback_data: "ok" }]],
     };
 
-    await sendVoiceOutResponse(args);
-    await sendVoiceOutResponse(args);
+    await sendVoiceOutResponse({ ...args, callbackQueryId: "voice-cb-1" });
+    await sendVoiceOutResponse({ ...args, callbackQueryId: "voice-cb-2" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(hoisted.sentActions).toEqual([{ chatId: 20, action: "upload_voice" }]);
     expect(hoisted.sentAudio).toHaveLength(1);
     expect(hoisted.sentMessages).toHaveLength(0);
+    expect(hoisted.answeredCallbacks).toEqual([
+      { id: "voice-cb-1", text: expect.stringContaining("Готовлю") },
+      { id: "voice-cb-2", text: expect.stringContaining("уже") },
+    ]);
     expect(hoisted.sentAudio[0]?.caption).toContain("Голосом");
     expect(hoisted.sentAudio[0]?.caption).toContain("Позвоните в банк");
   });
