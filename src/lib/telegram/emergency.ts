@@ -1089,34 +1089,34 @@ export function buildPanicMenuText(lang: Lang): string {
 
 const SCENARIO_HUMAN_CUES: Partial<Record<PanicScenarioId, Record<Lang, string>>> = {
   1: {
-    ru: "Я рядом. Главное сейчас — закрыть доступ к деньгам, а детали разберём после звонка в банк.",
-    uz: "Men yoningizdaman. Hozir eng muhimi — pulga kirishni yopish, tafsilotlarni bankka qo'ng'iroqdan keyin ko'ramiz.",
-    en: "I am with you. First we close access to the money; details can wait until after the bank call.",
+    ru: "Главное сейчас — закрыть доступ к деньгам, а детали разберём после звонка в банк.",
+    uz: "Hozir eng muhimi — pulga kirishni yopish, tafsilotlarni bankka qo'ng'iroqdan keyin ko'ramiz.",
+    en: "First close access to the money; details can wait until after the bank call.",
   },
   2: {
-    ru: "Я рядом. Сначала изолируем телефон: так приложение не сможет дальше получать SMS и уведомления.",
-    uz: "Men yoningizdaman. Avval telefonni ajratamiz: ilova SMS va bildirishnomalarni ololmaydi.",
-    en: "I am with you. First isolate the phone so the app cannot keep reading SMS or notifications.",
+    ru: "Сначала изолируем телефон: так приложение не сможет дальше получать SMS и уведомления.",
+    uz: "Avval telefonni ajratamiz: ilova SMS va bildirishnomalarni ololmaydi.",
+    en: "First isolate the phone so the app cannot keep reading SMS or notifications.",
   },
   3: {
-    ru: "Я рядом. Сейчас цель — остановить движение денег и сохранить доказательства, не отправляя ничего повторно.",
-    uz: "Men yoningizdaman. Maqsad — pul harakatini to'xtatish va dalillarni saqlash; qayta pul yubormang.",
-    en: "I am with you. The goal now is to stop money movement and save evidence; do not send anything again.",
+    ru: "Сейчас цель — остановить движение денег и сохранить доказательства, не отправляя ничего повторно.",
+    uz: "Maqsad — pul harakatini to'xtatish va dalillarni saqlash; qayta pul yubormang.",
+    en: "The goal now is to stop money movement and save evidence; do not send anything again.",
   },
   4: {
-    ru: "Я рядом. Сначала закрываем карту: даже если списаний нет, данные уже могли попасть к посторонним.",
-    uz: "Men yoningizdaman. Avval kartani yopamiz: yechib olish bo'lmasa ham, ma'lumotlar begonalarga o'tgan bo'lishi mumkin.",
-    en: "I am with you. First block the card: even if nothing was charged, the details may already be exposed.",
+    ru: "Сначала закрываем карту: даже если списаний нет, данные уже могли попасть к посторонним.",
+    uz: "Avval kartani yopamiz: yechib olish bo'lmasa ham, ma'lumotlar begonalarga o'tgan bo'lishi mumkin.",
+    en: "First block the card: even if nothing was charged, the details may already be exposed.",
   },
   5: {
-    ru: "Я рядом. Не спорьте с тем, кто пишет от вашего имени: сначала возвращаем доступ и предупреждаем близких.",
-    uz: "Men yoningizdaman. Sizning nomingizdan yozayotgan odam bilan tortishmang: avval kirishni tiklab, yaqinlarni ogohlantiramiz.",
-    en: "I am with you. Do not argue with whoever is using your account; first recover access and warn people.",
+    ru: "Не спорьте с тем, кто пишет от вашего имени: сначала возвращаем доступ и предупреждаем близких.",
+    uz: "Sizning nomingizdan yozayotgan odam bilan tortishmang: avval kirishni tiklab, yaqinlarni ogohlantiramiz.",
+    en: "Do not argue with whoever is using your account; first recover access and warn people.",
   },
   6: {
-    ru: "Я рядом. Не доказывайте ничего по телефону: настоящий банк спокойно дождётся вашего обратного звонка.",
-    uz: "Men yoningizdaman. Telefonda hech narsani isbotlamang: haqiqiy bank sizning qayta qo'ng'irog'ingizni kutadi.",
-    en: "I am with you. You do not need to prove anything on the call; a real bank will wait for your callback.",
+    ru: "Не доказывайте ничего по телефону: настоящий банк спокойно дождётся вашего обратного звонка.",
+    uz: "Telefonda hech narsani isbotlamang: haqiqiy bank sizning qayta qo'ng'irog'ingizni kutadi.",
+    en: "You do not need to prove anything on the call; a real bank will wait for your callback.",
   },
 };
 
@@ -1347,7 +1347,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПЛАТИТЕ И НЕ ОТПРАВЛЯЙТЕ НОВЫЕ ФАЙЛЫ",
       "",
-      "Я рядом. Шантажисты часто требуют всё больше после первой оплаты.",
+      "Шантажисты часто требуют всё больше после первой оплаты.",
       "",
       "Сделайте сейчас:",
       "1. Сохраните угрозы скриншотами.",
@@ -1357,7 +1357,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ TO'LAMANG VA YANGI FAYL YUBORMANG",
       "",
-      "Men yoningizdaman. Shantajchilar birinchi to'lovdan keyin ko'proq talab qiladi.",
+      "Shantajchilar birinchi to'lovdan keyin ko'proq talab qiladi.",
       "",
       "Hozir qiling:",
       "1. Tahdidlarni skrinshot qilib saqlang.",
@@ -1367,7 +1367,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT PAY OR SEND NEW FILES",
       "",
-      "I am with you. Blackmailers often demand more after the first payment.",
+      "Blackmailers often demand more after the first payment.",
       "",
       "Do this now:",
       "1. Save threats as screenshots.",
@@ -1379,7 +1379,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ ОСТАНОВИТЕ ПЕРЕВОДЫ",
       "",
-      "Я рядом. Если отношения строятся на срочных платежах и давлении, сначала нужна пауза.",
+      "Если отношения строятся на срочных платежах и давлении, сначала нужна пауза.",
       "",
       "Сделайте сейчас:",
       "1. Не берите кредит и не отправляйте деньги.",
@@ -1389,7 +1389,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ PUL O'TKAZMALARINI TO'XTATING",
       "",
-      "Men yoningizdaman. Munosabat shoshilinch to'lov va bosimga qurilgan bo'lsa, avval pauza kerak.",
+      "Munosabat shoshilinch to'lov va bosimga qurilgan bo'lsa, avval pauza kerak.",
       "",
       "Hozir qiling:",
       "1. Kredit olmang va pul yubormang.",
@@ -1399,7 +1399,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ STOP TRANSFERS",
       "",
-      "I am with you. If the relationship depends on urgent payments and pressure, pause first.",
+      "If the relationship depends on urgent payments and pressure, pause first.",
       "",
       "Do this now:",
       "1. Do not take a loan or send money.",
@@ -1411,7 +1411,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПЛАТИТЕ ЗА УДАЛЕНИЕ ПУБЛИКАЦИИ",
       "",
-      "Я рядом. Оплата часто приводит к новым угрозам, а не к удалению.",
+      "Оплата часто приводит к новым угрозам, а не к удалению.",
       "",
       "Сделайте сейчас:",
       "1. Сохраните доказательства.",
@@ -1421,7 +1421,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ E'LONNI O'CHIRISH UCHUN TO'LAMANG",
       "",
-      "Men yoningizdaman. To'lov ko'pincha o'chirishga emas, yangi tahdidlarga olib keladi.",
+      "To'lov ko'pincha o'chirishga emas, yangi tahdidlarga olib keladi.",
       "",
       "Hozir qiling:",
       "1. Dalillarni saqlang.",
@@ -1431,7 +1431,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT PAY TO REMOVE A POST",
       "",
-      "I am with you. Payment often leads to more threats, not deletion.",
+      "Payment often leads to more threats, not deletion.",
       "",
       "Do this now:",
       "1. Save evidence.",
@@ -1475,7 +1475,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПЕРЕВОДИТЕ ДЕНЬГИ ПО ГОЛОСУ",
       "",
-      "Я рядом. Сейчас важно проверить не голос, а человека: голос могли подделать или переслать.",
+      "Сейчас важно проверить не голос, а человека: голос могли подделать или переслать.",
       "",
       "Сделайте сейчас:",
       "1. Завершите звонок или голосовой чат.",
@@ -1487,7 +1487,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ OVOZ BO'YICHA PUL YUBORMANG",
       "",
-      "Men yoningizdaman. Hozir ovozni emas, odamni tekshirish kerak: ovoz soxtalashtirilgan yoki yuborilgan bo'lishi mumkin.",
+      "Hozir ovozni emas, odamni tekshirish kerak: ovoz soxtalashtirilgan yoki yuborilgan bo'lishi mumkin.",
       "",
       "Hozir qiling:",
       "1. Qo'ng'iroq yoki ovozli chatni tugating.",
@@ -1499,7 +1499,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT SEND MONEY BASED ON VOICE",
       "",
-      "I am with you. The goal is not to trust the voice, but to verify the person: voice can be cloned or forwarded.",
+      "The goal is not to trust the voice, but to verify the person: voice can be cloned or forwarded.",
       "",
       "Do this now:",
       "1. End the call or voice chat.",
@@ -1513,7 +1513,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПЛАТИТЕ ЗА РАБОТУ ИЛИ «ВЫВОД»",
       "",
-      "Я рядом. Лёгкий доход часто используют как крючок: сначала обещают прибыль, потом просят депозит, комиссию или документы.",
+      "Лёгкий доход часто используют как крючок: сначала обещают прибыль, потом просят депозит, комиссию или документы.",
       "",
       "Сделайте сейчас:",
       "1. Не отправляйте паспорт, карту, коды или фото документов.",
@@ -1525,7 +1525,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ ISH YOKI «YECHISH» UCHUN TO'LAMANG",
       "",
-      "Men yoningizdaman. Oson daromad ko'pincha tuzoq: avval foyda va'da qilinadi, keyin depozit, komissiya yoki hujjat so'raladi.",
+      "Oson daromad ko'pincha tuzoq: avval foyda va'da qilinadi, keyin depozit, komissiya yoki hujjat so'raladi.",
       "",
       "Hozir qiling:",
       "1. Pasport, karta, kod yoki hujjat rasmini yubormang.",
@@ -1537,7 +1537,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT PAY FOR WORK OR “WITHDRAWAL”",
       "",
-      "I am with you. Easy income is often the hook: first profit is promised, then a deposit, fee, or documents are requested.",
+      "Easy income is often the hook: first profit is promised, then a deposit, fee, or documents are requested.",
       "",
       "Do this now:",
       "1. Do not send passports, cards, codes, or document photos.",
@@ -1551,7 +1551,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ОПЛАЧИВАЙТЕ ПО ССЫЛКЕ ИЗ ЧАТА",
       "",
-      "Я рядом. Доставка, пополнение, возврат или «маленькая комиссия» часто ведут к краже карты.",
+      "Доставка, пополнение, возврат или «маленькая комиссия» часто ведут к краже карты.",
       "",
       "Сделайте сейчас:",
       "1. Откройте сервис только через официальное приложение или сайт.",
@@ -1563,7 +1563,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ CHATDAGI HAVOLA ORQALI TO'LAMANG",
       "",
-      "Men yoningizdaman. Yetkazish, to'lov, qaytarish yoki «kichik komissiya» ko'pincha kartani o'g'irlashga olib boradi.",
+      "Yetkazish, to'lov, qaytarish yoki «kichik komissiya» ko'pincha kartani o'g'irlashga olib boradi.",
       "",
       "Hozir qiling:",
       "1. Servisni faqat rasmiy ilova yoki sayt orqali oching.",
@@ -1575,7 +1575,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT PAY THROUGH A CHAT LINK",
       "",
-      "I am with you. Delivery, top-up, refund, or a “small fee” often leads to card theft.",
+      "Delivery, top-up, refund, or a “small fee” often leads to card theft.",
       "",
       "Do this now:",
       "1. Open the service only through the official app or website.",
@@ -1589,7 +1589,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПОДКЛЮЧАЙТЕ WALLET И НЕ ВВОДИТЕ SEED-ФРАЗУ",
       "",
-      "Я рядом. NFT, Stars, TON-бонусы и airdrop часто ведут к wallet connect, seed-фразе или «комиссии за вывод».",
+      "NFT, Stars, TON-бонусы и airdrop часто ведут к wallet connect, seed-фразе или «комиссии за вывод».",
       "",
       "Сделайте сейчас:",
       "1. Не вводите seed-фразу, приватный ключ или Telegram-код.",
@@ -1601,7 +1601,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ WALLET ULAMANG VA SEED-FRAZA KIRITMANG",
       "",
-      "Men yoningizdaman. NFT, Stars, TON bonuslari va airdrop ko'pincha wallet connect, seed-fraza yoki «yechish komissiyasi»ga olib boradi.",
+      "NFT, Stars, TON bonuslari va airdrop ko'pincha wallet connect, seed-fraza yoki «yechish komissiyasi»ga olib boradi.",
       "",
       "Hozir qiling:",
       "1. Seed-fraza, maxfiy kalit yoki Telegram-kodni kiritmang.",
@@ -1613,7 +1613,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT CONNECT WALLET OR ENTER A SEED PHRASE",
       "",
-      "I am with you. NFTs, Stars, TON bonuses, and airdrops often lead to wallet connect, seed phrases, or a “withdrawal fee”.",
+      "NFTs, Stars, TON bonuses, and airdrops often lead to wallet connect, seed phrases, or a “withdrawal fee”.",
       "",
       "Do this now:",
       "1. Do not enter a seed phrase, private key, or Telegram code.",
@@ -1627,7 +1627,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     ru: [
       "⚡ НЕ ПЛАТИТЕ «КОМИССИЮ ЗА ВЫПЛАТУ»",
       "",
-      "Я рядом. Госвыплаты и гранты часто подделывают: обещают компенсацию, а потом просят карту, код или предоплату.",
+      "Госвыплаты и гранты часто подделывают: обещают компенсацию, а потом просят карту, код или предоплату.",
       "",
       "Сделайте сейчас:",
       "1. Открывайте услугу только через официальный сайт или приложение.",
@@ -1639,7 +1639,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     uz: [
       "⚡ «TO'LOV KOMISSIYASI»NI TO'LAMANG",
       "",
-      "Men yoningizdaman. Davlat to'lovlari va grantlar ko'pincha soxtalashtiriladi: kompensatsiya va'da qilinadi, keyin karta, kod yoki oldindan to'lov so'raladi.",
+      "Davlat to'lovlari va grantlar ko'pincha soxtalashtiriladi: kompensatsiya va'da qilinadi, keyin karta, kod yoki oldindan to'lov so'raladi.",
       "",
       "Hozir qiling:",
       "1. Xizmatni faqat rasmiy sayt yoki ilova orqali oching.",
@@ -1651,7 +1651,7 @@ const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
     en: [
       "⚡ DO NOT PAY A “BENEFIT FEE”",
       "",
-      "I am with you. Government benefits and grants are often faked: compensation is promised, then card data, a code, or prepayment is requested.",
+      "Government benefits and grants are often faked: compensation is promised, then card data, a code, or prepayment is requested.",
       "",
       "Do this now:",
       "1. Open the service only through the official site or app.",
@@ -3706,9 +3706,9 @@ function guidedMoreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
   }
 
   const prefix: Record<Lang, string> = {
-    ru: "Я рядом. Давайте без паники: только один безопасный шаг за раз.",
-    uz: "Men yoningizdaman. Vahimasiz: bir vaqtning o'zida faqat bitta xavfsiz qadam.",
-    en: "I am with you. No panic: one safe step at a time.",
+    ru: "Двигаемся спокойно: только один безопасный шаг за раз.",
+    uz: "Vahimasiz davom etamiz: bir vaqtning o'zida faqat bitta xavfsiz qadam.",
+    en: "Move calmly: one safe step at a time.",
   };
   return `${prefix[lang]}\n\n${moreAdviceText(panicId, lang)}`;
 }

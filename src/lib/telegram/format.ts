@@ -238,7 +238,9 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Репутация Ishonch",
       meaning: "📌 Что это значит",
       reports: (count) =>
-        count === 0 ? "0 подтвержд. жалоб" : `${count} подтвержд. жалоб — оценивайте осторожнее`,
+        count === 0
+          ? "подтвержд. жалоб в Ishonch Guard не найдено"
+          : `${count} подтвержд. жалоб — оценивайте осторожнее`,
       foreignWarning: "🚩 Важно",
       weakWarning: "⚠️ Формат",
     },
@@ -250,7 +252,7 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       meaning: "📌 Bu nimani bildiradi",
       reports: (count) =>
         count === 0
-          ? "0 tasdiqlangan shikoyat"
+          ? "Ishonch Guardda tasdiqlangan shikoyat topilmadi"
           : `${count} tasdiqlangan shikoyat — ehtiyotroq baholang`,
       foreignWarning: "🚩 Muhim",
       weakWarning: "⚠️ Format",
@@ -262,7 +264,9 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Ishonch reputation",
       meaning: "📌 What this means",
       reports: (count) =>
-        count === 0 ? "0 confirmed reports" : `${count} confirmed reports — use extra caution`,
+        count === 0
+          ? "no confirmed Ishonch Guard reports found"
+          : `${count} confirmed reports — use extra caution`,
       foreignWarning: "🚩 Important",
       weakWarning: "⚠️ Format",
     },

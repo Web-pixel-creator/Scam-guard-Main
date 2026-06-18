@@ -169,7 +169,7 @@ function telegramUsernamePassportFixture(): RunCheckResult {
       "По одному username нельзя честно сказать «безопасно» или «скам».",
       "",
       "🛡 Репутация и признаки",
-      "• 0 подтвержд. жалоб в Ishonch Guard",
+      "• подтвержд. жалоб в Ishonch Guard не найдено",
       "• отправитель не подтверждён",
       "",
       "🧭 Следующий шаг",

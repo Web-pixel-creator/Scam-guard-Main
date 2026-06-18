@@ -10,7 +10,6 @@ describe("panic scenario first card human guidance", () => {
     const text = buildPanicScenarioText(2, "ru");
 
     expect(firstContentLine(text)).toContain("ВКЛЮЧИТЕ АВИАРЕЖИМ");
-    expect(text).toContain("Я рядом");
     expect(text).toContain("Сначала изолируем телефон");
     expect(text).toContain("SMS и уведомления");
   });

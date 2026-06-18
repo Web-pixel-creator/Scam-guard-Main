@@ -145,7 +145,7 @@ describe("handleCheck follow-up routing", () => {
     });
 
     expect(hoisted.sentMessages).toHaveLength(2);
-    expect(hoisted.sentMessages[1].text).toContain("Я рядом");
+    expect(hoisted.sentMessages[1].text).toContain("авто-подсказка после высокого риска");
     expect(hoisted.sentMessages[1].text).toContain("не новая проверка");
     expect(hoisted.sentMessages[1].text).toContain("один безопасный шаг");
     const callbacks = (hoisted.sentMessages[1].keyboard as { callback_data?: string }[][])

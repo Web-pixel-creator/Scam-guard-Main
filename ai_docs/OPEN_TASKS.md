@@ -74,10 +74,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       scenario-specific contact/help labels and trusted-person ordering where
       it matters, while Guardian Angel suppresses bank-callback buttons for
       crypto/QR/Telegram contexts.
-- [ ] **Emergency copy trust polish.** Reduce repeated "I am nearby" wording,
+- [x] ~~Emergency copy trust polish. Reduce repeated "I am nearby" wording,
       make follow-up copy more adult/neutral, and update reputation wording so
       "0 confirmed complaints" is clearly "not found in Ishonch Guard yet",
-      never a safety guarantee.
+      never a safety guarantee.~~ Done: SOS/Guardian copy now avoids repeated
+      reassurance boilerplate, and Telegram/phone passport cards say confirmed
+      Ishonch Guard complaints were not found instead of implying safety from a
+      zero count.
 - [ ] **Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
       confidence-aware fallback, RU/UZ mixed-speech fixtures and direct routing
       from obvious panic/live-call transcripts to the matching emergency flow.

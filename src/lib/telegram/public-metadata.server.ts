@@ -371,9 +371,9 @@ function telegramSignalText(
             en: `${knownReports} confirmed Ishonch Guard reports`,
           } satisfies Record<Lang, string>)
         : ({
-            ru: "0 подтвержд. жалоб в Ishonch Guard",
-            uz: "Ishonch Guard: 0 tasdiqlangan shikoyat",
-            en: "0 confirmed Ishonch Guard reports",
+            ru: "подтвержд. жалоб в Ishonch Guard не найдено",
+            uz: "Ishonch Guardda tasdiqlangan shikoyat topilmadi",
+            en: "no confirmed Ishonch Guard reports found",
           } satisfies Record<Lang, string>);
     labels.unshift(reports[lang]);
   }

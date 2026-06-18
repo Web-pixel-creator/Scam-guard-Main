@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Emergency copy trust polish shipped
+
+- Removed repeated "I am nearby" prefixes from SOS first cards, follow-up
+  answers and Guardian Angel copy where the repetition made the bot feel
+  templated instead of calm.
+- Changed zero-report reputation wording for Telegram/phone passport cards to
+  "confirmed complaints not found in Ishonch Guard" so absence of local reports
+  is never presented as proof of safety.
+- Updated the Telegram QA report generator fixture, regenerated
+  `ai_docs/TELEGRAM_BOT_QA_REPORT.md` and refreshed regression expectations for
+  emergency copy and reputation wording.
+
 ## 2026-06-18 - Emergency keyboard profile pass shipped
 
 - `/panic` follow-up keyboards now use scenario-specific next-action buttons

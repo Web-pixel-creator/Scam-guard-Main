@@ -284,7 +284,7 @@ describe("telegram public metadata", () => {
     expect(enriched.verifiedContact).toBe(result.verifiedContact);
     expect(enriched.brandEvidence).toEqual(result.brandEvidence);
     expect(enriched.explanation).toContain("Bot API не видит этот username");
-    expect(enriched.explanation).toContain("0 подтвержд. жалоб в Ishonch Guard");
+    expect(enriched.explanation).toContain("подтвержд. жалоб в Ishonch Guard не найдено");
     expect(enriched.explanation).toContain("Репутация и признаки");
   });
 

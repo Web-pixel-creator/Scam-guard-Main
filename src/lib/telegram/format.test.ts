@@ -519,7 +519,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "📌 Вывод",
       "По одному username нельзя честно сказать «безопасно» или «скам».",
       "🛡 Репутация и признаки",
-      "• 0 подтвержд. жалоб в Ishonch Guard",
+      "• подтвержд. жалоб в Ishonch Guard не найдено",
       "• отправитель не подтверждён",
       "🧭 Следующий шаг",
       "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
@@ -538,7 +538,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).toContain(escapeMarkdownV2("Telegram-паспорт: @UiWebWeb"));
     expect(text).toContain(escapeMarkdownV2("Что недоступно"));
     expect(text).toContain(escapeMarkdownV2("скрытая SCAM-метка"));
-    expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб в Ishonch Guard"));
+    expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
     expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain("…");
@@ -707,7 +707,7 @@ describe("formatCheckResult — Phone Directory v1", () => {
     expect(text).toContain(
       escapeMarkdownV2("В официальном справочнике Ishonch Guard совпадения нет."),
     );
-    expect(text).toContain(escapeMarkdownV2("0 подтвержд. жалоб"));
+    expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
     expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
     expect(text).toContain(escapeMarkdownV2("QR-вход"));

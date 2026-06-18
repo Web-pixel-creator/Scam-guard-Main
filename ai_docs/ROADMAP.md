@@ -113,31 +113,32 @@ Already shipped:
 - Telegram Recovery Safety Copy v1: Telegram takeover guidance no longer
   recommends arbitrary recovery usernames and instead points to official
   Telegram app settings/support wording.
+- Emergency Copy Trust Polish v1: SOS and Guardian Angel copy now avoids
+  repeated "I am nearby" boilerplate, and Telegram/phone passports phrase
+  missing local complaints as "not found in Ishonch Guard", not as proof of
+  safety.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
-1. **Emergency copy trust polish.** Keep "I am nearby" reassurance only where it
-   helps, avoid repeated giant keyboards, and make `0 confirmed complaints`
-   wording explicit: absence of Ishonch Guard reports is not a safety guarantee.
-2. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
+1. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
    confidence-aware fallback, RU/UZ mixed speech tests and direct routing from
    obvious panic/live-call transcripts.
-3. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
+2. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
    was actually decoded, what destination type was found, and why benign menu
    QR differs from login/payment/device-link QR.
-4. **Voice-out/STT UX hardening.** Keep daily limits, but add clearer waiting
+3. **Voice-out/STT UX hardening.** Keep daily limits, but add clearer waiting
    states, duplicate-click idempotency and better captions so users understand
    which short text was spoken and why limits exist.
-5. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
+4. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
    cache or skip AI on low-signal checks where deterministic output is enough.
-6. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-7. **Weekly schemes data model.** Move the weekly digest from static copy to a
+6. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-8. **Private moderation chat.** If added, keep it operator-only with redacted
+7. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-9. **External signals and public trust surfaces.** Add Google Safe Browsing /
+8. **External signals and public trust surfaces.** Add Google Safe Browsing /
    URLhaus / PhishTank, public living-experience stories and the scam-call
    trainer after the bot trust fixes above. Paid line-type/VoIP providers stay
    optional.
