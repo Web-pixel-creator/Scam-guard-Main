@@ -92,12 +92,15 @@ async function smokeGemini(): Promise<boolean> {
   const encoded = part?.inlineData?.data || part?.inline_data?.data || "";
   const mimeType = part?.inlineData?.mimeType || part?.inline_data?.mime_type || "missing";
   const bytes = encoded ? Buffer.byteLength(encoded, "base64") : 0;
-  if (bytes < 100) fail(`gemini tts returned too few bytes=${bytes}, model=${model}, voice=${voice}`);
+  if (bytes < 100)
+    fail(`gemini tts returned too few bytes=${bytes}, model=${model}, voice=${voice}`);
   if (!mimeType.includes("audio")) {
     fail(`gemini tts returned unexpected mime=${mimeType}, model=${model}, voice=${voice}`);
   }
 
-  console.log(`OK tts provider=gemini model=${model} voice=${voice} mime=${mimeType} bytes=${bytes}`);
+  console.log(
+    `OK tts provider=gemini model=${model} voice=${voice} mime=${mimeType} bytes=${bytes}`,
+  );
   return true;
 }
 
@@ -105,7 +108,10 @@ async function smokeOpenAi(): Promise<boolean> {
   const apiKey = optionalEnv("OPENAI_TTS_API_KEY");
   if (!apiKey) return false;
 
-  const baseUrl = (optionalEnv("OPENAI_TTS_BASE_URL") || DEFAULT_OPENAI_TTS_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = (optionalEnv("OPENAI_TTS_BASE_URL") || DEFAULT_OPENAI_TTS_BASE_URL).replace(
+    /\/+$/,
+    "",
+  );
   const model = optionalEnv("OPENAI_TTS_MODEL") || DEFAULT_OPENAI_TTS_MODEL;
   const voice = optionalEnv("OPENAI_TTS_VOICE") || DEFAULT_OPENAI_TTS_VOICE;
 
@@ -134,7 +140,9 @@ async function smokeOpenAi(): Promise<boolean> {
     fail(`openai tts returned unexpected content-type=${contentType || "missing"}`);
   }
 
-  console.log(`OK tts provider=openai model=${model} voice=${voice} status=${res.status} bytes=${bytes.byteLength}`);
+  console.log(
+    `OK tts provider=openai model=${model} voice=${voice} status=${res.status} bytes=${bytes.byteLength}`,
+  );
   return true;
 }
 

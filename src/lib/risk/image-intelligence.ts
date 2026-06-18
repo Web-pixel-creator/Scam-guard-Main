@@ -381,7 +381,11 @@ function classifyDecodedQrValue(value: string): DecodedQrKind {
           pathAndQuery,
         );
       if (paymentHost && paymentPath) return "payment";
-      if (/\/(?:pay|payment|checkout|invoice|transfer|topup|deposit|oplata|tolov)(?:\/|$)/i.test(url.pathname)) {
+      if (
+        /\/(?:pay|payment|checkout|invoice|transfer|topup|deposit|oplata|tolov)(?:\/|$)/i.test(
+          url.pathname,
+        )
+      ) {
         return "payment";
       }
       if (pathAndQuery.includes("walletconnect") || pathAndQuery.includes("connect-wallet")) {
@@ -582,10 +586,10 @@ export function mergeDecodedQrEvidence(
     decodedPurpose === "login" || decodedPurpose === "payment"
       ? decodedPurpose
       : evidence.qr.purpose !== "unknown"
-      ? evidence.qr.purpose
-      : decodedPurpose !== "unknown"
-        ? decodedPurpose
-        : deriveQrPurpose(combinedForHints, riskHints);
+        ? evidence.qr.purpose
+        : decodedPurpose !== "unknown"
+          ? decodedPurpose
+          : deriveQrPurpose(combinedForHints, riskHints);
   const derivedCategory =
     deriveCategoryFromKinds(kinds) ?? deriveCategory(combinedForHints, true, riskHints);
   const visualCategory =

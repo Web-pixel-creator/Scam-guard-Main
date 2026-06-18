@@ -317,11 +317,7 @@ function sections(): Section[] {
       ],
     ]),
     section("Document/APK fallback", bt("document_safety", LANG)),
-    section(
-      "Image fallback: triage menu",
-      bt("ocr_failed", LANG),
-      buildImageTriageKeyboard(LANG),
-    ),
+    section("Image fallback: triage menu", bt("ocr_failed", LANG), buildImageTriageKeyboard(LANG)),
   ];
 
   for (const kind of IMAGE_KINDS) {
@@ -405,7 +401,12 @@ function sections(): Section[] {
     ]),
     section("Family Shield: self-opened invite", bt("family_accept_self", LANG)),
     section("Family Shield: trusted alert", buildTrustedAlertText(LANG, "Web"), [
-      [{ text: bt("family_btn_trusted_stop_alerts", LANG), callback_data: "family:trusted_opt_out" }],
+      [
+        {
+          text: bt("family_btn_trusted_stop_alerts", LANG),
+          callback_data: "family:trusted_opt_out",
+        },
+      ],
     ]),
   );
 
