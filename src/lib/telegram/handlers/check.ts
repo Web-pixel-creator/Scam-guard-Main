@@ -338,7 +338,11 @@ function buildVoiceTranscriptNote(
 async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Promise<void> {
   const note = buildVoiceTranscriptNote(transcript, ctx.session.lang);
   if (!note) return;
-  await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(note) });
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(note),
+    keyboard: [[{ text: bt("voice_correct_button", ctx.session.lang), callback_data: CB.voiceCorrect }]],
+  });
 }
 
 function normalizeVoiceIntentText(text: string): string {

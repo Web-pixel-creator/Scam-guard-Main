@@ -83,6 +83,7 @@ export const CB = {
   mediaTips: "media_tips",
   familyMenu: "family:menu",
   notifyTrusted: "family:notify",
+  voiceCorrect: "voice_correct",
   lang: (lang: Lang) => `lang:${lang}` as const,
 } as const;
 

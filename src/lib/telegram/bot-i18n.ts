@@ -237,6 +237,16 @@ export const bot_dict: BotDict = {
     uz: "Ovozli xabar yoki audioni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
     en: "I could not reliably understand the voice note or audio file yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
   },
+  voice_correct_button: {
+    ru: "✏️ Исправить текст",
+    uz: "✏️ Matnni tuzatish",
+    en: "✏️ Correct text",
+  },
+  voice_correction_prompt: {
+    ru: "Пришлите исправленный текст голосового одним сообщением. Я проверю уже его, без повторного распознавания голоса.",
+    uz: "Ovozli xabarning tuzatilgan matnini bitta xabar qilib yuboring. Men uni tekshiraman, ovozni qayta tanimayman.",
+    en: "Send the corrected voice transcript as one message. I will check that text without transcribing the voice again.",
+  },
   ocr_failed: {
     ru: "Я не смог надёжно прочитать текст или QR на картинке. Я не буду угадывать риск по размытому кадру.\n\nВыберите ниже, на что это похоже, или пришлите: текст из SMS/чата, ссылку из QR, крупный скрин нужного места.",
     uz: "Rasmdagi matn yoki QRni ishonchli o‘qiy olmadim. Xira kadr bo‘yicha xavfni taxmin qilmayman.\n\nQuyida nimaga o‘xshashini tanlang yoki yuboring: SMS/chat matni, QR havolasi, kerakli joyning yaqinroq skrinshoti.",

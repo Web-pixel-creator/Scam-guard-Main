@@ -430,6 +430,16 @@ export async function handleCallback(
     return;
   }
 
+  if (data === CB.voiceCorrect) {
+    await saveSession(ctx.userId, {
+      scenario: "await_check",
+      scenarioStep: 0,
+      scenarioData: ctx.session.scenarioData,
+    });
+    await sendI18n(ctx.chatId, "voice_correction_prompt", lang);
+    return;
+  }
+
   if (data === CB.showLang) {
     await sendMessage({
       chatId: ctx.chatId,

@@ -50,7 +50,7 @@ vi.mock("@/lib/telegram/session.server", () => ({
   resetScenario: vi.fn(),
 }));
 
-import { handleVoice } from "./check";
+import { handleCheck, handleVoice } from "./check";
 
 function ctx(): HandlerCtx {
   const session: Session = {
@@ -116,9 +116,35 @@ describe("handleVoice", () => {
         text: expect.stringContaining("caller asks for SMS code"),
       }),
     );
+    const transcriptCorrectionMessage = hoisted.sendMessage.mock.calls
+      .map(([message]) => message)
+      .find((message) => JSON.stringify(message.keyboard).includes("voice_correct"));
+    expect(transcriptCorrectionMessage).toEqual(
+      expect.objectContaining({
+        chatId: 100,
+        keyboard: [[expect.objectContaining({ callback_data: "voice_correct" })]],
+      }),
+    );
     const sentTexts = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text));
     expect(sentTexts.findIndex((text) => text.includes("Я распознал голос"))).toBeLessThan(
       sentTexts.findIndex((text) => text.includes("Высокий риск")),
+    );
+  });
+
+  it("checks corrected voice text without another STT call", async () => {
+    await handleCheck("corrected voice transcript asks for SMS code", ctx());
+
+    expect(hoisted.getFile).not.toHaveBeenCalled();
+    expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
+    expect(hoisted.checkSharedRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: "corrected voice transcript asks for SMS code",
+        lang: "ru",
+        rateLimitKey: "tg:42",
+        channel: "telegram",
+      }),
     );
   });
 

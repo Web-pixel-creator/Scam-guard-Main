@@ -21,6 +21,7 @@ const h = vi.hoisted(() => ({
   sendCalls: [] as { chatId: number; text: string; keyboard?: unknown }[],
   editCalls: [] as { chatId: number; messageId: number; text: string; keyboard?: unknown }[],
   answerCalls: [] as string[],
+  saveCalls: [] as { userId: number; patch: unknown }[],
   // Mutable editMessageText result — swap per test.
   editResult: { current: { ok: true } as { ok: boolean } },
 }));
@@ -56,7 +57,10 @@ vi.mock("@/lib/telegram/api.server", () => ({
 // Mock the session store (not used by panic flow, but misc.ts imports it)
 vi.mock("@/lib/telegram/session.server", () => ({
   setLanguage: () => Promise.resolve({ ok: true }),
-  saveSession: () => Promise.resolve({ ok: true }),
+  saveSession: (userId: number, patch: unknown) => {
+    h.saveCalls.push({ userId, patch });
+    return Promise.resolve({ ok: true });
+  },
   resetScenario: () => Promise.resolve(),
 }));
 
@@ -106,11 +110,31 @@ beforeEach(() => {
   h.sendCalls.length = 0;
   h.editCalls.length = 0;
   h.answerCalls.length = 0;
+  h.saveCalls.length = 0;
   h.editResult.current = { ok: true };
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("voice_correct callback", () => {
+  it("asks for a corrected transcript and routes the next message through text check", async () => {
+    await handleCallback("voice_correct", makeCtx());
+
+    expect(h.saveCalls).toEqual([
+      {
+        userId: USER_ID,
+        patch: expect.objectContaining({
+          scenario: "await_check",
+          scenarioStep: 0,
+        }),
+      },
+    ]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toContain("исправленный текст");
+  });
 });
 
 // ===========================================================================

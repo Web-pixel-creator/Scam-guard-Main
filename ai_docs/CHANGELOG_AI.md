@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Voice-in transcript correction shipped
+
+- Telegram voice transcript previews now include a localized "Correct text"
+  button so users can fix misheard STT output instead of resending audio.
+- The correction callback stores `await_check` state and asks for one corrected
+  text message; the next message runs through the normal text risk pipeline
+  without another voice download, STT call or voice-budget spend.
+- Added regression coverage for the correction button, callback routing and
+  no-extra-STT path. Voice-in v2 remains open for confidence-aware fallback and
+  RU/UZ mixed-speech fixtures.
+
 ## 2026-06-18 - QR clarity pass shipped
 
 - Telegram image explanations now distinguish real pixel-decoded QR payloads

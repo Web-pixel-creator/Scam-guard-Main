@@ -84,10 +84,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] **Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
       confidence-aware fallback, RU/UZ mixed-speech fixtures and direct routing
       from obvious panic/live-call transcripts to the matching emergency flow.
-      First slice is shipped: slow STT now shows a quick Telegram activity
-      indicator, exhausted STT budget has its own cost/spam-guard copy, and
-      clear "I already sent code / installed APK / transferred money / entered
-      card / lost Telegram / on a call" transcripts route to `/panic`.
+      First slices are shipped: slow STT now shows a quick Telegram activity
+      indicator, exhausted STT budget has its own cost/spam-guard copy, clear
+      "I already sent code / installed APK / transferred money / entered card /
+      lost Telegram / on a call" transcripts route to `/panic`, and transcript
+      previews include an "edit recognized text" recovery path that rechecks
+      corrected text without another STT call. Remaining: confidence-aware
+      fallback and RU/UZ mixed-speech fixtures.
 - [x] ~~**QR clarity pass.** Make every photo/QR response explicit about
       whether a QR was actually decoded, what kind of destination was found,
       and why a menu/loyalty QR differs from Telegram login, payment or
@@ -103,7 +106,8 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting
-      state, STT-budget wording and direct voice-to-SOS routing are shipped.
+      state, STT-budget wording, direct voice-to-SOS routing and transcript
+      correction are shipped.
 - [ ] **Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
       deterministic output is enough.
