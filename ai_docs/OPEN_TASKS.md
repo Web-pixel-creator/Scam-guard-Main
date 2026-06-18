@@ -38,6 +38,14 @@
 - **Direct `/call` is shipped.** It reuses the live-call copilot without
   exposing bank callback before hangup; command-menu registration must be kept
   in the release checklist whenever command payloads change.
+- **Emergency callback context binding is shipped.** New panic follow-up and
+  Voice-out callback payloads carry the originating scenario id, while legacy
+  callbacks still fall back through `lastPanicId`. This prevents old keyboards
+  from answering with the wrong emergency scenario after the user opens another
+  panic flow.
+- **Telegram recovery copy no longer recommends arbitrary recovery usernames.**
+  Telegram takeover guidance now points users to official Telegram app
+  settings/support wording instead of direct third-party recovery contacts.
 - **Telegram bot response QA is reproducible now.** `npm run
 qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
   current TypeScript formatters, covering main menus, result cards, media
@@ -53,17 +61,6 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 
 ## Near-term product tasks
 
-- [ ] **Emergency callback context binding v1.** Replace new panic follow-up
-      callback payloads with scenario-bound forms such as
-      `panicctx:<panicId>:<action>` and `voiceout:panic:<panicId>`. Keep
-      legacy `panicctx:<action>` / `voiceout:panic` fallback through
-      `lastPanicId`, and add regression tests for stale keyboards from older
-      scenarios.
-- [ ] **Remove unsafe Telegram recovery contacts.** Delete all `@recover` or
-      similar direct-username recovery instructions from Telegram takeover copy.
-      Replace them with official Telegram settings/support guidance and add a
-      regression test that recovery copy does not recommend an arbitrary
-      username.
 - [ ] **Emergency keyboard profile pass.** Audit every `/panic`, `/call` and
       Guardian Angel keyboard so each scenario shows the right next actions:
       bank callback for financial cases, help/evidence/trusted-person actions

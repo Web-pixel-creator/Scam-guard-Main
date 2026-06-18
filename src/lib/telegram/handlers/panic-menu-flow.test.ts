@@ -343,9 +343,9 @@ describe("panic:N — scenario text sent as a new message", () => {
     expect(h.sendCalls).toHaveLength(1);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
       expect.arrayContaining([
-        "panicctx:more",
-        "panicctx:contacts",
-        "panicctx:script",
+        "panicctx:3:more",
+        "panicctx:3:contacts",
+        "panicctx:3:script",
         "family:notify",
       ]),
     );

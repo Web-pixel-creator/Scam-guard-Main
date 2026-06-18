@@ -340,7 +340,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           "📋 Что сделать сейчас:",
           "",
           "  1. Не получается — блокируйте SIM через оператора.",
-          "  2. Telegram: @recover или Settings → Ask a Question.",
+          "  2. Telegram: Settings → Ask a Question или официальный центр помощи Telegram.",
           "  3. Предупредите контакты другим способом.",
           `  4. Подайте заявление: ${policeLine("ru")}`,
           "",
@@ -356,7 +356,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           "📋 Hozir nima qilish kerak:",
           "",
           "  1. Iloji bo'lmasa — SIM-kartani operator orqali bloklang.",
-          "  2. Telegram: @recover yoki Settings → Ask a Question.",
+          "  2. Telegram: Settings → Ask a Question yoki Telegram rasmiy yordam markazi.",
           "  3. Kontaktlaringizni boshqa yo'l bilan ogohlantiring.",
           `  4. Ariza bering: ${policeLine("uz")}`,
           "",
@@ -372,7 +372,7 @@ function buildScenarios(contacts: ReturnType<typeof getEmergencyContacts>): Scen
           "📋 What to do now:",
           "",
           "  1. If you can't — block SIM through your operator.",
-          "  2. Telegram: @recover or Settings → Ask a Question.",
+          "  2. Telegram: Settings → Ask a Question or the official Telegram Help Center.",
           "  3. Warn your contacts via other means.",
           `  4. File a report: ${policeLine("en")}`,
           "",
@@ -1886,6 +1886,11 @@ export interface EmergencyFollowUpMatch {
   panicId: PanicScenarioId;
 }
 
+export interface PanicContextCallbackMatch {
+  action: EmergencyFollowUpAction;
+  panicId: PanicScenarioId | null;
+}
+
 const PANIC_CONTEXT_TTL_MS = 2 * 60 * 60 * 1000;
 
 const FOLLOWUP_URL_RE =
@@ -1976,13 +1981,47 @@ export function withPanicContextData<T extends object>(
   };
 }
 
-export function parsePanicContextCallback(data: string): EmergencyFollowUpAction | null {
+const VALID_PANIC_CONTEXT_ACTIONS: EmergencyFollowUpAction[] = [
+  "more",
+  "contacts",
+  "script",
+  "trusted_person",
+  "full",
+];
+
+function panicContextCallback(action: EmergencyFollowUpAction, panicId?: PanicScenarioId): string {
+  return panicId == null
+    ? `${PANIC_CONTEXT_CB_PREFIX}${action}`
+    : `${PANIC_CONTEXT_CB_PREFIX}${panicId}:${action}`;
+}
+
+function panicVoiceOutCallback(panicId?: PanicScenarioId): string {
+  return panicId == null ? "voiceout:panic" : `voiceout:panic:${panicId}`;
+}
+
+export function parsePanicContextCallbackData(data: string): PanicContextCallbackMatch | null {
   if (!data.startsWith(PANIC_CONTEXT_CB_PREFIX)) return null;
-  const action = data.slice(PANIC_CONTEXT_CB_PREFIX.length);
-  const valid: EmergencyFollowUpAction[] = ["more", "contacts", "script", "trusted_person", "full"];
-  return valid.includes(action as EmergencyFollowUpAction)
-    ? (action as EmergencyFollowUpAction)
-    : null;
+  const payload = data.slice(PANIC_CONTEXT_CB_PREFIX.length);
+  const parts = payload.split(":");
+
+  if (parts.length === 1) {
+    const action = parts[0] as EmergencyFollowUpAction;
+    return VALID_PANIC_CONTEXT_ACTIONS.includes(action) ? { action, panicId: null } : null;
+  }
+
+  if (parts.length === 2) {
+    const panicId = asPanicScenarioId(parts[0]);
+    const action = parts[1] as EmergencyFollowUpAction;
+    return panicId !== null && VALID_PANIC_CONTEXT_ACTIONS.includes(action)
+      ? { action, panicId }
+      : null;
+  }
+
+  return null;
+}
+
+export function parsePanicContextCallback(data: string): EmergencyFollowUpAction | null {
+  return parsePanicContextCallbackData(data)?.action ?? null;
 }
 
 export function classifyEmergencyFollowUp(
@@ -2089,7 +2128,7 @@ export function buildLiveCallPostHangupKeyboard(
     [
       {
         text: contactsButtonText(lang, 6),
-        callback_data: `${PANIC_CONTEXT_CB_PREFIX}contacts`,
+        callback_data: panicContextCallback("contacts", 6),
       },
       {
         text: FOLLOWUP_BUTTONS.trusted_person[lang],
@@ -2097,12 +2136,12 @@ export function buildLiveCallPostHangupKeyboard(
       },
     ],
     [
-      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
-      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: panicContextCallback("script", 6) },
+      { text: FOLLOWUP_BUTTONS.full[lang], callback_data: panicContextCallback("full", 6) },
     ],
   ];
   if (options.includeVoice !== false) {
-    keyboard.push([{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" }]);
+    keyboard.push([{ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: panicVoiceOutCallback(6) }]);
   }
   return keyboard;
 }
@@ -2116,14 +2155,14 @@ export function buildEmergencyFollowUpKeyboard(
 
   const keyboard: InlineKeyboard = [
     [
-      { text: FOLLOWUP_BUTTONS.more[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}more` },
+      { text: FOLLOWUP_BUTTONS.more[lang], callback_data: panicContextCallback("more", panicId) },
       {
         text: contactsButtonText(lang, panicId),
-        callback_data: `${PANIC_CONTEXT_CB_PREFIX}contacts`,
+        callback_data: panicContextCallback("contacts", panicId),
       },
     ],
     [
-      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}script` },
+      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: panicContextCallback("script", panicId) },
       {
         text: FOLLOWUP_BUTTONS.trusted_person[lang],
         callback_data: "family:notify",
@@ -2131,10 +2170,13 @@ export function buildEmergencyFollowUpKeyboard(
     ],
   ];
   const lastRow = [
-    { text: FOLLOWUP_BUTTONS.full[lang], callback_data: `${PANIC_CONTEXT_CB_PREFIX}full` },
+    { text: FOLLOWUP_BUTTONS.full[lang], callback_data: panicContextCallback("full", panicId) },
   ];
   if (options.includeVoice !== false) {
-    lastRow.unshift({ text: FOLLOWUP_BUTTONS.voice[lang], callback_data: "voiceout:panic" });
+    lastRow.unshift({
+      text: FOLLOWUP_BUTTONS.voice[lang],
+      callback_data: panicVoiceOutCallback(panicId),
+    });
   }
   keyboard.push(lastRow);
   return keyboard;

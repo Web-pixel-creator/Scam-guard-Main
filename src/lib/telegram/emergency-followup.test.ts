@@ -8,6 +8,7 @@ import {
   buildPanicKeyboardPage3,
   buildPanicScenarioText,
   classifyEmergencyFollowUp,
+  parsePanicContextCallbackData,
   parsePanicCallback,
   withPanicContextData,
 } from "@/lib/telegram/emergency";
@@ -225,8 +226,35 @@ describe("Emergency Copilot v2 follow-up routing", () => {
 
     expect(regular).not.toContain("voiceout:panic");
     expect(liveCall).not.toContain("voiceout:panic");
-    expect(regular).toContain("panicctx:full");
-    expect(liveCall).toContain("panicctx:full");
+    expect(regular).toContain("panicctx:1:full");
+    expect(liveCall).toContain("panicctx:6:full");
+  });
+
+  it("encodes panic scenario ids in new follow-up callbacks while parsing legacy callbacks", () => {
+    const scenarioData = callbackData(buildEmergencyFollowUpKeyboard("ru", 4));
+    const legacyData = callbackData(buildEmergencyFollowUpKeyboard("ru"));
+
+    expect(scenarioData).toEqual(
+      expect.arrayContaining([
+        "panicctx:4:more",
+        "panicctx:4:contacts",
+        "panicctx:4:script",
+        "voiceout:panic:4",
+        "panicctx:4:full",
+      ]),
+    );
+    expect(scenarioData).not.toContain("panicctx:more");
+    expect(parsePanicContextCallbackData("panicctx:4:contacts")).toEqual({
+      action: "contacts",
+      panicId: 4,
+    });
+    expect(parsePanicContextCallbackData("panicctx:contacts")).toEqual({
+      action: "contacts",
+      panicId: null,
+    });
+    expect(legacyData).toEqual(
+      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "voiceout:panic"]),
+    );
   });
 
   it("uses a help-directory button for blackmail and minor scenarios", () => {
@@ -344,11 +372,11 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const data = callbackData(buildEmergencyFollowUpKeyboard("ru", 6));
 
     expect(data).toEqual([
-      "panicctx:contacts",
+      "panicctx:6:contacts",
       "family:notify",
-      "panicctx:script",
-      "panicctx:full",
-      "voiceout:panic",
+      "panicctx:6:script",
+      "panicctx:6:full",
+      "voiceout:panic:6",
     ]);
     expect(data).not.toContain("panicctx:more");
   });

@@ -28,6 +28,7 @@ import {
   buildGuardianVoiceOutText,
   buildPanicVoiceOutText,
   parseVoiceOutCallback,
+  parseVoiceOutPanicId,
   sendVoiceOutResponse,
   synthesizeVoiceOut,
   VOICE_OUT_CB,
@@ -76,6 +77,9 @@ describe("telegram Voice-out / TTS", () => {
 
   it("parses only the explicit voice-out callbacks", () => {
     expect(parseVoiceOutCallback("voiceout:panic")).toBe(VOICE_OUT_CB.panic);
+    expect(parseVoiceOutCallback("voiceout:panic:4")).toBe(VOICE_OUT_CB.panic);
+    expect(parseVoiceOutPanicId("voiceout:panic:4")).toBe(4);
+    expect(parseVoiceOutPanicId("voiceout:panic:99")).toBeNull();
     expect(parseVoiceOutCallback("voiceout:guardian")).toBe(VOICE_OUT_CB.guardian);
     expect(parseVoiceOutCallback("panicctx:full")).toBeNull();
   });

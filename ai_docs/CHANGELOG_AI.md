@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Emergency callback context binding shipped
+
+- Panic follow-up buttons and Voice-out callbacks now carry the originating
+  scenario id, with legacy callback fallback retained for older keyboards.
+- Added stale-keyboard regression coverage so an old APK follow-up button keeps
+  answering as APK even after the user opens a different panic scenario.
+- Removed unsafe Telegram recovery username guidance from takeover recovery
+  copy; user-facing instructions now point to official Telegram app
+  settings/support wording.
+- Regenerated `ai_docs/TELEGRAM_BOT_QA_REPORT.md` and updated roadmap/open
+  tasks/functions map to mark the first two 2026-06-18 emergency trust fixes as
+  shipped.
+
 ## 2026-06-18 - Roadmap update after emergency UX feedback
 
 - Updated `ai_docs/ROADMAP.md` with the new canonical implementation order from

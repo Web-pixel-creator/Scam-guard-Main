@@ -112,8 +112,9 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/telegram/voice-out.server.ts`**
 
-- `parseVoiceOutCallback(data)` accepts only `voiceout:panic` and
-  `voiceout:guardian`.
+- `parseVoiceOutCallback(data)` accepts `voiceout:panic`,
+  scenario-bound `voiceout:panic:<panicId>` and `voiceout:guardian`.
+  `parseVoiceOutPanicId(data)` extracts only valid safe panic scenario ids.
 - `buildPanicVoiceOutText(panicId, lang)` and
   `buildGuardianVoiceOutText(snapshot, lang)` generate short safety scripts
   from safe scenario ids / summary metadata, not from raw user evidence.
@@ -197,7 +198,10 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/format.ts`: formats result cards; Telegram profile/invite checks use a dedicated context prompt and longer safe truncation budget so Telegram Passport limitations are not cut off, unknown phone cards render a visual Phone Passport, inconclusive phone/Telegram-profile cards add `asked:*` context buttons, unknown cards hide weak topic-only observations, suspicious cards use a compact "what noticed" evidence section, and high-risk first cards are compressed to urgent actions plus a short evidence summary instead of long generic explanation/reporting blocks. Visible-source briefs for forwarded Telegram posts remain as compact evidence.
 - `src/lib/telegram/reputation.server.ts`: observes Telegram targets by HMAC hash, registers unverified Telegram report candidates, syncs confirmed report counts after admin moderation, and renders source/confidence labels only for moderated reputation.
 - `src/lib/telegram/handlers/commands.ts`: `/call` stores minimal panic context `6` and opens the active live-call copilot directly with the hangup-first keyboard.
-- `src/lib/telegram/handlers/misc.ts`: stores minimal panic context (`lastPanicId`, `lastPanicAt`) and handles `panicctx:*` follow-up callbacks.
+- `src/lib/telegram/handlers/misc.ts`: stores minimal panic context
+  (`lastPanicId`, `lastPanicAt`) and handles both scenario-bound
+  `panicctx:<panicId>:<action>` / `voiceout:panic:<panicId>` callbacks and
+  legacy context callbacks that fall back through the latest stored panic id.
 
 ## Auth and integration
 

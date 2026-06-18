@@ -64,9 +64,17 @@ const DEFAULT_GEMINI_TTS_VOICE = "Kore";
 const recentVoiceOutRequests = new Map<string, number>();
 
 export function parseVoiceOutCallback(data: string): VoiceOutAction | null {
-  return Object.values(VOICE_OUT_CB).includes(data as VoiceOutAction)
-    ? (data as VoiceOutAction)
-    : null;
+  if (data === VOICE_OUT_CB.guardian) return VOICE_OUT_CB.guardian;
+  if (data === VOICE_OUT_CB.panic || parseVoiceOutPanicId(data) !== null) return VOICE_OUT_CB.panic;
+  return null;
+}
+
+export function parseVoiceOutPanicId(data: string): PanicScenarioId | null {
+  const prefix = `${VOICE_OUT_CB.panic}:`;
+  if (!data.startsWith(prefix)) return null;
+
+  const n = Number(data.slice(prefix.length));
+  return Number.isInteger(n) && n >= 1 && n <= 15 ? (n as PanicScenarioId) : null;
 }
 
 function textByLang<T>(lang: Lang, values: Record<Lang, T>): T {

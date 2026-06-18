@@ -1017,7 +1017,34 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("С другого телефона");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
-      expect.arrayContaining(["panicctx:more", "panicctx:contacts", "family:notify"]),
+      expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts", "family:notify"]),
+    );
+  });
+
+  it("answers stale panic follow-up buttons using the callback scenario id instead of the latest session context", async () => {
+    const userId = 1125;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5125, data: "panic:2", id: "cb-old-apk" })),
+    );
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId: 5125, data: "panic:4", id: "cb-new-card" })),
+    );
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({ userId, chatId: 5125, data: "panicctx:2:more", id: "cb-stale-apk-more" }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toContain("cb-stale-apk-more");
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("авиарежим");
+    expect(h.sendCalls[0].text).not.toContain("Проверьте последние операции");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
+      expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts"]),
     );
   });
 

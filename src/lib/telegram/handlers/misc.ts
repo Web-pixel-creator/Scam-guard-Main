@@ -55,7 +55,7 @@ import {
   buildEmergencyFollowUpText,
   buildLiveCallActiveKeyboard,
   buildLiveCallPhraseKeyboard,
-  parsePanicContextCallback,
+  parsePanicContextCallbackData,
   parseLiveCallCallback,
   withPanicContextData,
   type EmergencyFollowUpAction,
@@ -91,6 +91,7 @@ import {
   buildGuardianVoiceOutText,
   buildPanicVoiceOutText,
   parseVoiceOutCallback,
+  parseVoiceOutPanicId,
   sendVoiceOutResponse,
   VOICE_OUT_CB,
 } from "@/lib/telegram/voice-out.server";
@@ -341,7 +342,11 @@ export async function handleCallback(
       return;
     }
 
-    const panicId = asPanicScenarioId(ctx.session.scenarioData.lastPanicId);
+    const panicId =
+      parseVoiceOutPanicId(data) ?? asPanicScenarioId(ctx.session.scenarioData.lastPanicId);
+    if (panicId !== null) {
+      await rememberPanicContext(ctx, panicId);
+    }
     await sendVoiceOutResponse({
       chatId: ctx.chatId,
       userId: ctx.userId,
@@ -584,10 +589,12 @@ export async function handleCallback(
   }
 
   // 5a) Emergency Copilot v2 follow-up buttons — "panicctx:contacts" etc.
-  const panicContextAction = parsePanicContextCallback(data);
-  if (panicContextAction !== null) {
-    const panicId = asPanicScenarioId(ctx.session.scenarioData.lastPanicId) ?? 6;
-    await sendEmergencyFollowUp(ctx, panicContextAction, panicId);
+  const panicContextCallback = parsePanicContextCallbackData(data);
+  if (panicContextCallback !== null) {
+    const panicId =
+      panicContextCallback.panicId ?? asPanicScenarioId(ctx.session.scenarioData.lastPanicId) ?? 6;
+    await rememberPanicContext(ctx, panicId);
+    await sendEmergencyFollowUp(ctx, panicContextCallback.action, panicId);
     return;
   }
 
