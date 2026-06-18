@@ -257,22 +257,46 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     );
   });
 
-  it("uses a help-directory button for blackmail and minor scenarios", () => {
-    expect(
-      buildEmergencyFollowUpKeyboard("ru", 7)
-        .flat()
-        .map((button) => button.text),
-    ).toContain("🆘 Куда обратиться");
-    expect(
-      buildEmergencyFollowUpKeyboard("ru", 10)
-        .flat()
-        .map((button) => button.text),
-    ).toContain("🆘 Куда обратиться");
-    expect(
-      buildEmergencyFollowUpKeyboard("ru", 11)
-        .flat()
-        .map((button) => button.text),
-    ).toContain("🆘 Куда обратиться");
+  it("profiles SOS follow-up keyboards by scenario instead of reusing the bank template", () => {
+    const smsCode = buildEmergencyFollowUpKeyboard("ru", 1).flat();
+    const blackmail = buildEmergencyFollowUpKeyboard("ru", 7).flat();
+    const romance = buildEmergencyFollowUpKeyboard("ru", 8).flat();
+    const minor = buildEmergencyFollowUpKeyboard("ru", 10).flat();
+    const voiceClone = buildEmergencyFollowUpKeyboard("ru", 11).flat();
+    const crypto = buildEmergencyFollowUpKeyboard("ru", 14).flat();
+
+    expect(smsCode.map((button) => button.text)).toContain("📞 Позвонить безопасно");
+    expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 1)).slice(0, 2)).toEqual([
+      "panicctx:1:more",
+      "panicctx:1:contacts",
+    ]);
+
+    expect(blackmail.map((button) => button.text)).toContain("🆘 Куда обратиться");
+    expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 7)).slice(0, 2)).toEqual([
+      "family:notify",
+      "panicctx:7:contacts",
+    ]);
+    expect(blackmail.map((button) => button.text)).not.toContain("📞 Позвонить безопасно");
+
+    expect(romance.map((button) => button.text)).toContain("🧭 Пауза и проверка");
+    expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 8)).slice(0, 2)).toEqual([
+      "family:notify",
+      "panicctx:8:contacts",
+    ]);
+
+    expect(minor.map((button) => button.text)).toContain("🆘 Куда обратиться");
+    expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 10)).slice(0, 2)).toEqual([
+      "family:notify",
+      "panicctx:10:contacts",
+    ]);
+
+    expect(voiceClone.map((button) => button.text)).toContain("🎙️ Проверить голос");
+    expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 11)).slice(0, 2)).toEqual([
+      "family:notify",
+      "panicctx:11:contacts",
+    ]);
+
+    expect(crypto.map((button) => button.text)).toContain("💼 Безопасность wallet");
   });
 
   it("includes AI voice-clone in the second panic menu page", () => {

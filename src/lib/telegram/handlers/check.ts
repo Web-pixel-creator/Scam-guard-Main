@@ -393,7 +393,7 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildGuardianAngelIntro(guardian, ctx.session.lang)),
-      keyboard: buildGuardianAngelKeyboard(ctx.session.lang),
+      keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian),
     });
   }
 }
@@ -502,7 +502,7 @@ export async function handleCheck(
       text: escapeMarkdownV2(
         buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
       ),
-      keyboard: buildGuardianAngelKeyboard(lang),
+      keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
     });
     return;
   }

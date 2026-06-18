@@ -2090,30 +2090,95 @@ function followUpProfile(panicId: PanicScenarioId): PanicFollowUpProfile {
   }
 }
 
-function shouldUseHelpDirectory(panicId: PanicScenarioId): boolean {
-  const profile = followUpProfile(panicId);
-  return (
-    profile === "telegram_recovery" ||
-    profile === "blackmail" ||
-    profile === "romance" ||
-    profile === "minor" ||
-    profile === "voice_clone" ||
-    profile === "fake_job" ||
-    profile === "delivery" ||
-    profile === "crypto" ||
-    profile === "government_grant"
-  );
-}
+type FollowUpContactButtonKind =
+  | "safe_callback"
+  | "help_directory"
+  | "pause_review"
+  | "voice_verify"
+  | "telegram_recovery"
+  | "official_channel"
+  | "wallet_safety"
+  | "source_check";
 
-function contactsButtonText(lang: Lang, panicId?: PanicScenarioId): string {
-  if (panicId == null || !shouldUseHelpDirectory(panicId)) return FOLLOWUP_BUTTONS.contacts[lang];
-
-  const labels: Record<Lang, string> = {
+const FOLLOWUP_CONTACT_LABELS: Record<FollowUpContactButtonKind, Record<Lang, string>> = {
+  safe_callback: FOLLOWUP_BUTTONS.contacts,
+  help_directory: {
     ru: "🆘 Куда обратиться",
     uz: "🆘 Qayerga murojaat",
     en: "🆘 Where to get help",
-  };
-  return labels[lang];
+  },
+  pause_review: {
+    ru: "🧭 Пауза и проверка",
+    uz: "🧭 Pauza va tekshiruv",
+    en: "🧭 Pause and review",
+  },
+  voice_verify: {
+    ru: "🎙️ Проверить голос",
+    uz: "🎙️ Ovozni tekshirish",
+    en: "🎙️ Verify voice",
+  },
+  telegram_recovery: {
+    ru: "🔐 Вернуть Telegram",
+    uz: "🔐 Telegramni tiklash",
+    en: "🔐 Recover Telegram",
+  },
+  official_channel: {
+    ru: "🏛️ Официальный канал",
+    uz: "🏛️ Rasmiy kanal",
+    en: "🏛️ Official channel",
+  },
+  wallet_safety: {
+    ru: "💼 Безопасность wallet",
+    uz: "💼 Wallet xavfsizligi",
+    en: "💼 Wallet safety",
+  },
+  source_check: {
+    ru: "🏢 Проверить источник",
+    uz: "🏢 Manbani tekshirish",
+    en: "🏢 Verify source",
+  },
+};
+
+function contactButtonKind(panicId?: PanicScenarioId): FollowUpContactButtonKind {
+  if (panicId == null) return "safe_callback";
+
+  switch (followUpProfile(panicId)) {
+    case "financial":
+    case "malware":
+    case "live_call":
+      return "safe_callback";
+    case "telegram_recovery":
+      return "telegram_recovery";
+    case "blackmail":
+    case "minor":
+      return "help_directory";
+    case "romance":
+      return "pause_review";
+    case "voice_clone":
+      return "voice_verify";
+    case "fake_job":
+      return "source_check";
+    case "delivery":
+    case "government_grant":
+      return "official_channel";
+    case "crypto":
+      return "wallet_safety";
+  }
+}
+
+function contactsButtonText(lang: Lang, panicId?: PanicScenarioId): string {
+  return FOLLOWUP_CONTACT_LABELS[contactButtonKind(panicId)][lang];
+}
+
+function shouldPrioritizeTrustedHelp(panicId?: PanicScenarioId): panicId is PanicScenarioId {
+  if (panicId == null) return false;
+  const profile = followUpProfile(panicId);
+  return (
+    profile === "blackmail" ||
+    profile === "romance" ||
+    profile === "minor" ||
+    profile === "voice_clone"
+  );
 }
 
 type EmergencyFollowUpKeyboardOptions = {
@@ -2153,22 +2218,39 @@ export function buildEmergencyFollowUpKeyboard(
 ): InlineKeyboard {
   if (panicId === 6) return buildLiveCallPostHangupKeyboard(lang, options);
 
-  const keyboard: InlineKeyboard = [
-    [
-      { text: FOLLOWUP_BUTTONS.more[lang], callback_data: panicContextCallback("more", panicId) },
-      {
-        text: contactsButtonText(lang, panicId),
-        callback_data: panicContextCallback("contacts", panicId),
-      },
-    ],
-    [
-      { text: FOLLOWUP_BUTTONS.script[lang], callback_data: panicContextCallback("script", panicId) },
-      {
-        text: FOLLOWUP_BUTTONS.trusted_person[lang],
-        callback_data: "family:notify",
-      },
-    ],
-  ];
+  const firstRow = shouldPrioritizeTrustedHelp(panicId)
+    ? [
+        {
+          text: FOLLOWUP_BUTTONS.trusted_person[lang],
+          callback_data: "family:notify",
+        },
+        {
+          text: contactsButtonText(lang, panicId),
+          callback_data: panicContextCallback("contacts", panicId),
+        },
+      ]
+    : [
+        { text: FOLLOWUP_BUTTONS.more[lang], callback_data: panicContextCallback("more", panicId) },
+        {
+          text: contactsButtonText(lang, panicId),
+          callback_data: panicContextCallback("contacts", panicId),
+        },
+      ];
+
+  const secondRow = shouldPrioritizeTrustedHelp(panicId)
+    ? [
+        { text: FOLLOWUP_BUTTONS.more[lang], callback_data: panicContextCallback("more", panicId) },
+        { text: FOLLOWUP_BUTTONS.script[lang], callback_data: panicContextCallback("script", panicId) },
+      ]
+    : [
+        { text: FOLLOWUP_BUTTONS.script[lang], callback_data: panicContextCallback("script", panicId) },
+        {
+          text: FOLLOWUP_BUTTONS.trusted_person[lang],
+          callback_data: "family:notify",
+        },
+      ];
+
+  const keyboard: InlineKeyboard = [firstRow, secondRow];
   const lastRow = [
     { text: FOLLOWUP_BUTTONS.full[lang], callback_data: panicContextCallback("full", panicId) },
   ];

@@ -104,8 +104,10 @@ Signatures and intent only. See file paths for source.
   message after a high-risk Telegram result.
 - `buildGuardianAngelText(action, snapshot, lang)` renders next-step,
   done-confirmation, safe-callback and full-plan responses.
-- `buildGuardianAngelKeyboard(lang)` returns compact `guardian:*` action
-  buttons plus Family Shield notify and new-check actions.
+- `buildGuardianAngelKeyboard(lang, snapshot?)` returns compact `guardian:*`
+  action buttons plus Family Shield notify and new-check actions. When a
+  snapshot is present, it suppresses bank safe-callback actions for non-bank
+  contexts such as crypto, QR and Telegram recovery.
 - `classifyGuardianAngelFollowUp(text, scenarioData, now)` routes short
   follow-ups such as "что дальше?", "готово" and "дай номер банка" without
   swallowing new artifacts.

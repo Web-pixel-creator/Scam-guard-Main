@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Emergency keyboard profile pass shipped
+
+- `/panic` follow-up keyboards now use scenario-specific next-action buttons
+  instead of reusing one bank/help template. Financial/APK/live-call cases keep
+  safe callback; Telegram takeover shows recovery; blackmail/minor cases
+  prioritize trusted help and help directory; romance uses pause/review; AI
+  voice-clone uses voice verification; crypto uses wallet safety; job and grant
+  cases point to source/official-channel checks.
+- Guardian Angel keyboards now suppress bank-callback actions for non-bank
+  contexts such as crypto, QR and Telegram recovery, keeping trusted-person,
+  full-plan, Voice-out and new-check actions instead.
+- Regenerated `ai_docs/TELEGRAM_BOT_QA_REPORT.md` and added regression tests
+  for scenario-specific SOS and Guardian Angel button profiles.
+
 ## 2026-06-18 - Emergency callback context binding shipped
 
 - Panic follow-up buttons and Voice-out callbacks now carry the originating

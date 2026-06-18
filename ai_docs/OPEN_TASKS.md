@@ -43,6 +43,11 @@
   callbacks still fall back through `lastPanicId`. This prevents old keyboards
   from answering with the wrong emergency scenario after the user opens another
   panic flow.
+- **Emergency keyboards are now profiled by scenario.** Financial/APK/live-call
+  cases keep safe bank callback actions, while Telegram takeover, blackmail,
+  romance, minor-safety, AI voice-clone, fake job, delivery, crypto and grant
+  cases show context-specific buttons such as trusted-person help, help
+  directory, voice verification, wallet safety or official-channel checks.
 - **Telegram recovery copy no longer recommends arbitrary recovery usernames.**
   Telegram takeover guidance now points users to official Telegram app
   settings/support wording instead of direct third-party recovery contacts.
@@ -61,11 +66,14 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 
 ## Near-term product tasks
 
-- [ ] **Emergency keyboard profile pass.** Audit every `/panic`, `/call` and
+- [x] ~~Emergency keyboard profile pass. Audit every `/panic`, `/call` and
       Guardian Angel keyboard so each scenario shows the right next actions:
       bank callback for financial cases, help/evidence/trusted-person actions
       for blackmail/minor/threats, romance-specific pauses, and AI voice-clone
-      verification actions.
+      verification actions.~~ Done: `/panic` follow-up keyboards now use
+      scenario-specific contact/help labels and trusted-person ordering where
+      it matters, while Guardian Angel suppresses bank-callback buttons for
+      crypto/QR/Telegram contexts.
 - [ ] **Emergency copy trust polish.** Reduce repeated "I am nearby" wording,
       make follow-up copy more adult/neutral, and update reputation wording so
       "0 confirmed complaints" is clearly "not found in Ishonch Guard yet",
@@ -73,6 +81,15 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] **Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
       confidence-aware fallback, RU/UZ mixed-speech fixtures and direct routing
       from obvious panic/live-call transcripts to the matching emergency flow.
+- [ ] **QR clarity pass.** Make every photo/QR response explicit about whether
+      a QR was actually decoded, what kind of destination was found, and why a
+      menu/loyalty QR differs from Telegram login, payment or device-link QR.
+- [ ] **Voice-out/STT UX hardening.** Keep the daily TTS/STT cost guards, but
+      improve waiting states, duplicate-click idempotency, captions under audio
+      and user-facing wording when daily voice hints are exhausted.
+- [ ] **Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
+      second paths, then cache or skip AI on low-signal checks where
+      deterministic output is enough.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.

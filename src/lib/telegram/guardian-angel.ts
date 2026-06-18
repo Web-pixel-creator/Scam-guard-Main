@@ -100,6 +100,12 @@ function contextOf(snapshot: GuardianAngelSnapshot): GuardianContext {
   return "generic";
 }
 
+function shouldShowSafeCallButton(snapshot?: GuardianAngelSnapshot): boolean {
+  if (!snapshot) return true;
+  const context = contextOf(snapshot);
+  return context === "apk" || context === "bank" || context === "card" || context === "money";
+}
+
 function isRecent(snapshot: GuardianAngelSnapshot, now = new Date()): boolean {
   const at = Date.parse(snapshot.at);
   return Number.isFinite(at) && now.getTime() - at <= RECENT_GUARDIAN_WINDOW_MS;
@@ -319,7 +325,7 @@ export function parseGuardianAngelCallback(data: string): GuardianAngelAction | 
     : null;
 }
 
-export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
+export function buildGuardianAngelKeyboard(lang: Lang, snapshot?: GuardianAngelSnapshot): InlineKeyboard {
   const text = {
     ru: {
       next: "🧭 Что дальше",
@@ -350,21 +356,36 @@ export function buildGuardianAngelKeyboard(lang: Lang): InlineKeyboard {
     },
   }[lang];
 
-  return [
+  const keyboard: InlineKeyboard = [
     [
       { text: text.next, callback_data: GUARDIAN_CB.next },
       { text: text.done, callback_data: GUARDIAN_CB.done },
     ],
-    [
+  ];
+
+  const showSafeCall = shouldShowSafeCallButton(snapshot);
+  if (showSafeCall) {
+    keyboard.push([
       { text: text.call, callback_data: GUARDIAN_CB.safeCall },
       { text: text.family, callback_data: "family:notify" },
-    ],
-    [
+    ]);
+  } else {
+    keyboard.push([
+      { text: text.family, callback_data: "family:notify" },
+      { text: text.plan, callback_data: GUARDIAN_CB.fullPlan },
+    ]);
+  }
+
+  if (showSafeCall) {
+    keyboard.push([
       { text: text.voice, callback_data: "voiceout:guardian" },
       { text: text.plan, callback_data: GUARDIAN_CB.fullPlan },
-    ],
-    [{ text: text.check, callback_data: "check_another" }],
-  ];
+    ]);
+  } else {
+    keyboard.push([{ text: text.voice, callback_data: "voiceout:guardian" }]);
+  }
+  keyboard.push([{ text: text.check, callback_data: "check_another" }]);
+  return keyboard;
 }
 
 export function buildGuardianAngelIntro(snapshot: GuardianAngelSnapshot, lang: Lang): string {

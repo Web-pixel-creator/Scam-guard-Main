@@ -337,7 +337,7 @@ export async function handleCallback(
         userId: ctx.userId,
         lang,
         text: buildGuardianVoiceOutText(guardian, lang),
-        keyboard: guardian ? buildGuardianAngelKeyboard(lang) : undefined,
+        keyboard: guardian ? buildGuardianAngelKeyboard(lang, guardian) : undefined,
       });
       return;
     }
@@ -369,7 +369,7 @@ export async function handleCallback(
           ? buildGuardianAngelText(guardianAction, guardian, lang)
           : buildGuardianAngelNoContextText(lang),
       ),
-      keyboard: guardian ? buildGuardianAngelKeyboard(lang) : undefined,
+      keyboard: guardian ? buildGuardianAngelKeyboard(lang, guardian) : undefined,
     });
     return;
   }

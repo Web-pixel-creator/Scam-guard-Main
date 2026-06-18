@@ -1634,7 +1634,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:5:more)
-- [🆘 Куда обратиться] (callback: panicctx:5:contacts)
+- [🔐 Вернуть Telegram] (callback: panicctx:5:contacts)
 - [💬 Готовая фраза] (callback: panicctx:5:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:5)
@@ -1655,7 +1655,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:5:more)
-- [🆘 Куда обратиться] (callback: panicctx:5:contacts)
+- [🔐 Вернуть Telegram] (callback: panicctx:5:contacts)
 - [💬 Готовая фраза] (callback: panicctx:5:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:5)
@@ -1678,7 +1678,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:5:more)
-- [🆘 Куда обратиться] (callback: panicctx:5:contacts)
+- [🔐 Вернуть Telegram] (callback: panicctx:5:contacts)
 - [💬 Готовая фраза] (callback: panicctx:5:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:5)
@@ -1699,7 +1699,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:5:more)
-- [🆘 Куда обратиться] (callback: panicctx:5:contacts)
+- [🔐 Вернуть Telegram] (callback: panicctx:5:contacts)
 - [💬 Готовая фраза] (callback: panicctx:5:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:5)
@@ -1735,7 +1735,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:5:more)
-- [🆘 Куда обратиться] (callback: panicctx:5:contacts)
+- [🔐 Вернуть Telegram] (callback: panicctx:5:contacts)
 - [💬 Готовая фраза] (callback: panicctx:5:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:5)
@@ -1952,10 +1952,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:7:more)
-- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
-- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
+- [🧭 Что дальше] (callback: panicctx:7:more)
+- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:7)
 - [📋 Все срочные шаги] (callback: panicctx:7:full)
 
@@ -1973,10 +1973,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:7:more)
-- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
-- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
+- [🧭 Что дальше] (callback: panicctx:7:more)
+- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:7)
 - [📋 Все срочные шаги] (callback: panicctx:7:full)
 
@@ -1998,10 +1998,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:7:more)
-- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
-- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
+- [🧭 Что дальше] (callback: panicctx:7:more)
+- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:7)
 - [📋 Все срочные шаги] (callback: panicctx:7:full)
 
@@ -2020,10 +2020,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:7:more)
-- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
-- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
+- [🧭 Что дальше] (callback: panicctx:7:more)
+- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:7)
 - [📋 Все срочные шаги] (callback: panicctx:7:full)
 
@@ -2054,10 +2054,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:7:more)
-- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
-- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:7:contacts)
+- [🧭 Что дальше] (callback: panicctx:7:more)
+- [💬 Готовая фраза] (callback: panicctx:7:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:7)
 - [📋 Все срочные шаги] (callback: panicctx:7:full)
 
@@ -2107,10 +2107,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:8:more)
-- [🆘 Куда обратиться] (callback: panicctx:8:contacts)
-- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🧭 Пауза и проверка] (callback: panicctx:8:contacts)
+- [🧭 Что дальше] (callback: panicctx:8:more)
+- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:8)
 - [📋 Все срочные шаги] (callback: panicctx:8:full)
 
@@ -2128,10 +2128,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:8:more)
-- [🆘 Куда обратиться] (callback: panicctx:8:contacts)
-- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🧭 Пауза и проверка] (callback: panicctx:8:contacts)
+- [🧭 Что дальше] (callback: panicctx:8:more)
+- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:8)
 - [📋 Все срочные шаги] (callback: panicctx:8:full)
 
@@ -2154,10 +2154,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:8:more)
-- [🆘 Куда обратиться] (callback: panicctx:8:contacts)
-- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🧭 Пауза и проверка] (callback: panicctx:8:contacts)
+- [🧭 Что дальше] (callback: panicctx:8:more)
+- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:8)
 - [📋 Все срочные шаги] (callback: panicctx:8:full)
 
@@ -2176,10 +2176,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:8:more)
-- [🆘 Куда обратиться] (callback: panicctx:8:contacts)
-- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🧭 Пауза и проверка] (callback: panicctx:8:contacts)
+- [🧭 Что дальше] (callback: panicctx:8:more)
+- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:8)
 - [📋 Все срочные шаги] (callback: panicctx:8:full)
 
@@ -2208,10 +2208,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:8:more)
-- [🆘 Куда обратиться] (callback: panicctx:8:contacts)
-- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🧭 Пауза и проверка] (callback: panicctx:8:contacts)
+- [🧭 Что дальше] (callback: panicctx:8:more)
+- [💬 Готовая фраза] (callback: panicctx:8:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:8)
 - [📋 Все срочные шаги] (callback: panicctx:8:full)
 
@@ -2259,10 +2259,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:9:more)
-- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
-- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
+- [🧭 Что дальше] (callback: panicctx:9:more)
+- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:9)
 - [📋 Все срочные шаги] (callback: panicctx:9:full)
 
@@ -2280,10 +2280,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:9:more)
-- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
-- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
+- [🧭 Что дальше] (callback: panicctx:9:more)
+- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:9)
 - [📋 Все срочные шаги] (callback: panicctx:9:full)
 
@@ -2305,10 +2305,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:9:more)
-- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
-- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
+- [🧭 Что дальше] (callback: panicctx:9:more)
+- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:9)
 - [📋 Все срочные шаги] (callback: panicctx:9:full)
 
@@ -2327,10 +2327,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:9:more)
-- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
-- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
+- [🧭 Что дальше] (callback: panicctx:9:more)
+- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:9)
 - [📋 Все срочные шаги] (callback: panicctx:9:full)
 
@@ -2361,10 +2361,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:9:more)
-- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
-- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:9:contacts)
+- [🧭 Что дальше] (callback: panicctx:9:more)
+- [💬 Готовая фраза] (callback: panicctx:9:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:9)
 - [📋 Все срочные шаги] (callback: panicctx:9:full)
 
@@ -2414,10 +2414,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:10:more)
-- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
-- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
+- [🧭 Что дальше] (callback: panicctx:10:more)
+- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:10)
 - [📋 Все срочные шаги] (callback: panicctx:10:full)
 
@@ -2435,10 +2435,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:10:more)
-- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
-- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
+- [🧭 Что дальше] (callback: panicctx:10:more)
+- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:10)
 - [📋 Все срочные шаги] (callback: panicctx:10:full)
 
@@ -2460,10 +2460,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:10:more)
-- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
-- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
+- [🧭 Что дальше] (callback: panicctx:10:more)
+- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:10)
 - [📋 Все срочные шаги] (callback: panicctx:10:full)
 
@@ -2482,10 +2482,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:10:more)
-- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
-- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
+- [🧭 Что дальше] (callback: panicctx:10:more)
+- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:10)
 - [📋 Все срочные шаги] (callback: panicctx:10:full)
 
@@ -2514,10 +2514,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:10:more)
-- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
-- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🆘 Куда обратиться] (callback: panicctx:10:contacts)
+- [🧭 Что дальше] (callback: panicctx:10:more)
+- [💬 Готовая фраза] (callback: panicctx:10:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:10)
 - [📋 Все срочные шаги] (callback: panicctx:10:full)
 
@@ -2567,10 +2567,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:11:more)
-- [🆘 Куда обратиться] (callback: panicctx:11:contacts)
-- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🎙️ Проверить голос] (callback: panicctx:11:contacts)
+- [🧭 Что дальше] (callback: panicctx:11:more)
+- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:11)
 - [📋 Все срочные шаги] (callback: panicctx:11:full)
 
@@ -2588,10 +2588,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:11:more)
-- [🆘 Куда обратиться] (callback: panicctx:11:contacts)
-- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🎙️ Проверить голос] (callback: panicctx:11:contacts)
+- [🧭 Что дальше] (callback: panicctx:11:more)
+- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:11)
 - [📋 Все срочные шаги] (callback: panicctx:11:full)
 
@@ -2617,10 +2617,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:11:more)
-- [🆘 Куда обратиться] (callback: panicctx:11:contacts)
-- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🎙️ Проверить голос] (callback: panicctx:11:contacts)
+- [🧭 Что дальше] (callback: panicctx:11:more)
+- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:11)
 - [📋 Все срочные шаги] (callback: panicctx:11:full)
 
@@ -2641,10 +2641,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:11:more)
-- [🆘 Куда обратиться] (callback: panicctx:11:contacts)
-- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🎙️ Проверить голос] (callback: panicctx:11:contacts)
+- [🧭 Что дальше] (callback: panicctx:11:more)
+- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:11)
 - [📋 Все срочные шаги] (callback: panicctx:11:full)
 
@@ -2674,10 +2674,10 @@ _Нет кнопок._
 
 **Кнопки**
 
-- [🧭 Что дальше] (callback: panicctx:11:more)
-- [🆘 Куда обратиться] (callback: panicctx:11:contacts)
-- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [👪 Позвать близкого] (callback: family:notify)
+- [🎙️ Проверить голос] (callback: panicctx:11:contacts)
+- [🧭 Что дальше] (callback: panicctx:11:more)
+- [💬 Готовая фраза] (callback: panicctx:11:script)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:11)
 - [📋 Все срочные шаги] (callback: panicctx:11:full)
 
@@ -2729,7 +2729,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:12:more)
-- [🆘 Куда обратиться] (callback: panicctx:12:contacts)
+- [🏢 Проверить источник] (callback: panicctx:12:contacts)
 - [💬 Готовая фраза] (callback: panicctx:12:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:12)
@@ -2750,7 +2750,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:12:more)
-- [🆘 Куда обратиться] (callback: panicctx:12:contacts)
+- [🏢 Проверить источник] (callback: panicctx:12:contacts)
 - [💬 Готовая фраза] (callback: panicctx:12:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:12)
@@ -2778,7 +2778,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:12:more)
-- [🆘 Куда обратиться] (callback: panicctx:12:contacts)
+- [🏢 Проверить источник] (callback: panicctx:12:contacts)
 - [💬 Готовая фраза] (callback: panicctx:12:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:12)
@@ -2800,7 +2800,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:12:more)
-- [🆘 Куда обратиться] (callback: panicctx:12:contacts)
+- [🏢 Проверить источник] (callback: panicctx:12:contacts)
 - [💬 Готовая фраза] (callback: panicctx:12:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:12)
@@ -2833,7 +2833,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:12:more)
-- [🆘 Куда обратиться] (callback: panicctx:12:contacts)
+- [🏢 Проверить источник] (callback: panicctx:12:contacts)
 - [💬 Готовая фраза] (callback: panicctx:12:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:12)
@@ -2887,7 +2887,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:13:more)
-- [🆘 Куда обратиться] (callback: panicctx:13:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:13:contacts)
 - [💬 Готовая фраза] (callback: panicctx:13:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:13)
@@ -2908,7 +2908,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:13:more)
-- [🆘 Куда обратиться] (callback: panicctx:13:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:13:contacts)
 - [💬 Готовая фраза] (callback: panicctx:13:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:13)
@@ -2938,7 +2938,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:13:more)
-- [🆘 Куда обратиться] (callback: panicctx:13:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:13:contacts)
 - [💬 Готовая фраза] (callback: panicctx:13:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:13)
@@ -2960,7 +2960,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:13:more)
-- [🆘 Куда обратиться] (callback: panicctx:13:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:13:contacts)
 - [💬 Готовая фраза] (callback: panicctx:13:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:13)
@@ -2993,7 +2993,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:13:more)
-- [🆘 Куда обратиться] (callback: panicctx:13:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:13:contacts)
 - [💬 Готовая фраза] (callback: panicctx:13:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:13)
@@ -3047,7 +3047,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:14:more)
-- [🆘 Куда обратиться] (callback: panicctx:14:contacts)
+- [💼 Безопасность wallet] (callback: panicctx:14:contacts)
 - [💬 Готовая фраза] (callback: panicctx:14:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:14)
@@ -3068,7 +3068,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:14:more)
-- [🆘 Куда обратиться] (callback: panicctx:14:contacts)
+- [💼 Безопасность wallet] (callback: panicctx:14:contacts)
 - [💬 Готовая фраза] (callback: panicctx:14:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:14)
@@ -3095,7 +3095,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:14:more)
-- [🆘 Куда обратиться] (callback: panicctx:14:contacts)
+- [💼 Безопасность wallet] (callback: panicctx:14:contacts)
 - [💬 Готовая фраза] (callback: panicctx:14:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:14)
@@ -3117,7 +3117,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:14:more)
-- [🆘 Куда обратиться] (callback: panicctx:14:contacts)
+- [💼 Безопасность wallet] (callback: panicctx:14:contacts)
 - [💬 Готовая фраза] (callback: panicctx:14:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:14)
@@ -3150,7 +3150,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:14:more)
-- [🆘 Куда обратиться] (callback: panicctx:14:contacts)
+- [💼 Безопасность wallet] (callback: panicctx:14:contacts)
 - [💬 Готовая фраза] (callback: panicctx:14:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:14)
@@ -3204,7 +3204,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:15:more)
-- [🆘 Куда обратиться] (callback: panicctx:15:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:15:contacts)
 - [💬 Готовая фраза] (callback: panicctx:15:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:15)
@@ -3225,7 +3225,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:15:more)
-- [🆘 Куда обратиться] (callback: panicctx:15:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:15:contacts)
 - [💬 Готовая фраза] (callback: panicctx:15:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:15)
@@ -3255,7 +3255,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:15:more)
-- [🆘 Куда обратиться] (callback: panicctx:15:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:15:contacts)
 - [💬 Готовая фраза] (callback: panicctx:15:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:15)
@@ -3277,7 +3277,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:15:more)
-- [🆘 Куда обратиться] (callback: panicctx:15:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:15:contacts)
 - [💬 Готовая фраза] (callback: panicctx:15:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:15)
@@ -3310,7 +3310,7 @@ _Нет кнопок._
 **Кнопки**
 
 - [🧭 Что дальше] (callback: panicctx:15:more)
-- [🆘 Куда обратиться] (callback: panicctx:15:contacts)
+- [🏛️ Официальный канал] (callback: panicctx:15:contacts)
 - [💬 Готовая фраза] (callback: panicctx:15:script)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🔊 Озвучить главный шаг] (callback: voiceout:panic:15)

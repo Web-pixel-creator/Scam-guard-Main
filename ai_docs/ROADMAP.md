@@ -105,29 +105,39 @@ Already shipped:
   now carry the originating scenario id, while legacy callbacks remain a
   fallback. Stale keyboards from older emergency scenarios no longer answer
   using the latest panic context by accident.
+- Emergency Keyboard Profile Pass v1: `/panic` and Guardian Angel keyboards now
+  match the scenario context. Financial/APK/live-call cases keep safe callback
+  actions; blackmail, minor-safety, romance, voice-clone, Telegram recovery,
+  fake job, delivery, crypto and grant cases prioritize trusted-person help,
+  official destinations, voice verification, wallet safety or source checks.
 - Telegram Recovery Safety Copy v1: Telegram takeover guidance no longer
   recommends arbitrary recovery usernames and instead points to official
   Telegram app settings/support wording.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
-1. **Context-specific emergency keyboards.** Financial scenarios can show safe
-   bank callback. Blackmail, minor-safety, threats, romance and social-pressure
-   scenarios should prioritize evidence, trusted-person help and official help
-   destinations instead of repeating bank actions. AI voice-clone should focus
-   on identity verification, saved-number callback and trusted-person support.
-2. **Emergency copy trust polish.** Keep "I am nearby" reassurance only where it
+1. **Emergency copy trust polish.** Keep "I am nearby" reassurance only where it
    helps, avoid repeated giant keyboards, and make `0 confirmed complaints`
    wording explicit: absence of Ishonch Guard reports is not a safety guarantee.
-3. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
+2. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
    confidence-aware fallback, RU/UZ mixed speech tests and direct routing from
    obvious panic/live-call transcripts.
-4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+3. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
+   was actually decoded, what destination type was found, and why benign menu
+   QR differs from login/payment/device-link QR.
+4. **Voice-out/STT UX hardening.** Keep daily limits, but add clearer waiting
+   states, duplicate-click idempotency and better captions so users understand
+   which short text was spoken and why limits exist.
+5. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
+   cache or skip AI on low-signal checks where deterministic output is enough.
+6. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-5. **Weekly schemes data model.** Move the weekly digest from static copy to a
+7. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-6. **External signals and public trust surfaces.** Add Google Safe Browsing /
+8. **Private moderation chat.** If added, keep it operator-only with redacted
+   summaries and links to admin review, not raw reports or user evidence.
+9. **External signals and public trust surfaces.** Add Google Safe Browsing /
    URLhaus / PhishTank, public living-experience stories and the scam-call
    trainer after the bot trust fixes above. Paid line-type/VoIP providers stay
    optional.

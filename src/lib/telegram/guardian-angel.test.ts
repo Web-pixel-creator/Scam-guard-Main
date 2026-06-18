@@ -74,6 +74,40 @@ describe("Guardian Angel v1", () => {
     ]);
   });
 
+  it("profiles the Guardian Angel keyboard by high-risk context", () => {
+    const bankSnapshot = buildGuardianAngelSnapshot(
+      highRiskResult({ reasons: ["asks_for_sms_code", "impersonates_bank"] }),
+    )!;
+    const cryptoSnapshot = buildGuardianAngelSnapshot(
+      highRiskResult({
+        type: "telegram",
+        reasons: ["gambling_prediction_promo", "crypto_casino_bonus_funnel"],
+      }),
+    )!;
+    const qrSnapshot = buildGuardianAngelSnapshot(
+      highRiskResult({ reasons: ["asks_to_scan_qr", "fake_captcha_or_voting"] }),
+    )!;
+
+    expect(
+      buildGuardianAngelKeyboard("ru", bankSnapshot)
+        .flat()
+        .map((button) => button.callback_data),
+    ).toContain("guardian:safe_call");
+
+    const cryptoCallbacks = buildGuardianAngelKeyboard("ru", cryptoSnapshot)
+      .flat()
+      .map((button) => button.callback_data);
+    expect(cryptoCallbacks).not.toContain("guardian:safe_call");
+    expect(cryptoCallbacks).toContain("family:notify");
+    expect(cryptoCallbacks).toContain("guardian:full_plan");
+
+    const qrCallbacks = buildGuardianAngelKeyboard("ru", qrSnapshot)
+      .flat()
+      .map((button) => button.callback_data);
+    expect(qrCallbacks).not.toContain("guardian:safe_call");
+    expect(qrCallbacks).toContain("guardian:full_plan");
+  });
+
   it("routes human follow-ups to the active guardian context", () => {
     const guardian = buildGuardianAngelSnapshot(highRiskResult(), new Date("2026-06-16T10:00Z"))!;
     const scenarioData: ReportDraft = { guardian };
