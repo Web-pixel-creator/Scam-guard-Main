@@ -450,22 +450,51 @@ function displayDecodedQrValue(value: string): string | null {
   }
 }
 
-function decodedQrSummary(evidence: ImageIntelligenceResult, lang: Lang): string | null {
-  const rawValues =
-    decodedQrValues(evidence).length > 0
-      ? decodedQrValues(evidence)
-      : evidence.qr.visibleUrl
-        ? [evidence.qr.visibleUrl]
-        : [];
-  const values = [
-    ...new Set(rawValues.map(displayDecodedQrValue).filter((v): v is string => Boolean(v))),
+function displayQrValues(values: string[]): string[] {
+  return [
+    ...new Set(values.map(displayDecodedQrValue).filter((v): v is string => Boolean(v))),
   ].slice(0, 4);
+}
+
+function decodedQrSummary(evidence: ImageIntelligenceResult, lang: Lang): string | null {
+  const values = displayQrValues(decodedQrValues(evidence));
   if (values.length === 0) return null;
 
   const joined = values.join(", ");
   if (lang === "uz") return `🔎 QR o'qildi: ${joined}.`;
   if (lang === "en") return `🔎 QR decoded: ${joined}.`;
   return `🔎 QR прочитан: ${joined}.`;
+}
+
+function visibleQrSummary(evidence: ImageIntelligenceResult, lang: Lang): string | null {
+  if (!evidence.qr.visibleUrl) return null;
+
+  const [value] = displayQrValues([evidence.qr.visibleUrl]);
+  if (!value) return null;
+
+  if (lang === "uz") {
+    return `🔎 QR yonidagi manzil: ${value}. QRning o'zi piksel bo'yicha tasdiqlanmadi.`;
+  }
+  if (lang === "en") {
+    return `🔎 Address visible near the QR: ${value}. The QR itself was not confirmed from pixels.`;
+  }
+  return `🔎 Адрес рядом с QR/на изображении: ${value}. Сам QR по пикселям не подтверждён.`;
+}
+
+function unreadQrSummary(evidence: ImageIntelligenceResult, lang: Lang): string | null {
+  if (!evidence.qr.present) return null;
+
+  if (lang === "uz") return "🔎 QR ko'rinadi, ammo kod ishonchli o'qilmadi.";
+  if (lang === "en") return "🔎 QR is visible, but the code was not read reliably.";
+  return "🔎 QR виден, но сам код надёжно не прочитан.";
+}
+
+function qrEvidenceSummary(evidence: ImageIntelligenceResult, lang: Lang): string | null {
+  return (
+    decodedQrSummary(evidence, lang) ??
+    visibleQrSummary(evidence, lang) ??
+    unreadQrSummary(evidence, lang)
+  );
 }
 
 export function hasUsableImageEvidence(evidence: ImageIntelligenceResult): boolean {
@@ -615,7 +644,7 @@ export function mergeDecodedQrEvidence(
 function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {
   const hints = new Set(evidence.riskHints);
   const category = evidence.visualCategory;
-  const qrSummary = decodedQrSummary(evidence, lang);
+  const qrSummary = qrEvidenceSummary(evidence, lang);
 
   if (hints.has("qr_login") || evidence.qr.purpose === "login") {
     if (lang === "uz") {
@@ -710,7 +739,7 @@ export function buildImageUserExplanation(
   lang: Lang,
 ): string {
   const category = evidence.visualCategory;
-  const qrSummary = decodedQrSummary(evidence, lang);
+  const qrSummary = qrEvidenceSummary(evidence, lang);
   const hasDanger =
     evidence.riskHints.length > 0 || level === "high_risk" || level === "suspicious";
 
@@ -719,7 +748,7 @@ export function buildImageUserExplanation(
       return "Rasmda yetkazib berish yoki buyurtmani olish haqida SMS ko‘rinadi. Unda to‘lov, SMS-kod, APK yoki karta ma’lumotlarini so‘rash belgisi ko‘rinmayapti. Agar xabarda havola bo‘lsa, uni alohida yuboring.";
     }
     if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
-      return `${qrSummary ? `${qrSummary}\n\n` : ""}Rasm menyu, aksiya yoki ma’lumot beruvchi QRga o‘xshaydi. QRning o‘zi xavf belgisi emas; xavf kod, karta ma’lumoti, login yoki to‘lov so‘ralganda paydo bo‘ladi. QR ochgan sahifa manzilini tekshiring.`;
+      return `${qrSummary ? `${qrSummary}\n\n` : ""}Rasm menyu, aksiya yoki ma’lumot beruvchi QRga o‘xshaydi. Men kirish, to‘lov, SMS-kod, karta yoki APK so‘rovini ko‘rmayapman. Xavf QR ochilgandan keyin shunday so‘rov paydo bo‘lsa boshlanadi. Sahifa manzilini tekshiring.`;
     }
     if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
       return "Rasm Telegram posti yoki reklama xabariga o‘xshaydi. Kod, karta, wallet, APK, to‘lov yoki shoshilinch bosim belgisi ko‘rinmayapti. Agar tugma/havola ochilgandan keyin shaxsiy ma’lumot so‘ralsa, uni alohida yuboring.";
@@ -735,7 +764,7 @@ export function buildImageUserExplanation(
       return "The image looks like a delivery or pickup SMS. I do not see a payment, SMS code, APK, or card-data request in this screenshot. If there is a link, send it separately for a more precise check.";
     }
     if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
-      return `${qrSummary ? `${qrSummary}\n\n` : ""}The image looks like a menu, promo, or informational QR. A QR code alone is not a scam sign; the risk appears when it asks for a code, card data, login, or payment. Check the page address after opening it.`;
+      return `${qrSummary ? `${qrSummary}\n\n` : ""}The image looks like a menu, promo, or informational QR. I do not see a login, payment, SMS-code, card-data, or APK request. Risk starts if the page after opening asks for one of those. Check the page address.`;
     }
     if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
       return "The image looks like a Telegram post or promo. I do not see a code, card, wallet, APK, payment, or urgency request in the visible content. If a button or link later asks for personal data, send that screen/link separately.";
@@ -750,7 +779,7 @@ export function buildImageUserExplanation(
     return "На изображении похоже SMS о доставке или выдаче заказа. Я не вижу просьбы оплатить, отправить SMS-код, установить APK или ввести данные карты. Если в сообщении есть ссылка — пришлите её отдельно для точной проверки.";
   }
   if (!hasDanger && (category === "restaurant_menu_qr" || category === "qr_menu_or_info")) {
-    return `${qrSummary ? `${qrSummary}\n\n` : ""}На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама; риск появляется, если после него просят код, данные карты, вход в аккаунт или оплату. Проверьте адрес страницы после открытия.`;
+    return `${qrSummary ? `${qrSummary}\n\n` : ""}Похоже на меню, акцию или информационный QR. Я не вижу входа, оплаты, SMS-кода, карты или APK. Риск начинается, если после открытия попросят что-то из этого. Проверьте адрес страницы.`;
   }
   if (!hasDanger && (category === "telegram_promo_post" || category === "news_or_channel_post")) {
     return "Похоже на Telegram-пост или рекламное объявление. В видимой части я не вижу запроса кода, карты, кошелька, APK, оплаты или срочного давления. Если после кнопки/ссылки попросят личные данные — пришлите следующий экран или ссылку отдельно.";

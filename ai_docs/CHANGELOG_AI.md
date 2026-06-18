@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - QR clarity pass shipped
+
+- Telegram image explanations now distinguish real pixel-decoded QR payloads
+  from URLs merely visible near a QR, and from QR codes that are visible but
+  not reliably readable.
+- Benign menu/loyalty/informational QR replies now say what was actually seen
+  and which requests would make the next page risky: login, payment, SMS code,
+  card data or APK.
+- QR-login/payment explanations still hide Telegram login tokens and 2FA
+  secrets while preserving high-risk guidance.
+
 ## 2026-06-18 - Voice-out duplicate-click feedback shipped
 
 - Voice-out callbacks now own their `answerCallbackQuery` response: the first

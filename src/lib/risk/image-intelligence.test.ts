@@ -231,7 +231,26 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).toContain("QR прочитан");
     expect(explanation).toContain("chenson.uz/loyalty");
     expect(explanation).toContain("t.me/chensonuz_bot");
-    expect(explanation).toContain("Сам QR-код не является признаком скама");
+    expect(explanation).toContain("Я не вижу входа, оплаты, SMS-кода");
+  });
+
+  it("does not claim pixel decoding when only a visible URL near a menu QR is known", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: "Меню ресторана. QR-код для акций и бронирования.",
+      visualCategory: "restaurant_menu_qr",
+      confidence: "high",
+      qr: { present: true, visibleUrl: "https://chenson.uz/menu", purpose: "menu" },
+      riskHints: [],
+      summary: "Похоже на ресторанное меню.",
+    });
+
+    expect(evidence).not.toBeNull();
+    const explanation = buildImageUserExplanation(evidence!, "unknown", "ru");
+
+    expect(explanation).toContain("Адрес рядом с QR/на изображении");
+    expect(explanation).toContain("chenson.uz/menu");
+    expect(explanation).toContain("Сам QR по пикселям не подтверждён");
+    expect(explanation).not.toContain("QR прочитан");
   });
 
   it("does not echo sensitive Telegram login QR tokens in the user explanation", () => {
@@ -288,7 +307,8 @@ describe("image intelligence evidence builder", () => {
     const evidence = fallbackImageIntelligence("Меню ресторана. QR-код для акций и бронирования.");
     const explanation = buildImageUserExplanation(evidence, "unknown", "ru");
 
-    expect(explanation).toContain("Сам QR-код не является признаком скама");
+    expect(explanation).toContain("QR виден, но сам код надёжно не прочитан");
+    expect(explanation).toContain("Я не вижу входа, оплаты, SMS-кода");
     expect(explanation).toContain("код");
   });
 

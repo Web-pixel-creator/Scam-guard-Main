@@ -489,7 +489,9 @@ function isForwardSourceBrief(explanation: string | null): explanation is string
 
 function isDecodedQrEvidenceBrief(explanation: string | null): explanation is string {
   if (!explanation) return false;
-  return /QR (?:прочитан|decoded|o['’]qildi)/iu.test(explanation);
+  return /(?:QR (?:прочитан|decoded|o['’]qildi)|Адрес рядом с QR|Address visible near the QR|QR yonidagi manzil|QR виден, но|QR is visible|QR ko['’]rinadi)/iu.test(
+    explanation,
+  );
 }
 
 function isDecodedInformationalQr(result: RunCheckResult): boolean {

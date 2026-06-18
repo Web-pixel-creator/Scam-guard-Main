@@ -323,7 +323,7 @@ describe("formatCheckResult — brief/explanation section (UX v2)", () => {
     const explanation = [
       "🔎 QR прочитан: chenson.uz/loyalty, chenson.uz, chenson.uz/locations, t.me/chensonuz_bot.",
       "",
-      "На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама; риск появляется, если после него просят код, данные карты, вход в аккаунт или оплату.",
+      "Похоже на меню, акцию или информационный QR. Я не вижу входа, оплаты, SMS-кода, карты или APK. Риск начинается, если после открытия попросят что-то из этого.",
     ].join("\n");
 
     const { text } = formatCheckResult(
@@ -343,6 +343,29 @@ describe("formatCheckResult — brief/explanation section (UX v2)", () => {
     expect(text).not.toContain(escapeMarkdownV2(bt("risk_unknown", "ru")));
     expect(text).not.toContain(escapeMarkdownV2(bt("verdict_unknown", "ru")));
     expect(text).not.toContain(escapeMarkdownV2("Я не буду утверждать, что прочитал сам QR"));
+  });
+
+  it("показывает видимый адрес около QR без заявления, что QR был декодирован", () => {
+    const explanation = [
+      "🔎 Адрес рядом с QR/на изображении: chenson.uz/menu. Сам QR по пикселям не подтверждён.",
+      "",
+      "Похоже на меню, акцию или информационный QR. Я не вижу входа, оплаты, SMS-кода, карты или APK.",
+    ].join("\n");
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "unknown",
+        score: 0,
+        reasons: [],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Адрес рядом с QR/на изображении"));
+    expect(text).toContain(escapeMarkdownV2("Сам QR по пикселям не подтверждён"));
+    expect(text).toContain(escapeMarkdownV2(bt("risk_qr_info", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("brief_unknown_qr_menu", "ru")));
   });
 
   it("показывает QR-login пояснение без утечки токена в high-risk карточке", () => {
@@ -394,7 +417,7 @@ describe("formatCheckResult — calm unknown contexts", () => {
         level: "unknown",
         reasons: [],
         explanation:
-          "На изображении похоже меню, акция или информационный QR. Сам QR-код не является признаком скама.",
+          "Похоже на меню, акцию или информационный QR. Я не вижу входа, оплаты, SMS-кода, карты или APK.",
       }),
       "ru",
     );

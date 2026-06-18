@@ -88,9 +88,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       indicator, exhausted STT budget has its own cost/spam-guard copy, and
       clear "I already sent code / installed APK / transferred money / entered
       card / lost Telegram / on a call" transcripts route to `/panic`.
-- [ ] **QR clarity pass.** Make every photo/QR response explicit about whether
-      a QR was actually decoded, what kind of destination was found, and why a
-      menu/loyalty QR differs from Telegram login, payment or device-link QR.
+- [x] ~~**QR clarity pass.** Make every photo/QR response explicit about
+      whether a QR was actually decoded, what kind of destination was found,
+      and why a menu/loyalty QR differs from Telegram login, payment or
+      device-link QR.~~ Done: image replies now separate pixel-decoded QR
+      payloads, visible URLs near QR codes and unreadable QR codes, while
+      keeping Telegram login tokens/2FA secrets hidden.
 - [x] ~~Voice-out contextual follow-up hardening.~~ Done: voice buttons under
       "what next", "ready phrase", contacts and full-plan emergency follow-ups
       now encode the originating action, show an `upload_voice` Telegram action

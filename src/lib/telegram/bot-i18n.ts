@@ -717,9 +717,9 @@ export const bot_dict: BotDict = {
     en: "🚨 High fraud risk",
   },
   risk_qr_info: {
-    ru: "QR прочитан",
-    uz: "QR o'qildi",
-    en: "QR decoded",
+    ru: "QR-контекст проверен",
+    uz: "QR konteksti tekshirildi",
+    en: "QR context checked",
   },
   verdict_qr_info: {
     ru: "🟢 Похоже на меню или информационный QR",
