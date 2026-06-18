@@ -201,6 +201,32 @@ function pruneOcrFallbackMemory(now = Date.now()): void {
 
 type OcrFallbackReply = "long" | "short" | "suppress";
 
+type TimingField = string | number | boolean | null | undefined;
+
+function telegramTimingLogThresholdMs(): number {
+  return readBoundedIntEnv("TELEGRAM_TIMING_LOG_THRESHOLD_MS", 1000, 0, 60_000);
+}
+
+function logTelegramTiming(
+  event: string,
+  startedAt: number,
+  fields: Record<string, TimingField> = {},
+): void {
+  const durationMs = Date.now() - startedAt;
+  if (process.env.TELEGRAM_TIMING_LOGS !== "1" && durationMs < telegramTimingLogThresholdMs()) {
+    return;
+  }
+
+  const payload: Record<string, string | number | boolean | null> = {
+    event,
+    durationMs,
+  };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) payload[key] = value;
+  }
+  console.info("telegram_timing", JSON.stringify(payload));
+}
+
 function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbackReply {
   const now = Date.now();
   pruneOcrFallbackMemory(now);
@@ -416,6 +442,7 @@ export async function handleCheck(
   ctx: HandlerCtx,
   source?: TelegramForwardSourceContext,
 ): Promise<void> {
+  const startedAt = Date.now();
   const lang = ctx.session.lang;
   const trimmed = content.trim();
 
@@ -477,25 +504,50 @@ export async function handleCheck(
 
   await guarded(ctx, "handleCheck", async () => {
     const rateLimitKey = rateLimitKeyFor(ctx.userId);
+    const publicPostStartedAt = Date.now();
     const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
-    const result = await withTypingIndicator(ctx.chatId, () =>
-      runCheck({
+    logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
+      hasEvidence: publicPostEvidence !== null,
+    });
+
+    const checkStartedAt = Date.now();
+    const result = await withTypingIndicator(ctx.chatId, async () => {
+      const checked = await runCheck({
         input: publicPostEvidence?.checkInput ?? trimmed,
         type: publicPostEvidence ? "text" : undefined,
         lang,
         rateLimitKey,
         channel: CHANNEL,
         ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-      }),
-    );
+      });
+      logTelegramTiming("check.run_check", checkStartedAt, {
+        type: checked.type,
+        level: checked.level,
+        reasonCount: checked.reasons.length,
+        hasPublicPostEvidence: publicPostEvidence !== null,
+      });
+      return checked;
+    });
     const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+    const enrichmentStartedAt = Date.now();
     const enrichedMetadata = publicPostEvidence
       ? postResult
       : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
     const enriched = publicPostEvidence
       ? enrichedMetadata
       : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+    logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+      publicPostEvidence: publicPostEvidence !== null,
+      level: enriched.level,
+      reasonCount: enriched.reasons.length,
+    });
     await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
+    logTelegramTiming("check.total", startedAt, {
+      type: enriched.type,
+      level: enriched.level,
+      reasonCount: enriched.reasons.length,
+      publicPostEvidence: publicPostEvidence !== null,
+    });
   });
 }
 
@@ -514,11 +566,18 @@ export async function handleImage(
   mediaGroupId?: string,
   source?: TelegramForwardSourceContext,
 ): Promise<void> {
+  const startedAt = Date.now();
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleImage", async () => {
     // 1) Метаданные файла — позволяют отклонить превышение лимита ДО скачивания.
+    const getFileStartedAt = Date.now();
     const meta = await getFile(fileId);
+    logTelegramTiming("image.get_file", getFileStartedAt, {
+      hasMeta: Boolean(meta),
+      fileSizeBytes: meta?.fileSize ?? null,
+      mediaGroup: mediaGroupId !== undefined,
+    });
     if (!meta) {
       await replyImageOcrFailed(ctx, mediaGroupId);
       return;
@@ -531,15 +590,30 @@ export async function handleImage(
     // OCR + проверка могут быть медленными → общий индикатор «печатает…» (R18.2).
     const outcome = await withTypingIndicator(ctx.chatId, async () => {
       // 2) Скачивание строго в память (без сохранения изображения, R5.3).
+      const downloadStartedAt = Date.now();
       const dataUrl = await downloadFileAsDataUrl(meta.filePath);
+      logTelegramTiming("image.download", downloadStartedAt, {
+        ok: dataUrl !== null,
+        fileSizeBytes: meta.fileSize,
+      });
       if (!dataUrl) return { kind: "ocr_failed" as const };
 
       // 3) Decode real QR pixels before AI evidence. This stays in memory and
       // never guesses QR contents when pixel decoding fails.
+      const qrStartedAt = Date.now();
       const decodedQr = decodeQrFromDataUrl(dataUrl);
+      logTelegramTiming("image.qr_decode", qrStartedAt, {
+        qrCount: decodedQr.values.length,
+      });
 
       // 4) Structured image evidence (OCR + visual category + QR purpose).
+      const analysisStartedAt = Date.now();
       const aiEvidence = await analyzeImageCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      logTelegramTiming("image.analysis", analysisStartedAt, {
+        hasEvidence: Boolean(aiEvidence),
+        visualCategory: aiEvidence?.visualCategory ?? null,
+        qrPurpose: aiEvidence?.qr.purpose ?? null,
+      });
       const evidence =
         decodedQr.values.length > 0
           ? mergeDecodedQrEvidence(aiEvidence ?? fallbackImageIntelligence(null), decodedQr)
@@ -551,6 +625,7 @@ export async function handleImage(
 
       // 5) Тот же rules-first конвейер, что и для текста, но без второго AI:
       // explanation уже строится из структурированного image evidence.
+      const checkStartedAt = Date.now();
       const result = await runCheck({
         input: checkInput,
         lang,
@@ -558,6 +633,11 @@ export async function handleImage(
         channel: CHANNEL,
         skipAi: true,
         safeIfNoReasons: isBenignImageContext(evidence),
+      });
+      logTelegramTiming("image.run_check", checkStartedAt, {
+        type: result.type,
+        level: result.level,
+        reasonCount: result.reasons.length,
       });
       return {
         kind: "ok" as const,
@@ -572,7 +652,14 @@ export async function handleImage(
       await replyImageOcrFailed(ctx, mediaGroupId); // R5.6
       return;
     }
-    await sendCheckResult(ctx, enrichForwardSourceContext(outcome.result, source, lang));
+    const finalResult = enrichForwardSourceContext(outcome.result, source, lang);
+    await sendCheckResult(ctx, finalResult);
+    logTelegramTiming("image.total", startedAt, {
+      type: finalResult.type,
+      level: finalResult.level,
+      reasonCount: finalResult.reasons.length,
+      mediaGroup: mediaGroupId !== undefined,
+    });
   });
 }
 
@@ -581,6 +668,7 @@ export async function handleVoice(
   ctx: HandlerCtx,
   meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
 ): Promise<void> {
+  const startedAt = Date.now();
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleVoice", async () => {
@@ -590,12 +678,18 @@ export async function handleVoice(
       (meta?.duration !== undefined && meta.duration > MAX_VOICE_DURATION_SEC)
     ) {
       await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      logTelegramTiming("voice.reject", startedAt, {
+        reason: "metadata_limit",
+        fileSizeBytes: declaredSize,
+        durationSec: meta?.duration ?? null,
+      });
       return;
     }
 
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
       await sendVoiceTranscriptNote(ctx, cachedTranscript);
+      const checkStartedAt = Date.now();
       const result = await runCheck({
         input: cachedTranscript,
         type: "text",
@@ -604,11 +698,32 @@ export async function handleVoice(
         channel: CHANNEL,
         ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       });
+      logTelegramTiming("voice.run_check", checkStartedAt, {
+        cached: true,
+        type: result.type,
+        level: result.level,
+        reasonCount: result.reasons.length,
+      });
       await sendCheckResult(ctx, result);
+      logTelegramTiming("voice.total", startedAt, {
+        cached: true,
+        type: result.type,
+        level: result.level,
+        reasonCount: result.reasons.length,
+        transcriptChars: cachedTranscript.length,
+        durationSec: meta?.duration ?? null,
+      });
       return;
     }
 
+    const getFileStartedAt = Date.now();
     const fileMeta = await getFile(fileId);
+    logTelegramTiming("voice.get_file", getFileStartedAt, {
+      hasMeta: Boolean(fileMeta),
+      fileSizeBytes: fileMeta?.fileSize ?? declaredSize,
+      durationSec: meta?.duration ?? null,
+      mimeType: meta?.mimeType ?? null,
+    });
     if (!fileMeta) {
       await replyText(
         ctx.chatId,
@@ -621,23 +736,45 @@ export async function handleVoice(
     const fileSize = fileMeta.fileSize || declaredSize;
     if (fileSize > MAX_VOICE_BYTES) {
       await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      logTelegramTiming("voice.reject", startedAt, {
+        reason: "file_size_limit",
+        fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
       return;
     }
 
+    const budgetStartedAt = Date.now();
     await checkVoiceSttBudget(ctx.userId);
+    logTelegramTiming("voice.budget", budgetStartedAt, {
+      durationSec: meta?.duration ?? null,
+    });
 
     const outcome = await withTypingIndicator(ctx.chatId, async () => {
+      const downloadStartedAt = Date.now();
       const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
+      logTelegramTiming("voice.download", downloadStartedAt, {
+        ok: dataUrl !== null,
+        fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
       if (!dataUrl) return { kind: "failed" as const };
       if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
         return { kind: "too_large" as const };
       }
 
+      const sttStartedAt = Date.now();
       const transcript = await transcribeVoiceCore(dataUrl, lang, rateLimitKeyFor(ctx.userId));
+      logTelegramTiming("voice.transcribe", sttStartedAt, {
+        ok: Boolean(transcript.text),
+        transcriptChars: transcript.text?.length ?? 0,
+        durationSec: meta?.duration ?? null,
+      });
       if (!transcript.text) return { kind: "failed" as const };
       rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
       await sendVoiceTranscriptNote(ctx, transcript.text);
 
+      const checkStartedAt = Date.now();
       const result = await runCheck({
         input: transcript.text,
         type: "text",
@@ -646,7 +783,13 @@ export async function handleVoice(
         channel: CHANNEL,
         ...TELEGRAM_AI_EXPLANATION_OPTIONS,
       });
-      return { kind: "ok" as const, result };
+      logTelegramTiming("voice.run_check", checkStartedAt, {
+        cached: false,
+        type: result.type,
+        level: result.level,
+        reasonCount: result.reasons.length,
+      });
+      return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
     });
 
     if (outcome.kind === "failed") {
@@ -659,10 +802,23 @@ export async function handleVoice(
     }
     if (outcome.kind === "too_large") {
       await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+      logTelegramTiming("voice.reject", startedAt, {
+        reason: "downloaded_size_limit",
+        fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
       return;
     }
 
     await sendCheckResult(ctx, outcome.result);
+    logTelegramTiming("voice.total", startedAt, {
+      cached: false,
+      type: outcome.result.type,
+      level: outcome.result.level,
+      reasonCount: outcome.result.reasons.length,
+      transcriptChars: outcome.transcriptChars,
+      durationSec: meta?.duration ?? null,
+    });
   });
 }
 

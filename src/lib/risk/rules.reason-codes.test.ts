@@ -183,10 +183,22 @@ describe("evaluateText — fake_delivery_payment (research feed)", () => {
       name: "EN parcel payment",
       text: "Pay the delivery fee for your parcel by this link or it will be returned",
     },
+    {
+      name: "RU voice delivery card-only",
+      text: "Слушай, локацию скинул, если там только по карте, доставка у них только по карте",
+    },
+    {
+      name: "EN delivery card-only",
+      text: "The courier says this delivery is card only and asks to pay by card before pickup",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
     { name: "RU normal courier status", text: "Курьер доставит посылку завтра с 10 до 12" },
+    {
+      name: "RU normal payment on delivery",
+      text: "Курьер доставит посылку завтра, оплата наличными или картой при получении",
+    },
     { name: "UZ normal delivery", text: "Kuryer ertaga posilkani olib keladi" },
   ];
 

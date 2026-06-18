@@ -169,6 +169,15 @@ Telegram voice STT is cost-capped in the app before provider calls: maximum
 and a short-lived in-memory cache for repeated Telegram `file_unique_id` values.
 The cache stores only the redacted transcript, never raw audio.
 
+Telegram text/image/voice handlers emit sanitized `telegram_timing` records for
+slow stages. By default, only stages at or above
+`TELEGRAM_TIMING_LOG_THRESHOLD_MS` are logged (`1000` ms default). Set
+`TELEGRAM_TIMING_LOGS=1` only during short investigations to log every stage.
+These records must stay metadata-only: event name, duration, result type,
+risk level, reason count, file size/duration and similar non-content fields.
+Do not log raw transcripts, links, phone numbers, usernames, OCR text or QR
+payloads.
+
 ## Production monitor / alerting
 
 For recurring checks, use the lightweight production monitor. It checks the

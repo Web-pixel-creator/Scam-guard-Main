@@ -149,6 +149,35 @@ describe("handleVoice", () => {
     );
   });
 
+  it("logs voice timings without exposing transcript content", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    process.env.TELEGRAM_TIMING_LOGS = "1";
+    let logs = "";
+    hoisted.transcribeVoiceCore.mockResolvedValue({
+      text: "Секретный код 1234, ссылка https://example.test и @seller",
+    });
+
+    try {
+      await handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: "timing-voice",
+      });
+      logs = infoSpy.mock.calls.map((call) => call.join(" ")).join("\n");
+    } finally {
+      delete process.env.TELEGRAM_TIMING_LOGS;
+      infoSpy.mockRestore();
+    }
+
+    expect(logs).toContain("telegram_timing");
+    expect(logs).toContain("voice.transcribe");
+    expect(logs).toContain("transcriptChars");
+    expect(logs).not.toContain("Секретный код");
+    expect(logs).not.toContain("1234");
+    expect(logs).not.toContain("example.test");
+    expect(logs).not.toContain("@seller");
+  });
+
   it("blocks new STT calls when the daily voice budget is exhausted", async () => {
     hoisted.checkSharedRateLimit.mockResolvedValue({
       ok: false,

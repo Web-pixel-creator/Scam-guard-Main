@@ -167,7 +167,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "fake_delivery_payment",
-    re: /((курьер|доставк|посылк|почт[аы]|parcel|delivery|shipping|kuryer|yetkazib|posilka).{0,70}(оплат|доплат|пошлин|сбор|комисс|вернут|возврат|ссылк|fee|pay|returned|link|to['’]lov|havola|qaytar|komiss|boj)|pay.{0,40}(delivery|shipping|parcel).{0,20}fee)/i,
+    re: /((курьер|доставк|посылк|почт[аы]|parcel|delivery|shipping|kuryer|yetkazib|posilka).{0,90}(доплат|пошлин|сбор|комисс|вернут|возврат|ссылк|fee|returned|link|to['’]lov|havola|qaytar|komiss|boj|только.{0,25}(по\s+)?карт|по\s+карте|card\s+only|faqat.{0,25}karta)|(только.{0,25}(по\s+)?карт|по\s+карте|card\s+only|faqat.{0,25}karta).{0,90}(курьер|доставк|посылк|parcel|delivery|shipping|kuryer|yetkazib|posilka)|pay.{0,40}(delivery|shipping|parcel).{0,20}fee)/i,
   },
   {
     code: "payment_before_service",

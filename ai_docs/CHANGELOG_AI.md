@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-18 - Telegram timing diagnostics and delivery voice pattern
+
+- Added sanitized `telegram_timing` diagnostics for Telegram text, image and
+  voice handlers. The logs identify slow stages without printing raw user
+  messages, transcripts, links, phone numbers, usernames, OCR text or QR
+  payloads.
+- Documented `TELEGRAM_TIMING_LOGS` and `TELEGRAM_TIMING_LOG_THRESHOLD_MS` for
+  short production latency investigations.
+- Tightened `fake_delivery_payment` so plain payment-on-delivery text stays
+  benign while delivery/card-only wording from voice transcripts becomes a
+  risk signal.
+
 ## 2026-06-17 - Gemini TTS provider for Voice-out
 
 - Voice-out now prefers `GEMINI_TTS_API_KEY` with
