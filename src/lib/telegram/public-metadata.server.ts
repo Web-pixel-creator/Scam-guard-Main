@@ -29,6 +29,100 @@ const PUBLIC_USERNAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{3,31}$/;
 const TELEGRAM_LINK_RE =
   /(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:s\/)?([^\s?#/]+)(?:\/(\d+))?(?:[?#]\S*)?/i;
 const MENTION_RE = /(?:^|[\s([{"'`])@([a-zA-Z][a-zA-Z0-9_]{3,31})(?=$|[^\w])/;
+const PUBLIC_METADATA_LOOKUP_TIMEOUT_MS = readBoundedIntEnv(
+  "TELEGRAM_PUBLIC_METADATA_TIMEOUT_MS",
+  1200,
+  200,
+  8000,
+);
+const PUBLIC_METADATA_CACHE_TTL_MS = readBoundedIntEnv(
+  "TELEGRAM_PUBLIC_METADATA_CACHE_TTL_MS",
+  5 * 60 * 1000,
+  0,
+  60 * 60 * 1000,
+);
+const PUBLIC_METADATA_CACHE_MAX_ENTRIES = readBoundedIntEnv(
+  "TELEGRAM_PUBLIC_METADATA_CACHE_MAX_ENTRIES",
+  500,
+  0,
+  5000,
+);
+
+interface TelegramPublicMetadataLookupOptions {
+  timeoutMs?: number;
+  cache?: boolean;
+}
+
+const publicMetadataCache = new Map<string, { value: TelegramPublicMetadata; expiresAt: number }>();
+
+function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function publicMetadataCacheKey(
+  target: Extract<TelegramPublicTarget, { username: string }>,
+): string {
+  return `${target.username.toLowerCase()}:${target.kind === "public_post" ? target.postId : ""}`;
+}
+
+function getCachedPublicMetadata(key: string, now = Date.now()): TelegramPublicMetadata | null {
+  if (PUBLIC_METADATA_CACHE_TTL_MS <= 0) return null;
+  const cached = publicMetadataCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= now) {
+    publicMetadataCache.delete(key);
+    return null;
+  }
+  return cached.value;
+}
+
+function rememberPublicMetadata(
+  key: string,
+  value: TelegramPublicMetadata,
+  now = Date.now(),
+): void {
+  if (PUBLIC_METADATA_CACHE_TTL_MS <= 0 || PUBLIC_METADATA_CACHE_MAX_ENTRIES <= 0) return;
+  if (
+    !publicMetadataCache.has(key) &&
+    publicMetadataCache.size >= PUBLIC_METADATA_CACHE_MAX_ENTRIES
+  ) {
+    const oldestKey = publicMetadataCache.keys().next().value;
+    if (oldestKey) publicMetadataCache.delete(oldestKey);
+  }
+  publicMetadataCache.set(key, {
+    value,
+    expiresAt: now + PUBLIC_METADATA_CACHE_TTL_MS,
+  });
+}
+
+async function lookupWithSoftTimeout(
+  username: string,
+  lookup: TelegramChatLookup,
+  timeoutMs: number,
+): Promise<GetChatInfoResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race<GetChatInfoResult>([
+      lookup(`@${username}`),
+      new Promise<GetChatInfoResult>((resolve) => {
+        timer = setTimeout(
+          () => resolve({ ok: false, description: "metadata lookup timeout" }),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+export function __resetTelegramPublicMetadataCacheForTests(): void {
+  publicMetadataCache.clear();
+}
 
 export function extractTelegramPublicTarget(input: string): TelegramPublicTarget {
   const trimmed = input.trim();
@@ -65,6 +159,7 @@ export function extractTelegramPublicTarget(input: string): TelegramPublicTarget
 export async function lookupTelegramPublicMetadata(
   input: string,
   lookup: TelegramChatLookup = getChatInfo,
+  options: TelegramPublicMetadataLookupOptions = {},
 ): Promise<TelegramPublicMetadata> {
   const target = extractTelegramPublicTarget(input);
   if (target.kind === "none") return { status: "not_telegram" };
@@ -77,14 +172,31 @@ export async function lookupTelegramPublicMetadata(
 
   const username = target.username;
   const postId = target.kind === "public_post" ? target.postId : undefined;
-  const result = await lookup(`@${username}`);
-  if (result.ok) return { status: "found", username, chat: result.chat, postId };
+  const cacheEnabled = options.cache !== false && lookup === getChatInfo;
+  const cacheKey = publicMetadataCacheKey(target);
+  const cached = cacheEnabled ? getCachedPublicMetadata(cacheKey) : null;
+  if (cached) return cached;
+
+  const result = await lookupWithSoftTimeout(
+    username,
+    lookup,
+    options.timeoutMs ?? PUBLIC_METADATA_LOOKUP_TIMEOUT_MS,
+  );
+  if (result.ok) {
+    const metadata = { status: "found", username, chat: result.chat, postId } as const;
+    if (cacheEnabled) rememberPublicMetadata(cacheKey, metadata);
+    return metadata;
+  }
 
   const description = result.description?.toLowerCase() ?? "";
   if (description.includes("chat not found") || description.includes("username not found")) {
-    return { status: "not_found", username, postId };
+    const metadata = { status: "not_found", username, postId } as const;
+    if (cacheEnabled) rememberPublicMetadata(cacheKey, metadata);
+    return metadata;
   }
-  return { status: "unavailable", username, postId };
+  const metadata = { status: "unavailable", username, postId } as const;
+  if (cacheEnabled) rememberPublicMetadata(cacheKey, metadata);
+  return metadata;
 }
 
 export async function enrichTelegramPublicMetadata(

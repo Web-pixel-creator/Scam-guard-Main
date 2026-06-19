@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Telegram metadata latency guard shipped
+
+- Public Telegram username/post passport enrichment now uses a 1.2s soft
+  metadata lookup budget before falling back to an honest "public data
+  unavailable" passport instead of waiting for the full Bot API timeout.
+- Added a bounded short in-memory metadata cache for repeat username/post
+  checks, reducing repeated Telegram API calls without persisting usernames or
+  raw user input.
+- Latency pass remains open for OCR/STT/image-analysis timing-log tuning.
+
 ## 2026-06-19 - Voice-in confidence fallback and RU/UZ fixtures shipped
 
 - Low-signal voice transcripts now stop before the normal risk pipeline and ask

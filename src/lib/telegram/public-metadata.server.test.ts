@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import {
+  __resetTelegramPublicMetadataCacheForTests,
   buildTelegramPublicMetadataBrief,
   enrichTelegramPublicMetadata,
   extractTelegramPublicTarget,
@@ -23,6 +24,10 @@ function baseTelegramResult(overrides: Partial<RunCheckResult> = {}): RunCheckRe
 }
 
 describe("telegram public metadata", () => {
+  beforeEach(() => {
+    __resetTelegramPublicMetadataCacheForTests();
+  });
+
   it("extracts public usernames from mentions and t.me links", () => {
     expect(extractTelegramPublicTarget("@UiWebWeb")).toEqual({
       kind: "public_username",
@@ -119,6 +124,21 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("Bot API не видит этот username");
     expect(brief).toMatch(/это не доказательство скама/i);
     expect(brief).toContain("SCAM-метка");
+  });
+
+  it("returns unavailable quickly when public metadata lookup exceeds the soft budget", async () => {
+    const startedAt = Date.now();
+    const metadata = await lookupTelegramPublicMetadata(
+      "@SlowPublicUser",
+      () => new Promise(() => undefined),
+      { timeoutMs: 5, cache: false },
+    );
+
+    expect(Date.now() - startedAt).toBeLessThan(250);
+    expect(metadata).toEqual({ status: "unavailable", username: "SlowPublicUser" });
+    const brief = buildTelegramPublicMetadataBrief(metadata, "ru") ?? "";
+    expect(brief).toContain("Telegram-паспорт: @SlowPublicUser");
+    expect(brief).toContain("не удалось запросить публичные данные");
   });
 
   it("does not call getChat for private invites", async () => {
