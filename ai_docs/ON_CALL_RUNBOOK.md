@@ -38,6 +38,10 @@ appeals can send a redacted summary plus an `/admin` link to the operator chat.
 These alerts must stay opt-in and must not include raw report text, screenshots,
 OCR, codes, card data, full phone numbers or full URLs.
 
+To get the chat id safely, create a private Telegram group, add
+`@scamguard_bot`, send `/chatid` in that group and copy the returned `Chat ID`
+into Railway as `TELEGRAM_MODERATION_CHAT_ID`.
+
 To test the private moderation chat after setup:
 
 ```powershell

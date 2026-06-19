@@ -2,6 +2,14 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Hidden Telegram chat id command shipped
+
+- Added hidden `/chatid` Telegram command for private moderation group setup.
+- The command is intentionally not registered in the public Telegram command
+  menu, so regular users do not see operator tooling.
+- Updated deployment/on-call docs to use `/chatid` instead of third-party bots
+  for `TELEGRAM_MODERATION_CHAT_ID`.
+
 ## 2026-06-19 - Moderation alert smoke test shipped
 
 - Added `scripts/moderation-alert-smoke.ts` and `npm run moderation:smoke` to

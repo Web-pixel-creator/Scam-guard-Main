@@ -601,6 +601,27 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ]);
   });
 
+  it("answers hidden /chatid command in a group without exposing secrets", async () => {
+    const chatId = -100222333444;
+    const update = textUpdate({
+      userId: 1112,
+      chatId,
+      text: "/chatid",
+      message: { chat: { id: chatId, type: "supergroup" } },
+    });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(chatId);
+    expect(h.sendCalls[0].text).toContain("Chat ID");
+    expect(h.sendCalls[0].text).toContain(String(chatId));
+    expect(h.sendCalls[0].text).toContain("moderation:smoke");
+    expect(h.sendCalls[0].text).not.toContain("TELEGRAM_BOT_TOKEN");
+    expect(h.sendCalls[0].text).not.toContain("WEBHOOK_SECRET");
+  });
+
   it("sends /appeal with a public correction form button and report fallback", async () => {
     const update = textUpdate({ userId: 1109, chatId: 5109, text: "/appeal" });
 

@@ -136,6 +136,10 @@ committed `.env`, never shipped to client):
   high-level fields and an admin link, never raw report text, screenshots,
   OCR, codes, card data, full phone numbers or full URLs.
 
+To get the private moderation chat id without third-party bots, create a
+private Telegram group, add `@scamguard_bot`, then send `/chatid` in that group.
+Copy the returned `Chat ID` value into `TELEGRAM_MODERATION_CHAT_ID`.
+
 To verify the private moderation chat after adding `TELEGRAM_MODERATION_CHAT_ID`
 and adding the bot to that chat, run:
 
