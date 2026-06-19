@@ -10,9 +10,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
   notice is sent, and public visibility requires manual review.
 - Reformatted private moderation Telegram alerts into a structured Russian
   operator card with privacy reminders and a localized admin button.
+- Simplified duplicate-report alert wording so moderators see a human cue:
+  "already reported today; look closer" instead of database-oriented copy.
 - Clarified that moderation chat alerts are operator-only, intentionally mask
   targets, and require opening the protected admin panel for full review.
-- Updated login copy to match the production admin allowlist model.
+- Updated login copy/errors to match the production admin allowlist model.
 
 ## 2026-06-19 - Hidden Telegram chat id command shipped
 

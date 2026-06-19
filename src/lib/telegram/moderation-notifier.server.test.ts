@@ -110,8 +110,8 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("повторная жалоба");
-    expect(text).toContain("Такая цель уже поступала сегодня");
-    expect(text).toContain("Новая публичная запись не создана");
+    expect(text).toContain("На эту цель уже жаловались сегодня");
+    expect(text).toContain("стоит присмотреться внимательнее");
     expect(text).toContain("@ui•••eb");
   });
 

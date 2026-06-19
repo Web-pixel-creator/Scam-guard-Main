@@ -19,6 +19,17 @@ function LoginPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  function friendlyAuthError(e: unknown): string {
+    const message = e instanceof Error ? e.message : "Ошибка";
+    if (/invalid login credentials/i.test(message)) {
+      return "Email или пароль не подошли. Если аккаунт ещё не создавали, нажмите «Зарегистрироваться». Email должен быть заранее добавлен в allowlist админов.";
+    }
+    if (/email not confirmed/i.test(message)) {
+      return "Email ещё не подтверждён. Проверьте письмо от Supabase и повторите вход.";
+    }
+    return message;
+  }
+
   useEffect(() => {
     if (user) nav({ to: "/admin" });
   }, [user, nav]);
@@ -43,7 +54,7 @@ function LoginPage() {
         nav({ to: "/admin" });
       }
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Ошибка");
+      setErr(friendlyAuthError(e));
     } finally {
       setLoading(false);
     }

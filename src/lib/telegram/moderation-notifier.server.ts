@@ -112,7 +112,7 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
     `• Язык: ${notice.language}`,
     "",
     notice.duplicateOfExisting
-      ? "ℹ️ Такая цель уже поступала сегодня. Новая публичная запись не создана, чтобы не плодить дубли."
+      ? "ℹ️ На эту цель уже жаловались сегодня. Новую запись не создаём, но стоит присмотреться внимательнее."
       : null,
     notice.duplicateOfExisting ? "" : null,
     "🔐 Почему объект скрыт",
