@@ -130,6 +130,11 @@ committed `.env`, never shipped to client):
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — Telegram bot (see below).
 - `TELEGRAM_BOT_USERNAME` - optional public username used for Family Shield
   invite links; defaults to `scamguard_bot` if unset.
+- `TELEGRAM_MODERATION_CHAT_ID` - optional private operator chat for new
+  report/appeal moderation alerts. This must be set explicitly; it is not
+  inferred from monitor alert settings. Alerts contain only redacted targets,
+  high-level fields and an admin link, never raw report text, screenshots,
+  OCR, codes, card data, full phone numbers or full URLs.
 
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
 

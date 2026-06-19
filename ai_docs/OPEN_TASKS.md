@@ -128,7 +128,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       Telegram notification path for new reports, appeals and high-signal
       research items. Notifications must contain redacted summaries and admin
       links only, not raw report text, screenshots, OCR, codes, card data,
-      full phone numbers or URLs.
+      full phone numbers or URLs. First slice shipped: new reports and
+      reputation appeals now send optional `TELEGRAM_MODERATION_CHAT_ID`
+      alerts with redacted targets and an admin link. Remaining: high-signal
+      research item notifications and operator workflow wording.
 - [ ] Add web/embed Risk Passport compact reuse. Telegram Risk Passport v1 is
       shipped; the remaining follow-up is to reuse the same passport structure
       on the website and iframe widget where it improves shallow username/phone

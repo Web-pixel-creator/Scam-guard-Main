@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Private moderation alerts first slice shipped
+
+- New report and reputation appeal submissions can now notify an explicit
+  private Telegram moderator chat via `TELEGRAM_MODERATION_CHAT_ID`.
+- The moderation alert is opt-in and contains only redacted targets, high-level
+  fields and an admin link; raw report text, screenshots, OCR, codes, card
+  data, full phone numbers and full URLs are not sent to the chat.
+- High-signal research-feed moderation alerts remain a follow-up task.
+
 ## 2026-06-19 - Decoded QR fast path shipped
 
 - Telegram photo checks now skip slower visual AI when pixel decoding already

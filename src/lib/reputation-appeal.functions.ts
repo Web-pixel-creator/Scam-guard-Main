@@ -11,6 +11,7 @@ import {
 } from "@/lib/risk/detect";
 import { hashIdentifier } from "@/lib/risk/hash";
 import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
+import { notifyModeration } from "@/lib/telegram/moderation-notifier.server";
 
 const appealSchema = z.object({
   target: z.string().min(3).max(500),
@@ -137,6 +138,12 @@ export async function submitReputationAppealCore(
     console.error("submit reputation appeal failed", error.message);
     return { ok: false, error: "submit_failed" };
   }
+  void notifyModeration({
+    kind: "appeal",
+    targetType,
+    targetDisplay,
+    language: appeal.lang,
+  });
   return { ok: true };
 }
 

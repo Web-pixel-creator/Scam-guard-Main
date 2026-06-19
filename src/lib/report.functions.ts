@@ -8,6 +8,7 @@ import { hashIdentifier } from "./risk/hash";
 import { checkRateLimit } from "./risk/rate-limit";
 import { checkSharedRateLimit } from "./risk/shared-rate-limit.server";
 import { registerTelegramReportCandidate } from "@/lib/telegram/reputation.server";
+import { notifyModeration } from "@/lib/telegram/moderation-notifier.server";
 
 const reportSchema = z.object({
   value: z.string().min(1).max(500),
@@ -110,6 +111,17 @@ export async function submitReportCore(
     console.error("submit report failed", error);
     return { ok: false, error: "submit_failed" };
   }
+
+  void notifyModeration({
+    kind: "report",
+    entityType: detected,
+    redactedValue: display,
+    scamType: report.scamType ?? null,
+    city: report.city ?? null,
+    amountLostUzs: report.amountLostUzs ?? null,
+    language: report.lang,
+    incidentOnly,
+  });
 
   if (incidentOnly) {
     return { ok: true };
