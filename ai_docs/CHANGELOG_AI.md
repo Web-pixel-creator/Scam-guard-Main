@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Decoded QR fast path shipped
+
+- Telegram photo checks now skip slower visual AI when pixel decoding already
+  proves an actionable QR payload: Telegram login, 2FA/authenticator, payment
+  or wallet/deep-link QR.
+- Plain URL QR codes, restaurant/menu QR and suspicious HTTP URLs still use the
+  normal image-context path to avoid overcalling risk without visual context.
+- Added regression coverage for decoded-only QR evidence so the fast path stays
+  narrow.
+
 ## 2026-06-19 - Telegram metadata latency guard shipped
 
 - Public Telegram username/post passport enrichment now uses a 1.2s soft

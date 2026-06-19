@@ -117,7 +117,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       username/public-post passport enrichment now has a 1.2s soft metadata
       timeout plus a bounded short in-memory cache, so slow Bot API `getChat`
       calls no longer block simple checks for the full 8s Bot API budget.
-      Remaining: tune OCR/STT/image-analysis paths from production timing logs.
+      Second slice shipped: pixel-decoded login/payment/wallet QR payloads now
+      skip slower visual AI and go straight through deterministic scoring;
+      ordinary menu QR codes and suspicious plain URLs still use image context.
+      Remaining: tune STT/image-analysis paths from production timing logs.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.

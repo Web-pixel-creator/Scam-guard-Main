@@ -66,6 +66,7 @@ import {
   classifyGuardianAngelFollowUp,
 } from "@/lib/telegram/guardian-angel";
 import {
+  buildDecodedQrOnlyImageEvidence,
   buildImageCheckInput,
   fallbackImageIntelligence,
   buildImageUserExplanation,
@@ -350,7 +351,9 @@ async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Pro
   await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(note),
-    keyboard: [[{ text: bt("voice_correct_button", ctx.session.lang), callback_data: CB.voiceCorrect }]],
+    keyboard: [
+      [{ text: bt("voice_correct_button", ctx.session.lang), callback_data: CB.voiceCorrect }],
+    ],
   });
 }
 
@@ -412,9 +415,7 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:^|\s)(men|biz).{0,40}(yubor|jo'nat|jonat|ayt|ber|kirit).{0,60}(sms|kod|code|otp)/.test(
       text,
     ) ||
-    /(?:sms|kod|code|otp).{0,60}(yubor|jo'nat|jonat|ayt|ber|kirit)/.test(
-      text,
-    )
+    /(?:sms|kod|code|otp).{0,60}(yubor|jo'nat|jonat|ayt|ber|kirit)/.test(text)
   ) {
     return 1;
   }
@@ -457,12 +458,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
       text,
     ) ||
-    /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(
-      text,
-    ) ||
-    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(
-      text,
-    )
+    /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(text) ||
+    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(text)
   ) {
     return 4;
   }
@@ -471,12 +468,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:потерял[аи]?|украли|взломали|угнали|забрали).{0,80}(telegram|телеграм|аккаунт)/.test(
       text,
     ) ||
-    /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(
-      text,
-    ) ||
-    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(
-      text,
-    )
+    /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(text) ||
+    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(text)
   ) {
     return 5;
   }
@@ -486,9 +479,7 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
     /не кладите трубку/.test(text) ||
     /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
-    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(
-      text,
-    )
+    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text)
   ) {
     return 6;
   }
@@ -629,7 +620,8 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
     await work();
   } catch (e) {
     if (isRateLimitedError(e)) {
-      const key = e.message === "voice_stt_rate_limited" ? "voice_stt_limit_reached" : "rate_limited";
+      const key =
+        e.message === "voice_stt_rate_limited" ? "voice_stt_limit_reached" : "rate_limited";
       await replyText(ctx.chatId, bt(key, ctx.session.lang, { seconds: e.retryAfter }));
       return;
     }
@@ -817,23 +809,35 @@ export async function handleImage(
         qrCount: decodedQr.values.length,
       });
 
-      // 4) Structured image evidence (OCR + visual category + QR purpose).
-      const analysisStartedAt = Date.now();
-      const aiEvidence = await analyzeImageCore(
-        dataUrl,
-        lang,
-        rateLimitKeyFor(ctx.userId),
-        TELEGRAM_IMAGE_ANALYSIS_OPTIONS,
-      );
-      logTelegramTiming("image.analysis", analysisStartedAt, {
-        hasEvidence: Boolean(aiEvidence),
-        visualCategory: aiEvidence?.visualCategory ?? null,
-        qrPurpose: aiEvidence?.qr.purpose ?? null,
-      });
-      const evidence =
-        decodedQr.values.length > 0
-          ? mergeDecodedQrEvidence(aiEvidence ?? fallbackImageIntelligence(null), decodedQr)
-          : aiEvidence;
+      // 4) If QR pixels already prove a login/payment/wallet flow, skip slower
+      // visual AI. Plain URLs and menu QR codes still need image context.
+      const decodedOnlyEvidence = buildDecodedQrOnlyImageEvidence(decodedQr);
+      let evidence = decodedOnlyEvidence;
+      if (decodedOnlyEvidence) {
+        logTelegramTiming("image.analysis_skipped", Date.now(), {
+          reason: "decoded_actionable_qr",
+          visualCategory: decodedOnlyEvidence.visualCategory,
+          qrPurpose: decodedOnlyEvidence.qr.purpose,
+        });
+      } else {
+        // 5) Structured image evidence (OCR + visual category + QR purpose).
+        const analysisStartedAt = Date.now();
+        const aiEvidence = await analyzeImageCore(
+          dataUrl,
+          lang,
+          rateLimitKeyFor(ctx.userId),
+          TELEGRAM_IMAGE_ANALYSIS_OPTIONS,
+        );
+        logTelegramTiming("image.analysis", analysisStartedAt, {
+          hasEvidence: Boolean(aiEvidence),
+          visualCategory: aiEvidence?.visualCategory ?? null,
+          qrPurpose: aiEvidence?.qr.purpose ?? null,
+        });
+        evidence =
+          decodedQr.values.length > 0
+            ? mergeDecodedQrEvidence(aiEvidence ?? fallbackImageIntelligence(null), decodedQr)
+            : aiEvidence;
+      }
       if (!evidence || !hasUsableImageEvidence(evidence)) return { kind: "ocr_failed" as const };
 
       const checkInput = buildImageCheckInput(evidence);
@@ -991,59 +995,63 @@ export async function handleVoice(
       durationSec: meta?.duration ?? null,
     });
 
-    const outcome = await withTypingIndicator(ctx.chatId, async () => {
-      const downloadStartedAt = Date.now();
-      const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
-      logTelegramTiming("voice.download", downloadStartedAt, {
-        ok: dataUrl !== null,
-        fileSizeBytes: fileSize,
-        durationSec: meta?.duration ?? null,
-      });
-      if (!dataUrl) return { kind: "failed" as const };
-      if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
-        return { kind: "too_large" as const };
-      }
+    const outcome = await withTypingIndicator(
+      ctx.chatId,
+      async () => {
+        const downloadStartedAt = Date.now();
+        const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
+        logTelegramTiming("voice.download", downloadStartedAt, {
+          ok: dataUrl !== null,
+          fileSizeBytes: fileSize,
+          durationSec: meta?.duration ?? null,
+        });
+        if (!dataUrl) return { kind: "failed" as const };
+        if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
+          return { kind: "too_large" as const };
+        }
 
-      const sttStartedAt = Date.now();
-      const transcript = await transcribeVoiceCore(
-        dataUrl,
-        lang,
-        rateLimitKeyFor(ctx.userId),
-        TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
-      );
-      logTelegramTiming("voice.transcribe", sttStartedAt, {
-        ok: Boolean(transcript.text),
-        transcriptChars: transcript.text?.length ?? 0,
-        durationSec: meta?.duration ?? null,
-      });
-      if (!transcript.text) return { kind: "failed" as const };
-      rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
-      await sendVoiceTranscriptNote(ctx, transcript.text);
-      if (isLowSignalVoiceTranscript(transcript.text)) {
-        return { kind: "uncertain" as const, transcriptChars: transcript.text.length };
-      }
-      const panicId = classifyVoicePanicIntent(transcript.text);
-      if (panicId !== null) {
-        return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
-      }
+        const sttStartedAt = Date.now();
+        const transcript = await transcribeVoiceCore(
+          dataUrl,
+          lang,
+          rateLimitKeyFor(ctx.userId),
+          TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
+        );
+        logTelegramTiming("voice.transcribe", sttStartedAt, {
+          ok: Boolean(transcript.text),
+          transcriptChars: transcript.text?.length ?? 0,
+          durationSec: meta?.duration ?? null,
+        });
+        if (!transcript.text) return { kind: "failed" as const };
+        rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
+        await sendVoiceTranscriptNote(ctx, transcript.text);
+        if (isLowSignalVoiceTranscript(transcript.text)) {
+          return { kind: "uncertain" as const, transcriptChars: transcript.text.length };
+        }
+        const panicId = classifyVoicePanicIntent(transcript.text);
+        if (panicId !== null) {
+          return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
+        }
 
-      const checkStartedAt = Date.now();
-      const result = await runCheck({
-        input: transcript.text,
-        type: "text",
-        lang,
-        rateLimitKey: rateLimitKeyFor(ctx.userId),
-        channel: CHANNEL,
-        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-      });
-      logTelegramTiming("voice.run_check", checkStartedAt, {
-        cached: false,
-        type: result.type,
-        level: result.level,
-        reasonCount: result.reasons.length,
-      });
-      return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
-    }, { delayMs: 500, repeatMs: 4000 });
+        const checkStartedAt = Date.now();
+        const result = await runCheck({
+          input: transcript.text,
+          type: "text",
+          lang,
+          rateLimitKey: rateLimitKeyFor(ctx.userId),
+          channel: CHANNEL,
+          ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+        });
+        logTelegramTiming("voice.run_check", checkStartedAt, {
+          cached: false,
+          type: result.type,
+          level: result.level,
+          reasonCount: result.reasons.length,
+        });
+        return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
+      },
+      { delayMs: 500, repeatMs: 4000 },
+    );
 
     if (outcome.kind === "failed") {
       await replyText(

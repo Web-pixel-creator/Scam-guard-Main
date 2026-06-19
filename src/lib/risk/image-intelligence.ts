@@ -641,6 +641,23 @@ export function mergeDecodedQrEvidence(
   };
 }
 
+export function buildDecodedQrOnlyImageEvidence(
+  decoded: DecodedQrEvidence,
+): ImageIntelligenceResult | null {
+  if (decoded.values.length === 0) return null;
+
+  const kinds = decodedKinds(decoded.values);
+  const actionable =
+    kinds.has("telegram_login") ||
+    kinds.has("authenticator") ||
+    kinds.has("payment") ||
+    kinds.has("wallet_deeplink");
+  if (!actionable) return null;
+
+  const evidence = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), decoded);
+  return evidence;
+}
+
 function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {
   const hints = new Set(evidence.riskHints);
   const category = evidence.visualCategory;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateText, scoreFromCodes } from "./rules";
 import {
+  buildDecodedQrOnlyImageEvidence,
   buildImageCheckInput,
   buildImageUserExplanation,
   fallbackImageIntelligence,
@@ -301,6 +302,32 @@ describe("image intelligence evidence builder", () => {
     expect(payment.riskHints).toContain("qr_payment");
     expect(buildImageCheckInput(authenticator)).not.toContain("AUTH_SECRET_SHOULD_NOT_LEAK");
     expect(buildImageCheckInput(authenticator)).toContain("secret=[hidden]");
+  });
+
+  it("builds decoded-only evidence only for actionable QR values", () => {
+    const login = buildDecodedQrOnlyImageEvidence({
+      values: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+      urls: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
+    });
+    const payment = buildDecodedQrOnlyImageEvidence({
+      values: ["https://payme.uz/checkout/invoice?id=123456"],
+      urls: ["https://payme.uz/checkout/invoice?id=123456"],
+    });
+    const menu = buildDecodedQrOnlyImageEvidence({
+      values: ["https://chenson.uz/menu"],
+      urls: ["https://chenson.uz/menu"],
+    });
+    const suspiciousUrl = buildDecodedQrOnlyImageEvidence({
+      values: ["https://kapitalbank.uz.evil.top/login"],
+      urls: ["https://kapitalbank.uz.evil.top/login"],
+    });
+
+    expect(login?.riskHints).toContain("qr_login");
+    expect(login?.qr.purpose).toBe("login");
+    expect(payment?.riskHints).toContain("qr_payment");
+    expect(payment?.qr.purpose).toBe("payment");
+    expect(menu).toBeNull();
+    expect(suspiciousUrl).toBeNull();
   });
 
   it("builds a calm user explanation for benign QR menu images", () => {
