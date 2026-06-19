@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Report flow copy and moderation alert UX polished
+
+- Rewrote `/report` prompts to feel less like a cold form and more like a safe
+  moderated incident submission.
+- Clarified the final `/report` confirmation: only a safe short moderation
+  notice is sent, and public visibility requires manual review.
+- Reformatted private moderation Telegram alerts into a structured Russian
+  operator card with privacy reminders and a localized admin button.
+
 ## 2026-06-19 - Hidden Telegram chat id command shipped
 
 - Added hidden `/chatid` Telegram command for private moderation group setup.

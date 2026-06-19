@@ -68,7 +68,7 @@ function targetLabel(notice: ModerationNotice): string {
 }
 
 function formatAmount(value?: number | null): string {
-  if (!value || !Number.isFinite(value) || value <= 0) return "not specified";
+  if (!value || !Number.isFinite(value) || value <= 0) return "не указан";
   return `${Math.round(value).toLocaleString("en-US")} UZS`;
 }
 
@@ -85,31 +85,36 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
 
   if (notice.kind === "appeal") {
     return [
-      "Ishonch Guard: new reputation appeal",
+      "🛡 Ishonch Guard: новая апелляция",
       "",
-      `Target: ${targetLabel(notice)}`,
-      `Language: ${notice.language}`,
+      "📌 Что проверить",
+      `• Объект: ${targetLabel(notice)}`,
+      `• Язык: ${notice.language}`,
       "",
-      "Open the admin panel to review the redacted request.",
+      "Откройте админку, чтобы разобрать безопасно отредактированный запрос.",
     ].join("\n");
   }
 
   const lines = [
-    "Ishonch Guard: new user report",
+    "🛡 Ishonch Guard: новая жалоба",
     "",
-    `Target: ${targetLabel(notice)}`,
-    `Type: ${scrub(notice.scamType ?? "not specified")}`,
-    `City: ${scrub(notice.city ?? "not specified")}`,
-    `Loss: ${formatAmount(notice.amountLostUzs)}`,
-    `Language: ${notice.language}`,
+    "📌 Что проверить",
+    `• Объект: ${targetLabel(notice)}`,
+    `• Тип схемы: ${scrub(notice.scamType ?? "не указан")}`,
+    `• Город: ${scrub(notice.city ?? "не указан")}`,
+    `• Ущерб: ${formatAmount(notice.amountLostUzs)}`,
+    `• Язык: ${notice.language}`,
     "",
-    "Raw text, screenshots, codes, full numbers and URLs are not sent here.",
+    "🔐 Приватность",
+    "Сырой текст, скриншоты, коды, полные номера и URL сюда не отправляются.",
+    "",
+    "Работайте через админку, не пересылайте личные данные в чат.",
   ];
   return lines.join("\n");
 }
 
 function moderationKeyboard(): InlineKeyboard {
-  return [[{ text: "Open admin", url: `${getPublicAppUrl()}/admin` }]];
+  return [[{ text: "Открыть админку", url: `${getPublicAppUrl()}/admin` }]];
 }
 
 export async function notifyModeration(notice: ModerationNotice): Promise<{ ok: boolean }> {

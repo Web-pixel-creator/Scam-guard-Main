@@ -72,13 +72,15 @@ describe("moderation notifier", () => {
     expect(payload).toBeDefined();
     expect(payload?.chatId).toBe(-1001234567890);
     expect(payload?.keyboard).toEqual([
-      [{ text: "Open admin", url: "https://example.test/admin" }],
+      [{ text: "Открыть админку", url: "https://example.test/admin" }],
     ]);
     expect(payload?.disablePreview).toBe(true);
     expect(payload?.text).not.toContain("+998 90 123 45 67");
     expect(payload?.text).not.toContain("https://evil.example");
     expect(payload?.text).not.toContain("abcdef1234567890");
-    expect(payload?.text).toContain("new user report");
+    expect(payload?.text).toContain("новая жалоба");
+    expect(payload?.text).toContain("Что проверить");
+    expect(payload?.text).toContain("Приватность");
   });
 
   it("formats incident-only reports without a public target", () => {
@@ -91,9 +93,7 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("incident-only: no public target");
-    expect(text).toContain(
-      "Raw text, screenshots, codes, full numbers and URLs are not sent here.",
-    );
+    expect(text).toContain("Сырой текст, скриншоты, коды, полные номера и URL");
   });
 
   it("formats appeals without leaking raw URLs", () => {
@@ -104,7 +104,7 @@ describe("moderation notifier", () => {
       language: "en",
     });
 
-    expect(text).toContain("new reputation appeal");
+    expect(text).toContain("новая апелляция");
     expect(text).not.toContain("https://example.com");
     expect(text).not.toContain("abcdef1234567890");
   });

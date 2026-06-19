@@ -128,29 +128,29 @@ export const bot_dict: BotDict = {
 
   // ── /report scenario step prompts (R6.1–R6.7) ────────────────────────────
   report_ask_value: {
-    ru: "На кого жалуемся? Пришлите номер телефона, Telegram-username или ссылку. Если их нет, нажмите «Нет номера/ссылки».",
-    uz: "Kim haqida shikoyat qilamiz? Telefon raqami, Telegram-username yoki havolani yuboring. Agar ular bo'lmasa, «Raqam/havola yo'q» tugmasini bosing.",
-    en: "Who are you reporting? Send a phone number, Telegram username, or link. If you don't have one, tap “No number/link”.",
+    ru: "Кого или что нужно передать модератору? Пришлите номер телефона, Telegram-username или ссылку. Если конкретного контакта нет, нажмите «Нет номера/ссылки».",
+    uz: "Moderatorga kim yoki nimani yuboramiz? Telefon raqami, Telegram-username yoki havolani yuboring. Aniq kontakt bo'lmasa, «Raqam/havola yo'q» tugmasini bosing.",
+    en: "What should I send to moderation? Send a phone number, Telegram username, or link. If there is no concrete contact, tap “No number/link”.",
   },
   report_ask_description: {
-    ru: "Коротко опишите ситуацию: что произошло и что просили сделать. Можно отправить скриншот — я добавлю только безопасное краткое описание.",
-    uz: "Vaziyatni qisqacha tasvirlang: nima bo‘ldi va nima qilishni so‘rashdi. Skrinshot ham yuborishingiz mumkin — men faqat xavfsiz qisqa tavsif qo‘shaman.",
-    en: "Briefly describe what happened and what you were asked to do. You can send a screenshot — I will add only a safe short summary.",
+    ru: "Опишите в 1-2 фразах: что произошло и что просили сделать — код, пароль, карту, перевод, APK или переход по ссылке. Скриншот можно отправить: я добавлю только безопасное краткое описание.",
+    uz: "1-2 jumlada yozing: nima bo'ldi va nima so'rashdi — kod, parol, karta, pul o'tkazish, APK yoki havolaga o'tish. Skrinshot yuborishingiz mumkin: men faqat xavfsiz qisqa tavsif qo'shaman.",
+    en: "Describe in 1-2 sentences what happened and what they asked for — a code, password, card, transfer, APK, or link. You may send a screenshot: I will add only a safe short summary.",
   },
   report_ask_scam_type: {
-    ru: "Какой это вид мошенничества? Напишите коротко (например: фейковый банк, кредит, OTP). Можно пропустить — отправьте «-».",
-    uz: "Bu qanday firibgarlik turi? Qisqacha yozing (masalan: soxta bank, kredit, OTP). O‘tkazib yuborish mumkin — «-» yuboring.",
-    en: "What type of scam was it? Write briefly (e.g. fake bank, loan, OTP). You can skip — send “-”.",
+    ru: "Если знаете тип схемы, напишите коротко: фейковый банк, OTP, кредит, доставка, инвестиции. Если не уверены — нажмите «Пропустить».",
+    uz: "Sxema turini bilsangiz, qisqacha yozing: soxta bank, OTP, kredit, yetkazib berish, investitsiya. Ishonchingiz komil bo'lmasa — «O'tkazib yuborish» tugmasini bosing.",
+    en: "If you know the scheme type, write it briefly: fake bank, OTP, loan, delivery, investments. If unsure, tap “Skip”.",
   },
   report_ask_city: {
-    ru: "В каком городе это произошло? Можно пропустить — отправьте «-».",
-    uz: "Bu qaysi shaharda bo‘ldi? O‘tkazib yuborish mumkin — «-» yuboring.",
-    en: "In which city did this happen? You can skip — send “-”.",
+    ru: "Город или регион? Это необязательно — можно нажать «Пропустить».",
+    uz: "Shahar yoki hudud? Bu majburiy emas — «O'tkazib yuborish» mumkin.",
+    en: "City or region? This is optional — you can tap “Skip”.",
   },
   report_ask_amount: {
-    ru: "Какая сумма ущерба в сумах (UZS)? Укажите число или пропустите — отправьте «-».",
-    uz: "Zarar miqdori qancha (so‘mda, UZS)? Raqam yozing yoki o‘tkazib yuboring — «-» yuboring.",
-    en: "What was the loss amount in soum (UZS)? Enter a number or skip — send “-”.",
+    ru: "Был ли денежный ущерб? Если да — напишите сумму в UZS. Если денег не потеряли, нажмите «Пропустить» или напишите «нет».",
+    uz: "Pul yo'qotildimi? Ha bo'lsa — UZS miqdorini yozing. Pul yo'qotilmagan bo'lsa, «O'tkazib yuborish» tugmasini bosing yoki «yo'q» deb yozing.",
+    en: "Was any money lost? If yes, enter the amount in UZS. If no money was lost, tap “Skip” or type “no”.",
   },
   report_skip_hint: {
     ru: "Это поле необязательное. Чтобы пропустить, отправьте «-» или нажмите «Пропустить».",
@@ -182,9 +182,9 @@ export const bot_dict: BotDict = {
 
   // ── /report result messages (R6.7, R6.8) ──────────────────────────────────
   report_confirm: {
-    ru: "Спасибо, жалоба принята. Запись станет публичной только после проверки модератором. Так мы защищаемся от ложных обвинений.",
-    uz: "Rahmat, shikoyat qabul qilindi. Yozuv faqat moderator tekshiruvidan keyin ommaviy bo‘ladi. Shu tariqa biz yolg‘on ayblovlardan himoyalanamiz.",
-    en: "Thank you, your report has been received. It will become public only after a moderator reviews it. This protects against false accusations.",
+    ru: "✅ Спасибо, сообщение принято.\n\nЯ передал модератору только безопасное краткое уведомление. Запись не станет публичной, пока её не проверят вручную.\n\nВы помогаете предупредить других людей — без публикации лишних личных данных.",
+    uz: "✅ Rahmat, xabar qabul qilindi.\n\nMen moderatorga faqat xavfsiz qisqa bildirishnoma yubordim. Yozuv qo'lda tekshirilmaguncha ommaviy bo'lmaydi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz — ortiqcha shaxsiy ma'lumotlarni oshkor qilmasdan.",
+    en: "✅ Thank you, the report was received.\n\nI sent the moderator only a safe short notification. It will not become public until it is reviewed manually.\n\nYou are helping warn other people without exposing extra personal data.",
   },
   report_error: {
     ru: "Не удалось отправить жалобу. Попробуйте, пожалуйста, ещё раз чуть позже.",
