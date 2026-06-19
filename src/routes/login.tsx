@@ -90,7 +90,8 @@ function LoginPage() {
           )}
         </h1>
         <p className="apex-lead mb-7 sm:mb-8">
-          Первый зарегистрированный пользователь становится администратором.
+          Вход только для аккаунтов с ролью администратора. Email администратора заранее добавляется
+          в allowlist.
         </p>
 
         <form onSubmit={submit} className="space-y-5">

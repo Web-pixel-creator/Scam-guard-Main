@@ -79,8 +79,10 @@ describe("moderation notifier", () => {
     expect(payload?.text).not.toContain("https://evil.example");
     expect(payload?.text).not.toContain("abcdef1234567890");
     expect(payload?.text).toContain("новая жалоба");
+    expect(payload?.text).toContain("Служебное уведомление для модераторов");
     expect(payload?.text).toContain("Что проверить");
-    expect(payload?.text).toContain("Приватность");
+    expect(payload?.text).toContain("Почему объект скрыт");
+    expect(payload?.text).toContain("Полный username/номер смотрите в админке");
   });
 
   it("formats incident-only reports without a public target", () => {
@@ -93,7 +95,7 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("incident-only: no public target");
-    expect(text).toContain("Сырой текст, скриншоты, коды, полные номера и URL");
+    expect(text).toContain("В Telegram-группу уходит только маска");
   });
 
   it("formats appeals without leaking raw URLs", () => {
@@ -105,6 +107,7 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("новая апелляция");
+    expect(text).toContain("Служебное уведомление для модераторов");
     expect(text).not.toContain("https://example.com");
     expect(text).not.toContain("abcdef1234567890");
   });

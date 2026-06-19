@@ -86,17 +86,20 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
   if (notice.kind === "appeal") {
     return [
       "🛡 Ishonch Guard: новая апелляция",
+      "Служебное уведомление для модераторов.",
       "",
       "📌 Что проверить",
       `• Объект: ${targetLabel(notice)}`,
       `• Язык: ${notice.language}`,
       "",
-      "Откройте админку, чтобы разобрать безопасно отредактированный запрос.",
+      "Полные данные и решение доступны только в админке.",
+      "Не пересылайте личные данные, коды, карты или пароли в этот чат.",
     ].join("\n");
   }
 
   const lines = [
     "🛡 Ishonch Guard: новая жалоба",
+    "Служебное уведомление для модераторов.",
     "",
     "📌 Что проверить",
     `• Объект: ${targetLabel(notice)}`,
@@ -105,10 +108,10 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
     `• Ущерб: ${formatAmount(notice.amountLostUzs)}`,
     `• Язык: ${notice.language}`,
     "",
-    "🔐 Приватность",
-    "Сырой текст, скриншоты, коды, полные номера и URL сюда не отправляются.",
+    "🔐 Почему объект скрыт",
+    "В Telegram-группу уходит только маска. Полный username/номер смотрите в админке после входа.",
     "",
-    "Работайте через админку, не пересылайте личные данные в чат.",
+    "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
   ];
   return lines.join("\n");
 }
