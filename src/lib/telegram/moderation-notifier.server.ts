@@ -3,7 +3,7 @@ import { type InputType, redactText } from "@/lib/risk/detect";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import type { Lang } from "@/lib/i18n";
 
-type ModerationNoticeKind = "report" | "appeal";
+type ModerationNoticeKind = "report" | "appeal" | "smoke";
 
 export interface ModerationReportNotice {
   kind: "report";
@@ -23,7 +23,15 @@ export interface ModerationAppealNotice {
   language: Lang;
 }
 
-export type ModerationNotice = ModerationReportNotice | ModerationAppealNotice;
+export interface ModerationSmokeNotice {
+  kind: "smoke";
+  label?: string | null;
+}
+
+export type ModerationNotice =
+  | ModerationReportNotice
+  | ModerationAppealNotice
+  | ModerationSmokeNotice;
 
 const MAX_FIELD = 80;
 const MAX_TARGET = 64;
@@ -51,6 +59,7 @@ function scrub(value: string, max = MAX_FIELD): string {
 }
 
 function targetLabel(notice: ModerationNotice): string {
+  if (notice.kind === "smoke") return "smoke-test";
   if (notice.kind === "appeal") {
     return `${notice.targetType}: ${scrub(notice.targetDisplay, MAX_TARGET)}`;
   }
@@ -64,6 +73,16 @@ function formatAmount(value?: number | null): string {
 }
 
 export function formatModerationNoticeForTelegram(notice: ModerationNotice): string {
+  if (notice.kind === "smoke") {
+    return [
+      "Ishonch Guard: moderation alert smoke test",
+      "",
+      `Label: ${scrub(notice.label ?? "manual operator check")}`,
+      "",
+      "No user report, screenshot, OCR, code, card data, phone number or URL was sent.",
+    ].join("\n");
+  }
+
   if (notice.kind === "appeal") {
     return [
       "Ishonch Guard: new reputation appeal",

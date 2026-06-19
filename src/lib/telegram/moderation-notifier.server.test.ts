@@ -108,4 +108,16 @@ describe("moderation notifier", () => {
     expect(text).not.toContain("https://example.com");
     expect(text).not.toContain("abcdef1234567890");
   });
+
+  it("formats smoke tests as non-user alerts", () => {
+    const text = formatModerationNoticeForTelegram({
+      kind: "smoke",
+      label: "manual https://example.com/check abcdef1234567890",
+    });
+
+    expect(text).toContain("moderation alert smoke test");
+    expect(text).toContain("No user report");
+    expect(text).not.toContain("https://example.com");
+    expect(text).not.toContain("abcdef1234567890");
+  });
 });

@@ -136,6 +136,16 @@ committed `.env`, never shipped to client):
   high-level fields and an admin link, never raw report text, screenshots,
   OCR, codes, card data, full phone numbers or full URLs.
 
+To verify the private moderation chat after adding `TELEGRAM_MODERATION_CHAT_ID`
+and adding the bot to that chat, run:
+
+```powershell
+railway run npm run moderation:smoke
+```
+
+The smoke test sends a clearly marked non-user test alert. It does not send
+real report text, screenshots, OCR, codes, card data, phone numbers or URLs.
+
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
 
 Env is read **per request inside handlers** (`config.server.ts`), never at

@@ -4,18 +4,18 @@ Signatures and intent only. See file paths for source.
 
 ## Server functions
 
-| Function                                                                                             | File                                     | Auth   | Purpose                                                                                        |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                  |
-| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                 |
-| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC. |
+| Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                                                               |
+| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; screenshot OCR + deterministic redaction.                                                              |
+| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC.                                              |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Inserts a redacted report; upserts/bumps `entities` only when a concrete target is present; can trigger an opt-in private moderation alert. |
-| `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public | Creates a privacy-safe appeal/removal request for reputation targets; can trigger an opt-in private moderation alert. |
-| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`             | admin  | Lists reports by status.                                                                       |
-| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`             | admin  | Lists moderated/known entities.                                                                |
-| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`             | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.     |
-| `listReputationAppeals({ status })` / `resolveReputationAppeal(...)`                                 | `src/lib/admin.functions.ts`             | admin  | Reviews appeal/removal requests and can hide public reputation with audit logging.             |
-| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin  | Dashboard counts.                                                                              |
+| `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public | Creates a privacy-safe appeal/removal request for reputation targets; can trigger an opt-in private moderation alert.                       |
+| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`             | admin  | Lists reports by status.                                                                                                                    |
+| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`             | admin  | Lists moderated/known entities.                                                                                                             |
+| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`             | admin  | Confirms/rejects a report and syncs entity reputation unless the report is situation-only.                                                  |
+| `listReputationAppeals({ status })` / `resolveReputationAppeal(...)`                                 | `src/lib/admin.functions.ts`             | admin  | Reviews appeal/removal requests and can hide public reputation with audit logging.                                                          |
+| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin  | Dashboard counts.                                                                                                                           |
 
 ## Risk engine
 
@@ -236,6 +236,10 @@ Signatures and intent only. See file paths for source.
   webhook URL/pending/recent-error state and the configured AI provider. It can
   send sanitized Telegram alerts to an operator chat without printing token,
   secret or chat id values.
+- `scripts/moderation-alert-smoke.ts`: one-shot smoke test for the optional
+  private moderation chat. It requires `TELEGRAM_BOT_TOKEN` and
+  `TELEGRAM_MODERATION_CHAT_ID`, sends a clearly marked non-user test alert and
+  never prints secrets or user evidence.
 - `scripts/prod-family-shield-smoke.ts`: one-shot production smoke test for
   Family Shield. It creates a synthetic invite, accepts it, verifies the safe
   notification failure path, revokes the relationship and confirms no open

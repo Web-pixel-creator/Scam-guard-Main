@@ -32,6 +32,22 @@ The monitor checks:
 By default, Telegram alerts are sent only for failed checks. Warnings become
 alerts only if `MONITOR_ALERT_ON_WARN=true`.
 
+Private moderation alerts are separate from production monitor alerts. If
+`TELEGRAM_MODERATION_CHAT_ID` is configured, new user reports and reputation
+appeals can send a redacted summary plus an `/admin` link to the operator chat.
+These alerts must stay opt-in and must not include raw report text, screenshots,
+OCR, codes, card data, full phone numbers or full URLs.
+
+To test the private moderation chat after setup:
+
+```powershell
+cd C:\Scam-guard\repo
+railway run npm run moderation:smoke
+```
+
+The smoke alert is a non-user test message. If it fails, confirm the bot was
+added to the private chat and that Railway has `TELEGRAM_MODERATION_CHAT_ID`.
+
 ## First Five Minutes
 
 1. Run the monitor manually:

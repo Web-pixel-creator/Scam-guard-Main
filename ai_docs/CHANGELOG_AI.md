@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Moderation alert smoke test shipped
+
+- Added `scripts/moderation-alert-smoke.ts` and `npm run moderation:smoke` to
+  verify the optional private moderation chat from Railway env.
+- The smoke test sends a clearly marked non-user alert and never prints bot
+  tokens, chat ids or user evidence.
+- Updated deployment and on-call docs with the setup/test path for
+  `TELEGRAM_MODERATION_CHAT_ID`.
+
 ## 2026-06-19 - Private moderation alerts first slice shipped
 
 - New report and reputation appeal submissions can now notify an explicit
