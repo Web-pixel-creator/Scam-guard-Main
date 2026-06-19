@@ -98,6 +98,23 @@ describe("moderation notifier", () => {
     expect(text).toContain("В Telegram-группу уходит только маска");
   });
 
+  it("formats duplicate reports as moderation alerts without implying a new public row", () => {
+    const text = formatModerationNoticeForTelegram({
+      kind: "report",
+      entityType: "telegram",
+      redactedValue: "@ui•••eb",
+      scamType: "delivery",
+      city: "Tashkent",
+      language: "ru",
+      duplicateOfExisting: true,
+    });
+
+    expect(text).toContain("повторная жалоба");
+    expect(text).toContain("Такая цель уже поступала сегодня");
+    expect(text).toContain("Новая публичная запись не создана");
+    expect(text).toContain("@ui•••eb");
+  });
+
   it("formats appeals without leaking raw URLs", () => {
     const text = formatModerationNoticeForTelegram({
       kind: "appeal",

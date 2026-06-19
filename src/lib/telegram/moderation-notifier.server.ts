@@ -14,6 +14,7 @@ export interface ModerationReportNotice {
   amountLostUzs?: number | null;
   language: Lang;
   incidentOnly?: boolean;
+  duplicateOfExisting?: boolean;
 }
 
 export interface ModerationAppealNotice {
@@ -98,7 +99,9 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
   }
 
   const lines = [
-    "🛡 Ishonch Guard: новая жалоба",
+    notice.duplicateOfExisting
+      ? "🛡 Ishonch Guard: повторная жалоба"
+      : "🛡 Ishonch Guard: новая жалоба",
     "Служебное уведомление для модераторов.",
     "",
     "📌 Что проверить",
@@ -108,11 +111,15 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
     `• Ущерб: ${formatAmount(notice.amountLostUzs)}`,
     `• Язык: ${notice.language}`,
     "",
+    notice.duplicateOfExisting
+      ? "ℹ️ Такая цель уже поступала сегодня. Новая публичная запись не создана, чтобы не плодить дубли."
+      : null,
+    notice.duplicateOfExisting ? "" : null,
     "🔐 Почему объект скрыт",
     "В Telegram-группу уходит только маска. Полный username/номер смотрите в админке после входа.",
     "",
     "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
-  ];
+  ].filter((line): line is string => line !== null);
   return lines.join("\n");
 }
 

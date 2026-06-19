@@ -930,6 +930,12 @@ qa:telegram-report`.
 - Telegram result cards now show Ishonch Guard moderated report count and confidence for confirmed phone numbers, while explicitly avoiding owner/carrier/hidden-label claims.
 - Updated roadmap, database, architecture, file/function maps and decisions.
 
+## 2026-06-19 - Moderation duplicate report alerts
+
+- Fixed `/report` duplicate handling: same-day reports for an already-seen target still avoid creating a duplicate DB row, but now send a safe "повторная жалоба" alert to the moderation chat.
+- Moderation duplicate alerts keep the target masked and explicitly tell operators that the full review belongs in the admin panel.
+- Added regression tests for duplicate report notification and duplicate alert formatting.
+
 ## 2026-06-06 - Telegram Image Intelligence v2
 
 - Added `.kiro/specs/telegram-image-intelligence-v2/`.

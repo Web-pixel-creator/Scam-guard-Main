@@ -93,6 +93,17 @@ export async function submitReportCore(
     .limit(1);
   if (existing && existing.length > 0) {
     // Silently accept (don't reveal dedup to potential abuser) but don't insert.
+    void notifyModeration({
+      kind: "report",
+      entityType: detected,
+      redactedValue: display,
+      scamType: report.scamType ?? null,
+      city: report.city ?? null,
+      amountLostUzs: report.amountLostUzs ?? null,
+      language: report.lang,
+      incidentOnly,
+      duplicateOfExisting: true,
+    });
     return { ok: true };
   }
 

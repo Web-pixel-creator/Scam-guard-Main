@@ -5,6 +5,8 @@ const hoisted = vi.hoisted(() => ({
   entityInserts: [] as Array<Record<string, unknown>>,
   entityUpdates: [] as Array<Record<string, unknown>>,
   reputationUpserts: [] as Array<Record<string, unknown>>,
+  moderationNotices: [] as Array<Record<string, unknown>>,
+  existingReportIds: [] as Array<string>,
   existingEntity: null as null | { id: string; report_count: number },
 }));
 
@@ -39,7 +41,11 @@ vi.mock("@/integrations/supabase/client.server", () => ({
           select: () => ({
             eq: () => ({
               gte: () => ({
-                limit: () => Promise.resolve({ data: [], error: null }),
+                limit: () =>
+                  Promise.resolve({
+                    data: hoisted.existingReportIds.map((id) => ({ id })),
+                    error: null,
+                  }),
               }),
             }),
           }),
@@ -91,6 +97,13 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
+vi.mock("@/lib/telegram/moderation-notifier.server", () => ({
+  notifyModeration: async (notice: Record<string, unknown>) => {
+    hoisted.moderationNotices.push(notice);
+    return { ok: true };
+  },
+}));
+
 import { INCIDENT_ONLY_REDACTED_VALUE } from "./report-boundary";
 import { submitReport, submitReportCore, reportRateLimitKeyForTelegram } from "./report.functions";
 
@@ -102,6 +115,8 @@ beforeEach(() => {
   hoisted.entityInserts.length = 0;
   hoisted.entityUpdates.length = 0;
   hoisted.reputationUpserts.length = 0;
+  hoisted.moderationNotices.length = 0;
+  hoisted.existingReportIds.length = 0;
   hoisted.existingEntity = null;
 });
 
@@ -180,6 +195,36 @@ describe("submitReport privacy", () => {
       confidence: "low",
       moderation_status: "new",
       unverified_report_count: 1,
+    });
+  });
+
+  it("notifies moderation when a same-day duplicate report is accepted without a new row", async () => {
+    hoisted.existingReportIds.push("existing-report-id");
+
+    const result = await submitReportCore(
+      {
+        value: "@fakebank_support_duplicate",
+        type: "telegram",
+        description: "Asked for an SMS code during a fake bank support chat.",
+        scamType: "fake bank",
+        city: "Tashkent",
+        lang: "ru",
+      },
+      "report:test:duplicate-target",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(0);
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.moderationNotices).toHaveLength(1);
+    expect(hoisted.moderationNotices[0]).toMatchObject({
+      kind: "report",
+      entityType: "telegram",
+      scamType: "fake bank",
+      city: "Tashkent",
+      language: "ru",
+      duplicateOfExisting: true,
     });
   });
 
