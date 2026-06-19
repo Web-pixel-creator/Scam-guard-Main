@@ -8,8 +8,9 @@ The feature reuses the existing `handleVoice -> transcribeVoiceCore -> runCheck`
 
 1. `handleVoice` transcribes audio in memory.
 2. `sendVoiceTranscriptNote` sends the sanitized preview with a recovery keyboard.
-3. `handleCallback` handles `voice_correct`, stores `scenario="await_check"` and prompts for corrected text.
-4. `handlers/index.ts` routes the next message to `handleCheck`, which runs normal scoring.
+3. Very low-signal transcripts stop before `runCheck` and ask the user to correct or type the content.
+4. `handleCallback` handles `voice_correct`, stores `scenario="await_check"` and prompts for corrected text.
+5. `handlers/index.ts` routes the next message to `handleCheck`, which runs normal scoring.
 
 ## Data Model
 
@@ -33,3 +34,5 @@ Add focused tests around `check.voice.test.ts` and callback handling:
 - voice transcript preview keyboard includes `voice_correct`;
 - callback stores `await_check` and sends a correction prompt;
 - a corrected text message runs `runCheck` without any voice download/STT call.
+- weak transcripts ask for correction instead of producing a risk card;
+- RU/UZ mixed-speech emergency transcripts route directly to the relevant `/panic` flow.

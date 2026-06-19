@@ -199,6 +199,63 @@ describe("handleVoice", () => {
     );
   });
 
+  it("asks for correction when STT returns a low-signal transcript", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: "ha yoq" });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 4,
+      fileUniqueId: "low-signal-voice",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        text: expect.stringContaining("текста мало"),
+        keyboard: expect.arrayContaining([
+          expect.arrayContaining([expect.objectContaining({ callback_data: "voice_correct" })]),
+        ]),
+      }),
+    );
+  });
+
+  it("routes mixed RU/UZ emergency voice transcripts to panic scenarios", async () => {
+    const cases: Array<[string, number, string]> = [
+      ["Men telegram kod yubordim, endi nima qilay", 1, "uz-code"],
+      ["Men pul o'tkazdim karta orqali", 3, "uz-money"],
+      ["Hozir menga bankdan qo'ng'iroq qilishyapti", 6, "uz-call"],
+    ];
+
+    for (const [text, panicId, uniqueId] of cases) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: uniqueId,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({ lastPanicId: panicId }),
+        }),
+      );
+    }
+  });
+
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,

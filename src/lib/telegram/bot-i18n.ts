@@ -237,6 +237,11 @@ export const bot_dict: BotDict = {
     uz: "Ovozli xabar yoki audioni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
     en: "I could not reliably understand the voice note or audio file yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
   },
+  voice_transcript_uncertain: {
+    ru: "Я распознал голос, но текста мало для честной проверки.\n\nНажмите «Исправить текст» или напишите одним сообщением: что обещают и что просят сделать.\n\nЕсли уже отправили код, установили APK или сейчас на звонке — нажмите «Что делать срочно».",
+    uz: "Ovozni o'qidim, lekin halol tekshiruv uchun matn juda kam.\n\n«Matnni tuzatish» tugmasini bosing yoki bitta xabarda yozing: nima va'da qilishdi va nima so'rashyapti.\n\nAgar kod yuborgan, APK o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
+    en: "I recognized the voice, but there is too little text for a fair check.\n\nTap “Correct text” or send one message: what they promise and what they ask you to do.\n\nIf you already sent a code, installed an APK, or are on a call right now, tap “Emergency steps”.",
+  },
   voice_correct_button: {
     ru: "✏️ Исправить текст",
     uz: "✏️ Matnni tuzatish",

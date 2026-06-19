@@ -100,6 +100,8 @@ const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
+const VOICE_LOW_SIGNAL_MIN_LETTERS = 6;
+const VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS = 2;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
@@ -304,6 +306,13 @@ function buildVoiceFallbackKeyboard(lang: HandlerCtx["session"]["lang"]): Inline
   ];
 }
 
+function buildVoiceUncertainKeyboard(lang: HandlerCtx["session"]["lang"]): InlineKeyboard {
+  return [
+    [{ text: bt("voice_correct_button", lang), callback_data: CB.voiceCorrect }],
+    ...buildVoiceFallbackKeyboard(lang),
+  ];
+}
+
 function estimateBase64DataUrlBytes(dataUrl: string): number {
   const comma = dataUrl.indexOf(",");
   if (comma < 0) return 0;
@@ -350,8 +359,43 @@ function normalizeVoiceIntentText(text: string): string {
     .normalize("NFKC")
     .toLowerCase()
     .replace(/ё/g, "е")
+    .replace(/[‘’ʻʼ`´]/g, "'")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isLowSignalVoiceTranscript(transcript: string): boolean {
+  const text = normalizeVoiceIntentText(transcript);
+  if (!text) return true;
+
+  const letters = text.match(/[a-zа-я]/gi)?.length ?? 0;
+  if (letters < VOICE_LOW_SIGNAL_MIN_LETTERS) return true;
+
+  if (
+    /(неразборчив|не понял|не слышно|плохо слышно|невозможно разобрать|inaudible|unintelligible|cannot understand|can't understand)/.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+
+  const words = text.match(/[a-zа-я']{2,}/gi) ?? [];
+  const fillerWords = new Set([
+    "ну",
+    "ээ",
+    "эм",
+    "ага",
+    "да",
+    "нет",
+    "вот",
+    "ha",
+    "yoq",
+    "yo'q",
+    "ana",
+    "mana",
+  ]);
+  const meaningfulWords = words.filter((word) => !fillerWords.has(word));
+  return meaningfulWords.length < VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS;
 }
 
 function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
@@ -364,6 +408,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:смс|sms|otp|код|code).{0,60}(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?)/.test(
       text,
+    ) ||
+    /(?:^|\s)(men|biz).{0,40}(yubor|jo'nat|jonat|ayt|ber|kirit).{0,60}(sms|kod|code|otp)/.test(
+      text,
+    ) ||
+    /(?:sms|kod|code|otp).{0,60}(yubor|jo'nat|jonat|ayt|ber|kirit)/.test(
+      text,
     )
   ) {
     return 1;
@@ -374,6 +424,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:apk|апк|приложени[ея]).{0,80}(доступ к sms|доступ к смс|уведомлени|спец\.? возможност|accessibility)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(men|biz).{0,40}(o'rnat|ornat|yukla|skachat|och|ishga tushir).{0,80}(apk|ilova|programma|app)/.test(
+      text,
+    ) ||
+    /(?:apk|ilova|programma|app).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma)/.test(
       text,
     )
   ) {
@@ -386,6 +442,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс).{0,80}(перевел[аи]?|перевёл[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
       text,
+    ) ||
+    /(?:pul|sum|som|uzs|karta|balans).{0,80}(yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad)/.test(
+      text,
+    ) ||
+    /(?:yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad).{0,80}(pul|sum|som|uzs|karta|balans)/.test(
+      text,
     )
   ) {
     return 3;
@@ -393,6 +455,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
 
   if (
     /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
+      text,
+    ) ||
+    /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(
+      text,
+    ) ||
+    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(
       text,
     )
   ) {
@@ -405,6 +473,9 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(
       text,
+    ) ||
+    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(
+      text,
     )
   ) {
     return 5;
@@ -413,7 +484,11 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   if (
     /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(ят|ит)/.test(text) ||
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
-    /не кладите трубку/.test(text)
+    /не кладите трубку/.test(text) ||
+    /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
+    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(
+      text,
+    )
   ) {
     return 6;
   }
@@ -830,6 +905,20 @@ export async function handleVoice(
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
       await sendVoiceTranscriptNote(ctx, cachedTranscript);
+      if (isLowSignalVoiceTranscript(cachedTranscript)) {
+        await replyText(
+          ctx.chatId,
+          bt("voice_transcript_uncertain", lang),
+          buildVoiceUncertainKeyboard(lang),
+        );
+        logTelegramTiming("voice.total", startedAt, {
+          cached: true,
+          lowSignal: true,
+          transcriptChars: cachedTranscript.length,
+          durationSec: meta?.duration ?? null,
+        });
+        return;
+      }
       const panicId = classifyVoicePanicIntent(cachedTranscript);
       if (panicId !== null) {
         await sendVoicePanicRoute(ctx, panicId);
@@ -930,6 +1019,9 @@ export async function handleVoice(
       if (!transcript.text) return { kind: "failed" as const };
       rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
       await sendVoiceTranscriptNote(ctx, transcript.text);
+      if (isLowSignalVoiceTranscript(transcript.text)) {
+        return { kind: "uncertain" as const, transcriptChars: transcript.text.length };
+      }
       const panicId = classifyVoicePanicIntent(transcript.text);
       if (panicId !== null) {
         return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
@@ -975,6 +1067,20 @@ export async function handleVoice(
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         routedToPanic: outcome.panicId,
+        transcriptChars: outcome.transcriptChars,
+        durationSec: meta?.duration ?? null,
+      });
+      return;
+    }
+    if (outcome.kind === "uncertain") {
+      await replyText(
+        ctx.chatId,
+        bt("voice_transcript_uncertain", lang),
+        buildVoiceUncertainKeyboard(lang),
+      );
+      logTelegramTiming("voice.total", startedAt, {
+        cached: false,
+        lowSignal: true,
         transcriptChars: outcome.transcriptChars,
         durationSec: meta?.duration ?? null,
       });

@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-19 - Voice-in confidence fallback and RU/UZ fixtures shipped
+
+- Low-signal voice transcripts now stop before the normal risk pipeline and ask
+  the user to correct or type the text, avoiding misleading risk cards from
+  weak STT output.
+- Added RU/UZ mixed-speech voice fixtures so "kod yubordim",
+  "pul o'tkazdim" and "qo'ng'iroq qilishyapti" route directly to the matching
+  emergency flows.
+- Updated Voice-in v2 specs and regression coverage.
+
 ## 2026-06-18 - Voice-in transcript correction shipped
 
 - Telegram voice transcript previews now include a localized "Correct text"

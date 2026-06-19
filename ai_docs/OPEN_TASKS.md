@@ -81,7 +81,7 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       reassurance boilerplate, and Telegram/phone passport cards say confirmed
       Ishonch Guard complaints were not found instead of implying safety from a
       zero count.
-- [ ] **Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
+- [x] ~~**Voice-in v2.** Add transcript preview, "edit recognized text" recovery,
       confidence-aware fallback, RU/UZ mixed-speech fixtures and direct routing
       from obvious panic/live-call transcripts to the matching emergency flow.
       First slices are shipped: slow STT now shows a quick Telegram activity
@@ -89,8 +89,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       "I already sent code / installed APK / transferred money / entered card /
       lost Telegram / on a call" transcripts route to `/panic`, and transcript
       previews include an "edit recognized text" recovery path that rechecks
-      corrected text without another STT call. Remaining: confidence-aware
-      fallback and RU/UZ mixed-speech fixtures.
+      corrected text without another STT call.~~ Done: low-signal transcripts
+      now ask for correction instead of producing a risk card, and RU/UZ
+      mixed-speech fixtures cover code, money and live-call routing.
 - [x] ~~**QR clarity pass.** Make every photo/QR response explicit about
       whether a QR was actually decoded, what kind of destination was found,
       and why a menu/loyalty QR differs from Telegram login, payment or
@@ -107,7 +108,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting
       state, STT-budget wording, direct voice-to-SOS routing and transcript
-      correction are shipped.
+      correction, low-signal fallback and first RU/UZ mixed-speech fixtures are
+      shipped. Remaining: broaden the real-audio regression corpus and tune
+      confidence heuristics from production examples.
 - [ ] **Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
       deterministic output is enough.
