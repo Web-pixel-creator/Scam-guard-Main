@@ -199,7 +199,7 @@ function AdminPage() {
                 aria-pressed={status === s}
                 className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
                   status === s
-                    ? "bg-[#0B0B0F] text-white border-[#0B0B0F]"
+                    ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
                     : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
                 }`}
               >
@@ -250,7 +250,7 @@ function AdminPage() {
                       type="button"
                       disabled={moderate.isPending}
                       onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
                     >
                       <Check className="h-3.5 w-3.5" aria-hidden="true" /> Скам
                     </button>
@@ -289,7 +289,7 @@ function AdminPage() {
                 aria-pressed={appealStatus === s}
                 className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
                   appealStatus === s
-                    ? "bg-[#0B0B0F] text-white border-[#0B0B0F]"
+                    ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
                     : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
                 }`}
               >
@@ -365,7 +365,7 @@ function AdminPage() {
                           note: "Appeal rejected after moderator review.",
                         })
                       }
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#0B0B0F] text-white apex-mono hover:bg-[#27272A] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#0B0B0F] apex-on-dark apex-mono hover:bg-[#27272A] transition-colors disabled:opacity-50"
                     >
                       <X className="h-3.5 w-3.5" aria-hidden="true" /> Оставить
                     </button>

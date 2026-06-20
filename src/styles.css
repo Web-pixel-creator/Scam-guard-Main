@@ -768,6 +768,10 @@ html.a11y-high-contrast :focus-visible {
   font-weight: 600;
 }
 
+.apex-on-dark {
+  color: #fff !important;
+}
+
 .apex-wordmark {
   font-family: var(--font-display);
   font-weight: 800;
