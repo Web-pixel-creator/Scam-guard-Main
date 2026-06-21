@@ -291,7 +291,7 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     ]);
     expect(blackmail.map((button) => button.text)).not.toContain("📞 Позвонить безопасно");
 
-    expect(romance.map((button) => button.text)).toContain("🧭 Пауза и проверка");
+    expect(romance.map((button) => button.text)).toContain("🧭 Проверить с близким");
     expect(callbackData(buildEmergencyFollowUpKeyboard("ru", 8)).slice(0, 2)).toEqual([
       "family:notify",
       "panicctx:8:contacts",

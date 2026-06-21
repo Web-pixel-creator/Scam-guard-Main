@@ -583,9 +583,9 @@ export function buildVoiceOutFallbackText(
 ): string {
   if (result.reason === "rate_limited") {
     return textByLang(lang, {
-      ru: "🔊 Голосовые подсказки на сегодня закончились. Я всё равно рядом: читайте короткий текст и нажимайте кнопки ниже.",
-      uz: "🔊 Bugungi ovozli maslahatlar limiti tugadi. Men baribir yoningizdaman: qisqa matnni o'qing va pastdagi tugmalarni bosing.",
-      en: "🔊 Voice tips are used up for today. I am still here: read the short text and use the buttons below.",
+      ru: "🔊 На сегодня голосовые подсказки закончились. Это не страшно — главное уже в тексте выше. Спокойно выполните первый шаг.",
+      uz: "🔊 Bugungi ovozli maslahatlar tugadi. Bu qo'rqinchli emas — eng muhimi yuqoridagi matnda. Birinchi qadamni xotirjam bajaring.",
+      en: "🔊 Voice tips are used up for today. That's okay — the key part is already in the text above. Calmly do the first step.",
     });
   }
   if (result.reason === "not_configured") {
@@ -596,9 +596,9 @@ export function buildVoiceOutFallbackText(
     });
   }
   return textByLang(lang, {
-    ru: "🔊 Сейчас не удалось отправить голосовой ответ. Не ждите: выполните безопасный шаг из текста выше.",
-    uz: "🔊 Hozir ovozli javob yuborilmadi. Kutmang: yuqoridagi xavfsiz qadamni bajaring.",
-    en: "🔊 I could not send the voice reply right now. Do not wait: follow the safe step above.",
+    ru: "🔊 Голос сейчас недоступен. Это не страшно — главное уже в тексте выше. Спокойно выполните первый шаг.",
+    uz: "🔊 Ovoz hozir mavjud emas. Bu qo'rqinchli emas — eng muhimi yuqoridagi matnda. Birinchi qadamni xotirjam bajaring.",
+    en: "🔊 Voice is unavailable right now. That's okay — the key part is already in the text above. Calmly do the first step.",
   });
 }
 
