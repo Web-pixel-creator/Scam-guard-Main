@@ -9,7 +9,6 @@ import { findMatchingPatterns } from "@/lib/scam-patterns";
 interface ReasonTimelineProps {
   reasonCodes: ReasonCode[];
   riskLevel: RiskLevel;
-  score: number;
   hasAiExplanation: boolean;
   verifiedContact?: { orgName: string } | null;
 }
@@ -31,7 +30,6 @@ const LEVEL_LABELS: Record<RiskLevel, Record<string, string>> = {
 export function ReasonTimeline({
   reasonCodes,
   riskLevel,
-  score,
   hasAiExplanation,
   verifiedContact,
 }: ReasonTimelineProps) {
@@ -44,23 +42,18 @@ export function ReasonTimeline({
         {{ ru: "Анализ решения", uz: "Qaror tahlili", en: "Decision Analysis" }[lang]}
       </h4>
 
-      {/* Risk level + score */}
+      {/* Risk level */}
       <div className="flex items-center gap-2">
         <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${LEVEL_COLORS[riskLevel]}`}>
           {LEVEL_LABELS[riskLevel][lang]}
         </span>
-        <span className="text-[#71717A]">Score: {score}</span>
       </div>
 
       {/* Reason codes */}
       {reasonCodes.length > 0 && (
         <div>
           <p className="text-[#71717A] mb-1">
-            {
-              { ru: "Сработавшие правила:", uz: "Ishga tushgan qoidalar:", en: "Triggered rules:" }[
-                lang
-              ]
-            }
+            {{ ru: "Почему отмечено:", uz: "Nega belgilangan:", en: "Why it was flagged:" }[lang]}
           </p>
           <ul className="space-y-0.5 pl-3">
             {reasonCodes.map((code) => (
@@ -96,16 +89,19 @@ export function ReasonTimeline({
         </p>
       )}
 
-      {/* AI status */}
+      {/* How the verdict was reached */}
       <p className="text-[#A1A1AA]">
-        AI:{" "}
         {hasAiExplanation
-          ? { ru: "объяснение доступно", uz: "tushuntirish mavjud", en: "explanation available" }[
-              lang
-            ]
-          : { ru: "нет (только правила)", uz: "yo'q (faqat qoidalar)", en: "none (rules only)" }[
-              lang
-            ]}
+          ? {
+              ru: "Вывод: по правилам + объяснение AI",
+              uz: "Xulosa: qoidalar + AI izohi",
+              en: "Verdict: rules + AI explanation",
+            }[lang]
+          : {
+              ru: "Вывод: только по правилам (без AI)",
+              uz: "Xulosa: faqat qoidalar (AI'siz)",
+              en: "Verdict: rules only (no AI)",
+            }[lang]}
       </p>
     </div>
   );

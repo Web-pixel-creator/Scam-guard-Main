@@ -178,8 +178,8 @@ function AdminPage() {
       {/* Stats — hairline grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
         <Stat label="Новые жалобы" value={stats.data?.reports_new} highlight />
-        <Stat label="Подтверждено" value={stats.data?.reports_confirmed} />
-        <Stat label="Сущностей в базе" value={stats.data?.entities_confirmed} />
+        <Stat label="Подтверждённых жалоб" value={stats.data?.reports_confirmed} />
+        <Stat label="Целей в публичной базе" value={stats.data?.entities_confirmed} />
         <Stat label="Всего проверок" value={stats.data?.checks_total} />
         <Stat label="Апелляции" value={stats.data?.appeals_new} />
       </div>
@@ -252,7 +252,7 @@ function AdminPage() {
                       onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
                     >
-                      <Check className="h-3.5 w-3.5" aria-hidden="true" /> Скам
+                      <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
                     </button>
                     <button
                       type="button"
@@ -475,7 +475,6 @@ function EntityRow({
               <ReasonTimeline
                 reasonCodes={(check.data.reason_codes ?? []) as ReasonCode[]}
                 riskLevel={(check.data.risk_level ?? "unknown") as RiskLevel}
-                score={check.data.risk_score ?? 0}
                 hasAiExplanation={!!check.data.ai_explanation}
               />
             )}
