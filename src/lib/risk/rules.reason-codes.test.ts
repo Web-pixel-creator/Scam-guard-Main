@@ -192,6 +192,12 @@ describe("evaluateText — fake_delivery_payment (research feed)", () => {
       text: "Слушай, локу скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот. Потому что, по-моему, доставка они там только по карте.",
     },
     {
+      // Regression: the link word "ссылку" must not flip this delivery note
+      // into a gambling promo; it should still read as fake_delivery_payment.
+      name: "RU voice delivery card-only with 'ссылку'",
+      text: "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.",
+    },
+    {
       name: "EN delivery card-only",
       text: "The courier says this delivery is card only and asks to pay by card before pickup",
     },
@@ -251,6 +257,24 @@ describe("evaluateText — gambling_prediction_promo (Telegram betting feed)", (
     {
       name: "RU restaurant promo with QR",
       text: "Акция ресторана: меню и бонусы по QR-коду, без ставок и прогнозов",
+    },
+    {
+      // Regression: "доставка" contains the substring "ставк" but is delivery,
+      // not betting. With "ссылку" matching the action regex this used to
+      // falsely fire gambling and over-escalate the verdict to high_risk.
+      name: "RU voice delivery card-only (доставка ≠ ставка)",
+      text: "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.",
+    },
+    {
+      // "призыв" contains "приз" but is not a prize; with "матч" as context
+      // this used to falsely fire gambling.
+      name: "RU call to a match (призыв ≠ приз)",
+      text: "Это призыв прийти на матч в субботу, будет весело",
+    },
+    {
+      // "признаю" contains "приз"; "прогноз погоды" is a benign forecast.
+      name: "RU admitting a mistake (признаю ≠ приз, прогноз погоды ≠ betting)",
+      text: "Я признаю что ошибся, прогноз погоды на завтра плохой",
     },
   ];
 

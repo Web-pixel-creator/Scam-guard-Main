@@ -325,7 +325,10 @@ export function parseGuardianAngelCallback(data: string): GuardianAngelAction | 
     : null;
 }
 
-export function buildGuardianAngelKeyboard(lang: Lang, snapshot?: GuardianAngelSnapshot): InlineKeyboard {
+export function buildGuardianAngelKeyboard(
+  lang: Lang,
+  snapshot?: GuardianAngelSnapshot,
+): InlineKeyboard {
   const text = {
     ru: {
       next: "🧭 Что дальше",

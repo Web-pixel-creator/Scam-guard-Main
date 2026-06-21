@@ -37,6 +37,58 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).not.toBe("high_risk");
   });
 
+  it("does not flag a domain the model only guessed near an undecoded QR (P3)", () => {
+    const guessed: ImageIntelligenceResult = {
+      text: null,
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapital-bank-verify.click/login",
+        purpose: "unknown",
+      },
+      riskHints: [],
+      summary: "Похоже на меню или информационный QR.",
+    };
+
+    const { input, reasons } = scoreImageEvidence(guessed);
+    // A URL the model only guessed (QR not pixel-decoded, URL not in OCR text)
+    // must not enter scoring, so it cannot produce a domain verdict on its own.
+    expect(input).not.toContain("kapital-bank-verify.click");
+    expect(reasons).toHaveLength(0);
+  });
+
+  it("still flags a genuinely readable QR URL — pixel-decoded or visible in OCR (P3)", () => {
+    const decoded: ImageIntelligenceResult = {
+      text: null,
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapital-bank-verify.click/login",
+        purpose: "unknown",
+        decodedValues: ["https://kapital-bank-verify.click/login"],
+      },
+      riskHints: [],
+      summary: "Похоже на меню или информационный QR.",
+    };
+    expect(scoreImageEvidence(decoded).reasons.length).toBeGreaterThan(0);
+
+    const inText: ImageIntelligenceResult = {
+      text: "Вход https://kapital-bank-verify.click/login",
+      visualCategory: "unknown",
+      confidence: "low",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapital-bank-verify.click/login",
+        purpose: "unknown",
+      },
+      riskHints: [],
+      summary: null,
+    };
+    expect(scoreImageEvidence(inText).reasons.length).toBeGreaterThan(0);
+  });
+
   it("treats a normal delivery pickup SMS as insufficient data, not high risk", () => {
     const evidence = fallbackImageIntelligence(
       "kutadi\nBuyurtma 106894935 sizni topshirish punktida kutmoqda. Uni 23.05.2026gacha olib keting",

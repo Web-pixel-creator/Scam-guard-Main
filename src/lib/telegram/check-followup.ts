@@ -20,6 +20,11 @@ const CONTACTS_RE =
   /(?:дай|покажи|нужен|нужны|куда|как)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq)/i;
 const EXPLAIN_RE =
   /^(?:почему|почему\s+так|объясни|поясни|я\s+не\s+понял[а]?|не\s+понял[а]?|что\s+это\s+значит|why|why\s+so|explain|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega|tushunmadim|izohla)[\s?!.,]*$/i;
+// "Is this made by AI / a neural net?" style questions about the last check.
+// We cannot reliably detect AI generation, so we answer honestly and redirect
+// to what actually matters for safety instead of returning a generic card.
+const AI_ORIGIN_RE =
+  /(нейросет|нейронк|искусственн[а-яё]*\s+интеллект|сгенерир|chatgpt|midjourney|ai[\s-]?generated|ai[\s-]?made|generated\s+(?:by|with)\s+(?:ai|a?\s*neural)|made\s+(?:by|with)\s+ai|looks?\s+(?:like\s+)?ai|sun'?iy\s+intellekt|(?:^|[^a-zа-яё])(?:ai|ии)(?:[^a-zа-яё]|$))/i;
 
 const SCAM_PAYLOAD_RE =
   /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
@@ -38,7 +43,12 @@ const TOPIC_ONLY_EXPLANATION_REASONS = new Set([
   "non_uz_phone",
 ]);
 
-export type LastCheckFollowUpAction = "confidence" | "next_steps" | "contacts" | "explain";
+export type LastCheckFollowUpAction =
+  | "confidence"
+  | "next_steps"
+  | "contacts"
+  | "explain"
+  | "ai_origin";
 
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);
@@ -111,6 +121,7 @@ export function classifyLastCheckFollowUp(
   if (!snapshot || !isRecent(snapshot, now)) return null;
   if (hasNewerRecentPanicContext(scenarioData, snapshot, now)) return null;
 
+  if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (CONTACTS_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
@@ -122,6 +133,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   const trimmed = text.trim();
   if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
 
+  if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (CONTACTS_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
@@ -379,6 +391,53 @@ function explainText(snapshot: LastCheckSnapshot, lang: Lang): string {
   return `Коротко: я проверил видимые признаки риска в прошлом сообщении. Итог: ${levelText(snapshot.level, lang)}.${evidence}\n\nЯ не показываю внутренние баллы. Главное: коды, карта, пароль, APK, перевод денег и давление повышают риск.`;
 }
 
+function aiOriginWhatMatters(context: string | undefined, lang: Lang): string {
+  const dict: Record<string, Record<Lang, string>> = {
+    qr_menu: {
+      ru: "какой адрес откроется по QR и что на нём попросят",
+      uz: "QR qaysi manzilni ochishi va u yerda nima so'ralishi",
+      en: "what address the QR opens and what it asks for",
+    },
+    telegram_profile: {
+      ru: "что именно этот аккаунт просит сделать",
+      uz: "bu akkaunt aynan nima qilishni so'rayotgani",
+      en: "what exactly this account asks you to do",
+    },
+    delivery: {
+      ru: "куда ведёт ссылка и не просят ли оплату по карте",
+      uz: "havola qayerga olib borishi va karta orqali to'lov so'ralayotgani",
+      en: "where the link leads and whether it asks for card payment",
+    },
+    crypto: {
+      ru: "не обещают ли быстрый доход и не просят ли депозит или seed-фразу",
+      uz: "tez daromad va'da qilinayotgani, depozit yoki seed-ibora so'ralayotgani",
+      en: "whether it promises fast profit or asks for a deposit or seed phrase",
+    },
+    phone: {
+      ru: "что именно просили в разговоре — код, деньги, карту или приложение",
+      uz: "suhbatda nima so'ralgani — kod, pul, karta yoki ilova",
+      en: "what the call asked for — a code, money, card data, or an app",
+    },
+  };
+  const fallback: Record<Lang, string> = {
+    ru: "что именно вас просят сделать и какой адрес откроется по ссылке",
+    uz: "sizdan nima so'ralayotgani va havola qaysi manzilni ochishi",
+    en: "what you are asked to do and what address the link opens",
+  };
+  return (context ? dict[context]?.[lang] : undefined) ?? fallback[lang];
+}
+
+function aiOriginText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const whatMatters = aiOriginWhatMatters(snapshot.context, lang);
+  if (lang === "uz") {
+    return `Rostini aytsam: bu AI yoki odam tomonidan qilinganini aniq ayta olmayman — menda ishonchli AI-detektor yo'q, va o'ylab topmayman. Lekin xavfsizlik uchun bu asosiy emas: «AI» ko'rinishining o'zi firibgarlikni isbotlamaydi.\n\nMuhimi — ${whatMatters}. Agar to'lov, SMS-kod, karta ma'lumoti yoki login so'ralsa — to'xtang va keyingi ekranni yuboring.`;
+  }
+  if (lang === "en") {
+    return `Honestly: I can't reliably tell whether this was made by AI or a person — I have no trustworthy AI detector and I won't guess. But for safety it doesn't matter: an "AI" look alone does not prove a scam.\n\nWhat matters is ${whatMatters}. If it asks for payment, an SMS code, card data, or a login — stop and send me the next screen.`;
+  }
+  return `Честно: я не берусь точно сказать, сделано это ИИ или человеком — у меня нет надёжного детектора AI, и я не хочу выдумывать. Но для безопасности это не главное: «AI-шный» вид сам по себе не доказывает мошенничество.\n\nВажно другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
+}
+
 export function buildLastCheckFollowUpText(
   action: LastCheckFollowUpAction,
   snapshot: LastCheckSnapshot,
@@ -393,11 +452,23 @@ export function buildLastCheckFollowUpText(
       return contactsText(lang);
     case "explain":
       return explainText(snapshot, lang);
+    case "ai_origin":
+      return aiOriginText(snapshot, lang);
   }
 }
 
 export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, lang: Lang): string {
   if (action === "contacts") return contactsText(lang);
+
+  if (action === "ai_origin") {
+    if (lang === "uz") {
+      return "Bir narsa AI yoki odam tomonidan qilinganini aniq ayta olmayman — va xavfsizlik uchun bu asosiy emas. Muhimi: havola qaysi manzilni ochishi va to'lov, SMS-kod yoki karta so'ralayotgani.\n\nTekshirish uchun havola, skrinshot yoki xabar matnini yuboring.";
+    }
+    if (lang === "en") {
+      return "I can't reliably tell whether something was made by AI or a person — and for safety it doesn't matter. What matters is where a link leads and whether it asks for payment, an SMS code, or card data.\n\nSend the link, screenshot, or message text and I'll check it.";
+    }
+    return "Я не берусь точно сказать, сделано что-то ИИ или человеком — и для безопасности это не главное. Важно, какой адрес откроется по ссылке и не просят ли там оплату, SMS-код или данные карты.\n\nПришлите ссылку, скриншот или текст сообщения — я проверю.";
+  }
 
   if (lang === "uz") {
     if (action === "confidence") {

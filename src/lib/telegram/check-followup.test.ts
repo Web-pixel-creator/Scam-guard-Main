@@ -48,6 +48,46 @@ describe("last check follow-up router", () => {
     expect(buildLastCheckFollowUpText(action!, snapshot, "ru")).toContain("информационный QR");
   });
 
+  it("answers an 'is this made by AI?' question instead of running a new check", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ explanation: "Похоже на меню, акцию или информационный QR." }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp(
+      "Похоже, меню сделано с помощью искусственного интеллекта?",
+      scenarioWith(snapshot),
+      now,
+    );
+    expect(action).toBe("ai_origin");
+
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+    // Honest: never claims it IS AI; redirects to the real risk + a safe action.
+    expect(text).toContain("не главное");
+    expect(text).toContain("какой адрес откроется по QR");
+    expect(text).toContain("SMS-код");
+  });
+
+  it("treats a short 'Это AI?' as an ai-origin follow-up", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult(), now);
+    expect(classifyLastCheckFollowUp("Это AI?", scenarioWith(snapshot), now)).toBe("ai_origin");
+  });
+
+  it("does not treat an ai-origin question carrying a new payload as a follow-up", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult(), now);
+    expect(
+      classifyLastCheckFollowUp("Это AI? https://promo.example.com", scenarioWith(snapshot), now),
+    ).toBeNull();
+  });
+
+  it("answers an ai-origin question even without a recent check (orphan)", () => {
+    expect(classifyOrphanCheckFollowUp("Это сделано нейросетью?")).toBe("ai_origin");
+    expect(buildOrphanCheckFollowUpText("ai_origin", "ru")).toContain("не главное");
+  });
+
   it("routes a short next-step question to contextual guidance", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
     const snapshot = buildLastCheckSnapshot(

@@ -574,8 +574,18 @@ export function buildImageCheckInput(evidence: ImageIntelligenceResult): string 
   }
 
   if (evidence.text) lines.push(evidence.text);
-  if (evidence.qr.visibleUrl)
-    lines.push(`Видимый адрес из QR/изображения: ${evidence.qr.visibleUrl}`);
+  if (evidence.qr.visibleUrl) {
+    const visibleUrl = evidence.qr.visibleUrl;
+    const qrPixelDecoded = decodedQrValues(evidence).length > 0;
+    const urlReadableInText = Boolean(evidence.text && evidence.text.includes(visibleUrl));
+    // P3: only let a QR-adjacent URL drive domain scoring when it is genuinely
+    // readable — a pixel-decoded QR payload or a URL that also appears in OCR
+    // text. A URL the model merely guessed near a QR it could not decode must
+    // not produce a "suspicious domain" verdict on its own.
+    if (qrPixelDecoded || urlReadableInText) {
+      lines.push(`Видимый адрес из QR/изображения: ${visibleUrl}`);
+    }
+  }
   for (const line of decodedLines) {
     if (
       !lines.some((existing) => existing.includes(line.replace(/^Decoded QR URL\/value: /, "")))
