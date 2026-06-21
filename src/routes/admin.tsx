@@ -235,10 +235,23 @@ function AdminPage() {
                       <span className="apex-mono text-[#71717A]">· {r.scam_type}</span>
                     )}
                     {r.city && <span className="apex-mono text-[#71717A]">· {r.city}</span>}
+                    <span
+                      className={`apex-mono ${
+                        reportSignalCount(r) > 1 ? "text-[#9A3412]" : "text-[#71717A]"
+                      }`}
+                    >
+                      · {reportSignalLabel(reportSignalCount(r))}
+                    </span>
                   </div>
                   <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
                     {r.description}
                   </p>
+                  {reportSignalCount(r) > 1 && (
+                    <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
+                      По этой цели уже есть повторные сигналы. Перед публичной меткой проверьте
+                      контекст в описании и похожие записи в базе.
+                    </p>
+                  )}
                   <p className="mt-3 apex-mono text-[#A1A1AA]">
                     {new Date(r.created_at).toLocaleString()} · LANG: {r.language}
                     {r.amount_lost_uzs ? ` · ${r.amount_lost_uzs.toLocaleString()} UZS` : ""}
@@ -530,4 +543,22 @@ function labelStatus(s: string) {
       } as Record<string, string>
     )[s] ?? s
   );
+}
+
+function reportSignalCount(report: { entity_hash: string; target_report_count?: number | null }) {
+  const value = Number(report.target_report_count ?? 1);
+  return Number.isFinite(value) && value > 0 ? Math.round(value) : 1;
+}
+
+function reportSignalLabel(count: number) {
+  return count === 1 ? "первый сигнал по цели" : `${count} ${pluralRu(count)} по цели`;
+}
+
+function pluralRu(value: number) {
+  const abs = Math.abs(value);
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 === 1 && mod100 !== 11) return "сигнал";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "сигнала";
+  return "сигналов";
 }

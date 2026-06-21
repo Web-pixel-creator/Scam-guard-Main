@@ -182,9 +182,9 @@ export const bot_dict: BotDict = {
 
   // ── /report result messages (R6.7, R6.8) ──────────────────────────────────
   report_confirm: {
-    ru: "✅ Спасибо, сообщение принято.\n\nЯ передал модератору только безопасное краткое уведомление. Запись не станет публичной, пока её не проверят вручную.\n\nВы помогаете предупредить других людей — без публикации лишних личных данных.",
-    uz: "✅ Rahmat, xabar qabul qilindi.\n\nMen moderatorga faqat xavfsiz qisqa bildirishnoma yubordim. Yozuv qo'lda tekshirilmaguncha ommaviy bo'lmaydi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz — ortiqcha shaxsiy ma'lumotlarni oshkor qilmasdan.",
-    en: "✅ Thank you, the report was received.\n\nI sent the moderator only a safe short notification. It will not become public until it is reviewed manually.\n\nYou are helping warn other people without exposing extra personal data.",
+    ru: "✅ Спасибо, сигнал принят.\n\nВы помогли предупредить других людей. Мы проверим сообщение вручную: публичная метка появится только после модерации.\n\nВ чат модерации ушло только безопасное краткое уведомление — без кодов, карт, скриншотов и полных контактов.",
+    uz: "✅ Rahmat, signal qabul qilindi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz. Xabar qo'lda tekshiriladi: ommaviy belgi faqat moderatsiyadan keyin chiqadi.\n\nModeratsiya chatiga faqat xavfsiz qisqa bildirishnoma yuborildi — kodlar, kartalar, skrinshotlar va to'liq kontaktlarsiz.",
+    en: "✅ Thank you, the signal was received.\n\nYou helped warn other people. We will review it manually: a public label appears only after moderation.\n\nOnly a safe short notification went to the moderation chat — without codes, cards, screenshots, or full contacts.",
   },
   report_error: {
     ru: "Не удалось отправить жалобу. Попробуйте, пожалуйста, ещё раз чуть позже.",
