@@ -2716,7 +2716,91 @@ function guidedCallbackDirectory(panicId: PanicScenarioId, lang: Lang): string {
     return lines[lang].join("\n");
   }
 
-  if (profile === "blackmail" || profile === "minor") {
+  if (profile === "minor") {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "🆘 Куда обратиться",
+        "",
+        "1. Самое важное — расскажи взрослому, которому доверяешь: родителям, родственнику или учителю. Ты не останешься с этим один(одна).",
+        "2. Ничего не плати и не отправляй новые фото или видео. Можешь вообще не отвечать тому, кто угрожает.",
+        "3. Не удаляй переписку — она поможет взрослым и полиции. Сделай скриншоты, если умеешь.",
+        "",
+        "Если страшно или взрослого рядом нет, позвонить можно сюда:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ Ты не сделал(а) ничего плохого. Виноват тот, кто угрожает, а не ты.",
+      ],
+      uz: [
+        "🆘 Qayerga murojaat qilish",
+        "",
+        "1. Eng muhimi — ishonadigan kattaga ayt: ota-onangga, qarindoshingga yoki o'qituvchingga. Bu bilan yolg'iz qolmaysan.",
+        "2. Hech narsa to'lama va yangi foto yoki video yuborma. Tahdid qilayotganga umuman javob bermasang ham bo'ladi.",
+        "3. Yozishmani o'chirma — u kattalarga va politsiyaga yordam beradi. Imkoning bo'lsa, skrinshot ol.",
+        "",
+        "Qo'rqsang yoki yoningda katta bo'lmasa, bu yerga qo'ng'iroq qilsa bo'ladi:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ Sen yomon ish qilmading. Bunda tahdid qilayotgan odam aybdor, sen emas.",
+      ],
+      en: [
+        "🆘 Where to get help",
+        "",
+        "1. The most important step: tell an adult you trust — a parent, relative, or teacher. You will not be alone with this.",
+        "2. Do not pay and do not send new photos or videos. You do not have to reply to the person threatening you at all.",
+        "3. Do not delete the chat — it helps adults and the police. Take screenshots if you can.",
+        "",
+        "If you are scared or no adult is nearby, you can call:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ You did nothing wrong. The person threatening you is at fault, not you.",
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  if (panicId === 9) {
+    const lines: Record<Lang, string[]> = {
+      ru: [
+        "🆘 Куда обратиться",
+        "",
+        "1. Не платите: оплата чаще приводит к новым угрозам, а не к удалению.",
+        "2. Сохраните доказательства — скриншоты, ссылку на профиль и время сообщений. Заблокируйте угрожающего.",
+        "3. Если контент уже опубликован — отправьте жалобу в поддержку платформы и приложите ссылку.",
+        "",
+        "Обратиться можно сюда:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ Вы здесь жертва, а не виновник. Требовать удаления — ваше право.",
+      ],
+      uz: [
+        "🆘 Qayerga murojaat qilish",
+        "",
+        "1. To'lamang: to'lov ko'pincha o'chirishga emas, yangi tahdidlarga olib keladi.",
+        "2. Dalillarni saqlang — skrinshot, profil havolasi va xabar vaqtlari. Tahdid qilayotganni bloklang.",
+        "3. Kontent allaqachon e'lon qilingan bo'lsa — platforma qo'llab-quvvatlashiga shikoyat yuboring va havolani ilova qiling.",
+        "",
+        "Bu yerlarga murojaat qilish mumkin:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ Bu yerda siz jabrlanuvchisiz, aybdor emas. O'chirishni talab qilish — sizning haqingiz.",
+      ],
+      en: [
+        "🆘 Where to get help",
+        "",
+        "1. Do not pay: paying more often leads to new threats, not deletion.",
+        "2. Save evidence — screenshots, the profile link, and message times. Block the person threatening you.",
+        "3. If the content is already published, report it to the platform support and attach the link.",
+        "",
+        "You can contact:",
+        contactList(protectionContacts, lang),
+        "",
+        "❤️ Here you are the victim, not the offender. Asking for removal is your right.",
+      ],
+    };
+    return lines[lang].join("\n");
+  }
+
+  if (profile === "blackmail") {
     const lines: Record<Lang, string[]> = {
       ru: [
         "🆘 Куда обратиться",
@@ -3441,8 +3525,83 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
     profile === "financial" ? financialGuidedScriptLines(panicId, title, lang) : null;
   if (financialLines) return financialLines.join("\n");
 
+  if (profile === "minor") {
+    const minorLines: Record<Lang, string[]> = {
+      ru: [
+        "💬 Готовая фраза",
+        "",
+        "❤️ Ты не виноват(а), и у тебя не будет из-за этого проблем. Тебе помогут.",
+        "",
+        "Подойди к взрослому, которому доверяешь, и скажи простыми словами:",
+        "",
+        "«Мне нужна твоя помощь. В интернете меня пугают и просят то, чего я не хочу. Я не сделал(а) ничего плохого. Побудь со мной, пожалуйста.»",
+        "",
+        "Тому, кто угрожает, можно не отвечать. Ничего не плати и не отправляй фото или видео.",
+      ],
+      uz: [
+        "💬 Tayyor jumla",
+        "",
+        "❤️ Sen aybdor emassan, va bundan senga muammo bo'lmaydi. Senga yordam berishadi.",
+        "",
+        "Ishonadigan kattaga borib, oddiy so'zlar bilan ayt:",
+        "",
+        "«Menga yordaming kerak. Internetda meni qo'rqitishyapti va men xohlamagan narsani so'rashyapti. Men yomon ish qilmadim. Iltimos, yonimda bo'l.»",
+        "",
+        "Tahdid qilayotganga javob bermasang ham bo'ladi. Hech narsa to'lama va foto yoki video yuborma.",
+      ],
+      en: [
+        "💬 Ready phrase",
+        "",
+        "❤️ This is not your fault, and you will not get in trouble for it. People will help you.",
+        "",
+        "Go to an adult you trust and say it in simple words:",
+        "",
+        "“I need your help. Someone online is scaring me and asking for things I do not want. I did nothing wrong. Please stay with me.”",
+        "",
+        "You do not have to reply to the person threatening you. Do not pay and do not send any photos or videos.",
+      ],
+    };
+    return minorLines[lang].join("\n");
+  }
+
+  if (panicId === 9) {
+    const publicationLines: Record<Lang, string[]> = {
+      ru: [
+        "💬 Готовая фраза",
+        "",
+        "Если угрожают что-то опубликовать — не платите и не оправдывайтесь. Отправьте одну фразу и прекратите диалог:",
+        "",
+        "«Я не плачу и ничего не отправляю. Оплата не гарантирует удаления. Я сохраняю доказательства и обращаюсь за помощью.»",
+        "",
+        "Близкому человеку скажите:",
+        `«Ситуация: ${title}. Помоги мне сохранить доказательства и не оставаться с этим одному».`,
+      ],
+      uz: [
+        "💬 Tayyor jumla",
+        "",
+        "Agar biror narsani e'lon qilishga tahdid qilishsa — to'lamang va o'zingizni oqlamang. Bitta jumla yuborib, suhbatni to'xtating:",
+        "",
+        "«To'lamayman va hech narsa yubormayman. To'lov o'chirilishini kafolatlamaydi. Dalillarni saqlab, yordam so'rayman.»",
+        "",
+        "Yaqiningizga shunday deng:",
+        `«Vaziyat: ${title}. Dalillarni saqlashga yordam bering va bu bilan yolg'iz qoldirmang».`,
+      ],
+      en: [
+        "💬 Ready phrase",
+        "",
+        "If someone threatens to publish something, do not pay and do not justify yourself. Send one sentence and stop the chat:",
+        "",
+        "“I will not pay or send anything. Paying does not guarantee deletion. I am saving evidence and getting help.”",
+        "",
+        "Tell someone trusted:",
+        `“Situation: ${title}. Help me save the evidence and not deal with this alone.”`,
+      ],
+    };
+    return publicationLines[lang].join("\n");
+  }
+
   const lines: Record<Lang, string[]> =
-    profile === "blackmail" || profile === "minor"
+    profile === "blackmail"
       ? {
           ru: [
             "💬 Готовая фраза",

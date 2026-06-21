@@ -146,9 +146,11 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(blackmail).toContain("сохраняю доказательства");
     expect(blackmail).not.toContain("перезвоню по официальному номеру");
 
-    expect(publicationThreat).toContain("Я прекращаю переписку");
+    expect(publicationThreat).toContain("Оплата не гарантирует удаления");
     expect(publicationThreat).toContain("сохраняю доказательства");
     expect(publicationThreat).not.toContain("перезвоню по официальному номеру");
+    // P5: publication-threat ready phrase is now distinct from sextortion (7).
+    expect(publicationThreat).not.toBe(blackmail);
 
     expect(romance).toContain("не перевожу деньги");
     expect(romance).toContain("проверю ситуацию с близким человеком");
