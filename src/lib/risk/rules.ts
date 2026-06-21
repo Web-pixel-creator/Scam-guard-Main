@@ -328,7 +328,9 @@ export function evaluateText(text: string): ReasonCode[] {
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
-    /(выигр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|бесплатн|tabrik|sovrin|prize|won)/i.test(text)
+    /(выигр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|бесплатн|tabrik|sovrin|prize|won)/i.test(
+      text,
+    )
   ) {
     codes.add("too_good_to_be_true");
   }
