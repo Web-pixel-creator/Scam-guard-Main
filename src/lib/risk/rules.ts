@@ -207,7 +207,7 @@ function shouldFlagDropperRecruitment(text: string): boolean {
 const GAMBLING_CONTEXT_RE =
   /((?:^|[^a-zа-я])ставк|(?:^|[^a-zа-я])ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|фри\s?спин|фриспин|депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|слот|twin|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|free\s?spins?|casino|slots?|stavka|prognoz|bukmeker|kazino)/i;
 const GAMBLING_ACTION_RE =
-  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз|джекпот|бонус|пополн|ссылк|100[ .]?000|гарантир|доход|прибыл|vip|subscribe|channel|free|win|profit|bonus|deposit|link|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
+  /(t\.me\/\+|telegram\.me\/\+|подпис|канал|закрыт|бесплатн|выигр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|джекпот|бонус|пополн|ссылк|100[ .]?000|гарантир|доход|прибыл|vip|subscribe|channel|free|win|profit|bonus|deposit|link|guaranteed|obuna|kanal|bepul|yutuq|foyda)/i;
 const GAMBLING_NEUTRAL_CONTEXT_RE =
   /(без\s+ставок|без\s+прогнозов|не\s+ставки|не\s+прогноз|новости спорта|спортивные новости|расписание матча|счет матча|счёт матча|смотреть матч|sports news|match schedule|match score|natija|jadval)/i;
 
@@ -217,7 +217,7 @@ function shouldFlagGamblingPredictionPromo(text: string): boolean {
 }
 
 const GIVEAWAY_CONTEXT_RE =
-  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq)/i;
+  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq)/i;
 const GIVEAWAY_ACTION_RE =
   /(капч|captcha|реакци|reaction|проголос|голос|vote|подпис|subscribe|участв|раздач|выда[еёю]|stars?|зв[её]зд|ishtirok|ovoz|obuna|kanal|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп)/i;
 
@@ -238,16 +238,16 @@ function shouldFlagCryptoCasinoBonusFunnel(text: string): boolean {
 const FAKE_CAPTCHA_VOTING_CONTEXT_RE =
   /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting|verify|verification|проверка|подтверд|confirm)/i;
 const FAKE_CAPTCHA_VOTING_REWARD_RE =
-  /(nft|stars?|зв[её]зд|подар|gift|розыгрыш|разыгр|приз|статуэт|награ|award|contest|airdrop|giveaway|lottery|wallet|кошел|ton|seed|login|telegram.{0,20}code|sms|otp|код|sovrin|yutuq|hamyon)/i;
+  /(nft|stars?|зв[её]зд|подар|gift|розыгрыш|разыгр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|статуэт|награ|award|contest|airdrop|giveaway|lottery|wallet|кошел|ton|seed|login|telegram.{0,20}code|sms|otp|код|sovrin|yutuq|hamyon)/i;
 
 function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
   return FAKE_CAPTCHA_VOTING_CONTEXT_RE.test(text) && FAKE_CAPTCHA_VOTING_REWARD_RE.test(text);
 }
 
 const TASK_REWARD_CONTEXT_RE =
-  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз|прокачивай|ochko|topshiriq|vazifa)/i;
+  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|ochko|topshiriq|vazifa)/i;
 const TASK_REWARD_BENEFIT_RE =
-  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/i;
+  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/i;
 
 function shouldFlagTaskRewardEngagementBait(text: string): boolean {
   return TASK_REWARD_CONTEXT_RE.test(text) && TASK_REWARD_BENEFIT_RE.test(text);
@@ -328,7 +328,7 @@ export function evaluateText(text: string): ReasonCode[] {
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
-    /(выигр|приз|бесплатн|tabrik|sovrin|prize|won)/i.test(text)
+    /(выигр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|бесплатн|tabrik|sovrin|prize|won)/i.test(text)
   ) {
     codes.add("too_good_to_be_true");
   }

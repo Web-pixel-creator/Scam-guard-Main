@@ -265,6 +265,17 @@ describe("evaluateText — gambling_prediction_promo (Telegram betting feed)", (
       name: "RU voice delivery card-only (доставка ≠ ставка)",
       text: "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.",
     },
+    {
+      // "призыв" contains "приз" but is not a prize; with "матч" as context
+      // this used to falsely fire gambling.
+      name: "RU call to a match (призыв ≠ приз)",
+      text: "Это призыв прийти на матч в субботу, будет весело",
+    },
+    {
+      // "признаю" contains "приз"; "прогноз погоды" is a benign forecast.
+      name: "RU admitting a mistake (признаю ≠ приз, прогноз погоды ≠ betting)",
+      text: "Я признаю что ошибся, прогноз погоды на завтра плохой",
+    },
   ];
 
   it.each(positives)("positive: $name", ({ text }) => {
