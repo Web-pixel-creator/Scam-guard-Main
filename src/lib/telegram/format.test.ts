@@ -734,6 +734,10 @@ describe("formatCheckResult — Phone Directory v1", () => {
     expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
     expect(text).toContain(escapeMarkdownV2("QR-вход"));
+    expect(text).toContain(escapeMarkdownV2("🧭 Следующий шаг"));
+    const contextPrompt = escapeMarkdownV2(bt("prompt_more_context_phone", "ru"));
+    expect(text).toContain(contextPrompt);
+    expect(text.split(contextPrompt).length - 1).toBe(1);
     expect(text).not.toContain("Uzonline");
     expect(text).not.toContain("Uztelecom");
     expect(text).not.toContain("901234567");

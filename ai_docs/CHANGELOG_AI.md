@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-22 - Risk Passport phone next step polish
+
+- Phone risk passports now include the next safe step inside the passport card
+  instead of repeating a separate generic context prompt below it.
+- Reused the shared `prompt_more_context_phone` i18n string so RU/UZ/EN copy
+  stays consistent.
+- Added regression coverage so phone passports ask for context exactly once
+  while preserving the honest "number alone does not prove scam" boundary.
+
 ## 2026-06-19 - Report flow copy and moderation alert UX polished
 
 - Rewrote `/report` prompts to feel less like a cold form and more like a safe

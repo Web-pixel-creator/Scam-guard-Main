@@ -227,6 +227,7 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       directory: string;
       reputation: string;
       meaning: string;
+      nextStep: string;
       reports: (count: number) => string;
       foreignWarning: string;
       weakWarning: string;
@@ -238,6 +239,7 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       directory: "🏛 Справочник",
       reputation: "🛡 Репутация Ishonch",
       meaning: "📌 Что это значит",
+      nextStep: "🧭 Следующий шаг",
       reports: (count) =>
         count === 0
           ? "подтвержд. жалоб в Ishonch Guard не найдено"
@@ -251,6 +253,7 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       directory: "🏛 Ma'lumotnoma",
       reputation: "🛡 Ishonch reputatsiyasi",
       meaning: "📌 Bu nimani bildiradi",
+      nextStep: "🧭 Keyingi qadam",
       reports: (count) =>
         count === 0
           ? "Ishonch Guardda tasdiqlangan shikoyat topilmadi"
@@ -264,6 +267,7 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       directory: "🏛 Directory",
       reputation: "🛡 Ishonch reputation",
       meaning: "📌 What this means",
+      nextStep: "🧭 Next step",
       reports: (count) =>
         count === 0
           ? "no confirmed Ishonch Guard reports found"
@@ -304,6 +308,8 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
   lines.push(`• ${l.reports(reportCount)}`);
   lines.push("", l.meaning);
   lines.push(c.contextMatters);
+  lines.push("", l.nextStep);
+  lines.push(bt("prompt_more_context_phone", lang));
   return lines.join("\n");
 }
 
@@ -360,7 +366,7 @@ function renderRiskPassportHeader(kind: RiskPassportKind, lang: Lang): string {
 }
 
 function passportBodyAlreadyAsksForContext(body: string): boolean {
-  return /(?:пришл(?:ите|и)|отправ(?:ьте|ь)|сообщени[ея]\/скрин|скрин(?:шот)?|что просят|yuboring|nima so'rashgan|send|send me|send the|what they ask)/iu.test(
+  return /(?:следующ(?:ий|ая)\s+шаг|безопасн(?:ый|ая)\s+шаг|напишите,\s*что\s+просили|пришл(?:ите|и)|отправ(?:ьте|ь)|сообщени[ея]\/скрин|скрин(?:шот)?|что просят|keyingi\s+qadam|xavfsiz\s+qadam|yuboring|nima\s+so['’]ralgan|nima\s+so['’]rashgan|next\s+step|safe\s+step|tell me what they asked|send|send me|send the|what they ask)/iu.test(
     body,
   );
 }
@@ -382,7 +388,7 @@ function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {
       : bt("prompt_more_context_telegram_profile", lang);
 
   const sections = [escapeMarkdownV2(body)];
-  if (!passportBodyAlreadyAsksForContext(body)) {
+  if (!body.includes(prompt) && !passportBodyAlreadyAsksForContext(body)) {
     sections.push(escapeMarkdownV2(prompt));
   }
 
@@ -529,6 +535,10 @@ function renderAdvice(result: RunCheckResult, lang: Lang): string {
     result.level === "safe" &&
     detectNeutralContext(result) === "phone"
   ) {
+    const phoneBrief = renderPhonePassportBrief(result, lang);
+    if (phoneBrief?.includes(bt("prompt_more_context_phone", lang))) {
+      return "";
+    }
     adviceItems = [bt("prompt_more_context_phone", lang)];
   }
 
