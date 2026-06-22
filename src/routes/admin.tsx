@@ -11,6 +11,7 @@ import {
   RefreshCcw,
   ArrowLeft,
   ChevronDown,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -36,12 +37,30 @@ const FILTERS = ["new", "confirmed", "rejected", "all"] as const;
 type FilterKey = (typeof FILTERS)[number];
 const APPEAL_FILTERS = ["new", "reviewing", "resolved", "rejected", "all"] as const;
 type AppealFilterKey = (typeof APPEAL_FILTERS)[number];
+type AdminReport = {
+  id: string;
+  entity_hash: string;
+  entity_type: string;
+  redacted_value: string;
+  description: string;
+  status: string;
+  scam_type?: string | null;
+  city?: string | null;
+  amount_lost_uzs?: number | null;
+  language?: string | null;
+  created_at: string;
+  target_report_count?: number | null;
+  target_last_seen_at?: string | null;
+  target_moderation_status?: string | null;
+  target_risk_level?: string | null;
+};
 
 function AdminPage() {
   const { user, isAdmin, loading, signOut } = useAuth();
   const nav = useNavigate();
   const [status, setStatus] = useState<FilterKey>("new");
   const [appealStatus, setAppealStatus] = useState<AppealFilterKey>("new");
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const listReportsFn = useServerFn(listReports);
@@ -75,11 +94,20 @@ function AdminPage() {
     enabled: !!user && isAdmin,
     queryFn: () => listAppealsFn({ data: { status: appealStatus } }),
   });
+  const selectedReport =
+    (reports.data?.find((r) => r.id === selectedReportId) as AdminReport | undefined) ?? null;
+
+  useEffect(() => {
+    if (selectedReportId && reports.data && !selectedReport) {
+      setSelectedReportId(null);
+    }
+  }, [selectedReportId, reports.data, selectedReport]);
 
   const moderate = useMutation({
     mutationFn: (v: { reportId: string; decision: "confirmed" | "rejected" }) =>
       moderateFn({ data: { ...v, riskLevel: "high_risk" } }),
     onSuccess: () => {
+      setSelectedReportId(null);
       qc.invalidateQueries({ queryKey: ["admin-reports"] });
       qc.invalidateQueries({ queryKey: ["admin-entities"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
@@ -314,39 +342,58 @@ function AdminPage() {
                     {r.amount_lost_uzs ? ` · ${r.amount_lost_uzs.toLocaleString()} UZS` : ""}
                   </p>
                 </div>
-                {r.status === "new" && (
-                  <div className="lg:w-[280px] shrink-0 space-y-3">
-                    <div className="rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] p-3">
-                      <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
-                      <p className="text-[13px] leading-relaxed text-[#52525B]">
-                        {moderationDecisionHint(reportSignalCount(r))}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={moderate.isPending}
-                        onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
-                      >
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
-                      </button>
-                      <button
-                        type="button"
-                        disabled={moderate.isPending}
-                        onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
-                        className="apex-btn-outline inline-flex items-center gap-1.5"
-                      >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="lg:w-[280px] shrink-0 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReportId(r.id)}
+                    className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Открыть детали
+                  </button>
+                  {r.status === "new" && (
+                    <>
+                      <div className="rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] p-3">
+                        <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
+                        <p className="text-[13px] leading-relaxed text-[#52525B]">
+                          {moderationDecisionHint(reportSignalCount(r))}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                        >
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
+                        </button>
+                        <button
+                          type="button"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
+                          className="apex-btn-outline inline-flex items-center gap-1.5"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      {selectedReport && (
+        <ReportDetailDialog
+          report={selectedReport}
+          isPending={moderate.isPending}
+          onClose={() => setSelectedReportId(null)}
+          onConfirm={() => moderate.mutate({ reportId: selectedReport.id, decision: "confirmed" })}
+          onReject={() => moderate.mutate({ reportId: selectedReport.id, decision: "rejected" })}
+        />
+      )}
 
       {/* Reputation Appeals */}
       <section className="apex-card apex-frame apex-stripes">
@@ -493,6 +540,164 @@ function AdminPage() {
           <ArrowLeft className="h-3 w-3" aria-hidden="true" /> На главную сайта
         </Link>
       </p>
+    </div>
+  );
+}
+
+function ReportDetailDialog({
+  report,
+  isPending,
+  onClose,
+  onConfirm,
+  onReject,
+}: {
+  report: AdminReport;
+  isPending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  onReject: () => void;
+}) {
+  const signalCount = reportSignalCount(report);
+  const canModerate = report.status === "new";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0B0F]/55 px-3 py-5 sm:px-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="report-detail-title"
+    >
+      <div className="apex-card apex-frame apex-stripes max-h-[92vh] w-full max-w-5xl overflow-y-auto bg-[#FCFBF7] p-5 shadow-2xl sm:p-7">
+        <div className="mb-6 flex items-start justify-between gap-4 border-b border-[#E2E0D8] pb-5">
+          <div className="min-w-0">
+            <p className="label-md mb-2">Жалоба · ручная проверка</p>
+            <h2 id="report-detail-title" className="apex-h2">
+              Детали сигнала
+            </h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B]">
+              Это рабочий экран модератора. Telegram-чат нужен только как уведомление; решение
+              принимается здесь, после проверки контекста.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="apex-btn-outline inline-flex h-10 w-10 shrink-0 items-center justify-center p-0"
+            aria-label="Закрыть детали"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="space-y-5">
+            <section>
+              <p className="apex-mono mb-3 text-[#71717A]">Что пожаловались</p>
+              <div className="border border-[#E2E0D8] bg-white p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="apex-mono inline-flex items-center rounded-[3px] border border-[#E2E0D8] bg-white px-2 py-0.5">
+                    {report.entity_type}
+                  </span>
+                  <code className="break-all font-mono text-[13px] text-[#18181B]">
+                    {report.redacted_value}
+                  </code>
+                  <StatusBadge status={report.status} />
+                </div>
+                <p className="prose-pretty whitespace-pre-wrap text-[15px] leading-[1.7] text-[#18181B]">
+                  {report.description}
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <p className="apex-mono mb-3 text-[#71717A]">Паспорт жалобы</p>
+              <dl className="grid grid-cols-1 gap-[1px] border border-[#E2E0D8] bg-[#E2E0D8] sm:grid-cols-2">
+                <ReportFact label="Тип схемы" value={report.scam_type ?? "не указан"} />
+                <ReportFact label="Город / регион" value={report.city ?? "не указан"} />
+                <ReportFact label="Ущерб" value={formatLoss(report.amount_lost_uzs)} />
+                <ReportFact label="Язык" value={report.language ?? "не указан"} />
+                <ReportFact label="Когда поступило" value={formatDateTime(report.created_at)} />
+                <ReportFact
+                  label="Последний сигнал"
+                  value={formatDateTime(report.target_last_seen_at ?? report.created_at)}
+                />
+              </dl>
+            </section>
+
+            <section>
+              <p className="apex-mono mb-3 text-[#71717A]">Сигналы по этой цели</p>
+              <div className="grid grid-cols-1 gap-[1px] border border-[#E2E0D8] bg-[#E2E0D8] sm:grid-cols-3">
+                <ReportFact
+                  label="Повторы"
+                  value={reportSignalLabel(signalCount)}
+                  tone={signalCount > 1 ? "warn" : "neutral"}
+                />
+                <ReportFact
+                  label="Статус цели"
+                  value={labelTargetStatus(report.target_moderation_status)}
+                />
+                <ReportFact label="Риск цели" value={labelRiskLevel(report.target_risk_level)} />
+              </div>
+              <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
+                Повторы помогают выбрать приоритет проверки, но не являются доказательством сами по
+                себе. Подтверждайте риск только если в жалобе видно опасную просьбу: код, карта,
+                перевод, APK, QR-вход или подозрительная ссылка.
+              </p>
+            </section>
+          </div>
+
+          <aside className="space-y-4">
+            <section className="border border-[#E2E0D8] bg-white p-4">
+              <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
+              <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
+                {moderationDecisionHint(signalCount)}
+              </p>
+              {canModerate ? (
+                <div className="mt-4 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={onConfirm}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-[4px] bg-[#DC2626] px-3 py-2 apex-mono text-white apex-on-dark transition-colors hover:bg-[#B91C1C] disabled:opacity-50"
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={onReject}
+                    className="apex-btn-outline inline-flex items-center justify-center gap-1.5"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить публичную метку
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-4 rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] px-3 py-2 text-[13px] leading-relaxed text-[#52525B]">
+                  Эта жалоба уже обработана. История остаётся в базе для будущих повторных сигналов.
+                </p>
+              )}
+            </section>
+
+            <section className="border border-[#E2E0D8] bg-[#FFFBEB] p-4">
+              <p className="apex-mono mb-2 text-[#92400E]">Приватность</p>
+              <p className="text-[13.5px] leading-[1.7] text-[#78350F]">
+                В Telegram-чат отправляется только маска и краткая сводка. Не копируйте туда коды,
+                карты, пароли, скриншоты с личными данными или полные контакты. Если нужен разбор,
+                работайте через админку.
+              </p>
+            </section>
+
+            <section className="border border-[#E2E0D8] bg-white p-4">
+              <p className="apex-mono mb-2 text-[#71717A]">Что проверить перед меткой</p>
+              <ul className="space-y-2 text-[13.5px] leading-[1.6] text-[#52525B]">
+                <li>Есть ли конкретная просьба: код, карта, перевод, APK, QR или ссылка.</li>
+                <li>Не выглядит ли жалоба как одиночное ложное обвинение без контекста.</li>
+                <li>Есть ли повторные сигналы или похожие записи по этой цели.</li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
