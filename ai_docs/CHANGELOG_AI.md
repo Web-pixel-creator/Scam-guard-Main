@@ -11,6 +11,18 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added regression coverage so phone passports ask for context exactly once
   while preserving the honest "number alone does not prove scam" boundary.
 
+## 2026-06-21 - P7 report flow moderation signals
+
+- Warmed the final `/report` confirmation: users now see that they helped warn
+  others, while public labels still require manual moderation.
+- Humanized private moderation Telegram alerts: duplicate reports are framed as
+  an additional signal instead of database/internal wording.
+- Enriched admin report cards with the target report count from the reputation
+  entity row, so repeated complaints are visible before a public moderation
+  decision.
+- No schema migration: duplicate public rows are still suppressed; duplicate
+  alerts remain moderation-only and masked.
+
 ## 2026-06-19 - Report flow copy and moderation alert UX polished
 
 - Rewrote `/report` prompts to feel less like a cold form and more like a safe

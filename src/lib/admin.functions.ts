@@ -64,7 +64,29 @@ export const listReports = createServerFn({ method: "POST" })
     if (data.status !== "all") q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const reports = rows ?? [];
+    const hashes = Array.from(
+      new Set(reports.map((r) => r.entity_hash).filter((hash): hash is string => Boolean(hash))),
+    );
+    if (hashes.length === 0) return reports;
+
+    const { data: entities, error: entitiesError } = await supabaseAdmin
+      .from("entities")
+      .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
+      .in("entity_hash", hashes);
+    if (entitiesError) throw new Error(entitiesError.message);
+
+    const byHash = new Map((entities ?? []).map((entity) => [entity.entity_hash, entity]));
+    return reports.map((report) => {
+      const entity = byHash.get(report.entity_hash);
+      return {
+        ...report,
+        target_report_count: entity?.report_count ?? 1,
+        target_last_seen_at: entity?.last_seen_at ?? null,
+        target_moderation_status: entity?.moderation_status ?? null,
+        target_risk_level: entity?.risk_level ?? null,
+      };
+    });
   });
 
 export const listEntities = createServerFn({ method: "POST" })

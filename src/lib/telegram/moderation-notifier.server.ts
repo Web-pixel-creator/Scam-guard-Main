@@ -87,14 +87,14 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
   if (notice.kind === "appeal") {
     return [
       "🛡 Ishonch Guard: новая апелляция",
-      "Служебное уведомление для модераторов.",
+      "Уведомление для модераторов.",
       "",
       "📌 Что проверить",
       `• Объект: ${targetLabel(notice)}`,
       `• Язык: ${notice.language}`,
       "",
-      "Полные данные и решение доступны только в админке.",
-      "Не пересылайте личные данные, коды, карты или пароли в этот чат.",
+      "Полные данные и решение доступны в админке после входа.",
+      "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
     ].join("\n");
   }
 
@@ -102,7 +102,7 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
     notice.duplicateOfExisting
       ? "🛡 Ishonch Guard: повторная жалоба"
       : "🛡 Ishonch Guard: новая жалоба",
-    "Служебное уведомление для модераторов.",
+    "Уведомление для модераторов.",
     "",
     "📌 Что проверить",
     `• Объект: ${targetLabel(notice)}`,
@@ -112,11 +112,11 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
     `• Язык: ${notice.language}`,
     "",
     notice.duplicateOfExisting
-      ? "ℹ️ На эту цель уже жаловались сегодня. Новую запись не создаём, но стоит присмотреться внимательнее."
+      ? "ℹ️ На эту цель уже жаловались сегодня. Мы не создаём дубль публичной записи, но учитываем повтор как дополнительный сигнал."
       : null,
     notice.duplicateOfExisting ? "" : null,
     "🔐 Почему объект скрыт",
-    "В Telegram-группу уходит только маска. Полный username/номер смотрите в админке после входа.",
+    "В этот чат уходит только маска. Полный username/номер доступен в админке после входа.",
     "",
     "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
   ].filter((line): line is string => line !== null);
