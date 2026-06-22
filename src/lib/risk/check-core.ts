@@ -875,7 +875,7 @@ Return JSON only. No markdown. No advice. No verdict.
 Schema:
 {
   "text": string|null,
-  "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"payment_request"|"apk_prompt"|"document"|"telegram_promo_post"|"casino_or_betting_promo"|"crypto_giveaway_or_nft"|"wallet_or_defi_action"|"news_or_channel_post"|"unknown",
+  "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"telegram_profile_card"|"payment_request"|"apk_prompt"|"document"|"telegram_promo_post"|"casino_or_betting_promo"|"crypto_giveaway_or_nft"|"wallet_or_defi_action"|"news_or_channel_post"|"unknown",
   "confidence": "low"|"medium"|"high",
   "qr": { "present": boolean, "visibleUrl": string|null, "purpose": "menu"|"info"|"login"|"payment"|"unknown" },
   "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation"|"casino_bonus_or_free_spins"|"fake_captcha_or_voting"|"giveaway_or_prize_actions"|"task_reward_or_engagement"|"wallet_or_defi_urgency"|"ton_referral_or_earning"|"telegram_invite_or_private_link">,
@@ -890,6 +890,7 @@ Rules:
 - Redact OTP/SMS codes, PINs, passwords, full card numbers, passport data and full phone numbers.
 - A restaurant menu, restaurant poster, loyalty promo, table booking poster, or informational QR is NOT dangerous by itself. Use riskHints only if it visibly asks for payment, login, card data, SMS code, APK install or money transfer.
 - A normal delivery pickup/order SMS is NOT dangerous by itself. Use riskHints only if there is a link, fee/payment request, OTP/code request, APK install, card data request, or pressure.
+- A Telegram profile card screenshot is NOT dangerous by itself. If visible, extract native Telegram fields such as phone country, registration month/year, "not official account", "not in contacts", and recent name/photo changes. Do not infer hidden scam labels or account age beyond visible text.
 - If text is blurry, set confidence "low" and keep text null or partial.
 - summary must be one short factual sentence in ${lang}.`;
 

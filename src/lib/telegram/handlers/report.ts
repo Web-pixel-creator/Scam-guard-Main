@@ -191,6 +191,11 @@ function categoryLabel(category: ImageVisualCategory, lang: Lang): string {
       uz: "yozishma skrinshoti",
       en: "chat screenshot",
     },
+    telegram_profile_card: {
+      ru: "скрин профиля Telegram",
+      uz: "Telegram profil skrinshoti",
+      en: "Telegram profile screenshot",
+    },
     payment_request: {
       ru: "просьба об оплате",
       uz: "to'lov so'rovi",

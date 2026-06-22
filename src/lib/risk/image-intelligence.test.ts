@@ -522,6 +522,55 @@ describe("image intelligence evidence builder", () => {
     }
   });
 
+  it("reads Telegram native profile screenshots without turning profile fields into a verdict", () => {
+    const evidence = fallbackImageIntelligence(
+      "Alina R. PlankaHub\nНе в контактах\nСтрана телефона 🇺🇸 USA\nРегистрация Январь 2026 г.\nНе официальный аккаунт\nПользователь обновил имя 19 дней назад\nПользователь обновил фотографию 19 дней назад",
+    );
+
+    expect(evidence.visualCategory).toBe("telegram_profile_card");
+    expect(evidence.riskHints).toEqual([]);
+
+    const { input, reasons, score } = scoreImageEvidence(evidence);
+    expect(input).toContain("скрин профиля Telegram");
+    expect(input).toContain("Страна телефона");
+    expect(reasons).toEqual([]);
+    expect(score.level).not.toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("По скриншоту профиля видно");
+    expect(explanation).toContain("Страна телефона");
+    expect(explanation).toContain("Регистрация");
+    expect(explanation).toContain("можно подделать");
+    expect(explanation).toContain("не доказательство скама");
+  });
+
+  it("keeps model-unknown Telegram profile screenshots as profile cards", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: "Не в контактах\nСтрана телефона USA\nРегистрация Январь 2026 г.\nНе официальный аккаунт",
+      visualCategory: "unknown",
+      confidence: "medium",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Скрин профиля Telegram",
+    });
+
+    expect(evidence?.visualCategory).toBe("telegram_profile_card");
+    expect(buildImageUserExplanation(evidence!, "unknown", "ru")).toContain("скриншоту");
+  });
+
+  it("still escalates Telegram profile screenshots when the visible message asks for a code", () => {
+    const evidence = fallbackImageIntelligence(
+      "Страна телефона USA\nРегистрация Январь 2026 г.\nНе официальный аккаунт\nПопросили отправить SMS-код подтверждения",
+    );
+
+    expect(evidence.visualCategory).toBe("telegram_profile_card");
+    expect(evidence.riskHints).toContain("otp_or_secret");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons.length).toBeGreaterThan(0);
+    expect(score.level).toBe("high_risk");
+  });
+
   it("explains ordinary Telegram promo posts without a generic risk wall", () => {
     const evidence = fallbackImageIntelligence(
       "Уже 600+ каналов на бирже. Добавьте свой Telegram-канал сейчас, чтобы не пропустить первые рекламные размещения.",

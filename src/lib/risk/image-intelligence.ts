@@ -18,6 +18,7 @@ export type ImageVisualCategory =
   | "crypto_giveaway_or_nft"
   | "wallet_or_defi_action"
   | "news_or_channel_post"
+  | "telegram_profile_card"
   | "unknown";
 
 export type ImageConfidence = "low" | "medium" | "high";
@@ -75,6 +76,7 @@ const CATEGORIES: readonly ImageVisualCategory[] = [
   "crypto_giveaway_or_nft",
   "wallet_or_defi_action",
   "news_or_channel_post",
+  "telegram_profile_card",
   "unknown",
 ];
 
@@ -123,6 +125,8 @@ const BRAND_RE =
 const TELEGRAM_POST_RE =
   /(@[a-z0-9_]{3,}|t\.me\/|telegram\.me\/|telegram|канал|подпис|subscribe|join|button|кнопк|перейти|открыть канал|open channel|комментар|reactions?|реакци|просмотр|views?|бот|mini\s?app)/i;
 const TELEGRAM_PRIVATE_INVITE_RE = /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-z0-9_-]+/i;
+const TELEGRAM_PROFILE_CARD_RE =
+  /(страна\s+телефона|регистрац(?:ия|ии)?\s*:?\s*(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр|20\d{2})|не\s+официальн(?:ый|ая|ое)\s+аккаунт|не\s+в\s+контактах|обновил(?:а)?\s+(?:имя|фото|фотографию)|phone\s+country|country\s+phone|registration\s*:?\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|20\d{2})|not\s+official\s+account|not\s+in\s+contacts|updated\s+(?:name|photo))/i;
 const BETTING_PROMO_RE =
   /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|лудоман|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|stavka|prognoz|bukmeker|kazino)/i;
 const BETTING_ACTION_RE =
@@ -194,6 +198,87 @@ function uniqueHints(hints: ImageRiskHint[]): ImageRiskHint[] {
   return [...new Set(hints)];
 }
 
+function hasStrongDangerHint(hints: readonly ImageRiskHint[]): boolean {
+  return hints.some((hint) =>
+    [
+      "otp_or_secret",
+      "apk_install",
+      "qr_login",
+      "qr_payment",
+      "payment_request",
+      "card_data",
+      "wallet_or_defi_urgency",
+    ].includes(hint),
+  );
+}
+
+function telegramProfileSignals(text: string | null, lang: Lang): string[] {
+  if (!text) return [];
+
+  const signals: string[] = [];
+  const push = (label: string, value?: string | null) => {
+    const clean = value?.replace(/\s+/g, " ").trim();
+    const line = clean ? `${label}: ${clean}` : label;
+    if (!signals.includes(line)) signals.push(line.slice(0, 140));
+  };
+  const firstMatch = (re: RegExp) => text.match(re)?.[1]?.trim() ?? null;
+
+  if (lang === "uz") {
+    const country = firstMatch(
+      /(?:страна\s+телефона|phone\s+country|country\s+phone)\s*:?\s*([^\n]+)/i,
+    );
+    const registered = firstMatch(/(?:регистрац(?:ия|ии)?|registration)\s*:?\s*([^\n]+)/i);
+    if (country) push("Telefon mamlakati", country);
+    if (registered) push("Ro'yxatdan o'tish", registered);
+    if (/не\s+официальн(?:ый|ая|ое)\s+аккаунт|not\s+official\s+account/i.test(text)) {
+      push("Telegram ko'rsatgan belgi: rasmiy akkaunt emas");
+    }
+    if (/не\s+в\s+контактах|not\s+in\s+contacts/i.test(text)) push("Kontaktlaringizda yo'q");
+    for (const match of text.matchAll(
+      /(?:пользователь\s+)?обновил(?:а)?\s+(имя|фото|фотографию)[^\n]*|updated\s+(name|photo)[^\n]*/gi,
+    )) {
+      push(`Profil o'zgarishi`, match[0]);
+    }
+    return signals.slice(0, 6);
+  }
+
+  if (lang === "en") {
+    const country = firstMatch(
+      /(?:страна\s+телефона|phone\s+country|country\s+phone)\s*:?\s*([^\n]+)/i,
+    );
+    const registered = firstMatch(/(?:регистрац(?:ия|ии)?|registration)\s*:?\s*([^\n]+)/i);
+    if (country) push("Phone country", country);
+    if (registered) push("Registration shown", registered);
+    if (/не\s+официальн(?:ый|ая|ое)\s+аккаунт|not\s+official\s+account/i.test(text)) {
+      push("Telegram shows: not an official account");
+    }
+    if (/не\s+в\s+контактах|not\s+in\s+contacts/i.test(text)) push("Not in your contacts");
+    for (const match of text.matchAll(
+      /(?:пользователь\s+)?обновил(?:а)?\s+(имя|фото|фотографию)[^\n]*|updated\s+(name|photo)[^\n]*/gi,
+    )) {
+      push("Profile change", match[0]);
+    }
+    return signals.slice(0, 6);
+  }
+
+  const country = firstMatch(
+    /(?:страна\s+телефона|phone\s+country|country\s+phone)\s*:?\s*([^\n]+)/i,
+  );
+  const registered = firstMatch(/(?:регистрац(?:ия|ии)?|registration)\s*:?\s*([^\n]+)/i);
+  if (country) push("Страна телефона", country);
+  if (registered) push("Регистрация на скриншоте", registered);
+  if (/не\s+официальн(?:ый|ая|ое)\s+аккаунт|not\s+official\s+account/i.test(text)) {
+    push("Telegram показывает: не официальный аккаунт");
+  }
+  if (/не\s+в\s+контактах|not\s+in\s+contacts/i.test(text)) push("Не в контактах");
+  for (const match of text.matchAll(
+    /(?:пользователь\s+)?обновил(?:а)?\s+(имя|фото|фотографию)[^\n]*|updated\s+(name|photo)[^\n]*/gi,
+  )) {
+    push("Изменение профиля", match[0]);
+  }
+  return signals.slice(0, 6);
+}
+
 function deriveHints(text: string): ImageRiskHint[] {
   const hints: ImageRiskHint[] = [];
   if (SECRET_RE.test(text)) hints.push("otp_or_secret");
@@ -258,6 +343,7 @@ function deriveCategory(
   if (hints.includes("payment_request") || hints.includes("card_data")) return "payment_request";
   if (qrPresent && MENU_RE.test(text)) return "restaurant_menu_qr";
   if (qrPresent) return "qr_menu_or_info";
+  if (TELEGRAM_PROFILE_CARD_RE.test(text)) return "telegram_profile_card";
   if (DELIVERY_RE.test(text)) return "delivery_sms";
   if (TELEGRAM_POST_RE.test(text)) {
     return ORDINARY_NEWS_RE.test(text) ? "news_or_channel_post" : "telegram_promo_post";
@@ -314,11 +400,16 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
   const qrPresent = typeof qrObj.present === "boolean" ? qrObj.present : fallback.qr.present;
   const visibleUrl = asString(qrObj.visibleUrl) ?? fallback.qr.visibleUrl;
   const qrPurpose = pickEnum(qrObj.purpose, QR_PURPOSES, deriveQrPurpose(text ?? "", riskHints));
-  const visualCategory = pickEnum(
-    rec.visualCategory,
-    CATEGORIES,
-    deriveCategory(text ?? "", qrPresent, riskHints),
-  );
+  const derivedCategory = deriveCategory(text ?? "", qrPresent, riskHints);
+  const modelCategory = pickEnum(rec.visualCategory, CATEGORIES, derivedCategory);
+  const visualCategory =
+    fallback.visualCategory === "telegram_profile_card" &&
+    !hasStrongDangerHint(riskHints) &&
+    ["unknown", "chat_screenshot", "telegram_promo_post", "news_or_channel_post"].includes(
+      modelCategory,
+    )
+      ? "telegram_profile_card"
+      : modelCategory;
   const rawSummary = asString(rec.summary);
   const summary = sanitizeAiExplanation(clampText(rawSummary ? redactText(rawSummary) : null, 320));
 
@@ -518,7 +609,9 @@ export function hasUsableImageEvidence(evidence: ImageIntelligenceResult): boole
 export function isBenignImageContext(evidence: ImageIntelligenceResult): boolean {
   return (
     evidence.riskHints.length === 0 &&
-    ["delivery_sms", "restaurant_menu_qr", "qr_menu_or_info"].includes(evidence.visualCategory)
+    ["delivery_sms", "restaurant_menu_qr", "qr_menu_or_info", "telegram_profile_card"].includes(
+      evidence.visualCategory,
+    )
   );
 }
 
@@ -566,6 +659,13 @@ export function buildImageCheckInput(evidence: ImageIntelligenceResult): string 
       lines.push("Контекст изображения: похоже на уведомление о выдаче заказа.");
     } else if (evidence.visualCategory === "restaurant_menu_qr") {
       lines.push("Контекст изображения: похоже на меню ресторана или программу лояльности.");
+    } else if (evidence.visualCategory === "telegram_profile_card") {
+      lines.push(
+        "Контекст изображения: скрин профиля Telegram. Видимые поля профиля сами по себе не доказывают мошенничество.",
+      );
+      for (const signal of telegramProfileSignals(evidence.text, "ru")) {
+        lines.push(`По скриншоту видно: ${signal}`);
+      }
     } else {
       lines.push("Контекст изображения: похоже на информационный плакат.");
     }
@@ -668,6 +768,26 @@ export function buildDecodedQrOnlyImageEvidence(
   return evidence;
 }
 
+function telegramProfileExplanation(evidence: ImageIntelligenceResult, lang: Lang): string {
+  const signals = telegramProfileSignals(evidence.text, lang);
+  const visible =
+    signals.length > 0
+      ? signals.map((signal) => `• ${signal}`).join("\n")
+      : lang === "uz"
+        ? "• Profil maydonlari to'liq o'qilmadi"
+        : lang === "en"
+          ? "• Profile fields were not read fully"
+          : "• Поля профиля прочитались не полностью";
+
+  if (lang === "uz") {
+    return `Telegram profil skrinshotidan ko'rinadi:\n${visible}\n\nSkrinshotni o'zgartirish mumkin, shuning uchun bu akkaunt firibgar degani emas. Muhimi: odam sizdan kod, pul, karta, APK, QR-kirish, wallet yoki havola orqali amal so'rayaptimi. Agar yozishma bo'lsa, xabar yoki keyingi ekranni yuboring.`;
+  }
+  if (lang === "en") {
+    return `From the Telegram profile screenshot I can see:\n${visible}\n\nA screenshot can be edited, so this is not proof that the account is a scam. The key question is what the person asks next: a code, money, card, APK, QR login, wallet action, or a link. If you have the chat, send the message or next screen.`;
+  }
+  return `По скриншоту профиля видно:\n${visible}\n\nСам скрин можно подделать, поэтому это не доказательство скама. Важнее, что просит человек дальше: код, деньги, карту, APK, QR-вход, wallet или перейти по ссылке. Если есть переписка — пришлите сообщение или следующий экран.`;
+}
+
 function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {
   const hints = new Set(evidence.riskHints);
   const category = evidence.visualCategory;
@@ -691,6 +811,10 @@ function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang)
       return `${qrSummary ? `${qrSummary}\n\n` : ""}This looks like a QR for payment or transfer. Do not pay through a QR sent in a chat, ad, or call. Open the official bank/service app yourself and verify the recipient or page address there.`;
     }
     return `${qrSummary ? `${qrSummary}\n\n` : ""}Похоже на QR для оплаты или перевода. Не платите по QR из чата, рекламы или звонка. Откройте официальное приложение банка/сервиса сами и проверьте получателя или адрес страницы там.`;
+  }
+
+  if (category === "telegram_profile_card" && !hasStrongDangerHint(evidence.riskHints)) {
+    return telegramProfileExplanation(evidence, lang);
   }
 
   if (hints.has("casino_bonus_or_free_spins") || category === "casino_or_betting_promo") {
