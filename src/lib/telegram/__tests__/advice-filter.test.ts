@@ -126,6 +126,17 @@ describe("filterAdvice", () => {
       expect(result[0]).not.toContain("SMS");
     });
 
+    it("uses delivery-specific advice without betting or safe-account wording", () => {
+      const result = filterAdvice("suspicious", ["fake_delivery_payment"], "en");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toContain("delivery");
+      expect(result[0]).toContain("official");
+      expect(result[0]).not.toContain("prediction");
+      expect(result[0]).not.toContain("closed-channel");
+      expect(result[0]).not.toContain("safe account");
+    });
+
     it("uses giveaway advice for NFT/prize engagement bait", () => {
       const result = filterAdvice("suspicious", ["giveaway_engagement_bait"], "ru");
 

@@ -59,7 +59,6 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
     reasons: new Set<ReasonCode>([
       "asks_to_transfer_to_safe_account",
       "payment_before_service",
-      "fake_delivery_payment",
       "fake_loan_offer",
       "too_good_to_be_true",
       "relative_in_distress",
@@ -182,6 +181,15 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       en: "Do not enter card details or a Telegram code after following an invite link",
     },
   },
+  // Fake delivery/payment links -> verify through the official service first.
+  {
+    reasons: new Set<ReasonCode>(["fake_delivery_payment"]),
+    advice: {
+      ru: "Не оплачивайте доставку по ссылке из чата — откройте сервис вручную через официальное приложение или сайт",
+      uz: "Yetkazib berishni chat havolasi orqali to'lamang — xizmatni rasmiy ilova yoki sayt orqali qo'lda oching",
+      en: "Do not pay for delivery through a chat link — open the service manually in the official app or website",
+    },
+  },
   // QR login/payment traps -> do not scan codes sent by another person.
   {
     reasons: new Set<ReasonCode>(["asks_to_scan_qr"]),
@@ -193,7 +201,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
 ];
 
-const ADVICE_PRIORITY = [14, 5, 6, 7, 8, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [15, 5, 6, 7, 8, 14, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic
