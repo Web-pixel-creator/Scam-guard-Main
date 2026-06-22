@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-22 - Unified execution plan refreshed after PR #66/#67
+
+- Updated `EXECUTION_PLAN_2026-06-21.md` after PR #66 and PR #67 were merged
+  into `main`.
+- Added Telegram Native Passport Coach, username risk heuristics, and Profile
+  Screenshot Intelligence as explicit P8.1/P8.2/P8.5 follow-ups.
+- Reordered the nearest plan around deploy, dashboard operator UX v2, honest
+  username/profile passport work, voice-in v2, QR precision, speed/cost and
+  security hardening.
+
 ## 2026-06-22 - Risk Passport phone next step polish
 
 - Phone risk passports now include the next safe step inside the passport card
