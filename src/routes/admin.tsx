@@ -300,8 +300,8 @@ function AdminPage() {
                   </dl>
                   <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
                     В админке тоже показана безопасная маска. Если для решения не хватает контекста,
-                    ориентируйтесь на описание жалобы и попросите дополнительное описание без кодов,
-                    карт и личных документов.
+                    не ставьте публичную метку: жалоба останется в истории, а повторные сигналы
+                    усилят приоритет проверки.
                   </p>
                   {reportSignalCount(r) > 1 && (
                     <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
@@ -315,23 +315,31 @@ function AdminPage() {
                   </p>
                 </div>
                 {r.status === "new" && (
-                  <div className="flex flex-wrap gap-2 shrink-0">
-                    <button
-                      type="button"
-                      disabled={moderate.isPending}
-                      onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
-                    >
-                      <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
-                    </button>
-                    <button
-                      type="button"
-                      disabled={moderate.isPending}
-                      onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
-                      className="apex-btn-outline inline-flex items-center gap-1.5"
-                    >
-                      <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
-                    </button>
+                  <div className="lg:w-[280px] shrink-0 space-y-3">
+                    <div className="rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] p-3">
+                      <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
+                      <p className="text-[13px] leading-relaxed text-[#52525B]">
+                        {moderationDecisionHint(reportSignalCount(r))}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={moderate.isPending}
+                        onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
+                      </button>
+                      <button
+                        type="button"
+                        disabled={moderate.isPending}
+                        onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
+                        className="apex-btn-outline inline-flex items-center gap-1.5"
+                      >
+                        <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -634,6 +642,14 @@ function reportSignalCount(report: { entity_hash: string; target_report_count?: 
 
 function reportSignalLabel(count: number) {
   return count === 1 ? "1 сигнал по цели" : `${count} ${pluralRu(count)} по цели`;
+}
+
+function moderationDecisionHint(count: number) {
+  if (count > 1) {
+    return "Повторные сигналы повышают приоритет, но не заменяют ручную проверку. Подтверждайте риск, если в описании видно просьбу о коде, карте, переводе, APK или опасной ссылке.";
+  }
+
+  return "Подтверждайте риск только по понятному описанию опасной просьбы. Если контекста мало, отклоните публичную метку: жалоба останется в истории.";
 }
 
 function pluralRu(value: number) {
