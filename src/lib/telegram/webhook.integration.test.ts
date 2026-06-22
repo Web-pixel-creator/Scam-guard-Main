@@ -570,6 +570,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     const data = callbackData(h.sendCalls[0].keyboard);
     expect(data).toEqual(
       expect.arrayContaining([
+        CB.liveCall,
         CB.checkAnother,
         CB.report,
         CB.emergency,
@@ -590,11 +591,12 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
-      CB.emergency,
+      CB.liveCall,
       CB.checkAnother,
+      CB.emergency,
       CB.familyMenu,
-      CB.digest,
       CB.report,
+      CB.digest,
       CB.safety,
       CB.howItWorks,
       CB.showLang,

@@ -19,9 +19,9 @@ type BotDict = Record<string, { ru: string; uz: string; en: string }>;
 export const bot_dict: BotDict = {
   // ── /start: greeting + capabilities (R1.1, R1.5) ──────────────────────────
   welcome: {
-    ru: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nЯ рядом: помогу спокойно проверить номер, ссылку, username, скриншот, голосовое или сообщение.\n\nЕсли уже сообщили код, установили APK, переводите деньги или вам звонят прямо сейчас — нажмите «Помощь сейчас».",
-    uz: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nMen yoningizdaman: raqam, havola, username, skrinshot, ovozli xabar yoki matnni xotirjam tekshirishga yordam beraman.\n\nAgar kod yuborgan, APK o'rnatgan, pul o'tkazayotgan bo'lsangiz yoki hozir qo'ng'iroq qilishayotgan bo'lsa — «Hozir yordam»ni bosing.",
-    en: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nI am with you: send a number, link, username, screenshot, voice note, or message and I will help you choose a safe next step.\n\nIf you already sent a code, installed an APK, are transferring money, or someone is calling right now — tap “Help now”.",
+    ru: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nЯ рядом: помогу спокойно проверить номер, ссылку, username, скриншот, голосовое или сообщение.\n\nЕсли вам звонят прямо сейчас — нажмите «МНЕ ЗВОНЯТ СЕЙЧАС». Если уже сообщили код, установили APK или переводите деньги — нажмите «Помощь сейчас».\n\nВ любом чате можно набрать @scamguard_bot и вставить номер или ссылку — проверка появится прямо там.",
+    uz: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nMen yoningizdaman: raqam, havola, username, skrinshot, ovozli xabar yoki matnni xotirjam tekshirishga yordam beraman.\n\nAgar hozir qo'ng'iroq qilishayotgan bo'lsa — «HOZIR QO'NG'IROQ»ni bosing. Agar kod yuborgan, APK o'rnatgan yoki pul o'tkazayotgan bo'lsangiz — «Hozir yordam»ni bosing.\n\nIstalgan chatda @scamguard_bot yozib, raqam yoki havolani kiriting — tekshiruv shu yerda chiqadi.",
+    en: "🛡 Ishonch Guard\n━━━━━━━━━━━━━━━━━━━━\n\nI am with you: send a number, link, username, screenshot, voice note, or message and I will help you choose a safe next step.\n\nIf someone is calling right now — tap “CALLING ME NOW”. If you already sent a code, installed an APK, or are transferring money — tap “Help now”.\n\nIn any chat, type @scamguard_bot and paste a number or link — the check will appear right there.",
   },
 
   // Prompt shown when asking the user to pick/switch a language (R2.1) ────────
@@ -483,6 +483,11 @@ export const bot_dict: BotDict = {
     ru: "Помощь сейчас",
     uz: "Hozir yordam",
     en: "Help now",
+  },
+  btn_live_call_now: {
+    ru: "МНЕ ЗВОНЯТ СЕЙЧАС",
+    uz: "HOZIR QO'NG'IROQ",
+    en: "CALLING ME NOW",
   },
   btn_quick_safety: {
     ru: "Правила",

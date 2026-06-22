@@ -18,19 +18,28 @@ describe("/start main menu inline buttons", () => {
 
     expect(keyboard).toBeDefined();
     expect(keyboard).toHaveLength(5);
-    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 1]);
+    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2]);
 
     const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
     expect(callbackDataValues).toEqual([
-      CB.emergency,
+      CB.liveCall,
       CB.checkAnother,
+      CB.emergency,
       CB.familyMenu,
-      CB.digest,
       CB.report,
+      CB.digest,
       CB.safety,
       CB.howItWorks,
       CB.showLang,
     ]);
+  });
+
+  it("puts the live-call copilot first for stressful situations", () => {
+    const { keyboard } = formatWelcome("ru");
+
+    expect(keyboard[0]).toHaveLength(1);
+    expect(keyboard[0][0].callback_data).toBe(CB.liveCall);
+    expect(keyboard[0][0].text).toContain("ЗВОНЯТ");
   });
 
   it.each(LANGS)("formatWelcome(%s) quick action buttons have non-empty labels", (lang) => {
@@ -54,7 +63,7 @@ describe("/start main menu inline buttons", () => {
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 1]);
+      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2]);
     }
   });
 });

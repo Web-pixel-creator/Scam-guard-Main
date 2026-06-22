@@ -75,6 +75,7 @@ export const CB = {
   report: "report",
   checkAnother: "check_another",
   emergency: "emergency",
+  liveCall: "panic:6",
   why: "why",
   showLang: "show_lang",
   safety: "safety",
@@ -871,20 +872,23 @@ export function formatSafety(lang: Lang): string {
  */
 export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeyboard } {
   const keyboard: InlineKeyboard = [
-    [{ text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency }],
+    [{ text: "\u{1F4DE} " + bt("btn_live_call_now", lang), callback_data: CB.liveCall }],
     [
       { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
-      { text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu },
+      { text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency },
     ],
     [
-      { text: "\u{1F4F0} " + bt("btn_quick_digest", lang), callback_data: CB.digest },
+      { text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu },
       { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
     ],
     [
+      { text: "\u{1F4F0} " + bt("btn_quick_digest", lang), callback_data: CB.digest },
       { text: "\u{1F6E1} " + bt("btn_quick_safety", lang), callback_data: CB.safety },
-      { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
     ],
-    [{ text: "\u{1F310} " + bt("btn_quick_lang", lang), callback_data: CB.showLang }],
+    [
+      { text: "\u{2753} " + bt("btn_quick_how", lang), callback_data: CB.howItWorks },
+      { text: "\u{1F310} " + bt("btn_quick_lang", lang), callback_data: CB.showLang },
+    ],
   ];
   return {
     text: escapeMarkdownV2(bt("welcome", lang)),
