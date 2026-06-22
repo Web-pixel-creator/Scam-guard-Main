@@ -79,10 +79,10 @@ describe("moderation notifier", () => {
     expect(payload?.text).not.toContain("https://evil.example");
     expect(payload?.text).not.toContain("abcdef1234567890");
     expect(payload?.text).toContain("новая жалоба");
-    expect(payload?.text).toContain("Уведомление для модераторов");
+    expect(payload?.text).toContain("Короткое уведомление для команды проверки");
     expect(payload?.text).toContain("Что проверить");
-    expect(payload?.text).toContain("Почему объект скрыт");
-    expect(payload?.text).toContain("Решение, статус и история цели доступны в админке");
+    expect(payload?.text).toContain("Почему номер/username скрыт");
+    expect(payload?.text).toContain("Полный номер/username, решение и история цели доступны");
   });
 
   it("formats incident-only reports without a public target", () => {
@@ -95,7 +95,7 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("incident-only: no public target");
-    expect(text).toContain("В этот чат уходит только маска");
+    expect(text).toContain("В этот Telegram-чат уходит только маска");
   });
 
   it("formats duplicate reports as moderation alerts without implying a new public row", () => {
@@ -111,7 +111,8 @@ describe("moderation notifier", () => {
 
     expect(text).toContain("повторная жалоба");
     expect(text).toContain("На эту цель уже жаловались сегодня");
-    expect(text).toContain("учитываем повтор как дополнительный сигнал");
+    expect(text).toContain("учитываем повторный сигнал");
+    expect(text).toContain("модератору стоит присмотреться");
     expect(text).toContain("@ui•••eb");
   });
 
@@ -124,7 +125,7 @@ describe("moderation notifier", () => {
     });
 
     expect(text).toContain("новая апелляция");
-    expect(text).toContain("Уведомление для модераторов");
+    expect(text).toContain("Короткое уведомление для команды проверки");
     expect(text).not.toContain("https://example.com");
     expect(text).not.toContain("abcdef1234567890");
   });
