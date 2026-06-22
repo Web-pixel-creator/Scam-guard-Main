@@ -93,7 +93,7 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
       `• Объект: ${targetLabel(notice)}`,
       `• Язык: ${notice.language}`,
       "",
-      "Полные данные и решение доступны в админке после входа.",
+      "Решение, статус и история цели доступны в админке после входа.",
       "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
     ].join("\n");
   }
@@ -116,7 +116,7 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
       : null,
     notice.duplicateOfExisting ? "" : null,
     "🔐 Почему объект скрыт",
-    "В этот чат уходит только маска. Полный username/номер доступен в админке после входа.",
+    "В этот чат уходит только маска. Решение, статус и история цели доступны в админке после входа.",
     "",
     "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
   ].filter((line): line is string => line !== null);

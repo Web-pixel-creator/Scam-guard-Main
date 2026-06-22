@@ -184,12 +184,44 @@ function AdminPage() {
         <Stat label="Апелляции" value={stats.data?.appeals_new} />
       </div>
 
+      {/* Operator guide */}
+      <section className="apex-card apex-frame apex-stripes">
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr_1fr]">
+          <div>
+            <p className="label-md mb-2">Как работать</p>
+            <h2 className="apex-h2 text-[28px] sm:text-[34px]">Операторский режим</h2>
+            <p className="mt-3 text-[14px] leading-[1.7] text-[#52525B] max-w-2xl">
+              Telegram-чат нужен только как быстрый сигнал для модератора. Решение, история цели и
+              повторные жалобы проверяются здесь, в админке.
+            </p>
+          </div>
+          <div className="border-t border-[#E2E0D8] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+            <p className="apex-mono mb-2">Что в чате</p>
+            <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
+              В группу уходит только маска цели и безопасная сводка. Коды, карты, скриншоты и полные
+              контакты туда не пересылаются.
+            </p>
+          </div>
+          <div className="border-t border-[#E2E0D8] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+            <p className="apex-mono mb-2">Как решать</p>
+            <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
+              Смотрите, что просили сделать, сколько сигналов пришло на цель, есть ли похожие записи
+              и не выглядит ли жалоба как ложное обвинение.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Reports */}
       <section className="apex-card apex-frame apex-stripes">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
           <div>
             <p className="label-md mb-2">01 — Жалобы</p>
             <h2 className="apex-h2">Входящие жалобы</h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
+              Каждая карточка показывает безопасную маску, суть жалобы и силу повторного сигнала.
+              Публичная метка появляется только после ручного подтверждения.
+            </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {FILTERS.map((s) => (
@@ -246,6 +278,31 @@ function AdminPage() {
                   <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
                     {r.description}
                   </p>
+                  <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+                    <ReportFact label="Что проверить" value={r.redacted_value} mono />
+                    <ReportFact
+                      label="Сигналы по цели"
+                      value={reportSignalLabel(reportSignalCount(r))}
+                      tone={reportSignalCount(r) > 1 ? "warn" : "neutral"}
+                    />
+                    <ReportFact label="Тип схемы" value={r.scam_type ?? "не указан"} />
+                    <ReportFact label="Город" value={r.city ?? "не указан"} />
+                    <ReportFact label="Ущерб" value={formatLoss(r.amount_lost_uzs)} />
+                    <ReportFact
+                      label="Статус цели"
+                      value={labelTargetStatus(r.target_moderation_status)}
+                    />
+                    <ReportFact label="Риск цели" value={labelRiskLevel(r.target_risk_level)} />
+                    <ReportFact
+                      label="Последний сигнал"
+                      value={formatDateTime(r.target_last_seen_at ?? r.created_at)}
+                    />
+                  </dl>
+                  <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
+                    В админке тоже показана безопасная маска. Если для решения не хватает контекста,
+                    ориентируйтесь на описание жалобы и попросите дополнительное описание без кодов,
+                    карт и личных документов.
+                  </p>
                   {reportSignalCount(r) > 1 && (
                     <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
                       По этой цели уже есть повторные сигналы. Перед публичной меткой проверьте
@@ -263,7 +320,7 @@ function AdminPage() {
                       type="button"
                       disabled={moderate.isPending}
                       onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
                     >
                       <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
                     </button>
@@ -514,6 +571,31 @@ function Stat({ label, value, highlight }: { label: string; value?: number; high
   );
 }
 
+function ReportFact({
+  label,
+  value,
+  mono = false,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  tone?: "neutral" | "warn";
+}) {
+  return (
+    <div className="bg-white p-3">
+      <dt className="apex-mono mb-1 text-[#71717A]">{label}</dt>
+      <dd
+        className={`${mono ? "font-mono break-all" : "font-sans"} text-[13px] leading-snug ${
+          tone === "warn" ? "text-[#9A3412]" : "text-[#18181B]"
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; border: string }> = {
     new: { bg: "bg-[#FFF7ED]", text: "text-[#9A3412]", border: "border-[#FDBA74]/70" },
@@ -551,7 +633,7 @@ function reportSignalCount(report: { entity_hash: string; target_report_count?: 
 }
 
 function reportSignalLabel(count: number) {
-  return count === 1 ? "первый сигнал по цели" : `${count} ${pluralRu(count)} по цели`;
+  return count === 1 ? "1 сигнал по цели" : `${count} ${pluralRu(count)} по цели`;
 }
 
 function pluralRu(value: number) {
@@ -561,4 +643,36 @@ function pluralRu(value: number) {
   if (mod10 === 1 && mod100 !== 11) return "сигнал";
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "сигнала";
   return "сигналов";
+}
+
+function formatLoss(value?: number | null) {
+  if (!value || !Number.isFinite(value) || value <= 0) return "не указан";
+  return `${Math.round(value).toLocaleString("ru-RU")} UZS`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "неизвестно";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "неизвестно";
+  return date.toLocaleString("ru-RU");
+}
+
+function labelTargetStatus(value?: string | null) {
+  if (!value) return "на проверке";
+  return labelStatus(value);
+}
+
+function labelRiskLevel(value?: string | null) {
+  if (!value) return "не определён";
+  return (
+    (
+      {
+        safe: "без явного риска",
+        low: "низкий",
+        unknown: "недостаточно данных",
+        suspicious: "осторожность",
+        high_risk: "высокий риск",
+      } as Record<string, string>
+    )[value] ?? value
+  );
 }

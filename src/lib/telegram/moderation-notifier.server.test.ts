@@ -82,7 +82,7 @@ describe("moderation notifier", () => {
     expect(payload?.text).toContain("Уведомление для модераторов");
     expect(payload?.text).toContain("Что проверить");
     expect(payload?.text).toContain("Почему объект скрыт");
-    expect(payload?.text).toContain("Полный username/номер доступен в админке");
+    expect(payload?.text).toContain("Решение, статус и история цели доступны в админке");
   });
 
   it("formats incident-only reports without a public target", () => {

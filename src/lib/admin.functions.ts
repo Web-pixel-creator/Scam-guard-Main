@@ -68,7 +68,15 @@ export const listReports = createServerFn({ method: "POST" })
     const hashes = Array.from(
       new Set(reports.map((r) => r.entity_hash).filter((hash): hash is string => Boolean(hash))),
     );
-    if (hashes.length === 0) return reports;
+    if (hashes.length === 0) {
+      return reports.map((report) => ({
+        ...report,
+        target_report_count: 1,
+        target_last_seen_at: null,
+        target_moderation_status: null,
+        target_risk_level: null,
+      }));
+    }
 
     const { data: entities, error: entitiesError } = await supabaseAdmin
       .from("entities")
