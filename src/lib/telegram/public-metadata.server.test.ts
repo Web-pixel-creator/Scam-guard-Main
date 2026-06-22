@@ -126,6 +126,62 @@ describe("telegram public metadata", () => {
     expect(brief).toContain("SCAM-метка");
   });
 
+  it("coaches users to read Telegram native profile signals without inventing them", () => {
+    const brief =
+      buildTelegramPublicMetadataBrief({ status: "not_found", username: "UiWebWeb" }, "ru", {
+        reasons: ["unknown_sender"],
+        knownReports: 0,
+      }) ?? "";
+
+    expect(brief).toContain("Как читать профиль Telegram");
+    expect(brief).toContain("Telegram может сам показать страну телефона");
+    expect(brief).toContain("недавнюю смену имени/фото");
+    expect(brief).toContain("просьбой дать код, деньги, карту, APK");
+    expect(brief).not.toMatch(/зарегистрирован.*2026|создан недавно|скрытая SCAM-метка есть/i);
+  });
+
+  it("adds conservative username heuristics without changing the honest limitation", () => {
+    const randomBrief =
+      buildTelegramPublicMetadataBrief({ status: "not_found", username: "qwrtsxplm" }, "ru", {
+        reasons: ["unknown_sender"],
+        knownReports: 0,
+      }) ?? "";
+
+    expect(randomBrief).toContain("Признаки в username");
+    expect(randomBrief).toContain("username выглядит случайным");
+    expect(randomBrief).toContain("По одному username нельзя честно сказать");
+
+    const normalBrief =
+      buildTelegramPublicMetadataBrief({ status: "not_found", username: "UiWebWeb" }, "ru", {
+        reasons: ["unknown_sender"],
+        knownReports: 0,
+      }) ?? "";
+
+    expect(normalBrief).not.toContain("username выглядит случайным");
+  });
+
+  it("flags brand/support and promo wording as visible username clues only", () => {
+    const supportBrief =
+      buildTelegramPublicMetadataBrief(
+        { status: "not_found", username: "kapitalbank_support" },
+        "ru",
+        { reasons: ["unknown_sender", "impersonates_official"], knownReports: 0 },
+      ) ?? "";
+
+    expect(supportBrief).toContain("похожи на поддержку или бренд");
+    expect(supportBrief).toContain("По одному username нельзя честно сказать");
+
+    const promoBrief =
+      buildTelegramPublicMetadataBrief(
+        { status: "not_found", username: "PlankaInvestBonus" },
+        "ru",
+        { reasons: ["unknown_sender"], knownReports: 0 },
+      ) ?? "";
+
+    expect(promoBrief).toContain("промо-тема");
+    expect(promoBrief).not.toMatch(/точно мошенник|создан недавно|скрытая SCAM-метка есть/i);
+  });
+
   it("returns unavailable quickly when public metadata lookup exceeds the soft budget", async () => {
     const startedAt = Date.now();
     const metadata = await lookupTelegramPublicMetadata(

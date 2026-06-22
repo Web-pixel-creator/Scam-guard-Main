@@ -371,13 +371,162 @@ function withTelegramSignals(
   const knownReports = result?.knownReports ?? 0;
   const scenario = telegramScenarioBrief(metadata, reasons, knownReports, lang);
   const signals = telegramSignalText(reasons, knownReports, lang, Boolean(result));
+  const usernameInsights = telegramUsernameInsightText(metadata, lang);
+  const nativeCoach = scenario ? "" : telegramNativePassportCoach(metadata, lang);
   const next = telegramNextStep(metadata, reasons, lang);
 
   if (scenario) {
-    return [scenario, signals, next, base].filter(Boolean).join("\n");
+    return [scenario, signals, usernameInsights, next, base].filter(Boolean).join("\n");
   }
 
-  return [base, signals, next].filter(Boolean).join("\n");
+  return [base, signals, usernameInsights, next, nativeCoach].filter(Boolean).join("\n");
+}
+
+type UsernameInsight = "random" | "brand_or_support" | "promo";
+
+function telegramUsernameInsightText(metadata: TelegramPublicMetadata, lang: Lang): string {
+  const username = telegramMetadataUsername(metadata);
+  if (!username) return "";
+
+  const profileText = telegramMetadataProfileText(metadata);
+  const insights: UsernameInsight[] = [];
+
+  if (looksRandomUsername(username)) insights.push("random");
+  if (looksLikeBrandOrSupportUsername(profileText)) insights.push("brand_or_support");
+  if (looksLikePromoUsername(profileText)) insights.push("promo");
+
+  if (insights.length === 0) return "";
+
+  const labels: Record<UsernameInsight, Record<Lang, string>> = {
+    random: {
+      ru: "username выглядит случайным или сгенерированным",
+      uz: "username tasodifiy yoki avtomatik yaratilganga o'xshaydi",
+      en: "username looks random or generated",
+    },
+    brand_or_support: {
+      ru: "имя/username похожи на поддержку или бренд без подтверждения",
+      uz: "ism/username tasdiqlanmagan support yoki brendga o'xshaydi",
+      en: "name/username looks like support or a brand without verification",
+    },
+    promo: {
+      ru: "в имени есть промо-тема: инвестиции, ставки, бонусы, крипто или подарки",
+      uz: "nomda promo mavzu bor: investitsiya, stavka, bonus, kripto yoki sovg'a",
+      en: "name contains promo language: investing, betting, bonuses, crypto, or gifts",
+    },
+  };
+
+  const header: Record<Lang, string> = {
+    ru: "🧩 Признаки в username",
+    uz: "🧩 Username bo'yicha belgilar",
+    en: "🧩 Username signs",
+  };
+
+  return `${header[lang]}\n${insights
+    .slice(0, 3)
+    .map((insight) => `• ${labels[insight][lang]}`)
+    .join("\n")}`;
+}
+
+function telegramNativePassportCoach(metadata: TelegramPublicMetadata, lang: Lang): string {
+  if (!telegramMetadataUsername(metadata)) return "";
+
+  if (lang === "uz") {
+    return [
+      "🧭 Telegram profilini qanday o'qish",
+      "• Profilni oching: Telegram telefon mamlakati, ro'yxatdan o'tish oyi, «rasmiy emas» belgisi va ism/rasm yaqinda o'zgarganini ko'rsatishi mumkin.",
+      "• Bu kod, pul, karta, APK, QR-kirish yoki havola so'rovi bilan birga bo'lsa — ehtiyot bo'ling.",
+    ].join("\n");
+  }
+
+  if (lang === "en") {
+    return [
+      "🧭 How to read Telegram's profile card",
+      "• Open the profile: Telegram may show phone country, registration month, a “not official” label, and recent name/photo changes.",
+      "• It matters most when those signs come with a request for a code, money, card, APK, QR login, or link.",
+    ].join("\n");
+  }
+
+  return [
+    "🧭 Как читать профиль Telegram",
+    "• Откройте профиль: Telegram может сам показать страну телефона, месяц регистрации, «не официальный аккаунт» и недавнюю смену имени/фото.",
+    "• Тревожно, когда это сочетается с просьбой дать код, деньги, карту, APK, QR-вход или ссылку.",
+  ].join("\n");
+}
+
+function telegramMetadataUsername(metadata: TelegramPublicMetadata): string | null {
+  if (
+    metadata.status === "found" ||
+    metadata.status === "not_found" ||
+    metadata.status === "unavailable"
+  ) {
+    return metadata.username;
+  }
+  return null;
+}
+
+function telegramMetadataProfileText(metadata: TelegramPublicMetadata): string {
+  const username = telegramMetadataUsername(metadata);
+  const parts = [username ?? ""];
+
+  if (metadata.status === "found") {
+    parts.push(
+      metadata.chat.username ?? "",
+      metadata.chat.title ?? "",
+      metadata.chat.first_name ?? "",
+      metadata.chat.last_name ?? "",
+      metadata.chat.bio ?? "",
+      metadata.chat.description ?? "",
+      ...(metadata.chat.active_usernames ?? []),
+    );
+  }
+
+  return normalizeUsernameSignalText(parts.join(" "));
+}
+
+function normalizeUsernameSignalText(value: string): string {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_\-.]+/g, " ")
+    .toLowerCase();
+}
+
+function looksRandomUsername(username: string): boolean {
+  const normalized = username.toLowerCase().replace(/^@/, "");
+  if (normalized.length < 8 || /[_.]/.test(normalized)) return false;
+
+  const letters = normalized.replace(/[^a-z]/g, "");
+  if (letters.length < 7) return false;
+
+  const hasKnownWord =
+    /(admin|alina|bank|bot|card|click|crypto|help|hub|info|manager|official|pay|planka|service|shop|support|ton|uz|web)/.test(
+      normalized,
+    );
+  if (hasKnownWord) return false;
+
+  const vowels = letters.match(/[aeiou]/g)?.length ?? 0;
+  const vowelRatio = vowels / letters.length;
+  const hasLongConsonantRun = /[bcdfghjklmnpqrstvwxyz]{5,}/.test(letters);
+
+  return vowelRatio < 0.22 || hasLongConsonantRun;
+}
+
+function looksLikeBrandOrSupportUsername(profileText: string): boolean {
+  const hasBrand =
+    /(nbu|kapital|kapitalbank|ipak|anor|payme|click|uzcard|humo|uzum|hamkor|aloqa|beeline|ucell|mobiuz|telegram|alfabank|alpha|sber)/.test(
+      profileText,
+    );
+  const hasSupportWord =
+    /(support|help|security|operator|admin|service|official|oficial|manager|bot|bank|verify|verification|safe)/.test(
+      profileText,
+    );
+
+  return hasBrand && hasSupportWord;
+}
+
+function looksLikePromoUsername(profileText: string): boolean {
+  return /(invest|investor|mentor|planka|bonus|gift|airdrop|wallet|casino|bet|betting|prognoz|stavka|vip|loan|credit|grant|free|nft|stars|ton|crypto|earn|money|profit|signal|signals)/.test(
+    profileText,
+  );
 }
 
 function telegramScenarioBrief(

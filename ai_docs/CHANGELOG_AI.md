@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-22 - Telegram Native Passport Coach shipped
+
+- Username passports now teach users how to read Telegram's native profile card:
+  phone country, registration month, "not official" labels and recent
+  name/photo changes are framed as user-visible Telegram-client signals, not Bot
+  API data.
+- Added conservative visible username hints for random/generated usernames,
+  brand/support lookalikes and promo wording around investments, betting,
+  bonuses, crypto or gifts.
+- Kept the hard boundary: no claims about hidden Telegram SCAM labels, account
+  age, Telegram complaint history or who the account messaged.
+
 ## 2026-06-22 - Unified execution plan refreshed after PR #66/#67
 
 - Updated `EXECUTION_PLAN_2026-06-21.md` after PR #66 and PR #67 were merged
