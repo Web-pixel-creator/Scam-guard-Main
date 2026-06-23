@@ -994,6 +994,7 @@ export async function handleVoice(
     logTelegramTiming("voice.budget", budgetStartedAt, {
       durationSec: meta?.duration ?? null,
     });
+    await replyText(ctx.chatId, bt("voice_processing", lang));
 
     const outcome = await withTypingIndicator(
       ctx.chatId,

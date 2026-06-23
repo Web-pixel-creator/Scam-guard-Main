@@ -232,6 +232,11 @@ export const bot_dict: BotDict = {
     uz: "Ovozli xabar yoki audio juda katta. 60 soniyagacha qisqa xabar yuboring yoki 1-2 jumla yozing: nima va'da qilishdi va nima so'rashyapti.",
     en: "The voice note or audio file is too large. Send a short message up to 60 seconds, or type 1-2 sentences: what they promise and what they ask you to do.",
   },
+  voice_processing: {
+    ru: "🎧 Распознаю голос. Обычно это занимает до 10 секунд. Если текст получится неточным, нажмите «Исправить текст».",
+    uz: "🎧 Ovozni matnga aylantiryapman. Odatda bu 10 soniyagacha davom etadi. Matn noto'g'ri chiqsa, «Matnni tuzatish» tugmasini bosing.",
+    en: "🎧 Transcribing the voice note. This usually takes up to 10 seconds. If the text is wrong, tap “Correct text”.",
+  },
   voice_transcription_failed: {
     ru: "Я пока не смог надёжно разобрать голосовое или аудио.\n\nНапишите коротко: что вам обещают и что просят сделать — код, карту, перевод, APK, QR или ссылку.\n\nЕсли вы уже отправили код, установили приложение или сейчас на звонке — нажмите «Что делать срочно».",
     uz: "Ovozli xabar yoki audioni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",

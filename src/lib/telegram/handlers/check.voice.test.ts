@@ -111,6 +111,9 @@ describe("handleVoice", () => {
       expect.objectContaining({ chatId: 100, text: expect.stringContaining("Я распознал голос") }),
     );
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ chatId: 100, text: expect.stringContaining("Распознаю голос") }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         chatId: 100,
         text: expect.stringContaining("caller asks for SMS code"),
@@ -118,7 +121,7 @@ describe("handleVoice", () => {
     );
     const transcriptCorrectionMessage = hoisted.sendMessage.mock.calls
       .map(([message]) => message)
-      .find((message) => JSON.stringify(message.keyboard).includes("voice_correct"));
+      .find((message) => JSON.stringify(message.keyboard ?? []).includes("voice_correct"));
     expect(transcriptCorrectionMessage).toEqual(
       expect.objectContaining({
         chatId: 100,
@@ -129,6 +132,43 @@ describe("handleVoice", () => {
     expect(sentTexts.findIndex((text) => text.includes("Я распознал голос"))).toBeLessThan(
       sentTexts.findIndex((text) => text.includes("Высокий риск")),
     );
+    expect(sentTexts.findIndex((text) => text.includes("Распознаю голос"))).toBeLessThan(
+      sentTexts.findIndex((text) => text.includes("Я распознал голос")),
+    );
+  });
+
+  it("keeps delivery card-only voice transcripts in the suspicious lane", async () => {
+    const transcript =
+      "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+    hoisted.runCheck.mockResolvedValue({
+      ...FAKE_RESULT,
+      display: transcript,
+      level: "suspicious",
+      score: 35,
+      reasons: ["fake_delivery_payment"],
+    });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 10,
+      mimeType: "audio/ogg",
+      fileUniqueId: "delivery-card-only-voice",
+    });
+
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: transcript,
+        type: "text",
+        lang: "ru",
+        channel: "telegram",
+      }),
+    );
+    const sentTexts = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text));
+    const joined = sentTexts.join("\n");
+    expect(joined).toContain("Требуется осторожность");
+    expect(joined).not.toContain("Высокий риск");
+    expect(joined).not.toContain("Закрытый канал");
   });
 
   it("checks corrected voice text without another STT call", async () => {
