@@ -148,7 +148,7 @@ function Index() {
 
   return (
     <div className="overflow-hidden home-stripes-bg">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-16 md:space-y-28 lg:space-y-32 pt-3 md:pt-4">
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
           <div
@@ -173,10 +173,7 @@ function Index() {
             <div className="relative text-center px-0">
               {/* Compact pain badge — single visual signal, no separate quote block */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] mb-5 animate-fade-in-up font-mono">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                </span>
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                 {
                   {
                     ru: "Звонят мошенники? Проверьте за 3 секунды",
