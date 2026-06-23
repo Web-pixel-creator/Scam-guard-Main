@@ -120,6 +120,7 @@ function Index() {
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const [formVisible, setFormVisible] = useState(true);
+  const [showAllSchemes, setShowAllSchemes] = useState(false);
 
   // Re-clicking the brand/Home link while already on "/" does not unmount
   // this component — subscribe to router resolves and reset the result so the
@@ -1189,49 +1190,55 @@ function Index() {
                   loss_en: "Card details handed to scammers",
                 },
               ] as const
-            ).map((s) => (
-              <div
-                key={s.en}
-                className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="apex-mono">
-                    {{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}
-                  </span>
-                  <span className="flex-1 h-px bg-[#E2E0D8]" />
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+            )
+              .slice(0, showAllSchemes ? 6 : 3)
+              .map((s) => (
+                <div
+                  key={s.en}
+                  className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="apex-mono">
+                      {{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}
                     </span>
-                    {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
-                  </span>
-                </div>
+                    <span className="flex-1 h-px bg-[#E2E0D8]" />
+                    <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                      {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
+                    </span>
+                  </div>
 
-                <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-3 tracking-tight text-[#18181B] leading-[1.3] text-balance">
-                  {s[lang]}
-                </h3>
-                <p className="card-body mb-5">
-                  {(s as never as Record<string, string>)["d_" + lang]}
-                </p>
-
-                {/* Scammer bait */}
-                <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13px] leading-[1.55] text-[#18181B] italic font-serif-italic">
-                  {(s as never as Record<string, string>)["bait_" + lang]}
-                </blockquote>
-
-                {/* Consequence — what you lose */}
-                <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#B91C1C] mb-1.5">
-                    ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
+                  <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-3 tracking-tight text-[#18181B] leading-[1.3] text-balance">
+                    {s[lang]}
+                  </h3>
+                  <p className="card-body mb-5">
+                    {(s as never as Record<string, string>)["d_" + lang]}
                   </p>
-                  <p className="card-body">
-                    {(s as never as Record<string, string>)["loss_" + lang]}
-                  </p>
+
+                  {/* Scammer bait */}
+                  <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {(s as never as Record<string, string>)["bait_" + lang]}
+                  </blockquote>
+
+                  {/* Consequence — what you lose */}
+                  <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                    <p className="apex-mono text-[#B91C1C] mb-1.5">
+                      ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
+                    </p>
+                    <p className="card-body">
+                      {(s as never as Record<string, string>)["loss_" + lang]}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
+          {!showAllSchemes && (
+            <div className="mt-8 flex justify-center">
+              <button type="button" onClick={() => setShowAllSchemes(true)} className="apex-pill">
+                {{ ru: "Показать ещё 3 схемы", uz: "Yana 3 ta sxema", en: "Show 3 more" }[lang]}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* FAQ — pain scenarios with green "what we do" answer */}
