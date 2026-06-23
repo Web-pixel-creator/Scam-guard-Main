@@ -90,9 +90,9 @@ export function HomeImpactCounters() {
       icon: ShieldCheck,
       value: formatImpactNumber(stats.confirmed_entities, lang),
       label: {
-        ru: "модерированных записей",
-        uz: "moderatsiyalangan yozuv",
-        en: "moderated records",
+        ru: "проверенных вручную записей",
+        uz: "qo'lda tekshirilgan yozuvlar",
+        en: "manually reviewed records",
       }[lang],
       detail: {
         ru: "только после проверки",
@@ -128,9 +128,9 @@ export function HomeImpactCounters() {
           <p className="mt-3 max-w-2xl text-[15px] leading-[1.65] text-[#52525B]">
             {
               {
-                ru: "Это только агрегаты: сколько проверок прошло, сколько раз бот увидел риск и какую сумму потерь пользователи сами указали в жалобах.",
-                uz: "Bu faqat agregat raqamlar: tekshiruvlar, xavf ogohlantirishlari va foydalanuvchilar shikoyatda ko'rsatgan zarar summasi.",
-                en: "These are aggregates only: checks completed, risk alerts shown, and loss amounts users chose to include in reports.",
+                ru: "Это только общие цифры: сколько проверок прошло, сколько раз бот увидел риск и какую сумму потерь люди сами указали в жалобах.",
+                uz: "Bu faqat umumiy raqamlar: nechta tekshiruv bo'lgani, bot necha marta xavf ko'rgani va odamlar shikoyatda o'zi ko'rsatgan zarar summasi.",
+                en: "These are general totals only: how many checks ran, how often the bot saw a risk, and the loss amounts people reported themselves.",
               }[lang]
             }
           </p>

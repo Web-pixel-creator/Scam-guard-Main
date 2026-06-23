@@ -464,9 +464,9 @@ function Index() {
                   en: "“A bank manager DMs you and asks for the SMS code.”",
                 },
                 check: {
-                  ru: "Боты, каналы-ловушки и псевдо-сотрудники банков — определяем по паттернам.",
-                  uz: "Botlar, tuzoq-kanallar va soxta bank xodimlarini namunalar bo'yicha aniqlaymiz.",
-                  en: "Detect bots, trap channels and fake bank employees by behavior patterns.",
+                  ru: "Боты, каналы-ловушки и поддельных «сотрудников банка» — узнаём по характерным признакам.",
+                  uz: "Botlar, tuzoq-kanallar va soxta «bank xodimlari»ni xos belgilar bo'yicha aniqlaymiz.",
+                  en: "We spot bots, trap channels and fake “bank staff” by their tell-tale signs.",
                 },
               },
               {
@@ -479,9 +479,9 @@ function Index() {
                   en: "“Pay the delivery fee via this link or your parcel is returned.”",
                 },
                 check: {
-                  ru: "Фишинг, поддельные платёжки и вредоносные APK — отделяем от настоящих.",
-                  uz: "Fishing, soxta to'lov sahifalari va zararli APK fayllarini haqiqiylaridan ajratamiz.",
-                  en: "Phishing, fake payment pages and malicious APKs — separated from the real ones.",
+                  ru: "Поддельные сайты, фальшивые оплаты и опасные приложения (APK) — отличаем от настоящих.",
+                  uz: "Soxta saytlar, qalbaki to'lovlar va xavfli ilovalar (APK) — haqiqiylaridan ajratamiz.",
+                  en: "Fake sites, bogus payment pages and dangerous apps (APK) — told apart from the real ones.",
                 },
               },
               {
@@ -498,9 +498,9 @@ function Index() {
                   en: "“Urgent! A suspicious transaction on your card…”",
                 },
                 check: {
-                  ru: "Признаки социальной инженерии: давление, срочность, просьба о коде или переводе.",
-                  uz: "Ijtimoiy muhandislik belgilari: bosim, shoshqaloqlik, kod yoki o'tkazma so'rovi.",
-                  en: "Social-engineering signals: pressure, urgency, asking for codes or transfers.",
+                  ru: "Признаки психологического давления: торопят, пугают, просят код или перевод.",
+                  uz: "Psixologik bosim belgilari: shoshiradi, qo'rqitadi, kod yoki o'tkazma so'raydi.",
+                  en: "Signs of pressure tactics: they rush you, scare you, ask for a code or transfer.",
                 },
               },
             ].map((c, idx) => (
@@ -831,9 +831,9 @@ function Index() {
                     en: "“I can't tell if this is a real bank or a scam.”",
                   },
                   out: {
-                    ru: "Сверяем с базой жалоб и паттернами в реальном времени.",
-                    uz: "Shikoyatlar bazasi va naqshlar bilan real vaqtda tekshiramiz.",
-                    en: "We cross-check against the reports DB and live patterns.",
+                    ru: "Сверяем с базой жалоб и характерными признаками за секунды.",
+                    uz: "Shikoyatlar bazasi va xos belgilar bilan bir necha soniyada tekshiramiz.",
+                    en: "We cross-check against the reports database and tell-tale signs in seconds.",
                   },
                 },
                 {
@@ -1115,9 +1115,9 @@ function Index() {
                 },
                 {
                   n: "02",
-                  ru: "APK от мнимого банка",
-                  uz: "Soxta bank APK",
-                  en: "Fake bank APK",
+                  ru: "Поддельное приложение «банка»",
+                  uz: "Soxta «bank ilovasi»",
+                  en: "Fake “bank app”",
                   d_ru: "Просят установить «безопасное приложение» — оно крадёт SMS и данные.",
                   d_uz: "«Xavfsiz ilova» o'rnatishni so'rashadi — u SMS o'g'irlaydi.",
                   d_en: "They push a “safe app” that steals SMS and data.",
@@ -1163,15 +1163,15 @@ function Index() {
                   ru: "Фейковая доставка",
                   uz: "Soxta yetkazib berish",
                   en: "Fake delivery",
-                  d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это фишинг карты.",
-                  d_uz: "«Kuryer» to'lov havolasini yuboradi — bu fishing.",
-                  d_en: "A “courier” sends a payment link — card phishing.",
+                  d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это кража данных карты.",
+                  d_uz: "«Kuryer» to'lov havolasini yuboradi — bu karta ma'lumotlarini o'g'irlash.",
+                  d_en: "A “courier” sends a payment link to steal your card details.",
                   bait_ru: "«Доплатите 12 000 сум за доставку по ссылке»",
                   bait_uz: "«Yetkazib berish uchun 12 000 so'm to'lang»",
                   bait_en: "“Pay 12,000 UZS delivery fee via this link.”",
-                  loss_ru: "Реквизиты карты уходят на фишинг-сайт",
-                  loss_uz: "Karta ma'lumotlari fishing saytga ketadi",
-                  loss_en: "Card details captured by phishing site",
+                  loss_ru: "Данные карты уходят на поддельный сайт",
+                  loss_uz: "Karta ma'lumotlari soxta saytga ketadi",
+                  loss_en: "Card details captured by a fake site",
                 },
                 {
                   n: "06",
@@ -1342,9 +1342,9 @@ function Index() {
               },
               {
                 q: {
-                  ru: "Установил подозрительный APK — телефон скомпрометирован?",
-                  uz: "Shubhali APK o'rnatdim — telefonim xavf ostidami?",
-                  en: "I installed a sketchy APK — is my phone compromised?",
+                  ru: "Установил подозрительное приложение (APK) — телефон в опасности?",
+                  uz: "Shubhali ilova (APK) o'rnatdim — telefonim xavf ostidami?",
+                  en: "I installed a suspicious app (APK) — is my phone in danger?",
                 },
                 pain: {
                   ru: "«Приложение просит доступ ко всем SMS и контактам — это нормально?»",
