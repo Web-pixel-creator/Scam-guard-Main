@@ -56,6 +56,11 @@ export const bot_dict: BotDict = {
     uz: "Tahlil qilinmoqda…",
     en: "Analyzing…",
   },
+  check_processing: {
+    ru: "Проверяю. Это может занять несколько секунд.",
+    uz: "Tekshiryapman. Bu bir necha soniya olishi mumkin.",
+    en: "Checking. This may take a few seconds.",
+  },
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {

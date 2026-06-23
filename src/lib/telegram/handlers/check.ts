@@ -22,6 +22,8 @@
 // Server-only: pulls in `*.server.ts` modules (Bot API + service-role core).
 // This module is wired into the router later (task 9.1) via `setHandlers`; it
 // deliberately does NOT import sibling handler modules or touch the aggregator.
+import { createHash } from "node:crypto";
+
 import {
   analyzeImageCore,
   runCheck,
@@ -106,6 +108,18 @@ const VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS = 2;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
+const CHECK_PROCESSING_DELAY_MS = readBoundedIntEnv(
+  "TELEGRAM_CHECK_PROCESSING_DELAY_MS",
+  900,
+  100,
+  5_000,
+);
+const CHECK_RESULT_CACHE_TTL_MS = readBoundedIntEnv(
+  "TELEGRAM_CHECK_CACHE_TTL_MS",
+  60_000,
+  5_000,
+  10 * 60_000,
+);
 const TELEGRAM_AI_EXPLANATION_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_AI_EXPLANATION_TIMEOUT_MS",
   2500,
@@ -154,10 +168,15 @@ type VoiceTranscriptWorkResult =
   | { kind: "ok"; text: string }
   | { kind: "failed" }
   | { kind: "too_large" };
+type CheckResultCacheEntry = {
+  result: RunCheckResult;
+  cachedAt: number;
+};
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
 const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
 const voiceTranscriptInFlight = new Map<string, Promise<VoiceTranscriptWorkResult>>();
+const checkResultCache = new Map<string, CheckResultCacheEntry>();
 
 function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
@@ -170,6 +189,54 @@ function readBoundedIntEnv(name: string, fallback: number, min: number, max: num
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
+}
+
+function normalizeCheckCacheInput(input: string): string {
+  return input.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function buildCheckResultCacheKey(params: {
+  userId: number;
+  lang: string;
+  input: string;
+  type?: string;
+  publicPost: boolean;
+}): string {
+  return createHash("sha256")
+    .update(String(params.userId))
+    .update("\0")
+    .update(params.lang)
+    .update("\0")
+    .update(params.type ?? "auto")
+    .update("\0")
+    .update(params.publicPost ? "public-post" : "direct")
+    .update("\0")
+    .update(normalizeCheckCacheInput(params.input))
+    .digest("hex");
+}
+
+function pruneCheckResultCache(now = Date.now()): void {
+  for (const [key, value] of checkResultCache) {
+    if (now - value.cachedAt > CHECK_RESULT_CACHE_TTL_MS) {
+      checkResultCache.delete(key);
+    }
+  }
+}
+
+function getCachedCheckResult(key: string, now = Date.now()): RunCheckResult | null {
+  pruneCheckResultCache(now);
+  const cached = checkResultCache.get(key);
+  if (!cached) return null;
+  if (now - cached.cachedAt > CHECK_RESULT_CACHE_TTL_MS) {
+    checkResultCache.delete(key);
+    return null;
+  }
+  return cached.result;
+}
+
+function rememberCheckResult(key: string, result: RunCheckResult, now = Date.now()): void {
+  pruneCheckResultCache(now);
+  checkResultCache.set(key, { result, cachedAt: now });
 }
 
 function voiceSttBudgetKey(userId: number): string {
@@ -646,6 +713,22 @@ async function withTypingIndicator<T>(
  * (R10.2), любая другая ошибка → лог без Sensitive_Data + общая подсказка
  * (R11.3). Никогда не оставляет запрос без ответа.
  */
+async function withDeferredCheckStatus<T>(ctx: HandlerCtx, work: () => Promise<T>): Promise<T> {
+  let finished = false;
+  const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+    if (!finished) {
+      void replyText(ctx.chatId, bt("check_processing", ctx.session.lang)).catch(() => undefined);
+    }
+  }, CHECK_PROCESSING_DELAY_MS);
+
+  try {
+    return await work();
+  } finally {
+    finished = true;
+    clearTimeout(timer);
+  }
+}
+
 async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>): Promise<void> {
   try {
     await work();
@@ -737,50 +820,75 @@ export async function handleCheck(
   }
 
   await guarded(ctx, "handleCheck", async () => {
-    const rateLimitKey = rateLimitKeyFor(ctx.userId);
-    const publicPostStartedAt = Date.now();
-    const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
-    logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
-      hasEvidence: publicPostEvidence !== null,
-    });
+    await withDeferredCheckStatus(ctx, async () => {
+      const rateLimitKey = rateLimitKeyFor(ctx.userId);
+      const publicPostStartedAt = Date.now();
+      const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
+      logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
+        hasEvidence: publicPostEvidence !== null,
+      });
 
-    const checkStartedAt = Date.now();
-    const result = await withTypingIndicator(ctx.chatId, async () => {
-      const checked = await runCheck({
-        input: publicPostEvidence?.checkInput ?? trimmed,
-        type: publicPostEvidence ? "text" : undefined,
+      const checkInput = publicPostEvidence?.checkInput ?? trimmed;
+      const checkType = publicPostEvidence ? "text" : undefined;
+      const cacheKey = buildCheckResultCacheKey({
+        userId: ctx.userId,
         lang,
-        rateLimitKey,
-        channel: CHANNEL,
-        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+        input: checkInput,
+        type: checkType,
+        publicPost: publicPostEvidence !== null,
       });
-      logTelegramTiming("check.run_check", checkStartedAt, {
-        type: checked.type,
-        level: checked.level,
-        reasonCount: checked.reasons.length,
-        hasPublicPostEvidence: publicPostEvidence !== null,
+      const cached = getCachedCheckResult(cacheKey);
+      if (cached) {
+        await sendCheckResult(ctx, enrichForwardSourceContext(cached, source, lang));
+        logTelegramTiming("check.total", startedAt, {
+          type: cached.type,
+          level: cached.level,
+          reasonCount: cached.reasons.length,
+          publicPostEvidence: publicPostEvidence !== null,
+          cached: true,
+        });
+        return;
+      }
+
+      const checkStartedAt = Date.now();
+      const result = await withTypingIndicator(ctx.chatId, async () => {
+        const checked = await runCheck({
+          input: checkInput,
+          type: checkType,
+          lang,
+          rateLimitKey,
+          channel: CHANNEL,
+          ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+        });
+        logTelegramTiming("check.run_check", checkStartedAt, {
+          type: checked.type,
+          level: checked.level,
+          reasonCount: checked.reasons.length,
+          hasPublicPostEvidence: publicPostEvidence !== null,
+        });
+        return checked;
       });
-      return checked;
-    });
-    const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
-    const enrichmentStartedAt = Date.now();
-    const enrichedMetadata = publicPostEvidence
-      ? postResult
-      : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
-    const enriched = publicPostEvidence
-      ? enrichedMetadata
-      : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
-    logTelegramTiming("check.enrichment", enrichmentStartedAt, {
-      publicPostEvidence: publicPostEvidence !== null,
-      level: enriched.level,
-      reasonCount: enriched.reasons.length,
-    });
-    await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
-    logTelegramTiming("check.total", startedAt, {
-      type: enriched.type,
-      level: enriched.level,
-      reasonCount: enriched.reasons.length,
-      publicPostEvidence: publicPostEvidence !== null,
+      const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+      const enrichmentStartedAt = Date.now();
+      const enrichedMetadata = publicPostEvidence
+        ? postResult
+        : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+      const enriched = publicPostEvidence
+        ? enrichedMetadata
+        : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+      rememberCheckResult(cacheKey, enriched);
+      logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+        publicPostEvidence: publicPostEvidence !== null,
+        level: enriched.level,
+        reasonCount: enriched.reasons.length,
+      });
+      await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
+      logTelegramTiming("check.total", startedAt, {
+        type: enriched.type,
+        level: enriched.level,
+        reasonCount: enriched.reasons.length,
+        publicPostEvidence: publicPostEvidence !== null,
+      });
     });
   });
 }

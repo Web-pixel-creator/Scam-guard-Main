@@ -130,7 +130,7 @@ describe("handleCheck follow-up routing", () => {
     await handleCheck("Похоже, меню сделано с помощью ИИ?", {
       chatId: 100,
       userId: 42,
-      session: sessionWith(snapshot({ context: "qr_menu", type: "image", level: "safe" })),
+      session: sessionWith(snapshot({ context: "qr_menu", type: "text", level: "safe" })),
     });
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
