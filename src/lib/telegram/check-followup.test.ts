@@ -64,7 +64,8 @@ describe("last check follow-up router", () => {
 
     const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
     // Honest: never claims it IS AI; redirects to the real risk + a safe action.
-    expect(text).toContain("не главное");
+    expect(text).toContain("может быть шаблонный или AI");
+    expect(text).toContain("не доказывает мошенничество");
     expect(text).toContain("какой адрес откроется по QR");
     expect(text).toContain("SMS-код");
   });
@@ -73,6 +74,9 @@ describe("last check follow-up router", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
     const snapshot = buildLastCheckSnapshot(baseResult(), now);
     expect(classifyLastCheckFollowUp("Это AI?", scenarioWith(snapshot), now)).toBe("ai_origin");
+    expect(
+      classifyLastCheckFollowUp("Похоже, меню сделано с помощью ИИ?", scenarioWith(snapshot), now),
+    ).toBe("ai_origin");
   });
 
   it("does not treat an ai-origin question carrying a new payload as a follow-up", () => {

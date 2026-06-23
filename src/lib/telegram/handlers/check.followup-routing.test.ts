@@ -126,6 +126,21 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("answers AI-origin questions about the last visual check instead of running a new check", async () => {
+    await handleCheck("Похоже, меню сделано с помощью ИИ?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "qr_menu", type: "image", level: "safe" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("может быть шаблонный или AI");
+    expect(hoisted.sentMessages[0].text).toContain("не доказывает мошенничество");
+    expect(hoisted.sentMessages[0].text).toContain("какой адрес откроется по QR");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("still sends a real artifact to the risk pipeline", async () => {
     await handleCheck("Точно? https://kapitalbank.uz.evil.com/login", {
       chatId: 100,

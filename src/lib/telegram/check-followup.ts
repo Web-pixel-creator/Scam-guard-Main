@@ -429,11 +429,21 @@ function aiOriginWhatMatters(context: string | undefined, lang: Lang): string {
 
 function aiOriginText(snapshot: LastCheckSnapshot, lang: Lang): string {
   const whatMatters = aiOriginWhatMatters(snapshot.context, lang);
+  const visualMenuContext = snapshot.context === "qr_menu";
   if (lang === "uz") {
+    if (visualMenuContext) {
+      return `Ha, ko'rinishidan bu shablon yoki AI bilan tayyorlangan menyu/reklamaga o'xshashi mumkin. Lekin men buni fakt deb aytmayman: skrinshotdagi dizaynning o'zi firibgarlikni isbotlamaydi.\n\nXavfsizlik uchun muhimi — ${whatMatters}. Agar to'lov, SMS-kod, karta ma'lumoti yoki login so'ralsa — to'xtang va keyingi ekranni yuboring.`;
+    }
     return `Rostini aytsam: bu AI yoki odam tomonidan qilinganini aniq ayta olmayman — menda ishonchli AI-detektor yo'q, va o'ylab topmayman. Lekin xavfsizlik uchun bu asosiy emas: «AI» ko'rinishining o'zi firibgarlikni isbotlamaydi.\n\nMuhimi — ${whatMatters}. Agar to'lov, SMS-kod, karta ma'lumoti yoki login so'ralsa — to'xtang va keyingi ekranni yuboring.`;
   }
   if (lang === "en") {
+    if (visualMenuContext) {
+      return `Yes, visually it may look like a template or AI-made menu/ad. I still won't state that as a fact: the design style alone does not prove a scam.\n\nFor safety, what matters is ${whatMatters}. If it asks for payment, an SMS code, card data, or a login — stop and send me the next screen.`;
+    }
     return `Honestly: I can't reliably tell whether this was made by AI or a person — I have no trustworthy AI detector and I won't guess. But for safety it doesn't matter: an "AI" look alone does not prove a scam.\n\nWhat matters is ${whatMatters}. If it asks for payment, an SMS code, card data, or a login — stop and send me the next screen.`;
+  }
+  if (visualMenuContext) {
+    return `Да, визуально это может быть шаблонный или AI-сделанный макет меню/рекламы. Но я не буду утверждать это как факт: сам стиль картинки не доказывает мошенничество.\n\nДля безопасности важнее другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
   }
   return `Честно: я не берусь точно сказать, сделано это ИИ или человеком — у меня нет надёжного детектора AI, и я не хочу выдумывать. Но для безопасности это не главное: «AI-шный» вид сам по себе не доказывает мошенничество.\n\nВажно другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
 }
