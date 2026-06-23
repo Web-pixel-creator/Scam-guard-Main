@@ -325,6 +325,39 @@ describe("handleVoice", () => {
     );
   });
 
+  it("shares an in-flight STT request for the same Telegram file_unique_id", async () => {
+    let resolveTranscript!: (value: { text: string }) => void;
+    hoisted.transcribeVoiceCore.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTranscript = resolve;
+        }),
+    );
+
+    const first = handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-inflight-voice",
+    });
+
+    await vi.waitFor(() => expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1));
+
+    const second = handleVoice("voice-file-id-again", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-inflight-voice",
+    });
+
+    resolveTranscript({ text: "caller asks for SMS code" });
+    await Promise.all([first, second]);
+
+    expect(hoisted.getFile).toHaveBeenCalledTimes(1);
+    expect(hoisted.downloadFileAsDataUrl).toHaveBeenCalledTimes(1);
+    expect(hoisted.checkSharedRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.runCheck).toHaveBeenCalledTimes(2);
+  });
+
   it("logs voice timings without exposing transcript content", async () => {
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
     process.env.TELEGRAM_TIMING_LOGS = "1";

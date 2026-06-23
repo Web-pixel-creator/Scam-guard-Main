@@ -150,9 +150,14 @@ const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
+type VoiceTranscriptWorkResult =
+  | { kind: "ok"; text: string }
+  | { kind: "failed" }
+  | { kind: "too_large" };
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
 const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
+const voiceTranscriptInFlight = new Map<string, Promise<VoiceTranscriptWorkResult>>();
 
 function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
@@ -207,6 +212,32 @@ function rememberVoiceTranscript(
   if (!key) return;
   pruneVoiceTranscriptCache();
   voiceTranscriptCache.set(key, { text, cachedAt: Date.now() });
+}
+
+function getInFlightVoiceTranscript(
+  userId: number,
+  fileUniqueId?: string,
+): Promise<VoiceTranscriptWorkResult> | null {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  return key ? (voiceTranscriptInFlight.get(key) ?? null) : null;
+}
+
+function rememberInFlightVoiceTranscript(
+  userId: number,
+  fileUniqueId: string | undefined,
+  work: Promise<VoiceTranscriptWorkResult>,
+): void {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  if (!key) return;
+
+  voiceTranscriptInFlight.set(key, work);
+  void work
+    .finally(() => {
+      if (voiceTranscriptInFlight.get(key) === work) {
+        voiceTranscriptInFlight.delete(key);
+      }
+    })
+    .catch(() => undefined);
 }
 
 async function checkVoiceSttBudget(userId: number): Promise<void> {
@@ -883,6 +914,73 @@ export async function handleImage(
   });
 }
 
+async function handleResolvedVoiceTranscript(
+  ctx: HandlerCtx,
+  transcriptText: string,
+  startedAt: number,
+  meta: { duration?: number } | undefined,
+  source: "cached" | "in_flight",
+): Promise<void> {
+  const lang = ctx.session.lang;
+
+  await sendVoiceTranscriptNote(ctx, transcriptText);
+  if (isLowSignalVoiceTranscript(transcriptText)) {
+    await replyText(
+      ctx.chatId,
+      bt("voice_transcript_uncertain", lang),
+      buildVoiceUncertainKeyboard(lang),
+    );
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      lowSignal: true,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
+  const panicId = classifyVoicePanicIntent(transcriptText);
+  if (panicId !== null) {
+    await sendVoicePanicRoute(ctx, panicId);
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      routedToPanic: panicId,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
+  const checkStartedAt = Date.now();
+  const result = await runCheck({
+    input: transcriptText,
+    type: "text",
+    lang,
+    rateLimitKey: rateLimitKeyFor(ctx.userId),
+    channel: CHANNEL,
+    ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+  });
+  logTelegramTiming("voice.run_check", checkStartedAt, {
+    cached: source === "cached",
+    inFlight: source === "in_flight",
+    type: result.type,
+    level: result.level,
+    reasonCount: result.reasons.length,
+  });
+  await sendCheckResult(ctx, result);
+  logTelegramTiming("voice.total", startedAt, {
+    cached: source === "cached",
+    inFlight: source === "in_flight",
+    type: result.type,
+    level: result.level,
+    reasonCount: result.reasons.length,
+    transcriptChars: transcriptText.length,
+    durationSec: meta?.duration ?? null,
+  });
+}
+
 export async function handleVoice(
   fileId: string,
   ctx: HandlerCtx,
@@ -908,56 +1006,34 @@ export async function handleVoice(
 
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
-      await sendVoiceTranscriptNote(ctx, cachedTranscript);
-      if (isLowSignalVoiceTranscript(cachedTranscript)) {
+      await handleResolvedVoiceTranscript(ctx, cachedTranscript, startedAt, meta, "cached");
+      return;
+    }
+
+    const inFlightTranscript = getInFlightVoiceTranscript(ctx.userId, meta?.fileUniqueId);
+    if (inFlightTranscript) {
+      await replyText(ctx.chatId, bt("voice_processing", lang));
+      const shared = await withTypingIndicator(ctx.chatId, () => inFlightTranscript, {
+        delayMs: 500,
+        repeatMs: 4000,
+      });
+      if (shared.kind === "failed") {
         await replyText(
           ctx.chatId,
-          bt("voice_transcript_uncertain", lang),
-          buildVoiceUncertainKeyboard(lang),
+          bt("voice_transcription_failed", lang),
+          buildVoiceFallbackKeyboard(lang),
         );
-        logTelegramTiming("voice.total", startedAt, {
-          cached: true,
-          lowSignal: true,
-          transcriptChars: cachedTranscript.length,
+        return;
+      }
+      if (shared.kind === "too_large") {
+        await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+        logTelegramTiming("voice.reject", startedAt, {
+          reason: "shared_downloaded_size_limit",
           durationSec: meta?.duration ?? null,
         });
         return;
       }
-      const panicId = classifyVoicePanicIntent(cachedTranscript);
-      if (panicId !== null) {
-        await sendVoicePanicRoute(ctx, panicId);
-        logTelegramTiming("voice.total", startedAt, {
-          cached: true,
-          routedToPanic: panicId,
-          transcriptChars: cachedTranscript.length,
-          durationSec: meta?.duration ?? null,
-        });
-        return;
-      }
-      const checkStartedAt = Date.now();
-      const result = await runCheck({
-        input: cachedTranscript,
-        type: "text",
-        lang,
-        rateLimitKey: rateLimitKeyFor(ctx.userId),
-        channel: CHANNEL,
-        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-      });
-      logTelegramTiming("voice.run_check", checkStartedAt, {
-        cached: true,
-        type: result.type,
-        level: result.level,
-        reasonCount: result.reasons.length,
-      });
-      await sendCheckResult(ctx, result);
-      logTelegramTiming("voice.total", startedAt, {
-        cached: true,
-        type: result.type,
-        level: result.level,
-        reasonCount: result.reasons.length,
-        transcriptChars: cachedTranscript.length,
-        durationSec: meta?.duration ?? null,
-      });
+      await handleResolvedVoiceTranscript(ctx, shared.text, startedAt, meta, "in_flight");
       return;
     }
 
@@ -996,47 +1072,56 @@ export async function handleVoice(
     });
     await replyText(ctx.chatId, bt("voice_processing", lang));
 
+    const transcriptWork = (async (): Promise<VoiceTranscriptWorkResult> => {
+      const downloadStartedAt = Date.now();
+      const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
+      logTelegramTiming("voice.download", downloadStartedAt, {
+        ok: dataUrl !== null,
+        fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
+      if (!dataUrl) return { kind: "failed" };
+      if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
+        return { kind: "too_large" };
+      }
+
+      const sttStartedAt = Date.now();
+      const transcript = await transcribeVoiceCore(
+        dataUrl,
+        lang,
+        rateLimitKeyFor(ctx.userId),
+        TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
+      );
+      logTelegramTiming("voice.transcribe", sttStartedAt, {
+        ok: Boolean(transcript.text),
+        transcriptChars: transcript.text?.length ?? 0,
+        durationSec: meta?.duration ?? null,
+      });
+      if (!transcript.text) return { kind: "failed" };
+      rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
+      return { kind: "ok", text: transcript.text };
+    })();
+    rememberInFlightVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcriptWork);
+
     const outcome = await withTypingIndicator(
       ctx.chatId,
       async () => {
-        const downloadStartedAt = Date.now();
-        const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
-        logTelegramTiming("voice.download", downloadStartedAt, {
-          ok: dataUrl !== null,
-          fileSizeBytes: fileSize,
-          durationSec: meta?.duration ?? null,
-        });
-        if (!dataUrl) return { kind: "failed" as const };
-        if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
-          return { kind: "too_large" as const };
-        }
+        const transcriptOutcome = await transcriptWork;
+        if (transcriptOutcome.kind !== "ok") return transcriptOutcome;
 
-        const sttStartedAt = Date.now();
-        const transcript = await transcribeVoiceCore(
-          dataUrl,
-          lang,
-          rateLimitKeyFor(ctx.userId),
-          TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
-        );
-        logTelegramTiming("voice.transcribe", sttStartedAt, {
-          ok: Boolean(transcript.text),
-          transcriptChars: transcript.text?.length ?? 0,
-          durationSec: meta?.duration ?? null,
-        });
-        if (!transcript.text) return { kind: "failed" as const };
-        rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
-        await sendVoiceTranscriptNote(ctx, transcript.text);
-        if (isLowSignalVoiceTranscript(transcript.text)) {
-          return { kind: "uncertain" as const, transcriptChars: transcript.text.length };
+        const transcriptText = transcriptOutcome.text;
+        await sendVoiceTranscriptNote(ctx, transcriptText);
+        if (isLowSignalVoiceTranscript(transcriptText)) {
+          return { kind: "uncertain" as const, transcriptChars: transcriptText.length };
         }
-        const panicId = classifyVoicePanicIntent(transcript.text);
+        const panicId = classifyVoicePanicIntent(transcriptText);
         if (panicId !== null) {
-          return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
+          return { kind: "panic" as const, panicId, transcriptChars: transcriptText.length };
         }
 
         const checkStartedAt = Date.now();
         const result = await runCheck({
-          input: transcript.text,
+          input: transcriptText,
           type: "text",
           lang,
           rateLimitKey: rateLimitKeyFor(ctx.userId),
@@ -1049,7 +1134,7 @@ export async function handleVoice(
           level: result.level,
           reasonCount: result.reasons.length,
         });
-        return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
+        return { kind: "ok" as const, result, transcriptChars: transcriptText.length };
       },
       { delayMs: 500, repeatMs: 4000 },
     );
