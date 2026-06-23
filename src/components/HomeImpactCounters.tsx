@@ -27,6 +27,15 @@ export function HomeImpactCounters() {
     reported_loss_uzs: 0,
   };
 
+  // Don't show an all-zero "dead service" block. Keep the loading skeleton, but
+  // once data has loaded, render only when there is something real to show.
+  const hasMeaningfulData =
+    stats.total > 0 ||
+    stats.dangerous > 0 ||
+    stats.confirmed_entities > 0 ||
+    stats.reported_loss_uzs > 0;
+  if (!isLoading && !hasMeaningfulData) return null;
+
   const lossValue =
     stats.reported_loss_uzs > 0
       ? `${formatUzsCompact(stats.reported_loss_uzs, lang)} UZS`
