@@ -127,6 +127,12 @@ const TELEGRAM_POST_RE =
 const TELEGRAM_PRIVATE_INVITE_RE = /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-z0-9_-]+/i;
 const TELEGRAM_PROFILE_CARD_RE =
   /(страна\s+телефона|регистрац(?:ия|ии)?\s*:?\s*(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр|20\d{2})|не\s+официальн(?:ый|ая|ое)\s+аккаунт|не\s+в\s+контактах|обновил(?:а)?\s+(?:имя|фото|фотографию)|phone\s+country|country\s+phone|registration\s*:?\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|20\d{2})|not\s+official\s+account|not\s+in\s+contacts|updated\s+(?:name|photo))/i;
+const TELEGRAM_PROFILE_OFFER_RE =
+  /(инвест|трейд|trading|forex|mentor|ментор|доход|заработ|profit|прибыл|crypto|крипт|ai\s*tools?|инструмент)/i;
+const TELEGRAM_PROFILE_FREE_ACCESS_RE =
+  /(бесплат|free|доступ|access|платформ|platform|людей\s+внутри|человек\s+внутри|\d+\+?\s*(?:человек|people|users?))/i;
+const TELEGRAM_PROFILE_NEXT_STEP_RE =
+  /(интересно|подробнее|ссылк|link|перейти|join|присоедин|зарегистр|register|sign\s?up)/i;
 const BETTING_PROMO_RE =
   /(ставк|ставлю|матч|прогноз|букмек|бетт?инг|казино|азартн|лудоман|luxe\s?bet|luxebet|sport\s?bet|sportsbook|betting|odds|prediction|free pick|stavka|prognoz|bukmeker|kazino)/i;
 const BETTING_ACTION_RE =
@@ -277,6 +283,40 @@ function telegramProfileSignals(text: string | null, lang: Lang): string[] {
     push("Изменение профиля", match[0]);
   }
   return signals.slice(0, 6);
+}
+
+function telegramProfileVisibleMessageNote(text: string | null, lang: Lang): string | null {
+  if (!text) return null;
+
+  const offer = TELEGRAM_PROFILE_OFFER_RE.test(text);
+  const freeAccess = TELEGRAM_PROFILE_FREE_ACCESS_RE.test(text);
+  const nextStep = TELEGRAM_PROFILE_NEXT_STEP_RE.test(text);
+  if (!offer && !freeAccess && !nextStep) return null;
+
+  if (lang === "uz") {
+    const pieces = [
+      offer ? "investitsiya/daromad/AI vositalari taklifi" : null,
+      freeAccess ? "bepul kirish yoki katta auditoriya va'dasi" : null,
+      nextStep ? "keyingi qadamga chaqirish" : null,
+    ].filter(Boolean);
+    return `Ko'rinib turgan xabarda qo'shimcha e'tibor kerak bo'lgan belgi bor: ${pieces.join(", ")}. Bu yolg'iz o'zi firibgarlik isboti emas, lekin profil yangi/notanish bo'lsa, havola, kod, karta yoki to'lovdan oldin manbani tekshiring.`;
+  }
+
+  if (lang === "en") {
+    const pieces = [
+      offer ? "investment/income/AI-tools offer" : null,
+      freeAccess ? "free access or large-audience promise" : null,
+      nextStep ? "push to continue or open a link" : null,
+    ].filter(Boolean);
+    return `The visible message has a caution signal: ${pieces.join(", ")}. This alone is not proof of scam, but if the profile is new or unknown, verify the source before opening links, entering codes/card data, or paying.`;
+  }
+
+  const pieces = [
+    offer ? "инвестиции/доход/AI-инструменты" : null,
+    freeAccess ? "бесплатный доступ или обещание большой аудитории" : null,
+    nextStep ? "подталкивание продолжить или перейти по ссылке" : null,
+  ].filter(Boolean);
+  return `В видимом сообщении есть повод для осторожности: ${pieces.join(", ")}. Само по себе это не доказательство скама, но если профиль новый или незнакомый, проверьте источник до ссылок, кодов, карты или оплаты.`;
 }
 
 function deriveHints(text: string): ImageRiskHint[] {
@@ -770,6 +810,7 @@ export function buildDecodedQrOnlyImageEvidence(
 
 function telegramProfileExplanation(evidence: ImageIntelligenceResult, lang: Lang): string {
   const signals = telegramProfileSignals(evidence.text, lang);
+  const visibleMessageNote = telegramProfileVisibleMessageNote(evidence.text, lang);
   const visible =
     signals.length > 0
       ? signals.map((signal) => `• ${signal}`).join("\n")
@@ -780,12 +821,12 @@ function telegramProfileExplanation(evidence: ImageIntelligenceResult, lang: Lan
           : "• Поля профиля прочитались не полностью";
 
   if (lang === "uz") {
-    return `Telegram profil skrinshotidan ko'rinadi:\n${visible}\n\nSkrinshotni o'zgartirish mumkin, shuning uchun bu akkaunt firibgar degani emas. Muhimi: odam sizdan kod, pul, karta, APK, QR-kirish, wallet yoki havola orqali amal so'rayaptimi. Agar yozishma bo'lsa, xabar yoki keyingi ekranni yuboring.`;
+    return `Telegram profil skrinshotidan ko'rinadi:\n${visible}${visibleMessageNote ? `\n\n${visibleMessageNote}` : ""}\n\nSkrinshotni o'zgartirish mumkin, shuning uchun bu akkaunt firibgar degani emas. Muhimi: odam sizdan kod, pul, karta, APK, QR-kirish, wallet yoki havola orqali amal so'rayaptimi. Agar yozishma bo'lsa, xabar yoki keyingi ekranni yuboring.`;
   }
   if (lang === "en") {
-    return `From the Telegram profile screenshot I can see:\n${visible}\n\nA screenshot can be edited, so this is not proof that the account is a scam. The key question is what the person asks next: a code, money, card, APK, QR login, wallet action, or a link. If you have the chat, send the message or next screen.`;
+    return `From the Telegram profile screenshot I can see:\n${visible}${visibleMessageNote ? `\n\n${visibleMessageNote}` : ""}\n\nA screenshot can be edited, so this is not proof that the account is a scam. The key question is what the person asks next: a code, money, card, APK, QR login, wallet action, or a link. If you have the chat, send the message or next screen.`;
   }
-  return `По скриншоту профиля видно:\n${visible}\n\nСам скрин можно подделать, поэтому это не доказательство скама. Важнее, что просит человек дальше: код, деньги, карту, APK, QR-вход, wallet или перейти по ссылке. Если есть переписка — пришлите сообщение или следующий экран.`;
+  return `По скриншоту профиля видно:\n${visible}${visibleMessageNote ? `\n\n${visibleMessageNote}` : ""}\n\nСам скрин можно подделать, поэтому это не доказательство скама. Важнее, что просит человек дальше: код, деньги, карту, APK, QR-вход, wallet или перейти по ссылке. Если есть переписка — пришлите сообщение или следующий экран.`;
 }
 
 function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang): string | null {

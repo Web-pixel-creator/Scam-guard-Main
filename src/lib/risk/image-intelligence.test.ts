@@ -544,6 +544,26 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).toContain("не доказательство скама");
   });
 
+  it("explains visible investment/free-access messages on Telegram profile screenshots conservatively", () => {
+    const evidence = fallbackImageIntelligence(
+      "Alina R. PlankaHub\nНе в контактах\nСтрана телефона 🇺🇸 USA\nРегистрация Январь 2026 г.\nНе официальный аккаунт\nПользователь обновил имя 19 дней назад\nПривет, меня зовут Алина, я менеджер Planka Hub. Мы собрали платформу, где фаундеры получают менторов, AI инструменты и доступ к инвесторам — всё бесплатно. Уже 260+ человек внутри. Тебе было бы интересно узнать подробнее?",
+    );
+
+    expect(evidence.visualCategory).toBe("telegram_profile_card");
+    expect(evidence.riskHints).toEqual([]);
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toEqual([]);
+    expect(score.level).not.toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("По скриншоту профиля видно");
+    expect(explanation).toContain("В видимом сообщении есть повод для осторожности");
+    expect(explanation).toContain("инвестиции/доход/AI-инструменты");
+    expect(explanation).toContain("бесплатный доступ");
+    expect(explanation).toContain("не доказательство скама");
+  });
+
   it("keeps model-unknown Telegram profile screenshots as profile cards", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Не в контактах\nСтрана телефона USA\nРегистрация Январь 2026 г.\nНе официальный аккаунт",
