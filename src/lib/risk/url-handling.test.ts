@@ -36,9 +36,23 @@ import { runCheck } from "./check-core";
 
 let keyCounter = 0;
 const nextKey = () => `test:url:${keyCounter++}`;
+const URL_REPUTATION_ENV_KEYS = [
+  "GOOGLE_SAFE_BROWSING_KEY",
+  "GOOGLE_SAFE_BROWSING_API_KEY",
+  "URL_REPUTATION_PROVIDERS",
+  "URLHAUS_ENABLED",
+  "URLHAUS_AUTH_KEY",
+  "PHISHTANK_API_KEY",
+] as const;
+const originalUrlReputationEnv = Object.fromEntries(
+  URL_REPUTATION_ENV_KEYS.map((key) => [key, process.env[key]]),
+) as Record<(typeof URL_REPUTATION_ENV_KEYS)[number], string | undefined>;
 
 beforeEach(() => {
   hoisted.insertCalls.length = 0;
+  for (const key of URL_REPUTATION_ENV_KEYS) {
+    delete process.env[key];
+  }
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => ({
@@ -52,6 +66,11 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  for (const key of URL_REPUTATION_ENV_KEYS) {
+    const original = originalUrlReputationEnv[key];
+    if (original === undefined) delete process.env[key];
+    else process.env[key] = original;
+  }
 });
 
 describe("evaluateUrl — hosted app platform detection", () => {
@@ -224,5 +243,28 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     expect(result.level).toBe("suspicious");
     expect(result.explanation).toBe("AI explanation text");
     expect(vi.mocked(fetch)).toHaveBeenCalled();
+  });
+
+  it("external phishing feed match escalates an otherwise generic URL", async () => {
+    process.env.GOOGLE_SAFE_BROWSING_KEY = "test-key";
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ matches: [{ threatType: "SOCIAL_ENGINEERING" }] }),
+      text: async () => "",
+    } as unknown as Response);
+
+    const result = await runCheck({
+      input: "https://ordinary-looking-site.example/login",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.level).toBe("high_risk");
+    expect(result.reasons).toContain("external_phishing_url");
+    expect(result.score).toBeGreaterThanOrEqual(70);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 });

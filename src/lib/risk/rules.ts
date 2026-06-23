@@ -48,6 +48,8 @@ export type ReasonCode =
   | "wallet_action_urgency"
   | "ton_referral_earning_scheme"
   | "investment_fast_profit_pitch"
+  | "external_phishing_url"
+  | "external_malware_url"
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
@@ -98,6 +100,8 @@ const WEIGHTS: Record<ReasonCode, number> = {
   wallet_action_urgency: 30,
   ton_referral_earning_scheme: 20,
   investment_fast_profit_pitch: 25,
+  external_phishing_url: 70,
+  external_malware_url: 70,
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
@@ -661,6 +665,16 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Инвест-питч с быстрым доходом",
     uz: "Tez daromad va'dasi bilan investitsiya taklifi",
     en: "Investment pitch with fast-profit promise",
+  },
+  external_phishing_url: {
+    ru: "Ссылка найдена в фишинговой базе",
+    uz: "Havola fishing bazasida topildi",
+    en: "URL found in a phishing feed",
+  },
+  external_malware_url: {
+    ru: "Ссылка найдена в базе вредоносных сайтов",
+    uz: "Havola zararli saytlar bazasida topildi",
+    en: "URL found in a malware feed",
   },
   hosted_app_platform: {
     ru: "Размещён на публичной платформе",

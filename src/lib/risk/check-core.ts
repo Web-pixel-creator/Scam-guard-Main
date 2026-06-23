@@ -45,6 +45,7 @@ import {
   type PhoneIntelligencePassport,
 } from "./phone-intelligence";
 import { buildPhoneReputationSummary, type PhoneReputationSummary } from "./phone-reputation";
+import { checkUrlReputation } from "./url-reputation.server";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -64,6 +65,10 @@ export interface RunCheckParams {
   aiMaxAttempts?: number;
   /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
   safeIfNoReasons?: boolean;
+  /** Test/preview escape hatch for external URL reputation lookups. */
+  skipUrlReputation?: boolean;
+  /** Optional soft budget for external URL reputation providers. */
+  urlReputationTimeoutMs?: number;
 }
 
 export interface RunCheckResult {
@@ -144,6 +149,12 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
   return [...found];
 }
 
+function normalizeUrlForReputation(raw: string): string | null {
+  const cleaned = cleanEmbeddedUrl(raw.trim());
+  if (!cleaned) return null;
+  return /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+}
+
 /**
  * Единый конвейер проверки (rules-first):
  *   rate-limit(rateLimitKey) → detectInputType → normalize →
@@ -159,6 +170,8 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     skipAi,
     persist,
     safeIfNoReasons,
+    skipUrlReputation,
+    urlReputationTimeoutMs,
     aiTimeoutMs,
     aiMaxAttempts,
   } = params;
@@ -177,18 +190,31 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   const safeInput = redactText(workingInput);
 
   const codes = new Set<ReasonCode>();
+  const reputationUrls = new Set<string>();
   evaluateText(safeInput).forEach((c) => codes.add(c));
   if (detected === "phone") evaluatePhone(normalized).forEach((c) => codes.add(c));
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
-  if (detected === "url" || detected === "apk")
+  if (detected === "url" || detected === "apk") {
     evaluateUrl(normalized).forEach((c) => codes.add(c));
+    const reputationUrl = normalizeUrlForReputation(normalized);
+    if (reputationUrl) reputationUrls.add(reputationUrl);
+  }
   if (detected === "text" || detected === "unknown") {
     for (const embeddedUrl of extractEmbeddedUrls(safeInput)) {
       evaluateUrl(embeddedUrl).forEach((c) => codes.add(c));
+      const reputationUrl = normalizeUrlForReputation(embeddedUrl);
+      if (reputationUrl) reputationUrls.add(reputationUrl);
       if (TELEGRAM_INVITE_URL_RE.test(embeddedUrl)) codes.add("suspicious_invite_link");
     }
   }
   if (detected === "apk") codes.add("apk_download_link");
+
+  if (!skipUrlReputation && reputationUrls.size > 0) {
+    const reputation = await checkUrlReputation([...reputationUrls], {
+      timeoutMs: urlReputationTimeoutMs,
+    });
+    reputation.reasonCodes.forEach((c) => codes.add(c));
+  }
 
   // ── Brand Impersonation Detection ────────────────────────────────────────
   // Runs after evaluateUrl/evaluateText. Wrapped in try/catch for graceful

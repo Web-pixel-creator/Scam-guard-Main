@@ -163,8 +163,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       broad distribution of the public embed widget.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
-- [ ] Add external URL signals as additive checks: Google Safe Browsing first,
-      then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.
+- [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,
+      then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.~~
+      Done: optional provider layer adds `external_phishing_url` /
+      `external_malware_url` reason codes only when provider env vars are
+      configured. No raw URL evidence is logged or sent to moderation chat.
 - [ ] Add public living-experience stories page after moderation/compliance
       wording is reviewed. Use anonymized tactics and lessons, not public
       accusations against unverified people.
