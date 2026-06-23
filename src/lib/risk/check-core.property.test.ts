@@ -283,6 +283,25 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     );
   });
 
+  it("does not turn a delivery card-only voice transcript into a betting scheme", async () => {
+    const result = await runCheck({
+      input:
+        "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      persist: false,
+    });
+
+    expect(result.level).toBe("suspicious");
+    expect(result.reasons).toContain("fake_delivery_payment");
+    expect(result.reasons).not.toContain("gambling_prediction_promo");
+    expect(result.reasons).not.toContain("suspicious_invite_link");
+    expect(result.reasons).not.toContain("crypto_casino_bonus_funnel");
+  });
+
   it("confirmed high-risk entities use the dedicated known_reported reason code", async () => {
     hoisted.entityRow = {
       report_count: 7,
