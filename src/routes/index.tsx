@@ -26,7 +26,6 @@ import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { UnicornBackground } from "@/components/UnicornBackground";
 import { StatsStrip } from "@/components/StatsStrip";
 import { HomeTrustSurface } from "@/components/HomeTrustSurface";
 import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
@@ -280,30 +279,17 @@ function Index() {
             ref={formRef}
             className={`scroll-mt-24 w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}
           >
-            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[380px] md:min-h-[440px] bg-[#fde7d3]">
-              <UnicornBackground
-                projectId="pSxbKYCCk7vGhrLFRLrG"
-                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-              />
-              {/* Brand-color overlay: forces any hue from the animated canvas into our orange palette */}
+            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[340px] md:min-h-[400px] border border-[#EAD9C4] bg-[#FDF6EE]">
+              {/* Calm warm wash — static, low-noise: lets the input breathe */}
               <div
                 aria-hidden
-                className="absolute inset-0 z-10 pointer-events-none"
-                style={{
-                  background: "linear-gradient(135deg, #FB923C 0%, #F97316 50%, #C2410C 100%)",
-                  mixBlendMode: "color",
-                  opacity: 0.85,
-                }}
-              />
-              <div
-                aria-hidden
-                className="absolute inset-0 z-10 pointer-events-none"
+                className="absolute inset-0 z-0 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 70%)",
+                    "radial-gradient(120% 80% at 50% -10%, rgba(251,146,60,0.16) 0%, rgba(251,146,60,0) 58%)",
                 }}
               />
-              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-8 md:py-12 min-h-[380px] md:min-h-[440px]">
+              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[340px] md:min-h-[400px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
                   <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
