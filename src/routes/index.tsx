@@ -520,10 +520,7 @@ function Index() {
 
                 {/* Pain badge — red dot signals "this is the problem" */}
                 <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                  </span>
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                   {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
                 </div>
 
@@ -965,10 +962,7 @@ function Index() {
                 <div className="flex items-start justify-between gap-4 mb-10">
                   <div>
                     <p className="text-[11px] font-medium tracking-[0.12em] uppercase mb-3 inline-flex items-center gap-2">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                      </span>
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                       <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">
                         {{ ru: "Опасность · 98%", uz: "Xavf · 98%", en: "Risk · 98%" }[lang]}
                       </span>
@@ -1444,10 +1438,7 @@ function Index() {
                 <div className="px-6 sm:px-7 md:px-8 pb-6 sm:pb-7 md:pb-8 -mt-1">
                   {/* Pain scenario — what the user is actually feeling */}
                   <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                    </span>
+                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     {
                       {
                         ru: "Что вы думаете в этот момент",
@@ -1692,10 +1683,7 @@ function Index() {
         >
           <div className="flex items-start justify-between gap-4 mb-4">
             <span className="apex-mono text-[#991B1B] inline-flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-              </span>
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
               {
                 {
                   ru: "Если уже случилось — звоните сразу",
@@ -1901,10 +1889,7 @@ function Index() {
                 {{ ru: "Версия 3.1", uz: "Versiya 3.1", en: "Version 3.1" }[lang]}
               </p>
               <p className="apex-mono flex items-center gap-2">
-                <span className="relative inline-flex h-2 w-2 shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
-                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
-                </span>
+                <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
                 {{ ru: "Сервис работает", uz: "Xizmat ishlamoqda", en: "Service online" }[lang]}
               </p>
             </div>
