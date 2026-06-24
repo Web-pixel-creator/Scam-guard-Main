@@ -742,10 +742,14 @@ async function withTypingIndicator<T>(
  * (R10.2), любая другая ошибка → лог без Sensitive_Data + общая подсказка
  * (R11.3). Никогда не оставляет запрос без ответа.
  */
-async function withDeferredCheckStatus<T>(ctx: HandlerCtx, work: () => Promise<T>): Promise<T> {
+async function withDeferredCheckStatus<T>(
+  ctx: HandlerCtx,
+  work: () => Promise<T>,
+  options: { shouldSend?: () => boolean } = {},
+): Promise<T> {
   let finished = false;
   const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-    if (!finished) {
+    if (!finished && (options.shouldSend?.() ?? true)) {
       void replyText(ctx.chatId, bt("check_processing", ctx.session.lang)).catch(() => undefined);
     }
   }, CHECK_PROCESSING_DELAY_MS);
@@ -849,84 +853,98 @@ export async function handleCheck(
   }
 
   await guarded(ctx, "handleCheck", async () => {
-    await withDeferredCheckStatus(ctx, async () => {
-      const rateLimitKey = rateLimitKeyFor(ctx.userId);
-      const publicPostStartedAt = Date.now();
-      const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
-      logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
-        hasEvidence: publicPostEvidence !== null,
-      });
-
-      const checkInput = publicPostEvidence?.checkInput ?? trimmed;
-      const checkType = publicPostEvidence ? "text" : undefined;
-      const cacheKey = buildCheckResultCacheKey({
-        userId: ctx.userId,
-        lang,
-        input: checkInput,
-        type: checkType,
-        publicPost: publicPostEvidence !== null,
-      });
-      const cached = getCachedCheckResult(cacheKey);
-      if (cached) {
-        await sendCheckResult(ctx, enrichForwardSourceContext(cached, source, lang));
-        logTelegramTiming("check.total", startedAt, {
-          type: cached.type,
-          level: cached.level,
-          reasonCount: cached.reasons.length,
-          publicPostEvidence: publicPostEvidence !== null,
-          cached: true,
+    let suppressDeferredCheckStatus = false;
+    await withDeferredCheckStatus(
+      ctx,
+      async () => {
+        const rateLimitKey = rateLimitKeyFor(ctx.userId);
+        const publicPostStartedAt = Date.now();
+        const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(
+          trimmed,
+          rateLimitKey,
+        );
+        logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
+          hasEvidence: publicPostEvidence !== null,
         });
-        return;
-      }
 
-      let checkWork = getInFlightCheckResult(cacheKey);
-      const reusedInFlight = checkWork !== null;
-      if (!checkWork) {
-        checkWork = (async () => {
-          const checkStartedAt = Date.now();
-          const result = await runCheck({
-            input: checkInput,
-            type: checkType,
-            lang,
-            rateLimitKey,
-            channel: CHANNEL,
-            ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-          });
-          logTelegramTiming("check.run_check", checkStartedAt, {
-            type: result.type,
-            level: result.level,
-            reasonCount: result.reasons.length,
-            hasPublicPostEvidence: publicPostEvidence !== null,
-          });
-          const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
-          const enrichmentStartedAt = Date.now();
-          const enrichedMetadata = publicPostEvidence
-            ? postResult
-            : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
-          const enriched = publicPostEvidence
-            ? enrichedMetadata
-            : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
-          rememberCheckResult(cacheKey, enriched);
-          logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+        const checkInput = publicPostEvidence?.checkInput ?? trimmed;
+        const checkType = publicPostEvidence ? "text" : undefined;
+        const cacheKey = buildCheckResultCacheKey({
+          userId: ctx.userId,
+          lang,
+          input: checkInput,
+          type: checkType,
+          publicPost: publicPostEvidence !== null,
+        });
+        const cached = getCachedCheckResult(cacheKey);
+        if (cached) {
+          suppressDeferredCheckStatus = true;
+          await sendCheckResult(ctx, enrichForwardSourceContext(cached, source, lang));
+          logTelegramTiming("check.total", startedAt, {
+            type: cached.type,
+            level: cached.level,
+            reasonCount: cached.reasons.length,
             publicPostEvidence: publicPostEvidence !== null,
-            level: enriched.level,
-            reasonCount: enriched.reasons.length,
+            cached: true,
           });
-          return enriched;
-        })();
-        rememberInFlightCheckResult(cacheKey, checkWork);
-      }
+          return;
+        }
 
-      const enriched = await withTypingIndicator(ctx.chatId, () => checkWork);
-      await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
-      logTelegramTiming("check.total", startedAt, {
-        type: enriched.type,
-        level: enriched.level,
-        reasonCount: enriched.reasons.length,
-        publicPostEvidence: publicPostEvidence !== null,
-        inFlight: reusedInFlight,
-      });
-    });
+        let checkWork = getInFlightCheckResult(cacheKey);
+        const reusedInFlight = checkWork !== null;
+        if (reusedInFlight) {
+          suppressDeferredCheckStatus = true;
+        }
+        if (!checkWork) {
+          checkWork = (async () => {
+            const checkStartedAt = Date.now();
+            const result = await runCheck({
+              input: checkInput,
+              type: checkType,
+              lang,
+              rateLimitKey,
+              channel: CHANNEL,
+              ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+            });
+            logTelegramTiming("check.run_check", checkStartedAt, {
+              type: result.type,
+              level: result.level,
+              reasonCount: result.reasons.length,
+              hasPublicPostEvidence: publicPostEvidence !== null,
+            });
+            const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+            const enrichmentStartedAt = Date.now();
+            const enrichedMetadata = publicPostEvidence
+              ? postResult
+              : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+            const enriched = publicPostEvidence
+              ? enrichedMetadata
+              : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+            rememberCheckResult(cacheKey, enriched);
+            logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+              publicPostEvidence: publicPostEvidence !== null,
+              level: enriched.level,
+              reasonCount: enriched.reasons.length,
+            });
+            return enriched;
+          })();
+          rememberInFlightCheckResult(cacheKey, checkWork);
+        }
+
+        const enriched = await withTypingIndicator(ctx.chatId, () => checkWork);
+        await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
+        logTelegramTiming("check.total", startedAt, {
+          type: enriched.type,
+          level: enriched.level,
+          reasonCount: enriched.reasons.length,
+          publicPostEvidence: publicPostEvidence !== null,
+          inFlight: reusedInFlight,
+        });
+      },
+      {
+        shouldSend: () => !suppressDeferredCheckStatus,
+      },
+    );
   });
 }
 

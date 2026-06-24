@@ -153,4 +153,30 @@ describe("handleCheck speed helpers", () => {
     await pending;
     vi.useRealTimers();
   });
+
+  it("does not duplicate the processing status for a reused in-flight check", async () => {
+    vi.useFakeTimers();
+    let resolveCheck!: () => void;
+    hoisted.runCheck.mockImplementationOnce(
+      ({ input }: { input: string }) =>
+        new Promise((resolve) => {
+          resolveCheck = () => resolve(safeResult(input));
+        }),
+    );
+
+    const first = handleCheck("slow concurrent status regression text", ctx(7106));
+    await Promise.resolve();
+    await Promise.resolve();
+    const second = handleCheck("  slow concurrent   status regression TEXT  ", ctx(7106));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(hoisted.sentMessages).toHaveLength(1);
+
+    resolveCheck();
+    await Promise.all([first, second]);
+    vi.useRealTimers();
+  });
 });
