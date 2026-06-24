@@ -172,11 +172,16 @@ type CheckResultCacheEntry = {
   result: RunCheckResult;
   cachedAt: number;
 };
+type CheckResultInFlightEntry = {
+  work: Promise<RunCheckResult>;
+  startedAt: number;
+};
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
 const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
 const voiceTranscriptInFlight = new Map<string, Promise<VoiceTranscriptWorkResult>>();
 const checkResultCache = new Map<string, CheckResultCacheEntry>();
+const checkResultInFlight = new Map<string, CheckResultInFlightEntry>();
 
 function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
@@ -223,6 +228,14 @@ function pruneCheckResultCache(now = Date.now()): void {
   }
 }
 
+function pruneCheckResultInFlight(now = Date.now()): void {
+  for (const [key, value] of checkResultInFlight) {
+    if (now - value.startedAt > CHECK_RESULT_CACHE_TTL_MS) {
+      checkResultInFlight.delete(key);
+    }
+  }
+}
+
 function getCachedCheckResult(key: string, now = Date.now()): RunCheckResult | null {
   pruneCheckResultCache(now);
   const cached = checkResultCache.get(key);
@@ -237,6 +250,22 @@ function getCachedCheckResult(key: string, now = Date.now()): RunCheckResult | n
 function rememberCheckResult(key: string, result: RunCheckResult, now = Date.now()): void {
   pruneCheckResultCache(now);
   checkResultCache.set(key, { result, cachedAt: now });
+}
+
+function getInFlightCheckResult(key: string, now = Date.now()): Promise<RunCheckResult> | null {
+  pruneCheckResultInFlight(now);
+  return checkResultInFlight.get(key)?.work ?? null;
+}
+
+function rememberInFlightCheckResult(key: string, work: Promise<RunCheckResult>): void {
+  checkResultInFlight.set(key, { work, startedAt: Date.now() });
+  void work
+    .finally(() => {
+      if (checkResultInFlight.get(key)?.work === work) {
+        checkResultInFlight.delete(key);
+      }
+    })
+    .catch(() => undefined);
 }
 
 function voiceSttBudgetKey(userId: number): string {
@@ -850,44 +879,52 @@ export async function handleCheck(
         return;
       }
 
-      const checkStartedAt = Date.now();
-      const result = await withTypingIndicator(ctx.chatId, async () => {
-        const checked = await runCheck({
-          input: checkInput,
-          type: checkType,
-          lang,
-          rateLimitKey,
-          channel: CHANNEL,
-          ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-        });
-        logTelegramTiming("check.run_check", checkStartedAt, {
-          type: checked.type,
-          level: checked.level,
-          reasonCount: checked.reasons.length,
-          hasPublicPostEvidence: publicPostEvidence !== null,
-        });
-        return checked;
-      });
-      const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
-      const enrichmentStartedAt = Date.now();
-      const enrichedMetadata = publicPostEvidence
-        ? postResult
-        : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
-      const enriched = publicPostEvidence
-        ? enrichedMetadata
-        : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
-      rememberCheckResult(cacheKey, enriched);
-      logTelegramTiming("check.enrichment", enrichmentStartedAt, {
-        publicPostEvidence: publicPostEvidence !== null,
-        level: enriched.level,
-        reasonCount: enriched.reasons.length,
-      });
+      let checkWork = getInFlightCheckResult(cacheKey);
+      const reusedInFlight = checkWork !== null;
+      if (!checkWork) {
+        checkWork = (async () => {
+          const checkStartedAt = Date.now();
+          const result = await runCheck({
+            input: checkInput,
+            type: checkType,
+            lang,
+            rateLimitKey,
+            channel: CHANNEL,
+            ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+          });
+          logTelegramTiming("check.run_check", checkStartedAt, {
+            type: result.type,
+            level: result.level,
+            reasonCount: result.reasons.length,
+            hasPublicPostEvidence: publicPostEvidence !== null,
+          });
+          const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+          const enrichmentStartedAt = Date.now();
+          const enrichedMetadata = publicPostEvidence
+            ? postResult
+            : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+          const enriched = publicPostEvidence
+            ? enrichedMetadata
+            : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+          rememberCheckResult(cacheKey, enriched);
+          logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+            publicPostEvidence: publicPostEvidence !== null,
+            level: enriched.level,
+            reasonCount: enriched.reasons.length,
+          });
+          return enriched;
+        })();
+        rememberInFlightCheckResult(cacheKey, checkWork);
+      }
+
+      const enriched = await withTypingIndicator(ctx.chatId, () => checkWork);
       await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
       logTelegramTiming("check.total", startedAt, {
         type: enriched.type,
         level: enriched.level,
         reasonCount: enriched.reasons.length,
         publicPostEvidence: publicPostEvidence !== null,
+        inFlight: reusedInFlight,
       });
     });
   });

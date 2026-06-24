@@ -111,6 +111,29 @@ describe("handleCheck speed helpers", () => {
     expect(hoisted.runCheck).toHaveBeenCalledTimes(2);
   });
 
+  it("deduplicates concurrent checks for the same normalized text by the same user", async () => {
+    let resolveCheck!: () => void;
+    hoisted.runCheck.mockImplementationOnce(
+      ({ input }: { input: string }) =>
+        new Promise((resolve) => {
+          resolveCheck = () => resolve(safeResult(input));
+        }),
+    );
+
+    const first = handleCheck("Concurrent cache regression text", ctx(7105));
+    const second = handleCheck("  concurrent   cache regression   TEXT  ", ctx(7105));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(hoisted.runCheck).toHaveBeenCalledTimes(1);
+
+    resolveCheck();
+    await Promise.all([first, second]);
+
+    expect(hoisted.sentMessages).toHaveLength(2);
+    expect(hoisted.saveSession).toHaveBeenCalledTimes(2);
+  });
+
   it("sends a visible processing status when a check takes noticeable time", async () => {
     vi.useFakeTimers();
     let resolveCheck!: () => void;
