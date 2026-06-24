@@ -1087,7 +1087,11 @@ function Index() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] ${
+              showAllSchemes ? "" : "sm:[&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1"
+            }`}
+          >
             {(
               [
                 {
