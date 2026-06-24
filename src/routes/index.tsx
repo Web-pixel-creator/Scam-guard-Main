@@ -858,7 +858,7 @@ function Index() {
                   className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">
+                    <span className="block font-serif-italic text-6xl md:text-7xl font-normal text-[#C2410C]/30 leading-none tabular-nums">
                       {s.i}
                     </span>
                     <span className="apex-mono text-[#71717A]">
@@ -873,10 +873,7 @@ function Index() {
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                    </span>
+                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     {
                       {
                         ru: "Что чувствует человек",
