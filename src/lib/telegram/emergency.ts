@@ -3754,7 +3754,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                     "Если давят, требуют срочно или запрещают перезванивать — это опасный признак.",
                     "",
                     "Близкому человеку рядом скажите:",
-                    `«Ситуация: ${title}. Помоги мне не торопиться и проверить голос через сохранённый номер».`,
+                    `«Ситуация: ${title}. Побудь рядом и помоги перезвонить на сохранённый номер, чтобы спокойно проверить, кто это».`,
                   ],
                   uz: [
                     "💬 Tayyor jumla",
@@ -3766,7 +3766,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                     "Shoshirishsa, zudlik bilan talab qilishsa yoki qayta qo'ng'iroq qilishni taqiqlashsa — bu xavfli belgi.",
                     "",
                     "Yonizdagi yaqiningizga shunday deng:",
-                    `«Vaziyat: ${title}. Shoshilmasdan ovozni saqlangan raqam orqali tekshirishga yordam bering».`,
+                    `«Vaziyat: ${title}. Yonimda bo'l va saqlangan raqamga qo'ng'iroq qilib, bu kimligini xotirjam tekshirishga yordam ber».`,
                   ],
                   en: [
                     "💬 Ready phrase",
@@ -3778,7 +3778,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                     "If they pressure you, demand urgency, or forbid a callback, treat that as a danger sign.",
                     "",
                     "Tell someone trusted nearby:",
-                    `“Situation: ${title}. Help me slow down and verify the voice using a saved number.”`,
+                    `“Situation: ${title}. Stay with me and help me call back on the saved number to calmly check who it is.”`,
                   ],
                 }
               : profile === "fake_job" ||
@@ -3826,7 +3826,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                       "«Я не обсуждаю деньги, коды, карты и приложения по входящему звонку. Я сам перезвоню по официальному номеру.»",
                       "",
                       "Если рядом близкий, скажите ему:",
-                      `«Ситуация: ${title}. Помоги мне не торопиться и позвонить в банк по официальному номеру».`,
+                      `«Ситуация: ${title}. Побудь со мной и помоги перезвонить в банк по официальному номеру — спокойно, без спешки».`,
                     ],
                     uz: [
                       "💬 Tayyor jumla",
@@ -3836,7 +3836,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                       "«Kiruvchi qo'ng'iroqda pul, kod, karta va ilovalarni muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»",
                       "",
                       "Yaqiningiz yoningizda bo'lsa, shunday deng:",
-                      `«Vaziyat: ${title}. Shoshilmasdan bankka rasmiy raqam orqali qo'ng'iroq qilishga yordam bering».`,
+                      `«Vaziyat: ${title}. Yonimda bo'l va bankka rasmiy raqam orqali xotirjam qo'ng'iroq qilishga yordam ber».`,
                     ],
                     en: [
                       "💬 Ready phrase",
@@ -3846,7 +3846,7 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
                       "“I do not discuss money, codes, cards, or apps on an incoming call. I will call back myself using the official number.”",
                       "",
                       "If someone trusted is nearby, tell them:",
-                      `“Situation: ${title}. Help me slow down and call the bank using an official number.”`,
+                      `“Situation: ${title}. Stay with me and help me call the bank back on an official number — calmly, no rush.”`,
                     ],
                   };
   return lines[lang].join("\n");
