@@ -45,11 +45,16 @@ export function QuickReportForm() {
     send: { ru: "Отправить жалобу", uz: "Shikoyatni yuborish", en: "Send report" }[lang],
     sending: { ru: "Отправляю…", uz: "Yuborilmoqda…", en: "Sending…" }[lang],
     success: {
-      ru: "Спасибо! Жалоба отправлена в модерацию.",
-      uz: "Rahmat! Shikoyat moderatsiyaga yuborildi.",
-      en: "Thank you! Your report was submitted for moderation.",
+      ru: "Спасибо! Сигнал принят. Публичная метка появится только после модерации.",
+      uz: "Rahmat! Signal qabul qilindi. Ommaviy belgi faqat moderatsiyadan keyin chiqadi.",
+      en: "Thank you! The signal was received. A public label appears only after moderation.",
     }[lang],
     again: { ru: "Отправить ещё одну", uz: "Yana yuborish", en: "Submit another" }[lang],
+    rateLimit: {
+      ru: "Слишком много отправок за короткое время. Подождите немного и попробуйте снова.",
+      uz: "Qisqa vaqtda juda ko'p yuborildi. Biroz kuting va qayta urinib ko'ring.",
+      en: "Too many submissions in a short time. Please wait a moment and try again.",
+    }[lang],
     err: {
       ru: "Не удалось отправить. Попробуйте позже.",
       uz: "Yuborilmadi. Keyinroq urinib ko'ring.",
@@ -75,7 +80,7 @@ export function QuickReportForm() {
         setValue("");
         setDescription("");
       } else {
-        setError(res?.error ?? L.err);
+        setError(res?.error === "rate_limited" ? L.rateLimit : L.err);
       }
     } catch {
       setError(L.err);
@@ -86,7 +91,11 @@ export function QuickReportForm() {
 
   if (done) {
     return (
-      <div className="rounded-[6px] border border-[#A7F3D0] bg-[#ECFDF5] p-6 flex items-start gap-3">
+      <div
+        className="rounded-[6px] border border-[#A7F3D0] bg-[#ECFDF5] p-6 flex items-start gap-3"
+        role="status"
+        aria-live="polite"
+      >
         <CheckCircle2
           className="h-5 w-5 text-[#059669] shrink-0 mt-0.5"
           strokeWidth={2}
