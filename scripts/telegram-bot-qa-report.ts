@@ -423,7 +423,7 @@ function sections(): Section[] {
         section(
           `SOS ${id}: ${action}`,
           buildEmergencyFollowUpText(action, id, LANG),
-          buildEmergencyFollowUpKeyboard(LANG, id),
+          buildEmergencyFollowUpKeyboard(LANG, id, { includeVoice: false, voiceAction: action }),
         ),
       );
     }
