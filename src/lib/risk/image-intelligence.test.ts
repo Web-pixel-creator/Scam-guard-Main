@@ -6,6 +6,8 @@ import {
   buildImageUserExplanation,
   fallbackImageIntelligence,
   hasUsableImageEvidence,
+  isBenignImageContext,
+  isEvidenceBackedBenignImageContext,
   mergeDecodedQrEvidence,
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
@@ -260,6 +262,30 @@ describe("image intelligence evidence builder", () => {
 
     const input = buildImageCheckInput(merged);
     expect(input).toContain("Decoded QR URL/value: https://kapitalbank.uz.evil.top/login");
+  });
+
+  it("does not let a category-only benign image context force a safe verdict", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: null,
+      visualCategory: "delivery_sms",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Looks like a delivery SMS.",
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(isBenignImageContext(evidence!)).toBe(true);
+    expect(isEvidenceBackedBenignImageContext(evidence!)).toBe(false);
+  });
+
+  it("keeps readable delivery screenshots eligible for a safe no-reasons verdict", () => {
+    const evidence = fallbackImageIntelligence(
+      "Delivery order 106894935 is ready for pickup at the parcel point.",
+    );
+
+    expect(evidence.visualCategory).toBe("delivery_sms");
+    expect(isEvidenceBackedBenignImageContext(evidence)).toBe(true);
   });
 
   it("tells the user which benign QR domains were actually decoded", () => {

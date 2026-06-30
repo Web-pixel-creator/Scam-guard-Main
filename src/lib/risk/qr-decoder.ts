@@ -1,7 +1,6 @@
 import jsQR from "jsqr";
 import { decode as decodeJpeg } from "jpeg-js";
 import { PNG } from "pngjs";
-import { redactText } from "./detect";
 
 const MAX_QR_VALUES = 5;
 const MAX_SOURCE_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -152,7 +151,7 @@ function decodeImage(dataUrl: string): DecodedImage | null {
 }
 
 function normalizeDecodedValue(value: string): string | null {
-  const cleaned = redactText(stripControlChars(value).trim());
+  const cleaned = stripControlChars(value).trim();
   if (cleaned.length === 0) return null;
   return cleaned.slice(0, MAX_DECODED_VALUE_LENGTH);
 }

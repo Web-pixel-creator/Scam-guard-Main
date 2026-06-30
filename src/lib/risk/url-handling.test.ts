@@ -267,4 +267,27 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     expect(result.score).toBeGreaterThanOrEqual(70);
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
+
+  it("sends only extracted URL tokens to reputation providers for mixed URL text", async () => {
+    process.env.GOOGLE_SAFE_BROWSING_KEY = "test-key";
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "",
+    } as unknown as Response);
+
+    await runCheck({
+      input: "They sent OTP 123456 and reset link https://evil.example/reset?token=secret",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    const body = String(vi.mocked(fetch).mock.calls[0]?.[1]?.body);
+    expect(body).toContain("https://evil.example/reset?token=secret");
+    expect(body).not.toContain("They sent OTP");
+    expect(body).not.toContain("123456");
+  });
 });

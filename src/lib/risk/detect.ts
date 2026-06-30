@@ -104,10 +104,66 @@ export function maskForDisplay(value: string, type: InputType): string {
 const CARD_DIGIT_RE = /\b(?:\d[ -]?){13,19}\b/g;
 const OTP_RE = /\b\d{4,8}\b/g;
 const PHONE_INLINE_RE = /\+?\d[\d\s\-()]{7,}\d/g;
+const EMAIL_INLINE_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const TELEGRAM_LINK_INLINE_RE =
+  /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:\+[A-Za-z0-9_-]{4,}|[A-Za-z][A-Za-z0-9_]{3,31})\b/gi;
+const TELEGRAM_HANDLE_INLINE_RE = /(^|[^\w.])(@[A-Za-z][A-Za-z0-9_]{3,31})\b/g;
+const URL_INLINE_RE =
+  /\b(?:https?:\/\/|www\.)[^\s<>"'`]+|\b[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:\/[^\s<>"'`]*)?/gi;
+
+function maskEmailInline(email: string): string {
+  const [local, domain] = email.toLowerCase().split("@");
+  if (!local || !domain) return "[email]";
+  return `${local.slice(0, 1)}${"*".repeat(Math.min(5, Math.max(2, local.length - 1)))}@${domain}`;
+}
+
+function hasReplacementOverlap(
+  replacements: Array<{ start: number; end: number }>,
+  start: number,
+  end: number,
+): boolean {
+  return replacements.some((r) => start < r.end && end > r.start);
+}
 
 export function redactText(s: string): string {
   type Replacement = { start: number; end: number; replacement: string };
   const replacements: Replacement[] = [];
+  const addReplacement = (start: number, end: number, replacement: string): void => {
+    if (start < 0 || end <= start) return;
+    if (hasReplacementOverlap(replacements, start, end)) return;
+    replacements.push({ start, end, replacement });
+  };
+
+  EMAIL_INLINE_RE.lastIndex = 0;
+  let emailMatch: RegExpExecArray | null;
+  while ((emailMatch = EMAIL_INLINE_RE.exec(s)) !== null) {
+    const raw = emailMatch[0];
+    addReplacement(emailMatch.index, emailMatch.index + raw.length, maskEmailInline(raw));
+  }
+
+  TELEGRAM_LINK_INLINE_RE.lastIndex = 0;
+  let telegramLinkMatch: RegExpExecArray | null;
+  while ((telegramLinkMatch = TELEGRAM_LINK_INLINE_RE.exec(s)) !== null) {
+    addReplacement(
+      telegramLinkMatch.index,
+      telegramLinkMatch.index + telegramLinkMatch[0].length,
+      "[telegram]",
+    );
+  }
+
+  TELEGRAM_HANDLE_INLINE_RE.lastIndex = 0;
+  let telegramHandleMatch: RegExpExecArray | null;
+  while ((telegramHandleMatch = TELEGRAM_HANDLE_INLINE_RE.exec(s)) !== null) {
+    const handle = telegramHandleMatch[2];
+    const start = telegramHandleMatch.index + telegramHandleMatch[1].length;
+    addReplacement(start, start + handle.length, "[telegram]");
+  }
+
+  URL_INLINE_RE.lastIndex = 0;
+  let urlMatch: RegExpExecArray | null;
+  while ((urlMatch = URL_INLINE_RE.exec(s)) !== null) {
+    addReplacement(urlMatch.index, urlMatch.index + urlMatch[0].length, "[link]");
+  }
 
   // Step 1: Collect phone matches first (highest priority — never double-matched)
   // A match is treated as a phone only if it contains formatting chars (+, spaces, dashes, parens)
@@ -122,6 +178,9 @@ export function redactText(s: string): string {
     // If pure digits are 13-19 and there are NO formatting chars, skip — let card logic handle it
     const hasFormatting = /[+\s\-()]/.test(raw);
     if (!hasFormatting && d.length >= 13 && d.length <= 19) continue;
+    if (hasReplacementOverlap(replacements, phoneMatch.index, phoneMatch.index + raw.length)) {
+      continue;
+    }
 
     replacements.push({
       start: phoneMatch.index,

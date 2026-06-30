@@ -443,6 +443,9 @@ export function evaluateTelegram(handle: string): ReasonCode[] {
   }
   if (isInviteLink) {
     codes.push("suspicious_invite_link" as ReasonCode);
+    if (/(nft|gift|stars?|prize|giveaway|airdrop|lottery)/i.test(lower)) {
+      codes.push("giveaway_engagement_bait" as ReasonCode);
+    }
   }
 
   return codes;
@@ -453,6 +456,9 @@ export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: Ris
   for (const c of codes) score += WEIGHTS[c] ?? 0;
   if (codes.includes("verified_official")) return { score: 0, level: "safe" };
   if (codes.includes("brand_impersonation") && codes.includes("hosted_app_platform")) {
+    score = Math.max(score, 50);
+  }
+  if (codes.includes("suspicious_invite_link") && codes.includes("giveaway_engagement_bait")) {
     score = Math.max(score, 50);
   }
   if (score >= 50) return { score, level: "high_risk" };

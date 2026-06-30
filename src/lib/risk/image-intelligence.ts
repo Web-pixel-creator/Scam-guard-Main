@@ -459,7 +459,7 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
     confidence: pickEnum(rec.confidence, CONFIDENCES, fallback.confidence),
     qr: {
       present: qrPresent,
-      visibleUrl: visibleUrl ? redactText(visibleUrl).slice(0, 500) : null,
+      visibleUrl: visibleUrl ? redactDecodedQrValue(visibleUrl).slice(0, 500) : null,
       purpose: qrPurpose,
       decodedValues: [],
     },
@@ -477,10 +477,15 @@ function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
 }
 
 function redactDecodedQrValue(value: string): string {
-  return redactText(value)
+  return value
+    .trim()
     .replace(/((?:tg|telegram):\/\/login\?token=)[^&\s]+/i, "$1[hidden]")
     .replace(/((?:otpauth):\/\/[^\s?]+(?:\?[^#\s]*?\bsecret=))[^&\s]+/i, "$1[hidden]")
-    .replace(/([?&](?:token|secret|session|auth|code)=)[^&\s]+/gi, "$1[hidden]");
+    .replace(
+      /([?&](?:token|secret|session|auth|code|password|pass|otp|pin|cvv)=)[^&\s]+/gi,
+      "$1[hidden]",
+    )
+    .replace(/\b(?:\d[ -]?){13,19}\b/g, "[card]");
 }
 
 function classifyDecodedQrValue(value: string): DecodedQrKind {
@@ -653,6 +658,41 @@ export function isBenignImageContext(evidence: ImageIntelligenceResult): boolean
       evidence.visualCategory,
     )
   );
+}
+
+function readableImageText(evidence: ImageIntelligenceResult): string | null {
+  if (!evidence.text || LOW_INFORMATION_IMAGE_TEXT_RE.test(evidence.text)) return null;
+  return evidence.text;
+}
+
+function hasImageQrSignal(evidence: ImageIntelligenceResult, text: string): boolean {
+  return Boolean(
+    evidence.qr.present ||
+    evidence.qr.visibleUrl ||
+    evidence.qr.purpose !== "unknown" ||
+    decodedQrValues(evidence).length > 0 ||
+    QR_RE.test(text),
+  );
+}
+
+export function isEvidenceBackedBenignImageContext(evidence: ImageIntelligenceResult): boolean {
+  if (!isBenignImageContext(evidence)) return false;
+
+  const text = readableImageText(evidence);
+  if (!text) return false;
+
+  switch (evidence.visualCategory) {
+    case "delivery_sms":
+      return DELIVERY_RE.test(text);
+    case "restaurant_menu_qr":
+      return MENU_RE.test(text) && hasImageQrSignal(evidence, text);
+    case "qr_menu_or_info":
+      return QR_RE.test(text) && hasImageQrSignal(evidence, text);
+    case "telegram_profile_card":
+      return TELEGRAM_PROFILE_CARD_RE.test(text);
+    default:
+      return false;
+  }
 }
 
 function dangerousHintText(hint: ImageRiskHint): string {

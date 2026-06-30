@@ -39,6 +39,7 @@ import {
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
+import { parseAllowedImageDataUrl } from "./media-data-url";
 import { sanitizeAiExplanation } from "./ai-output-safety";
 import {
   buildPhoneIntelligencePassport,
@@ -63,6 +64,8 @@ export interface RunCheckParams {
   aiTimeoutMs?: number;
   /** Optional retry budget for non-critical AI explanations. Defaults preserve web/core behaviour. */
   aiMaxAttempts?: number;
+  /** Trust an already-derived internal type hint. Public web callers must leave this false. */
+  trustProvidedType?: boolean;
   /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
   safeIfNoReasons?: boolean;
   /** Test/preview escape hatch for external URL reputation lookups. */
@@ -167,8 +170,10 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     type,
     lang,
     rateLimitKey,
+    channel,
     skipAi,
     persist,
+    trustProvidedType,
     safeIfNoReasons,
     skipUrlReputation,
     urlReputationTimeoutMs,
@@ -184,7 +189,9 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
 
   const workingInput = input.trim();
 
-  const detected = type && type !== "unknown" ? type : detectInputType(workingInput);
+  const shouldTrustProvidedType = trustProvidedType ?? channel !== "web";
+  const detected =
+    shouldTrustProvidedType && type && type !== "unknown" ? type : detectInputType(workingInput);
   const normalized = normalize(workingInput, detected);
   const display = maskForDisplay(normalized, detected);
   const safeInput = redactText(workingInput);
@@ -196,8 +203,11 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
   if (detected === "url" || detected === "apk") {
     evaluateUrl(normalized).forEach((c) => codes.add(c));
-    const reputationUrl = normalizeUrlForReputation(normalized);
-    if (reputationUrl) reputationUrls.add(reputationUrl);
+    const sourceUrls = extractEmbeddedUrls(workingInput);
+    for (const sourceUrl of sourceUrls.length > 0 ? sourceUrls : [normalized]) {
+      const reputationUrl = normalizeUrlForReputation(sourceUrl);
+      if (reputationUrl) reputationUrls.add(reputationUrl);
+    }
   }
   if (detected === "text" || detected === "unknown") {
     for (const embeddedUrl of extractEmbeddedUrls(safeInput)) {
@@ -344,6 +354,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       "apk_download_link",
       "asks_to_scan_qr",
       "payment_before_service",
+      "known_reported",
     ];
     const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
     if (!hasDangerous) {
@@ -404,7 +415,9 @@ export async function ocrExtractCore(
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
-  const text = await ocrScreenshot(dataUrl, lang);
+  const image = parseAllowedImageDataUrl(dataUrl);
+  if (!image) return { text: null };
+  const text = await ocrScreenshot(image.dataUrl, lang);
   return { text };
 }
 
@@ -425,7 +438,9 @@ export async function analyzeImageCore(
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
-  const raw = await analyzeScreenshotImage(dataUrl, lang, options);
+  const image = parseAllowedImageDataUrl(dataUrl);
+  if (!image) return null;
+  const raw = await analyzeScreenshotImage(image.dataUrl, lang, options);
   if (!raw) return null;
   return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }

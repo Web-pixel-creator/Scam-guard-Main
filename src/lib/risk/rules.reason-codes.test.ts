@@ -7,7 +7,7 @@
 // membership in the reasons array (toContain / not.toContain) rather than strict
 // set equality, because realistic messages can legitimately fire several codes.
 import { describe, it, expect } from "vitest";
-import { evaluateText, scoreFromCodes } from "./rules";
+import { evaluateTelegram, evaluateText, scoreFromCodes } from "./rules";
 
 describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
   const positives: { name: string; text: string }[] = [
@@ -413,13 +413,27 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
       ...evaluateText("100 фриспинов, депозитный бонус и ссылка на Twin"),
       "suspicious_invite_link" as const,
     ];
+    const giveawayCodes = [
+      ...evaluateText("NFT giveaway: subscribe and join the prize channel"),
+      "suspicious_invite_link" as const,
+    ];
     const captchaCodes = [
       ...evaluateText("NFT giveaway: пройти капчу и проголосовать за приз"),
       "suspicious_invite_link" as const,
     ];
 
     expect(scoreFromCodes(casinoCodes).level).toBe("high_risk");
+    expect(scoreFromCodes(giveawayCodes).level).toBe("high_risk");
     expect(scoreFromCodes(captchaCodes).level).toBe("high_risk");
+  });
+
+  it("flags giveaway bait in private Telegram invite handles", () => {
+    const codes = evaluateTelegram("+giftNFT12345");
+
+    expect(codes).toEqual(
+      expect.arrayContaining(["suspicious_invite_link", "giveaway_engagement_bait"]),
+    );
+    expect(scoreFromCodes(codes).level).toBe("high_risk");
   });
 });
 
