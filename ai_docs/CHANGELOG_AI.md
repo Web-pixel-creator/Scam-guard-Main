@@ -2,6 +2,26 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - P1 Telegram private/group scope production QA passed
+
+- Added `prod:telegram-scope-smoke`, a guarded production smoke that sends
+  synthetic Telegram webhook callbacks, verifies private `/report` session
+  `chatScope`, verifies a supergroup callback resets instead of reusing private
+  state, and cleans synthetic `telegram_sessions` / `telegram_webhook_updates`
+  rows.
+- Production initially lagged the current session-scoping code, so
+  `prod:telegram-scope-smoke` correctly failed on missing `chatScope`; redeployed
+  current app to Railway deployment `53f77ca3...`.
+- After deployment, `railway run npm run prod:telegram-scope-smoke -- https://scam-guard-main-production.up.railway.app`
+  passed, and the general `prod:smoke` passed on the same production URL.
+- Added explicit `vite-node` dev dependency and scoped the `brace-expansion`
+  override so existing `prod:*` npm scripts run directly without the stale local
+  shim / ESLint minimatch failure.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-014 / TG-027` now records the
+  production pass; Status Summary now points to remaining P1 Telegram live QA
+  (image/QR, high-risk Guardian Angel, conversational follow-ups) before
+  UX/logistics fixes.
+
 ## 2026-06-30 - P1 production web user-story QA passed
 
 - Production browser QA passed for the homepage high-risk result, `/report`
