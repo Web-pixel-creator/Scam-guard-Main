@@ -2,6 +2,25 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - P1 production Telegram user-story smoke passed
+
+- Added `prod:telegram-user-story-smoke`, a guarded production smoke for the
+  remaining Telegram P1 user-story flows.
+- The smoke verifies `/start`, RU/UZ/EN language callback persistence, a
+  synthetic UZ phone passport, benign delivery false-positive handling, and
+  RU/UZ/EN acknowledgement + confirmation follow-ups that must not create
+  `checks` rows.
+- Cleanup removes synthetic `checks`, `telegram_sessions` and
+  `telegram_webhook_updates` rows; secrets, chat ids and synthetic user ids are
+  not printed.
+- Verification passed: scoped eslint for the new script, focused Telegram/risk
+  suite `5 files / 198 tests`, `railway run npm run
+  prod:telegram-user-story-smoke`, and general `railway run npm run prod:smoke`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-012`, `T-001` -
+  `T-004`, `TG-001`, `TG-002`, `TG-005`, `TG-006`, and Status Summary now point
+  to UX/logistics fixes next. Voice-out real RU/UZ/EN `.ogg` SOS assets and
+  compression remain a separate follow-up.
+
 ## 2026-06-30 - P1 production Telegram QR + Guardian smoke passed
 
 - Added `prod:telegram-live-qa-smoke`, a guarded production smoke that uses
