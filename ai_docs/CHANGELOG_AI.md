@@ -2,6 +2,27 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - P1 production Telegram QR + Guardian smoke passed
+
+- Added `prod:telegram-live-qa-smoke`, a guarded production smoke that uses
+  synthetic Telegram users and `TELEGRAM_MODERATION_CHAT_ID` without printing
+  secrets, chat ids or user ids.
+- The smoke verifies a high-risk verification-code/CVV text creates safe
+  `lastCheck` + Guardian Angel session metadata, then verifies a real Telegram
+  `sendPhoto` QR image goes through file_id download and pixel QR decode as
+  `asks_to_scan_qr`.
+- Cleanup removed synthetic `checks`, `telegram_sessions`,
+  `telegram_webhook_updates` rows and the uploaded QA Telegram photo.
+- Verification passed: scoped eslint for the new script, focused Telegram suite
+  `4 files / 127 tests`, `railway run npm run prod:telegram-live-qa-smoke`, and
+  general `railway run npm run prod:smoke`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-011`, `T-008 /
+  TG-010`, `TG-022`, `T-003 / TG-005`, and Status Summary now reflect that
+  image/QR + high-risk Guardian are no longer the next blocker. Remaining P1 is
+  Telegram start/check/passport/conversational live RU/UZ/EN and false-positive
+  user-story QA, then UX/logistics fixes; Voice-out human audio review/compression
+  remains separate.
+
 ## 2026-06-30 - P1 Telegram private/group scope production QA passed
 
 - Added `prod:telegram-scope-smoke`, a guarded production smoke that sends

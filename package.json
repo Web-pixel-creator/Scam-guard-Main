@@ -22,6 +22,7 @@
     "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts",
     "prod:admin-moderation-smoke": "vite-node scripts/prod-admin-moderation-smoke.ts",
     "prod:telegram-scope-smoke": "vite-node scripts/prod-telegram-scope-smoke.ts",
+    "prod:telegram-live-qa-smoke": "vite-node scripts/prod-telegram-live-qa-smoke.ts",
     "tts:smoke": "vite-node scripts/tts-smoke.ts",
     "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
     "moderation:smoke": "vite-node scripts/moderation-alert-smoke.ts"
