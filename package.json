@@ -21,6 +21,7 @@
     "prod:family-smoke": "vite-node scripts/prod-family-shield-smoke.ts",
     "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts",
     "tts:smoke": "vite-node scripts/tts-smoke.ts",
+    "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
     "moderation:smoke": "vite-node scripts/moderation-alert-smoke.ts"
   },
   "dependencies": {

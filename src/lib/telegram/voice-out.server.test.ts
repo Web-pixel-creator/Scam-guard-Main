@@ -157,7 +157,7 @@ describe("telegram Voice-out / TTS", () => {
       hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
-      await writeFile(path.join(dir, "panic-4-ru.ogg"), new Uint8Array([7, 8, 9]));
+      await writeFile(path.join(dir, "panic-4-ru.wav"), new Uint8Array([7, 8, 9]));
 
       await sendVoiceOutResponse({
         chatId: 10,
@@ -175,8 +175,8 @@ describe("telegram Voice-out / TTS", () => {
         expect.objectContaining({
           chatId: 10,
           audio: new Uint8Array([7, 8, 9]),
-          filename: "panic-4-ru.ogg",
-          mimeType: "audio/ogg",
+          filename: "panic-4-ru.wav",
+          mimeType: "audio/wav",
         }),
       ]);
     } finally {

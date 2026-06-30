@@ -5,13 +5,21 @@ calling Gemini/OpenAI TTS for main panic voice callbacks.
 
 File naming:
 
-- `panic-{id}-{lang}.ogg`
+- preferred: `panic-{id}-{lang}.ogg`
+- generated Gemini fallback: `panic-{id}-{lang}.wav`
 - `id`: `1` through `15`
 - `lang`: `ru`, `uz`, or `en`
 
 Example:
 
 - `panic-4-ru.ogg`
+- `panic-4-ru.wav`
+
+Generation:
+
+```bash
+railway run npm run tts:generate-assets -- --force
+```
 
 Operational notes:
 

@@ -12,8 +12,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
   chain and text fallback.
 - Emergency follow-up screens no longer repeat the "Озвучить главный шаг"
   button, reducing the broad voice-button surface that QA flagged.
-- Remaining work is asset production/review/deploy for RU/UZ/EN panic scripts
-  and a separate decision on static Guardian Angel audio.
+- Generated static Gemini WAV assets for all 15 SOS panic scripts in RU, UZ and
+  EN. Remaining work is human audio review, optional `.ogg` compression when a
+  converter is available, and a separate decision on static Guardian Angel
+  audio.
 
 ## 2026-06-30 - Telegram conversational follow-ups after QA feedback
 

@@ -82,6 +82,7 @@ const PRERECORDED_VOICE_EXTENSIONS = [
   { ext: "ogg", mimeType: "audio/ogg" },
   { ext: "oga", mimeType: "audio/ogg" },
   { ext: "mp3", mimeType: "audio/mpeg" },
+  { ext: "wav", mimeType: "audio/wav" },
 ] as const;
 const recentVoiceOutRequests = new Map<string, number>();
 const VOICE_OUT_PANIC_ACTIONS: readonly EmergencyFollowUpAction[] = [

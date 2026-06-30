@@ -111,11 +111,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       and provider-backed TTS failures can break trust. Keep the cost guards,
       but move common panic/lang scripts to static pre-recorded `.ogg` assets,
       keep live TTS only for rare dynamic guidance, and hide or soften the
-      button when audio is not reliably available. First architecture slice is
-      shipped: main SOS voice callbacks now look for static
-      `panic-{id}-{lang}.ogg` audio before TTS/budget, and follow-up screens no
-      longer repeat the voice button. Remaining: record/review/deploy the RU/UZ/EN
-      assets and decide whether Guardian Angel should also get static audio.
+      button when audio is not reliably available. Architecture and first asset
+      slice shipped: main SOS voice callbacks now look for static
+      `panic-{id}-{lang}` audio before TTS/budget, follow-up screens no longer
+      repeat the voice button, and RU/UZ/EN Gemini WAV assets are generated for
+      all 15 SOS scenarios. Remaining: human audio review, optional `.ogg`
+      compression if a converter is available, and a decision on whether
+      Guardian Angel should also get static audio.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting
