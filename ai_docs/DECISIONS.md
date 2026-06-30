@@ -2,6 +2,133 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-052 - Embed iframe is not sandboxed by default
+
+The `/embed/check` widget is first-party Ishonch Guard code. The distributed
+iframe snippet and local preview do not set an iframe `sandbox` attribute,
+because the browser warns on the scriptable `allow-scripts` + `allow-same-origin`
+combination that the React/Vite widget needs to load correctly. Embed exposure
+is controlled by the `/embed/check` CSP `frame-ancestors` allowlist, strict
+referrer policy and the widget's public-only API surface. If we ever need to
+host untrusted partner code in the frame, move it to a separate origin first.
+
+## D-051 - Public rate-limit IP trust is opt-in
+
+Public check, report and appeal rate-limit keys must ignore client-supplied
+proxy IP headers unless `TRUST_PROXY_IP_HEADERS=true`. That opt-in is valid only
+behind a trusted edge proxy that overwrites or strips spoofed
+`CF-Connecting-IP`, `X-Real-IP` and `X-Forwarded-For` values before traffic
+reaches Node. If that proxy-chain proof is missing, keep the env unset/false and
+use the direct request IP fallback.
+
+## D-050 - Public impact separates raw activity from confirmed impact
+
+Website impact counters may show aggregate check volume and risk-alert activity
+as raw service activity, but report/loss impact is a user-facing trust claim and
+must include only moderator-confirmed reports. `get_check_stats()` and
+`getPublicStats()` fallback queries filter report totals, report-with-loss
+counts and loss sums to `reports.status='confirmed'`. Homepage copy must keep
+that distinction visible.
+
+## D-049 - Embed framing is origin-allowlisted
+
+The public embed runtime is frameable only by the app itself, localhost
+development origins and explicit HTTPS origins configured in
+`EMBED_ALLOWED_FRAME_ANCESTORS`. The `partner` query parameter remains a
+sanitized display label only; it is not proof of origin trust and cannot expand
+the CSP. Production partner launches must add the partner origin to the
+server-side allowlist before distributing the iframe snippet.
+
+## D-048 - Duplicate report evidence is retained privately
+
+Same-day reports for an already-seen target are accepted without revealing the
+dedupe decision to the submitter. They must still create a redacted
+`reports.status='duplicate'` row so independent evidence is durable for admin
+review and retention/audit policy. Duplicate rows must not refresh public
+`entities`, change `entities.report_count`, or be treated as moderator-approved
+reputation evidence.
+
+## D-047 - Webhook dedup failures retry before side effects
+
+Telegram webhook retries can replay state-changing updates. The local in-memory
+fast path is not enough across instances, so dispatch may start only after the
+shared `telegram_webhook_updates` claim succeeds or reports a duplicate. If the
+shared claim is unavailable before dispatch, the webhook returns 503 with
+`Retry-After` and does not mark the update locally, allowing Telegram to retry
+without losing the update or duplicating side effects.
+
+## D-046 - Public stats are cached aggregate reads
+
+`getPublicStats` is a public website surface backed by service-role aggregate
+queries. It must return aggregate-only values, keep expensive fallback reads
+bounded, and use a short server-side cache with in-flight de-duplication so
+visitor refreshes cannot multiply database aggregate work one-for-one.
+
+## D-045 - Empty quick reports are incident-only
+
+The homepage quick-report target field is optional. When it is empty, the client
+must send the incident-only sentinel with `incidentOnly: true`, and the server
+must also treat blank or dash-only placeholder targets as situation-only reports.
+This keeps description-only reports useful for moderation/research without
+creating public entity candidates or suppressing unrelated later evidence under
+a shared placeholder hash.
+
+## D-044 - Public entity report counts are confirmed counts
+
+`entities.report_count` is user-facing reputation evidence and must count only
+moderated confirmed reports. New report submissions may create or refresh a
+private moderation candidate, but they must not increase the public count until
+`moderateReportCore` confirms the report. Rejections also resync the count from
+remaining confirmed reports so a follow-up decision cannot inflate or erase
+existing reputation incorrectly.
+
+## D-043 - Telegram image media fetch has its own early quota
+
+Telegram photo/video-thumbnail checks must claim a cheap per-user image-download
+budget before calling Telegram `getFile` or downloading bytes. The bucket uses
+the existing shared rate-limit service under a separate
+`telegram-image:<tg:userId>` key so media-cost protection does not halve the
+normal final check budget. Core `analyzeImageCore` and `runCheck` rate limits
+remain in place as defense in depth after bytes are available.
+
+## D-042 - Benign image categories are not enough for safe
+
+Structured Telegram image analysis may label a screenshot as a delivery SMS,
+restaurant/menu QR, generic info QR or Telegram profile card. That category can
+shape the explanation, but it must not by itself force a final `safe` verdict.
+The `safeIfNoReasons` override is allowed only through
+`isEvidenceBackedBenignImageContext`, which requires readable supporting text,
+QR/profile signals and zero risk hints. Category-only or low-information image
+evidence stays `unknown`.
+
+## D-041 - AI image inputs require an allowlisted data URL
+
+Any path that forwards an image to an external AI vision provider must first
+parse the data URL server-side, require base64 encoding, allow only `image/png`,
+`image/jpeg` or `image/webp`, and enforce the decoded screenshot byte limit. Web
+clients are not trusted to keep the browser file picker contract. Core image
+helpers also re-check the invariant before constructing AI `image_url` payloads.
+
+## D-040 - Telegram report drafts store prepared targets only
+
+Telegram `/report` is a multi-step flow, so unfinished drafts can sit in
+`telegram_sessions.scenario_data`. Draft state must not persist raw report
+identifiers or raw user evidence. Concrete targets are converted before save to
+`{ type, hash, display, incidentOnly }`; description, scam type and city text is
+redacted before persistence; retry payloads reuse the sanitized draft. Existing
+legacy `scenario_data.value` rows are treated as read-once migration inputs and
+must be converted or reset before any new save.
+
+## D-039 - Telegram session state is scoped to one chat
+
+Telegram user ids are not a safe session boundary by themselves because the
+same user can talk to the bot privately and in group/supergroup chats. Any
+stored state that can influence a later reply (`/report`, `/check`,
+`lastPanicId`, `lastCheck`, Guardian Angel context) must carry
+`scenario_data.chatScope` with the originating chat id/type. The router resets
+active/contextual rows when the current update does not match that scope; legacy
+unscoped rows are treated as stale instead of being reused across chats.
+
 ## D-038 - Modern SOS scenarios are rescue flows, not hidden reputation
 
 Fake job, delivery/top-up, crypto/TON/wallet and government grant panic
@@ -357,3 +484,12 @@ raw user text, URLs, phone numbers, OCR text, screenshots, files, codes, card
 data and passwords remain forbidden. Timed reminders such as "are you okay in
 2 hours?" require a separate scheduler, opt-out and retention design, so they
 are intentionally left out of v1.
+
+## D-038 - Admin allowlist grants only after email verification
+
+Allowlisted email is eligibility, not proof of ownership. The database signup
+trigger must not grant `admin` while `auth.users.email_confirmed_at` is null.
+New allowlisted accounts receive a baseline `user` role first; a separate
+email-confirmation update trigger may add `admin` only after Supabase marks the
+mailbox confirmed. Deployments must keep email confirmation enabled, because the
+database trusts Supabase's confirmation timestamp as the ownership signal.

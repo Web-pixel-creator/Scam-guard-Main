@@ -61,8 +61,9 @@ runtime, which the Nitro node-server already honours. Config-as-code lives in
    `VITE_SUPABASE_PROJECT_ID`, `HASH_PEPPER_SECRET`, `TELEGRAM_BOT_TOKEN`,
    `TELEGRAM_WEBHOOK_SECRET`, and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`
    / `OPENAI_BASE_URL` / `OPENAI_TRANSCRIBE_MODEL` /
-   `GEMINI_TTS_API_KEY` / `OPENAI_TTS_API_KEY`. Do **not** set `PORT` —
-   Railway provides it.
+   `GEMINI_TTS_API_KEY` / `OPENAI_TTS_API_KEY` /
+   `EMBED_ALLOWED_FRAME_ANCESTORS`. Do **not** set `PORT` — Railway provides
+   it.
 3. Deploy. Once a public domain is assigned (service → Settings → Networking →
    Generate Domain), use it as `PUBLIC_APP_URL` for the webhook registration
    step below.
@@ -135,6 +136,11 @@ committed `.env`, never shipped to client):
   inferred from monitor alert settings. Alerts contain only redacted targets,
   high-level fields and an admin link, never raw report text, screenshots,
   OCR, codes, card data, full phone numbers or full URLs.
+- `EMBED_ALLOWED_FRAME_ANCESTORS` - optional comma/space-separated HTTPS origins
+  allowed to frame `/embed/check`, for example
+  `https://partner.example,https://bank.example`. If unset, the embed runtime is
+  frameable only by the app itself plus localhost development origins. Query
+  parameter `partner` is a display label only and does not grant framing access.
 
 To get the private moderation chat id without third-party bots, create a
 private Telegram group, add `@scamguard_bot`, then send `/chatid` in that group.
@@ -150,7 +156,21 @@ railway run npm run moderation:smoke
 The smoke test sends a clearly marked non-user test alert. It does not send
 real report text, screenshots, OCR, codes, card data, phone numbers or URLs.
 
+Before release, apply migration
+`20260629153000_entities_report_count_confirmed_only.sql` so public
+`entities.report_count` values are backfilled to moderated confirmed report
+counts only. Also apply
+`20260629163000_public_impact_counters_confirmed_reports.sql` so public
+report/loss impact counters include confirmed reports only.
+
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
+Leave `TRUST_PROXY_IP_HEADERS` unset/false unless the deployment sits behind a
+trusted edge proxy that overwrites or strips spoofed forwarding headers. Enabling
+it without that proxy-chain proof lets clients partition public check/report/
+appeal rate-limit buckets by sending fake IP headers. If it must be enabled,
+set `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` only after that edge behavior is
+verified; `prod:security-smoke` fails when the trust opt-in lacks this proof
+flag.
 
 Env is read **per request inside handlers** (`config.server.ts`), never at
 module top level — this keeps the secret reads correct across runtimes.
@@ -193,6 +213,11 @@ service-role-only `claim_rate_limit()` RPC. `HASH_PEPPER_SECRET` is required in
 production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
 before persistence. If Supabase or the pepper is missing in local/test
 environments, the app falls back to the in-memory limiter.
+Public web rate-limit identity ignores proxy IP headers by default. Set
+`TRUST_PROXY_IP_HEADERS=true` only after confirming the edge proxy overwrites
+`CF-Connecting-IP`, `X-Real-IP` and `X-Forwarded-For`, then set
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` so `prod:security-smoke` records the
+review.
 
 Telegram voice STT is cost-capped in the app before provider calls: maximum
 60 seconds / 2 MB per voice note, 5 STT calls per Telegram user per 24 hours,
@@ -287,6 +312,10 @@ in order:
 Apply pending SQL migrations to your Supabase project. At minimum the Telegram
 bot requires `telegram_sessions`; newer deployments also include Family Shield,
 retention cleanup and security-definer hardening migrations.
+Telegram chat-scoped session hardening stores its boundary inside existing
+`telegram_sessions.scenario_data`, so it does not require an additional SQL
+migration. After deploy, any old active/contextual session row without a
+matching `chatScope` is reset on the user's next update.
 
 ```bash
 supabase db push --linked --include-all --yes
@@ -422,11 +451,21 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.
-- [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with admin email(s) before first admin signup.
+- [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with
+      admin email(s), and Supabase email confirmation kept enabled so
+      allowlisted admins receive `admin` only after verifying mailbox ownership.
+- [ ] Public impact counter migration applied so report/loss totals count only
+      `reports.status='confirmed'`.
+- [ ] `TRUST_PROXY_IP_HEADERS` is unset/false, or the edge proxy has been
+      verified to overwrite spoofed forwarding headers and
+      `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` is set before enabling it.
 - [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`).
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.
 - [ ] `telegram_sessions` migration applied (Telegram bot session state).
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
+- [ ] Partner iframe origins, if any, are set in
+      `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`
+      snippets.
 - [ ] Webhook registered via `scripts/register-telegram-webhook.ts`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally

@@ -11,8 +11,8 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 | RPC                       | Auth   | Input                                                                                                | Returns                                                                             |
 | ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `checkInput`              | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot                  |
-| `ocrExtract`              | public | `{ image: dataURL <= 6MB, lang }`                                                                    | `{ text }`                                                                          |
-| `getPublicStats`          | public | none                                                                                                 | `{ total, today, confirmed_entities }`                                              |
+| `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                          |
+| `getPublicStats`          | public | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
 | `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                   |
 | `listReports`             | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                                |
 | `listEntities`            | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                                |
@@ -36,16 +36,51 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
 - Duplicate valid `update_id` deliveries are acknowledged with HTTP 200 and
   ignored. The handler uses an in-memory fast path plus the shared Supabase
   `telegram_webhook_updates` table, so Telegram retry duplicates are deduped
-  across production instances. If the shared store is temporarily unavailable,
-  the webhook falls back to local dedup and still processes the update rather
-  than dropping user messages.
+  across production instances. If the shared store is temporarily unavailable
+  before dispatch, the webhook returns HTTP 503 with `Retry-After` and does not
+  process the update, allowing Telegram to retry without duplicate side effects.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. `/call` is a direct entrypoint into the same live-call scenario (`lastPanicId=6`) and stores no phone number, call recording or raw evidence. Suspicious payloads still go through the normal risk pipeline.
-- `/report` can submit a situation-only incident when the user has no concrete target. `incidentOnly=true` stores the redacted incident for moderation/research but does not upsert or bump public `entities`.
+- Stateful Telegram flows are scoped to the current chat via
+  `scenario_data.chatScope`. `/report`, `/check`, `/call`, panic and
+  post-check follow-up context created in a private chat is not reused from a
+  group/supergroup chat by the same user; mismatched or legacy unscoped
+  contextual rows are reset before routing the current update.
+- `/report` can submit a situation-only incident when the user has no concrete
+  target. `incidentOnly=true` stores the redacted incident for
+  moderation/research but does not upsert or bump public `entities`. Telegram
+  report drafts persist only a prepared target hash/masked display plus redacted
+  narrative fields; final Telegram submit uses that prepared target without
+  needing the raw identifier again.
+- The homepage quick report uses the same incident-only path when its optional
+  target field is empty; dash-only legacy placeholders are also treated as
+  incident-only on the server.
+- Targeted reports create or refresh private moderation candidates. Public
+  `entities.report_count` changes only after admin moderation and represents
+  confirmed reports, not raw unmoderated submissions. Same-day duplicate target
+  reports are retained as redacted `reports.status='duplicate'` evidence for
+  admin review/retention, but they do not refresh public entity state.
 - `/appeal` submits a privacy-safe correction/removal request for phone,
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
   masked display values and redacted reason text. Admin removal hides the public
   reputation label without deleting report history.
-- Telegram photos/screenshots use structured image intelligence before scoring. Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe` only when no reason codes match; dangerous QR login/payment, OTP, APK and card-data requests still route through normal reason-code scoring.
+- Telegram photos/screenshots use structured image intelligence before scoring.
+  Repeated image checks claim a shared `telegram-image:<tg:userId>` budget
+  before Telegram file metadata/download, so media-cost throttling happens
+  before bytes are fetched.
+  Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe`
+  only when no reason codes match and the benign category is backed by readable
+  text/QR/profile evidence. Category-only model labels remain `unknown`;
+  dangerous QR login/payment, OTP, APK and card-data requests still route
+  through normal reason-code scoring.
+- Web screenshot OCR accepts only server-validated base64 `image/png`,
+  `image/jpeg` or `image/webp` data URLs within the decoded byte limit before
+  any AI vision provider call.
+- `getPublicStats` is served through the server function with a short
+  server-side cache and in-flight de-duplication; browsers do not call
+  `get_check_stats()` or service-role aggregate queries directly. Check and
+  risk-alert counters are aggregate raw service activity; `reports_total`,
+  `reports_with_loss_amount` and `reported_loss_uzs` include only
+  `reports.status='confirmed'` rows.
 - Telegram voice notes, native audio attachments and audio documents such as
   `.ogg`/`.m4a` use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`.
   Audio is downloaded only in memory, files are capped at 60 seconds / 2 MB
@@ -67,10 +102,24 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
 ## Auth flow
 
 Browser session token (Supabase) is attached by `attachSupabaseAuth` on every server-function call. Admin functions validate it server-side (`requireSupabaseAuth`) and check the `admin` role in `user_roles`.
+Allowlisted admin signup is gated on Supabase email confirmation: a new account
+gets at most the baseline `user` role until `auth.users.email_confirmed_at` is
+set, then the database trigger may add `admin` if the email is still in
+`admin_allowlist`.
+
+## Website embed
+
+- `/embed/check` is the iframe runtime. Its CSP `frame-ancestors` defaults to
+  `'self'` plus localhost development origins and adds production partner
+  origins only from server-side `EMBED_ALLOWED_FRAME_ANCESTORS`.
+- The `partner` query parameter is sanitized for display only; it is not
+  trusted as authorization to frame the widget.
 
 ## Database RPC
 
-- `get_check_stats()` is service-role-only. The browser no longer calls it directly; `getPublicStats` calls it through a server function.
+- `get_check_stats()` is service-role-only. The browser no longer calls it
+  directly; `getPublicStats` calls it through a cached server function. It
+  returns raw aggregate check activity plus confirmed-only report/loss impact.
 - `claim_rate_limit()` is service-role-only. Server code calls it to atomically
   increment HMAC-hashed shared buckets for public checks, reports, Telegram
   public-post fetches, the voice STT daily budget and the opt-in Voice-out/TTS

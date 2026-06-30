@@ -31,6 +31,11 @@ server functions. Terminal reports (`confirmed`, `rejected`, `duplicate`) older
 than 365 days and stale open reports (`new`, `reviewing`) older than 180 days
 are eligible for retention cleanup.
 
+Same-day duplicates for an existing target are stored as redacted
+`status='duplicate'` report rows. They preserve independent evidence for admin
+review and retention/audit policy, but they do not refresh `entities`, change
+public `report_count`, or count as confirmed reputation evidence.
+
 Situation-only reports from Telegram (`/report` with no number/link/username)
 are stored as incident evidence with the reserved redacted value
 `__ishonch_guard_incident_only__`. They do not upsert or increment `entities`,
@@ -43,6 +48,12 @@ account.
 Aggregated suspicious identifiers: `id, entity_type, entity_hash, display_mask, risk_level, report_count, moderation_status, last_seen_at, created_at`.
 
 RLS: public can select only `moderation_status='confirmed'`; admins select/update; service-role writes. This prevents unmoderated public accusations.
+
+`report_count` is the moderated confirmed report count. Public report submission
+creates or refreshes a candidate without incrementing this field; admin
+moderation resyncs it from `reports.status='confirmed'`. Migration
+`20260629153000_entities_report_count_confirmed_only.sql` backfills existing
+rows to that definition.
 
 Phone Reputation v1 reads confirmed phone rows from this table only after
 moderation. User-facing output may show the Ishonch Guard confirmed report count
@@ -92,9 +103,25 @@ high-risk summary metadata may be stored. Guardian Angel stores only risk
 level, input type, reason codes and timestamp. Raw URLs, phone numbers, OTPs,
 card data, screenshots, OCR text, files and user evidence must not be stored
 there by panic, follow-up or guardian flows.
+State that can affect a later bot reply also carries
+`scenario_data.chatScope = { chatId, chatType }`. The Telegram router treats
+active/contextual rows without a matching chat scope as stale and resets them,
+so private report/check/panic context cannot cross into group chats or another
+private chat by user id alone.
+Telegram `/report` drafts store concrete targets as `{ type, hash, display,
+incidentOnly }`, not raw phone numbers, usernames or URLs. Draft narrative
+fields such as description, scam type and city are redacted before persistence;
+legacy raw `scenario_data.value` rows are converted or reset before the next
+save.
 Rows idle for more than 30 days are eligible for retention cleanup.
 
-Telegram image intelligence is not stored as a separate table. Only the final `checks` row is persisted, with redacted input, hash, risk level, reason codes and optional explanation; raw images and data URLs are discarded.
+Telegram image intelligence is not stored as a separate table. Only the final
+`checks` row is persisted, with redacted input, hash, risk level, reason codes
+and optional explanation; raw images and data URLs are discarded. Web OCR and
+core image-intelligence paths validate data URL MIME, base64 form and decoded
+byte size before an image can reach an external AI provider. Category-only
+benign image labels are not persisted as `safe` without readable supporting
+evidence; low-signal image checks remain `unknown`.
 
 ### `telegram_webhook_updates`
 
@@ -114,10 +141,11 @@ Short-lived shared rate-limit buckets:
 updated_at`.
 
 RLS/grants: no public access; service-role only. The table stores only
-HMAC-SHA256 hashes of rate-limit keys such as `check:<ip>` or `tg:<userId>`.
-Raw IPs, Telegram ids, phone numbers, URLs, message text, OCR text and
-screenshots are never stored here. Used by public web checks, report submission,
-Telegram checks/OCR/image analysis and public Telegram post fetch throttling.
+HMAC-SHA256 hashes of rate-limit keys such as `check:<ip>`, `tg:<userId>` or
+`telegram-image:<tg:userId>`. Raw IPs, Telegram ids, phone numbers, URLs,
+message text, OCR text and screenshots are never stored here. Used by public
+web checks, report submission, Telegram checks/OCR/image analysis, pre-download
+Telegram image media throttling and public Telegram post fetch throttling.
 Rows are eligible for cleanup when `expires_at <= now()`.
 
 ### `telegram_family_shield`
@@ -142,14 +170,25 @@ RBAC rows: `id, user_id, role, created_at`, unique by `(user_id, role)`.
 
 ### `admin_allowlist`
 
-Emails that become admin on signup. Managed by SQL/service-role only.
+Emails eligible for admin access after mailbox verification. Managed by
+SQL/service-role only. Signup creates a baseline `user` role unless Supabase has
+already set `auth.users.email_confirmed_at`; an allowlisted account is promoted
+to `admin` only after `email_confirmed_at` is non-null.
 
 ## Functions / triggers
 
 - `private.has_role(_user_id uuid, _role app_role) -> boolean` is the private RLS helper for admin policies.
 - `has_role(_user_id uuid, _role app_role) -> boolean` remains as a legacy service-role-only helper; public/authenticated RPC execution is revoked.
-- `handle_new_user_role()` signup trigger
-- `get_check_stats() -> (total, today, confirmed_entities)` is service-role-only and called through the web server function, not directly from the browser.
+- `handle_new_user_role()` signup trigger; it no longer grants allowlisted
+  admins before email confirmation.
+- `handle_confirmed_admin_allowlist_role()` email-confirmation trigger; grants
+  `admin` to allowlisted users after Supabase marks the email confirmed.
+- `get_check_stats() -> (total, today, confirmed_entities, high_risk,
+  suspicious, dangerous, reports_total, reports_with_loss_amount,
+  reported_loss_uzs)` is service-role-only and called through the web server
+  function, not directly from the browser. Check/risk counters are raw
+  aggregate activity; report/loss counters include only
+  `reports.status='confirmed'`.
 - `claim_rate_limit(scope, key_hash, limit, window_seconds) -> (allowed, remaining, retry_after_sec, current_count)` is service-role-only and atomically increments one shared rate-limit bucket.
 - `private.prune_app_retention(as_of timestamptz default now()) -> jsonb` deletes rows eligible under the retention windows and returns per-table counts.
 - `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.

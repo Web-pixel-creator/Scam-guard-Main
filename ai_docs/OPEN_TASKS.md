@@ -8,8 +8,9 @@
   invite-handoff copy are now covered by tests.
 - **Telegram webhook `update_id` dedup is shared now.** The webhook uses an
   in-memory fast path plus service-role claims in `telegram_webhook_updates`, so
-  Telegram retries are deduped across Node instances. If Supabase is temporarily
-  unavailable, it fails open to local dedup so user messages are not dropped.
+  Telegram retries are deduped across Node instances. If shared dedup storage is
+  temporarily unavailable before dispatch, the webhook returns 503 so Telegram
+  retries instead of risking duplicate side effects.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate limit is shipped.** Public checks, reports, Telegram check/OCR/image
   paths and public Telegram post fetches use Supabase `rate_limit_buckets` with
@@ -31,10 +32,11 @@
   `object-src 'none'` are enforced. Inline styling is now narrowed to
   `style-src-attr 'unsafe-inline'` for React style attributes; broad
   `style-src 'unsafe-inline'` is not allowed.
-- **Embed widget CSP is intentionally frameable.** `/embed/check` keeps
-  `frame-ancestors 'self' https: http://localhost:* http://127.0.0.1:*` so
-  partners can embed it. Add partner allow-listing and origin analytics before
-  broad public distribution.
+- **Embed widget CSP is origin-allowlisted.** `/embed/check` keeps
+  `frame-ancestors` to `'self'`, localhost development origins and explicit
+  HTTPS origins from `EMBED_ALLOWED_FRAME_ANCESTORS`; the `partner` query label
+  does not grant framing access. Add origin analytics before broad public
+  distribution.
 - **Direct `/call` is shipped.** It reuses the live-call copilot without
   exposing bank callback before hangup; command-menu registration must be kept
   in the release checklist whenever command payloads change.
@@ -159,8 +161,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       usernames and long digit runs before synthesis, refuses unsafe
       code/PIN/CVV/password-like text, prefers Gemini TTS when configured, and
       degrades to text when no TTS provider is configured.
-- [ ] Add partner allow-listing/logging for `/embed/check` frame origins before
-      broad distribution of the public embed widget.
+- [ ] Add origin analytics/logging for `/embed/check` frame usage before broad
+      distribution of the public embed widget. Partner allow-listing is shipped
+      through `EMBED_ALLOWED_FRAME_ANCESTORS`.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,
@@ -198,9 +201,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Add honest impact counters: checks, dangerous results and prevented-loss
       survey totals without exposing private reports or unsupported savings
       claims.~~ Done as Website Honest Impact Counters v1 with aggregate-only
-      checks, risk alerts, moderated records and user-reported loss wording.
+      checks, risk alerts, moderated records and confirmed-report loss wording.
       Production migration `20260613182647_honest_impact_counters_v1` was
-      applied on 2026-06-14 and `get_check_stats()` was verified.
+      applied on 2026-06-14 and `get_check_stats()` was verified; follow-up
+      migration `20260629163000_public_impact_counters_confirmed_reports.sql`
+      keeps report/loss impact confirmed-only.
 - [x] ~~Add a scheduled maintenance path for `private.prune_app_retention()` after legal/compliance review confirms the windows.~~ Done on 2026-06-14 with Supabase/Postgres Cron job `ishonch_prune_app_retention_daily`.
 - [x] ~~Add embeddable check widget for trusted media/community sites.~~ Done as
       Website Embed Widget v1: `/embed` generates a sandboxed iframe snippet,
@@ -221,7 +226,8 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       scripts with request-scoped SSR nonces, removed `unsafe-inline` from the
       main and embed script policies, pinned the one external Unicorn script,
       added `script-src-attr 'none'` and regression coverage. Embed
-      `frame-ancestors` remains broad by design for the public iframe widget.
+      `frame-ancestors` is now separately restricted by an explicit partner
+      origin allowlist.
 
 - [x] ~~Add official verified contacts seed (banks, operators, Central Bank).~~ Done in PR #12–#14.
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).

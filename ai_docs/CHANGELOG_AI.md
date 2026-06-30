@@ -2,6 +2,148 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-29 - Proxy IP header trust is fail-closed and documented
+
+- Documented `TRUST_PROXY_IP_HEADERS` as an explicit opt-in for public
+  rate-limit identity behind a trusted edge proxy only.
+- Confirmed focused tests prove spoofable forwarding headers are ignored by
+  default and used only when the opt-in is set.
+- Added a `prod:security-smoke` env guard: if proxy IP header trust is enabled,
+  the smoke requires `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`.
+- Railway production security smoke confirmed `TRUST_PROXY_IP_HEADERS` is
+  unset/false and the full RLS/RPC smoke still passes.
+
+## 2026-06-29 - Public impact loss counters require confirmed reports
+
+- Public check and risk-alert counters remain aggregate raw service activity.
+- Public report/loss impact counters now count only
+  `reports.status='confirmed'` rows in both the `get_check_stats()` RPC and the
+  server-side fallback queries.
+- Updated homepage copy so loss totals are presented as moderator-confirmed
+  report impact, not unreviewed user-submitted amounts.
+
+## 2026-06-29 - Embed widget framing requires an origin allowlist
+
+- `/embed/check` no longer ships with broad `frame-ancestors https:`.
+- The embed CSP now defaults to `'self'` plus localhost development origins and
+  adds production partner origins only from `EMBED_ALLOWED_FRAME_ANCESTORS`.
+- Added regression coverage for rejecting unsafe allowlist entries and for
+  building CSP from explicit HTTPS partner origins.
+
+## 2026-06-29 - Same-day duplicate reports keep durable evidence
+
+- Same-day report dedupe now stores a redacted `reports.status='duplicate'`
+  row instead of relying only on a best-effort moderation notification.
+- Duplicate report rows do not refresh public `entities`, do not change
+  `entities.report_count`, and cannot be moderated as new reports.
+- Added regression coverage proving duplicate evidence is persisted while public
+  entity state remains unchanged, plus an admin `duplicate` report filter.
+
+## 2026-06-29 - Webhook dedup outages retry before dispatch
+
+- Telegram webhook processing now returns HTTP 503 before dispatch when the
+  shared `telegram_webhook_updates` dedup claim is unavailable.
+- The in-memory duplicate marker is written only after a successful shared claim
+  so a Telegram retry after a temporary storage outage is not lost locally.
+- Added regression coverage proving unavailable shared dedup does not dispatch
+  and a later successful retry can process the same `update_id`.
+
+## 2026-06-29 - Public stats use a short server cache
+
+- Added a 30-second in-process cache and in-flight de-duplication around
+  `getPublicStats` so repeated public requests do not each run the service-role
+  stats RPC and aggregate count/select queries.
+- Kept the existing aggregate-only public stats shape and fallback amount bound.
+- Added regression coverage proving two immediate public stats requests share
+  one set of service-role aggregate queries.
+
+## 2026-06-29 - Empty homepage quick reports stay incident-only
+
+- Added a shared quick-report payload helper so the homepage form sends
+  `incidentOnly: true` with the incident-only sentinel when the optional target
+  field is empty.
+- Added a server-side placeholder guard so dash-only legacy targets are treated
+  as situation-only reports and cannot create public entity candidates or daily
+  entity dedupe keys.
+- Added regression coverage for both the UI payload builder and the server path.
+
+## 2026-06-29 - Public entity report counts require moderation
+
+- `submitReportCore` now creates or refreshes entity moderation candidates
+  without incrementing public `entities.report_count`.
+- `moderateReportCore` recalculates `report_count` from confirmed reports when
+  a moderator confirms or rejects a report, so public reputation counts reflect
+  moderated evidence only.
+- Added a Supabase migration to backfill existing `entities.report_count` values
+  from `reports.status='confirmed'`, plus regression coverage for an
+  unmoderated follow-up report on an already confirmed entity.
+
+## 2026-06-29 - Telegram image downloads are rate-limited before file fetch
+
+- Added an early Telegram image-download budget before `getFile` and
+  `downloadFileAsDataUrl`, using the shared privacy-safe rate limiter with a
+  separate `telegram-image:<tg:userId>` key.
+- The final `analyzeImageCore`/`runCheck` limits remain in place as defense in
+  depth, but repeated screenshots are now rejected before Telegram media
+  metadata/download cost is incurred.
+- Added webhook regression coverage that first reproduced an 11th repeated
+  image reaching `getFile`, then passed with only 10 file fetch/download/OCR
+  calls and a friendly rate-limit reply.
+
+## 2026-06-29 - Telegram image safe verdicts require supporting evidence
+
+- Split benign image context from final safe-verdict eligibility. Telegram image
+  checks now use `isEvidenceBackedBenignImageContext` for `safeIfNoReasons`.
+- A model-only benign category such as `delivery_sms`, with no readable text,
+  QR signal or risk hints, now remains `unknown` instead of forcing `safe`.
+- Added unit and webhook regression coverage proving the model-only path no
+  longer reproduces while normal delivery/menu screenshots still stay out of
+  high-risk false positives.
+
+## 2026-06-29 - Web OCR image data URLs are server-validated
+
+- Added a shared image data URL validator for web OCR and image-intelligence
+  core paths. Only `image/png`, `image/jpeg` and `image/webp` base64 data URLs
+  within the screenshot byte limit are accepted.
+- The public `ocrExtract` server function rejects non-image, malformed,
+  non-base64 and oversized payloads before calling `ocrExtractCore`.
+- `ocrExtractCore` and `analyzeImageCore` now re-check the data URL before
+  building AI `image_url` messages, so direct core callers cannot forward
+  invalid media payloads to the AI provider.
+
+## 2026-06-29 - Telegram report drafts stop storing raw identifiers
+
+- Hardened the Telegram `/report` draft path so `telegram_sessions.scenario_data`
+  stores a prepared target `{ type, hash, display, incidentOnly }` instead of
+  raw usernames, phone numbers or URLs.
+- Free-form draft fields that may contain user evidence (`description`,
+  `scamType`, `city`) are redacted before session persistence, including retry
+  drafts after a failed final submit.
+- Added regression coverage for raw handle/email/link/code leakage in report
+  drafts, prepared Telegram target submission, and webhook callback retry
+  fixtures.
+
+## 2026-06-29 - Telegram session state is chat-scoped
+
+- Hardened `telegram_sessions.scenario_data` with a `chatScope` boundary so
+  `/report`, `/check`, `/call`, panic and follow-up context created in one
+  Telegram chat cannot be reused by the same user from another private/group
+  chat.
+- The router now resets active or contextual legacy session rows when they lack
+  a matching chat scope, then handles the current update as fresh input.
+- Added router, webhook and full Telegram regression coverage for scoped
+  scenarios, unscoped legacy resets and normal same-chat continuation.
+
+## 2026-06-29 - Admin allowlist gated on email confirmation
+
+- Added a Supabase migration so `admin_allowlist` no longer grants `admin` on
+  signup before `auth.users.email_confirmed_at` is set.
+- Added a confirmation update trigger that promotes allowlisted users only
+  after Supabase marks the mailbox verified, plus cleanup for previously
+  auto-granted unverified allowlisted admin rows.
+- Added focused migration regression coverage and updated deployment/database
+  docs with the email-confirmation requirement.
+
 ## 2026-06-22 - Telegram Native Passport Coach shipped
 
 - Username passports now teach users how to read Telegram's native profile card:
