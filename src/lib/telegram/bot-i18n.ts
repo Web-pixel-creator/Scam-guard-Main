@@ -187,9 +187,9 @@ export const bot_dict: BotDict = {
 
   // ── /report result messages (R6.7, R6.8) ──────────────────────────────────
   report_confirm: {
-    ru: "✅ Спасибо, сигнал принят.\n\nВы помогли предупредить других людей. Мы проверим сообщение вручную: публичная метка появится только после модерации.\n\nМодератор получил только безопасную краткую сводку — без кодов, карт, скриншотов и полных контактов.",
-    uz: "✅ Rahmat, signal qabul qilindi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz. Xabar qo'lda tekshiriladi: ommaviy belgi faqat moderatsiyadan keyin chiqadi.\n\nModerator faqat xavfsiz qisqa xulosa oldi — kodlar, kartalar, skrinshotlar va to'liq kontaktlarsiz.",
-    en: "✅ Thank you, the signal was received.\n\nYou helped warn other people. We will review it manually: a public label appears only after moderation.\n\nThe moderator received only a safe short summary — without codes, cards, screenshots, or full contacts.",
+    ru: "✅ Спасибо, сигнал принят.\n\nВы помогли предупредить других людей. Мы проверим сообщение вручную: публичная метка появится только после модерации. Если похожий сигнал уже был, ваш помогает поднять приоритет проверки.\n\nМодератор получил только безопасную краткую сводку — без кодов, карт, скриншотов и полных контактов.",
+    uz: "✅ Rahmat, signal qabul qilindi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz. Xabar qo'lda tekshiriladi: ommaviy belgi faqat moderatsiyadan keyin chiqadi. Agar shunga o'xshash signal oldin ham bo'lgan bo'lsa, sizniki tekshiruv ustuvorligini oshirishga yordam beradi.\n\nModerator faqat xavfsiz qisqa xulosa oldi — kodlar, kartalar, skrinshotlar va to'liq kontaktlarsiz.",
+    en: "✅ Thank you, the signal was received.\n\nYou helped warn other people. We will review it manually: a public label appears only after moderation. If a similar signal already exists, yours helps raise review priority.\n\nThe moderator received only a safe short summary — without codes, cards, screenshots, or full contacts.",
   },
   report_error: {
     ru: "Не удалось отправить жалобу. Попробуйте, пожалуйста, ещё раз чуть позже.",
