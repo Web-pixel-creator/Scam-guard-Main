@@ -526,6 +526,25 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("suspicious");
   });
 
+  it("surfaces private Telegram invite screenshots without storing the invite code", () => {
+    const evidence = fallbackImageIntelligence(
+      "Join my private Telegram chat for details: https://t.me/+SecretInvite12345",
+    );
+
+    expect(evidence.text).not.toContain("SecretInvite12345");
+    expect(evidence.riskHints).toContain("telegram_invite_or_private_link");
+
+    const { input, reasons, score } = scoreImageEvidence(evidence);
+    expect(input).toContain("private Telegram invite link");
+    expect(input).not.toContain("SecretInvite12345");
+    expect(reasons).toContain("suspicious_invite_link");
+    expect(score.level).toBe("suspicious");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "en");
+    expect(explanation).toContain("invite link to a private Telegram chat");
+    expect(explanation).toContain("I cannot inspect what is inside");
+  });
+
   it("does not turn ordinary Telegram news/product posts into scam promo reasons", () => {
     const news = fallbackImageIntelligence(
       "Just News. Supreme Court expected to release ruling on tariffs on January 14th. @just",

@@ -329,6 +329,7 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
   if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
   if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
+  if (shouldFlagPrivateTelegramInviteEvidence(text)) codes.add("suspicious_invite_link");
   // Heuristics
   if (
     /\b\$\s?\d{2,}|\d+\s?(usd|у\.?е\.?)|\d+\s?(сум|so['’]m)/i.test(text) &&
@@ -342,6 +343,10 @@ export function evaluateText(text: string): ReasonCode[] {
     codes.add("requests_personal_data");
   }
   return [...codes];
+}
+
+function shouldFlagPrivateTelegramInviteEvidence(text: string): boolean {
+  return /image evidence:\s*private telegram invite link/i.test(text);
 }
 
 const HOSTED_APP_DOMAINS = [

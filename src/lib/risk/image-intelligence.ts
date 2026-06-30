@@ -401,11 +401,13 @@ function deriveQrPurpose(text: string, hints: ImageRiskHint[]): ImageQrPurpose {
 }
 
 export function fallbackImageIntelligence(text: string | null): ImageIntelligenceResult {
-  const redacted = clampText(text ? redactText(text) : null, 2000);
+  const rawSource = text ?? "";
+  const redacted = clampText(rawSource ? redactText(rawSource) : null, 2000);
   const source = redacted ?? "";
-  const qrPresent = QR_RE.test(source);
-  const hints = deriveHints(source);
-  const visualCategory = deriveCategory(source, qrPresent, hints);
+  const analysisSource = [rawSource, source].filter(Boolean).join("\n");
+  const qrPresent = QR_RE.test(analysisSource);
+  const hints = deriveHints(analysisSource);
+  const visualCategory = deriveCategory(analysisSource, qrPresent, hints);
   return {
     text: redacted,
     visualCategory,
@@ -726,7 +728,7 @@ function dangerousHintText(hint: ImageRiskHint): string {
     case "ton_referral_or_earning":
       return "Обещают TON, crypto или Stars за приглашения, referral link или друзей.";
     case "telegram_invite_or_private_link":
-      return "Есть invite-ссылка в закрытый Telegram-канал или группу.";
+      return "Image evidence: private Telegram invite link to a closed chat or channel.";
   }
 }
 
