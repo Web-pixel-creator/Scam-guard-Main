@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - Voice-out pre-record architecture first slice
+
+- Main SOS `voiceout:panic:{id}` callbacks now look for static audio before
+  live TTS. Default path: `public/audio/voice-out/panic-{id}-{lang}.ogg`,
+  overrideable with `VOICE_OUT_PRERECORDED_DIR`.
+- Static Voice-out audio bypasses Gemini/OpenAI calls and does not spend the
+  daily TTS budget; missing static audio falls back to the existing provider
+  chain and text fallback.
+- Emergency follow-up screens no longer repeat the "Озвучить главный шаг"
+  button, reducing the broad voice-button surface that QA flagged.
+- Remaining work is asset production/review/deploy for RU/UZ/EN panic scripts
+  and a separate decision on static Guardian Angel audio.
+
 ## 2026-06-30 - Telegram conversational follow-ups after QA feedback
 
 - Added post-check/post-SOS handling for short acknowledgements like

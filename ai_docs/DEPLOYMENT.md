@@ -118,6 +118,10 @@ committed `.env`, never shipped to client):
   Telegram Voice-out audio tips. When present, Gemini TTS is tried first.
 - `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` — optional Gemini speech model and
   voice overrides (defaults: `gemini-3.1-flash-tts-preview` / `Kore`).
+- `VOICE_OUT_PRERECORDED_DIR` — optional directory for static Voice-out audio
+  files. Defaults to `public/audio/voice-out`. Main SOS voice tips look for
+  `panic-{id}-{lang}.ogg` first, for example `panic-4-ru.ogg`; static audio is
+  sent before any TTS provider call and does not spend the daily TTS budget.
 - `OPENAI_TTS_API_KEY` — optional dedicated fallback key for opt-in Telegram
   Voice-out audio tips. Without a TTS provider, the bot keeps the same buttons
   but replies with a short text fallback instead of audio.

@@ -1075,6 +1075,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
       expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts", "family:notify"]),
     );
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain("voiceout:panic:2:more");
   });
 
   it("answers stale panic follow-up buttons using the callback scenario id instead of the latest session context", async () => {
@@ -1102,6 +1103,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
       expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts"]),
     );
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain("voiceout:panic:2:more");
   });
 
   it("answers a card-data panic follow-up with verified bank contact guidance", async () => {

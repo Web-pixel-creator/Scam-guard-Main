@@ -163,7 +163,7 @@ async function sendEmergencyFollowUp(
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
     keyboard: buildEmergencyFollowUpKeyboard(lang, panicId, {
-      includeVoice: true,
+      includeVoice: false,
       voiceAction: action,
     }),
   });
@@ -371,6 +371,8 @@ export async function handleCallback(
         ? buildEmergencyFollowUpKeyboard(lang, panicId, { includeVoice: false })
         : undefined,
       callbackQueryId,
+      prerecorded:
+        panicId && voiceOutPanic?.action == null ? { kind: "panic", panicId } : undefined,
     });
     return;
   }
