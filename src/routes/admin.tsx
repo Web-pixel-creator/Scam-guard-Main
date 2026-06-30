@@ -267,7 +267,8 @@ function AdminPage() {
             <p className="label-md mb-2">01 — Жалобы</p>
             <h2 className="apex-h2">Входящие жалобы</h2>
             <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
-              Каждая карточка показывает безопасную маску, суть жалобы и силу повторного сигнала.
+              Подтверждайте риск только по понятному описанию опасной просьбы. Мало контекста —
+              отклоните: жалоба останется в истории, а повторные сигналы поднимут приоритет.
               Публичная метка появляется только после ручного подтверждения.
             </p>
           </div>
@@ -348,7 +349,7 @@ function AdminPage() {
             const priority = operatorQueuePriority(r);
             return (
               <div key={r.id} className="bg-white/90 backdrop-blur-[4px] p-5 sm:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
@@ -359,46 +360,24 @@ function AdminPage() {
                       </code>
                       <StatusBadge status={r.status} />
                       <QueuePriorityBadge priority={priority} />
-                      {r.scam_type && (
-                        <span className="apex-mono text-[#71717A]">· {r.scam_type}</span>
-                      )}
-                      {r.city && <span className="apex-mono text-[#71717A]">· {r.city}</span>}
-                      <span
-                        className={`apex-mono ${
-                          reportSignalCount(r) > 1 ? "text-[#9A3412]" : "text-[#71717A]"
-                        }`}
-                      >
-                        · {reportSignalLabel(reportSignalCount(r))}
+                      <span className="ml-auto">
+                        <RiskChip level={r.target_risk_level} />
                       </span>
                     </div>
-                    <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                    <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
                       {r.description}
                     </p>
                     <ReportReasonSummary report={r} compact />
-                    <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
-                      <ReportFact label="Что проверить" value={r.redacted_value} mono />
-                      <ReportFact
-                        label="Сигналы по цели"
-                        value={reportSignalLabel(reportSignalCount(r))}
-                        tone={reportSignalCount(r) > 1 ? "warn" : "neutral"}
-                      />
-                      <ReportFact label="Тип схемы" value={r.scam_type ?? "не указан"} />
-                      <ReportFact label="Город" value={r.city ?? "не указан"} />
-                      <ReportFact label="Ущерб" value={formatLoss(r.amount_lost_uzs)} />
-                      <ReportFact
-                        label="Статус цели"
-                        value={labelTargetStatus(r.target_moderation_status)}
-                      />
-                      <ReportFact label="Риск цели" value={labelRiskLevel(r.target_risk_level)} />
-                      <ReportFact
-                        label="Последний сигнал"
-                        value={formatDateTime(r.target_last_seen_at ?? r.created_at)}
-                      />
-                    </dl>
-                    <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
-                      В админке тоже показана безопасная маска. Если для решения не хватает
-                      контекста, не ставьте публичную метку: жалоба останется в истории, а повторные
-                      сигналы усилят приоритет проверки.
+                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
+                      {[
+                        r.scam_type,
+                        r.city,
+                        reportSignalLabel(reportSignalCount(r)),
+                        formatDateTime(r.target_last_seen_at ?? r.created_at),
+                        `ущерб ${formatLoss(r.amount_lost_uzs)}`,
+                      ]
+                        .filter(Boolean)
+                        .join("  ·  ")}
                     </p>
                     {reportSignalCount(r) > 1 && (
                       <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
@@ -406,51 +385,35 @@ function AdminPage() {
                         контекст в описании и похожие записи в базе.
                       </p>
                     )}
-                    <p className="mt-3 apex-mono text-[#A1A1AA]">
-                      {new Date(r.created_at).toLocaleString()} · LANG: {r.language}
-                      {r.amount_lost_uzs ? ` · ${r.amount_lost_uzs.toLocaleString()} UZS` : ""}
-                    </p>
                   </div>
-                  <div className="lg:w-[280px] shrink-0 space-y-3">
+                  <div className="lg:w-[220px] shrink-0 flex flex-col gap-2">
+                    {r.status === "new" && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
+                          className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                        >
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
+                        </button>
+                        <button
+                          type="button"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
+                          className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedReportId(r.id)}
-                      className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
+                      className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-[#71717A] hover:text-[#18181B] transition-colors"
                     >
                       <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Открыть детали
                     </button>
-                    {r.status === "new" && (
-                      <>
-                        <div className="rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] p-3">
-                          <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
-                          <p className="text-[13px] leading-relaxed text-[#52525B]">
-                            {moderationDecisionHint(reportSignalCount(r))}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={moderate.isPending}
-                            onClick={() =>
-                              moderate.mutate({ reportId: r.id, decision: "confirmed" })
-                            }
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
-                          >
-                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
-                          </button>
-                          <button
-                            type="button"
-                            disabled={moderate.isPending}
-                            onClick={() =>
-                              moderate.mutate({ reportId: r.id, decision: "rejected" })
-                            }
-                            className="apex-btn-outline inline-flex items-center gap-1.5"
-                          >
-                            <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
-                          </button>
-                        </div>
-                      </>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1057,6 +1020,43 @@ function StatusBadge({ status }: { status: string }) {
       className={`apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border ${s.bg} ${s.text} ${s.border}`}
     >
       {labelStatus(status)}
+    </span>
+  );
+}
+
+function RiskChip({ level }: { level?: string | null }) {
+  const map: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+    high_risk: {
+      bg: "bg-[#FEF2F2]",
+      text: "text-[#991B1B]",
+      border: "border-[#FCA5A5]/60",
+      dot: "bg-[#DC2626]",
+    },
+    suspicious: {
+      bg: "bg-[#FFF7ED]",
+      text: "text-[#9A3412]",
+      border: "border-[#FDBA74]/70",
+      dot: "bg-[#EA580C]",
+    },
+    safe: {
+      bg: "bg-[#F0FDF4]",
+      text: "text-[#166534]",
+      border: "border-[#86EFAC]/60",
+      dot: "bg-[#16A34A]",
+    },
+  };
+  const s = map[level ?? ""] ?? {
+    bg: "bg-[#F4F4F5]",
+    text: "text-[#3F3F46]",
+    border: "border-[#E4E4E7]",
+    dot: "bg-[#A1A1AA]",
+  };
+  return (
+    <span
+      className={`apex-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[999px] border ${s.bg} ${s.text} ${s.border}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden="true" />
+      {labelRiskLevel(level)}
     </span>
   );
 }
