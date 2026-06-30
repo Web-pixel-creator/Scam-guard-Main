@@ -57,10 +57,10 @@ vi.mock("@/lib/telegram/session.server", () => ({
 
 import { handleCheck, handleVoice } from "./check";
 
-function ctx(): HandlerCtx {
+function ctx(lang: Session["lang"] = "ru"): HandlerCtx {
   const session: Session = {
     telegramUserId: 42,
-    lang: "ru",
+    lang,
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {},
@@ -140,6 +140,37 @@ describe("handleVoice", () => {
     expect(sentTexts.findIndex((text) => text.includes("Распознаю голос"))).toBeLessThan(
       sentTexts.findIndex((text) => text.includes("Я распознал голос")),
     );
+  });
+
+  it("adds a redacted hook phrase to voice check results", async () => {
+    const transcript =
+      "The courier says open https://evil.example/pay, message @seller, and pay by card only 123456.";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+    hoisted.runCheck.mockResolvedValue({
+      ...FAKE_RESULT,
+      display: "delivery card-only voice transcript",
+      level: "suspicious",
+      score: 35,
+      reasons: ["fake_delivery_payment"],
+      explanation: null,
+    });
+
+    await handleVoice("voice-file-id", ctx("en"), {
+      fileSize: 1024,
+      duration: 8,
+      mimeType: "audio/ogg",
+      fileUniqueId: "voice-hook-redaction",
+    });
+
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
+
+    expect(joined).toContain("Key phrase from the voice note");
+    expect(joined).toContain("card only");
+    expect(joined).not.toContain("evil.example");
+    expect(joined).not.toContain("@seller");
+    expect(joined).not.toContain("123456");
   });
 
   it("keeps delivery card-only voice transcripts in the suspicious lane", async () => {

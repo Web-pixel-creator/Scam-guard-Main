@@ -502,6 +502,14 @@ function isDecodedQrEvidenceBrief(explanation: string | null): explanation is st
   );
 }
 
+function extractVoiceHookBrief(explanation: string | null): string | null {
+  if (!explanation) return null;
+  const firstLine = explanation.split(/\r?\n/u, 1)[0]?.trim() ?? "";
+  return /^(?:Ключевая фраза из голосового|Key phrase from the voice note|Ovozdan asosiy ibora):/u.test(firstLine)
+    ? firstLine
+    : null;
+}
+
 function isDecodedInformationalQr(result: RunCheckResult): boolean {
   return (
     result.level === "unknown" &&
@@ -574,6 +582,10 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
     isDecodedQrEvidenceBrief(explanation)
   ) {
     parts.push(escapeMarkdownV2(truncateExplanation(explanation, { maxLines: 4, maxChars: 320 })));
+  }
+  const voiceHookBrief = extractVoiceHookBrief(explanation);
+  if (result.level === "high_risk" && voiceHookBrief) {
+    parts.push(escapeMarkdownV2(truncateExplanation(voiceHookBrief, { maxLines: 1, maxChars: 220 })));
   }
 
   // Reason labels

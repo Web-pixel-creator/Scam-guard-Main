@@ -105,6 +105,7 @@ const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
+const VOICE_HOOK_PREVIEW_CHARS = 120;
 const VOICE_LOW_SIGNAL_MIN_LETTERS = 6;
 const VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS = 2;
 
@@ -483,6 +484,58 @@ function sanitizeVoiceTranscriptPreview(text: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+}
+
+const VOICE_HOOK_KEYWORD_RE =
+  /(sms|otp|код|code|verification|cvv|cvc|pin|apk|карта|картой|card|перевод|перевести|transfer|оплат|payment|pay|доставк|посылк|delivery|courier|qr|telegram|банк|bank|кошел|wallet|karta|to['’]?lov|o['’]?tkaz|pul|kod|havola|ilova)/i;
+
+function trimVoiceHookPhrase(value: string): string {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  if (trimmed.length <= VOICE_HOOK_PREVIEW_CHARS) return trimmed;
+  return `${trimmed.slice(0, VOICE_HOOK_PREVIEW_CHARS - 3).trimEnd()}...`;
+}
+
+function extractVoiceHookPhrase(transcript: string): string | null {
+  const preview = sanitizeVoiceTranscriptPreview(transcript);
+  if (!preview) return null;
+
+  const candidates = preview
+    .split(/(?:[.!?]\s+|[,;]\s+|\s+[–—-]\s+)/u)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 8);
+  const hook = candidates.find((part) => VOICE_HOOK_KEYWORD_RE.test(part)) ?? preview;
+  return trimVoiceHookPhrase(hook);
+}
+
+function buildVoiceHookExplanation(
+  transcript: string,
+  lang: HandlerCtx["session"]["lang"],
+): string | null {
+  const hook = extractVoiceHookPhrase(transcript);
+  if (!hook) return null;
+
+  if (lang === "uz") {
+    return `Ovozdan asosiy ibora: "${hook}". Men shu matnni odatiy xavf qoidalari bilan tekshirdim.`;
+  }
+  if (lang === "en") {
+    return `Key phrase from the voice note: "${hook}". I checked that text through the normal risk rules.`;
+  }
+  return `Ключевая фраза из голосового: «${hook}». Я проверил этот текст обычными правилами риска.`;
+}
+
+function withVoiceHookExplanation(
+  result: RunCheckResult,
+  transcript: string,
+  lang: HandlerCtx["session"]["lang"],
+): RunCheckResult {
+  if (result.reasons.length === 0) return result;
+
+  const hook = buildVoiceHookExplanation(transcript, lang);
+  if (!hook) return result;
+  return {
+    ...result,
+    explanation: result.explanation ? `${hook}\n${result.explanation}` : hook,
+  };
 }
 
 function buildVoiceTranscriptNote(
@@ -1175,7 +1228,7 @@ async function handleResolvedVoiceTranscript(
     level: result.level,
     reasonCount: result.reasons.length,
   });
-  await sendCheckResult(ctx, result);
+  await sendCheckResult(ctx, withVoiceHookExplanation(result, transcriptText, lang));
   logTelegramTiming("voice.total", startedAt, {
     cached: source === "cached",
     inFlight: source === "in_flight",
@@ -1340,7 +1393,11 @@ export async function handleVoice(
           level: result.level,
           reasonCount: result.reasons.length,
         });
-        return { kind: "ok" as const, result, transcriptChars: transcriptText.length };
+        return {
+          kind: "ok" as const,
+          result: withVoiceHookExplanation(result, transcriptText, lang),
+          transcriptChars: transcriptText.length,
+        };
       },
       { delayMs: 500, repeatMs: 4000 },
     );

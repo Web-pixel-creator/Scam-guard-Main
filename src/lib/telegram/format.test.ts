@@ -863,6 +863,23 @@ describe("formatCheckResult — compressed high-risk first card", () => {
     expect(text).not.toContain(escapeMarkdownV2("Cyber Police"));
     expect(text).not.toContain(escapeMarkdownV2(explanation));
   });
+
+  it("keeps a short voice hook visible in high-risk cards", () => {
+    const explanation =
+      'Key phrase from the voice note: "caller asks for SMS code". I checked that text through the normal risk rules.\nDetailed model explanation that should stay out of the compressed card.';
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        reasons: ["asks_for_sms_code"],
+        explanation,
+      }),
+      "en",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Key phrase from the voice note"));
+    expect(text).toContain(escapeMarkdownV2("caller asks for SMS code"));
+    expect(text).not.toContain(escapeMarkdownV2("Detailed model explanation"));
+  });
 });
 
 describe("formatCheckResult - deterministic URL fallback and scam patterns", () => {
