@@ -2,7 +2,6 @@ import type { Lang } from "@/lib/i18n";
 
 export const EMBED_WIDGET_PATH = "/embed/check";
 export const EMBED_WIDGET_HEIGHT = 560;
-export const EMBED_WIDGET_SANDBOX = "allow-scripts allow-forms allow-same-origin allow-popups";
 
 export type EmbedWidgetOptions = {
   lang?: Lang | string | null;
@@ -42,7 +41,6 @@ export function buildEmbedIframeSnippet(baseUrl: string, options: EmbedWidgetOpt
     `  style="border:0;max-width:520px;width:100%;border-radius:8px;overflow:hidden;"`,
     `  loading="lazy"`,
     `  referrerpolicy="strict-origin-when-cross-origin"`,
-    `  sandbox="${EMBED_WIDGET_SANDBOX}"`,
     `></iframe>`,
   ].join("\n");
 }

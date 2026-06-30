@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Code2, Copy, ExternalLink, ShieldCheck } from "lucide-react";
 
-import { buildEmbedIframeSnippet, buildEmbedWidgetUrl } from "@/lib/embed-widget";
+import {
+  buildEmbedIframeSnippet,
+  buildEmbedWidgetUrl,
+} from "@/lib/embed-widget";
 import { useLang } from "@/lib/lang-context";
 import type { Lang } from "@/lib/i18n";
 
@@ -234,7 +237,6 @@ function EmbedPage() {
                 height="560"
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
-                sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
                 className="block w-full border-0"
               />
             ) : (
