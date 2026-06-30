@@ -1,6 +1,7 @@
 import { useState, useId } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { submitReport } from "@/lib/report.functions";
+import { buildQuickReportSubmitData } from "@/lib/quick-report-payload";
 import { useLang } from "@/lib/lang-context";
 import { Send, CheckCircle2 } from "lucide-react";
 
@@ -67,11 +68,7 @@ export function QuickReportForm() {
     setSending(true);
     try {
       const res = await submit({
-        data: {
-          value: value.trim() || "—",
-          description: description.trim(),
-          lang,
-        },
+        data: buildQuickReportSubmitData({ value, description, lang }),
       });
       if (res?.ok) {
         setDone(true);

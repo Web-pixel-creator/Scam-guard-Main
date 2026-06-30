@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, Send, ArrowLeft, ChevronRight, Home } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
+import { safeClientErrorReason } from "@/lib/client-error";
 import { submitReport } from "@/lib/report.functions";
 
 const reportSearchSchema = z.object({ v: z.string().optional() });
@@ -85,7 +86,7 @@ function ReportPage() {
       if (r.ok) setDone(true);
       else setError(r.error ?? "Ошибка");
     } catch (e) {
-      console.error(e);
+      console.error("report submit failed", safeClientErrorReason(e));
       setError("Не удалось отправить. Попробуйте позже.");
     } finally {
       setLoading(false);

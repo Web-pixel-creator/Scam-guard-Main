@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { publicRateLimitKey } from "@/lib/request-ip.server";
 import {
   detectInputType,
   maskForDisplay,
@@ -35,19 +35,6 @@ const APPEAL_RATE_WINDOW_MS = 10 * 60 * 1000;
 const APPEAL_TARGET_TYPES = new Set<InputType>(["phone", "telegram", "url", "apk"]);
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
-function appealRateLimitKey(): string {
-  try {
-    const ip =
-      getRequestHeader("cf-connecting-ip") ||
-      getRequestHeader("x-real-ip") ||
-      getRequestIP({ xForwardedFor: true }) ||
-      "unknown";
-    return `appeal:${ip}`;
-  } catch {
-    return "appeal:unknown";
-  }
-}
-
 function maskEmail(email: string): string {
   const [local, domain] = email.toLowerCase().split("@");
   if (!local || !domain) return "[email]";
@@ -74,7 +61,9 @@ function maskContact(raw: string): string {
 
   const type = detectInputType(trimmed);
   if (["phone", "telegram", "url", "apk"].includes(type)) {
-    return maskForDisplay(normalize(trimmed, type), type);
+    const normalized = normalize(trimmed, type);
+    const display = maskForDisplay(normalized, type);
+    return display === trimmed ? redactAppealText(trimmed).slice(0, 120) : display;
   }
   return redactAppealText(trimmed).slice(0, 120);
 }
@@ -121,9 +110,7 @@ export async function submitReputationAppealCore(
   if (existingError) {
     console.error("appeal dedupe lookup failed", existingError.message);
   }
-  if (existing && existing.length > 0) {
-    return { ok: true, duplicate: true };
-  }
+  const duplicate = Boolean(existing && existing.length > 0);
 
   const { error } = await supabaseAdmin.from("reputation_appeals").insert({
     target_type: targetType,
@@ -144,9 +131,9 @@ export async function submitReputationAppealCore(
     targetDisplay,
     language: appeal.lang,
   });
-  return { ok: true };
+  return duplicate ? { ok: true, duplicate: true } : { ok: true };
 }
 
 export const submitReputationAppeal = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => appealSchema.parse(d))
-  .handler(async ({ data }) => submitReputationAppealCore(data, appealRateLimitKey()));
+  .handler(async ({ data }) => submitReputationAppealCore(data, publicRateLimitKey("appeal")));

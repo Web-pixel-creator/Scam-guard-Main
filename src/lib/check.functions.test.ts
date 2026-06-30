@@ -28,6 +28,27 @@ const hoisted = vi.hoisted(() => ({
   // captured calls into the core
   runCheckCalls: [] as Array<Record<string, unknown>>,
   ocrCalls: [] as unknown[][],
+  stats: {
+    rpcCalls: [] as string[],
+    checkCountQueries: [] as string[],
+    reportCountQueries: 0,
+    reportLossCountQueries: 0,
+    reportAmountSelects: 0,
+    reportCountStatuses: [] as Array<unknown>,
+    reportLossStatuses: [] as Array<unknown>,
+    reportAmountSelectStatuses: [] as Array<unknown>,
+    rpcRow: {
+      total: 10,
+      today: 2,
+      confirmed_entities: 3,
+      high_risk: 0,
+      suspicious: 0,
+      reports_total: 0,
+      reports_with_loss_amount: 1,
+      reported_loss_uzs: 0,
+    },
+    amountRows: [{ amount_lost_uzs: 250_000 }, { amount_lost_uzs: 125_000 }],
+  },
 }));
 
 // Fixed core result with EVERY documented RunCheckResult field. The wrapper must
@@ -84,17 +105,90 @@ vi.mock("./risk/check-core", () => ({
   }),
 }));
 
-import { checkInput, ocrExtract } from "./check.functions";
+vi.mock("@/integrations/supabase/client.server", () => ({
+  supabaseAdmin: {
+    rpc: async (name: string) => {
+      hoisted.stats.rpcCalls.push(name);
+      return { data: [hoisted.stats.rpcRow], error: null };
+    },
+    from: (table: string) => ({
+      select: (columns: string) => {
+        const filters: Array<{ column: string; value: unknown }> = [];
+        const resolve = async () => {
+          if (table === "checks") {
+            const riskLevel = String(
+              filters.find((filter) => filter.column === "risk_level")?.value,
+            );
+            hoisted.stats.checkCountQueries.push(riskLevel);
+            return {
+              count: riskLevel === "high_risk" ? 4 : riskLevel === "suspicious" ? 5 : 0,
+              error: null,
+            };
+          }
+
+          if (table === "reports" && columns === "id") {
+            const hasLossFilter = filters.some((filter) => filter.column === "amount_lost_uzs");
+            const status = filters.find((filter) => filter.column === "status")?.value;
+            if (hasLossFilter) {
+              hoisted.stats.reportLossCountQueries += 1;
+              hoisted.stats.reportLossStatuses.push(status);
+              return { count: 2, error: null };
+            }
+            hoisted.stats.reportCountQueries += 1;
+            hoisted.stats.reportCountStatuses.push(status);
+            return { count: 6, error: null };
+          }
+
+          if (table === "reports" && columns === "amount_lost_uzs") {
+            const status = filters.find((filter) => filter.column === "status")?.value;
+            hoisted.stats.reportAmountSelects += 1;
+            hoisted.stats.reportAmountSelectStatuses.push(status);
+            return { data: hoisted.stats.amountRows, error: null };
+          }
+
+          throw new Error(`unexpected public stats query: ${table}.${columns}`);
+        };
+
+        const chain = {
+          eq(column: string, value: unknown) {
+            filters.push({ column, value });
+            return chain;
+          },
+          gt(column: string, value: unknown) {
+            filters.push({ column, value });
+            return chain;
+          },
+          limit: async () => resolve(),
+          then: (onFulfilled: unknown, onRejected: unknown) =>
+            resolve().then(onFulfilled as never, onRejected as never),
+        };
+
+        return chain;
+      },
+    }),
+  },
+}));
+
+import { checkInput, getPublicStats, ocrExtract } from "./check.functions";
 
 beforeEach(() => {
   hoisted.headers = {};
   hoisted.requestIp = undefined;
   hoisted.runCheckCalls.length = 0;
   hoisted.ocrCalls.length = 0;
+  hoisted.stats.rpcCalls.length = 0;
+  hoisted.stats.checkCountQueries.length = 0;
+  hoisted.stats.reportCountQueries = 0;
+  hoisted.stats.reportLossCountQueries = 0;
+  hoisted.stats.reportAmountSelects = 0;
+  hoisted.stats.reportCountStatuses.length = 0;
+  hoisted.stats.reportLossStatuses.length = 0;
+  hoisted.stats.reportAmountSelectStatuses.length = 0;
+  delete process.env.TRUST_PROXY_IP_HEADERS;
 });
 
 describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
-  it("builds the rate-limit key from cf-connecting-ip in `check:<ip>` form", async () => {
+  it("ignores spoofable forwarding headers by default when building the rate-limit key", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
     // Other sources also set, to prove cf-connecting-ip wins (priority unchanged).
     hoisted.headers["x-real-ip"] = "198.51.100.9";
@@ -104,8 +198,19 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
 
     expect(hoisted.runCheckCalls).toHaveLength(1);
     const params = hoisted.runCheckCalls[0];
-    expect(params.rateLimitKey).toBe("check:203.0.113.7");
+    expect(params.rateLimitKey).toBe("check:192.0.2.1");
     expect(params.channel).toBe("web");
+  });
+
+  it("uses trusted proxy headers only when explicitly enabled", async () => {
+    process.env.TRUST_PROXY_IP_HEADERS = "true";
+    hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
+    hoisted.headers["x-real-ip"] = "198.51.100.9";
+    hoisted.requestIp = "192.0.2.1";
+
+    await checkInput({ data: { input: "+998901234567", lang: "ru" } });
+
+    expect(hoisted.runCheckCalls[0].rateLimitKey).toBe("check:203.0.113.7");
   });
 
   it("falls back x-real-ip → getRequestIP → 'unknown' (IP-based, not user-based)", async () => {
@@ -113,7 +218,7 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     hoisted.headers["x-real-ip"] = "198.51.100.9";
     hoisted.requestIp = "192.0.2.1";
     await checkInput({ data: { input: "test", lang: "ru" } });
-    expect(hoisted.runCheckCalls[0].rateLimitKey).toBe("check:198.51.100.9");
+    expect(hoisted.runCheckCalls[0].rateLimitKey).toBe("check:192.0.2.1");
 
     // 2) headers missing → getRequestIP
     hoisted.headers = {};
@@ -134,16 +239,15 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     }
   });
 
-  it("forwards input/type/lang unchanged and defaults lang to 'ru'", async () => {
+  it("forwards input/lang but does not trust client-supplied type", async () => {
     hoisted.requestIp = "192.0.2.1";
 
-    // explicit type + lang preserved
     await checkInput({ data: { input: "@scammer", type: "telegram", lang: "uz" } });
     expect(hoisted.runCheckCalls[0]).toMatchObject({
       input: "@scammer",
-      type: "telegram",
       lang: "uz",
     });
+    expect(hoisted.runCheckCalls[0]).not.toHaveProperty("type");
 
     // lang omitted → schema default "ru"
     await checkInput({ data: { input: "hello" } });
@@ -227,6 +331,7 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
 describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
   it("delegates to ocrExtractCore with image, lang and the same `check:<ip>` key", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
+    hoisted.requestIp = "192.0.2.1";
 
     await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "en" } });
 
@@ -234,7 +339,42 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
     const [image, lang, rateLimitKey] = hoisted.ocrCalls[0];
     expect(image).toBe("data:image/png;base64,AAAA");
     expect(lang).toBe("en");
-    expect(rateLimitKey).toBe("check:203.0.113.7");
+    expect(rateLimitKey).toBe("check:192.0.2.1");
+  });
+
+  it("rejects non-image or malformed data URLs before the OCR core", async () => {
+    const invalidImages = [
+      "https://example.com/not-a-data-url.png",
+      "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+      "data:image/svg+xml;base64,PHN2Zy8+",
+      "data:image/png,AAAA",
+      "data:image/png;base64,not valid base64 ***",
+    ];
+
+    for (const image of invalidImages) {
+      await expect(ocrExtract({ data: { image, lang: "ru" } })).rejects.toBeDefined();
+    }
+
+    expect(hoisted.ocrCalls).toHaveLength(0);
+  });
+
+  it("rejects decoded images larger than the web screenshot byte limit", async () => {
+    const oversized = `data:image/png;base64,${"A".repeat(5_600_000)}`;
+
+    await expect(ocrExtract({ data: { image: oversized, lang: "ru" } })).rejects.toBeDefined();
+    expect(hoisted.ocrCalls).toHaveLength(0);
+  });
+
+  it("allows png, jpeg and webp data URLs after validation", async () => {
+    await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "ru" } });
+    await ocrExtract({ data: { image: "data:image/jpeg;base64,BBBB", lang: "ru" } });
+    await ocrExtract({ data: { image: "data:image/webp;base64,CCCC", lang: "ru" } });
+
+    expect(hoisted.ocrCalls.map(([image]) => image)).toEqual([
+      "data:image/png;base64,AAAA",
+      "data:image/jpeg;base64,BBBB",
+      "data:image/webp;base64,CCCC",
+    ]);
   });
 
   it("defaults lang to 'ru' and reuses the IP-based key (unknown when no IP)", async () => {
@@ -243,5 +383,22 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
     const [, lang, rateLimitKey] = hoisted.ocrCalls[0];
     expect(lang).toBe("ru");
     expect(rateLimitKey).toBe("check:unknown");
+  });
+});
+
+describe("getPublicStats public aggregate guard", () => {
+  it("serves repeated public stats requests from a short cache instead of repeating service-role aggregates", async () => {
+    const first = await getPublicStats({ data: undefined as never });
+    const second = await getPublicStats({ data: undefined as never });
+
+    expect(second).toEqual(first);
+    expect(hoisted.stats.rpcCalls).toEqual(["get_check_stats"]);
+    expect(hoisted.stats.checkCountQueries).toEqual(["high_risk", "suspicious"]);
+    expect(hoisted.stats.reportCountQueries).toBe(1);
+    expect(hoisted.stats.reportLossCountQueries).toBe(1);
+    expect(hoisted.stats.reportAmountSelects).toBe(1);
+    expect(hoisted.stats.reportCountStatuses).toEqual(["confirmed"]);
+    expect(hoisted.stats.reportLossStatuses).toEqual(["confirmed"]);
+    expect(hoisted.stats.reportAmountSelectStatuses).toEqual(["confirmed"]);
   });
 });

@@ -33,7 +33,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const FILTERS = ["new", "confirmed", "rejected", "all"] as const;
+const FILTERS = ["new", "confirmed", "rejected", "duplicate", "all"] as const;
 type FilterKey = (typeof FILTERS)[number];
 const APPEAL_FILTERS = ["new", "reviewing", "resolved", "rejected", "all"] as const;
 type AppealFilterKey = (typeof APPEAL_FILTERS)[number];
@@ -814,6 +814,7 @@ function StatusBadge({ status }: { status: string }) {
     new: { bg: "bg-[#FFF7ED]", text: "text-[#9A3412]", border: "border-[#FDBA74]/70" },
     confirmed: { bg: "bg-[#FEF2F2]", text: "text-[#991B1B]", border: "border-[#FCA5A5]/60" },
     rejected: { bg: "bg-[#F4F4F5]", text: "text-[#3F3F46]", border: "border-[#E4E4E7]" },
+    duplicate: { bg: "bg-[#F8FAFC]", text: "text-[#475569]", border: "border-[#CBD5E1]" },
   };
   const s = map[status] ?? map.rejected;
   return (
@@ -834,6 +835,7 @@ function labelStatus(s: string) {
         confirmed: "Подтверждено",
         resolved: "Решено",
         rejected: "Отклонено",
+        duplicate: "Дубликаты",
         all: "Все",
       } as Record<string, string>
     )[s] ?? s

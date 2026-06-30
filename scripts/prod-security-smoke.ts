@@ -1,5 +1,6 @@
 import process from "node:process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { checkProxyIpHeaderTrust } from "./security-smoke-env";
 
 type CheckResult = {
   label: string;
@@ -26,6 +27,10 @@ function publicKey(): string {
 function record(label: string, ok: boolean, detail: string): void {
   results.push({ label, ok, detail });
   console.log(`${ok ? "OK" : "FAIL"} ${label}: ${detail}`);
+}
+
+function recordResult(result: CheckResult): void {
+  record(result.label, result.ok, result.detail);
 }
 
 function expectedDeny(
@@ -89,6 +94,11 @@ async function expectServiceCanCount(
 }
 
 async function main(): Promise<void> {
+  console.log("Production security smoke target: Supabase project from env");
+  console.log("Secret values are read from env and are not printed.");
+
+  recordResult(checkProxyIpHeaderTrust(process.env));
+
   const supabaseUrl = env("SUPABASE_URL");
   const anonKey = publicKey();
   const serviceRoleKey = env("SUPABASE_SERVICE_ROLE_KEY");
@@ -100,9 +110,6 @@ async function main(): Promise<void> {
   };
   const anon = createClient(supabaseUrl, anonKey, clientOptions);
   const service = createClient(supabaseUrl, serviceRoleKey, clientOptions);
-
-  console.log("Production security smoke target: Supabase project from env");
-  console.log("Secret values are read from env and are not printed.");
 
   await expectNoRowsOrDenied(
     anon,

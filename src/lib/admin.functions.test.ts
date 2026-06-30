@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   entityInserts: [] as Array<Record<string, unknown>>,
   entityUpdates: [] as Array<Record<string, unknown>>,
   auditInserts: [] as Array<Record<string, unknown>>,
+  auditError: null as null | { message: string },
   reputationUpserts: [] as Array<Record<string, unknown>>,
   reputationUpdates: [] as Array<Record<string, unknown>>,
   appealRow: null as null | {
@@ -139,6 +140,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       if (table === "admin_actions") {
         return {
           insert: async (row: Record<string, unknown>) => {
+            if (hoisted.auditError) return { data: null, error: hoisted.auditError };
             hoisted.auditInserts.push(row);
             return { data: null, error: null };
           },
@@ -163,6 +165,7 @@ beforeEach(() => {
   hoisted.entityInserts.length = 0;
   hoisted.entityUpdates.length = 0;
   hoisted.auditInserts.length = 0;
+  hoisted.auditError = null;
   hoisted.reputationUpserts.length = 0;
   hoisted.reputationUpdates.length = 0;
   hoisted.appealRow = {
@@ -246,6 +249,7 @@ describe("moderateReportCore reputation boundary", () => {
       {
         moderation_status: "rejected",
         risk_level: "unknown",
+        report_count: 0,
       },
     ]);
     expect(hoisted.auditInserts[0]).toMatchObject({
@@ -263,6 +267,54 @@ describe("moderateReportCore reputation boundary", () => {
       risk_level: "unknown",
       moderated_report_count: 0,
     });
+  });
+
+  it("keeps an existing target confirmed when another confirmed report remains", async () => {
+    hoisted.existingEntity = { id: "entity-1" };
+    hoisted.confirmedReportCount = 1;
+    hoisted.unverifiedReportCount = 0;
+
+    await expect(
+      moderateReportCore(
+        { reportId: REPORT_ID, decision: "rejected", riskLevel: "suspicious" },
+        ADMIN_ID,
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(hoisted.reportUpdates).toEqual([{ status: "rejected" }]);
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toEqual([
+      {
+        moderation_status: "confirmed",
+        risk_level: "high_risk",
+        report_count: 1,
+      },
+    ]);
+    expect(hoisted.reputationUpserts[0]).toMatchObject({
+      target_hash: "hash-target",
+      source_type: "moderated_report",
+      confidence: "medium",
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+      moderated_report_count: 1,
+    });
+  });
+
+  it("does not mutate report or entity state when audit logging fails", async () => {
+    hoisted.auditError = { message: "audit down" };
+
+    await expect(
+      moderateReportCore(
+        { reportId: REPORT_ID, decision: "confirmed", riskLevel: "high_risk" },
+        ADMIN_ID,
+      ),
+    ).rejects.toThrow("audit down");
+
+    expect(hoisted.auditInserts).toHaveLength(0);
+    expect(hoisted.reportUpdates).toHaveLength(0);
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.reputationUpserts).toHaveLength(0);
   });
 });
 
@@ -320,5 +372,25 @@ describe("resolveReputationAppealCore", () => {
       target_type: "reputation_appeal",
       target_id: "44444444-4444-4444-8444-444444444444",
     });
+  });
+
+  it("does not resolve an appeal when audit logging fails", async () => {
+    hoisted.auditError = { message: "audit down" };
+
+    await expect(
+      resolveReputationAppealCore(
+        {
+          appealId: "55555555-5555-4555-8555-555555555555",
+          decision: "remove_reputation",
+          note: "Owner verified.",
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toThrow("audit down");
+
+    expect(hoisted.auditInserts).toHaveLength(0);
+    expect(hoisted.appealUpdates).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.reputationUpdates).toHaveLength(0);
   });
 });

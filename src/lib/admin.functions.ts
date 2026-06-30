@@ -49,10 +49,31 @@ async function assertAdmin(userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
+async function insertAdminAction(payload: AdminActionInsert): Promise<void> {
+  const { error } = await (supabaseAdmin as unknown as AuditLogClient)
+    .from("admin_actions")
+    .insert(payload);
+  if (error) throw new Error(error.message || "audit log insert failed");
+}
+
+async function confirmedReportCount(entityHash: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("entity_hash", entityHash)
+    .eq("status", "confirmed");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export const listReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ status: z.enum(["new", "confirmed", "rejected", "all"]).default("new") }).parse(d),
+    z
+      .object({
+        status: z.enum(["new", "confirmed", "rejected", "duplicate", "all"]).default("new"),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
@@ -147,53 +168,66 @@ export async function moderateReportCore(data: ModerateReportInput, adminUserId:
     .maybeSingle();
   if (error || !rep) throw new Error("Report not found");
 
-  await supabaseAdmin.from("reports").update({ status: data.decision }).eq("id", data.reportId);
+  await insertAdminAction({
+    admin_user_id: adminUserId,
+    action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
+    target_type: "report",
+    target_id: data.reportId,
+    reason: `risk_level: ${data.riskLevel}`,
+  });
+
+  const { error: updateReportError } = await supabaseAdmin
+    .from("reports")
+    .update({ status: data.decision })
+    .eq("id", data.reportId);
+  if (updateReportError) throw new Error(updateReportError.message);
 
   if (!isIncidentOnlyReportProjection(rep)) {
+    const confirmedCount = await confirmedReportCount(rep.entity_hash);
+    const targetStatus = confirmedCount > 0 ? "confirmed" : data.decision;
+    const targetRiskLevel =
+      targetStatus === "confirmed"
+        ? data.decision === "confirmed"
+          ? data.riskLevel
+          : "high_risk"
+        : "unknown";
+
     // Sync corresponding entity only for reports that name a target.
-    const { data: ent } = await supabaseAdmin
+    const { data: ent, error: entityLookupError } = await supabaseAdmin
       .from("entities")
       .select("id")
       .eq("entity_hash", rep.entity_hash)
       .maybeSingle();
+    if (entityLookupError) throw new Error(entityLookupError.message);
     if (ent) {
-      await supabaseAdmin
+      const { error: updateEntityError } = await supabaseAdmin
         .from("entities")
         .update({
-          moderation_status: data.decision,
-          risk_level: data.decision === "confirmed" ? data.riskLevel : "unknown",
+          moderation_status: targetStatus,
+          risk_level: targetRiskLevel,
+          report_count: confirmedCount,
         })
         .eq("id", ent.id);
+      if (updateEntityError) throw new Error(updateEntityError.message);
     } else {
-      await supabaseAdmin.from("entities").insert({
+      const { error: insertEntityError } = await supabaseAdmin.from("entities").insert({
         entity_type: rep.entity_type,
         entity_hash: rep.entity_hash,
         display_mask: rep.redacted_value,
-        moderation_status: data.decision,
-        risk_level: data.decision === "confirmed" ? data.riskLevel : "unknown",
-        report_count: 1,
+        moderation_status: targetStatus,
+        risk_level: targetRiskLevel,
+        report_count: confirmedCount,
       });
+      if (insertEntityError) throw new Error(insertEntityError.message);
     }
 
     if (rep.entity_type === "telegram") {
       await syncTelegramReputationAfterModeration({
         entityHash: rep.entity_hash,
         displayHint: rep.redacted_value,
-        riskLevel: data.decision === "confirmed" ? data.riskLevel : "unknown",
+        riskLevel: targetRiskLevel,
       });
     }
-  }
-  // Audit log: record who made the decision and why.
-  try {
-    await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
-      admin_user_id: adminUserId,
-      action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
-      target_type: "report",
-      target_id: data.reportId,
-      reason: `risk_level: ${data.riskLevel}`,
-    });
-  } catch (e) {
-    console.error("audit log insert failed", e instanceof Error ? e.message : "");
   }
   return { ok: true };
 }
@@ -225,6 +259,14 @@ export async function resolveReputationAppealCore(
       ? "Public reputation was removed after appeal review."
       : "Appeal rejected; public reputation was kept after review.");
 
+  await insertAdminAction({
+    admin_user_id: adminUserId,
+    action: data.decision,
+    target_type: "reputation_appeal",
+    target_id: data.appealId,
+    reason: `${appeal.target_type}:${appeal.target_display} - ${resolution}`,
+  });
+
   const { error: updateAppealError } = await supabaseAdmin
     .from("reputation_appeals")
     .update({ status, resolution, updated_at: now })
@@ -232,13 +274,14 @@ export async function resolveReputationAppealCore(
   if (updateAppealError) throw new Error(updateAppealError.message);
 
   if (data.decision === "remove_reputation") {
-    await supabaseAdmin
+    const { error: updateEntityError } = await supabaseAdmin
       .from("entities")
       .update({ moderation_status: "rejected", risk_level: "unknown", last_seen_at: now })
       .eq("entity_hash", appeal.target_hash);
+    if (updateEntityError) throw new Error(updateEntityError.message);
 
     if (appeal.target_type === "telegram") {
-      await supabaseAdmin
+      const { error: updateTelegramError } = await supabaseAdmin
         .from("telegram_reputation_targets")
         .update({
           moderation_status: "rejected",
@@ -246,19 +289,8 @@ export async function resolveReputationAppealCore(
           updated_at: now,
         })
         .eq("target_hash", appeal.target_hash);
+      if (updateTelegramError) throw new Error(updateTelegramError.message);
     }
-  }
-
-  try {
-    await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
-      admin_user_id: adminUserId,
-      action: data.decision,
-      target_type: "reputation_appeal",
-      target_id: data.appealId,
-      reason: `${appeal.target_type}:${appeal.target_display} - ${resolution}`,
-    });
-  } catch (e) {
-    console.error("audit log insert failed", e instanceof Error ? e.message : "");
   }
 
   return { ok: true };

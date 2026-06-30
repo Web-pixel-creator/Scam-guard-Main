@@ -77,16 +77,16 @@ export function HomeImpactCounters() {
       icon: CircleDollarSign,
       value: lossValue,
       label: {
-        ru: "заявлено потерь",
-        uz: "ko'rsatilgan zarar",
-        en: "reported losses",
+        ru: "подтверждённых потерь",
+        uz: "tasdiqlangan zarar",
+        en: "confirmed losses",
       }[lang],
       detail:
         stats.reports_with_loss_amount > 0
           ? {
-              ru: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} жалоб с суммой`,
-              uz: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} ta summa bilan`,
-              en: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} reports with amount`,
+              ru: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} подтверждённых жалоб с суммой`,
+              uz: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} ta tasdiqlangan summa bilan`,
+              en: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} confirmed reports with amount`,
             }[lang]
           : {
               ru: "покажем после первых данных",
@@ -137,9 +137,9 @@ export function HomeImpactCounters() {
           <p className="mt-3 max-w-2xl text-[15px] leading-[1.65] text-[#52525B]">
             {
               {
-                ru: "Это только общие цифры: сколько проверок прошло, сколько раз бот увидел риск и какую сумму потерь люди сами указали в жалобах.",
-                uz: "Bu faqat umumiy raqamlar: nechta tekshiruv bo'lgani, bot necha marta xavf ko'rgani va odamlar shikoyatda o'zi ko'rsatgan zarar summasi.",
-                en: "These are general totals only: how many checks ran, how often the bot saw a risk, and the loss amounts people reported themselves.",
+                ru: "Это только общие цифры: проверки и предупреждения о риске показывают raw activity сервиса, а сумма потерь считается только по подтверждённым модератором жалобам.",
+                uz: "Bu faqat umumiy raqamlar: tekshiruvlar va xavf ogohlantirishlari servisning raw activity ko'rsatkichlari, zarar summasi esa faqat moderator tasdiqlagan shikoyatlardan hisoblanadi.",
+                en: "These are general totals only: checks and risk alerts are raw service activity, while loss totals use only moderator-confirmed reports.",
               }[lang]
             }
           </p>
@@ -174,9 +174,9 @@ export function HomeImpactCounters() {
       <p className="mt-5 border-t border-[#E2E0D8] pt-4 text-[13px] leading-relaxed text-[#71717A]">
         {
           {
-            ru: "Мы не публикуем список номеров, аккаунтов или людей в этих счётчиках. Сумма потерь - это данные из жалоб пользователей, а не гарантия возврата или точная оценка предотвращённых потерь.",
-            uz: "Bu hisoblagichlarda raqamlar, akkauntlar yoki odamlar ro'yxati ko'rsatilmaydi. Zarar summasi - foydalanuvchi shikoyatlaridagi ma'lumot, qaytarish kafolati yoki aniq oldini olingan zarar emas.",
-            en: "These counters do not publish numbers, accounts or people. Loss totals come from user reports; they are not a recovery guarantee or an exact prevented-loss estimate.",
+            ru: "Мы не публикуем список номеров, аккаунтов или людей в этих счётчиках. Сумма потерь берётся только из подтверждённых жалоб; это не гарантия возврата и не точная оценка предотвращённых потерь.",
+            uz: "Bu hisoblagichlarda raqamlar, akkauntlar yoki odamlar ro'yxati ko'rsatilmaydi. Zarar summasi faqat tasdiqlangan shikoyatlardan olinadi; bu qaytarish kafolati yoki aniq oldini olingan zarar emas.",
+            en: "These counters do not publish numbers, accounts or people. Loss totals come only from confirmed reports; they are not a recovery guarantee or an exact prevented-loss estimate.",
           }[lang]
         }
       </p>

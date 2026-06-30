@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { runCheck, ocrExtractCore } from "./risk/check-core";
 import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "./meta-intent";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizePublicStatsRow, type PublicStats } from "@/lib/trust/impact-stats";
+import { publicRateLimitKey } from "@/lib/request-ip.server";
+import { MAX_IMAGE_DATA_URL_LENGTH, parseAllowedImageDataUrl } from "./risk/media-data-url";
 
 export interface MetaIntentCheckResult {
   metaIntent: MetaIntent;
@@ -13,6 +14,10 @@ export interface MetaIntentCheckResult {
 
 export type { PublicStats } from "@/lib/trust/impact-stats";
 
+const PUBLIC_STATS_CACHE_TTL_MS = 30_000;
+let publicStatsCache: { value: PublicStats; expiresAt: number } | null = null;
+let publicStatsInFlight: Promise<PublicStats> | null = null;
+
 const checkSchema = z.object({
   input: z.string().min(1).max(2000),
   type: z.enum(["phone", "telegram", "url", "text", "payment", "apk", "unknown"]).optional(),
@@ -20,19 +25,23 @@ const checkSchema = z.object({
 });
 
 const ocrSchema = z.object({
-  image: z.string().min(1).max(6_000_000),
+  image: z
+    .string()
+    .min(1)
+    .max(MAX_IMAGE_DATA_URL_LENGTH)
+    .transform((value, ctx) => {
+      const parsed = parseAllowedImageDataUrl(value);
+      if (!parsed) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "invalid_image_data_url",
+        });
+        return z.NEVER;
+      }
+      return parsed.dataUrl;
+    }),
   lang: z.enum(["ru", "uz", "en"]).default("ru"),
 });
-
-/** Resolve the caller IP from the request and build the web rate-limit key. */
-function webRateLimitKey(): string {
-  const ip =
-    getRequestHeader("cf-connecting-ip") ||
-    getRequestHeader("x-real-ip") ||
-    getRequestIP({ xForwardedFor: true }) ||
-    "unknown";
-  return `check:${ip}`;
-}
 
 // Thin web wrapper: extract IP → build `check:<ip>` key → delegate to the core.
 // Behaviour is unchanged: same rate-limit key, 10/60_000 limit, response shape
@@ -50,9 +59,8 @@ export const checkInput = createServerFn({ method: "POST" })
 
     return runCheck({
       input: data.input,
-      type: data.type,
       lang: data.lang,
-      rateLimitKey: webRateLimitKey(),
+      rateLimitKey: publicRateLimitKey("check"),
       channel: "web",
     });
   });
@@ -61,10 +69,10 @@ export const checkInput = createServerFn({ method: "POST" })
 export const ocrExtract = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ocrSchema.parse(data))
   .handler(async ({ data }) => {
-    return ocrExtractCore(data.image, data.lang, webRateLimitKey());
+    return ocrExtractCore(data.image, data.lang, publicRateLimitKey("check"));
   });
 
-export const getPublicStats = createServerFn({ method: "GET" }).handler(async () => {
+async function loadPublicStatsUncached(): Promise<PublicStats> {
   const [rpcResult, highRiskResult, suspiciousResult, reportsResult, reportsWithLossResult] =
     await Promise.all([
       supabaseAdmin.rpc("get_check_stats"),
@@ -76,10 +84,14 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
         .from("checks")
         .select("id", { count: "exact", head: true })
         .eq("risk_level", "suspicious"),
-      supabaseAdmin.from("reports").select("id", { count: "exact", head: true }),
       supabaseAdmin
         .from("reports")
         .select("id", { count: "exact", head: true })
+        .eq("status", "confirmed"),
+      supabaseAdmin
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "confirmed")
         .gt("amount_lost_uzs", 0),
     ]);
 
@@ -100,6 +112,7 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
     const { data: amountRows, error: amountError } = await supabaseAdmin
       .from("reports")
       .select("amount_lost_uzs")
+      .eq("status", "confirmed")
       .gt("amount_lost_uzs", 0)
       .limit(5000);
 
@@ -118,4 +131,22 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
     reports_with_loss_amount: reportsWithLoss ?? base.reports_with_loss_amount,
     reported_loss_uzs: reportedLossUzs,
   }) satisfies PublicStats;
+}
+
+export const getPublicStats = createServerFn({ method: "GET" }).handler(async () => {
+  const now = Date.now();
+  if (publicStatsCache && publicStatsCache.expiresAt > now) {
+    return { ...publicStatsCache.value } satisfies PublicStats;
+  }
+
+  publicStatsInFlight ??= loadPublicStatsUncached().finally(() => {
+    publicStatsInFlight = null;
+  });
+
+  const stats = await publicStatsInFlight;
+  publicStatsCache = {
+    value: stats,
+    expiresAt: Date.now() + PUBLIC_STATS_CACHE_TTL_MS,
+  };
+  return { ...stats } satisfies PublicStats;
 });

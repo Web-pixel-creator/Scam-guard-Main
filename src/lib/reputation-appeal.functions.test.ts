@@ -116,7 +116,7 @@ describe("submitReputationAppealCore", () => {
     expect(hoisted.inserts).toHaveLength(0);
   });
 
-  it("deduplicates active appeals for the same normalized target", async () => {
+  it("stores follow-up appeal evidence even when the same target is already queued", async () => {
     hoisted.existingRows.push({ id: "appeal-1" });
 
     await expect(
@@ -131,6 +131,10 @@ describe("submitReputationAppealCore", () => {
     ).resolves.toEqual({ ok: true, duplicate: true });
 
     expect(hoisted.hashInputs).toEqual(["@FakeSupportBot"]);
-    expect(hoisted.inserts).toHaveLength(0);
+    expect(hoisted.inserts).toHaveLength(1);
+    expect(hoisted.inserts[0]).toMatchObject({
+      target_type: "telegram",
+      target_hash: "hash:@FakeSupportBot",
+    });
   });
 });

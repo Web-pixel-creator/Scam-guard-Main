@@ -13,6 +13,7 @@ import {
   Send,
 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { safeClientErrorReason } from "@/lib/client-error";
 import { submitReputationAppeal } from "@/lib/reputation-appeal.functions";
 
 export const Route = createFileRoute("/appeal")({
@@ -189,7 +190,7 @@ function AppealPage() {
             : copy.failed[lang],
       );
     } catch (err) {
-      console.error(err);
+      console.error("appeal submit failed", safeClientErrorReason(err));
       setError(copy.failed[lang]);
     } finally {
       setLoading(false);
