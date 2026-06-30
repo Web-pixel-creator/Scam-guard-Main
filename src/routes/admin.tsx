@@ -14,6 +14,7 @@ import {
   ChevronDown,
   FileText,
   ListFilter,
+  Inbox,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -341,7 +342,10 @@ function AdminPage() {
           </p>
         )}
         {reports.data?.length === 0 && (
-          <p className="apex-mono text-[#71717A]">— ПУСТО. НЕТ ЗАПИСЕЙ —</p>
+          <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+            <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+            <p className="text-[14px] text-[#52525B]">Новых жалоб нет</p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] mt-1">
@@ -467,7 +471,10 @@ function AdminPage() {
           </p>
         )}
         {appeals.data?.length === 0 && (
-          <p className="apex-mono text-[#71717A]">— ПУСТО. НЕТ АПЕЛЛЯЦИЙ —</p>
+          <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+            <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+            <p className="text-[14px] text-[#52525B]">Апелляций нет</p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] mt-1">
@@ -483,13 +490,8 @@ function AdminPage() {
                       {a.target_display}
                     </code>
                     <StatusBadge status={a.status} />
-                    {a.contact_display && (
-                      <span className="apex-mono text-[#71717A]">
-                        · контакт: {a.contact_display}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                  <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
                     {a.reason}
                   </p>
                   {a.resolution && (
@@ -497,8 +499,13 @@ function AdminPage() {
                       Решение: {a.resolution}
                     </p>
                   )}
-                  <p className="mt-3 apex-mono text-[#A1A1AA]">
-                    {new Date(a.created_at).toLocaleString()}
+                  <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
+                    {[
+                      a.contact_display ? `контакт: ${a.contact_display}` : null,
+                      new Date(a.created_at).toLocaleString(),
+                    ]
+                      .filter(Boolean)
+                      .join("  ·  ")}
                   </p>
                 </div>
                 {(a.status === "new" || a.status === "reviewing") && (
@@ -564,7 +571,10 @@ function AdminPage() {
             </tbody>
           </table>
           {entities.data?.length === 0 && (
-            <p className="apex-mono text-[#71717A] py-6">— ПУСТО —</p>
+            <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+              <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+              <p className="text-[14px] text-[#52525B]">В базе пока пусто</p>
+            </div>
           )}
         </div>
       </section>
@@ -787,7 +797,9 @@ function EntityRow({
           {entity.display_mask}
         </td>
         <td className="py-3 px-2 sm:px-3 tabular-nums">{entity.report_count}</td>
-        <td className="py-3 px-2 sm:px-3 apex-mono">{entity.risk_level}</td>
+        <td className="py-3 px-2 sm:px-3">
+          <RiskChip level={entity.risk_level} />
+        </td>
         <td className="py-3 px-2 sm:px-3 apex-mono">{labelStatus(entity.moderation_status)}</td>
         <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA] flex items-center gap-1">
           {new Date(entity.last_seen_at).toLocaleString()}
