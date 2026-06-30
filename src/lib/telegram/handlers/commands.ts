@@ -46,7 +46,7 @@ import {
 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
-import { loadSession, saveSession } from "@/lib/telegram/session.server";
+import { loadSession, saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
@@ -87,7 +87,7 @@ async function startCheckScenario(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "await_check",
     scenarioStep: 0,
-    scenarioData: {},
+    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -106,7 +106,7 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "report_value",
     scenarioStep: 0,
-    scenarioData: {},
+    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -135,7 +135,11 @@ async function startLiveCallCopilot(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(undefined, 6),
+    scenarioData: withSessionChatScope(
+      withPanicContextData(undefined, 6),
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
   await sendMessage({
     chatId: ctx.chatId,

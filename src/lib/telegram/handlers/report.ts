@@ -39,10 +39,20 @@ import {
   type InlineKeyboard,
 } from "@/lib/telegram/api.server";
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
-import { saveSession, resetScenario, type ReportDraft } from "@/lib/telegram/session.server";
+import {
+  saveSession,
+  resetScenario,
+  withSessionChatScope,
+  type ReportDraft,
+} from "@/lib/telegram/session.server";
 import type { HandlerCtx } from "@/lib/telegram/router";
-import { submitReportCore, reportRateLimitKeyForTelegram } from "@/lib/report.functions";
-import { INCIDENT_ONLY_REDACTED_VALUE } from "@/lib/report-boundary";
+import {
+  prepareIncidentOnlyReportTarget,
+  prepareReportIdentifier,
+  reportRateLimitKeyForTelegram,
+  submitPreparedReportCore,
+  type PreparedReportTarget,
+} from "@/lib/report.functions";
 import type { Lang } from "@/lib/i18n";
 import { redactText } from "@/lib/risk/detect";
 import { analyzeImageCore, type RateLimitedError } from "@/lib/risk/check-core";
@@ -91,6 +101,78 @@ async function sendText(
 }
 
 /** A textual skip: "-", "—" or an empty/whitespace-only message. */
+function redactOptionalReportText(value: string): string {
+  return redactText(value.trim()).slice(0, OPTIONAL_FIELD_MAX);
+}
+
+async function sanitizeDraftForStorage(draft: ReportDraft): Promise<ReportDraft> {
+  const clean: ReportDraft = { ...draft };
+
+  if (!clean.target && clean.value && !clean.noValue) {
+    clean.target = await prepareReportIdentifier(clean.value);
+  }
+  delete clean.value;
+
+  if (clean.description) clean.description = redactText(clean.description);
+  if (clean.scamType) clean.scamType = redactOptionalReportText(clean.scamType);
+  if (clean.city) clean.city = redactOptionalReportText(clean.city);
+
+  return clean;
+}
+
+async function sanitizeDraftOrReset(
+  ctx: HandlerCtx,
+  draft: ReportDraft,
+  lang: Lang,
+): Promise<ReportDraft | null> {
+  try {
+    return await sanitizeDraftForStorage(draft);
+  } catch (e) {
+    console.error(
+      "telegram report draft preparation failed",
+      e instanceof Error ? e.message : "unknown",
+    );
+    await sendText(ctx, "report_error", lang);
+    await resetScenario(ctx.userId);
+    return null;
+  }
+}
+
+async function prepareFinalDraft(
+  ctx: HandlerCtx,
+  draft: ReportDraft,
+  lang: Lang,
+): Promise<{ draft: ReportDraft; target: PreparedReportTarget } | null> {
+  const clean = await sanitizeDraftOrReset(ctx, draft, lang);
+  if (!clean) return null;
+
+  if (!clean.description || (!clean.target && !clean.noValue)) {
+    await sendText(ctx, "report_error", lang);
+    await resetScenario(ctx.userId);
+    return null;
+  }
+
+  try {
+    const target = clean.noValue
+      ? await prepareIncidentOnlyReportTarget(clean.description)
+      : clean.target;
+    if (!target) {
+      await sendText(ctx, "report_error", lang);
+      await resetScenario(ctx.userId);
+      return null;
+    }
+    return { draft: { ...clean, target }, target };
+  } catch (e) {
+    console.error(
+      "telegram report target preparation failed",
+      e instanceof Error ? e.message : "unknown",
+    );
+    await sendText(ctx, "report_error", lang);
+    await resetScenario(ctx.userId);
+    return null;
+  }
+}
+
 function isSkip(text: string): boolean {
   const trimmed = text.trim();
   return trimmed === "" || trimmed === "-" || trimmed === "—";
@@ -352,7 +434,7 @@ export async function startReport(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "report_value",
     scenarioStep: 0,
-    scenarioData: {},
+    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
   });
   await askValue(ctx, lang);
 }
@@ -384,7 +466,8 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
     return;
   }
 
-  const draft: ReportDraft = { ...ctx.session.scenarioData, value };
+  const draft = await sanitizeDraftOrReset(ctx, { ...ctx.session.scenarioData, value }, lang);
+  if (!draft) return;
   await saveSession(ctx.userId, {
     scenario: "report_desc",
     scenarioStep: 1,
@@ -397,6 +480,7 @@ async function advanceWithoutIdentifier(ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
   const draft: ReportDraft = { ...ctx.session.scenarioData, noValue: true };
   delete draft.value;
+  delete draft.target;
   await saveSession(ctx.userId, {
     scenario: "report_desc",
     scenarioStep: 1,
@@ -420,7 +504,8 @@ async function stepDescription(text: string, ctx: HandlerCtx): Promise<void> {
     return;
   }
 
-  const draft: ReportDraft = { ...ctx.session.scenarioData, description };
+  const draft = await sanitizeDraftOrReset(ctx, { ...ctx.session.scenarioData, description }, lang);
+  if (!draft) return;
   await saveSession(ctx.userId, {
     scenario: "report_scamType",
     scenarioStep: 2,
@@ -470,7 +555,12 @@ export async function handleScenarioImage(
       return;
     }
 
-    const draft: ReportDraft = { ...ctx.session.scenarioData, description };
+    const draft = await sanitizeDraftOrReset(
+      ctx,
+      { ...ctx.session.scenarioData, description },
+      lang,
+    );
+    if (!draft) return;
     await saveSession(ctx.userId, {
       scenario: "report_scamType",
       scenarioStep: 2,
@@ -497,9 +587,10 @@ export async function handleScenarioImage(
 
 async function stepScamType(text: string, ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
-  const draft: ReportDraft = { ...ctx.session.scenarioData };
+  const draft = await sanitizeDraftOrReset(ctx, { ...ctx.session.scenarioData }, lang);
+  if (!draft) return;
   if (!isSkip(text)) {
-    draft.scamType = text.trim().slice(0, OPTIONAL_FIELD_MAX);
+    draft.scamType = redactOptionalReportText(text);
   }
   await saveSession(ctx.userId, {
     scenario: "report_city",
@@ -511,9 +602,10 @@ async function stepScamType(text: string, ctx: HandlerCtx): Promise<void> {
 
 async function stepCity(text: string, ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
-  const draft: ReportDraft = { ...ctx.session.scenarioData };
+  const draft = await sanitizeDraftOrReset(ctx, { ...ctx.session.scenarioData }, lang);
+  if (!draft) return;
   if (!isSkip(text)) {
-    draft.city = text.trim().slice(0, OPTIONAL_FIELD_MAX);
+    draft.city = redactOptionalReportText(text);
   }
   await saveSession(ctx.userId, {
     scenario: "report_amount",
@@ -543,35 +635,26 @@ async function stepAmount(text: string, ctx: HandlerCtx): Promise<void> {
 
 async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void> {
   const lang = ctx.session.lang;
-
-  // Guard: value + description are guaranteed present by the flow, but never
-  // call submitReport with an invalid payload (it would throw on zod parse).
-  if ((!draft.value && !draft.noValue) || !draft.description) {
-    await sendText(ctx, "report_error", lang);
-    await resetScenario(ctx.userId);
-    return;
-  }
-  const incidentOnly = draft.noValue === true;
-  const reportValue = incidentOnly ? INCIDENT_ONLY_REDACTED_VALUE : (draft.value as string);
+  const prepared = await prepareFinalDraft(ctx, draft, lang);
+  if (!prepared) return;
+  const { draft: safeDraft, target } = prepared;
 
   async function keepDraftForRetry(): Promise<void> {
     await saveSession(ctx.userId, {
       scenario: "report_amount",
       scenarioStep: 4,
-      scenarioData: draft,
+      scenarioData: safeDraft,
     });
   }
 
   try {
-    const result = await submitReportCore(
+    const result = await submitPreparedReportCore(
       {
-        value: reportValue,
-        type: incidentOnly ? "text" : undefined,
-        description: draft.description,
-        scamType: draft.scamType,
-        city: draft.city,
-        amountLostUzs: draft.amountLostUzs,
-        incidentOnly,
+        target,
+        description: safeDraft.description as string,
+        scamType: safeDraft.scamType,
+        city: safeDraft.city,
+        amountLostUzs: safeDraft.amountLostUzs,
         lang,
       },
       reportRateLimitKeyForTelegram(ctx.userId),

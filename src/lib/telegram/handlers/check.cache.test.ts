@@ -53,6 +53,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: hoisted.saveSession,
   loadSession: vi.fn(),
   resetScenario: vi.fn(),
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 vi.mock("@/lib/telegram/public-post.server", () => ({

@@ -27,6 +27,7 @@
 import { z } from "zod";
 import { classifyMetaIntent, type MetaIntent } from "@/lib/meta-intent";
 import {
+  isSessionStateScopedToChat,
   loadSession as loadSessionImpl,
   resetScenario as resetScenarioImpl,
   type Session,
@@ -730,6 +731,10 @@ export async function dispatchUpdate(
 
   const { userId, chatId, chatType, displayName } = target;
   let session = await loadSession(userId);
+  if (!isSessionStateScopedToChat(session, chatId, chatType)) {
+    await resetScenario(userId);
+    session = { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} };
+  }
   const action = decideRoute(update, session);
 
   // R15.4 — a command aborts any active scenario before being handled.

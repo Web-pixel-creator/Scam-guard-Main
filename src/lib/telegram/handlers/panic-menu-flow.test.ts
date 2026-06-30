@@ -62,6 +62,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
     return Promise.resolve({ ok: true });
   },
   resetScenario: () => Promise.resolve(),
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 import { handleCallback } from "./misc";

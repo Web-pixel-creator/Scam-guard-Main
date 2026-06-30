@@ -61,7 +61,7 @@ import {
   type EmergencyFollowUpAction,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
-import { setLanguage, saveSession } from "@/lib/telegram/session.server";
+import { setLanguage, saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
@@ -145,7 +145,11 @@ async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): 
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(undefined, panicId),
+    scenarioData: withSessionChatScope(
+      withPanicContextData(undefined, panicId),
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 }
 
@@ -409,7 +413,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "report_value",
       scenarioStep: 0,
-      scenarioData: {},
+      scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
     });
     await sendMessage({
       chatId: ctx.chatId,
@@ -424,7 +428,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "await_check",
       scenarioStep: 0,
-      scenarioData: ctx.session.scenarioData,
+      scenarioData: withSessionChatScope(ctx.session.scenarioData, ctx.chatId, ctx.chatType),
     });
     await sendI18n(ctx.chatId, "check_prompt", lang);
     return;
@@ -434,7 +438,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "await_check",
       scenarioStep: 0,
-      scenarioData: ctx.session.scenarioData,
+      scenarioData: withSessionChatScope(ctx.session.scenarioData, ctx.chatId, ctx.chatType),
     });
     await sendI18n(ctx.chatId, "voice_correction_prompt", lang);
     return;

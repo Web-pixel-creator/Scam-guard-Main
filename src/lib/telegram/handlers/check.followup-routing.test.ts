@@ -41,6 +41,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
     hoisted.saveSessionCalls.push({ userId, patch });
     return Promise.resolve({ ok: true });
   },
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 vi.mock("@/lib/telegram/public-post.server", () => ({

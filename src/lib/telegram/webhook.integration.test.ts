@@ -159,11 +159,31 @@ vi.mock("@/lib/risk/check-core", async (importActual) => {
 
 // ── Report pipeline: never reached on the check/image path; stub to keep the
 //    handler aggregator's import graph hermetic (no real createServerFn run). ──
-vi.mock("@/lib/report.functions", () => ({
-  submitReport: vi.fn(async () => ({ ok: true })),
-  submitReportCore: vi.fn(async () => ({ ok: true })),
-  reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
-}));
+vi.mock("@/lib/report.functions", () => {
+  const target = (value: string, incidentOnly = false) => ({
+    type: incidentOnly
+      ? "text"
+      : value.startsWith("@") || value.includes("t.me")
+        ? "telegram"
+        : value.startsWith("http")
+          ? "url"
+          : value.replace(/\D/g, "").length >= 7
+            ? "phone"
+            : "text",
+    hash: `hash:${value.length}`,
+    display: incidentOnly ? "__ishonch_guard_incident_only__" : "[redacted]",
+    incidentOnly,
+  });
+
+  return {
+    submitReport: vi.fn(async () => ({ ok: true })),
+    prepareReportIdentifier: (value: string) => Promise.resolve(target(value)),
+    prepareIncidentOnlyReportTarget: (description: string) =>
+      Promise.resolve(target(description, true)),
+    submitPreparedReportCore: vi.fn(async () => ({ ok: true })),
+    reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
+  };
+});
 
 // Import AFTER the mocks are registered. The handler aggregator installs the
 // REAL handlers into the REAL router via its module-load side effect, and
@@ -827,7 +847,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
             telegram_user_id: 1102,
             scenario: "report_value",
             scenario_step: 0,
-            scenario_data: {},
+            scenario_data: {
+              chatScope: { chatId: 5102, chatType: "private" },
+            },
           }),
         }),
       ]),
@@ -842,7 +864,11 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       lang: "ru",
       scenario: "report_scamType",
       scenario_step: 2,
-      scenario_data: { value: "@bad", description: "long enough" },
+      scenario_data: {
+        target: { type: "telegram", hash: "hash:4", display: "[redacted]", incidentOnly: false },
+        description: "long enough",
+        chatScope: { chatId: 5103, chatType: "private" },
+      },
       updated_at: new Date(0).toISOString(),
     };
     const update = callbackUpdate({
@@ -877,7 +903,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       lang: "ru",
       scenario: "report_value",
       scenario_step: 0,
-      scenario_data: {},
+      scenario_data: {
+        chatScope: { chatId: 5105, chatType: "private" },
+      },
       updated_at: new Date(0).toISOString(),
     };
     const update = callbackUpdate({
@@ -899,7 +927,10 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
             telegram_user_id: 1105,
             scenario: "report_desc",
             scenario_step: 1,
-            scenario_data: { noValue: true },
+            scenario_data: {
+              noValue: true,
+              chatScope: { chatId: 5105, chatType: "private" },
+            },
           }),
         }),
       ]),
@@ -914,7 +945,8 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       scenario: "report_amount",
       scenario_step: 4,
       scenario_data: {
-        value: "+998900000000",
+        target: { type: "phone", hash: "hash:13", display: "[redacted]", incidentOnly: false },
+        chatScope: { chatId: 5106, chatType: "private" },
         description: "Достаточно длинное описание",
       },
       updated_at: new Date(0).toISOString(),
@@ -1206,6 +1238,22 @@ describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", 
 //    the image itself is NEVER persisted (R5.3, R12.2/R12.4).
 // ---------------------------------------------------------------------------
 describe("webhook end-to-end — screenshot OCR flow without saving the image (R5.3)", () => {
+  it("rate-limits repeated image checks before fetching Telegram file bytes", async () => {
+    h.ocrText = "ordinary screenshot text";
+
+    for (let i = 0; i < 11; i += 1) {
+      const response = await handleTelegramWebhook(
+        webhookRequest(photoUpdate({ userId: 9403, chatId: 5403, messageId: i + 1 })),
+      );
+      expect(response.status).toBe(200);
+    }
+
+    expect(h.getFileCalls).toHaveLength(10);
+    expect(h.downloadCalls).toHaveLength(10);
+    expect(h.ocrCalls).toHaveLength(10);
+    expect(h.sendCalls[h.sendCalls.length - 1].text).toContain("Слишком много запросов");
+  });
+
   it("downloads in memory, OCRs, checks, and never persists the raw image", async () => {
     h.ocrText = HIGH_RISK_TEXT; // OCR yields a deterministic high_risk text
     const update = photoUpdate({ userId: 1003, chatId: 5003 });
@@ -1463,6 +1511,29 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     const persisted = JSON.stringify(h.inserts);
     expect(persisted).not.toContain("data:image");
     expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
+  });
+
+  it("keeps a model-only benign image category unknown instead of safe", async () => {
+    h.imageEvidence = {
+      text: null,
+      visualCategory: "delivery_sms",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Looks like a delivery SMS.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1021, chatId: 5021 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.unknown);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.safe);
+
+    const checkInsert = h.inserts.find((i) => i.table === "checks");
+    expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
   });
 
   it("does not flag a restaurant QR menu as high risk without dangerous requests", async () => {

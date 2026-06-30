@@ -12,6 +12,20 @@ import type { InputType } from "@/lib/risk/detect";
 import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
 import type { RiskLevel } from "@/lib/risk/rules";
 
+export type SessionChatType = "private" | "group" | "supergroup" | "channel";
+
+export interface SessionChatScope {
+  chatId: number;
+  chatType: SessionChatType;
+}
+
+export interface ReportDraftTarget {
+  type: InputType;
+  hash: string;
+  display: string;
+  incidentOnly: boolean;
+}
+
 export type Scenario =
   | "none" // нейтральное состояние
   | "await_check" // после /check ждём контент
@@ -22,12 +36,23 @@ export type Scenario =
   | "report_amount"; // опционально
 
 export interface ReportDraft {
+  /**
+   * Legacy pre-DSCAN-R2-004 raw target from existing rows only. New saves must
+   * convert it into `target` and remove this field before persistence.
+   */
   value?: string;
+  target?: ReportDraftTarget;
   noValue?: boolean;
+  /** Redacted report narrative only; never raw user evidence. */
   description?: string;
   scamType?: string;
   city?: string;
   amountLostUzs?: number;
+  /**
+   * Chat boundary for state that can influence a later bot response. This
+   * prevents private context from being reused in group chats by the same user.
+   */
+  chatScope?: SessionChatScope;
   /**
    * Emergency Copilot v2 context. Stores only a scenario id + timestamp,
    * never raw user evidence, codes, phone numbers, links or card data.
@@ -147,6 +172,44 @@ function rowToSession(row: TelegramSessionRow): Session {
     scenarioData: row.scenario_data ?? {},
     updatedAt: row.updated_at,
   };
+}
+
+function normalizeChatType(chatType?: SessionChatType): SessionChatType {
+  return chatType ?? "private";
+}
+
+function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
+  if (!data) return false;
+  return Boolean(data.lastPanicId ?? data.lastPanicAt ?? data.lastCheck ?? data.guardian);
+}
+
+export function withSessionChatScope(
+  data: ReportDraft | undefined,
+  chatId: number,
+  chatType?: SessionChatType,
+): ReportDraft {
+  return {
+    ...(data ?? {}),
+    chatScope: {
+      chatId,
+      chatType: normalizeChatType(chatType),
+    },
+  };
+}
+
+export function isSessionStateScopedToChat(
+  session: Session,
+  chatId: number,
+  chatType?: SessionChatType,
+): boolean {
+  const affectsNextReply =
+    session.scenario !== "none" || hasStatefulScenarioData(session.scenarioData);
+  if (!affectsNextReply) return true;
+
+  const scope = session.scenarioData.chatScope;
+  if (!scope || typeof scope.chatId !== "number") return false;
+
+  return scope.chatId === chatId && scope.chatType === normalizeChatType(chatType);
 }
 
 /**

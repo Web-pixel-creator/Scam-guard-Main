@@ -52,8 +52,12 @@ interface SavePatch {
 }
 interface SubmitArg {
   data: {
-    value?: string;
-    type?: "phone" | "telegram" | "url" | "text" | "payment" | "apk" | "unknown";
+    target?: {
+      type: "phone" | "telegram" | "url" | "text" | "payment" | "apk" | "unknown";
+      hash: string;
+      display: string;
+      incidentOnly: boolean;
+    };
     description?: string;
     scamType?: string;
     city?: string;
@@ -64,6 +68,28 @@ interface SubmitArg {
   rateLimitKey?: string;
 }
 type SubmitResult = { ok: true } | { ok: false; error?: string; retryAfterSec?: number };
+type ReportTargetType = NonNullable<SubmitArg["data"]["target"]>["type"];
+
+function expectedTarget(
+  value: string,
+  incidentOnly = false,
+): NonNullable<SubmitArg["data"]["target"]> {
+  const type: ReportTargetType = incidentOnly
+    ? "text"
+    : value.startsWith("@") || value.includes("t.me")
+      ? "telegram"
+      : value.startsWith("http")
+        ? "url"
+        : value.replace(/\D/g, "").length >= 7
+          ? "phone"
+          : "text";
+  return {
+    type,
+    hash: `hash:${type}:${value.length}`,
+    display: incidentOnly ? INCIDENT_ONLY_REDACTED_VALUE : `[${type}]`,
+    incidentOnly,
+  };
+}
 
 const h = vi.hoisted(() => ({
   saveCalls: [] as { userId: number; patch: SavePatch }[],
@@ -107,6 +133,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
     h.resetCalls.push(userId);
     return Promise.resolve();
   },
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 // Bot API — capture outgoing messages; escapeMarkdownV2 is the identity so the
@@ -131,14 +162,40 @@ vi.mock("@/lib/risk/check-core", () => ({
 // Report_Pipeline — the existing server fn. The real handler runs the moderated
 // `entities` upsert (moderation_status='new', R9.1); here we stub it and assert
 // the handler delegates to it with the correct payload (R6.4 / R9.3 — no bypass).
-vi.mock("@/lib/report.functions", () => ({
-  submitReportCore: (data: SubmitArg["data"], rateLimitKey: string) => {
-    const arg = { data, rateLimitKey };
-    h.submitCalls.push(arg);
-    return h.submitImpl.current(arg);
-  },
-  reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
-}));
+vi.mock("@/lib/report.functions", () => {
+  function makeTarget(
+    value: string,
+    incidentOnly = false,
+  ): NonNullable<SubmitArg["data"]["target"]> {
+    const type: ReportTargetType = incidentOnly
+      ? "text"
+      : value.startsWith("@") || value.includes("t.me")
+        ? "telegram"
+        : value.startsWith("http")
+          ? "url"
+          : value.replace(/\D/g, "").length >= 7
+            ? "phone"
+            : "text";
+    return {
+      type,
+      hash: `hash:${type}:${value.length}`,
+      display: incidentOnly ? "__ishonch_guard_incident_only__" : `[${type}]`,
+      incidentOnly,
+    };
+  }
+
+  return {
+    prepareReportIdentifier: (value: string) => Promise.resolve(makeTarget(value)),
+    prepareIncidentOnlyReportTarget: (description: string) =>
+      Promise.resolve(makeTarget(description, true)),
+    submitPreparedReportCore: (data: SubmitArg["data"], rateLimitKey: string) => {
+      const arg = { data, rateLimitKey };
+      h.submitCalls.push(arg);
+      return h.submitImpl.current(arg);
+    },
+    reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
+  };
+});
 
 import {
   startReport,
@@ -235,7 +292,11 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
     expect(h.saveCalls).toHaveLength(1);
     expect(h.saveCalls[0]).toEqual({
       userId: USER_ID,
-      patch: { scenario: "report_value", scenarioStep: 0, scenarioData: {} },
+      patch: {
+        scenario: "report_value",
+        scenarioStep: 0,
+        scenarioData: { chatScope: { chatId: CHAT_ID, chatType: "private" } },
+      },
     });
     // Asks for the value on the current language.
     expect(sentTexts()).toContain(bt("report_ask_value", "ru"));
@@ -258,13 +319,17 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
     expect(sValue[0]).toEqual({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { value: "+998901234567" },
+      scenarioData: {
+        target: expectedTarget("+998901234567"),
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
+      },
     });
     expect(sDesc[0]).toEqual({
       scenario: "report_scamType",
       scenarioStep: 2,
       scenarioData: {
-        value: "+998901234567",
+        target: expectedTarget("+998901234567"),
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
         description: "Звонили из банка и просили код из СМС",
       },
     });
@@ -272,7 +337,8 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenario: "report_city",
       scenarioStep: 3,
       scenarioData: {
-        value: "+998901234567",
+        target: expectedTarget("+998901234567"),
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
         description: "Звонили из банка и просили код из СМС",
         scamType: "фейковый банк",
       },
@@ -281,7 +347,8 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenario: "report_amount",
       scenarioStep: 4,
       scenarioData: {
-        value: "+998901234567",
+        target: expectedTarget("+998901234567"),
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
         description: "Звонили из банка и просили код из СМС",
         scamType: "фейковый банк",
         city: "Ташкент",
@@ -292,6 +359,30 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
 
     // Total saves: start + 4 transitions = 5.
     expect(h.saveCalls).toHaveLength(5);
+  });
+
+  it("persists only prepared target and redacted narrative fields in report drafts", async () => {
+    const ctx = makeCtx({ scenario: "none" });
+    await startReport(ctx);
+    applyPatch(ctx, h.saveCalls[0].patch);
+
+    const sValue = await runStep(ctx, "@FakeSupportBot");
+    const firstDraft = JSON.stringify(sValue[0].scenarioData);
+    expect(firstDraft).not.toContain("@FakeSupportBot");
+    expect(sValue[0].scenarioData).toMatchObject({
+      target: expectedTarget("@FakeSupportBot"),
+    });
+
+    const sDesc = await runStep(
+      ctx,
+      "Email victim@example.com, link https://evil.example/reset?token=secret, code 123456.",
+    );
+    const secondDraft = JSON.stringify(sDesc[0].scenarioData);
+    expect(secondDraft).not.toContain("@FakeSupportBot");
+    expect(secondDraft).not.toContain("victim@example.com");
+    expect(secondDraft).not.toContain("https://evil.example/reset?token=secret");
+    expect(secondDraft).not.toContain("123456");
+    expect(secondDraft).toContain("[link]");
   });
 });
 
@@ -315,13 +406,11 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(h.submitCalls).toHaveLength(1);
     expect(h.submitCalls[0].rateLimitKey).toBe(`report:tg:${USER_ID}`);
     expect(h.submitCalls[0].data).toEqual({
-      value: "@scammer_bank",
-      type: undefined,
+      target: expectedTarget("@scammer_bank"),
       description: "Просили подтвердить последние 4 цифры карты",
       scamType: "OTP-кража",
       city: "Самарканд",
       amountLostUzs: 1_200_000, // digits-only parse of "1 200 000 сум"
-      incidentOnly: false,
       lang: "ru",
     });
 
@@ -344,13 +433,11 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
 
     expect(h.submitCalls).toHaveLength(1);
     expect(h.submitCalls[0].data).toEqual({
-      value: "https://fake-bank.example",
-      type: undefined,
+      target: expectedTarget("https://fake-bank.example"),
       description: "Сайт просит ввести логин и пароль от банка",
       scamType: undefined,
       city: undefined,
       amountLostUzs: undefined,
-      incidentOnly: false,
       lang: "ru",
     });
     expect(sentTexts()).toContain(bt("report_confirm", "ru"));
@@ -372,13 +459,11 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(REPORT_NO_VALUE_CALLBACK).toBe("report_no_value");
     expect(h.submitCalls).toHaveLength(1);
     expect(h.submitCalls[0].data).toEqual({
-      value: INCIDENT_ONLY_REDACTED_VALUE,
-      type: "text",
+      target: expectedTarget("Пытались украсть аккаунт, просили прислать код из Telegram", true),
       description: "Пытались украсть аккаунт, просили прислать код из Telegram",
       scamType: undefined,
       city: undefined,
       amountLostUzs: undefined,
-      incidentOnly: true,
       lang: "ru",
     });
     expect(sentTexts()).toContain(bt("report_confirm", "ru"));
@@ -390,7 +475,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     const ctx = makeCtx({
       scenario: "report_scamType",
       scenarioStep: 2,
-      scenarioData: { value: "@x", description: "достаточно длинное описание" },
+      scenarioData: { target: expectedTarget("@x"), description: "достаточно длинное описание" },
     });
 
     expect(REPORT_SKIP_CALLBACK).toBe("report_skip");
@@ -401,7 +486,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     expect(h.saveCalls[0].patch).toEqual({
       scenario: "report_city",
       scenarioStep: 3,
-      scenarioData: { value: "@x", description: "достаточно длинное описание" },
+      scenarioData: { target: expectedTarget("@x"), description: "достаточно длинное описание" },
     });
   });
 });
@@ -429,7 +514,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { value: "@scammer_bank" },
+      scenarioData: { target: expectedTarget("@scammer_bank") },
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -461,7 +546,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { value: "@scammer_bank" },
+      scenarioData: { target: expectedTarget("@scammer_bank") },
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -475,7 +560,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { value: "@scammer_bank" },
+      scenarioData: { target: expectedTarget("@scammer_bank") },
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -511,7 +596,7 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
           scenario: "report_amount",
           scenarioStep: 4,
           scenarioData: {
-            value: "+998900000000",
+            target: expectedTarget("+998900000000"),
             description: "Достаточно длинное описание",
           },
         },
@@ -537,6 +622,8 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
     expect(sentKeyboardData()).toContain(REPORT_RETRY_CALLBACK);
     expect(h.saveCalls).toHaveLength(1);
     expect(h.saveCalls[0].patch.scenario).toBe("report_amount");
+    expect(JSON.stringify(h.saveCalls[0].patch.scenarioData)).not.toContain("+998900000000");
+    expect(h.saveCalls[0].patch.scenarioData?.target).toEqual(expectedTarget("+998900000000"));
     expect(h.resetCalls).toEqual([]);
   });
 
@@ -545,7 +632,7 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
       scenario: "report_amount",
       scenarioStep: 4,
       scenarioData: {
-        value: "+998900000000",
+        target: expectedTarget("+998900000000"),
         description: "Достаточно длинное описание",
       },
     });
@@ -554,6 +641,7 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
     await handleReportRetry(ctx);
 
     expect(h.submitCalls).toHaveLength(1);
+    expect(h.submitCalls[0].data.target).toEqual(expectedTarget("+998900000000"));
     expect(sentTexts()).toContain(bt("report_confirm", "ru"));
     expect(h.resetCalls).toEqual([USER_ID]);
   });
@@ -657,8 +745,8 @@ describe("/report — validation keeps the step in place (R6.5, R6.6)", () => {
     expect(h.saveCalls).toHaveLength(1);
     expect(h.saveCalls[0].patch.scenario).toBe("report_scamType");
     expect(h.saveCalls[0].patch.scenarioData).toEqual({
-      value: "+998901234567",
-      description: "12345",
+      target: expectedTarget("+998901234567"),
+      description: "••••",
     });
   });
 });

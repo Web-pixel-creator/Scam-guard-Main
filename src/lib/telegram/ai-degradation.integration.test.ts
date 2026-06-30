@@ -71,6 +71,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: () => Promise.resolve(),
   loadSession: () => Promise.resolve(null),
   resetScenario: () => Promise.resolve(),
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 import { runCheck, type RunCheckResult } from "@/lib/risk/check-core";

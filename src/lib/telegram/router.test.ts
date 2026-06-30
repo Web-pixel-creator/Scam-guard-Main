@@ -28,7 +28,7 @@ import {
   type InlineQueryCtx,
   type DispatchDeps,
 } from "./router";
-import type { Session, Scenario } from "./session.server";
+import { withSessionChatScope, type Session, type Scenario } from "./session.server";
 
 // ---------------------------------------------------------------------------
 // Test helpers — build valid Sessions and Telegram updates
@@ -50,7 +50,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 /** A `message` update from `from.id`/`chat.id` carrying the given message fields. */
 function messageUpdate(
   message: Record<string, unknown>,
-  opts: { userId?: number; chatId?: number } = {},
+  opts: { userId?: number; chatId?: number; chatType?: "private" | "group" | "supergroup" } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   const chatId = opts.chatId ?? userId;
@@ -59,7 +59,7 @@ function messageUpdate(
     message: {
       message_id: 1,
       from: { id: userId },
-      chat: { id: chatId },
+      chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) },
       ...message,
     },
   } as unknown as TelegramUpdate;
@@ -68,7 +68,7 @@ function messageUpdate(
 /** A `callback_query` update. */
 function callbackUpdate(
   data: string,
-  opts: { userId?: number; chatId?: number } = {},
+  opts: { userId?: number; chatId?: number; chatType?: "private" | "group" | "supergroup" } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   const chatId = opts.chatId ?? userId;
@@ -77,7 +77,7 @@ function callbackUpdate(
     callback_query: {
       id: "cb1",
       from: { id: userId },
-      message: { chat: { id: chatId } },
+      message: { chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) } },
       data,
     },
   } as unknown as TelegramUpdate;
@@ -787,7 +787,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("dispatches a scenario-step message to handleScenarioStep when a scenario is active", async () => {
-    const session = makeSession({ scenario: "report_desc", scenarioStep: 2 });
+    const session = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 2,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(messageUpdate({ text: "это описание" }), deps);
     expect(calls).toHaveLength(1);
@@ -798,7 +802,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("dispatches report_desc screenshot evidence to handleScenarioImage", async () => {
-    const session = makeSession({ scenario: "report_desc", scenarioStep: 1 });
+    const session = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(
       messageUpdate({
@@ -816,7 +824,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("resets await_check before dispatching a screenshot to handleImage", async () => {
-    const session = makeSession({ scenario: "await_check", scenarioStep: 0 });
+    const session = makeSession({
+      scenario: "await_check",
+      scenarioStep: 0,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(messageUpdate({ photo: [{ file_id: "full", file_size: 5000 }] }), deps);
     expect(resetScenario).toHaveBeenCalledWith(100);
@@ -887,7 +899,11 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
   });
 
   it("does NOT reset when a non-command message arrives during a scenario", async () => {
-    const activeSession = makeSession({ scenario: "report_value", scenarioStep: 1 });
+    const activeSession = makeSession({
+      scenario: "report_value",
+      scenarioStep: 1,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(activeSession);
 
     await dispatchUpdate(messageUpdate({ text: "some answer" }), deps);
@@ -904,6 +920,57 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
     await dispatchUpdate(messageUpdate({ text: "/start" }), deps);
     expect(resetScenario).not.toHaveBeenCalled();
     expect(calls[0].name).toBe("handleCommand");
+  });
+});
+
+describe("dispatchUpdate chat-scopes Telegram session state", () => {
+  it("clears unscoped active scenario state before a group message can use it", async () => {
+    const activeSession = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { value: "+998901112233" },
+    });
+    const { deps, calls, resetScenario } = makeDeps(activeSession);
+
+    await dispatchUpdate(
+      messageUpdate(
+        { text: "групповой текст" },
+        { userId: 100, chatId: -100777, chatType: "supergroup" },
+      ),
+      deps,
+    );
+
+    expect(resetScenario).toHaveBeenCalledWith(100);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("групповой текст");
+    expect(calls[0].ctx).toMatchObject({
+      chatId: -100777,
+      chatType: "supergroup",
+      session: { scenario: "none", scenarioData: {} },
+    });
+  });
+
+  it("keeps active scenario state only in the chat where it was created", async () => {
+    const activeSession = makeSession({
+      scenario: "report_value",
+      scenarioStep: 0,
+      scenarioData: withSessionChatScope({}, -100777, "supergroup"),
+    });
+    const { deps, calls, resetScenario } = makeDeps(activeSession);
+
+    await dispatchUpdate(
+      messageUpdate(
+        { text: "@bad_actor" },
+        { userId: 100, chatId: -100777, chatType: "supergroup" },
+      ),
+      deps,
+    );
+
+    expect(resetScenario).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleScenarioStep");
+    expect(calls[0].arg).toBe("@bad_actor");
   });
 });
 

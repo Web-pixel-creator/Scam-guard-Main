@@ -43,7 +43,7 @@ import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
-import { saveSession } from "@/lib/telegram/session.server";
+import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
@@ -73,7 +73,7 @@ import {
   fallbackImageIntelligence,
   buildImageUserExplanation,
   hasUsableImageEvidence,
-  isBenignImageContext,
+  isEvidenceBackedBenignImageContext,
   mergeDecodedQrEvidence,
 } from "@/lib/risk/image-intelligence";
 import { decodeQrFromDataUrl } from "@/lib/risk/qr-decoder";
@@ -97,6 +97,8 @@ const MAX_TEXT_LENGTH = 2000;
 
 /** Верхний предел размера скачиваемого изображения: 6 МБ (R5.5). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const IMAGE_DOWNLOAD_RATE_LIMIT = 10;
+const IMAGE_DOWNLOAD_RATE_WINDOW_MS = 60_000;
 const MAX_VOICE_BYTES = 2 * 1024 * 1024;
 const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
@@ -194,6 +196,10 @@ function readBoundedIntEnv(name: string, fallback: number, min: number, max: num
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
+}
+
+function imageDownloadBudgetKey(userId: number): string {
+  return `telegram-image:${rateLimitKeyFor(userId)}`;
 }
 
 function normalizeCheckCacheInput(input: string): string {
@@ -348,6 +354,18 @@ async function checkVoiceSttBudget(userId: number): Promise<void> {
   }
 }
 
+async function checkImageDownloadBudget(userId: number): Promise<void> {
+  const result = await checkSharedRateLimit(
+    "check",
+    imageDownloadBudgetKey(userId),
+    IMAGE_DOWNLOAD_RATE_LIMIT,
+    IMAGE_DOWNLOAD_RATE_WINDOW_MS,
+  );
+  if (!result.ok) {
+    throw rateLimitedCheckError(result.retryAfterSec);
+  }
+}
+
 function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [key, timestamp] of mediaGroupOcrFallbacks) {
     if (now - timestamp > MEDIA_GROUP_FALLBACK_TTL_MS) mediaGroupOcrFallbacks.delete(key);
@@ -411,6 +429,13 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
 
 function rateLimitedVoiceSttError(retryAfter: number): RateLimitedError {
   const error = new Error("voice_stt_rate_limited") as RateLimitedError;
+  error.status = 429;
+  error.retryAfter = retryAfter;
+  return error;
+}
+
+function rateLimitedCheckError(retryAfter: number): RateLimitedError {
+  const error = new Error("rate_limited") as RateLimitedError;
   error.status = 429;
   error.retryAfter = retryAfter;
   return error;
@@ -619,7 +644,11 @@ async function sendVoicePanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): P
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(previousScenarioData, panicId),
+    scenarioData: withSessionChatScope(
+      withPanicContextData(previousScenarioData, panicId),
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -672,11 +701,15 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: {
-      ...previousScenarioData,
-      lastCheck,
-      ...(guardian ? { guardian } : {}),
-    },
+    scenarioData: withSessionChatScope(
+      {
+        ...previousScenarioData,
+        lastCheck,
+        ...(guardian ? { guardian } : {}),
+      },
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 
   if (guardian && shouldAutoSendGuardianIntro(result)) {
@@ -701,10 +734,14 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: {
-      ...previousScenarioData,
-      lastCheck: buildImageUnreadableSnapshot(),
-    },
+    scenarioData: withSessionChatScope(
+      {
+        ...previousScenarioData,
+        lastCheck: buildImageUnreadableSnapshot(),
+      },
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 }
 
@@ -967,6 +1004,12 @@ export async function handleImage(
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleImage", async () => {
+    const budgetStartedAt = Date.now();
+    await checkImageDownloadBudget(ctx.userId);
+    logTelegramTiming("image.download_budget", budgetStartedAt, {
+      mediaGroup: mediaGroupId !== undefined,
+    });
+
     // 1) Метаданные файла — позволяют отклонить превышение лимита ДО скачивания.
     const getFileStartedAt = Date.now();
     const meta = await getFile(fileId);
@@ -1046,7 +1089,7 @@ export async function handleImage(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
         skipAi: true,
-        safeIfNoReasons: isBenignImageContext(evidence),
+        safeIfNoReasons: isEvidenceBackedBenignImageContext(evidence),
       });
       logTelegramTiming("image.run_check", checkStartedAt, {
         type: result.type,

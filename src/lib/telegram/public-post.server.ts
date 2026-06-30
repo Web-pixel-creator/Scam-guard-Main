@@ -217,7 +217,7 @@ function extractInlineButtons(
   )) {
     const attrs = match[1];
     const inner = match[2];
-    const text = sanitizeMetaText(inner);
+    const text = sanitizeMetaText(inner, { redact: false });
     const href = normalizeHref(decodeHtmlEntities(getAttr(attrs, "href") ?? "").trim());
     const url = href && !isTelegramSelfLink(href, target) ? href : null;
     if (!text && !url) continue;
@@ -278,8 +278,9 @@ function extractClassText(html: string, className: string): string | null {
   return text || null;
 }
 
-function sanitizeMetaText(html: string): string {
-  const text = redactText(normalizePlainText(stripHtml(html)));
+function sanitizeMetaText(html: string, options: { redact?: boolean } = {}): string {
+  const normalized = normalizePlainText(stripHtml(html));
+  const text = options.redact === false ? normalized : redactText(normalized);
   return text.length > MAX_META_TEXT_CHARS ? `${text.slice(0, MAX_META_TEXT_CHARS - 1)}…` : text;
 }
 
