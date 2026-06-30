@@ -35,6 +35,7 @@ package-lock.json
 .dev.vars
 
 # Editor directories and files
+.claude/
 .vscode/*
 !.vscode/extensions.json
 .idea
