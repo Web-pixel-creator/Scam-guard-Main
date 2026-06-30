@@ -24,7 +24,7 @@ import {
   getEntityCheck,
 } from "@/lib/admin.functions";
 import { ReasonTimeline } from "@/components/ReasonTimeline";
-import type { ReasonCode, RiskLevel } from "@/lib/risk/rules";
+import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -53,6 +53,11 @@ type AdminReport = {
   target_last_seen_at?: string | null;
   target_moderation_status?: string | null;
   target_risk_level?: string | null;
+  target_check_risk_level?: string | null;
+  target_check_risk_score?: number | null;
+  target_check_reason_codes?: string[] | null;
+  target_check_has_ai_explanation?: boolean | null;
+  target_check_created_at?: string | null;
 };
 
 function AdminPage() {
@@ -306,6 +311,7 @@ function AdminPage() {
                   <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
                     {r.description}
                   </p>
+                  <ReportReasonSummary report={r} compact />
                   <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
                     <ReportFact label="Что проверить" value={r.redacted_value} mono />
                     <ReportFact
@@ -644,6 +650,20 @@ function ReportDetailDialog({
                 перевод, APK, QR-вход или подозрительная ссылка.
               </p>
             </section>
+
+            <section>
+              <p className="apex-mono mb-3 text-[#71717A]">Почему система отметила цель</p>
+              <ReportReasonSummary report={report} />
+              {reportReasonCodes(report).length > 0 && (
+                <div className="mt-3">
+                  <ReasonTimeline
+                    reasonCodes={reportReasonCodes(report)}
+                    riskLevel={reportCheckRiskLevel(report)}
+                    hasAiExplanation={Boolean(report.target_check_has_ai_explanation)}
+                  />
+                </div>
+              )}
+            </section>
           </div>
 
           <aside className="space-y-4">
@@ -784,6 +804,58 @@ function Stat({ label, value, highlight }: { label: string; value?: number; high
   );
 }
 
+function ReportReasonSummary({ report, compact = false }: { report: AdminReport; compact?: boolean }) {
+  const reasons = reportRawReasonCodes(report);
+  const visibleReasons = reasons.slice(0, compact ? 3 : 6);
+  const hiddenReasonCount = Math.max(0, reasons.length - visibleReasons.length);
+  const hasSummary = hasReportCheckSummary(report);
+
+  return (
+    <div className="mt-4 border border-[#E2E0D8] bg-[#FCFBF7] p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="apex-mono mb-1 text-[#71717A]">Последняя проверка цели</p>
+          <p className="text-[13px] leading-relaxed text-[#52525B]">
+            {hasSummary
+              ? `${labelRiskLevel(report.target_check_risk_level)}${
+                  typeof report.target_check_risk_score === "number"
+                    ? ` · score ${report.target_check_risk_score}`
+                    : ""
+                }`
+              : "Нет сохранённой проверки для этой цели."}
+          </p>
+        </div>
+        {report.target_check_created_at && (
+          <span className="apex-mono shrink-0 text-[#A1A1AA]">
+            {formatDateTime(report.target_check_created_at)}
+          </span>
+        )}
+      </div>
+
+      {visibleReasons.length > 0 ? (
+        <ul className="mt-3 grid gap-1 text-[13px] leading-relaxed text-[#52525B] sm:grid-cols-2">
+          {visibleReasons.map((code) => (
+            <li key={code}>• {reasonLabel(code)}</li>
+          ))}
+          {hiddenReasonCount > 0 && <li className="text-[#71717A]">• ещё {hiddenReasonCount}</li>}
+        </ul>
+      ) : (
+        hasSummary && (
+          <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
+            Reason-кодов нет: решение можно принимать только по тексту жалобы и повторным сигналам.
+          </p>
+        )
+      )}
+
+      {hasSummary && (
+        <p className="mt-3 apex-mono text-[#A1A1AA]">
+          {report.target_check_has_ai_explanation ? "rules + AI explanation" : "rules only"}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ReportFact({
   label,
   value,
@@ -807,6 +879,41 @@ function ReportFact({
       </dd>
     </div>
   );
+}
+
+function hasReportCheckSummary(report: AdminReport) {
+  return (
+    Boolean(report.target_check_risk_level) ||
+    typeof report.target_check_risk_score === "number" ||
+    reportRawReasonCodes(report).length > 0 ||
+    Boolean(report.target_check_created_at)
+  );
+}
+
+function reportRawReasonCodes(report: AdminReport): string[] {
+  return (report.target_check_reason_codes ?? []).filter(
+    (code): code is string => typeof code === "string" && code.trim().length > 0,
+  );
+}
+
+function reportReasonCodes(report: AdminReport): ReasonCode[] {
+  return reportRawReasonCodes(report).filter(
+    (code): code is ReasonCode => code in REASON_LABELS,
+  );
+}
+
+function reasonLabel(code: string) {
+  return REASON_LABELS[code as ReasonCode]?.ru ?? code;
+}
+
+function isRiskLevel(value?: string | null): value is RiskLevel {
+  return value === "safe" || value === "unknown" || value === "suspicious" || value === "high_risk";
+}
+
+function reportCheckRiskLevel(report: AdminReport): RiskLevel {
+  if (isRiskLevel(report.target_check_risk_level)) return report.target_check_risk_level;
+  if (isRiskLevel(report.target_risk_level)) return report.target_risk_level;
+  return "unknown";
 }
 
 function StatusBadge({ status }: { status: string }) {

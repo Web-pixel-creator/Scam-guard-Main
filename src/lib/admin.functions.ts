@@ -19,6 +19,69 @@ type AuditLogClient = {
   };
 };
 
+type ReportTargetRow = {
+  entity_hash?: string | null;
+};
+
+type EntityTargetContext = {
+  entity_hash: string;
+  report_count?: number | null;
+  last_seen_at?: string | null;
+  moderation_status?: string | null;
+  risk_level?: string | null;
+};
+
+type LatestCheckContext = {
+  input_hash: string;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  reason_codes?: string[] | null;
+  ai_explanation?: string | null;
+  created_at?: string | null;
+};
+
+export function attachReportOperatorContext<Report extends ReportTargetRow>(
+  reports: Report[],
+  entities: EntityTargetContext[],
+  checks: LatestCheckContext[] = [],
+) {
+  const entitiesByHash = new Map(entities.map((entity) => [entity.entity_hash, entity]));
+  const latestCheckByHash = new Map<string, LatestCheckContext>();
+  const newestChecks = [...checks].sort(
+    (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+  );
+
+  for (const check of newestChecks) {
+    if (!latestCheckByHash.has(check.input_hash)) {
+      latestCheckByHash.set(check.input_hash, check);
+    }
+  }
+
+  return reports.map((report) => {
+    const entity = report.entity_hash ? entitiesByHash.get(report.entity_hash) : undefined;
+    const check = report.entity_hash ? latestCheckByHash.get(report.entity_hash) : undefined;
+    const reasonCodes = Array.isArray(check?.reason_codes)
+      ? check.reason_codes.filter((code): code is string => typeof code === "string")
+      : [];
+
+    return {
+      ...report,
+      target_report_count: entity?.report_count ?? 1,
+      target_last_seen_at: entity?.last_seen_at ?? null,
+      target_moderation_status: entity?.moderation_status ?? null,
+      target_risk_level: entity?.risk_level ?? null,
+      target_check_risk_level: check?.risk_level ?? null,
+      target_check_risk_score:
+        typeof check?.risk_score === "number" && Number.isFinite(check.risk_score)
+          ? check.risk_score
+          : null,
+      target_check_reason_codes: reasonCodes,
+      target_check_has_ai_explanation: Boolean(check?.ai_explanation),
+      target_check_created_at: check?.created_at ?? null,
+    };
+  });
+}
+
 const moderateReportInputSchema = z.object({
   reportId: z.string().uuid(),
   decision: z.enum(["confirmed", "rejected"]),
@@ -90,32 +153,29 @@ export const listReports = createServerFn({ method: "POST" })
       new Set(reports.map((r) => r.entity_hash).filter((hash): hash is string => Boolean(hash))),
     );
     if (hashes.length === 0) {
-      return reports.map((report) => ({
-        ...report,
-        target_report_count: 1,
-        target_last_seen_at: null,
-        target_moderation_status: null,
-        target_risk_level: null,
-      }));
+      return attachReportOperatorContext(reports, [], []);
     }
 
-    const { data: entities, error: entitiesError } = await supabaseAdmin
-      .from("entities")
-      .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
-      .in("entity_hash", hashes);
-    if (entitiesError) throw new Error(entitiesError.message);
+    const [entitiesResult, checksResult] = await Promise.all([
+      supabaseAdmin
+        .from("entities")
+        .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
+        .in("entity_hash", hashes),
+      supabaseAdmin
+        .from("checks")
+        .select("input_hash, risk_level, risk_score, reason_codes, ai_explanation, created_at")
+        .in("input_hash", hashes)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ]);
+    if (entitiesResult.error) throw new Error(entitiesResult.error.message);
+    if (checksResult.error) throw new Error(checksResult.error.message);
 
-    const byHash = new Map((entities ?? []).map((entity) => [entity.entity_hash, entity]));
-    return reports.map((report) => {
-      const entity = byHash.get(report.entity_hash);
-      return {
-        ...report,
-        target_report_count: entity?.report_count ?? 1,
-        target_last_seen_at: entity?.last_seen_at ?? null,
-        target_moderation_status: entity?.moderation_status ?? null,
-        target_risk_level: entity?.risk_level ?? null,
-      };
-    });
+    return attachReportOperatorContext(
+      reports,
+      entitiesResult.data ?? [],
+      checksResult.data ?? [],
+    );
   });
 
 export const listEntities = createServerFn({ method: "POST" })

@@ -152,7 +152,11 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import { moderateReportCore, resolveReputationAppealCore } from "./admin.functions";
+import {
+  attachReportOperatorContext,
+  moderateReportCore,
+  resolveReputationAppealCore,
+} from "./admin.functions";
 
 beforeEach(() => {
   hoisted.reportRow = {
@@ -176,6 +180,74 @@ beforeEach(() => {
   hoisted.appealUpdates.length = 0;
   hoisted.confirmedReportCount = 1;
   hoisted.unverifiedReportCount = 0;
+});
+
+describe("attachReportOperatorContext", () => {
+  it("adds entity and latest-check context to report cards", () => {
+    const [report] = attachReportOperatorContext(
+      [{ id: "report-1", entity_hash: "hash-target", description: "Asked for SMS code." }],
+      [
+        {
+          entity_hash: "hash-target",
+          report_count: 3,
+          last_seen_at: "2026-06-30T08:00:00.000Z",
+          moderation_status: "new",
+          risk_level: "suspicious",
+        },
+      ],
+      [
+        {
+          input_hash: "hash-target",
+          risk_level: "unknown",
+          risk_score: 5,
+          reason_codes: ["unknown_sender"],
+          ai_explanation: null,
+          created_at: "2026-06-29T08:00:00.000Z",
+        },
+        {
+          input_hash: "hash-target",
+          risk_level: "high_risk",
+          risk_score: 75,
+          reason_codes: ["asks_for_sms_code", "uses_urgency"],
+          ai_explanation: "Asked for a one-time code with pressure.",
+          created_at: "2026-06-30T09:00:00.000Z",
+        },
+      ],
+    );
+
+    expect(report).toMatchObject({
+      id: "report-1",
+      target_report_count: 3,
+      target_last_seen_at: "2026-06-30T08:00:00.000Z",
+      target_moderation_status: "new",
+      target_risk_level: "suspicious",
+      target_check_risk_level: "high_risk",
+      target_check_risk_score: 75,
+      target_check_reason_codes: ["asks_for_sms_code", "uses_urgency"],
+      target_check_has_ai_explanation: true,
+      target_check_created_at: "2026-06-30T09:00:00.000Z",
+    });
+  });
+
+  it("keeps safe defaults when a report has no target context", () => {
+    const [report] = attachReportOperatorContext(
+      [{ id: "report-2", entity_hash: "missing-hash" }],
+      [],
+      [],
+    );
+
+    expect(report).toMatchObject({
+      target_report_count: 1,
+      target_last_seen_at: null,
+      target_moderation_status: null,
+      target_risk_level: null,
+      target_check_risk_level: null,
+      target_check_risk_score: null,
+      target_check_reason_codes: [],
+      target_check_has_ai_explanation: false,
+      target_check_created_at: null,
+    });
+  });
 });
 
 describe("moderateReportCore reputation boundary", () => {
