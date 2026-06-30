@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - P1 production web user-story QA passed
+
+- Production browser QA passed for the homepage high-risk result, `/report`
+  success path and `/appeal` success path against
+  `https://scam-guard-main-production.up.railway.app`.
+- Added `prod:admin-moderation-smoke`, a guarded production smoke that finds the
+  synthetic report/appeal by marker or hashed target, runs the same admin
+  moderation core functions, verifies audit actions, and cleans synthetic rows.
+- QA marker `QA-P1-WEB-20260630111649` was cleaned from reports, appeals,
+  entities, admin actions and checks after verification.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-010` records the
+  run, and WEB-002 / WEB-003 / WEB-007 now point to production-pass status.
+- Next recommended P1 remains Telegram/private-group user-story QA or
+  UX/logistics fixes; Voice-out human audio review/compression is a separate
+  follow-up.
+
 ## 2026-06-30 - Voice-out pre-record architecture first slice
 
 - Main SOS `voiceout:panic:{id}` callbacks now look for static audio before
