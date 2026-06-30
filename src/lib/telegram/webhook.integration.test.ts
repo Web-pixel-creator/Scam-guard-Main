@@ -339,7 +339,8 @@ function expectHighRiskResultWithGuardian(chatId: number) {
   expect(result.chatId).toBe(chatId);
   expect(guardian.chatId).toBe(chatId);
   expect(result.text).toContain(RISK_EMOJI.high_risk);
-  expect(guardian.text).toContain("после высокого риска");
+  expect(guardian.text).toContain("Я рядом");
+  expect(guardian.text).toContain("один безопасный шаг");
   expect(callbackData(guardian.keyboard)).toContain("guardian:next");
   expect(callbackData(guardian.keyboard)).toContain("guardian:done");
   return result;

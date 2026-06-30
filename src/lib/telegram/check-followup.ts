@@ -25,6 +25,10 @@ const EXPLAIN_RE =
 // to what actually matters for safety instead of returning a generic card.
 const AI_ORIGIN_RE =
   /(нейросет|нейронк|искусственн[а-яё]*\s+интеллект|сгенерир|chatgpt|midjourney|ai[\s-]?generated|ai[\s-]?made|generated\s+(?:by|with)\s+(?:ai|a?\s*neural)|made\s+(?:by|with)\s+ai|looks?\s+(?:like\s+)?ai|sun'?iy\s+intellekt|(?:^|[^a-zа-яё])(?:ai|ии)(?:[^a-zа-яё]|$))/i;
+const CONFIRMATION_REQUEST_RE =
+  /(?:попросил[аи]?|попросили|просят|просит|сказал[аи]?|нужно|надо|требу(?:ет|ют))\s+.{0,40}(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)|(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)\s+.{0,40}(?:попросил[аи]?|попросили|просят|просит|нужно|надо|требу(?:ет|ют)|операци[яю]|вход)|(?:asked|asks|asking|need|needs)\s+.{0,40}(?:confirm|confirmation|verify|verification)|(?:confirm|confirmation|verify)\s+.{0,40}(?:operation|login|account)|(?:tasdiq|tasdiqlash)/i;
+const ACKNOWLEDGEMENT_RE =
+  /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо))?|ок(?:ей)?|спасибо|благодарю|рахмат|rahmat|tushunarli|yaxshi|qilaman|qildim|ok|okay|thanks|thank\s+you)[\s.!?]*$/i;
 
 const SCAM_PAYLOAD_RE =
   /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
@@ -48,7 +52,9 @@ export type LastCheckFollowUpAction =
   | "next_steps"
   | "contacts"
   | "explain"
-  | "ai_origin";
+  | "ai_origin"
+  | "confirmation_request"
+  | "acknowledgement";
 
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);
@@ -126,6 +132,8 @@ export function classifyLastCheckFollowUp(
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
   if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  if (CONFIRMATION_REQUEST_RE.test(trimmed)) return "confirmation_request";
+  if (ACKNOWLEDGEMENT_RE.test(trimmed)) return "acknowledgement";
   return null;
 }
 
@@ -138,7 +146,14 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
   if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  if (CONFIRMATION_REQUEST_RE.test(trimmed)) return "confirmation_request";
   return null;
+}
+
+export function classifyAcknowledgementFollowUp(text: string): "acknowledgement" | null {
+  const trimmed = text.trim();
+  if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
+  return ACKNOWLEDGEMENT_RE.test(trimmed) ? "acknowledgement" : null;
 }
 
 function levelText(level: RiskLevel, lang: Lang): string {
@@ -448,6 +463,36 @@ function aiOriginText(snapshot: LastCheckSnapshot, lang: Lang): string {
   return `Честно: я не берусь точно сказать, сделано это ИИ или человеком — у меня нет надёжного детектора AI, и я не хочу выдумывать. Но для безопасности это не главное: «AI-шный» вид сам по себе не доказывает мошенничество.\n\nВажно другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
 }
 
+export function buildAcknowledgementFollowUpText(lang: Lang): string {
+  if (lang === "uz") {
+    return "Yaxshi. Men yoningizdaman. Shoshilmang, bitta xavfsiz qadamdan boring.\n\nKod, karta, parol yoki hujjat rasmini yubormang. Yangi havola, ekran yoki iltimos chiqsa — shu yerga yuboring, tekshiraman.";
+  }
+  if (lang === "en") {
+    return "Good. I am here with you. Take it calmly, one safe step at a time.\n\nDo not send codes, card details, passwords, or document photos. If a new link, screen, or request appears, send it here and I will check it.";
+  }
+  return "Хорошо. Я рядом. Делайте спокойно, по одному безопасному шагу.\n\nНе отправляйте коды, карту, пароль или фото документов. Если появится новая ссылка, экран или просьба — пришлите сюда, я проверю.";
+}
+
+function confirmationRequestText(snapshot: LastCheckSnapshot | null, lang: Lang): string {
+  const phoneContext = snapshot?.context === "phone";
+  if (lang === "uz") {
+    const channel = phoneContext
+      ? "Bank yoki xizmatga faqat ilova, karta yoki rasmiy saytdagi raqam orqali qayta qo'ng'iroq qiling."
+      : "Xizmatni faqat rasmiy ilova, sayt yoki ishonchli kontakt orqali tekshiring.";
+    return `Tushundim. «Tasdiqlash» ko'pincha SMS-kod, ilovadagi push, QR orqali kirish yoki karta operatsiyasini anglatadi.\n\nAgar kirish, pul o'tkazma, «xavfsizlik» yoki karta operatsiyasini tasdiqlash so'ralsa — tasdiqlamang va suhbatni tugating. ${channel}`;
+  }
+  if (lang === "en") {
+    const channel = phoneContext
+      ? "Call back only using the number from the bank app, card, or official website."
+      : "Verify only through the official app, website, or trusted contact.";
+    return `Understood. A request to "confirm" often means an SMS code, an app push, QR login, or a card operation.\n\nIf they ask you to confirm a login, transfer, "security" action, or card operation, do not confirm it and end the conversation. ${channel}`;
+  }
+  const channel = phoneContext
+    ? "Перезвоните только по номеру из приложения, карты или официального сайта."
+    : "Проверяйте только через официальное приложение, сайт или доверенный контакт.";
+  return `Понял. «Подтверждение» часто означает SMS-код, push в приложении, вход через QR или операцию по карте.\n\nЕсли вас просят подтвердить вход, перевод, «безопасность» или операцию по карте — не подтверждайте и завершите разговор. ${channel}`;
+}
+
 export function buildLastCheckFollowUpText(
   action: LastCheckFollowUpAction,
   snapshot: LastCheckSnapshot,
@@ -464,11 +509,17 @@ export function buildLastCheckFollowUpText(
       return explainText(snapshot, lang);
     case "ai_origin":
       return aiOriginText(snapshot, lang);
+    case "confirmation_request":
+      return confirmationRequestText(snapshot, lang);
+    case "acknowledgement":
+      return buildAcknowledgementFollowUpText(lang);
   }
 }
 
 export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, lang: Lang): string {
   if (action === "contacts") return contactsText(lang);
+  if (action === "confirmation_request") return confirmationRequestText(null, lang);
+  if (action === "acknowledgement") return buildAcknowledgementFollowUpText(lang);
 
   if (action === "ai_origin") {
     if (lang === "uz") {

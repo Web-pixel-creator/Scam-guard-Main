@@ -54,8 +54,9 @@ describe("Guardian Angel v1", () => {
   it("builds a one-step companion message and compact keyboard", () => {
     const snapshot = buildGuardianAngelSnapshot(highRiskResult())!;
 
-    expect(buildGuardianAngelIntro(snapshot, "ru")).toContain("авто-подсказка");
+    expect(buildGuardianAngelIntro(snapshot, "ru")).toContain("Я рядом");
     expect(buildGuardianAngelIntro(snapshot, "ru")).toContain("только один безопасный шаг");
+    expect(buildGuardianAngelIntro(snapshot, "ru")).not.toContain("авто-подсказка");
     expect(buildGuardianAngelText(GUARDIAN_CB.next, snapshot, "ru")).toContain(
       "Следующий безопасный шаг",
     );

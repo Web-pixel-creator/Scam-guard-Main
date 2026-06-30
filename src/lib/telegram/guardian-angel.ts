@@ -394,7 +394,7 @@ export function buildGuardianAngelKeyboard(
 export function buildGuardianAngelIntro(snapshot: GuardianAngelSnapshot, lang: Lang): string {
   if (lang === "uz") {
     return (
-      "Bu yuqori xavfdan keyingi avtomatik yordam — yangi tekshiruv emas va tugma bosilgan javob emas.\n\n" +
+      "Men yoningizdaman va xavfsiz tugatishga yordam beraman — qadam-baqadam.\n\n" +
       "Hozir hammasini birdan qilmaymiz — faqat bitta xavfsiz qadam.\n\n" +
       `🧭 Hozir: ${primaryStep(snapshot, lang)}.\n\n` +
       "Qilsangiz — «✅ Qildim» ni bosing."
@@ -402,14 +402,14 @@ export function buildGuardianAngelIntro(snapshot: GuardianAngelSnapshot, lang: L
   }
   if (lang === "en") {
     return (
-      "This is an automatic safety prompt after a high-risk result, not a new check or a button response.\n\n" +
+      "I am here with you. Let us get to a safe place step by step.\n\n" +
       "We will not do everything at once — only one safe step now.\n\n" +
       `🧭 Now: ${primaryStep(snapshot, lang)}.\n\n` +
       "When done, tap “✅ I did it”."
     );
   }
   return (
-    "Это авто-подсказка после высокого риска — не новая проверка и не ответ на нажатую кнопку.\n\n" +
+    "Я рядом и помогу довести ситуацию до безопасного конца — шаг за шагом.\n\n" +
     "Сейчас не делаем всё сразу — только один безопасный шаг.\n\n" +
     `🧭 Сейчас: ${primaryStep(snapshot, lang)}.\n\n` +
     "Когда сделаете — нажмите «✅ Сделал шаг»."

@@ -1972,6 +1972,13 @@ function isRecentPanicContext(context: EmergencyContextData, now: Date): boolean
   return age >= 0 && age <= PANIC_CONTEXT_TTL_MS;
 }
 
+export function hasRecentEmergencyContext(
+  context: EmergencyContextData,
+  now: Date = new Date(),
+): boolean {
+  return isRecentPanicContext(context, now);
+}
+
 export function withPanicContextData<T extends object>(
   existing: T | undefined,
   panicId: PanicScenarioId,

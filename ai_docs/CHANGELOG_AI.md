@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-06-30 - Telegram conversational follow-ups after QA feedback
+
+- Added post-check/post-SOS handling for short acknowledgements like
+  "Хорошо сделаю" so the bot answers warmly instead of running a fake
+  insufficient-data check.
+- Added handling for ambiguous confirmation requests such as
+  "Попросил подтверждение": the bot now warns about SMS codes, push
+  confirmations, QR login and card operations without changing the previous
+  verdict.
+- Voice transcript previews now trim on a word boundary with an ellipsis while
+  the risk check continues to use the full transcript.
+- Guardian Angel intro copy now uses human-facing companion wording instead of
+  explaining internal auto-prompt mechanics.
+- Recorded the remaining Voice-out pre-record architecture pass as an open
+  task after QA found live TTS buttons too broad and too provider-dependent.
+
 ## 2026-06-29 - Proxy IP header trust is fail-closed and documented
 
 - Documented `TRUST_PROXY_IP_HEADERS` as an explicit opt-in for public

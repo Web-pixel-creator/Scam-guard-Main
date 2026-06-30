@@ -142,6 +142,31 @@ describe("handleVoice", () => {
     );
   });
 
+  it("trims long voice transcript previews on a word boundary with an ellipsis", async () => {
+    const transcript = `${"добрый ".repeat(25)}неизвестный профиль просит SMS код и данные карты`;
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 34,
+      mimeType: "audio/ogg",
+      fileUniqueId: "long-voice-preview",
+    });
+
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: transcript,
+        type: "text",
+      }),
+    );
+    const transcriptNote = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .find((text) => text.includes("Я распознал голос"));
+
+    expect(transcriptNote).toContain("…");
+    expect(transcriptNote).not.toContain("неизв");
+  });
+
   it("adds a redacted hook phrase to voice check results", async () => {
     const transcript =
       "The courier says open https://evil.example/pay, message @seller, and pay by card only 123456.";

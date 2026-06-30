@@ -63,15 +63,19 @@ vi.mock("@/lib/telegram/reputation.server", () => ({
 
 import { handleCheck } from "@/lib/telegram/handlers/check";
 
-function sessionWith(lastCheck?: LastCheckSnapshot): Session {
+function sessionWithData(scenarioData: Session["scenarioData"] = {}): Session {
   return {
     telegramUserId: 42,
     lang: "ru",
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: lastCheck ? { lastCheck } : {},
+    scenarioData,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function sessionWith(lastCheck?: LastCheckSnapshot): Session {
+  return sessionWithData(lastCheck ? { lastCheck } : {});
 }
 
 function snapshot(overrides: Partial<LastCheckSnapshot> = {}): LastCheckSnapshot {
@@ -146,6 +150,38 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("answers acknowledgement after an emergency step instead of showing an insufficient-data card", async () => {
+    await handleCheck("Хорошо сделаю", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWithData({
+        lastPanicId: 8,
+        lastPanicAt: new Date().toISOString(),
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Я рядом");
+    expect(hoisted.sentMessages[0].text).toContain("по одному безопасному шагу");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("answers ambiguous confirmation requests after a phone check without running a new check", async () => {
+    await handleCheck("Попросил подтверждение", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "phone", type: "phone", level: "unknown" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Подтверждение");
+    expect(hoisted.sentMessages[0].text).toContain("SMS-код");
+    expect(hoisted.sentMessages[0].text).toContain("не подтверждайте");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("still sends a real artifact to the risk pipeline", async () => {
     await handleCheck("Точно? https://kapitalbank.uz.evil.com/login", {
       chatId: 100,
@@ -189,8 +225,8 @@ describe("handleCheck follow-up routing", () => {
     });
 
     expect(hoisted.sentMessages).toHaveLength(2);
-    expect(hoisted.sentMessages[1].text).toContain("авто-подсказка после высокого риска");
-    expect(hoisted.sentMessages[1].text).toContain("не новая проверка");
+    expect(hoisted.sentMessages[1].text).toContain("Я рядом");
+    expect(hoisted.sentMessages[1].text).toContain("безопасного конца");
     expect(hoisted.sentMessages[1].text).toContain("один безопасный шаг");
     const callbacks = (hoisted.sentMessages[1].keyboard as { callback_data?: string }[][])
       .flat()

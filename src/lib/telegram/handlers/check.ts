@@ -49,14 +49,17 @@ import {
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
   buildPanicScenarioText,
+  hasRecentEmergencyContext,
   withPanicContextData,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
+  buildAcknowledgementFollowUpText,
   buildLastCheckFollowUpText,
   buildOrphanCheckFollowUpText,
   buildImageUnreadableSnapshot,
   buildLastCheckSnapshot,
+  classifyAcknowledgementFollowUp,
   classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
@@ -476,14 +479,24 @@ function estimateBase64DataUrlBytes(dataUrl: string): number {
 }
 
 function sanitizeVoiceTranscriptPreview(text: string): string {
-  return text
+  const sanitized = text
     .normalize("NFKC")
     .replace(/https?:\/\/\S+|www\.\S+/gi, "ссылка скрыта")
     .replace(/@[A-Za-z0-9_]{3,}/g, "аккаунт скрыт")
     .replace(/\b(?:\d[\s-]?){4,}\b/g, "номер скрыт")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+    .trim();
+
+  return trimTextPreviewAtWordBoundary(sanitized, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+}
+
+function trimTextPreviewAtWordBoundary(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const clipped = text.slice(0, maxChars - 1).trimEnd();
+  const wordBoundary = clipped.replace(/\s+\S*$/u, "").trimEnd();
+  const base = wordBoundary.length >= Math.floor(maxChars * 0.6) ? wordBoundary : clipped;
+  return `${base}…`;
 }
 
 const VOICE_HOOK_KEYWORD_RE =
@@ -918,6 +931,18 @@ export async function handleCheck(
         buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
       ),
       keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
+    });
+    return;
+  }
+
+  const emergencyAcknowledgement = classifyAcknowledgementFollowUp(trimmed);
+  if (
+    emergencyAcknowledgement !== null &&
+    hasRecentEmergencyContext(ctx.session.scenarioData ?? {})
+  ) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildAcknowledgementFollowUpText(lang)),
     });
     return;
   }

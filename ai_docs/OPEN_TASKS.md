@@ -106,6 +106,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       while synthesis runs, de-duplicate repeated taps for the same text, and
       answer repeated voice-button clicks with a short "already preparing/sent"
       callback hint instead of burning another TTS request.
+- [ ] **Voice-out pre-record architecture pass.** QA feedback shows the
+      "🔊 Озвучить главный шаг" button still appears in too many SOS contexts
+      and provider-backed TTS failures can break trust. Keep the cost guards,
+      but move common panic/lang scripts to static pre-recorded `.ogg` assets,
+      keep live TTS only for rare dynamic guidance, and hide or soften the
+      button when audio is not reliably available.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting

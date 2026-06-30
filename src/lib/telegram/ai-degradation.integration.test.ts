@@ -537,7 +537,8 @@ describe("AI degradation — end-to-end через handleCheck (R13.1, R13.2, R1
     const sent = hoisted.sendCalls[0];
     expect(sent.chatId).toBe(ctx.chatId);
     expect(hoisted.sendCalls[1].chatId).toBe(ctx.chatId);
-    expect(hoisted.sendCalls[1].text).toContain("после высокого риска");
+    expect(hoisted.sendCalls[1].text).toContain("Я рядом");
+    expect(hoisted.sendCalls[1].text).toContain("один безопасный шаг");
 
     // Уровень + verdict присутствуют, блок AI-объяснения отсутствует.
     const levelLabel = t("risk_high", "ru");
