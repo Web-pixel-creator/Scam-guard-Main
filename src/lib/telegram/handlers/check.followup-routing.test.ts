@@ -157,6 +157,30 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.runCheckCalls[0].input).toContain("https://kapitalbank.uz.evil.com/login");
   });
 
+  it("does not swallow SMS code follow-ups as generic next-step chat", async () => {
+    await handleCheck("Ular SMS kod so'radi, nima qilay?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "phone", level: "unknown" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("SMS kod");
+    expect(hoisted.sentMessages[0].text).toContain("Высокий риск");
+  });
+
+  it("routes English verification-code follow-ups through the risk pipeline", async () => {
+    await handleCheck("They asked for a verification code, what should I do?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "telegram_profile", level: "unknown" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("verification code");
+    expect(hoisted.sentMessages[0].text).toContain("Высокий риск");
+  });
+
   it("adds Guardian Angel guidance and stores only safe metadata after high-risk checks", async () => {
     await handleCheck("https://kapitalbank.uz.evil.com/login", {
       chatId: 100,

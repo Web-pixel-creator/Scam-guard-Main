@@ -27,7 +27,7 @@ const AI_ORIGIN_RE =
   /(нейросет|нейронк|искусственн[а-яё]*\s+интеллект|сгенерир|chatgpt|midjourney|ai[\s-]?generated|ai[\s-]?made|generated\s+(?:by|with)\s+(?:ai|a?\s*neural)|made\s+(?:by|with)\s+ai|looks?\s+(?:like\s+)?ai|sun'?iy\s+intellekt|(?:^|[^a-zа-яё])(?:ai|ии)(?:[^a-zа-яё]|$))/i;
 
 const SCAM_PAYLOAD_RE =
-  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
+  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
 
 const CRYPTO_CONTEXT_RE =
   /(крипт|биткоин|bitcoin|binance|trading|трейд|инвест|доходн|прибыл|forex|crypto|investment|investits|kripto|daromad|foyda)/i;
