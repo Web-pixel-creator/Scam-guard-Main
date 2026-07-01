@@ -19,6 +19,11 @@
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`. Voice-out/TTS is separately opt-in through `GEMINI_TTS_API_KEY` or `OPENAI_TTS_API_KEY`; without either, the bot sends a short text fallback instead of audio.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
+- **Pig-butchering / romance grooming still needs session memory.** The current
+  deterministic rules can catch a single-message trust-to-investment pivot, but
+  slow schemes need a cumulative chat-session risk profile: repeated
+  trust-building plus a later crypto/investment/transfer ask should lower the
+  alert threshold without flagging ordinary friendly messages.
 - **SOS ready phrases are scenario-specific for current panic IDs.** Existing
   bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
   reuse one bank callback script. Already-happened financial cases (SMS-code,

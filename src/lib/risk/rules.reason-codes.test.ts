@@ -703,3 +703,140 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
     expect(evaluateText(text)).not.toContain("asks_for_sms_code");
   });
 });
+
+describe("evaluateText — UZ critical scam patterns from audit", () => {
+  const positives: { name: string; text: string; code: string }[] = [
+    {
+      name: "OneID / id.gov.uz code confirmation",
+      text: "OneID orqali kirib, id.gov.uz sahifasida kodni tasdiqlang.",
+      code: "oneid_government_phishing",
+    },
+    {
+      name: "SIM reissue with SMS code",
+      text: "Для перевыпуска SIM-карты назовите SMS-код и паспортные данные.",
+      code: "sim_swap_or_number_transfer",
+    },
+    {
+      name: "money mule card transfer for percent",
+      text: "Принимайте переводы на карту и отправляйте дальше, оставляйте 10% себе.",
+      code: "money_mule_recruitment",
+    },
+    {
+      name: "lottery/prize tax",
+      text: "Вы выиграли приз, оплатите налог 50 000 сум для получения.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "Korea visa prepayment",
+      text: "Для визы в Корею внесите предоплату за оформление документов.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "Hajj tour deposit",
+      text: "Хадж тур: внесите аванс за бронь места сегодня.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "romance to crypto investment pivot",
+      text: "Я люблю тебя, давай построим будущее: вложи USDT в мою крипто-стратегию.",
+      code: "romance_investment_pivot",
+    },
+  ];
+
+  const negatives: { name: string; text: string; code: string }[] = [
+    {
+      name: "OneID public guide without action",
+      text: "OneID haqida rasmiy qo'llanma chop etildi.",
+      code: "oneid_government_phishing",
+    },
+    {
+      name: "SIM reissue office-only notice",
+      text: "Оператор сообщил, что перевыпуск SIM доступен только в офисе с паспортом.",
+      code: "sim_swap_or_number_transfer",
+    },
+    {
+      name: "money mule safety warning",
+      text: "Не передавайте карту, SIM или аккаунт третьим лицам и не принимайте чужие деньги.",
+      code: "money_mule_recruitment",
+    },
+    {
+      name: "tax news without payment request",
+      text: "Новости: налог на выигрыш изменился с нового года.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "romance without investment pivot",
+      text: "Я скучаю, как прошел день?",
+      code: "romance_investment_pivot",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text, code }) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each(negatives)("negative: $name", ({ text, code }) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+});
+
+describe("evaluateText — soft card, PIN, transfer, and personal-data asks", () => {
+  const positives: { name: string; text: string; code: string }[] = [
+    {
+      name: "soft CVV as three digits on card back",
+      text: "Назовите три цифры на обороте карты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "card security code",
+      text: "Сообщите код безопасности карты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "secret bank app code",
+      text: "Скажите тайный код от приложения банка.",
+      code: "asks_for_pin",
+    },
+    {
+      name: "direct transfer to card/number",
+      text: "Отправьте перевод на эту карту по номеру.",
+      code: "asks_to_transfer_to_safe_account",
+    },
+    {
+      name: "PINFL and ID photo",
+      text: "Пришлите фото ID-карты и ПИНФЛ для проверки.",
+      code: "requests_personal_data",
+    },
+  ];
+
+  const negatives: { name: string; text: string; code: string }[] = [
+    {
+      name: "three favorite digits",
+      text: "Назовите три любимые цифры для анкеты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "wifi password",
+      text: "Скажите пароль от Wi-Fi в офисе.",
+      code: "asks_for_pin",
+    },
+    {
+      name: "send product code",
+      text: "Отправьте код товара менеджеру.",
+      code: "asks_to_transfer_to_safe_account",
+    },
+    {
+      name: "passport office information",
+      text: "Паспорт можно получить в районном офисе.",
+      code: "requests_personal_data",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text, code }) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each(negatives)("negative: $name", ({ text, code }) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+});

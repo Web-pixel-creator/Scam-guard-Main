@@ -48,6 +48,11 @@ export type ReasonCode =
   | "wallet_action_urgency"
   | "ton_referral_earning_scheme"
   | "investment_fast_profit_pitch"
+  | "romance_investment_pivot"
+  | "oneid_government_phishing"
+  | "sim_swap_or_number_transfer"
+  | "money_mule_recruitment"
+  | "advance_fee_prize_inheritance"
   | "external_phishing_url"
   | "external_malware_url"
   | "hosted_app_platform"
@@ -100,6 +105,11 @@ const WEIGHTS: Record<ReasonCode, number> = {
   wallet_action_urgency: 30,
   ton_referral_earning_scheme: 20,
   investment_fast_profit_pitch: 25,
+  romance_investment_pivot: 30,
+  oneid_government_phishing: 40,
+  sim_swap_or_number_transfer: 35,
+  money_mule_recruitment: 35,
+  advance_fee_prize_inheritance: 30,
   external_phishing_url: 70,
   external_malware_url: 70,
   hosted_app_platform: 0, // informational, no score impact
@@ -294,6 +304,94 @@ function shouldFlagInvestmentFastProfitPitch(text: string): boolean {
   return INVESTMENT_FAST_PROFIT_CONTEXT_RE.test(text) && hasFastProfitHook;
 }
 
+const ROMANCE_TRUST_RE =
+  /(люблю|скучаю|будем вместе|будущее вместе|отношени[яй]|доверяй|любимый|любимая|romance|dating|love|together|future|ishon|sevgi|sog['’]?indim)/i;
+const ROMANCE_INVESTMENT_RE =
+  /(инвест|крипт|бирж|доход|заработ|прибыл|депозит|usdt|wallet|кошел|ton|crypto|trading|invest|daromad|sarmoya|hamyon|kripto)/i;
+
+function shouldFlagRomanceInvestmentPivot(text: string): boolean {
+  return ROMANCE_TRUST_RE.test(text) && ROMANCE_INVESTMENT_RE.test(text);
+}
+
+const ONEID_CONTEXT_RE =
+  /(one\s?id|единый\s?id|id\.gov\.uz|my\.gov\.uz|my\.soliq\.uz|soliq\.uz|электронн.{0,20}правительств|госуслуг|давлат хизмат|pinfl|пинфл|jshshir|myid|digital passport|цифров.{0,15}паспорт)/i;
+const ONEID_ACTION_RE =
+  /(войд|вход|авториз|подтверд|вериф|обнов|разблок|заявк|субсид|пособ|налог|штраф|кредит|код|парол|логин|паспорт|pinfl|пинфл|login|verify|confirm|password|code|subsidiya|jarima|soliq|kod|parol)/i;
+
+function shouldFlagOneIdGovernmentPhishing(text: string): boolean {
+  return ONEID_CONTEXT_RE.test(text) && ONEID_ACTION_RE.test(text);
+}
+
+const SIM_SWAP_CONTEXT_RE =
+  /(перевыпуск|перевыпуст|замена|дубликат|восстанов|перенести номер|перенос номера|sim.{0,10}swap|sim.{0,15}(almashtir|tiklash|dublikat)|номер.{0,30}(перенос|перевыпуск))/i;
+const SIM_SWAP_ASK_RE =
+  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|подтверд(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|введите(?![а-яёa-z])|пришл(и|ите)(?![а-яёa-z])|ayting|yuboring|kiriting|tasdiq|send|enter|confirm|tell)/i;
+const SIM_SWAP_ACTION_RE =
+  /(сим|sim|номер|raqam).{0,40}(код|смс|sms|подтверд|паспорт|pinfl|пинфл|доступ|operator|оператор|tasdiq|kod|pasport)|((код|смс|sms|подтверд|паспорт|pinfl|пинфл|tasdiq|kod|pasport).{0,40}(сим|sim|номер|raqam))/i;
+
+function shouldFlagSimSwapOrNumberTransfer(text: string): boolean {
+  return (
+    SIM_SWAP_CONTEXT_RE.test(text) && SIM_SWAP_ASK_RE.test(text) && SIM_SWAP_ACTION_RE.test(text)
+  );
+}
+
+const MONEY_MULE_CONTEXT_RE =
+  /(принимай|принимать|получай|зачисл|придут деньги|отправь дальше|перешли дальше|обналич|за\s+процент|10\s*%|15\s*%|20\s*%|вознаграждени|pul qabul|pul keladi|foiz|mukofot|o['’]?tkazib yubor|receive money|send it on|for a percent|commission)/i;
+const MONEY_MULE_OBJECT_RE =
+  /(перевод|деньги|сум|so['’]?m|sum|на карту|карта|karta|hisob|account|transfer|money|card)/i;
+
+function shouldFlagMoneyMuleRecruitment(text: string): boolean {
+  if (DROPPER_SAFETY_CONTEXT_RE.test(text)) return false;
+  return MONEY_MULE_CONTEXT_RE.test(text) && MONEY_MULE_OBJECT_RE.test(text);
+}
+
+const ADVANCE_FEE_CONTEXT_RE =
+  /(выигрыш|приз|лотере|наследств|компенсац|грант|пособ|виза|работа в (росси|коре)|корею|россию|хадж|умра|паломнич|тур|пут[её]вк|yutuq|sovrin|meros|lotereya|grant|viza|koreya|rossiya|haj|umra|tour|visa|inheritance|lottery|prize)/i;
+const ADVANCE_FEE_PAYMENT_RE =
+  /(налог|комисси[яю]|сбор|пошлин|залог|предоплат|аванс|страхов|обучени|провер|регистрац|оформлен|бронь|оплат|to['’]?lov|komissiya|soliq|garov|avans|sug['’]?urta|registration|fee|tax|deposit|prepay|processing)/i;
+const ADVANCE_FEE_ACTION_RE =
+  /(оплат(и|ите)|внес(и|ите)|перевед(и|ите)|заплат(и|ите)|отправь(те)?|пришл(и|ите)|to['’]?lang|o['’]?tkazing|yuboring|pay|transfer|send)/i;
+
+function shouldFlagAdvanceFeePrizeInheritance(text: string): boolean {
+  return (
+    ADVANCE_FEE_CONTEXT_RE.test(text) &&
+    ADVANCE_FEE_PAYMENT_RE.test(text) &&
+    ADVANCE_FEE_ACTION_RE.test(text)
+  );
+}
+
+const SOFT_CARD_CVV_ASK_RE =
+  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|продиктуй(те)?(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введите(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|ayting|kiriting|yuboring|send|enter|tell)/i;
+const SOFT_CARD_CVV_OBJECT_RE =
+  /(cvv|cvc|код безопасности|xavfsizlik kodi|security code|код.{0,20}(на обороте|с обратной стороны)|оборот.{0,20}карт|back of (the )?card|((три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali).{0,30}(карт|card|karta|оборот|back))|((карт|card|karta|оборот|back).{0,30}(три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali)))/i;
+
+function shouldFlagSoftCardCvvRequest(text: string): boolean {
+  return SOFT_CARD_CVV_ASK_RE.test(text) && SOFT_CARD_CVV_OBJECT_RE.test(text);
+}
+
+const SOFT_PIN_PASSWORD_OBJECT_RE =
+  /(pin|пин|тайн.{0,12}код|секретн.{0,12}код|kod.{0,20}(ilova|bank)|bank.{0,20}kodi|maxfiy kod|ilova kodi|парол.{0,30}(банк|аккаунт|кабинет|прилож|telegram|oneid)|password.{0,30}(bank|account|app|telegram|oneid)|(банк|аккаунт|кабинет|прилож|telegram|oneid).{0,30}парол|(bank|account|app|telegram|oneid).{0,30}password)/i;
+
+function shouldFlagSoftPinOrPasswordRequest(text: string): boolean {
+  return SOFT_CARD_CVV_ASK_RE.test(text) && SOFT_PIN_PASSWORD_OBJECT_RE.test(text);
+}
+
+const TRANSFER_DESTINATION_RE =
+  /(перевед|отправь(те)?|сделай(те)? перевод|оплат|to['’]?lang|o['’]?tkazing|yuboring|send|transfer|pay).{0,60}(на (эт(от|у) )?(номер|карту)|по номеру|на карту|qr|qr.?код|karta|raqam|hisob|card|number|wallet)/i;
+
+function shouldFlagDirectTransferRequest(text: string): boolean {
+  return TRANSFER_DESTINATION_RE.test(text);
+}
+
+const PERSONAL_DATA_ASK_RE =
+  /(пришл(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|назов(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введите(?![а-яёa-z])|yuboring|ayting|kiriting|send|enter|tell)/i;
+const PERSONAL_DATA_OBJECT_RE =
+  /(паспорт|фото.{0,20}(id|айди|удостовер|пасп)|id.?карта|удостоверени|дата рождения|адрес прописки|прописка|инн|pinfl|пинфл|jshshir|паспорт серия|pasport|tug['’]?ilgan sana|manzil|inn|id card|date of birth|address)/i;
+
+function shouldFlagPersonalDataRequest(text: string): boolean {
+  return PERSONAL_DATA_ASK_RE.test(text) && PERSONAL_DATA_OBJECT_RE.test(text);
+}
+
 // Real-world attackers often avoid the literal word "code/SMS" and instead ask
 // the victim to read back digits ("dictate the numbers", "name the six digits
 // that I'll send"). Combined with a hint that those digits come from a message
@@ -361,6 +459,15 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
   if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
   if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
+  if (shouldFlagRomanceInvestmentPivot(text)) codes.add("romance_investment_pivot");
+  if (shouldFlagOneIdGovernmentPhishing(text)) codes.add("oneid_government_phishing");
+  if (shouldFlagSimSwapOrNumberTransfer(text)) codes.add("sim_swap_or_number_transfer");
+  if (shouldFlagMoneyMuleRecruitment(text)) codes.add("money_mule_recruitment");
+  if (shouldFlagAdvanceFeePrizeInheritance(text)) codes.add("advance_fee_prize_inheritance");
+  if (shouldFlagSoftCardCvvRequest(text)) codes.add("asks_for_card_cvv");
+  if (shouldFlagSoftPinOrPasswordRequest(text)) codes.add("asks_for_pin");
+  if (shouldFlagDirectTransferRequest(text)) codes.add("asks_to_transfer_to_safe_account");
+  if (shouldFlagPersonalDataRequest(text)) codes.add("requests_personal_data");
   if (shouldFlagProxyCodeRequest(text)) codes.add("asks_for_sms_code");
   if (shouldFlagPrivateTelegramInviteEvidence(text)) codes.add("suspicious_invite_link");
   // Heuristics
@@ -709,6 +816,31 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Инвест-питч с быстрым доходом",
     uz: "Tez daromad va'dasi bilan investitsiya taklifi",
     en: "Investment pitch with fast-profit promise",
+  },
+  romance_investment_pivot: {
+    ru: "Доверие или романтическое общение переводят в инвестицию",
+    uz: "Ishonch yoki munosabat orqali investitsiyaga undashmoqda",
+    en: "Romance/trust conversation pivots to an investment",
+  },
+  oneid_government_phishing: {
+    ru: "Фишинг под OneID, госуслуги или налоговый кабинет",
+    uz: "OneID, davlat xizmati yoki soliq kabineti fishingi",
+    en: "OneID, government-service, or tax-account phishing",
+  },
+  sim_swap_or_number_transfer: {
+    ru: "Просят подтвердить перевыпуск SIM или перенос номера",
+    uz: "SIM almashtirish yoki raqam ko'chirishni tasdiqlashni so'rashmoqda",
+    en: "Asks to confirm a SIM reissue or number transfer",
+  },
+  money_mule_recruitment: {
+    ru: "Просят принять и переслать чужие деньги за процент",
+    uz: "Begona pulni qabul qilib, foiz evaziga o'tkazishni so'rashmoqda",
+    en: "Asks you to receive and forward money for a commission",
+  },
+  advance_fee_prize_inheritance: {
+    ru: "Просят оплатить сбор, налог или аванс до приза, визы или наследства",
+    uz: "Sovrin, viza yoki merosdan oldin soliq/to'lov/avans so'rashmoqda",
+    en: "Asks for a fee, tax, or deposit before a prize, visa, or inheritance",
   },
   external_phishing_url: {
     ru: "Ссылка найдена в фишинговой базе",

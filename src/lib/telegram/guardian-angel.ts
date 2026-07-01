@@ -45,6 +45,8 @@ const BANK_REASONS = new Set<ReasonCode>([
   "telegram_bank_contact",
   "asks_not_to_hang_up",
   "threatens_account_block",
+  "oneid_government_phishing",
+  "sim_swap_or_number_transfer",
 ]);
 
 const CARD_REASONS = new Set<ReasonCode>([
@@ -65,6 +67,8 @@ const MONEY_REASONS = new Set<ReasonCode>([
   "fake_delivery_payment",
   "fake_loan_offer",
   "dropper_recruitment",
+  "money_mule_recruitment",
+  "advance_fee_prize_inheritance",
 ]);
 
 const TELEGRAM_REASONS = new Set<ReasonCode>([
@@ -83,6 +87,7 @@ const CRYPTO_REASONS = new Set<ReasonCode>([
   "wallet_action_urgency",
   "ton_referral_earning_scheme",
   "investment_fast_profit_pitch",
+  "romance_investment_pivot",
 ]);
 
 function hasReason(snapshot: GuardianAngelSnapshot, set: Set<ReasonCode>): boolean {

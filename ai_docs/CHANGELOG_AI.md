@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - UZ scam-pattern audit slice
+
+- Added deterministic single-message coverage for OneID/government-service
+  phishing, SIM-swap/number-transfer pretexts, money mule recruitment,
+  advance-fee prize/inheritance/migration/Hajj prompts and romance-to-investment
+  pivots.
+- Hardened weak soft-ask coverage for CVV/card security code, bank PIN/password,
+  direct transfer-to-card requests and PINFL/ID/passport data requests.
+- Added positives and negatives for the new patterns, including false-positive
+  guards for "three favorite digits", Wi-Fi passwords, office-only SIM notices
+  and tax-news text.
+- Updated `SCAM_COVERAGE.md` to mark the deterministic slice as covered/partial
+  and to keep cumulative pig-butchering dialog risk as a separate architecture
+  task.
+
 ## 2026-07-01 - Telegram smoke chat separated from moderation chat
 
 - Production Telegram user-flow smoke scripts now require
@@ -68,7 +83,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   when AI is missing, failing, quota-limited, retried, or served by fallback.
 - Verification passed: scoped eslint; focused AI safety/degradation suites
   `3 files / 29 tests`; `railway run npm run prod:smoke --
-  https://scam-guard-main-production.up.railway.app` passed with AI provider
+https://scam-guard-main-production.up.railway.app` passed with AI provider
   healthy.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-015` is closed,
   `QA-2026-07-01-014` was added, and Status Summary now points to `ADM-001`.
@@ -197,8 +212,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added `--skip-webhook` mode for pre-deploy validation: it verifies Telegram
   accepts the local OGG assets without depending on the deployed app bundle.
 - Verification passed: scoped eslint for the new script, `npm run
-  tts:validate-assets`, and `railway run npx vite-node
-  scripts/prod-telegram-voice-out-smoke.ts --skip-webhook`.
+tts:validate-assets`, and `railway run npx vite-node
+scripts/prod-telegram-voice-out-smoke.ts --skip-webhook`.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx`: fixed TG-015/T-011 column drift,
   added `QA-2026-07-01-005`, and kept full app webhook playback as post-deploy
   follow-up.
@@ -240,7 +255,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Telegram metadata builder.
 - Regenerated `TELEGRAM_BOT_QA_REPORT.md` and the Telegram visual QA board.
 - Verification passed: scoped eslint, focused Telegram suites `5 files / 83
-  tests`, `qa:telegram-report`, and `qa:telegram-visual`.
+tests`, `qa:telegram-report`, and `qa:telegram-visual`.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-007`, `TG-008`, `T-005`,
   `T-006`, `QA-2026-07-01-002`, and Status Summary now point to the next
   UX/logistics slice: Profile Screenshot Intelligence or Voice-out audio
@@ -275,7 +290,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   not printed.
 - Verification passed: scoped eslint for the new script, focused Telegram/risk
   suite `5 files / 198 tests`, `railway run npm run
-  prod:telegram-user-story-smoke`, and general `railway run npm run prod:smoke`.
+prod:telegram-user-story-smoke`, and general `railway run npm run prod:smoke`.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-012`, `T-001` -
   `T-004`, `TG-001`, `TG-002`, `TG-005`, `TG-006`, and Status Summary now point
   to UX/logistics fixes next. Voice-out real RU/UZ/EN `.ogg` SOS assets and
@@ -296,7 +311,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `4 files / 127 tests`, `railway run npm run prod:telegram-live-qa-smoke`, and
   general `railway run npm run prod:smoke`.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-011`, `T-008 /
-  TG-010`, `TG-022`, `T-003 / TG-005`, and Status Summary now reflect that
+TG-010`, `TG-022`, `T-003 / TG-005`, and Status Summary now reflect that
   image/QR + high-risk Guardian are no longer the next blocker. Remaining P1 is
   Telegram start/check/passport/conversational live RU/UZ/EN and false-positive
   user-story QA, then UX/logistics fixes; Voice-out human audio review/compression

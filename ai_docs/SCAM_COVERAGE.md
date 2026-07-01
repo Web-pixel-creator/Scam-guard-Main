@@ -17,40 +17,44 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
 
 ## Categories
 
-| #   | Scam category                                 | How we cover it                                                          | Status  |
-| --- | --------------------------------------------- | ------------------------------------------------------------------------ | ------- |
-| 1   | Fake bank / Central Bank / operator call      | `impersonates_bank`, `impersonates_operator`, phone checks               | Covered |
-| 2   | OTP / SMS code / CVV / PIN request            | `asks_for_otp`, `asks_for_sms_code`, `asks_for_card_cvv`, `asks_for_pin` | Covered |
-| 3   | Telegram "bank manager" / trap bot            | `telegram_bank_contact`, `unknown_sender`                                | Covered |
-| 4   | Fake loans                                    | `fake_loan_offer`                                                        | Covered |
-| 5   | Phishing links / fake payment pages           | short links, weird domains, brand typos                                  | Covered |
-| 6   | Malicious APK install                         | `apk_download_link`, `asks_to_install_apk`                               | Covered |
-| 7   | "Transfer to a safe account"                  | `asks_to_transfer_to_safe_account`                                       | Covered |
-| 8   | Screen sharing / remote access                | `asks_to_share_screen`                                                   | Covered |
-| 9   | Urgency / legal threats                       | `uses_urgency`, `threatens_legal_action`                                 | Covered |
-| 10  | "Do not hang up" pressure                     | `asks_not_to_hang_up` + emergency guidance                               | Covered |
-| 11  | Prize / too-good-to-be-true / crypto doubler  | `too_good_to_be_true`                                                    | Covered |
-| 12  | Personal/passport data request                | `requests_personal_data`                                                 | Covered |
-| 13  | QR login/account takeover                     | `asks_to_scan_qr`                                                        | Covered |
-| 14  | Relative/friend in distress                   | `relative_in_distress`                                                   | Covered |
-| 15  | Piecemeal card data extraction                | `requests_card_digits`                                                   | Covered |
-| 16  | Account/card block threat                     | `threatens_account_block` + urgency                                      | Covered |
-| 17  | AI voice-clone call                           | education + `panic:11` saved-number/code-word verification guidance      | Covered |
-| 18  | Fake courier / delivery surcharge             | `fake_delivery_payment` + URL heuristics + `panic:13` rescue flow        | Covered |
-| 19  | Marketplace prepayment / fake buyer-seller    | `payment` detector + `payment_before_service` text patterns              | Covered |
-| 20  | Romance / dating scam                         | future pattern/content                                                   | Planned |
-| 21  | Fake job offer                                | `panic:12` rescue flow + payment/document/KYC safety guidance            | Covered |
-| 22  | Malicious Telegram GIF/file bait              | `malicious_file_bait`, APK coverage and out-of-scope handling            | Covered |
-| 23  | Fake boss/official/workplace request          | `fake_boss_request` + personal-data rules                                | Covered |
-| 24  | Telegram account deletion / "Cancel" phishing | `telegram_account_takeover_phishing`                                     | Covered |
-| 25  | Card/SIM/account dropper recruitment          | `dropper_recruitment`                                                    | Covered |
-| 26  | Closed betting / prediction invite channel    | `gambling_prediction_promo` + `suspicious_invite_link`                   | Covered |
-| 27  | Telegram casino / free-spins bonus funnel     | `crypto_casino_bonus_funnel` + invite/domain/link signals                | Covered |
-| 28  | NFT/Stars giveaway with CAPTCHA/voting gates  | `giveaway_engagement_bait`, `fake_captcha_or_voting`                     | Covered |
-| 29  | Task reward / leaderboard / easy-action bait  | `task_reward_engagement_bait`                                            | Covered |
-| 30  | Wallet/DeFi urgency and token top-up pressure | `wallet_action_urgency` + `panic:14` wallet/seed rescue flow             | Covered |
-| 31  | TON/crypto referral earning scheme            | `ton_referral_earning_scheme`                                            | Covered |
-| 32  | Fake government grant / benefit               | `panic:15` rescue flow + card/code/personal-data rules                   | Covered |
+| #   | Scam category                                       | How we cover it                                                                                | Status  |
+| --- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------- |
+| 1   | Fake bank / Central Bank / operator call            | `impersonates_bank`, `impersonates_operator`, phone checks                                     | Covered |
+| 2   | OTP / SMS code / CVV / PIN request                  | `asks_for_otp`, `asks_for_sms_code`, `asks_for_card_cvv`, `asks_for_pin`, soft digit/code asks | Covered |
+| 3   | Telegram "bank manager" / trap bot                  | `telegram_bank_contact`, `unknown_sender`                                                      | Covered |
+| 4   | Fake loans                                          | `fake_loan_offer`                                                                              | Covered |
+| 5   | Phishing links / fake payment pages                 | short links, weird domains, brand typos                                                        | Covered |
+| 6   | Malicious APK install                               | `apk_download_link`, `asks_to_install_apk`                                                     | Covered |
+| 7   | "Transfer to a safe account" / direct card transfer | `asks_to_transfer_to_safe_account`                                                             | Covered |
+| 8   | Screen sharing / remote access                      | `asks_to_share_screen`                                                                         | Covered |
+| 9   | Urgency / legal threats                             | `uses_urgency`, `threatens_legal_action`                                                       | Covered |
+| 10  | "Do not hang up" pressure                           | `asks_not_to_hang_up` + emergency guidance                                                     | Covered |
+| 11  | Prize / too-good-to-be-true / crypto doubler        | `too_good_to_be_true`                                                                          | Covered |
+| 12  | Personal/passport/PINFL data request                | `requests_personal_data`                                                                       | Covered |
+| 13  | QR login/account takeover                           | `asks_to_scan_qr`                                                                              | Covered |
+| 14  | Relative/friend in distress                         | `relative_in_distress`                                                                         | Covered |
+| 15  | Piecemeal card data extraction                      | `requests_card_digits`                                                                         | Covered |
+| 16  | Account/card block threat                           | `threatens_account_block` + urgency                                                            | Covered |
+| 17  | AI voice-clone call                                 | education + `panic:11` saved-number/code-word verification guidance                            | Covered |
+| 18  | Fake courier / delivery surcharge                   | `fake_delivery_payment` + URL heuristics + `panic:13` rescue flow                              | Covered |
+| 19  | Marketplace prepayment / fake buyer-seller          | `payment` detector + `payment_before_service` text patterns                                    | Covered |
+| 20  | Romance / dating / pig-butchering pivot             | `romance_investment_pivot`; cumulative dialog risk still planned                               | Partial |
+| 21  | Fake job offer                                      | `panic:12` rescue flow + payment/document/KYC safety guidance                                  | Covered |
+| 22  | Malicious Telegram GIF/file bait                    | `malicious_file_bait`, APK coverage and out-of-scope handling                                  | Covered |
+| 23  | Fake boss/official/workplace request                | `fake_boss_request` + personal-data rules                                                      | Covered |
+| 24  | Telegram account deletion / "Cancel" phishing       | `telegram_account_takeover_phishing`                                                           | Covered |
+| 25  | Card/SIM/account dropper and money mule recruitment | `dropper_recruitment`, `money_mule_recruitment`                                                | Covered |
+| 26  | Closed betting / prediction invite channel          | `gambling_prediction_promo` + `suspicious_invite_link`                                         | Covered |
+| 27  | Telegram casino / free-spins bonus funnel           | `crypto_casino_bonus_funnel` + invite/domain/link signals                                      | Covered |
+| 28  | NFT/Stars giveaway with CAPTCHA/voting gates        | `giveaway_engagement_bait`, `fake_captcha_or_voting`                                           | Covered |
+| 29  | Task reward / leaderboard / easy-action bait        | `task_reward_engagement_bait`                                                                  | Covered |
+| 30  | Wallet/DeFi urgency and token top-up pressure       | `wallet_action_urgency` + `panic:14` wallet/seed rescue flow                                   | Covered |
+| 31  | TON/crypto referral earning scheme                  | `ton_referral_earning_scheme`                                                                  | Covered |
+| 32  | Fake government grant / benefit                     | `panic:15` rescue flow + card/code/personal-data rules                                         | Covered |
+| 33  | OneID / government-service phishing                 | `oneid_government_phishing` + code/password/personal-data rules                                | Covered |
+| 34  | SIM-swap / number-transfer pretext                  | `sim_swap_or_number_transfer` + OTP/operator rules                                             | Covered |
+| 35  | Prize / inheritance / migration / Hajj advance fee  | `advance_fee_prize_inheritance`                                                                | Covered |
+| 36  | Deepfake video call                                 | AI voice-clone emergency guidance; video-specific detection is future work                     | Partial |
 
 ## Research feed: pressauz
 
@@ -72,6 +76,7 @@ Ishonch Guard does not promise to eliminate scams. It reduces risk by giving a c
   - task-reward/leaderboard/easy-action reward pools (`task_reward_engagement_bait`);
   - wallet/DeFi urgency such as security incident, 24-hour grace period, liquidation/top-up/fee prompts (`wallet_action_urgency`);
   - TON/crypto referral earning promises (`ton_referral_earning_scheme`).
+  - UZ-specific 2026 audit patterns now tracked in code: OneID/government-service phishing (`oneid_government_phishing`), SIM-swap/number-transfer pretexts (`sim_swap_or_number_transfer`), money mule recruitment (`money_mule_recruitment`), advance-fee prize/inheritance/migration/Hajj prompts (`advance_fee_prize_inheritance`) and romance-to-investment pivots (`romance_investment_pivot`).
   - public contest/voting domains tied to prizes or awards are treated as voting-gate evidence; ordinary Telegram news/product posts remain non-accusatory and ask for the next screen/link if a button later requests sensitive data.
   - public Telegram post checks use only visible web evidence: message text, outbound links, link previews and inline-button labels/URLs. Hidden Telegram SCAM labels, account age, report counts and spam history remain unavailable.
 
@@ -91,3 +96,4 @@ Before adding a new detection rule, summarize the tactic, map it to a reason cod
 - We cannot read private chats or listen to live calls.
 - A `safe` or `unknown` result is not permission to share codes or transfer money.
 - Public reputation appears only after moderation.
+- Single-message rules cannot reliably detect slow pig-butchering/romance grooming by themselves. The next architecture slice is a cumulative chat-session risk profile: repeated trust-building plus a later investment/crypto/transfer ask should lower the alert threshold.
