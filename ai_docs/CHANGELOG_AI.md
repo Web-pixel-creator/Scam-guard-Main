@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ADM-001 production auth policy QA closed
+
+- Extended `prod:security-smoke` with admin auth-policy checks: anon cannot read
+  `admin_allowlist` or `user_roles`, service-role can read the allowlist, and
+  every `admin` role must belong to a confirmed allowlisted email.
+- Production verification passed with `admins=1`, `confirmed_allowlisted=1`,
+  `outside_allowlist=0`, and `unconfirmed_allowlisted=0`.
+- Verification passed: scoped eslint; focused admin/auth/security suites
+  `3 files / 18 tests`; `railway run npm run prod:security-smoke` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-019` is closed,
+  `QA-2026-07-01-015` was added, and Status Summary now says the P1 test queue
+  is closed.
+
 ## 2026-07-01 - TG-028 AI provider resilience QA closed
 
 - Added adversarial AI-output safety coverage for repeated prompt-injection

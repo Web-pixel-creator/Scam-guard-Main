@@ -1,5 +1,5 @@
 import process from "node:process";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { checkProxyIpHeaderTrust } from "./security-smoke-env";
 
 type CheckResult = {
@@ -93,6 +93,86 @@ async function expectServiceCanCount(
   );
 }
 
+async function listAllAuthUsers(service: SupabaseClient): Promise<User[]> {
+  const users: User[] = [];
+  const perPage = 1000;
+
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await service.auth.admin.listUsers({ page, perPage });
+    if (error) throw new Error(`auth admin listUsers failed: ${error.message}`);
+
+    const batch = data.users ?? [];
+    users.push(...batch);
+    if (batch.length < perPage) return users;
+  }
+}
+
+function normalizeEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isEmailConfirmed(user: User | undefined): boolean {
+  return Boolean(user?.email_confirmed_at ?? user?.confirmed_at);
+}
+
+async function checkAdminAuthPolicy(service: SupabaseClient): Promise<void> {
+  const { data: allowlistRows, error: allowlistError } = await service
+    .from("admin_allowlist")
+    .select("email");
+  if (allowlistError) {
+    record(
+      "service can read admin allowlist",
+      false,
+      `failed (${allowlistError.code ?? "no_code"})`,
+    );
+    return;
+  }
+  record(
+    "service can read admin allowlist",
+    true,
+    `rows=${Array.isArray(allowlistRows) ? allowlistRows.length : 0}`,
+  );
+
+  const { data: adminRoleRows, error: adminRolesError } = await service
+    .from("user_roles")
+    .select("user_id,role")
+    .eq("role", "admin");
+  if (adminRolesError) {
+    record("service can read admin roles", false, `failed (${adminRolesError.code ?? "no_code"})`);
+    return;
+  }
+
+  const authUsers = await listAllAuthUsers(service);
+  const usersById = new Map(authUsers.map((user) => [user.id, user]));
+  const allowlistEmails = new Set(
+    (allowlistRows ?? [])
+      .map((row) => normalizeEmail((row as { email?: unknown }).email))
+      .filter(Boolean),
+  );
+  const adminRoles = adminRoleRows ?? [];
+  const outsideAllowlist = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    return !allowlistEmails.has(normalizeEmail(user?.email));
+  });
+  const unconfirmedAllowlisted = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    const email = normalizeEmail(user?.email);
+    return allowlistEmails.has(email) && !isEmailConfirmed(user);
+  });
+  const confirmedAllowlistedAdminCount = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    return allowlistEmails.has(normalizeEmail(user?.email)) && isEmailConfirmed(user);
+  }).length;
+
+  record(
+    "admin roles require confirmed allowlist",
+    outsideAllowlist.length === 0 &&
+      unconfirmedAllowlisted.length === 0 &&
+      confirmedAllowlistedAdminCount > 0,
+    `admins=${adminRoles.length}, confirmed_allowlisted=${confirmedAllowlistedAdminCount}, outside_allowlist=${outsideAllowlist.length}, unconfirmed_allowlisted=${unconfirmedAllowlisted.length}`,
+  );
+}
+
 async function main(): Promise<void> {
   console.log("Production security smoke target: Supabase project from env");
   console.log("Secret values are read from env and are not printed.");
@@ -153,6 +233,8 @@ async function main(): Promise<void> {
     "rate_limit_buckets",
     "scope,key_hash",
   );
+  await expectNoRowsOrDenied(anon, "anon cannot read admin_allowlist", "admin_allowlist", "email");
+  await expectNoRowsOrDenied(anon, "anon cannot read user_roles", "user_roles", "user_id,role");
 
   const { data: hiddenEntities, error: hiddenEntitiesError } = await anon
     .from("entities")
@@ -270,6 +352,7 @@ async function main(): Promise<void> {
     "rate_limit_buckets",
     "scope",
   );
+  await checkAdminAuthPolicy(service);
 
   const { error: serviceStatsError } = await service.rpc("get_check_stats");
   record(
