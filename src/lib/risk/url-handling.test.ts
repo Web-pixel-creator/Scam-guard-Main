@@ -268,7 +268,7 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
-  it("sends only extracted URL tokens to reputation providers for mixed URL text", async () => {
+  it("sends only sanitized extracted URL tokens to reputation providers for mixed URL text", async () => {
     process.env.GOOGLE_SAFE_BROWSING_KEY = "test-key";
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
@@ -286,8 +286,33 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     });
 
     const body = String(vi.mocked(fetch).mock.calls[0]?.[1]?.body);
-    expect(body).toContain("https://evil.example/reset?token=secret");
+    expect(body).toContain("https://evil.example/reset");
+    expect(body).not.toContain("token=secret");
     expect(body).not.toContain("They sent OTP");
     expect(body).not.toContain("123456");
+  });
+
+  it("checks embedded payment URLs without sending the payment message or URL secrets", async () => {
+    process.env.GOOGLE_SAFE_BROWSING_KEY = "test-key";
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "",
+    } as unknown as Response);
+
+    await runCheck({
+      input: "Оплатите доставку 25000 сум по ссылке https://pay.example/invoice?order=secret123",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    const body = String(vi.mocked(fetch).mock.calls[0]?.[1]?.body);
+    expect(body).toContain("https://pay.example/invoice");
+    expect(body).not.toContain("Оплатите доставку");
+    expect(body).not.toContain("25000");
+    expect(body).not.toContain("secret123");
   });
 });

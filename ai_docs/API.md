@@ -8,19 +8,19 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 It does not mean direct browser writes to Supabase tables: sensitive writes to
 `checks` and `reports` are service-role-only behind these handlers.
 
-| RPC                       | Auth   | Input                                                                                                | Returns                                                                             |
-| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `checkInput`              | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot                  |
-| `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                          |
+| RPC                       | Auth   | Input                                                                                                | Returns                                                                                               |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `checkInput`              | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot                                    |
+| `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
 | `getPublicStats`          | public | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
-| `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                   |
-| `listReports`             | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                                |
-| `listEntities`            | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                                |
-| `moderateReport`          | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                            |
-| `submitReputationAppeal`  | public | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                  |
-| `listReputationAppeals`   | admin  | `{ status }`                                                                                         | appeal rows                                                                         |
-| `resolveReputationAppeal` | admin  | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                            |
-| `adminStats`              | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }` |
+| `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
+| `listReports`             | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                                                  |
+| `listEntities`            | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                                                  |
+| `moderateReport`          | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                                              |
+| `submitReputationAppeal`  | public | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                                    |
+| `listReputationAppeals`   | admin  | `{ status }`                                                                                         | appeal rows                                                                                           |
+| `resolveReputationAppeal` | admin  | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                                              |
+| `adminStats`              | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }`                   |
 
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
@@ -131,6 +131,13 @@ set, then the database trigger may add `admin` if the email is still in
 
 - **Supabase:** Postgres/Auth/RLS via `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 - **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations, web screenshot OCR and Telegram structured image analysis. Telegram voice STT uses Gemini native audio when `OPENAI_BASE_URL` points to `generativelanguage.googleapis.com`, otherwise OpenAI-compatible `/audio/transcriptions` with `OPENAI_TRANSCRIBE_MODEL` / `OPENAI_AUDIO_MODEL` / `gpt-4o-mini-transcribe`. Missing key, provider error or blocked unsafe explanation returns `null`; scoring continues where text evidence is available.
+- **URL reputation providers:** optional Google Safe Browsing, URLhaus and
+  PhishTank checks add `external_phishing_url` / `external_malware_url` reason
+  codes only. The pipeline extracts URL tokens from mixed messages, strips
+  credentials, query strings and fragments before provider calls, uses a short
+  in-memory cache for successful provider responses with in-flight
+  de-duplication, and never sends full message text, OTPs or report narratives
+  to URL reputation providers.
 - **Telegram Voice-out/TTS:** opt-in SOS/Guardian voice tips first use static main-SOS files from `VOICE_OUT_PRERECORDED_DIR` or `public/audio/voice-out` when a matching `panic-{id}-{lang}` audio file exists (`.ogg`, `.oga`, `.mp3` or `.wav`). Static files bypass provider calls and the daily TTS budget. Missing static audio falls back to Gemini TTS when `GEMINI_TTS_API_KEY` is present (`gemini-3.1-flash-tts-preview` / `Kore` by default), wrapping Gemini PCM audio as WAV for Telegram. OpenAI TTS remains a fallback through `POST {OPENAI_TTS_BASE_URL}/audio/speech` with `OPENAI_TTS_API_KEY`, `OPENAI_TTS_MODEL` (default `gpt-4o-mini-tts`) and `OPENAI_TTS_VOICE` (default `alloy`). If no dedicated TTS key exists, the bot may reuse `OPENAI_API_KEY` only when `OPENAI_BASE_URL` is not Gemini-like. Gemini/OpenAI-compatible chat endpoints are never treated as speech endpoints. Audio failures degrade to a text fallback; raw user evidence is not spoken back.
 - **Telegram Bot API:** used by the bot handlers for replies, inline query answers, file metadata/image downloads, and best-effort public `getChat` metadata on Telegram username/link checks.
 

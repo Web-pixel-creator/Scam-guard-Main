@@ -144,10 +144,11 @@ Remaining implementation order after the 2026-06-18 product feedback:
    any research-feed publishing.
 7. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-8. **External signals and public trust surfaces.** Add Google Safe Browsing /
-   URLhaus / PhishTank, public living-experience stories and the scam-call
-   trainer after the bot trust fixes above. Paid line-type/VoIP providers stay
-   optional.
+8. **External signals and public trust surfaces.** Google Safe Browsing /
+   URLhaus / PhishTank are shipped as optional additive URL signals with
+   sanitized provider payloads. Public living-experience stories and the
+   scam-call trainer remain future trust surfaces. Paid line-type/VoIP
+   providers stay optional.
 
 Operational hardening that continues in parallel:
 
@@ -252,7 +253,7 @@ Disallowed claims:
 ## Stage 4 - Reliability And Security
 
 1. Monitor shared Postgres-backed rate limits; move to Redis/KV only if scale requires it.
-2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals.
+2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals - shipped.
 3. Production observability: error rate, provider quota, Telegram webhook latency.
 4. Compliance review for Uzbekistan personal-data law and retention windows.
 5. Legal review of appeal/removal moderation guidelines before community reputation growth.

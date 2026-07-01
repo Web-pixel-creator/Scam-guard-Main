@@ -7,11 +7,18 @@ export interface UrlReputationOptions {
   fetchImpl?: FetchLike;
   timeoutMs?: number;
   maxUrls?: number;
+  cache?: boolean;
+  cacheTtlMs?: number;
 }
 
 export interface UrlReputationResult {
   reasonCodes: ReasonCode[];
   providersChecked: string[];
+}
+
+interface ProviderLookupResult {
+  checked: boolean;
+  codes: ReasonCode[];
 }
 
 interface GoogleThreatMatch {
@@ -40,9 +47,14 @@ interface PhishTankResponse {
 
 const DEFAULT_TIMEOUT_MS = 2500;
 const DEFAULT_MAX_URLS = 3;
+const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 500;
 const GOOGLE_PROVIDER = "google_safe_browsing";
 const URLHAUS_PROVIDER = "urlhaus";
 const PHISHTANK_PROVIDER = "phishtank";
+
+const resultCache = new Map<string, { expiresAt: number; result: UrlReputationResult }>();
+const inFlight = new Map<string, Promise<UrlReputationResult>>();
 
 function envValue(env: Record<string, string | undefined>, name: string): string | null {
   const value = env[name]?.trim();
@@ -69,15 +81,83 @@ function toBoolean(value: unknown): boolean {
   return value === true || value === "true";
 }
 
+export function normalizeUrlForReputationProvider(raw: string): string | null {
+  const cleaned = raw.trim().replace(/[.,!?;:)\]}>"'`]+$/g, "");
+  if (!cleaned) return null;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(cleaned) && !/^https?:\/\//i.test(cleaned)) return null;
+
+  const candidate = /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function normalizeUrls(urls: string[], maxUrls: number): string[] {
   const result = new Set<string>();
   for (const raw of urls) {
-    const value = raw.trim();
+    const value = normalizeUrlForReputationProvider(raw);
     if (!value) continue;
     result.add(value);
     if (result.size >= maxUrls) break;
   }
   return [...result];
+}
+
+function activeProviderNames(env: Record<string, string | undefined>): string[] {
+  const enabled = providerList(env);
+  const providers: string[] = [];
+  const googleKey =
+    envValue(env, "GOOGLE_SAFE_BROWSING_KEY") ?? envValue(env, "GOOGLE_SAFE_BROWSING_API_KEY");
+  if (googleKey) providers.push(GOOGLE_PROVIDER);
+  if (boolEnv(env, "URLHAUS_ENABLED") || enabled.has(URLHAUS_PROVIDER)) {
+    providers.push(URLHAUS_PROVIDER);
+  }
+  if (envValue(env, "PHISHTANK_API_KEY")) providers.push(PHISHTANK_PROVIDER);
+  return providers;
+}
+
+function cacheKey(providers: string[], urls: string[]): string {
+  return `${providers.sort().join(",")}|${urls.join("\n")}`;
+}
+
+function getCachedResult(key: string, now: number): UrlReputationResult | null {
+  const cached = resultCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= now) {
+    resultCache.delete(key);
+    return null;
+  }
+  return {
+    reasonCodes: [...cached.result.reasonCodes],
+    providersChecked: [...cached.result.providersChecked],
+  };
+}
+
+function rememberResult(
+  key: string,
+  result: UrlReputationResult,
+  ttlMs: number,
+  now: number,
+): void {
+  if (resultCache.size >= MAX_CACHE_ENTRIES) {
+    const oldest = resultCache.keys().next().value as string | undefined;
+    if (oldest) resultCache.delete(oldest);
+  }
+  resultCache.set(key, {
+    expiresAt: now + ttlMs,
+    result: {
+      reasonCodes: [...result.reasonCodes],
+      providersChecked: [...result.providersChecked],
+    },
+  });
 }
 
 async function fetchJson(
@@ -123,7 +203,7 @@ async function checkGoogleSafeBrowsing(
   urls: string[],
   apiKey: string,
   timeoutMs: number,
-): Promise<ReasonCode[]> {
+): Promise<ProviderLookupResult> {
   const json = await fetchJson(
     fetchImpl,
     `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${encodeURIComponent(apiKey)}`,
@@ -150,7 +230,7 @@ async function checkGoogleSafeBrowsing(
     },
     timeoutMs,
   );
-  return json ? googleReasonCodes(json) : [];
+  return { checked: json !== null, codes: json ? googleReasonCodes(json) : [] };
 }
 
 function urlhausReasonCodes(json: unknown): ReasonCode[] {
@@ -172,7 +252,7 @@ async function checkUrlhaus(
   url: string,
   timeoutMs: number,
   authKey: string | null,
-): Promise<ReasonCode[]> {
+): Promise<ProviderLookupResult> {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded",
     "User-Agent": "IshonchGuard/1.0",
@@ -189,7 +269,7 @@ async function checkUrlhaus(
     },
     timeoutMs,
   );
-  return json ? urlhausReasonCodes(json) : [];
+  return { checked: json !== null, codes: json ? urlhausReasonCodes(json) : [] };
 }
 
 function phishTankReasonCodes(json: unknown): ReasonCode[] {
@@ -206,7 +286,7 @@ async function checkPhishTank(
   url: string,
   apiKey: string,
   timeoutMs: number,
-): Promise<ReasonCode[]> {
+): Promise<ProviderLookupResult> {
   const json = await fetchJson(
     fetchImpl,
     "https://checkurl.phishtank.com/checkurl/",
@@ -224,7 +304,7 @@ async function checkPhishTank(
     },
     timeoutMs,
   );
-  return json ? phishTankReasonCodes(json) : [];
+  return { checked: json !== null, codes: json ? phishTankReasonCodes(json) : [] };
 }
 
 export async function checkUrlReputation(
@@ -237,9 +317,25 @@ export async function checkUrlReputation(
   const maxUrls = options.maxUrls ?? DEFAULT_MAX_URLS;
   const normalizedUrls = normalizeUrls(urls, maxUrls);
   const enabled = providerList(env);
+  const providers = activeProviderNames(env);
+  const cacheEnabled = options.cache !== false;
+  const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+  const now = Date.now();
 
   if (!fetchImpl || normalizedUrls.length === 0) {
     return { reasonCodes: [], providersChecked: [] };
+  }
+
+  if (providers.length === 0) {
+    return { reasonCodes: [], providersChecked: [] };
+  }
+
+  const key = cacheKey(providers, normalizedUrls);
+  if (cacheEnabled && cacheTtlMs > 0) {
+    const cached = getCachedResult(key, now);
+    if (cached) return cached;
+    const pending = inFlight.get(key);
+    if (pending) return pending;
   }
 
   const googleKey =
@@ -248,13 +344,13 @@ export async function checkUrlReputation(
   const urlhausAuthKey = envValue(env, "URLHAUS_AUTH_KEY");
   const phishTankKey = envValue(env, "PHISHTANK_API_KEY");
 
-  const providerCalls: Array<Promise<{ provider: string; codes: ReasonCode[] }>> = [];
+  const providerCalls: Array<Promise<{ provider: string } & ProviderLookupResult>> = [];
 
   if (googleKey) {
     providerCalls.push(
-      checkGoogleSafeBrowsing(fetchImpl, normalizedUrls, googleKey, timeoutMs).then((codes) => ({
+      checkGoogleSafeBrowsing(fetchImpl, normalizedUrls, googleKey, timeoutMs).then((lookup) => ({
         provider: GOOGLE_PROVIDER,
-        codes,
+        ...lookup,
       })),
     );
   }
@@ -262,9 +358,9 @@ export async function checkUrlReputation(
   if (urlhausEnabled) {
     for (const url of normalizedUrls) {
       providerCalls.push(
-        checkUrlhaus(fetchImpl, url, timeoutMs, urlhausAuthKey).then((codes) => ({
+        checkUrlhaus(fetchImpl, url, timeoutMs, urlhausAuthKey).then((lookup) => ({
           provider: URLHAUS_PROVIDER,
-          codes,
+          ...lookup,
         })),
       );
     }
@@ -273,30 +369,54 @@ export async function checkUrlReputation(
   if (phishTankKey) {
     for (const url of normalizedUrls) {
       providerCalls.push(
-        checkPhishTank(fetchImpl, url, phishTankKey, timeoutMs).then((codes) => ({
+        checkPhishTank(fetchImpl, url, phishTankKey, timeoutMs).then((lookup) => ({
           provider: PHISHTANK_PROVIDER,
-          codes,
+          ...lookup,
         })),
       );
     }
   }
 
-  if (providerCalls.length === 0) {
-    return { reasonCodes: [], providersChecked: [] };
+  if (providerCalls.length === 0) return { reasonCodes: [], providersChecked: [] };
+
+  const checkWork = (async (): Promise<{
+    complete: boolean;
+    result: UrlReputationResult;
+  }> => {
+    const settled = await Promise.allSettled(providerCalls);
+    const providersChecked = new Set<string>();
+    const reasonCodes = new Set<ReasonCode>();
+    let complete = true;
+
+    for (const result of settled) {
+      if (result.status !== "fulfilled" || !result.value.checked) {
+        complete = false;
+        continue;
+      }
+      providersChecked.add(result.value.provider);
+      for (const code of result.value.codes) reasonCodes.add(code);
+    }
+
+    return {
+      complete,
+      result: {
+        reasonCodes: [...reasonCodes],
+        providersChecked: [...providersChecked],
+      },
+    };
+  })();
+
+  if (!cacheEnabled || cacheTtlMs <= 0) return (await checkWork).result;
+
+  inFlight.set(
+    key,
+    checkWork.then(({ result }) => result),
+  );
+  try {
+    const { complete, result } = await checkWork;
+    if (complete) rememberResult(key, result, cacheTtlMs, now);
+    return result;
+  } finally {
+    inFlight.delete(key);
   }
-
-  const settled = await Promise.allSettled(providerCalls);
-  const providersChecked = new Set<string>();
-  const reasonCodes = new Set<ReasonCode>();
-
-  for (const result of settled) {
-    if (result.status !== "fulfilled") continue;
-    providersChecked.add(result.value.provider);
-    for (const code of result.value.codes) reasonCodes.add(code);
-  }
-
-  return {
-    reasonCodes: [...reasonCodes],
-    providersChecked: [...providersChecked],
-  };
 }

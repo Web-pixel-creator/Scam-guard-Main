@@ -108,6 +108,15 @@ committed `.env`, never shipped to client):
   `2500` ms / `1` attempt). Low-signal username, phone and generic URL
   passports skip AI automatically to keep replies fast and avoid hallucinated
   explanations.
+- `GOOGLE_SAFE_BROWSING_KEY` / `GOOGLE_SAFE_BROWSING_API_KEY` - optional Google
+  Safe Browsing key for additive URL reputation checks. Matches add
+  `external_phishing_url` or `external_malware_url`; local rules remain
+  authoritative when the provider is absent or unavailable.
+- `URLHAUS_ENABLED=true` or `URL_REPUTATION_PROVIDERS=urlhaus` - optional
+  URLhaus checks. `URLHAUS_AUTH_KEY` is optional if the deployment has one.
+- `PHISHTANK_API_KEY` - optional PhishTank check key. URL reputation calls use
+  only normalized URL tokens and strip credentials, query strings and fragments
+  before provider requests.
 - `TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS` / `TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS` -
   optional Telegram image-intelligence budget (defaults: `6500` ms / `1`
   attempt). If the provider is slow, the bot falls back to QR/OCR-safe guidance.

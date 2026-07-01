@@ -187,7 +187,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.~~
       Done: optional provider layer adds `external_phishing_url` /
       `external_malware_url` reason codes only when provider env vars are
-      configured. No raw URL evidence is logged or sent to moderation chat.
+      configured. Successful provider responses are short-cached and in-flight
+      checks are de-duplicated; provider calls receive only normalized URL
+      tokens with credentials, query strings and fragments stripped. No full
+      message text, OTPs, report narratives or moderation evidence is sent to
+      URL reputation providers.
 - [ ] Add public living-experience stories page after moderation/compliance
       wording is reviewed. Use anonymized tactics and lessons, not public
       accusations against unverified people.

@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-005 URL reputation hardening
+
+- Hardened the existing Google Safe Browsing / URLhaus / PhishTank additive URL
+  reputation layer with normalized provider payloads: credentials, query
+  strings and fragments are stripped before external calls.
+- Mixed text/payment checks now extract URL tokens from the raw input for
+  reputation lookup while still refusing to send full message text, OTPs,
+  amounts or URL query secrets to providers.
+- Added a short in-memory URL reputation cache and in-flight de-duplication so
+  repeated checks do not multiply provider calls; provider failures are not
+  cached as clean results.
+- Verification added for sanitization, cache reuse, concurrent de-duplication
+  and payment-message URL extraction.
+
 ## 2026-07-01 - Tracker reconciled for ADM-003 / CORE-004
 
 - Verified that Phone Reputation v1 is already implemented: confirmed targeted

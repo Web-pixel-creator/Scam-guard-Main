@@ -46,7 +46,7 @@ import {
   type PhoneIntelligencePassport,
 } from "./phone-intelligence";
 import { buildPhoneReputationSummary, type PhoneReputationSummary } from "./phone-reputation";
-import { checkUrlReputation } from "./url-reputation.server";
+import { checkUrlReputation, normalizeUrlForReputationProvider } from "./url-reputation.server";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -153,9 +153,7 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
 }
 
 function normalizeUrlForReputation(raw: string): string | null {
-  const cleaned = cleanEmbeddedUrl(raw.trim());
-  if (!cleaned) return null;
-  return /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+  return normalizeUrlForReputationProvider(cleanEmbeddedUrl(raw.trim()));
 }
 
 /**
@@ -209,10 +207,11 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       if (reputationUrl) reputationUrls.add(reputationUrl);
     }
   }
-  if (detected === "text" || detected === "unknown") {
-    for (const embeddedUrl of extractEmbeddedUrls(safeInput)) {
-      evaluateUrl(embeddedUrl).forEach((c) => codes.add(c));
+  if (detected === "text" || detected === "unknown" || detected === "payment") {
+    for (const embeddedUrl of extractEmbeddedUrls(workingInput)) {
       const reputationUrl = normalizeUrlForReputation(embeddedUrl);
+      const urlForRules = reputationUrl ?? cleanEmbeddedUrl(embeddedUrl);
+      evaluateUrl(urlForRules).forEach((c) => codes.add(c));
       if (reputationUrl) reputationUrls.add(reputationUrl);
       if (TELEGRAM_INVITE_URL_RE.test(embeddedUrl)) codes.add("suspicious_invite_link");
     }
