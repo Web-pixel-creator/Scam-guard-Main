@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-015 Voice-out deploy and full playback smoke
+
+- Refreshed `bun.lock` after adding Voice-out scripts; first Railway deploy
+  failed at `bun install --frozen-lockfile`, then deployment
+  `962b98c9-b600-4c51-8e6d-98e14ebb15fd` succeeded.
+- Full production Voice-out smoke passed against
+  `https://scam-guard-main-production.up.railway.app`: Telegram accepted
+  panic-6 RU/UZ/EN OGG files and the deployed webhook accepted
+  `voiceout:panic:6`.
+- General `prod:smoke` also passed: home/healthz/webhook auth checks,
+  Telegram webhook info, and AI provider check were healthy.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-07-01-006`, `TG-015`,
+  `T-011`, and Status Summary now point to the remaining P2 provider-limit UX
+  decision or the next web/Telegram live QA pass.
+
 ## 2026-07-01 - TG-015 Voice-out Telegram OGG smoke harness
 
 - Added `prod:telegram-voice-out-smoke`, a production-oriented smoke that sends
