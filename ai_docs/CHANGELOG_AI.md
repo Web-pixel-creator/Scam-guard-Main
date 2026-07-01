@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-008 shared rate-limit gates verified
+
+- Added an explicit shared-rate-limit regression for the `telegram_public_post`
+  scope so public Telegram post fetch buckets use hashed keys through
+  `claim_rate_limit`.
+- Re-verified the existing CORE-008 guards: web check/OCR ignores spoofable
+  forwarded IP headers by default, Telegram image checks claim the image budget
+  before `getFile`/download, report and appeal submissions use shared buckets,
+  and Voice-out provider calls are budget-gated.
+- Verification passed: scoped eslint; focused CORE-008 suites
+  `7 files / 131 tests`; `railway run npm run prod:security-smoke` passed,
+  including `claim_rate_limit` and appeal-scope RPC checks.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-008` is now `Implemented`,
+  `T-028` is closed, `QA-2026-07-01-011` was added, and Status Summary now
+  points to the remaining P1 test queue starting with `CORE-006`.
+
 ## 2026-07-01 - CORE-007 report/appeal privacy boundary closed
 
 - Tightened appeal contact normalization so URL contact hashes are computed from
