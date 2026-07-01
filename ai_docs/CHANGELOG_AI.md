@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-006 family codeword
+
+- Added a Family Shield "Code word" callback and RU/UZ/EN guide that teaches
+  families to agree on a private phrase offline for suspicious voice/video
+  requests.
+- Kept the privacy boundary explicit: the bot does not ask users to send the
+  actual codeword and does not store a plaintext or recoverable family secret.
+- Updated trusted-contact alerts so helpers verify suspicious voice/video
+  pressure by calling a saved number and asking a family codeword or private
+  question.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-006` is now Implemented,
+  `T-038` is Passed, `QA-2026-07-01-023` was added, and the next queue item is
+  `T-039 / ROAD-007 scam-call trainer and mini-quiz`.
+
 ## 2026-07-01 - ROAD-005 explain like grandmother
 
 - Added a result-card "Simple words" callback next to "Why?" so users can ask

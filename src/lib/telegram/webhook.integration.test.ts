@@ -778,6 +778,28 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(JSON.stringify(h.sendCalls[0])).not.toContain("https://t.me/");
   });
 
+  it("shows the Family Shield codeword guide without storing a family secret", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1111,
+          chatId: 5111,
+          data: "family:codeword",
+          id: "cb-family-codeword",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-family-codeword"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Семейное кодовое слово");
+    expect(h.sendCalls[0].text).toContain("Не пишите кодовое слово в бот");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("family:codeword");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(JSON.stringify(h.inserts)).not.toMatch(/кодовое слово|code word|Maxfiy/i);
+  });
+
   it("sends /panic with paginated scenario buttons (page 1)", async () => {
     const update = textUpdate({ userId: 1104, chatId: 5104, text: "/panic" });
 
@@ -910,6 +932,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["safety", CB.safety],
     ["how it works", CB.howItWorks],
     ["family menu", CB.familyMenu],
+    ["family codeword", "family:codeword"],
     ["media tips", CB.mediaTips],
     ["image triage", imageTriageCallback("gift")],
     ["language switch", CB.lang("uz")],

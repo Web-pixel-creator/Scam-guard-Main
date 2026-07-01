@@ -137,6 +137,11 @@ Already shipped:
   "oddiy qilib" and "simple words" reuse the last check context without
   exposing internal score/threshold/weight details or weak unknown-result
   evidence.
+- Family Codeword Guide v1: Family Shield now includes a privacy-first
+  codeword guide for voice-clone/deepfake prevention. The bot teaches families
+  to agree on a phrase offline, verifies suspicious voice/video pressure through
+  saved-number callback plus a codeword/private question, and never asks users
+  to send the actual codeword to the bot.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -152,12 +157,15 @@ Remaining implementation order after the 2026-06-18 product feedback:
    bad recognition without re-spending STT budget.
 4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-5. **Weekly schemes data model.** Move the weekly digest from static copy to a
+5. **Scam-call trainer and mini-quiz.** Build safe educational scenarios,
+   defensive feedback and shareable practice without publishing attacker-ready
+   bypass scripts.
+6. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-6. **Private moderation chat.** If added, keep it operator-only with redacted
+7. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-7. **External signals and public trust surfaces.** Google Safe Browsing /
+8. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
    sanitized provider payloads. Public living-experience stories and the
    scam-call trainer remain future trust surfaces. Paid line-type/VoIP
@@ -173,8 +181,8 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next P4 roadmap queue item is `T-038 / ROAD-006 family codeword`: keep it as
-  a teaching/verification flow unless a privacy-safe design exists for storage.
+- Next roadmap queue item is `T-039 / ROAD-007 scam-call trainer and mini-quiz`;
+  keep the content defensive and avoid precise scammer playbooks.
 - Consider a private moderator Telegram chat for new reports and appeals. It
   should receive only redacted summaries and moderation links, never raw codes,
   cards, screenshots, full OCR text or unredacted phone numbers.

@@ -103,9 +103,13 @@ vi.mock("@/lib/telegram/api.server", async (importOriginal) => {
 
 import {
   acceptFamilyInvite,
+  buildFamilyAlreadyLinkedKeyboard,
+  buildFamilyCodewordGuideText,
   buildFamilyInviteKeyboard,
+  buildFamilySetupKeyboard,
   buildTrustedAlertText,
   createFamilyInvite,
+  FAMILY_CB,
   notifyTrustedContact,
   parseFamilyStartArg,
   revokeFamilyShieldForTrusted,
@@ -162,6 +166,26 @@ describe("Family Shield v1", () => {
     expect(shareUrl.origin + shareUrl.pathname).toBe("https://t.me/share/url");
     expect(shareUrl.searchParams.get("url")).toBe(inviteUrl);
     expect(shareUrl.searchParams.get("text")).toContain("Прими приглашение");
+  });
+
+  it("offers an offline codeword guide without storing the secret", () => {
+    const setupCallbacks = buildFamilySetupKeyboard("ru")
+      .flat()
+      .map((button) => button.callback_data);
+    const linkedCallbacks = buildFamilyAlreadyLinkedKeyboard("ru")
+      .flat()
+      .map((button) => button.callback_data);
+    const text = buildFamilyCodewordGuideText("ru");
+
+    expect(setupCallbacks).toContain(FAMILY_CB.codewordGuide);
+    expect(linkedCallbacks).toContain(FAMILY_CB.codewordGuide);
+    expect(bt("family_menu_text", "ru")).toContain("Кодовое слово");
+    expect(text).toContain("Не пишите кодовое слово в бот");
+    expect(text).toContain("сохранённому номеру");
+    expect(text).toContain("личный вопрос");
+    expect(text).not.toMatch(/введите|пришлите.*кодовое|сохраню|запомню/i);
+    expect(buildFamilyCodewordGuideText("en")).toContain("Do not write the code word");
+    expect(buildFamilyCodewordGuideText("uz")).toContain("Maxfiy so'zni botga");
   });
 
   it("rejects linking the guardian account as its own trusted contact", async () => {
@@ -273,6 +297,8 @@ describe("Family Shield v1", () => {
 
     expect(text).toContain("позвоните");
     expect(text).toContain("Не просите пересылать SMS-коды");
+    expect(text).toContain("кодовое слово");
+    expect(text).toContain("сохранённому номеру");
     expect(text).not.toMatch(/мошенник|точно скам/i);
   });
 });

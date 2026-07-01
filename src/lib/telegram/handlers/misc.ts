@@ -102,6 +102,7 @@ import {
 } from "@/lib/telegram/voice-out.server";
 import {
   buildFamilyAlreadyLinkedKeyboard,
+  buildFamilyCodewordGuideText,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
   createFamilyInvite,
@@ -266,6 +267,15 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
 
   if (action === FAMILY_CB.notify) {
     await sendTrustedNotificationOrSetup(ctx);
+    return true;
+  }
+
+  if (action === FAMILY_CB.codewordGuide) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildFamilyCodewordGuideText(lang)),
+      keyboard: buildFamilySetupKeyboard(lang),
+    });
     return true;
   }
 
