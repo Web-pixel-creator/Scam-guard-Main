@@ -380,8 +380,8 @@ function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {
     kind === "phone"
       ? (renderPhonePassportBrief(result, lang) ?? bt("brief_unknown_phone", lang))
       : truncateExplanation(result.explanation ?? bt("brief_unknown_telegram_profile", lang), {
-          maxLines: 18,
-          maxChars: 1400,
+          maxLines: 24,
+          maxChars: 1800,
         });
   const prompt =
     kind === "phone"
@@ -505,7 +505,9 @@ function isDecodedQrEvidenceBrief(explanation: string | null): explanation is st
 function extractVoiceHookBrief(explanation: string | null): string | null {
   if (!explanation) return null;
   const firstLine = explanation.split(/\r?\n/u, 1)[0]?.trim() ?? "";
-  return /^(?:Ключевая фраза из голосового|Key phrase from the voice note|Ovozdan asosiy ibora):/u.test(firstLine)
+  return /^(?:Ключевая фраза из голосового|Key phrase from the voice note|Ovozdan asosiy ibora):/u.test(
+    firstLine,
+  )
     ? firstLine
     : null;
 }
@@ -585,7 +587,9 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
   const voiceHookBrief = extractVoiceHookBrief(explanation);
   if (result.level === "high_risk" && voiceHookBrief) {
-    parts.push(escapeMarkdownV2(truncateExplanation(voiceHookBrief, { maxLines: 1, maxChars: 220 })));
+    parts.push(
+      escapeMarkdownV2(truncateExplanation(voiceHookBrief, { maxLines: 1, maxChars: 220 })),
+    );
   }
 
   // Reason labels

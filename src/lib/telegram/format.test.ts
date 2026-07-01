@@ -546,6 +546,9 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "• отправитель не подтверждён",
       "🧭 Следующий шаг",
       "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
+      "🧭 Как читать профиль Telegram",
+      "• Откройте профиль: Telegram может сам показать страну телефона, месяц регистрации, «не официальный аккаунт» и недавнюю смену имени/фото.",
+      "• Тревожно, когда это сочетается с просьбой дать код, деньги, карту, APK, QR-вход или ссылку.",
     ].join("\n");
 
     const { text } = formatCheckResult(
@@ -563,6 +566,9 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).toContain(escapeMarkdownV2("скрытая SCAM-метка"));
     expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
     expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
+    expect(text).toContain(escapeMarkdownV2("Как читать профиль Telegram"));
+    expect(text).toContain(escapeMarkdownV2("месяц регистрации"));
+    expect(text).toContain(escapeMarkdownV2("не официальный аккаунт"));
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain("…");
   });

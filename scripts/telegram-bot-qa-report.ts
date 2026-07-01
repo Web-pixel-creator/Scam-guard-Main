@@ -33,6 +33,7 @@ import {
   buildImageTriageText,
   type ImageTriageKind,
 } from "@/lib/telegram/image-fallback";
+import { buildTelegramPublicMetadataBrief } from "@/lib/telegram/public-metadata.server";
 import {
   buildDetailedPanicScenarioText,
   buildEmergencyFollowUpKeyboard,
@@ -155,26 +156,11 @@ function telegramUsernamePassportFixture(): RunCheckResult {
     level: "unknown",
     score: 5,
     reasons: ["unknown_sender"],
-    explanation: [
-      "📋 Telegram-паспорт: @UiWebWeb",
-      "",
-      "👁 Что видно",
-      "• Bot API не видит этот username",
-      "• Это не доказательство скама",
-      "",
-      "🚫 Что недоступно",
-      "• скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал",
-      "",
-      "📌 Вывод",
-      "По одному username нельзя честно сказать «безопасно» или «скам».",
-      "",
-      "🛡 Репутация и признаки",
-      "• подтвержд. жалоб в Ishonch Guard не найдено",
-      "• отправитель не подтверждён",
-      "",
-      "🧭 Следующий шаг",
-      "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
-    ].join("\n"),
+    explanation:
+      buildTelegramPublicMetadataBrief({ status: "not_found", username: "UiWebWeb" }, LANG, {
+        reasons: ["unknown_sender"],
+        knownReports: 0,
+      }) ?? null,
   });
 }
 

@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-007/TG-008 username passport coach visible in final card
+
+- Fixed Telegram passport formatting so the Native Passport Coach block survives
+  the final user-facing `formatCheckResult` card instead of being truncated.
+- `telegram-bot-qa-report` now builds its username passport fixture through
+  `buildTelegramPublicMetadataBrief`, keeping the report aligned with the real
+  Telegram metadata builder.
+- Regenerated `TELEGRAM_BOT_QA_REPORT.md` and the Telegram visual QA board.
+- Verification passed: scoped eslint, focused Telegram suites `5 files / 83
+  tests`, `qa:telegram-report`, and `qa:telegram-visual`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-007`, `TG-008`, `T-005`,
+  `T-006`, `QA-2026-07-01-002`, and Status Summary now point to the next
+  UX/logistics slice: Profile Screenshot Intelligence or Voice-out audio
+  review/compression.
+
 ## 2026-07-01 - ROAD-002 / TG-019 report duplicate-signal polish
 
 - Web `/report` success copy is warmer and explicitly says public labeling is
