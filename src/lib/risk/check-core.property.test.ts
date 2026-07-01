@@ -433,6 +433,22 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.reasons).toEqual([]);
   });
 
+  it("does not verify country-code-prefixed short codes as official contacts", async () => {
+    const result = await runCheck({
+      input: "+9981340",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.verifiedContact).toBeNull();
+    expect(result.phoneIntelligence?.officialDirectoryStatus).not.toBe("matched");
+    expect(result.reasons).not.toContain("valid_uz_phone");
+    expect(result.level).toBe("unknown");
+    expect(result.score).toBe(0);
+  });
+
   it("card and remote-access requests also override official contact matches", async () => {
     const cases = [
       ["Позвоните 1344 и назовите CVV карты", "asks_for_card_cvv"],

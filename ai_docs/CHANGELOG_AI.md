@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-003 short-code prefix regression closed
+
+- Added a `runCheck`-level regression for `+9981340`: it must not resolve to a
+  verified official contact, must not be marked as matched in the official
+  directory, must not get `valid_uz_phone`, and must remain `unknown` with score
+  `0`.
+- Existing helper coverage already confirmed `+9981340`, `+998102`, and
+  `+9981257` do not match official short codes.
+- Verification passed: scoped eslint plus verified contacts, phone intelligence,
+  and check-core property suites `3 files / 45 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-003` is now `Implemented`,
+  `T-023` is passed, `QA-2026-07-01-009` was added, and Status Summary now
+  points to `CORE-007` then `CORE-008`.
+
 ## 2026-07-01 - Post-deploy P1 web/Telegram live QA passed
 
 - Deployed `5af552e` as Railway deployment
