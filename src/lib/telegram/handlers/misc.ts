@@ -78,6 +78,11 @@ import {
   parseAskedContextCallback,
 } from "@/lib/telegram/check-context-buttons";
 import {
+  handleConversationAnalyze,
+  handleConversationCancel,
+  startConversationCheck,
+} from "@/lib/telegram/handlers/conversation";
+import {
   buildLastCheckFollowUpText,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
@@ -433,6 +438,21 @@ export async function handleCallback(
       scenarioData: withSessionChatScope(ctx.session.scenarioData, ctx.chatId, ctx.chatType),
     });
     await sendI18n(ctx.chatId, "check_prompt", lang);
+    return;
+  }
+
+  if (data === CB.conversationStart) {
+    await startConversationCheck(ctx);
+    return;
+  }
+
+  if (data === CB.conversationAnalyze) {
+    await handleConversationAnalyze(ctx);
+    return;
+  }
+
+  if (data === CB.conversationCancel) {
+    await handleConversationCancel(ctx);
     return;
   }
 

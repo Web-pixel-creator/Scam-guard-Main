@@ -128,6 +128,10 @@ Already shipped:
   repeated "I am nearby" boilerplate, and Telegram/phone passports phrase
   missing local complaints as "not found in Ishonch Guard", not as proof of
   safety.
+- Telegram Conversation Check v1: `/conversation` and the main-menu whole-chat
+  action collect a bounded 2-8 message conversation, store only derived
+  stage/action/reason metadata in the session, and render how the scam pressure
+  evolves without persisting raw chat text.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -141,19 +145,14 @@ Remaining implementation order after the 2026-06-18 product feedback:
    and direct voice-to-SOS routing are shipped. Next: transcript
    confirmation/edit recovery and confidence-aware fallback so users can fix
    bad recognition without re-spending STT budget.
-4. **Conversation Check v1.** Design/spec is captured in
-   `.kiro/specs/telegram-conversation-check-v1`. Next: implement an explicit
-   short-lived conversation collector that stores only derived stage/action/
-   reason metadata, then render how the scam pressure evolves without
-   persisting raw chat text.
-5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-6. **Weekly schemes data model.** Move the weekly digest from static copy to a
+5. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-7. **Private moderation chat.** If added, keep it operator-only with redacted
+6. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-8. **External signals and public trust surfaces.** Google Safe Browsing /
+7. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
    sanitized provider payloads. Public living-experience stories and the
    scam-call trainer remain future trust surfaces. Paid line-type/VoIP

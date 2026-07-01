@@ -29,6 +29,7 @@ export interface ReportDraftTarget {
 export type Scenario =
   | "none" // нейтральное состояние
   | "await_check" // после /check ждём контент
+  | "conversation_check" // ждём несколько текстовых сообщений для проверки диалога
   | "report_value" // ждём значение жалобы
   | "report_desc" // ждём описание
   | "report_scamType" // опционально
@@ -71,6 +72,12 @@ export interface ReportDraft {
    * screenshots, codes, card data or files.
    */
   guardian?: GuardianAngelSnapshot;
+  /**
+   * Conversation Check v1 draft. Stores only derived metadata while collecting
+   * a short user-supplied conversation. Never store raw chat text, OCR, links,
+   * phone numbers, usernames, cards, codes, passwords, seed phrases or files.
+   */
+  conversation?: ConversationDraftSnapshot;
 }
 
 export type LastCheckContext =
@@ -91,6 +98,48 @@ export interface LastCheckSnapshot {
   at: string;
 }
 
+export type ConversationStage =
+  | "opener"
+  | "trust_building"
+  | "authority_claim"
+  | "urgency"
+  | "verification_request"
+  | "payment_request"
+  | "apk_install"
+  | "qr_login"
+  | "investment_pitch"
+  | "romance_pivot";
+
+export type ConversationRequestedAction =
+  | "say_code"
+  | "send_card"
+  | "transfer_money"
+  | "install_app"
+  | "scan_qr"
+  | "connect_wallet"
+  | "send_document"
+  | "keep_call";
+
+export type ConversationPressureFlag =
+  | "urgent"
+  | "secrecy"
+  | "fear"
+  | "promised_profit"
+  | "relationship_trust"
+  | "official_impersonation";
+
+export interface ConversationDraftSnapshot {
+  startedAt: string;
+  updatedAt: string;
+  messageCount: number;
+  totalChars: number;
+  strongestLevel: RiskLevel;
+  stageCounts: Partial<Record<ConversationStage, number>>;
+  reasonCounts: Record<string, number>;
+  requestedActions: ConversationRequestedAction[];
+  pressureFlags: ConversationPressureFlag[];
+}
+
 export interface Session {
   telegramUserId: number;
   lang: Lang; // default "ru" если не задан (R1.4)
@@ -106,6 +155,7 @@ const VALID_LANGS: readonly Lang[] = ["ru", "uz", "en"];
 const VALID_SCENARIOS: readonly Scenario[] = [
   "none",
   "await_check",
+  "conversation_check",
   "report_value",
   "report_desc",
   "report_scamType",
@@ -180,7 +230,9 @@ function normalizeChatType(chatType?: SessionChatType): SessionChatType {
 
 function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
   if (!data) return false;
-  return Boolean(data.lastPanicId ?? data.lastPanicAt ?? data.lastCheck ?? data.guardian);
+  return Boolean(
+    data.lastPanicId ?? data.lastPanicAt ?? data.lastCheck ?? data.guardian ?? data.conversation,
+  );
 }
 
 export function withSessionChatScope(

@@ -40,9 +40,9 @@ export const bot_dict: BotDict = {
 
   // What the user can send (shown after language choice) (R1.3) ──────────────
   input_instruction: {
-    ru: "Что можно прислать на проверку:\n• номер телефона;\n• Telegram-username или ссылку;\n• ссылку на сайт или на APK-файл;\n• текст подозрительного сообщения;\n• скриншот переписки;\n• карточку контакта;\n• описание ситуации словами.\n\nПросто отправьте это сообщением — я отвечу оценкой риска. Команды: /help.",
-    uz: "Tekshirish uchun nima yuborish mumkin:\n• telefon raqami;\n• Telegram-username yoki havola;\n• sayt yoki APK-fayl havolasi;\n• shubhali xabar matni;\n• yozishma skrinshoti;\n• kontakt kartasi;\n• vaziyatni o‘z so‘zlaringiz bilan tavsiflash.\n\nShunchaki xabar qilib yuboring — men xavf bahosini qaytaraman. Buyruqlar: /help.",
-    en: "What you can send for a check:\n• a phone number;\n• a Telegram username or link;\n• a website or APK file link;\n• the text of a suspicious message;\n• a screenshot of a chat;\n• a contact card;\n• a description of the situation in your own words.\n\nJust send it as a message — I’ll reply with a risk assessment. Commands: /help.",
+    ru: "Что можно прислать на проверку:\n• номер телефона;\n• Telegram-username или ссылку;\n• ссылку на сайт или на APK-файл;\n• текст подозрительного сообщения;\n• скриншот переписки;\n• карточку контакта;\n• описание ситуации словами.\n\nДля нескольких сообщений переписки используйте /conversation.\n\nПросто отправьте это сообщением — я отвечу оценкой риска. Команды: /help.",
+    uz: "Tekshirish uchun nima yuborish mumkin:\n• telefon raqami;\n• Telegram-username yoki havola;\n• sayt yoki APK-fayl havolasi;\n• shubhali xabar matni;\n• yozishma skrinshoti;\n• kontakt kartasi;\n• vaziyatni o‘z so‘zlaringiz bilan tavsiflash.\n\nBir nechta yozishma xabari uchun /conversation dan foydalaning.\n\nShunchaki xabar qilib yuboring — men xavf bahosini qaytaraman. Buyruqlar: /help.",
+    en: "What you can send for a check:\n• a phone number;\n• a Telegram username or link;\n• a website or APK file link;\n• the text of a suspicious message;\n• a screenshot of a chat;\n• a contact card;\n• a description of the situation in your own words.\n\nFor several chat messages, use /conversation.\n\nJust send it as a message — I’ll reply with a risk assessment. Commands: /help.",
   },
 
   // ── /check (R4.1) ─────────────────────────────────────────────────────────
@@ -61,12 +61,52 @@ export const bot_dict: BotDict = {
     uz: "Tekshiryapman. Bu bir necha soniya olishi mumkin.",
     en: "Checking. This may take a few seconds.",
   },
+  conversation_prompt: {
+    ru: "🧵 Проверка переписки\n\nПришлите 2–{max} сообщений из переписки по одному. Я буду собирать только безопасные признаки, не сам текст.\n\nКогда закончите — нажмите «Анализировать» или напишите «готово».",
+    uz: "🧵 Yozishmani tekshirish\n\nYozishmadan 2–{max} ta xabarni bittadan yuboring. Men matnning o'zini emas, faqat xavfsiz belgilarni yig'aman.\n\nTugatgach — «Tahlil qilish»ni bosing yoki «tayyor» deb yozing.",
+    en: "🧵 Conversation check\n\nSend 2–{max} chat messages one by one. I will collect only safe signals, not the raw text.\n\nWhen finished, tap “Analyze” or type “done”.",
+  },
+  conversation_added: {
+    ru: "Добавил сообщение {count}/{max}. Пришлите следующее или нажмите «Анализировать».",
+    uz: "{count}/{max} xabar qo'shildi. Keyingisini yuboring yoki «Tahlil qilish»ni bosing.",
+    en: "Added message {count}/{max}. Send the next one or tap “Analyze”.",
+  },
+  conversation_empty: {
+    ru: "Не вижу текста сообщения. Пришлите текст из переписки или нажмите «Отмена».",
+    uz: "Xabar matni ko'rinmayapti. Yozishma matnini yuboring yoki «Bekor qilish»ni bosing.",
+    en: "I do not see message text. Send chat text or tap “Cancel”.",
+  },
+  conversation_too_long: {
+    ru: "Это слишком длинно для короткой проверки переписки. Пришлите более короткий фрагмент или самое подозрительное сообщение.",
+    uz: "Bu qisqa yozishma tekshiruvi uchun juda uzun. Qisqaroq parcha yoki eng shubhali xabarni yuboring.",
+    en: "This is too long for a short conversation check. Send a shorter fragment or the most suspicious message.",
+  },
+  conversation_too_many: {
+    ru: "Лимит {max} сообщений уже достигнут. Нажмите «Анализировать» или «Отмена».",
+    uz: "{max} ta xabar limiti tugadi. «Tahlil qilish» yoki «Bekor qilish»ni bosing.",
+    en: "The {max}-message limit is reached. Tap “Analyze” or “Cancel”.",
+  },
+  conversation_not_enough: {
+    ru: "Для проверки переписки нужно минимум 2 сообщения. Пришлите ещё одно или нажмите «Отмена».",
+    uz: "Yozishmani tekshirish uchun kamida 2 ta xabar kerak. Yana bitta yuboring yoki «Bekor qilish»ni bosing.",
+    en: "I need at least 2 messages to check a conversation. Send one more or tap “Cancel”.",
+  },
+  conversation_expired: {
+    ru: "Проверка переписки истекла. Я очистил черновик. Начните заново через /conversation.",
+    uz: "Yozishma tekshiruvi muddati tugadi. Qoralama tozalandi. /conversation orqali qayta boshlang.",
+    en: "The conversation check expired. I cleared the draft. Start again with /conversation.",
+  },
+  conversation_cancelled: {
+    ru: "Ок, проверку переписки отменил. Можно прислать отдельный номер, ссылку, скриншот или сообщение.",
+    uz: "Yaxshi, yozishma tekshiruvi bekor qilindi. Alohida raqam, havola, skrinshot yoki xabar yuborishingiz mumkin.",
+    en: "OK, conversation check cancelled. You can send a single number, link, screenshot, or message.",
+  },
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n📞 /call — Помощь во время звонка\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🧾 /appeal — Исправить ошибочную запись\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n📞 /call — Qo'ng'iroq paytida yordam\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🧾 /appeal — Xato yozuvni tuzatish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n📞 /call — Help during a call\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🧾 /appeal — Correct a wrong record\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n📞 /call — Помощь во время звонка\n🔍 /check — Проверить номер или ссылку\n🧵 /conversation — Проверить несколько сообщений переписки\n📢 /report — Сообщить о случае\n🧾 /appeal — Исправить ошибочную запись\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n📞 /call — Qo'ng'iroq paytida yordam\n🔍 /check — Raqam yoki havolani tekshirish\n🧵 /conversation — Bir nechta yozishma xabarini tekshirish\n📢 /report — Holat haqida xabar berish\n🧾 /appeal — Xato yozuvni tuzatish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n📞 /call — Help during a call\n🔍 /check — Check a number or link\n🧵 /conversation — Check several chat messages\n📢 /report — Report an incident\n🧾 /appeal — Correct a wrong record\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
   },
 
   appeal_help: {
@@ -404,6 +444,16 @@ export const bot_dict: BotDict = {
     uz: "🔎 Yangi tekshiruv",
     en: "🔎 New check",
   },
+  btn_conversation_analyze: {
+    ru: "🧵 Анализировать",
+    uz: "🧵 Tahlil qilish",
+    en: "🧵 Analyze",
+  },
+  btn_conversation_cancel: {
+    ru: "Отмена",
+    uz: "Bekor qilish",
+    en: "Cancel",
+  },
   btn_emergency: {
     ru: "🆘 Что делать срочно",
     uz: "🆘 Shoshilinch qadamlar",
@@ -483,6 +533,11 @@ export const bot_dict: BotDict = {
     ru: "Проверить новое",
     uz: "Yangi tekshiruv",
     en: "New check",
+  },
+  btn_quick_conversation: {
+    ru: "Вся переписка",
+    uz: "Butun yozishma",
+    en: "Whole chat",
   },
   btn_quick_report: {
     ru: "Сообщить случай",

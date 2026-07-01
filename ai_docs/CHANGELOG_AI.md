@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-004 conversation check v1
+
+- Implemented explicit Telegram `/conversation` mode plus a main-menu entry for
+  checking 2-8 forwarded/pasted chat messages as one short conversation.
+- Added a privacy-safe `conversation_check` session state: it stores message
+  count, aggregate length, stages, requested actions, pressure flags and reason
+  counts only. It does not persist raw chat text, URLs, phone numbers,
+  usernames, OTP/PIN/CVV values, cards, passwords, seed phrases, OCR or files.
+- Added deterministic stage/action extraction and compact RU/UZ/EN rendering
+  that explains how the scam pressure evolves, what action is requested, the
+  strongest visible signals and one safe next step.
+- Added regression tests for raw-evidence exclusion, `/conversation` collection
+  and analysis, and the boundary that ordinary URL checks outside explicit
+  conversation mode still go through the normal check pipeline.
+
 ## 2026-07-01 - ROAD-004 conversation check design
 
 - Added `.kiro/specs/telegram-conversation-check-v1` with requirements,

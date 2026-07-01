@@ -3,18 +3,18 @@
 ## Tasks
 
 - [x] 1. Create privacy-first requirements/design/tasks for Conversation Check v1.
-- [ ] 2. Add `conversation_check` scenario and `ConversationDraftSnapshot`
+- [x] 2. Add `conversation_check` scenario and `ConversationDraftSnapshot`
       session type with raw-evidence exclusion tests.
-- [ ] 3. Add localized entry/cancel/analyze buttons and copy.
-- [ ] 4. Implement deterministic `conversation-risk.ts` stage/action extractor.
-- [ ] 5. Implement Telegram collector: start, collect text/forwarded text,
+- [x] 3. Add localized entry/cancel/analyze buttons and copy.
+- [x] 4. Implement deterministic `conversation-check.ts` stage/action extractor.
+- [x] 5. Implement Telegram collector: start, collect text/forwarded text,
       reject unsupported media, cancel, expire and analyze.
-- [ ] 6. Render compact RU/UZ/EN conversation result without raw transcript
+- [x] 6. Render compact RU/UZ/EN conversation result without raw transcript
       persistence.
-- [ ] 7. Persist only a normal privacy-safe `lastCheck` snapshot after analysis.
-- [ ] 8. Add handler and router regression tests for normal checks not being
+- [x] 7. Persist only a normal privacy-safe `lastCheck` snapshot after analysis.
+- [x] 8. Add handler and router regression tests for normal checks not being
       captured outside explicit conversation mode.
-- [ ] 9. Update tracker/docs, run focused Telegram/risk tests and commit.
+- [x] 9. Update tracker/docs, run focused Telegram/risk tests and commit.
 
 ## Notes
 

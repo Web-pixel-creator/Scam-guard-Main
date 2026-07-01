@@ -593,6 +593,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       expect.arrayContaining([
         CB.liveCall,
         CB.checkAnother,
+        CB.conversationStart,
         CB.report,
         CB.emergency,
         CB.safety,
@@ -614,14 +615,114 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
       CB.liveCall,
       CB.checkAnother,
+      CB.conversationStart,
       CB.emergency,
-      CB.familyMenu,
       CB.report,
+      CB.familyMenu,
       CB.digest,
       CB.safety,
       CB.howItWorks,
       CB.showLang,
     ]);
+  });
+
+  it("collects and analyzes a short conversation without persisting raw chat text", async () => {
+    const userId = 1115;
+    const chatId = 5115;
+
+    const start = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId, text: "/conversation" })),
+    );
+    expect(start.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Проверка переписки");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.conversationAnalyze);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.conversationCancel);
+
+    loadLatestSessionUpsert(userId);
+    expect(h.sessionRow).toMatchObject({
+      scenario: "conversation_check",
+      scenario_data: {
+        conversation: {
+          messageCount: 0,
+          strongestLevel: "unknown",
+        },
+      },
+    });
+
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+    h.upserts.length = 0;
+
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId,
+          text: "Это служба безопасности банка, срочно проверяем карту",
+        }),
+      ),
+    );
+    loadLatestSessionUpsert(userId);
+
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId,
+          text: "Назовите шесть цифр из SMS 123456 и не кладите трубку: https://evil.example",
+        }),
+      ),
+    );
+    loadLatestSessionUpsert(userId);
+
+    const draftJson = JSON.stringify((h.sessionRow as { scenario_data?: unknown }).scenario_data);
+    expect(draftJson).toContain("asks_for_sms_code");
+    expect(draftJson).toContain("keeps_user_on_call");
+    expect(draftJson).not.toContain("123456");
+    expect(draftJson).not.toContain("evil.example");
+    expect(draftJson).not.toContain("служба безопасности");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+    h.upserts.length = 0;
+
+    const analyze = await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId, data: CB.conversationAnalyze })),
+    );
+    expect(analyze.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Разговор");
+    expect(h.sendCalls[0].text).toContain("высокий риск");
+    expect(h.sendCalls[0].text).toContain("назвать код");
+    expect(h.sendCalls[0].text).toContain("Не называйте код");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.report);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.checkAnother);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+
+    const finalSession = h.upserts.find((entry) => entry.table === "telegram_sessions")?.payload;
+    const finalJson = JSON.stringify(finalSession);
+    expect(finalJson).toContain("lastCheck");
+    expect(finalJson).not.toContain("conversation");
+    expect(finalJson).not.toContain("123456");
+    expect(finalJson).not.toContain("evil.example");
+  });
+
+  it("does not capture ordinary URLs outside explicit conversation mode", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId: 1116,
+          chatId: 5116,
+          text: "Проверьте https://kapitalbank.uz.evil.example/login",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
+    expect(JSON.stringify(h.upserts)).not.toContain("conversation_check");
   });
 
   it("answers hidden /chatid command in a group without exposing secrets", async () => {

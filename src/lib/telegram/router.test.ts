@@ -199,6 +199,7 @@ describe("parseCommand (R4.9)", () => {
       "/help",
       "/chatid",
       "/call",
+      "/conversation",
       "/safety",
       "/family",
       "/appeal",

@@ -18,8 +18,9 @@
 // Command-initiated scenarios (started here via SESSION STATE only — the actual
 // content/step processing lives in sibling tasks 8.3 `check` / 8.4 `report`,
 // which this module deliberately does NOT import to keep parallel work safe):
-//   /check     → set scenario "await_check", prompt for content   (R4.1, R4.8, R15.2)
-//   /report    → set scenario "report_value", prompt for value    (R6.1, R15.2)
+//   /check        → set scenario "await_check", prompt for content   (R4.1, R4.8, R15.2)
+//   /conversation → set scenario "conversation_check", collect short text chain
+//   /report       → set scenario "report_value", prompt for value    (R6.1, R15.2)
 //
 // callback_data for the language buttons (consumed by the callback handler,
 // task 8.5) comes from the shared `CB.lang(...)` contract in `format.ts`:
@@ -51,6 +52,7 @@ import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 import { getPublicAppUrl } from "@/lib/config.server";
+import { startConversationCheck } from "@/lib/telegram/handlers/conversation";
 import {
   acceptFamilyInvite,
   buildFamilyAlreadyLinkedKeyboard,
@@ -307,6 +309,10 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
 
     case "/call":
       await startLiveCallCopilot(ctx);
+      return;
+
+    case "/conversation":
+      await startConversationCheck(ctx);
       return;
 
     case "/digest": {
