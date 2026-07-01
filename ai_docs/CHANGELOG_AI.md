@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-001 false-positive QA closed
+
+- Added `prod:telegram-false-positive-smoke` for repeatable production Telegram
+  webhook checks of benign delivery status, ordinary sports news, and Telegram
+  product-news messages.
+- Re-verified the local deterministic false-positive boundaries: broad
+  delivery, betting/casino, Telegram/Web3 promo, image-intelligence, result
+  formatting, and webhook integration coverage.
+- Verification passed: scoped eslint; focused CORE-001 suites
+  `5 files / 272 tests`; production Telegram false-positive smoke passed with
+  all 3 benign cases `unknown` and no forbidden reason codes; `npm run build`
+  passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-022` is closed,
+  `QA-2026-07-01-013` was added, and Status Summary now points to
+  `TG-028/ADM-001`.
+
 ## 2026-07-01 - CORE-006 verified contact override QA closed
 
 - Re-verified the existing `check-core` regression that confirmed high-risk
