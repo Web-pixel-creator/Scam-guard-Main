@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-009 retention/audit verification
+
+- Added static migration regression coverage for the Supabase retention and
+  admin audit contract: `private.prune_app_retention()` stays private and
+  service-role-only, preserves `admin_actions` and `reputation_appeals`, and
+  keeps the documented cleanup windows for checks, reports, Telegram sessions,
+  webhook dedup rows, rate-limit buckets, Telegram reputation observations and
+  Family Shield rows.
+- Verified the scheduled cleanup migration uses `cron.schedule` /
+  `cron.unschedule` rather than direct `cron.job` writes.
+- Re-ran the linked Supabase checks: remote migration history matches local and
+  `supabase db lint --linked --schema public,private --fail-on error` reported
+  no schema errors.
+
 ## 2026-07-01 - CORE-005 URL reputation hardening
 
 - Hardened the existing Google Safe Browsing / URLhaus / PhishTank additive URL
