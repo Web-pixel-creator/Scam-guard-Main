@@ -106,6 +106,12 @@ Already shipped:
   instead of replaying the generic scenario summary. Repeated taps are
   de-duplicated and Telegram gets an `upload_voice` action while synthesis is
   running.
+- Telegram Latency/Cost Pass v1: slow text checks show a delayed visible
+  checking status, repeated normalized text checks use a short per-user
+  cache/in-flight de-duplication, public Telegram metadata has a soft
+  timeout/cache, low-signal passports skip AI, decoded login/payment/wallet QR
+  payloads bypass visual AI, URL reputation is cached/de-duplicated, and
+  voice STT / Voice-out paths keep cache, duplicate and budget guards.
 - Emergency Callback Context Binding v1: panic follow-up and Voice-out buttons
   now carry the originating scenario id, while legacy callbacks remain a
   fallback. Stale keyboards from older emergency scenarios no longer answer
@@ -135,16 +141,14 @@ Remaining implementation order after the 2026-06-18 product feedback:
    and direct voice-to-SOS routing are shipped. Next: transcript
    confirmation/edit recovery and confidence-aware fallback so users can fix
    bad recognition without re-spending STT budget.
-4. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
-   cache or skip AI on low-signal checks where deterministic output is enough.
-5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-6. **Weekly schemes data model.** Move the weekly digest from static copy to a
+5. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-7. **Private moderation chat.** If added, keep it operator-only with redacted
+6. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-8. **External signals and public trust surfaces.** Google Safe Browsing /
+7. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
    sanitized provider payloads. Public living-experience stories and the
    scam-call trainer remain future trust surfaces. Paid line-type/VoIP

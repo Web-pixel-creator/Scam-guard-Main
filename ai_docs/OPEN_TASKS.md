@@ -130,16 +130,17 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       correction, low-signal fallback and first RU/UZ mixed-speech fixtures are
       shipped. Remaining: broaden the real-audio regression corpus and tune
       confidence heuristics from production examples.
-- [ ] **Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
+- [x] ~~**Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
-      deterministic output is enough. First slice shipped: Telegram
-      username/public-post passport enrichment now has a 1.2s soft metadata
-      timeout plus a bounded short in-memory cache, so slow Bot API `getChat`
-      calls no longer block simple checks for the full 8s Bot API budget.
-      Second slice shipped: pixel-decoded login/payment/wallet QR payloads now
-      skip slower visual AI and go straight through deterministic scoring;
-      ordinary menu QR codes and suspicious plain URLs still use image context.
-      Remaining: tune STT/image-analysis paths from production timing logs.
+      deterministic output is enough.~~ Done: Telegram text checks show a
+      delayed visible checking status for noticeable work, repeated normalized
+      text checks use a short per-user cache/in-flight de-duplication, public
+      Telegram metadata has a soft timeout/cache, low-signal passports skip AI,
+      pixel-decoded login/payment/wallet QR payloads bypass slower visual AI,
+      URL reputation has cache/in-flight de-duplication, and voice STT /
+      Voice-out paths keep cache, duplicate and budget guards. Continue tuning
+      STT/image-analysis thresholds from production `telegram_timing` logs as
+      operational follow-up.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.

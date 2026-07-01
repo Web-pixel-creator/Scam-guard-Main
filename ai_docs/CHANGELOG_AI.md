@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-003 speed/cost pass reconciled
+
+- Reconciled and verified the Telegram speed/cost pass already present in the
+  worktree: visible delayed "checking" status for slow text checks, short
+  per-user text check cache and in-flight de-duplication, Telegram public
+  metadata soft timeout/cache, low-signal passport AI skip, QR fast path for
+  pixel-decoded login/payment/wallet payloads, URL reputation cache/in-flight
+  de-duplication, voice STT cache/in-flight/budget and Voice-out duplicate/TTS
+  budget guards.
+- Closed `ROAD-003 / T-035` in `FEATURE_USER_STORY_TRACKER.xlsx` after focused
+  latency/cost verification passed.
+
 ## 2026-07-01 - SEC-003 adversarial AI-output cooldown
 
 - Added a per-rate-limit-key cooldown for repeated unsafe AI-authored
