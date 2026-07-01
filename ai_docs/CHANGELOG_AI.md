@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-025 modern SOS copy closed
+
+- Split the compact first cards, full checklist copy and trusted-person
+  follow-ups for sextortion/photo-video blackmail, publication threats and
+  minor-safety pressure so they no longer share generic blackmail wording.
+- Minor-safety copy now leads with showing the chat to a trusted adult, keeps
+  non-blaming language, and tells the user to ask another adult if the first
+  one does not help.
+- Regenerated `TELEGRAM_BOT_QA_REPORT.md` after SOS copy changes and re-ran
+  visual QA.
+- Verification passed: scoped eslint; emergency/panic/voice-out suite
+  `4 files / 135 tests`; emergency property/i18n/follow-up suite
+  `5 files / 632 tests`; bot QA matrix `18 tests`; `qa:telegram-report`,
+  `qa:telegram-visual`, and `npm run build` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-025` is now `Implemented`,
+  `T-013` is closed, Status Summary counts are `Implemented=45`,
+  `Partial=6`, `Planned=7`, and the next queue item is `T-021 / ADM-003`.
+
 ## 2026-07-01 - TG-013 video thumbnail UX closed
 
 - Telegram video thumbnails now carry a `video_thumbnail` media marker through

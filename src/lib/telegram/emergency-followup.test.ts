@@ -160,6 +160,27 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(telegram).toContain("не отправляйте коды");
   });
 
+  it("keeps sextortion, publication-threat and minor-safety first cards distinct", () => {
+    const sextortion = buildPanicScenarioText(7, "ru");
+    const publicationThreat = buildPanicScenarioText(9, "ru");
+    const minorSafety = buildPanicScenarioText(10, "ru");
+
+    expect(sextortion).toContain("НЕ ПЛАТИТЕ И НЕ ОТПРАВЛЯЙТЕ НОВЫЕ ФОТО/ВИДЕО");
+    expect(sextortion).toContain("скриншоты чата, профиля");
+    expect(sextortion).not.toContain("ссылку на пост/профиль");
+
+    expect(publicationThreat).toContain("НЕ ПЛАТИТЕ ЗА «УДАЛЕНИЕ»");
+    expect(publicationThreat).toContain("ссылку на пост/профиль");
+    expect(publicationThreat).toContain("поддержку платформы");
+    expect(publicationThreat).not.toContain("новые фото/видео");
+
+    expect(minorSafety).toContain("ПОКАЖИ ПЕРЕПИСКУ ВЗРОСЛОМУ");
+    expect(minorSafety).toContain("Если первый взрослый не помогает");
+    expect(minorSafety).not.toContain("платите за «удаление»");
+
+    expect(new Set([sextortion, publicationThreat, minorSafety]).size).toBe(3);
+  });
+
   it("formats already-happened financial ready phrases without incoming-call fallback", () => {
     const smsCode = buildEmergencyFollowUpText("script", 1, "ru");
     const transfer = buildEmergencyFollowUpText("script", 3, "ru");
@@ -182,13 +203,23 @@ describe("Emergency Copilot v2 follow-up routing", () => {
   });
 
   it("formats trusted-person guidance by scenario instead of always using bank wording", () => {
-    const blackmail = buildEmergencyFollowUpText("trusted_person", 9, "ru");
+    const sextortion = buildEmergencyFollowUpText("trusted_person", 7, "ru");
+    const publicationThreat = buildEmergencyFollowUpText("trusted_person", 9, "ru");
+    const minorSafety = buildEmergencyFollowUpText("trusted_person", 10, "ru");
     const romance = buildEmergencyFollowUpText("trusted_person", 8, "ru");
     const apk = buildEmergencyFollowUpText("trusted_person", 2, "ru");
 
-    expect(blackmail).toContain("Мне угрожают");
-    expect(blackmail).toContain("сохранить доказательства");
-    expect(blackmail).not.toContain("звоню в банк");
+    expect(sextortion).toContain("Мне угрожают/давят");
+    expect(sextortion).toContain("сохранить доказательства");
+    expect(sextortion).not.toContain("звоню в банк");
+
+    expect(publicationThreat).toContain("угрожают публикацией");
+    expect(publicationThreat).toContain("сохранить ссылки/скриншоты");
+    expect(publicationThreat).not.toBe(sextortion);
+
+    expect(minorSafety).toContain("Позови взрослого");
+    expect(minorSafety).toContain("Если первый взрослый не помогает");
+    expect(minorSafety).not.toBe(sextortion);
 
     expect(romance).toContain("Посмотри переписку со стороны");
     expect(romance).toContain("Поставьте паузу на переводы");
