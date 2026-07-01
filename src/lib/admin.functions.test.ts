@@ -156,6 +156,7 @@ import {
   attachReportOperatorContext,
   moderateReportCore,
   resolveReputationAppealCore,
+  summarizeReportSignals,
 } from "./admin.functions";
 
 beforeEach(() => {
@@ -213,11 +214,20 @@ describe("attachReportOperatorContext", () => {
           created_at: "2026-06-30T09:00:00.000Z",
         },
       ],
+      [
+        {
+          entity_hash: "hash-target",
+          signal_count: 5,
+          last_report_at: "2026-06-30T10:00:00.000Z",
+        },
+      ],
     );
 
     expect(report).toMatchObject({
       id: "report-1",
       target_report_count: 3,
+      target_signal_count: 5,
+      target_last_report_at: "2026-06-30T10:00:00.000Z",
       target_last_seen_at: "2026-06-30T08:00:00.000Z",
       target_moderation_status: "new",
       target_risk_level: "suspicious",
@@ -238,6 +248,8 @@ describe("attachReportOperatorContext", () => {
 
     expect(report).toMatchObject({
       target_report_count: 1,
+      target_signal_count: 1,
+      target_last_report_at: null,
       target_last_seen_at: null,
       target_moderation_status: null,
       target_risk_level: null,
@@ -247,6 +259,30 @@ describe("attachReportOperatorContext", () => {
       target_check_has_ai_explanation: false,
       target_check_created_at: null,
     });
+  });
+});
+
+describe("summarizeReportSignals", () => {
+  it("counts active report rows by target and keeps the latest report timestamp", () => {
+    expect(
+      summarizeReportSignals([
+        { entity_hash: "hash-a", created_at: "2026-06-30T09:00:00.000Z" },
+        { entity_hash: "hash-b", created_at: "2026-06-30T11:00:00.000Z" },
+        { entity_hash: "hash-a", created_at: "2026-06-30T10:00:00.000Z" },
+        { entity_hash: null, created_at: "2026-06-30T12:00:00.000Z" },
+      ]),
+    ).toEqual([
+      {
+        entity_hash: "hash-a",
+        signal_count: 2,
+        last_report_at: "2026-06-30T10:00:00.000Z",
+      },
+      {
+        entity_hash: "hash-b",
+        signal_count: 1,
+        last_report_at: "2026-06-30T11:00:00.000Z",
+      },
+    ]);
   });
 });
 

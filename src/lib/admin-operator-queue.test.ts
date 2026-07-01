@@ -47,6 +47,21 @@ describe("operatorQueuePriority", () => {
     expect(priority.signals).toBe(2);
   });
 
+  it("prefers raw signal count over confirmed public report count", () => {
+    const priority = operatorQueuePriority(
+      report({
+        target_report_count: 1,
+        target_signal_count: 4,
+        target_check_risk_level: "unknown",
+        target_check_risk_score: 25,
+      }),
+    );
+
+    expect(priority.signals).toBe(4);
+    expect(priority.band).toBe("standard");
+    expect(priority.score).toBeGreaterThan(40);
+  });
+
   it("separates single reports without check context into needs-context", () => {
     const priority = operatorQueuePriority(report({ target_check_risk_level: null }));
 

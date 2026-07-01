@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-002 / TG-019 report duplicate-signal polish
+
+- Web `/report` success copy is warmer and explicitly says public labeling is
+  manual; similar reports help raise review priority without revealing whether
+  this submission was a duplicate.
+- Admin `listReports` now attaches operator-only `target_signal_count` and
+  `target_last_report_at` from active report rows. Queue priority and admin
+  cards use that raw signal count while public `target_report_count` remains
+  confirmed-only.
+- Verification passed: scoped eslint for touched files, focused
+  admin/report tests `3 files / 28 tests`, `git diff --check`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-019`, `ROAD-002`, `T-012`,
+  `T-034`, `QA-2026-07-01-001`, and Status Summary now point to continuing
+  UX/logistics fixes; production/live report smoke remains a post-deploy check.
+
 ## 2026-06-30 - P1 production Telegram user-story smoke passed
 
 - Added `prod:telegram-user-story-smoke`, a guarded production smoke for the

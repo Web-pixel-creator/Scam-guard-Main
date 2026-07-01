@@ -6,6 +6,7 @@ export type OperatorQueueReport = {
   status?: string | null;
   created_at?: string | null;
   amount_lost_uzs?: number | null;
+  target_signal_count?: number | null;
   target_report_count?: number | null;
   target_check_risk_level?: string | null;
   target_check_risk_score?: number | null;
@@ -105,7 +106,7 @@ export function sortOperatorQueueReports<Report extends OperatorQueueReport>(
 }
 
 function reportSignalCount(report: OperatorQueueReport) {
-  const value = finiteNumber(report.target_report_count);
+  const value = finiteNumber(report.target_signal_count ?? report.target_report_count);
   return typeof value === "number" && value > 0 ? Math.round(value) : 1;
 }
 

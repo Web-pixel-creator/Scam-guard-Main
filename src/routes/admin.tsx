@@ -59,6 +59,8 @@ type AdminReport = {
   amount_lost_uzs?: number | null;
   language?: string | null;
   created_at: string;
+  target_signal_count?: number | null;
+  target_last_report_at?: string | null;
   target_report_count?: number | null;
   target_last_seen_at?: string | null;
   target_moderation_status?: string | null;
@@ -377,7 +379,9 @@ function AdminPage() {
                         r.scam_type,
                         r.city,
                         reportSignalLabel(reportSignalCount(r)),
-                        formatDateTime(r.target_last_seen_at ?? r.created_at),
+                        formatDateTime(
+                          r.target_last_report_at ?? r.target_last_seen_at ?? r.created_at,
+                        ),
                         `ущерб ${formatLoss(r.amount_lost_uzs)}`,
                       ]
                         .filter(Boolean)
@@ -666,7 +670,9 @@ function ReportDetailDialog({
                 <ReportFact label="Когда поступило" value={formatDateTime(report.created_at)} />
                 <ReportFact
                   label="Последний сигнал"
-                  value={formatDateTime(report.target_last_seen_at ?? report.created_at)}
+                  value={formatDateTime(
+                    report.target_last_report_at ?? report.target_last_seen_at ?? report.created_at,
+                  )}
                 />
               </dl>
             </section>
@@ -1089,8 +1095,12 @@ function labelStatus(s: string) {
   );
 }
 
-function reportSignalCount(report: { entity_hash: string; target_report_count?: number | null }) {
-  const value = Number(report.target_report_count ?? 1);
+function reportSignalCount(report: {
+  entity_hash: string;
+  target_signal_count?: number | null;
+  target_report_count?: number | null;
+}) {
+  const value = Number(report.target_signal_count ?? report.target_report_count ?? 1);
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 1;
 }
 

@@ -40,12 +40,53 @@ type LatestCheckContext = {
   created_at?: string | null;
 };
 
+type ReportSignalRow = {
+  entity_hash?: string | null;
+  created_at?: string | null;
+};
+
+type ReportSignalContext = {
+  entity_hash: string;
+  signal_count: number;
+  last_report_at: string | null;
+};
+
+const REPORT_SIGNAL_STATUSES = ["new", "reviewing", "duplicate", "confirmed"] as const;
+
+export function summarizeReportSignals(rows: ReportSignalRow[]): ReportSignalContext[] {
+  const byHash = new Map<string, ReportSignalContext>();
+
+  for (const row of rows) {
+    const entityHash = row.entity_hash;
+    if (!entityHash) continue;
+
+    const current = byHash.get(entityHash);
+    if (!current) {
+      byHash.set(entityHash, {
+        entity_hash: entityHash,
+        signal_count: 1,
+        last_report_at: row.created_at ?? null,
+      });
+      continue;
+    }
+
+    current.signal_count += 1;
+    if (dateMs(row.created_at) > dateMs(current.last_report_at)) {
+      current.last_report_at = row.created_at ?? current.last_report_at;
+    }
+  }
+
+  return Array.from(byHash.values());
+}
+
 export function attachReportOperatorContext<Report extends ReportTargetRow>(
   reports: Report[],
   entities: EntityTargetContext[],
   checks: LatestCheckContext[] = [],
+  reportSignals: ReportSignalContext[] = [],
 ) {
   const entitiesByHash = new Map(entities.map((entity) => [entity.entity_hash, entity]));
+  const reportSignalsByHash = new Map(reportSignals.map((signal) => [signal.entity_hash, signal]));
   const latestCheckByHash = new Map<string, LatestCheckContext>();
   const newestChecks = [...checks].sort(
     (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
@@ -59,14 +100,22 @@ export function attachReportOperatorContext<Report extends ReportTargetRow>(
 
   return reports.map((report) => {
     const entity = report.entity_hash ? entitiesByHash.get(report.entity_hash) : undefined;
+    const signal = report.entity_hash ? reportSignalsByHash.get(report.entity_hash) : undefined;
     const check = report.entity_hash ? latestCheckByHash.get(report.entity_hash) : undefined;
     const reasonCodes = Array.isArray(check?.reason_codes)
       ? check.reason_codes.filter((code): code is string => typeof code === "string")
       : [];
+    const targetReportCount = positiveInteger(entity?.report_count) ?? 1;
+    const targetSignalCount = Math.max(
+      positiveInteger(signal?.signal_count) ?? 1,
+      targetReportCount,
+    );
 
     return {
       ...report,
-      target_report_count: entity?.report_count ?? 1,
+      target_report_count: targetReportCount,
+      target_signal_count: targetSignalCount,
+      target_last_report_at: signal?.last_report_at ?? entity?.last_seen_at ?? null,
       target_last_seen_at: entity?.last_seen_at ?? null,
       target_moderation_status: entity?.moderation_status ?? null,
       target_risk_level: entity?.risk_level ?? null,
@@ -80,6 +129,17 @@ export function attachReportOperatorContext<Report extends ReportTargetRow>(
       target_check_created_at: check?.created_at ?? null,
     };
   });
+}
+
+function positiveInteger(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue > 0 ? Math.round(numberValue) : null;
+}
+
+function dateMs(value?: string | null): number {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
 const moderateReportInputSchema = z.object({
@@ -156,7 +216,7 @@ export const listReports = createServerFn({ method: "POST" })
       return attachReportOperatorContext(reports, [], []);
     }
 
-    const [entitiesResult, checksResult] = await Promise.all([
+    const [entitiesResult, checksResult, reportSignalsResult] = await Promise.all([
       supabaseAdmin
         .from("entities")
         .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
@@ -167,14 +227,23 @@ export const listReports = createServerFn({ method: "POST" })
         .in("input_hash", hashes)
         .order("created_at", { ascending: false })
         .limit(500),
+      supabaseAdmin
+        .from("reports")
+        .select("entity_hash, created_at")
+        .in("entity_hash", hashes)
+        .in("status", [...REPORT_SIGNAL_STATUSES])
+        .order("created_at", { ascending: false })
+        .limit(1000),
     ]);
     if (entitiesResult.error) throw new Error(entitiesResult.error.message);
     if (checksResult.error) throw new Error(checksResult.error.message);
+    if (reportSignalsResult.error) throw new Error(reportSignalsResult.error.message);
 
     return attachReportOperatorContext(
       reports,
       entitiesResult.data ?? [],
       checksResult.data ?? [],
+      summarizeReportSignals(reportSignalsResult.data ?? []),
     );
   });
 

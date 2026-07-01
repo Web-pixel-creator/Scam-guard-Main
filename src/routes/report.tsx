@@ -120,9 +120,9 @@ function ReportPage() {
     send: { ru: "Отправить жалобу", uz: "Shikoyatni yuborish", en: "Submit report" },
     thanks_h: { ru: "Спасибо!", uz: "Rahmat!", en: "Thank you!" },
     thanks_d: {
-      ru: "Жалоба отправлена. Мы рассмотрим её в ближайшее время.",
-      uz: "Shikoyat yuborildi. Yaqin orada ko'rib chiqamiz.",
-      en: "Report submitted. We'll review it shortly.",
+      ru: "Сигнал отправлен. Спасибо: вы помогли предупредить других людей. Мы проверим его вручную; публичная метка появится только после модерации. Если похожий сигнал уже был, ваш помогает поднять приоритет проверки.",
+      uz: "Signal yuborildi. Rahmat: siz boshqa odamlarni ogohlantirishga yordam berdingiz. Uni qo'lda tekshiramiz; ommaviy belgi faqat moderatsiyadan keyin chiqadi. Agar o'xshash signal oldin bo'lgan bo'lsa, sizniki tekshiruv ustuvorligini oshiradi.",
+      en: "Signal sent. Thank you: you helped warn other people. We'll review it manually; a public label appears only after moderation. If a similar signal already exists, yours helps raise review priority.",
     },
   };
 
