@@ -512,10 +512,15 @@ function Index() {
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
 
                 <div
-                  className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-6 transition-colors"
+                  className="flex items-center justify-center w-11 h-11 rounded-[10px] border border-[#FED7AA]/70 bg-[#FFF7ED] mb-6 transition-colors"
                   style={{ color: c.accent }}
                 >
-                  <c.i aria-hidden="true" focusable="false" className="h-4 w-4" strokeWidth={1.5} />
+                  <c.i
+                    aria-hidden="true"
+                    focusable="false"
+                    className="h-[18px] w-[18px]"
+                    strokeWidth={1.75}
+                  />
                 </div>
 
                 {/* Pain badge — red dot signals "this is the problem" */}
