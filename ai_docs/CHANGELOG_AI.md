@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-028 AI provider resilience QA closed
+
+- Added adversarial AI-output safety coverage for repeated prompt-injection
+  leaks, multilingual secret/payment/wallet/APK action requests, and safe-warning
+  decoys that mention the same dangerous terms only as things to refuse.
+- Re-verified AI degradation/fallback behavior: rules-only scoring still holds
+  when AI is missing, failing, quota-limited, retried, or served by fallback.
+- Verification passed: scoped eslint; focused AI safety/degradation suites
+  `3 files / 29 tests`; `railway run npm run prod:smoke --
+  https://scam-guard-main-production.up.railway.app` passed with AI provider
+  healthy.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-015` is closed,
+  `QA-2026-07-01-014` was added, and Status Summary now points to `ADM-001`.
+
 ## 2026-07-01 - CORE-001 false-positive QA closed
 
 - Added `prod:telegram-false-positive-smoke` for repeatable production Telegram
