@@ -24,6 +24,7 @@
     "prod:telegram-scope-smoke": "vite-node scripts/prod-telegram-scope-smoke.ts",
     "prod:telegram-live-qa-smoke": "vite-node scripts/prod-telegram-live-qa-smoke.ts",
     "prod:telegram-user-story-smoke": "vite-node scripts/prod-telegram-user-story-smoke.ts",
+    "prod:telegram-voice-out-smoke": "vite-node scripts/prod-telegram-voice-out-smoke.ts",
     "tts:smoke": "vite-node scripts/tts-smoke.ts",
     "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
     "tts:validate-assets": "vite-node scripts/validate-voice-out-assets.ts",

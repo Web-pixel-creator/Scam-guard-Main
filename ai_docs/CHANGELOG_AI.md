@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-015 Voice-out Telegram OGG smoke harness
+
+- Added `prod:telegram-voice-out-smoke`, a production-oriented smoke that sends
+  committed panic OGG files through Telegram Bot API `sendAudio` and can trigger
+  the app webhook voice-out callback after deployment.
+- Added `--skip-webhook` mode for pre-deploy validation: it verifies Telegram
+  accepts the local OGG assets without depending on the deployed app bundle.
+- Verification passed: scoped eslint for the new script, `npm run
+  tts:validate-assets`, and `railway run npx vite-node
+  scripts/prod-telegram-voice-out-smoke.ts --skip-webhook`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: fixed TG-015/T-011 column drift,
+  added `QA-2026-07-01-005`, and kept full app webhook playback as post-deploy
+  follow-up.
+
 ## 2026-07-01 - TG-015 Voice-out SOS OGG assets
 
 - Added production-preferred `.ogg`/Opus Voice-out files for all main SOS
