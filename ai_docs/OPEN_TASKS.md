@@ -141,6 +141,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       Voice-out paths keep cache, duplicate and budget guards. Continue tuning
       STT/image-analysis thresholds from production `telegram_timing` logs as
       operational follow-up.
+- [ ] **Conversation check implementation.** ROAD-004 design is now captured in
+      `.kiro/specs/telegram-conversation-check-v1`: grouped checks must be an
+      explicit mode, drafts must expire, and session state may store only
+      derived stage/action/reason metadata. Next slice: add the
+      `conversation_check` collector, deterministic stage/action extractor,
+      compact RU/UZ/EN result rendering, and tests proving ordinary URL/phone/
+      username checks outside the mode still use the normal pipeline.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.

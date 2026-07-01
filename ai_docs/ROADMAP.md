@@ -141,14 +141,19 @@ Remaining implementation order after the 2026-06-18 product feedback:
    and direct voice-to-SOS routing are shipped. Next: transcript
    confirmation/edit recovery and confidence-aware fallback so users can fix
    bad recognition without re-spending STT budget.
-4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+4. **Conversation Check v1.** Design/spec is captured in
+   `.kiro/specs/telegram-conversation-check-v1`. Next: implement an explicit
+   short-lived conversation collector that stores only derived stage/action/
+   reason metadata, then render how the scam pressure evolves without
+   persisting raw chat text.
+5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-5. **Weekly schemes data model.** Move the weekly digest from static copy to a
+6. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-6. **Private moderation chat.** If added, keep it operator-only with redacted
+7. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-7. **External signals and public trust surfaces.** Google Safe Browsing /
+8. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
    sanitized provider payloads. Public living-experience stories and the
    scam-call trainer remain future trust surfaces. Paid line-type/VoIP

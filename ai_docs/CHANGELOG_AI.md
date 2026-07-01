@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-004 conversation check design
+
+- Added `.kiro/specs/telegram-conversation-check-v1` with requirements,
+  design and implementation tasks for a privacy-first grouped conversation
+  check.
+- Locked the key boundary before implementation: conversation mode must be
+  explicit, unfinished drafts must expire, and `telegram_sessions` may keep
+  only derived stage/action/reason metadata, not raw transcripts, URLs, phone
+  numbers, usernames, OCR, codes, cards, passwords, seed phrases or files.
+- Left implementation open as the next ROAD-004 slice: add the collector,
+  deterministic stage/action extraction, compact RU/UZ/EN rendering and
+  regression tests that normal single-item checks are not captured.
+
 ## 2026-07-01 - ROAD-003 speed/cost pass reconciled
 
 - Reconciled and verified the Telegram speed/cost pass already present in the
