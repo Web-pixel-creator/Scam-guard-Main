@@ -514,4 +514,42 @@ describe("telegram Voice-out / TTS", () => {
       }),
     ]);
   });
+
+  it("removes provider-only voice buttons from the rate-limit fallback keyboard", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_TTS_API_KEY;
+    delete process.env.GEMINI_TTS_API_KEY;
+    delete process.env["Gemini TTS"];
+    hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
+    vi.stubGlobal("fetch", vi.fn());
+
+    await sendVoiceOutResponse({
+      chatId: 30,
+      userId: 3003,
+      lang: "en",
+      text: "I am with you. End the call and call the bank back on the official number.",
+      keyboard: [
+        [
+          { text: "Voice", callback_data: "voiceout:guardian" },
+          { text: "Full plan", callback_data: "guardian:full_plan" },
+        ],
+        [
+          { text: "Context voice", callback_data: "voiceout:panic:4:script" },
+          { text: "Static SOS voice", callback_data: "voiceout:panic:4" },
+        ],
+      ],
+    });
+
+    expect(checkSharedRateLimit).toHaveBeenCalled();
+    expect(hoisted.sentAudio).toHaveLength(0);
+    expect(hoisted.sentMessages).toEqual([
+      expect.objectContaining({
+        chatId: 30,
+        keyboard: [
+          [{ text: "Full plan", callback_data: "guardian:full_plan" }],
+          [{ text: "Static SOS voice", callback_data: "voiceout:panic:4" }],
+        ],
+      }),
+    ]);
+  });
 });

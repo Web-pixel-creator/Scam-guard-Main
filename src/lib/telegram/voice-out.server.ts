@@ -411,6 +411,23 @@ function buildVoiceOutCaption(lang: Lang, text: string): string {
   });
 }
 
+function isProviderOnlyVoiceOutCallback(callbackData: string | undefined): boolean {
+  if (!callbackData) return false;
+  if (callbackData === VOICE_OUT_CB.guardian) return true;
+  const panicCallback = parseVoiceOutPanicCallback(callbackData);
+  return panicCallback !== null && panicCallback.action !== null;
+}
+
+function withoutProviderOnlyVoiceOutButtons(
+  keyboard: InlineKeyboard | undefined,
+): InlineKeyboard | undefined {
+  if (!keyboard) return undefined;
+  const filtered = keyboard
+    .map((row) => row.filter((button) => !isProviderOnlyVoiceOutCallback(button.callback_data)))
+    .filter((row) => row.length > 0);
+  return filtered.length > 0 ? filtered : undefined;
+}
+
 async function fetchWithTimeout(
   input: string,
   init: RequestInit,
@@ -714,6 +731,9 @@ export async function sendVoiceOutResponse(args: {
   await sendMessage({
     chatId: args.chatId,
     text: escapeMarkdownV2(buildVoiceOutFallbackText(args.lang, fallbackResult)),
-    keyboard: args.keyboard,
+    keyboard:
+      fallbackResult.reason === "rate_limited"
+        ? withoutProviderOnlyVoiceOutButtons(args.keyboard)
+        : args.keyboard,
   });
 }

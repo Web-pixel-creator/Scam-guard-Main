@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-015 Voice-out provider-limit fallback UX
+
+- Rate-limit fallback now removes provider-only Voice-out buttons
+  (`voiceout:guardian` and contextual `voiceout:panic:<id>:<action>`) so users
+  do not keep tapping into the same daily provider limit.
+- Static SOS Voice-out buttons (`voiceout:panic:<id>`) and normal action
+  buttons stay visible because prerecorded SOS audio bypasses provider budget.
+- Added a regression covering the fallback keyboard and preserving non-voice
+  callbacks after the first test caught an over-broad filter.
+- Verification passed: scoped eslint, voice-out suite `1 file / 14 tests`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015` is now `Implemented`,
+  `T-011` is passed, `QA-2026-07-01-007` was added, and Status Summary now
+  points to remaining P1/P2 web/Telegram live QA.
+
 ## 2026-07-01 - TG-015 Voice-out deploy and full playback smoke
 
 - Refreshed `bun.lock` after adding Voice-out scripts; first Railway deploy
