@@ -167,9 +167,10 @@ railway run npm run moderation:smoke
 The smoke test sends a clearly marked non-user test alert. It does not send
 real report text, screenshots, OCR, codes, card data, phone numbers or URLs.
 
-For live Telegram user-flow smoke tests, create a separate private QA group,
-add `@scamguard_bot`, send `/chatid`, and copy that value into
-`TELEGRAM_QA_CHAT_ID`. Do not reuse the moderation chat id for QA traffic.
+For live Telegram user-flow smoke tests, set `TELEGRAM_QA_CHAT_ID` to the
+existing main/test chat where ordinary bot replies are acceptable. Create a
+separate private QA group only if you do not already have such a chat. Do not
+reuse the moderation chat id for QA traffic.
 
 Before release, apply migration
 `20260629153000_entities_report_count_confirmed_only.sql` so public

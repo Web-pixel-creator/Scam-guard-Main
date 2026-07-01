@@ -23,7 +23,8 @@ export function readTelegramSmokeChatId(
     if (env[MODERATION_CHAT_ENV]?.trim()) {
       fail(
         `${QA_CHAT_ENV} is not set. Refusing to send user-facing production Telegram smoke ` +
-          `messages to ${MODERATION_CHAT_ENV}. Create a separate private QA chat and set ${QA_CHAT_ENV}.`,
+          `messages to ${MODERATION_CHAT_ENV}. Set ${QA_CHAT_ENV} to the existing main/test chat, ` +
+          `or another chat that is not the moderation chat.`,
       );
     }
     fail(`${QA_CHAT_ENV} is not set`);
