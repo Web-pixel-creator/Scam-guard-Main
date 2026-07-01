@@ -8,9 +8,11 @@ function isEnabled(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === "true";
 }
 
-export function checkProxyIpHeaderTrust(
-  env: Pick<NodeJS.ProcessEnv, "TRUST_PROXY_IP_HEADERS" | "TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED">,
-): SecuritySmokeCheckResult {
+type ProxyIpHeaderEnv = Partial<
+  Record<"TRUST_PROXY_IP_HEADERS" | "TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED", string | undefined>
+>;
+
+export function checkProxyIpHeaderTrust(env: ProxyIpHeaderEnv): SecuritySmokeCheckResult {
   if (!isEnabled(env.TRUST_PROXY_IP_HEADERS)) {
     return {
       label: "proxy IP header trust is disabled by default",

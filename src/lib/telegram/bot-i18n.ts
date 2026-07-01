@@ -860,6 +860,19 @@ export const bot_dict: BotDict = {
     uz: "Kimga murojaat",
     en: "Where to report",
   },
+
+  // ── /chatid — operator setup helper (admin-only, group context) ────────────
+  // {chatId} and {chatType} are filled via bt(..., { chatId, chatType }).
+  chatid_group: {
+    ru: "🛠 Chat ID для настройки\n\nChat ID: {chatId}\nТип чата: {chatType}\n\nСкопируйте это значение в Railway:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nПосле redeploy проверьте:\nrailway run npm run moderation:smoke\n\nНе отправляйте сюда реальные жалобы, пока smoke-тест не прошёл.",
+    uz: "🛠 Chat ID sozlash uchun\n\nChat ID: {chatId}\nChat turi: {chatType}\n\nBu qiymatni Railway'ga ko'chiring:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nRedeploydan keyin tekshiring:\nrailway run npm run moderation:smoke\n\nSmoke-test o'tmaguncha shu yerga haqiqiy shikoyatlar yuburmang.",
+    en: "🛠 Chat ID for setup\n\nChat ID: {chatId}\nChat type: {chatType}\n\nCopy this value into Railway:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nAfter redeploy, verify with:\nrailway run npm run moderation:smoke\n\nDo not send real reports here until the smoke test passes.",
+  },
+  chatid_private: {
+    ru: "🛠 Chat ID\n\nЭто личный чат. Для moderation-уведомлений нужен ID приватной группы.\n\nСоздайте приватную группу, добавьте туда @scamguard_bot и напишите там:\n/chatid",
+    uz: "🛠 Chat ID\n\nBu shaxsiy chat. Moderatsiya xabarlari uchun yopiq guruh ID si kerak.\n\nYopiq guruh yarating, @scamguard_bot ni qo'shing va u yerda yozing:\n/chatid",
+    en: "🛠 Chat ID\n\nThis is a private chat. Moderation notifications need a private group ID.\n\nCreate a private group, add @scamguard_bot there and run:\n/chatid",
+  },
 };
 
 export type BotStringKey = keyof typeof bot_dict;

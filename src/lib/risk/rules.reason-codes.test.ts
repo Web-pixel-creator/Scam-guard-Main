@@ -627,3 +627,79 @@ describe("evaluateText - dropper_recruitment (research feed v1)", () => {
     expect(level).toBe("suspicious");
   });
 });
+
+// Soft / polite OTP-extraction bypasses. Real 2026 attackers rarely say "SMS
+// code" — they ask the victim to read back digits ("dictate the numbers", "the
+// code that will arrive", "code from the message/app"). These must still fire
+// `asks_for_sms_code`; neutral asks ("dictate your name") must NOT.
+describe("evaluateText — asks_for_sms_code soft bypasses", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU поделитесь кодом из сообщения",
+      text: "Поделитесь, пожалуйста, кодом из сообщения для подтверждения входа.",
+    },
+    {
+      name: "RU назовите шесть цифр, которые отправлю",
+      text: "Назовите шесть цифр, которые я вам сейчас отправлю.",
+    },
+    {
+      name: "RU продиктуйте код, который придёт",
+      text: "Продиктуйте код, который придёт на ваш телефон.",
+    },
+    {
+      name: "RU озвучьте цифры с экрана",
+      text: "Откройте приложение и озвучьте цифры с экрана.",
+    },
+    {
+      name: "RU сообщите код из приложения",
+      text: "Сообщите код, который пришёл в приложении банка.",
+    },
+    {
+      name: "RU вам придёт код — продиктуйте",
+      text: "Вам сейчас придёт код — продиктуйте его, пожалуйста.",
+    },
+    {
+      name: "UZ xabar orqali kelgan kodni ayting",
+      text: "Kodni ayting, u sizga xabar orqali keladi.",
+    },
+    {
+      name: "RU скажите шесть цифр, которые отправлю",
+      text: "Скажите шесть цифр, которые я вам сейчас отправлю.",
+    },
+    {
+      name: "RU продиктуйте шесть цифр",
+      text: "Продиктуйте шесть цифр.",
+    },
+    {
+      name: "RU прочитайте то, что придёт",
+      text: "Прочитайте то, что сейчас придёт в уведомлении.",
+    },
+    {
+      name: "UZ olti raqamni ayting",
+      text: "Olti raqamni ayting.",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU назовите полное имя", text: "Назовите своё полное имя для регистрации." },
+    { name: "RU продиктуйте номер буквами", text: "Продиктуйте номер заказа по буквам." },
+    {
+      name: "RU поделитесь впечатлениями",
+      text: "Поделитесь, пожалуйста, впечатлениями о фильме.",
+    },
+    { name: "RU назовите остановку", text: "Назовите остановку для выхода." },
+    { name: "RU прочитайте приложение", text: "Прочитайте сообщение из приложения." },
+    { name: "RU озвучьте экран презентации", text: "Озвучьте текст с экрана презентации." },
+    { name: "RU код города", text: "Назовите код города 71." },
+    { name: "RU код товара", text: "Продиктуйте код товара 1234." },
+    { name: "UZ нейтральный документ", text: "Hujjatni jo'natishingiz mumkin." },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("asks_for_sms_code");
+  });
+});

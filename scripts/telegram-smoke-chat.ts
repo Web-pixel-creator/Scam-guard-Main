@@ -5,6 +5,10 @@ export type TelegramChatType = "private" | "group" | "supergroup" | "channel";
 const QA_CHAT_ENV = "TELEGRAM_QA_CHAT_ID";
 const MODERATION_CHAT_ENV = "TELEGRAM_MODERATION_CHAT_ID";
 
+type TelegramSmokeChatEnv = Partial<
+  Record<typeof QA_CHAT_ENV | typeof MODERATION_CHAT_ENV, string | undefined>
+>;
+
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -15,9 +19,7 @@ function parseChatId(raw: string, envName: string): number {
   return value;
 }
 
-export function readTelegramSmokeChatId(
-  env: Pick<NodeJS.ProcessEnv, typeof QA_CHAT_ENV | typeof MODERATION_CHAT_ENV> = process.env,
-): number {
+export function readTelegramSmokeChatId(env: TelegramSmokeChatEnv = process.env): number {
   const rawQaChatId = env[QA_CHAT_ENV]?.trim();
   if (!rawQaChatId) {
     if (env[MODERATION_CHAT_ENV]?.trim()) {

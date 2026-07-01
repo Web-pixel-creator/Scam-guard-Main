@@ -112,7 +112,11 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
   {
     code: "asks_for_sms_code",
-    re: /(sms.?код|код из (смс|sms)|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн)/i,
+    // Catches explicit "SMS code" wording AND softer real-world asks where the
+    // attacker never says "code": "the code from the message/app/Telegram/bot",
+    // "the code that will arrive / that arrived / that I sent". See CODING_RULES
+    // (new patterns need positives + negatives + tests).
+    re: /(sms.?код|код(ом|а|у)? из (смс|sms|сообщени[яюе]|приложени[яюе]|telegram|телеграмма?|бота|уведомлени[яюе])|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн|код,? котор(ый|ая|ое|ые).{0,25}(прид[её]т|приш(?:л|ёл|е?л)|приходит|пришёл|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|код,? что (прид[её]т|приш(?:л|ёл))|(прид[её]т|приш(?:л|ёл|е?л)).{0,15}код)|kod,? (keladigan|kelgan|jo['’]?natilgan)/i,
   },
   { code: "asks_for_card_cvv", re: /\b(cvv|cvc|cvv2)\b|трёхзначн|uch xonali kod/i },
   { code: "asks_for_pin", re: /\b(pin|пин-?код|pin.?kod)\b/i },
@@ -290,6 +294,34 @@ function shouldFlagInvestmentFastProfitPitch(text: string): boolean {
   return INVESTMENT_FAST_PROFIT_CONTEXT_RE.test(text) && hasFastProfitHook;
 }
 
+// Real-world attackers often avoid the literal word "code/SMS" and instead ask
+// the victim to read back digits ("dictate the numbers", "name the six digits
+// that I'll send"). Combined with a hint that those digits come from a message
+// or device, this is the same OTP-extraction tactic.
+const PROXY_CODE_ASK_RE =
+  /(продиктуй(те)?|назов(и|ите)|скаж(и|ите)|озвуч(ь|ьте)|прочитай(те)?|передай(те)?|сбрось(те)?|напиши(те)?|введите|скинь(те)?|подели(сь|тесь)|сообщ(и|ите)|пришлит(е|ь)?|отправь(те)?|предоставь(те)?|укажите)|(ayting|aytingiz|o['’]?qib bering|jo['’]?nating|kiriting|yozing|baham ko['’]?ring|yuboring)/i;
+const PROXY_CODE_DIGIT_RE =
+  /(цифр(ы|у|ах)?|числ(а|о)|код(ом|а|у)?|символ(ы|ов)?|number|digits?|kod(ni)?|raqam(ni|lar|lari)?|belgi)/i;
+const PROXY_CODE_CONTEXT_SOURCE_RE =
+  /(из сообщени|из (смс|sms|telegram|телеграмма?)|с экрана|из приложени|из (письма|бота)|из уведомлени|from (message|sms|app|notification)|xabar|ilova)/i;
+const PROXY_CODE_STRONG_SOURCE_RE =
+  /(котор(ый|ая|ое|ые).{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|то,? что.{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю)|что (прид[её]т|приш(?:л|ёл))|(прид[её]т|приш(?:л|ёл|е?л)).{0,15}код|u sizga.{0,40}keladi)/i;
+const PROXY_CODE_COUNT_RE =
+  /\b\d|значн|шесть|шести|четыре|четыр[её]х|пять|пяти|olti|to['’]?rt|besh|xonali|raqamli/i;
+const PROXY_CODE_NEUTRAL_CONTEXT_RE =
+  /(код города|городской код|почтов(ый|ого) код|код товара|артикул|номер заказа|order number|postal code|city code)/i;
+
+function shouldFlagProxyCodeRequest(text: string): boolean {
+  if (PROXY_CODE_NEUTRAL_CONTEXT_RE.test(text)) return false;
+  if (!PROXY_CODE_ASK_RE.test(text)) return false;
+  if (PROXY_CODE_STRONG_SOURCE_RE.test(text)) return true;
+  const hasDigitObject = PROXY_CODE_DIGIT_RE.test(text);
+  const hasContextSource = PROXY_CODE_CONTEXT_SOURCE_RE.test(text);
+  // Otherwise require a digit/code object AND a digit-count hint to avoid
+  // matching "dictate your full name" or "say your address".
+  return hasDigitObject && (hasContextSource || PROXY_CODE_COUNT_RE.test(text));
+}
+
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
 const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
 const QR_DANGEROUS_CONTEXT_RE =
@@ -329,6 +361,7 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
   if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
   if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
+  if (shouldFlagProxyCodeRequest(text)) codes.add("asks_for_sms_code");
   if (shouldFlagPrivateTelegramInviteEvidence(text)) codes.add("suspicious_invite_link");
   // Heuristics
   if (

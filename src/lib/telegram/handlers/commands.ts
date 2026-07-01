@@ -151,29 +151,10 @@ async function startLiveCallCopilot(ctx: HandlerCtx): Promise<void> {
 async function sendChatId(ctx: HandlerCtx): Promise<void> {
   const chatType = ctx.chatType ?? "unknown";
   const isGroup = chatType === "group" || chatType === "supergroup";
+  const { lang } = ctx.session;
   const text = isGroup
-    ? [
-        "🛠 Chat ID для настройки",
-        "",
-        `Chat ID: ${ctx.chatId}`,
-        `Тип чата: ${chatType}`,
-        "",
-        "Скопируйте это значение в Railway:",
-        `TELEGRAM_MODERATION_CHAT_ID=${ctx.chatId}`,
-        "",
-        "После redeploy проверьте:",
-        "railway run npm run moderation:smoke",
-        "",
-        "Не отправляйте сюда реальные жалобы, пока smoke-тест не прошёл.",
-      ].join("\n")
-    : [
-        "🛠 Chat ID",
-        "",
-        "Это личный чат. Для moderation-уведомлений нужен ID приватной группы.",
-        "",
-        "Создайте приватную группу, добавьте туда @scamguard_bot и напишите там:",
-        "/chatid",
-      ].join("\n");
+    ? bt("chatid_group", lang, { chatId: ctx.chatId, chatType })
+    : bt("chatid_private", lang);
 
   await sendMessage({
     chatId: ctx.chatId,
