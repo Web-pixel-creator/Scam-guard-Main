@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-009 profile screenshot intelligence final-card QA
+
+- Profile screenshot explanations are now treated as Telegram-profile context
+  in the final formatter, so the user-facing card keeps visible native fields,
+  the fakeable-screenshot caveat, and quick "what did they ask for" buttons.
+- Added a formatter regression for Telegram profile screenshots and added a
+  synthetic profile screenshot fixture to the Telegram QA report/visual board.
+- Verification passed: scoped eslint, focused formatter/image-intelligence
+  suites `2 files / 70 tests`, `qa:telegram-report`, `qa:telegram-visual`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-009`, `T-007`,
+  `QA-2026-07-01-003`, and Status Summary now point to Voice-out audio review
+  or live username/profile screenshot smoke after deploy.
+
 ## 2026-07-01 - TG-007/TG-008 username passport coach visible in final card
 
 - Fixed Telegram passport formatting so the Native Passport Coach block survives

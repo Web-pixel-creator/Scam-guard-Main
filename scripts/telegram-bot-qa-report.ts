@@ -261,6 +261,29 @@ function telegramLoginQrFixture(): RunCheckResult {
   });
 }
 
+function telegramProfileScreenshotFixture(): RunCheckResult {
+  const evidence = fallbackImageIntelligence(
+    [
+      "Alina R. PlankaHub",
+      "Не в контактах",
+      "Страна телефона 🇺🇸 USA",
+      "Регистрация Январь 2026 г.",
+      "Не официальный аккаунт",
+      "Пользователь обновил имя 19 дней назад",
+      "Пользователь обновил фотографию 19 дней назад",
+    ].join("\n"),
+  );
+
+  return resultFixture({
+    type: "text",
+    display: "Скрин профиля Telegram",
+    level: "unknown",
+    score: 0,
+    reasons: [],
+    explanation: buildImageUserExplanation(evidence, "unknown", LANG),
+  });
+}
+
 function sections(): Section[] {
   const welcome = formatWelcome(LANG);
   const weekly = formatWeeklyScamDigest(LANG);
@@ -280,6 +303,7 @@ function sections(): Section[] {
     section("Report: optional step", bt("report_ask_scam_type", LANG), reportSkipKeyboard(LANG)),
     section("Report: retry", bt("report_error", LANG), reportRetryKeyboard(LANG)),
     renderCheckResult("Risk Passport: username", telegramUsernamePassportFixture()),
+    renderCheckResult("Image: скрин профиля Telegram", telegramProfileScreenshotFixture()),
     renderCheckResult("Risk Passport: иностранный номер", phonePassportFixture()),
     renderCheckResult("Risk result: инвестиции без ссылки", cryptoInvestmentFixture()),
     renderCheckResult("Risk result: закрытая Telegram invite-ссылка", suspiciousInviteFixture()),

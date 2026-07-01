@@ -573,6 +573,42 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).not.toContain("…");
   });
 
+  it("keeps Telegram profile screenshot fields and fakeable caveat in the final card", () => {
+    const explanation = [
+      "По скриншоту профиля видно:",
+      "• Страна телефона: 🇺🇸 USA",
+      "• Регистрация на скриншоте: Январь 2026 г.",
+      "• Telegram показывает: не официальный аккаунт",
+      "• Изменение профиля: Пользователь обновил имя 19 дней назад",
+      "",
+      "Сам скрин можно подделать, поэтому это не доказательство скама. Важнее, что просит человек дальше: код, деньги, карту, APK, QR-вход, wallet или перейти по ссылке. Если есть переписка — пришлите сообщение или следующий экран.",
+    ].join("\n");
+
+    const { text, keyboard } = formatCheckResult(
+      baseResult({
+        type: "text",
+        level: "unknown",
+        score: 0,
+        reasons: [],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("По скриншоту профиля видно"));
+    expect(text).toContain(escapeMarkdownV2("Страна телефона"));
+    expect(text).toContain(escapeMarkdownV2("Регистрация на скриншоте"));
+    expect(text).toContain(escapeMarkdownV2("не официальный аккаунт"));
+    expect(text).toContain(escapeMarkdownV2("Сам скрин можно подделать"));
+    expect(text).toContain(escapeMarkdownV2("не доказательство скама"));
+    expect(text).toContain(escapeMarkdownV2("Telegram-паспорт"));
+    expect(text).toContain(escapeMarkdownV2("пришлите сообщение или следующий экран"));
+    expect(text).not.toContain("…");
+    expect(callbacks(keyboard)).toEqual(
+      expect.arrayContaining(["asked:code", "asked:link_qr", CB.report, CB.checkAnother, CB.why]),
+    );
+  });
+
   it("still shows a scam pattern when a strong linked reason is present", () => {
     const fakeBank = SCAM_PATTERNS.find((p) => p.id === "fake-bank-telegram");
     expect(fakeBank).toBeDefined();

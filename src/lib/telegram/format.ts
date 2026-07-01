@@ -153,7 +153,9 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   ) {
     return "phone";
   }
-  if (result.type === "telegram") return "telegram_profile";
+  if (result.type === "telegram" || isTelegramProfileScreenshotBrief(result.explanation)) {
+    return "telegram_profile";
+  }
 
   return null;
 }
@@ -461,13 +463,16 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   const neutralContext = detectNeutralContext(result);
   const hasForwardSourceBrief = isForwardSourceBrief(result.explanation);
   const hasDecodedQrBrief = isDecodedQrEvidenceBrief(result.explanation);
+  const hasTelegramProfileScreenshotBrief = isTelegramProfileScreenshotBrief(result.explanation);
   const truncateOptions = hasForwardSourceBrief
     ? { maxLines: 6, maxChars: 380 }
-    : result.type === "telegram"
-      ? { maxLines: 16, maxChars: 1100 }
-      : result.level === "unknown"
-        ? { maxLines: 3, maxChars: 190 }
-        : { maxLines: 4, maxChars: 230 };
+    : hasTelegramProfileScreenshotBrief
+      ? { maxLines: 9, maxChars: 900 }
+      : result.type === "telegram"
+        ? { maxLines: 16, maxChars: 1100 }
+        : result.level === "unknown"
+          ? { maxLines: 3, maxChars: 190 }
+          : { maxLines: 4, maxChars: 230 };
 
   if (
     neutralContext &&
@@ -498,6 +503,13 @@ function isForwardSourceBrief(explanation: string | null): explanation is string
 function isDecodedQrEvidenceBrief(explanation: string | null): explanation is string {
   if (!explanation) return false;
   return /(?:QR (?:прочитан|decoded|o['’]qildi)|Адрес рядом с QR|Address visible near the QR|QR yonidagi manzil|QR виден, но|QR is visible|QR ko['’]rinadi)/iu.test(
+    explanation,
+  );
+}
+
+function isTelegramProfileScreenshotBrief(explanation: string | null): explanation is string {
+  if (!explanation) return false;
+  return /^(?:По скриншоту профиля видно:|From the Telegram profile screenshot I can see:|Telegram profil skrinshotidan ko'rinadi:)/u.test(
     explanation,
   );
 }
