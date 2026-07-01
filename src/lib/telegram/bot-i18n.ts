@@ -628,6 +628,11 @@ export const bot_dict: BotDict = {
     uz: "❓ Nima uchun?",
     en: "❓ Why?",
   },
+  btn_explain_simple: {
+    ru: "👵 Простыми словами",
+    uz: "👵 Oddiy qilib",
+    en: "👵 Simple words",
+  },
   why_explanation: {
     ru: "🧠 *Как я проверяю*\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком в Telegram или звонят с неизвестного номера\n5\uFE0F\u20E3 Просят перевести деньги на «безопасный счёт» или по ссылке\n\nЕсли таких признаков нет — я пишу «недостаточно данных».\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
     uz: "🧠 *Qanday tekshiraman*\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Telegramda bank nomidan yozadi yoki noma'lum raqamdan qo'ng'iroq qiladi\n5\uFE0F\u20E3 «Xavfsiz hisob»ga yoki havola orqali pul o'tkazishni so'raydi\n\nAgar bunday belgilar topilmasa — «ma'lumot yetarli emas» deb yozaman.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",

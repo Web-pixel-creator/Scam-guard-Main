@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - ROAD-005 explain like grandmother
+
+- Added a result-card "Simple words" callback next to "Why?" so users can ask
+  for a calmer elder-friendly explanation without changing the deterministic
+  verdict.
+- Added RU/UZ/EN free-text routing for phrases such as "объясни как бабушке",
+  "простыми словами", "oddiy qilib" and "simple words". These follow-ups reuse
+  the last check context instead of creating a new `checks` row.
+- Simple explanations avoid score/threshold/weight wording, keep weak
+  topic-only evidence hidden for unknown phone/profile checks, and end with one
+  safe next step.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-005` is now Implemented,
+  `T-037` is Passed, `QA-2026-07-01-022` was added, and the next queue item is
+  `T-038 / ROAD-006 family codeword`.
+
 ## 2026-07-01 - ROAD-004 conversation check v1
 
 - Implemented explicit Telegram `/conversation` mode plus a main-menu entry for

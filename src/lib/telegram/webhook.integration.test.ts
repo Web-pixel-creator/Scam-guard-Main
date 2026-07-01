@@ -1134,6 +1134,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 
   it.each([
     ["why", CB.why],
+    ["simple explain", CB.explainSimple],
     ["share advice", "share_advice"],
     ["live call hangup", "livecall:hangup"],
     ["live call words", "livecall:what_to_say"],
@@ -1820,6 +1821,28 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(followUp.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain("видимые признаки риска");
+    expect(h.sendCalls[0].text).not.toMatch(/score|threshold|вес/i);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("explains the previous result in simple words without starting a new check", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: HIGH_RISK_TEXT })),
+    );
+    expect(first.status).toBe(200);
+
+    loadLatestSessionUpsert(1027);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: "Объясни простыми словами" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Объясню совсем просто");
+    expect(h.sendCalls[0].text).toContain("Безопасный шаг сейчас");
     expect(h.sendCalls[0].text).not.toMatch(/score|threshold|вес/i);
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });

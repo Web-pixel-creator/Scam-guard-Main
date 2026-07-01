@@ -132,6 +132,11 @@ Already shipped:
   action collect a bounded 2-8 message conversation, store only derived
   stage/action/reason metadata in the session, and render how the scam pressure
   evolves without persisting raw chat text.
+- Telegram Simple Explanation v1: result cards now include a simple-words
+  explanation button, and RU/UZ/EN phrases such as "объясни как бабушке",
+  "oddiy qilib" and "simple words" reuse the last check context without
+  exposing internal score/threshold/weight details or weak unknown-result
+  evidence.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -168,6 +173,8 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
+- Next P4 roadmap queue item is `T-038 / ROAD-006 family codeword`: keep it as
+  a teaching/verification flow unless a privacy-safe design exists for storage.
 - Consider a private moderator Telegram chat for new reports and appeals. It
   should receive only redacted summaries and moderation links, never raw codes,
   cards, screenshots, full OCR text or unredacted phone numbers.
@@ -246,6 +253,8 @@ Disallowed claims:
     confirmation, safe callback and trusted-contact help - shipped as immediate
     v1; timed reminders remain later.
 12. Voice-out / TTS v1 for short opt-in safety answers - shipped with text fallback when TTS is not configured.
+13. Simple explanation follow-up for elder-friendly verdict explanations -
+    shipped as Telegram Simple Explanation v1.
 
 ## Stage 3 - Website Trust And Distribution
 

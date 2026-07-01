@@ -149,6 +149,17 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       reason metadata, renders a compact RU/UZ/EN conversation result and keeps
       ordinary URL/phone/username checks outside the mode on the normal
       pipeline.
+- [x] ~~**Explain like grandmother.** Add a discoverable simple-words
+      explanation path after check results, so elder/family users can get the
+      verdict translated into calm practical language without changing the
+      score.~~ Done: result keyboards include a simple-words callback; RU/UZ/EN
+      free-text phrases reuse the latest check, avoid score/threshold wording,
+      hide weak topic-only unknown evidence and do not insert a new `checks`
+      row.
+- [ ] **Family codeword / voice-clone prevention.** ROAD-006 is the next P4
+      queue item. Keep it privacy-first: prefer a teaching/reminder flow for
+      families to define their own codeword offline unless a design explicitly
+      avoids storing the actual codeword in plaintext or recoverable form.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.

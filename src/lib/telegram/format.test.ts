@@ -634,6 +634,7 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
     expect(cbs).toContain(CB.report);
     expect(cbs).toContain(CB.checkAnother);
     expect(cbs).toContain(CB.why);
+    expect(cbs).toContain(CB.explainSimple);
     expect(cbs).toContain(CB.notifyTrusted);
   });
 
@@ -645,20 +646,21 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
       expect(cbs).toContain(CB.report);
       expect(cbs).toContain(CB.checkAnother);
       expect(cbs).toContain(CB.why);
+      expect(cbs).toContain(CB.explainSimple);
     }
   });
 
-  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, Emergency in row 3 for high_risk", () => {
+  it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, Emergency in row 3 for high_risk", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
     expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
-    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why, CB.explainSimple]);
     expect(keyboard[2].map((b) => b.callback_data)).toEqual([CB.notifyTrusted, CB.emergency]);
   });
 
-  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, no row 3 for non-high_risk", () => {
+  it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, no row 3 for non-high_risk", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "safe" }), "ru");
     expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
-    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why, CB.explainSimple]);
     expect(keyboard).toHaveLength(2);
   });
 });

@@ -545,6 +545,19 @@ export async function handleCallback(
     return;
   }
 
+  if (data === CB.explainSimple) {
+    const snapshot = ctx.session.scenarioData.lastCheck;
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        snapshot
+          ? buildLastCheckFollowUpText("simple_explain", snapshot, lang)
+          : bt("why_explanation", lang),
+      ),
+    });
+    return;
+  }
+
   // 4b) «Я уже отправил код/деньги» (Emergency) — show the panic menu with scenario selection.
   // Previously sent the full emergency text but it exceeds Telegram's 4096 char limit.
   // Now opens the paginated panic menu (same as /panic command).

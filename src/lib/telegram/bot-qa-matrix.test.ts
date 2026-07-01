@@ -332,7 +332,9 @@ describe("Telegram Bot QA Matrix v1", () => {
       const actionCallbacks = callbacks(formatted.keyboard);
 
       expect(formatted.text.length).toBeLessThanOrEqual(4096);
-      expect(actionCallbacks).toEqual(expect.arrayContaining([CB.report, CB.checkAnother, CB.why]));
+      expect(actionCallbacks).toEqual(
+        expect.arrayContaining([CB.report, CB.checkAnother, CB.why, CB.explainSimple]),
+      );
       if (level === "high_risk") {
         expect(actionCallbacks).toContain(CB.emergency);
       }

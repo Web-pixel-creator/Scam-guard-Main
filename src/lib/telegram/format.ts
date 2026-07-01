@@ -80,6 +80,7 @@ export const CB = {
   emergency: "emergency",
   liveCall: "panic:6",
   why: "why",
+  explainSimple: "explain_simple",
   showLang: "show_lang",
   safety: "safety",
   howItWorks: "how_it_works",
@@ -880,7 +881,10 @@ function buildResultKeyboard(result: RunCheckResult, lang: Lang): InlineKeyboard
   if (shouldAskWhatTheyRequested(result)) {
     keyboard.push(...buildAskedContextKeyboardRows(lang));
   }
-  keyboard.push(row, [{ text: bt("btn_why", lang), callback_data: CB.why }]);
+  keyboard.push(row, [
+    { text: bt("btn_why", lang), callback_data: CB.why },
+    { text: bt("btn_explain_simple", lang), callback_data: CB.explainSimple },
+  ]);
   if (level === "high_risk") {
     keyboard.push([
       { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
