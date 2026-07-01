@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - Post-deploy P1 web/Telegram live QA passed
+
+- Deployed `5af552e` as Railway deployment
+  `ad41dc8b-f8b6-4ca2-afb6-0016aebb24b0`.
+- Production smoke passed: home, healthz, webhook auth, Telegram webhook
+  pending count, and AI provider checks were healthy.
+- Telegram P1 production smokes passed: user-story flows, private/group session
+  scoping, live QR photo, and high-risk Guardian Angel.
+- Browser QA passed on production homepage high-risk result, `/report` success,
+  `/appeal` success, and admin moderation cleanup for marker
+  `QA-P1-WEB-20260701112907`; console warnings/errors stayed at `0`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: added `QA-2026-07-01-008` and
+  moved Status Summary to UX/logistics fixes or the next product backlog.
+
 ## 2026-07-01 - TG-015 Voice-out provider-limit fallback UX
 
 - Rate-limit fallback now removes provider-only Voice-out buttons
