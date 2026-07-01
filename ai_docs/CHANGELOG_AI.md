@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - Tracker reconciled for ADM-003 / CORE-004
+
+- Verified that Phone Reputation v1 is already implemented: confirmed targeted
+  reports update masked `entities`, incident-only reports do not create public
+  reputation, phone checks read reputation only from confirmed moderated rows,
+  and Telegram output shows source/confidence limits without owner or hidden
+  carrier/spam-label claims.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ADM-003` and `CORE-004` are now
+  `Implemented`, `T-021` and `T-024` are closed, Status Summary counts are
+  `Implemented=47`, `Partial=4`, `Planned=7`, and the next queue item is
+  `T-025 / CORE-005`.
+- Verification passed: focused admin/reputation/phone/formatter suites
+  `6 files / 77 tests`; workbook formula-error scan found no errors.
+
 ## 2026-07-01 - UZ scam-pattern audit slice
 
 - Added deterministic single-message coverage for OneID/government-service
