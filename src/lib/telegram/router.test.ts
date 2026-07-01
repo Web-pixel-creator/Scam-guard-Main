@@ -509,6 +509,7 @@ describe("decideRoute content types (no active scenario)", () => {
       kind: "image",
       fileId: "video-thumb",
       mediaGroupId: "video-album-1",
+      mediaKind: "video_thumbnail",
     });
   });
 

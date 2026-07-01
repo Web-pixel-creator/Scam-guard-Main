@@ -1318,7 +1318,10 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       lang: "ru",
       key: "tg:1009",
     });
-    expectHighRiskResultWithGuardian(5009);
+    const result = expectHighRiskResultWithGuardian(5009);
+    expect(result.text).toContain("кадр");
+    expect(result.text).toContain("превью видео");
+    expect(result.text).toContain("не весь ролик");
 
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).not.toContain("data:image");

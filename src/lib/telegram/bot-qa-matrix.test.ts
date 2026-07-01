@@ -84,14 +84,19 @@ describe("Telegram Bot QA Matrix v1", () => {
 
   it("gives a useful fallback for unsupported video and audio", () => {
     const text = bt("out_of_scope", "ru");
+    const mediaTips = bt("media_capture_help", "ru");
     const keyboard = buildUnsupportedMediaKeyboard("ru");
 
+    expect(text).toContain("не смотрю весь ролик");
+    expect(text).toContain("кадр-превью");
     expect(text).toContain("аудиофайл до 60 секунд");
     expect(text).toContain("скрин кадра");
     expect(text).toContain("QR, username, реквизиты");
     expect(text).toContain("гарантированный доход");
     expect(text).toContain("что обещают");
     expect(text).toContain("что просят сделать");
+    expect(mediaTips).toContain("кадр-превью");
+    expect(mediaTips).toContain("не весь ролик");
     expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.mediaTips]);
   });
 

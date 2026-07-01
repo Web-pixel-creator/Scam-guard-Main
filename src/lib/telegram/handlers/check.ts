@@ -41,7 +41,7 @@ import {
 } from "@/lib/telegram/api.server";
 import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
-import type { HandlerCtx } from "@/lib/telegram/router";
+import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
@@ -787,6 +787,23 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   }
 }
 
+function addImageMediaContextToExplanation(
+  explanation: string,
+  mediaKind: ImageRouteMediaKind | undefined,
+  lang: HandlerCtx["session"]["lang"],
+): string {
+  if (mediaKind !== "video_thumbnail") return explanation;
+
+  const note =
+    lang === "uz"
+      ? "Men videoning faqat preview-kadrini tekshirdim, butun rolikni emas. Muhim ma'lumot nutq, tavsif yoki tugmada bo'lsa, uni alohida yuboring."
+      : lang === "en"
+        ? "I checked only the video preview frame, not the full clip. If the important part was in speech, description, or a button, send it separately."
+        : "Я проверил только кадр-превью видео, не весь ролик. Если важная информация была в речи, описании или кнопке — пришлите её отдельно.";
+
+  return `${note}\n\n${explanation}`;
+}
+
 async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Promise<void> {
   const reply = nextOcrFallbackReply(ctx.userId, mediaGroupId);
   if (reply === "suppress") return;
@@ -1077,6 +1094,7 @@ export async function handleImage(
   ctx: HandlerCtx,
   mediaGroupId?: string,
   source?: TelegramForwardSourceContext,
+  mediaKind?: ImageRouteMediaKind,
 ): Promise<void> {
   const startedAt = Date.now();
   const lang = ctx.session.lang;
@@ -1178,7 +1196,11 @@ export async function handleImage(
         kind: "ok" as const,
         result: {
           ...result,
-          explanation: buildImageUserExplanation(evidence, result.level, lang),
+          explanation: addImageMediaContextToExplanation(
+            buildImageUserExplanation(evidence, result.level, lang),
+            mediaKind,
+            lang,
+          ),
         },
       };
     });

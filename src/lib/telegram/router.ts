@@ -319,6 +319,7 @@ export interface Handlers {
     ctx: HandlerCtx,
     mediaGroupId?: string,
     source?: TelegramForwardSourceContext,
+    mediaKind?: ImageRouteMediaKind,
   ): Promise<void>;
   handleVoice(
     fileId: string,
@@ -340,6 +341,8 @@ export interface Handlers {
 // ---------------------------------------------------------------------------
 
 /** What the router decided to do with an update. Pure, side-effect free. */
+export type ImageRouteMediaKind = "video_thumbnail";
+
 export type RouteAction =
   | { kind: "callback"; data: string; callbackQueryId: string }
   | { kind: "command"; command: ParsedCommand }
@@ -347,7 +350,13 @@ export type RouteAction =
   | { kind: "scenarioStep"; text: string }
   | { kind: "scenarioImage"; fileId: string; mediaGroupId?: string }
   | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
-  | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
+  | {
+      kind: "image";
+      fileId: string;
+      mediaGroupId?: string;
+      source?: TelegramForwardSourceContext;
+      mediaKind?: ImageRouteMediaKind;
+    }
   | {
       kind: "voice";
       fileId: string;
@@ -495,11 +504,13 @@ function imageRoute(
   fileId: string,
   mediaGroupId?: string,
   source?: TelegramForwardSourceContext,
+  mediaKind?: ImageRouteMediaKind,
 ): RouteAction {
   const action = mediaGroupId
     ? { kind: "image" as const, fileId, mediaGroupId }
     : { kind: "image" as const, fileId };
-  return source ? { ...action, source } : action;
+  const actionWithMediaKind = mediaKind ? { ...action, mediaKind } : action;
+  return source ? { ...actionWithMediaKind, source } : actionWithMediaKind;
 }
 
 /**
@@ -590,7 +601,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   }
   if (m.video != null) {
     const fileId = videoThumbnailFileId(m.video);
-    if (fileId) return imageRoute(fileId, m.media_group_id, source);
+    if (fileId) return imageRoute(fileId, m.media_group_id, source, "video_thumbnail");
     return { kind: "outOfScope", reason: "video" };
   }
   if (m.voice != null) {
@@ -789,10 +800,17 @@ export async function dispatchUpdate(
           { ...ctx, session: { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} } },
           action.mediaGroupId,
           action.source,
+          action.mediaKind,
         );
         break;
       }
-      await handlers.handleImage(action.fileId, ctx, action.mediaGroupId, action.source);
+      await handlers.handleImage(
+        action.fileId,
+        ctx,
+        action.mediaGroupId,
+        action.source,
+        action.mediaKind,
+      );
       break;
     case "voice":
       await handlers.handleVoice(action.fileId, ctx, {

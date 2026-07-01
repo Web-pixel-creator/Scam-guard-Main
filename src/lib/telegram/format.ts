@@ -524,6 +524,16 @@ function extractVoiceHookBrief(explanation: string | null): string | null {
     : null;
 }
 
+function extractVideoThumbnailBrief(explanation: string | null): string | null {
+  if (!explanation) return null;
+  const firstLine = explanation.split(/\r?\n/u, 1)[0]?.trim() ?? "";
+  return /^(?:Я проверил только кадр-превью видео|I checked only the video preview frame|Men videoning faqat preview-kadrini tekshirdim)/u.test(
+    firstLine,
+  )
+    ? firstLine
+    : null;
+}
+
 function isDecodedInformationalQr(result: RunCheckResult): boolean {
   return (
     result.level === "unknown" &&
@@ -601,6 +611,12 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   if (result.level === "high_risk" && voiceHookBrief) {
     parts.push(
       escapeMarkdownV2(truncateExplanation(voiceHookBrief, { maxLines: 1, maxChars: 220 })),
+    );
+  }
+  const videoThumbnailBrief = extractVideoThumbnailBrief(explanation);
+  if (result.level === "high_risk" && videoThumbnailBrief) {
+    parts.push(
+      escapeMarkdownV2(truncateExplanation(videoThumbnailBrief, { maxLines: 1, maxChars: 240 })),
     );
   }
 

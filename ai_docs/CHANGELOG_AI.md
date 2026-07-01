@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-013 video thumbnail UX closed
+
+- Telegram video thumbnails now carry a `video_thumbnail` media marker through
+  the router into the image-check result path.
+- Result cards for video-thumbnail analysis now explicitly say the bot checked
+  only the video preview frame, not the full clip, and asks for speech,
+  description, or button/link evidence separately when needed.
+- Re-verified that full video files are not fetched: only the Telegram-provided
+  thumbnail enters the in-memory image/QR/OCR pipeline.
+- Verification passed: scoped eslint; router/webhook/bot QA matrix
+  `3 files / 172 tests`; formatter/image-intelligence suites
+  `2 files / 70 tests`; `npm run build` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-013` is now `Implemented`,
+  `T-009` is closed, Status Summary counts are `Implemented=44`,
+  `Partial=7`, `Planned=7`, and the next queue item is `T-013 / TG-025`.
+
 ## 2026-07-01 - ADM-001 production auth policy QA closed
 
 - Extended `prod:security-smoke` with admin auth-policy checks: anon cannot read

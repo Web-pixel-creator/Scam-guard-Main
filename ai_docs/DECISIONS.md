@@ -348,9 +348,11 @@ overclaiming that every promo post is definitely fraud.
 Telegram video messages may expose a small preview frame. If a video has no
 caption, hidden link or inline-button URL, the bot may route that thumbnail to
 the same in-memory image/QR pipeline used for photos. The video file itself is
-not fetched, decoded or stored. If Telegram gives no usable thumbnail, the bot
-keeps the media-specific fallback asking for a link, screenshot frame or short
-description.
+not fetched, decoded or stored. Result cards for this path must say that only
+the preview frame was checked, not the full clip, and ask for speech,
+description, button/link or screenshot evidence separately when needed. If
+Telegram gives no usable thumbnail, the bot keeps the media-specific fallback
+asking for a link, screenshot frame or short description.
 
 ## D-025 - Forwarded source context is reply-only
 
