@@ -47,7 +47,12 @@ function redactAppealText(value: string): string {
 }
 
 function normalizeContact(raw: string): string {
-  return raw.trim().toLowerCase().replace(/\s+/g, " ");
+  const trimmed = raw.trim().toLowerCase().replace(/\s+/g, " ");
+  const type = detectInputType(trimmed);
+  if (["phone", "telegram", "url", "apk"].includes(type)) {
+    return normalize(trimmed, type).toLowerCase();
+  }
+  return trimmed;
 }
 
 function maskContact(raw: string): string {

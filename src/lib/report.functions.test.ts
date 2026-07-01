@@ -176,6 +176,11 @@ describe("submitReport privacy", () => {
     expect(stored).not.toContain("https://city.example/private");
     expect(stored).toContain("[telegram]");
     expect(stored).toContain("[link]");
+
+    expect(hoisted.moderationNotices).toHaveLength(1);
+    const alert = JSON.stringify(hoisted.moderationNotices[0]);
+    expect(alert).not.toContain("@FakeSupportBot");
+    expect(alert).not.toContain("https://city.example/private");
   });
 
   it("accepts a prepared Telegram target without receiving the raw report value", async () => {

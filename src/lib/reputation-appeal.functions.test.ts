@@ -4,6 +4,7 @@ const hoisted = vi.hoisted(() => ({
   existingRows: [] as Array<{ id: string }>,
   inserts: [] as Array<Record<string, unknown>>,
   hashInputs: [] as string[],
+  moderationNotices: [] as Array<Record<string, unknown>>,
   rateLimitResult: { ok: true, remaining: 2, retryAfterSec: 0 } as
     | { ok: true; remaining?: number; retryAfterSec?: number }
     | { ok: false; retryAfterSec: number },
@@ -62,12 +63,20 @@ vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
   checkSharedRateLimit: async () => hoisted.rateLimitResult,
 }));
 
+vi.mock("@/lib/telegram/moderation-notifier.server", () => ({
+  notifyModeration: async (notice: Record<string, unknown>) => {
+    hoisted.moderationNotices.push(notice);
+    return { ok: true };
+  },
+}));
+
 import { submitReputationAppealCore } from "./reputation-appeal.functions";
 
 beforeEach(() => {
   hoisted.existingRows.length = 0;
   hoisted.inserts.length = 0;
   hoisted.hashInputs.length = 0;
+  hoisted.moderationNotices.length = 0;
   hoisted.rateLimitResult = { ok: true, remaining: 2, retryAfterSec: 0 };
 });
 
@@ -99,6 +108,39 @@ describe("submitReputationAppealCore", () => {
     expect(String(row.reason)).not.toContain("8600 1234 5678 9012");
     expect(String(row.reason)).not.toContain("test@example.com");
     expect(String(row.contact_display)).not.toContain("owner@example.com");
+  });
+
+  it("redacts appeal links and Telegram identifiers before persistence and alerts", async () => {
+    const result = await submitReputationAppealCore(
+      {
+        target: "https://t.me/FakeSupportBot?start=secret",
+        reason:
+          "Evidence: https://evil.example/reset?token=secret, @VictimOwner, and https://t.me/+SecretInviteToken123.",
+        contact: "https://contact.example/private?token=contactsecret",
+        lang: "ru",
+      },
+      "appeal:test:url-telegram",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.hashInputs).toEqual([
+      "@FakeSupportBot",
+      "appeal-contact:https://contact.example/private",
+    ]);
+    expect(hoisted.inserts).toHaveLength(1);
+
+    const stored = JSON.stringify(hoisted.inserts[0]);
+    expect(stored).not.toContain("https://evil.example/reset?token=secret");
+    expect(stored).not.toContain("@VictimOwner");
+    expect(stored).not.toContain("SecretInviteToken123");
+    expect(stored).not.toContain("?token=contactsecret");
+    expect(stored).toContain("[link]");
+    expect(stored).toContain("[telegram]");
+
+    expect(hoisted.moderationNotices).toHaveLength(1);
+    const alert = JSON.stringify(hoisted.moderationNotices[0]);
+    expect(alert).not.toContain("start=secret");
+    expect(alert).not.toContain("SecretInviteToken123");
   });
 
   it("rejects free text appeals so reports stay in the report flow", async () => {

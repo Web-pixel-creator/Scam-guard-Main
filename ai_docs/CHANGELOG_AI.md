@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-007 report/appeal privacy boundary closed
+
+- Tightened appeal contact normalization so URL contact hashes are computed from
+  normalized origin/path, without query or fragment tokens.
+- Added privacy regressions for report moderation alerts and appeal persistence:
+  raw URLs, Telegram handles/invites, email/card/code data, and tokenized
+  contact URLs must not persist or leak into alerts.
+- Verification passed: scoped eslint; report/appeal privacy suites
+  `2 files / 13 tests`; risk redaction suites `3 files / 42 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-007` is now `Implemented`,
+  `T-027` is closed, `QA-2026-07-01-010` was added, and Status Summary now
+  points to `CORE-008` shared rate-limit regression watch.
+
 ## 2026-07-01 - CORE-003 short-code prefix regression closed
 
 - Added a `runCheck`-level regression for `+9981340`: it must not resolve to a
