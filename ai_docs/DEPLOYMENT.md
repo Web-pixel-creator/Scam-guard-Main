@@ -141,6 +141,12 @@ committed `.env`, never shipped to client):
   inferred from monitor alert settings. Alerts contain only redacted targets,
   high-level fields and an admin link, never raw report text, screenshots,
   OCR, codes, card data, full phone numbers or full URLs.
+- `TELEGRAM_QA_CHAT_ID` - dedicated private QA chat for production Telegram
+  user-flow smoke scripts (`prod:telegram-live-qa-smoke`,
+  `prod:telegram-false-positive-smoke`, `prod:telegram-user-story-smoke`,
+  `prod:telegram-voice-out-smoke`). It must not equal
+  `TELEGRAM_MODERATION_CHAT_ID`; otherwise ordinary risk cards and test audio
+  would be sent to the operator chat.
 - `EMBED_ALLOWED_FRAME_ANCESTORS` - optional comma/space-separated HTTPS origins
   allowed to frame `/embed/check`, for example
   `https://partner.example,https://bank.example`. If unset, the embed runtime is
@@ -160,6 +166,10 @@ railway run npm run moderation:smoke
 
 The smoke test sends a clearly marked non-user test alert. It does not send
 real report text, screenshots, OCR, codes, card data, phone numbers or URLs.
+
+For live Telegram user-flow smoke tests, create a separate private QA group,
+add `@scamguard_bot`, send `/chatid`, and copy that value into
+`TELEGRAM_QA_CHAT_ID`. Do not reuse the moderation chat id for QA traffic.
 
 Before release, apply migration
 `20260629153000_entities_report_count_confirmed_only.sql` so public

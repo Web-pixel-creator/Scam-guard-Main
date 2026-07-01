@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - Telegram smoke chat separated from moderation chat
+
+- Production Telegram user-flow smoke scripts now require
+  `TELEGRAM_QA_CHAT_ID` instead of sending ordinary bot replies to
+  `TELEGRAM_MODERATION_CHAT_ID`.
+- Added a fail-closed guard so `TELEGRAM_QA_CHAT_ID` cannot be missing or equal
+  to the moderation chat id.
+- Updated deployment/runbook docs to keep moderator alerts separate from QA
+  risk cards, language replies and Voice-out audio.
+
 ## 2026-07-01 - TG-025 modern SOS copy closed
 
 - Split the compact first cards, full checklist copy and trusted-person

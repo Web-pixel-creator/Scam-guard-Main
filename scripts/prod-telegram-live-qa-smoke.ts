@@ -5,20 +5,23 @@
 //   PUBLIC_APP_URL=https://your-app.example.com npm run prod:telegram-live-qa-smoke
 //
 // Security: uses synthetic Telegram users, never prints secrets or chat ids,
-// posts only to TELEGRAM_MODERATION_CHAT_ID, and removes its own DB rows.
+// posts only to TELEGRAM_QA_CHAT_ID, and removes its own DB rows.
 import { Buffer } from "node:buffer";
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  chatTypeForId,
+  readTelegramSmokeChatId,
+  type TelegramChatType,
+} from "./telegram-smoke-chat";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const CHECK_WAIT_MS = 30_000;
-
-type TelegramChatType = "private" | "group" | "supergroup" | "channel";
 
 interface TelegramPhotoSize {
   file_id: string;
@@ -117,17 +120,6 @@ function parsePublicUrl(): string {
   }
 
   return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-}
-
-function parseChatId(raw: string): number {
-  const value = Number(raw.trim());
-  if (!Number.isSafeInteger(value)) fail("TELEGRAM_MODERATION_CHAT_ID is not a safe integer");
-  return value;
-}
-
-function chatTypeForId(chatId: number): TelegramChatType {
-  if (chatId > 0) return "private";
-  return String(chatId).startsWith("-100") ? "supergroup" : "group";
 }
 
 function untypedSupabase(): SupabaseClient {
@@ -566,7 +558,7 @@ async function main(): Promise<void> {
   const publicUrl = parsePublicUrl();
   const botToken = getRequiredEnv("TELEGRAM_BOT_TOKEN");
   const webhookSecret = getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
-  const chatId = parseChatId(getRequiredEnv("TELEGRAM_MODERATION_CHAT_ID"));
+  const chatId = readTelegramSmokeChatId();
   const chatType = chatTypeForId(chatId);
   const markerRoot = `QAPONETGLIVE${randomLetters(8)}`;
   const textMarker = `${markerRoot}TEXT`;

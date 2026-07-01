@@ -6,15 +6,20 @@
 //   railway run npx vite-node scripts/prod-telegram-voice-out-smoke.ts --skip-webhook
 //
 // Security: uses a synthetic Telegram user, never prints secrets or chat ids,
-// sends only to TELEGRAM_MODERATION_CHAT_ID, deletes direct Bot API test audio,
+// sends only to TELEGRAM_QA_CHAT_ID, deletes direct Bot API test audio,
 // and removes its own webhook/session DB rows. The app-generated voice-out
-// audio may remain in the moderation chat as live playback evidence.
+// audio may remain in the QA chat as live playback evidence.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  chatTypeForId,
+  readTelegramSmokeChatId,
+  type TelegramChatType,
+} from "./telegram-smoke-chat";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -23,7 +28,6 @@ const VOICE_OUT_DIR = path.join(process.cwd(), "public", "audio", "voice-out");
 const LANGS = ["ru", "uz", "en"] as const;
 
 type Lang = (typeof LANGS)[number];
-type TelegramChatType = "private" | "group" | "supergroup" | "channel";
 
 interface TelegramApiEnvelope<T> {
   ok?: boolean;
@@ -99,17 +103,6 @@ function parseOptions(): Options {
     panicId,
     skipWebhook,
   };
-}
-
-function parseChatId(raw: string): number {
-  const value = Number(raw.trim());
-  if (!Number.isSafeInteger(value)) fail("TELEGRAM_MODERATION_CHAT_ID is not a safe integer");
-  return value;
-}
-
-function chatTypeForId(chatId: number): TelegramChatType {
-  if (chatId > 0) return "private";
-  return String(chatId).startsWith("-100") ? "supergroup" : "group";
 }
 
 function randomLetters(length: number): string {
@@ -269,7 +262,7 @@ async function main(): Promise<void> {
   const options = parseOptions();
   const botToken = getRequiredEnv("TELEGRAM_BOT_TOKEN");
   const webhookSecret = options.skipWebhook ? null : getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
-  const chatId = parseChatId(getRequiredEnv("TELEGRAM_MODERATION_CHAT_ID"));
+  const chatId = readTelegramSmokeChatId();
   const chatType = chatTypeForId(chatId);
   const marker = `QAVOICEOUT${randomLetters(8)}`;
   const directMessageIds: number[] = [];

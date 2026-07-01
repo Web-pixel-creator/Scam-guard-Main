@@ -5,20 +5,24 @@
 //   PUBLIC_APP_URL=https://your-app.example.com npm run prod:telegram-user-story-smoke
 //
 // Security: uses synthetic Telegram users only, never prints secrets/chat ids,
-// and removes its own checks / sessions / webhook dedup rows.
+// posts only to TELEGRAM_QA_CHAT_ID, and removes its own checks / sessions / webhook dedup rows.
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalize } from "@/lib/risk/detect";
 import { hashIdentifier } from "@/lib/risk/hash";
+import {
+  chatTypeForId,
+  readTelegramSmokeChatId,
+  type TelegramChatType,
+} from "./telegram-smoke-chat";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 const CHECK_WAIT_MS = 30_000;
 const NO_CHECK_WAIT_MS = 2_500;
 
-type TelegramChatType = "private" | "group" | "supergroup" | "channel";
 type SupportedLang = "ru" | "uz" | "en";
 
 interface SessionSummary {
@@ -94,17 +98,6 @@ function parsePublicUrl(): string {
   }
 
   return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-}
-
-function parseChatId(raw: string): number {
-  const value = Number(raw.trim());
-  if (!Number.isSafeInteger(value)) fail("TELEGRAM_MODERATION_CHAT_ID is not a safe integer");
-  return value;
-}
-
-function chatTypeForId(chatId: number): TelegramChatType {
-  if (chatId > 0) return "private";
-  return String(chatId).startsWith("-100") ? "supergroup" : "group";
 }
 
 function untypedSupabase(): SupabaseClient {
@@ -624,7 +617,7 @@ async function runDeliveryConversationSmoke(options: {
 async function main(): Promise<void> {
   const publicUrl = parsePublicUrl();
   const webhookSecret = getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
-  const chatId = parseChatId(getRequiredEnv("TELEGRAM_MODERATION_CHAT_ID"));
+  const chatId = readTelegramSmokeChatId();
   const chatType = chatTypeForId(chatId);
   const markerRoot = `QAPONETGUSERSTORY${randomLetters(8)}`;
   const deliveryMarkers = {
