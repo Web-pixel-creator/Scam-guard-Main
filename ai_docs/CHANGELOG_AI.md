@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - CORE-006 verified contact override QA closed
+
+- Re-verified the existing `check-core` regression that confirmed high-risk
+  entity reputation keeps `known_reported` and final `high_risk` even when the
+  input also matches a verified official contact.
+- Re-verified the dangerous-request override path for official short-code-like
+  messages.
+- Verification passed: scoped eslint; focused risk suites
+  `4 files / 153 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-026` is closed,
+  `QA-2026-07-01-012` was added, and Status Summary now points to the
+  remaining P1 test queue starting with `CORE-001`.
+
 ## 2026-07-01 - CORE-008 shared rate-limit gates verified
 
 - Added an explicit shared-rate-limit regression for the `telegram_public_post`
