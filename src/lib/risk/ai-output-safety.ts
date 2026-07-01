@@ -15,6 +15,24 @@ export interface UnsafeAiOutputFinding {
     | "apk_install_action";
 }
 
+export interface AiExplanationSanitizationResult {
+  text: string | null;
+  finding: UnsafeAiOutputFinding | null;
+}
+
+const UNSAFE_AI_BLOCK_THRESHOLD = 2;
+const UNSAFE_AI_BLOCK_WINDOW_MS = 10 * 60 * 1000;
+const UNSAFE_AI_BLOCK_COOLDOWN_MS = 5 * 60 * 1000;
+const MAX_UNSAFE_AI_BLOCK_BUCKETS = 500;
+
+interface UnsafeAiBlockBucket {
+  firstBlockedAt: number;
+  count: number;
+  cooldownUntil: number;
+}
+
+const unsafeAiBlockBuckets = new Map<string, UnsafeAiBlockBucket>();
+
 const PROMPT_INJECTION_LEAK_RE =
   /\b(ignore (?:previous|all) instructions|system prompt|developer message|jailbreak|you are chatgpt|act as|hidden instruction)\b|(?:игнорируй|игнорируйте)\s+(?:предыдущ|все)\s+инструкц|системн(?:ый|ого)\s+промпт|сообщени[ея]\s+разработчик|джейлбрейк/i;
 
@@ -114,16 +132,70 @@ export function findUnsafeAiOutput(text: string): UnsafeAiOutputFinding | null {
   return null;
 }
 
-export function sanitizeAiExplanation(text: string | null): string | null {
-  if (text === null) return null;
+export function sanitizeAiExplanationWithFinding(
+  text: string | null,
+): AiExplanationSanitizationResult {
+  if (text === null) return { text: null, finding: null };
   const trimmed = text.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return { text: null, finding: null };
 
   const finding = findUnsafeAiOutput(trimmed);
   if (finding) {
     console.warn("blocked unsafe AI explanation", finding.reason);
-    return null;
+    return { text: null, finding };
   }
 
-  return trimmed;
+  return { text: trimmed, finding: null };
+}
+
+export function sanitizeAiExplanation(text: string | null): string | null {
+  return sanitizeAiExplanationWithFinding(text).text;
+}
+
+function pruneUnsafeAiBlockBuckets(now: number): void {
+  for (const [key, bucket] of unsafeAiBlockBuckets) {
+    const staleWindow = bucket.firstBlockedAt + UNSAFE_AI_BLOCK_WINDOW_MS <= now;
+    const staleCooldown = bucket.cooldownUntil > 0 && bucket.cooldownUntil <= now;
+    if (staleWindow && staleCooldown) unsafeAiBlockBuckets.delete(key);
+  }
+  while (unsafeAiBlockBuckets.size > MAX_UNSAFE_AI_BLOCK_BUCKETS) {
+    const oldest = unsafeAiBlockBuckets.keys().next().value as string | undefined;
+    if (!oldest) break;
+    unsafeAiBlockBuckets.delete(oldest);
+  }
+}
+
+export function recordUnsafeAiExplanationBlock(rateLimitKey: string, now = Date.now()): void {
+  pruneUnsafeAiBlockBuckets(now);
+  const existing = unsafeAiBlockBuckets.get(rateLimitKey);
+  const bucket =
+    existing && existing.firstBlockedAt + UNSAFE_AI_BLOCK_WINDOW_MS > now
+      ? existing
+      : { firstBlockedAt: now, count: 0, cooldownUntil: 0 };
+
+  bucket.count += 1;
+  if (bucket.count >= UNSAFE_AI_BLOCK_THRESHOLD) {
+    bucket.cooldownUntil = now + UNSAFE_AI_BLOCK_COOLDOWN_MS;
+  }
+  unsafeAiBlockBuckets.set(rateLimitKey, bucket);
+}
+
+export function isUnsafeAiExplanationCooldownActive(
+  rateLimitKey: string,
+  now = Date.now(),
+): boolean {
+  pruneUnsafeAiBlockBuckets(now);
+  const bucket = unsafeAiBlockBuckets.get(rateLimitKey);
+  if (!bucket) return false;
+  if (bucket.cooldownUntil <= now) {
+    if (bucket.firstBlockedAt + UNSAFE_AI_BLOCK_WINDOW_MS <= now) {
+      unsafeAiBlockBuckets.delete(rateLimitKey);
+    }
+    return false;
+  }
+  return true;
+}
+
+export function resetUnsafeAiExplanationBlocksForTests(): void {
+  unsafeAiBlockBuckets.clear();
 }

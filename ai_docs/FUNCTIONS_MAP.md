@@ -70,12 +70,14 @@ Signatures and intent only. See file paths for source.
 - `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline; it uses the same shared check limiter and rejects non-allowlisted image data URLs before building AI `image_url` messages.
 - `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots; it uses the same shared check limiter and validates png/jpeg/webp base64 data URLs before AI image analysis.
 - `parseAllowedImageDataUrl(value, { maxBytes? })` in `src/lib/risk/media-data-url.ts` normalizes AI-bound image data URLs and enforces MIME/base64/decoded-size limits.
-- Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`. User-facing AI explanations pass through `sanitizeAiExplanation` before return or persistence.
+- Private AI helpers call an OpenAI-compatible Chat Completions provider, retry only transient provider failures (`429`, `500`, `502`, `503`, `504`) with bounded backoff, and degrade to `null`. User-facing AI explanations pass through `sanitizeAiExplanationWithFinding` before return or persistence, and repeated unsafe provider outputs for the same rate-limit key temporarily skip later AI explanation calls.
 
 **`src/lib/risk/ai-output-safety.ts`**
 
 - `findUnsafeAiOutput(text)` detects prompt-injection leakage and AI-authored requests for SMS/OTP/PIN/CVV/password/card/seed data, APK installs, wallet signing/connection or payments.
+- `sanitizeAiExplanationWithFinding(text)` returns safe trimmed text or `null` plus the blocked finding, so callers can record repeated unsafe provider output without exposing it.
 - `sanitizeAiExplanation(text)` returns safe trimmed text or `null`; legitimate negated warnings like "do not share SMS code" are preserved.
+- `recordUnsafeAiExplanationBlock(rateLimitKey)` and `isUnsafeAiExplanationCooldownActive(rateLimitKey)` implement a short in-memory per-key slowdown after repeated unsafe AI explanation blocks.
 
 **`src/lib/risk/image-intelligence.ts`**
 

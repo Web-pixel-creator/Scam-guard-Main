@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - SEC-003 adversarial AI-output cooldown
+
+- Added a per-rate-limit-key cooldown for repeated unsafe AI-authored
+  explanations. After repeated firewall blocks in a short window, `runCheck`
+  keeps deterministic scoring, advice and persistence working but temporarily
+  skips further AI explanation calls for that key.
+- Extended the AI-output safety API so callers can see whether sanitization
+  blocked a provider response and record that event without exposing unsafe
+  text to users or `checks.ai_explanation`.
+- Added regression coverage for the bucket/cooldown behavior and an
+  end-to-end `runCheck` case proving the third repeated adversarial provider
+  output is handled rules-only without another AI call.
+
 ## 2026-07-01 - CORE-009 retention/audit verification
 
 - Added static migration regression coverage for the Supabase retention and

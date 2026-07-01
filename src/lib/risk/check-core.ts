@@ -40,7 +40,11 @@ import {
   type ImageIntelligenceResult,
 } from "./image-intelligence";
 import { parseAllowedImageDataUrl } from "./media-data-url";
-import { sanitizeAiExplanation } from "./ai-output-safety";
+import {
+  isUnsafeAiExplanationCooldownActive,
+  recordUnsafeAiExplanationBlock,
+  sanitizeAiExplanationWithFinding,
+} from "./ai-output-safety";
 import {
   buildPhoneIntelligencePassport,
   type PhoneIntelligencePassport,
@@ -297,6 +301,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         level: scoredLevel,
         redacted: display,
         reasons: reasonList,
+        rateLimitKey,
         timeoutMs: aiTimeoutMs,
         maxAttempts: aiMaxAttempts,
       });
@@ -862,9 +867,12 @@ async function aiExplain(opts: {
   level: string;
   redacted: string;
   reasons: string[];
+  rateLimitKey: string;
   timeoutMs?: number;
   maxAttempts?: number;
 }): Promise<string | null> {
+  if (isUnsafeAiExplanationCooldownActive(opts.rateLimitKey)) return null;
+
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
   const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
   const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the user-facing explanation.`;
@@ -876,7 +884,9 @@ async function aiExplain(opts: {
     "explain",
     { timeoutMs: opts.timeoutMs, maxAttempts: opts.maxAttempts },
   );
-  return sanitizeAiExplanation(explanation);
+  const sanitized = sanitizeAiExplanationWithFinding(explanation);
+  if (sanitized.finding) recordUnsafeAiExplanationBlock(opts.rateLimitKey);
+  return sanitized.text;
 }
 
 /**

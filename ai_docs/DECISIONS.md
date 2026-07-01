@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-053 - Repeated unsafe AI output slows explanations only
+
+If the AI explanation provider repeatedly returns text blocked by
+`ai-output-safety.ts` for the same rate-limit key, the app may temporarily skip
+new AI explanation calls for that key. This cooldown must not block
+deterministic scoring, safe advice, redacted persistence or normal user checks;
+it is only a cost and abuse brake for adversarial probing of the explanation
+layer.
+
 ## D-052 - Embed iframe is not sandboxed by default
 
 The `/embed/check` widget is first-party Ishonch Guard code. The distributed
