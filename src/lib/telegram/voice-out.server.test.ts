@@ -184,6 +184,44 @@ describe("telegram Voice-out / TTS", () => {
     }
   });
 
+  it("prefers prerecorded OGG panic audio over WAV fallback", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "voice-out-"));
+    try {
+      process.env.VOICE_OUT_PRERECORDED_DIR = dir;
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.OPENAI_TTS_API_KEY;
+      delete process.env.GEMINI_TTS_API_KEY;
+      delete process.env["Gemini TTS"];
+      hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await writeFile(path.join(dir, "panic-6-en.wav"), new Uint8Array([1, 2, 3]));
+      await writeFile(path.join(dir, "panic-6-en.ogg"), new Uint8Array([4, 5, 6]));
+
+      await sendVoiceOutResponse({
+        chatId: 11,
+        userId: 1002,
+        lang: "en",
+        text: buildPanicVoiceOutText(6, "en"),
+        prerecorded: { kind: "panic", panicId: 6 },
+      });
+
+      expect(checkSharedRateLimit).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(hoisted.sentMessages).toHaveLength(0);
+      expect(hoisted.sentAudio).toEqual([
+        expect.objectContaining({
+          chatId: 11,
+          audio: new Uint8Array([4, 5, 6]),
+          filename: "panic-6-en.ogg",
+          mimeType: "audio/ogg",
+        }),
+      ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("does not reuse a Gemini-compatible OpenAI key as a speech endpoint", async () => {
     process.env.OPENAI_API_KEY = "gemini-key";
     process.env.OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";

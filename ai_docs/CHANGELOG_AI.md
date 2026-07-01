@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-01 - TG-015 Voice-out SOS OGG assets
+
+- Added production-preferred `.ogg`/Opus Voice-out files for all main SOS
+  panic scenarios: `panic-1..15` in `ru`, `uz`, and `en` (`45` assets total).
+- Added `tts:validate-assets`, which checks required OGG files, Ogg/Opus
+  headers, duration bounds, size limits, and safe short SOS scripts.
+- Voice-out unit coverage now locks that prerecorded OGG is selected before WAV,
+  TTS budget checks, or provider calls.
+- Verification passed: scoped eslint, voice-out suite `1 file / 13 tests`,
+  `npm run tts:validate-assets`, and `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015`, `T-011`,
+  `QA-2026-07-01-004`, and Status Summary now point to live Telegram playback
+  smoke plus the provider-limit button UX decision.
+
 ## 2026-07-01 - TG-009 profile screenshot intelligence final-card QA
 
 - Profile screenshot explanations are now treated as Telegram-profile context

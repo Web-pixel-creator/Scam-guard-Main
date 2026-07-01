@@ -21,8 +21,17 @@ Generation:
 railway run npm run tts:generate-assets -- --force
 ```
 
+Validation:
+
+```bash
+npm run tts:validate-assets
+```
+
 Operational notes:
 
+- Committed `.ogg` files are the production-preferred Telegram Voice-out assets.
+  The `.wav` files are retained as source/fallback assets for environments that
+  regenerate or inspect Gemini audio.
 - Keep files short and under 1.5 MB.
 - Do not include user evidence, phone numbers, codes, card data, links, or
   passwords.
