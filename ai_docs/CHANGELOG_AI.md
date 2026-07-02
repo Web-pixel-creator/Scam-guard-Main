@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - Conversation memory reconciliation
+
+- Reconciled the stale pig-butchering / romance-grooming note in
+  `OPEN_TASKS.md`. Explicit `/conversation` mode already stores only derived
+  stage/action/reason metadata and catches romance/trust-building followed by
+  investment/crypto/payment pressure without persisting raw chat text.
+- Clarified the product boundary: passive always-on profiling across ordinary
+  messages remains intentionally unshipped until a separate privacy/product
+  decision. The supported shipped path is user-triggered conversation analysis.
+- Verification passed: focused conversation-check and webhook integration tests
+  plus scoped TS eslint.
+
 ## 2026-07-02 - TG-006 Risk Passport tracker reconciliation
 
 - Reconciled the stale `TG-006` Partial tracker row after ROAD-011/013/014/015

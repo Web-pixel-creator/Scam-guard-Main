@@ -32,11 +32,14 @@
   verifies webhook `200` plus no `checks`/session persistence. The manual
   real-client checklist now lives in `ai_docs/TELEGRAM_INLINE_QA.md`; remaining
   QA is capturing sanitized Telegram-client visual examples/screenshots.
-- **Pig-butchering / romance grooming still needs session memory.** The current
-  deterministic rules can catch a single-message trust-to-investment pivot, but
-  slow schemes need a cumulative chat-session risk profile: repeated
-  trust-building plus a later crypto/investment/transfer ask should lower the
-  alert threshold without flagging ordinary friendly messages.
+- **Pig-butchering / romance grooming has explicit conversation memory now.**
+  `/conversation` collects a short user-supplied thread, stores only derived
+  stage/action/reason metadata in the Telegram session, and flags chains such
+  as romance/trust-building followed by investment/crypto/payment pressure
+  without persisting raw chat text. Passive background profiling across every
+  ordinary message remains intentionally unshipped until there is a separate
+  privacy/product decision; the supported path is explicit user-triggered
+  conversation analysis.
 - **SOS ready phrases are scenario-specific for current panic IDs.** Existing
   bank/card/APK/Telegram/live-call/romance/blackmail/minor flows no longer
   reuse one bank callback script. Already-happened financial cases (SMS-code,

@@ -255,6 +255,12 @@ Operational hardening that continues in parallel:
   status for Risk Passport username/phone checks is closed with focused
   formatter, public metadata, shared Risk Passport and inline regression
   evidence. The tracker now has no Partial or Planned rows.
+- Conversation Check v1 reconciliation completed on 2026-07-02: the
+  pig-butchering / romance-grooming memory gap is covered by explicit
+  `/conversation` mode, which stores only derived stage/action/reason metadata
+  and catches romance/trust-building to investment/crypto/payment escalation.
+  Passive always-on profiling remains a future product/privacy decision, not a
+  current implementation blocker.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
