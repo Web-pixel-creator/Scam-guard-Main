@@ -155,7 +155,9 @@ committed `.env`, never shipped to client):
   `prod:telegram-false-positive-smoke`, `prod:telegram-user-story-smoke`,
   `prod:telegram-voice-out-smoke`). It must not equal
   `TELEGRAM_MODERATION_CHAT_ID`; otherwise ordinary risk cards and test audio
-  would be sent to the operator chat.
+  would be sent to the operator chat. `prod:telegram-inline-smoke` does not need
+  this variable because synthetic inline queries have no chat target and send no
+  chat messages.
 - `EMBED_ALLOWED_FRAME_ANCESTORS` - optional comma/space-separated HTTPS origins
   allowed to frame `/embed/check`, for example
   `https://partner.example,https://bank.example`. If unset, the embed runtime is
@@ -421,7 +423,14 @@ to be enabled for the bot in BotFather:
 
 After that, users can type `@scamguard_bot <number/link/text>` in any Telegram
 chat and insert a compact risk card. Inline previews are rules-only and
-non-persistent.
+non-persistent. The production webhook/non-persistence path can be checked with:
+
+```bash
+railway run npm run prod:telegram-inline-smoke -- https://your-app.example.com
+```
+
+This uses synthetic inline query ids, so it validates deployed webhook handling
+and privacy invariants, not visual Telegram-client rendering.
 
 ### 5. Verify no secrets leak to logs or the client bundle
 

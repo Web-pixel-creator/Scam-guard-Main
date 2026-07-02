@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-016 Production Telegram inline smoke
+
+- Added `scripts/prod-telegram-inline-smoke.ts` and
+  `npm run prod:telegram-inline-smoke` for production webhook validation of
+  Telegram inline-mode queries.
+- The smoke sends synthetic inline updates for high-risk text, low-signal phone
+  and low-signal Telegram username previews, then verifies webhook `200`,
+  no `checks` persistence and no chat-scoped session persistence.
+- Ran through Railway production env against the deployed app; passed and
+  cleaned its synthetic webhook/session rows. This validates production webhook
+  behavior, not visual Telegram-client rendering.
+
 ## 2026-07-02 - TG-014 Voice-in/STT collector validation hardening
 
 - Hardened `scripts/transcribe-voice-stt-fixtures.ts` so manifest parsing,

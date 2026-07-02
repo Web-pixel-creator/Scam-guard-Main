@@ -181,8 +181,9 @@ Remaining implementation order after the 2026-07-02 reconciliation:
    answers reuse the shared Risk Passport, and phone reputation copy now names
    moderator-confirmed Ishonch Guard reports plus public-scope limits. The
    automated inline regression matrix now covers phone, Telegram username and
-   phone-reputation source/scope cases. Next: collect live Telegram inline QA
-   examples.
+   phone-reputation source/scope cases, and a production synthetic inline smoke
+   now verifies webhook handling plus non-persistence. Next: collect real
+   Telegram-client inline QA examples/screenshots.
 4. **Public living-experience stories.** Build only after moderation,
    compliance and privacy review; never publish raw reports or low-count
    regional details.
@@ -239,9 +240,14 @@ Operational hardening that continues in parallel:
   includes low-signal Telegram username passports and phone reputation
   source/scope rendering in inline mode, while high-risk inline cards stay
   action-first.
-- Next queue item remains collecting real provider Voice-in/STT
-  audio/transcript examples when key/audio access is available, then remaining
-  live Telegram inline QA examples for Phone Reputation v2 / Inline QA.
+- Production Telegram inline smoke added on 2026-07-02: synthetic inline
+  updates for high-risk text, low-signal phone and low-signal username previews
+  pass through the deployed webhook and verify no `checks` or chat-scoped
+  sessions are persisted. Real Telegram-client screenshots remain a manual QA
+  follow-up.
+- Next queue item is collecting real Telegram-client inline QA
+  examples/screenshots for Phone Reputation v2 / Inline QA, plus real provider
+  Voice-in/STT audio/transcript examples when key/audio access is available.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
