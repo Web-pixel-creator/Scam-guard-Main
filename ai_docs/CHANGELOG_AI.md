@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - SEC-002 CSP/security headers final reconciliation
+
+- Added `src/server.security-headers.test.ts`, covering baseline response
+  security headers, main-site `frame-ancestors 'none'`, per-request script
+  nonce insertion and `/embed/check` framing behavior without
+  `X-Frame-Options`.
+- Extended `prod-security-smoke` with optional public URL checks for
+  `/healthz` and `/embed/check` security headers while keeping the existing
+  Supabase/RLS-only behavior when no URL is supplied.
+- Ran production security smoke with
+  `https://scam-guard-main-production.up.railway.app`; public header checks and
+  Supabase/RLS checks passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `SEC-002 / T-046` is now
+  Implemented/Passed, `QA-2026-07-02-008` was added, and the next queue item is
+  UX/logistics fixes.
+
 ## 2026-07-02 - QA-001 P1 web/Telegram user-story QA flows
 
 - Ran production web QA against

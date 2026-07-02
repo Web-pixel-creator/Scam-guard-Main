@@ -2,6 +2,14 @@ import process from "node:process";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { checkProxyIpHeaderTrust } from "./security-smoke-env";
 
+// Usage:
+//   railway run npm run prod:security-smoke
+//   railway run npm run prod:security-smoke -- https://your-app.example.com
+//   PUBLIC_APP_URL=https://your-app.example.com railway run npm run prod:security-smoke
+//
+// Passing a public URL enables additional HTTP security-header checks. Without
+// a URL, the smoke keeps the historical Supabase/RLS-only behavior.
+
 type CheckResult = {
   label: string;
   ok: boolean;
@@ -31,6 +39,76 @@ function record(label: string, ok: boolean, detail: string): void {
 
 function recordResult(result: CheckResult): void {
   record(result.label, result.ok, result.detail);
+}
+
+function cspDirective(policy: string, name: string): string {
+  return (
+    policy
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name} `)) ?? ""
+  );
+}
+
+function optionalPublicUrl(): { value: string | null; error: string | null } {
+  const raw =
+    process.argv.slice(2).find((arg) => !arg.startsWith("--")) ??
+    process.env.PUBLIC_APP_URL?.trim() ??
+    "";
+  if (!raw) return { value: null, error: null };
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:") {
+      return { value: null, error: `public URL must use https, got ${parsed.protocol}` };
+    }
+    return {
+      value: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
+      error: null,
+    };
+  } catch {
+    return { value: null, error: `invalid public URL: ${raw}` };
+  }
+}
+
+async function checkPublicSecurityHeaders(publicUrl: string): Promise<void> {
+  const healthz = await fetch(`${publicUrl}/healthz`);
+  const healthzCsp = healthz.headers.get("content-security-policy") ?? "";
+  const healthzScriptSrc = cspDirective(healthzCsp, "script-src");
+
+  record(
+    "public healthz security headers",
+    healthz.status === 200 &&
+      healthz.headers.get("x-content-type-options") === "nosniff" &&
+      healthz.headers.get("x-frame-options") === "DENY" &&
+      healthz.headers.get("referrer-policy") === "strict-origin-when-cross-origin" &&
+      healthz.headers.get("permissions-policy") === "camera=(), microphone=(), geolocation=()" &&
+      healthz.headers.get("strict-transport-security") ===
+        "max-age=63072000; includeSubDomains; preload" &&
+      cspDirective(healthzCsp, "frame-ancestors") === "frame-ancestors 'none'" &&
+      !healthzScriptSrc.includes("'unsafe-inline'"),
+    `status=${healthz.status}, frame=${cspDirective(healthzCsp, "frame-ancestors") || "missing"}`,
+  );
+
+  const embed = await fetch(`${publicUrl}/embed/check`);
+  const embedCsp = embed.headers.get("content-security-policy") ?? "";
+  const embedFrameAncestors = cspDirective(embedCsp, "frame-ancestors");
+  const embedScriptSrc = cspDirective(embedCsp, "script-src");
+
+  record(
+    "public embed security headers",
+    embed.status === 200 &&
+      embed.headers.get("x-content-type-options") === "nosniff" &&
+      embed.headers.get("x-frame-options") === null &&
+      embed.headers.get("referrer-policy") === "strict-origin-when-cross-origin" &&
+      embed.headers.get("permissions-policy") === "camera=(), microphone=(), geolocation=()" &&
+      embed.headers.get("strict-transport-security") ===
+        "max-age=63072000; includeSubDomains; preload" &&
+      embedFrameAncestors.startsWith("frame-ancestors 'self'") &&
+      !embedFrameAncestors.split(/\s+/).includes("https:") &&
+      !embedScriptSrc.includes("'unsafe-inline'"),
+    `status=${embed.status}, frame=${embedFrameAncestors || "missing"}`,
+  );
 }
 
 function expectedDeny(
@@ -180,6 +258,14 @@ async function main(): Promise<void> {
   console.log("Secret values are read from env and are not printed.");
 
   recordResult(checkProxyIpHeaderTrust(process.env));
+  const publicUrl = optionalPublicUrl();
+  if (publicUrl.error) {
+    record("public security headers target", false, publicUrl.error);
+  } else if (publicUrl.value) {
+    await checkPublicSecurityHeaders(publicUrl.value);
+  } else {
+    console.log("SKIP public security headers: pass PUBLIC_APP_URL or first argument to enable.");
+  }
 
   const supabaseUrl = env("SUPABASE_URL");
   const anonKey = publicKey();

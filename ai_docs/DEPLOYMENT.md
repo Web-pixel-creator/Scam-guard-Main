@@ -469,6 +469,15 @@ proves the table exists.
 railway run npm run prod:security-smoke
 ```
 
+To include live HTTP security-header checks for the public app, pass the public
+URL. This verifies `/healthz` keeps `X-Frame-Options: DENY` and
+`frame-ancestors 'none'`, while `/embed/check` removes `X-Frame-Options` and
+uses an explicit `frame-ancestors` policy without broad `https:`.
+
+```bash
+railway run npm run prod:security-smoke -- https://your-app.example.com
+```
+
 If the AI check fails with `status=429` on a Gemini/OpenAI-compatible endpoint,
 the app should still degrade to rules-only scoring, but production AI
 explanations/OCR will be unreliable until the provider quota is restored. Treat

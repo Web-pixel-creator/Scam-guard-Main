@@ -204,8 +204,13 @@ Operational hardening that continues in parallel:
 - P1 user-story QA for web and Telegram flows passed in production on
   2026-07-02: homepage high-risk, report success, appeal/admin moderation,
   live Telegram image/QR, Guardian Angel high-risk and private/group scoping.
-- Next queue item is `T-046 / SEC-002` CSP/security headers final
-  reconciliation, then UX/logistics fixes.
+- CSP/security headers reconciliation passed in production on 2026-07-02:
+  main-site and embed headers now have server-level regression coverage, and
+  `prod:security-smoke -- <public-url>` verifies live `/healthz` and
+  `/embed/check` headers.
+- Next queue item is UX/logistics fixes, starting with refactoring
+  `src/lib/telegram/emergency.ts` scenario copy into a data-driven profile map
+  before adding many more SOS scenarios.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

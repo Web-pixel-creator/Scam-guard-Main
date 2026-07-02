@@ -242,10 +242,14 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       smoke and production security smoke passed on 2026-07-02. Synthetic rows
       were cleaned, and user-facing Telegram smokes used a private
       non-moderation QA chat, not the moderator chat.
-- [ ] **SEC-002 CSP/security headers final reconciliation.** Next queue item
+- [x] ~~**SEC-002 CSP/security headers final reconciliation.** Next queue item
       after QA-001. Review current server CSP/header code, docs and production
       headers; either close the stale Partial tracker row with current evidence
-      or define the exact remaining header gap.
+      or define the exact remaining header gap.~~ Done: server-level regression
+      now covers baseline headers, main-site nonce/CSP and `/embed/check`
+      frame behavior. `prod:security-smoke -- <public-url>` verifies live
+      `/healthz` and `/embed/check` headers plus Supabase/RLS checks; production
+      passed on 2026-07-02.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,
