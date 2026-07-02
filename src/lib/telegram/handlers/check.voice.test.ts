@@ -357,6 +357,76 @@ describe("handleVoice", () => {
     }
   });
 
+  it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {
+    const cases: Array<[string, number, string]> = [
+      ["Я продиктовала три цифры с оборота карты", 4, "ru-card-back-digits"],
+      ["Я уже назвала код безопасности карты", 4, "ru-card-security-code"],
+      ["Я установил AnyDesk и дал доступ к экрану", 2, "ru-remote-access"],
+      ["Я отсканировала QR для входа в Telegram", 5, "ru-telegram-login-qr"],
+      ["Men kartaning orqasidagi uch raqamni aytdim", 4, "uz-card-back-digits"],
+      ["Men AnyDesk ilovasini o'rnatdim va ekranga ruxsat berdim", 2, "uz-remote-access"],
+      ["Men Telegram QR kodini skaner qildim", 5, "uz-telegram-login-qr"],
+    ];
+
+    for (const [text, panicId, uniqueId] of cases) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 9,
+        fileUniqueId: uniqueId,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({ lastPanicId: panicId }),
+        }),
+      );
+    }
+  });
+
+  it("does not route negated STT phrases as already-happened emergencies", async () => {
+    const cases: Array<[string, string]> = [
+      ["Я не отправила SMS-код", "ru-not-sent-code"],
+      ["Я не продиктовал три цифры с оборота карты", "ru-not-card-digits"],
+      ["Я не сканировал QR для входа в Telegram", "ru-not-telegram-qr"],
+      ["Men SMS kod yubormadim", "uz-not-sent-code"],
+    ];
+
+    for (const [text, uniqueId] of cases) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: uniqueId,
+      });
+
+      expect(hoisted.runCheck).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: text,
+          type: "text",
+          channel: "telegram",
+        }),
+      );
+      expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+        }),
+      );
+    }
+  });
+
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,

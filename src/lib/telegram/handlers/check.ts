@@ -619,9 +619,34 @@ function isLowSignalVoiceTranscript(transcript: string): boolean {
   return meaningfulWords.length < VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS;
 }
 
+const NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
+const UZ_NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)(?:\s|$)/;
+
 function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return null;
+  if (NEGATED_VOICE_DONE_INTENT_RE.test(text) || UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text)) {
+    return null;
+  }
+
+  if (
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
+      text,
+    ) ||
+    /(?:cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?)/.test(
+      text,
+    ) ||
+    /(?:kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam).{0,80}(ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat)/.test(
+      text,
+    ) ||
+    /(?:ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat).{0,80}(kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam)/.test(
+      text,
+    )
+  ) {
+    return 4;
+  }
 
   if (
     /(?:^|\s)(я|мы)\s+(уже\s+)?(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?).{0,60}(смс|sms|otp|код|code)/.test(
@@ -639,16 +664,16 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(установил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?).{0,80}(apk|апк|приложени[ея])/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|разрешил[аи]?|включил[аи]?|дал[аи]?).{0,80}(apk|апк|приложени[ея]|anydesk|teamviewer|rustdesk|удаленн(?:ый|ого)\s+доступ|доступ\s+к\s+(?:экрану|sms|смс|уведомлени)|спец\.?\s*возможност|специальн(?:ые|ых)\s+возможност)/.test(
       text,
     ) ||
-    /(?:apk|апк|приложени[ея]).{0,80}(доступ к sms|доступ к смс|уведомлени|спец\.? возможност|accessibility)/.test(
+    /(?:apk|апк|приложени[ея]|anydesk|teamviewer|rustdesk).{0,80}(доступ к sms|доступ к смс|доступ к экрану|уведомлени|спец\.?\s*возможност|специальн(?:ые|ых)\s+возможност|accessibility|удаленн(?:ый|ого)\s+доступ)/.test(
       text,
     ) ||
-    /(?:^|\s)(men|biz).{0,40}(o'rnat|ornat|yukla|skachat|och|ishga tushir).{0,80}(apk|ilova|programma|app)/.test(
+    /(?:^|\s)(men|biz).{0,40}(o'rnat|ornat|yukla|skachat|och|ishga tushir|ruxsat ber).{0,80}(apk|ilova|programma|app|anydesk|teamviewer|rustdesk|masofaviy|ekran)/.test(
       text,
     ) ||
-    /(?:apk|ilova|programma|app).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma)/.test(
+    /(?:apk|ilova|programma|app|anydesk|teamviewer|rustdesk|masofaviy|ekran).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma|ruxsat ber)/.test(
       text,
     )
   ) {
@@ -687,7 +712,17 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(text) ||
-    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(text)
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|разрешил[аи]?).{0,80}(qr|куар|код).{0,80}(telegram|телеграм|вход|устройств)/.test(
+      text,
+    ) ||
+    /(?:telegram|телеграм).{0,80}(qr|куар|код).{0,80}(отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|разрешил[аи]?)/.test(
+      text,
+    ) ||
+    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(
+      text,
+    ) ||
+    /(?:telegram).{0,80}(qr|kod).{0,80}(skaner|scan|tasdiq|ulash|bog'la|bogla)/.test(text) ||
+    /(?:skaner|scan|tasdiq|ulash|bog'la|bogla).{0,80}(telegram).{0,80}(qr|kod)/.test(text)
   ) {
     return 5;
   }

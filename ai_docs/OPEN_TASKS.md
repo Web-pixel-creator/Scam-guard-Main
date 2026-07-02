@@ -128,8 +128,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       and user-facing wording when daily voice hints are exhausted. Waiting
       state, STT-budget wording, direct voice-to-SOS routing and transcript
       correction, low-signal fallback and first RU/UZ mixed-speech fixtures are
-      shipped. Remaining: broaden the real-audio regression corpus and tune
-      confidence heuristics from production examples.
+      shipped. First production-like corpus/confidence slice is also shipped:
+      RU/UZ card security-code, remote-access and Telegram login-QR transcripts
+      route to the right SOS, while negated "I did not send/scan/dictate"
+      phrases stay on the normal check pipeline. Remaining: broaden real
+      provider audio/transcript fixtures and tune confidence heuristics from
+      production examples.
 - [x] ~~**Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
       deterministic output is enough.~~ Done: Telegram text checks show a

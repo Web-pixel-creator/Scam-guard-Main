@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-014 Voice-in/STT corpus tuning
+
+- Added a first production-like STT transcript corpus for already-happened
+  emergencies without storing raw audio fixtures: RU/UZ card security-code,
+  remote-access and Telegram login-QR phrases now route directly to the
+  matching SOS scenario.
+- Added negated-phrase protection so transcripts such as "I did not send the
+  code" or "I did not scan the Telegram QR" continue through the normal check
+  pipeline instead of opening an already-happened emergency flow.
+- Verification passed: focused voice handler tests, full Telegram suite,
+  voice/rules risk regressions, scoped eslint and `tsc --noEmit`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-014` records the
+  2026-07-02 STT corpus slice, `QA-2026-07-02-011` was added, and the next
+  queue item is real provider audio/transcript fixture expansion before Phone
+  Reputation v2 / Inline QA.
+
 ## 2026-07-02 - TG-015 Voice-out prerecorded SOS revalidation
 
 - Revalidated committed static SOS audio: `npm run tts:validate-assets`
