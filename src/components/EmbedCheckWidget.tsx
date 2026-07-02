@@ -30,6 +30,11 @@ type EmbedCheckWidgetProps = {
   partner?: string | null;
 };
 
+type EmbedTelemetryContext = {
+  partner?: string | null;
+  referrer?: string | null;
+};
+
 const LEVEL_COPY: Record<
   RiskLevel,
   {
@@ -143,7 +148,11 @@ export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
     setMetaResponse(null);
     try {
       const response = await checkFn({
-        data: { input: value.trim().slice(0, MAX_INPUT_CHARS), lang },
+        data: {
+          input: value.trim().slice(0, MAX_INPUT_CHARS),
+          lang,
+          embed: collectEmbedTelemetryContext(partner),
+        },
       });
       if (isMetaIntentResult(response)) {
         setMetaResponse(response.response);
@@ -286,6 +295,13 @@ export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
       </div>
     </section>
   );
+}
+
+function collectEmbedTelemetryContext(partner?: string | null): EmbedTelemetryContext {
+  return {
+    partner: partner ?? null,
+    referrer: typeof document === "undefined" ? null : document.referrer || null,
+  };
 }
 
 export function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {

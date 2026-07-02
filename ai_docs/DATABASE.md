@@ -148,6 +148,18 @@ web checks, report submission, Telegram checks/OCR/image analysis, pre-download
 Telegram image media throttling and public Telegram post fetch throttling.
 Rows are eligible for cleanup when `expires_at <= now()`.
 
+### `embed_origin_events`
+
+Privacy-safe `/embed/check` usage telemetry:
+`id, created_at, event_type, partner, referrer_origin, referrer_host, language,
+input_type, risk_level, reason_count`.
+
+RLS/grants: no public access; service-role only. The table records where the
+iframe is used and aggregate result shape only. It does not store raw input,
+redacted input, input hashes, full referrer URLs, paths, query strings,
+fragments, phone numbers, Telegram ids, screenshots or OCR text. Rows older
+than 180 days are eligible for retention cleanup.
+
 ### `telegram_family_shield`
 
 Private trusted-contact mapping for Family Shield:
@@ -205,6 +217,7 @@ under the windows below.
 - `telegram_sessions`: 30 days after last update.
 - `telegram_webhook_updates`: 2 days / `expires_at <= as_of`.
 - `rate_limit_buckets`: `expires_at <= as_of` (normally one request window plus a short buffer).
+- `embed_origin_events`: 180 days.
 - `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.
 - `reputation_appeals`: retained until legal/compliance policy is finalized; contains hashes, masked displays and redacted reason text only.
 - `telegram_family_shield`: revoked rows after 30 days; stale pending rows after 7 days; active relationships retained until revoked.

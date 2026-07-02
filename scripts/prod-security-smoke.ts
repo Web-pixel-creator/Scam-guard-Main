@@ -233,6 +233,12 @@ async function main(): Promise<void> {
     "rate_limit_buckets",
     "scope,key_hash",
   );
+  await expectNoRowsOrDenied(
+    anon,
+    "anon cannot read embed_origin_events",
+    "embed_origin_events",
+    "id,referrer_origin,referrer_host",
+  );
   await expectNoRowsOrDenied(anon, "anon cannot read admin_allowlist", "admin_allowlist", "email");
   await expectNoRowsOrDenied(anon, "anon cannot read user_roles", "user_roles", "user_id,role");
 
@@ -351,6 +357,12 @@ async function main(): Promise<void> {
     "service can count rate_limit_buckets",
     "rate_limit_buckets",
     "scope",
+  );
+  await expectServiceCanCount(
+    service,
+    "service can count embed_origin_events",
+    "embed_origin_events",
+    "id",
   );
   await checkAdminAuthPolicy(service);
 

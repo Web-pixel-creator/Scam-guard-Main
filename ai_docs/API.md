@@ -10,7 +10,7 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 
 | RPC                       | Auth   | Input                                                                                                | Returns                                                                                               |
 | ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `checkInput`              | public | `{ input: 1-2000, type?, lang }`                                                                     | risk result or `{ metaIntent, response }` for questions to the bot                                    |
+| `checkInput`              | public | `{ input: 1-2000, type?, lang, embed? }`                                                            | risk result or `{ metaIntent, response }` for questions to the bot                                    |
 | `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
 | `getPublicStats`          | public | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
 | `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
@@ -136,6 +136,11 @@ set, then the database trigger may add `admin` if the email is still in
 - Low-signal phone/Telegram results may render as a compact Risk Passport in
   web/embed surfaces: visible public metadata, directory/reputation status,
   honest limitations and a next step. High-risk cards remain action-first.
+- Iframe calls pass an optional `embed` context to `checkInput`. The server
+  stores only privacy-safe usage telemetry in `embed_origin_events`: partner,
+  referrer origin/host, language, event type and aggregate result shape. It
+  does not store raw input, redacted input, input hashes, full referrer URLs,
+  paths, query strings, fragments, phone numbers or Telegram ids.
 
 ## Database RPC
 
@@ -148,6 +153,8 @@ set, then the database trigger may add `admin` if the email is still in
   daily budget. Voice budgets use distinct key prefixes under the existing
   `check` scope so no raw Telegram id is persisted.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
+- `embed_origin_events` is service-role-only, RLS-protected `/embed/check`
+  origin telemetry. Retention pruning deletes rows older than 180 days.
 
 ## External integrations
 

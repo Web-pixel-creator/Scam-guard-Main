@@ -110,8 +110,11 @@ const chatIdArb = fc.integer({ min: -1_000_000_000_000, max: 1_000_000_000_000 }
 
 const langArb = fc.constantFrom(...LANGS);
 
-// Non-empty content within the 2000-char limit so handleCheck reaches the core.
-const contentArb = fc.string({ minLength: 0, maxLength: 120 }).map((s) => `x${s}`.slice(0, 2000));
+// Concrete check-like text within the 2000-char limit so handleCheck reaches
+// the core instead of short-message helper/fallback routes.
+const contentArb = fc
+  .string({ minLength: 0, maxLength: 120 })
+  .map((s) => `please check this message ${s}`.slice(0, 2000));
 
 // Non-empty phone-like string so handlePhoneFromContact reaches the core.
 const phoneArb = fc

@@ -193,7 +193,10 @@ Before release, apply migration
 `entities.report_count` values are backfilled to moderated confirmed report
 counts only. Also apply
 `20260629163000_public_impact_counters_confirmed_reports.sql` so public
-report/loss impact counters include confirmed reports only.
+report/loss impact counters include confirmed reports only. Before broad embed
+distribution, apply `20260702063847_embed_origin_analytics_v1.sql` so
+`/embed/check` usage telemetry is stored in the RLS-protected
+`embed_origin_events` table with no raw input or full referrer URLs.
 
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
 Leave `TRUST_PROXY_IP_HEADERS` unset/false unless the deployment sits behind a
@@ -456,8 +459,8 @@ railway run npm run prod:family-smoke
 
 After DB/RLS/security migrations, run the dedicated security smoke. It verifies
 anon cannot read/write sensitive tables or execute maintenance/stat/rate-limit
-RPCs, while service-role can read required operational tables and claim a shared
-rate-limit bucket.
+RPCs, while service-role can read required operational tables, including
+`embed_origin_events`, and claim a shared rate-limit bucket.
 
 ```bash
 railway run npm run prod:security-smoke
@@ -498,6 +501,9 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
 - [ ] Partner iframe origins, if any, are set in
       `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`
       snippets.
+- [ ] Embed origin analytics migration is applied before broad partner
+      distribution (`embed_origin_events` exists and `prod:security-smoke`
+      passes).
 - [ ] Webhook registered via `scripts/register-telegram-webhook.ts`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally

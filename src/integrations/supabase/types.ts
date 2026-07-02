@@ -62,6 +62,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      embed_origin_events: {
+        Row: {
+          created_at: string;
+          event_type: "check_result" | "meta_intent";
+          id: string;
+          input_type: Database["public"]["Enums"]["input_type"] | null;
+          language: string;
+          partner: string | null;
+          reason_count: number;
+          referrer_host: string | null;
+          referrer_origin: string | null;
+          risk_level: Database["public"]["Enums"]["risk_level"] | null;
+        };
+        Insert: {
+          created_at?: string;
+          event_type: "check_result" | "meta_intent";
+          id?: string;
+          input_type?: Database["public"]["Enums"]["input_type"] | null;
+          language: string;
+          partner?: string | null;
+          reason_count?: number;
+          referrer_host?: string | null;
+          referrer_origin?: string | null;
+          risk_level?: Database["public"]["Enums"]["risk_level"] | null;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: "check_result" | "meta_intent";
+          id?: string;
+          input_type?: Database["public"]["Enums"]["input_type"] | null;
+          language?: string;
+          partner?: string | null;
+          reason_count?: number;
+          referrer_host?: string | null;
+          referrer_origin?: string | null;
+          risk_level?: Database["public"]["Enums"]["risk_level"] | null;
+        };
+        Relationships: [];
+      };
       entities: {
         Row: {
           created_at: string;

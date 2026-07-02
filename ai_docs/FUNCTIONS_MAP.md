@@ -6,7 +6,7 @@ Signatures and intent only. See file paths for source.
 
 | Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang })`                                                                 | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP.                                                                                                                                                        |
+| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Optional embed context records privacy-safe origin usage telemetry only for iframe calls.                                                               |
 | `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
 | `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
@@ -110,6 +110,16 @@ Signatures and intent only. See file paths for source.
   normal `tg:<userId>` check budget.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
+
+**`src/lib/embed-origin-analytics.server.ts`**
+
+- `normalizeEmbedTelemetryContext(context)` sanitizes an optional embed context
+  down to `partner`, `referrerOrigin` and `referrerHost`; it strips full
+  referrer paths, query strings and fragments.
+- `recordEmbedOriginEvent({ context, eventType, lang, result? })` inserts one
+  service-role-only `embed_origin_events` row with aggregate result shape
+  (`input_type`, `risk_level`, `reason_count`) and never stores raw checked
+  input, redacted input, input hashes, URLs, phone numbers or Telegram ids.
 
 ## Telegram result formatting
 
@@ -217,8 +227,9 @@ Signatures and intent only. See file paths for source.
 **`src/components/EmbedCheckWidget.tsx`**
 
 - Compact iframe UI for number/link/Telegram/text checks.
-- Calls the existing `checkInput` server function, so shared rate limits,
-  redaction, rules-first scoring and persistence remain centralized.
+- Calls the existing `checkInput` server function with an optional embed
+  telemetry context, so shared rate limits, redaction, rules-first scoring,
+  persistence and privacy-safe origin logging remain centralized.
 - Shows a concise verdict, up to three reasons and up to two safe steps; meta
   intent answers render as informational text.
 - `EmbedResult(...)` renders low-signal phone/Telegram checks through the shared
@@ -342,6 +353,6 @@ Signatures and intent only. See file paths for source.
   It also fails when `TRUST_PROXY_IP_HEADERS=true` is set without
   `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`.
   It verifies anon cannot read/write sensitive tables, including
-  `reputation_appeals`, `telegram_webhook_updates` and `rate_limit_buckets`, or
-  execute maintenance/stat/rate-limit RPCs, while service-role can count
-  required tables and execute stats/rate-limit claims.
+  `reputation_appeals`, `telegram_webhook_updates`, `rate_limit_buckets` and
+  `embed_origin_events`, or execute maintenance/stat/rate-limit RPCs, while
+  service-role can count required tables and execute stats/rate-limit claims.

@@ -6,6 +6,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizePublicStatsRow, type PublicStats } from "@/lib/trust/impact-stats";
 import { publicRateLimitKey } from "@/lib/request-ip.server";
 import { MAX_IMAGE_DATA_URL_LENGTH, parseAllowedImageDataUrl } from "./risk/media-data-url";
+import {
+  embedTelemetryContextSchema,
+  recordEmbedOriginEvent,
+} from "./embed-origin-analytics.server";
 
 export interface MetaIntentCheckResult {
   metaIntent: MetaIntent;
@@ -22,6 +26,7 @@ const checkSchema = z.object({
   input: z.string().min(1).max(2000),
   type: z.enum(["phone", "telegram", "url", "text", "payment", "apk", "unknown"]).optional(),
   lang: z.enum(["ru", "uz", "en"]).default("ru"),
+  embed: embedTelemetryContextSchema.optional(),
 });
 
 const ocrSchema = z.object({
@@ -51,18 +56,31 @@ export const checkInput = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const metaIntent = classifyMetaIntent(data.input);
     if (metaIntent) {
-      return {
+      const result = {
         metaIntent,
         response: getMetaIntentResponse(metaIntent, data.lang),
       } satisfies MetaIntentCheckResult;
+      await recordEmbedOriginEvent({
+        context: data.embed,
+        eventType: "meta_intent",
+        lang: data.lang,
+      });
+      return result;
     }
 
-    return runCheck({
+    const result = await runCheck({
       input: data.input,
       lang: data.lang,
       rateLimitKey: publicRateLimitKey("check"),
       channel: "web",
     });
+    await recordEmbedOriginEvent({
+      context: data.embed,
+      eventType: "check_result",
+      lang: data.lang,
+      result,
+    });
+    return result;
   });
 
 // Thin web wrapper: same `check:<ip>` rate-limit key → delegate to OCR core.

@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-012 embed origin analytics/logging
+
+- Added service-role-only `public.embed_origin_events` telemetry for
+  `/embed/check`, with RLS enabled, public client roles revoked and 180-day
+  retention through `private.prune_app_retention()`.
+- Added `src/lib/embed-origin-analytics.server.ts` to normalize embed telemetry
+  context to `partner`, `referrer_origin` and `referrer_host` only. It never
+  stores raw input, redacted input, input hashes, full referrer URLs, paths,
+  query strings, fragments, phone numbers or Telegram ids.
+- Updated the iframe check widget to send a small embed context from
+  `document.referrer`; the server validates and strips it before inserting
+  aggregate check/meta-intent result shape.
+- Added unit, server-function and static migration regressions for privacy-safe
+  telemetry boundaries.
+- Supabase local DB advisors/lint were attempted but blocked because the local
+  database was not running on `127.0.0.1:54322`.
+- Next queue item: P1 user-story QA for web and Telegram flows.
+
 ## 2026-07-02 - ROAD-011 web/embed Risk Passport compact reuse
 
 - Added `src/lib/risk/risk-passport.ts`, a shared pure Risk Passport presenter

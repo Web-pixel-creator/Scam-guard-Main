@@ -49,6 +49,7 @@ const hoisted = vi.hoisted(() => ({
     },
     amountRows: [{ amount_lost_uzs: 250_000 }, { amount_lost_uzs: 125_000 }],
   },
+  embedEvents: [] as unknown[],
 }));
 
 // Fixed core result with EVERY documented RunCheckResult field. The wrapper must
@@ -111,61 +112,72 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       hoisted.stats.rpcCalls.push(name);
       return { data: [hoisted.stats.rpcRow], error: null };
     },
-    from: (table: string) => ({
-      select: (columns: string) => {
-        const filters: Array<{ column: string; value: unknown }> = [];
-        const resolve = async () => {
-          if (table === "checks") {
-            const riskLevel = String(
-              filters.find((filter) => filter.column === "risk_level")?.value,
-            );
-            hoisted.stats.checkCountQueries.push(riskLevel);
-            return {
-              count: riskLevel === "high_risk" ? 4 : riskLevel === "suspicious" ? 5 : 0,
-              error: null,
-            };
-          }
+    from: (table: string) => {
+      if (table === "embed_origin_events") {
+        return {
+          insert: async (row: unknown) => {
+            hoisted.embedEvents.push(row);
+            return { error: null };
+          },
+        };
+      }
 
-          if (table === "reports" && columns === "id") {
-            const hasLossFilter = filters.some((filter) => filter.column === "amount_lost_uzs");
-            const status = filters.find((filter) => filter.column === "status")?.value;
-            if (hasLossFilter) {
-              hoisted.stats.reportLossCountQueries += 1;
-              hoisted.stats.reportLossStatuses.push(status);
-              return { count: 2, error: null };
+      return {
+        select: (columns: string) => {
+          const filters: Array<{ column: string; value: unknown }> = [];
+          const resolve = async () => {
+            if (table === "checks") {
+              const riskLevel = String(
+                filters.find((filter) => filter.column === "risk_level")?.value,
+              );
+              hoisted.stats.checkCountQueries.push(riskLevel);
+              return {
+                count: riskLevel === "high_risk" ? 4 : riskLevel === "suspicious" ? 5 : 0,
+                error: null,
+              };
             }
-            hoisted.stats.reportCountQueries += 1;
-            hoisted.stats.reportCountStatuses.push(status);
-            return { count: 6, error: null };
-          }
 
-          if (table === "reports" && columns === "amount_lost_uzs") {
-            const status = filters.find((filter) => filter.column === "status")?.value;
-            hoisted.stats.reportAmountSelects += 1;
-            hoisted.stats.reportAmountSelectStatuses.push(status);
-            return { data: hoisted.stats.amountRows, error: null };
-          }
+            if (table === "reports" && columns === "id") {
+              const hasLossFilter = filters.some((filter) => filter.column === "amount_lost_uzs");
+              const status = filters.find((filter) => filter.column === "status")?.value;
+              if (hasLossFilter) {
+                hoisted.stats.reportLossCountQueries += 1;
+                hoisted.stats.reportLossStatuses.push(status);
+                return { count: 2, error: null };
+              }
+              hoisted.stats.reportCountQueries += 1;
+              hoisted.stats.reportCountStatuses.push(status);
+              return { count: 6, error: null };
+            }
 
-          throw new Error(`unexpected public stats query: ${table}.${columns}`);
-        };
+            if (table === "reports" && columns === "amount_lost_uzs") {
+              const status = filters.find((filter) => filter.column === "status")?.value;
+              hoisted.stats.reportAmountSelects += 1;
+              hoisted.stats.reportAmountSelectStatuses.push(status);
+              return { data: hoisted.stats.amountRows, error: null };
+            }
 
-        const chain = {
-          eq(column: string, value: unknown) {
-            filters.push({ column, value });
-            return chain;
-          },
-          gt(column: string, value: unknown) {
-            filters.push({ column, value });
-            return chain;
-          },
-          limit: async () => resolve(),
-          then: (onFulfilled: unknown, onRejected: unknown) =>
-            resolve().then(onFulfilled as never, onRejected as never),
-        };
+            throw new Error(`unexpected public stats query: ${table}.${columns}`);
+          };
 
-        return chain;
-      },
-    }),
+          const chain = {
+            eq(column: string, value: unknown) {
+              filters.push({ column, value });
+              return chain;
+            },
+            gt(column: string, value: unknown) {
+              filters.push({ column, value });
+              return chain;
+            },
+            limit: async () => resolve(),
+            then: (onFulfilled: unknown, onRejected: unknown) =>
+              resolve().then(onFulfilled as never, onRejected as never),
+          };
+
+          return chain;
+        },
+      };
+    },
   },
 }));
 
@@ -184,6 +196,7 @@ beforeEach(() => {
   hoisted.stats.reportCountStatuses.length = 0;
   hoisted.stats.reportLossStatuses.length = 0;
   hoisted.stats.reportAmountSelectStatuses.length = 0;
+  hoisted.embedEvents.length = 0;
   delete process.env.TRUST_PROXY_IP_HEADERS;
 });
 
@@ -276,6 +289,38 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
         "verifiedContact",
       ].sort(),
     );
+    expect(hoisted.embedEvents).toEqual([]);
+  });
+
+  it("records privacy-safe aggregate telemetry only for embed check calls", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    await checkInput({
+      data: {
+        input: "+998901234567",
+        lang: "en",
+        embed: {
+          partner: "Trusted Site",
+          referrer: "https://trusted.example/path?phone=998901234567#raw",
+        },
+      },
+    });
+
+    expect(hoisted.embedEvents).toEqual([
+      {
+        event_type: "check_result",
+        partner: "Trusted Site",
+        referrer_origin: "https://trusted.example",
+        referrer_host: "trusted.example",
+        language: "en",
+        input_type: "phone",
+        risk_level: "suspicious",
+        reason_count: 1,
+      },
+    ]);
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("998901234567");
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("phone=");
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("/path");
   });
 
   it("returns a meta-intent response for questions to the bot without calling runCheck", async () => {
@@ -290,6 +335,68 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
       response: expect.stringContaining("изображение"),
     });
     expect(hoisted.runCheckCalls).toHaveLength(0);
+  });
+
+  it("strips referrer query data when embed text routes to a check", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    await checkInput({
+      data: {
+        input: "please check this suspicious payment request",
+        lang: "ru",
+        embed: {
+          partner: "Trusted Site",
+          referrer: "https://trusted.example/support?secret=998901234567",
+        },
+      },
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.embedEvents).toEqual([
+      {
+        event_type: "check_result",
+        partner: "Trusted Site",
+        referrer_origin: "https://trusted.example",
+        referrer_host: "trusted.example",
+        language: "ru",
+        input_type: "phone",
+        risk_level: "suspicious",
+        reason_count: 1,
+      },
+    ]);
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("998901234567");
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("secret=");
+  });
+
+  it("records embed meta-intent usage without result fields", async () => {
+    hoisted.requestIp = "192.0.2.1";
+
+    await checkInput({
+      data: {
+        input: "why could not analyze the image",
+        lang: "ru",
+        embed: {
+          partner: "Trusted Site",
+          referrer: "https://trusted.example/support?secret=998901234567",
+        },
+      },
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.embedEvents).toEqual([
+      {
+        event_type: "meta_intent",
+        partner: "Trusted Site",
+        referrer_origin: "https://trusted.example",
+        referrer_host: "trusted.example",
+        language: "ru",
+        input_type: null,
+        risk_level: null,
+        reason_count: 0,
+      },
+    ]);
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("998901234567");
+    expect(JSON.stringify(hoisted.embedEvents)).not.toContain("secret=");
   });
 
   it("returns Telegram-account capability help without pretending to inspect hidden data", async () => {

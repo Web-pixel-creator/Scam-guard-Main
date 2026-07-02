@@ -37,11 +37,12 @@
   `object-src 'none'` are enforced. Inline styling is now narrowed to
   `style-src-attr 'unsafe-inline'` for React style attributes; broad
   `style-src 'unsafe-inline'` is not allowed.
-- **Embed widget CSP is origin-allowlisted.** `/embed/check` keeps
-  `frame-ancestors` to `'self'`, localhost development origins and explicit
-  HTTPS origins from `EMBED_ALLOWED_FRAME_ANCESTORS`; the `partner` query label
-  does not grant framing access. Add origin analytics before broad public
-  distribution.
+- **Embed widget CSP is origin-allowlisted and logged safely.** `/embed/check`
+  keeps `frame-ancestors` to `'self'`, localhost development origins and
+  explicit HTTPS origins from `EMBED_ALLOWED_FRAME_ANCESTORS`; the `partner`
+  query label does not grant framing access. ROAD-012 now records
+  service-role-only origin telemetry with partner/referrer origin metadata and
+  aggregate result shape only, never raw input or full URLs.
 - **Direct `/call` is shipped.** It reuses the live-call copilot without
   exposing bank callback before hangup; command-menu registration must be kept
   in the release checklist whenever command payloads change.
@@ -224,10 +225,19 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       usernames and long digit runs before synthesis, refuses unsafe
       code/PIN/CVV/password-like text, prefers Gemini TTS when configured, and
       degrades to text when no TTS provider is configured.
-- [ ] **Embed origin analytics/logging.** ROAD-012 / T-044 is the next queue
+- [x] ~~**Embed origin analytics/logging.** ROAD-012 / T-044 is the next queue
       item. Add privacy-safe origin usage telemetry for `/embed/check` before
       broad distribution of the public embed widget. Partner allow-listing is
-      shipped through `EMBED_ALLOWED_FRAME_ANCESTORS`.
+      shipped through `EMBED_ALLOWED_FRAME_ANCESTORS`.~~ Done: `/embed/check`
+      now sends a small embed context to `checkInput`; the server stores only
+      partner, referrer origin/host, language and aggregate result shape in
+      `embed_origin_events`, with RLS, service-role-only access and 180-day
+      retention.
+- [ ] **P1 user-story QA flows.** Next queue item after ROAD-012. Re-run the
+      real web/Telegram user-story flows from the tracker: homepage high-risk
+      result, report success path, appeal success plus admin moderation, live
+      Telegram image/QR, Guardian Angel high-risk, and private/group session
+      scoping.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,

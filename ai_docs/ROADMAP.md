@@ -156,6 +156,11 @@ Already shipped:
   explicit publication thresholds. It does not read private reports or expose
   raw targets, screenshots, OCR, URLs, phone numbers, usernames or low-count
   region data.
+- Embed Origin Analytics v1: `/embed/check` now records service-role-only
+  privacy-safe usage telemetry with partner/referrer origin metadata and
+  aggregate result shape only. It does not store raw input, redacted input,
+  hashes, full referrer URLs, paths, query strings, fragments, phone numbers or
+  Telegram ids.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -194,9 +199,11 @@ Operational hardening that continues in parallel:
 - Web/embed Risk Passport compact reuse shipped: the shared passport presenter
   now feeds website and partner iframe low-signal phone/Telegram checks without
   changing scoring or making high-risk cards less urgent.
-- Next roadmap queue item is `T-044 / ROAD-012 Embed origin analytics/logging`;
-  add privacy-safe `/embed/check` origin usage telemetry before broad public
-  partner distribution.
+- Embed origin analytics/logging shipped: `/embed/check` origin usage telemetry
+  is service-role-only, RLS-protected and stores no raw checked evidence.
+- Next roadmap queue item is P1 user-story QA for web and Telegram flows:
+  homepage high-risk, report success, appeal/admin moderation, live Telegram
+  image/QR, Guardian Angel high-risk and private/group scoping.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
