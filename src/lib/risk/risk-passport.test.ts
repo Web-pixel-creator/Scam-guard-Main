@@ -107,4 +107,52 @@ describe("risk passport summary", () => {
     expect(detectRiskPassportKind(result)).toBeNull();
     expect(buildRiskPassportSummary(result, "en")).toBeNull();
   });
+
+  it("includes moderated phone reputation source, confidence and scope limits", () => {
+    const summary = buildRiskPassportSummary(
+      baseResult({
+        type: "phone",
+        display: "+998 90 *** ** 67",
+        reasons: ["valid_uz_phone"],
+        knownReports: 3,
+        phoneIntelligence: {
+          digits: "998901234567",
+          normalized: "+998901234567",
+          kind: "uz_mobile",
+          isValidFormat: true,
+          isUzbekistan: true,
+          country: {
+            iso: "UZ",
+            callingCode: "998",
+            name: { ru: "Узбекистан", uz: "O'zbekiston", en: "Uzbekistan" },
+          },
+          uzPrefix: "90",
+          uzOperator: {
+            ru: "Beeline по префиксу 90",
+            uz: "90 prefiksi bo'yicha Beeline",
+            en: "Beeline by prefix 90",
+          },
+          officialDirectoryStatus: "not_found",
+        },
+        phoneReputation: {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: 3,
+          confidence: "medium",
+          riskLevel: "suspicious",
+          publicScope: "confirmed_moderated_reports_only",
+        },
+      }),
+      "en",
+    );
+
+    const reputation = summary?.sections.find((section) => section.id === "reputation");
+
+    expect(reputation?.tone).toBe("warning");
+    expect(reputation?.lines.join("\n")).toContain("moderator-confirmed reports");
+    expect(reputation?.lines.join("\n")).toContain("3 confirmed report(s)");
+    expect(reputation?.lines.join("\n")).toContain("Confidence: medium");
+    expect(reputation?.lines.join("\n")).toContain("unverified reports");
+    expect(reputation?.lines.join("\n")).toContain("carrier data");
+    expect(JSON.stringify(summary)).not.toContain("998901234567");
+  });
 });

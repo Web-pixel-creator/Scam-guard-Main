@@ -28,7 +28,13 @@ import {
 import { t, type Lang } from "@/lib/i18n";
 import { REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
-import type { PhoneReputationConfidence } from "@/lib/risk/phone-reputation";
+import {
+  formatNoPhoneReputationLine,
+  formatPhoneReputationEvidenceLine,
+  formatPhoneReputationScopeLine,
+  phoneReputationConfidence,
+  phoneReputationConfidenceLabel,
+} from "@/lib/risk/phone-reputation";
 import { findMatchingPatterns } from "@/lib/scam-patterns";
 import {
   TEMPLATES,
@@ -236,7 +242,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: string;
       meaning: string;
       nextStep: string;
-      reports: (count: number) => string;
       foreignWarning: string;
       weakWarning: string;
     }
@@ -248,10 +253,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Репутация Ishonch",
       meaning: "📌 Что это значит",
       nextStep: "🧭 Следующий шаг",
-      reports: (count) =>
-        count === 0
-          ? "подтвержд. жалоб в Ishonch Guard не найдено"
-          : `${count} подтвержд. жалоб — оценивайте осторожнее`,
       foreignWarning: "🚩 Важно",
       weakWarning: "⚠️ Формат",
     },
@@ -262,10 +263,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Ishonch reputatsiyasi",
       meaning: "📌 Bu nimani bildiradi",
       nextStep: "🧭 Keyingi qadam",
-      reports: (count) =>
-        count === 0
-          ? "Ishonch Guardda tasdiqlangan shikoyat topilmadi"
-          : `${count} tasdiqlangan shikoyat — ehtiyotroq baholang`,
       foreignWarning: "🚩 Muhim",
       weakWarning: "⚠️ Format",
     },
@@ -276,10 +273,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Ishonch reputation",
       meaning: "📌 What this means",
       nextStep: "🧭 Next step",
-      reports: (count) =>
-        count === 0
-          ? "no confirmed Ishonch Guard reports found"
-          : `${count} confirmed reports — use extra caution`,
       foreignWarning: "🚩 Important",
       weakWarning: "⚠️ Format",
     },
@@ -289,7 +282,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
     ? `${passport.country.name[lang]} (+${passport.country.callingCode})`
     : c.unknownCountry;
   const operator = passport.uzOperator?.[lang];
-  const reportCount = result.phoneReputation?.confirmedReportCount ?? result.knownReports ?? 0;
   const lines: string[] = [l.passport, "", l.region];
 
   lines.push(`• ${c.number}: ${country}`);
@@ -313,21 +305,32 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
   }
 
   lines.push("", l.reputation);
-  lines.push(`• ${l.reports(reportCount)}`);
+  if (result.phoneReputation) {
+    lines.push(`• ${formatPhoneReputationEvidenceLine(result.phoneReputation, lang)}`);
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  } else if (result.knownReports > 0) {
+    lines.push(
+      `• ${formatPhoneReputationEvidenceLine(
+        {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: result.knownReports,
+          confidence: phoneReputationConfidence(result.knownReports),
+          riskLevel: result.level,
+          publicScope: "confirmed_moderated_reports_only",
+        },
+        lang,
+      )}`,
+    );
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  } else {
+    lines.push(`• ${formatNoPhoneReputationLine(lang)}`);
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  }
   lines.push("", l.meaning);
   lines.push(c.contextMatters);
   lines.push("", l.nextStep);
   lines.push(bt("prompt_more_context_phone", lang));
   return lines.join("\n");
-}
-
-function phoneReputationConfidenceLabel(confidence: PhoneReputationConfidence, lang: Lang): string {
-  const labels: Record<PhoneReputationConfidence, Record<Lang, string>> = {
-    low: { ru: "низкая", uz: "past", en: "low" },
-    medium: { ru: "средняя", uz: "o'rtacha", en: "medium" },
-    high: { ru: "высокая", uz: "yuqori", en: "high" },
-  };
-  return labels[confidence][lang];
 }
 
 function renderPhoneReputationObservation(result: RunCheckResult, lang: Lang): string | null {

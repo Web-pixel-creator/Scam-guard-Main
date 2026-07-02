@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-014 Phone Reputation v2 wording/source confidence
+
+- Added shared RU/UZ/EN Phone Reputation presentation helpers for confirmed
+  moderated report evidence, conservative confidence labels, no-report wording
+  and public-scope limits.
+- Low-signal Phone Passport, inline Risk Passport and high-risk Telegram result
+  cards now explicitly say the source is Ishonch Guard moderator-confirmed
+  reports, not unverified complaints, owner data, carrier data or hidden
+  external labels.
+- Verification passed: focused phone reputation / risk passport / inline /
+  formatter tests, full Telegram suite, full risk suite, scoped TS eslint and
+  `tsc --noEmit`.
+
 ## 2026-07-02 - ROAD-013 Inline Risk Passport QA slice
 
 - Telegram inline-mode checks now reuse the shared Risk Passport presenter for

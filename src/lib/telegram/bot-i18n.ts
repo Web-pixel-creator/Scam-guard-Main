@@ -326,14 +326,14 @@ export const bot_dict: BotDict = {
     en: "There are {count} confirmed reports about this contact in our database.",
   },
   phone_reputation_reports: {
-    ru: "Ishonch Guard: {count} подтверждённых жалоб после модерации. Уверенность: {confidence}.",
-    uz: "Ishonch Guard: moderatsiyadan keyin {count} ta tasdiqlangan shikoyat. Ishonch: {confidence}.",
-    en: "Ishonch Guard: {count} confirmed moderated report(s). Confidence: {confidence}.",
+    ru: "Источник: подтверждённые модераторами жалобы Ishonch Guard. Количество: {count} подтверждённых жалоб. Уверенность: {confidence}.",
+    uz: "Manba: Ishonch Guard moderatorlari tasdiqlagan shikoyatlar. Soni: {count} ta tasdiqlangan shikoyat. Ishonchlilik: {confidence}.",
+    en: "Source: Ishonch Guard moderator-confirmed reports. Count: {count} confirmed report(s). Confidence: {confidence}.",
   },
   phone_reputation_limit: {
-    ru: "Это не определяет владельца номера и не является данными оператора.",
-    uz: "Bu raqam egasini aniqlamaydi va operator ma'lumoti emas.",
-    en: "This does not identify the number owner and is not carrier data.",
+    ru: "Не включает непроверенные жалобы, владельца номера, данные оператора или скрытые внешние метки.",
+    uz: "Tekshirilmagan shikoyatlar, raqam egasi, operator ma'lumoti yoki yashirin tashqi belgilar kiritilmaydi.",
+    en: "Does not include unverified reports, number owner data, carrier data, or hidden external labels.",
   },
 
   // ── Contact card (R21.4) ──────────────────────────────────────────────────

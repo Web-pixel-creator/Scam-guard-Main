@@ -1,8 +1,11 @@
 import type { Lang } from "@/lib/i18n";
 import type { PhoneIntelligencePassport } from "@/lib/risk/phone-intelligence";
-import type {
-  PhoneReputationConfidence,
-  PhoneReputationSummary,
+import type { PhoneReputationSummary } from "@/lib/risk/phone-reputation";
+import {
+  formatNoPhoneReputationLine,
+  formatPhoneReputationEvidenceLine,
+  formatPhoneReputationScopeLine,
+  phoneReputationConfidence,
 } from "@/lib/risk/phone-reputation";
 import type { ReasonCode, RiskLevel } from "@/lib/risk/rules";
 
@@ -68,8 +71,6 @@ const COPY: Record<
     notApplicable: string;
     lookalike: (org: string, contact: string) => string;
     lookalikeStep: string;
-    reports: (count: number) => string;
-    confidence: (value: PhoneReputationConfidence) => string;
     contextMatters: string;
     phonePrompt: string;
     telegramVisibleFallback: string;
@@ -101,16 +102,6 @@ const COPY: Record<
       `Похож на официальный контакт, но не совпадает: ${org} — ${contact}.`,
     lookalikeStep:
       "Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
-    reports: (count) =>
-      count === 0
-        ? "Подтверждённых жалоб в Ishonch Guard не найдено."
-        : `${count} подтвержд. жалоб — оценивайте осторожнее.`,
-    confidence: (value) =>
-      ({
-        low: "Уверенность: низкая.",
-        medium: "Уверенность: средняя.",
-        high: "Уверенность: высокая.",
-      })[value],
     contextMatters:
       "Сам номер не доказывает мошенничество. Важнее, просили ли SMS-код, карту, перевод, APK, QR-вход или удалённый доступ.",
     phonePrompt:
@@ -147,16 +138,6 @@ const COPY: Record<
       `Rasmiy kontaktga o'xshaydi, lekin aniq mos emas: ${org} — ${contact}.`,
     lookalikeStep:
       "Kiruvchi raqamga qayta qo'ng'iroq qilmang; ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
-    reports: (count) =>
-      count === 0
-        ? "Ishonch Guardda tasdiqlangan shikoyat topilmadi."
-        : `${count} tasdiqlangan shikoyat — ehtiyotroq baholang.`,
-    confidence: (value) =>
-      ({
-        low: "Ishonchlilik: past.",
-        medium: "Ishonchlilik: o'rtacha.",
-        high: "Ishonchlilik: yuqori.",
-      })[value],
     contextMatters:
       "Raqamning o'zi firibgarlikni isbotlamaydi. SMS-kod, karta, pul o'tkazma, APK, QR-login yoki masofaviy kirish so'ralganmi — shu muhim.",
     phonePrompt:
@@ -193,16 +174,6 @@ const COPY: Record<
       `Looks similar to an official contact, but it is not an exact match: ${org} — ${contact}.`,
     lookalikeStep:
       "Do not call back via the incoming number; use the app, card, official site, or verified contact.",
-    reports: (count) =>
-      count === 0
-        ? "No confirmed Ishonch Guard reports found."
-        : `${count} confirmed reports — use extra caution.`,
-    confidence: (value) =>
-      ({
-        low: "Confidence: low.",
-        medium: "Confidence: medium.",
-        high: "Confidence: high.",
-      })[value],
     contextMatters:
       "The number alone does not prove a scam. What matters is whether they ask for an SMS code, card, transfer, APK, QR login, or remote access.",
     phonePrompt:
@@ -250,7 +221,6 @@ export function detectRiskPassportKind(result: RiskPassportInput): RiskPassportK
 function buildPhonePassportSummary(result: RiskPassportInput, lang: Lang): RiskPassportSummary {
   const copy = COPY[lang];
   const passport = result.phoneIntelligence;
-  const reportCount = result.phoneReputation?.confirmedReportCount ?? result.knownReports ?? 0;
   const sections: RiskPassportSection[] = [];
 
   if (passport) {
@@ -271,10 +241,15 @@ function buildPhonePassportSummary(result: RiskPassportInput, lang: Lang): RiskP
     sections.push(section("visible", copy.visible, [copy.unknownCountry], "neutral"));
   }
 
-  const reputationLines = [copy.reports(reportCount)];
-  if (result.phoneReputation)
-    reputationLines.push(copy.confidence(result.phoneReputation.confidence));
-  sections.push(section("reputation", copy.reputation, reputationLines, "safe"));
+  const reputationLines = phoneReputationLines(result, lang);
+  sections.push(
+    section(
+      "reputation",
+      copy.reputation,
+      reputationLines,
+      result.phoneReputation ? "warning" : "safe",
+    ),
+  );
   sections.push(section("meaning", copy.meaning, [copy.contextMatters], "neutral"));
   sections.push(section("next_step", copy.nextStep, [copy.phonePrompt], "warning"));
 
@@ -285,6 +260,33 @@ function buildPhonePassportSummary(result: RiskPassportInput, lang: Lang): RiskP
     display: result.display,
     sections,
   };
+}
+
+function phoneReputationLines(result: RiskPassportInput, lang: Lang): string[] {
+  if (result.phoneReputation) {
+    return [
+      formatPhoneReputationEvidenceLine(result.phoneReputation, lang),
+      formatPhoneReputationScopeLine(lang),
+    ];
+  }
+
+  if (result.knownReports > 0) {
+    return [
+      formatPhoneReputationEvidenceLine(
+        {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: result.knownReports,
+          confidence: phoneReputationConfidence(result.knownReports),
+          riskLevel: result.level,
+          publicScope: "confirmed_moderated_reports_only",
+        },
+        lang,
+      ),
+      formatPhoneReputationScopeLine(lang),
+    ];
+  }
+
+  return [formatNoPhoneReputationLine(lang), formatPhoneReputationScopeLine(lang)];
 }
 
 function phoneDirectoryLines(

@@ -174,10 +174,11 @@ Remaining implementation order after the 2026-07-02 reconciliation:
    live QA and tune confidence heuristics from production examples.
 2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
    keep human listen-through for tone/pronunciation in the release checklist.
-3. **Phone Reputation v2 and Inline QA.** First inline QA slice shipped:
-   low-signal phone/Telegram inline answers reuse the shared Risk Passport
-   instead of a generic insufficient-data card. Next: improve phone reputation
-   wording/source confidence and collect more inline/live QA examples.
+3. **Phone Reputation v2 and Inline QA.** First inline QA and phone reputation
+   wording/source-confidence slices shipped: low-signal phone/Telegram inline
+   answers reuse the shared Risk Passport, and phone reputation copy now names
+   moderator-confirmed Ishonch Guard reports plus public-scope limits. Next:
+   collect more inline/live QA examples.
 4. **Public living-experience stories.** Build only after moderation,
    compliance and privacy review; never publish raw reports or low-count
    regional details.
@@ -225,9 +226,13 @@ Operational hardening that continues in parallel:
 - Inline Risk Passport QA slice shipped on 2026-07-02: Telegram inline
   low-signal phone/Telegram results now show honest passport sections with
   limitations and the next context prompt; high-risk inline cards stay urgent.
+- Phone Reputation v2 wording/source-confidence slice shipped on 2026-07-02:
+  Telegram, inline and shared Risk Passport copy now distinguishes
+  moderator-confirmed Ishonch Guard reports from unverified complaints, number
+  owner data, carrier data and hidden external labels.
 - Next queue item is collecting real provider Voice-in/STT audio/transcript
-  examples when key/audio access is available, then the remaining Phone
-  Reputation v2 / Inline QA polish.
+  examples when key/audio access is available, then remaining inline/live QA
+  examples for Phone Reputation v2 / Inline QA.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

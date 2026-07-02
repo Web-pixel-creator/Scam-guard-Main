@@ -54,6 +54,7 @@ Signatures and intent only. See file paths for source.
 
 - `buildPhoneReputationSummary(row)` exposes confirmed phone reputation only from moderated `entities` rows with positive report counts.
 - `phoneReputationConfidence(count)` maps confirmed report counts to conservative `low | medium | high` confidence labels.
+- `formatPhoneReputationEvidenceLine(summary, lang)`, `formatNoPhoneReputationLine(lang)` and `formatPhoneReputationScopeLine(lang)` provide shared RU/UZ/EN user-facing source/scope wording for Telegram, inline and Risk Passport surfaces.
 
 **`src/lib/risk/url-reputation.server.ts`**
 

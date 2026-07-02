@@ -172,8 +172,10 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).toContain("Номер: Узбекистан (+998)");
     expect(article.input_message_content.message_text).toContain("Beeline по префиксу 90");
     expect(article.input_message_content.message_text).toContain(
-      "Подтверждённых жалоб в Ishonch Guard не найдено.",
+      "Подтверждённых модерированных жалоб в Ishonch Guard не найдено.",
     );
+    expect(article.input_message_content.message_text).toContain("не гарантия безопасности");
+    expect(article.input_message_content.message_text).toContain("непроверенные жалобы");
     expect(article.input_message_content.message_text).toContain("Напишите, что попросили");
     expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
   });

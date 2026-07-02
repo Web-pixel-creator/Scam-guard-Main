@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPhoneReputationSummary, phoneReputationConfidence } from "./phone-reputation";
+import {
+  buildPhoneReputationSummary,
+  formatNoPhoneReputationLine,
+  formatPhoneReputationEvidenceLine,
+  formatPhoneReputationScopeLine,
+  phoneReputationConfidence,
+} from "./phone-reputation";
 
 describe("phone reputation summary", () => {
   it("does not expose unmoderated report counts", () => {
@@ -34,5 +40,24 @@ describe("phone reputation summary", () => {
     expect(phoneReputationConfidence(2)).toBe("medium");
     expect(phoneReputationConfidence(4)).toBe("medium");
     expect(phoneReputationConfidence(5)).toBe("high");
+  });
+
+  it("formats public reputation evidence with source, confidence and scope limits", () => {
+    const summary = buildPhoneReputationSummary({
+      report_count: 5,
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+    });
+
+    if (!summary) throw new Error("expected phone reputation summary");
+
+    expect(formatPhoneReputationEvidenceLine(summary, "ru")).toContain(
+      "подтверждённые модераторами жалобы Ishonch Guard",
+    );
+    expect(formatPhoneReputationEvidenceLine(summary, "ru")).toContain("5 подтверждённых жалоб");
+    expect(formatPhoneReputationEvidenceLine(summary, "ru")).toContain("Уверенность: высокая");
+    expect(formatPhoneReputationScopeLine("ru")).toContain("непроверенные жалобы");
+    expect(formatPhoneReputationScopeLine("ru")).toContain("владельца номера");
+    expect(formatNoPhoneReputationLine("ru")).toContain("не гарантия безопасности");
   });
 });

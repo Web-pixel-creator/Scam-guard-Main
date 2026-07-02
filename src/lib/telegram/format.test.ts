@@ -703,7 +703,10 @@ describe("formatCheckResult — known reports line (R4.11)", () => {
     expect(text).toContain(escapeMarkdownV2("Ishonch Guard"));
     expect(text).toContain(escapeMarkdownV2("3 подтверждённых жалоб"));
     expect(text).toContain(escapeMarkdownV2("Уверенность: средняя"));
-    expect(text).toContain(escapeMarkdownV2("не определяет владельца номера"));
+    expect(text).toContain(escapeMarkdownV2("подтверждённые модераторами жалобы"));
+    expect(text).toContain(escapeMarkdownV2("непроверенные жалобы"));
+    expect(text).toContain(escapeMarkdownV2("владельца номера"));
+    expect(text).toContain(escapeMarkdownV2("данные оператора"));
     expect(text).not.toMatch(/скрыт(ая|ой).*баз/i);
     expect(text).not.toContain("901234567");
   });
@@ -774,7 +777,11 @@ describe("formatCheckResult — Phone Directory v1", () => {
     expect(text).toContain(
       escapeMarkdownV2("В официальном справочнике Ishonch Guard совпадения нет."),
     );
-    expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
+    expect(text).toContain(
+      escapeMarkdownV2("Подтверждённых модерированных жалоб в Ishonch Guard не найдено"),
+    );
+    expect(text).toContain(escapeMarkdownV2("не гарантия безопасности"));
+    expect(text).toContain(escapeMarkdownV2("непроверенные жалобы"));
     expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
     expect(text).toContain(escapeMarkdownV2("QR-вход"));
