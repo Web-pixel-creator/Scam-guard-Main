@@ -14,6 +14,11 @@ import { safeCheckErrorMessage } from "@/lib/client-error";
 import type { Lang } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
+import {
+  buildRiskPassportSummary,
+  type RiskPassportSection,
+  type RiskPassportSummary,
+} from "@/lib/risk/risk-passport";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import type { CheckResult } from "@/components/RiskResultCard";
 
@@ -283,13 +288,14 @@ export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
   );
 }
 
-function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {
+export function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {
   const style = LEVEL_COPY[result.level];
   const Icon = style.icon;
+  const passport = buildRiskPassportSummary(result, lang);
   const advice = filterAdvice(result.level, result.reasons, lang);
   const fallback = ADVICE[result.level][lang];
   const topAdvice = (advice.length > 0 ? advice : fallback).slice(0, 2);
-  const reasons = result.reasons.slice(0, 3);
+  const reasons = passport ? [] : result.reasons.slice(0, 3);
 
   return (
     <div className={`mt-5 rounded-[8px] border p-4 ${style.tone}`}>
@@ -299,15 +305,19 @@ function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-75">
-            {style.label[lang]}
+            {passport?.eyebrow ?? style.label[lang]}
           </p>
           <h2 className="mt-1 text-[17px] font-extrabold leading-snug tracking-[-0.02em]">
-            {style.title[lang]}
+            {passport?.title ?? style.title[lang]}
           </h2>
-          {result.explanation && (
-            <p className="mt-3 whitespace-pre-line text-[13px] leading-relaxed">
-              {truncate(result.explanation)}
-            </p>
+          {passport ? (
+            <EmbedRiskPassport passport={passport} />
+          ) : (
+            result.explanation && (
+              <p className="mt-3 whitespace-pre-line text-[13px] leading-relaxed">
+                {truncate(result.explanation)}
+              </p>
+            )
           )}
         </div>
       </div>
@@ -325,14 +335,47 @@ function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {
         </div>
       )}
 
-      <div className="mt-4 border-t border-current/15 pt-3">
-        <p className="text-[12px] font-bold">{t("what_to_do", lang)}</p>
-        <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed">
-          {topAdvice.map((line) => (
-            <li key={line}>• {line}</li>
-          ))}
-        </ul>
-      </div>
+      {!passport && (
+        <div className="mt-4 border-t border-current/15 pt-3">
+          <p className="text-[12px] font-bold">{t("what_to_do", lang)}</p>
+          <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed">
+            {topAdvice.map((line) => (
+              <li key={line}>• {line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+  );
+}
+
+function EmbedRiskPassport({ passport }: { passport: RiskPassportSummary }) {
+  const sections = compactPassportSections(passport);
+
+  return (
+    <div className="mt-3 space-y-3">
+      {sections.map((section, index) => (
+        <EmbedRiskPassportSection section={section} key={`${section.id}-${index}`} />
+      ))}
+    </div>
+  );
+}
+
+function compactPassportSections(passport: RiskPassportSummary): RiskPassportSection[] {
+  const body = passport.sections.filter((section) => section.id !== "next_step").slice(0, 3);
+  const nextStep = passport.sections.find((section) => section.id === "next_step");
+  return nextStep ? [...body, nextStep] : body;
+}
+
+function EmbedRiskPassportSection({ section }: { section: RiskPassportSection }) {
+  return (
+    <section className="border-t border-current/15 pt-2 first:border-t-0 first:pt-0">
+      <p className="text-[12px] font-bold">{section.title}</p>
+      <ul className="mt-1.5 space-y-1 text-[12.5px] leading-relaxed">
+        {section.lines.slice(0, 2).map((line, index) => (
+          <li key={`${line}-${index}`}>вЂў {truncate(line, 150)}</li>
+        ))}
+      </ul>
+    </section>
   );
 }

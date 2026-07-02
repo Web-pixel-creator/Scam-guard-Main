@@ -133,6 +133,9 @@ set, then the database trigger may add `admin` if the email is still in
   origins only from server-side `EMBED_ALLOWED_FRAME_ANCESTORS`.
 - The `partner` query parameter is sanitized for display only; it is not
   trusted as authorization to frame the widget.
+- Low-signal phone/Telegram results may render as a compact Risk Passport in
+  web/embed surfaces: visible public metadata, directory/reputation status,
+  honest limitations and a next step. High-risk cards remain action-first.
 
 ## Database RPC
 

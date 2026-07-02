@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-011 web/embed Risk Passport compact reuse
+
+- Added `src/lib/risk/risk-passport.ts`, a shared pure Risk Passport presenter
+  for shallow phone and Telegram checks. It produces compact sections for
+  visible metadata, directory status, Ishonch reputation, honest limitations,
+  meaning and next step without changing scoring or persistence.
+- Updated the website result card to show the shared passport structure for
+  low-signal phone/Telegram checks instead of duplicating generic explanation
+  text; high-risk and suspicious results remain action-first.
+- Updated `/embed/check` to render a height-conscious passport summary and hide
+  generic reasons/advice duplication for passport cards, keeping partner
+  iframes compact.
+- Added pure presenter tests and an SSR component regression for the embed
+  passport branch, including privacy checks that raw phone digits are not
+  rendered.
+- Next queue item: `T-044 / ROAD-012 Embed origin analytics/logging`.
+
 ## 2026-07-02 - ROAD-010 private moderation chat research alerts
 
 - Extended `src/lib/telegram/moderation-notifier.server.ts` with a

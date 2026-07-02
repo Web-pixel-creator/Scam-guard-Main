@@ -196,10 +196,13 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       use only public scheme-trend metadata, send category/severity/source and
       reason-code ids to the private moderator chat, and can be explicitly
       verified with `npm run moderation:smoke -- --research`.
-- [ ] **Web/embed Risk Passport compact reuse.** ROAD-011 / T-043 is the next
+- [x] ~~**Web/embed Risk Passport compact reuse.** ROAD-011 / T-043 is the next
       queue item. Telegram Risk Passport v1 is shipped; reuse the same passport
       structure on the website and iframe widget where it improves shallow
-      username/phone checks without making partner embeds too tall.
+      username/phone checks without making partner embeds too tall.~~ Done:
+      shared `risk-passport` presenter now feeds the website result card and
+      `/embed/check`; low-signal phone/Telegram checks show compact honest
+      passport sections, while high-risk results remain action-first.
 - [x] ~~Add AI voice-clone as its own SOS scenario.~~ Done: second panic-menu
       page now includes `panic:11`, with saved-number verification,
       code-word/private-question guidance, help-directory copy and
@@ -221,9 +224,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       usernames and long digit runs before synthesis, refuses unsafe
       code/PIN/CVV/password-like text, prefers Gemini TTS when configured, and
       degrades to text when no TTS provider is configured.
-- [ ] Add origin analytics/logging for `/embed/check` frame usage before broad
-      distribution of the public embed widget. Partner allow-listing is shipped
-      through `EMBED_ALLOWED_FRAME_ANCESTORS`.
+- [ ] **Embed origin analytics/logging.** ROAD-012 / T-044 is the next queue
+      item. Add privacy-safe origin usage telemetry for `/embed/check` before
+      broad distribution of the public embed widget. Partner allow-listing is
+      shipped through `EMBED_ALLOWED_FRAME_ANCESTORS`.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,

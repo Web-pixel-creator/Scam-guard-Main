@@ -11,6 +11,13 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { ADVICE, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import type { PhoneIntelligencePassport } from "@/lib/risk/phone-intelligence";
+import type { PhoneReputationSummary } from "@/lib/risk/phone-reputation";
+import {
+  buildRiskPassportSummary,
+  type RiskPassportSection,
+  type RiskPassportSummary,
+} from "@/lib/risk/risk-passport";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import { FancyShell } from "@/components/FancyButton";
 
@@ -31,13 +38,8 @@ export type CheckResult = {
     verificationLevel: "high" | "medium";
     description: string;
   } | null;
-  phoneIntelligence?: {
-    officialLookalike?: {
-      org: Record<"ru" | "uz" | "en", string>;
-      display: string;
-      confidence: "low" | "medium";
-    } | null;
-  } | null;
+  phoneIntelligence?: PhoneIntelligencePassport | null;
+  phoneReputation?: PhoneReputationSummary | null;
 };
 
 type LevelStyle = {
@@ -109,6 +111,13 @@ const TYPE_LABELS: Record<string, { ru: string; uz: string; en: string }> = {
   unknown: { ru: "Запрос", uz: "So‘rov", en: "Input" },
 };
 
+const PASSPORT_CONTEXT_REASON_CODES = new Set<ReasonCode>([
+  "valid_uz_phone",
+  "non_uz_phone",
+  "unknown_sender",
+  "new_telegram_account",
+]);
+
 export function RiskResultCard({ result }: { result: CheckResult }) {
   const { lang } = useLang();
   const s = LEVEL_STYLES[result.level];
@@ -123,6 +132,11 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
   const displayScore = Math.min(100, Math.max(0, Math.round(result.score)));
+  const passport = buildRiskPassportSummary(result, lang);
+  const title = passport?.title ?? t(s.key as never, lang);
+  const reasonsToShow = passport
+    ? result.reasons.filter((reason) => !PASSPORT_CONTEXT_REASON_CODES.has(reason))
+    : result.reasons;
 
   // "Read aloud" — Web Speech API. Cleans up on unmount and on result change.
   const [speaking, setSpeaking] = useState(false);
@@ -239,7 +253,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
               </div>
 
               <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
-                {t(s.key as never, lang)}
+                {title}
               </h3>
               {result.type === "text" ? (
                 <blockquote className="mt-3 border-l-2 border-[#E2E0D8] pl-3 text-[13.5px] leading-[1.6] text-[#52525B] font-sans whitespace-pre-wrap break-words line-clamp-4">
@@ -251,22 +265,26 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                 </p>
               )}
 
-              {result.explanation && (
+              {passport && <RiskPassportPanel passport={passport} />}
+
+              {!passport && result.explanation && (
                 <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
                   {result.explanation}
                 </p>
               )}
-              {!result.explanation && result.reasons.includes("hosted_app_platform") && (
-                <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
-                  {
+              {!passport &&
+                !result.explanation &&
+                result.reasons.includes("hosted_app_platform") && (
+                  <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
                     {
-                      ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
-                      uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
-                      en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
-                    }[lang]
-                  }
-                </p>
-              )}
+                      {
+                        ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
+                        uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
+                        en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
+                      }[lang]
+                    }
+                  </p>
+                )}
 
               {/* Verified official contact match (D-011) */}
               {result.verifiedContact && (
@@ -323,40 +341,42 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
                   </p>
                 </div>
               )}
-              {!result.verifiedContact && result.phoneIntelligence?.officialLookalike && (
-                <div className="mt-5 p-4 rounded-lg border border-[#FCD34D]/70 bg-[#FFFBEB]">
-                  <p className="text-[14px] font-medium text-[#92400E] mb-2">
-                    ⚠️{" "}
-                    {
+              {!passport &&
+                !result.verifiedContact &&
+                result.phoneIntelligence?.officialLookalike && (
+                  <div className="mt-5 p-4 rounded-lg border border-[#FCD34D]/70 bg-[#FFFBEB]">
+                    <p className="text-[14px] font-medium text-[#92400E] mb-2">
+                      ⚠️{" "}
                       {
-                        ru: "Похож на официальный контакт, но не совпадает:",
-                        uz: "Rasmiy kontaktga o'xshaydi, lekin aniq mos emas:",
-                        en: "Similar to an official contact, but not an exact match:",
-                      }[lang]
-                    }{" "}
-                    {result.phoneIntelligence.officialLookalike.org[lang]} —{" "}
-                    {result.phoneIntelligence.officialLookalike.display}
-                  </p>
-                  <p className="text-[13px] text-[#52525B] leading-[1.5]">
-                    {
+                        {
+                          ru: "Похож на официальный контакт, но не совпадает:",
+                          uz: "Rasmiy kontaktga o'xshaydi, lekin aniq mos emas:",
+                          en: "Similar to an official contact, but not an exact match:",
+                        }[lang]
+                      }{" "}
+                      {result.phoneIntelligence.officialLookalike.org[lang]} —{" "}
+                      {result.phoneIntelligence.officialLookalike.display}
+                    </p>
+                    <p className="text-[13px] text-[#52525B] leading-[1.5]">
                       {
-                        ru: "Это не доказывает мошенничество. Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
-                        uz: "Bu firibgarlikni isbotlamaydi. Kiruvchi raqamga qayta qo'ng'iroq qilmang: ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
-                        en: "This does not prove fraud. Do not call back via the incoming number: use the app, card, official site, or verified contact.",
-                      }[lang]
-                    }
-                  </p>
-                </div>
-              )}
+                        {
+                          ru: "Это не доказывает мошенничество. Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
+                          uz: "Bu firibgarlikni isbotlamaydi. Kiruvchi raqamga qayta qo'ng'iroq qilmang: ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
+                          en: "This does not prove fraud. Do not call back via the incoming number: use the app, card, official site, or verified contact.",
+                        }[lang]
+                      }
+                    </p>
+                  </div>
+                )}
             </div>
           </div>
 
           {/* Reasons */}
-          {result.reasons.length > 0 && (
+          {reasonsToShow.length > 0 && (
             <div className="mt-8 pt-6 border-t border-[#E2E0D8]">
               <p className="label-md mb-4">{t("why_title", lang)}</p>
               <ul className="space-y-2.5">
-                {result.reasons.map((r, idx) => (
+                {reasonsToShow.map((r, idx) => (
                   <li key={r} className="flex gap-3 text-[14.5px] leading-[1.6] text-[#52525B]">
                     <span className="font-mono text-[12px] text-[#A1A1AA] shrink-0 mt-[2px] tabular-nums">
                       {(idx + 1).toString().padStart(2, "0")}
@@ -412,5 +432,53 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function RiskPassportPanel({ passport }: { passport: RiskPassportSummary }) {
+  return (
+    <div className="mt-5 border-y border-[#E2E0D8] py-4" aria-label={passport.title}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="apex-mono text-[#C2410C]">{passport.eyebrow}</p>
+        <span className="rounded-[4px] border border-[#E2E0D8] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#71717A]">
+          {passport.kind}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        {passport.sections.map((section, index) => (
+          <RiskPassportSectionBlock section={section} key={`${section.id}-${index}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RiskPassportSectionBlock({ section }: { section: RiskPassportSection }) {
+  const tone =
+    section.tone === "warning"
+      ? "text-[#9A3412]"
+      : section.tone === "safe"
+        ? "text-[#065F46]"
+        : "text-[#3F3F46]";
+
+  return (
+    <section className="min-w-0">
+      <h4 className={`text-[12px] font-bold uppercase tracking-[0.12em] ${tone}`}>
+        {section.title}
+      </h4>
+      <ul className="mt-2 space-y-1.5">
+        {section.lines.slice(0, 3).map((line) => (
+          <li
+            key={line}
+            className="flex gap-2 text-[13.5px] leading-[1.55] text-[#52525B] text-pretty"
+          >
+            <span aria-hidden="true" className="mt-[1px] text-[#A1A1AA]">
+              •
+            </span>
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

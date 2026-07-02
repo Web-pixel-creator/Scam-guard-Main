@@ -191,10 +191,12 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next roadmap queue item is `T-043 / ROAD-011 Web/embed Risk Passport compact
-  reuse`; bring the honest Telegram Risk Passport structure to the website and
-  partner iframe where it helps shallow username/phone checks without making
-  embeds too tall.
+- Web/embed Risk Passport compact reuse shipped: the shared passport presenter
+  now feeds website and partner iframe low-signal phone/Telegram checks without
+  changing scoring or making high-risk cards less urgent.
+- Next roadmap queue item is `T-044 / ROAD-012 Embed origin analytics/logging`;
+  add privacy-safe `/embed/check` origin usage telemetry before broad public
+  partner distribution.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

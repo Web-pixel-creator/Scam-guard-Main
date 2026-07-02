@@ -221,6 +221,20 @@ Signatures and intent only. See file paths for source.
   redaction, rules-first scoring and persistence remain centralized.
 - Shows a concise verdict, up to three reasons and up to two safe steps; meta
   intent answers render as informational text.
+- `EmbedResult(...)` renders low-signal phone/Telegram checks through the shared
+  compact Risk Passport presenter, suppressing duplicate generic advice so the
+  partner iframe stays short. High-risk results remain action-first.
+
+**`src/lib/risk/risk-passport.ts`**
+
+- `detectRiskPassportKind(result) -> "phone" | "telegram" | null` recognizes
+  shallow low-risk phone/Telegram checks that should be explained as context,
+  not as a scam/safe verdict.
+- `buildRiskPassportSummary(result, lang) -> RiskPassportSummary | null` builds
+  compact localized sections for visible metadata, directory status, Ishonch
+  reputation, limitations, meaning and next step. It uses already-redacted
+  displays/public metadata and does not change scoring, persistence or entity
+  lookups.
 
 ## Website trust surface
 
