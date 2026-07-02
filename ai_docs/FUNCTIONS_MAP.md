@@ -230,6 +230,18 @@ Signatures and intent only. See file paths for source.
   reason-code labels without touching private checks/reports.
 - `getTopSchemeTrends(limit)` returns severity-ordered homepage teaser entries.
 
+**`src/lib/trust/scam-map-index.ts`**
+
+- `getPrivacySafeScamMapIndex()` builds the public scam map/index from
+  non-personal scheme-trend entries only: category buckets, national layer,
+  active-watch/critical counts and a suppressed regional layer.
+- `isRegionBucketPublishable({ moderatedReports, distinctSchemes, sourceTypes })`
+  is the future dynamic-data gate. Region buckets must meet all thresholds
+  before publication.
+- `SCAM_MAP_FORBIDDEN_PUBLIC_FIELDS` is a regression guard list for raw reports,
+  screenshots, OCR, full targets, URLs, codes, cards and user/chat ids that must
+  not appear as public map fields.
+
 **`src/lib/trust/impact-stats.ts`**
 
 - `normalizePublicStatsRow(row, overrides?)` converts RPC/server aggregate rows

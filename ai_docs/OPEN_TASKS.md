@@ -169,13 +169,17 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       Done: `/trainer` and the main-menu Trainer button now run a five-situation
       defensive mini-quiz. Score is encoded in callback data, no user answers or
       `checks` rows are stored, and tests guard against attacker-ready scripts.
-- [ ] **Privacy-safe scam map/index.** ROAD-008 / T-040 is the next P5 queue
+- [x] ~~**Privacy-safe scam map/index.** ROAD-008 / T-040 is the next P5 queue
       item. Keep it aggregated, non-personal and moderation/research-source
       driven; do not expose raw reports, screenshots, OCR, full phone numbers,
-      URLs or accusations against unverified people.
-- [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
-      toward records with `source`, `status`, `updated_at`, manual publish and
-      safe stale fallback before any automation from research feeds.
+      URLs or accusations against unverified people.~~ Done: `/scam-trends` now
+      includes a national privacy-safe map/index, category buckets and a locked
+      regional layer. Region publication requires 5 moderated records, 3 scheme
+      types and 2 source types, and tests guard against private evidence fields.
+- [ ] **Weekly Scam Digest data model.** ROAD-009 / T-041 is the next queue
+      item. Move the current deterministic digest toward records with `source`,
+      `status`, `updated_at`, manual publish and safe stale fallback before any
+      automation from research feeds.
 - [ ] **Private moderation chat for reports/appeals.** Add an operator-only
       Telegram notification path for new reports, appeals and high-signal
       research items. Notifications must contain redacted summaries and admin

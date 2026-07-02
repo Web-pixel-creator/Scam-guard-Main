@@ -145,6 +145,11 @@ Already shipped:
 - Telegram Scam-call Trainer v1: `/trainer` and the main menu now open a
   five-situation defensive mini-quiz. Score stays in callback data, no answer
   state or `checks` rows are stored, and content avoids attacker-ready scripts.
+- Website Privacy-safe Scam Map/Index v1: `/scam-trends` now includes a
+  national tactics index, category buckets and a locked regional layer with
+  explicit publication thresholds. It does not read private reports or expose
+  raw targets, screenshots, OCR, URLs, phone numbers, usernames or low-count
+  region data.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -160,20 +165,15 @@ Remaining implementation order after the 2026-06-18 product feedback:
    bad recognition without re-spending STT budget.
 4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-5. **Privacy-safe scam map/index.** Build the next public/Telegram trust surface
-   only from aggregated, non-personal, moderated or research-source categories.
-   No raw reports, screenshots, OCR, full phone numbers, full URLs or public
-   accusations against unverified people.
-6. **Weekly schemes data model.** Move the weekly digest from static copy to a
+5. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
-7. **Private moderation chat.** If added, keep it operator-only with redacted
+6. **Private moderation chat.** If added, keep it operator-only with redacted
    summaries and links to admin review, not raw reports or user evidence.
-8. **External signals and public trust surfaces.** Google Safe Browsing /
+7. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
-  sanitized provider payloads. Public living-experience stories and the
-  privacy-safe scam map/index remain future trust surfaces. Paid line-type/VoIP
-  providers stay optional.
+   sanitized provider payloads. Public living-experience stories remain a future
+   trust surface. Paid line-type/VoIP providers stay optional.
 
 Operational hardening that continues in parallel:
 
@@ -185,8 +185,9 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next roadmap queue item is `T-040 / ROAD-008 privacy-safe scam map/index`;
-  keep it aggregated, non-personal and moderation/research-source driven.
+- Next roadmap queue item is `T-041 / ROAD-009 Weekly Scam Digest data model`;
+  move static digest content toward source/status/updated-at records with a
+  safe stale fallback before automation.
 - Consider a private moderator Telegram chat for new reports and appeals. It
   should receive only redacted summaries and moderation links, never raw codes,
   cards, screenshots, full OCR text or unredacted phone numbers.
@@ -276,7 +277,7 @@ Disallowed claims:
 4. Embeddable check widget for media, banks and community sites - shipped as v1.
 5. Public living-experience stories page: moderated, anonymized scam tactics and lessons.
 6. Scam-call trainer: shipped first as Telegram Scam-call Trainer v1.
-7. Scam map/index: aggregated trend surface only after data/compliance review.
+7. Scam map/index: shipped as Website Privacy-safe Scam Map/Index v1.
 8. "Verified by Ishonch Guard" badge only after manual moderation.
 
 ## Stage 4 - Reliability And Security

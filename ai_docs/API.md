@@ -102,6 +102,16 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
 - Family Shield uses `/family`, `family_*` deep links and `family:*` callbacks. Invite links are generated from HMAC-hashed tokens, pending invites expire after 24 hours, active-link duplicate creation is handled as a user-facing state, and trusted-contact alerts include no raw scam evidence. `family:codeword` is a teaching-only callback: it tells families how to agree on a voice-clone verification phrase offline and never asks the user to send or store the actual codeword. The trusted contact can opt out from future alerts from the alert itself.
 - Plain questions to the bot are routed through `src/lib/meta-intent.ts` before risk scoring. Telegram account visibility questions explain that hidden scam labels, account age, report history and spam history are not available unless the user sends real context or a future moderated source exists.
 
+## Website trust surfaces
+
+- `/scam-trends` includes a privacy-safe scam map/index built from public
+  scheme-trend categories, not raw reports. The public layer shows national
+  tactics and category buckets only; regional buckets stay suppressed until a
+  future dynamic source has at least 5 moderated records, 3 distinct scheme
+  types and 2 source types for that region.
+- The scam map/index does not expose raw complaint text, screenshots, OCR, full
+  phone numbers, usernames, URLs, codes, cards, chat ids or user ids.
+
 ## Auth flow
 
 Browser session token (Supabase) is attached by `attachSupabaseAuth` on every server-function call. Admin functions validate it server-side (`requireSupabaseAuth`) and check the `admin` role in `user_roles`.

@@ -47,7 +47,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `report.tsx`           | `/report`           | Scam report form.                                                                                   |
 | `emergency.tsx`        | `/emergency`        | First-hours recovery checklist.                                                                     |
 | `official-numbers.tsx` | `/official-numbers` | Public verified-contact directory for safe callback numbers and official Telegram/email contacts.   |
-| `scam-trends.tsx`      | `/scam-trends`      | Public non-personal map of current scam tactics, hooks, goals, safe steps and reason-code coverage. |
+| `scam-trends.tsx`      | `/scam-trends`      | Public non-personal map/index of current scam tactics, privacy-safe category buckets, hooks, goals, safe steps and reason-code coverage. |
 | `privacy.tsx`          | `/privacy`          | Privacy notice.                                                                                     |
 | `appeal.tsx`           | `/appeal`           | Privacy-safe reputation correction/removal request page for phone, Telegram, URL and APK targets.   |
 | `login.tsx`            | `/login`            | Supabase email auth.                                                                                |
@@ -84,6 +84,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `risk/verified-contacts.ts`                | Official Uzbekistan contacts (banks, telecom, gov, payments). Lookup for pipeline.                                                                                                                                                                                                                   |
 | `trust/official-directory.ts`              | Static public-directory helpers: stats, search/filter, contact actions and source-link detection for verified contacts.                                                                                                                                                                              |
 | `trust/scheme-trends.ts`                   | Static public scheme-trend helpers: non-personal tactic entries, stats, category/search filters and severity ordering.                                                                                                                                                                               |
+| `trust/scam-map-index.ts`                  | Privacy-safe public scam map/index helper: category buckets, national layer, regional suppression thresholds and forbidden-field guards for future dynamic data.                                                                                                                                       |
 | `trust/impact-stats.ts`                    | Public-stats normalizer and formatters for aggregate-only website impact counters. Check/risk values are raw activity; report/loss values are confirmed impact.                                                                                                                                      |
 | `meta-intent.ts`                           | Deterministic classifier for questions to the bot itself, including Telegram-account visibility limits.                                                                                                                                                                                              |
 | `telegram/emergency.ts`                    | Dynamic emergency checklist builder, panic menus and Emergency Copilot follow-up routing.                                                                                                                                                                                                            |
@@ -113,7 +114,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## `src/components/`
 
-`CheckInput`, `EmbedCheckWidget`, `RiskResultCard`, `QuickReportForm`, `StatsStrip`, `HomeImpactCounters`, `HomeTrustSurface`, `HomeSchemeTrends`, `OfficialContactsDirectory`, `SchemeTrendsPanel`, `Layout`, `LanguageSwitcher`, `A11yPanel`, `FancyButton`, `UnicornBackground`; `components/ui/*` are shadcn primitives.
+`CheckInput`, `EmbedCheckWidget`, `RiskResultCard`, `QuickReportForm`, `StatsStrip`, `HomeImpactCounters`, `HomeTrustSurface`, `HomeSchemeTrends`, `OfficialContactsDirectory`, `ScamMapIndexPanel`, `SchemeTrendsPanel`, `Layout`, `LanguageSwitcher`, `A11yPanel`, `FancyButton`, `UnicornBackground`; `components/ui/*` are shadcn primitives.
 
 ## `src/integrations/supabase/`
 

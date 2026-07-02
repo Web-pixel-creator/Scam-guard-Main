@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-008 privacy-safe scam map/index
+
+- Added `src/lib/trust/scam-map-index.ts`, a pure public-index helper that
+  aggregates existing non-personal scheme trends by category, severity, status
+  and source without reading private reports or raw evidence.
+- Added a privacy-safe map/index panel to `/scam-trends`: the page now shows a
+  national tactics index, category buckets and a locked regional layer with
+  explicit publication thresholds.
+- Locked the public regional boundary for future dynamic data: at least 5
+  moderated records, 3 distinct scheme types and 2 source types are required
+  before a region bucket can publish.
+- Added tests for category aggregation, regional suppression, threshold logic
+  and absence of private-evidence shaped fields in the public map payload.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-008` is now Implemented,
+  `T-040` is Passed, `QA-2026-07-02-002` was added, and the next queue item is
+  `T-041 / ROAD-009 Weekly Scam Digest data model`.
+
 ## 2026-07-02 - ROAD-007 scam-call trainer mini-quiz
 
 - Added a Telegram `/trainer` flow and main-menu Trainer button with a
