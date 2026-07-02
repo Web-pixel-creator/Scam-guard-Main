@@ -233,11 +233,19 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       partner, referrer origin/host, language and aggregate result shape in
       `embed_origin_events`, with RLS, service-role-only access and 180-day
       retention.
-- [ ] **P1 user-story QA flows.** Next queue item after ROAD-012. Re-run the
+- [x] ~~**P1 user-story QA flows.** Next queue item after ROAD-012. Re-run the
       real web/Telegram user-story flows from the tracker: homepage high-risk
       result, report success path, appeal success plus admin moderation, live
       Telegram image/QR, Guardian Angel high-risk, and private/group session
-      scoping.
+      scoping.~~ Done: production web smoke, admin moderation smoke,
+      Telegram user-story smoke, live QR/Guardian smoke, private/group scope
+      smoke and production security smoke passed on 2026-07-02. Synthetic rows
+      were cleaned, and user-facing Telegram smokes used a private
+      non-moderation QA chat, not the moderator chat.
+- [ ] **SEC-002 CSP/security headers final reconciliation.** Next queue item
+      after QA-001. Review current server CSP/header code, docs and production
+      headers; either close the stale Partial tracker row with current evidence
+      or define the exact remaining header gap.
 - [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
       data-driven profile map before adding many more SOS scenarios.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,

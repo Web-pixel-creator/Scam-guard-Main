@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - QA-001 P1 web/Telegram user-story QA flows
+
+- Ran production web QA against
+  `https://scam-guard-main-production.up.railway.app`: homepage high-risk
+  result, `/report` success and `/appeal` success passed with synthetic marker
+  `QA-P1-WEB-20260702071934`.
+- Ran production admin moderation smoke for the same marker; report rejection,
+  appeal keep-reputation decision, audit entries and cleanup passed.
+- Ran production Telegram user-story, live QR/Guardian and private/group scope
+  smokes. User-facing Telegram smoke messages were sent only to an existing
+  private non-moderation QA chat, not the moderator chat.
+- Updated `prod-security-smoke` so `PGRST205` from anon reads is treated as a
+  valid denied/hidden response for service-role-only tables; service-role count
+  still verifies `embed_origin_events` exists.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-001 / T-045` is now
+  Implemented/Passed, `QA-2026-07-02-007` was added, and the next queue item is
+  `T-046 / SEC-002 CSP/security headers final reconciliation`.
+
 ## 2026-07-02 - ROAD-012 embed origin analytics/logging
 
 - Added service-role-only `public.embed_origin_events` telemetry for

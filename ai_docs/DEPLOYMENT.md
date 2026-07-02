@@ -461,6 +461,9 @@ After DB/RLS/security migrations, run the dedicated security smoke. It verifies
 anon cannot read/write sensitive tables or execute maintenance/stat/rate-limit
 RPCs, while service-role can read required operational tables, including
 `embed_origin_events`, and claim a shared rate-limit bucket.
+For service-role-only tables that are fully hidden from anon PostgREST schema,
+`PGRST205` is an accepted deny result; the paired service-role count still
+proves the table exists.
 
 ```bash
 railway run npm run prod:security-smoke

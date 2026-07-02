@@ -39,7 +39,9 @@ function expectedDeny(
   if (!error) return false;
   const text = `${error.code ?? ""} ${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
   return (
+    error.code === "PGRST205" ||
     text.includes("permission denied") ||
+    text.includes("could not find the table") ||
     text.includes("row-level security") ||
     text.includes("violates row-level security") ||
     text.includes("not allowed")

@@ -201,9 +201,11 @@ Operational hardening that continues in parallel:
   changing scoring or making high-risk cards less urgent.
 - Embed origin analytics/logging shipped: `/embed/check` origin usage telemetry
   is service-role-only, RLS-protected and stores no raw checked evidence.
-- Next roadmap queue item is P1 user-story QA for web and Telegram flows:
-  homepage high-risk, report success, appeal/admin moderation, live Telegram
-  image/QR, Guardian Angel high-risk and private/group scoping.
+- P1 user-story QA for web and Telegram flows passed in production on
+  2026-07-02: homepage high-risk, report success, appeal/admin moderation,
+  live Telegram image/QR, Guardian Angel high-risk and private/group scoping.
+- Next queue item is `T-046 / SEC-002` CSP/security headers final
+  reconciliation, then UX/logistics fixes.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
