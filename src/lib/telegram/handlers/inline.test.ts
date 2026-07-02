@@ -125,4 +125,56 @@ describe("handleInlineQuery", () => {
     expect(article.title).toContain("Высокий риск");
     expect(article.input_message_content.message_text).toContain("Не отправляйте SMS-код");
   });
+
+  it("renders low-signal phone inline checks as a number passport", async () => {
+    hoisted.nextResult = {
+      type: "phone",
+      display: "+998 90 *** ** 67",
+      level: "unknown",
+      score: 0,
+      reasons: ["valid_uz_phone"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+      phoneIntelligence: {
+        digits: "998901234567",
+        normalized: "+998901234567",
+        kind: "uz_mobile",
+        isValidFormat: true,
+        isUzbekistan: true,
+        country: {
+          iso: "UZ",
+          callingCode: "998",
+          name: { ru: "Узбекистан", uz: "O'zbekiston", en: "Uzbekistan" },
+        },
+        uzPrefix: "90",
+        uzOperator: {
+          ru: "Beeline по префиксу 90",
+          uz: "90 prefiksi bo'yicha Beeline",
+          en: "Beeline by prefix 90",
+        },
+        officialDirectoryStatus: "not_found",
+      },
+    };
+
+    await handleInlineQuery("+998901234567", { userId: 42, session }, "iq-phone");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("passport-phone");
+    expect(article.title).toBe("Паспорт номера");
+    expect(article.description).toContain("Контекст, а не вердикт");
+    expect(article.input_message_content.message_text).toContain("Номер: Узбекистан (+998)");
+    expect(article.input_message_content.message_text).toContain("Beeline по префиксу 90");
+    expect(article.input_message_content.message_text).toContain(
+      "Подтверждённых жалоб в Ishonch Guard не найдено.",
+    );
+    expect(article.input_message_content.message_text).toContain("Напишите, что попросили");
+    expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
+  });
 });

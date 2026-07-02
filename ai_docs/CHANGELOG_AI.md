@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-013 Inline Risk Passport QA slice
+
+- Telegram inline-mode checks now reuse the shared Risk Passport presenter for
+  low-signal phone/Telegram results. Inline `@scamguard_bot <phone>` answers no
+  longer lead with a generic "not enough data" card when the honest response is
+  a number/profile passport with limitations and the next context question.
+- High-risk and suspicious inline results remain action-first and continue to
+  use the short verdict/safe-step card.
+- Verification passed: focused inline handler tests, risk-passport and
+  phone-reputation regressions, full Telegram suite, scoped TS eslint and
+  `tsc --noEmit`.
+
 ## 2026-07-02 - TG-014 Voice-in/STT fixture workflow
 
 - Extracted Voice-in/STT transcript replay rows into

@@ -1,4 +1,9 @@
 import type { Lang } from "@/lib/i18n";
+import {
+  buildRiskPassportSummary,
+  type RiskPassportSection,
+  type RiskPassportSummary,
+} from "@/lib/risk/risk-passport";
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
 import type { RiskLevel, ReasonCode } from "@/lib/risk/rules";
 import {
@@ -9,6 +14,7 @@ import {
 import type { InlineQueryCtx } from "@/lib/telegram/router";
 
 const MAX_INLINE_QUERY_LENGTH = 2000;
+const MAX_INLINE_DESCRIPTION_LENGTH = 120;
 const BOT_URL = "https://t.me/scamguard_bot";
 
 type Copy = {
@@ -272,7 +278,61 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   return lines.join("\n");
 }
 
+function compactInlineDescription(value: string): string {
+  const oneLine = value.replace(/\s+/gu, " ").trim();
+  if (oneLine.length <= MAX_INLINE_DESCRIPTION_LENGTH) return oneLine;
+
+  const softLimit = MAX_INLINE_DESCRIPTION_LENGTH - 3;
+  const boundary = oneLine.lastIndexOf(" ", softLimit);
+  const end = boundary >= 60 ? boundary : softLimit;
+  return `${oneLine.slice(0, end).trimEnd()}...`;
+}
+
+function firstUsefulPassportLine(sections: RiskPassportSection[]): string {
+  return (
+    sections.find((section) => section.id === "reputation")?.lines[0] ??
+    sections.find((section) => section.id === "bottom_line")?.lines[0] ??
+    sections.find((section) => section.id === "meaning")?.lines[0] ??
+    sections[0]?.lines[0] ??
+    ""
+  );
+}
+
+function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): string {
+  const copy = COPY[lang];
+  const lines = [
+    passport.title,
+    copy.checkedBy,
+    passport.eyebrow,
+    "",
+    `${copy.displayLabel}: ${passport.display}`,
+  ];
+
+  for (const section of passport.sections) {
+    lines.push("", section.title, ...section.lines.map((line) => `• ${line}`));
+  }
+
+  lines.push("", "@scamguard_bot");
+  return lines.join("\n");
+}
+
+function passportArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArticle | null {
+  const passport = buildRiskPassportSummary(result, lang);
+  if (!passport) return null;
+
+  return buildArticle(
+    `passport-${passport.kind}`,
+    passport.title,
+    compactInlineDescription(`${passport.eyebrow}. ${firstUsefulPassportLine(passport.sections)}`),
+    formatPassportMessage(passport, lang),
+    lang,
+  );
+}
+
 function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArticle {
+  const passport = passportArticle(result, lang);
+  if (passport) return passport;
+
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   return buildArticle(

@@ -19,6 +19,10 @@
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`. Voice-out/TTS is separately opt-in through `GEMINI_TTS_API_KEY` or `OPENAI_TTS_API_KEY`; without either, the bot sends a short text fallback instead of audio.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
+- **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
+  rules-only and non-persistent while phone/Telegram username checks can show
+  honest passport sections, limitations and the next context question instead
+  of a generic insufficient-data card.
 - **Pig-butchering / romance grooming still needs session memory.** The current
   deterministic rules can catch a single-message trust-to-investment pivot, but
   slow schemes need a cumulative chat-session risk profile: repeated
