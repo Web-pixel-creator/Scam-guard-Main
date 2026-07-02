@@ -14,7 +14,9 @@ vi.mock("@/lib/config.server", () => ({
 }));
 
 import {
+  buildHighSignalResearchModerationNotice,
   formatModerationNoticeForTelegram,
+  notifyHighSignalResearchModeration,
   notifyModeration,
 } from "@/lib/telegram/moderation-notifier.server";
 
@@ -141,5 +143,79 @@ describe("moderation notifier", () => {
     expect(text).toContain("No user report");
     expect(text).not.toContain("https://example.com");
     expect(text).not.toContain("abcdef1234567890");
+  });
+
+  it("builds a high-signal research notice from public trend metadata only", () => {
+    const notice = buildHighSignalResearchModerationNotice({
+      limit: 5,
+      generatedAt: new Date("2026-07-02T10:00:00.000Z"),
+    });
+
+    expect(notice.kind).toBe("research");
+    expect(notice.items.length).toBeGreaterThan(0);
+    expect(notice.items.length).toBeLessThanOrEqual(5);
+    expect(notice.generatedAt).toBe("2026-07-02T10:00:00.000Z");
+
+    for (const item of notice.items) {
+      expect(item.source).toMatch(/^(research_feed|moderated_aggregate)$/);
+      expect(item.severity).toMatch(/^(critical|high)$/);
+      expect(item.reasonCodes.length).toBeGreaterThan(0);
+      expect(item).not.toHaveProperty("rawReport");
+      expect(item).not.toHaveProperty("ocrText");
+      expect(item).not.toHaveProperty("url");
+      expect(item).not.toHaveProperty("userId");
+    }
+  });
+
+  it("formats research alerts without raw report-shaped evidence", () => {
+    const text = formatModerationNoticeForTelegram({
+      kind: "research",
+      generatedAt: "2026-07-02T10:00:00.000Z",
+      items: [
+        {
+          id: "suspicious-https://evil.example/private?code=abcdef1234567890",
+          category: "telegram",
+          severity: "critical",
+          source: "research_feed",
+          title: "Аккаунт +998 90 123 45 67 просит перейти на https://evil.example",
+          reasonCodes: ["telegram_account_takeover_phishing", "abcdef1234567890"],
+        },
+      ],
+    });
+
+    expect(text).toContain("research items на модерацию");
+    expect(text).toContain("Граница приватности");
+    expect(text).toContain("сырых постов");
+    expect(text).not.toContain("+998 90 123 45 67");
+    expect(text).not.toContain("https://evil.example");
+    expect(text).not.toContain("abcdef1234567890");
+  });
+
+  it("can send high-signal research alerts through the moderation chat only", async () => {
+    process.env.TELEGRAM_MODERATION_CHAT_ID = "-1001234567890";
+
+    const result = await notifyHighSignalResearchModeration({ limit: 2 });
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.sendMessage).toHaveBeenCalledTimes(1);
+    const calls = hoisted.sendMessage.mock.calls as unknown as Array<
+      [
+        {
+          chatId: number;
+          text: string;
+          keyboard?: unknown;
+          disablePreview?: boolean;
+        },
+      ]
+    >;
+    const payload = calls[0]?.[0];
+    expect(payload?.chatId).toBe(-1001234567890);
+    expect(payload?.keyboard).toEqual([
+      [{ text: "Открыть админку", url: "https://example.test/admin" }],
+    ]);
+    expect(payload?.disablePreview).toBe(true);
+    expect(payload?.text).toContain("research items на модерацию");
+    expect(payload?.text).not.toMatch(/https?:\/\/|t\.me\//);
+    expect(payload?.text).not.toContain("+998");
   });
 });

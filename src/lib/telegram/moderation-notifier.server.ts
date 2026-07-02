@@ -1,9 +1,17 @@
 import { getPublicAppUrl } from "@/lib/config.server";
 import { type InputType, redactText } from "@/lib/risk/detect";
+import {
+  getTrendSeverityRank,
+  PUBLIC_SCHEME_TRENDS,
+  type PublicSchemeTrend,
+  type SchemeTrendCategory,
+  type SchemeTrendSeverity,
+  type SchemeTrendSource,
+} from "@/lib/trust/scheme-trends";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import type { Lang } from "@/lib/i18n";
 
-type ModerationNoticeKind = "report" | "appeal" | "smoke";
+type ModerationNoticeKind = "report" | "appeal" | "research" | "smoke";
 
 export interface ModerationReportNotice {
   kind: "report";
@@ -24,6 +32,21 @@ export interface ModerationAppealNotice {
   language: Lang;
 }
 
+export interface ModerationResearchItem {
+  id: string;
+  category: SchemeTrendCategory;
+  severity: SchemeTrendSeverity;
+  source: SchemeTrendSource;
+  title: string;
+  reasonCodes: readonly string[];
+}
+
+export interface ModerationResearchNotice {
+  kind: "research";
+  items: readonly ModerationResearchItem[];
+  generatedAt?: string | null;
+}
+
 export interface ModerationSmokeNotice {
   kind: "smoke";
   label?: string | null;
@@ -32,13 +55,17 @@ export interface ModerationSmokeNotice {
 export type ModerationNotice =
   | ModerationReportNotice
   | ModerationAppealNotice
+  | ModerationResearchNotice
   | ModerationSmokeNotice;
 
 const MAX_FIELD = 80;
 const MAX_TARGET = 64;
+const MAX_RESEARCH_ITEMS = 5;
 const SENSITIVE_URL_RE = /\bhttps?:\/\/[^\s]+|\bwww\.[^\s]+/gi;
 const TELEGRAM_INVITE_RE = /\b(?:t\.me|telegram\.me)\/\+[A-Za-z0-9_-]+/gi;
 const LONG_TOKEN_RE = /\b[A-Za-z0-9_-]{16,}\b/g;
+const HIGH_SIGNAL_SOURCES = new Set<SchemeTrendSource>(["research_feed", "moderated_aggregate"]);
+const HIGH_SIGNAL_SEVERITIES = new Set<SchemeTrendSeverity>(["critical", "high"]);
 
 function getModerationChatId(): number | null {
   const raw = process.env.TELEGRAM_MODERATION_CHAT_ID?.trim();
@@ -61,6 +88,7 @@ function scrub(value: string, max = MAX_FIELD): string {
 
 function targetLabel(notice: ModerationNotice): string {
   if (notice.kind === "smoke") return "smoke-test";
+  if (notice.kind === "research") return "research-items";
   if (notice.kind === "appeal") {
     return `${notice.targetType}: ${scrub(notice.targetDisplay, MAX_TARGET)}`;
   }
@@ -71,6 +99,56 @@ function targetLabel(notice: ModerationNotice): string {
 function formatAmount(value?: number | null): string {
   if (!value || !Number.isFinite(value) || value <= 0) return "не указан";
   return `${Math.round(value).toLocaleString("en-US")} UZS`;
+}
+
+function toResearchItem(trend: PublicSchemeTrend): ModerationResearchItem {
+  return {
+    id: trend.id,
+    category: trend.category,
+    severity: trend.severity,
+    source: trend.source,
+    title: trend.title.ru,
+    reasonCodes: trend.reasonCodes,
+  };
+}
+
+export function buildHighSignalResearchModerationNotice(
+  options: { limit?: number; generatedAt?: Date } = {},
+): ModerationResearchNotice {
+  const limit = Math.min(
+    Math.max(1, Math.floor(options.limit ?? MAX_RESEARCH_ITEMS)),
+    MAX_RESEARCH_ITEMS,
+  );
+  const items = PUBLIC_SCHEME_TRENDS.filter((trend) => trend.status === "active_watch")
+    .filter((trend) => HIGH_SIGNAL_SOURCES.has(trend.source))
+    .filter((trend) => HIGH_SIGNAL_SEVERITIES.has(trend.severity))
+    .sort((a, b) => {
+      const severityDiff = getTrendSeverityRank(b.severity) - getTrendSeverityRank(a.severity);
+      if (severityDiff !== 0) return severityDiff;
+      return a.id.localeCompare(b.id);
+    })
+    .slice(0, limit)
+    .map(toResearchItem);
+
+  return {
+    kind: "research",
+    items,
+    generatedAt: (options.generatedAt ?? new Date()).toISOString(),
+  };
+}
+
+function formatResearchItem(item: ModerationResearchItem, index: number): string {
+  const codes = item.reasonCodes
+    .map((code) => scrub(code, 40))
+    .slice(0, 4)
+    .join(", ");
+  return [
+    `${index + 1}. ${scrub(item.title, 72)}`,
+    `   • id: ${scrub(item.id, 48)}`,
+    `   • severity/source: ${item.severity} / ${item.source}`,
+    `   • category: ${item.category}`,
+    `   • reason codes: ${codes || "not mapped"}`,
+  ].join("\n");
 }
 
 export function formatModerationNoticeForTelegram(notice: ModerationNotice): string {
@@ -97,6 +175,30 @@ export function formatModerationNoticeForTelegram(notice: ModerationNotice): str
       "Решение, статус и история цели доступны в админке после входа.",
       "",
       "Не пересылайте сюда коды, карты, пароли, скриншоты или полные контакты.",
+    ].join("\n");
+  }
+
+  if (notice.kind === "research") {
+    const items = notice.items.slice(0, MAX_RESEARCH_ITEMS);
+    const generated = notice.generatedAt ? scrub(notice.generatedAt, 32) : "not specified";
+    const itemLines =
+      items.length > 0
+        ? items.map((item, index) => formatResearchItem(item, index)).join("\n\n")
+        : "Нет high-signal research items для отправки.";
+
+    return [
+      "🛡 Ishonch Guard: research items на модерацию",
+      "Служебное уведомление для модераторов.",
+      "",
+      `Сформировано: ${generated}`,
+      "",
+      "📌 Что проверить",
+      itemLines,
+      "",
+      "🔐 Граница приватности",
+      "Это сводка по уже публичным/курируемым категориям. Здесь нет сырых постов, жалоб, OCR, скриншотов, кодов, карт, полных номеров, URL или user ids.",
+      "",
+      "Что делать: проверьте wording и решите, нужно ли переводить тему в правила, дайджест или публичную educational-карточку.",
     ].join("\n");
   }
 
@@ -144,4 +246,10 @@ export async function notifyModeration(notice: ModerationNotice): Promise<{ ok: 
     console.error("moderation notification failed", e instanceof Error ? e.message : "unknown");
     return { ok: false };
   }
+}
+
+export async function notifyHighSignalResearchModeration(
+  options: { limit?: number } = {},
+): Promise<{ ok: boolean }> {
+  return notifyModeration(buildHighSignalResearchModerationNotice(options));
 }

@@ -62,6 +62,12 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   confirmed reports, not raw unmoderated submissions. Same-day duplicate target
   reports are retained as redacted `reports.status='duplicate'` evidence for
   admin review/retention, but they do not refresh public entity state.
+- Optional private moderation alerts use `TELEGRAM_MODERATION_CHAT_ID`. The
+  alert body contains only redacted report/appeal summaries or public
+  high-signal scheme metadata plus an admin link. It never includes raw report
+  descriptions, screenshots, OCR, codes, cards, full phone numbers, full URLs or
+  user ids. `npm run moderation:smoke -- --research` verifies the research alert
+  wording separately from ordinary user-flow QA.
 - `/appeal` submits a privacy-safe correction/removal request for phone,
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
   masked display values and redacted reason text. Admin removal hides the public

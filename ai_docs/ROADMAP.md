@@ -53,6 +53,9 @@ Already shipped:
 - Weekly Scam Digest data model: `/digest` now renders from manual
   source/status/updated-at records, filters drafts and stale records, and uses a
   safe evergreen fallback before any future research-feed automation.
+- Private moderation chat workflow: optional moderator alerts now cover new
+  reports, reputation appeals and high-signal research items using redacted
+  summaries/admin links only.
 - Website Trust Surface v1: the website now has `/official-numbers`, a
   searchable verified-contact directory, safer homepage trust counters and a
   callback guidance block that warns caller ID can be spoofed.
@@ -188,9 +191,10 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next roadmap queue item is `T-042 / ROAD-010 Private moderation chat
-  remaining workflow`; finish high-signal research item notifications and
-  operator wording around the already-shipped private report/appeal alerts.
+- Next roadmap queue item is `T-043 / ROAD-011 Web/embed Risk Passport compact
+  reuse`; bring the honest Telegram Risk Passport structure to the website and
+  partner iframe where it helps shallow username/phone checks without making
+  embeds too tall.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

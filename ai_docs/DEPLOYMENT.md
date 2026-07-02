@@ -175,6 +175,13 @@ railway run npm run moderation:smoke
 
 The smoke test sends a clearly marked non-user test alert. It does not send
 real report text, screenshots, OCR, codes, card data, phone numbers or URLs.
+To verify the high-signal research moderation wording as well, run:
+
+```powershell
+railway run npm run moderation:smoke -- --research
+```
+
+The research smoke uses only public scheme-trend metadata and reason-code ids.
 
 For live Telegram user-flow smoke tests, set `TELEGRAM_QA_CHAT_ID` to the
 existing main/test chat where ordinary bot replies are acceptable. Create a

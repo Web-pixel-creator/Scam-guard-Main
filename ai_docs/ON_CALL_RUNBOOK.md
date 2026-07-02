@@ -54,8 +54,16 @@ cd C:\Scam-guard\repo
 railway run npm run moderation:smoke
 ```
 
-The smoke alert is a non-user test message. If it fails, confirm the bot was
-added to the private chat and that Railway has `TELEGRAM_MODERATION_CHAT_ID`.
+The smoke alert is a non-user test message. To also verify the high-signal
+research review wording, run:
+
+```powershell
+railway run npm run moderation:smoke -- --research
+```
+
+That alert uses only public scheme metadata and reason-code ids. If either
+fails, confirm the bot was added to the private chat and that Railway has
+`TELEGRAM_MODERATION_CHAT_ID`.
 
 ## First Five Minutes
 

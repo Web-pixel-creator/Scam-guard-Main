@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-010 private moderation chat research alerts
+
+- Extended `src/lib/telegram/moderation-notifier.server.ts` with a
+  high-signal research alert path built only from public scheme-trend metadata.
+- Added `buildHighSignalResearchModerationNotice()` and
+  `notifyHighSignalResearchModeration()` for operator-only research review;
+  the alert includes category, severity/source and reason-code ids, not raw
+  posts, user reports, OCR, screenshots, full URLs, phone numbers or user ids.
+- Kept the existing moderation chat contract: `TELEGRAM_MODERATION_CHAT_ID` is
+  optional, alerts use the same admin link button, and
+  `npm run moderation:smoke -- --research` can explicitly verify the research
+  workflow.
+- Added tests for research-item selection, redaction and Telegram send
+  payloads.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-010` is now Implemented,
+  `T-042` is Passed, `QA-2026-07-02-004` was added, and the next queue item is
+  `T-043 / ROAD-011 Web/embed Risk Passport compact reuse`.
+
 ## 2026-07-02 - ROAD-009 Weekly Scam Digest data model
 
 - Refactored Telegram `/digest` from a single static text blob into

@@ -183,7 +183,7 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       `WEEKLY_SCAM_DIGEST_ENTRIES` records with source/status/update metadata,
       filters drafts, refuses partial/stale weekly sets and falls back to
       evergreen safety guidance instead of stale "current" trends.
-- [ ] **Private moderation chat for reports/appeals.** ROAD-010 / T-042 is the
+- [x] ~~**Private moderation chat for reports/appeals.** ROAD-010 / T-042 is the
       next queue item. Add/finish an operator-only Telegram notification path
       for new reports, appeals and high-signal research items. Notifications
       must contain redacted summaries and admin links only, not raw report
@@ -192,11 +192,14 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       `TELEGRAM_MODERATION_CHAT_ID` alerts with redacted targets and an admin
       link. A dedicated `npm run moderation:smoke` verifies the private chat
       without user evidence. Remaining: high-signal research item notifications
-      and operator workflow wording.
-- [ ] Add web/embed Risk Passport compact reuse. Telegram Risk Passport v1 is
-      shipped; the remaining follow-up is to reuse the same passport structure
-      on the website and iframe widget where it improves shallow username/phone
-      checks without making partner embeds too tall.
+      and operator workflow wording.~~ Done: high-signal research alerts now
+      use only public scheme-trend metadata, send category/severity/source and
+      reason-code ids to the private moderator chat, and can be explicitly
+      verified with `npm run moderation:smoke -- --research`.
+- [ ] **Web/embed Risk Passport compact reuse.** ROAD-011 / T-043 is the next
+      queue item. Telegram Risk Passport v1 is shipped; reuse the same passport
+      structure on the website and iframe widget where it improves shallow
+      username/phone checks without making partner embeds too tall.
 - [x] ~~Add AI voice-clone as its own SOS scenario.~~ Done: second panic-menu
       page now includes `panic:11`, with saved-number verification,
       code-word/private-question guidance, help-directory copy and
