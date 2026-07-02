@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-015 Inline QA regression matrix
+
+- Expanded Telegram inline-mode regression coverage for low-signal Telegram
+  username checks and phone reputation source/scope rendering.
+- The inline QA matrix now covers: non-persistent rules-only execution,
+  high-risk action-first cards, low-signal phone Risk Passport, low-signal
+  Telegram Risk Passport, and phone reputation source/confidence/scope copy.
+- Verification passed: focused inline handler tests, full Telegram suite, full
+  risk suite, scoped TS eslint and `tsc --noEmit`.
+
 ## 2026-07-02 - ROAD-014 Phone Reputation v2 wording/source confidence
 
 - Added shared RU/UZ/EN Phone Reputation presentation helpers for confirmed

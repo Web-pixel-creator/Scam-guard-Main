@@ -179,4 +179,97 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).toContain("Напишите, что попросили");
     expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
   });
+
+  it("renders low-signal Telegram username inline checks as a Telegram passport", async () => {
+    hoisted.nextResult = {
+      type: "telegram",
+      display: "@lu•••mo",
+      level: "unknown",
+      score: 0,
+      reasons: ["unknown_sender"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery("@lucky_promo", { userId: 42, session }, "iq-telegram");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("passport-telegram");
+    expect(article.title).toBe("Telegram-паспорт");
+    expect(article.description).toContain("Контекст");
+    expect(article.input_message_content.message_text).toContain(
+      "Можно оценить только публично видимые признаки",
+    );
+    expect(article.input_message_content.message_text).toContain(
+      "Bot API не показывает возраст аккаунта",
+    );
+    expect(article.input_message_content.message_text).toContain(
+      "Username сам по себе не доказывает",
+    );
+    expect(article.input_message_content.message_text).toContain("Пришлите текст сообщения");
+    expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
+  });
+
+  it("keeps phone reputation source and scope visible in inline passport checks", async () => {
+    hoisted.nextResult = {
+      type: "phone",
+      display: "+998 90 *** ** 67",
+      level: "unknown",
+      score: 0,
+      reasons: ["valid_uz_phone"],
+      explanation: null,
+      knownReports: 3,
+      verifiedContact: null,
+      brandEvidence: [],
+      phoneIntelligence: {
+        digits: "998901234567",
+        normalized: "+998901234567",
+        kind: "uz_mobile",
+        isValidFormat: true,
+        isUzbekistan: true,
+        country: {
+          iso: "UZ",
+          callingCode: "998",
+          name: { ru: "Узбекистан", uz: "O'zbekiston", en: "Uzbekistan" },
+        },
+        uzPrefix: "90",
+        uzOperator: {
+          ru: "Beeline по префиксу 90",
+          uz: "90 prefiksi bo'yicha Beeline",
+          en: "Beeline by prefix 90",
+        },
+        officialDirectoryStatus: "not_found",
+      },
+      phoneReputation: {
+        source: "ishonch_guard_moderated_reports",
+        confirmedReportCount: 3,
+        confidence: "medium",
+        riskLevel: "suspicious",
+        publicScope: "confirmed_moderated_reports_only",
+      },
+    };
+
+    await handleInlineQuery("+998901234567", { userId: 42, session }, "iq-phone-reputation");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.description).toContain("подтверждённые модераторами жалобы");
+    expect(article.input_message_content.message_text).toContain(
+      "Источник: подтверждённые модераторами жалобы Ishonch Guard",
+    );
+    expect(article.input_message_content.message_text).toContain("3 подтверждённых жалоб");
+    expect(article.input_message_content.message_text).toContain("Уверенность: средняя");
+    expect(article.input_message_content.message_text).toContain("непроверенные жалобы");
+    expect(article.input_message_content.message_text).toContain("данные оператора");
+    expect(article.input_message_content.message_text).not.toContain("998901234567");
+  });
 });

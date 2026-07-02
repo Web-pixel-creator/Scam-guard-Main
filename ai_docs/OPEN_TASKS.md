@@ -26,7 +26,9 @@
 - **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
   rules-only and non-persistent while phone/Telegram username checks can show
   honest passport sections, limitations and the next context question instead
-  of a generic insufficient-data card.
+  of a generic insufficient-data card. Automated regressions cover low-signal
+  phone, low-signal Telegram username, phone reputation source/scope copy and
+  high-risk action-first inline cards; remaining QA is live Telegram examples.
 - **Pig-butchering / romance grooming still needs session memory.** The current
   deterministic rules can catch a single-message trust-to-investment pivot, but
   slow schemes need a cumulative chat-session risk profile: repeated
