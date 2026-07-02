@@ -176,20 +176,23 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       includes a national privacy-safe map/index, category buckets and a locked
       regional layer. Region publication requires 5 moderated records, 3 scheme
       types and 2 source types, and tests guard against private evidence fields.
-- [ ] **Weekly Scam Digest data model.** ROAD-009 / T-041 is the next queue
+- [x] ~~**Weekly Scam Digest data model.** ROAD-009 / T-041 is the next queue
       item. Move the current deterministic digest toward records with `source`,
       `status`, `updated_at`, manual publish and safe stale fallback before any
-      automation from research feeds.
-- [ ] **Private moderation chat for reports/appeals.** Add an operator-only
-      Telegram notification path for new reports, appeals and high-signal
-      research items. Notifications must contain redacted summaries and admin
-      links only, not raw report text, screenshots, OCR, codes, card data,
-      full phone numbers or URLs. First slice shipped: new reports and
-      reputation appeals now send optional `TELEGRAM_MODERATION_CHAT_ID`
-      alerts with redacted targets and an admin link. A dedicated
-      `npm run moderation:smoke` verifies the private chat without user
-      evidence. Remaining: high-signal research item notifications and
-      operator workflow wording.
+      automation from research feeds.~~ Done: `/digest` now renders from manual
+      `WEEKLY_SCAM_DIGEST_ENTRIES` records with source/status/update metadata,
+      filters drafts, refuses partial/stale weekly sets and falls back to
+      evergreen safety guidance instead of stale "current" trends.
+- [ ] **Private moderation chat for reports/appeals.** ROAD-010 / T-042 is the
+      next queue item. Add/finish an operator-only Telegram notification path
+      for new reports, appeals and high-signal research items. Notifications
+      must contain redacted summaries and admin links only, not raw report
+      text, screenshots, OCR, codes, card data, full phone numbers or URLs.
+      First slice shipped: new reports and reputation appeals now send optional
+      `TELEGRAM_MODERATION_CHAT_ID` alerts with redacted targets and an admin
+      link. A dedicated `npm run moderation:smoke` verifies the private chat
+      without user evidence. Remaining: high-signal research item notifications
+      and operator workflow wording.
 - [ ] Add web/embed Risk Passport compact reuse. Telegram Risk Passport v1 is
       shipped; the remaining follow-up is to reuse the same passport structure
       on the website and iframe widget where it improves shallow username/phone

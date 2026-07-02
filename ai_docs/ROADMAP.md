@@ -50,6 +50,9 @@ Already shipped:
 - Weekly Scam Digest v1: Telegram `/digest` and the main menu now show a
   compact deterministic RU/UZ/EN digest for casino/frispin, NFT/Stars, TON,
   bank/SMS-code and APK funnels, with check/report/emergency next actions.
+- Weekly Scam Digest data model: `/digest` now renders from manual
+  source/status/updated-at records, filters drafts and stale records, and uses a
+  safe evergreen fallback before any future research-feed automation.
 - Website Trust Surface v1: the website now has `/official-numbers`, a
   searchable verified-contact directory, safer homepage trust counters and a
   callback guidance block that warns caller ID can be spoofed.
@@ -185,12 +188,12 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next roadmap queue item is `T-041 / ROAD-009 Weekly Scam Digest data model`;
-  move static digest content toward source/status/updated-at records with a
-  safe stale fallback before automation.
-- Consider a private moderator Telegram chat for new reports and appeals. It
-  should receive only redacted summaries and moderation links, never raw codes,
-  cards, screenshots, full OCR text or unredacted phone numbers.
+- Next roadmap queue item is `T-042 / ROAD-010 Private moderation chat
+  remaining workflow`; finish high-signal research item notifications and
+  operator wording around the already-shipped private report/appeal alerts.
+- The private moderator Telegram chat must receive only redacted summaries and
+  moderation links, never raw codes, cards, screenshots, full OCR text or
+  unredacted phone numbers.
 
 Important boundary: do not copy MTProto-style account-age, hidden scam-label,
 DC/country or private spam-history claims from third-party Telegram tools. Our

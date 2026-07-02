@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-009 Weekly Scam Digest data model
+
+- Refactored Telegram `/digest` from a single static text blob into
+  `WEEKLY_SCAM_DIGEST_ENTRIES` records with `source`, `status`, `updatedAt`,
+  `publishMode: "manual"`, tags and localized funnel copy.
+- Added a freshness gate: stale or partial published record sets fall back to
+  evergreen safety guidance instead of presenting old weekly trends as current.
+- Kept the public Telegram output deterministic and compact, with the same
+  check/report/emergency next actions and no user reports, raw links, phone
+  numbers, screenshots or source labels exposed.
+- Added tests for manual-publish metadata, draft filtering, stale fallback,
+  minimum topic count and public-text privacy guards.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-009` is now Implemented,
+  `T-041` is Passed, `QA-2026-07-02-003` was added, and the next queue item is
+  `T-042 / ROAD-010 Private moderation chat remaining workflow`.
+
 ## 2026-07-02 - ROAD-008 privacy-safe scam map/index
 
 - Added `src/lib/trust/scam-map-index.ts`, a pure public-index helper that

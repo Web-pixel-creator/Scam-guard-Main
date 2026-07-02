@@ -157,6 +157,18 @@ Signatures and intent only. See file paths for source.
   handle `trainer:*` callbacks without session state, persistence or `checks`
   inserts. The trainer content is defensive and avoids exact scam scripts.
 
+**`src/lib/telegram/digest.ts`**
+
+- `WEEKLY_SCAM_DIGEST_ENTRIES` is the manual-publish data model behind
+  `/digest`: each topic has source/status/updated-at metadata, tags and
+  RU/UZ/EN funnel copy.
+- `getWeeklyScamDigestSnapshot(lang, { now?, entries? })` selects fresh
+  manually published entries, filters drafts/archived records and falls back to
+  evergreen safety guidance when fewer than three fresh topics are available.
+- `formatWeeklyScamDigest(lang)` preserves the existing Telegram contract by
+  returning MarkdownV2-escaped text plus the compact check/emergency/report
+  keyboard without exposing source labels or raw report-shaped evidence.
+
 **`src/lib/telegram/voice-out.server.ts`**
 
 - `parseVoiceOutCallback(data)` accepts `voiceout:panic`,
