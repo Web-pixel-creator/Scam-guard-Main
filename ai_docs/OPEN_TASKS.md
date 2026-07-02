@@ -29,8 +29,9 @@
   of a generic insufficient-data card. Automated regressions cover low-signal
   phone, low-signal Telegram username, phone reputation source/scope copy and
   high-risk action-first inline cards; production synthetic inline smoke now
-  verifies webhook `200` plus no `checks`/session persistence. Remaining QA is
-  real Telegram-client visual examples/screenshots.
+  verifies webhook `200` plus no `checks`/session persistence. The manual
+  real-client checklist now lives in `ai_docs/TELEGRAM_INLINE_QA.md`; remaining
+  QA is capturing sanitized Telegram-client visual examples/screenshots.
 - **Pig-butchering / romance grooming still needs session memory.** The current
   deterministic rules can catch a single-message trust-to-investment pivot, but
   slow schemes need a cumulative chat-session risk profile: repeated

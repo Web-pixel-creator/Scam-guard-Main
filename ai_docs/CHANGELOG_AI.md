@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-017 Telegram inline client QA checklist
+
+- Added `ai_docs/TELEGRAM_INLINE_QA.md` for real Telegram-client inline visual
+  QA. The checklist covers empty, high-risk, low-signal phone, low-signal
+  Telegram username, long-query, EN and UZ cases.
+- Documented that no third chat is required; use an existing non-moderator
+  place where test messages are safe. Inline preview/insert must not notify the
+  moderator chat.
+- Added `private/telegram-inline-qa/` to `.gitignore` so raw local screenshots
+  stay out of commits unless explicitly sanitized and reviewed.
+
 ## 2026-07-02 - ROAD-016 Production Telegram inline smoke
 
 - Added `scripts/prod-telegram-inline-smoke.ts` and

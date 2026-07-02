@@ -432,6 +432,13 @@ railway run npm run prod:telegram-inline-smoke -- https://your-app.example.com
 This uses synthetic inline query ids, so it validates deployed webhook handling
 and privacy invariants, not visual Telegram-client rendering.
 
+For real Telegram-client rendering, use `ai_docs/TELEGRAM_INLINE_QA.md`. That
+checklist does not require a third chat: use an existing non-moderator place
+where test messages are safe, such as the main bot chat if inline results are
+available there, Saved Messages, or a private QA chat. Inline preview/insert
+must not send messages to the moderator chat; moderator delivery is expected
+only for explicit report/appeal flows.
+
 ### 5. Verify no secrets leak to logs or the client bundle
 
 - Confirm logs around webhook registration and runtime show **only** event
