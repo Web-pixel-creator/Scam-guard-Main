@@ -960,6 +960,53 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).not.toContain(imageTriageCallback("casino"));
   });
 
+  it("answers Telegram profile image triage without accusing and stores profile follow-up context", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1109,
+      lang: "en",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {
+        lastCheck: {
+          level: "unknown",
+          type: "unknown",
+          context: "image_unreadable",
+          at: new Date().toISOString(),
+        },
+      },
+      updated_at: new Date().toISOString(),
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1109,
+          chatId: 5109,
+          data: imageTriageCallback("telegram_profile"),
+          id: "cb-img-profile",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-img-profile"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Telegram profile or chat");
+    expect(h.sendCalls[0].text).toContain("clues, not proof of fraud");
+    expect(h.sendCalls[0].text).toContain("What matters is the request");
+    expect(h.sendCalls[0].text).not.toMatch(/definitely a scammer|created recently|has reports/i);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      CB.checkAnother,
+      CB.mediaTips,
+      CB.emergency,
+    ]);
+
+    const persisted = JSON.stringify(h.upserts);
+    expect(persisted).toContain('"context":"telegram_profile"');
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("SCREENSHOT_BYTES");
+  });
+
   it("answers orphan follow-up wording with guidance instead of insufficient-data risk card", async () => {
     const update = textUpdate({ userId: 1107, chatId: 5107, text: "Точно?" });
 

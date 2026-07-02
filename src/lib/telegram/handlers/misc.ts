@@ -61,7 +61,12 @@ import {
   type EmergencyFollowUpAction,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
-import { setLanguage, saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
+import {
+  setLanguage,
+  saveSession,
+  withSessionChatScope,
+  type LastCheckSnapshot,
+} from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
@@ -71,6 +76,7 @@ import {
   buildImageTriageKeyboard,
   buildImageTriageText,
   parseImageTriageCallback,
+  type ImageTriageKind,
 } from "@/lib/telegram/image-fallback";
 import {
   buildAskedContextFollowUpKeyboard,
@@ -146,6 +152,16 @@ export function buildUnsupportedMediaKeyboard(lang: Lang): InlineKeyboard {
       { text: bt("btn_media_tips", lang), callback_data: CB.mediaTips },
     ],
   ];
+}
+
+function imageTriageSnapshot(kind: ImageTriageKind): LastCheckSnapshot | null {
+  if (kind !== "telegram_profile") return null;
+  return {
+    level: "unknown",
+    type: "unknown",
+    context: "telegram_profile",
+    at: new Date().toISOString(),
+  };
 }
 
 async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
@@ -526,6 +542,22 @@ export async function handleCallback(
 
   const imageTriageKind = parseImageTriageCallback(data);
   if (imageTriageKind !== null) {
+    const snapshot = imageTriageSnapshot(imageTriageKind);
+    if (snapshot) {
+      const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+      await saveSession(ctx.userId, {
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: withSessionChatScope(
+          {
+            ...previousScenarioData,
+            lastCheck: snapshot,
+          },
+          ctx.chatId,
+          ctx.chatType,
+        ),
+      });
+    }
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),

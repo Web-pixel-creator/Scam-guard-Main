@@ -3,7 +3,13 @@ import type { InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import { CB } from "@/lib/telegram/format";
 
-export type ImageTriageKind = "gift" | "casino" | "wallet" | "bank" | "qr_menu";
+export type ImageTriageKind =
+  | "gift"
+  | "casino"
+  | "wallet"
+  | "bank"
+  | "telegram_profile"
+  | "qr_menu";
 
 const IMAGE_TRIAGE_PREFIX = "imgtriage:";
 
@@ -12,6 +18,7 @@ const IMAGE_TRIAGE_KINDS: readonly ImageTriageKind[] = [
   "casino",
   "wallet",
   "bank",
+  "telegram_profile",
   "qr_menu",
 ];
 
@@ -20,6 +27,7 @@ const TRIAGE_TEXT_KEY: Record<ImageTriageKind, BotStringKey> = {
   casino: "image_triage_casino",
   wallet: "image_triage_wallet",
   bank: "image_triage_bank",
+  telegram_profile: "image_triage_telegram_profile",
   qr_menu: "image_triage_qr_menu",
 };
 
@@ -47,11 +55,15 @@ export function buildImageTriageKeyboard(lang: Lang): InlineKeyboard {
     ],
     [
       {
+        text: bt("btn_image_triage_telegram_profile", lang),
+        callback_data: imageTriageCallback("telegram_profile"),
+      },
+      {
         text: bt("btn_image_triage_qr_menu", lang),
         callback_data: imageTriageCallback("qr_menu"),
       },
-      { text: bt("btn_media_tips", lang), callback_data: CB.mediaTips },
     ],
+    [{ text: bt("btn_media_tips", lang), callback_data: CB.mediaTips }],
     [
       { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
       { text: bt("btn_emergency", lang), callback_data: CB.emergency },

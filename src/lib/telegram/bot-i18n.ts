@@ -381,6 +381,11 @@ export const bot_dict: BotDict = {
     uz: "🏦 Bank/kod",
     en: "🏦 Bank/code",
   },
+  btn_image_triage_telegram_profile: {
+    ru: "👤 Профиль/чат",
+    uz: "👤 Profil/chat",
+    en: "👤 Profile/chat",
+  },
   btn_image_triage_qr_menu: {
     ru: "🍽 Меню/QR",
     uz: "🍽 Menyu/QR",
@@ -405,6 +410,11 @@ export const bot_dict: BotDict = {
     ru: "🏦 Банк, код, карта или APK\n\nОпасно, если просят SMS-код, PIN, CVV, пароль, карту, APK или «защитное приложение». Банк не просит это в Telegram.\n\nБезопасный шаг: ничего не отправляйте. Если уже ввели код/карту или APK — нажмите /panic.",
     uz: "🏦 Bank, kod, karta yoki APK\n\nSMS-kod, PIN, CVV, parol, karta, APK yoki «xavfsizlik ilovasi» so'ralsa — xavfli. Bank Telegram orqali buni so'ramaydi.\n\nXavfsiz qadam: hech narsa yubormang. Kod/karta kiritgan yoki APK o'rnatgan bo'lsangiz — /panic ni bosing.",
     en: "🏦 Bank, code, card, or APK\n\nDanger: SMS code, PIN, CVV, password, card data, APK, or “security app”. Banks do not ask for this through Telegram.\n\nSafe step: send nothing. If you already entered a code/card or installed an APK, use /panic.",
+  },
+  image_triage_telegram_profile: {
+    ru: "👤 Профиль или чат Telegram\n\nПо одному скрину профиля я не могу честно сказать, кто это. Поля вроде «не в контактах», страны телефона или «не официальный аккаунт» — это подсказки, но не доказательство мошенничества.\n\nВажнее просьба: код, деньги, карта, APK, ссылка/QR или срочность. Пришлите сообщение, следующий экран или коротко напишите, что человек просит сделать.",
+    uz: "👤 Telegram profili yoki chat\n\nFaqat profil skriniga qarab bu kimligini aniq ayta olmayman. «Kontaktlarda yo'q», telefon mamlakati yoki «rasmiy akkaunt emas» kabi belgilar yordam beradi, lekin firibgarlik isboti emas.\n\nMuhimi — nima so'rashyapti: kod, pul, karta, APK, havola/QR yoki shoshirish. Xabarni, keyingi ekranni yoki odam nima qilishni so'raganini qisqa yuboring.",
+    en: "👤 Telegram profile or chat\n\nFrom one profile screenshot, I cannot honestly say who this is. Fields like “not in contacts”, phone country, or “not official account” are clues, not proof of fraud.\n\nWhat matters is the request: code, money, card data, APK, link/QR, or urgency. Send the message, the next screen, or briefly write what they ask you to do.",
   },
   image_triage_qr_menu: {
     ru: "🍽 Меню, ресторанный QR или информационный QR\n\nСам QR обычно не скам: он может открыть меню, акцию или бронирование. Риск появляется после перехода, если просят оплату, Telegram-вход, SMS-код, карту или APK.\n\nБезопасный шаг: проверьте адрес страницы. Если просят данные — пришлите адрес или следующий скрин.",

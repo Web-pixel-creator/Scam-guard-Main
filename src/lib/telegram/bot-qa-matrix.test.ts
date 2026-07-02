@@ -111,6 +111,7 @@ describe("Telegram Bot QA Matrix v1", () => {
       imageTriageCallback("casino"),
       imageTriageCallback("wallet"),
       imageTriageCallback("bank"),
+      imageTriageCallback("telegram_profile"),
       imageTriageCallback("qr_menu"),
       CB.mediaTips,
       CB.checkAnother,
@@ -121,6 +122,16 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("wallet");
     expect(text).toContain("следующего экрана");
     expect(text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
+  });
+
+  it("gives Telegram profile screenshots a conservative next-step triage answer", () => {
+    const text = buildImageTriageText("telegram_profile", "en");
+
+    expect(text).toContain("Telegram profile or chat");
+    expect(text).toContain("clues, not proof of fraud");
+    expect(text).toContain("What matters is the request");
+    expect(text).toContain("code, money, card data, APK, link/QR, or urgency");
+    expect(text).not.toMatch(/definitely a scammer|created recently|has reports/i);
   });
 
   it("keeps image triage category answers compact instead of repeating the full menu", () => {
