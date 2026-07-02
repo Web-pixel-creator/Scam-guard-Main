@@ -82,6 +82,7 @@ import {
   handleConversationCancel,
   startConversationCheck,
 } from "@/lib/telegram/handlers/conversation";
+import { buildTrainerCallbackResponse } from "@/lib/telegram/scam-trainer";
 import {
   buildLastCheckFollowUpText,
   classifyLastCheckFollowUp,
@@ -504,6 +505,16 @@ export async function handleCallback(
   if (data === CB.digest) {
     const { text, keyboard } = formatWeeklyScamDigest(lang);
     await sendMessage({ chatId: ctx.chatId, text, keyboard });
+    return;
+  }
+
+  const trainer = buildTrainerCallbackResponse(data, lang);
+  if (trainer !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(trainer.text),
+      keyboard: trainer.keyboard,
+    });
     return;
   }
 

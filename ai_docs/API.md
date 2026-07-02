@@ -40,6 +40,9 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   before dispatch, the webhook returns HTTP 503 with `Retry-After` and does not
   process the update, allowing Telegram to retry without duplicate side effects.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. `/call` is a direct entrypoint into the same live-call scenario (`lastPanicId=6`) and stores no phone number, call recording or raw evidence. Suspicious payloads still go through the normal risk pipeline.
+- `/trainer` opens a five-situation scam-call mini-quiz. It is callback-only:
+  the score is encoded in `trainer:*` callback data, answers are not stored,
+  and no `checks` rows are inserted.
 - Stateful Telegram flows are scoped to the current chat via
   `scenario_data.chatScope`. `/report`, `/check`, `/call`, panic and
   post-check follow-up context created in a private chat is not reused from a

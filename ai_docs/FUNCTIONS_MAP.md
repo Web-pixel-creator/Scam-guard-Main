@@ -145,6 +145,18 @@ Signatures and intent only. See file paths for source.
   follow-ups such as "что дальше?", "готово" and "дай номер банка" without
   swallowing new artifacts.
 
+**`src/lib/telegram/scam-trainer.ts`**
+
+- `buildTrainerIntro(lang)` renders the callback-only `/trainer` intro.
+- `buildTrainerQuestion(questionId, lang, score)` renders one defensive
+  mini-quiz situation with three safe/unsafe choices.
+- `buildTrainerAnswer(questionId, optionIndex, lang, score)` returns feedback,
+  advances the callback-encoded score and offers restart/emergency help at the
+  end.
+- `parseTrainerCallback(data)` / `buildTrainerCallbackResponse(data, lang)`
+  handle `trainer:*` callbacks without session state, persistence or `checks`
+  inserts. The trainer content is defensive and avoids exact scam scripts.
+
 **`src/lib/telegram/voice-out.server.ts`**
 
 - `parseVoiceOutCallback(data)` accepts `voiceout:panic`,
@@ -231,7 +243,7 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/webhook.server.ts`: framework-agnostic webhook handler with fail-closed secret validation, capped body parsing and `update_id` dedup via an in-memory fast path plus shared Postgres claims; returns 503 before dispatch when the shared claim is unavailable.
 - `src/lib/telegram/webhook-dedup.server.ts`: `claimTelegramWebhookUpdate(updateId)` inserts a service-role-only idempotency row into `telegram_webhook_updates`, returns `duplicate` for unique violations and `unavailable` for storage failures so the webhook can retry before side effects.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
-- `src/lib/telegram/router.ts`: parses updates and routes commands/content, including direct `/call`; handles `inline_query` before chat-target extraction; resets active/contextual session state when stored `scenario_data.chatScope` does not match the current chat; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes voice notes, short Telegram `audio` attachments and audio documents such as `.ogg`/`.m4a` through the same capped STT path while keeping non-audio documents unsupported; routes Telegram video thumbnails to the image pipeline with a `video_thumbnail` media marker when no stronger caption/link/button evidence exists; routes uncaptained images in `report_desc` to transient report screenshot evidence; attaches sanitized public forward channel/group source context to check/image actions.
+- `src/lib/telegram/router.ts`: parses updates and routes commands/content, including direct `/call` and `/trainer`; handles `inline_query` before chat-target extraction; resets active/contextual session state when stored `scenario_data.chatScope` does not match the current chat; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes voice notes, short Telegram `audio` attachments and audio documents such as `.ogg`/`.m4a` through the same capped STT path while keeping non-audio documents unsupported; routes Telegram video thumbnails to the image pipeline with a `video_thumbnail` media marker when no stronger caption/link/button evidence exists; routes uncaptained images in `report_desc` to transient report screenshot evidence; attaches sanitized public forward channel/group source context to check/image actions.
 - `src/lib/telegram/handlers/*`: `/start`, `/call`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed `telegram_sessions` state; `withSessionChatScope()` stamps chat id/type on state that can affect later replies, and `isSessionStateScopedToChat()` rejects mismatched or legacy unscoped contextual rows; `lastCheck` stores only non-sensitive summary metadata plus short reason codes for follow-up explanations, and `guardian` stores only high-risk summary metadata for post-verdict guidance.
 - `src/lib/telegram/family-shield.server.ts`: service-role-only Family Shield helper. It creates HMAC-hashed one-use invite links, rejects duplicate active links, expires stale pending invites, sends redacted trusted-contact alerts with opt-out, provides the privacy-first family codeword guide, and revokes relationships from either guardian or trusted-contact side. The guide never asks users to send or store the actual codeword.
@@ -250,11 +262,12 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/public-post.server.ts`: validates public Telegram post links, fetches only `https://t.me/s/<username>/<postId>` with timeout/body/shared rate limits, parses visible post text, outbound links, link previews and inline buttons from Telegram web HTML, redacts sensitive digits, builds rules-safe check input, and prepends a source limitation brief without changing score/level/reasons.
 - `src/lib/telegram/format.ts`: formats result cards; Telegram profile/invite checks use a dedicated context prompt and longer safe truncation budget so Telegram Passport limitations are not cut off, unknown phone cards render a visual Phone Passport, inconclusive phone/Telegram-profile cards add `asked:*` context buttons, unknown cards hide weak topic-only observations, suspicious cards use a compact "what noticed" evidence section, and high-risk first cards are compressed to urgent actions plus a short evidence summary instead of long generic explanation/reporting blocks. Visible-source briefs for forwarded Telegram posts remain as compact evidence.
 - `src/lib/telegram/reputation.server.ts`: observes Telegram targets by HMAC hash, registers unverified Telegram report candidates, syncs confirmed report counts after admin moderation, and renders source/confidence labels only for moderated reputation.
-- `src/lib/telegram/handlers/commands.ts`: `/call` stores minimal panic context `6` and opens the active live-call copilot directly with the hangup-first keyboard.
+- `src/lib/telegram/handlers/commands.ts`: `/call` stores minimal panic context `6` and opens the active live-call copilot directly with the hangup-first keyboard; `/trainer` opens the callback-only scam-call mini-quiz without persistence.
 - `src/lib/telegram/handlers/misc.ts`: stores minimal panic context
   (`lastPanicId`, `lastPanicAt`) and handles both scenario-bound
   `panicctx:<panicId>:<action>` / `voiceout:panic:<panicId>` callbacks and
-  legacy context callbacks that fall back through the latest stored panic id.
+  legacy context callbacks that fall back through the latest stored panic id;
+  `trainer:*` callbacks answer mini-quiz steps without session writes.
 
 ## Auth and integration
 

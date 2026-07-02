@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-18.
+Last updated: 2026-07-02.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -142,6 +142,9 @@ Already shipped:
   to agree on a phrase offline, verifies suspicious voice/video pressure through
   saved-number callback plus a codeword/private question, and never asks users
   to send the actual codeword to the bot.
+- Telegram Scam-call Trainer v1: `/trainer` and the main menu now open a
+  five-situation defensive mini-quiz. Score stays in callback data, no answer
+  state or `checks` rows are stored, and content avoids attacker-ready scripts.
 
 Remaining implementation order after the 2026-06-18 product feedback:
 
@@ -157,9 +160,10 @@ Remaining implementation order after the 2026-06-18 product feedback:
    bad recognition without re-spending STT budget.
 4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
    answers only after the emergency context bugs are closed.
-5. **Scam-call trainer and mini-quiz.** Build safe educational scenarios,
-   defensive feedback and shareable practice without publishing attacker-ready
-   bypass scripts.
+5. **Privacy-safe scam map/index.** Build the next public/Telegram trust surface
+   only from aggregated, non-personal, moderated or research-source categories.
+   No raw reports, screenshots, OCR, full phone numbers, full URLs or public
+   accusations against unverified people.
 6. **Weekly schemes data model.** Move the weekly digest from static copy to a
    source/status/updated-at model with a safe stale fallback before automating
    any research-feed publishing.
@@ -167,9 +171,9 @@ Remaining implementation order after the 2026-06-18 product feedback:
    summaries and links to admin review, not raw reports or user evidence.
 8. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
-   sanitized provider payloads. Public living-experience stories and the
-   scam-call trainer remain future trust surfaces. Paid line-type/VoIP
-   providers stay optional.
+  sanitized provider payloads. Public living-experience stories and the
+  privacy-safe scam map/index remain future trust surfaces. Paid line-type/VoIP
+  providers stay optional.
 
 Operational hardening that continues in parallel:
 
@@ -181,8 +185,8 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Next roadmap queue item is `T-039 / ROAD-007 scam-call trainer and mini-quiz`;
-  keep the content defensive and avoid precise scammer playbooks.
+- Next roadmap queue item is `T-040 / ROAD-008 privacy-safe scam map/index`;
+  keep it aggregated, non-personal and moderation/research-source driven.
 - Consider a private moderator Telegram chat for new reports and appeals. It
   should receive only redacted summaries and moderation links, never raw codes,
   cards, screenshots, full OCR text or unredacted phone numbers.
@@ -271,7 +275,7 @@ Disallowed claims:
 3. Honest impact counters: checks, dangerous results, user-reported loss totals - shipped as Website Honest Impact Counters v1.
 4. Embeddable check widget for media, banks and community sites - shipped as v1.
 5. Public living-experience stories page: moderated, anonymized scam tactics and lessons.
-6. Scam-call trainer: interactive education flow that people can share.
+6. Scam-call trainer: shipped first as Telegram Scam-call Trainer v1.
 7. Scam map/index: aggregated trend surface only after data/compliance review.
 8. "Verified by Ishonch Guard" badge only after manual moderation.
 

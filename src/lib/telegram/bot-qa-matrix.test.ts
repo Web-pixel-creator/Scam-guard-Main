@@ -71,6 +71,7 @@ describe("Telegram Bot QA Matrix v1", () => {
         CB.showLang,
         CB.howItWorks,
         CB.digest,
+        CB.trainer,
         CB.familyMenu,
       ]),
     );
@@ -79,6 +80,7 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(formatHelp("ru")).toContain("/panic");
     expect(formatHelp("ru")).toContain("/family");
     expect(formatHelp("ru")).toContain("/digest");
+    expect(formatHelp("ru")).toContain("/trainer");
     expect(formatHelp("ru")).toContain("/appeal");
   });
 

@@ -163,9 +163,16 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       codeword-guide callback and RU/UZ/EN copy that tells families to agree on
       the secret offline, not send it to the bot; trusted-contact alerts mention
       saved-number callback plus codeword/private-question verification.
-- [ ] **Scam-call trainer and mini-quiz.** ROAD-007 / T-039 is the next P5
+- [x] ~~**Scam-call trainer and mini-quiz.** ROAD-007 / T-039 is the next P5
       queue item. Start with safe educational scenarios and defensive feedback;
-      avoid precise attacker bypass scripts or operational scam playbooks.
+      avoid precise attacker bypass scripts or operational scam playbooks.~~
+      Done: `/trainer` and the main-menu Trainer button now run a five-situation
+      defensive mini-quiz. Score is encoded in callback data, no user answers or
+      `checks` rows are stored, and tests guard against attacker-ready scripts.
+- [ ] **Privacy-safe scam map/index.** ROAD-008 / T-040 is the next P5 queue
+      item. Keep it aggregated, non-personal and moderation/research-source
+      driven; do not expose raw reports, screenshots, OCR, full phone numbers,
+      URLs or accusations against unverified people.
 - [ ] **Weekly Scam Digest data model.** Move the current deterministic digest
       toward records with `source`, `status`, `updated_at`, manual publish and
       safe stale fallback before any automation from research feeds.
@@ -221,8 +228,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] Add public living-experience stories page after moderation/compliance
       wording is reviewed. Use anonymized tactics and lessons, not public
       accusations against unverified people.
-- [ ] Add scam-call trainer as the next viral/education website surface after
-      the current bot safety polish.
+- [x] ~~Add scam-call trainer as the next viral/education website surface after
+      the current bot safety polish.~~ Done first as Telegram `/trainer` v1 with
+      a callback-only mini-quiz; a public web/share surface can reuse the same
+      defensive scenarios later.
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
 - [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done first as an in-memory LRU, then upgraded to shared Postgres `telegram_webhook_updates` claims for multi-instance safety.
 - [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.

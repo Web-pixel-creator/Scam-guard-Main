@@ -39,6 +39,7 @@ import {
   formatWelcome,
 } from "@/lib/telegram/format";
 import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
+import { buildTrainerIntro } from "@/lib/telegram/scam-trainer";
 import {
   buildLiveCallActiveKeyboard,
   buildPanicMenuText,
@@ -314,6 +315,12 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
     case "/conversation":
       await startConversationCheck(ctx);
       return;
+
+    case "/trainer": {
+      const { text, keyboard } = buildTrainerIntro(lang);
+      await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(text), keyboard });
+      return;
+    }
 
     case "/digest": {
       const { text, keyboard } = formatWeeklyScamDigest(lang);

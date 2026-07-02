@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - ROAD-007 scam-call trainer mini-quiz
+
+- Added a Telegram `/trainer` flow and main-menu Trainer button with a
+  five-situation defensive mini-quiz for scam-call practice.
+- Kept the feature callback-only: score is carried in `trainer:*` callback data,
+  and the trainer does not create `checks` rows or store user answers.
+- Added RU/UZ/EN command-menu registration, localized help text and webhook
+  coverage for `/trainer`, the main-menu callback and answer progression.
+- Added defensive-content guards so the trainer teaches safe reactions without
+  publishing attacker-ready scripts, exact OTP examples or remote-access tool
+  playbooks.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-007` is now Implemented,
+  `T-039` is Passed, `QA-2026-07-02-001` was added, and the next queue item is
+  `T-040 / ROAD-008 privacy-safe scam map/index`.
+
 ## 2026-07-01 - ROAD-006 family codeword
 
 - Added a Family Shield "Code word" callback and RU/UZ/EN guide that teaches

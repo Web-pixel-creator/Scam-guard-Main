@@ -600,6 +600,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
         CB.showLang,
         CB.howItWorks,
         CB.digest,
+        CB.trainer,
         CB.familyMenu,
       ]),
     );
@@ -619,11 +620,60 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       CB.emergency,
       CB.report,
       CB.familyMenu,
+      CB.trainer,
       CB.digest,
       CB.safety,
       CB.howItWorks,
       CB.showLang,
     ]);
+  });
+
+  it("opens the scam-call trainer from /trainer without persisting a check", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1116, chatId: 5116, text: "/trainer" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Тренажёр звонков");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("trainer:q:1:0");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("answers trainer callbacks with feedback and no check insert", async () => {
+    const question = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1117,
+          chatId: 5117,
+          data: CB.trainer,
+          id: "cb-trainer-start",
+        }),
+      ),
+    );
+    expect(question.status).toBe(200);
+    expect(h.sendCalls[0].text).toContain("Тренажёр звонков");
+
+    h.sendCalls.length = 0;
+    h.answerCalls.length = 0;
+    const answer = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1117,
+          chatId: 5117,
+          data: "trainer:a:1:0:0",
+          id: "cb-trainer-answer",
+        }),
+      ),
+    );
+
+    expect(answer.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-trainer-answer"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Верно");
+    expect(h.sendCalls[0].text).toContain("Счёт");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(["trainer:q:2:1"]);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
 
   it("collects and analyzes a short conversation without persisting raw chat text", async () => {
@@ -933,6 +983,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["how it works", CB.howItWorks],
     ["family menu", CB.familyMenu],
     ["family codeword", "family:codeword"],
+    ["trainer", CB.trainer],
     ["media tips", CB.mediaTips],
     ["image triage", imageTriageCallback("gift")],
     ["language switch", CB.lang("uz")],

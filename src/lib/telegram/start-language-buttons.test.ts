@@ -18,7 +18,7 @@ describe("/start main menu inline buttons", () => {
 
     expect(keyboard).toBeDefined();
     expect(keyboard).toHaveLength(6);
-    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 1]);
+    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 2]);
 
     const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
     expect(callbackDataValues).toEqual([
@@ -28,6 +28,7 @@ describe("/start main menu inline buttons", () => {
       CB.emergency,
       CB.report,
       CB.familyMenu,
+      CB.trainer,
       CB.digest,
       CB.safety,
       CB.howItWorks,
@@ -64,7 +65,7 @@ describe("/start main menu inline buttons", () => {
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 1]);
+      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 2]);
     }
   });
 });
