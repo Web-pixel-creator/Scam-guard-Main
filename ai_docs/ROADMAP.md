@@ -251,6 +251,10 @@ Operational hardening that continues in parallel:
   non-delivery expectations and an evidence-log template. Next queue item is
   capturing the sanitized screenshots/examples, plus real provider Voice-in/STT
   audio/transcript examples when key/audio access is available.
+- TG-006 tracker reconciliation completed on 2026-07-02: the stale Partial
+  status for Risk Passport username/phone checks is closed with focused
+  formatter, public metadata, shared Risk Passport and inline regression
+  evidence. The tracker now has no Partial or Planned rows.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

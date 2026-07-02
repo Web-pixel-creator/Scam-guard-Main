@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-006 Risk Passport tracker reconciliation
+
+- Reconciled the stale `TG-006` Partial tracker row after ROAD-011/013/014/015
+  and the inline QA follow-ups. `TG-006` is now `Implemented`.
+- Evidence now points to the focused Risk Passport / formatter / public
+  metadata / inline regression slice covering low-signal phone and Telegram
+  username passports, Bot API limitation copy, moderated phone reputation
+  source/scope and no owner/hidden-label/account-age claims.
+- `FEATURE_USER_STORY_TRACKER.xlsx` now shows `Implemented=64`,
+  `Partial=0`, `Planned=0`; remaining work is external live evidence capture:
+  real Telegram-client inline screenshots and real STT provider examples.
+
 ## 2026-07-02 - ROAD-017 Telegram inline client QA checklist
 
 - Added `ai_docs/TELEGRAM_INLINE_QA.md` for real Telegram-client inline visual
