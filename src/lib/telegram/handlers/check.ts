@@ -803,7 +803,27 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   return null;
 }
 
-async function sendVoicePanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+const QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE =
+  /(?:переслал|переслали|перешл|forward|forwarded|цитат|quote|скрин|screenshot|сообщени[ея]|message|xabar|он|она|они|мошенник|человек|клиент|пользователь|пострадавш|родственник|мама|папа|друг|they|he|she|someone|scammer|caller|user|client|victim|u\s+kishi).{0,80}(?:напис|пишет|сказ|говорит|сообщ|прислал|said|told|sent|wrote|yozdi|aytdi)/;
+
+function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
+  const normalized = normalizeVoiceIntentText(text);
+  const firstPersonIndex = normalized.search(/(?:^|\s)(?:я|мы|men|biz|i|we)\s+/);
+  if (firstPersonIndex <= 0) return false;
+  const prefix = normalized.slice(0, firstPersonIndex);
+  return QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE.test(prefix);
+}
+
+function classifyTextPanicIntent(
+  text: string,
+  source?: TelegramForwardSourceContext,
+): PanicScenarioId | null {
+  if (source) return null;
+  if (isQuotedOrThirdPartyDoneIntent(text)) return null;
+  return classifyVoicePanicIntent(text);
+}
+
+async function sendPanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
   await saveSession(ctx.userId, {
     scenario: "none",
@@ -1020,6 +1040,12 @@ export async function handleCheck(
   if (trimmed.length > MAX_TEXT_LENGTH) {
     // R4.10 — отклоняем слишком длинный ввод вместо передачи невалидного запроса.
     await replyText(ctx.chatId, bt("text_too_long", lang));
+    return;
+  }
+
+  const textPanicId = classifyTextPanicIntent(trimmed, source);
+  if (textPanicId !== null) {
+    await sendPanicRoute(ctx, textPanicId);
     return;
   }
 
@@ -1346,7 +1372,7 @@ async function handleResolvedVoiceTranscript(
 
   const panicId = classifyVoicePanicIntent(transcriptText);
   if (panicId !== null) {
-    await sendVoicePanicRoute(ctx, panicId);
+    await sendPanicRoute(ctx, panicId);
     logTelegramTiming("voice.total", startedAt, {
       cached: source === "cached",
       inFlight: source === "in_flight",
@@ -1565,7 +1591,7 @@ export async function handleVoice(
       return;
     }
     if (outcome.kind === "panic") {
-      await sendVoicePanicRoute(ctx, outcome.panicId);
+      await sendPanicRoute(ctx, outcome.panicId);
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         routedToPanic: outcome.panicId,

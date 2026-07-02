@@ -182,6 +182,58 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("routes first-person already-transferred text to the money-transfer SOS", async () => {
+    await handleCheck("я уже перевёл деньги мошенникам, помогите", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain('"lastPanicId":3');
+  });
+
+  it("routes first-person already-sent-code text to the SMS-code SOS", async () => {
+    await handleCheck("что если я уже назвал им код из смс?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain('"lastPanicId":1');
+  });
+
+  it("keeps forwarded already-happened text on the normal risk pipeline", async () => {
+    await handleCheck(
+      "я уже перевёл деньги мошенникам, помогите",
+      {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      },
+      { kind: "channel", title: "QA", username: "qa_channel" },
+    );
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.saveSessionCalls).toHaveLength(1);
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).not.toContain('"lastPanicId"');
+  });
+
+  it("keeps quoted third-party already-happened text on the normal risk pipeline", async () => {
+    await handleCheck("мошенник написал: я уже перевёл деньги", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.saveSessionCalls).toHaveLength(1);
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).not.toContain('"lastPanicId"');
+  });
+
   it("still sends a real artifact to the risk pipeline", async () => {
     await handleCheck("Точно? https://kapitalbank.uz.evil.com/login", {
       chatId: 100,
