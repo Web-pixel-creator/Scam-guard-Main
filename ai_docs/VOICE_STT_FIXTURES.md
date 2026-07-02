@@ -52,6 +52,9 @@ npm run stt:transcribe-fixtures -- --manifest private/voice-stt-fixtures/manifes
 
 The script requires `OPENAI_API_KEY` and uses the same `transcribeVoiceCore`
 path as Telegram voice notes. It prints/writes sanitized transcripts only.
+Manifest `audioPath` values must be relative paths that stay inside the manifest
+directory; this prevents accidentally reading and sending unrelated local files
+to the STT provider.
 
 After manual review, copy safe transcript rows into
 `src/lib/telegram/voice-stt-provider-fixtures.ts` and add the expected route.
@@ -59,6 +62,7 @@ Then run:
 
 ```bash
 npm run test:run -- src/lib/telegram/handlers/check.voice.test.ts
+npm run test:run -- src/lib/telegram/voice-stt-fixture-collector.test.ts
 ```
 
 ## Review Rules

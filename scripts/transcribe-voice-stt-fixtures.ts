@@ -38,9 +38,15 @@ interface CapturedTranscriptFixture {
   note: string;
 }
 
+export class FixtureCliError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FixtureCliError";
+  }
+}
+
 function fail(message: string): never {
-  console.error(`FAIL ${message}`);
-  process.exit(1);
+  throw new FixtureCliError(message);
 }
 
 function optionalEnv(name: string): string | null {
@@ -48,7 +54,7 @@ function optionalEnv(name: string): string | null {
   return value ? value : null;
 }
 
-function parseArgs(): { manifestPath: string | null; outputPath: string | null } {
+export function parseArgs(): { manifestPath: string | null; outputPath: string | null } {
   const args = process.argv.slice(2);
   let manifestPath: string | null = null;
   let outputPath: string | null = null;
@@ -88,7 +94,7 @@ function isLang(value: unknown): value is Lang {
   return value === "ru" || value === "uz" || value === "en";
 }
 
-function parseManifest(value: unknown): AudioFixtureManifest {
+export function parseManifest(value: unknown): AudioFixtureManifest {
   const cases = (value as { cases?: unknown })?.cases;
   if (!Array.isArray(cases) || cases.length === 0) {
     fail("manifest must contain a non-empty cases array");
@@ -120,7 +126,7 @@ function parseManifest(value: unknown): AudioFixtureManifest {
   };
 }
 
-function mimeTypeForAudioPath(audioPath: string): string {
+export function mimeTypeForAudioPath(audioPath: string): string {
   const ext = path.extname(audioPath).toLowerCase();
   if (ext === ".ogg" || ext === ".oga" || ext === ".opus") return "audio/ogg";
   if (ext === ".mp3") return "audio/mpeg";
@@ -130,8 +136,23 @@ function mimeTypeForAudioPath(audioPath: string): string {
   fail(`unsupported audio extension for ${path.basename(audioPath)}`);
 }
 
-function resolveFixtureAudioPath(manifestPath: string, audioPath: string): string {
-  return path.resolve(path.dirname(manifestPath), audioPath);
+function isPathInside(parentDir: string, candidatePath: string): boolean {
+  const relative = path.relative(parentDir, candidatePath);
+  return (
+    relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
+  );
+}
+
+export function resolveFixtureAudioPath(manifestPath: string, audioPath: string): string {
+  if (path.isAbsolute(audioPath)) {
+    fail(`audioPath for ${path.basename(audioPath)} must be relative to the manifest file`);
+  }
+  const manifestDir = path.dirname(path.resolve(manifestPath));
+  const resolvedAudioPath = path.resolve(manifestDir, audioPath);
+  if (!isPathInside(manifestDir, resolvedAudioPath)) {
+    fail(`audioPath ${audioPath} must stay inside the manifest directory`);
+  }
+  return resolvedAudioPath;
 }
 
 async function readAudioDataUrl(audioPath: string): Promise<string> {
@@ -143,7 +164,7 @@ async function readAudioDataUrl(audioPath: string): Promise<string> {
   return `data:${mimeTypeForAudioPath(audioPath)};base64,${bytes.toString("base64")}`;
 }
 
-function assertIncludes(
+export function assertIncludes(
   caseId: string,
   transcript: string,
   expectedIncludes: readonly string[],
@@ -156,7 +177,7 @@ function assertIncludes(
   }
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const { manifestPath, outputPath } = parseArgs();
   if (!manifestPath) fail("missing --manifest <path>");
   if (!optionalEnv("OPENAI_API_KEY")) {
@@ -194,7 +215,22 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : "unknown error";
-  fail(`stt fixture transcription failed: ${message}`);
-});
+function isMainModule(): boolean {
+  if (process.env.VITEST) return false;
+  if (process.env.npm_lifecycle_event === "stt:transcribe-fixtures") return true;
+  return process.argv.some((arg) => {
+    const normalized = arg.replace(/\\/g, "/");
+    return (
+      normalized === "scripts/transcribe-voice-stt-fixtures.ts" ||
+      normalized.endsWith("/scripts/transcribe-voice-stt-fixtures.ts")
+    );
+  });
+}
+
+if (isMainModule()) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(`FAIL stt fixture transcription failed: ${message}`);
+    process.exit(1);
+  });
+}

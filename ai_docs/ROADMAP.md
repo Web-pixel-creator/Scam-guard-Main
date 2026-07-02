@@ -170,8 +170,10 @@ Remaining implementation order after the 2026-07-02 reconciliation:
    corpus slices now cover RU/UZ/EN SMS-code, card security-code,
    remote-access, money-transfer, Telegram login-QR, live-call and negated
    already-happened phrases. The local real-provider capture/replay workflow is
-   also in place. Next: collect real provider audio/transcript fixtures from
-   live QA and tune confidence heuristics from production examples.
+   also in place and now has manifest/audio path validation tests. Next: collect
+   real provider audio/transcript fixtures from live QA when `OPENAI_API_KEY`
+   and local audio are available, then tune confidence heuristics from
+   production examples.
 2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
    keep human listen-through for tone/pronunciation in the release checklist.
 3. **Phone Reputation v2 and Inline QA.** First inline QA and phone reputation
@@ -224,7 +226,8 @@ Operational hardening that continues in parallel:
 - Voice-in/STT fixture workflow shipped on 2026-07-02: replay rows live in
   `voice-stt-provider-fixtures.ts`, local audio captures stay ignored, and
   `npm run stt:transcribe-fixtures` emits sanitized transcripts for manual
-  review.
+  review. Collector helper tests now cover manifest validation, supported audio
+  extensions, expected transcript fragments and scoped local audio paths.
 - Inline Risk Passport QA slice shipped on 2026-07-02: Telegram inline
   low-signal phone/Telegram results now show honest passport sections with
   limitations and the next context prompt; high-risk inline cards stay urgent.
@@ -236,9 +239,9 @@ Operational hardening that continues in parallel:
   includes low-signal Telegram username passports and phone reputation
   source/scope rendering in inline mode, while high-risk inline cards stay
   action-first.
-- Next queue item is collecting real provider Voice-in/STT audio/transcript
-  examples when key/audio access is available, then remaining live Telegram
-  inline QA examples for Phone Reputation v2 / Inline QA.
+- Next queue item remains collecting real provider Voice-in/STT
+  audio/transcript examples when key/audio access is available, then remaining
+  live Telegram inline QA examples for Phone Reputation v2 / Inline QA.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

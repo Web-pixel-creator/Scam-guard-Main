@@ -2,6 +2,17 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-014 Voice-in/STT collector validation hardening
+
+- Hardened `scripts/transcribe-voice-stt-fixtures.ts` so manifest parsing,
+  audio extension mapping, expected-fragment checks and local audio path
+  resolution are testable before any provider call.
+- Local `audioPath` values are now scoped to the manifest directory to avoid
+  accidentally reading and sending unrelated local files to the STT provider.
+- Verification passed: new fixture collector helper tests, focused voice handler
+  tests, full Telegram suite, full risk suite, scoped TS eslint, script `--help`
+  and `tsc --noEmit`.
+
 ## 2026-07-02 - ROAD-015 Inline QA regression matrix
 
 - Expanded Telegram inline-mode regression coverage for low-signal Telegram
