@@ -1010,6 +1010,69 @@ export function buildEmergencyText(lang: Lang): string {
 /** Scenario IDs (1-indexed, matching the numbered list above). */
 export type PanicScenarioId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
 
+export const PANIC_SCENARIO_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+] as const satisfies readonly PanicScenarioId[];
+
+type PanicMenuPage = 1 | 2 | 3;
+
+type PanicFollowUpProfile =
+  | "financial"
+  | "malware"
+  | "telegram_recovery"
+  | "live_call"
+  | "blackmail"
+  | "romance"
+  | "minor"
+  | "voice_clone"
+  | "fake_job"
+  | "delivery"
+  | "crypto"
+  | "government_grant";
+
+type FollowUpContactButtonKind =
+  | "safe_callback"
+  | "help_directory"
+  | "pause_review"
+  | "voice_verify"
+  | "telegram_recovery"
+  | "official_channel"
+  | "wallet_safety"
+  | "source_check";
+
+type PanicScenarioProfileConfig = {
+  profile: PanicFollowUpProfile;
+  menuPage: PanicMenuPage;
+  contactButtonKind: FollowUpContactButtonKind;
+  familyFirst?: boolean;
+};
+
+const PANIC_SCENARIO_PROFILES = {
+  1: { profile: "financial", menuPage: 1, contactButtonKind: "safe_callback" },
+  2: { profile: "malware", menuPage: 1, contactButtonKind: "safe_callback" },
+  3: { profile: "financial", menuPage: 1, contactButtonKind: "safe_callback" },
+  4: { profile: "financial", menuPage: 1, contactButtonKind: "safe_callback" },
+  5: { profile: "telegram_recovery", menuPage: 1, contactButtonKind: "telegram_recovery" },
+  6: { profile: "live_call", menuPage: 1, contactButtonKind: "safe_callback" },
+  7: { profile: "blackmail", menuPage: 2, contactButtonKind: "help_directory", familyFirst: true },
+  8: { profile: "romance", menuPage: 2, contactButtonKind: "pause_review", familyFirst: true },
+  9: { profile: "blackmail", menuPage: 2, contactButtonKind: "help_directory", familyFirst: true },
+  10: { profile: "minor", menuPage: 2, contactButtonKind: "help_directory", familyFirst: true },
+  11: { profile: "voice_clone", menuPage: 2, contactButtonKind: "voice_verify", familyFirst: true },
+  12: { profile: "fake_job", menuPage: 3, contactButtonKind: "source_check" },
+  13: { profile: "delivery", menuPage: 3, contactButtonKind: "official_channel" },
+  14: { profile: "crypto", menuPage: 3, contactButtonKind: "wallet_safety" },
+  15: { profile: "government_grant", menuPage: 3, contactButtonKind: "official_channel" },
+} as const satisfies Record<PanicScenarioId, PanicScenarioProfileConfig>;
+
+function panicScenarioProfileConfig(panicId: PanicScenarioId): PanicScenarioProfileConfig {
+  return PANIC_SCENARIO_PROFILES[panicId];
+}
+
+function isPanicScenarioId(value: number): value is PanicScenarioId {
+  return Object.hasOwn(PANIC_SCENARIO_PROFILES, value);
+}
+
 /** Short titles for the scenario selection menu (inline buttons). */
 export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = {
   1: {
@@ -1707,7 +1770,7 @@ export function parsePanicCallback(data: string): PanicScenarioId | null {
   if (suffix === "more" || suffix === "more2" || suffix === "back" || suffix === "back2")
     return null;
   const n = Number(suffix);
-  if (n >= 1 && n <= 15) return n as PanicScenarioId;
+  if (Number.isInteger(n) && isPanicScenarioId(n)) return n;
   return null;
 }
 
@@ -1715,32 +1778,61 @@ export function parsePanicCallback(data: string): PanicScenarioId | null {
 // PANIC KEYBOARD PAGINATION — split scenarios into short pages.
 // ═══════════════════════════════════════════════════════════════════════════
 
+const PANIC_PAGE_FORWARD_LABELS: Record<1 | 2, Record<Lang, string>> = {
+  1: {
+    ru: "Другие ситуации ➡️",
+    uz: "Boshqa vaziyatlar ➡️",
+    en: "Other situations ➡️",
+  },
+  2: {
+    ru: "Ещё ситуации ➡️",
+    uz: "Yana vaziyatlar ➡️",
+    en: "More situations ➡️",
+  },
+};
+
+const PANIC_PAGE_BACK_LABELS: Record<2 | 3, Record<Lang, string>> = {
+  2: {
+    ru: "← Назад",
+    uz: "← Orqaga",
+    en: "← Back",
+  },
+  3: {
+    ru: "← Назад",
+    uz: "← Orqaga",
+    en: "← Back",
+  },
+};
+
+function panicScenarioIdsForPage(page: PanicMenuPage): PanicScenarioId[] {
+  return PANIC_SCENARIO_IDS.filter((id) => panicScenarioProfileConfig(id).menuPage === page);
+}
+
+function panicScenarioButton(id: PanicScenarioId, lang: Lang): InlineKeyboard[number][number] {
+  return {
+    text: PANIC_MENU_TITLES[id][lang],
+    callback_data: `${PANIC_CB_PREFIX}${id}`,
+  };
+}
+
+function panicScenarioRows(page: PanicMenuPage, lang: Lang): InlineKeyboard {
+  const ids = panicScenarioIdsForPage(page);
+  const rows: InlineKeyboard = [];
+  for (let i = 0; i < ids.length; i += 2) {
+    rows.push(ids.slice(i, i + 2).map((id) => panicScenarioButton(id, lang)));
+  }
+  return rows;
+}
+
 /**
  * Build panic keyboard page 1: scenarios 1–6 (2 per row) + "Другие ситуации" button.
  * This is the default page shown on `/panic`.
  */
 export function buildPanicKeyboardPage1(lang: Lang): InlineKeyboard {
-  const rows: InlineKeyboard = [];
-  // Scenarios 1–6, 2 per row
-  for (let i = 1; i <= 6; i += 2) {
-    rows.push([
-      {
-        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i}`,
-      },
-      {
-        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
-      },
-    ]);
-  }
-  // "More" button
-  const moreLabel: Record<Lang, string> = {
-    ru: "Другие ситуации ➡️",
-    uz: "Boshqa vaziyatlar ➡️",
-    en: "Other situations ➡️",
-  };
-  rows.push([{ text: moreLabel[lang], callback_data: `${PANIC_CB_PREFIX}more` }]);
+  const rows = panicScenarioRows(1, lang);
+  rows.push([
+    { text: PANIC_PAGE_FORWARD_LABELS[1][lang], callback_data: `${PANIC_CB_PREFIX}more` },
+  ]);
   return rows;
 }
 
@@ -1749,37 +1841,11 @@ export function buildPanicKeyboardPage1(lang: Lang): InlineKeyboard {
  * Shown when user taps "Другие ситуации".
  */
 export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
-  const rows: InlineKeyboard = [];
-  // Scenarios 7–11, 2 per row.
-  for (let i = 7; i <= 11; i += 2) {
-    const row: InlineKeyboard[number] = [
-      {
-        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i}`,
-      },
-    ];
-    if (i + 1 <= 11) {
-      row.push({
-        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
-      });
-    }
-    rows.push(row);
-  }
-  const nextLabel: Record<Lang, string> = {
-    ru: "Ещё ситуации ➡️",
-    uz: "Yana vaziyatlar ➡️",
-    en: "More situations ➡️",
-  };
-  rows.push([{ text: nextLabel[lang], callback_data: `${PANIC_CB_PREFIX}more2` }]);
-
-  // "Back" button
-  const backLabel: Record<Lang, string> = {
-    ru: "← Назад",
-    uz: "← Orqaga",
-    en: "← Back",
-  };
-  rows.push([{ text: backLabel[lang], callback_data: `${PANIC_CB_PREFIX}back` }]);
+  const rows = panicScenarioRows(2, lang);
+  rows.push([
+    { text: PANIC_PAGE_FORWARD_LABELS[2][lang], callback_data: `${PANIC_CB_PREFIX}more2` },
+  ]);
+  rows.push([{ text: PANIC_PAGE_BACK_LABELS[2][lang], callback_data: `${PANIC_CB_PREFIX}back` }]);
   return rows;
 }
 
@@ -1788,26 +1854,8 @@ export function buildPanicKeyboardPage2(lang: Lang): InlineKeyboard {
  * This page keeps newer promo/payment scam cases out of the first emergency screen.
  */
 export function buildPanicKeyboardPage3(lang: Lang): InlineKeyboard {
-  const rows: InlineKeyboard = [];
-  for (let i = 12; i <= 15; i += 2) {
-    rows.push([
-      {
-        text: PANIC_MENU_TITLES[i as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i}`,
-      },
-      {
-        text: PANIC_MENU_TITLES[(i + 1) as PanicScenarioId][lang],
-        callback_data: `${PANIC_CB_PREFIX}${i + 1}`,
-      },
-    ]);
-  }
-
-  const backLabel: Record<Lang, string> = {
-    ru: "← Назад",
-    uz: "← Orqaga",
-    en: "← Back",
-  };
-  rows.push([{ text: backLabel[lang], callback_data: `${PANIC_CB_PREFIX}back2` }]);
+  const rows = panicScenarioRows(3, lang);
+  rows.push([{ text: PANIC_PAGE_BACK_LABELS[3][lang], callback_data: `${PANIC_CB_PREFIX}back2` }]);
   return rows;
 }
 
@@ -1954,7 +2002,7 @@ function hasRiskPayloadForFollowUp(text: string): boolean {
 
 export function asPanicScenarioId(value: unknown): PanicScenarioId | null {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  return Number.isInteger(n) && n >= 1 && n <= 15 ? (n as PanicScenarioId) : null;
+  return Number.isInteger(n) && isPanicScenarioId(n) ? n : null;
 }
 
 function isRecentPanicContext(context: EmergencyContextData, now: Date): boolean {
@@ -2052,61 +2100,9 @@ export function classifyEmergencyFollowUp(
   return null;
 }
 
-type PanicFollowUpProfile =
-  | "financial"
-  | "malware"
-  | "telegram_recovery"
-  | "live_call"
-  | "blackmail"
-  | "romance"
-  | "minor"
-  | "voice_clone"
-  | "fake_job"
-  | "delivery"
-  | "crypto"
-  | "government_grant";
-
 function followUpProfile(panicId: PanicScenarioId): PanicFollowUpProfile {
-  switch (panicId) {
-    case 1:
-    case 3:
-    case 4:
-      return "financial";
-    case 2:
-      return "malware";
-    case 5:
-      return "telegram_recovery";
-    case 6:
-      return "live_call";
-    case 7:
-    case 9:
-      return "blackmail";
-    case 8:
-      return "romance";
-    case 10:
-      return "minor";
-    case 11:
-      return "voice_clone";
-    case 12:
-      return "fake_job";
-    case 13:
-      return "delivery";
-    case 14:
-      return "crypto";
-    case 15:
-      return "government_grant";
-  }
+  return panicScenarioProfileConfig(panicId).profile;
 }
-
-type FollowUpContactButtonKind =
-  | "safe_callback"
-  | "help_directory"
-  | "pause_review"
-  | "voice_verify"
-  | "telegram_recovery"
-  | "official_channel"
-  | "wallet_safety"
-  | "source_check";
 
 const FOLLOWUP_CONTACT_LABELS: Record<FollowUpContactButtonKind, Record<Lang, string>> = {
   safe_callback: FOLLOWUP_BUTTONS.contacts,
@@ -2149,29 +2145,7 @@ const FOLLOWUP_CONTACT_LABELS: Record<FollowUpContactButtonKind, Record<Lang, st
 
 function contactButtonKind(panicId?: PanicScenarioId): FollowUpContactButtonKind {
   if (panicId == null) return "safe_callback";
-
-  switch (followUpProfile(panicId)) {
-    case "financial":
-    case "malware":
-    case "live_call":
-      return "safe_callback";
-    case "telegram_recovery":
-      return "telegram_recovery";
-    case "blackmail":
-    case "minor":
-      return "help_directory";
-    case "romance":
-      return "pause_review";
-    case "voice_clone":
-      return "voice_verify";
-    case "fake_job":
-      return "source_check";
-    case "delivery":
-    case "government_grant":
-      return "official_channel";
-    case "crypto":
-      return "wallet_safety";
-  }
+  return panicScenarioProfileConfig(panicId).contactButtonKind;
 }
 
 function contactsButtonText(lang: Lang, panicId?: PanicScenarioId): string {
@@ -2180,13 +2154,7 @@ function contactsButtonText(lang: Lang, panicId?: PanicScenarioId): string {
 
 function shouldPrioritizeTrustedHelp(panicId?: PanicScenarioId): panicId is PanicScenarioId {
   if (panicId == null) return false;
-  const profile = followUpProfile(panicId);
-  return (
-    profile === "blackmail" ||
-    profile === "romance" ||
-    profile === "minor" ||
-    profile === "voice_clone"
-  );
+  return panicScenarioProfileConfig(panicId).familyFirst === true;
 }
 
 type EmergencyFollowUpKeyboardOptions = {

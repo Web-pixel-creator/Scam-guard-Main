@@ -5,20 +5,19 @@ import { describe, it, expect } from "vitest";
 
 import { bot_dict } from "@/lib/telegram/bot-i18n";
 import {
+  PANIC_SCENARIO_IDS,
   PANIC_MENU_TITLES,
   buildPanicScenarioText,
   buildPanicMenuText,
-  type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import { buildCommandPayloads } from "@/../scripts/set-bot-commands";
 
 const LANGS = ["ru", "uz", "en"] as const;
-const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 // ─── 1. PANIC_MENU_TITLES: all scenarios have non-empty ru/uz/en titles ────
 
 describe("PANIC_MENU_TITLES — all scenarios × 3 langs", () => {
-  for (const id of SCENARIO_IDS) {
+  for (const id of PANIC_SCENARIO_IDS) {
     for (const lang of LANGS) {
       it(`scenario ${id} has a non-empty title for "${lang}"`, () => {
         const title = PANIC_MENU_TITLES[id][lang];
@@ -33,7 +32,7 @@ describe("PANIC_MENU_TITLES — all scenarios × 3 langs", () => {
 // ─── 2. buildPanicScenarioText — non-empty for all scenarios × 3 combos ─────
 
 describe("buildPanicScenarioText — all scenarios × 3 langs produce non-empty text", () => {
-  for (const id of SCENARIO_IDS) {
+  for (const id of PANIC_SCENARIO_IDS) {
     for (const lang of LANGS) {
       it(`buildPanicScenarioText(${id}, "${lang}") returns non-empty text`, () => {
         const text = buildPanicScenarioText(id, lang);

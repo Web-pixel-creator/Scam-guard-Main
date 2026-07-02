@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - UX-001 emergency profile-map refactor
+
+- Added `PANIC_SCENARIO_IDS` and `PANIC_SCENARIO_PROFILES` in
+  `src/lib/telegram/emergency.ts` so each SOS case has one source of truth for
+  profile, menu page, contact-button role and family-first keyboard behavior.
+- Rebuilt `/panic` menu pagination, panic-id parsing, contact-button labels and
+  follow-up keyboard ordering from the shared profile map. Existing SOS copy is
+  intentionally unchanged.
+- Updated emergency well-formedness and i18n completeness tests to iterate over
+  `PANIC_SCENARIO_IDS` instead of duplicating `1..15`.
+- Verification passed: targeted emergency/i18n/voice-out tests
+  (5 files / 767 tests), full Telegram suite (49 files / 1333 tests), `tsc`
+  and scoped eslint.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `UX-001 / T-047` is now
+  Implemented/Passed, `QA-2026-07-02-009` was added, and the next queue item is
+  the next narrow UX/logistics polish slice.
+
 ## 2026-07-02 - SEC-002 CSP/security headers final reconciliation
 
 - Added `src/server.security-headers.test.ts`, covering baseline response

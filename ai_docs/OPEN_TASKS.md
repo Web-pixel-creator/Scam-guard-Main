@@ -250,8 +250,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       frame behavior. `prod:security-smoke -- <public-url>` verifies live
       `/healthz` and `/embed/check` headers plus Supabase/RLS checks; production
       passed on 2026-07-02.
-- [ ] Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
-      data-driven profile map before adding many more SOS scenarios.
+- [x] ~~Refactor `src/lib/telegram/emergency.ts` emergency scenario copy into a
+      data-driven profile map before adding many more SOS scenarios.~~ Done:
+      `PANIC_SCENARIO_PROFILES` / `PANIC_SCENARIO_IDS` now drive menu pages,
+      panic-id parsing, contact-button roles and family-first keyboard ordering
+      without changing existing SOS copy. Targeted emergency/i18n/voice-out
+      tests, full Telegram suite, `tsc` and scoped eslint passed on 2026-07-02.
 - [x] ~~Add external URL signals as additive checks: Google Safe Browsing first,
       then URLhaus/PhishTank. Paid line-type/VoIP providers remain optional.~~
       Done: optional provider layer adds `external_phishing_url` /

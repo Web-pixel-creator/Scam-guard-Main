@@ -208,9 +208,11 @@ Operational hardening that continues in parallel:
   main-site and embed headers now have server-level regression coverage, and
   `prod:security-smoke -- <public-url>` verifies live `/healthz` and
   `/embed/check` headers.
-- Next queue item is UX/logistics fixes, starting with refactoring
-  `src/lib/telegram/emergency.ts` scenario copy into a data-driven profile map
-  before adding many more SOS scenarios.
+- Emergency profile-map refactor shipped on 2026-07-02: `/panic` scenario ids,
+  menu pages, contact-button roles and family-first follow-up ordering now
+  derive from `PANIC_SCENARIO_PROFILES` / `PANIC_SCENARIO_IDS`, with existing
+  SOS copy unchanged.
+- Next queue item is the next narrow UX/logistics polish slice.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
