@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-015 Voice-out prerecorded SOS revalidation
+
+- Revalidated committed static SOS audio: `npm run tts:validate-assets`
+  confirmed 45 RU/UZ/EN OGG assets for panic scenarios 1-15, total 1,683,698
+  bytes, with durations from 7.73s to 14.05s.
+- Re-ran Voice-out routing regressions: prerecorded panic audio is still sent
+  before TTS budget/provider calls, and OGG remains preferred over WAV fallback.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015` now records the
+  2026-07-02 revalidation, `QA-2026-07-02-010` was added, and Status Summary
+  now points to Voice-in/STT real-audio corpus and confidence tuning.
+- Marked the Voice-out pre-record architecture pass complete in
+  `OPEN_TASKS.md`; human listen-through remains a release QA checklist item,
+  not an architecture blocker.
+
 ## 2026-07-02 - UX-001 emergency profile-map refactor
 
 - Added `PANIC_SCENARIO_IDS` and `PANIC_SCENARIO_PROFILES` in

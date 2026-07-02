@@ -112,18 +112,17 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       while synthesis runs, de-duplicate repeated taps for the same text, and
       answer repeated voice-button clicks with a short "already preparing/sent"
       callback hint instead of burning another TTS request.
-- [ ] **Voice-out pre-record architecture pass.** QA feedback shows the
-      "🔊 Озвучить главный шаг" button still appears in too many SOS contexts
-      and provider-backed TTS failures can break trust. Keep the cost guards,
-      but move common panic/lang scripts to static pre-recorded `.ogg` assets,
-      keep live TTS only for rare dynamic guidance, and hide or soften the
-      button when audio is not reliably available. Architecture and first asset
-      slice shipped: main SOS voice callbacks now look for static
-      `panic-{id}-{lang}` audio before TTS/budget, follow-up screens no longer
-      repeat the voice button, and RU/UZ/EN Gemini WAV assets are generated for
-      all 15 SOS scenarios. Remaining: human audio review, optional `.ogg`
-      compression if a converter is available, and a decision on whether
-      Guardian Angel should also get static audio.
+- [x] ~~**Voice-out pre-record architecture pass.**~~ Done: main SOS voice
+      callbacks now prefer committed `panic-{id}-{lang}.ogg` assets before
+      WAV, TTS budget and provider calls; provider-only Guardian/follow-up
+      voice buttons are stripped from rate-limit fallbacks; and all 45 RU/UZ/EN
+      SOS OGG assets for panic scenarios 1-15 validated again on 2026-07-02.
+      Keep live TTS for rare dynamic guidance only.
+- [ ] **Prerecorded Voice-out release QA.** Human listen-through remains a
+      release checklist item for tone/pronunciation. It is not an architecture
+      blocker because `npm run tts:validate-assets`, unit regressions and the
+      deployed Telegram playback smoke already verify file presence, container
+      shape, duration bounds, Telegram acceptance and static-first routing.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting

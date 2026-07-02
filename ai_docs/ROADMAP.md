@@ -162,29 +162,22 @@ Already shipped:
   hashes, full referrer URLs, paths, query strings, fragments, phone numbers or
   Telegram ids.
 
-Remaining implementation order after the 2026-06-18 product feedback:
+Remaining implementation order after the 2026-07-02 reconciliation:
 
-1. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
-   confidence-aware fallback, RU/UZ mixed speech tests and direct routing from
-   obvious panic/live-call transcripts.
-2. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
-   was actually decoded, what destination type was found, and why benign menu
-   QR differs from login/payment/device-link QR.
-3. **Voice/STT UX hardening.** Waiting indicator, exhausted-STT-budget wording
-   and direct voice-to-SOS routing are shipped. Next: transcript
-   confirmation/edit recovery and confidence-aware fallback so users can fix
-   bad recognition without re-spending STT budget.
-4. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
-   answers only after the emergency context bugs are closed.
-5. **Weekly schemes data model.** Move the weekly digest from static copy to a
-   source/status/updated-at model with a safe stale fallback before automating
-   any research-feed publishing.
-6. **Private moderation chat.** If added, keep it operator-only with redacted
-   summaries and links to admin review, not raw reports or user evidence.
-7. **External signals and public trust surfaces.** Google Safe Browsing /
+1. **Voice-in/STT regression corpus and confidence tuning.** Transcript
+   preview, correction, low-signal fallback, waiting state, STT-budget wording
+   and direct voice-to-SOS routing are shipped. Next: broaden real RU/UZ/EN
+   audio fixtures and tune confidence heuristics from production examples.
+2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
+   keep human listen-through for tone/pronunciation in the release checklist.
+3. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
+   answers after the current voice/STT polish.
+4. **Public living-experience stories.** Build only after moderation,
+   compliance and privacy review; never publish raw reports or low-count
+   regional details.
+5. **External signals and public trust surfaces.** Google Safe Browsing /
    URLhaus / PhishTank are shipped as optional additive URL signals with
-   sanitized provider payloads. Public living-experience stories remain a future
-   trust surface. Paid line-type/VoIP providers stay optional.
+   sanitized provider payloads. Paid line-type/VoIP providers stay optional.
 
 Operational hardening that continues in parallel:
 
@@ -212,7 +205,11 @@ Operational hardening that continues in parallel:
   menu pages, contact-button roles and family-first follow-up ordering now
   derive from `PANIC_SCENARIO_PROFILES` / `PANIC_SCENARIO_IDS`, with existing
   SOS copy unchanged.
-- Next queue item is the next narrow UX/logistics polish slice.
+- Voice-out prerecorded SOS assets revalidated on 2026-07-02: all 45 RU/UZ/EN
+  OGG files for panic scenarios 1-15 pass `tts:validate-assets`; runtime tests
+  still prefer OGG before WAV, TTS budget and provider calls.
+- Next queue item is Voice-in/STT real-audio regression corpus and confidence
+  tuning.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.
