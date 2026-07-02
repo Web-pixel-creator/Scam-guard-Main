@@ -11,6 +11,11 @@ lerna-debug.log*
 .playwright-cli/
 output/playwright/
 
+# Local STT fixture captures may contain user voice evidence or sanitized
+# provider transcripts that still need review before becoming regression data.
+private/voice-stt-fixtures/
+ai_docs/voice-stt-provider-transcripts.local.json
+
 node_modules
 dist
 dist-ssr

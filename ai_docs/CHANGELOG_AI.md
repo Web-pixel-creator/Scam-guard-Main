@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-014 Voice-in/STT fixture workflow
+
+- Extracted Voice-in/STT transcript replay rows into
+  `src/lib/telegram/voice-stt-provider-fixtures.ts` so RU/UZ/EN provider-like
+  transcripts and negated phrases have one reviewable corpus.
+- Added `scripts/transcribe-voice-stt-fixtures.ts` and
+  `npm run stt:transcribe-fixtures` for local real-provider capture from
+  ignored audio manifests. The script uses `transcribeVoiceCore`, emits only
+  sanitized transcripts, and never commits raw audio.
+- Documented the workflow in `ai_docs/VOICE_STT_FIXTURES.md` and ignored
+  `private/voice-stt-fixtures/` plus local transcript captures.
+- Verification passed: focused voice test, full Telegram suite, voice/rules
+  risk regressions, scoped eslint, `tsc --noEmit`, and script `--help`.
+
 ## 2026-07-02 - TG-014 Voice-in/STT EN provider-like corpus
 
 - Extended direct Voice-in/STT emergency routing for English provider-like

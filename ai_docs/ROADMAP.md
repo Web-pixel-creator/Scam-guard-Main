@@ -169,8 +169,9 @@ Remaining implementation order after the 2026-07-02 reconciliation:
    and direct voice-to-SOS routing are shipped. The first production-like STT
    corpus slices now cover RU/UZ/EN SMS-code, card security-code,
    remote-access, money-transfer, Telegram login-QR, live-call and negated
-   already-happened phrases. Next: broaden real provider audio/transcript
-   fixtures and tune confidence heuristics from production examples.
+   already-happened phrases. The local real-provider capture/replay workflow is
+   also in place. Next: collect real provider audio/transcript fixtures from
+   live QA and tune confidence heuristics from production examples.
 2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
    keep human listen-through for tone/pronunciation in the release checklist.
 3. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
@@ -215,8 +216,12 @@ Operational hardening that continues in parallel:
   transcripts for SMS-code, card security-code, remote-access, money-transfer,
   Telegram login-QR and live-call emergencies route to SOS, and negated
   already-happened phrases do not.
-- Next queue item is real provider Voice-in/STT audio/transcript fixture
-  expansion, then Phone Reputation v2 / Inline QA.
+- Voice-in/STT fixture workflow shipped on 2026-07-02: replay rows live in
+  `voice-stt-provider-fixtures.ts`, local audio captures stay ignored, and
+  `npm run stt:transcribe-fixtures` emits sanitized transcripts for manual
+  review.
+- Next queue item is collecting real provider Voice-in/STT audio/transcript
+  examples through that workflow, then Phone Reputation v2 / Inline QA.
 - The private moderator Telegram chat must receive only redacted summaries and
   moderation links, never raw codes, cards, screenshots, full OCR text or
   unredacted phone numbers.

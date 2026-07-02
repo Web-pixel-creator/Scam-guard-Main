@@ -132,9 +132,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       shipped: RU/UZ/EN SMS-code, card security-code, remote-access,
       money-transfer, Telegram login-QR and live-call transcripts route to the
       right SOS, while negated "I did not send/scan/dictate" phrases stay on
-      the normal check pipeline. Remaining: broaden real provider
-      audio/transcript fixtures and tune confidence heuristics from production
-      examples.
+      the normal check pipeline. A local real-provider capture workflow is now
+      documented in `ai_docs/VOICE_STT_FIXTURES.md` and backed by
+      `npm run stt:transcribe-fixtures`. Remaining: collect real provider
+      audio/transcript fixtures from live QA and tune confidence heuristics
+      from production examples.
 - [x] ~~**Latency pass.** Use sanitized `telegram_timing` logs to identify 5-10
       second paths, then cache or skip AI on low-signal checks where
       deterministic output is enough.~~ Done: Telegram text checks show a

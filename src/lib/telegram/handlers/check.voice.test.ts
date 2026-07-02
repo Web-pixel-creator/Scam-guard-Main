@@ -56,6 +56,11 @@ vi.mock("@/lib/telegram/session.server", () => ({
 }));
 
 import { handleCheck, handleVoice } from "./check";
+import {
+  VOICE_STT_PROVIDER_REPLAY_FIXTURES,
+  isVoiceSttNormalReplayFixture,
+  isVoiceSttPanicReplayFixture,
+} from "../voice-stt-provider-fixtures";
 
 function ctx(lang: Session["lang"] = "ru"): HandlerCtx {
   const session: Session = {
@@ -358,32 +363,16 @@ describe("handleVoice", () => {
   });
 
   it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {
-    const cases: Array<[string, number, string]> = [
-      ["Я продиктовала три цифры с оборота карты", 4, "ru-card-back-digits"],
-      ["Я уже назвала код безопасности карты", 4, "ru-card-security-code"],
-      ["Я установил AnyDesk и дал доступ к экрану", 2, "ru-remote-access"],
-      ["Я отсканировала QR для входа в Telegram", 5, "ru-telegram-login-qr"],
-      ["Men kartaning orqasidagi uch raqamni aytdim", 4, "uz-card-back-digits"],
-      ["Men AnyDesk ilovasini o'rnatdim va ekranga ruxsat berdim", 2, "uz-remote-access"],
-      ["Men Telegram QR kodini skaner qildim", 5, "uz-telegram-login-qr"],
-      ["I sent the SMS code to the caller", 1, "en-sms-code"],
-      ["I gave the three digits on the back of my card", 4, "en-card-back-digits"],
-      ["I installed AnyDesk and allowed screen access", 2, "en-remote-access"],
-      ["I transferred money to their card", 3, "en-money-transfer"],
-      ["I scanned the Telegram login QR code", 5, "en-telegram-login-qr"],
-      ["I am on the phone with the bank caller right now", 6, "en-live-call"],
-    ];
-
-    for (const [text, panicId, uniqueId] of cases) {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(isVoiceSttPanicReplayFixture)) {
       vi.clearAllMocks();
-      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
       hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
       hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
 
-      await handleVoice("voice-file-id", ctx(), {
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
         fileSize: 1024,
         duration: 9,
-        fileUniqueId: uniqueId,
+        fileUniqueId: fixture.id,
       });
 
       expect(hoisted.runCheck).not.toHaveBeenCalled();
@@ -391,38 +380,30 @@ describe("handleVoice", () => {
         42,
         expect.objectContaining({
           scenario: "none",
-          scenarioData: expect.objectContaining({ lastPanicId: panicId }),
+          scenarioData: expect.objectContaining({ lastPanicId: fixture.expectation.panicId }),
         }),
       );
     }
   });
 
   it("does not route negated STT phrases as already-happened emergencies", async () => {
-    const cases: Array<[string, string]> = [
-      ["Я не отправила SMS-код", "ru-not-sent-code"],
-      ["Я не продиктовал три цифры с оборота карты", "ru-not-card-digits"],
-      ["Я не сканировал QR для входа в Telegram", "ru-not-telegram-qr"],
-      ["Men SMS kod yubormadim", "uz-not-sent-code"],
-      ["I did not send the SMS code", "en-not-sent-code"],
-      ["I didn't scan the Telegram QR", "en-not-telegram-qr"],
-      ["I have not given the three digits on the back of my card", "en-not-card-digits"],
-    ];
-
-    for (const [text, uniqueId] of cases) {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(
+      isVoiceSttNormalReplayFixture,
+    )) {
       vi.clearAllMocks();
-      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
       hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
       hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
 
-      await handleVoice("voice-file-id", ctx(), {
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
         fileSize: 1024,
         duration: 8,
-        fileUniqueId: uniqueId,
+        fileUniqueId: fixture.id,
       });
 
       expect(hoisted.runCheck).toHaveBeenCalledWith(
         expect.objectContaining({
-          input: text,
+          input: fixture.transcript,
           type: "text",
           channel: "telegram",
         }),
