@@ -366,6 +366,12 @@ describe("handleVoice", () => {
       ["Men kartaning orqasidagi uch raqamni aytdim", 4, "uz-card-back-digits"],
       ["Men AnyDesk ilovasini o'rnatdim va ekranga ruxsat berdim", 2, "uz-remote-access"],
       ["Men Telegram QR kodini skaner qildim", 5, "uz-telegram-login-qr"],
+      ["I sent the SMS code to the caller", 1, "en-sms-code"],
+      ["I gave the three digits on the back of my card", 4, "en-card-back-digits"],
+      ["I installed AnyDesk and allowed screen access", 2, "en-remote-access"],
+      ["I transferred money to their card", 3, "en-money-transfer"],
+      ["I scanned the Telegram login QR code", 5, "en-telegram-login-qr"],
+      ["I am on the phone with the bank caller right now", 6, "en-live-call"],
     ];
 
     for (const [text, panicId, uniqueId] of cases) {
@@ -397,6 +403,9 @@ describe("handleVoice", () => {
       ["Я не продиктовал три цифры с оборота карты", "ru-not-card-digits"],
       ["Я не сканировал QR для входа в Telegram", "ru-not-telegram-qr"],
       ["Men SMS kod yubormadim", "uz-not-sent-code"],
+      ["I did not send the SMS code", "en-not-sent-code"],
+      ["I didn't scan the Telegram QR", "en-not-telegram-qr"],
+      ["I have not given the three digits on the back of my card", "en-not-card-digits"],
     ];
 
     for (const [text, uniqueId] of cases) {

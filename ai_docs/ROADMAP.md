@@ -166,11 +166,11 @@ Remaining implementation order after the 2026-07-02 reconciliation:
 
 1. **Voice-in/STT regression corpus and confidence tuning.** Transcript
    preview, correction, low-signal fallback, waiting state, STT-budget wording
-   and direct voice-to-SOS routing are shipped. The first production-like
-   STT corpus slice now covers RU/UZ card security-code, remote-access,
-   Telegram login-QR and negated already-happened phrases. Next: broaden real
-   provider audio/transcript fixtures and tune confidence heuristics from
-   production examples.
+   and direct voice-to-SOS routing are shipped. The first production-like STT
+   corpus slices now cover RU/UZ/EN SMS-code, card security-code,
+   remote-access, money-transfer, Telegram login-QR, live-call and negated
+   already-happened phrases. Next: broaden real provider audio/transcript
+   fixtures and tune confidence heuristics from production examples.
 2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
    keep human listen-through for tone/pronunciation in the release checklist.
 3. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
@@ -211,9 +211,10 @@ Operational hardening that continues in parallel:
 - Voice-out prerecorded SOS assets revalidated on 2026-07-02: all 45 RU/UZ/EN
   OGG files for panic scenarios 1-15 pass `tts:validate-assets`; runtime tests
   still prefer OGG before WAV, TTS budget and provider calls.
-- Voice-in/STT first corpus slice shipped on 2026-07-02: production-like RU/UZ
-  transcripts for card security-code, remote-access and Telegram login-QR
-  emergencies route to SOS, and negated already-happened phrases do not.
+- Voice-in/STT corpus slices shipped on 2026-07-02: production-like RU/UZ/EN
+  transcripts for SMS-code, card security-code, remote-access, money-transfer,
+  Telegram login-QR and live-call emergencies route to SOS, and negated
+  already-happened phrases do not.
 - Next queue item is real provider Voice-in/STT audio/transcript fixture
   expansion, then Phone Reputation v2 / Inline QA.
 - The private moderator Telegram chat must receive only redacted summaries and

@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-02 - TG-014 Voice-in/STT EN provider-like corpus
+
+- Extended direct Voice-in/STT emergency routing for English provider-like
+  transcripts: already-sent SMS code, card back digits, AnyDesk/screen access,
+  money transfer, Telegram login QR and live-call phrases now open the matching
+  SOS scenario instead of falling through to a generic risk card.
+- Added English negated already-happened guards so "I did not send the SMS
+  code", "I didn't scan the Telegram QR" and similar phrases continue through
+  the normal check pipeline.
+- Verification passed: full Telegram suite, voice/rules risk regressions,
+  scoped eslint and `tsc --noEmit`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-014` now records the
+  RU/UZ/EN provider-like STT corpus, `QA-2026-07-02-012` was added, and the
+  next queue item remains real provider audio/transcript fixture collection
+  before Phone Reputation v2 / Inline QA.
+
 ## 2026-07-02 - TG-014 Voice-in/STT corpus tuning
 
 - Added a first production-like STT transcript corpus for already-happened
