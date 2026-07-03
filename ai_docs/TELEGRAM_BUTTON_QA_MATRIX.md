@@ -195,11 +195,12 @@ approval at action time.
 | Area | Live result | Notes |
 | --- | --- | --- |
 | Trusted-contact alert / "Call close person" | Pass | With explicit user approval, the latest Guardian/high-risk `Позвать близкого` button was clicked. The bot confirmed: "Я отправил близкому короткий сигнал помощи..." and reminded the user not to forward codes, PIN, CVV, passwords, card photos, or suspicious files. |
+| Family Shield invite / "Create invitation" | Pass with existing-link fallback | With explicit user approval, `/family` was opened and `Создать приглашение` was clicked. Because a trusted contact was already connected, no new invite was created; the bot correctly explained that a new invitation requires disconnecting the current Family Shield link first and offered `Позвать близкого`, `Как проверить голос`, and `Отключить`. |
 
 ## Next Safe Live Pass
 
 1. Manual-only side-effect pass, only with explicit approval at action time:
-   `family:invite`, `family:revoke`, trusted opt-out, live-call trusted alert
-   variant if needed, voice-out listen-through and full report submit/retry.
+   `family:revoke`, trusted opt-out, live-call trusted alert variant if needed,
+   voice-out listen-through and full report submit/retry.
 2. Optional copy polish: align the job/easy-income "Check source" response
    heading with the button label.
