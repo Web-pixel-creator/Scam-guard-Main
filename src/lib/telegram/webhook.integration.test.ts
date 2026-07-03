@@ -58,6 +58,7 @@ const h = vi.hoisted(() => ({
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
   ocrText: null as string | null,
   imageEvidence: null as unknown,
+  voiceTranscript: "caller asks for SMS code",
 
   // Stub data URL returned by the (mocked) downloader — contains a sentinel we
   // assert NEVER lands in any persisted payload.
@@ -154,6 +155,7 @@ vi.mock("@/lib/risk/check-core", async (importActual) => {
         summary: null,
       };
     }),
+    transcribeVoiceCore: vi.fn(async () => ({ text: h.voiceTranscript })),
   };
 });
 
@@ -306,6 +308,32 @@ function videoUpdate(opts: {
   };
 }
 
+/** A voice message update. */
+function voiceUpdate(opts: {
+  userId: number;
+  chatId: number;
+  fileId?: string;
+  fileUniqueId?: string;
+  duration?: number;
+  fileSize?: number;
+}): unknown {
+  return {
+    update_id: nextSyntheticUpdateId(),
+    message: {
+      message_id: 1,
+      from: { id: opts.userId, language_code: "ru" },
+      chat: { id: opts.chatId },
+      voice: {
+        file_id: opts.fileId ?? "voice_1",
+        file_unique_id: opts.fileUniqueId ?? `voice_unique_${opts.userId}`,
+        file_size: opts.fileSize ?? 1024,
+        duration: opts.duration ?? 8,
+        mime_type: "audio/ogg",
+      },
+    },
+  };
+}
+
 /** A callback query update from an inline keyboard button. */
 function callbackUpdate(opts: {
   userId: number;
@@ -390,6 +418,7 @@ beforeEach(() => {
   h.sendNeverResolves = false;
   h.ocrText = null;
   h.imageEvidence = null;
+  h.voiceTranscript = "caller asks for SMS code";
   h.entityRow = null;
   h.sessionRow = null;
 
@@ -2071,5 +2100,38 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).toContain("asks_to_scan_qr");
     expect(persisted).toContain("guardian");
+  });
+});
+
+describe("webhook end-to-end - voice STT flow", () => {
+  it("routes an already-transferred voice emergency without a generic handler error", async () => {
+    h.dataUrl = "data:audio/ogg;base64,AAAA";
+    h.voiceTranscript =
+      "\u044f \u0443\u0436\u0435 \u043f\u0435\u0440\u0435\u0432\u0451\u043b \u0434\u0435\u043d\u044c\u0433\u0438 \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u043a\u0430\u043c, \u043f\u043e\u043c\u043e\u0433\u0438\u0442\u0435";
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(voiceUpdate({ userId: 1130, chatId: 5130 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toEqual(["voice_1"]);
+    expect(h.downloadCalls).toEqual(["photos/file_42.jpg"]);
+    expect(JSON.stringify(h.upserts)).toContain('"lastPanicId":3');
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(JSON.stringify(h.sendCalls)).not.toContain("Что-то пошло не так");
+  });
+
+  it("asks for corrected text when a voice transcript is too low-signal", async () => {
+    h.dataUrl = "data:audio/ogg;base64,AAAA";
+    h.voiceTranscript = "ha yoq";
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(voiceUpdate({ userId: 1131, chatId: 5131 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(callbackData(h.sendCalls[h.sendCalls.length - 1].keyboard)).toContain("voice_correct");
+    expect(JSON.stringify(h.upserts)).not.toContain('"lastPanicId"');
   });
 });

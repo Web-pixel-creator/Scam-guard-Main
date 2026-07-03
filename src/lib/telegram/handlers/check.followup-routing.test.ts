@@ -206,6 +206,18 @@ describe("handleCheck follow-up routing", () => {
     expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain('"lastPanicId":1');
   });
 
+  it("keeps scammer OTP instructions on the normal risk pipeline instead of SOS", async () => {
+    await handleCheck("Salom, bu kodni kiriting please: 1234", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("kodni kiriting");
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).not.toContain('"lastPanicId"');
+  });
+
   it("keeps forwarded already-happened text on the normal risk pipeline", async () => {
     await handleCheck(
       "я уже перевёл деньги мошенникам, помогите",

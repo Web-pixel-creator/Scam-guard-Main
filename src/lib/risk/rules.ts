@@ -120,6 +120,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
+  { code: "asks_for_sms_code", re: /\bsms\s*code\b/i },
   {
     code: "asks_for_sms_code",
     // Catches explicit "SMS code" wording AND softer real-world asks where the
@@ -147,6 +148,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
     re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|payme|click)/i,
   },
   { code: "impersonates_operator", re: /(оператор связи|ucell|beeline|mobiuz|ums|uzmobile)/i },
+  {
+    code: "impersonates_bank",
+    re: /\b(bank security|security department of (the )?bank|bank support|bank employee|bank officer)\b/i,
+  },
   {
     code: "uses_urgency",
     re: /(срочно|немедленно|прямо сейчас|tezda|hozir|darhol|urgent|immediately|right now)/i,

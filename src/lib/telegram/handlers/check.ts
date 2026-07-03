@@ -814,13 +814,19 @@ function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
   return QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE.test(prefix);
 }
 
+const TEXT_PANIC_DONE_INTENT_RE =
+  /(?:^|\s)(?:(?:\u044f|\u043c\u044b)\s+(?:\u0443\u0436\u0435\s+)?.{0,50}(?:\u043e\u0442\u043f\u0440\u0430\u0432|\u0441\u043e\u043e\u0431\u0449|\u043d\u0430\u0437\u0432\u0430|\u0441\u043a\u0430\u0437\u0430|\u043f\u0435\u0440\u0435\u0434\u0430|\u043f\u0440\u043e\u0434\u0438\u043a\u0442|\u0443\u0441\u0442\u0430\u043d\u043e\u0432|\u0441\u043a\u0430\u0447|\u0437\u0430\u043f\u0443\u0441\u0442|\u043e\u0442\u043a\u0440|\u0440\u0430\u0437\u0440\u0435\u0448|\u0432\u043a\u043b\u044e\u0447|\u0434\u0430\u043b|\u043f\u0435\u0440\u0435\u0432|\u043e\u043f\u043b\u0430\u0442|\u043f\u043e\u043f\u043e\u043b\u043d|\u0432\u0432\u0435|\u0432\u0432\u0451|\u0432\u0431\u0438|\u0443\u043a\u0430\u0437|\u0441\u043a\u0430\u043d|\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434)|(?:men|biz).{0,50}(?:yubordim|jo['\u2019]?natdim|jonatdim|aytdim|berdim|kiritdim|o['\u2019]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['\u2019]?tkazdim|otkazdim|to['\u2019]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)|(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|dictated|entered|typed|confirmed|approved|installed|downloaded|opened|started|allowed|enabled|transferred|paid|topped\s+up|scanned))/i;
+
 function classifyTextPanicIntent(
   text: string,
   source?: TelegramForwardSourceContext,
 ): PanicScenarioId | null {
   if (source) return null;
   if (isQuotedOrThirdPartyDoneIntent(text)) return null;
-  return classifyVoicePanicIntent(text);
+  const panicId = classifyVoicePanicIntent(text);
+  if (panicId === null) return null;
+  if (panicId === 6) return panicId;
+  return TEXT_PANIC_DONE_INTENT_RE.test(normalizeVoiceIntentText(text)) ? panicId : null;
 }
 
 async function sendPanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {

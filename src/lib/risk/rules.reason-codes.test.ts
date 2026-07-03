@@ -702,6 +702,18 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
   it.each(negatives)("negative: $name", ({ text }) => {
     expect(evaluateText(text)).not.toContain("asks_for_sms_code");
   });
+
+  it("flags plain English SMS-code requests", () => {
+    expect(evaluateText("hello, i am from bank security, send sms code")).toContain(
+      "asks_for_sms_code",
+    );
+  });
+
+  it("flags plain English bank security impersonation", () => {
+    expect(evaluateText("hello, i am from bank security, send sms code")).toContain(
+      "impersonates_bank",
+    );
+  });
 });
 
 describe("evaluateText — UZ critical scam patterns from audit", () => {
