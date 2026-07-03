@@ -24,14 +24,14 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Result follow-up | `why`, `explain_simple`, `check_another`, `media_tips`, `emergency` | Safe | `format.test.ts`, `webhook.integration.test.ts`, `why-explanation*` | Partially live-tested |
 | Asked context | `asked:code`, `asked:card`, `asked:transfer`, `asked:apk`, `asked:link_qr`, `asked:call` | Safe | `check-context-buttons.test.ts`, `format.test.ts` | Needs live spot-check |
 | Image triage | `imgtriage:gift`, `imgtriage:casino`, `imgtriage:wallet`, `imgtriage:bank`, `imgtriage:telegram_profile`, `imgtriage:qr_menu` | Safe | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts` | Profile fallback live-tested; remaining triage safe to spot-check |
-| Conversation | `conversation_analyze`, `conversation_cancel` | Safe, but stateful session | `conversation-check.test.ts`, `webhook.integration.test.ts` | Needs controlled live run with dummy text |
+| Conversation | `conversation_analyze`, `conversation_cancel` | Safe, but stateful session | `conversation-check.test.ts`, `webhook.integration.test.ts` | Controlled dummy live runs passed; collector/cancel/analyze verified |
 | Report flow | `report`, `report_no_value`, `report_skip`, `report_retry` | Stateful; final submit not safe to spam | `handlers/report.scenario.test.ts`, `webhook.integration.test.ts` | One synthetic report live-tested; further live requires restraint |
 | Panic menu | `panic:1` ... `panic:15`, `panic:more`, `panic:more2`, `panic:back`, `panic:back2` | Safe; creates guidance messages | `panic-keyboard-structure.test.ts`, `emergency-followup.test.ts`, `webhook.integration.test.ts` | Pages and representative scenarios live-tested; full 15-scenario pass pending |
 | Panic follow-up | `panicctx:<id>:more`, `panicctx:<id>:contacts`, `panicctx:<id>:script`, `panicctx:<id>:full` | Safe, except keyboards may include `family:notify` | `emergency-followup.test.ts`, `webhook.integration.test.ts`, `voice-out.server.test.ts` | Needs sampled live pass |
 | Live call | `livecall:hangup`, `livecall:what_to_say`, `livecall:sent_code`, `livecall:tell_family` | Safe except `tell_family` notifies trusted contact | `live-call-scenario.test.ts`, `webhook.integration.test.ts` | Hangup/what-to-say/sent-code safe; tell-family manual-only |
 | Guardian Angel | `guardian:next`, `guardian:done`, `guardian:safe_call`, `guardian:full_plan` | Safe, except keyboard may include `family:notify` and `voiceout:guardian` | `guardian-angel.test.ts`, `webhook.integration.test.ts` | High-risk Guardian live-tested; follow-up button pass pending |
 | Family Shield | `family:menu`, `family:codeword`, `family:invite`, `family:notify`, `family:revoke`, `family:trusted_opt_out` | `menu`/`codeword` safe; others side-effect/manual-only | `family-shield.server.test.ts`, `webhook.integration.test.ts` | `menu`/`codeword` live-tested after rename; notify/invite/revoke side-effect paths sampled with approval |
-| Trainer | `trainer:start`, `trainer:q:*`, `trainer:a:*` | Safe | `scam-trainer.test.ts`, `webhook.integration.test.ts` | Needs live mini-run |
+| Trainer | `trainer:start`, `trainer:q:*`, `trainer:a:*` | Safe | `scam-trainer.test.ts`, `webhook.integration.test.ts` | Live mini-run passed; Q1 answer and Q2 advance verified |
 | Voice-out | `voiceout:panic:<id>`, `voiceout:guardian` | Provider/quota/chat-noise side effect; safe only with approval | `voice-out.server.test.ts`, `emergency-followup.test.ts` | Static voice smoke exists; full live listen-through pending |
 
 ## Manual-only Buttons
@@ -73,7 +73,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Live call: "Что сказать?" | Inconclusive | Button clicked, but follow-up was overwritten by rapid subsequent test commands; retest as a single screenshot case. |
 | Live call: "Я уже отправил SMS-код" | Inconclusive | Button clicked, but follow-up was overwritten by rapid subsequent test commands; retest as a single screenshot case. |
 | Panic pagination | Pass | Page 1 -> page 2 -> page 3 -> back -> back worked. |
-| Conversation analyze | Pass | Two dummy messages analyzed and produced a risk result. |
+| Conversation analyze | Pass | Dummy conversation runs analyzed successfully; latest 3-message run produced "Разговор: есть подозрительная эскалация" and result buttons. |
 | Main: "Язык" | Inconclusive | DOM click opened Telegram Bot Info in this client; do manual visual click or use `/lang`, then restore RU. |
 | Main: "Сообщить случай" | Skipped | Report flow is stateful and can create moderator-chat noise if completed. Covered by synthetic tests and one earlier live synthetic report. |
 | Family: "Позвать близкого" | Skipped | Sends a real trusted-contact alert. Requires explicit approval at action time. |
@@ -90,7 +90,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Language: Russian restore | Pass | Switched back to Russian and returned Russian input guidance. |
 | Live call: "Что сказать?" | Pass | Visual pass: returned a ready phrase to end the call and call back via the official number. |
 | Live call: "Я уже отправил SMS-код" | Pass | Visual pass: returned urgent bank/card blocking guidance. |
-| Trainer answer | Pass | Question 1 answer "Положить трубку..." returned "Верно" and a safe-step explanation. |
+| Trainer answer | Pass | Question 1 answer "Положить трубку..." returned "Верно" and a safe-step explanation; "Следующая ситуация" advanced to 2/5. |
 | Image fallback setup | Pass | Deliberately unreadable QA image produced the honest unreadable-image fallback and triage keyboard. |
 | Image triage: NFT/Stars/подарок | Pass | Returned cautious gift/bonus guidance; no green-safe verdict. |
 | Image triage: Казино/фриспины | Pass | Returned deposit/access/card/code warning; no green-safe verdict. |
