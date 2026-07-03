@@ -99,6 +99,30 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Image triage: Профиль/чат | Pass | Returned nuanced profile/chat guidance; no account-identity claim and no green-safe verdict. |
 | Image triage: Меню/QR | Pass | Returned menu/informational QR guidance with warning about payment/login/code/card/APK after opening; no green-safe verdict. |
 
+## Harness Pass 2026-07-03
+
+Live Telegram Web retry was blocked: after opening
+`https://web.telegram.org/k/#@scamguard_bot`, the in-app browser tab API timed
+out while reading/opening tabs. No live side-effect buttons were clicked in this
+blocked retry.
+
+Local callback-handler coverage was expanded and passed:
+
+| Area | Harness result | Notes |
+| --- | --- | --- |
+| Panic scenarios `panic:1..15` | Pass | Every scenario sends a concrete response, does not edit the menu message, and stores `lastPanicId` with chat scope. |
+| Guardian actions | Pass | `guardian:next`, `guardian:done`, `guardian:safe_call`, and `guardian:full_plan` answer from stored high-risk context and return the safe follow-up keyboard. |
+| Guardian without context | Pass | The same Guardian callbacks degrade to no-context guidance and do not expose stale details or keyboards. |
+
+Verification:
+
+- `npm run test:run -- src/lib/telegram/handlers/panic-menu-flow.test.ts`
+  passed: 30 tests.
+- `npm run test:run -- src/lib/telegram/emergency-followup.test.ts
+  src/lib/telegram/panic-keyboard-structure.test.ts
+  src/lib/telegram/guardian-angel.test.ts` passed: 107 tests.
+- `npm run qa:telegram-report` passed and produced no content diff.
+
 ## Next Safe Live Pass
 
 1. Panic sampled scenarios from pages 1-3, excluding `family:notify` and

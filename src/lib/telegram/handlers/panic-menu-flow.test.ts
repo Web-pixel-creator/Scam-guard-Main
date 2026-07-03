@@ -76,6 +76,7 @@ import {
   buildPanicKeyboardPage2,
   buildPanicKeyboardPage3,
   buildPanicMenuText,
+  type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 
 // ---------------------------------------------------------------------------
@@ -379,6 +380,34 @@ describe("panic:N — scenario text sent as a new message", () => {
       ]),
     );
   });
+
+  it("handles every panic scenario button with a concrete response and stored context", async () => {
+    const panicIds: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+    for (const panicId of panicIds) {
+      h.sendCalls.length = 0;
+      h.editCalls.length = 0;
+      h.saveCalls.length = 0;
+
+      await handleCallback(`panic:${panicId}`, makeCtx());
+
+      expect(h.editCalls, `panic:${panicId}`).toHaveLength(0);
+      expect(h.sendCalls, `panic:${panicId}`).toHaveLength(1);
+      expect(h.sendCalls[0].chatId, `panic:${panicId}`).toBe(CHAT_ID);
+      expect(h.sendCalls[0].text.length, `panic:${panicId}`).toBeGreaterThan(40);
+      expect(h.saveCalls, `panic:${panicId}`).toHaveLength(1);
+      expect(h.saveCalls[0].patch, `panic:${panicId}`).toEqual(
+        expect.objectContaining({
+          scenario: "none",
+          scenarioStep: 0,
+          scenarioData: expect.objectContaining({
+            lastPanicId: panicId,
+            chatScope: expect.objectContaining({ chatId: CHAT_ID }),
+          }),
+        }),
+      );
+    }
+  });
 });
 
 // ===========================================================================
@@ -400,6 +429,33 @@ describe("livecall:tell_family — routes to Family Shield notify", () => {
 });
 
 describe("Guardian Angel callbacks", () => {
+  const guardianActions = [
+    "guardian:next",
+    "guardian:done",
+    "guardian:safe_call",
+    "guardian:full_plan",
+  ] as const;
+
+  function makeGuardianCtx(): HandlerCtx {
+    return makeCtx({
+      session: {
+        telegramUserId: USER_ID,
+        lang: "ru",
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: {
+          guardian: {
+            level: "high_risk",
+            type: "url",
+            reasons: ["asks_for_sms_code", "impersonates_bank"],
+            at: new Date().toISOString(),
+          },
+        },
+        updatedAt: new Date(0).toISOString(),
+      } as Session,
+    });
+  }
+
   it("answers the next-step callback from stored safe high-risk context", async () => {
     const ctx = makeCtx({
       session: {
@@ -426,6 +482,25 @@ describe("Guardian Angel callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toContain("guardian:done");
   });
 
+  it.each(guardianActions)(
+    "answers %s from stored safe high-risk context",
+    async (guardianAction) => {
+      await handleCallback(guardianAction, makeGuardianCtx());
+
+      expect(h.sendCalls).toHaveLength(1);
+      expect(h.sendCalls[0].text.length).toBeGreaterThan(40);
+      expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
+        expect.arrayContaining([
+          "guardian:next",
+          "guardian:done",
+          "guardian:safe_call",
+          "guardian:full_plan",
+          "check_another",
+        ]),
+      );
+    },
+  );
+
   it("does not pretend to remember a high-risk context when none is stored", async () => {
     await handleCallback("guardian:next", makeCtx());
 
@@ -433,4 +508,15 @@ describe("Guardian Angel callbacks", () => {
     expect(h.sendCalls[0].text).toContain("не вижу активной опасной проверки");
     expect(h.sendCalls[0].keyboard).toBeUndefined();
   });
+
+  it.each(guardianActions)(
+    "does not answer %s with stale details when no Guardian context is stored",
+    async (guardianAction) => {
+      await handleCallback(guardianAction, makeCtx());
+
+      expect(h.sendCalls).toHaveLength(1);
+      expect(h.sendCalls[0].text.length).toBeGreaterThan(40);
+      expect(h.sendCalls[0].keyboard).toBeUndefined();
+    },
+  );
 });
