@@ -574,6 +574,8 @@ describe("image intelligence evidence builder", () => {
 
     expect(evidence.visualCategory).toBe("telegram_profile_card");
     expect(evidence.riskHints).toEqual([]);
+    expect(isBenignImageContext(evidence)).toBe(true);
+    expect(isEvidenceBackedBenignImageContext(evidence)).toBe(false);
 
     const { input, reasons, score } = scoreImageEvidence(evidence);
     expect(input).toContain("скрин профиля Telegram");

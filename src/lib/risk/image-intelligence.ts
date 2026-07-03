@@ -691,7 +691,7 @@ export function isEvidenceBackedBenignImageContext(evidence: ImageIntelligenceRe
     case "qr_menu_or_info":
       return QR_RE.test(text) && hasImageQrSignal(evidence, text);
     case "telegram_profile_card":
-      return TELEGRAM_PROFILE_CARD_RE.test(text);
+      return false;
     default:
       return false;
   }

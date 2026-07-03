@@ -1794,6 +1794,32 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
   });
 
+  it("keeps Telegram profile screenshots unknown instead of marking them safe", async () => {
+    h.imageEvidence = {
+      text: "Lina\nНе в контактах\nСтрана телефона Uzbekistan\nРегистрация Июнь 2026 г.\nНе официальный аккаунт",
+      visualCategory: "telegram_profile_card",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Скрин профиля Telegram.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1022, chatId: 5022 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.safe);
+    expect(h.sendCalls[0].text).toContain("Telegram\\-паспорт");
+    expect(h.sendCalls[0].text).toContain("По скриншоту профиля видно");
+    expect(h.sendCalls[0].text).toContain("не официальный аккаунт");
+    expect(h.sendCalls[0].text).toContain("не доказательство скама");
+
+    const checkInsert = h.inserts.find((i) => i.table === "checks");
+    expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
+  });
+
   it("does not flag a restaurant QR menu as high risk without dangerous requests", async () => {
     h.imageEvidence = {
       text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
