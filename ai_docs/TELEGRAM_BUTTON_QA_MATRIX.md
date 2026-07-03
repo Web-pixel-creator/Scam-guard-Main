@@ -25,7 +25,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Asked context | `asked:code`, `asked:card`, `asked:transfer`, `asked:apk`, `asked:link_qr`, `asked:call` | Safe | `check-context-buttons.test.ts`, `format.test.ts` | Live spot-check passed for all six context buttons |
 | Image triage | `imgtriage:gift`, `imgtriage:casino`, `imgtriage:wallet`, `imgtriage:bank`, `imgtriage:telegram_profile`, `imgtriage:qr_menu` | Safe | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts` | Profile fallback live-tested; remaining triage safe to spot-check |
 | Conversation | `conversation_analyze`, `conversation_cancel` | Safe, but stateful session | `conversation-check.test.ts`, `webhook.integration.test.ts` | Controlled dummy live runs passed; collector/cancel/analyze verified |
-| Report flow | `report`, `report_no_value`, `report_skip`, `report_retry` | Stateful; final submit not safe to spam | `handlers/report.scenario.test.ts`, `webhook.integration.test.ts` | One synthetic report live-tested; further live requires restraint |
+| Report flow | `report`, `report_no_value`, `report_skip`, `report_retry` | Stateful; final submit not safe to spam | `handlers/report.scenario.test.ts`, `webhook.integration.test.ts` | Full synthetic report success path live-tested with action-time approval; retry remains failure-only/manual |
 | Panic menu | `panic:1` ... `panic:15`, `panic:more`, `panic:more2`, `panic:back`, `panic:back2` | Safe; creates guidance messages | `panic-keyboard-structure.test.ts`, `emergency-followup.test.ts`, `webhook.integration.test.ts` | Pages and representative scenarios live-tested; full 15-scenario pass pending |
 | Panic follow-up | `panicctx:<id>:more`, `panicctx:<id>:contacts`, `panicctx:<id>:script`, `panicctx:<id>:full` | Safe, except keyboards may include `family:notify` | `emergency-followup.test.ts`, `webhook.integration.test.ts`, `voice-out.server.test.ts` | Needs sampled live pass |
 | Live call | `livecall:hangup`, `livecall:what_to_say`, `livecall:sent_code`, `livecall:tell_family` | Safe except `tell_family` notifies trusted contact | `live-call-scenario.test.ts`, `webhook.integration.test.ts` | Hangup/what-to-say/sent-code safe; tell-family manual-only |
@@ -48,8 +48,8 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 
 - `/family` menu and "Как проверить голос" verified live after deploy on
   2026-07-03.
-- One synthetic `/report` success path verified live earlier; moderator alert
-  delivery was expected and observed.
+- One synthetic `/report` success path verified live on 2026-07-03 with
+  action-time approval; moderator alert delivery was expected and observed.
 - High-risk text checks, Guardian Angel, panic/live-call entry, image profile
   fallback and voice STT were spot-checked live earlier.
 
@@ -202,11 +202,12 @@ approval at action time.
 | Family Shield invite / "Create invitation" | Pass with existing-link fallback | With explicit user approval, `/family` was opened and `Создать приглашение` was clicked. Because a trusted contact was already connected, no new invite was created; the bot correctly explained that a new invitation requires disconnecting the current Family Shield link first and offered `Позвать близкого`, `Как проверить голос`, and `Отключить`. |
 | Family Shield revoke / "Disconnect" | Pass | With explicit user approval, `Отключить` was clicked from the existing-link Family Shield screen. The bot confirmed: "Готово. Семейный щит отключён для этого контакта." |
 | SOS voice-out / "Speak main step" | Pass | With explicit user approval, `Озвучить главный шаг` was clicked on the `Я уже отправил SMS-код` SOS screen. The bot sent a playable audio card with the safe spoken summary, included the text caption, and explicitly stated that codes, cards, and passwords are not spoken. Playback advanced to 0:02, then was paused. |
+| Report final submit | Pass | With action-time approval, a synthetic `/report` was completed using `https://example.invalid/live-qa-test` and a `LIVE QA TEST` description. The bot confirmed receipt, said public labeling happens only after moderation, and a moderator-chat alert for a new complaint was observed. |
 
 ## Next Safe Live Pass
 
 1. Manual-only side-effect pass, only with explicit approval at action time:
    trusted opt-out, live-call trusted alert variant if needed, Guardian
-   voice-out if desired, and full report submit/retry.
+   voice-out if desired, and report retry only if a failure is intentionally staged.
 2. Optional copy polish: align the job/easy-income "Check source" response
    heading with the button label.
