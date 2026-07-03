@@ -23,9 +23,11 @@ Generated from the current TypeScript formatters. This file is meant for product
 
 - [📞 МНЕ ЗВОНЯТ СЕЙЧАС] (callback: panic:6)
 - [🔍 Проверить новое] (callback: check_another)
+- [🧵 Вся переписка] (callback: conversation_start)
 - [🆘 Помощь сейчас] (callback: emergency)
-- [👪 Близкий рядом] (callback: family:menu)
 - [📢 Сообщить случай] (callback: report)
+- [👪 Близкий рядом] (callback: family:menu)
+- [🎧 Тренажёр] (callback: trainer:start)
 - [📰 Схемы недели] (callback: digest)
 - [🛡 Правила] (callback: safety)
 - [❓ Как я решаю] (callback: how_it_works)
@@ -41,6 +43,8 @@ Generated from the current TypeScript formatters. This file is meant for product
 🧭 /menu — Главное меню
 📞 /call — Помощь во время звонка
 🔍 /check — Проверить номер или ссылку
+🧵 /conversation — Проверить несколько сообщений переписки
+🎧 /trainer — Тренажёр звонков
 📢 /report — Сообщить о случае
 🧾 /appeal — Исправить ошибочную запись
 🆘 /panic — Экстренная помощь
@@ -181,6 +185,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 9. Image: скрин профиля Telegram
 
@@ -210,6 +215,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 10. Risk Passport: иностранный номер
 
@@ -226,7 +232,8 @@ _Нет кнопок._
 Это не узбекский номер. Если представляются банком/службой Узбекистана — положите трубку и перезвоните сами.
 
 🛡 Репутация Ishonch
-• подтвержд. жалоб в Ishonch Guard не найдено
+• Подтверждённых модерированных жалоб в Ishonch Guard не найдено. Это не гарантия безопасности.
+• Не включает непроверенные жалобы, владельца номера, данные оператора или скрытые внешние метки.
 
 📌 Что это значит
 Сам номер не доказывает мошенничество: важнее, просили ли SMS-код, карту, перевод, APK или QR-вход.
@@ -246,6 +253,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 11. Risk result: инвестиции без ссылки
 
@@ -266,6 +274,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 12. Risk result: закрытая Telegram invite-ссылка
 
@@ -291,6 +300,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 13. Risk result: SMS-код / банк
 
@@ -316,6 +326,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🆘 Что делать срочно] (callback: emergency)
 
@@ -340,6 +351,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 
 ## 15. Image QR: вход в Telegram без утечки токена
 
@@ -365,6 +377,7 @@ _Нет кнопок._
 - [📢 Сообщить] (callback: report)
 - [🔎 Новая проверка] (callback: check_another)
 - [❓ Почему так?] (callback: why)
+- [👵 Простыми словами] (callback: explain_simple)
 - [👪 Позвать близкого] (callback: family:notify)
 - [🆘 Что делать срочно] (callback: emergency)
 
@@ -440,6 +453,7 @@ _Нет кнопок._
 - [🎰 Казино/фриспины] (callback: imgtriage:casino)
 - [💼 TON/Wallet] (callback: imgtriage:wallet)
 - [🏦 Банк/код] (callback: imgtriage:bank)
+- [👤 Профиль/чат] (callback: imgtriage:telegram_profile)
 - [🍽 Меню/QR] (callback: imgtriage:qr_menu)
 - [📸 Что прислать?] (callback: media_tips)
 - [🔎 Новая проверка] (callback: check_another)
@@ -913,6 +927,8 @@ _Нет кнопок._
 3. Он откроет бота и нажмёт Start.
 
 После этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.
+
+Отдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.
 ```
 
 **Кнопки**
@@ -966,7 +982,8 @@ _Нет кнопок._
 Что сделать:
 1. Не торопите и не ругайте его.
 2. Не просите пересылать SMS-коды, PIN, CVV, пароли, фото карты или ставить приложения.
-3. Помогите перезвонить в банк только по официальному номеру.
+3. Если голос или видео вызывают сомнение, перезвоните по сохранённому номеру и спросите семейное кодовое слово или личный вопрос.
+4. Помогите перезвонить в банк только по официальному номеру.
 ```
 
 **Кнопки**
