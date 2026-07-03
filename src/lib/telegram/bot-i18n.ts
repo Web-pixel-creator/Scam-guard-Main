@@ -693,9 +693,9 @@ export const bot_dict: BotDict = {
     en: "👪 Notify trusted person",
   },
   family_btn_codeword: {
-    ru: "🔐 Кодовое слово",
-    uz: "🔐 Maxfiy so'z",
-    en: "🔐 Code word",
+    ru: "🎙️ Как проверить голос",
+    uz: "🎙️ Ovozni tekshirish",
+    en: "🎙️ Verify voice safely",
   },
   family_btn_revoke: {
     ru: "🗑 Отключить",
@@ -708,9 +708,9 @@ export const bot_dict: BotDict = {
     en: "Stop these alerts",
   },
   family_menu_text: {
-    ru: "👪 *Семейный щит*\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Кодовое слово» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
-    uz: "👪 *Oila qalqoni*\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.\n\nAlohida «Maxfiy so'z» tugmasini bosib, ovozli va video qo'ng'iroqlarni botga sir yubormasdan tekshirish bo'yicha oilaviy qoida kelishib oling.",
-    en: "👪 *Family Shield*\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.\n\nYou can also tap “Code word” and agree with your family how to verify voice and video calls without sending the secret to the bot.",
+    ru: "👪 *Семейный щит*\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
+    uz: "👪 *Oila qalqoni*\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.\n\nAlohida «Ovozni tekshirish» tugmasini bosib, ovozli va video qo'ng'iroqlarni botga sir yubormasdan tekshirish bo'yicha oilaviy qoida kelishib oling.",
+    en: "👪 *Family Shield*\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.\n\nYou can also tap “Verify voice safely” and agree with your family how to verify voice and video calls without sending the secret to the bot.",
   },
   family_codeword_guide: {
     ru: "🔐 *Семейное кодовое слово*\n\nЭто защита от звонков и голосовых, где мошенник звучит как близкий человек.\n\nКак договориться:\n1. Выберите короткую фразу, которую нельзя угадать из соцсетей.\n2. Обсудите её лично или по уже сохранённому номеру.\n3. Не пишите кодовое слово в бот, чат, заметки или SMS.\n4. Если звонят с просьбой о деньгах, коде или срочном переводе — завершите разговор, перезвоните по сохранённому номеру и спросите кодовое слово или личный вопрос.\n\nЕсли человек злится, торопит или запрещает перезванивать — это красный флаг. Деньги и коды не отправляем, пока личность не подтверждена другим каналом.",

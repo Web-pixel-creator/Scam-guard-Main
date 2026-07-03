@@ -179,7 +179,7 @@ describe("Family Shield v1", () => {
 
     expect(setupCallbacks).toContain(FAMILY_CB.codewordGuide);
     expect(linkedCallbacks).toContain(FAMILY_CB.codewordGuide);
-    expect(bt("family_menu_text", "ru")).toContain("Кодовое слово");
+    expect(bt("family_menu_text", "ru")).toContain("Как проверить голос");
     expect(text).toContain("Не пишите кодовое слово в бот");
     expect(text).toContain("сохранённому номеру");
     expect(text).toContain("личный вопрос");
