@@ -136,10 +136,35 @@ unreliable again.
 | Remaining SOS buttons | Blocked | Telegram Web switched into a narrow/mobile layout and accidental Bot Info/sidebar activation made further coordinate clicks unsafe. |
 | Browser-control retry after user refresh | Blocked | The user-visible tab worked, but the automation channel timed out even on tab-list reads. No further live side-effect buttons were clicked. |
 
+## Live SOS Full Pass 2026-07-03
+
+After the user refreshed/reopened Telegram Web, the real bot chat became
+controllable again. The safe SOS scenario buttons were tested live in the real
+Telegram chat. Manual-only side-effect buttons were not clicked.
+
+| Area | Live result | Notes |
+| --- | --- | --- |
+| `/panic` command | Pass | Opened the SOS menu in the real Telegram chat. |
+| `panic:1` / already sent SMS code | Pass | Returned urgent bank/card blocking guidance and told the user to stop sending anything else. |
+| `panic:2` / installed APK | Pass | Told the user to enable airplane mode, remove the suspicious app, block cards through the bank, and change passwords from another device. |
+| `panic:3` / transferred money | Pass | Told the user to call the bank, ask to freeze the transfer, preserve evidence, and avoid a "return transfer" second-scam path. |
+| `panic:4` / entered card data | Pass | Returned immediate card-blocking guidance. |
+| `panic:5` / lost Telegram | Pass | Told the user to close unknown Telegram sessions, enable two-step password, and warn close contacts. |
+| `panic:6` / call in progress | Pass | Opened live-call copilot guidance: end the call, call back via the official number, and do not say codes/card data/passwords. |
+| `panic:7` / photo-video blackmail | Pass | Told the user not to pay or send new media, preserve screenshots/evidence, block/report after screenshots, and involve a trusted adult/close person. |
+| `panic:8` / relationship money request | Pass | Told the user to pause transfers, avoid credit/debt, involve a close person, and verify the photo/story. |
+| `panic:9` / publication threats | Pass | Told the user not to pay for deletion, avoid negotiation, preserve links/screenshots, and report published content to platform support. |
+| `panic:10` / user under 18 | Pass | Used supportive wording, told the user they are not at fault, and directed them to a trusted adult without deleting the chat. |
+| `panic:11` / close-person or AI voice | Pass | Told the user not to transfer money by voice alone, end the call/voice chat, call back via saved number, and ask a code word/personal question. |
+| `panic:12` / job or easy income | Pass | Told the user not to pay for work/withdrawal, not to send passport/card/codes/photos, not to install APK or pass KYC from chat links, and to request legal company details/contract. |
+| `panic:13` / delivery or top-up | Pass | Told the user not to pay through chat links, use only official app/site, avoid SMS/PIN/CVV/card-number entry, and block the card if data was entered. |
+| `panic:14` / crypto TON wallet | Pass | Told the user not to connect wallet or enter seed phrase and treated NFT/Stars/TON-bonus flows as wallet-drain risk. |
+| `panic:15` / government payout or grant | Pass | Told the user not to pay a payout fee, use only official app/site, avoid SMS/CVV/PIN/Telegram-code entry, and not send passport/ID into chat without source verification. |
+| Telegram Web caveat | Pass with caveat | One retry opened a Telegram media/Bot Info overlay; it was closed and testing continued using DOM-grounded button clicks only. |
+
 ## Next Safe Live Pass
 
-1. Panic sampled scenarios from pages 1-3, excluding `family:notify` and
-   voice-out buttons.
+1. Panic follow-up buttons, excluding `family:notify` and voice-out buttons.
 2. Guardian/result follow-ups: `why`, `explain_simple`, `guardian:next`,
    `guardian:done`, `guardian:safe_call`, `guardian:full_plan`.
 3. Manual-only side-effect pass, only with explicit approval at action time:
