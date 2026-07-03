@@ -123,6 +123,19 @@ Verification:
   src/lib/telegram/guardian-angel.test.ts` passed: 107 tests.
 - `npm run qa:telegram-report` passed and produced no content diff.
 
+## Live SOS Retry 2026-07-03
+
+This retry reached the real Telegram bot before browser control became
+unreliable again.
+
+| Area | Live result | Notes |
+| --- | --- | --- |
+| `/panic` command | Pass | Opened the SOS menu in the real Telegram chat. |
+| `panic:1` / already sent SMS code | Pass | Returned urgent guidance to call the bank, block the card/online bank, change bank/Telegram passwords from another device, and stop sending anything else. |
+| `panic:4` / entered card data | Pass | Returned immediate card-blocking guidance. |
+| Remaining SOS buttons | Blocked | Telegram Web switched into a narrow/mobile layout and accidental Bot Info/sidebar activation made further coordinate clicks unsafe. |
+| Browser-control retry after user refresh | Blocked | The user-visible tab worked, but the automation channel timed out even on tab-list reads. No further live side-effect buttons were clicked. |
+
 ## Next Safe Live Pass
 
 1. Panic sampled scenarios from pages 1-3, excluding `family:notify` and
