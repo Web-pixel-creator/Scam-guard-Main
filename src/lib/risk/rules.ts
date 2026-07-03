@@ -124,6 +124,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_sms_code", re: /\bkodni\s+(?:kiriting|yozing|tasdiqlang)\b/i },
   {
     code: "asks_for_sms_code",
+    re: /кодни\s+(?:киритинг|ёзинг|езинг|тасдиқланг|тасдикланг|айтинг|юборинг)/i,
+  },
+  {
+    code: "asks_for_sms_code",
     // Catches explicit "SMS code" wording AND softer real-world asks where the
     // attacker never says "code": "the code from the message/app/Telegram/bot",
     // "the code that will arrive / that arrived / that I sent". See CODING_RULES

@@ -667,6 +667,10 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
       text: "Salom, bu kodni kiriting please: 1234",
     },
     {
+      name: "UZ Cyrillic kodni kiriting with digits",
+      text: "Салом, бу кодни киритинг: 1234",
+    },
+    {
       name: "RU скажите шесть цифр, которые отправлю",
       text: "Скажите шесть цифр, которые я вам сейчас отправлю.",
     },
@@ -697,6 +701,7 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
     { name: "RU код города", text: "Назовите код города 71." },
     { name: "RU код товара", text: "Продиктуйте код товара 1234." },
     { name: "UZ нейтральный документ", text: "Hujjatni jo'natishingiz mumkin." },
+    { name: "UZ Cyrillic neutral name entry", text: "Салом, исмингизни киритинг." },
   ];
 
   it.each(positives)("positive: $name", ({ text }) => {
