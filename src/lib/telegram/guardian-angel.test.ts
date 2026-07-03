@@ -126,6 +126,27 @@ describe("Guardian Angel v1", () => {
     );
   });
 
+  it("does not treat new natural-language messages as safe-call follow-ups", () => {
+    const guardian = buildGuardianAngelSnapshot(highRiskResult(), new Date("2026-06-16T10:00Z"))!;
+    const scenarioData: ReportDraft = { guardian };
+    const now = new Date("2026-06-16T10:05Z");
+
+    const safeAccountText =
+      "\u0421\u043b\u0443\u0436\u0431\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u0431\u0430\u043d\u043a\u0430: \u0441\u0440\u043e\u0447\u043d\u043e \u043f\u0435\u0440\u0435\u0432\u0435\u0434\u0438\u0442\u0435 \u0434\u0435\u043d\u044c\u0433\u0438 \u043d\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u044b\u0439 \u0441\u0447\u0435\u0442";
+    const deliveryText =
+      "\u0412\u0430\u0448 \u0437\u0430\u043a\u0430\u0437 \u0434\u043e\u0441\u0442\u0430\u0432\u044f\u0442 \u0437\u0430\u0432\u0442\u0440\u0430 \u043f\u043e\u0441\u043b\u0435 \u043e\u0431\u0435\u0434\u0430, \u043a\u0443\u0440\u044c\u0435\u0440 \u043f\u043e\u0437\u0432\u043e\u043d\u0438\u0442 \u0437\u0430\u0440\u0430\u043d\u0435\u0435";
+
+    expect(classifyGuardianAngelFollowUp(safeAccountText, scenarioData, now)).toBeNull();
+    expect(classifyGuardianAngelFollowUp(deliveryText, scenarioData, now)).toBeNull();
+    expect(
+      classifyGuardianAngelFollowUp(
+        "\u043a\u0443\u0434\u0430 \u0437\u0432\u043e\u043d\u0438\u0442\u044c \u0432 \u0431\u0430\u043d\u043a?",
+        scenarioData,
+        now,
+      ),
+    ).toBe(GUARDIAN_CB.safeCall);
+  });
+
   it("does not hijack a new artifact as a guardian follow-up", () => {
     const guardian = buildGuardianAngelSnapshot(highRiskResult())!;
     expect(
