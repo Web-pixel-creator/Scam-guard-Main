@@ -21,7 +21,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | --- | --- | --- | --- | --- |
 | Main menu | `check_another`, `conversation_start`, `emergency`, `family:menu`, `trainer:start`, `digest`, `safety`, `how_it_works`, `show_lang` | Safe, except `report` starts a stateful flow | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts`, `start-language-buttons.test.ts` | Partially live-tested; continue safe pass |
 | Language | `lang:ru`, `lang:uz`, `lang:en` | Safe but changes user preference | `webhook.integration.test.ts`, `i18n-completeness.test.ts` | Test one language switch only if we restore RU afterward |
-| Result follow-up | `why`, `explain_simple`, `check_another`, `media_tips`, `emergency` | Safe | `format.test.ts`, `webhook.integration.test.ts`, `why-explanation*` | Core result buttons live-tested; `media_tips` remains optional safe spot-check |
+| Result follow-up | `why`, `explain_simple`, `check_another`, `media_tips`, `emergency` | Safe | `format.test.ts`, `webhook.integration.test.ts`, `why-explanation*` | Core result buttons and `media_tips` live-tested |
 | Asked context | `asked:code`, `asked:card`, `asked:transfer`, `asked:apk`, `asked:link_qr`, `asked:call` | Safe | `check-context-buttons.test.ts`, `format.test.ts` | Live spot-check passed for all six context buttons |
 | Image triage | `imgtriage:gift`, `imgtriage:casino`, `imgtriage:wallet`, `imgtriage:bank`, `imgtriage:telegram_profile`, `imgtriage:qr_menu` | Safe | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts` | Profile fallback live-tested; remaining triage safe to spot-check |
 | Conversation | `conversation_analyze`, `conversation_cancel` | Safe, but stateful session | `conversation-check.test.ts`, `webhook.integration.test.ts` | Controlled dummy live runs passed; collector/cancel/analyze verified |
@@ -93,6 +93,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Live call: "Я уже отправил SMS-код" | Pass | Visual pass: returned urgent bank/card blocking guidance. |
 | Trainer answer | Pass | Question 1 answer "Положить трубку..." returned "Верно" and a safe-step explanation; "Следующая ситуация" advanced to 2/5. |
 | Image fallback setup | Pass | Deliberately unreadable QA image produced the honest unreadable-image fallback and triage keyboard. |
+| Media tips | Pass | A generated blank 1x1 PNG was sent to trigger the unreadable-image fallback. `Что прислать?` returned the media-capture guide: it can check a visible preview frame, not the whole clip, and asks for a useful screenshot frame, link, or description of what is requested. |
 | Image triage: NFT/Stars/подарок | Pass | Returned cautious gift/bonus guidance; no green-safe verdict. |
 | Image triage: Казино/фриспины | Pass | Returned deposit/access/card/code warning; no green-safe verdict. |
 | Image triage: TON/Wallet | Pass | Returned wallet-connect/signature/seed/top-up warning; no green-safe verdict. |
@@ -203,9 +204,8 @@ approval at action time.
 
 ## Next Safe Live Pass
 
-1. Remaining optional safe spot-check: `media_tips`.
-2. Manual-only side-effect pass, only with explicit approval at action time:
+1. Manual-only side-effect pass, only with explicit approval at action time:
    trusted opt-out, live-call trusted alert variant if needed, voice-out
    listen-through and full report submit/retry.
-3. Optional copy polish: align the job/easy-income "Check source" response
+2. Optional copy polish: align the job/easy-income "Check source" response
    heading with the button label.
