@@ -31,6 +31,8 @@ const CONFIRMATION_REQUEST_RE =
   /(?:попросил[аи]?|попросили|просят|просит|сказал[аи]?|нужно|надо|требу(?:ет|ют))\s+.{0,40}(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)|(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)\s+.{0,40}(?:попросил[аи]?|попросили|просят|просит|нужно|надо|требу(?:ет|ют)|операци[яю]|вход)|(?:asked|asks|asking|need|needs)\s+.{0,40}(?:confirm|confirmation|verify|verification)|(?:confirm|confirmation|verify)\s+.{0,40}(?:operation|login|account)|(?:tasdiq|tasdiqlash)/i;
 const ACKNOWLEDGEMENT_RE =
   /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо))?|ок(?:ей)?|спасибо|благодарю|рахмат|rahmat|tushunarli|yaxshi|qilaman|qildim|ok|okay|thanks|thank\s+you)[\s.!?]*$/i;
+const IDENTITY_RE =
+  /^(?:(?:а\s+)?(?:вы|ты)\s+кто|кто\s+(?:вы|ты)|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz|sen\s+kimsan|nima\s+qila\s+olasan)[\s?!.,]*$/i;
 
 const SCAM_PAYLOAD_RE =
   /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
@@ -57,7 +59,8 @@ export type LastCheckFollowUpAction =
   | "simple_explain"
   | "ai_origin"
   | "confirmation_request"
-  | "acknowledgement";
+  | "acknowledgement"
+  | "identity";
 
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);
@@ -130,6 +133,7 @@ export function classifyLastCheckFollowUp(
   if (!snapshot || !isRecent(snapshot, now)) return null;
   if (hasNewerRecentPanicContext(scenarioData, snapshot, now)) return null;
 
+  if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (CONTACTS_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
@@ -145,6 +149,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   const trimmed = text.trim();
   if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
 
+  if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (CONTACTS_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
@@ -711,6 +716,16 @@ function confirmationRequestText(snapshot: LastCheckSnapshot | null, lang: Lang)
   return `Понял. «Подтверждение» часто означает SMS-код, push в приложении, вход через QR или операцию по карте.\n\nЕсли вас просят подтвердить вход, перевод, «безопасность» или операцию по карте — не подтверждайте и завершите разговор. ${channel}`;
 }
 
+function identityText(lang: Lang): string {
+  if (lang === "uz") {
+    return "Men Ishonch Guardman. Men chatlaringizni o'zim o'qimayman — faqat shu yerga yuborgan narsangizni tekshiraman.\n\nRaqam, havola, username, skrinshot, ovozli xabar yoki shubhali matnni yuboring. Men xavf darajasi va bitta xavfsiz qadam bilan javob beraman.\n\nAgar hozir qo'ng'iroq qilishayotgan bo'lsa yoki kod yuborgan/pul o'tkazgan bo'lsangiz, /panic ni bosing.";
+  }
+  if (lang === "en") {
+    return "I am Ishonch Guard. I do not read your chats on my own — I only check what you send here.\n\nSend a number, link, username, screenshot, voice message, or suspicious text. I will reply with a risk level and one safe next step.\n\nIf someone is calling right now, or you already sent a code or money, use /panic.";
+  }
+  return "Я Ishonch Guard. Я не читаю ваши чаты сам — проверяю только то, что вы присылаете сюда.\n\nПришлите номер, ссылку, username, скриншот, голосовое или текст подозрительного сообщения. Я отвечу уровнем риска и одним безопасным шагом.\n\nЕсли вам звонят прямо сейчас или вы уже сообщили код/перевели деньги — нажмите /panic.";
+}
+
 export function buildLastCheckFollowUpText(
   action: LastCheckFollowUpAction,
   snapshot: LastCheckSnapshot,
@@ -733,10 +748,13 @@ export function buildLastCheckFollowUpText(
       return confirmationRequestText(snapshot, lang);
     case "acknowledgement":
       return buildAcknowledgementFollowUpText(lang);
+    case "identity":
+      return identityText(lang);
   }
 }
 
 export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, lang: Lang): string {
+  if (action === "identity") return identityText(lang);
   if (action === "contacts") return contactsText(lang);
   if (action === "confirmation_request") return confirmationRequestText(null, lang);
   if (action === "acknowledgement") return buildAcknowledgementFollowUpText(lang);

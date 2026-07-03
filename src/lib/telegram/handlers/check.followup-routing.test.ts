@@ -317,4 +317,18 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).toContain("Официальный обратный звонок");
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
+
+  it("answers bot identity questions without running a fake risk check", async () => {
+    await handleCheck("а вы кто?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Ishonch Guard");
+    expect(hoisted.sentMessages[0].text).toContain("не читаю ваши чаты");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
 });
