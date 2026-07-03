@@ -81,15 +81,30 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Family: "Отключить" / trusted opt-out | Skipped | Can disconnect Family Shield. Requires explicit approval at action time. |
 | Voice-out buttons | Skipped | Can send audio and consume provider quota. Keep as separate listen-through QA. |
 
+## Live Pass 2026-07-03, Follow-up
+
+| Area | Live result | Notes |
+| --- | --- | --- |
+| `/lang` picker | Pass | Opened language picker via command. |
+| Language: English | Pass | Switched to English and returned English input guidance. |
+| Language: Russian restore | Pass | Switched back to Russian and returned Russian input guidance. |
+| Live call: "Что сказать?" | Pass | Visual pass: returned a ready phrase to end the call and call back via the official number. |
+| Live call: "Я уже отправил SMS-код" | Pass | Visual pass: returned urgent bank/card blocking guidance. |
+| Trainer answer | Pass | Question 1 answer "Положить трубку..." returned "Верно" and a safe-step explanation. |
+| Image fallback setup | Pass | Deliberately unreadable QA image produced the honest unreadable-image fallback and triage keyboard. |
+| Image triage: NFT/Stars/подарок | Pass | Returned cautious gift/bonus guidance; no green-safe verdict. |
+| Image triage: Казино/фриспины | Pass | Returned deposit/access/card/code warning; no green-safe verdict. |
+| Image triage: TON/Wallet | Pass | Returned wallet-connect/signature/seed/top-up warning; no green-safe verdict. |
+| Image triage: Банк/код | Pass | Returned code/card/APK banking warning; no green-safe verdict. |
+| Image triage: Профиль/чат | Pass | Returned nuanced profile/chat guidance; no account-identity claim and no green-safe verdict. |
+| Image triage: Меню/QR | Pass | Returned menu/informational QR guidance with warning about payment/login/code/card/APK after opening; no green-safe verdict. |
+
 ## Next Safe Live Pass
 
-1. Retest "Язык" as a manual visual click and restore RU afterward.
-2. Retest live-call "Что сказать?" and "Я уже отправил SMS-код" as isolated
-   one-button screenshot cases.
-3. Image triage fallback buttons using a deliberately unreadable screenshot.
-4. Panic sampled scenarios from pages 1-3, excluding `family:notify` and
+1. Panic sampled scenarios from pages 1-3, excluding `family:notify` and
    voice-out buttons.
-5. Guardian/result follow-ups: `why`, `explain_simple`, `guardian:next`,
+2. Guardian/result follow-ups: `why`, `explain_simple`, `guardian:next`,
    `guardian:done`, `guardian:safe_call`, `guardian:full_plan`.
-6. Trainer answer click using a fresh trainer message and visual targeting, not
-   broad DOM button selection.
+3. Manual-only side-effect pass, only with explicit approval at action time:
+   `family:notify`, `family:invite`, `family:revoke`, trusted opt-out,
+   voice-out listen-through and full report submit/retry.
