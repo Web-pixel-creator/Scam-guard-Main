@@ -30,7 +30,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Panic follow-up | `panicctx:<id>:more`, `panicctx:<id>:contacts`, `panicctx:<id>:script`, `panicctx:<id>:full` | Safe, except keyboards may include `family:notify` | `emergency-followup.test.ts`, `webhook.integration.test.ts`, `voice-out.server.test.ts` | Needs sampled live pass |
 | Live call | `livecall:hangup`, `livecall:what_to_say`, `livecall:sent_code`, `livecall:tell_family` | Safe except `tell_family` notifies trusted contact | `live-call-scenario.test.ts`, `webhook.integration.test.ts` | Hangup/what-to-say/sent-code safe; tell-family manual-only |
 | Guardian Angel | `guardian:next`, `guardian:done`, `guardian:safe_call`, `guardian:full_plan` | Safe, except keyboard may include `family:notify` and `voiceout:guardian` | `guardian-angel.test.ts`, `webhook.integration.test.ts` | High-risk Guardian live-tested; follow-up button pass pending |
-| Family Shield | `family:menu`, `family:codeword`, `family:invite`, `family:notify`, `family:revoke`, `family:trusted_opt_out` | `menu`/`codeword` safe; others side-effect/manual-only | `family-shield.server.test.ts`, `webhook.integration.test.ts` | `menu` and `codeword` live-tested after rename |
+| Family Shield | `family:menu`, `family:codeword`, `family:invite`, `family:notify`, `family:revoke`, `family:trusted_opt_out` | `menu`/`codeword` safe; others side-effect/manual-only | `family-shield.server.test.ts`, `webhook.integration.test.ts` | `menu`/`codeword` live-tested after rename; notify/invite/revoke side-effect paths sampled with approval |
 | Trainer | `trainer:start`, `trainer:q:*`, `trainer:a:*` | Safe | `scam-trainer.test.ts`, `webhook.integration.test.ts` | Needs live mini-run |
 | Voice-out | `voiceout:panic:<id>`, `voiceout:guardian` | Provider/quota/chat-noise side effect; safe only with approval | `voice-out.server.test.ts`, `emergency-followup.test.ts` | Static voice smoke exists; full live listen-through pending |
 
@@ -196,11 +196,12 @@ approval at action time.
 | --- | --- | --- |
 | Trusted-contact alert / "Call close person" | Pass | With explicit user approval, the latest Guardian/high-risk `Позвать близкого` button was clicked. The bot confirmed: "Я отправил близкому короткий сигнал помощи..." and reminded the user not to forward codes, PIN, CVV, passwords, card photos, or suspicious files. |
 | Family Shield invite / "Create invitation" | Pass with existing-link fallback | With explicit user approval, `/family` was opened and `Создать приглашение` was clicked. Because a trusted contact was already connected, no new invite was created; the bot correctly explained that a new invitation requires disconnecting the current Family Shield link first and offered `Позвать близкого`, `Как проверить голос`, and `Отключить`. |
+| Family Shield revoke / "Disconnect" | Pass | With explicit user approval, `Отключить` was clicked from the existing-link Family Shield screen. The bot confirmed: "Готово. Семейный щит отключён для этого контакта." |
 
 ## Next Safe Live Pass
 
 1. Manual-only side-effect pass, only with explicit approval at action time:
-   `family:revoke`, trusted opt-out, live-call trusted alert variant if needed,
-   voice-out listen-through and full report submit/retry.
+   trusted opt-out, live-call trusted alert variant if needed, voice-out
+   listen-through and full report submit/retry.
 2. Optional copy polish: align the job/easy-income "Check source" response
    heading with the button label.
