@@ -187,10 +187,19 @@ report, or send voice/audio were not clicked.
 | Guardian: "Call safely" | Pass | Returned official-callback instructions and verified short bank numbers. |
 | Guardian: "Full plan" | Pass | Returned the full emergency plan without notifying anyone or sending audio. |
 
+## Live Side-effect Pass 2026-07-03
+
+These checks intentionally create external side effects and require explicit
+approval at action time.
+
+| Area | Live result | Notes |
+| --- | --- | --- |
+| Trusted-contact alert / "Call close person" | Pass | With explicit user approval, the latest Guardian/high-risk `Позвать близкого` button was clicked. The bot confirmed: "Я отправил близкому короткий сигнал помощи..." and reminded the user not to forward codes, PIN, CVV, passwords, card photos, or suspicious files. |
+
 ## Next Safe Live Pass
 
 1. Manual-only side-effect pass, only with explicit approval at action time:
-   `family:notify`, `family:invite`, `family:revoke`, trusted opt-out,
-   voice-out listen-through and full report submit/retry.
+   `family:invite`, `family:revoke`, trusted opt-out, live-call trusted alert
+   variant if needed, voice-out listen-through and full report submit/retry.
 2. Optional copy polish: align the job/easy-income "Check source" response
    heading with the button label.
