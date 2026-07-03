@@ -162,11 +162,35 @@ Telegram chat. Manual-only side-effect buttons were not clicked.
 | `panic:15` / government payout or grant | Pass | Told the user not to pay a payout fee, use only official app/site, avoid SMS/CVV/PIN/Telegram-code entry, and not send passport/ID into chat without source verification. |
 | Telegram Web caveat | Pass with caveat | One retry opened a Telegram media/Bot Info overlay; it was closed and testing continued using DOM-grounded button clicks only. |
 
+## Live Follow-up Pass 2026-07-03
+
+Safe text follow-up buttons were tested live in the real Telegram chat. Buttons
+that notify a trusted contact, create/revoke Family Shield state, submit a real
+report, or send voice/audio were not clicked.
+
+| Area | Live result | Notes |
+| --- | --- | --- |
+| Government payout: "What next" | Pass | Returned a calm one-step plan: do not pay a fee, open the service only through the official site/app, and block card/online bank if data was entered. |
+| Government payout: "Official channel" | Pass | Returned official-channel guidance and useful support numbers. |
+| Government payout: "Ready phrase" | Pass | Returned a reusable refusal phrase for pressure/link/payment/code requests. |
+| Government payout: "All urgent steps" | Pass | Returned the full plan with bank/law-enforcement escalation guidance. |
+| SMS-code scenario: "Call safely" | Pass | Told the user not to call the incoming/SMS number and to use the official bank app/card/site number. |
+| Lost Telegram: "Recover my account" | Pass | Returned account-recovery steps through official Telegram flow and warned not to answer impersonation messages. |
+| Photo/video blackmail: "Where to go" | Pass | Told the user to involve a trusted adult/person, preserve evidence, and seek platform/police help. |
+| Close-person or AI voice: "Check voice" | Pass | Told the user to ignore the calling account/number, call back through a saved number, and use a code word/personal question. |
+| Job/easy-income: "Check source" | Pass with copy note | Returned useful escalation/help guidance. Minor UX note: the answer heading reads like "Where to go", so the heading could better match the button label. |
+| Crypto/TON/wallet: "Wallet safety" | Pass | Told the user to create a new wallet if seed/private key was entered, avoid withdrawal/unfreeze fees, and preserve transaction/chat evidence. |
+| Risk card: "Why?" | Pass | Explained visible risk signs: SMS-code, CVV/CVC, PIN-code and suspicious link/payment pressure. |
+| Risk card: "Simple words" | Pass | Reframed the risk in simple language without overclaiming hidden facts. |
+| Guardian: "What next" | Pass | Returned one calm next step instead of a long checklist. |
+| Guardian: "Done step" | Pass | Advanced to the next safe action after the user marked the first step done. |
+| Guardian: "Call safely" | Pass | Returned official-callback instructions and verified short bank numbers. |
+| Guardian: "Full plan" | Pass | Returned the full emergency plan without notifying anyone or sending audio. |
+
 ## Next Safe Live Pass
 
-1. Panic follow-up buttons, excluding `family:notify` and voice-out buttons.
-2. Guardian/result follow-ups: `why`, `explain_simple`, `guardian:next`,
-   `guardian:done`, `guardian:safe_call`, `guardian:full_plan`.
-3. Manual-only side-effect pass, only with explicit approval at action time:
+1. Manual-only side-effect pass, only with explicit approval at action time:
    `family:notify`, `family:invite`, `family:revoke`, trusted opt-out,
    voice-out listen-through and full report submit/retry.
+2. Optional copy polish: align the job/easy-income "Check source" response
+   heading with the button label.
