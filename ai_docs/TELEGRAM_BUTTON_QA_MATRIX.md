@@ -22,7 +22,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Main menu | `check_another`, `conversation_start`, `emergency`, `family:menu`, `trainer:start`, `digest`, `safety`, `how_it_works`, `show_lang` | Safe, except `report` starts a stateful flow | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts`, `start-language-buttons.test.ts` | Partially live-tested; continue safe pass |
 | Language | `lang:ru`, `lang:uz`, `lang:en` | Safe but changes user preference | `webhook.integration.test.ts`, `i18n-completeness.test.ts` | Test one language switch only if we restore RU afterward |
 | Result follow-up | `why`, `explain_simple`, `check_another`, `media_tips`, `emergency` | Safe | `format.test.ts`, `webhook.integration.test.ts`, `why-explanation*` | Partially live-tested |
-| Asked context | `asked:code`, `asked:card`, `asked:transfer`, `asked:apk`, `asked:link_qr`, `asked:call` | Safe | `check-context-buttons.test.ts`, `format.test.ts` | Needs live spot-check |
+| Asked context | `asked:code`, `asked:card`, `asked:transfer`, `asked:apk`, `asked:link_qr`, `asked:call` | Safe | `check-context-buttons.test.ts`, `format.test.ts` | Live spot-check passed for all six context buttons |
 | Image triage | `imgtriage:gift`, `imgtriage:casino`, `imgtriage:wallet`, `imgtriage:bank`, `imgtriage:telegram_profile`, `imgtriage:qr_menu` | Safe | `webhook.integration.test.ts`, `bot-qa-matrix.test.ts` | Profile fallback live-tested; remaining triage safe to spot-check |
 | Conversation | `conversation_analyze`, `conversation_cancel` | Safe, but stateful session | `conversation-check.test.ts`, `webhook.integration.test.ts` | Controlled dummy live runs passed; collector/cancel/analyze verified |
 | Report flow | `report`, `report_no_value`, `report_skip`, `report_retry` | Stateful; final submit not safe to spam | `handlers/report.scenario.test.ts`, `webhook.integration.test.ts` | One synthetic report live-tested; further live requires restraint |
@@ -74,6 +74,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Live call: "Я уже отправил SMS-код" | Inconclusive | Button clicked, but follow-up was overwritten by rapid subsequent test commands; retest as a single screenshot case. |
 | Panic pagination | Pass | Page 1 -> page 2 -> page 3 -> back -> back worked. |
 | Conversation analyze | Pass | Dummy conversation runs analyzed successfully; latest 3-message run produced "Разговор: есть подозрительная эскалация" and result buttons. |
+| Asked context buttons | Pass | After a dummy Uzbekistan phone passport, all six context buttons were clicked: `Просят код`, `Просят карту`, `Просят перевод`, `APK/приложение`, `Ссылка/QR`, and `Звонят сейчас`. Each returned scenario-specific safety guidance and no external side effect. |
 | Main: "Язык" | Inconclusive | DOM click opened Telegram Bot Info in this client; do manual visual click or use `/lang`, then restore RU. |
 | Main: "Сообщить случай" | Skipped | Report flow is stateful and can create moderator-chat noise if completed. Covered by synthetic tests and one earlier live synthetic report. |
 | Family: "Позвать близкого" | Skipped | Sends a real trusted-contact alert. Requires explicit approval at action time. |
