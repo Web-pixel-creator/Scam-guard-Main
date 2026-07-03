@@ -663,6 +663,10 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
       text: "Kodni ayting, u sizga xabar orqali keladi.",
     },
     {
+      name: "UZ kodni kiriting with digits",
+      text: "Salom, bu kodni kiriting please: 1234",
+    },
+    {
       name: "RU скажите шесть цифр, которые отправлю",
       text: "Скажите шесть цифр, которые я вам сейчас отправлю.",
     },

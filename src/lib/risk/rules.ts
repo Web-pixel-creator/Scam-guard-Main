@@ -121,6 +121,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
   { code: "asks_for_sms_code", re: /\bsms\s*code\b/i },
+  { code: "asks_for_sms_code", re: /\bkodni\s+(?:kiriting|yozing|tasdiqlang)\b/i },
   {
     code: "asks_for_sms_code",
     // Catches explicit "SMS code" wording AND softer real-world asks where the
