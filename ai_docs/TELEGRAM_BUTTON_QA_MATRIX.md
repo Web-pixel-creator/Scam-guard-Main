@@ -32,7 +32,7 @@ and generating live TTS/voice messages when provider quota or chat noise matters
 | Guardian Angel | `guardian:next`, `guardian:done`, `guardian:safe_call`, `guardian:full_plan` | Safe, except keyboard may include `family:notify` and `voiceout:guardian` | `guardian-angel.test.ts`, `webhook.integration.test.ts` | High-risk Guardian live-tested; follow-up button pass pending |
 | Family Shield | `family:menu`, `family:codeword`, `family:invite`, `family:notify`, `family:revoke`, `family:trusted_opt_out` | `menu`/`codeword` safe; others side-effect/manual-only | `family-shield.server.test.ts`, `webhook.integration.test.ts` | `menu`/`codeword` live-tested after rename; notify/invite/revoke side-effect paths sampled with approval |
 | Trainer | `trainer:start`, `trainer:q:*`, `trainer:a:*` | Safe | `scam-trainer.test.ts`, `webhook.integration.test.ts` | Live mini-run passed; Q1 answer and Q2 advance verified |
-| Voice-out | `voiceout:panic:<id>`, `voiceout:guardian` | Provider/quota/chat-noise side effect; safe only with approval | `voice-out.server.test.ts`, `emergency-followup.test.ts` | SOS voice-out live listen-through passed with approval; Guardian voice-out optional |
+| Voice-out | `voiceout:panic:<id>`, `voiceout:guardian` | Provider/quota/chat-noise side effect; safe only with approval | `voice-out.server.test.ts`, `emergency-followup.test.ts`, `webhook.integration.test.ts`, `tts:validate-assets` | Automated release QA passed again on 2026-07-04 for 45 static OGG assets and the focused Telegram suite; live sendAudio/listen-through remains action-time approval-only |
 
 ## Manual-only Buttons
 
@@ -209,6 +209,7 @@ approval at action time.
 
 1. Manual-only side-effect pass, only with explicit approval at action time:
    trusted opt-out, live-call trusted alert variant if needed, Guardian
-   voice-out if desired, and report retry only if a failure is intentionally staged.
+   voice-out or production Voice-out smoke if desired, and report retry only if
+   a failure is intentionally staged.
 2. No pending safe post-deploy copy retest remains for job/easy-income "Check source";
    it passed live on 2026-07-04 after deploying `7d22868`.

@@ -135,10 +135,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       SOS OGG assets for panic scenarios 1-15 validated again on 2026-07-02.
       Keep live TTS for rare dynamic guidance only.
 - [ ] **Prerecorded Voice-out release QA.** Human listen-through remains a
-      release checklist item for tone/pronunciation. It is not an architecture
-      blocker because `npm run tts:validate-assets`, unit regressions and the
-      deployed Telegram playback smoke already verify file presence, container
-      shape, duration bounds, Telegram acceptance and static-first routing.
+      release checklist item for tone/pronunciation. Automated release QA was
+      re-run on 2026-07-04: `npm run tts:validate-assets` passed for all 45
+      RU/UZ/EN `.ogg` assets, and the focused Telegram voice-out/emergency/
+      webhook suite passed (`3 files / 135 tests`). The production Telegram
+      smoke remains manual-only because it sends/deletes real QA-chat audio.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting
