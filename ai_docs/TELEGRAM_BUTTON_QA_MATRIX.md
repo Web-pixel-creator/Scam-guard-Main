@@ -190,6 +190,7 @@ report, or send voice/audio were not clicked.
 | Guardian: "Done step" | Pass | Advanced to the next safe action after the user marked the first step done. |
 | Guardian: "Call safely" | Pass | Returned official-callback instructions and verified short bank numbers. |
 | Guardian: "Full plan" | Pass | Returned the full emergency plan without notifying anyone or sending audio. |
+| Job/easy-income: "Check source" post-deploy retest | Pass | Retested live after deploying `7d22868` on 2026-07-04. The real Telegram reply starts with "Проверить источник", contains source-verification steps, and the old generic "Куда обратиться" heading is absent. |
 
 ## Live Side-effect Pass 2026-07-03
 
@@ -209,5 +210,5 @@ approval at action time.
 1. Manual-only side-effect pass, only with explicit approval at action time:
    trusted opt-out, live-call trusted alert variant if needed, Guardian
    voice-out if desired, and report retry only if a failure is intentionally staged.
-2. Optional live retest: re-click job/easy-income "Check source" after deploy to
-   confirm the polished copy in Telegram.
+2. No pending safe post-deploy copy retest remains for job/easy-income "Check source";
+   it passed live on 2026-07-04 after deploying `7d22868`.
