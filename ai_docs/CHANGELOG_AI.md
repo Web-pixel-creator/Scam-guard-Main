@@ -2,7 +2,7 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-04 - TG-015 Voice-out automated release QA revalidation
+## 2026-07-04 - TG-015 Voice-out production smoke and release QA
 
 - Revalidated prerecorded SOS Voice-out assets after the post-deploy backlog:
   all 45 RU/UZ/EN `.ogg` files for panic scenarios 1-15 passed
@@ -10,9 +10,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Focused Telegram regressions passed:
   `voice-out.server.test.ts`, `emergency-followup.test.ts` and
   `webhook.integration.test.ts` (`3 files / 135 tests`).
-- Did not run the production Telegram Voice-out smoke in this pass because it
-  sends and deletes real audio messages in the configured QA chat; keep that
-  as an action-time approval step or use local audio fixtures for Voice-in/STT.
+- With explicit action-time approval, production Telegram Voice-out smoke
+  passed against Railway: Telegram accepted `panic-6` RU/UZ/EN OGG audio,
+  the production webhook accepted a `voiceout:panic:6` callback, and cleanup
+  completed. The app-generated audio may remain in the QA chat as evidence.
 
 ## 2026-07-04 - TG-014 Voice-in/STT Uzbek Cyrillic corpus
 

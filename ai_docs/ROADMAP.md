@@ -221,8 +221,10 @@ Operational hardening that continues in parallel:
 - Voice-out prerecorded SOS assets revalidated again on 2026-07-04: all 45
   RU/UZ/EN OGG files for panic scenarios 1-15 pass `tts:validate-assets`, and
   the focused Telegram voice-out/emergency/webhook suite passes (`3 files /
-  135 tests`). The production `prod:telegram-voice-out-smoke` is kept as an
-  action-time approval step because it sends/deletes real QA-chat audio.
+  135 tests`). With explicit action-time approval, the production
+  `prod:telegram-voice-out-smoke` also passed: Telegram accepted RU/UZ/EN
+  `panic-6` OGG audio, the production webhook accepted a `voiceout:panic:6`
+  callback, and cleanup completed.
 - Voice-in/STT corpus slices shipped on 2026-07-02: production-like RU/UZ/EN
   transcripts for SMS-code, card security-code, remote-access, money-transfer,
   Telegram login-QR and live-call emergencies route to SOS, and negated

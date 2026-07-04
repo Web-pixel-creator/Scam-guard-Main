@@ -138,8 +138,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       release checklist item for tone/pronunciation. Automated release QA was
       re-run on 2026-07-04: `npm run tts:validate-assets` passed for all 45
       RU/UZ/EN `.ogg` assets, and the focused Telegram voice-out/emergency/
-      webhook suite passed (`3 files / 135 tests`). The production Telegram
-      smoke remains manual-only because it sends/deletes real QA-chat audio.
+      webhook suite passed (`3 files / 135 tests`). With explicit action-time
+      approval, production Telegram Voice-out smoke also passed on 2026-07-04:
+      Telegram accepted RU/UZ/EN `panic-6` audio and the production webhook
+      accepted a `voiceout:panic:6` callback.
 - [ ] **Voice-in/STT UX hardening.** Keep the daily TTS/STT cost guards, but
       improve transcript confirmation/edit recovery, confidence-aware fallback
       and user-facing wording when daily voice hints are exhausted. Waiting
