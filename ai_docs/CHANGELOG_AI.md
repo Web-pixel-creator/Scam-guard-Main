@@ -15,6 +15,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
   full Telegram suite and scoped eslint. Remaining UX note: RU negated
   "I did not send SMS code" does not open SOS, but the ordinary risk card can
   still feel too cautionary; track as conversational polish.
+- Deployed commit `d9fe6f2` to Railway; production smoke and production
+  security smoke passed with the public production URL/header checks.
 
 ## 2026-07-04 - TG-014 Voice-in/STT provider transcript capture
 
