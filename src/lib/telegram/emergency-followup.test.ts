@@ -387,6 +387,7 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const crypto = buildPanicScenarioText(14, "ru");
     const grant = buildPanicScenarioText(15, "ru");
     const jobScript = buildEmergencyFollowUpText("script", 12, "ru");
+    const jobContacts = buildEmergencyFollowUpText("contacts", 12, "ru");
     const cryptoContacts = buildEmergencyFollowUpText("contacts", 14, "ru");
     const grantTrusted = buildEmergencyFollowUpText("trusted_person", 15, "ru");
 
@@ -400,6 +401,9 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(grant).toContain("официальный сайт");
     expect(jobScript).toContain("Сначала спокойно проверю источник");
     expect(jobScript).not.toContain("входящему звонку");
+    expect(jobContacts).toContain("Проверить источник");
+    expect(jobContacts).toContain("юридическое название");
+    expect(jobContacts).not.toContain("Куда обратиться");
     expect(cryptoContacts).toContain("Крипто/TON");
     expect(cryptoContacts).toContain("seed-фразу");
     expect(grantTrusted).toContain("Поставьте паузу");

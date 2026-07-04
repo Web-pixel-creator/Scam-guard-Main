@@ -180,7 +180,7 @@ report, or send voice/audio were not clicked.
 | Lost Telegram: "Recover my account" | Pass | Returned account-recovery steps through official Telegram flow and warned not to answer impersonation messages. |
 | Photo/video blackmail: "Where to go" | Pass | Told the user to involve a trusted adult/person, preserve evidence, and seek platform/police help. |
 | Close-person or AI voice: "Check voice" | Pass | Told the user to ignore the calling account/number, call back through a saved number, and use a code word/personal question. |
-| Job/easy-income: "Check source" | Pass with copy note | Returned useful escalation/help guidance. Minor UX note: the answer heading reads like "Where to go", so the heading could better match the button label. |
+| Job/easy-income: "Check source" | Pass | Copy polished after live QA: the answer now starts with "Verify source" / "Проверить источник" and focuses on verifying the company/vacancy before escalation contacts. |
 | Crypto/TON/wallet: "Wallet safety" | Pass | Told the user to create a new wallet if seed/private key was entered, avoid withdrawal/unfreeze fees, and preserve transaction/chat evidence. |
 | Risk card: "Why?" | Pass | Explained visible risk signs: SMS-code, CVV/CVC, PIN-code and suspicious link/payment pressure. |
 | Risk card: "Simple words" | Pass | Reframed the risk in simple language without overclaiming hidden facts. |
@@ -209,5 +209,5 @@ approval at action time.
 1. Manual-only side-effect pass, only with explicit approval at action time:
    trusted opt-out, live-call trusted alert variant if needed, Guardian
    voice-out if desired, and report retry only if a failure is intentionally staged.
-2. Optional copy polish: align the job/easy-income "Check source" response
-   heading with the button label.
+2. Optional live retest: re-click job/easy-income "Check source" after deploy to
+   confirm the polished copy in Telegram.
