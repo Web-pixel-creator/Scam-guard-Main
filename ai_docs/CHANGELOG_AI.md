@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-04 - TG-014 Live RU/UZ Voice-in/STT replay fix
+
+- Reviewed live Telegram voice-note replies from user-provided RU/UZ samples.
+  RU "I already sent SMS code" routed correctly to SOS, while UZ
+  "Men SMS kodni yubordim/yubardim" was transcribed well but fell through to
+  "not enough data".
+- Added tolerant UZ Voice-in routing for provider variants such as
+  `yubardim` and object-first wording (`SMS kodni yubardim`), plus sanitized
+  live replay rows for UZ sent-code and RU negated-code transcripts.
+- Verification passed: focused voice handler + STT fixture collector tests,
+  full Telegram suite and scoped eslint. Remaining UX note: RU negated
+  "I did not send SMS code" does not open SOS, but the ordinary risk card can
+  still feel too cautionary; track as conversational polish.
+
 ## 2026-07-04 - TG-014 Voice-in/STT provider transcript capture
 
 - Captured the first real-provider sanitized Voice-in/STT replay rows from

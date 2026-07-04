@@ -71,6 +71,20 @@ npm run test:run -- src/lib/telegram/handlers/check.voice.test.ts
 npm run test:run -- src/lib/telegram/voice-stt-fixture-collector.test.ts
 ```
 
+## Live Telegram Transcript Capture
+
+When a user sends a live QA voice note to the production bot, only copy the
+short transcript that the bot itself displays back to the chat. Do not store
+raw audio, Telegram file ids, request payloads, provider responses, or private
+metadata.
+
+2026-07-04 live examples added to the committed replay corpus:
+
+- `uz-live-sms-code-telegram-001`: provider rendered Uzbek
+  `yubordim` as `yubardim`; this must still route to SOS `panic:1`.
+- `ru-live-not-sent-code-telegram-001`: negated Russian "did not send SMS
+  code" must not open an already-happened SOS flow.
+
 ## Review Rules
 
 - Keep "I did not..." negated phrases in `normal_check` unless the transcript

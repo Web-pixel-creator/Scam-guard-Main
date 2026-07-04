@@ -104,6 +104,14 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     note: "Uzbek Cyrillic active-call wording should route to live-call SOS.",
   },
   {
+    id: "uz-live-sms-code-telegram-001",
+    lang: "uz",
+    transcript: "Men SMS kodni yubardim.",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "panic", panicId: 1 },
+    note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Provider rendered yubordim as yubardim.",
+  },
+  {
     id: "en-sms-code",
     lang: "en",
     transcript: "I sent the SMS code to the caller",
@@ -166,6 +174,14 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     sourceKind: "synthetic_provider_like",
     expectation: { kind: "normal_check" },
     note: "Negated Russian code phrase must not open already-happened SOS.",
+  },
+  {
+    id: "ru-live-not-sent-code-telegram-001",
+    lang: "ru",
+    transcript: "Я не отправляла SMS-код",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "normal_check" },
+    note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Negated Russian code phrase must not open SOS.",
   },
   {
     id: "ru-not-card-digits",

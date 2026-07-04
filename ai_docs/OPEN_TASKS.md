@@ -85,6 +85,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
   keyboards change. `npm run qa:qr-decode -- <image>` checks whether a real
   screenshot's QR payload is pixel-decoded before Telegram copy review. Run
   these QA commands whenever bot copy/buttons or image/QR handling change.
+- **Voice-in negation UX still needs a small conversational polish pass.** Live
+  QA on 2026-07-04 confirmed that "Я не отправляла SMS-код" does not open the
+  already-happened SOS flow, but the ordinary risk engine can still answer with
+  a caution card because it sees `SMS-код`. Prefer a warmer "good, do not send
+  it" acknowledgement for short negated voice statements before running the
+  generic risk card.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 

@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-07-02.
+Last updated: 2026-07-04.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -41,6 +41,10 @@ Already shipped:
   Supabase HMAC-hashed buckets across Node instances with in-memory fallback.
 - Telegram Voice STT v1: short voice notes are transcribed in memory, redacted
   and checked by the existing rules pipeline.
+- Telegram Voice-in/STT replay corpus v1.1: production-like and live sanitized
+  transcript rows now cover RU/UZ/EN emergency routing, negated already-done
+  phrases, Uzbek Cyrillic and live Uzbek provider variants such as
+  `SMS kodni yubardim` without committing raw audio.
 - Official-number Lookalike v1: phone/short-code checks now compare unknown
   numbers with the verified contact directory and explain near misses without
   unsupported accusations.
