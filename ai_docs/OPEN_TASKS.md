@@ -148,10 +148,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       shipped: RU/UZ/EN SMS-code, card security-code, remote-access,
       money-transfer, Telegram login-QR and live-call transcripts route to the
       right SOS, while negated "I did not send/scan/dictate" phrases stay on
-      the normal check pipeline. A local real-provider capture workflow is now
-      documented in `ai_docs/VOICE_STT_FIXTURES.md` and backed by
-      `npm run stt:transcribe-fixtures`; the collector now has manifest/audio
-      path validation tests and keeps audio reads inside the manifest folder.
+      the normal check pipeline. Uzbek Cyrillic replay fixtures now cover
+      sent SMS-code, transferred money, active-call pressure and negated code
+      wording. A local real-provider capture workflow is documented in
+      `ai_docs/VOICE_STT_FIXTURES.md` and backed by
+      `npm run stt:transcribe-fixtures`; the collector has manifest/audio path
+      validation tests and keeps audio reads inside the manifest folder.
       Remaining: collect real provider audio/transcript fixtures from live QA
       when `OPENAI_API_KEY` and local audio are available, then tune confidence
       heuristics from production examples.

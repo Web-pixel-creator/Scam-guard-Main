@@ -580,6 +580,10 @@ function normalizeVoiceIntentText(text: string): string {
     .normalize("NFKC")
     .toLowerCase()
     .replace(/ё/g, "е")
+    .replace(/[ўӯ]/g, "у")
+    .replace(/қ/g, "к")
+    .replace(/ғ/g, "г")
+    .replace(/ҳ/g, "х")
     .replace(/[‘’ʻʼ`´]/g, "'")
     .replace(/\s+/g, " ")
     .trim();
@@ -623,6 +627,8 @@ const NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
 const UZ_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)(?:\s|$)/;
+const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?:\s|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
 
@@ -632,6 +638,7 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   if (
     NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
+    UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     EN_NEGATED_VOICE_DONE_INTENT_RE.test(text)
   ) {
     return null;
@@ -648,6 +655,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat).{0,80}(kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam)/.test(
+      text,
+    ) ||
+    /(?:карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам).{0,80}(айт|бер|юбор|жунат|курсат|кирит)/.test(
+      text,
+    ) ||
+    /(?:айт|бер|юбор|жунат|курсат|кирит).{0,80}(карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам)/.test(
       text,
     ) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed).{0,80}(?:cvv|cvc|pin|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password)/.test(
@@ -669,6 +682,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:telegram|tg).{0,80}(?:qr|login|log\s+in|device|code).{0,80}(?:scanned|scan|confirmed|approved|allowed|linked|entered|typed)/.test(
       text,
+    ) ||
+    /(?:telegram|tg|телеграм).{0,80}(?:qr|куар|код|логин|кириш|устройств).{0,80}(?:сканер|scan|тасдик|улаш|богла|кирит|рухсат)/.test(
+      text,
+    ) ||
+    /(?:сканер|scan|тасдик|улаш|богла|кирит|рухсат).{0,80}(?:telegram|tg|телеграм).{0,80}(?:qr|куар|код|логин|кириш|устройств)/.test(
+      text,
     )
   ) {
     return 5;
@@ -685,6 +704,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:sms|kod|code|otp).{0,60}(yubor|jo'nat|jonat|ayt|ber|kirit)/.test(text) ||
+    /(?:^|\s)(мен|биз).{0,40}(юбор|жунат|айт|бер|кирит).{0,60}(sms|смс|kod|код|code|otp)/.test(
+      text,
+    ) ||
+    /(?:sms|смс|kod|код|code|otp).{0,60}(юбор|жунат|айт|бер|кирит)/.test(text) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|entered|typed|confirmed).{0,60}(?:sms|otp|verification|login)?\s*(?:code|number|digits)/.test(
       text,
     ) ||
@@ -706,6 +729,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:apk|ilova|programma|app|anydesk|teamviewer|rustdesk|masofaviy|ekran).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma|ruxsat ber)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(мен|биз).{0,40}(урнат|юкла|скач|оч|ишга\s+тушир|рухсат\s+бер).{0,80}(apk|апк|илова|программа|app|anydesk|teamviewer|rustdesk|масофавий|экран)/.test(
+      text,
+    ) ||
+    /(?:apk|апк|илова|программа|app|anydesk|teamviewer|rustdesk|масофавий|экран).{0,80}(урнат|юкла|скач|оч|smsга\s+рухсат|хабарнома|рухсат\s+бер)/.test(
       text,
     ) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:installed|downloaded|opened|started|allowed|enabled|gave).{0,80}(?:apk|anydesk|teamviewer|rustdesk|remote\s+access|screen\s+access|access\s+to\s+(?:my\s+)?screen|accessibility|special\s+permissions|unknown\s+app|app\s+from\s+(?:a\s+)?link)/.test(
@@ -731,6 +760,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad).{0,80}(pul|sum|som|uzs|karta|balans)/.test(
       text,
     ) ||
+    /(?:пул|сум|som|uzs|карта|баланс).{0,80}(юбор|жунат|утказ|тола|тула|оплат|попол)/.test(text) ||
+    /(?:юбор|жунат|утказ|тола|тула|оплат|попол).{0,80}(пул|сум|som|uzs|карта|баланс)/.test(text) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:transferred|sent|paid|topped\s+up).{0,80}(?:money|transfer|sum|uzs|card|account|balance|wallet|phone\s+number|their\s+number)/.test(
       text,
     ) ||
@@ -747,6 +778,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(text) ||
     /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(text) ||
+    /(?:карта|card|cvv|cvc|pin|пин).{0,80}(кирит|бер|айт|юбор|жунат)/.test(text) ||
+    /(?:кирит|бер|айт|юбор|жунат).{0,80}(карта|card|cvv|cvc|pin|пин)/.test(text) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:entered|typed|gave|given|shared|sent).{0,80}(?:card|card\s+number|card\s+details|cvv|cvc|pin|expiry|expiration)/.test(
       text,
     ) ||
@@ -773,6 +806,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:telegram).{0,80}(qr|kod).{0,80}(skaner|scan|tasdiq|ulash|bog'la|bogla)/.test(text) ||
     /(?:skaner|scan|tasdiq|ulash|bog'la|bogla).{0,80}(telegram).{0,80}(qr|kod)/.test(text) ||
+    /(?:telegram|телеграм).{0,80}(qr|куар|код).{0,80}(сканер|scan|тасдик|улаш|богла)/.test(text) ||
+    /(?:сканер|scan|тасдик|улаш|богла).{0,80}(telegram|телеграм).{0,80}(qr|куар|код)/.test(text) ||
     /(?:lost|stolen|hacked|taken\s+over|can't\s+log\s+in|cannot\s+log\s+in|can\s+not\s+log\s+in).{0,80}(?:telegram|tg|account)/.test(
       text,
     ) ||
@@ -789,6 +824,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /не кладите трубку/.test(text) ||
     /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
     /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text) ||
+    /(?:хозир|xozir).{0,50}(кунгирок|звон|call)/.test(text) ||
+    /(?:менга|бизга).{0,50}(кунгирок|звон|call).{0,50}(киляп|килиш|кел)/.test(text) ||
     /(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?(?:on|in)\s+(?:a\s+)?(?:phone\s+)?(?:call|line)|(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?on\s+the\s+phone/.test(
       text,
     ) ||
@@ -815,7 +852,7 @@ function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
 }
 
 const TEXT_PANIC_DONE_INTENT_RE =
-  /(?:^|\s)(?:(?:\u044f|\u043c\u044b)\s+(?:\u0443\u0436\u0435\s+)?.{0,50}(?:\u043e\u0442\u043f\u0440\u0430\u0432|\u0441\u043e\u043e\u0431\u0449|\u043d\u0430\u0437\u0432\u0430|\u0441\u043a\u0430\u0437\u0430|\u043f\u0435\u0440\u0435\u0434\u0430|\u043f\u0440\u043e\u0434\u0438\u043a\u0442|\u0443\u0441\u0442\u0430\u043d\u043e\u0432|\u0441\u043a\u0430\u0447|\u0437\u0430\u043f\u0443\u0441\u0442|\u043e\u0442\u043a\u0440|\u0440\u0430\u0437\u0440\u0435\u0448|\u0432\u043a\u043b\u044e\u0447|\u0434\u0430\u043b|\u043f\u0435\u0440\u0435\u0432|\u043e\u043f\u043b\u0430\u0442|\u043f\u043e\u043f\u043e\u043b\u043d|\u0432\u0432\u0435|\u0432\u0432\u0451|\u0432\u0431\u0438|\u0443\u043a\u0430\u0437|\u0441\u043a\u0430\u043d|\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434)|(?:men|biz).{0,50}(?:yubordim|jo['\u2019]?natdim|jonatdim|aytdim|berdim|kiritdim|o['\u2019]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['\u2019]?tkazdim|otkazdim|to['\u2019]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)|(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|dictated|entered|typed|confirmed|approved|installed|downloaded|opened|started|allowed|enabled|transferred|paid|topped\s+up|scanned))/i;
+  /(?:^|\s)(?:(?:\u044f|\u043c\u044b)\s+(?:\u0443\u0436\u0435\s+)?.{0,50}(?:\u043e\u0442\u043f\u0440\u0430\u0432|\u0441\u043e\u043e\u0431\u0449|\u043d\u0430\u0437\u0432\u0430|\u0441\u043a\u0430\u0437\u0430|\u043f\u0435\u0440\u0435\u0434\u0430|\u043f\u0440\u043e\u0434\u0438\u043a\u0442|\u0443\u0441\u0442\u0430\u043d\u043e\u0432|\u0441\u043a\u0430\u0447|\u0437\u0430\u043f\u0443\u0441\u0442|\u043e\u0442\u043a\u0440|\u0440\u0430\u0437\u0440\u0435\u0448|\u0432\u043a\u043b\u044e\u0447|\u0434\u0430\u043b|\u043f\u0435\u0440\u0435\u0432|\u043e\u043f\u043b\u0430\u0442|\u043f\u043e\u043f\u043e\u043b\u043d|\u0432\u0432\u0435|\u0432\u0432\u0451|\u0432\u0431\u0438|\u0443\u043a\u0430\u0437|\u0441\u043a\u0430\u043d|\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434)|(?:men|biz).{0,50}(?:yubordim|jo['\u2019]?natdim|jonatdim|aytdim|berdim|kiritdim|o['\u2019]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['\u2019]?tkazdim|otkazdim|to['\u2019]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)|(?:мен|биз).{0,50}(?:юбордим|жунатдим|айтдим|бердим|киритдим|урнатдим|юкладим|очдим|рухсат бердим|утказдим|толадим|сканер килдим|scan килдим|тасдикладим)|(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|dictated|entered|typed|confirmed|approved|installed|downloaded|opened|started|allowed|enabled|transferred|paid|topped\s+up|scanned))/i;
 
 function classifyTextPanicIntent(
   text: string,

@@ -2,6 +2,15 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-04 - TG-014 Voice-in/STT Uzbek Cyrillic corpus
+
+- Extended Voice-in/STT already-happened emergency routing for Uzbek Cyrillic
+  transcripts after the live QA backlog called out UZ Cyrillic as a gap.
+- Added normalization for common Uzbek Cyrillic letters (`ў/қ/ғ/ҳ`) and replay
+  fixtures for SMS-code sent, money transferred, live-call pressure and a
+  negated "did not send code" phrase.
+- Verification passed: focused voice handler test and full Telegram suite.
+
 ## 2026-07-02 - Conversation memory reconciliation
 
 - Reconciled the stale pig-butchering / romance-grooming note in

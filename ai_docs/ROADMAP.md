@@ -224,7 +224,8 @@ Operational hardening that continues in parallel:
 - Voice-in/STT corpus slices shipped on 2026-07-02: production-like RU/UZ/EN
   transcripts for SMS-code, card security-code, remote-access, money-transfer,
   Telegram login-QR and live-call emergencies route to SOS, and negated
-  already-happened phrases do not.
+  already-happened phrases do not. On 2026-07-04 the replay corpus added UZ
+  Cyrillic SMS-code, money-transfer, active-call and negated-code coverage.
 - Voice-in/STT fixture workflow shipped on 2026-07-02: replay rows live in
   `voice-stt-provider-fixtures.ts`, local audio captures stay ignored, and
   `npm run stt:transcribe-fixtures` emits sanitized transcripts for manual
