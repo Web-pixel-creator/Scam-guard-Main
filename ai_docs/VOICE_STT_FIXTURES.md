@@ -56,6 +56,12 @@ Manifest `audioPath` values must be relative paths that stay inside the manifest
 directory; this prevents accidentally reading and sending unrelated local files
 to the STT provider.
 
+If the provider is slow for longer or non-English audio, pass a bounded timeout:
+
+```bash
+npm run stt:transcribe-fixtures -- --manifest private/voice-stt-fixtures/manifest.json --timeout-ms 60000
+```
+
 After manual review, copy safe transcript rows into
 `src/lib/telegram/voice-stt-provider-fixtures.ts` and add the expected route.
 Then run:

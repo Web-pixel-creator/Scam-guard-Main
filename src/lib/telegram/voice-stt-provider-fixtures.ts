@@ -152,6 +152,14 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     note: "English active-call wording should route to live-call SOS.",
   },
   {
+    id: "en-live-call-tts-001",
+    lang: "en",
+    transcript: "I am on the phone with a bank caller right now.",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "panic", panicId: 6 },
+    note: "Captured from local Windows TTS audio through production STT provider; sanitized transcript only.",
+  },
+  {
     id: "ru-not-sent-code",
     lang: "ru",
     transcript: "Я не отправила SMS-код",
@@ -198,6 +206,14 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     sourceKind: "synthetic_provider_like",
     expectation: { kind: "normal_check" },
     note: "Negated English code phrase must not open already-happened SOS.",
+  },
+  {
+    id: "en-not-sent-code-tts-001",
+    lang: "en",
+    transcript: "I did not send the SMS code.",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "normal_check" },
+    note: "Captured from local Windows TTS audio through production STT provider; sanitized transcript only.",
   },
   {
     id: "en-not-telegram-qr",

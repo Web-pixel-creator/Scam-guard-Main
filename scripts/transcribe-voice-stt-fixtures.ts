@@ -17,6 +17,8 @@ import { transcribeVoiceCore } from "@/lib/risk/check-core";
 
 const MAX_FIXTURE_AUDIO_BYTES = 2 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 15_000;
+const MIN_TIMEOUT_MS = 5_000;
+const MAX_TIMEOUT_MS = 120_000;
 
 interface AudioFixtureManifest {
   cases: AudioFixtureCase[];
@@ -54,10 +56,15 @@ function optionalEnv(name: string): string | null {
   return value ? value : null;
 }
 
-export function parseArgs(): { manifestPath: string | null; outputPath: string | null } {
+export function parseArgs(): {
+  manifestPath: string | null;
+  outputPath: string | null;
+  timeoutMs: number;
+} {
   const args = process.argv.slice(2);
   let manifestPath: string | null = null;
   let outputPath: string | null = null;
+  let timeoutMs = DEFAULT_TIMEOUT_MS;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -65,6 +72,7 @@ export function parseArgs(): { manifestPath: string | null; outputPath: string |
       console.log(
         [
           "Usage: npm run stt:transcribe-fixtures -- --manifest <manifest.json> [--output <transcripts.json>]",
+          "       npm run stt:transcribe-fixtures -- --manifest <manifest.json> --timeout-ms 60000",
           "",
           "Manifest shape:",
           '{ "cases": [{ "id": "ru-sms-code-live-001", "lang": "ru", "audioPath": "./ru-sms-code.ogg", "expectedIncludes": ["sms", "код"] }] }',
@@ -84,10 +92,19 @@ export function parseArgs(): { manifestPath: string | null; outputPath: string |
       i += 1;
       continue;
     }
+    if (arg === "--timeout-ms") {
+      const value = Number(args[i + 1]);
+      if (!Number.isInteger(value) || value < MIN_TIMEOUT_MS || value > MAX_TIMEOUT_MS) {
+        fail(`--timeout-ms must be an integer from ${MIN_TIMEOUT_MS} to ${MAX_TIMEOUT_MS}`);
+      }
+      timeoutMs = value;
+      i += 1;
+      continue;
+    }
     if (!arg.startsWith("-") && !manifestPath) manifestPath = arg;
   }
 
-  return { manifestPath, outputPath };
+  return { manifestPath, outputPath, timeoutMs };
 }
 
 function isLang(value: unknown): value is Lang {
@@ -178,7 +195,7 @@ export function assertIncludes(
 }
 
 export async function main(): Promise<void> {
-  const { manifestPath, outputPath } = parseArgs();
+  const { manifestPath, outputPath, timeoutMs } = parseArgs();
   if (!manifestPath) fail("missing --manifest <path>");
   if (!optionalEnv("OPENAI_API_KEY")) {
     fail("OPENAI_API_KEY is not configured for STT provider access");
@@ -192,7 +209,7 @@ export async function main(): Promise<void> {
     const audioPath = resolveFixtureAudioPath(resolvedManifestPath, item.audioPath);
     const dataUrl = await readAudioDataUrl(audioPath);
     const result = await transcribeVoiceCore(dataUrl, item.lang, `fixture:${item.id}`, {
-      timeoutMs: DEFAULT_TIMEOUT_MS,
+      timeoutMs,
     });
     if (!result.text) fail(`case ${item.id}: provider returned no usable transcript`);
     assertIncludes(item.id, result.text, item.expectedIncludes ?? []);

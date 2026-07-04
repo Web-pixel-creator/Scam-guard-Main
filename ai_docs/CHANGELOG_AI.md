@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-04 - TG-014 Voice-in/STT provider transcript capture
+
+- Captured the first real-provider sanitized Voice-in/STT replay rows from
+  local ignored audio fixtures through the production STT provider:
+  English live-call pressure routes to SOS `panic:6`, while English negated
+  "I did not send the SMS code" remains on the normal check path.
+- Added `--timeout-ms` to `scripts/transcribe-voice-stt-fixtures.ts` after the
+  first Russian Windows TTS attempt hit the 15s collector timeout/noisy-empty
+  transcript path; poor local TTS captures were not committed to the replay
+  corpus.
+- Verification passed: focused voice handler + STT fixture collector tests and
+  scoped eslint.
+
 ## 2026-07-04 - TG-015 Voice-out production smoke and release QA
 
 - Revalidated prerecorded SOS Voice-out assets after the post-deploy backlog:

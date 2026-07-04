@@ -234,7 +234,10 @@ Operational hardening that continues in parallel:
   `voice-stt-provider-fixtures.ts`, local audio captures stay ignored, and
   `npm run stt:transcribe-fixtures` emits sanitized transcripts for manual
   review. Collector helper tests now cover manifest validation, supported audio
-  extensions, expected transcript fragments and scoped local audio paths.
+  extensions, expected transcript fragments and scoped local audio paths. On
+  2026-07-04 the first provider-sanitized transcript rows were captured through
+  production STT provider from ignored local English audio; RU/UZ human/live
+  provider examples remain the next corpus expansion.
 - Inline Risk Passport QA slice shipped on 2026-07-02: Telegram inline
   low-signal phone/Telegram results now show honest passport sections with
   limitations and the next context prompt; high-risk inline cards stay urgent.

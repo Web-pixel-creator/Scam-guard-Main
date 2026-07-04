@@ -5,11 +5,54 @@ import {
   FixtureCliError,
   assertIncludes,
   mimeTypeForAudioPath,
+  parseArgs,
   parseManifest,
   resolveFixtureAudioPath,
 } from "../../../scripts/transcribe-voice-stt-fixtures";
 
 describe("transcribe voice STT fixture collector helpers", () => {
+  it("parses the optional provider timeout override", () => {
+    const originalArgv = process.argv;
+    try {
+      process.argv = [
+        "node",
+        "scripts/transcribe-voice-stt-fixtures.ts",
+        "--manifest",
+        "private/voice-stt-fixtures/manifest.json",
+        "--output",
+        "private/voice-stt-fixtures/transcripts.json",
+        "--timeout-ms",
+        "60000",
+      ];
+
+      expect(parseArgs()).toEqual({
+        manifestPath: "private/voice-stt-fixtures/manifest.json",
+        outputPath: "private/voice-stt-fixtures/transcripts.json",
+        timeoutMs: 60000,
+      });
+    } finally {
+      process.argv = originalArgv;
+    }
+  });
+
+  it("rejects out-of-range provider timeout values", () => {
+    const originalArgv = process.argv;
+    try {
+      process.argv = [
+        "node",
+        "scripts/transcribe-voice-stt-fixtures.ts",
+        "--manifest",
+        "private/voice-stt-fixtures/manifest.json",
+        "--timeout-ms",
+        "1",
+      ];
+
+      expect(() => parseArgs()).toThrow("--timeout-ms must be an integer");
+    } finally {
+      process.argv = originalArgv;
+    }
+  });
+
   it("validates the manifest shape before any provider call", () => {
     expect(() => parseManifest({ cases: [] })).toThrow(FixtureCliError);
     expect(() =>
