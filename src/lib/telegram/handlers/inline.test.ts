@@ -303,4 +303,63 @@ describe("handleInlineQuery", () => {
       "Что проверяли: Мне пишет мошенник",
     );
   });
+
+  it("turns bare link requests into a send-the-url inline prompt", async () => {
+    hoisted.nextResult = {
+      type: "text",
+      display: "у меня просят перейти по ссылке",
+      level: "unknown",
+      score: 0,
+      reasons: ["unknown_sender"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery("у меня просят перейти по ссылке", { userId: 42, session }, "iq-link");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("check-unknown-link-request");
+    expect(article.title).toBe("Ссылка: пришлите URL");
+    expect(article.description).toContain("Пока не переходите");
+    expect(article.description).toContain("код, оплату, карту или APK");
+    expect(article.input_message_content.message_text).toContain(
+      "Что проверяли: у меня просят перейти по ссылке",
+    );
+  });
+
+  it("does not override concrete URL checks with the bare-link fallback", async () => {
+    hoisted.nextResult = {
+      type: "url",
+      display: "https://example.test/pay",
+      level: "unknown",
+      score: 0,
+      reasons: ["hosted_app_platform"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(
+      "просят перейти по ссылке https://example.test/pay",
+      { userId: 42, session },
+      "iq-url",
+    );
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+    };
+    expect(article.id).toBe("check-unknown");
+    expect(article.title).toBe("Нужно больше контекста");
+    expect(article.description).not.toContain("Пока не переходите");
+  });
 });

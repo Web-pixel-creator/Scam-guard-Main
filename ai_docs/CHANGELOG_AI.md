@@ -20,6 +20,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
     presenting a cold insufficient-data result.
 - Added regression coverage for the user-observed `Мне пишет мошенник` inline
   case and updated the real-client inline QA checklist.
+- Added a separate bare-link-request preview for phrases such as
+  `у меня просят перейти по ссылке`: inline now asks for the actual URL and
+  warns not to open it until checked, instead of falling back to a generic
+  insufficient-context result.
 
 ## 2026-07-05 - TG-014 UZ Voice QA matrix expansion
 

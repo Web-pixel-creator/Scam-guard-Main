@@ -233,6 +233,8 @@ const PREVIEW_COPY: Record<
     phoneWeakDescription: string;
     telegramTitle: string;
     telegramDescription: string;
+    linkRequestTitle: string;
+    linkRequestDescription: string;
     unknownTitle: string;
     unknownDescription: string;
   }
@@ -250,6 +252,9 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: нужен контекст",
     telegramDescription:
       "Username сам не доказывает риск. Добавьте текст просьбы, ссылку на пост или скрин.",
+    linkRequestTitle: "Ссылка: пришлите URL",
+    linkRequestDescription:
+      "Пока не переходите. Пришлите саму ссылку; опасно, если дальше просят код, оплату, карту или APK.",
     unknownTitle: "Нужно больше контекста",
     unknownDescription:
       "Вставьте полное сообщение: что просят сделать, ссылку, номер, код, карту или перевод.",
@@ -267,6 +272,9 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: kontekst kerak",
     telegramDescription:
       "Username o'zi xavfni isbotlamaydi. So'rov matni, post havolasi yoki skrin yuboring.",
+    linkRequestTitle: "Havola: URL yuboring",
+    linkRequestDescription:
+      "Hozircha o'tmang. Havolani yuboring; keyin kod, to'lov, karta yoki APK so'ralsa xavfli.",
     unknownTitle: "Kontekst kerak",
     unknownDescription:
       "To'liq xabarni yuboring: nima qilish so'ralgan, havola, raqam, kod, karta yoki pul.",
@@ -284,6 +292,9 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: context needed",
     telegramDescription:
       "A username alone cannot prove risk. Add the request text, post link or screenshot.",
+    linkRequestTitle: "Link: send the URL",
+    linkRequestDescription:
+      "Do not open it yet. Send the link; it is risky if it asks for a code, payment, card or APK.",
     unknownTitle: "More context needed",
     unknownDescription:
       "Paste the full message: what they ask you to do, link, number, code, card or transfer.",
@@ -350,6 +361,28 @@ function compactInlineDescription(value: string): string {
   const boundary = oneLine.lastIndexOf(" ", softLimit);
   const end = boundary >= 60 ? boundary : softLimit;
   return `${oneLine.slice(0, end).trimEnd()}...`;
+}
+
+function looksLikeBareLinkRequest(text: string): boolean {
+  const normalized = text.toLowerCase();
+  const hasConcreteUrl =
+    /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
+  if (hasConcreteUrl) return false;
+
+  return (
+    /(?:просят|просит|сказали|говорят|нужно|надо|предлагают).{0,80}(?:перейти|зайти|открыть|нажать).{0,40}(?:ссылк|линк|link|url)/iu.test(
+      normalized,
+    ) ||
+    /(?:перейти|зайти|открыть|нажать).{0,40}(?:по\s+)?(?:ссылк|линк|link|url)/iu.test(normalized) ||
+    /(?:so['’]?ra|ayt|kerak).{0,80}(?:havola|link).{0,40}(?:o['’]?t|kir|och|bos)/iu.test(
+      normalized,
+    ) ||
+    /(?:havola|link).{0,60}(?:o['’]?t|kir|och|bos|bosing)/iu.test(normalized) ||
+    /(?:ask|asked|asks|told|want|wants|need|needs).{0,80}(?:open|click|follow|go\s+to).{0,40}(?:link|url)/iu.test(
+      normalized,
+    ) ||
+    /(?:open|click|follow|go\s+to).{0,40}(?:the\s+)?(?:link|url)/iu.test(normalized)
+  );
 }
 
 function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): string {
@@ -426,6 +459,16 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   const level = copy.levels[result.level];
   if (result.level === "unknown") {
     const preview = PREVIEW_COPY[lang];
+    if (looksLikeBareLinkRequest(result.display)) {
+      return buildArticle(
+        `check-${result.level}-link-request`,
+        preview.linkRequestTitle,
+        preview.linkRequestDescription,
+        formatInlineMessage(result, lang),
+        lang,
+      );
+    }
+
     return buildArticle(
       `check-${result.level}`,
       preview.unknownTitle,
