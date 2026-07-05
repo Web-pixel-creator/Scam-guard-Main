@@ -77,6 +77,10 @@ safe next step in the preview.
 | `bank_contact`         | `как мне связаться с банком?`                    | Tell the user to use the app/card/official website, not numbers from chats.  |
 | `general_scam_concern` | `меня пытаются обмануть`                         | Validate the pause and ask for the message/link/number/request.              |
 | `voting_link`          | `проголосовать на канале и перейти по ссылке`    | Warn that voting links can be Telegram re-login bait.                        |
+| `next_step`            | `что мне делать дальше?`                         | Tell the user to pause, send nothing yet and provide the factual request.    |
+| `reply_safety`         | `можно ли ему отвечать?`                         | Allow only neutral replies and warn not to reveal sensitive data.            |
+| `safety_question`      | `это безопасно или мошенники?`                   | Refuse to guess and ask for the message/link/number/screenshot.              |
+| `chat_invite`          | `меня зовут вступить в какой то канал`           | Warn about suspicious channel/chat links and ask for the invitation/link.    |
 
 ## Design Rule
 

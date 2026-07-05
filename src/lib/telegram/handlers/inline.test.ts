@@ -484,6 +484,26 @@ describe("handleInlineQuery", () => {
       id: "check-unknown-voting-link",
       title: "Голосование/канал: сначала проверим",
     },
+    {
+      text: "что мне делать дальше?",
+      id: "check-unknown-next-step",
+      title: "Что делать: остановитесь и пришлите просьбу",
+    },
+    {
+      text: "можно ли ему отвечать?",
+      id: "check-unknown-reply-safety",
+      title: "Ответ: не раскрывайте данные",
+    },
+    {
+      text: "это безопасно или мошенники?",
+      id: "check-unknown-safety-question",
+      title: "Безопасно ли: проверим по фактам",
+    },
+    {
+      text: "меня зовут вступить в какой то канал",
+      id: "check-unknown-chat-invite",
+      title: "Канал/чат: сначала проверим",
+    },
   ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
     hoisted.nextResult = {
       type: "text",

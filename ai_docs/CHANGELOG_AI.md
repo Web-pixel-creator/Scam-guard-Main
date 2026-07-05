@@ -9,10 +9,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `ai_docs/TELEGRAM_INLINE_PHRASE_CORPUS.md` as the seed corpus for low-signal
   inline queries.
 - Expanded Telegram inline preview classification from the single bare-link
-  fallback into 16 human-intent classes: link, code, confirmation, card,
-  transfer, app/APK, bank call, personal data, delivery payment, prize fee,
-  OneID/government, SIM swap, relative distress, job-fee, investment/crypto and
-  romance-money requests.
+  fallback into a human-intent layer: link, code, confirmation, card, transfer,
+  app/APK, bank call, personal data, delivery payment, prize fee,
+  OneID/government, SIM swap, relative distress, job-fee, investment/crypto,
+  romance-money and conversational safety requests.
 - Important product boundary: these classes only improve `unknown`/`suspicious`
   inline previews and next-step copy. They do not raise the risk score without
   the actual artifact/message, keeping inline mode honest.
@@ -25,6 +25,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
 передал код из СМС`, `как мне связаться с банком`, `меня пытаются обмануть`
   and `голосование/канал + ссылка`; softened link/code preview copy so it gives
   a calmer safe next step instead of a technical label.
+- Follow-up conversational fallback slice: added previews for `что мне делать
+дальше?`, `можно ли ему отвечать?`, `это безопасно или мошенники?` and generic
+  channel/chat invitations. These still do not invent a risk verdict; they pause
+  the user and ask for facts.
 
 ## 2026-07-05 - TG-015 Telegram inline preview UX polish
 

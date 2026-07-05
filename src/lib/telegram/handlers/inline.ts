@@ -36,7 +36,11 @@ type HumanInlineIntent =
   | "earning_channel"
   | "bank_contact"
   | "general_scam_concern"
-  | "voting_link";
+  | "voting_link"
+  | "next_step"
+  | "reply_safety"
+  | "safety_question"
+  | "chat_invite";
 
 type Copy = {
   helpTitle: string;
@@ -392,6 +396,26 @@ const PREVIEW_COPY: Record<
         description:
           "Не переходите по ссылке и не входите в Telegram заново. Пришлите ссылку или текст приглашения целиком.",
       },
+      next_step: {
+        title: "Что делать: остановитесь и пришлите просьбу",
+        description:
+          "Пока ничего не отправляйте. Пришлите текст, ссылку, номер или что уже произошло — я подскажу безопасный шаг.",
+      },
+      reply_safety: {
+        title: "Ответ: не раскрывайте данные",
+        description:
+          "Можно отвечать только нейтрально. Не отправляйте коды, карту, деньги или документы; пришлите просьбу целиком.",
+      },
+      safety_question: {
+        title: "Безопасно ли: проверим по фактам",
+        description:
+          "Я не буду угадывать. Пришлите сообщение, ссылку, номер или скрин; пока ничего не вводите и не оплачивайте.",
+      },
+      chat_invite: {
+        title: "Канал/чат: сначала проверим",
+        description:
+          "Не переходите по сомнительной ссылке и не входите в Telegram заново. Пришлите приглашение или ссылку целиком.",
+      },
     },
     unknownTitle: "Нужно больше контекста",
     unknownDescription:
@@ -521,6 +545,26 @@ const PREVIEW_COPY: Record<
         title: "Ovoz berish/kanal: avval tekshiramiz",
         description:
           "Havolaga o'tmang va Telegramga qayta kirmang. Havola yoki taklif matnini to'liq yuboring.",
+      },
+      next_step: {
+        title: "Nima qilish kerak: to'xtang va so'rovni yuboring",
+        description:
+          "Hozircha hech narsa yubormang. Matn, havola, raqam yoki nima bo'lganini yuboring - xavfsiz qadamni aytaman.",
+      },
+      reply_safety: {
+        title: "Javob: ma'lumot bermang",
+        description:
+          "Faqat neytral javob bering. Kod, karta, pul yoki hujjat yubormang; so'rovni to'liq yuboring.",
+      },
+      safety_question: {
+        title: "Xavfsizmi: faktlar bo'yicha tekshiramiz",
+        description:
+          "Taxmin qilmayman. Xabar, havola, raqam yoki skrin yuboring; hozircha hech narsa kiritmang yoki to'lamang.",
+      },
+      chat_invite: {
+        title: "Kanal/chat: avval tekshiramiz",
+        description:
+          "Shubhali havolaga o'tmang va Telegramga qayta kirmang. Taklif yoki havolani to'liq yuboring.",
       },
     },
     unknownTitle: "Kontekst kerak",
@@ -656,6 +700,26 @@ const PREVIEW_COPY: Record<
         description:
           "Do not open the link or sign in to Telegram again. Send the link or invitation text.",
       },
+      next_step: {
+        title: "What to do: pause and send the request",
+        description:
+          "Do not send anything yet. Send the text, link, number or what already happened - I will give a safe step.",
+      },
+      reply_safety: {
+        title: "Reply: do not reveal data",
+        description:
+          "Only reply neutrally. Do not send codes, card data, money or documents; send the full request.",
+      },
+      safety_question: {
+        title: "Is it safe: check with facts",
+        description:
+          "I will not guess. Send the message, link, number or screenshot; do not enter anything or pay yet.",
+      },
+      chat_invite: {
+        title: "Channel/chat: check it first",
+        description:
+          "Do not open a suspicious link or sign in to Telegram again. Send the invitation or link.",
+      },
     },
     unknownTitle: "More context needed",
     unknownDescription:
@@ -775,6 +839,26 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
+    /(?:это|оно|сообщение|ссылка|номер|аккаунт|профиль|канал|чат).{0,100}(?:безопасно|опасно|мошенник|мошенники|скам|обман|развод|фишинг)/iu.test(
+      normalized,
+    ) ||
+    /(?:безопасно|опасно).{0,100}(?:это|сообщение|ссылка|номер|аккаунт|профиль|канал|чат)/iu.test(
+      normalized,
+    ) ||
+    /(?:можно|стоит|надо|нужно).{0,80}(?:доверять|верить|проверить|открывать|переходить|вводить)/iu.test(
+      normalized,
+    ) ||
+    /(?:xavfsiz|xavfli|firib|ishonsa|tekshir).{0,100}(?:mi|xabar|havola|raqam|akkaunt|kanal|chat)?/iu.test(
+      normalized,
+    ) ||
+    /(?:is it|is this|safe|dangerous|scam|fraud).{0,100}(?:message|link|number|account|channel|chat)?/iu.test(
+      normalized,
+    )
+  ) {
+    return "safety_question";
+  }
+
+  if (
     /(?:меня|нас|маму|папу|его|её|ее).{0,80}(?:пытаются|хотят|могут).{0,60}(?:обмануть|развести|кинуть|взломать)/iu.test(
       normalized,
     ) ||
@@ -787,6 +871,33 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     /(?:scam|fraud|phishing|cheat).{0,100}(?:me|us|looks|seems|suspect|maybe)?/iu.test(normalized)
   ) {
     return "general_scam_concern";
+  }
+
+  if (
+    /(?:что|как).{0,50}(?:делать|поступить|быть|дальше)/iu.test(normalized) ||
+    /(?:помогите|помоги).{0,80}(?:что делать|разобраться|проверить|мошен|скам|обман)?/iu.test(
+      normalized,
+    ) ||
+    /(?:nima|qanday).{0,50}(?:qilay|qilish|bo'ladi|keyin)/iu.test(normalized) ||
+    /(?:yordam|yordam bering).{0,80}(?:tekshir|firib|scam)?/iu.test(normalized) ||
+    /(?:what|how).{0,50}(?:do|should i do|next)/iu.test(normalized) ||
+    /(?:help me|please help).{0,80}(?:check|scam|fraud)?/iu.test(normalized)
+  ) {
+    return "next_step";
+  }
+
+  if (
+    /(?:можно|стоит|надо|нужно|безопасно ли).{0,80}(?:отвечать|ответить|написать|писать|переписываться|говорить|разговаривать)/iu.test(
+      normalized,
+    ) ||
+    /(?:что|как).{0,50}(?:ответить|сказать|написать)/iu.test(normalized) ||
+    /(?:javob|yoz|gaplash).{0,100}(?:bersam|beraymi|bo'ladimi|mumkinmi|kerakmi)/iu.test(
+      normalized,
+    ) ||
+    /(?:can|should).{0,60}(?:reply|answer|text|message|talk)/iu.test(normalized) ||
+    /(?:what|how).{0,50}(?:reply|answer|say|write)/iu.test(normalized)
+  ) {
+    return "reply_safety";
   }
 
   if (
@@ -850,6 +961,19 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "voting_link";
+  }
+
+  if (
+    /(?:приглаша|добавля|зовут|позвали|вступить|подписаться|перейти).{0,120}(?:канал|групп|чат)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат).{0,120}(?:приглаша|добавля|зовут|вступить|подписаться|перейти)/iu.test(
+      normalized,
+    ) ||
+    /(?:kanal|guruh|chat).{0,120}(?:taklif|qo'sh|kir|obuna)/iu.test(normalized) ||
+    /(?:invited|added|join|subscribe|go to).{0,120}(?:channel|group|chat)/iu.test(normalized)
+  ) {
+    return "chat_invite";
   }
 
   if (
