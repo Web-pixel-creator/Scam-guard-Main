@@ -73,7 +73,8 @@ safe next step in the preview.
 
 ## Design Rule
 
-These classes only improve the inline preview for `unknown` low-signal results.
-They do not raise the risk score by themselves. Full scoring remains in the
-rules engine when the user sends the actual artifact: message text, link,
-number, QR, screenshot or voice transcript.
+These classes improve the inline preview for `unknown` and `suspicious`
+low-signal results. They do not raise the risk score by themselves. Full scoring
+remains in the rules engine when the user sends the actual artifact: message
+text, link, number, QR, screenshot or voice transcript. For `suspicious`
+results, the inserted card still keeps the risk level visible.

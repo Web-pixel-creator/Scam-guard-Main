@@ -947,9 +947,9 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
 
   const copy = COPY[lang];
   const level = copy.levels[result.level];
+  const preview = PREVIEW_COPY[lang];
+  const humanIntent = classifyHumanInlineIntent(result.display);
   if (result.level === "unknown") {
-    const preview = PREVIEW_COPY[lang];
-    const humanIntent = classifyHumanInlineIntent(result.display);
     if (humanIntent) {
       const intentCopy = preview.humanIntents[humanIntent];
       return buildArticle(
@@ -965,6 +965,17 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
       `check-${result.level}`,
       preview.unknownTitle,
       preview.unknownDescription,
+      formatInlineMessage(result, lang),
+      lang,
+    );
+  }
+
+  if (result.level === "suspicious" && humanIntent) {
+    const intentCopy = preview.humanIntents[humanIntent];
+    return buildArticle(
+      `check-${result.level}-${humanIntent.replaceAll("_", "-")}`,
+      intentCopy.title,
+      `${level.description}. ${intentCopy.description}`,
       formatInlineMessage(result, lang),
       lang,
     );

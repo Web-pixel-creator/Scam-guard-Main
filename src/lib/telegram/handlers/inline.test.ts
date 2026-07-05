@@ -468,4 +468,45 @@ describe("handleInlineQuery", () => {
     expect(article.title).toBe(title);
     expect(article.description).not.toContain("Вставьте полное сообщение");
   });
+
+  it.each([
+    {
+      text: "сын попал в аварию срочно перевести деньги",
+      id: "check-suspicious-relative-distress",
+      title: "Близкий в беде: перезвоните",
+    },
+    {
+      text: "просят инвестировать в TON wallet с гарантированной прибылью",
+      id: "check-suspicious-investment-offer",
+      title: "Инвестиции/крипта: осторожно",
+    },
+  ])(
+    "keeps suspicious risk level but uses a specific inline preview for '$text'",
+    async ({ text, id, title }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "suspicious",
+        score: 20,
+        reasons: ["pressure_urgency"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(text, { userId: 42, session }, `iq-${id}`);
+
+      const article = hoisted.answerCalls[0].results[0] as {
+        id: string;
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expect(article.id).toBe(id);
+      expect(article.title).toBe(title);
+      expect(article.description).toContain("Есть подозрительные признаки");
+      expect(article.input_message_content.message_text).toContain("Требуется осторожность");
+    },
+  );
 });
