@@ -797,8 +797,13 @@ function hasSentCodeIntent(normalized: string): boolean {
     /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала)/iu.test(
       normalized,
     ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubor|ayt|ber|kirit|jo['’]?nat)/iu.test(normalized) ||
-    /(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+    /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|pin|parol)?.{0,60}(?:yubordim|aytdim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubordim|aytdim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+      normalized,
+    ) ||
+    /(?:i|already|just).{0,60}(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
       normalized,
     )
   );
@@ -809,13 +814,25 @@ function hasCodeRequestIntent(normalized: string): boolean {
     /(?:просят|просит|просил|попросил|попросили|хочет|хотят|требует|требуют|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
       normalized,
     ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|пришел|пришёл|пришл|хочет|хотят|просит|просят)/iu.test(
+    /(?:спрашива|спросил|спросили|просит|просят|попросил|попросили).{0,80}(?:одноразов|код подтверждения|код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
       normalized,
     ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:ayt|ber|yubor|kirit|kel|so['’]?ra|xohla)/iu.test(
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|переслать|скинуть|пришел|пришёл|пришл|хочет|хотят|просит|просят|попросил|попросили|спросил|спросили)/iu.test(
+      normalized,
+    ) ||
+    /(?:можно|стоит|надо|нужно).{0,60}(?:отправить|переслать|скинуть|ввести|сказать|назвать).{0,60}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes).{0,80}(?:ayt|ber|yubor|kirit|kel|so['’]?ra|xohla|deyapti|dedi|kerakmi)/iu.test(
+      normalized,
+    ) ||
+    /(?:ayt|ber|yubor|kirit|so['’]?ra|xohla|deyapti|dedi|kerakmi).{0,80}(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes)/iu.test(
       normalized,
     ) ||
     /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
+    ) ||
+    /(?:code|sms|otp|push|pin|password).{0,80}(?:tell|say|share|send|read out|enter|should i|can i)/iu.test(
       normalized,
     )
   );
@@ -861,6 +878,18 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
 
   if (hasCodeRequestIntent(normalized)) {
     return "code_request";
+  }
+
+  if (
+    !hasConcreteUrl &&
+    (/(?:кинул|кинули|сбросил|сбросили|скинул|скинули|отправил|отправили|прислал|прислали|дал|дали).{0,80}(?:ссылк|линк|link|url|сайт)/iu.test(
+      normalized,
+    ) ||
+      /(?:ссылк|линк|link|url|сайт).{0,80}(?:кинул|кинули|сбросил|сбросили|скинул|скинули|отправил|отправили|прислал|прислали|дал|дали)/iu.test(
+        normalized,
+      ))
+  ) {
+    return "link_request";
   }
 
   if (
@@ -1072,10 +1101,10 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|пин|pin)/iu.test(
+    /(?:просят|просит|попросил|попросили|спрашива|спросил|спросили|требует|требуют|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит|пин|pin)/iu.test(
       normalized,
     ) ||
-    /(?:карт|cvv|cvc|срок|оборот|номер карты).{0,80}(?:отправ|назв|ввест|фото|сфот)/iu.test(
+    /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
       normalized,
     ) ||
     /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
@@ -1371,6 +1400,13 @@ function staticArticle(
   return buildArticle(id, title, description, `${title}\n\n${description}\n\n@scamguard_bot`, lang);
 }
 
+function rateLimitDescription(lang: Lang, retryAfter: number): string {
+  const seconds = Math.max(1, Math.ceil(retryAfter));
+  if (lang === "uz") return `Biroz kuting: ${seconds} soniyadan keyin qayta urinib ko'ring.`;
+  if (lang === "en") return `Wait a bit and try again in ${seconds} sec.`;
+  return `Подождите немного: попробуйте снова через ${seconds} сек.`;
+}
+
 async function answerOne(inlineQueryId: string, result: InlineQueryResultArticle): Promise<void> {
   await answerInlineQuery({
     inlineQueryId,
@@ -1414,7 +1450,12 @@ export async function handleInlineQuery(
     await answerOne(inlineQueryId, resultArticle(result, lang));
   } catch (error) {
     const article = isRateLimitedError(error)
-      ? staticArticle("rate-limited", lang, copy.rateLimitTitle, copy.rateLimitDescription)
+      ? staticArticle(
+          "rate-limited",
+          lang,
+          copy.rateLimitTitle,
+          rateLimitDescription(lang, error.retryAfter),
+        )
       : staticArticle("error", lang, copy.errorTitle, copy.errorDescription);
     await answerOne(inlineQueryId, article);
   }

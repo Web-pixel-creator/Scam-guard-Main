@@ -29,6 +29,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
 дальше?`, `можно ли ему отвечать?`, `это безопасно или мошенники?` and generic
   channel/chat invitations. These still do not invent a risk verdict; they pause
   the user and ask for facts.
+- Live inline follow-up: multiline context such as `мне пишет незнакомый человек`
+  plus `он хочет смс код` now prioritizes the concrete code request over the
+  generic unknown-contact card. Inline rate-limit copy now includes retry
+  seconds.
 
 ## 2026-07-05 - TG-015 Telegram inline preview UX polish
 

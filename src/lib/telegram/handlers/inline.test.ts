@@ -10,11 +10,13 @@ const hoisted = vi.hoisted(() => ({
     isPersonal?: boolean;
   }>,
   nextResult: null as null | Record<string, unknown>,
+  nextError: null as null | Error,
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
   runCheck: vi.fn(async (params: Record<string, unknown>) => {
     hoisted.runCheckCalls.push(params);
+    if (hoisted.nextError) throw hoisted.nextError;
     return (
       hoisted.nextResult ?? {
         type: "telegram",
@@ -62,6 +64,7 @@ describe("handleInlineQuery", () => {
     hoisted.runCheckCalls.length = 0;
     hoisted.answerCalls.length = 0;
     hoisted.nextResult = null;
+    hoisted.nextError = null;
   });
 
   it("returns a help article for an empty inline query", async () => {
@@ -124,6 +127,26 @@ describe("handleInlineQuery", () => {
     };
     expect(article.title).toContain("Высокий риск");
     expect(article.input_message_content.message_text).toContain("Не отправляйте SMS-код");
+  });
+
+  it("shows retry seconds for rate-limited inline checks", async () => {
+    hoisted.nextError = Object.assign(new Error("rate_limited"), {
+      status: 429,
+      retryAfter: 17,
+    });
+
+    await handleInlineQuery("проверить номер", { userId: 42, session }, "iq-rate");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("rate-limited");
+    expect(article.title).toBe("Слишком много проверок");
+    expect(article.description).toContain("17 сек");
+    expect(article.input_message_content.message_text).toContain("17 сек");
   });
 
   it("renders low-signal phone inline checks as a number passport", async () => {
@@ -494,6 +517,51 @@ describe("handleInlineQuery", () => {
       text: "мне пишет незнакомый человек\nОн хочет смс код",
       id: "check-unknown-code-request",
       title: "Код: никому не называйте",
+    },
+    {
+      text: "незнакомец кинул ссылку",
+      id: "check-unknown-link-request",
+      title: "Ссылка: сначала проверим",
+    },
+    {
+      text: "мне пишет незнакомец, он скинул линк",
+      id: "check-unknown-link-request",
+      title: "Ссылка: сначала проверим",
+    },
+    {
+      text: "спросили cvv",
+      id: "check-unknown-card-request",
+      title: "Карта: не отправляйте данные",
+    },
+    {
+      text: "спрашивает реквизиты карты",
+      id: "check-unknown-card-request",
+      title: "Карта: не отправляйте данные",
+    },
+    {
+      text: "код подтверждения надо переслать в чат",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
+    },
+    {
+      text: "kodni ayt deyapti",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
+    },
+    {
+      text: "sms kodni aytishim kerakmi?",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
+    },
+    {
+      text: "I got a code should I tell him?",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
+    },
+    {
+      text: "men kodni yubordim endi nima qilay",
+      id: "check-unknown-sent-code",
+      title: "Код уже отправлен: действуйте срочно",
     },
     {
       text: "что мне делать дальше?",
