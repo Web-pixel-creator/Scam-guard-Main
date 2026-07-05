@@ -3,7 +3,8 @@ import type { PanicScenarioId } from "@/lib/telegram/emergency";
 
 type VoiceSttReplayExpectation =
   | { kind: "panic"; panicId: PanicScenarioId }
-  | { kind: "normal_check" };
+  | { kind: "normal_check" }
+  | { kind: "negated_ack" };
 
 export interface VoiceSttProviderReplayFixture {
   id: string;
@@ -20,6 +21,10 @@ export type VoiceSttPanicReplayFixture = VoiceSttProviderReplayFixture & {
 
 export type VoiceSttNormalReplayFixture = VoiceSttProviderReplayFixture & {
   expectation: { kind: "normal_check" };
+};
+
+export type VoiceSttNegatedAckReplayFixture = VoiceSttProviderReplayFixture & {
+  expectation: { kind: "negated_ack" };
 };
 
 export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplayFixture[] = [
@@ -172,7 +177,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "ru",
     transcript: "Я не отправила SMS-код",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated Russian code phrase must not open already-happened SOS.",
   },
   {
@@ -180,7 +185,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "ru",
     transcript: "Я не отправляла SMS-код",
     sourceKind: "provider_sanitized_transcript",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Negated Russian code phrase must not open SOS.",
   },
   {
@@ -188,7 +193,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "ru",
     transcript: "Я не продиктовал три цифры с оборота карты",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated Russian card phrase must not open already-happened SOS.",
   },
   {
@@ -196,7 +201,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "ru",
     transcript: "Я не сканировал QR для входа в Telegram",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated Russian Telegram QR phrase must not open SOS.",
   },
   {
@@ -204,7 +209,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "uz",
     transcript: "Men SMS kod yubormadim",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated Uzbek code phrase must not open SOS.",
   },
   {
@@ -212,15 +217,23 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "uz",
     transcript: "Men SMS-kod yubormadim.",
     sourceKind: "provider_sanitized_transcript",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Hyphenated SMS-kod plus final punctuation must stay out of already-happened SOS.",
+  },
+  {
+    id: "uz-live-not-sent-code-telegram-002",
+    lang: "uz",
+    transcript: "Men esa SMS-kod yubormadim.",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "negated_ack" },
+    note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Filler word `esa` must receive a calm no-code acknowledgement, not generic insufficient-data.",
   },
   {
     id: "uz-cyrillic-not-sent-code",
     lang: "uz",
     transcript: "Мен SMS код юбормадим",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated Uzbek Cyrillic code phrase must not open already-happened SOS.",
   },
   {
@@ -228,7 +241,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "en",
     transcript: "I did not send the SMS code",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated English code phrase must not open already-happened SOS.",
   },
   {
@@ -236,7 +249,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "en",
     transcript: "I did not send the SMS code.",
     sourceKind: "provider_sanitized_transcript",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Captured from local Windows TTS audio through production STT provider; sanitized transcript only.",
   },
   {
@@ -244,7 +257,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "en",
     transcript: "I didn't scan the Telegram QR",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated English Telegram QR phrase must not open SOS.",
   },
   {
@@ -252,7 +265,7 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     lang: "en",
     transcript: "I have not given the three digits on the back of my card",
     sourceKind: "synthetic_provider_like",
-    expectation: { kind: "normal_check" },
+    expectation: { kind: "negated_ack" },
     note: "Negated English card phrase must not open SOS.",
   },
 ];
@@ -267,4 +280,10 @@ export function isVoiceSttNormalReplayFixture(
   fixture: VoiceSttProviderReplayFixture,
 ): fixture is VoiceSttNormalReplayFixture {
   return fixture.expectation.kind === "normal_check";
+}
+
+export function isVoiceSttNegatedAckReplayFixture(
+  fixture: VoiceSttProviderReplayFixture,
+): fixture is VoiceSttNegatedAckReplayFixture {
+  return fixture.expectation.kind === "negated_ack";
 }

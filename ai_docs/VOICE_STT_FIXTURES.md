@@ -14,7 +14,7 @@ Each row stores only:
 - `lang`
 - sanitized `transcript`
 - `sourceKind`
-- expected route (`panic` with `panicId`, or `normal_check`)
+- expected route (`panic` with `panicId`, `negated_ack`, or `normal_check`)
 - short review note
 
 Do not commit raw audio, Telegram file ids, phone numbers, card numbers, OTPs,
@@ -85,12 +85,16 @@ metadata.
 - `ru-live-not-sent-code-telegram-001`: negated Russian "did not send SMS
   code" must not open an already-happened SOS flow.
 - `uz-live-not-sent-code-telegram-001`: provider rendered the negated Uzbek
-  transcript as `Men SMS-kod yubormadim.`; this must stay on the normal-check
-  path, not the already-sent-code SOS flow.
+  transcript as `Men SMS-kod yubormadim.`; this must receive a calm
+  `negated_ack`, not the already-sent-code SOS flow or the generic
+  insufficient-data card.
+- `uz-live-not-sent-code-telegram-002`: provider rendered the negated Uzbek
+  transcript as `Men esa SMS-kod yubormadim.`; filler words before the object
+  must still receive the same `negated_ack`.
 
 ## Review Rules
 
-- Keep "I did not..." negated phrases in `normal_check` unless the transcript
+- Keep "I did not..." negated phrases in `negated_ack` unless the transcript
   clearly says the risky action already happened.
 - Prefer route expectations only for emergency statements that already happened:
   sent code, installed remote access, transferred money, entered card data,

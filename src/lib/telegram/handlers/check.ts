@@ -470,6 +470,16 @@ function buildVoiceUncertainKeyboard(lang: HandlerCtx["session"]["lang"]): Inlin
   ];
 }
 
+function buildVoiceNegatedDoneKeyboard(lang: HandlerCtx["session"]["lang"]): InlineKeyboard {
+  return [
+    [{ text: bt("voice_correct_button", lang), callback_data: CB.voiceCorrect }],
+    [
+      { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+    ],
+  ];
+}
+
 function estimateBase64DataUrlBytes(dataUrl: string): number {
   const comma = dataUrl.indexOf(",");
   if (comma < 0) return 0;
@@ -632,17 +642,21 @@ const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
 
-function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
+function isNegatedVoiceDoneIntent(transcript: string): boolean {
   const text = normalizeVoiceIntentText(transcript);
-  if (!text) return null;
-  if (
+  if (!text) return false;
+  return (
     NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     EN_NEGATED_VOICE_DONE_INTENT_RE.test(text)
-  ) {
-    return null;
-  }
+  );
+}
+
+function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
+  const text = normalizeVoiceIntentText(transcript);
+  if (!text) return null;
+  if (isNegatedVoiceDoneIntent(text)) return null;
 
   if (
     /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
@@ -1415,6 +1429,22 @@ async function handleResolvedVoiceTranscript(
     return;
   }
 
+  if (isNegatedVoiceDoneIntent(transcriptText)) {
+    await replyText(
+      ctx.chatId,
+      bt("voice_negated_done_ack", lang),
+      buildVoiceNegatedDoneKeyboard(lang),
+    );
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      negatedDoneAck: true,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
   const panicId = classifyVoicePanicIntent(transcriptText);
   if (panicId !== null) {
     await sendPanicRoute(ctx, panicId);
@@ -1589,6 +1619,9 @@ export async function handleVoice(
         if (isLowSignalVoiceTranscript(transcriptText)) {
           return { kind: "uncertain" as const, transcriptChars: transcriptText.length };
         }
+        if (isNegatedVoiceDoneIntent(transcriptText)) {
+          return { kind: "negated_done_ack" as const, transcriptChars: transcriptText.length };
+        }
         const panicId = classifyVoicePanicIntent(transcriptText);
         if (panicId !== null) {
           return { kind: "panic" as const, panicId, transcriptChars: transcriptText.length };
@@ -1654,6 +1687,20 @@ export async function handleVoice(
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         lowSignal: true,
+        transcriptChars: outcome.transcriptChars,
+        durationSec: meta?.duration ?? null,
+      });
+      return;
+    }
+    if (outcome.kind === "negated_done_ack") {
+      await replyText(
+        ctx.chatId,
+        bt("voice_negated_done_ack", lang),
+        buildVoiceNegatedDoneKeyboard(lang),
+      );
+      logTelegramTiming("voice.total", startedAt, {
+        cached: false,
+        negatedDoneAck: true,
         transcriptChars: outcome.transcriptChars,
         durationSec: meta?.duration ?? null,
       });

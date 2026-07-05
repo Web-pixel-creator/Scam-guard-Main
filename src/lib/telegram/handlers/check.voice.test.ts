@@ -56,9 +56,10 @@ vi.mock("@/lib/telegram/session.server", () => ({
 }));
 
 import { handleCheck, handleVoice } from "./check";
+import { bt } from "../bot-i18n";
 import {
   VOICE_STT_PROVIDER_REPLAY_FIXTURES,
-  isVoiceSttNormalReplayFixture,
+  isVoiceSttNegatedAckReplayFixture,
   isVoiceSttPanicReplayFixture,
 } from "../voice-stt-provider-fixtures";
 
@@ -386,9 +387,9 @@ describe("handleVoice", () => {
     }
   });
 
-  it("does not route negated STT phrases as already-happened emergencies", async () => {
+  it("acknowledges negated STT phrases without running the generic risk card", async () => {
     for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(
-      isVoiceSttNormalReplayFixture,
+      isVoiceSttNegatedAckReplayFixture,
     )) {
       vi.clearAllMocks();
       hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
@@ -401,11 +402,10 @@ describe("handleVoice", () => {
         fileUniqueId: fixture.id,
       });
 
-      expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.sendMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          input: fixture.transcript,
-          type: "text",
-          channel: "telegram",
+          text: bt("voice_negated_done_ack", fixture.lang),
         }),
       );
       expect(hoisted.saveSession).not.toHaveBeenCalledWith(

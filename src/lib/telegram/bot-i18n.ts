@@ -292,6 +292,11 @@ export const bot_dict: BotDict = {
     uz: "Ovozni o'qidim, lekin halol tekshiruv uchun matn juda kam.\n\n«Matnni tuzatish» tugmasini bosing yoki bitta xabarda yozing: nima va'da qilishdi va nima so'rashyapti.\n\nAgar kod yuborgan, APK o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
     en: "I recognized the voice, but there is too little text for a fair check.\n\nTap “Correct text” or send one message: what they promise and what they ask you to do.\n\nIf you already sent a code, installed an APK, or are on a call right now, tap “Emergency steps”.",
   },
+  voice_negated_done_ack: {
+    ru: "Хорошо. Главное — не отправляйте SMS-код, PIN, CVV, пароль или данные карты.\n\nЕсли вас просят назвать код, подтвердить вход, перевод или операцию по карте — завершите разговор и проверьте только через официальное приложение, сайт или сохранённый номер банка.\n\nЕсли вы всё-таки уже отправили код или ввели данные — нажмите «Что делать срочно».",
+    uz: "Yaxshi. Eng muhimi — SMS-kod, PIN, CVV, parol yoki karta ma'lumotlarini yubormang.\n\nAgar kod aytish, kirishni tasdiqlash, pul o'tkazish yoki karta operatsiyasini tasdiqlashni so'rashsa — suhbatni tugating va faqat rasmiy ilova, sayt yoki bankning saqlangan raqami orqali tekshiring.\n\nAgar kodni yuborgan yoki ma'lumot kiritgan bo'lsangiz — «Shoshilinch qadamlar»ni bosing.",
+    en: "Good. The main thing is: do not send an SMS code, PIN, CVV, password, or card details.\n\nIf they ask you to say a code, confirm a login, transfer, or card operation, end the conversation and verify only through the official app, website, or saved bank number.\n\nIf you already sent the code or entered details, tap “Emergency steps”.",
+  },
   voice_correct_button: {
     ru: "✏️ Исправить текст",
     uz: "✏️ Matnni tuzatish",

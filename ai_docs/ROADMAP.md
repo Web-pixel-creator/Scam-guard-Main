@@ -44,8 +44,10 @@ Already shipped:
 - Telegram Voice-in/STT replay corpus v1.1: production-like and live sanitized
   transcript rows now cover RU/UZ/EN emergency routing, negated already-done
   phrases, Uzbek Cyrillic and live Uzbek provider variants such as
-  `SMS kodni yubardim` and `Men SMS-kod yubormadim.` without committing raw
-  audio.
+  `SMS kodni yubardim`, `Men SMS-kod yubormadim.` and
+  `Men esa SMS-kod yubormadim.` without committing raw audio; negated
+  already-done phrases now receive a dedicated acknowledgement instead of a
+  generic insufficient-data card.
 - Official-number Lookalike v1: phone/short-code checks now compare unknown
   numbers with the verified contact directory and explain near misses without
   unsupported accusations.

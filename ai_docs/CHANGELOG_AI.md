@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-014 Negated Voice-in acknowledgement UX
+
+- Reviewed the post-deploy live Telegram reply for
+  `Men esa SMS-kod yubormadim.`. The false SOS was gone, but the bot still
+  fell through to the generic "not enough data" risk card.
+- Added a dedicated negated already-done Voice-in acknowledgement before
+  `runCheck`: short "I did not send / enter / scan / transfer" transcripts now
+  get calm safety guidance and emergency fallback buttons without creating a
+  generic check result.
+- Added sanitized live replay fixture
+  `uz-live-not-sent-code-telegram-002`; the replay corpus now distinguishes
+  `negated_ack` from ordinary `normal_check`.
+
 ## 2026-07-05 - TG-014 Live UZ negated Voice-in false SOS fix
 
 - Reviewed live Telegram production replies for two fresh user-sent voice notes.
