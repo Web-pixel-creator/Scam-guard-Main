@@ -18,6 +18,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   the actual artifact/message, keeping inline mode honest.
 - Added regression coverage for representative Russian user phrases across all
   16 classes.
+- Follow-up from live Telegram screenshots: added three more low-signal human
+  intents for `мне пишет незнакомый человек`, `одноклассник, но я не уверен что
+это он`, and `приглашают в канал для заработка`.
 
 ## 2026-07-05 - TG-015 Telegram inline preview UX polish
 

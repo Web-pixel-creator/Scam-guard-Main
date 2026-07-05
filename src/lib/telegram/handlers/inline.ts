@@ -29,7 +29,10 @@ type HumanInlineIntent =
   | "relative_distress"
   | "job_offer"
   | "investment_offer"
-  | "romance_money";
+  | "romance_money"
+  | "unknown_contact"
+  | "identity_uncertain"
+  | "earning_channel";
 
 type Copy = {
   helpTitle: string;
@@ -350,6 +353,21 @@ const PREVIEW_COPY: Record<
         description:
           "Если новый знакомый просит билет, визу, лечение или инвестицию — остановитесь и пришлите текст просьбы.",
       },
+      unknown_contact: {
+        title: "Незнакомец: нужен текст просьбы",
+        description:
+          "Не отправляйте коды, деньги, карту или документы. Пришлите, что именно он просит сделать.",
+      },
+      identity_uncertain: {
+        title: "Личность не ясна: перезвоните",
+        description:
+          "Аккаунт знакомого мог быть взломан. Перезвоните по сохранённому номеру или задайте личный вопрос.",
+      },
+      earning_channel: {
+        title: "Канал заработка: осторожно",
+        description:
+          "Каналы с быстрым доходом часто ведут к депозиту, крипте, ставкам или «заданию». Не платите заранее.",
+      },
     },
     unknownTitle: "Нужно больше контекста",
     unknownDescription:
@@ -445,6 +463,20 @@ const PREVIEW_COPY: Record<
         title: "Munosabat: pul yubormang",
         description:
           "Yangi tanish chipta, viza, davolanish yoki investitsiya uchun pul so'rasa, to'xtang va matnni yuboring.",
+      },
+      unknown_contact: {
+        title: "Notanish odam: so'rov matni kerak",
+        description: "Kod, pul, karta yoki hujjat yubormang. U aynan nima so'rayotganini yuboring.",
+      },
+      identity_uncertain: {
+        title: "Shaxs aniq emas: qayta qo'ng'iroq qiling",
+        description:
+          "Tanish odamning akkaunti buzilgan bo'lishi mumkin. Saqlangan raqamga qo'ng'iroq qiling yoki shaxsiy savol bering.",
+      },
+      earning_channel: {
+        title: "Daromad kanali: ehtiyot bo'ling",
+        description:
+          "Tez daromad kanallari ko'pincha depozit, kripto, stavka yoki «topshiriq»ga olib boradi. Oldindan to'lamang.",
       },
     },
     unknownTitle: "Kontekst kerak",
@@ -544,6 +576,21 @@ const PREVIEW_COPY: Record<
         title: "Relationship: do not send money",
         description:
           "If a new contact asks for a ticket, visa, treatment or investment, pause and send the request text.",
+      },
+      unknown_contact: {
+        title: "Unknown contact: send the request",
+        description:
+          "Do not send codes, money, card data or documents. Send what exactly they ask you to do.",
+      },
+      identity_uncertain: {
+        title: "Identity unclear: call back",
+        description:
+          "A familiar account may be hacked. Call the saved number or ask a personal question.",
+      },
+      earning_channel: {
+        title: "Earning channel: be careful",
+        description:
+          "Fast-income channels often lead to deposits, crypto, betting or tasks. Do not prepay.",
       },
     },
     unknownTitle: "More context needed",
@@ -646,6 +693,55 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "sim_swap";
+  }
+
+  if (
+    /(?:пишет|написал|звонит|аккаунт|профиль|одноклассник|друг|знаком|родствен|близк).{0,140}(?:не уверен|не уверена|сомневаюсь|это он|это она|его ли|её ли|ее ли|взлом|подмен|фейк|не похож)/iu.test(
+      normalized,
+    ) ||
+    /(?:не уверен|не уверена|сомневаюсь|это он|это она|его ли|её ли|ее ли|взлом|подмен|фейк|не похож).{0,140}(?:пишет|написал|звонит|аккаунт|профиль|одноклассник|друг|знаком|родствен|близк)/iu.test(
+      normalized,
+    ) ||
+    /(?:tanish|do['’]?st|sinfdosh|qarindosh|akkaunt|profil).{0,140}(?:ishonmayap|aniq emas|o['’]?zi emas|buzilgan|soxta)/iu.test(
+      normalized,
+    ) ||
+    /(?:friend|classmate|relative|known person|account|profile).{0,140}(?:not sure|unsure|is it him|is it her|hacked|fake|impersonat)/iu.test(
+      normalized,
+    )
+  ) {
+    return "identity_uncertain";
+  }
+
+  if (
+    /(?:мне|меня|со мной|я).{0,80}(?:пишет|написал|связал|добавил).{0,80}(?:незнаком|какой.?то человек|неизвестн|чужой|левый аккаунт)/iu.test(
+      normalized,
+    ) ||
+    /(?:незнаком|какой.?то человек|неизвестн|чужой|левый аккаунт).{0,100}(?:пишет|написал|связал|добавил)/iu.test(
+      normalized,
+    ) ||
+    /(?:notanish|noma['’]?lum|begona).{0,100}(?:yoz|aloqa|qo['’]?sh)/iu.test(normalized) ||
+    /(?:unknown|stranger|random person|someone).{0,100}(?:writes|texted|messaged|contacted|added)/iu.test(
+      normalized,
+    )
+  ) {
+    return "unknown_contact";
+  }
+
+  if (
+    /(?:приглаша|добавля|зовут|позвали|вступить|подписаться).{0,100}(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
+      normalized,
+    ) ||
+    /(?:kanal|guruh|chat).{0,100}(?:daromad|ishlash|pul|foyda|kripto|ton|usdt|wallet|invest|stavka)/iu.test(
+      normalized,
+    ) ||
+    /(?:channel|group|chat).{0,100}(?:earn|income|profit|easy money|betting|crypto|ton|usdt|wallet|invest)/iu.test(
+      normalized,
+    )
+  ) {
+    return "earning_channel";
   }
 
   if (

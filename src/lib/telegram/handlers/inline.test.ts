@@ -444,6 +444,21 @@ describe("handleInlineQuery", () => {
       id: "check-unknown-romance-money",
       title: "Отношения: деньги не отправляйте",
     },
+    {
+      text: "мне пишет какой то незнакомый человек",
+      id: "check-unknown-unknown-contact",
+      title: "Незнакомец: нужен текст просьбы",
+    },
+    {
+      text: "мне пишет одноклассник, но я не уверен что это он",
+      id: "check-unknown-identity-uncertain",
+      title: "Личность не ясна: перезвоните",
+    },
+    {
+      text: "меня приглашают в канал для заработка",
+      id: "check-unknown-earning-channel",
+      title: "Канал заработка: осторожно",
+    },
   ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
     hoisted.nextResult = {
       type: "text",
