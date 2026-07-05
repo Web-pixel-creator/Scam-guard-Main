@@ -2,6 +2,25 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-015 Telegram inline preview UX polish
+
+- Reviewed live Telegram inline screenshots for phone, free text and Telegram
+  username/link checks. The scoring was honest, but the preview copy looked
+  unhelpful in the Telegram result list: `Паспорт номера`,
+  `Недостаточно данных` and `Telegram-паспорт` were too abstract and were
+  truncated before the useful next step.
+- Updated inline result titles/descriptions without changing scoring,
+  persistence or moderator delivery:
+  - low-signal phone checks now lead with `Номер: жалоб не найдено` /
+    `Номер: есть жалобы` and explicitly say that missing reports are not a
+    safety guarantee;
+  - low-signal Telegram username checks now lead with "Telegram: нужен
+    контекст" and ask for the request text, post link or screenshot;
+  - low-signal free-text checks now ask for the full message instead of
+    presenting a cold insufficient-data result.
+- Added regression coverage for the user-observed `Мне пишет мошенник` inline
+  case and updated the real-client inline QA checklist.
+
 ## 2026-07-05 - TG-014 UZ Voice QA matrix expansion
 
 - Added a committed Uzbek Voice-in QA matrix covering emergency routes, negated

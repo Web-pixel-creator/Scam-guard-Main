@@ -167,8 +167,9 @@ describe("handleInlineQuery", () => {
       input_message_content: { message_text: string };
     };
     expect(article.id).toBe("passport-phone");
-    expect(article.title).toBe("Паспорт номера");
-    expect(article.description).toContain("Контекст, а не вердикт");
+    expect(article.title).toBe("Номер: жалоб не найдено");
+    expect(article.description).toContain("Это не гарантия безопасности");
+    expect(article.description).toContain("код, карту, перевод, APK или QR");
     expect(article.input_message_content.message_text).toContain("Номер: Узбекистан (+998)");
     expect(article.input_message_content.message_text).toContain("Beeline по префиксу 90");
     expect(article.input_message_content.message_text).toContain(
@@ -202,8 +203,9 @@ describe("handleInlineQuery", () => {
       input_message_content: { message_text: string };
     };
     expect(article.id).toBe("passport-telegram");
-    expect(article.title).toBe("Telegram-паспорт");
-    expect(article.description).toContain("Контекст");
+    expect(article.title).toBe("Telegram: нужен контекст");
+    expect(article.description).toContain("Username сам не доказывает риск");
+    expect(article.description).toContain("текст просьбы");
     expect(article.input_message_content.message_text).toContain(
       "Можно оценить только публично видимые признаки",
     );
@@ -262,7 +264,8 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.description).toContain("подтверждённые модераторами жалобы");
+    expect(article.description).toContain("Есть подтверждённые жалобы Ishonch Guard");
+    expect(article.description).toContain("Не отправляйте код, карту или деньги");
     expect(article.input_message_content.message_text).toContain(
       "Источник: подтверждённые модераторами жалобы Ishonch Guard",
     );
@@ -271,5 +274,33 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).toContain("непроверенные жалобы");
     expect(article.input_message_content.message_text).toContain("данные оператора");
     expect(article.input_message_content.message_text).not.toContain("998901234567");
+  });
+
+  it("turns low-signal free text into an actionable inline prompt", async () => {
+    hoisted.nextResult = {
+      type: "text",
+      display: "Мне пишет мошенник",
+      level: "unknown",
+      score: 0,
+      reasons: ["unknown_sender"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery("Мне пишет мошенник", { userId: 42, session }, "iq-text");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.title).toBe("Нужно больше контекста");
+    expect(article.description).toContain("Вставьте полное сообщение");
+    expect(article.description).toContain("код, карту или перевод");
+    expect(article.input_message_content.message_text).toContain(
+      "Что проверяли: Мне пишет мошенник",
+    );
   });
 });

@@ -1,9 +1,5 @@
 import type { Lang } from "@/lib/i18n";
-import {
-  buildRiskPassportSummary,
-  type RiskPassportSection,
-  type RiskPassportSummary,
-} from "@/lib/risk/risk-passport";
+import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
 import type { RiskLevel, ReasonCode } from "@/lib/risk/rules";
 import {
@@ -226,6 +222,74 @@ const COPY: Record<Lang, Copy> = {
   },
 };
 
+const PREVIEW_COPY: Record<
+  Lang,
+  {
+    phoneReportsTitle: string;
+    phoneReportsDescription: string;
+    phoneNoReportsTitle: string;
+    phoneNoReportsDescription: string;
+    phoneWeakTitle: string;
+    phoneWeakDescription: string;
+    telegramTitle: string;
+    telegramDescription: string;
+    unknownTitle: string;
+    unknownDescription: string;
+  }
+> = {
+  ru: {
+    phoneReportsTitle: "Номер: есть жалобы",
+    phoneReportsDescription:
+      "Есть подтверждённые жалобы Ishonch Guard. Не отправляйте код, карту или деньги.",
+    phoneNoReportsTitle: "Номер: жалоб не найдено",
+    phoneNoReportsDescription:
+      "Это не гарантия безопасности. Добавьте, что вас просят: код, карту, перевод, APK или QR.",
+    phoneWeakTitle: "Номер выглядит неполным",
+    phoneWeakDescription:
+      "Проверьте полный номер или добавьте текст просьбы: код, карта, перевод, APK или QR.",
+    telegramTitle: "Telegram: нужен контекст",
+    telegramDescription:
+      "Username сам не доказывает риск. Добавьте текст просьбы, ссылку на пост или скрин.",
+    unknownTitle: "Нужно больше контекста",
+    unknownDescription:
+      "Вставьте полное сообщение: что просят сделать, ссылку, номер, код, карту или перевод.",
+  },
+  uz: {
+    phoneReportsTitle: "Raqam: shikoyat bor",
+    phoneReportsDescription:
+      "Ishonch Guardda tasdiqlangan shikoyatlar bor. Kod, karta yoki pul yubormang.",
+    phoneNoReportsTitle: "Raqam: shikoyat topilmadi",
+    phoneNoReportsDescription:
+      "Bu xavfsizlik kafolati emas. Nima so'ralganini qo'shing: kod, karta, pul, APK yoki QR.",
+    phoneWeakTitle: "Raqam to'liq emas",
+    phoneWeakDescription:
+      "To'liq raqamni yoki so'rov matnini yuboring: kod, karta, pul, APK yoki QR.",
+    telegramTitle: "Telegram: kontekst kerak",
+    telegramDescription:
+      "Username o'zi xavfni isbotlamaydi. So'rov matni, post havolasi yoki skrin yuboring.",
+    unknownTitle: "Kontekst kerak",
+    unknownDescription:
+      "To'liq xabarni yuboring: nima qilish so'ralgan, havola, raqam, kod, karta yoki pul.",
+  },
+  en: {
+    phoneReportsTitle: "Number: reports found",
+    phoneReportsDescription:
+      "Ishonch Guard has confirmed reports. Do not send a code, card data or money.",
+    phoneNoReportsTitle: "Number: no reports found",
+    phoneNoReportsDescription:
+      "This is not a safety guarantee. Add what they ask for: code, card, transfer, APK or QR.",
+    phoneWeakTitle: "Number looks incomplete",
+    phoneWeakDescription:
+      "Send the full number or add the request text: code, card, transfer, APK or QR.",
+    telegramTitle: "Telegram: context needed",
+    telegramDescription:
+      "A username alone cannot prove risk. Add the request text, post link or screenshot.",
+    unknownTitle: "More context needed",
+    unknownDescription:
+      "Paste the full message: what they ask you to do, link, number, code, card or transfer.",
+  },
+};
+
 function isRateLimitedError(value: unknown): value is RateLimitedError {
   return value instanceof Error && (value as Partial<RateLimitedError>).status === 429;
 }
@@ -288,16 +352,6 @@ function compactInlineDescription(value: string): string {
   return `${oneLine.slice(0, end).trimEnd()}...`;
 }
 
-function firstUsefulPassportLine(sections: RiskPassportSection[]): string {
-  return (
-    sections.find((section) => section.id === "reputation")?.lines[0] ??
-    sections.find((section) => section.id === "bottom_line")?.lines[0] ??
-    sections.find((section) => section.id === "meaning")?.lines[0] ??
-    sections[0]?.lines[0] ??
-    ""
-  );
-}
-
 function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): string {
   const copy = COPY[lang];
   const lines = [
@@ -319,14 +373,49 @@ function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): strin
 function passportArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArticle | null {
   const passport = buildRiskPassportSummary(result, lang);
   if (!passport) return null;
+  const preview = passportPreview(passport, result, lang);
 
   return buildArticle(
     `passport-${passport.kind}`,
-    passport.title,
-    compactInlineDescription(`${passport.eyebrow}. ${firstUsefulPassportLine(passport.sections)}`),
+    preview.title,
+    compactInlineDescription(preview.description),
     formatPassportMessage(passport, lang),
     lang,
   );
+}
+
+function passportPreview(
+  passport: RiskPassportSummary,
+  result: RunCheckResult,
+  lang: Lang,
+): { title: string; description: string } {
+  const copy = PREVIEW_COPY[lang];
+
+  if (passport.kind === "telegram") {
+    return {
+      title: copy.telegramTitle,
+      description: copy.telegramDescription,
+    };
+  }
+
+  if (result.phoneReputation || result.knownReports > 0) {
+    return {
+      title: copy.phoneReportsTitle,
+      description: copy.phoneReportsDescription,
+    };
+  }
+
+  if (result.phoneIntelligence && !result.phoneIntelligence.isValidFormat) {
+    return {
+      title: copy.phoneWeakTitle,
+      description: copy.phoneWeakDescription,
+    };
+  }
+
+  return {
+    title: copy.phoneNoReportsTitle,
+    description: copy.phoneNoReportsDescription,
+  };
 }
 
 function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArticle {
@@ -335,6 +424,17 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
 
   const copy = COPY[lang];
   const level = copy.levels[result.level];
+  if (result.level === "unknown") {
+    const preview = PREVIEW_COPY[lang];
+    return buildArticle(
+      `check-${result.level}`,
+      preview.unknownTitle,
+      preview.unknownDescription,
+      formatInlineMessage(result, lang),
+      lang,
+    );
+  }
+
   return buildArticle(
     `check-${result.level}`,
     level.title,
