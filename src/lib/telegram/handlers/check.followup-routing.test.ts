@@ -257,28 +257,29 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.runCheckCalls[0].input).toContain("https://kapitalbank.uz.evil.com/login");
   });
 
-  it("does not swallow SMS code follow-ups as generic next-step chat", async () => {
+  it("answers victim-framed SMS code follow-ups without a cold risk card", async () => {
     await handleCheck("Ular SMS kod so'radi, nima qilay?", {
       chatId: 100,
       userId: 42,
-      session: sessionWith(snapshot({ context: "phone", level: "unknown" })),
+      session: { ...sessionWith(snapshot({ context: "phone", level: "unknown" })), lang: "uz" },
     });
 
-    expect(hoisted.runCheckCalls).toHaveLength(1);
-    expect(hoisted.runCheckCalls[0].input).toContain("SMS kod");
-    expect(hoisted.sentMessages[0].text).toContain("Высокий риск");
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages[0].text).toContain("Kodni hech kimga aytmang");
   });
 
-  it("routes English verification-code follow-ups through the risk pipeline", async () => {
+  it("answers English victim-framed verification-code follow-ups without a cold risk card", async () => {
     await handleCheck("They asked for a verification code, what should I do?", {
       chatId: 100,
       userId: 42,
-      session: sessionWith(snapshot({ context: "telegram_profile", level: "unknown" })),
+      session: {
+        ...sessionWith(snapshot({ context: "telegram_profile", level: "unknown" })),
+        lang: "en",
+      },
     });
 
-    expect(hoisted.runCheckCalls).toHaveLength(1);
-    expect(hoisted.runCheckCalls[0].input).toContain("verification code");
-    expect(hoisted.sentMessages[0].text).toContain("Высокий риск");
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages[0].text).toContain("Do not tell anyone the code");
   });
 
   it("adds Guardian Angel guidance and stores only safe metadata after high-risk checks", async () => {
@@ -330,5 +331,57 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).toContain("Ishonch Guard");
     expect(hoisted.sentMessages[0].text).toContain("не читаю ваши чаты");
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it.each([
+    ["помогите", "Я рядом"],
+    ["меня пытаются обмануть", "Вы правильно остановились"],
+    ["мне пишут в телеграме", "вам пишут в Telegram"],
+    ["мне звонит неизвестный номер", "ЗАВЕРШИТЕ ЗВОНОК"],
+    ["мне прислали ссылку", "Пока не открывайте ссылку"],
+    ["мне прислали файл", "Файл от незнакомого источника"],
+    ["у меня просят код", "Код никому не называйте"],
+    ["у меня просят карту", "Данные карты"],
+    ["у меня просят паспорт", "Паспорт"],
+    ["мне сказали перевести деньги", "Деньги пока не переводите"],
+    ["меня просят установить приложение", "Не устанавливайте APK"],
+    ["мне звонили из банка", "официальный канал"],
+    ["мне звонит фейковый майор", "ЗАВЕРШИТЕ ЗВОНОК"],
+    ["мне пишет незнакомый человек", "Незнакомец сам по себе"],
+    ["мне пишет одноклассник но я не уверен что это он", "не уверены"],
+    ["мне написал друг и просит деньги", "подтвердите личность"],
+    ["мне пишет кто-то из техподдержки", "Поддержка/служба безопасности"],
+    ["мне пишет девушка из интернета", "романтический знакомый"],
+    ["мне пишет работодатель", "Работа/лёгкий доход"],
+    ["мне пишет тот кто представляется нотариусом", "Нотариус"],
+    ["как связаться с банком", "Официальный обратный звонок"],
+    ["куда пожаловаться на мошенника", "сохранить чеки"],
+    ["хорошо сделаю", "по одному безопасному шагу"],
+    ["Salom", "Ishonch Guard"],
+  ])("answers live victim phrase '%s' before runCheck", async (phrase, expected) => {
+    await handleCheck(phrase, {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain(expected);
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("still sends direct scam content through the risk pipeline", async () => {
+    await handleCheck(
+      "Служба безопасности Kapitalbank. Ваша карта заблокирована. Назовите код из SMS.",
+      {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      },
+    );
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("Kapitalbank");
   });
 });

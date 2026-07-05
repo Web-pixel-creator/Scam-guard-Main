@@ -91,6 +91,11 @@ import {
   type TelegramForwardSourceContext,
 } from "@/lib/telegram/forward-context";
 import { buildImageTriageKeyboard } from "@/lib/telegram/image-fallback";
+import {
+  buildVictimIntentKeyboard,
+  buildVictimIntentText,
+  classifyVictimIntent,
+} from "@/lib/telegram/victim-intent";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -1173,6 +1178,16 @@ export async function handleCheck(
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildOrphanCheckFollowUpText(orphanFollowUp, lang)),
+    });
+    return;
+  }
+
+  const victimIntent = source ? null : classifyVictimIntent(trimmed);
+  if (victimIntent !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
     return;
   }
