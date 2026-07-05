@@ -15,6 +15,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `uz-live-not-sent-code-telegram-001` with no raw audio, Telegram file id or
   provider payload. Verification passed: focused voice handler test, scoped
   eslint and full Telegram suite.
+- Deployed commit `a5120cb` to Railway; production smoke and production
+  security smoke passed with the public production URL/header checks.
 
 ## 2026-07-04 - TG-014 Live RU/UZ Voice-in/STT replay fix
 
