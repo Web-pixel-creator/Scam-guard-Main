@@ -292,13 +292,14 @@ describe("handleInlineQuery", () => {
     await handleInlineQuery("Мне пишет мошенник", { userId: 42, session }, "iq-text");
 
     const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
       title: string;
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.title).toBe("Нужно больше контекста");
-    expect(article.description).toContain("Вставьте полное сообщение");
-    expect(article.description).toContain("код, карту или перевод");
+    expect(article.id).toBe("check-unknown-general-scam-concern");
+    expect(article.title).toBe("Подозреваете обман: пришлите просьбу");
+    expect(article.description).toContain("Вы правильно остановились");
     expect(article.input_message_content.message_text).toContain(
       "Что проверяли: Мне пишет мошенник",
     );
@@ -480,9 +481,19 @@ describe("handleInlineQuery", () => {
       title: "Подозреваете обман: пришлите просьбу",
     },
     {
+      text: "звонил мошенник",
+      id: "check-unknown-general-scam-concern",
+      title: "Подозреваете обман: пришлите просьбу",
+    },
+    {
       text: "меня просят проголосовать на канале и перейти по ссылке",
       id: "check-unknown-voting-link",
       title: "Голосование/канал: сначала проверим",
+    },
+    {
+      text: "мне пишет незнакомый человек\nОн хочет смс код",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
     },
     {
       text: "что мне делать дальше?",

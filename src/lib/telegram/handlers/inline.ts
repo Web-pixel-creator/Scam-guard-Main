@@ -789,6 +789,38 @@ function compactInlineDescription(value: string): string {
   return `${oneLine.slice(0, end).trimEnd()}...`;
 }
 
+function hasSentCodeIntent(normalized: string): boolean {
+  return (
+    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubor|ayt|ber|kirit|jo['’]?nat)/iu.test(normalized) ||
+    /(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasCodeRequestIntent(normalized: string): boolean {
+  return (
+    /(?:просят|просит|просил|попросил|попросили|хочет|хотят|требует|требуют|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|пришел|пришёл|пришл|хочет|хотят|просит|просят)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:ayt|ber|yubor|kirit|kel|so['’]?ra|xohla)/iu.test(
+      normalized,
+    ) ||
+    /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
+    )
+  );
+}
+
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const normalized = text.toLowerCase();
   const hasConcreteUrl =
@@ -821,6 +853,14 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "sim_swap";
+  }
+
+  if (hasSentCodeIntent(normalized)) {
+    return "sent_code";
+  }
+
+  if (hasCodeRequestIntent(normalized)) {
+    return "code_request";
   }
 
   if (
@@ -863,6 +903,12 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
       normalized,
     ) ||
     /(?:кажется|похоже|думаю|боюсь|подозреваю).{0,80}(?:обман|мошен|скам|развод|фишинг)/iu.test(
+      normalized,
+    ) ||
+    /(?:пишет|написал|писал|звонит|звонил|звонила|обратился).{0,80}(?:мошен|скам|обман|развод|фишинг)/iu.test(
+      normalized,
+    ) ||
+    /(?:мошен|скам|обман|развод|фишинг).{0,80}(?:пишет|написал|писал|звонит|звонил|звонила|обратился)/iu.test(
       normalized,
     ) ||
     /(?:aldamoqchi|firibgar|firib|scam|shubha).{0,100}(?:men|meni|biz|o['’]?xshaydi|bo['’]?lishi mumkin)?/iu.test(
@@ -1000,33 +1046,11 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "link_request";
   }
 
-  if (
-    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
-      normalized,
-    ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала)/iu.test(
-      normalized,
-    ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubor|ayt|ber|kirit|jo['’]?nat)/iu.test(normalized) ||
-    /(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasSentCodeIntent(normalized)) {
     return "sent_code";
   }
 
-  if (
-    /(?:просят|просит|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
-      normalized,
-    ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|пришел|пришёл|пришл)/iu.test(
-      normalized,
-    ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:ayt|ber|yubor|kirit|kel)/iu.test(normalized) ||
-    /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasCodeRequestIntent(normalized)) {
     return "code_request";
   }
 

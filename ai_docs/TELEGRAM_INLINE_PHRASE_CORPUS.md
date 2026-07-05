@@ -89,3 +89,7 @@ low-signal results. They do not raise the risk score by themselves. Full scoring
 remains in the rules engine when the user sends the actual artifact: message
 text, link, number, QR, screenshot or voice transcript. For `suspicious`
 results, the inserted card still keeps the risk level visible.
+
+When a query contains both social context and a concrete sensitive request, the
+sensitive request wins. Example: `мне пишет незнакомый человек\nОн хочет смс код`
+must show the code-sharing warning, not only the generic unknown-contact card.
