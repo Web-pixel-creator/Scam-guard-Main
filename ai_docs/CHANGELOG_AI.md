@@ -21,6 +21,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Follow-up from live Telegram screenshots: added three more low-signal human
   intents for `мне пишет незнакомый человек`, `одноклассник, но я не уверен что
 это он`, and `приглашают в канал для заработка`.
+- Follow-up from another live Telegram pass: added previews for `я только что
+передал код из СМС`, `как мне связаться с банком`, `меня пытаются обмануть`
+  and `голосование/канал + ссылка`; softened link/code preview copy so it gives
+  a calmer safe next step instead of a technical label.
 
 ## 2026-07-05 - TG-015 Telegram inline preview UX polish
 

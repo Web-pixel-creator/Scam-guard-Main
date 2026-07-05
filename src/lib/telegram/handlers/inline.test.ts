@@ -326,9 +326,9 @@ describe("handleInlineQuery", () => {
       input_message_content: { message_text: string };
     };
     expect(article.id).toBe("check-unknown-link-request");
-    expect(article.title).toBe("Ссылка: пришлите URL");
-    expect(article.description).toContain("Пока не переходите");
-    expect(article.description).toContain("код, оплату, карту или APK");
+    expect(article.title).toBe("Ссылка: сначала проверим");
+    expect(article.description).toContain("Пока не открывайте");
+    expect(article.description).toContain("саму ссылку");
     expect(article.input_message_content.message_text).toContain(
       "Что проверяли: у меня просят перейти по ссылке",
     );
@@ -360,19 +360,24 @@ describe("handleInlineQuery", () => {
     };
     expect(article.id).toBe("check-unknown");
     expect(article.title).toBe("Нужно больше контекста");
-    expect(article.description).not.toContain("Пока не переходите");
+    expect(article.description).not.toContain("Пока не открывайте");
   });
 
   it.each([
     {
       text: "мне скинули ссылку",
       id: "check-unknown-link-request",
-      title: "Ссылка: пришлите URL",
+      title: "Ссылка: сначала проверим",
     },
     {
       text: "пришел код и просят его сказать",
       id: "check-unknown-code-request",
-      title: "Код: не называйте",
+      title: "Код: никому не называйте",
+    },
+    {
+      text: "я только что передал код из СМС",
+      id: "check-unknown-sent-code",
+      title: "Код уже отправлен: действуйте срочно",
     },
     {
       text: "просят подтвердить операцию",
@@ -459,6 +464,26 @@ describe("handleInlineQuery", () => {
       id: "check-unknown-earning-channel",
       title: "Канал заработка: осторожно",
     },
+    {
+      text: "у меня просят ссылку",
+      id: "check-unknown-link-request",
+      title: "Ссылка: сначала проверим",
+    },
+    {
+      text: "как мне связаться с банком?",
+      id: "check-unknown-bank-contact",
+      title: "Связаться с банком: только официальный номер",
+    },
+    {
+      text: "меня пытаются обмануть",
+      id: "check-unknown-general-scam-concern",
+      title: "Подозреваете обман: пришлите просьбу",
+    },
+    {
+      text: "меня просят проголосовать на канале и перейти по ссылке",
+      id: "check-unknown-voting-link",
+      title: "Голосование/канал: сначала проверим",
+    },
   ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
     hoisted.nextResult = {
       type: "text",
@@ -494,6 +519,11 @@ describe("handleInlineQuery", () => {
       text: "просят инвестировать в TON wallet с гарантированной прибылью",
       id: "check-suspicious-investment-offer",
       title: "Инвестиции/крипта: осторожно",
+    },
+    {
+      text: "я только что передал код из СМС",
+      id: "check-suspicious-sent-code",
+      title: "Код уже отправлен: действуйте срочно",
     },
   ])(
     "keeps suspicious risk level but uses a specific inline preview for '$text'",

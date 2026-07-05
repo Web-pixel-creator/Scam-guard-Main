@@ -52,27 +52,31 @@ safe next step in the preview.
 
 ## Implemented Intent Classes
 
-| Intent               | Example human query                              | Inline preview goal                                                          |
-| -------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `link_request`       | `мне скинули ссылку`, `просят перейти по ссылке` | Ask for the actual URL and warn not to open it yet.                          |
-| `code_request`       | `пришел код и просят его сказать`                | Warn not to share SMS/OTP/PIN/passwords.                                     |
-| `confirm_request`    | `просят подтвердить операцию`                    | Warn not to confirm login/transfer/card operations from a call/chat.         |
-| `card_request`       | `просят данные карты`                            | Warn not to send card number, expiry, CVV/CVC, PIN or card photos.           |
-| `transfer_request`   | `просят перевести деньги`                        | Ask who/where/why and warn against stranger/safe-account transfers.          |
-| `app_request`        | `просят установить приложение для защиты`        | Warn not to install APK/remote-access/security apps from a chat/call.        |
-| `bank_call`          | `мне звонят из банка`                            | Tell the user to hang up and call back using the official number.            |
-| `personal_data`      | `просят фото паспорта`                           | Warn not to send passport, PINFL/STIR/TIN, selfie or address.                |
-| `delivery_payment`   | `нужно оплатить доставку`                        | Ask for the full SMS/link and warn about delivery/customs payment links.     |
-| `prize_fee`          | `выиграл приз, просят оплатить налог`            | Warn that prizes/grants/gifts do not require upfront fees.                   |
-| `gov_service`        | `просят войти в OneID и сказать SMS код`         | Warn not to enter government/OneID credentials from a chat/SMS link.         |
-| `sim_swap`           | `оператор просит код для замены SIM`             | Warn not to share SIM/eSIM replacement or number-transfer codes.             |
-| `relative_distress`  | `сын попал в аварию, срочно деньги`              | Tell the user to call back on a saved number or use the family code word.    |
-| `job_offer`          | `работа, но просят оплатить обучение`            | Warn not to prepay for jobs, training, uniforms or verification.             |
-| `investment_offer`   | `TON wallet с гарантированной прибылью`          | Warn about guaranteed returns, crypto/wallet deposits and fast-profit bait.  |
-| `romance_money`      | `новый знакомый просит деньги на билет`          | Warn that new relationship plus money/visa/treatment/investment is risky.    |
-| `unknown_contact`    | `мне пишет какой то незнакомый человек`          | Ask for what the person is requesting and warn not to send sensitive data.   |
-| `identity_uncertain` | `одноклассник, но я не уверен что это он`        | Tell the user to verify through a saved number or personal question.         |
-| `earning_channel`    | `приглашают в канал для заработка`               | Warn that earning channels often lead to deposits, crypto, betting or tasks. |
+| Intent                 | Example human query                              | Inline preview goal                                                          |
+| ---------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `link_request`         | `мне скинули ссылку`, `просят перейти по ссылке` | Ask for the actual URL or full request and warn not to open it yet.          |
+| `code_request`         | `пришел код и просят его сказать`                | Warn not to share SMS/OTP/PIN/passwords.                                     |
+| `sent_code`            | `я только что передал код из СМС`                | Treat as urgent next-step guidance: block access/card and change password.   |
+| `confirm_request`      | `просят подтвердить операцию`                    | Warn not to confirm login/transfer/card operations from a call/chat.         |
+| `card_request`         | `просят данные карты`                            | Warn not to send card number, expiry, CVV/CVC, PIN or card photos.           |
+| `transfer_request`     | `просят перевести деньги`                        | Ask who/where/why and warn against stranger/safe-account transfers.          |
+| `app_request`          | `просят установить приложение для защиты`        | Warn not to install APK/remote-access/security apps from a chat/call.        |
+| `bank_call`            | `мне звонят из банка`                            | Tell the user to hang up and call back using the official number.            |
+| `personal_data`        | `просят фото паспорта`                           | Warn not to send passport, PINFL/STIR/TIN, selfie or address.                |
+| `delivery_payment`     | `нужно оплатить доставку`                        | Ask for the full SMS/link and warn about delivery/customs payment links.     |
+| `prize_fee`            | `выиграл приз, просят оплатить налог`            | Warn that prizes/grants/gifts do not require upfront fees.                   |
+| `gov_service`          | `просят войти в OneID и сказать SMS код`         | Warn not to enter government/OneID credentials from a chat/SMS link.         |
+| `sim_swap`             | `оператор просит код для замены SIM`             | Warn not to share SIM/eSIM replacement or number-transfer codes.             |
+| `relative_distress`    | `сын попал в аварию, срочно деньги`              | Tell the user to call back on a saved number or use the family code word.    |
+| `job_offer`            | `работа, но просят оплатить обучение`            | Warn not to prepay for jobs, training, uniforms or verification.             |
+| `investment_offer`     | `TON wallet с гарантированной прибылью`          | Warn about guaranteed returns, crypto/wallet deposits and fast-profit bait.  |
+| `romance_money`        | `новый знакомый просит деньги на билет`          | Warn that new relationship plus money/visa/treatment/investment is risky.    |
+| `unknown_contact`      | `мне пишет какой то незнакомый человек`          | Ask for what the person is requesting and warn not to send sensitive data.   |
+| `identity_uncertain`   | `одноклассник, но я не уверен что это он`        | Tell the user to verify through a saved number or personal question.         |
+| `earning_channel`      | `приглашают в канал для заработка`               | Warn that earning channels often lead to deposits, crypto, betting or tasks. |
+| `bank_contact`         | `как мне связаться с банком?`                    | Tell the user to use the app/card/official website, not numbers from chats.  |
+| `general_scam_concern` | `меня пытаются обмануть`                         | Validate the pause and ask for the message/link/number/request.              |
+| `voting_link`          | `проголосовать на канале и перейти по ссылке`    | Warn that voting links can be Telegram re-login bait.                        |
 
 ## Design Rule
 

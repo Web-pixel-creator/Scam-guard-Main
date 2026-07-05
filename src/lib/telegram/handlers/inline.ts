@@ -16,6 +16,7 @@ const BOT_URL = "https://t.me/scamguard_bot";
 type HumanInlineIntent =
   | "link_request"
   | "code_request"
+  | "sent_code"
   | "confirm_request"
   | "card_request"
   | "transfer_request"
@@ -32,7 +33,10 @@ type HumanInlineIntent =
   | "romance_money"
   | "unknown_contact"
   | "identity_uncertain"
-  | "earning_channel";
+  | "earning_channel"
+  | "bank_contact"
+  | "general_scam_concern"
+  | "voting_link";
 
 type Copy = {
   helpTitle: string;
@@ -274,14 +278,19 @@ const PREVIEW_COPY: Record<
       "Username сам не доказывает риск. Добавьте текст просьбы, ссылку на пост или скрин.",
     humanIntents: {
       link_request: {
-        title: "Ссылка: пришлите URL",
+        title: "Ссылка: сначала проверим",
         description:
-          "Пока не переходите. Пришлите саму ссылку; опасно, если дальше просят код, оплату, карту или APK.",
+          "Пока не открывайте и ничего не вводите. Пришлите саму ссылку или полный текст просьбы.",
       },
       code_request: {
-        title: "Код: не называйте",
+        title: "Код: никому не называйте",
         description:
           "SMS, push, OTP, PIN и пароли не диктуем. Пришлите полный текст просьбы или скрин.",
+      },
+      sent_code: {
+        title: "Код уже отправлен: действуйте срочно",
+        description:
+          "Сейчас не спорим с мошенником. Заблокируйте карту/доступ через банк и смените пароль с другого устройства.",
       },
       confirm_request: {
         title: "Подтверждение: осторожно",
@@ -368,6 +377,21 @@ const PREVIEW_COPY: Record<
         description:
           "Каналы с быстрым доходом часто ведут к депозиту, крипте, ставкам или «заданию». Не платите заранее.",
       },
+      bank_contact: {
+        title: "Связаться с банком: только официальный номер",
+        description:
+          "Звоните из приложения, с карты или официального сайта. Не используйте номер из чата, SMS или звонка.",
+      },
+      general_scam_concern: {
+        title: "Подозреваете обман: пришлите просьбу",
+        description:
+          "Вы правильно остановились. Пришлите сообщение, ссылку, номер или что именно вас просят сделать.",
+      },
+      voting_link: {
+        title: "Голосование/канал: сначала проверим",
+        description:
+          "Не переходите по ссылке и не входите в Telegram заново. Пришлите ссылку или текст приглашения целиком.",
+      },
     },
     unknownTitle: "Нужно больше контекста",
     unknownDescription:
@@ -388,13 +412,18 @@ const PREVIEW_COPY: Record<
       "Username o'zi xavfni isbotlamaydi. So'rov matni, post havolasi yoki skrin yuboring.",
     humanIntents: {
       link_request: {
-        title: "Havola: URL yuboring",
+        title: "Havola: avval tekshiramiz",
         description:
-          "Hozircha o'tmang. Havolani yuboring; keyin kod, to'lov, karta yoki APK so'ralsa xavfli.",
+          "Hozircha ochmang va hech narsa kiritmang. Havolani yoki so'rov matnini to'liq yuboring.",
       },
       code_request: {
-        title: "Kod: aytmang",
+        title: "Kod: hech kimga aytmang",
         description: "SMS, push, OTP, PIN va parollarni aytmang. To'liq xabar yoki skrin yuboring.",
+      },
+      sent_code: {
+        title: "Kod yuborilgan: tez harakat qiling",
+        description:
+          "Hozircha javob bermang. Bank orqali kartani/kirishni bloklang va boshqa qurilmadan parolni almashtiring.",
       },
       confirm_request: {
         title: "Tasdiqlash: ehtiyot bo'ling",
@@ -478,6 +507,21 @@ const PREVIEW_COPY: Record<
         description:
           "Tez daromad kanallari ko'pincha depozit, kripto, stavka yoki «topshiriq»ga olib boradi. Oldindan to'lamang.",
       },
+      bank_contact: {
+        title: "Bank bilan aloqa: faqat rasmiy raqam",
+        description:
+          "Ilova, karta yoki rasmiy sayt orqali qo'ng'iroq qiling. Chat, SMS yoki qo'ng'iroqdagi raqamdan foydalanmang.",
+      },
+      general_scam_concern: {
+        title: "Aldovdan shubhalanyapsiz: so'rovni yuboring",
+        description:
+          "To'xtaganingiz to'g'ri. Xabar, havola, raqam yoki sizdan aynan nima so'ralayotganini yuboring.",
+      },
+      voting_link: {
+        title: "Ovoz berish/kanal: avval tekshiramiz",
+        description:
+          "Havolaga o'tmang va Telegramga qayta kirmang. Havola yoki taklif matnini to'liq yuboring.",
+      },
     },
     unknownTitle: "Kontekst kerak",
     unknownDescription:
@@ -498,14 +542,19 @@ const PREVIEW_COPY: Record<
       "A username alone cannot prove risk. Add the request text, post link or screenshot.",
     humanIntents: {
       link_request: {
-        title: "Link: send the URL",
+        title: "Link: check it first",
         description:
-          "Do not open it yet. Send the link; it is risky if it asks for a code, payment, card or APK.",
+          "Do not open it or enter anything yet. Send the actual link or the full request text.",
       },
       code_request: {
-        title: "Code: do not share it",
+        title: "Code: do not share it with anyone",
         description:
           "Do not read out SMS, push, OTP, PIN or passwords. Send the full request text or screenshot.",
+      },
+      sent_code: {
+        title: "Code already sent: act now",
+        description:
+          "Do not argue with the scammer. Block card/access through the bank and change the password from another device.",
       },
       confirm_request: {
         title: "Confirmation: be careful",
@@ -591,6 +640,21 @@ const PREVIEW_COPY: Record<
         title: "Earning channel: be careful",
         description:
           "Fast-income channels often lead to deposits, crypto, betting or tasks. Do not prepay.",
+      },
+      bank_contact: {
+        title: "Contacting the bank: official number only",
+        description:
+          "Call from the app, card or official website. Do not use a number from a chat, SMS or call.",
+      },
+      general_scam_concern: {
+        title: "Suspect a scam: send the request",
+        description:
+          "Good that you paused. Send the message, link, number or what exactly they ask you to do.",
+      },
+      voting_link: {
+        title: "Voting/channel: check it first",
+        description:
+          "Do not open the link or sign in to Telegram again. Send the link or invitation text.",
       },
     },
     unknownTitle: "More context needed",
@@ -696,6 +760,36 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
+    /(?:как|куда|где|можно|нужно|надо).{0,80}(?:связаться|позвонить|написать|обратиться).{0,80}(?:банк|банком|поддержк|служб.{0,20}банк)/iu.test(
+      normalized,
+    ) ||
+    /(?:банк|банком|поддержк|служб.{0,20}банк).{0,80}(?:связаться|позвонить|написать|обратиться|номер)/iu.test(
+      normalized,
+    ) ||
+    /(?:bank|support).{0,80}(?:bog['’]?lan|qo['’]?ng['’]?iroq|telefon|aloqa|murojaat)/iu.test(
+      normalized,
+    ) ||
+    /(?:how|where).{0,80}(?:contact|call|message).{0,80}(?:bank|support)/iu.test(normalized)
+  ) {
+    return "bank_contact";
+  }
+
+  if (
+    /(?:меня|нас|маму|папу|его|её|ее).{0,80}(?:пытаются|хотят|могут).{0,60}(?:обмануть|развести|кинуть|взломать)/iu.test(
+      normalized,
+    ) ||
+    /(?:кажется|похоже|думаю|боюсь|подозреваю).{0,80}(?:обман|мошен|скам|развод|фишинг)/iu.test(
+      normalized,
+    ) ||
+    /(?:aldamoqchi|firibgar|firib|scam|shubha).{0,100}(?:men|meni|biz|o['’]?xshaydi|bo['’]?lishi mumkin)?/iu.test(
+      normalized,
+    ) ||
+    /(?:scam|fraud|phishing|cheat).{0,100}(?:me|us|looks|seems|suspect|maybe)?/iu.test(normalized)
+  ) {
+    return "general_scam_concern";
+  }
+
+  if (
     /(?:пишет|написал|звонит|аккаунт|профиль|одноклассник|друг|знаком|родствен|близк).{0,140}(?:не уверен|не уверена|сомневаюсь|это он|это она|его ли|её ли|ее ли|взлом|подмен|фейк|не похож)/iu.test(
       normalized,
     ) ||
@@ -745,6 +839,20 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
+    /(?:голосован|голосовать|проголос|опрос|vote|voting).{0,120}(?:канал|групп|чат|ссылк|линк|link|url|перейти|зайти|открыть)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат|ссылк|линк|link|url).{0,120}(?:голосован|голосовать|проголос|опрос|vote|voting)/iu.test(
+      normalized,
+    ) ||
+    /(?:ovoz|so['’]?rovnoma|vote).{0,120}(?:kanal|guruh|chat|havola|link|kir|o['’]?t)/iu.test(
+      normalized,
+    )
+  ) {
+    return "voting_link";
+  }
+
+  if (
     !hasConcreteUrl &&
     (/(?:просят|просит|сказали|говорят|нужно|надо|предлагают|скинули|прислали|дали).{0,80}(?:перейти|зайти|открыть|нажать|кликнуть|посмотреть)?.{0,40}(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
       normalized,
@@ -766,6 +874,21 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
       ))
   ) {
     return "link_request";
+  }
+
+  if (
+    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubor|ayt|ber|kirit|jo['’]?nat)/iu.test(normalized) ||
+    /(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
+    )
+  ) {
+    return "sent_code";
   }
 
   if (
