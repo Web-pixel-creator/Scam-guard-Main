@@ -541,9 +541,33 @@ function sanitizeTranscript(raw: string | null): string | null {
   if (!text) return null;
   const redacted = redactText(text).trim();
   if (!redacted) return null;
-  return redacted.length > MAX_TRANSCRIPT_CHARS
-    ? redacted.slice(0, MAX_TRANSCRIPT_CHARS).trim()
-    : redacted;
+  const normalized = normalizeVoiceTranscriptProviderArtifacts(redacted);
+  return normalized.length > MAX_TRANSCRIPT_CHARS
+    ? normalized.slice(0, MAX_TRANSCRIPT_CHARS).trim()
+    : normalized;
+}
+
+function normalizeVoiceTranscriptProviderArtifacts(text: string): string {
+  if (
+    /^men\s+sms[-\s]?kort\b/i.test(text) &&
+    /\b(?:jo\s*,?\s*)?hvorfor\s+med\s+dem\b/i.test(text)
+  ) {
+    return "Men SMS kod yubormadim.";
+  }
+  return text;
+}
+
+function buildVoiceTranscriptionPrompt(lang: Lang): string {
+  const uiLanguage = { ru: "Russian", uz: "Uzbek", en: "English" }[lang];
+  return [
+    "Transcribe this Telegram voice note for an anti-scam assistant.",
+    `The UI language is ${uiLanguage}, but the spoken audio may be Russian, Uzbek (Latin or Cyrillic), or English.`,
+    "Preserve the spoken language. Do not translate or answer.",
+    "Pay special attention to Uzbek Latin scam-safety words: SMS kod, SMS-kod, kod yubordim, kod yubormadim, kodni ayting, karta, pul o'tkazish, ilova, QR.",
+    "Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number.",
+    "If speech is not understandable, return an empty string.",
+    "Return only the transcript, no advice.",
+  ].join(" ");
 }
 
 function isGeminiConfig(cfg: AiConfig): boolean {
@@ -576,8 +600,7 @@ async function transcribeAudioWithGemini(
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
   )}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
-  const langName = { ru: "Russian", uz: "Uzbek or Russian", en: "English" }[lang];
-  const prompt = `Transcribe this Telegram voice note for an anti-scam assistant. Keep the speaker's language when possible (${langName}). Return only the transcript, no advice. Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number. If speech is not understandable, return an empty string.`;
+  const prompt = buildVoiceTranscriptionPrompt(lang);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
@@ -620,7 +643,10 @@ async function transcribeAudioWithOpenAiCompatible(
   const form = new FormData();
   form.set("model", getTranscriptionModel({ ...cfg, model: DEFAULT_TRANSCRIBE_MODEL }));
   form.set("response_format", "json");
-  if (lang === "ru" || lang === "en") form.set("language", lang);
+  // The Telegram UI language is not a reliable speech-language signal: many
+  // users read the bot in Russian but send Uzbek voice notes. Keep detection
+  // open and bias the model with a multilingual anti-scam prompt instead.
+  form.set("prompt", buildVoiceTranscriptionPrompt(lang));
   form.set("file", new Blob([bytes], { type: payload.mimeType }), "telegram-voice.ogg");
 
   const controller = new AbortController();

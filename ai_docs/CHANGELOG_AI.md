@@ -2,6 +2,25 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-014 Voice-in Uzbek STT language drift
+
+- Reviewed a live Telegram voice note where the user said
+  `Men SMS kod yubormadim`, but STT returned
+  `Men SMS-kort, jo, hvorfor med dem.` and the bot fell through to the generic
+  "not enough data" card.
+- Root cause: Telegram UI language is not the same as spoken voice language.
+  Many users keep the bot UI in Russian while sending Uzbek voice notes, so
+  hard STT language hints from `ctx.session.lang` can degrade recognition.
+- Updated Voice-in transcription prompts for both Gemini and
+  OpenAI-compatible STT to keep detection multilingual across Russian, Uzbek
+  (Latin/Cyrillic) and English, with Uzbek-Latin anti-scam vocabulary such as
+  `SMS-kod`, `kod yubordim` and `kod yubormadim`.
+- Added a defensive normalizer for the captured live provider artifact
+  `SMS-kort / hvorfor med dem` so it maps back to the intended negated Uzbek
+  code phrase instead of producing a generic risk card.
+- Verification passed: focused voice transcription tests, focused Telegram
+  voice handler tests, full `src/lib/risk` and full `src/lib/telegram` suites.
+
 ## 2026-07-05 - TG-014 Negated Voice-in acknowledgement UX
 
 - Reviewed the post-deploy live Telegram reply for

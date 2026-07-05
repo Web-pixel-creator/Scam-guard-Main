@@ -91,11 +91,19 @@ metadata.
 - `uz-live-not-sent-code-telegram-002`: provider rendered the negated Uzbek
   transcript as `Men esa SMS-kod yubormadim.`; filler words before the object
   must still receive the same `negated_ack`.
+- `uz-live-stt-language-drift-telegram-003`: provider rendered the user saying
+  `Men SMS kod yubormadim` as `Men SMS-kort, jo, hvorfor med dem.` when the
+  UI language was Russian. Voice STT must not treat UI language as a hard
+  speech-language constraint; the captured artifact is normalized to the
+  negated Uzbek code phrase.
 
 ## Review Rules
 
 - Keep "I did not..." negated phrases in `negated_ack` unless the transcript
   clearly says the risky action already happened.
+- Treat Telegram UI language as reply-language context, not proof of the voice
+  note's spoken language. Voice QA should include Uzbek speech while the bot UI
+  is Russian.
 - Prefer route expectations only for emergency statements that already happened:
   sent code, installed remote access, transferred money, entered card data,
   scanned Telegram login QR, or currently on a suspicious call.
