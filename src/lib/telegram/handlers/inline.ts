@@ -13,6 +13,24 @@ const MAX_INLINE_QUERY_LENGTH = 2000;
 const MAX_INLINE_DESCRIPTION_LENGTH = 120;
 const BOT_URL = "https://t.me/scamguard_bot";
 
+type HumanInlineIntent =
+  | "link_request"
+  | "code_request"
+  | "confirm_request"
+  | "card_request"
+  | "transfer_request"
+  | "app_request"
+  | "bank_call"
+  | "personal_data"
+  | "delivery_payment"
+  | "prize_fee"
+  | "gov_service"
+  | "sim_swap"
+  | "relative_distress"
+  | "job_offer"
+  | "investment_offer"
+  | "romance_money";
+
 type Copy = {
   helpTitle: string;
   helpDescription: string;
@@ -233,8 +251,7 @@ const PREVIEW_COPY: Record<
     phoneWeakDescription: string;
     telegramTitle: string;
     telegramDescription: string;
-    linkRequestTitle: string;
-    linkRequestDescription: string;
+    humanIntents: Record<HumanInlineIntent, { title: string; description: string }>;
     unknownTitle: string;
     unknownDescription: string;
   }
@@ -252,9 +269,88 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: нужен контекст",
     telegramDescription:
       "Username сам не доказывает риск. Добавьте текст просьбы, ссылку на пост или скрин.",
-    linkRequestTitle: "Ссылка: пришлите URL",
-    linkRequestDescription:
-      "Пока не переходите. Пришлите саму ссылку; опасно, если дальше просят код, оплату, карту или APK.",
+    humanIntents: {
+      link_request: {
+        title: "Ссылка: пришлите URL",
+        description:
+          "Пока не переходите. Пришлите саму ссылку; опасно, если дальше просят код, оплату, карту или APK.",
+      },
+      code_request: {
+        title: "Код: не называйте",
+        description:
+          "SMS, push, OTP, PIN и пароли не диктуем. Пришлите полный текст просьбы или скрин.",
+      },
+      confirm_request: {
+        title: "Подтверждение: осторожно",
+        description:
+          "Не подтверждайте вход, перевод или операцию по звонку/чату. Уточните, что именно просят подтвердить.",
+      },
+      card_request: {
+        title: "Карта: не отправляйте данные",
+        description:
+          "Номер карты, срок, CVV/CVC, PIN и фото карты не отправляем. Пришлите текст просьбы.",
+      },
+      transfer_request: {
+        title: "Перевод: нужна причина",
+        description:
+          "Не переводите незнакомцам или на «безопасный счёт». Пришлите кому, куда и зачем просят перевести.",
+      },
+      app_request: {
+        title: "Приложение: не устанавливайте",
+        description:
+          "Не ставьте APK, AnyDesk, RustDesk или «защитное» приложение по просьбе из чата/звонка.",
+      },
+      bank_call: {
+        title: "Звонок из банка: перезвоните сами",
+        description:
+          "Не называйте коды и данные карты. Завершите разговор и звоните по номеру с карты/приложения.",
+      },
+      personal_data: {
+        title: "Документы: не отправляйте фото",
+        description:
+          "Паспорт, ПИНФЛ/ИНН, селфи и адрес не отправляем незнакомым. Пришлите текст просьбы.",
+      },
+      delivery_payment: {
+        title: "Доставка: проверьте ссылку",
+        description:
+          "Не платите пошлину/доставку из чата. Пришлите ссылку или SMS целиком, особенно если просят карту.",
+      },
+      prize_fee: {
+        title: "Приз: не платите сбор",
+        description:
+          "За выигрыш, грант или подарок не платят налог/комиссию заранее. Пришлите сообщение целиком.",
+      },
+      gov_service: {
+        title: "OneID/госуслуги: не вводите код",
+        description:
+          "Не входите по ссылке из чата/SMS. Откройте my.gov.uz или soliq.uz сами; пароль и SMS-код не называйте.",
+      },
+      sim_swap: {
+        title: "SIM/оператор: осторожно",
+        description:
+          "Не называйте код для замены SIM/eSIM или переноса номера. Завершите разговор и звоните оператору сами.",
+      },
+      relative_distress: {
+        title: "Близкий в беде: перезвоните",
+        description:
+          "Не переводите срочно по сообщению. Перезвоните близкому по сохранённому номеру или спросите семейное кодовое слово.",
+      },
+      job_offer: {
+        title: "Работа: не платите взнос",
+        description:
+          "За вакансию, обучение, форму или проверку не платят заранее. Пришлите условия целиком.",
+      },
+      investment_offer: {
+        title: "Инвестиции/крипта: осторожно",
+        description:
+          "Гарантированный доход, TON/USDT/wallet и быстрый процент — частый крючок. Не переводите депозит незнакомым.",
+      },
+      romance_money: {
+        title: "Отношения: деньги не отправляйте",
+        description:
+          "Если новый знакомый просит билет, визу, лечение или инвестицию — остановитесь и пришлите текст просьбы.",
+      },
+    },
     unknownTitle: "Нужно больше контекста",
     unknownDescription:
       "Вставьте полное сообщение: что просят сделать, ссылку, номер, код, карту или перевод.",
@@ -272,9 +368,85 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: kontekst kerak",
     telegramDescription:
       "Username o'zi xavfni isbotlamaydi. So'rov matni, post havolasi yoki skrin yuboring.",
-    linkRequestTitle: "Havola: URL yuboring",
-    linkRequestDescription:
-      "Hozircha o'tmang. Havolani yuboring; keyin kod, to'lov, karta yoki APK so'ralsa xavfli.",
+    humanIntents: {
+      link_request: {
+        title: "Havola: URL yuboring",
+        description:
+          "Hozircha o'tmang. Havolani yuboring; keyin kod, to'lov, karta yoki APK so'ralsa xavfli.",
+      },
+      code_request: {
+        title: "Kod: aytmang",
+        description: "SMS, push, OTP, PIN va parollarni aytmang. To'liq xabar yoki skrin yuboring.",
+      },
+      confirm_request: {
+        title: "Tasdiqlash: ehtiyot bo'ling",
+        description:
+          "Kirish, o'tkazma yoki karta operatsiyasini qo'ng'iroq/chat orqali tasdiqlamang.",
+      },
+      card_request: {
+        title: "Karta: ma'lumot bermang",
+        description: "Karta raqami, muddati, CVV/CVC, PIN yoki karta rasmini yubormang.",
+      },
+      transfer_request: {
+        title: "Pul o'tkazma: sabab kerak",
+        description:
+          "Notanish odamga yoki «xavfsiz hisob»ga pul o'tkazmang. Kimga va nega so'ralganini yuboring.",
+      },
+      app_request: {
+        title: "Ilova: o'rnatmang",
+        description:
+          "Chat/qo'ng'iroq bo'yicha APK, AnyDesk, RustDesk yoki «himoya» ilovasini o'rnatmang.",
+      },
+      bank_call: {
+        title: "Bankdan qo'ng'iroq: o'zingiz qayta qo'ng'iroq qiling",
+        description:
+          "Kod va karta ma'lumotlarini aytmang. Suhbatni tugating va rasmiy raqamga qo'ng'iroq qiling.",
+      },
+      personal_data: {
+        title: "Hujjatlar: rasm yubormang",
+        description:
+          "Pasport, PINFL/STIR, selfi yoki manzilni notanishlarga yubormang. So'rov matnini yuboring.",
+      },
+      delivery_payment: {
+        title: "Yetkazib berish: havolani tekshiring",
+        description: "Chatdagi boj/to'lovni to'lamang. SMS yoki havolani to'liq yuboring.",
+      },
+      prize_fee: {
+        title: "Yutuq: oldindan to'lov qilmang",
+        description:
+          "Yutuq, grant yoki sovg'a uchun avval soliq/komissiya to'lamang. Xabarni yuboring.",
+      },
+      gov_service: {
+        title: "OneID/davlat xizmati: kod kiritmang",
+        description:
+          "Chat/SMS havolasi orqali kirmang. my.gov.uz yoki soliq.uz ni o'zingiz oching; parol va SMS-kodni aytmang.",
+      },
+      sim_swap: {
+        title: "SIM/operator: ehtiyot bo'ling",
+        description:
+          "SIM/eSIM almashtirish yoki raqamni ko'chirish uchun kod aytmang. Suhbatni tugatib, operatorga o'zingiz qo'ng'iroq qiling.",
+      },
+      relative_distress: {
+        title: "Yaqin odam xavfda: qayta qo'ng'iroq qiling",
+        description:
+          "Shoshilinch pul o'tkazmang. Saqlangan raqamga qayta qo'ng'iroq qiling yoki oilaviy kod so'zini so'rang.",
+      },
+      job_offer: {
+        title: "Ish: oldindan to'lov qilmang",
+        description:
+          "Vakansiya, o'qish, forma yoki tekshiruv uchun avval pul to'lamang. Shartlarni to'liq yuboring.",
+      },
+      investment_offer: {
+        title: "Invest/kripto: ehtiyot bo'ling",
+        description:
+          "Kafolatlangan daromad, TON/USDT/wallet va tez foyda - keng tarqalgan tuzoq. Depozit yubormang.",
+      },
+      romance_money: {
+        title: "Munosabat: pul yubormang",
+        description:
+          "Yangi tanish chipta, viza, davolanish yoki investitsiya uchun pul so'rasa, to'xtang va matnni yuboring.",
+      },
+    },
     unknownTitle: "Kontekst kerak",
     unknownDescription:
       "To'liq xabarni yuboring: nima qilish so'ralgan, havola, raqam, kod, karta yoki pul.",
@@ -292,9 +464,88 @@ const PREVIEW_COPY: Record<
     telegramTitle: "Telegram: context needed",
     telegramDescription:
       "A username alone cannot prove risk. Add the request text, post link or screenshot.",
-    linkRequestTitle: "Link: send the URL",
-    linkRequestDescription:
-      "Do not open it yet. Send the link; it is risky if it asks for a code, payment, card or APK.",
+    humanIntents: {
+      link_request: {
+        title: "Link: send the URL",
+        description:
+          "Do not open it yet. Send the link; it is risky if it asks for a code, payment, card or APK.",
+      },
+      code_request: {
+        title: "Code: do not share it",
+        description:
+          "Do not read out SMS, push, OTP, PIN or passwords. Send the full request text or screenshot.",
+      },
+      confirm_request: {
+        title: "Confirmation: be careful",
+        description:
+          "Do not confirm a login, transfer or card operation from a call/chat. Send what they ask to confirm.",
+      },
+      card_request: {
+        title: "Card: do not send details",
+        description:
+          "Do not send card number, expiry, CVV/CVC, PIN or card photos. Send the request text.",
+      },
+      transfer_request: {
+        title: "Transfer: reason needed",
+        description:
+          "Do not transfer to strangers or a “safe account”. Send who, where and why they ask you to pay.",
+      },
+      app_request: {
+        title: "App: do not install it",
+        description:
+          "Do not install APK, AnyDesk, RustDesk or a “security” app from a chat or call.",
+      },
+      bank_call: {
+        title: "Bank call: call back yourself",
+        description:
+          "Do not share codes or card data. Hang up and call the number from your card/app.",
+      },
+      personal_data: {
+        title: "Documents: do not send photos",
+        description:
+          "Do not send passport, tax ID, selfie or address to strangers. Send the request text.",
+      },
+      delivery_payment: {
+        title: "Delivery: check the link",
+        description:
+          "Do not pay delivery/customs from a chat. Send the full SMS or link, especially if card data is asked.",
+      },
+      prize_fee: {
+        title: "Prize: do not pay a fee",
+        description:
+          "Real prizes, grants or gifts do not require upfront tax/commission. Send the full message.",
+      },
+      gov_service: {
+        title: "OneID/government: do not enter a code",
+        description:
+          "Do not sign in from a chat/SMS link. Open my.gov.uz or soliq.uz yourself; do not share password or SMS code.",
+      },
+      sim_swap: {
+        title: "SIM/operator: be careful",
+        description:
+          "Do not share a code for SIM/eSIM replacement or number transfer. Hang up and call the operator yourself.",
+      },
+      relative_distress: {
+        title: "Loved one in trouble: call back",
+        description:
+          "Do not send urgent money from a message. Call the saved number or ask the family code word.",
+      },
+      job_offer: {
+        title: "Job: do not pay a fee",
+        description:
+          "Do not prepay for a job, training, uniform or verification. Send the full terms.",
+      },
+      investment_offer: {
+        title: "Invest/crypto: be careful",
+        description:
+          "Guaranteed income, TON/USDT/wallet and fast returns are common bait. Do not send a deposit.",
+      },
+      romance_money: {
+        title: "Relationship: do not send money",
+        description:
+          "If a new contact asks for a ticket, visa, treatment or investment, pause and send the request text.",
+      },
+    },
     unknownTitle: "More context needed",
     unknownDescription:
       "Paste the full message: what they ask you to do, link, number, code, card or transfer.",
@@ -363,26 +614,265 @@ function compactInlineDescription(value: string): string {
   return `${oneLine.slice(0, end).trimEnd()}...`;
 }
 
-function looksLikeBareLinkRequest(text: string): boolean {
+function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const normalized = text.toLowerCase();
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
-  if (hasConcreteUrl) return false;
 
-  return (
-    /(?:просят|просит|сказали|говорят|нужно|надо|предлагают).{0,80}(?:перейти|зайти|открыть|нажать).{0,40}(?:ссылк|линк|link|url)/iu.test(
+  if (
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|egov|e-gov|госуслуг|госорган|государственн|электронн.{0,20}правительств|(?:^|[^a-zа-яё])(?:пинфл|стир|инн)(?:$|[^a-zа-яё])).{0,100}(?:код|sms|смс|парол|логин|вход|ссылк|подтверд|заблок|тиклаш|tasdiq|parol|login|kirish)?/iu.test(
       normalized,
     ) ||
-    /(?:перейти|зайти|открыть|нажать).{0,40}(?:по\s+)?(?:ссылк|линк|link|url)/iu.test(normalized) ||
-    /(?:so['’]?ra|ayt|kerak).{0,80}(?:havola|link).{0,40}(?:o['’]?t|kir|och|bos)/iu.test(
+    /(?:davlat xizmat|one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|pinfl|stir).{0,100}(?:kod|sms|parol|login|kirish|tasdiq|blok|tiklash)?/iu.test(
       normalized,
     ) ||
-    /(?:havola|link).{0,60}(?:o['’]?t|kir|och|bos|bosing)/iu.test(normalized) ||
-    /(?:ask|asked|asks|told|want|wants|need|needs).{0,80}(?:open|click|follow|go\s+to).{0,40}(?:link|url)/iu.test(
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|government|tax service).{0,100}(?:code|sms|password|login|sign in|confirm|blocked|restore)?/iu.test(
+      normalized,
+    )
+  ) {
+    return "gov_service";
+  }
+
+  if (
+    /(?:sim|сим|esim|номер).{0,80}(?:перевыпуск|перевыпуст|замен|дубликат|перенести|восстанов|swap|активир)/iu.test(
       normalized,
     ) ||
-    /(?:open|click|follow|go\s+to).{0,40}(?:the\s+)?(?:link|url)/iu.test(normalized)
-  );
+    /(?:перевыпуск|перевыпуст|замен|дубликат|перенести|восстанов|активир).{0,80}(?:sim|сим|esim|номер)/iu.test(
+      normalized,
+    ) ||
+    /(?:sim|esim|raqam).{0,80}(?:almashtir|tikla|ko['’]?chir|dublikat|aktiv)/iu.test(normalized) ||
+    /(?:sim|esim|number).{0,80}(?:swap|replace|restore|transfer|duplicate|activate)/iu.test(
+      normalized,
+    )
+  ) {
+    return "sim_swap";
+  }
+
+  if (
+    !hasConcreteUrl &&
+    (/(?:просят|просит|сказали|говорят|нужно|надо|предлагают|скинули|прислали|дали).{0,80}(?:перейти|зайти|открыть|нажать|кликнуть|посмотреть)?.{0,40}(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
+      normalized,
+    ) ||
+      /(?:перейти|зайти|открыть|нажать|кликнуть).{0,40}(?:по\s+)?(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
+        normalized,
+      ) ||
+      /(?:so['’]?ra|ayt|kerak|yubor|berdi).{0,80}(?:havola|link|tugma|sayt).{0,40}(?:o['’]?t|kir|och|bos|bosing)?/iu.test(
+        normalized,
+      ) ||
+      /(?:havola|link|tugma|sayt).{0,60}(?:o['’]?t|kir|och|bos|bosing|yubordi)/iu.test(
+        normalized,
+      ) ||
+      /(?:ask|asked|asks|sent|gave|told|want|wants|need|needs).{0,80}(?:open|click|follow|go\s+to)?.{0,40}(?:link|url|button|site|website)/iu.test(
+        normalized,
+      ) ||
+      /(?:open|click|follow|go\s+to).{0,40}(?:the\s+)?(?:link|url|button|site|website)/iu.test(
+        normalized,
+      ))
+  ) {
+    return "link_request";
+  }
+
+  if (
+    /(?:просят|просит|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|пришел|пришёл|пришл)/iu.test(
+      normalized,
+    ) ||
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:ayt|ber|yubor|kirit|kel)/iu.test(normalized) ||
+    /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
+    )
+  ) {
+    return "code_request";
+  }
+
+  if (
+    /(?:просят|просит|сказали|говорят|нужно|надо).{0,80}(?:подтверд|одобр|разреш|разрешить|согласиться|нажать да)/iu.test(
+      normalized,
+    ) ||
+    /(?:подтверд|одобр|разреш).{0,80}(?:операц|перевод|вход|telegram|банк|карт)/iu.test(
+      normalized,
+    ) ||
+    /(?:tasdiq|ruxsat|rozilik).{0,80}(?:kirish|o['’]?tkaz|operatsiya|telegram|bank|karta)/iu.test(
+      normalized,
+    ) ||
+    /(?:confirm|approve|allow).{0,80}(?:login|transfer|payment|operation|telegram|bank|card)/iu.test(
+      normalized,
+    )
+  ) {
+    return "confirm_request";
+  }
+
+  if (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|пин|pin)/iu.test(
+      normalized,
+    ) ||
+    /(?:карт|cvv|cvc|срок|оборот|номер карты).{0,80}(?:отправ|назв|ввест|фото|сфот)/iu.test(
+      normalized,
+    ) ||
+    /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
+    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized)
+  ) {
+    return "card_request";
+  }
+
+  if (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:установить|скачать|поставить|прилож|apk|anydesk|teamviewer|rustdesk|доступ|экран)/iu.test(
+      normalized,
+    ) ||
+    /(?:установить|скачать|поставить).{0,80}(?:прилож|apk|защит|банк|доступ)/iu.test(normalized) ||
+    /(?:ilova|apk|anydesk|teamviewer|rustdesk|ekran|ruxsat).{0,80}(?:o['’]?rnat|yukla|ber|och)/iu.test(
+      normalized,
+    ) ||
+    /(?:install|download|set up).{0,80}(?:app|apk|anydesk|teamviewer|rustdesk|remote|screen)/iu.test(
+      normalized,
+    )
+  ) {
+    return "app_request";
+  }
+
+  if (
+    /(?:звон|позвон|говорят|представил).{0,80}(?:банк|служб.{0,20}безопас|оператор|центробанк|цб|полици)/iu.test(
+      normalized,
+    ) ||
+    /(?:bank|operator|markaziy bank|politsiya).{0,80}(?:qo['’]?ng['’]?iroq|telefon|aytyapti)/iu.test(
+      normalized,
+    ) ||
+    /(?:calling|called|call).{0,80}(?:bank|security|operator|police|central bank)/iu.test(
+      normalized,
+    )
+  ) {
+    return "bank_call";
+  }
+
+  if (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес|пропис)/iu.test(
+      normalized,
+    ) ||
+    /(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес).{0,80}(?:фото|сфот|отправ|назв)/iu.test(
+      normalized,
+    ) ||
+    /(?:pasport|pinfl|stir|selfi|hujjat|manzil).{0,80}(?:rasm|yubor|ayt|ber)/iu.test(normalized) ||
+    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:passport|tax id|selfie|document|address)/iu.test(
+      normalized,
+    )
+  ) {
+    return "personal_data";
+  }
+
+  if (
+    /(?:доставк|посылк|курьер|почт).{0,80}(?:оплат|пошлин|комисс|сбор|карта|ссылк)/iu.test(
+      normalized,
+    ) ||
+    /(?:оплат|пошлин|комисс|сбор).{0,80}(?:доставк|посылк|курьер|почт)/iu.test(normalized) ||
+    /(?:yetkazib|posilka|kuryer).{0,80}(?:to['’]?lov|boj|komiss|karta|havola)/iu.test(normalized) ||
+    /(?:delivery|parcel|courier|shipping).{0,80}(?:fee|pay|payment|card|link)/iu.test(normalized)
+  ) {
+    return "delivery_payment";
+  }
+
+  if (
+    /(?:выигр|приз|подар|грант|лотере|наследств).{0,80}(?:налог|комисс|сбор|оплат|залог|предоплат)/iu.test(
+      normalized,
+    ) ||
+    /(?:налог|комисс|сбор|оплат|залог|предоплат).{0,80}(?:выигр|приз|подар|грант|лотере|наследств)/iu.test(
+      normalized,
+    ) ||
+    /(?:yutuq|sovg['’]?a|grant|lotereya).{0,80}(?:soliq|komiss|to['’]?lov|garov)/iu.test(
+      normalized,
+    ) ||
+    /(?:prize|gift|grant|lottery|inheritance).{0,80}(?:tax|fee|commission|deposit|prepay)/iu.test(
+      normalized,
+    )
+  ) {
+    return "prize_fee";
+  }
+
+  if (
+    /(?:мама|папа|сын|дочь|брат|сестра|родствен|близк|внук|внуч|друг).{0,120}(?:авар|больниц|полици|сроч|деньг|перевед|код|помоги|попал|попала)/iu.test(
+      normalized,
+    ) ||
+    /(?:авар|больниц|полици|сроч|деньг|перевед|помоги|попал|попала).{0,120}(?:мама|папа|сын|дочь|брат|сестра|родствен|близк|внук|внуч|друг)/iu.test(
+      normalized,
+    ) ||
+    /(?:ona|ota|o['’]?g['’]?il|qiz|aka|uka|opa|singil|qarindosh|yaqin).{0,120}(?:avariya|kasalxona|politsiya|shoshilinch|pul|yordam|kod)/iu.test(
+      normalized,
+    ) ||
+    /(?:mom|dad|son|daughter|brother|sister|relative|friend|loved one).{0,120}(?:accident|hospital|police|urgent|money|transfer|code|help)/iu.test(
+      normalized,
+    )
+  ) {
+    return "relative_distress";
+  }
+
+  if (
+    /(?:люблю|скучаю|дорог|родн|знаком|отношен|невест|жених|девушк|парен).{0,140}(?:деньг|перевед|помоги|билет|виза|лечение|инвест|крипт|депозит)/iu.test(
+      normalized,
+    ) ||
+    /(?:деньг|перевед|помоги|билет|виза|лечение|инвест|крипт|депозит).{0,140}(?:люблю|скучаю|дорог|родн|знаком|отношен|невест|жених|девушк|парен)/iu.test(
+      normalized,
+    ) ||
+    /(?:sevgi|sog['’]?indim|aziz|tanish|munosabat).{0,140}(?:pul|yordam|chipta|viza|davolanish|invest|kripto)/iu.test(
+      normalized,
+    ) ||
+    /(?:love|miss|dear|dating|relationship).{0,140}(?:money|transfer|ticket|visa|treatment|invest|crypto|deposit)/iu.test(
+      normalized,
+    )
+  ) {
+    return "romance_money";
+  }
+
+  if (
+    /(?:работ|ваканс|подработ|заработ|л[её]гк.{0,20}доход|удаленн.{0,20}работ|стажиров).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат|карта)/iu.test(
+      normalized,
+    ) ||
+    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров)/iu.test(
+      normalized,
+    ) ||
+    /(?:ish|vakans|daromad|oylik|masofaviy).{0,120}(?:to['’]?lov|o['’]?qish|forma|tekshir|garov|depozit|karta)/iu.test(
+      normalized,
+    ) ||
+    /(?:job|work|vacancy|income|remote).{0,120}(?:fee|training|uniform|verification|deposit|prepay|card)/iu.test(
+      normalized,
+    )
+  ) {
+    return "job_offer";
+  }
+
+  if (
+    /(?:инвест|крипт|ton|usdt|wallet|бирж|трейд|доход|прибыл|процент|x2|икс).{0,140}(?:гарант|влож|депозит|пополни|перевед|платформ|сигнал|доход|быстр)/iu.test(
+      normalized,
+    ) ||
+    /(?:гарант|влож|депозит|пополни|перевед|платформ|сигнал|доход|быстр).{0,140}(?:инвест|крипт|ton|usdt|wallet|бирж|трейд|прибыл|процент)/iu.test(
+      normalized,
+    ) ||
+    /(?:invest|kripto|crypto|ton|usdt|wallet|birja|treyd|daromad|foyda).{0,140}(?:kafolat|depozit|pul|platforma|signal|tez|foiz)/iu.test(
+      normalized,
+    ) ||
+    /(?:invest|crypto|ton|usdt|wallet|exchange|trading|profit|return).{0,140}(?:guarantee|deposit|platform|signal|fast|percent)/iu.test(
+      normalized,
+    )
+  ) {
+    return "investment_offer";
+  }
+
+  if (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:перевести|перевод|оплатить|заплатить|пополни|безопасн.{0,20}сч[её]т)/iu.test(
+      normalized,
+    ) ||
+    /(?:перевести|перевод|оплатить|заплатить).{0,80}(?:деньг|сум|карт|номер|сч[её]т)/iu.test(
+      normalized,
+    ) ||
+    /(?:pul|to['’]?lov|o['’]?tkaz|hisob).{0,80}(?:yubor|qil|ber|to['’]?la)/iu.test(normalized) ||
+    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:transfer|pay|payment|send money|safe account)/iu.test(
+      normalized,
+    )
+  ) {
+    return "transfer_request";
+  }
+
+  return null;
 }
 
 function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): string {
@@ -459,11 +949,13 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   const level = copy.levels[result.level];
   if (result.level === "unknown") {
     const preview = PREVIEW_COPY[lang];
-    if (looksLikeBareLinkRequest(result.display)) {
+    const humanIntent = classifyHumanInlineIntent(result.display);
+    if (humanIntent) {
+      const intentCopy = preview.humanIntents[humanIntent];
       return buildArticle(
-        `check-${result.level}-link-request`,
-        preview.linkRequestTitle,
-        preview.linkRequestDescription,
+        `check-${result.level}-${humanIntent.replaceAll("_", "-")}`,
+        intentCopy.title,
+        intentCopy.description,
         formatInlineMessage(result, lang),
         lang,
       );

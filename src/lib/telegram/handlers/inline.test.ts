@@ -362,4 +362,110 @@ describe("handleInlineQuery", () => {
     expect(article.title).toBe("Нужно больше контекста");
     expect(article.description).not.toContain("Пока не переходите");
   });
+
+  it.each([
+    {
+      text: "мне скинули ссылку",
+      id: "check-unknown-link-request",
+      title: "Ссылка: пришлите URL",
+    },
+    {
+      text: "пришел код и просят его сказать",
+      id: "check-unknown-code-request",
+      title: "Код: не называйте",
+    },
+    {
+      text: "просят подтвердить операцию",
+      id: "check-unknown-confirm-request",
+      title: "Подтверждение: осторожно",
+    },
+    {
+      text: "просят данные карты",
+      id: "check-unknown-card-request",
+      title: "Карта: не отправляйте данные",
+    },
+    {
+      text: "просят перевести деньги",
+      id: "check-unknown-transfer-request",
+      title: "Перевод: нужна причина",
+    },
+    {
+      text: "просят установить приложение для защиты",
+      id: "check-unknown-app-request",
+      title: "Приложение: не устанавливайте",
+    },
+    {
+      text: "мне звонят из банка",
+      id: "check-unknown-bank-call",
+      title: "Звонок из банка: перезвоните сами",
+    },
+    {
+      text: "просят фото паспорта",
+      id: "check-unknown-personal-data",
+      title: "Документы: не отправляйте фото",
+    },
+    {
+      text: "нужно оплатить доставку",
+      id: "check-unknown-delivery-payment",
+      title: "Доставка: проверьте ссылку",
+    },
+    {
+      text: "я выиграл приз, просят оплатить налог",
+      id: "check-unknown-prize-fee",
+      title: "Приз: не платите сбор",
+    },
+    {
+      text: "просят войти в OneID и сказать SMS код",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
+      text: "оператор просит код для замены SIM карты",
+      id: "check-unknown-sim-swap",
+      title: "SIM/оператор: осторожно",
+    },
+    {
+      text: "мне пишет сын попал в аварию срочно перевести деньги",
+      id: "check-unknown-relative-distress",
+      title: "Близкий в беде: перезвоните",
+    },
+    {
+      text: "предлагают работу но просят оплатить обучение",
+      id: "check-unknown-job-offer",
+      title: "Работа: не платите взнос",
+    },
+    {
+      text: "просят инвестировать в TON wallet с гарантированной прибылью",
+      id: "check-unknown-investment-offer",
+      title: "Инвестиции/крипта: осторожно",
+    },
+    {
+      text: "новый знакомый говорит любит и просит деньги на билет",
+      id: "check-unknown-romance-money",
+      title: "Отношения: деньги не отправляйте",
+    },
+  ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
+    hoisted.nextResult = {
+      type: "text",
+      display: text,
+      level: "unknown",
+      score: 0,
+      reasons: ["unknown_sender"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(text, { userId: 42, session }, `iq-${id}`);
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+    };
+    expect(article.id).toBe(id);
+    expect(article.title).toBe(title);
+    expect(article.description).not.toContain("Вставьте полное сообщение");
+  });
 });

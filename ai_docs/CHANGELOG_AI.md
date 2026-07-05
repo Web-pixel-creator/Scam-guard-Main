@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-015 Telegram inline human phrase corpus
+
+- Researched common scam-request phrasing from bank/security guidance and
+  consumer anti-fraud sources, then added
+  `ai_docs/TELEGRAM_INLINE_PHRASE_CORPUS.md` as the seed corpus for low-signal
+  inline queries.
+- Expanded Telegram inline preview classification from the single bare-link
+  fallback into 16 human-intent classes: link, code, confirmation, card,
+  transfer, app/APK, bank call, personal data, delivery payment, prize fee,
+  OneID/government, SIM swap, relative distress, job-fee, investment/crypto and
+  romance-money requests.
+- Important product boundary: these classes only improve `unknown` inline
+  previews and next-step copy. They do not raise the risk score without the
+  actual artifact/message, keeping inline mode honest.
+- Added regression coverage for representative Russian user phrases across all
+  16 classes.
+
 ## 2026-07-05 - TG-015 Telegram inline preview UX polish
 
 - Reviewed live Telegram inline screenshots for phone, free text and Telegram
