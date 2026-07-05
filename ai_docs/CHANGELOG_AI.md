@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-014 UZ Voice QA matrix expansion
+
+- Added a committed Uzbek Voice-in QA matrix covering emergency routes, negated
+  acknowledgements and normal-check fallthroughs while the bot UI may remain in
+  Russian.
+- Expanded the STT replay corpus with Uzbek phrases for OTP, Telegram code,
+  APK/SMS permission, AnyDesk screen access, money transfer, card/PIN data,
+  Telegram login QR/lost access, active operator call, future "I will not send
+  code/card data" refusals, gift-link and delivery-payment requests.
+- Fixed a route-priority regression found by the matrix:
+  `Men ilovani o'rnatdim va SMSga ruxsat berdim` now routes to APK/remote-access
+  SOS (`panic:2`) instead of sent-code SOS (`panic:1`).
+- Added normal-check replay assertions so suspicious-but-not-already-happened
+  UZ voice transcripts must reach `runCheck` instead of emergency routing.
+
 ## 2026-07-05 - TG-014 Voice-in Uzbek STT language drift
 
 - Reviewed a live Telegram voice note where the user said

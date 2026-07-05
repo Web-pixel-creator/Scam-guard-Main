@@ -8,6 +8,8 @@ committing raw user audio.
 The committed regression corpus lives in
 `src/lib/telegram/voice-stt-provider-fixtures.ts`.
 
+The Uzbek coverage matrix is summarized in `ai_docs/UZ_VOICE_QA_MATRIX.md`.
+
 Each row stores only:
 
 - `id`

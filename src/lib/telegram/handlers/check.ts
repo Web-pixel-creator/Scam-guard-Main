@@ -636,7 +636,7 @@ function isLowSignalVoiceTranscript(transcript: string): boolean {
 const NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
 const UZ_NEGATED_VOICE_DONE_INTENT_RE =
-  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|skaner\s+qilmadim|scan\s+qilmadim)(?=\s|[.!?,;:]|$)/;
+  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|ochmadim|och\s+madim|o'tkazmadim|o'tkaz\s+madim|otkazmadim|otkaz\s+madim|to'lamadim|to'la\s+madim|tolamadim|tola\s+madim|tasdiqlamadim|tasdiqla\s+madim|ruxsat\s+bermadim|ruxsat\s+ber\s+madim|skaner\s+qilmadim|scan\s+qilmadim|yubormayman|yubarmayman|jo'natmayman|jonatmayman|aytmayman|bermayman|kiritmayman|o'rnatmayman|ornatmayman|yuklamayman|ochmayman|o'tkazmayman|otkazmayman|to'lamayman|tolamayman|tasdiqlamayman|ruxsat\s+bermayman|skaner\s+qilmayman|scan\s+qilmayman)(?=\s|[.!?,;:]|$)/;
 const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
@@ -705,6 +705,16 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     )
   ) {
     return 5;
+  }
+
+  if (
+    /(?:ilova|programma|app|apk|anydesk|teamviewer|rustdesk).{0,100}(?:smsga|sms|xabarnoma|bildirishnoma|ekran|ruxsat)/.test(
+      text,
+    ) ||
+    /(?:smsga|sms|xabarnoma|bildirishnoma|ekran).{0,80}ruxsat\s+ber/.test(text) ||
+    /ruxsat\s+ber.{0,80}(?:smsga|sms|xabarnoma|bildirishnoma|ekran)/.test(text)
+  ) {
+    return 2;
   }
 
   if (

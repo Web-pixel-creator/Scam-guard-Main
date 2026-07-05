@@ -60,6 +60,7 @@ import { bt } from "../bot-i18n";
 import {
   VOICE_STT_PROVIDER_REPLAY_FIXTURES,
   isVoiceSttNegatedAckReplayFixture,
+  isVoiceSttNormalReplayFixture,
   isVoiceSttPanicReplayFixture,
 } from "../voice-stt-provider-fixtures";
 
@@ -412,6 +413,43 @@ describe("handleVoice", () => {
         42,
         expect.objectContaining({
           scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+        }),
+      );
+    }
+  });
+
+  it("passes non-emergency STT replay phrases into the normal check pipeline", async () => {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(
+      isVoiceSttNormalReplayFixture,
+    )) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: fixture.id,
+      });
+
+      expect(hoisted.runCheck).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: fixture.transcript,
+          type: "text",
+          lang: fixture.lang,
+          channel: "telegram",
+        }),
+      );
+      expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+        }),
+      );
+      expect(hoisted.sendMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: bt("voice_negated_done_ack", fixture.lang),
         }),
       );
     }
