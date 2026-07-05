@@ -86,11 +86,12 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
   screenshot's QR payload is pixel-decoded before Telegram copy review. Run
   these QA commands whenever bot copy/buttons or image/QR handling change.
 - **Voice-in negation UX still needs a small conversational polish pass.** Live
-  QA on 2026-07-04 confirmed that "Я не отправляла SMS-код" does not open the
-  already-happened SOS flow, but the ordinary risk engine can still answer with
-  a caution card because it sees `SMS-код`. Prefer a warmer "good, do not send
-  it" acknowledgement for short negated voice statements before running the
-  generic risk card.
+  QA now covers RU "I did not send SMS code" and UZ
+  `Men SMS-kod yubormadim.` without opening the already-happened SOS flow after
+  the 2026-07-05 fix, but the ordinary risk engine can still answer short
+  negated statements with a caution card because it sees `SMS-код` / `SMS-kod`.
+  Prefer a warmer "good, do not send it" acknowledgement for short negated
+  voice statements before running the generic risk card.
 - **`payment` input_type is heuristic.** It detects payment-flow text, but still needs real-world tuning from moderated reports.
 - **Large homepage route:** `src/routes/index.tsx` should eventually be split into smaller section components.
 

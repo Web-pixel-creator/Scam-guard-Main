@@ -78,12 +78,15 @@ short transcript that the bot itself displays back to the chat. Do not store
 raw audio, Telegram file ids, request payloads, provider responses, or private
 metadata.
 
-2026-07-04 live examples added to the committed replay corpus:
+2026-07-04 / 2026-07-05 live examples added to the committed replay corpus:
 
 - `uz-live-sms-code-telegram-001`: provider rendered Uzbek
   `yubordim` as `yubardim`; this must still route to SOS `panic:1`.
 - `ru-live-not-sent-code-telegram-001`: negated Russian "did not send SMS
   code" must not open an already-happened SOS flow.
+- `uz-live-not-sent-code-telegram-001`: provider rendered the negated Uzbek
+  transcript as `Men SMS-kod yubormadim.`; this must stay on the normal-check
+  path, not the already-sent-code SOS flow.
 
 ## Review Rules
 

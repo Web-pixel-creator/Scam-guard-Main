@@ -626,9 +626,9 @@ function isLowSignalVoiceTranscript(transcript: string): boolean {
 const NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
 const UZ_NEGATED_VOICE_DONE_INTENT_RE =
-  /(?:^|\s)(?:yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)(?:\s|$)/;
+  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|skaner\s+qilmadim|scan\s+qilmadim)(?=\s|[.!?,;:]|$)/;
 const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
-  /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?:\s|$)/;
+  /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
 
@@ -700,10 +700,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:смс|sms|otp|код|code).{0,60}(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?)/.test(
       text,
     ) ||
-    /(?:^|\s)(men|biz).{0,40}(yub[oa]r|jo'nat|jonat|ayt|ber|kirit).{0,60}(sms|kod|code|otp)/.test(
+    /(?:^|\s)(men|biz).{0,40}(yub[oa]r(?!\s*ma)|jo'nat(?!\s*ma)|jonat(?!\s*ma)|ayt(?!\s*ma)|ber(?!\s*ma)|kirit(?!\s*ma)).{0,60}(sms|kod|code|otp)/.test(
       text,
     ) ||
-    /(?:sms|kod|code|otp).{0,60}(yub[oa]r|jo'nat|jonat|ayt|ber|kirit)/.test(text) ||
+    /(?:sms|kod|code|otp).{0,60}(yub[oa]r(?!\s*ma)|jo'nat(?!\s*ma)|jonat(?!\s*ma)|ayt(?!\s*ma)|ber(?!\s*ma)|kirit(?!\s*ma))/.test(
+      text,
+    ) ||
     /(?:^|\s)(мен|биз).{0,40}(юбор|жунат|айт|бер|кирит).{0,60}(sms|смс|kod|код|code|otp)/.test(
       text,
     ) ||

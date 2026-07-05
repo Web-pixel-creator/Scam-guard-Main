@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-05 - TG-014 Live UZ negated Voice-in false SOS fix
+
+- Reviewed live Telegram production replies for two fresh user-sent voice notes.
+  Positive UZ sent-code voice routed correctly, but negated
+  `Men SMS-kod yubormadim.` ("I did not send the SMS code") falsely opened
+  the already-sent-code SOS flow.
+- Added punctuation-aware UZ negated Voice-in matching, split-form negation
+  variants such as `yubor madim`, and SMS-code positive-verb guards so
+  `yubor...` no longer matches `yubormadim`.
+- Added sanitized live replay fixture
+  `uz-live-not-sent-code-telegram-001` with no raw audio, Telegram file id or
+  provider payload. Verification passed: focused voice handler test, scoped
+  eslint and full Telegram suite.
+
 ## 2026-07-04 - TG-014 Live RU/UZ Voice-in/STT replay fix
 
 - Reviewed live Telegram voice-note replies from user-provided RU/UZ samples.

@@ -208,6 +208,14 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     note: "Negated Uzbek code phrase must not open SOS.",
   },
   {
+    id: "uz-live-not-sent-code-telegram-001",
+    lang: "uz",
+    transcript: "Men SMS-kod yubormadim.",
+    sourceKind: "provider_sanitized_transcript",
+    expectation: { kind: "normal_check" },
+    note: "Captured from live Telegram human voice note through production STT provider; sanitized transcript only. Hyphenated SMS-kod plus final punctuation must stay out of already-happened SOS.",
+  },
+  {
     id: "uz-cyrillic-not-sent-code",
     lang: "uz",
     transcript: "Мен SMS код юбормадим",
