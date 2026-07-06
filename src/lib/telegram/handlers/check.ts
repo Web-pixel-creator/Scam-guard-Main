@@ -664,10 +664,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   if (isNegatedVoiceDoneIntent(text)) return null;
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
       text,
     ) ||
-    /(?:cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?)/.test(
+    /(?:cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?)/.test(
       text,
     ) ||
     /(?:kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam).{0,80}(ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat)/.test(
@@ -779,10 +779,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(деньг|перевод|сум|сумов|uzs|кар[тд]|баланс)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(деньг|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс)/.test(
       text,
     ) ||
-    /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс).{0,80}(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
+    /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс).{0,80}(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
       text,
     ) ||
     /(?:pul|sum|som|uzs|karta|balans).{0,80}(yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad)/.test(
@@ -804,7 +804,7 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
       text,
     ) ||
     /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(text) ||
@@ -850,10 +850,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(ят|ит)/.test(text) ||
+    /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(?:ят|ит(?!ь))/.test(text) ||
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
-    /(?:^|\s)звон(?:ит|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
-    /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит|ят|ил[аи]?)/.test(text) ||
+    /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
+    /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
     /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
     /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text) ||
@@ -893,10 +893,19 @@ function classifyTextPanicIntent(
 ): PanicScenarioId | null {
   if (source) return null;
   if (isQuotedOrThirdPartyDoneIntent(text)) return null;
+  const normalized = normalizeVoiceIntentText(text);
   const panicId = classifyVoicePanicIntent(text);
   if (panicId === null) return null;
   if (panicId === 6) return panicId;
-  return TEXT_PANIC_DONE_INTENT_RE.test(normalizeVoiceIntentText(text)) ? panicId : null;
+  if (
+    panicId === 5 &&
+    /(?:потерял[аи]?|украли|взломали|угнали|забрали|не\s+могу|не\s+получается).{0,80}(?:telegram|телеграм|аккаунт)/.test(
+      normalized,
+    )
+  ) {
+    return panicId;
+  }
+  return TEXT_PANIC_DONE_INTENT_RE.test(normalized) ? panicId : null;
 }
 
 async function sendPanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {

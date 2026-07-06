@@ -58,6 +58,45 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Я рядом" },
   },
   {
+    area: "emotion",
+    text: "мне нужна помощь",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Я рядом" },
+  },
+  {
+    area: "emotion",
+    text: "я запутался",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Я рядом" },
+  },
+  {
+    area: "emotion",
+    text: "я волнуюсь",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Я рядом" },
+  },
+  {
+    area: "emotion",
+    text: "help me",
+    lang: "en",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "I am here" },
+  },
+  {
+    area: "emotion",
+    text: "I am scared",
+    lang: "en",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "I am here" },
+  },
+  {
+    area: "emotion",
+    text: "yordam kerak",
+    lang: "uz",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Men yoningizdaman" },
+  },
+  {
+    area: "emotion",
+    text: "qo'rqyapman",
+    lang: "uz",
+    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Men yoningizdaman" },
+  },
+  {
     area: "advice",
     text: "я не знаю что делать",
     expected: {
@@ -91,6 +130,44 @@ export const LIVE_PHRASE_CASES = [
       kind: "victim_intent",
       intent: "general_scam_concern",
       replyIncludes: "Вы правильно остановились",
+    },
+  },
+  {
+    area: "general concern",
+    text: "кажется меня разводят",
+    expected: {
+      kind: "victim_intent",
+      intent: "general_scam_concern",
+      replyIncludes: "Вы правильно остановились",
+    },
+  },
+  {
+    area: "general concern",
+    text: "не понимаю это обман или нет",
+    expected: {
+      kind: "victim_intent",
+      intent: "general_scam_concern",
+      replyIncludes: "Вы правильно остановились",
+    },
+  },
+  {
+    area: "general concern",
+    text: "someone is trying to scam me",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "general_scam_concern",
+      replyIncludes: "Good that you stopped",
+    },
+  },
+  {
+    area: "general concern",
+    text: "meni firibgarlar aldayapti",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "general_scam_concern",
+      replyIncludes: "To'g'ri to'xtadingiz",
     },
   },
   {
@@ -129,6 +206,31 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "panic", panicId: 6 },
   },
   {
+    area: "call",
+    text: "звонят с зарубежного номера",
+    expected: {
+      kind: "victim_intent",
+      intent: "unknown_call",
+      replyIncludes: "незнакомый номер",
+    },
+  },
+  {
+    area: "call",
+    text: "мне звонят с номера +998",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "call",
+    text: "мне звонят и торопят",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "call",
+    text: "they keep calling me",
+    lang: "en",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
     area: "bank call",
     text: "звонят из банка",
     expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
@@ -139,6 +241,21 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
   },
   {
+    area: "bank call",
+    text: "со мной связался сотрудник банка",
+    expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
+  },
+  {
+    area: "bank call",
+    text: "мне позвонила служба безопасности",
+    expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
+  },
+  {
+    area: "bank call",
+    text: "звонили и сказали что карта заблокирована",
+    expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
+  },
+  {
     area: "authority call",
     text: "мне звонит фейковый майор",
     expected: { kind: "panic", panicId: 6 },
@@ -146,6 +263,16 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "authority call",
     text: "мне звонят из полиции",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "authority call",
+    text: "мне звонит следователь",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "authority call",
+    text: "мне звонит прокуратура",
     expected: { kind: "panic", panicId: 6 },
   },
   {
@@ -176,6 +303,44 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "contact",
+    text: "мне написал неизвестный человек",
+    expected: {
+      kind: "victim_intent",
+      intent: "unknown_contact",
+      replyIncludes: "Незнакомец сам по себе",
+    },
+  },
+  {
+    area: "contact",
+    text: "со мной связался незнакомец",
+    expected: {
+      kind: "victim_intent",
+      intent: "unknown_contact",
+      replyIncludes: "Незнакомец сам по себе",
+    },
+  },
+  {
+    area: "contact",
+    text: "someone unknown is messaging me",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "unknown_contact",
+      replyIncludes: "A stranger alone",
+    },
+  },
+  {
+    area: "contact",
+    text: "menga notanish odam yozdi",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "unknown_contact",
+      replyIncludes: "Notanish odamning o'zi",
+    },
+  },
+  {
     area: "identity",
     text: "мне пишет одноклассник, но я не уверен что это он",
     expected: { kind: "victim_intent", intent: "identity_uncertain", replyIncludes: "не уверены" },
@@ -186,8 +351,42 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "identity_uncertain", replyIncludes: "не уверены" },
   },
   {
+    area: "identity",
+    text: "мне пишет друг, но я сомневаюсь что это он",
+    expected: { kind: "victim_intent", intent: "identity_uncertain", replyIncludes: "не уверены" },
+  },
+  {
+    area: "identity",
+    text: "мне пишет мама странно и просит не звонить",
+    expected: { kind: "victim_intent", intent: "identity_uncertain", replyIncludes: "не уверены" },
+  },
+  {
+    area: "identity",
+    text: "my friend is messaging me but I am not sure it is him",
+    lang: "en",
+    expected: { kind: "victim_intent", intent: "identity_uncertain", replyIncludes: "not sure" },
+  },
+  {
     area: "friend money",
     text: "мне написал друг и просит деньги",
+    expected: {
+      kind: "victim_intent",
+      intent: "friend_money",
+      replyIncludes: "подтвердите личность",
+    },
+  },
+  {
+    area: "friend money",
+    text: "мне пишет родственник и просит перевести срочно",
+    expected: {
+      kind: "victim_intent",
+      intent: "friend_money",
+      replyIncludes: "подтвердите личность",
+    },
+  },
+  {
+    area: "friend money",
+    text: "мама просит срочно отправить деньги",
     expected: {
       kind: "victim_intent",
       intent: "friend_money",
@@ -222,6 +421,25 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "support",
+    text: "мне пишет бот от имени банка",
+    expected: {
+      kind: "victim_intent",
+      intent: "support_impersonation",
+      replyIncludes: "Поддержка/служба безопасности",
+    },
+  },
+  {
+    area: "support",
+    text: "bank support is messaging me",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "support_impersonation",
+      replyIncludes: "Support/security service",
+    },
+  },
+  {
     area: "romance",
     text: "мне пишет девушка из интернета",
     expected: {
@@ -232,7 +450,25 @@ export const LIVE_PHRASE_CASES = [
   },
   {
     area: "romance",
+    text: "со мной познакомилась девушка в телеграме",
+    expected: {
+      kind: "victim_intent",
+      intent: "romance_contact",
+      replyIncludes: "романтический знакомый",
+    },
+  },
+  {
+    area: "romance",
     text: "девушка из интернета просит деньги на билет",
+    expected: {
+      kind: "victim_intent",
+      intent: "romance_money",
+      replyIncludes: "частый сценарий обмана",
+    },
+  },
+  {
+    area: "romance",
+    text: "новая знакомая просит деньги на лечение",
     expected: {
       kind: "victim_intent",
       intent: "romance_money",
@@ -250,6 +486,16 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
   },
   {
+    area: "job",
+    text: "работодатель просит оплатить форму",
+    expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
+  },
+  {
+    area: "job",
+    text: "предлагают работу но надо внести депозит",
+    expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
+  },
+  {
     area: "earning channel",
     text: "меня приглашают в канал для заработка",
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
@@ -264,8 +510,44 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "crypto investment",
+    text: "зовут в крипто канал с платными сигналами",
+    expected: {
+      kind: "victim_intent",
+      intent: "investment_offer",
+      replyIncludes: "Инвестиции/крипта",
+    },
+  },
+  {
+    area: "crypto investment",
+    text: "предлагают TON wallet с гарантированной прибылью",
+    expected: {
+      kind: "victim_intent",
+      intent: "investment_offer",
+      replyIncludes: "Инвестиции/крипта",
+    },
+  },
+  {
     area: "travel migration",
     text: "агентство обещает визу в Корею но просит предоплату",
+    expected: {
+      kind: "victim_intent",
+      intent: "travel_migration_prepayment",
+      replyIncludes: "Визы, работа за границей",
+    },
+  },
+  {
+    area: "travel migration",
+    text: "турфирма просит оплатить хадж заранее",
+    expected: {
+      kind: "victim_intent",
+      intent: "travel_migration_prepayment",
+      replyIncludes: "Визы, работа за границей",
+    },
+  },
+  {
+    area: "travel migration",
+    text: "обещают работу в России но нужен сбор за документы",
     expected: {
       kind: "victim_intent",
       intent: "travel_migration_prepayment",
@@ -285,6 +567,33 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "code request",
     text: "у меня просят код",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Код никому не называйте",
+    },
+  },
+  {
+    area: "code request",
+    text: "у меня просят пароль",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Код никому не называйте",
+    },
+  },
+  {
+    area: "code request",
+    text: "мне сказали назвать цифры из сообщения",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Код никому не называйте",
+    },
+  },
+  {
+    area: "code request",
+    text: "просят отправить код подтверждения в чат",
     expected: {
       kind: "victim_intent",
       intent: "code_request",
@@ -334,6 +643,21 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "card_request", replyIncludes: "Данные карты" },
   },
   {
+    area: "card request",
+    text: "у меня просят пин от карты",
+    expected: { kind: "victim_intent", intent: "card_request", replyIncludes: "Данные карты" },
+  },
+  {
+    area: "card request",
+    text: "спрашивают реквизиты карты",
+    expected: { kind: "victim_intent", intent: "card_request", replyIncludes: "Данные карты" },
+  },
+  {
+    area: "card request",
+    text: "просят фото карты",
+    expected: { kind: "victim_intent", intent: "card_request", replyIncludes: "Данные карты" },
+  },
+  {
     area: "personal data",
     text: "у меня просят паспорт",
     expected: { kind: "victim_intent", intent: "personal_data_request", replyIncludes: "Паспорт" },
@@ -341,6 +665,21 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "personal data",
     text: "у меня просят ПИНФЛ",
+    expected: { kind: "victim_intent", intent: "personal_data_request", replyIncludes: "Паспорт" },
+  },
+  {
+    area: "personal data",
+    text: "у меня просят фото паспорта",
+    expected: { kind: "victim_intent", intent: "personal_data_request", replyIncludes: "Паспорт" },
+  },
+  {
+    area: "personal data",
+    text: "у меня просят JSHSHIR",
+    expected: { kind: "victim_intent", intent: "personal_data_request", replyIncludes: "Паспорт" },
+  },
+  {
+    area: "personal data",
+    text: "у меня просят дату рождения и адрес",
     expected: { kind: "victim_intent", intent: "personal_data_request", replyIncludes: "Паспорт" },
   },
   {
@@ -362,8 +701,36 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "transfer request",
+    text: "просят отправить деньги на этот номер",
+    expected: {
+      kind: "victim_intent",
+      intent: "transfer_request",
+      replyIncludes: "Деньги пока не переводите",
+    },
+  },
+  {
+    area: "transfer request",
+    text: "у меня просят оплатить комиссию",
+    expected: {
+      kind: "victim_intent",
+      intent: "transfer_request",
+      replyIncludes: "Деньги пока не переводите",
+    },
+  },
+  {
     area: "link request",
     text: "у меня просят перейти по ссылке",
+    expected: { kind: "victim_intent", intent: "link_request", replyIncludes: "Ссылку или QR" },
+  },
+  {
+    area: "link request",
+    text: "мне сказали открыть ссылку",
+    expected: { kind: "victim_intent", intent: "link_request", replyIncludes: "Ссылку или QR" },
+  },
+  {
+    area: "link request",
+    text: "нужно перейти по QR",
     expected: { kind: "victim_intent", intent: "link_request", replyIncludes: "Ссылку или QR" },
   },
   {
@@ -390,6 +757,24 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "apk request",
+    text: "у меня просят дать доступ к телефону",
+    expected: {
+      kind: "victim_intent",
+      intent: "apk_request",
+      replyIncludes: "Не устанавливайте APK",
+    },
+  },
+  {
+    area: "apk request",
+    text: "просят включить демонстрацию экрана",
+    expected: {
+      kind: "victim_intent",
+      intent: "apk_request",
+      replyIncludes: "Не устанавливайте APK",
+    },
+  },
+  {
     area: "link received",
     text: "мне прислали ссылку",
     expected: {
@@ -408,8 +793,35 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "file received",
+    text: "мне скинули APK файл",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Файл от незнакомого источника",
+    },
+  },
+  {
     area: "unknown object",
     text: "мне что-то прислали",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_message",
+      replyIncludes: "вам пишут в Telegram",
+    },
+  },
+  {
+    area: "unknown object",
+    text: "мне пришло странное сообщение",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_message",
+      replyIncludes: "вам пишут в Telegram",
+    },
+  },
+  {
+    area: "telegram message",
+    text: "мне пишут в телеграме",
     expected: {
       kind: "victim_intent",
       intent: "telegram_message",
@@ -431,6 +843,11 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "report_question", replyIncludes: "сохранить чеки" },
   },
   {
+    area: "report",
+    text: "куда звонить если меня обманули",
+    expected: { kind: "victim_intent", intent: "report_question", replyIncludes: "сохранить чеки" },
+  },
+  {
     area: "acknowledgement",
     text: "хорошо сделаю",
     expected: {
@@ -440,8 +857,72 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "acknowledgement",
+    text: "спасибо",
+    expected: {
+      kind: "victim_intent",
+      intent: "acknowledgement",
+      replyIncludes: "по одному безопасному шагу",
+    },
+  },
+  {
+    area: "acknowledgement",
+    text: "понял",
+    expected: {
+      kind: "victim_intent",
+      intent: "acknowledgement",
+      replyIncludes: "по одному безопасному шагу",
+    },
+  },
+  {
+    area: "acknowledgement",
+    text: "рахмат",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "acknowledgement",
+      replyIncludes: "bitta xavfsiz qadam",
+    },
+  },
+  {
     area: "greeting",
     text: "Salom",
+    expected: {
+      kind: "victim_intent",
+      intent: "trust_or_greeting",
+      replyIncludes: "Ishonch Guard",
+    },
+  },
+  {
+    area: "greeting",
+    text: "привет",
+    expected: {
+      kind: "victim_intent",
+      intent: "trust_or_greeting",
+      replyIncludes: "Ishonch Guard",
+    },
+  },
+  {
+    area: "greeting",
+    text: "а вы кто?",
+    expected: {
+      kind: "victim_intent",
+      intent: "trust_or_greeting",
+      replyIncludes: "Ishonch Guard",
+    },
+  },
+  {
+    area: "greeting",
+    text: "можно вам доверять?",
+    expected: {
+      kind: "victim_intent",
+      intent: "trust_or_greeting",
+      replyIncludes: "Ishonch Guard",
+    },
+  },
+  {
+    area: "greeting",
+    text: "ты не мошенник?",
     expected: {
       kind: "victim_intent",
       intent: "trust_or_greeting",
@@ -456,6 +937,76 @@ export const LIVE_PHRASE_CASES = [
       kind: "victim_intent",
       intent: "code_request",
       replyIncludes: "Kodni hech kimga aytmang",
+    },
+  },
+  {
+    area: "uzbek code",
+    text: "menga SMS kod so'rashdi",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Kodni hech kimga aytmang",
+    },
+  },
+  {
+    area: "uzbek card",
+    text: "menga karta so'rashyapti",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "card_request",
+      replyIncludes: "Karta ma'lumotlari",
+    },
+  },
+  {
+    area: "uzbek personal data",
+    text: "menga pasport so'rashyapti",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "personal_data_request",
+      replyIncludes: "Pasport",
+    },
+  },
+  {
+    area: "uzbek personal data",
+    text: "menga JSHSHIR so'rashyapti",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "personal_data_request",
+      replyIncludes: "Pasport",
+    },
+  },
+  {
+    area: "uzbek transfer",
+    text: "menga pul o'tkaz deyapti",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "transfer_request",
+      replyIncludes: "Hozircha pul o'tkazmang",
+    },
+  },
+  {
+    area: "uzbek link",
+    text: "menga havola yuborishdi",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "link_received",
+      replyIncludes: "Hozircha havolani ochmang",
+    },
+  },
+  {
+    area: "uzbek file",
+    text: "menga fayl yuborishdi",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Notanish manbadan",
     },
   },
   {
@@ -482,6 +1033,56 @@ export const LIVE_PHRASE_CASES = [
       kind: "victim_intent",
       intent: "code_request",
       replyIncludes: "Do not tell anyone the code",
+    },
+  },
+  {
+    area: "english link",
+    text: "someone sent me a link",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "link_received",
+      replyIncludes: "Do not open the link",
+    },
+  },
+  {
+    area: "english file",
+    text: "someone sent me a file",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Do not open a file",
+    },
+  },
+  {
+    area: "english card",
+    text: "they asked for my card details",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "card_request",
+      replyIncludes: "Do not send card data",
+    },
+  },
+  {
+    area: "english personal data",
+    text: "they asked for my passport",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "personal_data_request",
+      replyIncludes: "Do not send passport",
+    },
+  },
+  {
+    area: "english transfer",
+    text: "they told me to transfer money",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "transfer_request",
+      replyIncludes: "Do not transfer money yet",
     },
   },
   {
@@ -522,6 +1123,16 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "panic", panicId: 1 },
   },
   {
+    area: "sent code",
+    text: "я уже сообщил код подтверждения",
+    expected: { kind: "panic", panicId: 1 },
+  },
+  {
+    area: "sent code",
+    text: "я уже продиктовал код",
+    expected: { kind: "panic", panicId: 1 },
+  },
+  {
     area: "uzbek sent code",
     text: "men kodni yubordim",
     lang: "uz",
@@ -544,8 +1155,28 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "panic", panicId: 3 },
   },
   {
+    area: "sent money",
+    text: "я уже оплатил комиссию",
+    expected: { kind: "panic", panicId: 3 },
+  },
+  {
+    area: "sent money",
+    text: "я уже пополнил баланс",
+    expected: { kind: "panic", panicId: 3 },
+  },
+  {
     area: "card data sent",
     text: "я уже ввел данные карты",
+    expected: { kind: "panic", panicId: 4 },
+  },
+  {
+    area: "card data sent",
+    text: "я уже дал cvv",
+    expected: { kind: "panic", panicId: 4 },
+  },
+  {
+    area: "card data sent",
+    text: "я уже сказал пин карты",
     expected: { kind: "panic", panicId: 4 },
   },
   {
@@ -557,6 +1188,16 @@ export const LIVE_PHRASE_CASES = [
     area: "remote access",
     text: "я уже дал доступ к телефону",
     expected: { kind: "panic", panicId: 2 },
+  },
+  {
+    area: "telegram access",
+    text: "я уже отсканировал QR для входа в Telegram",
+    expected: { kind: "panic", panicId: 5 },
+  },
+  {
+    area: "telegram access",
+    text: "я потерял доступ к телеграму",
+    expected: { kind: "panic", panicId: 5 },
   },
   {
     area: "english card sent",

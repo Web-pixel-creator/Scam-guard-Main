@@ -84,8 +84,20 @@ function hasVictimFrame(text: string): boolean {
 }
 
 function hasAskVerb(text: string): boolean {
-  return /(?:просят|просит|попросил[аи]?|сказал[аи]?|говорит|требу(?:ет|ют)|нужно|надо|хочет|хотят|asked|asks|asking|told|wants?|needs?|so['’]?ra|sorashyap|ayt|deyap|kerak)/iu.test(
+  return /(?:просят|просит|попросил[аи]?|спрашива(?:ет|ют)|спросил[аи]?|сказал[аи]?|говорит|требу(?:ет|ют)|нужно|надо|хочет|хотят|asked|asks|asking|told|wants?|needs?|so['’]?ra|sorashyap|ayt|deyap|kerak)/iu.test(
     text,
+  );
+}
+
+function hasVictimRequestFrame(text: string): boolean {
+  return (
+    hasVictimFrame(text) ||
+    /^(?:у\s+меня\s+)?(?:просят|просит|попросил[аи]?|спрашива(?:ет|ют)|спросил[аи]?|сказал[аи]?|говорит|требу(?:ет|ют)|нужно|надо|хочет|хотят)(?=$|[\s,.;:!?])/iu.test(
+      text,
+    ) ||
+    /^(?:they|someone|caller)\s+(?:asked|asks|is\s+asking|told|wants?|needs?)(?=$|[\s,.;:!?])/iu.test(
+      text,
+    )
   );
 }
 
@@ -140,7 +152,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     /(?:sizga|senga|botga|this\s+bot|этому\s+боту|тебе|вам).{0,40}(?:ishonsam|ishonsa|trust|доверять|ишонсам)/iu.test(
       normalized,
     ) ||
-    /(?:это\s+точно\s+бот|что\s+это\s+за\s+бот|а\s+вы\s+кто|как\s+ты\s+работаешь|are\s+you\s+a\s+scam|who\s+are\s+you|how\s+do\s+you\s+work)/iu.test(
+    /(?:это\s+точно\s+бот|что\s+это\s+за\s+бот|а\s+вы\s+кто|как\s+ты\s+работаешь|ты\s+не\s+мошенник|вы\s+не\s+мошенник|are\s+you\s+a\s+scam|who\s+are\s+you|how\s+do\s+you\s+work)/iu.test(
       normalized,
     )
   ) {
@@ -156,7 +168,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:я\s+боюсь|мне\s+страшно|помогите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|yordam|qo['’]?rqyapman|nima\s+qilishni\s+bilmayman)/iu.test(
+    /(?:я\s+боюсь|мне\s+страшно|помогите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|я\s+запутал(?:ся|ась)|я\s+волнуюсь|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|yordam|qo['’]?rqyapman|nima\s+qilishni\s+bilmayman)/iu.test(
       normalized,
     )
   ) {
@@ -171,6 +183,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
       normalized,
     ) ||
     /(?:думаю|кажется|похоже|maybe|i\s+think|menimcha).{0,60}(?:мошенник|скам|обман|scam|fraud|firib)/iu.test(
+      normalized,
+    ) ||
+    /(?:не\s+понимаю|не\s+знаю).{0,80}(?:обман|мошенник|скам|развод|scam|fraud|firib)/iu.test(
       normalized,
     )
   ) {
@@ -209,15 +224,28 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:sms|смс|otp|код|code|kod|telegram\s+code|verification)/iu.test(normalized)
+    !/(?:сделать\s+перевод|перевод|перевести|transfer|o['’]?tkaz)/iu.test(normalized) &&
+    /(?:последн.{0,20}цифр.{0,30}карт|карт[ауые]|фото\s+карт|номер\s+карты|реквизит|cvv|cvc|(?:pin|пин)(?=$|[\s,.;:!?]))/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "card_request", askedContext: "card" };
+  }
+
+  if (
+    hasVictimRequestFrame(normalized) &&
+    hasAskVerb(normalized) &&
+    /(?:sms|смс|otp|код|парол|цифр|сообщени|уведомлени|code|password|digits|kod|telegram\s+code|verification)/iu.test(
+      normalized,
+    )
   ) {
     return { kind: "code_request", askedContext: "code" };
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:подтверд(?:ить|и|ите|ят|ить\s+нужно).{0,40}(?:вход|логин|операци|перевод)|(?:вход|логин|операци|перевод).{0,40}подтверд|confirm.{0,40}(?:login|transfer|operation)|verify.{0,40}(?:login|transfer|operation)|tasdiq.{0,40}(?:kirish|o['’]?tkaz|operatsiya))/iu.test(
       normalized,
@@ -227,7 +255,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:паспорт|фото\s+(?:паспорта|документ|id|айди)|документ|удостоверени|id.?карт|пинфл|pinfl|jshshir|инн|дата\s+рождения|адрес|прописка|personal\s+data|passport|id\s+card|date\s+of\s+birth|address|pasport|hujjat|jshshir|tug['’]?ilgan|manzil)/iu.test(
       normalized,
@@ -249,7 +277,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:сделать\s+перевод|перевод\s+на\s+карт|перевести.{0,40}на\s+карт|transfer.{0,40}(?:card|account)|o['’]?tkaz.{0,40}karta)/iu.test(
       normalized,
@@ -259,7 +287,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:карт[ауые]|cvv|cvc|pin|пин|номер\s+карты|реквизит|card|karta|plastik)/iu.test(normalized)
   ) {
@@ -267,7 +295,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|связалась).{0,80}(?:друг|подруга|родствен|сын|дочь|мама|папа).{0,80}(?:просит|нужны|деньги|перевод)/iu.test(
+    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|связалась).{0,80}(?:друг|подруга|родствен|сын|дочь|мама|папа).{0,80}(?:(?:просит|нужны|надо|срочно).{0,40}(?:деньг|перевод|перевест|оплат|скинуть|отправить)|(?:деньг|перевод|перевест|оплат))/iu.test(
+      normalized,
+    ) ||
+    /(?:друг|подруга|родствен|сын|дочь|мама|папа).{0,80}(?:(?:просит|нужны|надо|срочно).{0,40}(?:деньг|перевод|перевест|оплат|скинуть|отправить)|(?:деньг|перевод|перевест|оплат).{0,40}(?:просит|нужны|надо|срочно))/iu.test(
       normalized,
     )
   ) {
@@ -275,7 +306,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:перевод|перевести|деньг|оплат|платеж|комисс|transfer|money|pay|payment|pul|to['’]?lov|o['’]?tkaz)/iu.test(
       normalized,
@@ -285,9 +316,11 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:apk|приложени|установ|скачать|anydesk|dastur|ilova|install|download|app)/iu.test(normalized)
+    /(?:apk|приложени|установ|скачать|anydesk|dastur|ilova|install|download|app|доступ\s+к\s+(?:телефон|экран|устройств)|демонстрац.{0,20}экран|screen\s+share|screen\s+access|phone\s+access)/iu.test(
+      normalized,
+    )
   ) {
     return { kind: "apk_request", askedContext: "apk" };
   }
@@ -296,13 +329,17 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     hasVictimFrame(normalized) &&
     /(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:ссылк|линк|url|link|havola)/iu.test(
       normalized,
-    )
+    ) ||
+    (hasVictimFrame(normalized) &&
+      /(?:ссылк|линк|url|link|havola).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
+        normalized,
+      ))
   ) {
     return { kind: "link_received", askedContext: "link_qr" };
   }
 
   if (
-    hasVictimFrame(normalized) &&
+    hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:ссылк|линк|url|link|havola|qr|куар)/iu.test(normalized)
   ) {
@@ -311,9 +348,13 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     hasVictimFrame(normalized) &&
-    /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|yuborishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
+    /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
       normalized,
-    )
+    ) ||
+    (hasVictimFrame(normalized) &&
+      /(?:файл|документ|apk|архив|pdf|file|document|fayl).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
+        normalized,
+      ))
   ) {
     return { kind: "file_received" };
   }
@@ -328,6 +369,17 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
       ))
   ) {
     return { kind: "telegram_message" };
+  }
+
+  if (
+    /(?:menga|meni|men bilan|someone|stranger|unknown).{0,80}(?:notanish|unknown|stranger|odam).{0,80}(?:yoz|message|messag|wrote|text)/iu.test(
+      normalized,
+    ) ||
+    /(?:notanish|unknown|stranger|odam).{0,80}(?:yoz|message|messag|wrote|text).{0,80}(?:menga|meni|me)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unknown_contact" };
   }
 
   if (
@@ -388,6 +440,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|связалась).{0,80}(?:техподдержк|поддержк|служб[аы]\s+безопасности|бот\s+от\s+имени\s+банка|сотрудник\s+банка|банк|оператор|bank\s+support|support)/iu.test(
       normalized,
+    ) ||
+    /(?:bank|security|support).{0,80}(?:is\s+)?(?:messaging|writing|texting|contacting)\s+me/iu.test(
+      normalized,
     )
   ) {
     return { kind: "support_impersonation" };
@@ -412,6 +467,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написала|связалась).{0,80}(?:девушка|парень|роман|интернет|dating|relationship|любов|sevgi)/iu.test(
+      normalized,
+    ) ||
+    /(?:мне|со\s+мной).{0,80}(?:познакомил[аи]?сь|познакомился|познакомились).{0,80}(?:девушка|парень|знаком|интернет|telegram|телеграм)/iu.test(
       normalized,
     )
   ) {

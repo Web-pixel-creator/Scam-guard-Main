@@ -2,6 +2,10 @@
 
 Status: WIP QA corpus for Telegram chat and inline behavior.
 
+Regression lock: 164 live phrases are currently enforced through
+`src/lib/telegram/live-phrase-cases.ts` and
+`src/lib/telegram/handlers/check.followup-routing.test.ts`.
+
 Goal: make the bot understand victim-framed, human phrases before the risk engine. These are not always scam payloads. They are user intents: fear, uncertainty, context, advice request, or "what should I do now?"
 
 Expected behavior:

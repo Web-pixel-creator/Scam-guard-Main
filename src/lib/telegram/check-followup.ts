@@ -18,6 +18,8 @@ const NEXT_STEPS_RE =
   /(?:что\s+(?:делать|дальше|посоветуешь)|что\s+мне\s+делать|как\s+(?:поступить|быть)|какой\s+следующий\s+шаг|что\s+еще|что\s+ещё|what\s+(?:should\s+i\s+do|next)|next\s+step|nima\s+qilay|keyin\s+nima|qanday\s+qilay)/i;
 const CONTACTS_RE =
   /(?:дай|покажи|нужен|нужны|куда|как)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq)/i;
+const REPORT_CONTEXT_RE =
+  /(?:пожаловаться|заявлен|полици|102|куда\s+звонить\s+если|обманул|обманули|мошен|скам|report|police|fraud|scam|shikoyat|aldadi|firib)/i;
 const SIMPLE_EXPLAIN_RE =
   /(?:объясни|поясни|скажи|можно)\s*.{0,30}(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|человеческ)|(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|для\s+(?:мамы|папы|пожил)|я\s+пожил|мне\s+сложно)|(?:explain|say|tell)\s*.{0,30}(?:simply|simple\s+words|like\s+i'?m\s+(?:five|old|elderly)|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:simple\s+words|eli5|like\s+i'?m\s+five|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:oddiy|sodda|tushunarli)\s*.{0,30}(?:qilib|so'zlar|tushuntir)|(?:buvimga|onamga|otamga|keksalar)/i;
 const EXPLAIN_RE =
@@ -35,7 +37,7 @@ const IDENTITY_RE =
   /^(?:(?:а\s+)?(?:вы|ты)\s+кто|кто\s+(?:вы|ты)|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz|sen\s+kimsan|nima\s+qila\s+olasan)[\s?!.,]*$/i;
 
 const SCAM_PAYLOAD_RE =
-  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
+  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|код|парол|цифр|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
 
 const CRYPTO_CONTEXT_RE =
   /(крипт|биткоин|bitcoin|binance|trading|трейд|инвест|доходн|прибыл|forex|crypto|investment|investits|kripto|daromad|foyda)/i;
@@ -135,7 +137,7 @@ export function classifyLastCheckFollowUp(
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
-  if (CONTACTS_RE.test(trimmed)) return "contacts";
+  if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
@@ -151,7 +153,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
-  if (CONTACTS_RE.test(trimmed)) return "contacts";
+  if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (EXPLAIN_RE.test(trimmed)) return "explain";

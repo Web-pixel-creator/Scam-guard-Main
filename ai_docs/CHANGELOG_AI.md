@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-06 - TG-016 Telegram live victim phrase matrix expansion
+
+- Expanded the real Telegram victim-phrase regression matrix from 79 to 164
+  cases, based on live inline/chat screenshots and the user-observed cold
+  fallbacks for phrases like "мне пишет незнакомый человек", "он хочет смс код",
+  "как мне связаться с банком", "меня пытаются обмануть", "мне сказали сделать
+  перевод на карту" and Uzbek/English equivalents.
+- Hardened victim-intent routing so implicit user frames such as "просят",
+  "спрашивают", "нужно" and "they asked..." are treated as a request from the
+  user's situation, not as a raw scam payload. Code, card, transfer, APK/remote
+  access, file/link, support impersonation, romance/contact, unknown-contact and
+  personal-data branches now catch more natural phrasing.
+- Fixed follow-up priority regressions where concrete new risk phrases could be
+  swallowed by generic "contact the bank" follow-up logic, and where "звонить"
+  accidentally matched live-call panic routing.
+- Verification: `telegram-live-phrase-matrix.ts`, focused follow-up/victim
+  tests and the full `src/lib/telegram` Vitest suite passed.
+
 ## 2026-07-05 - TG-015 Telegram inline human phrase corpus
 
 - Researched common scam-request phrasing from bank/security guidance and
