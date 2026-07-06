@@ -74,7 +74,7 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
 }
 
 function hasVictimFrame(text: string): boolean {
-  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|маму|папу|друга|сын|дочь|menga|meni|men|bizga|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
+  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|маму|папу|друга|сын|дочь|menga|meni|men|bizga|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
     text,
   );
 }
@@ -177,11 +177,31 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   if (
     hasVictimFrame(normalized) &&
     hasAskVerb(normalized) &&
+    /(?:подтверд(?:ить|и|ите|ят|ить\s+нужно).{0,40}(?:вход|логин|операци|перевод)|(?:вход|логин|операци|перевод).{0,40}подтверд|confirm.{0,40}(?:login|transfer|operation)|verify.{0,40}(?:login|transfer|operation)|tasdiq.{0,40}(?:kirish|o['’]?tkaz|operatsiya))/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
+    hasVictimFrame(normalized) &&
+    hasAskVerb(normalized) &&
     /(?:паспорт|фото\s+(?:паспорта|документ|id|айди)|документ|удостоверени|id.?карт|пинфл|pinfl|jshshir|инн|дата\s+рождения|адрес|прописка|personal\s+data|passport|id\s+card|date\s+of\s+birth|address|pasport|hujjat|jshshir|tug['’]?ilgan|manzil)/iu.test(
       normalized,
     )
   ) {
     return { kind: "personal_data_request" };
+  }
+
+  if (
+    hasVictimFrame(normalized) &&
+    hasAskVerb(normalized) &&
+    /(?:сделать\s+перевод|перевод\s+на\s+карт|перевести.{0,40}на\s+карт|transfer.{0,40}(?:card|account)|o['’]?tkaz.{0,40}karta)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "transfer_request", askedContext: "transfer" };
   }
 
   if (
@@ -271,6 +291,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     /(?:мне|нам|со\s+мной).{0,40}(?:звонил[аи]?|позвонил[аи]?|связал[аси]?ь?).{0,80}(?:банк|банка|служб[аы]\s+безопасности|оператор)|(?:банк|банка|служб[аы]\s+безопасности).{0,80}(?:звонил[аи]?|позвонил[аи]?|связал[аси]?ь?)/iu.test(
       normalized,
     ) ||
+    /(?:^|\s)(?:звон(?:ит|ят|или)|позвон(?:ил|ила|или)).{0,50}(?:из\s+)?(?:банк|банка|служб[аы]\s+безопасности|оператор)/iu.test(
+      normalized,
+    ) ||
     /(?:звонил[аи]?|сказал[аи]?).{0,80}(?:карта|счет|аккаунт).{0,80}(?:заблок|заморож)/iu.test(
       normalized,
     ) ||
@@ -298,6 +321,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     /(?:мне|со\s+мной).{0,50}(?:пишет|написал|связался|связалась).{0,80}(?:одноклассник|друг|подруга|знаком|родствен|мама|папа).{0,80}(?:не\s+уверен|точно\s+он|точно\s+она|сомневаюсь)/iu.test(
       normalized,
     ) ||
+    /(?:мне|со\s+мной).{0,50}(?:пишет|написал|связался|связалась).{0,80}(?:одноклассник|друг|подруга|знаком|родствен|мама|папа).{0,80}(?:странн|необычн|подозрител)/iu.test(
+      normalized,
+    ) ||
     /(?:friend|classmate|relative).{0,80}(?:not\s+sure|is\s+it\s+really|asks?\s+money)/iu.test(
       normalized,
     )
@@ -306,7 +332,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|связалась).{0,80}(?:техподдержк|поддержк|служб[аы]\s+безопасности|бот\s+от\s+имени\s+банка|сотрудник\s+банка|bank\s+support|support)/iu.test(
+    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|связалась).{0,80}(?:техподдержк|поддержк|служб[аы]\s+безопасности|бот\s+от\s+имени\s+банка|сотрудник\s+банка|банк|оператор|bank\s+support|support)/iu.test(
       normalized,
     )
   ) {
@@ -344,7 +370,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|пишут).{0,80}(?:незнаком|кто-то|какой.?то|odam|notanish|someone|stranger)/iu.test(
+    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|пишут).{0,80}(?:незнаком|неизвестн|номер|кто-то|какой.?то|odam|notanish|someone|stranger)/iu.test(
       normalized,
     )
   ) {
