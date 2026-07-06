@@ -602,10 +602,16 @@ describe("handleInlineQuery", () => {
       id: string;
       title: string;
       description: string;
+      input_message_content: { message_text: string };
     };
     expect(article.id).toBe(id);
     expect(article.title).toBe(title);
     expect(article.description).not.toContain("Вставьте полное сообщение");
+    expect(article.input_message_content.message_text).toContain(title);
+    expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
+    expect(article.input_message_content.message_text).not.toContain(
+      "Одного значения мало для уверенного вывода",
+    );
   });
 
   it.each([
@@ -651,6 +657,8 @@ describe("handleInlineQuery", () => {
       expect(article.title).toBe(title);
       expect(article.description).toContain("Есть подозрительные признаки");
       expect(article.input_message_content.message_text).toContain("Требуется осторожность");
+      expect(article.input_message_content.message_text).toContain(title);
+      expect(article.input_message_content.message_text).not.toContain("Одного значения мало");
     },
   );
 });

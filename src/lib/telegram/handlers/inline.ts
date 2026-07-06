@@ -779,6 +779,28 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   return lines.join("\n");
 }
 
+function formatHumanInlineMessage(
+  result: RunCheckResult,
+  lang: Lang,
+  intentCopy: { title: string; description: string },
+): string {
+  const copy = COPY[lang];
+  const level = copy.levels[result.level];
+  const title =
+    result.level === "unknown" ? intentCopy.title : `${level.title}\n${intentCopy.title}`;
+  const lines = [
+    title,
+    copy.checkedBy,
+    "",
+    `${copy.displayLabel}: ${result.display}`,
+    "",
+    intentCopy.description,
+    "",
+    "@scamguard_bot",
+  ];
+  return lines.join("\n");
+}
+
 function compactInlineDescription(value: string): string {
   const oneLine = value.replace(/\s+/gu, " ").trim();
   if (oneLine.length <= MAX_INLINE_DESCRIPTION_LENGTH) return oneLine;
@@ -1352,7 +1374,7 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
         `check-${result.level}-${humanIntent.replaceAll("_", "-")}`,
         intentCopy.title,
         intentCopy.description,
-        formatInlineMessage(result, lang),
+        formatHumanInlineMessage(result, lang, intentCopy),
         lang,
       );
     }
@@ -1372,7 +1394,7 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
       `check-${result.level}-${humanIntent.replaceAll("_", "-")}`,
       intentCopy.title,
       `${level.description}. ${intentCopy.description}`,
-      formatInlineMessage(result, lang),
+      formatHumanInlineMessage(result, lang, intentCopy),
       lang,
     );
   }
