@@ -49,6 +49,21 @@ Expected: the smoke passes, returns webhook `200` for all synthetic inline
 updates, and confirms no `checks` or chat-scoped Telegram sessions were
 persisted.
 
+## Deferred Client Note
+
+2026-07-06 live Telegram Web follow-up:
+
+- Production inline backend smoke passes.
+- Real bot chat text routes for unknown-contact + SMS-code, Soliq/OneID, and
+  transfer-to-card phrases passed in the live Telegram chat.
+- Telegram Web did not render the inline result list in the current session
+  when typing `@scamguard_bot ...` inside the bot chat or Saved Messages; it
+  only left a local draft. The draft was cleared.
+- Treat this as deferred client visual QA, not a backend failure, until
+  reproduced in Telegram Desktop/mobile or a fresh Telegram Web session.
+- Next retest target: mobile Telegram or Telegram Desktop, Saved Messages or a
+  private non-moderator QA chat.
+
 ## Visual Cases
 
 | Case ID               | Query to type                                                                | Expected inline result                                                                                                                  | Expected after insert                                                                           | Must not happen                                                                    |

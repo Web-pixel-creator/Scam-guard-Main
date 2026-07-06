@@ -32,6 +32,11 @@
   verifies webhook `200` plus no `checks`/session persistence. The manual
   real-client checklist now lives in `ai_docs/TELEGRAM_INLINE_QA.md`; remaining
   QA is capturing sanitized Telegram-client visual examples/screenshots.
+  2026-07-06 note: Telegram Web in the current session did not render inline
+  result lists in the bot chat or Saved Messages and only left a local draft,
+  while production inline smoke still passed. Defer this visual check to mobile
+  Telegram or Telegram Desktop in Saved Messages / a private non-moderator QA
+  chat.
 - **Pig-butchering / romance grooming has explicit conversation memory now.**
   `/conversation` collects a short user-supplied thread, stores only derived
   stage/action/reason metadata in the Telegram session, and flags chains such
