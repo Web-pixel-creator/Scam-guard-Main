@@ -219,6 +219,14 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался).{0,80}(?:нотариус|юрист|коллектор|суд|полици|налогов|lawyer|notary|court|police)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "legal_impersonation" };
+  }
+
+  if (
     hasVictimFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:сделать\s+перевод|перевод\s+на\s+карт|перевести.{0,40}на\s+карт|transfer.{0,40}(?:card|account)|o['’]?tkaz.{0,40}karta)/iu.test(

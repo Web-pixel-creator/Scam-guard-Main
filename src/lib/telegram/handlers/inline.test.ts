@@ -489,6 +489,16 @@ describe("handleInlineQuery", () => {
       title: "Канал заработка: осторожно",
     },
     {
+      text: "агентство обещает визу в Корею но просит предоплату",
+      id: "check-unknown-travel-migration-prepayment",
+      title: "Виза/тур: не платите заранее",
+    },
+    {
+      text: "турфирма просит оплатить хадж заранее",
+      id: "check-unknown-travel-migration-prepayment",
+      title: "Виза/тур: не платите заранее",
+    },
+    {
       text: "у меня просят ссылку",
       id: "check-unknown-link-request",
       title: "Ссылка: сначала проверим",
@@ -577,6 +587,16 @@ describe("handleInlineQuery", () => {
       text: "это безопасно или мошенники?",
       id: "check-unknown-safety-question",
       title: "Безопасно ли: проверим по фактам",
+    },
+    {
+      text: "мне пишут в телеграме",
+      id: "check-unknown-safety-question",
+      title: "Безопасно ли: проверим по фактам",
+    },
+    {
+      text: "мне пишет нотариус и требует оплатить штраф",
+      id: "check-unknown-general-scam-concern",
+      title: "Подозреваете обман: пришлите просьбу",
     },
     {
       text: "меня зовут вступить в какой то канал",

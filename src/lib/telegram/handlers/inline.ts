@@ -8,6 +8,7 @@ import {
   type InlineQueryResultArticle,
 } from "@/lib/telegram/api.server";
 import type { InlineQueryCtx } from "@/lib/telegram/router";
+import { classifyVictimIntent, type VictimIntentKind } from "@/lib/telegram/victim-intent";
 
 const MAX_INLINE_QUERY_LENGTH = 2000;
 const MAX_INLINE_DESCRIPTION_LENGTH = 120;
@@ -30,6 +31,7 @@ type HumanInlineIntent =
   | "relative_distress"
   | "job_offer"
   | "investment_offer"
+  | "travel_migration_prepayment"
   | "romance_money"
   | "unknown_contact"
   | "identity_uncertain"
@@ -361,6 +363,11 @@ const PREVIEW_COPY: Record<
         description:
           "Гарантированный доход, TON/USDT/wallet и быстрый процент — частый крючок. Не переводите депозит незнакомым.",
       },
+      travel_migration_prepayment: {
+        title: "Виза/тур: не платите заранее",
+        description:
+          "Визы, работа за границей, хадж/умра, туры и билеты рискованны, если просят предоплату или сбор в чате.",
+      },
       romance_money: {
         title: "Отношения: деньги не отправляйте",
         description:
@@ -511,6 +518,11 @@ const PREVIEW_COPY: Record<
         title: "Invest/kripto: ehtiyot bo'ling",
         description:
           "Kafolatlangan daromad, TON/USDT/wallet va tez foyda - keng tarqalgan tuzoq. Depozit yubormang.",
+      },
+      travel_migration_prepayment: {
+        title: "Viza/tur: oldindan to'lamang",
+        description:
+          "Viza, chet elda ish, haj/umra, tur va chiptalar uchun chatda oldindan to'lov yoki yig'im so'ralsa, xavfli.",
       },
       romance_money: {
         title: "Munosabat: pul yubormang",
@@ -664,6 +676,11 @@ const PREVIEW_COPY: Record<
         title: "Invest/crypto: be careful",
         description:
           "Guaranteed income, TON/USDT/wallet and fast returns are common bait. Do not send a deposit.",
+      },
+      travel_migration_prepayment: {
+        title: "Visa/tour: do not prepay",
+        description:
+          "Visas, work abroad, Hajj/Umrah, tours and tickets are risky if a chat asks for prepayment or a fee.",
       },
       romance_money: {
         title: "Relationship: do not send money",
@@ -858,6 +875,67 @@ function hasCodeRequestIntent(normalized: string): boolean {
       normalized,
     )
   );
+}
+
+function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInlineIntent | null {
+  switch (kind) {
+    case "emotional_help":
+    case "advice_question":
+      return "next_step";
+    case "general_scam_concern":
+    case "report_question":
+      return "general_scam_concern";
+    case "unknown_contact":
+    case "romance_contact":
+      return "unknown_contact";
+    case "unknown_call":
+    case "bank_call":
+      return "bank_call";
+    case "identity_uncertain":
+      return "identity_uncertain";
+    case "telegram_message":
+    case "file_received":
+      return "safety_question";
+    case "link_received":
+    case "link_request":
+      return "link_request";
+    case "code_request":
+      return "code_request";
+    case "card_request":
+      return "card_request";
+    case "transfer_request":
+      return "transfer_request";
+    case "apk_request":
+      return "app_request";
+    case "personal_data_request":
+      return "personal_data";
+    case "friend_money":
+      return "relative_distress";
+    case "support_impersonation":
+      return "bank_call";
+    case "authority_impersonation":
+    case "legal_impersonation":
+      return "general_scam_concern";
+    case "romance_money":
+      return "romance_money";
+    case "job_offer":
+      return "job_offer";
+    case "investment_offer":
+      return "investment_offer";
+    case "travel_migration_prepayment":
+      return "travel_migration_prepayment";
+    case "bank_contact_question":
+      return "bank_contact";
+    case "acknowledgement":
+    case "trust_or_greeting":
+      return null;
+  }
+}
+
+function classifySharedVictimInlineIntent(text: string): HumanInlineIntent | null {
+  const match = classifyVictimIntent(text);
+  if (!match) return null;
+  return mapVictimIntentToHumanInlineIntent(match.kind);
 }
 
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
@@ -1273,6 +1351,11 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "investment_offer";
+  }
+
+  const sharedVictimIntent = classifySharedVictimInlineIntent(normalized);
+  if (sharedVictimIntent) {
+    return sharedVictimIntent;
   }
 
   if (

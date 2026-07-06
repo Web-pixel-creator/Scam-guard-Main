@@ -49,6 +49,7 @@ describe("classifyVictimIntent", () => {
     ["турфирма просит оплатить хадж заранее", "travel_migration_prepayment"],
     ["menga Koreyaga viza uchun oldindan to'lov so'rashyapti", "travel_migration_prepayment"],
     ["мне пишет тот кто представляется нотариусом", "legal_impersonation"],
+    ["мне пишет нотариус и требует оплатить штраф", "legal_impersonation"],
     ["как мне связаться с банком", "bank_contact_question"],
     ["какой номер банка", "bank_contact_question"],
     ["куда пожаловаться на мошенника", "report_question"],
