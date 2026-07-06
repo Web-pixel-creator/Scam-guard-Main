@@ -255,6 +255,15 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
   },
   {
+    area: "crypto investment",
+    text: "мне предлагают инвестировать в крипту через телеграм канал",
+    expected: {
+      kind: "victim_intent",
+      intent: "investment_offer",
+      replyIncludes: "Инвестиции/крипта",
+    },
+  },
+  {
     area: "earning channel",
     text: "меня зовут вступить в канал для заработка",
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },

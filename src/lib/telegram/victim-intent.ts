@@ -30,6 +30,7 @@ export type VictimIntentKind =
   | "romance_contact"
   | "romance_money"
   | "job_offer"
+  | "investment_offer"
   | "legal_impersonation"
   | "bank_contact_question"
   | "report_question"
@@ -383,6 +384,20 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:мне|меня|со\s+мной|menga|meni|me)?.{0,80}(?:предлага(?:ют|ет)|зов(?:ут|ет)|приглаша(?:ют|ет)|совет(?:уют|ует)|обеща(?:ют|ет)|aytishyap|taklif).{0,120}(?:инвест|крипт|crypto|ton|wallet|бирж|трейд|trading|доход|прибыл|сигнал|depozit|daromad|foyda)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|чат|групп|channel|chat|group).{0,100}(?:инвест|крипт|crypto|ton|wallet|бирж|трейд|trading|доход|прибыл|сигнал|signal)/iu.test(
+      normalized,
+    ) ||
+    /(?:инвест|крипт|crypto|ton|wallet|бирж|трейд|trading|доход|прибыл|сигнал).{0,100}(?:канал|чат|групп|channel|chat|group|депозит|влож|пополни|пополнить|deposit)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "investment_offer", askedContext: "transfer" };
+  }
+
+  if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался).{0,80}(?:работодатель|работ[ау]|ваканси|легкий\s+доход|job|employer|ish|daromad)/iu.test(
       normalized,
     ) ||
@@ -530,6 +545,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Работа/лёгкий доход становится опасной, если просят взнос, обучение, депозит, карту, APK или ваши документы.\n\nНе платите заранее. Пришлите текст предложения или ссылку.",
       uz: "Ish/yengil daromad xavfli bo'ladi, agar badal, o'qish puli, depozit, karta, APK yoki hujjat so'ralsa.\n\nOldindan to'lamang. Taklif matni yoki havolani yuboring.",
       en: "A job/easy-income offer becomes risky if they ask for a fee, training payment, deposit, card data, APK, or documents.\n\nDo not pay upfront. Send the offer text or link.",
+    },
+    investment_offer: {
+      ru: "Инвестиции/крипта через Telegram-канал или личного «наставника» часто ведут к депозиту, платным сигналам или комиссии за вывод.\n\nПока не пополняйте баланс и не подключайте кошелёк. Пришлите ссылку, username автора или условия.",
+      uz: "Telegram-kanal yoki shaxsiy «ustoz» orqali investitsiya/kripto ko'pincha depozit, pulli signallar yoki yechib olish komissiyasiga olib boradi.\n\nHozircha balans to'ldirmang va hamyon ulamang. Havola, muallif username'i yoki shartlarni yuboring.",
+      en: "Investment/crypto through a Telegram channel or personal “mentor” often leads to deposits, paid signals, or withdrawal fees.\n\nDo not top up a balance or connect a wallet yet. Send the link, author username, or terms.",
     },
     legal_impersonation: {
       ru: "Нотариус, юрист, полиция, налоговая или коллектор в чате могут давить страхом.\n\nНе оплачивайте «штраф» по ссылке и не отправляйте документы. Проверьте через официальный номер/сайт и пришлите текст угрозы.",
