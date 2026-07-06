@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-06 - TG-016 Inline transfer-card preview priority
+
+- Live Telegram Web inline QA found that `@scamguard_bot мне сказали сделать
+  перевод на карту` still showed the card-data preview instead of the transfer
+  preview. The normal chat route was already correct; this was isolated to the
+  inline human-intent classifier.
+- Kept delivery, prize-fee, relative-distress, job and travel/migration previews
+  above generic transfer, and added a card guard so payment/transfer wording is
+  not swallowed just because the destination is a card.
+- Verification: focused inline tests and the full `src/lib/telegram` suite
+  passed.
+
 ## 2026-07-06 - TG-016 Telegram live victim phrase matrix expansion
 
 - Expanded the real Telegram victim-phrase regression matrix from 79 to 164

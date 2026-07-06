@@ -419,6 +419,11 @@ describe("handleInlineQuery", () => {
       title: "Перевод: нужна причина",
     },
     {
+      text: "мне сказали сделать перевод на карту",
+      id: "check-unknown-transfer-request",
+      title: "Перевод: нужна причина",
+    },
+    {
       text: "просят установить приложение для защиты",
       id: "check-unknown-app-request",
       title: "Приложение: не устанавливайте",

@@ -1203,14 +1203,17 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:просят|просит|попросил|попросили|спрашива|спросил|спросили|требует|требуют|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит|пин|pin)/iu.test(
+    !/(?:перевести|перевод|оплатить|заплатить|пополни|безопасн.{0,20}сч[её]т|transfer|payment|send\s+money|pul|to['’]?lov|o['’]?tkaz)/iu.test(
+      normalized,
+    ) &&
+    (/(?:просят|просит|попросил|попросили|спрашива|спросил|спросили|требует|требуют|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит|пин|pin)/iu.test(
       normalized,
     ) ||
-    /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
-      normalized,
-    ) ||
-    /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
-    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized)
+      /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
+        normalized,
+      ) ||
+      /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
+      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized))
   ) {
     return "card_request";
   }
