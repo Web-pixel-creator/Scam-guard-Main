@@ -105,12 +105,27 @@ const STAGE_PATTERNS: Array<[ConversationStage, RegExp]> = [
   ["qr_login", /(?:qr|куар|скан|scan|login|вход|подключ|ulanish|kirish)/i],
 ];
 
-const ACTION_PATTERNS: Array<[ConversationRequestedAction, RegExp, string]> = [
+const CODE_TERMS_RE = String.raw`(?:sms|смс|otp|код|code|цифр|raqam|kod|pin|пин|парол)`;
+const DIRECT_CODE_ASK_VERBS_RE = String.raw`(?:назов|продикту|скажи|сообщи|пришли|введи|подтверд)`;
+const RETOLD_RU_CODE_ASK_VERBS_RE = String.raw`(?:просят|просит|попросил[аи]?|хочет|хотят|нужен|нужна|нужно|надо|требует|требуют|говорит|говорят|сказал[аи]?|спросил[аи]?)`;
+const RETOLD_EN_CODE_ASK_VERBS_RE = String.raw`(?:ask|asked|asks|want|wants|need|needs)`;
+const RETOLD_UZ_CODE_ASK_VERBS_RE = String.raw`(?:so['’]?ra|so['’]?radi|xohla|kerak|deyapti|dedi)`;
+const CODE_REQUEST_RE = new RegExp(
   [
-    "say_code",
-    /(?:назов|продикту|скажи|сообщи|пришли|введи|подтверд).{0,50}(?:sms|смс|otp|код|code|цифр|raqam|kod)|(?:sms|смс|otp|код|code|цифр|raqam|kod).{0,50}(?:назов|продикту|скажи|сообщи|пришли|введи|подтверд)/i,
-    "asks_for_sms_code",
-  ],
+    `${DIRECT_CODE_ASK_VERBS_RE}.{0,50}${CODE_TERMS_RE}`,
+    `${CODE_TERMS_RE}.{0,50}${DIRECT_CODE_ASK_VERBS_RE}`,
+    `${RETOLD_RU_CODE_ASK_VERBS_RE}.{0,60}${CODE_TERMS_RE}`,
+    `${CODE_TERMS_RE}.{0,60}${RETOLD_RU_CODE_ASK_VERBS_RE}`,
+    `${RETOLD_EN_CODE_ASK_VERBS_RE}.{0,60}${CODE_TERMS_RE}`,
+    `${CODE_TERMS_RE}.{0,60}${RETOLD_EN_CODE_ASK_VERBS_RE}`,
+    `${RETOLD_UZ_CODE_ASK_VERBS_RE}.{0,60}${CODE_TERMS_RE}`,
+    `${CODE_TERMS_RE}.{0,60}${RETOLD_UZ_CODE_ASK_VERBS_RE}`,
+  ].join("|"),
+  "i",
+);
+
+const ACTION_PATTERNS: Array<[ConversationRequestedAction, RegExp, string]> = [
+  ["say_code", CODE_REQUEST_RE, "asks_for_sms_code"],
   [
     "send_card",
     /(?:карт[ау]|номер\s+карты|cvv|cvc|срок\s+карты|card).{0,60}(?:пришли|назов|введи|сообщи|send|enter|ayt|yubor)|(?:пришли|назов|введи|сообщи|send|enter|ayt|yubor).{0,60}(?:карт[ау]|номер\s+карты|cvv|cvc|card)/i,

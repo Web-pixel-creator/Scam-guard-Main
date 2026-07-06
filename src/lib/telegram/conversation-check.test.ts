@@ -57,6 +57,41 @@ describe("Telegram Conversation Check v1", () => {
     expect(result).toContain("Не называйте код");
   });
 
+  it("flags user-retold code requests in conversation mode", () => {
+    let draft = createConversationDraft();
+    for (const text of ["Мне пишет незнакомый человек", "Он хочет SMS-код"]) {
+      const appended = appendConversationMessage(draft, text);
+      expect(appended.ok).toBe(true);
+      draft = appended.ok ? appended.draft : draft;
+    }
+
+    expect(draft.strongestLevel).toBe("high_risk");
+    expect(draft.requestedActions).toContain("say_code");
+    expect(draft.reasonCounts.asks_for_sms_code).toBe(1);
+
+    const result = buildConversationResultText(draft, "ru");
+    expect(result).toContain("высокий риск");
+    expect(result).toContain("назвать код");
+    expect(result).toContain("просят SMS-код");
+    expect(result).toContain("Не называйте код");
+    expect(result).not.toContain("явной просьбы к действию пока нет");
+    expect(result).not.toContain("опасных просьб в явном виде не найдено");
+  });
+
+  it.each(["They need the SMS code", "U kod so'rayapti"])(
+    "flags retold code requests across supported languages: %s",
+    (text) => {
+      let draft = createConversationDraft();
+      const appended = appendConversationMessage(draft, text);
+      expect(appended.ok).toBe(true);
+      draft = appended.ok ? appended.draft : draft;
+
+      expect(draft.strongestLevel).toBe("high_risk");
+      expect(draft.requestedActions).toContain("say_code");
+      expect(draft.reasonCounts.asks_for_sms_code).toBe(1);
+    },
+  );
+
   it("recognizes done/cancel phrases and enforces the message cap", () => {
     expect(isConversationDonePhrase("готово")).toBe(true);
     expect(isConversationDonePhrase("done")).toBe(true);
