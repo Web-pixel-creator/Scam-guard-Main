@@ -168,6 +168,23 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("lets a new victim situation override stale emergency follow-up context", async () => {
+    await handleCheck("мне пишет родственник но странным образом", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWithData({
+        lastPanicId: 2,
+        lastPanicAt: new Date().toISOString(),
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("не уверены");
+    expect(hoisted.sentMessages[0].text).not.toContain("После установки подозрительного APK");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("answers ambiguous confirmation requests after a phone check without running a new check", async () => {
     await handleCheck("Попросил подтверждение", {
       chatId: 100,

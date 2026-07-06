@@ -1955,6 +1955,8 @@ const FOLLOWUP_TRUSTED_RE =
   /(?:близк|родствен|семь|семья|мам|пап|сын|дочь|пожил|пенсион|доверя|нервнича|волнуюсь|страшно|паник|один|одна|позвать|позови|со\s+мной|рядом)|(?:family|relative|trusted|elder|parent|mother|father|son|daughter|nervous|scared|panic|alone)|(?:yaqin|qarindosh|ishonchli|ota|ona|farzand|keks|qo'rq|xavotir|yolg'iz)/i;
 const FOLLOWUP_MORE_RE =
   /(?:что|что-то)\s+(?:еще|ещё|дальше)|(?:что\s+мне\s+делать|что\s+делать\s+дальше|как\s+быть|дальше|следующий\s+шаг|посовет|подскажи|помоги\s+дальше)|what\s+next|next\s+steps|more\s+advice|what\s+else|what\s+should\s+i\s+do|yana\s+nima|keyin\s+nima|nima\s+qil/i;
+const FOLLOWUP_NEW_SITUATION_RE =
+  /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|menga|meni|men|me|someone|they)(?=$|[\s,.;:!?]).{0,80}(?:пиш(?:ет|ут)|написал[аи]?|звон(?:ит|ят|или)|позвон(?:ил|ила|или)|прос(?:ит|ят)|сказал[аи]?|прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|sent|wrote|called|asks?|asking|yoz|qo['’]?ng['’]?iroq|so['’]?ra)/i;
 
 const FOLLOWUP_BUTTONS: Record<EmergencyFollowUpAction | "voice", Record<Lang, string>> = {
   more: { ru: "🧭 Что дальше", uz: "🧭 Keyingi qadam", en: "🧭 Next step" },
@@ -2092,6 +2094,7 @@ export function classifyEmergencyFollowUp(
   if (panicId === null) return null;
   const normalized = normalizeFollowUpText(text);
   if (!normalized) return null;
+  if (FOLLOWUP_NEW_SITUATION_RE.test(normalized)) return null;
 
   if (FOLLOWUP_CONTACTS_RE.test(normalized)) return { action: "contacts", panicId };
   if (FOLLOWUP_TRUSTED_RE.test(normalized)) return { action: "trusted_person", panicId };
