@@ -28,6 +28,7 @@ export type VictimIntentKind =
   | "support_impersonation"
   | "authority_impersonation"
   | "romance_contact"
+  | "romance_money"
   | "job_offer"
   | "legal_impersonation"
   | "bank_contact_question"
@@ -340,11 +341,45 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:люблю|скучаю|дорог|родн|знаком|отношен|невест|жених|девушк|парен|интернет).{0,140}(?:деньг|перевед|помоги|билет|виза|лечение|инвест|крипт|депозит)/iu.test(
+      normalized,
+    ) ||
+    /(?:деньг|перевед|помоги|билет|виза|лечение|инвест|крипт|депозит).{0,140}(?:люблю|скучаю|дорог|родн|знаком|отношен|невест|жених|девушк|парен|интернет)/iu.test(
+      normalized,
+    ) ||
+    /(?:sevgi|sog['’]?indim|aziz|tanish|munosabat).{0,140}(?:pul|yordam|chipta|viza|davolanish|invest|kripto)/iu.test(
+      normalized,
+    ) ||
+    /(?:love|miss|dear|dating|relationship|girl|boyfriend|girlfriend).{0,140}(?:money|transfer|ticket|visa|treatment|invest|crypto|deposit)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "romance_money", askedContext: "transfer" };
+  }
+
+  if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написала|связалась).{0,80}(?:девушка|парень|роман|интернет|dating|relationship|любов|sevgi)/iu.test(
       normalized,
     )
   ) {
     return { kind: "romance_contact" };
+  }
+
+  if (
+    /(?:работ|ваканс|подработ|заработ|легк.{0,20}доход|удаленн.{0,20}работ|стажиров|работодатель).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат|карта)/iu.test(
+      normalized,
+    ) ||
+    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров|работодатель)/iu.test(
+      normalized,
+    ) ||
+    /(?:ish|vakans|daromad|oylik|masofaviy).{0,120}(?:to['’]?lov|o['’]?qish|forma|tekshir|garov|depozit|karta)/iu.test(
+      normalized,
+    ) ||
+    /(?:job|work|vacancy|income|remote).{0,120}(?:fee|training|uniform|verification|deposit|prepay|card)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "job_offer" };
   }
 
   if (
@@ -485,6 +520,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Новый романтический знакомый — не риск сам по себе. Риск начинается, если появляются деньги, билеты, виза, инвестиции, крипта или «помоги срочно».\n\nПока ничего не переводите. Пришлите его просьбу текстом.",
       uz: "Yangi romantik tanishning o'zi xavf emas. Xavf pul, chipta, viza, investitsiya, kripto yoki «tez yordam ber» so'rovi chiqqanda boshlanadi.\n\nHozircha pul o'tkazmang. Uning iltimosini matn qilib yuboring.",
       en: "A new romantic contact is not risky by itself. Risk starts when money, tickets, visas, investment, crypto, or “urgent help” appears.\n\nDo not transfer anything yet. Send their request as text.",
+    },
+    romance_money: {
+      ru: "Романтический знакомый просит деньги, билет, визу, лечение или инвестицию — это частый сценарий обмана.\n\nПока ничего не переводите. Поставьте паузу, сохраните переписку и проверьте ситуацию с близким человеком.",
+      uz: "Romantik tanish pul, chipta, viza, davolanish yoki investitsiya so'rasa — bu keng tarqalgan firibgarlik sxemasi.\n\nHozircha pul o'tkazmang. To'xtab turing, yozishmani saqlang va vaziyatni yaqin inson bilan tekshiring.",
+      en: "A romantic contact asking for money, a ticket, visa, treatment, or investment is a common scam pattern.\n\nDo not transfer anything yet. Pause, save the chat, and review it with a trusted person.",
     },
     job_offer: {
       ru: "Работа/лёгкий доход становится опасной, если просят взнос, обучение, депозит, карту, APK или ваши документы.\n\nНе платите заранее. Пришлите текст предложения или ссылку.",

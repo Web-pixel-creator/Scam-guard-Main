@@ -231,8 +231,22 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "romance",
+    text: "девушка из интернета просит деньги на билет",
+    expected: {
+      kind: "victim_intent",
+      intent: "romance_money",
+      replyIncludes: "частый сценарий обмана",
+    },
+  },
+  {
     area: "job",
     text: "мне пишет работодатель",
+    expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
+  },
+  {
+    area: "job",
+    text: "работодатель просит оплатить обучение перед работой",
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
   },
   {
