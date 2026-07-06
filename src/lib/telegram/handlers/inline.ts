@@ -916,6 +916,8 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
     case "authority_impersonation":
     case "legal_impersonation":
       return "general_scam_concern";
+    case "gov_service_login":
+      return "gov_service";
     case "romance_money":
       return "romance_money";
     case "job_offer":

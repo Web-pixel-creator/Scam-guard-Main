@@ -509,6 +509,16 @@ describe("handleInlineQuery", () => {
       title: "Связаться с банком: только официальный номер",
     },
     {
+      text: "агентство Хотели в Soliq войти",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
+      text: "Хотели в Soliq войти",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
       text: "меня пытаются обмануть",
       id: "check-unknown-general-scam-concern",
       title: "Подозреваете обман: пришлите просьбу",

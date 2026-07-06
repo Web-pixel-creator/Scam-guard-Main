@@ -27,6 +27,7 @@ export type VictimIntentKind =
   | "friend_money"
   | "support_impersonation"
   | "authority_impersonation"
+  | "gov_service_login"
   | "romance_contact"
   | "romance_money"
   | "job_offer"
@@ -100,6 +101,23 @@ function isTravelMigrationPrepaymentIntent(text: string): boolean {
       text,
     ) ||
     /(?:visa|migration|work\s+abroad|korea|russia|hajj|umrah|tour|travel\s+agency).{0,140}(?:prepay|fee|deposit|commission|advance|payment)/iu.test(
+      text,
+    )
+  );
+}
+
+function isGovServiceLoginIntent(text: string): boolean {
+  const govService =
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|солик|солиқ|госуслуг|госуслуги|госорган|электронн.{0,20}правительств|давлат\s+хизмат|pinfl|пинфл|jshshir|myid|digital\s+passport|цифров.{0,20}паспорт)/iu;
+  const loginAction =
+    /(?:войд|войти|вход|логин|авториз|кабинет|подтверд|код|sms|смс|парол|ссылк|разблок|тиклаш|tasdiq|kirish|login|sign\s*in|verify|confirm|password|code|restore|blocked)/iu;
+
+  return (
+    (govService.test(text) && loginAction.test(text)) ||
+    /(?:хот(?:ят|ели|ел|ела)|просят|просит|сказали|говорят|нужно|надо).{0,80}(?:войд|войти|вход|логин|авториз|подтверд).{0,80}(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|солик|солиқ|госуслуг|госуслуги|давлат\s+хизмат)/iu.test(
+      text,
+    ) ||
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|солик|солиқ|госуслуг|госуслуги|давлат\s+хизмат).{0,80}(?:хот(?:ят|ели|ел|ела)|просят|просит|сказали|говорят|нужно|надо).{0,80}(?:войд|войти|вход|логин|авториз|подтверд)/iu.test(
       text,
     )
   );
@@ -184,6 +202,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
       return { kind: "code_request", askedContext: "code" };
     }
     return { kind: "advice_question" };
+  }
+
+  if (isGovServiceLoginIntent(normalized)) {
+    return { kind: "gov_service_login" };
   }
 
   if (
@@ -560,6 +582,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Звонок или чат от «майора», полиции, прокуратуры, налоговой, кадастра, суда или коллектора часто используют для давления страхом.\n\nНе называйте коды, не отправляйте документы и не платите по ссылке. Завершите контакт и проверяйте только через официальный номер или личное обращение.",
       uz: "«Mayor», politsiya, prokuratura, soliq, kadastr, sud yoki kollektor nomidan qo'ng'iroq/chat ko'pincha qo'rqitish uchun ishlatiladi.\n\nKod aytmang, hujjat yubormang va havola orqali to'lamang. Aloqani tugating va faqat rasmiy raqam yoki shaxsan murojaat orqali tekshiring.",
       en: "A call or chat from a “major”, police, prosecutor, tax office, cadastre, court, or collector is often used to pressure with fear.\n\nDo not share codes, send documents, or pay by link. End the contact and verify only through an official number or in person.",
+    },
+    gov_service_login: {
+      ru: "Soliq, OneID и госуслуги проверяем только через официальный сайт или приложение, открытые вручную.\n\nНе входите по ссылке из чата/SMS, не называйте пароль и SMS-код. Если вас просят «войти», «подтвердить» или «разблокировать» — пришлите ссылку или текст просьбы.",
+      uz: "Soliq, OneID va davlat xizmatlarini faqat rasmiy sayt yoki ilovani o'zingiz ochib tekshiring.\n\nChat/SMS havolasi orqali kirmang, parol va SMS-kodni aytmang. «Kirish», «tasdiqlash» yoki «blokdan chiqarish» so'ralsa — havola yoki so'rov matnini yuboring.",
+      en: "Check Soliq, OneID, and government services only through the official site/app that you open yourself.\n\nDo not sign in from a chat/SMS link, and do not share your password or SMS code. If they ask you to “sign in”, “confirm”, or “unlock”, send the link or request text.",
     },
     romance_contact: {
       ru: "Новый романтический знакомый — не риск сам по себе. Риск начинается, если появляются деньги, билеты, виза, инвестиции, крипта или «помоги срочно».\n\nПока ничего не переводите. Пришлите его просьбу текстом.",
