@@ -584,6 +584,33 @@ describe("handleVoice", () => {
     );
   });
 
+  it("uses risky audio filename text as a fallback when transcription fails", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: null });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 2,
+      mimeType: "audio/mpeg",
+      fileUniqueId: "uz-app-sms-permission",
+      fileName: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({ lastPanicId: 2 }),
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        text: expect.stringContaining("Men ilovani o'rnatdim va SMSga ruxsat"),
+      }),
+    );
+  });
+
   it("rejects oversized voice files before downloading", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,

@@ -175,6 +175,14 @@ const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
+type VoiceMeta = {
+  fileSize?: number;
+  duration?: number;
+  mimeType?: string;
+  fileUniqueId?: string;
+  fileName?: string;
+  caption?: string;
+};
 type VoiceTranscriptWorkResult =
   | { kind: "ok"; text: string }
   | { kind: "failed" }
@@ -505,6 +513,22 @@ function sanitizeVoiceTranscriptPreview(text: string): string {
   return trimTextPreviewAtWordBoundary(sanitized, VOICE_TRANSCRIPT_PREVIEW_CHARS);
 }
 
+function cleanAudioMetadataText(value: string | undefined): string | null {
+  const text = value
+    ?.normalize("NFKC")
+    .split(/[\\/]/)
+    .pop()
+    ?.replace(/\.(?:mp3|m4a|ogg|oga|opus|wav|webm|aac|flac)$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text || text.length < 8) return null;
+
+  const letters = text.match(/[a-zа-я]/gi)?.length ?? 0;
+  if (letters < 6) return null;
+  return text;
+}
+
 function trimTextPreviewAtWordBoundary(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
 
@@ -516,6 +540,13 @@ function trimTextPreviewAtWordBoundary(text: string, maxChars: number): string {
 
 const VOICE_HOOK_KEYWORD_RE =
   /(sms|otp|код|code|verification|cvv|cvc|pin|apk|карта|картой|card|перевод|перевести|transfer|оплат|payment|pay|доставк|посылк|delivery|courier|qr|telegram|банк|bank|кошел|wallet|karta|to['’]?lov|o['’]?tkaz|pul|kod|havola|ilova)/i;
+
+function extractVoiceMetadataFallbackText(meta?: VoiceMeta): string | null {
+  const candidates = [meta?.caption, meta?.fileName]
+    .map(cleanAudioMetadataText)
+    .filter((value): value is string => Boolean(value));
+  return candidates.find((value) => VOICE_HOOK_KEYWORD_RE.test(value)) ?? null;
+}
 
 function trimVoiceHookPhrase(value: string): string {
   const trimmed = value.replace(/\s+/g, " ").trim();
@@ -588,6 +619,16 @@ async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Pro
       [{ text: bt("voice_correct_button", ctx.session.lang), callback_data: CB.voiceCorrect }],
     ],
   });
+}
+
+async function sendVoiceMetadataFallbackNote(ctx: HandlerCtx, text: string): Promise<void> {
+  const preview = sanitizeVoiceTranscriptPreview(text);
+  if (!preview) return;
+  await replyText(
+    ctx.chatId,
+    bt("voice_metadata_fallback_note", ctx.session.lang, { text: preview }),
+    buildVoiceUncertainKeyboard(ctx.session.lang),
+  );
 }
 
 function normalizeVoiceIntentText(text: string): string {
@@ -1443,12 +1484,17 @@ async function handleResolvedVoiceTranscript(
   ctx: HandlerCtx,
   transcriptText: string,
   startedAt: number,
-  meta: { duration?: number } | undefined,
-  source: "cached" | "in_flight",
+  meta: VoiceMeta | undefined,
+  source: "cached" | "in_flight" | "metadata_fallback",
 ): Promise<void> {
   const lang = ctx.session.lang;
+  const metadataFallback = source === "metadata_fallback";
 
-  await sendVoiceTranscriptNote(ctx, transcriptText);
+  if (metadataFallback) {
+    await sendVoiceMetadataFallbackNote(ctx, transcriptText);
+  } else {
+    await sendVoiceTranscriptNote(ctx, transcriptText);
+  }
   if (isLowSignalVoiceTranscript(transcriptText)) {
     await replyText(
       ctx.chatId,
@@ -1458,6 +1504,7 @@ async function handleResolvedVoiceTranscript(
     logTelegramTiming("voice.total", startedAt, {
       cached: source === "cached",
       inFlight: source === "in_flight",
+      metadataFallback,
       lowSignal: true,
       transcriptChars: transcriptText.length,
       durationSec: meta?.duration ?? null,
@@ -1474,6 +1521,7 @@ async function handleResolvedVoiceTranscript(
     logTelegramTiming("voice.total", startedAt, {
       cached: source === "cached",
       inFlight: source === "in_flight",
+      metadataFallback,
       negatedDoneAck: true,
       transcriptChars: transcriptText.length,
       durationSec: meta?.duration ?? null,
@@ -1487,6 +1535,7 @@ async function handleResolvedVoiceTranscript(
     logTelegramTiming("voice.total", startedAt, {
       cached: source === "cached",
       inFlight: source === "in_flight",
+      metadataFallback,
       routedToPanic: panicId,
       transcriptChars: transcriptText.length,
       durationSec: meta?.duration ?? null,
@@ -1506,6 +1555,7 @@ async function handleResolvedVoiceTranscript(
   logTelegramTiming("voice.run_check", checkStartedAt, {
     cached: source === "cached",
     inFlight: source === "in_flight",
+    metadataFallback,
     type: result.type,
     level: result.level,
     reasonCount: result.reasons.length,
@@ -1514,6 +1564,7 @@ async function handleResolvedVoiceTranscript(
   logTelegramTiming("voice.total", startedAt, {
     cached: source === "cached",
     inFlight: source === "in_flight",
+    metadataFallback,
     type: result.type,
     level: result.level,
     reasonCount: result.reasons.length,
@@ -1522,10 +1573,28 @@ async function handleResolvedVoiceTranscript(
   });
 }
 
+async function handleVoiceTranscriptionFailure(
+  ctx: HandlerCtx,
+  startedAt: number,
+  meta: VoiceMeta | undefined,
+): Promise<void> {
+  const fallbackText = extractVoiceMetadataFallbackText(meta);
+  if (fallbackText) {
+    await handleResolvedVoiceTranscript(ctx, fallbackText, startedAt, meta, "metadata_fallback");
+    return;
+  }
+
+  await replyText(
+    ctx.chatId,
+    bt("voice_transcription_failed", ctx.session.lang),
+    buildVoiceFallbackKeyboard(ctx.session.lang),
+  );
+}
+
 export async function handleVoice(
   fileId: string,
   ctx: HandlerCtx,
-  meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
+  meta?: VoiceMeta,
 ): Promise<void> {
   const startedAt = Date.now();
   const lang = ctx.session.lang;
@@ -1559,11 +1628,7 @@ export async function handleVoice(
         repeatMs: 4000,
       });
       if (shared.kind === "failed") {
-        await replyText(
-          ctx.chatId,
-          bt("voice_transcription_failed", lang),
-          buildVoiceFallbackKeyboard(lang),
-        );
+        await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
         return;
       }
       if (shared.kind === "too_large") {
@@ -1587,11 +1652,7 @@ export async function handleVoice(
       mimeType: meta?.mimeType ?? null,
     });
     if (!fileMeta) {
-      await replyText(
-        ctx.chatId,
-        bt("voice_transcription_failed", lang),
-        buildVoiceFallbackKeyboard(lang),
-      );
+      await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
       return;
     }
 
@@ -1688,11 +1749,7 @@ export async function handleVoice(
     );
 
     if (outcome.kind === "failed") {
-      await replyText(
-        ctx.chatId,
-        bt("voice_transcription_failed", lang),
-        buildVoiceFallbackKeyboard(lang),
-      );
+      await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
       return;
     }
     if (outcome.kind === "too_large") {

@@ -90,6 +90,8 @@ const audioSchema = z
   .object({
     file_id: z.string(),
     file_unique_id: z.string().optional(),
+    file_name: z.string().optional(),
+    title: z.string().optional(),
     file_size: z.number().optional(),
     duration: z.number().optional(),
     mime_type: z.string().optional(),
@@ -328,7 +330,14 @@ export interface Handlers {
   handleVoice(
     fileId: string,
     ctx: HandlerCtx,
-    meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
+    meta?: {
+      fileSize?: number;
+      duration?: number;
+      mimeType?: string;
+      fileUniqueId?: string;
+      fileName?: string;
+      caption?: string;
+    },
   ): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
@@ -368,6 +377,8 @@ export type RouteAction =
       duration?: number;
       mimeType?: string;
       fileUniqueId?: string;
+      fileName?: string;
+      caption?: string;
     }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
@@ -588,12 +599,15 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     return imageRoute(m.document.file_id, m.media_group_id, source);
   }
   if (m.document && isAudioDocument(m.document)) {
+    const caption = messageCaption(m);
     return {
       kind: "voice",
       fileId: m.document.file_id,
       fileSize: m.document.file_size,
       mimeType: m.document.mime_type,
       fileUniqueId: m.document.file_unique_id,
+      ...(m.document.file_name ? { fileName: m.document.file_name } : {}),
+      ...(caption ? { caption } : {}),
     };
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
@@ -619,6 +633,8 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     };
   }
   if (m.audio != null) {
+    const caption = messageCaption(m);
+    const fileName = m.audio.file_name ?? m.audio.title;
     return {
       kind: "voice",
       fileId: m.audio.file_id,
@@ -626,6 +642,8 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
       duration: m.audio.duration,
       mimeType: m.audio.mime_type,
       fileUniqueId: m.audio.file_unique_id,
+      ...(fileName ? { fileName } : {}),
+      ...(caption ? { caption } : {}),
     };
   }
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
@@ -822,6 +840,8 @@ export async function dispatchUpdate(
         duration: action.duration,
         mimeType: action.mimeType,
         fileUniqueId: action.fileUniqueId,
+        fileName: action.fileName,
+        caption: action.caption,
       });
       break;
     case "contact":

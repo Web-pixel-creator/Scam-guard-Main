@@ -453,6 +453,7 @@ describe("decideRoute content types (no active scenario)", () => {
       fileSize: 12345,
       mimeType: "audio/ogg",
       fileUniqueId: "doc-audio-unique-1",
+      fileName: "audio_2026-06-15_14-58-19.ogg",
     });
   });
 
@@ -471,6 +472,7 @@ describe("decideRoute content types (no active scenario)", () => {
       fileId: "doc-audio-2",
       fileSize: 54321,
       fileUniqueId: "doc-audio-unique-2",
+      fileName: "forwarded-voice.m4a",
     });
   });
 
@@ -748,6 +750,36 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCheck");
     expect(calls[0].arg).toBe("check me");
+  });
+
+  it("dispatches audio filename metadata to handleVoice", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({
+        audio: {
+          file_id: "audio-1",
+          file_unique_id: "audio-unique-1",
+          file_size: 1024,
+          duration: 2,
+          mime_type: "audio/mpeg",
+          file_name: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+        },
+      }),
+      deps,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleVoice");
+    expect(calls[0].arg).toBe("audio-1");
+    expect(calls[0].extra).toEqual(
+      expect.objectContaining({
+        fileSize: 1024,
+        duration: 2,
+        mimeType: "audio/mpeg",
+        fileUniqueId: "audio-unique-1",
+        fileName: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+      }),
+    );
   });
 
   it("dispatches a plain meta-question to handleMetaIntent before handleCheck", async () => {
