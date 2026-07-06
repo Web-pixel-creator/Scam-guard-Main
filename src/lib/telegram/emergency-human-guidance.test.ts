@@ -27,6 +27,23 @@ describe("panic scenario first card human guidance", () => {
 
     expect(firstContentLine(text)).toContain("ЗАВЕРШИТЕ ЗВОНОК");
     expect(text).toContain("Не доказывайте ничего по телефону");
+    expect(text).toContain("настоящая организация спокойно дождётся");
+    expect(text).not.toContain("настоящий банк спокойно дождётся");
+  });
+
+  it("keeps bank-specific live-call copy only for bank calls", () => {
+    const text = buildPanicScenarioText(6, "ru", { liveCallContext: "bank" });
+
+    expect(firstContentLine(text)).toContain("ЗАВЕРШИТЕ ЗВОНОК");
     expect(text).toContain("настоящий банк спокойно дождётся");
+  });
+
+  it("uses government-specific live-call copy for tax or public-office calls", () => {
+    const text = buildPanicScenarioText(6, "ru", { liveCallContext: "government" });
+
+    expect(firstContentLine(text)).toContain("ЗАВЕРШИТЕ ЗВОНОК");
+    expect(text).toContain("налоговая, госорган или полиция");
+    expect(text).toContain("официальный сайт");
+    expect(text).not.toContain("настоящий банк спокойно дождётся");
   });
 });

@@ -51,6 +51,7 @@ import {
   buildPanicScenarioText,
   hasRecentEmergencyContext,
   withPanicContextData,
+  type LiveCallContext,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
@@ -893,6 +894,12 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   if (
     /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(?:ят|ит(?!ь))/.test(text) ||
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
+    /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,80}(?:из\s+)?(?:банк|банка|налогов|полици|милици|мвд|прокуратур|суд|кадастр|госорган|оператор|связи)/.test(
+      text,
+    ) ||
+    /(?:банк|банка|налогов|полици|милици|мвд|прокуратур|суд|кадастр|госорган|оператор|связи).{0,80}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(
+      text,
+    ) ||
     /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
     /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
@@ -928,6 +935,37 @@ function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
 const TEXT_PANIC_DONE_INTENT_RE =
   /(?:^|\s)(?:(?:\u044f|\u043c\u044b)\s+(?:\u0443\u0436\u0435\s+)?.{0,50}(?:\u043e\u0442\u043f\u0440\u0430\u0432|\u0441\u043e\u043e\u0431\u0449|\u043d\u0430\u0437\u0432\u0430|\u0441\u043a\u0430\u0437\u0430|\u043f\u0435\u0440\u0435\u0434\u0430|\u043f\u0440\u043e\u0434\u0438\u043a\u0442|\u0443\u0441\u0442\u0430\u043d\u043e\u0432|\u0441\u043a\u0430\u0447|\u0437\u0430\u043f\u0443\u0441\u0442|\u043e\u0442\u043a\u0440|\u0440\u0430\u0437\u0440\u0435\u0448|\u0432\u043a\u043b\u044e\u0447|\u0434\u0430\u043b|\u0441\u0434\u0435\u043b\u0430|\u043f\u0435\u0440\u0435\u0432|\u043e\u043f\u043b\u0430\u0442|\u043f\u043e\u043f\u043e\u043b\u043d|\u0432\u0432\u0435|\u0432\u0432\u0451|\u0432\u0431\u0438|\u0443\u043a\u0430\u0437|\u0441\u043a\u0430\u043d|\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434)|(?:men|biz).{0,50}(?:yub[oa]rdim|jo['\u2019]?natdim|jonatdim|aytdim|berdim|kiritdim|o['\u2019]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['\u2019]?tkazdim|otkazdim|to['\u2019]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)|(?:мен|биз).{0,50}(?:юбордим|жунатдим|айтдим|бердим|киритдим|урнатдим|юкладим|очдим|рухсат бердим|утказдим|толадим|сканер килдим|scan килдим|тасдикладим)|(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|dictated|entered|typed|confirmed|approved|installed|downloaded|opened|started|allowed|enabled|transferred|paid|topped\s+up|scanned))/i;
 
+function classifyLiveCallContext(text: string | undefined): LiveCallContext {
+  const normalized = normalizeVoiceIntentText(text ?? "");
+  if (!normalized) return "generic";
+
+  if (
+    /(?:налогов|налог|фнс|солик|солиқ|soliq|one\s?id|oneid|my\.gov|id\.gov|gov\.uz|госуслуг|госорган|давлат|pinfl|пинфл|jshshir|полици|милици|мвд|ииб|iib|прокуратур|prokuratura|суд|court|sud|кадастр|kadastr|нотариус|notary|юрист|lawyer|коллектор|tax|government|police|prosecutor)/iu.test(
+      normalized,
+    )
+  ) {
+    return "government";
+  }
+
+  if (
+    /(?:оператор|связи|сим|sim|ucell|beeline|mobiuz|uztelecom|telecom|operator|aloqa|raqamni\s+ko['’]?chir|nomer)/iu.test(
+      normalized,
+    )
+  ) {
+    return "operator";
+  }
+
+  if (
+    /(?:банк|bank|карта|karta|card|humo|uzcard|kapitalbank|uzum|anorbank|hamkor|ипотека\s*банк|нацбанк|нбу|central\s+bank|марказий\s+банк)/iu.test(
+      normalized,
+    )
+  ) {
+    return "bank";
+  }
+
+  return "generic";
+}
+
 function classifyTextPanicIntent(
   text: string,
   source?: TelegramForwardSourceContext,
@@ -949,20 +987,30 @@ function classifyTextPanicIntent(
   return TEXT_PANIC_DONE_INTENT_RE.test(normalized) ? panicId : null;
 }
 
-async function sendPanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+async function sendPanicRoute(
+  ctx: HandlerCtx,
+  panicId: PanicScenarioId,
+  triggerText?: string,
+): Promise<void> {
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const liveCallContext = panicId === 6 ? classifyLiveCallContext(triggerText) : undefined;
+  const nextScenarioData = withPanicContextData(previousScenarioData, panicId);
+  if (liveCallContext !== undefined) {
+    (nextScenarioData as typeof nextScenarioData & { lastLiveCallContext: LiveCallContext })
+      .lastLiveCallContext = liveCallContext;
+  }
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withSessionChatScope(
-      withPanicContextData(previousScenarioData, panicId),
-      ctx.chatId,
-      ctx.chatType,
-    ),
+    scenarioData: withSessionChatScope(nextScenarioData, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
-    text: escapeMarkdownV2(buildPanicScenarioText(panicId, ctx.session.lang)),
+    text: escapeMarkdownV2(
+      liveCallContext === undefined
+        ? buildPanicScenarioText(panicId, ctx.session.lang)
+        : buildPanicScenarioText(panicId, ctx.session.lang, { liveCallContext }),
+    ),
     keyboard: buildEmergencyFollowUpKeyboard(ctx.session.lang, panicId),
   });
 }
@@ -1171,7 +1219,7 @@ export async function handleCheck(
 
   const textPanicId = classifyTextPanicIntent(trimmed, source);
   if (textPanicId !== null) {
-    await sendPanicRoute(ctx, textPanicId);
+    await sendPanicRoute(ctx, textPanicId, trimmed);
     return;
   }
 
@@ -1531,7 +1579,7 @@ async function handleResolvedVoiceTranscript(
 
   const panicId = classifyVoicePanicIntent(transcriptText);
   if (panicId !== null) {
-    await sendPanicRoute(ctx, panicId);
+    await sendPanicRoute(ctx, panicId, transcriptText);
     logTelegramTiming("voice.total", startedAt, {
       cached: source === "cached",
       inFlight: source === "in_flight",
@@ -1721,7 +1769,12 @@ export async function handleVoice(
         }
         const panicId = classifyVoicePanicIntent(transcriptText);
         if (panicId !== null) {
-          return { kind: "panic" as const, panicId, transcriptChars: transcriptText.length };
+          return {
+            kind: "panic" as const,
+            panicId,
+            transcriptText,
+            transcriptChars: transcriptText.length,
+          };
         }
 
         const checkStartedAt = Date.now();
@@ -1762,7 +1815,7 @@ export async function handleVoice(
       return;
     }
     if (outcome.kind === "panic") {
-      await sendPanicRoute(ctx, outcome.panicId);
+      await sendPanicRoute(ctx, outcome.panicId, outcome.transcriptText);
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         routedToPanic: outcome.panicId,

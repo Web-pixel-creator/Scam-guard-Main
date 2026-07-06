@@ -86,6 +86,29 @@ beforeEach(() => {
 });
 
 describe("handleVoice", () => {
+  it.each([
+    "Мне звонят из налоговой и просят данные",
+    "Звонит из налоговой и просит данные",
+  ])("uses government live-call copy when the caller claims to be tax office: %s", async (text) => {
+    await handleCheck(text, ctx());
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({
+          lastPanicId: 6,
+          lastLiveCallContext: "government",
+        }),
+      }),
+    );
+
+    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
+    expect(joined).toContain("налоговая, госорган или полиция");
+    expect(joined).not.toContain("настоящий банк спокойно дождётся");
+  });
+
   it("transcribes voice notes and runs the normal check pipeline", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,
@@ -362,6 +385,34 @@ describe("handleVoice", () => {
         }),
       );
     }
+  });
+
+  it("uses government live-call copy for voice transcripts about tax-office calls", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({
+      text: "Hozir menga soliqdan qo'ng'iroq qilishyapti va ma'lumot so'rashyapti",
+    });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "uz-tax-call-voice",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({
+          lastPanicId: 6,
+          lastLiveCallContext: "government",
+        }),
+      }),
+    );
+
+    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
+    expect(joined).toContain("налоговая, госорган или полиция");
+    expect(joined).not.toContain("настоящий банк спокойно дождётся");
   });
 
   it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {

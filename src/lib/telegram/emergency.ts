@@ -1131,6 +1131,12 @@ export const PANIC_MENU_TITLES: Record<PanicScenarioId, Record<Lang, string>> = 
 /** callback_data prefix for panic scenario buttons. Full: "panic:1" through "panic:15". */
 export const PANIC_CB_PREFIX = "panic:";
 
+export type LiveCallContext = "generic" | "bank" | "government" | "operator";
+
+interface PanicScenarioTextOptions {
+  liveCallContext?: LiveCallContext;
+}
+
 /** Build the panic menu prompt text. */
 export function buildPanicMenuText(lang: Lang): string {
   const prompts: Record<Lang, string> = {
@@ -1168,11 +1174,63 @@ const SCENARIO_HUMAN_CUES: Partial<Record<PanicScenarioId, Record<Lang, string>>
     en: "Do not argue with whoever is using your account; first recover access and warn people.",
   },
   6: {
-    ru: "Не доказывайте ничего по телефону: настоящий банк спокойно дождётся вашего обратного звонка.",
-    uz: "Telefonda hech narsani isbotlamang: haqiqiy bank sizning qayta qo'ng'irog'ingizni kutadi.",
-    en: "You do not need to prove anything on the call; a real bank will wait for your callback.",
+    ru: "Не доказывайте ничего по телефону: настоящая организация спокойно дождётся вашей проверки через официальный канал.",
+    uz: "Telefonda hech narsani isbotlamang: haqiqiy tashkilot rasmiy kanal orqali tekshirishingizni kutadi.",
+    en: "You do not need to prove anything on the call; a real organization will wait while you verify through an official channel.",
   },
 };
+
+const LIVE_CALL_HUMAN_CUES: Record<LiveCallContext, Record<Lang, string>> = {
+  generic: {
+    ru: SCENARIO_HUMAN_CUES[6]!.ru,
+    uz: SCENARIO_HUMAN_CUES[6]!.uz,
+    en: SCENARIO_HUMAN_CUES[6]!.en,
+  },
+  bank: {
+    ru: "Не доказывайте ничего по телефону: настоящий банк спокойно дождётся, пока вы проверите всё через официальный канал.",
+    uz: "Telefonda hech narsani isbotlamang: haqiqiy bank hammasini rasmiy kanal orqali tekshirishingizni kutadi.",
+    en: "You do not need to prove anything on the call; a real bank will wait while you verify through an official channel.",
+  },
+  government: {
+    ru: "Не доказывайте ничего по телефону: налоговая, госорган или полиция спокойно дождутся проверки через официальный сайт, приложение или номер.",
+    uz: "Telefonda hech narsani isbotlamang: soliq, davlat idorasi yoki politsiya rasmiy sayt, ilova yoki raqam orqali tekshirishingizni kutadi.",
+    en: "You do not need to prove anything on the call; tax, government, or police offices will wait while you verify through an official site, app, or number.",
+  },
+  operator: {
+    ru: "Не доказывайте ничего по телефону: настоящий оператор связи спокойно дождётся вашего обратного звонка по официальному номеру.",
+    uz: "Telefonda hech narsani isbotlamang: haqiqiy aloqa operatori rasmiy raqam orqali qayta qo'ng'iroq qilishingizni kutadi.",
+    en: "You do not need to prove anything on the call; a real mobile operator will wait for your callback through an official number.",
+  },
+};
+
+function buildLiveCallCompactCard(lang: Lang, context: LiveCallContext): string[] {
+  const action: Record<Lang, string> = {
+    ru: "⚡ ЗАВЕРШИТЕ ЗВОНОК",
+    uz: "⚡ QO'NG'IROQNI TUGATING",
+    en: "⚡ HANG UP",
+  };
+  const phrase: Record<Lang, string> = {
+    ru: "«Я сам перезвоню по официальному номеру».",
+    uz: "«Rasmiy raqamga o'zim qayta qo'ng'iroq qilaman».",
+    en: "“I will call back myself using the official number.”",
+  };
+  const after: Record<Lang, string> = {
+    ru: "Потом нажмите «Я положил трубку». Не называйте SMS-код, PIN, CVV, пароль, паспортные данные или данные карты.",
+    uz: "Keyin «Go'shakni qo'ydim» tugmasini bosing. SMS-kod, PIN, CVV, parol, pasport ma'lumoti yoki karta ma'lumotini aytmang.",
+    en: "Then tap “I hung up.” Do not share SMS codes, PINs, CVVs, passwords, passport data, or card data.",
+  };
+
+  return [
+    action[lang],
+    "",
+    LIVE_CALL_HUMAN_CUES[context][lang],
+    "",
+    lang === "ru" ? "Скажите одну фразу:" : lang === "uz" ? "Bitta jumla ayting:" : "Say one sentence:",
+    phrase[lang],
+    "",
+    after[lang],
+  ];
+}
 
 const COMPACT_PANIC_CARDS: Record<PanicScenarioId, Record<Lang, string[]>> = {
   1: {
@@ -1749,7 +1807,17 @@ export function buildDetailedPanicScenarioText(id: PanicScenarioId, lang: Lang):
  * The full checklist stays available through `panicctx:full`; the first screen is
  * intentionally short for stressed users.
  */
-export function buildPanicScenarioText(id: PanicScenarioId, lang: Lang): string {
+export function buildPanicScenarioText(
+  id: PanicScenarioId,
+  lang: Lang,
+  options: PanicScenarioTextOptions = {},
+): string {
+  if (id === 6) {
+    const context = options.liveCallContext ?? "generic";
+    return [PANIC_MENU_TITLES[id][lang], "", ...buildLiveCallCompactCard(lang, context)].join(
+      "\n",
+    );
+  }
   const compact = COMPACT_PANIC_CARDS[id]?.[lang];
   if (!compact) return buildDetailedPanicScenarioText(id, lang);
   return [PANIC_MENU_TITLES[id][lang], "", ...compact].join("\n");
