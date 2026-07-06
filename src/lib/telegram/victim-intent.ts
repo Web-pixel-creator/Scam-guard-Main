@@ -31,6 +31,7 @@ export type VictimIntentKind =
   | "romance_money"
   | "job_offer"
   | "investment_offer"
+  | "travel_migration_prepayment"
   | "legal_impersonation"
   | "bank_contact_question"
   | "report_question"
@@ -84,6 +85,23 @@ function hasVictimFrame(text: string): boolean {
 function hasAskVerb(text: string): boolean {
   return /(?:просят|просит|попросил[аи]?|сказал[аи]?|говорит|требу(?:ет|ют)|нужно|надо|хочет|хотят|asked|asks|asking|told|wants?|needs?|so['’]?ra|sorashyap|ayt|deyap|kerak)/iu.test(
     text,
+  );
+}
+
+function isTravelMigrationPrepaymentIntent(text: string): boolean {
+  return (
+    /(?:агентств|турагент|турфирм|визов|виза|коре|росси|рф|миграц|работа\s+за\s+границ|патент|разрешени.{0,20}работ|паломнич|хадж|умра|тур|путевк|авиабилет).{0,140}(?:предоплат|комисс|сбор|депозит|залог|оплат|взнос|бронь|страхов|документ)/iu.test(
+      text,
+    ) ||
+    /(?:предоплат|комисс|сбор|депозит|залог|оплат|взнос|бронь|страхов).{0,140}(?:агентств|турагент|турфирм|визов|виза|коре|росси|рф|миграц|работа\s+за\s+границ|патент|разрешени.{0,20}работ|паломнич|хадж|умра|тур|путевк|авиабилет)/iu.test(
+      text,
+    ) ||
+    /(?:viza|koreya|rossiya|migratsiya|haj|umra|tur|sayohat|agentlik).{0,140}(?:to['’]?lov|oldindan|komissiya|garov|depozit|bron|hujjat)/iu.test(
+      text,
+    ) ||
+    /(?:visa|migration|work\s+abroad|korea|russia|hajj|umrah|tour|travel\s+agency).{0,140}(?:prepay|fee|deposit|commission|advance|payment)/iu.test(
+      text,
+    )
   );
 }
 
@@ -194,6 +212,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "personal_data_request" };
+  }
+
+  if (isTravelMigrationPrepaymentIntent(normalized)) {
+    return { kind: "travel_migration_prepayment", askedContext: "transfer" };
   }
 
   if (
@@ -550,6 +572,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Инвестиции/крипта через Telegram-канал или личного «наставника» часто ведут к депозиту, платным сигналам или комиссии за вывод.\n\nПока не пополняйте баланс и не подключайте кошелёк. Пришлите ссылку, username автора или условия.",
       uz: "Telegram-kanal yoki shaxsiy «ustoz» orqali investitsiya/kripto ko'pincha depozit, pulli signallar yoki yechib olish komissiyasiga olib boradi.\n\nHozircha balans to'ldirmang va hamyon ulamang. Havola, muallif username'i yoki shartlarni yuboring.",
       en: "Investment/crypto through a Telegram channel or personal “mentor” often leads to deposits, paid signals, or withdrawal fees.\n\nDo not top up a balance or connect a wallet yet. Send the link, author username, or terms.",
+    },
+    travel_migration_prepayment: {
+      ru: "Визы, работа за границей, туры, хадж/умра или билеты становятся рискованными, если просят предоплату, комиссию, депозит или «сбор за документы» в чате.\n\nПока не платите. Проверьте агентство через официальный сайт/офис, договор и лицензию. Пришлите ссылку или текст условий.",
+      uz: "Viza, chet elda ish, tur, haj/umra yoki chipta xavfli bo'ladi, agar chatda oldindan to'lov, komissiya, depozit yoki «hujjat yig'imi» so'ralsa.\n\nHozircha to'lamang. Agentlikni rasmiy sayt/ofis, shartnoma va litsenziya orqali tekshiring. Havola yoki shartlar matnini yuboring.",
+      en: "Visas, work abroad, tours, Hajj/Umrah, or tickets become risky if a chat asks for prepayment, a fee, deposit, or “document charge”.\n\nDo not pay yet. Verify the agency through an official site/office, contract, and license. Send the link or terms.",
     },
     legal_impersonation: {
       ru: "Нотариус, юрист, полиция, налоговая или коллектор в чате могут давить страхом.\n\nНе оплачивайте «штраф» по ссылке и не отправляйте документы. Проверьте через официальный номер/сайт и пришлите текст угрозы.",

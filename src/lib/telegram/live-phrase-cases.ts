@@ -264,6 +264,15 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "travel migration",
+    text: "агентство обещает визу в Корею но просит предоплату",
+    expected: {
+      kind: "victim_intent",
+      intent: "travel_migration_prepayment",
+      replyIncludes: "Визы, работа за границей",
+    },
+  },
+  {
     area: "earning channel",
     text: "меня зовут вступить в канал для заработка",
     expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
