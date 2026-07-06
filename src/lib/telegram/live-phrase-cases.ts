@@ -119,6 +119,16 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "panic", panicId: 6 },
   },
   {
+    area: "call",
+    text: "звонит мошенник",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "call",
+    text: "мошенник звонит",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
     area: "bank call",
     text: "звонят из банка",
     expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },

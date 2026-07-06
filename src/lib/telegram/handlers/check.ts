@@ -852,6 +852,8 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   if (
     /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(ят|ит)/.test(text) ||
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
+    /(?:^|\s)звон(?:ит|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
+    /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
     /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
     /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text) ||
