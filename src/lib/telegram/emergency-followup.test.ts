@@ -420,14 +420,36 @@ describe("Emergency Copilot v2 follow-up routing", () => {
 
   it("formats live-call follow-up as a guided post-call flow", () => {
     const more = buildEmergencyFollowUpText("more", 6, "ru");
-    const contacts = buildEmergencyFollowUpText("contacts", 6, "ru");
+    const bankContacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "bank",
+    });
     const script = buildEmergencyFollowUpText("script", 6, "ru");
+    const governmentMore = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const governmentContacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const governmentScript = buildEmergencyFollowUpText("script", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const operatorMore = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "operator",
+    });
 
     expect(more).toContain("Хорошо, звонок завершён");
-    expect(more).toContain("перезвоните в банк только по номеру");
-    expect(contacts).toContain("Проверьте мой счёт");
-    expect(contacts).toContain("Не звоните на входящий номер");
-    expect(script).toContain("Я не обсуждаю деньги, коды, карты и приложения");
+    expect(more).toContain("официальный сайт, приложение или сохранённый номер организации");
+    expect(more).not.toContain("перезвоните в банк только по номеру");
+    expect(bankContacts).toContain("Проверьте мой счёт");
+    expect(bankContacts).toContain("Не звоните на входящий номер");
+    expect(script).toContain("Я не обсуждаю деньги, коды, документы, карты и приложения");
+    expect(governmentMore).toContain("официальный сайт, приложение или номер госоргана");
+    expect(governmentMore).not.toContain("перезвоните в банк");
+    expect(governmentContacts).toContain("Официальный канал госоргана");
+    expect(governmentContacts).not.toContain("Проверьте мой счёт");
+    expect(governmentScript).toContain("проверю запрос через официальный сайт");
+    expect(governmentScript).not.toContain("перезвонить в банк");
+    expect(operatorMore).toContain("номер оператора связи");
   });
 
   it("keeps active live-call buttons focused on ending the call first", () => {

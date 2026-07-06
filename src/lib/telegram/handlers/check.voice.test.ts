@@ -109,6 +109,22 @@ describe("handleVoice", () => {
     expect(joined).not.toContain("настоящий банк спокойно дождётся");
   });
 
+  it("keeps government live-call context for text follow-up questions", async () => {
+    const followUpCtx = ctx();
+    followUpCtx.session.scenarioData = {
+      lastPanicId: 6,
+      lastPanicAt: new Date().toISOString(),
+      lastLiveCallContext: "government",
+    };
+
+    await handleCheck("что дальше", followUpCtx);
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
+    expect(joined).toContain("официальный сайт, приложение или номер госоргана");
+    expect(joined).not.toContain("перезвоните в банк");
+  });
+
   it("transcribes voice notes and runs the normal check pipeline", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,

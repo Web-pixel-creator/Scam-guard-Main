@@ -1133,8 +1133,23 @@ export const PANIC_CB_PREFIX = "panic:";
 
 export type LiveCallContext = "generic" | "bank" | "government" | "operator";
 
-interface PanicScenarioTextOptions {
+export interface PanicScenarioTextOptions {
   liveCallContext?: LiveCallContext;
+}
+
+export type EmergencyFollowUpTextOptions = PanicScenarioTextOptions;
+
+const LIVE_CALL_CONTEXTS: readonly LiveCallContext[] = [
+  "generic",
+  "bank",
+  "government",
+  "operator",
+];
+
+export function asLiveCallContext(value: unknown): LiveCallContext | null {
+  return typeof value === "string" && LIVE_CALL_CONTEXTS.includes(value as LiveCallContext)
+    ? (value as LiveCallContext)
+    : null;
 }
 
 /** Build the panic menu prompt text. */
@@ -2723,14 +2738,190 @@ function moreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
   return byScenario[panicId][lang].join("\n");
 }
 
-function guidedCallbackDirectory(panicId: PanicScenarioId, lang: Lang): string {
+function guidedCallbackDirectory(
+  panicId: PanicScenarioId,
+  lang: Lang,
+  options: EmergencyFollowUpTextOptions = {},
+): string {
   const contacts = getEmergencyContacts();
   const banks = contacts.banks.slice(0, 6);
   const payments = contacts.payments.slice(0, 3);
+  const telecom = contacts.telecom.slice(0, 3);
   const protectionContacts = [contacts.police, contacts.cyber].filter(
     (contact): contact is VerifiedContact => contact != null,
   );
   const profile = followUpProfile(panicId);
+
+  if (panicId === 6) {
+    const context = options.liveCallContext ?? "generic";
+    const lines: Record<LiveCallContext, Record<Lang, string[]>> = {
+      generic: {
+        ru: [
+          "📞 Безопасный обратный звонок",
+          "",
+          "1. Не звоните на входящий номер и на номер из SMS.",
+          "2. Откройте официальный сайт, приложение или сохранённый номер организации сами.",
+          "3. Наберите номер вручную. Если волнуетесь, попросите близкого быть рядом.",
+          "",
+          "Если речь была о деньгах, карте или переводе:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+          "",
+          "Если были угрозы или вымогательство:",
+          contactList(protectionContacts, lang),
+        ],
+        uz: [
+          "📞 Xavfsiz qayta qo'ng'iroq",
+          "",
+          "1. Kiruvchi raqamga yoki SMSdagi raqamga qo'ng'iroq qilmang.",
+          "2. Tashkilotning rasmiy sayti, ilovasi yoki saqlangan raqamini o'zingiz oching.",
+          "3. Raqamni qo'lda tering. Hayajonlansangiz, yaqiningiz yoningizda bo'lsin.",
+          "",
+          "Pul, karta yoki o'tkazma haqida gap bo'lgan bo'lsa:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+          "",
+          "Tahdid yoki tovlamachilik bo'lsa:",
+          contactList(protectionContacts, lang),
+        ],
+        en: [
+          "📞 Safe callback",
+          "",
+          "1. Do not call the incoming number or a number from SMS.",
+          "2. Open the organization's official site, app, or saved number yourself.",
+          "3. Dial the number manually. If you are stressed, ask someone trusted to stay with you.",
+          "",
+          "If the call involved money, a card, or a transfer:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+          "",
+          "If there were threats or extortion:",
+          contactList(protectionContacts, lang),
+        ],
+      },
+      bank: {
+        ru: [
+          "📞 Безопасный обратный звонок в банк",
+          "",
+          "1. Не звоните на входящий номер и на номер из SMS.",
+          "2. Откройте приложение банка, карту или официальный сайт.",
+          "3. Наберите номер сами. Если волнуетесь, попросите близкого быть рядом.",
+          "",
+          "Что сказать оператору:",
+          "«Мне звонили и просили код, деньги или приложение. Проверьте мой счёт и заблокируйте рискованные операции».",
+          "",
+          "Проверенные номера:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+        ],
+        uz: [
+          "📞 Bankka xavfsiz qayta qo'ng'iroq",
+          "",
+          "1. Kiruvchi raqamga yoki SMSdagi raqamga qo'ng'iroq qilmang.",
+          "2. Bank ilovasi, karta yoki rasmiy saytni oching.",
+          "3. Raqamni o'zingiz tering. Hayajonlansangiz, yaqiningiz yoningizda bo'lsin.",
+          "",
+          "Operatorga shunday deng:",
+          "«Menga qo'ng'iroq qilib kod, pul yoki ilova so'rashdi. Hisobimni tekshirib, xavfli operatsiyalarni bloklang».",
+          "",
+          "Tekshirilgan raqamlar:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+        ],
+        en: [
+          "📞 Safe bank callback",
+          "",
+          "1. Do not call the incoming number or a number from SMS.",
+          "2. Open the bank app, your card, or the official website.",
+          "3. Dial the number yourself. If you are stressed, ask someone trusted to stay with you.",
+          "",
+          "What to say to the operator:",
+          "“Someone called and asked for a code, money, or an app. Please check my account and block risky operations.”",
+          "",
+          "Verified numbers:",
+          contactList(banks, lang),
+          contactList(payments, lang),
+        ],
+      },
+      government: {
+        ru: [
+          "🏛️ Официальный канал госоргана",
+          "",
+          "1. Не звоните на входящий номер и не открывайте ссылку из чата.",
+          "2. Откройте сайт или приложение госоргана вручную: не из сообщения и не по диктовке.",
+          "3. Если это налоговая, OneID, суд, полиция или госуслуга — проверяйте только через официальный сайт, приложение или номер.",
+          "",
+          "Если просили оплату, карту, код или были угрозы:",
+          contactList(protectionContacts, lang),
+          contactList(banks, lang),
+        ],
+        uz: [
+          "🏛️ Davlat idorasining rasmiy kanali",
+          "",
+          "1. Kiruvchi raqamga qo'ng'iroq qilmang va chatdagi havolani ochmang.",
+          "2. Davlat idorasining sayti yoki ilovasini qo'lda oching: xabardan ham, aytib turilgan manzildan ham emas.",
+          "3. Soliq, OneID, sud, politsiya yoki davlat xizmati bo'lsa — faqat rasmiy sayt, ilova yoki raqam orqali tekshiring.",
+          "",
+          "To'lov, karta, kod so'rashgan yoki tahdid bo'lgan bo'lsa:",
+          contactList(protectionContacts, lang),
+          contactList(banks, lang),
+        ],
+        en: [
+          "🏛️ Official government channel",
+          "",
+          "1. Do not call the incoming number and do not open a chat link.",
+          "2. Open the government office's site or app manually: not from the message and not from dictated instructions.",
+          "3. For tax, OneID, court, police, or public services, verify only through an official site, app, or number.",
+          "",
+          "If they asked for payment, card data, codes, or made threats:",
+          contactList(protectionContacts, lang),
+          contactList(banks, lang),
+        ],
+      },
+      operator: {
+        ru: [
+          "📱 Безопасный звонок оператору связи",
+          "",
+          "1. Не звоните на входящий номер и не переходите по ссылкам из SMS.",
+          "2. Откройте приложение оператора или официальный сайт сами.",
+          "3. Спросите, есть ли реальная заявка на SIM, перенос номера, eSIM или блокировку.",
+          "",
+          "Проверенные номера операторов:",
+          contactList(telecom, lang),
+          "",
+          "Если уже назвали банковский код или были списания:",
+          contactList(banks, lang),
+        ],
+        uz: [
+          "📱 Aloqa operatoriga xavfsiz qo'ng'iroq",
+          "",
+          "1. Kiruvchi raqamga qo'ng'iroq qilmang va SMSdagi havolalarga o'tmang.",
+          "2. Operator ilovasi yoki rasmiy saytini o'zingiz oching.",
+          "3. SIM, raqam ko'chirish, eSIM yoki bloklash bo'yicha haqiqiy ariza bormi, so'rang.",
+          "",
+          "Tekshirilgan operator raqamlari:",
+          contactList(telecom, lang),
+          "",
+          "Bank kodi aytilgan yoki yechib olish bo'lgan bo'lsa:",
+          contactList(banks, lang),
+        ],
+        en: [
+          "📱 Safe mobile-operator callback",
+          "",
+          "1. Do not call the incoming number and do not open SMS links.",
+          "2. Open the operator app or official website yourself.",
+          "3. Ask whether there is a real request for SIM replacement, number transfer, eSIM, or blocking.",
+          "",
+          "Verified operator numbers:",
+          contactList(telecom, lang),
+          "",
+          "If a bank code was shared or money was charged:",
+          contactList(banks, lang),
+        ],
+      },
+    };
+    return lines[context][lang].filter(Boolean).join("\n");
+  }
 
   if (profile === "telegram_recovery") {
     const lines: Record<Lang, string[]> = {
@@ -3154,9 +3345,172 @@ function guidedCallbackDirectory(panicId: PanicScenarioId, lang: Lang): string {
   return lines[lang].join("\n");
 }
 
-function guidedTrustedPersonText(panicId: PanicScenarioId, lang: Lang): string {
+function guidedTrustedPersonText(
+  panicId: PanicScenarioId,
+  lang: Lang,
+  options: EmergencyFollowUpTextOptions = {},
+): string {
   const title = followUpTitle(panicId, lang);
   const profile = followUpProfile(panicId);
+
+  if (panicId === 6) {
+    const context = options.liveCallContext ?? "generic";
+    const lines: Record<LiveCallContext, Record<Lang, string[]>> = {
+      generic: {
+        ru: [
+          "👪 Позовите человека, которому доверяете",
+          "",
+          "Это не слабость. В мошеннических звонках специально торопят, чтобы человек остался один и ошибся.",
+          "",
+          "Сделайте так:",
+          "1. Позвоните близкому или отправьте готовый текст ниже.",
+          "2. Попросите: «Пожалуйста, побудь со мной 5 минут, пока я проверяю это через официальный канал».",
+          "3. Не пересылайте SMS-код, PIN, CVV, пароль, документы или фото карты.",
+          "",
+          `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Я волнуюсь, побудь со мной и помоги спокойно проверить это через официальный канал».`,
+        ],
+        uz: [
+          "👪 Ishonchli yaqiningizni chaqiring",
+          "",
+          "Bu zaiflik emas. Firibgarlar odam yolg'iz qolib xato qilishi uchun ataylab shoshiradi.",
+          "",
+          "Shunday qiling:",
+          "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+          "2. So'rang: «Buni rasmiy kanal orqali tekshirgunimcha 5 daqiqa yonimda bo'ling».",
+          "3. SMS-kod, PIN, CVV, parol, hujjat yoki karta rasmini yubormang.",
+          "",
+          `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Hayajondaman. Yonimda bo'lib, buni rasmiy kanal orqali xotirjam tekshirishga yordam bering».`,
+        ],
+        en: [
+          "👪 Call someone you trust",
+          "",
+          "This is not weakness. Scam calls deliberately rush people so they stay alone and make a mistake.",
+          "",
+          "Do this:",
+          "1. Call a trusted person or send the ready text below.",
+          "2. Ask: “Stay with me for 5 minutes while I verify this through an official channel.”",
+          "3. Do not send SMS codes, PINs, CVVs, passwords, documents, or card photos.",
+          "",
+          `Ready text: “I need help. Situation: ${title}. I am worried. Please stay with me and help me check this calmly through an official channel.”`,
+        ],
+      },
+      bank: {
+        ru: [
+          "👪 Позовите человека, которому доверяете",
+          "",
+          "Это не слабость. В мошеннических звонках специально торопят, чтобы человек остался один и ошибся.",
+          "",
+          "Сделайте так:",
+          "1. Позвоните близкому или отправьте готовый текст ниже.",
+          "2. Попросите: «Пожалуйста, побудь со мной 5 минут, пока я звоню в банк по официальному номеру».",
+          "3. Не пересылайте SMS-код, PIN, CVV, пароль или фото карты.",
+          "",
+          `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Я волнуюсь, побудь со мной и помоги спокойно проверить это по официальному номеру банка».`,
+        ],
+        uz: [
+          "👪 Ishonchli yaqiningizni chaqiring",
+          "",
+          "Bu zaiflik emas. Firibgarlar odam yolg'iz qolib xato qilishi uchun ataylab shoshiradi.",
+          "",
+          "Shunday qiling:",
+          "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+          "2. So'rang: «Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
+          "3. SMS-kod, PIN, CVV, parol yoki karta rasmini yubormang.",
+          "",
+          `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Hayajondaman. Yonimda bo'lib, buni bankning rasmiy raqami orqali xotirjam tekshirishga yordam bering».`,
+        ],
+        en: [
+          "👪 Call someone you trust",
+          "",
+          "This is not weakness. Scam calls deliberately rush people so they stay alone and make a mistake.",
+          "",
+          "Do this:",
+          "1. Call a trusted person or send the ready text below.",
+          "2. Ask: “Stay with me for 5 minutes while I call the bank using an official number.”",
+          "3. Do not send SMS codes, PINs, CVVs, passwords, or card photos.",
+          "",
+          `Ready text: “I need help. Situation: ${title}. I am worried. Please stay with me and help me check this calmly using the bank's official number.”`,
+        ],
+      },
+      government: {
+        ru: [
+          "👪 Позовите человека, которому доверяете",
+          "",
+          "Это не слабость. При звонках от имени госорганов мошенники часто давят страхом и срочностью.",
+          "",
+          "Сделайте так:",
+          "1. Позвоните близкому или отправьте готовый текст ниже.",
+          "2. Попросите: «Побудь со мной, пока я проверяю это через официальный сайт, приложение или номер госоргана».",
+          "3. Не передавайте коды, паспортные данные, документы, карту или оплату.",
+          "",
+          `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Мне звонили от имени госоргана. Побудь со мной и помоги проверить это через официальный канал».`,
+        ],
+        uz: [
+          "👪 Ishonchli yaqiningizni chaqiring",
+          "",
+          "Bu zaiflik emas. Davlat idorasi nomidan qo'ng'iroqlarda firibgarlar ko'pincha qo'rquv va shoshilinchlikka bosadi.",
+          "",
+          "Shunday qiling:",
+          "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+          "2. So'rang: «Buni davlat idorasining rasmiy sayti, ilovasi yoki raqami orqali tekshirgunimcha yonimda bo'ling».",
+          "3. Kod, pasport ma'lumoti, hujjat, karta yoki to'lov bermang.",
+          "",
+          `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Menga davlat idorasi nomidan qo'ng'iroq qilishdi. Yonimda bo'lib, buni rasmiy kanal orqali tekshirishga yordam bering».`,
+        ],
+        en: [
+          "👪 Call someone you trust",
+          "",
+          "This is not weakness. Calls claiming to be from public offices often use fear and urgency.",
+          "",
+          "Do this:",
+          "1. Call a trusted person or send the ready text below.",
+          "2. Ask: “Stay with me while I verify this through the government office's official site, app, or number.”",
+          "3. Do not share codes, passport data, documents, cards, or payments.",
+          "",
+          `Ready text: “I need help. Situation: ${title}. Someone called claiming to be a public office. Please stay with me and help me verify this through an official channel.”`,
+        ],
+      },
+      operator: {
+        ru: [
+          "👪 Позовите человека, которому доверяете",
+          "",
+          "Это не слабость. При SIM-swap и звонках от оператора мошенники торопят, чтобы перехватить номер или код.",
+          "",
+          "Сделайте так:",
+          "1. Позвоните близкому или отправьте готовый текст ниже.",
+          "2. Попросите: «Побудь со мной, пока я проверяю заявку у оператора связи по официальному номеру».",
+          "3. Не подтверждайте SIM/eSIM, перенос номера, SMS-код или доступы.",
+          "",
+          `Готовый текст: «Мне нужна помощь. Ситуация: ${title}. Мне звонили от имени оператора связи. Побудь со мной и помоги проверить это по официальному номеру».`,
+        ],
+        uz: [
+          "👪 Ishonchli yaqiningizni chaqiring",
+          "",
+          "Bu zaiflik emas. SIM-swap va operator nomidan qo'ng'iroqlarda firibgarlar raqam yoki kodni egallash uchun shoshiradi.",
+          "",
+          "Shunday qiling:",
+          "1. Yaqiningizga qo'ng'iroq qiling yoki pastdagi tayyor matnni yuboring.",
+          "2. So'rang: «Operatorga rasmiy raqam orqali arizani tekshirgunimcha yonimda bo'ling».",
+          "3. SIM/eSIM, raqam ko'chirish, SMS-kod yoki kirishni tasdiqlamang.",
+          "",
+          `Tayyor matn: «Menga yordam kerak. Vaziyat: ${title}. Menga aloqa operatori nomidan qo'ng'iroq qilishdi. Yonimda bo'lib, buni rasmiy raqam orqali tekshirishga yordam bering».`,
+        ],
+        en: [
+          "👪 Call someone you trust",
+          "",
+          "This is not weakness. In SIM-swap and operator-call scams, attackers rush people to capture a number or code.",
+          "",
+          "Do this:",
+          "1. Call a trusted person or send the ready text below.",
+          "2. Ask: “Stay with me while I verify the request with the mobile operator using an official number.”",
+          "3. Do not confirm SIM/eSIM, number transfer, SMS codes, or access.",
+          "",
+          `Ready text: “I need help. Situation: ${title}. Someone called claiming to be my mobile operator. Please stay with me and help me verify this through an official number.”`,
+        ],
+      },
+    };
+    return lines[context][lang].join("\n");
+  }
 
   if (profile === "minor") {
     const minorLines: Record<Lang, string[]> = {
@@ -3655,12 +4009,151 @@ function financialGuidedScriptLines(
   return null;
 }
 
-function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
+function guidedScriptText(
+  panicId: PanicScenarioId,
+  lang: Lang,
+  options: EmergencyFollowUpTextOptions = {},
+): string {
   const title = followUpTitle(panicId, lang);
   const profile = followUpProfile(panicId);
   const financialLines =
     profile === "financial" ? financialGuidedScriptLines(panicId, title, lang) : null;
   if (financialLines) return financialLines.join("\n");
+
+  if (panicId === 6) {
+    const context = options.liveCallContext ?? "generic";
+    const lines: Record<LiveCallContext, Record<Lang, string[]>> = {
+      generic: {
+        ru: [
+          "💬 Готовая фраза",
+          "",
+          "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+          "",
+          "«Я не обсуждаю деньги, коды, документы, карты и приложения по входящему звонку. Я сам перезвоню по официальному номеру или проверю всё через официальный канал.»",
+          "",
+          "Если рядом близкий, скажите ему:",
+          `«Ситуация: ${title}. Побудь со мной и помоги спокойно проверить это через официальный канал».`,
+        ],
+        uz: [
+          "💬 Tayyor jumla",
+          "",
+          "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+          "",
+          "«Kiruvchi qo'ng'iroqda pul, kod, hujjat, karta va ilovalarni muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman yoki hammasini rasmiy kanal orqali tekshiraman.»",
+          "",
+          "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+          `«Vaziyat: ${title}. Yonimda bo'l va buni rasmiy kanal orqali xotirjam tekshirishga yordam ber».`,
+        ],
+        en: [
+          "💬 Ready phrase",
+          "",
+          "If the person is still on the line, do not argue. Read one sentence and end the call:",
+          "",
+          "“I do not discuss money, codes, documents, cards, or apps on an incoming call. I will call back on the official number or verify everything through an official channel myself.”",
+          "",
+          "If someone trusted is nearby, tell them:",
+          `“Situation: ${title}. Stay with me and help me calmly verify this through an official channel.”`,
+        ],
+      },
+      bank: {
+        ru: [
+          "💬 Готовая фраза",
+          "",
+          "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+          "",
+          "«Я не обсуждаю деньги, коды, карты и приложения по входящему звонку. Я сам перезвоню в банк по официальному номеру.»",
+          "",
+          "Если рядом близкий, скажите ему:",
+          `«Ситуация: ${title}. Побудь со мной и помоги перезвонить в банк по официальному номеру — спокойно, без спешки».`,
+        ],
+        uz: [
+          "💬 Tayyor jumla",
+          "",
+          "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+          "",
+          "«Kiruvchi qo'ng'iroqda pul, kod, karta va ilovalarni muhokama qilmayman. Bankka rasmiy raqam orqali o'zim qo'ng'iroq qilaman.»",
+          "",
+          "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+          `«Vaziyat: ${title}. Yonimda bo'l va bankka rasmiy raqam orqali xotirjam qo'ng'iroq qilishga yordam ber».`,
+        ],
+        en: [
+          "💬 Ready phrase",
+          "",
+          "If the person is still on the line, do not argue. Read one sentence and end the call:",
+          "",
+          "“I do not discuss money, codes, cards, or apps on an incoming call. I will call the bank back myself using the official number.”",
+          "",
+          "If someone trusted is nearby, tell them:",
+          `“Situation: ${title}. Stay with me and help me call the bank back on an official number — calmly, no rush.”`,
+        ],
+      },
+      government: {
+        ru: [
+          "💬 Готовая фраза",
+          "",
+          "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+          "",
+          "«Я не передаю данные, коды, документы и платежи по входящему звонку. Я сам проверю запрос через официальный сайт, приложение или номер госоргана.»",
+          "",
+          "Если рядом близкий, скажите ему:",
+          `«Ситуация: ${title}. Побудь со мной и помоги проверить госорган через официальный канал, без спешки».`,
+        ],
+        uz: [
+          "💬 Tayyor jumla",
+          "",
+          "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+          "",
+          "«Kiruvchi qo'ng'iroqda ma'lumot, kod, hujjat yoki to'lov bermayman. So'rovni davlat idorasining rasmiy sayti, ilovasi yoki raqami orqali o'zim tekshiraman.»",
+          "",
+          "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+          `«Vaziyat: ${title}. Yonimda bo'l va davlat idorasini rasmiy kanal orqali, shoshilmasdan tekshirishga yordam ber».`,
+        ],
+        en: [
+          "💬 Ready phrase",
+          "",
+          "If the person is still on the line, do not argue. Read one sentence and end the call:",
+          "",
+          "“I do not provide data, codes, documents, or payments on an incoming call. I will verify the request through the government office's official site, app, or number.”",
+          "",
+          "If someone trusted is nearby, tell them:",
+          `“Situation: ${title}. Stay with me and help me verify the government office through an official channel, without rushing.”`,
+        ],
+      },
+      operator: {
+        ru: [
+          "💬 Готовая фраза",
+          "",
+          "Если человек на линии — не спорьте. Прочитайте одну фразу и завершите разговор:",
+          "",
+          "«Я не подтверждаю SIM, номер, коды и доступы по входящему звонку. Я сам перезвоню оператору по официальному номеру.»",
+          "",
+          "Если рядом близкий, скажите ему:",
+          `«Ситуация: ${title}. Побудь со мной и помоги проверить оператора связи через официальный номер».`,
+        ],
+        uz: [
+          "💬 Tayyor jumla",
+          "",
+          "Agar odam hali liniyada bo'lsa — tortishmang. Bitta jumlani o'qing va suhbatni tugating:",
+          "",
+          "«Kiruvchi qo'ng'iroqda SIM, raqam, kod yoki kirishni tasdiqlamayman. Operatorga rasmiy raqam orqali o'zim qo'ng'iroq qilaman.»",
+          "",
+          "Yaqiningiz yoningizda bo'lsa, shunday deng:",
+          `«Vaziyat: ${title}. Yonimda bo'l va aloqa operatorini rasmiy raqam orqali tekshirishga yordam ber».`,
+        ],
+        en: [
+          "💬 Ready phrase",
+          "",
+          "If the person is still on the line, do not argue. Read one sentence and end the call:",
+          "",
+          "“I do not confirm SIM, number, codes, or access on an incoming call. I will call the operator myself using the official number.”",
+          "",
+          "If someone trusted is nearby, tell them:",
+          `“Situation: ${title}. Stay with me and help me verify the mobile operator through an official number.”`,
+        ],
+      },
+    };
+    return lines[context][lang].join("\n");
+  }
 
   if (profile === "minor") {
     const minorLines: Record<Lang, string[]> = {
@@ -3977,35 +4470,120 @@ function guidedScriptText(panicId: PanicScenarioId, lang: Lang): string {
   return lines[lang].join("\n");
 }
 
-function guidedMoreAdviceText(panicId: PanicScenarioId, lang: Lang): string {
+function guidedMoreAdviceText(
+  panicId: PanicScenarioId,
+  lang: Lang,
+  options: EmergencyFollowUpTextOptions = {},
+): string {
   if (panicId === 6) {
-    const lines: Record<Lang, string[]> = {
-      ru: [
-        "✅ Хорошо, звонок завершён",
-        "",
-        "Следующий безопасный шаг: перезвоните в банк только по номеру из приложения, карты или официального сайта.",
-        "",
-        "Если код или карту не называли — просто спросите, был ли реальный запрос.",
-        "Если уже назвали — нажмите «Все срочные шаги» или выберите в /panic сценарий про SMS-код/карту.",
-      ],
-      uz: [
-        "✅ Yaxshi, qo'ng'iroq tugadi",
-        "",
-        "Keyingi xavfsiz qadam: bankka faqat ilova, karta yoki rasmiy saytdagi raqam orqali qo'ng'iroq qiling.",
-        "",
-        "Kod yoki karta aytmagan bo'lsangiz — haqiqiy so'rov bo'lganmi, shuni so'rang.",
-        "Aytgan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing yoki /panic ichida SMS-kod/karta ssenariysini tanlang.",
-      ],
-      en: [
-        "✅ Good, the call is over",
-        "",
-        "Next safe step: call the bank only from the app, your card, or the official website.",
-        "",
-        "If you did not share a code or card data, ask whether there was a real request.",
-        "If you already shared it, tap “All urgent steps” or choose the SMS-code/card scenario in /panic.",
-      ],
+    const context = options.liveCallContext ?? "generic";
+    const lines: Record<LiveCallContext, Record<Lang, string[]>> = {
+      generic: {
+        ru: [
+          "✅ Хорошо, звонок завершён",
+          "",
+          "Следующий безопасный шаг: проверьте запрос только через официальный сайт, приложение или сохранённый номер организации.",
+          "",
+          "Если код, карту или документы не называли — просто спросите, был ли реальный запрос.",
+          "Если уже назвали код, ввели данные или перевели деньги — нажмите «Все срочные шаги».",
+        ],
+        uz: [
+          "✅ Yaxshi, qo'ng'iroq tugadi",
+          "",
+          "Keyingi xavfsiz qadam: so'rovni faqat tashkilotning rasmiy sayti, ilovasi yoki saqlangan raqami orqali tekshiring.",
+          "",
+          "Kod, karta yoki hujjat aytmagan bo'lsangiz — haqiqiy so'rov bo'lganmi, shuni so'rang.",
+          "Kod aytgan, ma'lumot kiritgan yoki pul yuborgan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing.",
+        ],
+        en: [
+          "✅ Good, the call is over",
+          "",
+          "Next safe step: verify the request only through the organization's official site, app, or saved number.",
+          "",
+          "If you did not share a code, card, or documents, just ask whether there was a real request.",
+          "If you already shared a code, entered data, or sent money, tap “All urgent steps.”",
+        ],
+      },
+      bank: {
+        ru: [
+          "✅ Хорошо, звонок завершён",
+          "",
+          "Следующий безопасный шаг: перезвоните в банк только по номеру из приложения, карты или официального сайта.",
+          "",
+          "Если код или карту не называли — просто спросите, был ли реальный запрос.",
+          "Если уже назвали — нажмите «Все срочные шаги» или выберите в /panic сценарий про SMS-код/карту.",
+        ],
+        uz: [
+          "✅ Yaxshi, qo'ng'iroq tugadi",
+          "",
+          "Keyingi xavfsiz qadam: bankka faqat ilova, karta yoki rasmiy saytdagi raqam orqali qo'ng'iroq qiling.",
+          "",
+          "Kod yoki karta aytmagan bo'lsangiz — haqiqiy so'rov bo'lganmi, shuni so'rang.",
+          "Aytgan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing yoki /panic ichida SMS-kod/karta ssenariysini tanlang.",
+        ],
+        en: [
+          "✅ Good, the call is over",
+          "",
+          "Next safe step: call the bank only from the app, your card, or the official website.",
+          "",
+          "If you did not share a code or card data, ask whether there was a real request.",
+          "If you already shared it, tap “All urgent steps” or choose the SMS-code/card scenario in /panic.",
+        ],
+      },
+      government: {
+        ru: [
+          "✅ Хорошо, звонок завершён",
+          "",
+          "Следующий безопасный шаг: проверьте запрос только через официальный сайт, приложение или номер госоргана.",
+          "",
+          "Если данные, код, документы или оплату не передавали — просто проверьте, был ли реальный запрос.",
+          "Если уже передали данные, код или деньги — нажмите «Все срочные шаги».",
+        ],
+        uz: [
+          "✅ Yaxshi, qo'ng'iroq tugadi",
+          "",
+          "Keyingi xavfsiz qadam: so'rovni faqat davlat idorasining rasmiy sayti, ilovasi yoki raqami orqali tekshiring.",
+          "",
+          "Ma'lumot, kod, hujjat yoki to'lov bermagan bo'lsangiz — haqiqiy so'rov bo'lganmi, tekshiring.",
+          "Ma'lumot, kod yoki pul bergan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing.",
+        ],
+        en: [
+          "✅ Good, the call is over",
+          "",
+          "Next safe step: verify the request only through the government office's official site, app, or number.",
+          "",
+          "If you did not share data, codes, documents, or payment, just check whether there was a real request.",
+          "If you already shared data, a code, or money, tap “All urgent steps.”",
+        ],
+      },
+      operator: {
+        ru: [
+          "✅ Хорошо, звонок завершён",
+          "",
+          "Следующий безопасный шаг: проверьте заявку только через приложение, официальный сайт или номер оператора связи.",
+          "",
+          "Если SIM, eSIM, номер, код или доступ не подтверждали — просто спросите, была ли реальная заявка.",
+          "Если уже подтверждали или называли код — нажмите «Все срочные шаги».",
+        ],
+        uz: [
+          "✅ Yaxshi, qo'ng'iroq tugadi",
+          "",
+          "Keyingi xavfsiz qadam: arizani faqat operator ilovasi, rasmiy sayti yoki raqami orqali tekshiring.",
+          "",
+          "SIM, eSIM, raqam, kod yoki kirishni tasdiqlamagan bo'lsangiz — haqiqiy ariza bormi, so'rang.",
+          "Tasdiqlagan yoki kod aytgan bo'lsangiz — «Barcha shoshilinch qadamlar»ni bosing.",
+        ],
+        en: [
+          "✅ Good, the call is over",
+          "",
+          "Next safe step: verify the request only through the mobile operator's app, official site, or number.",
+          "",
+          "If you did not confirm a SIM, eSIM, number, code, or access, just ask whether there was a real request.",
+          "If you already confirmed it or shared a code, tap “All urgent steps.”",
+        ],
+      },
     };
-    return lines[lang].join("\n");
+    return lines[context][lang].join("\n");
   }
 
   const prefix: Record<Lang, string> = {
@@ -4020,17 +4598,18 @@ export function buildEmergencyFollowUpText(
   action: EmergencyFollowUpAction,
   panicId: PanicScenarioId,
   lang: Lang,
+  options: EmergencyFollowUpTextOptions = {},
 ): string {
   switch (action) {
     case "contacts":
-      return guidedCallbackDirectory(panicId, lang);
+      return guidedCallbackDirectory(panicId, lang, options);
     case "script":
-      return guidedScriptText(panicId, lang);
+      return guidedScriptText(panicId, lang, options);
     case "trusted_person":
-      return guidedTrustedPersonText(panicId, lang);
+      return guidedTrustedPersonText(panicId, lang, options);
     case "full":
       return buildDetailedPanicScenarioText(panicId, lang);
     case "more":
-      return guidedMoreAdviceText(panicId, lang);
+      return guidedMoreAdviceText(panicId, lang, options);
   }
 }

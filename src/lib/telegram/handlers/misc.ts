@@ -57,8 +57,10 @@ import {
   buildLiveCallPhraseKeyboard,
   parsePanicContextCallbackData,
   parseLiveCallCallback,
+  asLiveCallContext,
   withPanicContextData,
   type EmergencyFollowUpAction,
+  type LiveCallContext,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
@@ -164,12 +166,23 @@ function imageTriageSnapshot(kind: ImageTriageKind): LastCheckSnapshot | null {
   };
 }
 
+function liveCallContextForPanic(ctx: HandlerCtx, panicId: PanicScenarioId): LiveCallContext | null {
+  return panicId === 6 ? asLiveCallContext(ctx.session.scenarioData.lastLiveCallContext) : null;
+}
+
+function emergencyFollowUpOptions(ctx: HandlerCtx, panicId: PanicScenarioId) {
+  const liveCallContext = liveCallContextForPanic(ctx, panicId);
+  return liveCallContext === null ? {} : { liveCallContext };
+}
+
 async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+  const liveCallContext = liveCallContextForPanic(ctx, panicId);
+  const preservedContext = liveCallContext === null ? undefined : { lastLiveCallContext: liveCallContext };
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
     scenarioData: withSessionChatScope(
-      withPanicContextData(undefined, panicId),
+      withPanicContextData(preservedContext, panicId),
       ctx.chatId,
       ctx.chatType,
     ),
@@ -184,7 +197,9 @@ async function sendEmergencyFollowUp(
   const lang = ctx.session.lang;
   await sendMessage({
     chatId: ctx.chatId,
-    text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
+    text: escapeMarkdownV2(
+      buildEmergencyFollowUpText(action, panicId, lang, emergencyFollowUpOptions(ctx, panicId)),
+    ),
     keyboard: buildEmergencyFollowUpKeyboard(lang, panicId, {
       includeVoice: false,
       voiceAction: action,
@@ -390,7 +405,12 @@ export async function handleCallback(
     }
     const text =
       panicId && voiceOutPanic?.action
-        ? buildEmergencyFollowUpText(voiceOutPanic.action, panicId, lang)
+        ? buildEmergencyFollowUpText(
+            voiceOutPanic.action,
+            panicId,
+            lang,
+            emergencyFollowUpOptions(ctx, panicId),
+          )
         : panicId
           ? buildPanicVoiceOutText(panicId, lang)
           : null;

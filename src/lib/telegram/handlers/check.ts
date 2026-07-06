@@ -48,6 +48,7 @@ import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
+  asLiveCallContext,
   buildPanicScenarioText,
   hasRecentEmergencyContext,
   withPanicContextData,
@@ -996,8 +997,7 @@ async function sendPanicRoute(
   const liveCallContext = panicId === 6 ? classifyLiveCallContext(triggerText) : undefined;
   const nextScenarioData = withPanicContextData(previousScenarioData, panicId);
   if (liveCallContext !== undefined) {
-    (nextScenarioData as typeof nextScenarioData & { lastLiveCallContext: LiveCallContext })
-      .lastLiveCallContext = liveCallContext;
+    nextScenarioData.lastLiveCallContext = liveCallContext;
   }
   await saveSession(ctx.userId, {
     scenario: "none",
@@ -1225,10 +1225,19 @@ export async function handleCheck(
 
   const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
+    const liveCallContext =
+      emergencyFollowUp.panicId === 6
+        ? asLiveCallContext(ctx.session.scenarioData.lastLiveCallContext)
+        : null;
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(
-        buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
+        buildEmergencyFollowUpText(
+          emergencyFollowUp.action,
+          emergencyFollowUp.panicId,
+          lang,
+          liveCallContext === null ? {} : { liveCallContext },
+        ),
       ),
       keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId, {
         includeVoice: false,

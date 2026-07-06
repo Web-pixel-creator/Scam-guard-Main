@@ -61,6 +61,11 @@ export interface ReportDraft {
   lastPanicId?: number;
   lastPanicAt?: string;
   /**
+   * Non-sensitive caller category for live-call SOS copy. Stores only a coarse
+   * context label, never the caller text, number, URL, or account.
+   */
+  lastLiveCallContext?: "generic" | "bank" | "government" | "operator";
+  /**
    * Last check context for short follow-up questions like "точно?".
    * Stores only non-sensitive summary metadata: no raw input, OCR text,
    * phone numbers, URLs, card data, codes or image bytes.

@@ -381,6 +381,35 @@ describe("panic:N — scenario text sent as a new message", () => {
     );
   });
 
+  it("keeps live-call government context for follow-up callback text", async () => {
+    const base = makeCtx();
+    const ctx = makeCtx({
+      session: {
+        ...base.session,
+        scenarioData: {
+          lastPanicId: 6,
+          lastPanicAt: new Date(0).toISOString(),
+          lastLiveCallContext: "government",
+        },
+      },
+    });
+
+    await handleCallback("panicctx:6:contacts", ctx);
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Официальный канал госоргана");
+    expect(h.sendCalls[0].text).not.toContain("Проверьте мой счёт");
+    expect(h.saveCalls).toHaveLength(1);
+    expect(h.saveCalls[0].patch).toEqual(
+      expect.objectContaining({
+        scenarioData: expect.objectContaining({
+          lastPanicId: 6,
+          lastLiveCallContext: "government",
+        }),
+      }),
+    );
+  });
+
   it("handles every panic scenario button with a concrete response and stored context", async () => {
     const panicIds: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
