@@ -89,6 +89,13 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = normalizeVictimText(text);
   if (!normalized) return null;
   if (looksLikeScamPayloadRatherThanVictimPhrase(normalized)) return null;
+  if (
+    /(?:мошенник|скамер|scammer|fraudster).{0,40}(?:написал[аи]?|пиш(?:ет|ут)|сказал[аи]?)\s*:/iu.test(
+      normalized,
+    )
+  ) {
+    return null;
+  }
 
   if (
     /^(?:salom|assalomu\s+alaykum|hello|hi|привет|здравствуйте)[!.,\s]*$/iu.test(normalized) ||
@@ -120,6 +127,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     /(?:меня|нас|маму|папу|друга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
+      normalized,
+    ) ||
+    /(?:звонил[аи]?|позвонил[аи]?|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?).{0,60}(?:мошенник|скамер|скам|scammer|fraudster)|(?:мошенник|скамер|scammer|fraudster).{0,60}(?:звонил[аи]?|позвонил[аи]?|писал[аи]?|написал[аи]?)/iu.test(
       normalized,
     ) ||
     /(?:думаю|кажется|похоже|maybe|i\s+think|menimcha).{0,60}(?:мошенник|скам|обман|scam|fraud|firib)/iu.test(
@@ -235,6 +245,18 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    hasVictimFrame(normalized) &&
+    (/(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|отправили|пришло|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:что.?то|что.?нибудь|како[ей].?то|сообщение|скрин|фото|картинк|xabar|nimadir|narsa)/iu.test(
+      normalized,
+    ) ||
+      /(?:что.?то|что.?нибудь|како[ей].?то|сообщение|скрин|фото|картинк|xabar|nimadir|narsa).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|отправили|пришло|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
+        normalized,
+      ))
+  ) {
+    return { kind: "telegram_message" };
+  }
+
+  if (
     /(?:мне|нам|со\s+мной|меня).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?|пиш(?:ет|ут)|написал[аи]?|связался).{0,120}(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib)/iu.test(
       normalized,
     ) ||
@@ -301,6 +323,12 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался).{0,80}(?:работодатель|работ[ау]|ваканси|легкий\s+доход|job|employer|ish|daromad)/iu.test(
+      normalized,
+    ) ||
+    /(?:мне|меня|со\s+мной|menga|meni|me).{0,80}(?:приглаша(?:ют|ет)|зов(?:ут|ет)|добавля(?:ют|ет)|invite|invited).{0,100}(?:канал|чат|групп|channel|chat|group)?.{0,80}(?:заработ|доход|подработ|инвест|крипт|ton|wallet|daromad|ish|pul)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|чат|групп|channel|chat|group).{0,80}(?:для\s+)?(?:заработ|доход|подработ|инвест|крипт|ton|wallet|daromad|pul)/iu.test(
       normalized,
     )
   ) {
