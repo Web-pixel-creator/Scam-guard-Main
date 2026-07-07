@@ -949,7 +949,7 @@ function classifyLiveCallContext(text: string | undefined): LiveCallContext {
   }
 
   if (
-    /(?:оператор|связи|сим|sim|ucell|beeline|mobiuz|uztelecom|telecom|operator|aloqa|raqamni\s+ko['’]?chir|nomer)/iu.test(
+    /(?:оператор|связи|сим|sim|билайн|beeline|ucell|юселл|мобиуз|mobiuz|uzmobile|узмобайл|uztelecom|узтелеком|telecom|operator|aloqa|raqamni\s+ko['’]?chir|nomer)/iu.test(
       normalized,
     )
   ) {

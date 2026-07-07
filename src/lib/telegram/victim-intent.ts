@@ -13,18 +13,30 @@ export type VictimIntentKind =
   | "advice_question"
   | "unknown_contact"
   | "unknown_call"
+  | "foreign_call"
   | "identity_uncertain"
   | "telegram_message"
+  | "telegram_takeover"
   | "bank_call"
   | "operator_call"
   | "link_received"
   | "file_received"
+  | "apple_security"
   | "code_request"
   | "card_request"
   | "transfer_request"
   | "apk_request"
   | "link_request"
   | "personal_data_request"
+  | "utility_impersonation"
+  | "pension_benefit"
+  | "phone_borrowing"
+  | "money_mule"
+  | "open_budget"
+  | "medical_code"
+  | "child_game_bonus"
+  | "silent_call"
+  | "official_impersonation"
   | "friend_money"
   | "support_impersonation"
   | "authority_impersonation"
@@ -153,7 +165,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "unknown_call", askedContext: "call" };
+    return { kind: "foreign_call", askedContext: "call" };
   }
 
   if (
@@ -164,7 +176,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "link_request", askedContext: "link_qr" };
+    return { kind: "telegram_takeover", askedContext: "link_qr" };
   }
 
   if (
@@ -180,7 +192,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "apk_request", askedContext: "apk" };
+    return { kind: "apple_security", askedContext: "apk" };
   }
 
   if (
@@ -188,7 +200,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "code_request", askedContext: "code" };
+    return { kind: "open_budget", askedContext: "code" };
   }
 
   if (
@@ -196,7 +208,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "authority_impersonation", askedContext: "call" };
+    return { kind: "utility_impersonation", askedContext: "call" };
   }
 
   if (
@@ -204,7 +216,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "authority_impersonation", askedContext: "call" };
+    return { kind: "pension_benefit", askedContext: "call" };
   }
 
   if (
@@ -212,7 +224,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "code_request", askedContext: "code" };
+    return { kind: "medical_code", askedContext: "code" };
   }
 
   if (
@@ -220,7 +232,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "general_scam_concern" };
+    return { kind: "phone_borrowing", askedContext: "call" };
   }
 
   if (
@@ -228,7 +240,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "transfer_request", askedContext: "transfer" };
+    return { kind: "money_mule", askedContext: "transfer" };
   }
 
   if (
@@ -236,7 +248,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "code_request", askedContext: "code" };
+    return { kind: "child_game_bonus", askedContext: "code" };
   }
 
   if (
@@ -244,7 +256,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "unknown_call", askedContext: "call" };
+    return { kind: "silent_call", askedContext: "call" };
   }
 
   if (
@@ -252,7 +264,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
       text,
     )
   ) {
-    return { kind: "authority_impersonation", askedContext: "call" };
+    return { kind: "official_impersonation", askedContext: "call" };
   }
 
   return null;
@@ -741,6 +753,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       uz: "Notanish raqam qo'ng'iroq qilsa — bosim ostida suhbatni davom ettirmagan xavfsizroq.\n\nQo'ng'iroq davom etsa, xotirjam tugating. Kod, karta, pasport ma'lumoti aytmang va pul o'tkazmang. Ekrandagi raqamni yuboring — ochiq belgilarni tekshiraman.",
       en: "If an unknown number is calling, it is safer not to continue under pressure.\n\nIf the call is still active, end it calmly. Do not share a code, card, passport data, or transfer money. Send the number from the screen and I will check public signals.",
     },
+    foreign_call: {
+      ru: "Иностранный номер сам по себе не доказывает мошенничество, но под давлением это красный флаг.\n\nЕсли звонок ещё идёт — завершите его. Банк, оператор или госслужба не должны просить SMS-код, карту, паспорт или перевод с зарубежного номера. Пришлите номер или что именно просили.",
+      uz: "Chet el raqami o'zi firibgarlikni isbotlamaydi, lekin bosim bo'lsa — bu qizil bayroq.\n\nQo'ng'iroq davom etsa, tugating. Bank, operator yoki davlat xizmati chet el raqamidan SMS-kod, karta, pasport yoki pul so'ramasligi kerak. Raqamni yoki nima so'rashganini yuboring.",
+      en: "A foreign number alone is not proof of fraud, but pressure is a red flag.\n\nIf the call is still active, end it. A bank, operator, or government service should not ask for an SMS code, card, passport, or transfer from an overseas number. Send the number or what they asked for.",
+    },
     identity_uncertain: {
       ru: "Если человек похож на знакомого, но вы не уверены — не переводите деньги и не отправляйте код.\n\nПерезвоните по уже сохранённому номеру или задайте личный вопрос, ответ на который нельзя взять из соцсетей.",
       uz: "Odam tanishga o'xshasa ham, ishonchingiz komil bo'lmasa — pul yoki kod yubormang.\n\nOldindan saqlangan raqamga qayta qo'ng'iroq qiling yoki ijtimoiy tarmoqlardan topib bo'lmaydigan shaxsiy savol bering.",
@@ -750,6 +767,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Понял: вам пишут в Telegram. Я не вижу ваши чаты сам, поэтому нужен кусок переписки.\n\nПришлите текст сообщения, @username/ссылку или скрин. Пока не отправляйте код, карту, деньги и не открывайте APK.",
       uz: "Tushundim: sizga Telegramda yozishyapti. Men chatlaringizni o'zim ko'rmayman, shuning uchun yozishmadan parcha kerak.\n\nXabar matni, @username/havola yoki skrin yuboring. Hozircha kod, karta, pul yubormang va APK ochmang.",
       en: "Understood: someone is messaging you on Telegram. I cannot see your chats by myself, so I need a piece of the conversation.\n\nSend the message text, @username/link, or screenshot. For now, do not send codes, card data, money, or open APKs.",
+    },
+    telegram_takeover: {
+      ru: "Похоже на попытку увести Telegram-аккаунт: «галочка», Premium, удаление, блокировка, голосование или проверка часто ведут на фейковый вход.\n\nНе нажимайте кнопку и не вводите код. Откройте Telegram сами, проверьте активные устройства и включите двухэтапную защиту. Пришлите ссылку или скрин, если хотите проверить точнее.",
+      uz: "Bu Telegram akkauntini olib qo'yish urinishiga o'xshaydi: «belgi», Premium, o'chirish, bloklash, ovoz berish yoki tekshiruv ko'pincha soxta kirishga olib boradi.\n\nTugmani bosmang va kod kiritmang. Telegramni o'zingiz oching, aktiv qurilmalarni tekshiring va ikki bosqichli himoyani yoqing. Aniqroq tekshirish uchun havola yoki skrin yuboring.",
+      en: "This looks like a Telegram account takeover attempt: verification badges, Premium gifts, deletion, blocking, voting, or “checks” often lead to a fake login.\n\nDo not press the button or enter a code. Open Telegram yourself, check active devices, and enable two-step verification. Send the link or screenshot if you want a closer check.",
     },
     bank_call: {
       ru: "Если звонили «из банка», проверяем только через официальный канал.\n\nНе называйте код, PIN, CVV и не переводите деньги. Перезвоните сами по номеру из приложения, карты или официального сайта. Напишите, что именно они просили.",
@@ -771,6 +793,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       uz: "Notanish manbadan kelgan faylni ochmang, ayniqsa APK/arxiv bo'lsa.\n\nXabar skrinini yoki fayl nomini yuboring. Bu «himoya», «bank», «ish» yoki «to'lov» ilovasi bo'lsa — to'xtagan yaxshi.",
       en: "Do not open a file from an unknown source, especially an APK/archive.\n\nSend a screenshot of the message or the file name. If it is an app for “security”, “bank”, “work”, or “payment”, stop.",
     },
+    apple_security: {
+      ru: "Окно «Apple/iOS повреждена» или «вирусы 72%» почти всегда рекламная ловушка.\n\nНе нажимайте «установить» и не вводите Apple ID. Закройте страницу, проверьте устройство через настройки Apple, а если уже ввели пароль — смените его с официального сайта/настроек.",
+      uz: "«Apple/iOS shikastlangan» yoki «72% virus» oynasi odatda reklama tuzog'i bo'ladi.\n\n«O'rnatish»ni bosmang va Apple ID kiritmang. Sahifani yoping, qurilmani Apple sozlamalari orqali tekshiring; parol kiritgan bo'lsangiz — rasmiy sayt/sozlamalardan almashtiring.",
+      en: "An “Apple/iOS damaged” or “72% viruses” pop-up is usually an ad trap.\n\nDo not tap install or enter your Apple ID. Close the page, check the device through Apple settings, and if you already entered a password, change it through the official site/settings.",
+    },
     personal_data_request: {
       ru: "Паспорт, ПИНФЛ, фото документов, адрес и дату рождения не отправляйте в чат незнакомцу.\n\nНастоящая организация проверяет такие данные только через официальный сайт, приложение, офис или сохранённый номер. Пришлите текст просьбы или ссылку, если она есть.",
       uz: "Pasport, JSHSHIR/PINFL, hujjat rasmi, manzil va tug'ilgan sanani notanish chatga yubormang.\n\nHaqiqiy tashkilot bunday ma'lumotni faqat rasmiy sayt, ilova, ofis yoki saqlangan raqam orqali tekshiradi. So'rov matni yoki havola bo'lsa yuboring.",
@@ -780,6 +807,51 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Если «друг» или близкий срочно просит деньги — сначала подтвердите личность другим каналом.\n\nНе переводите сразу. Позвоните по сохранённому номеру или спросите семейное кодовое слово/личный вопрос.",
       uz: "«Do'st» yoki yaqin inson shoshilinch pul so'rasa — avval boshqa kanal orqali shaxsini tasdiqlang.\n\nDarhol pul o'tkazmang. Saqlangan raqamga qo'ng'iroq qiling yoki oilaviy kod so'z/shaxsiy savol so'rang.",
       en: "If a “friend” or relative urgently asks for money, verify their identity through another channel first.\n\nDo not transfer immediately. Call the saved number or ask a family code word/personal question.",
+    },
+    utility_impersonation: {
+      ru: "Водоканал, газ, свет, Suvsoz или «умный счётчик» проверяем только через официальный районный отдел.\n\nНе диктуйте паспорт, ПИНФЛ, SMS-код и не платите по ссылке. Завершите звонок и перезвоните сами по номеру из квитанции, сайта или приложения.",
+      uz: "Suvsoz, gaz, elektr yoki «aqlli hisoblagich»ni faqat rasmiy tuman bo'limi orqali tekshiring.\n\nPasport, JSHSHIR/PINFL, SMS-kod aytmang va havola orqali to'lamang. Qo'ng'iroqni tugating va kvitansiya, sayt yoki ilovadagi raqamga o'zingiz qo'ng'iroq qiling.",
+      en: "Water, gas, electricity, Suvsoz, or “smart meter” requests should be checked only through the official local office.\n\nDo not share passport data, ID number, SMS code, or pay by link. End the call and call back using the number from a bill, site, or app.",
+    },
+    pension_benefit: {
+      ru: "Пенсионный фонд, надбавка, пособие или грант не оформляются через SMS-код по звонку.\n\nНе называйте код, паспорт, ПИНФЛ и данные карты. Проверяйте через официальный номер 1271, 102 или личный кабинет, открытый вручную.",
+      uz: "Pensiya jamg'armasi, nafaqa, qo'shimcha to'lov yoki grant telefon orqali SMS-kod bilan rasmiylashtirilmaydi.\n\nKod, pasport, JSHSHIR/PINFL yoki karta ma'lumotini aytmang. 1271, 102 yoki o'zingiz ochgan rasmiy kabinet orqali tekshiring.",
+      en: "Pension increases, benefits, or grants are not processed through an SMS code on a call.\n\nDo not share a code, passport, ID number, or card data. Verify through the official number 1271, 102, or an account you open yourself.",
+    },
+    phone_borrowing: {
+      ru: "Не отдавайте незнакомцу разблокированный телефон даже «на минуту».\n\nЕсли хотите помочь — наберите номер сами и включите громкую связь. Не передавайте телефон с открытым банком, Telegram, SMS или уведомлениями.",
+      uz: "Notanish odamga blokdan chiqarilgan telefonni «bir daqiqaga» ham bermang.\n\nYordam bermoqchi bo'lsangiz, raqamni o'zingiz tering va ovozli rejimni yoqing. Bank, Telegram, SMS yoki bildirishnomalar ochiq telefonda qolmasin.",
+      en: "Do not hand an unlocked phone to a stranger, even “for a minute”.\n\nIf you want to help, dial the number yourself and use speakerphone. Do not hand over a phone with bank apps, Telegram, SMS, or notifications accessible.",
+    },
+    money_mule: {
+      ru: "Если деньги пришли «по ошибке» и просят вернуть на другой счёт — не переводите сами.\n\nСразу обратитесь в банк: пусть возврат идёт официально. Сохраните сообщение, чек и номер. Иначе можно стать участником чужой схемы.",
+      uz: "Pul «xato» kelib, boshqa hisobga qaytarishni so'rashsa — o'zingiz o'tkazmang.\n\nDarhol bankka murojaat qiling: qaytarish rasmiy yo'l bilan bo'lsin. Xabar, chek va raqamni saqlang. Aks holda begona sxemaga aralashib qolishingiz mumkin.",
+      en: "If money arrived “by mistake” and they ask you to send it to another account, do not transfer it yourself.\n\nContact the bank immediately so any return is handled officially. Save the message, receipt, and number. Otherwise you may become part of someone else's scheme.",
+    },
+    open_budget: {
+      ru: "Open Budget/голос за деньги — рискованная схема. Код из SMS может привязать ваш номер, карту или аккаунт к чужим действиям.\n\nНе продавайте голос и не называйте код. Проверяйте Open Budget только через официальный сайт/приложение.",
+      uz: "Open Budget ovozini pulga berish — xavfli sxema. SMS-kod raqamingiz, kartangiz yoki akkauntingizni begona harakatlarga bog'lashi mumkin.\n\nOvozni sotmang va kod aytmang. Open Budgetni faqat rasmiy sayt/ilova orqali tekshiring.",
+      en: "Selling an Open Budget vote is risky. An SMS code can link your number, card, or account to someone else's actions.\n\nDo not sell the vote and do not share the code. Check Open Budget only through the official site/app.",
+    },
+    medical_code: {
+      ru: "Поликлиника, врач или DMED не должны просить SMS-код в чате или по телефону.\n\nНе диктуйте код. Записывайтесь только через официальный сервис, регистратуру или сохранённый номер поликлиники.",
+      uz: "Poliklinika, shifokor yoki DMED chat/telefon orqali SMS-kod so'ramasligi kerak.\n\nKodni aytmang. Faqat rasmiy servis, registratura yoki saqlangan poliklinika raqami orqali yoziling.",
+      en: "A clinic, doctor, or DMED should not ask for an SMS code in chat or by phone.\n\nDo not dictate the code. Book only through the official service, reception desk, or saved clinic number.",
+    },
+    child_game_bonus: {
+      ru: "Бесплатные бонусы, игровая валюта или подарок ребёнку часто ведут к коду, аккаунту или вымогательству.\n\nНе вводите код и не переходите в сторонний чат. Лучше остановить переписку, сохранить скрин и обсудить это с ребёнком спокойно.",
+      uz: "Bolaga bepul bonus, o'yin valyutasi yoki sovg'a ko'pincha kod, akkaunt yoki qo'rqitishga olib boradi.\n\nKod kiritmang va begona chatga o'tmang. Yozishmani to'xtating, skrin saqlang va bola bilan xotirjam gaplashing.",
+      en: "Free bonuses, game currency, or gifts for a child often lead to codes, account theft, or extortion.\n\nDo not enter a code or move to a third-party chat. Stop the conversation, save a screenshot, and talk with the child calmly.",
+    },
+    silent_call: {
+      ru: "Если звонят и молчат — лучше сразу сбросить.\n\nНе говорите «да», не продолжайте разговор и не перезванивайте по неизвестному номеру. Заблокируйте номер и предупредите близких, если звонки повторяются.",
+      uz: "Qo'ng'iroq qilib jim turishsa — darhol tugatgan yaxshi.\n\n«Ha» demang, suhbatni davom ettirmang va noma'lum raqamga qayta qo'ng'iroq qilmang. Raqamni bloklang va takrorlansa yaqinlaringizni ogohlantiring.",
+      en: "If they call and stay silent, it is safer to hang up immediately.\n\nDo not say “yes”, do not continue, and do not call back an unknown number. Block it and warn relatives if calls repeat.",
+    },
+    official_impersonation: {
+      ru: "Госорган, МИБ/БПИ, суд, налоговая или инспектор не должны требовать код, карту, паспорт или наличные в личном чате.\n\nНе платите «штраф» по ссылке и не передавайте документы. Проверьте через официальный номер, сайт или личное обращение.",
+      uz: "Davlat idorasi, MIB/BPI, sud, soliq yoki inspektor shaxsiy chatda kod, karta, pasport yoki naqd pul talab qilmasligi kerak.\n\nHavola orqali «jarima» to'lamang va hujjat bermang. Rasmiy raqam, sayt yoki shaxsan murojaat orqali tekshiring.",
+      en: "A government body, enforcement office, court, tax office, or inspector should not demand a code, card, passport, or cash in a private chat.\n\nDo not pay a “fine” by link or send documents. Verify through an official number, site, or in person.",
     },
     support_impersonation: {
       ru: "Поддержка/служба безопасности в чате — частый сценарий обмана.\n\nНе отправляйте коды, пароли, карту и не устанавливайте приложения. Проверяйте только через официальный сайт, приложение или номер.",
@@ -905,20 +977,32 @@ function askedContextIntro(context: AskedContextKind, lang: Lang): string {
 function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
   switch (kind) {
     case "code_request":
+    case "open_budget":
+    case "medical_code":
+    case "child_game_bonus":
       return "code";
     case "card_request":
       return "card";
     case "transfer_request":
+    case "money_mule":
       return "transfer";
     case "apk_request":
+    case "apple_security":
       return "apk";
     case "link_request":
     case "link_received":
+    case "telegram_takeover":
       return "link_qr";
     case "bank_call":
     case "operator_call":
     case "unknown_call":
+    case "foreign_call":
     case "authority_impersonation":
+    case "utility_impersonation":
+    case "pension_benefit":
+    case "phone_borrowing":
+    case "silent_call":
+    case "official_impersonation":
       return "call";
     default:
       return "code";

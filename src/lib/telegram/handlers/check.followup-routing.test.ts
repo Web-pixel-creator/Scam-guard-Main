@@ -383,6 +383,20 @@ describe("handleCheck follow-up routing", () => {
     },
   );
 
+  it("routes Cyrillic Beeline live-call phrases to operator-specific SOS copy", async () => {
+    await handleCheck("мне звонит директор билайна", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("настоящий оператор связи");
+    expect(hoisted.sentMessages[0].text).not.toContain("настоящий банк");
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain('"lastLiveCallContext":"operator"');
+  });
+
   it("answers legacy live victim phrase before runCheck", async () => {
     await handleCheck("мне пишут в телеграме", {
       chatId: 100,

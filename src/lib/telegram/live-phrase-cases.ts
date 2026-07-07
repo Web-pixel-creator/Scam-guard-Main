@@ -210,8 +210,8 @@ export const LIVE_PHRASE_CASES = [
     text: "звонят с зарубежного номера",
     expected: {
       kind: "victim_intent",
-      intent: "unknown_call",
-      replyIncludes: "незнакомый номер",
+      intent: "foreign_call",
+      replyIncludes: "Иностранный номер",
     },
   },
   {
@@ -772,6 +772,132 @@ export const LIVE_PHRASE_CASES = [
       kind: "victim_intent",
       intent: "apk_request",
       replyIncludes: "Не устанавливайте APK",
+    },
+  },
+  {
+    area: "news-derived utility",
+    text: "звонят из водоканала и просят паспорт для умного счетчика",
+    expected: {
+      kind: "victim_intent",
+      intent: "utility_impersonation",
+      replyIncludes: "Водоканал",
+    },
+  },
+  {
+    area: "news-derived utility",
+    text: "пишут из сувсоза и требуют данные для заявки",
+    expected: {
+      kind: "victim_intent",
+      intent: "utility_impersonation",
+      replyIncludes: "Suvsoz",
+    },
+  },
+  {
+    area: "news-derived pension",
+    text: "пенсионный фонд обещает повысить пенсию и просит данные карты",
+    expected: {
+      kind: "victim_intent",
+      intent: "pension_benefit",
+      replyIncludes: "Пенсионный фонд",
+    },
+  },
+  {
+    area: "news-derived phone borrowing",
+    text: "незнакомец просит телефон на минуту позвонить",
+    expected: {
+      kind: "victim_intent",
+      intent: "phone_borrowing",
+      replyIncludes: "Не отдавайте",
+    },
+  },
+  {
+    area: "news-derived money mule",
+    text: "деньги пришли по ошибке просят вернуть на другой счет",
+    expected: {
+      kind: "victim_intent",
+      intent: "money_mule",
+      replyIncludes: "по ошибке",
+    },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "официальный Telegram просит пройти проверку иначе аккаунт удалят",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "мне пишут от имени Telegram с галочкой",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived apple",
+    text: "оповещение Apple iOS повреждена на 72 процента просит установить защиту",
+    expected: {
+      kind: "victim_intent",
+      intent: "apple_security",
+      replyIncludes: "Apple/iOS",
+    },
+  },
+  {
+    area: "news-derived open budget",
+    text: "покупают голос Open Budget и просят SMS код",
+    expected: {
+      kind: "victim_intent",
+      intent: "open_budget",
+      replyIncludes: "Open Budget",
+    },
+  },
+  {
+    area: "news-derived medical",
+    text: "врач DMED просит SMS код для записи",
+    expected: {
+      kind: "victim_intent",
+      intent: "medical_code",
+      replyIncludes: "DMED",
+    },
+  },
+  {
+    area: "news-derived children",
+    text: "ребенку предлагают бесплатные бонусы в игре и просят код",
+    expected: {
+      kind: "victim_intent",
+      intent: "child_game_bonus",
+      replyIncludes: "Бесплатные бонусы",
+    },
+  },
+  {
+    area: "news-derived silent call",
+    text: "звонят и молчат чтобы записать голос",
+    expected: {
+      kind: "victim_intent",
+      intent: "silent_call",
+      replyIncludes: "звонят и молчат",
+    },
+  },
+  {
+    area: "news-derived official",
+    text: "инспектор МИБ требует наличные за списание долга",
+    expected: {
+      kind: "victim_intent",
+      intent: "official_impersonation",
+      replyIncludes: "Госорган",
+    },
+  },
+  {
+    area: "news-derived official",
+    text: "агентство Хотели в Солик войти",
+    expected: {
+      kind: "victim_intent",
+      intent: "gov_service_login",
+      replyIncludes: "Soliq",
     },
   },
   {
