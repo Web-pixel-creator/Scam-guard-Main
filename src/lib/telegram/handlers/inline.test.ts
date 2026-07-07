@@ -149,6 +149,48 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).toContain("17 сек");
   });
 
+  it.each([
+    {
+      text: "работодатель просит оплатить обучение перед работой",
+      id: "check-unknown-job-offer",
+      title: "Работа: не платите взнос",
+    },
+    {
+      text: "агентство обещает визу в Корею но просит предоплату",
+      id: "check-unknown-travel-migration-prepayment",
+      title: "Виза/тур: не платите заранее",
+    },
+    {
+      text: "турфирма просит оплатить хадж заранее",
+      id: "check-unknown-travel-migration-prepayment",
+      title: "Виза/тур: не платите заранее",
+    },
+    {
+      text: "девушка из интернета просит деньги на билет",
+      id: "check-unknown-romance-money",
+      title: "Отношения: деньги не отправляйте",
+    },
+  ])("preflights social/economic inline phrase '$text'", async ({ text, id, title }) => {
+    hoisted.nextError = Object.assign(new Error("rate_limited"), {
+      status: 429,
+      retryAfter: 17,
+    });
+
+    await handleInlineQuery(text, { userId: 42, session }, `iq-preflight-${id}`);
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe(id);
+    expect(article.title).toBe(title);
+    expect(article.description).not.toContain("Подождите");
+    expect(article.input_message_content.message_text).toContain(title);
+  });
+
   it("renders low-signal phone inline checks as a number passport", async () => {
     hoisted.nextResult = {
       type: "phone",
