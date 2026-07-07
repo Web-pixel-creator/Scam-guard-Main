@@ -541,6 +541,11 @@ describe("handleInlineQuery", () => {
       title: "Telegram: не входите по ссылке",
     },
     {
+      text: "Одноклассник просит перейти по ссылке проголосовать за конкурс",
+      id: "check-unknown-voting-link",
+      title: "Голосование/канал: сначала проверим",
+    },
+    {
       text: "мне прислали APK я ухожу из этого мира",
       id: "check-unknown-malicious-file",
       title: "Файл/вирус: не открывайте",
@@ -562,6 +567,11 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "незнакомец просит телефон на минуту позвонить",
+      id: "check-unknown-phone-borrowing",
+      title: "Просят телефон: не отдавайте unlocked",
+    },
+    {
+      text: "На улице просят телефон позвонить на минуту",
       id: "check-unknown-phone-borrowing",
       title: "Просят телефон: не отдавайте unlocked",
     },
