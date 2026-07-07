@@ -25,6 +25,19 @@ type HumanInlineIntent =
   | "unknown_call"
   | "bank_call"
   | "operator_call"
+  | "foreign_call"
+  | "telegram_takeover"
+  | "malicious_file"
+  | "utility_impersonation"
+  | "official_impersonation"
+  | "pension_benefit"
+  | "phone_borrowing"
+  | "money_mule"
+  | "open_budget"
+  | "apple_security"
+  | "medical_code"
+  | "child_game_bonus"
+  | "silent_call"
   | "personal_data"
   | "delivery_payment"
   | "prize_fee"
@@ -45,6 +58,35 @@ type HumanInlineIntent =
   | "reply_safety"
   | "safety_question"
   | "chat_invite";
+
+const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
+  "unknown_call",
+  "bank_call",
+  "operator_call",
+  "foreign_call",
+  "telegram_takeover",
+  "malicious_file",
+  "utility_impersonation",
+  "official_impersonation",
+  "pension_benefit",
+  "phone_borrowing",
+  "money_mule",
+  "open_budget",
+  "apple_security",
+  "medical_code",
+  "child_game_bonus",
+  "silent_call",
+  "relative_distress",
+  "unknown_contact",
+  "identity_uncertain",
+  "bank_contact",
+  "general_scam_concern",
+  "voting_link",
+  "next_step",
+  "reply_safety",
+  "safety_question",
+  "chat_invite",
+]);
 
 type Copy = {
   helpTitle: string;
@@ -335,6 +377,71 @@ const PREVIEW_COPY: Record<
         description:
           "Beeline/Ucell/Mobiuz/Uztelecom проверяйте только через официальный номер или приложение. Код для SIM/eSIM не называйте.",
       },
+      foreign_call: {
+        title: "Иностранный звонок: не продолжайте под давлением",
+        description:
+          "Банк, оператор или госслужба не должны выманивать коды с зарубежного номера. Завершите звонок и проверяйте только через официальный канал.",
+      },
+      telegram_takeover: {
+        title: "Telegram: не входите по ссылке",
+        description:
+          "Фейковая галочка, блокировка, удаление, Premium, голосование или «проверка» часто ведут к угону аккаунта. Не вводите код и пароль.",
+      },
+      malicious_file: {
+        title: "Файл/вирус: не открывайте",
+        description:
+          "APK, EXE, PDF.APK, GIF, PPTX, «голосовое» или открытка от незнакомых могут украсть доступ. Не скачивайте и пришлите скрин/текст.",
+      },
+      utility_impersonation: {
+        title: "Коммунальная служба: перезвоните сами",
+        description:
+          "Водоканал, газ, свет или Suvsoz не должны просить паспорт, ПИНФЛ, SMS-код или оплату по ссылке. Перезвоните в районный отдел.",
+      },
+      official_impersonation: {
+        title: "Госорган/инспектор: проверьте официально",
+        description:
+          "МВД, МИБ/БПИ, налоговая, суд или инспектор не должны требовать код, карту, наличные или документы через чат/звонок. Проверяйте по официальному номеру.",
+      },
+      pension_benefit: {
+        title: "Пенсия/выплата: не называйте данные",
+        description:
+          "Пенсионный фонд, грант или надбавка по телефону не требуют SMS-код, карту, паспорт или ПИНФЛ. Проверяйте через 1271/102 или официальный канал.",
+      },
+      phone_borrowing: {
+        title: "Просят телефон: не отдавайте unlocked",
+        description:
+          "Если незнакомец просит телефон «на минуту», он может открыть банк или восстановить аккаунт. Наберите номер сами и включите громкую связь.",
+      },
+      money_mule: {
+        title: "Чужие деньги: не переводите дальше",
+        description:
+          "Если деньги пришли «по ошибке» или просят снять/вернуть на другой счет, не переводите сами. Сразу обращайтесь в банк и сохраните чек.",
+      },
+      open_budget: {
+        title: "Open Budget/голос: код не отдавайте",
+        description:
+          "За голос официально не покупают SMS-код. Не продавайте голос, не называйте код и не привязывайте карту/номер к чужому устройству.",
+      },
+      apple_security: {
+        title: "Apple/iOS: не устанавливайте «защиту»",
+        description:
+          "Окна про вирусы, повреждение iOS или проверку Apple ID могут быть фишингом. Закройте страницу, не вводите пароль и не ставьте приложение.",
+      },
+      medical_code: {
+        title: "Врач/DMED: код не диктуйте",
+        description:
+          "Поликлиника или DMED не должны просить SMS-код по телефону/в чате. Записывайтесь только через официальный канал.",
+      },
+      child_game_bonus: {
+        title: "Игровые бонусы: не вводите код",
+        description:
+          "Бесплатная валюта, бонусы или подарки для игры могут быть приманкой. Не переходите в мессенджер и не называйте код.",
+      },
+      silent_call: {
+        title: "Молчаливый звонок: сбросьте",
+        description:
+          "Если звонят и молчат, не говорите «да» и не продолжайте. Сбросьте, заблокируйте номер и предупредите близких.",
+      },
       personal_data: {
         title: "Документы: не отправляйте фото",
         description:
@@ -502,6 +609,71 @@ const PREVIEW_COPY: Record<
         description:
           "Beeline/Ucell/Mobiuz/Uztelecomni faqat rasmiy raqam yoki ilova orqali tekshiring. SIM/eSIM kodi aytilmaydi.",
       },
+      foreign_call: {
+        title: "Chet el raqami: bosim ostida gaplashmang",
+        description:
+          "Bank, operator yoki davlat xizmati chet el raqamidan kod so'ramaydi. Qo'ng'iroqni tugating va rasmiy kanal orqali tekshiring.",
+      },
+      telegram_takeover: {
+        title: "Telegram: havola orqali kirmang",
+        description:
+          "Soxta belgi, bloklash, o'chirish, Premium, ovoz berish yoki «tekshiruv» akkauntni o'g'irlashi mumkin. Kod va parol kiritmang.",
+      },
+      malicious_file: {
+        title: "Fayl/virus: ochmang",
+        description:
+          "APK, EXE, PDF.APK, GIF, PPTX, «ovozli xabar» yoki tabrik fayli xavfli bo'lishi mumkin. Yuklamang, skrin yoki matn yuboring.",
+      },
+      utility_impersonation: {
+        title: "Kommunal xizmat: o'zingiz qayta qo'ng'iroq qiling",
+        description:
+          "Suvsoz, gaz yoki elektr xizmati chat/qo'ng'iroqda pasport, PINFL, SMS-kod yoki havola orqali to'lov so'ramasligi kerak.",
+      },
+      official_impersonation: {
+        title: "Davlat organi/inspektor: rasmiy tekshiring",
+        description:
+          "IIV, MIB/BPI, soliq, sud yoki inspektor chat/qo'ng'iroqda kod, karta, naqd pul yoki hujjat talab qilmasligi kerak.",
+      },
+      pension_benefit: {
+        title: "Pensiya/to'lov: ma'lumot bermang",
+        description:
+          "Pensiya jamg'armasi, grant yoki ustama uchun telefon orqali SMS-kod, karta, pasport yoki PINFL aytilmaydi. 1271/102 yoki rasmiy kanal orqali tekshiring.",
+      },
+      phone_borrowing: {
+        title: "Telefon so'rashsa: ochiq holda bermang",
+        description:
+          "Notanish odam telefonni «bir daqiqaga» so'rasa, bank yoki akkauntga kirishi mumkin. Raqamni o'zingiz tering va ovozli aloqa yoqing.",
+      },
+      money_mule: {
+        title: "Begona pul: boshqa hisobga o'tkazmang",
+        description:
+          "Pul «adashib» kelsa yoki yechib/ qaytarib berishni so'rashsa, o'zingiz o'tkazmang. Bankka murojaat qiling va chekni saqlang.",
+      },
+      open_budget: {
+        title: "Open Budget/ovoz: kod bermang",
+        description:
+          "Ovoz uchun SMS-kod sotilmaydi. Kod aytmang, kartani yoki raqamni begona qurilmaga bog'lamang.",
+      },
+      apple_security: {
+        title: "Apple/iOS: «himoya» o'rnatmang",
+        description:
+          "Virus, iOS shikastlangan yoki Apple ID tekshiruvi haqidagi oyna fishing bo'lishi mumkin. Sahifani yoping, parol kiritmang.",
+      },
+      medical_code: {
+        title: "Shifokor/DMED: kod aytmang",
+        description:
+          "Poliklinika yoki DMED telefon/chat orqali SMS-kod so'ramasligi kerak. Faqat rasmiy kanal orqali yoziling.",
+      },
+      child_game_bonus: {
+        title: "O'yin bonuslari: kod kiritmang",
+        description:
+          "Bepul valyuta, bonus yoki sovg'a bolalarni tuzoqqa tushirishi mumkin. Messengerga o'tmang va kod aytmang.",
+      },
+      silent_call: {
+        title: "Jim qo'ng'iroq: o'chiring",
+        description:
+          "Qo'ng'iroqda jim turishsa, «ha» demang va gapni davom ettirmang. O'chiring, bloklang va yaqinlarni ogohlantiring.",
+      },
       personal_data: {
         title: "Hujjatlar: rasm yubormang",
         description:
@@ -668,6 +840,71 @@ const PREVIEW_COPY: Record<
         title: "Mobile operator: call back yourself",
         description:
           "Verify Beeline/Ucell/Mobiuz/Uztelecom only through the official number or app. Do not share a SIM/eSIM code.",
+      },
+      foreign_call: {
+        title: "Foreign call: do not continue under pressure",
+        description:
+          "A bank, operator or government service should not ask for codes from a foreign number. Hang up and verify through an official channel.",
+      },
+      telegram_takeover: {
+        title: "Telegram: do not sign in by link",
+        description:
+          "Fake badges, blocking, deletion, Premium, voting or verification links often steal accounts. Do not enter a code or password.",
+      },
+      malicious_file: {
+        title: "File/virus: do not open it",
+        description:
+          "APK, EXE, PDF.APK, GIF, PPTX, a voice file or a greeting card may steal access. Do not download it; send a screenshot or text.",
+      },
+      utility_impersonation: {
+        title: "Utility service: call back yourself",
+        description:
+          "Water, gas, electricity or Suvsoz should not ask by chat/call for passport, tax ID, SMS code, or payment by link.",
+      },
+      official_impersonation: {
+        title: "Government/inspector: verify officially",
+        description:
+          "Police, MIB/BPI, tax, court, or an inspector should not demand a code, card, cash, or documents by chat/call. Verify via an official number.",
+      },
+      pension_benefit: {
+        title: "Pension/benefit: do not share data",
+        description:
+          "A pension fund, grant or benefit increase does not require SMS code, card, passport, or tax ID by phone. Verify via 1271/102 or an official channel.",
+      },
+      phone_borrowing: {
+        title: "Phone request: do not hand it unlocked",
+        description:
+          "If a stranger asks for your phone for a minute, they may open banking or recover accounts. Dial yourself and use speakerphone.",
+      },
+      money_mule: {
+        title: "Someone else's money: do not forward it",
+        description:
+          "If money arrived by mistake or they ask you to withdraw/return it to another account, do not transfer it yourself. Contact the bank and save receipts.",
+      },
+      open_budget: {
+        title: "Open Budget/vote: do not share the code",
+        description:
+          "Official voting does not buy your SMS code. Do not sell a vote, share a code, or bind your card/number to someone else's device.",
+      },
+      apple_security: {
+        title: "Apple/iOS: do not install protection",
+        description:
+          "Popups about viruses, damaged iOS or Apple ID verification may be phishing. Close the page, do not enter a password or install an app.",
+      },
+      medical_code: {
+        title: "Doctor/DMED: do not dictate a code",
+        description:
+          "A clinic or DMED should not ask for an SMS code by phone/chat. Book only through an official channel.",
+      },
+      child_game_bonus: {
+        title: "Game bonuses: do not enter a code",
+        description:
+          "Free currency, bonuses or gifts for games can be bait. Do not move to messenger or share a code.",
+      },
+      silent_call: {
+        title: "Silent call: hang up",
+        description:
+          "If the caller is silent, do not say yes or continue. Hang up, block the number, and warn relatives.",
       },
       personal_data: {
         title: "Documents: do not send photos",
@@ -975,10 +1212,137 @@ function classifySharedVictimInlineIntent(text: string): HumanInlineIntent | nul
   return mapVictimIntentToHumanInlineIntent(match.kind);
 }
 
+function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | null {
+  if (
+    /(?:telegram|телеграм|телеграмм|teiegram|аккаунт|профиль|premium|премиум).{0,180}(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|спасти|подар|голосован|проголос|мамочк|конкурс|войти|вход|парол|код)|(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|premium|премиум|подар|голосован|проголос|мамочк|конкурс).{0,180}(?:telegram|телеграм|телеграмм|аккаунт|профиль)/iu.test(
+      normalized,
+    ) ||
+    /(?:hurmatli|telegram|akkaunt|hisob).{0,180}(?:muzlat|o['’]?chir|blok|tasdiq|havola|parol|kod|premium|sovg['’]?a|ovoz)/iu.test(
+      normalized,
+    )
+  ) {
+    return "telegram_takeover";
+  }
+
+  if (
+    /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
+      normalized,
+    )
+  ) {
+    return "malicious_file";
+  }
+
+  if (
+    /(?:apple|ios|iphone|айфон|эппл|apple\s?id).{0,180}(?:вирус|поврежд|72|парол|провер|блок|установ|окно|баннер|разблок)|(?:вирус|поврежд.{0,20}ios|оповещен.{0,20}apple).{0,140}(?:установ|парол|ok|инструкц)/iu.test(
+      normalized,
+    )
+  ) {
+    return "apple_security";
+  }
+
+  if (
+    /(?:open\s*budget|openbudget|опен\s*бюджет|open\s+budjet|овоз|ovoz).{0,180}(?:код|sms|смс|голос|100\.?000|деньг|куп|sotib|olamiz|pul)|(?:покупа|купить|сотиб|sotib).{0,90}(?:голос|ovoz).{0,90}(?:open|бюджет|budget)/iu.test(
+      normalized,
+    )
+  ) {
+    return "open_budget";
+  }
+
+  if (
+    /(?:водоканал|сувсоз|suvsoz|счетчик|счётчик|умн.{0,20}датчик|газ|электр|свет|коммунал|нулев.{0,20}баланс|utility).{0,180}(?:паспорт|пинфл|код|sms|смс|ссылк|оплат|звон|данн|адрес|долг|установ|провер)?/iu.test(
+      normalized,
+    )
+  ) {
+    return "utility_impersonation";
+  }
+
+  if (
+    /(?:пенсион|пенси[яию]|нафак|nafaqa|1271|выплат|надбавк|повышен.{0,20}пенс|пособи|грант).{0,180}(?:код|sms|смс|паспорт|пинфл|карт|данн|звон|оформ|увелич)/iu.test(
+      normalized,
+    )
+  ) {
+    return "pension_benefit";
+  }
+
+  if (
+    /(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
+      normalized,
+    )
+  ) {
+    return "medical_code";
+  }
+
+  if (
+    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:телефон|смартфон).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|незнаком|посторон)/iu.test(
+      normalized,
+    )
+  ) {
+    return "phone_borrowing";
+  }
+
+  if (
+    /(?:деньг|сум|перевод).{0,120}(?:по\s+ошибк|ошибочн|случайн|вернуть|обратно|друг.{0,20}счет|друг.{0,20}счёт)|(?:вернуть|снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
+      normalized,
+    )
+  ) {
+    return "money_mule";
+  }
+
+  if (
+    /(?:ребен|дет[ией]|школьник|game|игр|robux|bonus|бонус|валют).{0,180}(?:код|sms|смс|мессенджер|данн|подар|бесплатн|запуг|вымог)/iu.test(
+      normalized,
+    )
+  ) {
+    return "child_game_bonus";
+  }
+
+  if (
+    /(?:молчащ|молчат|тишина|ничего\s+не\s+говор|сказал.{0,20}алло|сказал.{0,20}да|запис(?:ать|али).{0,30}голос|копи.{0,30}голос|voice\s+clone)/iu.test(
+      normalized,
+    )
+  ) {
+    return "silent_call";
+  }
+
+  if (
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|друг|подруга).{0,160}(?:ии|ai|deepfake|дипфейк|видеосвяз|видео|голос).{0,160}(?:деньг|помощ|перевод|сроч)|(?:ии|ai|deepfake|дипфейк|видеосвяз|голос).{0,160}(?:родствен|близк|мама|папа|друг).{0,160}(?:деньг|помощ|перевод|сроч)/iu.test(
+      normalized,
+    ) ||
+    /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
+      normalized,
+    )
+  ) {
+    return "relative_distress";
+  }
+
+  if (
+    /(?:\+98|\+988|\+996|\+987|\+989|иран|ирана|нигери|кыргыз|киргиз|таджик|туркмен|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|chet\s+el|foreign).{0,140}(?:звон|номер|вызов|call|qo['’]?ng)|(?:звон|номер|вызов|call).{0,140}(?:\+98|\+988|\+996|\+987|\+989|иран|ирана|нигери|кыргыз|киргиз|таджик|туркмен|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|foreign)/iu.test(
+      normalized,
+    )
+  ) {
+    return "foreign_call";
+  }
+
+  if (
+    /(?:мвд|миб|бпи|mib|bpi|суд|налогов|солик|солиқ|инспектор|госорган|госслужб|орган).{0,180}(?:код|sms|смс|карта|паспорт|пинфл|налич|деньг|штраф|долг|квитанц|документ|звон|пришел|пришёл)/iu.test(
+      normalized,
+    )
+  ) {
+    return "official_impersonation";
+  }
+
+  return null;
+}
+
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const normalized = text.toLowerCase();
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
+
+  const newsIntent = classifyNewsHumanInlineIntent(normalized);
+  if (newsIntent) {
+    return newsIntent;
+  }
 
   if (
     /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|солик|солиқ|gov\.uz|egov|e-gov|налогов|госуслуг|госорган|государственн|электронн.{0,20}правительств|(?:^|[^a-zа-яё])(?:пинфл|стир|инн)(?:$|[^a-zа-яё])).{0,100}(?:код|sms|смс|парол|логин|вход|ссылк|подтверд|заблок|тиклаш|tasdiq|parol|login|kirish)?/iu.test(
@@ -1545,6 +1909,43 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   );
 }
 
+function hasConcreteInlineArtifact(text: string): boolean {
+  return /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d)/iu.test(
+    text,
+  );
+}
+
+function shouldUsePreflightInlineIntent(text: string, intent: HumanInlineIntent | null): intent is HumanInlineIntent {
+  return Boolean(intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteInlineArtifact(text));
+}
+
+function humanIntentArticle(
+  display: string,
+  lang: Lang,
+  intent: HumanInlineIntent,
+): InlineQueryResultArticle {
+  const intentCopy = PREVIEW_COPY[lang].humanIntents[intent];
+  const result = {
+    type: "text",
+    display,
+    level: "unknown",
+    score: 0,
+    reasons: ["unknown_sender"],
+    explanation: null,
+    knownReports: 0,
+    verifiedContact: null,
+    brandEvidence: [],
+  } as RunCheckResult;
+
+  return buildArticle(
+    `check-unknown-${intent.replaceAll("_", "-")}`,
+    intentCopy.title,
+    intentCopy.description,
+    formatHumanInlineMessage(result, lang, intentCopy),
+    lang,
+  );
+}
+
 function helpArticle(lang: Lang): InlineQueryResultArticle {
   const copy = COPY[lang];
   return buildArticle("help", copy.helpTitle, copy.helpDescription, copy.helpMessage, lang);
@@ -1597,6 +1998,12 @@ export async function handleInlineQuery(
     return;
   }
 
+  const preflightIntent = classifyHumanInlineIntent(trimmed);
+  if (shouldUsePreflightInlineIntent(trimmed, preflightIntent)) {
+    await answerOne(inlineQueryId, humanIntentArticle(trimmed, lang, preflightIntent));
+    return;
+  }
+
   try {
     const result = await runCheck({
       input: trimmed,
@@ -1608,6 +2015,12 @@ export async function handleInlineQuery(
     });
     await answerOne(inlineQueryId, resultArticle(result, lang));
   } catch (error) {
+    const fallbackIntent = classifyHumanInlineIntent(trimmed);
+    if (isRateLimitedError(error) && shouldUsePreflightInlineIntent(trimmed, fallbackIntent)) {
+      await answerOne(inlineQueryId, humanIntentArticle(trimmed, lang, fallbackIntent));
+      return;
+    }
+
     const article = isRateLimitedError(error)
       ? staticArticle(
           "rate-limited",

@@ -136,6 +136,128 @@ function isGovServiceLoginIntent(text: string): boolean {
   );
 }
 
+function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
+  if (
+    /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
+      text,
+    ) ||
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|друг|подруга).{0,160}(?:ии|ai|deepfake|дипфейк|видеосвяз|видео|голос).{0,160}(?:деньг|помощ|перевод|сроч)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "friend_money", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:\+98|\+988|\+996|\+987|\+989|иран|ирана|нигери|кыргыз|киргиз|таджик|туркмен|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|chet\s+el|foreign).{0,140}(?:звон|номер|вызов|call|qo['’]?ng)|(?:звон|номер|вызов|call).{0,140}(?:\+98|\+988|\+996|\+987|\+989|иран|ирана|нигери|кыргыз|киргиз|таджик|туркмен|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|foreign)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "unknown_call", askedContext: "call" };
+  }
+
+  if (
+    /(?:telegram|телеграм|телеграмм|teiegram|аккаунт|профиль|premium|премиум).{0,180}(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|спасти|подар|голосован|проголос|мамочк|конкурс|войти|вход|парол|код)|(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|premium|премиум|подар|голосован|проголос|мамочк|конкурс).{0,180}(?:telegram|телеграм|телеграмм|аккаунт|профиль)/iu.test(
+      text,
+    ) ||
+    /(?:hurmatli|telegram|akkaunt|hisob).{0,180}(?:muzlat|o['’]?chir|blok|tasdiq|havola|parol|kod|premium|sovg['’]?a|ovoz)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "link_request", askedContext: "link_qr" };
+  }
+
+  if (
+    /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "file_received" };
+  }
+
+  if (
+    /(?:apple|ios|iphone|айфон|эппл|apple\s?id).{0,180}(?:вирус|поврежд|72|парол|провер|блок|установ|окно|баннер|разблок)|(?:вирус|поврежд.{0,20}ios|оповещен.{0,20}apple).{0,140}(?:установ|парол|ok|инструкц)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "apk_request", askedContext: "apk" };
+  }
+
+  if (
+    /(?:open\s*budget|openbudget|опен\s*бюджет|open\s+budjet|овоз|ovoz).{0,180}(?:код|sms|смс|голос|100\.?000|деньг|куп|sotib|olamiz|pul)|(?:покупа|купить|сотиб|sotib).{0,90}(?:голос|ovoz).{0,90}(?:open|бюджет|budget)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
+    /(?:водоканал|сувсоз|suvsoz|счетчик|счётчик|умн.{0,20}датчик|газ|электр|свет|коммунал|нулев.{0,20}баланс|utility).{0,180}(?:паспорт|пинфл|код|sms|смс|ссылк|оплат|звон|данн|адрес|долг|установ|провер)?/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
+  if (
+    /(?:пенсион|пенси[яию]|нафак|nafaqa|1271|выплат|надбавк|повышен.{0,20}пенс|пособи|грант).{0,180}(?:код|sms|смс|паспорт|пинфл|карт|данн|звон|оформ|увелич)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
+  if (
+    /(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
+    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:телефон|смартфон).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|незнаком|посторон)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "general_scam_concern" };
+  }
+
+  if (
+    /(?:деньг|сум|перевод).{0,120}(?:по\s+ошибк|ошибочн|случайн|вернуть|обратно|друг.{0,20}счет|друг.{0,20}счёт)|(?:вернуть|снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "transfer_request", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:ребен|дет[ией]|школьник|game|игр|robux|bonus|бонус|валют).{0,180}(?:код|sms|смс|мессенджер|данн|подар|бесплатн|запуг|вымог)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
+    /(?:молчащ|молчат|тишина|ничего\s+не\s+говор|сказал.{0,20}алло|сказал.{0,20}да|запис(?:ать|али).{0,30}голос|копи.{0,30}голос|voice\s+clone)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "unknown_call", askedContext: "call" };
+  }
+
+  if (
+    /(?:мвд|миб|бпи|mib|bpi|суд|налогов|солик|солиқ|инспектор|госорган|госслужб|орган).{0,180}(?:код|sms|смс|карта|паспорт|пинфл|налич|деньг|штраф|долг|квитанц|документ|звон|пришел|пришёл)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
+  return null;
+}
+
 export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = normalizeVictimText(text);
   if (!normalized) return null;
@@ -166,6 +288,11 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "acknowledgement" };
+  }
+
+  const newsIntent = classifyNewsVictimIntent(normalized);
+  if (newsIntent) {
+    return newsIntent;
   }
 
   if (

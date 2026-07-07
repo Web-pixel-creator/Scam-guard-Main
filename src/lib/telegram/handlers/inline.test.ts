@@ -440,8 +440,8 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "мне звонят с другой страны\nПросто звонок с другой страны, брать трубку?",
-      id: "check-unknown-unknown-call",
-      title: "Неизвестный звонок: лучше перезвонить",
+      id: "check-unknown-foreign-call",
+      title: "Иностранный звонок: не продолжайте под давлением",
     },
     {
       text: "просят фото паспорта",
@@ -472,6 +472,86 @@ describe("handleInlineQuery", () => {
       text: "мне пишет сын попал в аварию срочно перевести деньги",
       id: "check-unknown-relative-distress",
       title: "Близкий в беде: перезвоните",
+    },
+    {
+      text: "моей бабушке звонил мошенник\nОн просил срочно прислать деньги на помощь",
+      id: "check-unknown-relative-distress",
+      title: "Близкий в беде: перезвоните",
+    },
+    {
+      text: "мне звонят из Нигерии",
+      id: "check-unknown-foreign-call",
+      title: "Иностранный звонок: не продолжайте под давлением",
+    },
+    {
+      text: "звонят с номера +98 из Ирана",
+      id: "check-unknown-foreign-call",
+      title: "Иностранный звонок: не продолжайте под давлением",
+    },
+    {
+      text: "мне пишут от имени Telegram с галочкой",
+      id: "check-unknown-telegram-takeover",
+      title: "Telegram: не входите по ссылке",
+    },
+    {
+      text: "официальный Telegram просит пройти проверку иначе аккаунт удалят",
+      id: "check-unknown-telegram-takeover",
+      title: "Telegram: не входите по ссылке",
+    },
+    {
+      text: "мне прислали APK я ухожу из этого мира",
+      id: "check-unknown-malicious-file",
+      title: "Файл/вирус: не открывайте",
+    },
+    {
+      text: "оповещение безопасности Apple iOS повреждена на 72 установить программу",
+      id: "check-unknown-apple-security",
+      title: "Apple/iOS: не устанавливайте «защиту»",
+    },
+    {
+      text: "звонят из водоканала про счетчик просят паспорт",
+      id: "check-unknown-utility-impersonation",
+      title: "Коммунальная служба: перезвоните сами",
+    },
+    {
+      text: "пенсионный фонд обещает повысить пенсию просит код",
+      id: "check-unknown-pension-benefit",
+      title: "Пенсия/выплата: не называйте данные",
+    },
+    {
+      text: "незнакомец просит телефон на минуту позвонить",
+      id: "check-unknown-phone-borrowing",
+      title: "Просят телефон: не отдавайте unlocked",
+    },
+    {
+      text: "деньги пришли по ошибке просят вернуть на другой счет",
+      id: "check-unknown-money-mule",
+      title: "Чужие деньги: не переводите дальше",
+    },
+    {
+      text: "покупают голос Open Budget и просят SMS код",
+      id: "check-unknown-open-budget",
+      title: "Open Budget/голос: код не отдавайте",
+    },
+    {
+      text: "врач DMED просит SMS код",
+      id: "check-unknown-medical-code",
+      title: "Врач/DMED: код не диктуйте",
+    },
+    {
+      text: "ребенку предлагают бесплатные бонусы в игре просят код",
+      id: "check-unknown-child-game-bonus",
+      title: "Игровые бонусы: не вводите код",
+    },
+    {
+      text: "звонят и молчат чтобы записать голос",
+      id: "check-unknown-silent-call",
+      title: "Молчаливый звонок: сбросьте",
+    },
+    {
+      text: "инспектор МИБ требует наличные за списание долга",
+      id: "check-unknown-official-impersonation",
+      title: "Госорган/инспектор: проверьте официально",
     },
     {
       text: "предлагают работу но просят оплатить обучение",
@@ -665,11 +745,6 @@ describe("handleInlineQuery", () => {
   });
 
   it.each([
-    {
-      text: "сын попал в аварию срочно перевести деньги",
-      id: "check-suspicious-relative-distress",
-      title: "Близкий в беде: перезвоните",
-    },
     {
       text: "просят инвестировать в TON wallet с гарантированной прибылью",
       id: "check-suspicious-investment-offer",
