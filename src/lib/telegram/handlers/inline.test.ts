@@ -713,6 +713,91 @@ describe("handleInlineQuery", () => {
       id: "check-unknown-chat-invite",
       title: "Канал/чат: сначала проверим",
     },
+    {
+      text: "мне звонят и торопят",
+      id: "check-unknown-unknown-call",
+      title: "Неизвестный звонок: лучше перезвонить",
+    },
+    {
+      text: "мне звонят и угрожают",
+      id: "check-unknown-unknown-call",
+      title: "Неизвестный звонок: лучше перезвонить",
+    },
+    {
+      text: "someone is calling me",
+      id: "check-unknown-unknown-call",
+      title: "Неизвестный звонок: лучше перезвонить",
+    },
+    {
+      text: "мне звонит фейковый майор",
+      id: "check-unknown-official-impersonation",
+      title: "Госорган/инспектор: проверьте официально",
+    },
+    {
+      text: "мне пишет криптоинвестор",
+      id: "check-unknown-investment-offer",
+      title: "Инвестиции/крипта: осторожно",
+    },
+    {
+      text: "мне пишет кто-то и шлёт ссылку",
+      id: "check-unknown-link-request",
+      title: "Ссылка: сначала проверим",
+    },
+    {
+      text: "мне пишет и шлёт файл",
+      id: "check-unknown-malicious-file",
+      title: "Файл/вирус: не открывайте",
+    },
+    {
+      text: "у меня плохое предчувствие",
+      id: "check-unknown-general-scam-concern",
+      title: "Подозреваете обман: пришлите просьбу",
+    },
+    {
+      text: "как проверить номер",
+      id: "check-unknown-safety-question",
+      title: "Безопасно ли: проверим по фактам",
+    },
+    {
+      text: "какой номер полиции",
+      id: "check-unknown-general-scam-concern",
+      title: "Подозреваете обман: пришлите просьбу",
+    },
+    {
+      text: "я уже перевёл деньги",
+      id: "check-unknown-sent-money",
+      title: "Деньги уже переведены: срочно в банк",
+    },
+    {
+      text: "как вернуть деньги после мошенника",
+      id: "check-unknown-sent-money",
+      title: "Деньги уже переведены: срочно в банк",
+    },
+    {
+      text: "я уже дал номер карты",
+      id: "check-unknown-card-request",
+      title: "Карта: не отправляйте данные",
+    },
+    {
+      text: "я уже перешёл по ссылке",
+      id: "check-unknown-link-request",
+      title: "Ссылка: сначала проверим",
+    },
+    {
+      text: "привет",
+      id: "check-unknown-next-step",
+      title: "Что делать: остановитесь и пришлите просьбу",
+    },
+    {
+      text: "спасибо",
+      id: "check-unknown-next-step",
+      title: "Что делать: остановитесь и пришлите просьбу",
+    },
+    {
+      text: "а вы кто",
+      id: "check-unknown-next-step",
+      title: "Что делать: остановитесь и пришлите просьбу",
+    },
   ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
     hoisted.nextResult = {
       type: "text",

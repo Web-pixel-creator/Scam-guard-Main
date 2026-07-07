@@ -18,6 +18,7 @@ type HumanInlineIntent =
   | "link_request"
   | "code_request"
   | "sent_code"
+  | "sent_money"
   | "confirm_request"
   | "card_request"
   | "transfer_request"
@@ -64,6 +65,7 @@ const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "bank_call",
   "operator_call",
   "foreign_call",
+  "sent_money",
   "telegram_takeover",
   "malicious_file",
   "utility_impersonation",
@@ -342,6 +344,11 @@ const PREVIEW_COPY: Record<
         description:
           "Сейчас не спорим с мошенником. Заблокируйте карту/доступ через банк и смените пароль с другого устройства.",
       },
+      sent_money: {
+        title: "Деньги уже переведены: срочно в банк",
+        description:
+          "Позвоните в банк по официальному номеру, попросите заморозить/оспорить перевод и сохраните чек. Не делайте «возвратный перевод».",
+      },
       confirm_request: {
         title: "Подтверждение: осторожно",
         description:
@@ -575,6 +582,11 @@ const PREVIEW_COPY: Record<
         description:
           "Hozircha javob bermang. Bank orqali kartani/kirishni bloklang va boshqa qurilmadan parolni almashtiring.",
       },
+      sent_money: {
+        title: "Pul yuborilgan: darhol bankka qo'ng'iroq qiling",
+        description:
+          "Bankning rasmiy raqamiga qo'ng'iroq qiling, o'tkazmani muzlatish/bahslashishni so'rang va chekni saqlang. Pulni boshqa hisobga qaytarmang.",
+      },
       confirm_request: {
         title: "Tasdiqlash: ehtiyot bo'ling",
         description:
@@ -805,6 +817,11 @@ const PREVIEW_COPY: Record<
         title: "Code already sent: act now",
         description:
           "Do not argue with the scammer. Block card/access through the bank and change the password from another device.",
+      },
+      sent_money: {
+        title: "Money already sent: call the bank now",
+        description:
+          "Call the bank through an official number, ask to freeze/dispute the transfer, and save the receipt. Do not make a return transfer.",
       },
       confirm_request: {
         title: "Confirmation: be careful",
@@ -1163,11 +1180,36 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
       return "bank_call";
     case "operator_call":
       return "operator_call";
+    case "foreign_call":
+      return "foreign_call";
     case "identity_uncertain":
       return "identity_uncertain";
     case "telegram_message":
-    case "file_received":
       return "safety_question";
+    case "telegram_takeover":
+      return "telegram_takeover";
+    case "file_received":
+      return "malicious_file";
+    case "apple_security":
+      return "apple_security";
+    case "utility_impersonation":
+      return "utility_impersonation";
+    case "pension_benefit":
+      return "pension_benefit";
+    case "phone_borrowing":
+      return "phone_borrowing";
+    case "money_mule":
+      return "money_mule";
+    case "open_budget":
+      return "open_budget";
+    case "medical_code":
+      return "medical_code";
+    case "child_game_bonus":
+      return "child_game_bonus";
+    case "silent_call":
+      return "silent_call";
+    case "official_impersonation":
+      return "official_impersonation";
     case "link_received":
     case "link_request":
       return "link_request";
@@ -1202,7 +1244,7 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
       return "bank_contact";
     case "acknowledgement":
     case "trust_or_greeting":
-      return null;
+      return "next_step";
   }
 }
 
@@ -1339,9 +1381,121 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
 
+  if (
+    /(?:как|можно|надо|нужно|что).{0,80}(?:вернуть|оспорить|заморозить).{0,80}(?:деньг|перевод|плат[её]ж).{0,100}(?:мошен|обман|скам)|(?:деньг|перевод|плат[её]ж).{0,80}(?:вернуть|оспорить|заморозить).{0,100}(?:мошен|обман|скам)/iu.test(
+      normalized,
+    )
+  ) {
+    return "sent_money";
+  }
+
   const newsIntent = classifyNewsHumanInlineIntent(normalized);
   if (newsIntent) {
     return newsIntent;
+  }
+
+  if (
+    /^\s*(?:привет|здравствуйте|добрый\s+день|спасибо|спс|рахмат|rahmat|salom|assalomu\s+alaykum|hello|hi|а\s+вы\s+кто|кто\s+вы|вы\s+кто)\s*[!.?]*\s*$/iu.test(
+      normalized,
+    )
+  ) {
+    return "next_step";
+  }
+
+  if (
+    /(?:я|мы|мама|папа|бабушк|дедушк|уже|только\s+что).{0,80}(?:перев[её]л|перевела|отправил|отправила|оплатил|оплатила|заплатил|заплатила|скинул|скинула|кинул|кинула).{0,80}(?:деньг|сум|перевод|на\s+карту|на\s+сч[её]т|плат[её]ж|оплат)|(?:money|transfer|payment).{0,80}(?:already|sent|paid)|(?:pul|sum|to['’]?lov).{0,80}(?:yubord|o['’]?tkazd|to['’]?lad)/iu.test(
+      normalized,
+    )
+  ) {
+    return "sent_money";
+  }
+
+  if (
+    /(?:я|мы|уже|только\s+что).{0,70}(?:дал|дала|отправил|отправила|назвал|назвала|вв[её]л|ввела|скинул|скинула).{0,90}(?:номер\s+карты|карт[уы]|cvv|cvc|пин|pin|реквизит)|(?:already|gave|sent|entered).{0,80}(?:card|cvv|cvc|pin)/iu.test(
+      normalized,
+    )
+  ) {
+    return "card_request";
+  }
+
+  if (
+    /(?:я|мы|уже|только\s+что).{0,70}(?:переш[её]л|перешла|заш[её]л|зашла|открыл|открыла|нажал|нажала|кликнул|кликнула).{0,90}(?:ссылк|линк|url|сайт|кнопк)|(?:already|opened|clicked|followed).{0,80}(?:link|url|site|button)/iu.test(
+      normalized,
+    )
+  ) {
+    return "link_request";
+  }
+
+  if (
+    /(?:пишет|написал|написала|шл[её]т|прислал|прислала|отправил|отправила|кинул|скинул).{0,120}(?:ссылк|линк|url|сайт|кнопк)|(?:sent|sends|message).{0,100}(?:link|url|site|button)/iu.test(
+      normalized,
+    )
+  ) {
+    return "link_request";
+  }
+
+  if (
+    /(?:как|можно|надо|нужно|что).{0,80}(?:вернуть|оспорить|заморозить).{0,80}(?:деньг|перевод|плат[её]ж).{0,100}(?:мошен|обман|скам)|(?:деньг|перевод|плат[её]ж).{0,80}(?:вернуть|оспорить|заморозить).{0,100}(?:мошен|обман|скам)/iu.test(
+      normalized,
+    )
+  ) {
+    return "sent_money";
+  }
+
+  if (
+    /(?:мне|нам|маме|папе|бабушк|дедушк)?.{0,50}(?:звон|позвон).{0,90}(?:тороп|угрож|давят|пугают|не\s+клад|срочно|кричат)|(?:someone|they|unknown|stranger).{0,80}(?:call|calling|called).{0,80}(?:me|us)?|(?:call|calling|called).{0,80}(?:me|us).{0,80}(?:unknown|stranger)?/iu.test(
+      normalized,
+    )
+  ) {
+    return "unknown_call";
+  }
+
+  if (
+    /(?:пишет|написал|написала|шл[её]т|прислал|прислала|отправил|отправила).{0,120}(?:файл|документ|apk|\.apk|pdf|pptx|gif|голосовое|открытк)|(?:sent|sends|message).{0,100}(?:file|apk|pdf|pptx|gif|voice)/iu.test(
+      normalized,
+    )
+  ) {
+    return "malicious_file";
+  }
+
+  if (
+    /(?:пишет|написал|написала|связал|связалась|зов[её]т|предлагает).{0,110}(?:криптоинвестор|инвестор|трейдер|крипт|бирж|ton|usdt|wallet)|(?:криптоинвестор|инвестор|трейдер|крипт|бирж|ton|usdt|wallet).{0,110}(?:пишет|написал|связал|предлагает|заработ)/iu.test(
+      normalized,
+    )
+  ) {
+    return "investment_offer";
+  }
+
+  if (
+    /(?:плохое|дурное|странное).{0,50}предчувств|(?:чувствую|кажется|похоже).{0,90}(?:не\s+то|опасн|подозрительн|обман|мошен|скам)/iu.test(
+      normalized,
+    )
+  ) {
+    return "general_scam_concern";
+  }
+
+  if (
+    /(?:какой|куда|номер|телефон).{0,70}(?:полици|мвд|102|киберполици|cyber\s+police)/iu.test(
+      normalized,
+    )
+  ) {
+    return "general_scam_concern";
+  }
+
+  if (
+    /(?:как|где|можно|надо|нужно).{0,60}провер(?:ить|ю|ять).{0,60}(?:номер|телефон|ссылк|аккаунт|профиль)/iu.test(
+      normalized,
+    )
+  ) {
+    return "safety_question";
+  }
+
+  if (
+    /(?:звон|позвон|пишет|написал|написала|представ).{0,90}(?:майор|полици|мвд|следствен|прокурат|орган|налогов|судеб|суд|миб|бпи|mib|bpi|инспектор)|(?:майор|полици|мвд|следствен|прокурат|орган|налогов|судеб|суд|миб|бпи|mib|bpi|инспектор).{0,90}(?:звон|позвон|пишет|написал|представ|фейк|подмен)/iu.test(
+      normalized,
+    )
+  ) {
+    return "official_impersonation";
   }
 
   if (
