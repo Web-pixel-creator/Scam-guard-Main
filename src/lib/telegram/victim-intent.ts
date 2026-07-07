@@ -16,6 +16,7 @@ export type VictimIntentKind =
   | "identity_uncertain"
   | "telegram_message"
   | "bank_call"
+  | "operator_call"
   | "link_received"
   | "file_received"
   | "code_request"
@@ -383,14 +384,25 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:мне|нам|со\s+мной|меня).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?|пиш(?:ет|ут)|написал[аи]?|связался).{0,120}(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib)/iu.test(
+    /(?:мне|нам|со\s+мной|меня).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?|пиш(?:ет|ут)|написал[аи]?|связался).{0,120}(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|солик|солиқ|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib)/iu.test(
       normalized,
     ) ||
-    /(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib).{0,120}(?:звон(?:ит|ят|или|ил|ила)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?)/iu.test(
+    /(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|солик|солиқ|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib).{0,120}(?:звон(?:ит|ят|или|ил|ила)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?)/iu.test(
       normalized,
     )
   ) {
     return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
+  if (
+    /(?:мне|нам|со\s+мной|меня).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?).{0,120}(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком)/iu.test(
+      normalized,
+    ) ||
+    /(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком).{0,120}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "operator_call", askedContext: "call" };
   }
 
   if (
@@ -409,10 +421,16 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:мне|нам|меня|со\s+мной).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)).{0,100}(?:незнаком|неизвестн|номер|прямо\s+сейчас|боюсь|ночью|утром|зарубеж|другого\s+города|\+998|noma['’]?lum|notanish|raqam|qo['’]?ng['’]?iroq|unknown|strange\s+number)/iu.test(
+    /(?:мне|нам|меня|со\s+мной).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)).{0,100}(?:незнаком|неизвестн|номер|прямо\s+сейчас|боюсь|ночью|утром|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|другого\s+города|\+998|noma['’]?lum|notanish|raqam|qo['’]?ng['’]?iroq|unknown|strange\s+number|foreign\s+number)/iu.test(
       normalized,
     ) ||
-    /(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)).{0,100}(?:незнаком|неизвестн|номер|прямо\s+сейчас|боюсь|ночью|утром|зарубеж|другого\s+города|\+998)/iu.test(
+    /(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)).{0,100}(?:незнаком|неизвестн|номер|прямо\s+сейчас|боюсь|ночью|утром|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|другого\s+города|\+998|foreign\s+number)/iu.test(
+      normalized,
+    ) ||
+    /(?:звонок|вызов).{0,100}(?:незнаком|неизвестн|номер|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|foreign\s+number)/iu.test(
+      normalized,
+    ) ||
+    /(?:незнаком|неизвестн|номер|зарубеж|иностран|друг(?:ой|ая|ую|ого)?\s+стран|foreign\s+number).{0,100}(?:звонок|вызов|трубк)/iu.test(
       normalized,
     ) ||
     /^(?:мне\s+)?звонят(?:\s+прямо\s+сейчас)?[!.,\s]*$/iu.test(normalized) ||
@@ -611,6 +629,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       uz: "«Bankdan» qo'ng'iroq bo'lsa, faqat rasmiy kanal orqali tekshiramiz.\n\nKod, PIN, CVV aytmang va pul o'tkazmang. Ilova, karta yoki rasmiy saytdagi raqamga o'zingiz qo'ng'iroq qiling. Ular nima so'rashganini yozing.",
       en: "If they called “from the bank”, verify only through an official channel.\n\nDo not share a code, PIN, CVV, or transfer money. Call back yourself using the number in the app, on the card, or official site. Tell me what they asked for.",
     },
+    operator_call: {
+      ru: "Если звонят «из оператора связи» или называют Beeline/Ucell/Mobiuz/Uztelecom, проверяем только через официальный номер или приложение.\n\nНе называйте SMS-код для SIM/eSIM, перевыпуска номера, входа в кабинет или «проверки личности». Завершите разговор и перезвоните оператору сами. Напишите, что именно они просили.",
+      uz: "Agar «operator» nomidan qo'ng'iroq qilishsa yoki Beeline/Ucell/Mobiuz/Uztelecom deb aytishsa, faqat rasmiy raqam yoki ilova orqali tekshiring.\n\nSIM/eSIM, raqamni qayta chiqarish, kabinetga kirish yoki «shaxsni tekshirish» kodi aytilmaydi. Suhbatni tugating va operatorga o'zingiz qo'ng'iroq qiling. Ular nima so'rashganini yozing.",
+      en: "If someone calls “from the mobile operator” or mentions Beeline/Ucell/Mobiuz/Uztelecom, verify only through the official number or app.\n\nDo not share an SMS code for SIM/eSIM, number replacement, account login, or “identity check”. Hang up and call the operator yourself. Tell me what they asked for.",
+    },
     link_received: {
       ru: "Пока не открывайте ссылку и не вводите данные.\n\nПришлите саму ссылку или скрин экрана после перехода. Опасно, если дальше просят код, карту, оплату, Telegram-вход или APK.",
       uz: "Hozircha havolani ochmang va ma'lumot kiritmang.\n\nHavolaning o'zini yoki ochilgandan keyingi ekranni yuboring. Keyin kod, karta, to'lov, Telegram kirish yoki APK so'ralsa — xavfli.",
@@ -766,6 +789,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "link_received":
       return "link_qr";
     case "bank_call":
+    case "operator_call":
     case "unknown_call":
     case "authority_impersonation":
       return "call";

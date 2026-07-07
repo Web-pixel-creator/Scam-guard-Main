@@ -22,7 +22,9 @@ type HumanInlineIntent =
   | "card_request"
   | "transfer_request"
   | "app_request"
+  | "unknown_call"
   | "bank_call"
+  | "operator_call"
   | "personal_data"
   | "delivery_payment"
   | "prize_fee"
@@ -318,10 +320,20 @@ const PREVIEW_COPY: Record<
         description:
           "Не ставьте APK, AnyDesk, RustDesk или «защитное» приложение по просьбе из чата/звонка.",
       },
+      unknown_call: {
+        title: "Неизвестный звонок: лучше перезвонить",
+        description:
+          "Если звонят с незнакомого или иностранного номера, не называйте код, карту или паспорт. Завершите звонок и проверьте просьбу.",
+      },
       bank_call: {
         title: "Звонок из банка: перезвоните сами",
         description:
           "Не называйте коды и данные карты. Завершите разговор и звоните по номеру с карты/приложения.",
+      },
+      operator_call: {
+        title: "Оператор связи: перезвоните сами",
+        description:
+          "Beeline/Ucell/Mobiuz/Uztelecom проверяйте только через официальный номер или приложение. Код для SIM/eSIM не называйте.",
       },
       personal_data: {
         title: "Документы: не отправляйте фото",
@@ -475,10 +487,20 @@ const PREVIEW_COPY: Record<
         description:
           "Chat/qo'ng'iroq bo'yicha APK, AnyDesk, RustDesk yoki «himoya» ilovasini o'rnatmang.",
       },
+      unknown_call: {
+        title: "Noma'lum qo'ng'iroq: qayta tekshiring",
+        description:
+          "Notanish yoki chet el raqami qo'ng'iroq qilsa, kod, karta yoki pasport ma'lumotini aytmang. Suhbatni tugating va so'rovni tekshiring.",
+      },
       bank_call: {
         title: "Bankdan qo'ng'iroq: o'zingiz qayta qo'ng'iroq qiling",
         description:
           "Kod va karta ma'lumotlarini aytmang. Suhbatni tugating va rasmiy raqamga qo'ng'iroq qiling.",
+      },
+      operator_call: {
+        title: "Operator: o'zingiz qayta qo'ng'iroq qiling",
+        description:
+          "Beeline/Ucell/Mobiuz/Uztelecomni faqat rasmiy raqam yoki ilova orqali tekshiring. SIM/eSIM kodi aytilmaydi.",
       },
       personal_data: {
         title: "Hujjatlar: rasm yubormang",
@@ -632,10 +654,20 @@ const PREVIEW_COPY: Record<
         description:
           "Do not install APK, AnyDesk, RustDesk or a “security” app from a chat or call.",
       },
+      unknown_call: {
+        title: "Unknown call: call back safely",
+        description:
+          "If an unknown or foreign number calls, do not share a code, card data, or passport data. Hang up and verify the request.",
+      },
       bank_call: {
         title: "Bank call: call back yourself",
         description:
           "Do not share codes or card data. Hang up and call the number from your card/app.",
+      },
+      operator_call: {
+        title: "Mobile operator: call back yourself",
+        description:
+          "Verify Beeline/Ucell/Mobiuz/Uztelecom only through the official number or app. Do not share a SIM/eSIM code.",
       },
       personal_data: {
         title: "Documents: do not send photos",
@@ -889,8 +921,11 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
     case "romance_contact":
       return "unknown_contact";
     case "unknown_call":
+      return "unknown_call";
     case "bank_call":
       return "bank_call";
+    case "operator_call":
+      return "operator_call";
     case "identity_uncertain":
       return "identity_uncertain";
     case "telegram_message":
@@ -946,13 +981,13 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
 
   if (
-    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|egov|e-gov|госуслуг|госорган|государственн|электронн.{0,20}правительств|(?:^|[^a-zа-яё])(?:пинфл|стир|инн)(?:$|[^a-zа-яё])).{0,100}(?:код|sms|смс|парол|логин|вход|ссылк|подтверд|заблок|тиклаш|tasdiq|parol|login|kirish)?/iu.test(
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|солик|солиқ|gov\.uz|egov|e-gov|налогов|госуслуг|госорган|государственн|электронн.{0,20}правительств|(?:^|[^a-zа-яё])(?:пинфл|стир|инн)(?:$|[^a-zа-яё])).{0,100}(?:код|sms|смс|парол|логин|вход|ссылк|подтверд|заблок|тиклаш|tasdiq|parol|login|kirish)?/iu.test(
       normalized,
     ) ||
-    /(?:davlat xizmat|one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|pinfl|stir).{0,100}(?:kod|sms|parol|login|kirish|tasdiq|blok|tiklash)?/iu.test(
+    /(?:davlat xizmat|one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|gov\.uz|pinfl|stir).{0,100}(?:kod|sms|parol|login|kirish|tasdiq|blok|tiklash)?/iu.test(
       normalized,
     ) ||
-    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|soliq\.uz|gov\.uz|government|tax service).{0,100}(?:code|sms|password|login|sign in|confirm|blocked|restore)?/iu.test(
+    /(?:one\s?id|oneid|my\.gov\.uz|id\.gov\.uz|my\.soliq\.uz|soliq\.uz|soliq|gov\.uz|government|tax service).{0,100}(?:code|sms|password|login|sign in|confirm|blocked|restore)?/iu.test(
       normalized,
     )
   ) {
@@ -1231,6 +1266,20 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "app_request";
+  }
+
+  if (
+    /(?:звон|позвон|говорят|представил|связал).{0,80}(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком)/iu.test(
+      normalized,
+    ) ||
+    /(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком).{0,80}(?:звон|позвон|говорят|связал)/iu.test(
+      normalized,
+    ) ||
+    /(?:operator|beeline|ucell|mobiuz|uzmobile|uztelecom).{0,80}(?:called|calling|call|phone)/iu.test(
+      normalized,
+    )
+  ) {
+    return "operator_call";
   }
 
   if (

@@ -434,6 +434,16 @@ describe("handleInlineQuery", () => {
       title: "Звонок из банка: перезвоните сами",
     },
     {
+      text: "мне звонит директор билайна",
+      id: "check-unknown-operator-call",
+      title: "Оператор связи: перезвоните сами",
+    },
+    {
+      text: "мне звонят с другой страны\nПросто звонок с другой страны, брать трубку?",
+      id: "check-unknown-unknown-call",
+      title: "Неизвестный звонок: лучше перезвонить",
+    },
+    {
       text: "просят фото паспорта",
       id: "check-unknown-personal-data",
       title: "Документы: не отправляйте фото",
@@ -520,6 +530,11 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "Хотели в Soliq войти",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
+      text: "мне звонили из солик",
       id: "check-unknown-gov-service",
       title: "OneID/госуслуги: не вводите код",
     },
