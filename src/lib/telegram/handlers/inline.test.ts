@@ -619,6 +619,11 @@ describe("handleInlineQuery", () => {
       title: "OneID/госуслуги: не вводите код",
     },
     {
+      text: "мне звонят из Солик и просят данные",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
       text: "меня пытаются обмануть",
       id: "check-unknown-general-scam-concern",
       title: "Подозреваете обман: пришлите просьбу",
