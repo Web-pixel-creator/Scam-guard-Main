@@ -1,11 +1,10 @@
 // Tests for panic menu submenu/edit flow (task 7.7).
 //
 // Verifies the panic callback handler in misc.ts for:
-//   - `panic:more` triggers `editMessageText` with page 2 keyboard
-//   - `panic:more2` triggers `editMessageText` with page 3 keyboard
-//   - `panic:back` triggers `editMessageText` with page 1 keyboard
-//   - `panic:back2` triggers `editMessageText` with page 2 keyboard
-//   - Fallback: when edit fails, a new message is sent
+//   - `panic:more` sends a visible page 2 keyboard
+//   - `panic:more2` sends a visible page 3 keyboard
+//   - `panic:back` sends a visible page 1 keyboard
+//   - `panic:back2` sends a visible page 2 keyboard
 //   - `panic:N` sends a new message (not edit)
 //
 // Validates: Requirements 4.2, 4.3, 4.5
@@ -144,21 +143,19 @@ describe("voice_correct callback", () => {
 });
 
 // ===========================================================================
-// panic:more → editMessageText with page 2
+// panic:more → sends page 2
 // ===========================================================================
 
-describe("panic:more — navigates to page 2", () => {
-  it("calls editMessageText with page 2 keyboard when messageId is present", async () => {
+describe("panic:more — sends page 2", () => {
+  it("sends a new visible message with page 2 keyboard when messageId is present", async () => {
     const ctx = makeCtx();
     await handleCallback("panic:more", ctx);
 
-    expect(h.editCalls).toHaveLength(1);
-    expect(h.editCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.editCalls[0].messageId).toBe(MESSAGE_ID);
-    expect(h.editCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.editCalls[0].keyboard).toEqual(buildPanicKeyboardPage2("ru"));
-    // No fallback sendMessage
-    expect(h.sendCalls).toHaveLength(0);
+    expect(h.editCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
+    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage2("ru"));
   });
 
   it("sends a new message when messageId is absent", async () => {
@@ -174,20 +171,19 @@ describe("panic:more — navigates to page 2", () => {
 });
 
 // ===========================================================================
-// panic:more2 → editMessageText with page 3
+// panic:more2 → sends page 3
 // ===========================================================================
 
-describe("panic:more2 — navigates to page 3", () => {
-  it("calls editMessageText with page 3 keyboard when messageId is present", async () => {
+describe("panic:more2 — sends page 3", () => {
+  it("sends a new visible message with page 3 keyboard when messageId is present", async () => {
     const ctx = makeCtx();
     await handleCallback("panic:more2", ctx);
 
-    expect(h.editCalls).toHaveLength(1);
-    expect(h.editCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.editCalls[0].messageId).toBe(MESSAGE_ID);
-    expect(h.editCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.editCalls[0].keyboard).toEqual(buildPanicKeyboardPage3("ru"));
-    expect(h.sendCalls).toHaveLength(0);
+    expect(h.editCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
+    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage3("ru"));
   });
 
   it("sends a new message when messageId is absent", async () => {
@@ -203,21 +199,19 @@ describe("panic:more2 — navigates to page 3", () => {
 });
 
 // ===========================================================================
-// panic:back → editMessageText with page 1
+// panic:back → sends page 1
 // ===========================================================================
 
-describe("panic:back — navigates to page 1", () => {
-  it("calls editMessageText with page 1 keyboard when messageId is present", async () => {
+describe("panic:back — sends page 1", () => {
+  it("sends a new visible message with page 1 keyboard when messageId is present", async () => {
     const ctx = makeCtx();
     await handleCallback("panic:back", ctx);
 
-    expect(h.editCalls).toHaveLength(1);
-    expect(h.editCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.editCalls[0].messageId).toBe(MESSAGE_ID);
-    expect(h.editCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.editCalls[0].keyboard).toEqual(buildPanicKeyboardPage1("ru"));
-    // No fallback sendMessage
-    expect(h.sendCalls).toHaveLength(0);
+    expect(h.editCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
+    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage1("ru"));
   });
 
   it("sends a new message when messageId is absent", async () => {
@@ -233,20 +227,19 @@ describe("panic:back — navigates to page 1", () => {
 });
 
 // ===========================================================================
-// panic:back2 → editMessageText with page 2
+// panic:back2 → sends page 2
 // ===========================================================================
 
-describe("panic:back2 — navigates to page 2", () => {
-  it("calls editMessageText with page 2 keyboard when messageId is present", async () => {
+describe("panic:back2 — sends page 2", () => {
+  it("sends a new visible message with page 2 keyboard when messageId is present", async () => {
     const ctx = makeCtx();
     await handleCallback("panic:back2", ctx);
 
-    expect(h.editCalls).toHaveLength(1);
-    expect(h.editCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.editCalls[0].messageId).toBe(MESSAGE_ID);
-    expect(h.editCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.editCalls[0].keyboard).toEqual(buildPanicKeyboardPage2("ru"));
-    expect(h.sendCalls).toHaveLength(0);
+    expect(h.editCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
+    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
+    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage2("ru"));
   });
 
   it("sends a new message when messageId is absent", async () => {
@@ -262,56 +255,16 @@ describe("panic:back2 — navigates to page 2", () => {
 });
 
 // ===========================================================================
-// Fallback: when editMessageText fails, a new message is sent
+// Pagination should never edit old SOS cards.
 // ===========================================================================
 
-describe("panic pagination — fallback when edit fails", () => {
-  it("sends a new message when editMessageText returns { ok: false } for panic:more", async () => {
+describe("panic pagination — visible response contract", () => {
+  it("does not attempt editMessageText even if the API edit path would fail", async () => {
     h.editResult.current = { ok: false };
     const ctx = makeCtx();
     await handleCallback("panic:more", ctx);
 
-    // Edit was attempted
-    expect(h.editCalls).toHaveLength(1);
-    // Fallback: new message sent
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage2("ru"));
-  });
-
-  it("sends a new message when editMessageText returns { ok: false } for panic:back", async () => {
-    h.editResult.current = { ok: false };
-    const ctx = makeCtx();
-    await handleCallback("panic:back", ctx);
-
-    // Edit was attempted
-    expect(h.editCalls).toHaveLength(1);
-    // Fallback: new message sent
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage1("ru"));
-  });
-
-  it("sends a new message when editMessageText returns { ok: false } for panic:more2", async () => {
-    h.editResult.current = { ok: false };
-    const ctx = makeCtx();
-    await handleCallback("panic:more2", ctx);
-
-    expect(h.editCalls).toHaveLength(1);
-    expect(h.sendCalls).toHaveLength(1);
-    expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
-    expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));
-    expect(h.sendCalls[0].keyboard).toEqual(buildPanicKeyboardPage3("ru"));
-  });
-
-  it("sends a new message when editMessageText returns { ok: false } for panic:back2", async () => {
-    h.editResult.current = { ok: false };
-    const ctx = makeCtx();
-    await handleCallback("panic:back2", ctx);
-
-    expect(h.editCalls).toHaveLength(1);
+    expect(h.editCalls).toHaveLength(0);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
     expect(h.sendCalls[0].text).toBe(buildPanicMenuText("ru"));

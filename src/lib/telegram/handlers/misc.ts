@@ -35,7 +35,6 @@
 // import into the client bundle.
 import {
   sendMessage,
-  editMessageText,
   answerCallbackQuery,
   escapeMarkdownV2,
   type InlineKeyboard,
@@ -642,83 +641,33 @@ export async function handleCallback(
   }
 
   // 5) Panic menu pagination — "panic:more" / "panic:back".
+  // Send a fresh card instead of editing an old one: in live Telegram chats users
+  // often tap an older SOS menu, and editing it looks like the bot stayed silent.
   if (data === "panic:more") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage2(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:more2") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage3(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:back") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage1(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:back2") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage2(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
