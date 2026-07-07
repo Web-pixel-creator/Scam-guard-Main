@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-08 - TG-017 News-derived UZ live phrase expansion
+
+- Expanded the Telegram live victim-phrase regression lock to 200 cases and the
+  inline mass smoke to 103 phrases, using recent Uzbekistan scam-news examples
+  and user live QA screenshots.
+- Added coverage for foreign-number bank/operator calls (`+98`, `+988`, `+996`),
+  Telegram deletion/Premium/voting takeovers, APK court-summons files, fake
+  voice/GIF/PPTX files, Apple ID/iOS popups, utility-payment links, MIB/gov calls,
+  Open Budget/DMED/game-bonus prompts, money-mule/ATM requests and "acquaintance
+  asks to borrow money" wording.
+- Tightened victim-intent priority so Apple ID popups are not swallowed by the
+  generic Telegram-account rule, and acquaintance money requests do not steal
+  romance/dating scam routing.
+- Verification: focused victim-intent/follow-up/inline tests and the full
+  `src/lib/telegram` Vitest suite passed.
+
 ## 2026-07-06 - TG-016 Inline transfer-card preview priority
 
 - Live Telegram Web inline QA found that `@scamguard_bot мне сказали сделать

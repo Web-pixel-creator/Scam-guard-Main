@@ -736,7 +736,11 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "voting link",
     text: "меня просят проголосовать на канале и перейти по ссылке",
-    expected: { kind: "victim_intent", intent: "link_request", replyIncludes: "Ссылку или QR" },
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
   },
   {
     area: "apk request",
@@ -898,6 +902,175 @@ export const LIVE_PHRASE_CASES = [
       kind: "victim_intent",
       intent: "gov_service_login",
       replyIncludes: "Soliq",
+    },
+  },
+  {
+    area: "news-derived foreign call",
+    text: "мне звонят с +988 и представляются сотрудником банка, просят данные карты и SMS",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "news-derived foreign call",
+    text: "мне звонят с +98 говорят Uzmobile и просят код для защиты номера от блокировки",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "news-derived foreign call",
+    text: "мне звонят по 15 раз с иностранного номера и просят карту и код из SMS",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "news-derived foreign call",
+    text: "мне звонит Uztelecom с +996 договор истекает и просят SMS код",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "мне пришло сообщение от Telegram аккаунт удален нажмите Отмена чтобы спасти профиль",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "мне пришел подарок Telegram Premium надо активировать по ссылке",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "мне пишет знакомый и просит проголосовать в конкурсе по ссылке",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived telegram takeover",
+    text: "просят проголосовать за лучшую мамочку по ссылке",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_takeover",
+      replyIncludes: "Telegram-аккаунт",
+    },
+  },
+  {
+    area: "news-derived file",
+    text: "прислали APK повестка в суд",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Файл от незнакомого источника",
+    },
+  },
+  {
+    area: "news-derived file",
+    text: "мне прислали голосовое сообщение как файл и говорят открыть",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Файл от незнакомого источника",
+    },
+  },
+  {
+    area: "news-derived file",
+    text: "прислали GIF открытку с новым годом и файл pptx",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Файл от незнакомого источника",
+    },
+  },
+  {
+    area: "news-derived apple",
+    text: "всплывающее окно Apple ID просит пароль для проверки аккаунта",
+    expected: {
+      kind: "victim_intent",
+      intent: "apple_security",
+      replyIncludes: "Apple/iOS",
+    },
+  },
+  {
+    area: "news-derived money mule",
+    text: "у банкомата незнакомец просит снять деньги с моей карты",
+    expected: {
+      kind: "victim_intent",
+      intent: "money_mule",
+      replyIncludes: "по ошибке",
+    },
+  },
+  {
+    area: "news-derived utility",
+    text: "пишут что нулевой баланс за газ и нужно перейти по ссылке для проверки",
+    expected: {
+      kind: "victim_intent",
+      intent: "utility_impersonation",
+      replyIncludes: "Водоканал",
+    },
+  },
+  {
+    area: "news-derived official",
+    text: "мне звонят из госорганов знают ФИО и ПИНФЛ просят код",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "card request",
+    text: "у меня спрашивают три цифры на обороте карты",
+    expected: {
+      kind: "victim_intent",
+      intent: "card_request",
+      replyIncludes: "Данные карты",
+    },
+  },
+  {
+    area: "news-derived medical",
+    text: "поликлиника просит SMS код для записи в DMED",
+    expected: {
+      kind: "victim_intent",
+      intent: "medical_code",
+      replyIncludes: "DMED",
+    },
+  },
+  {
+    area: "friend money",
+    text: "знакомый пишет срочно одолжи деньги верну через пару часов",
+    expected: {
+      kind: "victim_intent",
+      intent: "friend_money",
+      replyIncludes: "подтвердите личность",
+    },
+  },
+  {
+    area: "news-derived children",
+    text: "ребенку обещают бесплатные бонусы в игре и просят код",
+    expected: {
+      kind: "victim_intent",
+      intent: "child_game_bonus",
+      replyIncludes: "Бесплатные бонусы",
+    },
+  },
+  {
+    area: "news-derived earning channel",
+    text: "мне предлагают бот для заработка 500 тысяч сум в день по нажатию кнопки",
+    expected: {
+      kind: "victim_intent",
+      intent: "earning_channel",
+      replyIncludes: "быстрым заработком",
+    },
+  },
+  {
+    area: "code request",
+    text: "звонят из почты для получения посылки нужно продиктовать SMS код",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Код никому не называйте",
     },
   },
   {
