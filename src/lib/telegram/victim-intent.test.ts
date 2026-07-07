@@ -33,6 +33,7 @@ describe("classifyVictimIntent", () => {
     ["мне звонили из банка", "bank_call"],
     ["мне звонит директор билайна", "operator_call"],
     ["мне звонит оператор Beeline", "operator_call"],
+    ["сотрудник Uztelecom говорит договор истекает и просит продиктовать код", "operator_call"],
     ["звонили и говорили что карта заблокирована", "bank_call"],
     ["мне звонит фейковый майор", "authority_impersonation"],
     ["мне звонят из прокуратуры", "authority_impersonation"],
@@ -55,6 +56,7 @@ describe("classifyVictimIntent", () => {
     ["работодатель просит оплатить обучение перед работой", "job_offer"],
     ["работа просит внести депозит за форму", "job_offer"],
     ["меня приглашают в канал для заработка", "job_offer"],
+    ["бот обещает 500000 сум в день если нажать кнопку и перейти в канал", "earning_channel"],
     ["мне предлагают инвестировать в крипту через телеграм канал", "investment_offer"],
     ["зовут в крипто канал с платными сигналами", "investment_offer"],
     ["агентство обещает визу в Корею но просит предоплату", "travel_migration_prepayment"],
@@ -81,6 +83,7 @@ describe("classifyVictimIntent", () => {
     ["menga nimadir yuborishdi", "telegram_message"],
     ["мне пишут от имени Telegram с галочкой", "telegram_takeover"],
     ["официальный Telegram просит пройти проверку иначе аккаунт удалят", "telegram_takeover"],
+    ["одноклассник просит проголосовать по ссылке за лучшую маму", "telegram_takeover"],
     ["мне прислали APK я ухожу из этого мира", "file_received"],
     ["оповещение Apple iOS повреждена на 72 процента просит установить защиту", "apple_security"],
     ["незнакомец просит телефон на минуту позвонить", "phone_borrowing"],
@@ -89,6 +92,7 @@ describe("classifyVictimIntent", () => {
     ["hello are you a scam", "trust_or_greeting"],
     ["what should I do", "advice_question"],
     ["someone asked me for a verification code", "code_request"],
+    ["курьер сказал нужна смс для получения посылки", "code_request"],
   ])("maps '%s' to %s", (text, kind) => {
     expect(classifyVictimIntent(text)?.kind).toBe(kind);
   });

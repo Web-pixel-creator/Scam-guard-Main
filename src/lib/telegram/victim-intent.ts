@@ -44,6 +44,7 @@ export type VictimIntentKind =
   | "romance_contact"
   | "romance_money"
   | "job_offer"
+  | "earning_channel"
   | "investment_offer"
   | "travel_migration_prepayment"
   | "legal_impersonation"
@@ -172,6 +173,9 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
     /(?:telegram|телеграм|телеграмм|teiegram|аккаунт|профиль|premium|премиум).{0,180}(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|спасти|подар|голосован|проголос|мамочк|конкурс|войти|вход|парол|код)|(?:галочк|официал|поддержк|блок|удал|замороз|провер|вериф|отмена|premium|премиум|подар|голосован|проголос|мамочк|конкурс).{0,180}(?:telegram|телеграм|телеграмм|аккаунт|профиль)/iu.test(
       text,
     ) ||
+    /(?:одноклассник|друг|подруга|знаком|родствен|мама|папа|человек|кто.?то).{0,120}(?:просит|попросил|зовет|зовёт|скинул|прислал|отправил).{0,120}(?:голосован|проголос|опрос|конкурс|лучш.{0,30}мам|мамочк).{0,120}(?:ссылк|перей|нажать|кнопк|канал|чат)|(?:голосован|проголос|опрос|конкурс|лучш.{0,30}мам|мамочк).{0,120}(?:ссылк|перей|нажать|кнопк).{0,120}(?:одноклассник|друг|подруга|знаком|родствен|мама|папа|человек|кто.?то)/iu.test(
+      text,
+    ) ||
     /(?:hurmatli|telegram|akkaunt|hisob).{0,180}(?:muzlat|o['’]?chir|blok|tasdiq|havola|parol|kod|premium|sovg['’]?a|ovoz)/iu.test(
       text,
     )
@@ -201,6 +205,14 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "open_budget", askedContext: "code" };
+  }
+
+  if (
+    /(?:бот|канал|чат|групп|приложени|bot|channel|group).{0,160}(?:обеща|предлага|зов[её]т|приглаша|нажать|кнопк|перейти|подпис).{0,160}(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000|million|pul|daromad)|(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000|pul|daromad).{0,160}(?:бот|канал|чат|групп|нажать|кнопк|перейти|подпис|bot|channel|group)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "earning_channel", askedContext: "link_qr" };
   }
 
   if (
@@ -385,6 +397,14 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:курьер|доставк|посылк|почт|заказ|delivery|courier).{0,120}(?:sms|смс|код|цифр|сообщени|уведомлени|получ|подтверд|продикт|назвать)|(?:sms|смс|код|цифр|сообщени|уведомлени).{0,120}(?:курьер|доставк|посылк|почт|заказ|delivery|courier)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
     /(?:подтверд(?:ить|и|ите|ят|ить\s+нужно).{0,40}(?:вход|логин|операци|перевод)|(?:вход|логин|операци|перевод).{0,40}подтверд|confirm.{0,40}(?:login|transfer|operation)|verify.{0,40}(?:login|transfer|operation)|tasdiq.{0,40}(?:kirish|o['’]?tkaz|operatsiya))/iu.test(
@@ -534,6 +554,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:сотрудник|директор|оператор|представил[аси]?ь?|говорит|сказал[аи]?|пишет).{0,120}(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком).{0,140}(?:договор|истека|продл|срок|номер|сим|sim|esim|код|sms|смс|продикт|подтверд|личност|блок)|(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком).{0,140}(?:сотрудник|директор|говорит|сказал[аи]?|договор|истека|продл|срок|номер|сим|sim|esim|код|sms|смс|продикт|подтверд|личност|блок)/iu.test(
+      normalized,
+    ) ||
     /(?:мне|нам|со\s+мной|меня).{0,60}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|связал[аси]?ь?).{0,120}(?:оператор|билайн|beeline|ucell|юселл|mobiuz|мобиуз|uzmobile|uztelecom|узмобайл|узтелеком)/iu.test(
       normalized,
     ) ||
@@ -662,6 +685,14 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "investment_offer", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:бот|канал|чат|групп|приложени|bot|channel|group).{0,160}(?:обеща(?:ют|ет)|предлага(?:ют|ет)|зов(?:ут|ет)|приглаша(?:ют|ет)|нажать|кнопк|перейти|подпис).{0,160}(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000|pul|daromad)|(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000|pul|daromad).{0,160}(?:бот|канал|чат|групп|нажать|кнопк|перейти|подпис|bot|channel|group)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "earning_channel", askedContext: "link_qr" };
   }
 
   if (
@@ -883,6 +914,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       uz: "Ish/yengil daromad xavfli bo'ladi, agar badal, o'qish puli, depozit, karta, APK yoki hujjat so'ralsa.\n\nOldindan to'lamang. Taklif matni yoki havolani yuboring.",
       en: "A job/easy-income offer becomes risky if they ask for a fee, training payment, deposit, card data, APK, or documents.\n\nDo not pay upfront. Send the offer text or link.",
     },
+    earning_channel: {
+      ru: "Канал или бот с быстрым заработком — риск. Часто сначала просят нажать кнопку, перейти по ссылке, ввести код, карту или оплатить «доступ».\n\nПока не переходите и ничего не вводите. Пришлите ссылку, username или скрин условий.",
+      uz: "Tez daromad va'da qiladigan kanal yoki bot — xavf. Ko'pincha avval tugmani bosish, havolaga o'tish, kod/karta kiritish yoki «kirish» uchun to'lashni so'rashadi.\n\nHozircha o'tmang va hech narsa kiritmang. Havola, username yoki shartlar skrinini yuboring.",
+      en: "A channel or bot promising fast income is risky. It often starts with pressing a button, opening a link, entering a code/card, or paying for “access”.\n\nDo not open it or enter anything yet. Send the link, username, or screenshot of the terms.",
+    },
     investment_offer: {
       ru: "Инвестиции/крипта через Telegram-канал или личного «наставника» часто ведут к депозиту, платным сигналам или комиссии за вывод.\n\nПока не пополняйте баланс и не подключайте кошелёк. Пришлите ссылку, username автора или условия.",
       uz: "Telegram-kanal yoki shaxsiy «ustoz» orqali investitsiya/kripto ko'pincha depozit, pulli signallar yoki yechib olish komissiyasiga olib boradi.\n\nHozircha balans to'ldirmang va hamyon ulamang. Havola, muallif username'i yoki shartlarni yuboring.",
@@ -992,6 +1028,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "link_request":
     case "link_received":
     case "telegram_takeover":
+    case "earning_channel":
       return "link_qr";
     case "bank_call":
     case "operator_call":

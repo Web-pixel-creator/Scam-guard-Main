@@ -97,6 +97,7 @@ import {
   buildVictimIntentKeyboard,
   buildVictimIntentText,
   classifyVictimIntent,
+  type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
@@ -113,6 +114,10 @@ const MAX_VOICE_BYTES = 2 * 1024 * 1024;
 const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
+  return match.askedContext !== undefined;
+}
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
 const VOICE_HOOK_PREVIEW_CHARS = 120;
@@ -1223,6 +1228,20 @@ export async function handleCheck(
     return;
   }
 
+  const victimIntent = source ? null : classifyVictimIntent(trimmed);
+  if (
+    victimIntent !== null &&
+    hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&
+    shouldVictimIntentOverrideFollowUps(victimIntent)
+  ) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+    });
+    return;
+  }
+
   const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
     const liveCallContext =
@@ -1291,7 +1310,6 @@ export async function handleCheck(
     return;
   }
 
-  const victimIntent = source ? null : classifyVictimIntent(trimmed);
   if (victimIntent !== null) {
     await sendMessage({
       chatId: ctx.chatId,

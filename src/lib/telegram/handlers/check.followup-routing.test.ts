@@ -185,6 +185,44 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("lets a voting scam override stale live-call emergency context", async () => {
+    await handleCheck("одноклассник просит проголосовать по ссылке за лучшую маму", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWithData({
+        lastPanicId: 6,
+        lastPanicAt: new Date().toISOString(),
+        lastLiveCallContext: "government",
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Telegram-аккаунт");
+    expect(hoisted.sentMessages[0].text).toContain("голосование");
+    expect(hoisted.sentMessages[0].text).not.toContain("Позовите человека");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("routes operator contract/code phrases before stale emergency follow-ups", async () => {
+    await handleCheck("сотрудник Uztelecom говорит договор истекает и просит продиктовать код", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWithData({
+        lastPanicId: 6,
+        lastPanicAt: new Date().toISOString(),
+        lastLiveCallContext: "government",
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("оператора связи");
+    expect(hoisted.sentMessages[0].text).toContain("Uztelecom");
+    expect(hoisted.sentMessages[0].text).not.toContain("налоговая, госорган или полиция");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("answers ambiguous confirmation requests after a phone check without running a new check", async () => {
     await handleCheck("Попросил подтверждение", {
       chatId: 100,
