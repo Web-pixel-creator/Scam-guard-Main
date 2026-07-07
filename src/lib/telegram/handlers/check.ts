@@ -118,6 +118,10 @@ const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
   return match.askedContext !== undefined;
 }
+
+function shouldVictimIntentOverridePanic(match: VictimIntentMatch): boolean {
+  return match.kind === "friend_money";
+}
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
 const VOICE_HOOK_PREVIEW_CHARS = 120;
@@ -1222,13 +1226,22 @@ export async function handleCheck(
     return;
   }
 
+  const victimIntent = source ? null : classifyVictimIntent(trimmed);
+  if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+    });
+    return;
+  }
+
   const textPanicId = classifyTextPanicIntent(trimmed, source);
   if (textPanicId !== null) {
     await sendPanicRoute(ctx, textPanicId, trimmed);
     return;
   }
 
-  const victimIntent = source ? null : classifyVictimIntent(trimmed);
   if (
     victimIntent !== null &&
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&

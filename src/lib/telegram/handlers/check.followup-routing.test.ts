@@ -223,6 +223,24 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("routes third-party relative money calls as trusted-person verification, not generic live-call SOS", async () => {
+    await handleCheck(
+      "моей бабушке звонил мошенник он просил срочно прислать деньги на помощь",
+      {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      },
+    );
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Если «друг» или близкий");
+    expect(hoisted.sentMessages[0].text).toContain("подтвердите личность");
+    expect(hoisted.sentMessages[0].text).not.toContain("ЗАВЕРШИТЕ ЗВОНОК");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("answers ambiguous confirmation requests after a phone check without running a new check", async () => {
     await handleCheck("Попросил подтверждение", {
       chatId: 100,
