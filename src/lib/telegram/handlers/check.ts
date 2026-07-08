@@ -967,10 +967,14 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
     /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
-    /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
-    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text) ||
-    /(?:хозир|xozir).{0,50}(кунгирок|звон|call)/.test(text) ||
-    /(?:менга|бизга).{0,50}(кунгирок|звон|call).{0,50}(киляп|килиш|кел)/.test(text) ||
+    /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|telefon|zvon|call)/.test(text) ||
+    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,50}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
+      text,
+    ) ||
+    /(?:хозир|xozir).{0,50}(кунгирок|телефон|звон|call)/.test(text) ||
+    /(?:менга|бизга).{0,50}(кунгирок|телефон|звон|call).{0,50}(киляп|килиш|килди|килган|кел)/.test(
+      text,
+    ) ||
     /(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?(?:on|in)\s+(?:a\s+)?(?:phone\s+)?(?:call|line)|(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?on\s+the\s+phone/.test(
       text,
     ) ||

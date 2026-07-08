@@ -86,28 +86,30 @@ beforeEach(() => {
 });
 
 describe("handleVoice", () => {
-  it.each([
-    "Мне звонят из налоговой и просят данные",
-    "Звонит из налоговой и просит данные",
-  ])("uses government live-call copy when the caller claims to be tax office: %s", async (text) => {
-    await handleCheck(text, ctx());
+  it.each(["Мне звонят из налоговой и просят данные", "Звонит из налоговой и просит данные"])(
+    "uses government live-call copy when the caller claims to be tax office: %s",
+    async (text) => {
+      await handleCheck(text, ctx());
 
-    expect(hoisted.runCheck).not.toHaveBeenCalled();
-    expect(hoisted.saveSession).toHaveBeenCalledWith(
-      42,
-      expect.objectContaining({
-        scenario: "none",
-        scenarioData: expect.objectContaining({
-          lastPanicId: 6,
-          lastLiveCallContext: "government",
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({
+            lastPanicId: 6,
+            lastLiveCallContext: "government",
+          }),
         }),
-      }),
-    );
+      );
 
-    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
-    expect(joined).toContain("налоговая, госорган или полиция");
-    expect(joined).not.toContain("настоящий банк спокойно дождётся");
-  });
+      const joined = hoisted.sendMessage.mock.calls
+        .map(([message]) => String(message.text))
+        .join("\n");
+      expect(joined).toContain("налоговая, госорган или полиция");
+      expect(joined).not.toContain("настоящий банк спокойно дождётся");
+    },
+  );
 
   it("keeps government live-call context for text follow-up questions", async () => {
     const followUpCtx = ctx();
@@ -120,7 +122,9 @@ describe("handleVoice", () => {
     await handleCheck("что дальше", followUpCtx);
 
     expect(hoisted.runCheck).not.toHaveBeenCalled();
-    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
     expect(joined).toContain("официальный сайт, приложение или номер госоргана");
     expect(joined).not.toContain("перезвоните в банк");
   });
@@ -426,10 +430,53 @@ describe("handleVoice", () => {
       }),
     );
 
-    const joined = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text)).join("\n");
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
     expect(joined).toContain("налоговая, госорган или полиция");
     expect(joined).not.toContain("настоящий банк спокойно дождётся");
   });
+
+  it.each([
+    {
+      id: "uz-relative-urgent-money-call",
+      text: "Menga akam qo'ng'iroq qildi, shoshilinch pul so'radi",
+      context: "relative",
+    },
+    {
+      id: "uz-operator-sim-block-call",
+      text: "Menga Beeline operatori telefon qildi, raqam bloklanadi deyapti",
+      context: "operator",
+    },
+    {
+      id: "uz-government-soliq-code-call",
+      text: "Menga Soliqdan qo'ng'iroq qildi, SMS kod so'radi",
+      context: "government",
+    },
+  ] as const)(
+    "keeps the right UZ live-call context for short voice wording: $id",
+    async ({ id, text, context }) => {
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+
+      await handleVoice("voice-file-id", ctx("uz"), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: id,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({
+            lastPanicId: 6,
+            lastLiveCallContext: context,
+          }),
+        }),
+      );
+    },
+  );
 
   it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {
     for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(isVoiceSttPanicReplayFixture)) {
