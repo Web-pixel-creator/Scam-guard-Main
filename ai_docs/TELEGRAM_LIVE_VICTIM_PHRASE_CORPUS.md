@@ -2,7 +2,7 @@
 
 Status: WIP QA corpus for Telegram chat and inline behavior.
 
-Regression lock: 200 live phrases are currently enforced through
+Regression lock: 201 live phrases are currently enforced through
 `src/lib/telegram/live-phrase-cases.ts` and
 `src/lib/telegram/handlers/check.followup-routing.test.ts`.
 

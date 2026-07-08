@@ -498,7 +498,7 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "earning channel",
     text: "меня приглашают в канал для заработка",
-    expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
+    expected: { kind: "victim_intent", intent: "earning_channel", replyIncludes: "быстрым заработком" },
   },
   {
     area: "crypto investment",
@@ -557,7 +557,7 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "earning channel",
     text: "меня зовут вступить в канал для заработка",
-    expected: { kind: "victim_intent", intent: "job_offer", replyIncludes: "Работа/лёгкий доход" },
+    expected: { kind: "victim_intent", intent: "earning_channel", replyIncludes: "быстрым заработком" },
   },
   {
     area: "earning channel",
@@ -1058,6 +1058,15 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "news-derived earning channel",
     text: "мне предлагают бот для заработка 500 тысяч сум в день по нажатию кнопки",
+    expected: {
+      kind: "victim_intent",
+      intent: "earning_channel",
+      replyIncludes: "быстрым заработком",
+    },
+  },
+  {
+    area: "news-derived earning channel",
+    text: "мне предлагают бот для заработка 500 тысяч сум в день",
     expected: {
       kind: "victim_intent",
       intent: "earning_channel",
