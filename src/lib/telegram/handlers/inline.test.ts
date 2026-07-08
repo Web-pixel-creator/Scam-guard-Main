@@ -561,6 +561,11 @@ describe("handleInlineQuery", () => {
       title: "Apple/iOS: не устанавливайте «защиту»",
     },
     {
+      text: "айфон просит установить защиту от вирусов",
+      id: "check-unknown-apple-security",
+      title: "Apple/iOS: не устанавливайте «защиту»",
+    },
+    {
       text: "звонят из водоканала про счетчик просят паспорт",
       id: "check-unknown-utility-impersonation",
       title: "Коммунальная служба: перезвоните сами",
@@ -573,12 +578,12 @@ describe("handleInlineQuery", () => {
     {
       text: "незнакомец просит телефон на минуту позвонить",
       id: "check-unknown-phone-borrowing",
-      title: "Просят телефон: не отдавайте unlocked",
+      title: "Просят телефон: не отдавайте разблокированный",
     },
     {
       text: "На улице просят телефон позвонить на минуту",
       id: "check-unknown-phone-borrowing",
-      title: "Просят телефон: не отдавайте unlocked",
+      title: "Просят телефон: не отдавайте разблокированный",
     },
     {
       text: "деньги пришли по ошибке просят вернуть на другой счет",

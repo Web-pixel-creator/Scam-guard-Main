@@ -420,7 +420,7 @@ const PREVIEW_COPY: Record<
           "Пенсионный фонд, грант или надбавка по телефону не требуют SMS-код, карту, паспорт или ПИНФЛ. Проверяйте через 1271/102 или официальный канал.",
       },
       phone_borrowing: {
-        title: "Просят телефон: не отдавайте unlocked",
+        title: "Просят телефон: не отдавайте разблокированный",
         description:
           "Если незнакомец просит телефон «на минуту», он может открыть банк или восстановить аккаунт. Наберите номер сами и включите громкую связь.",
       },
@@ -1283,6 +1283,14 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   }
 
   if (
+    /(?:apple|ios|iphone|айфон|эппл|apple\s?id).{0,180}(?:вирус|поврежд|72|парол|провер|блок|установ|окно|баннер|разблок)|(?:вирус|поврежд.{0,20}ios|оповещен.{0,20}apple).{0,140}(?:установ|парол|ok|инструкц)/iu.test(
+      normalized,
+    )
+  ) {
+    return "apple_security";
+  }
+
+  if (
     /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
       normalized,
     ) ||
@@ -1291,14 +1299,6 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
     )
   ) {
     return "malicious_file";
-  }
-
-  if (
-    /(?:apple|ios|iphone|айфон|эппл|apple\s?id).{0,180}(?:вирус|поврежд|72|парол|провер|блок|установ|окно|баннер|разблок)|(?:вирус|поврежд.{0,20}ios|оповещен.{0,20}apple).{0,140}(?:установ|парол|ok|инструкц)/iu.test(
-      normalized,
-    )
-  ) {
-    return "apple_security";
   }
 
   if (
