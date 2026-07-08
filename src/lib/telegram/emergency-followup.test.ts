@@ -462,12 +462,19 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const more = buildEmergencyFollowUpText("more", 6, "ru", {
       liveCallContext: "relative",
     });
+    const full = buildEmergencyFollowUpText("full", 6, "ru", {
+      liveCallContext: "relative",
+    });
 
     expect(contacts).toContain("Проверить близкого безопасно");
     expect(contacts).toContain("сохранённому номеру из контактов");
     expect(script).toContain("сохранённому номеру");
     expect(script).toContain("кодовое слово");
     expect(more).toContain("перезвоните близкому");
+    expect(full).toContain("Все срочные шаги");
+    expect(full).toContain("сохранённому номеру из контактов");
+    expect(full).toContain("семейное кодовое слово");
+    expect(full).not.toContain("Национальный банк Узбекистана");
     expect(contacts).not.toContain(
       "официальный сайт, приложение или сохранённый номер организации",
     );

@@ -4748,6 +4748,58 @@ function guidedMoreAdviceText(
   return `${prefix[lang]}\n\n${moreAdviceText(panicId, lang)}`;
 }
 
+function relativeFullPlanText(lang: Lang): string {
+  const lines: Record<Lang, string[]> = {
+    ru: [
+      PANIC_MENU_TITLES[6][lang],
+      "",
+      "📋 Все срочные шаги",
+      "",
+      "1. Завершите звонок или переписку. Не спорьте и не доказывайте.",
+      "2. Перезвоните близкому по уже сохранённому номеру из контактов.",
+      "3. Спросите семейное кодовое слово или личный вопрос, которого нет в соцсетях.",
+      "4. Если личность не подтвердили, не переводите деньги и позовите другого родственника или друга семьи.",
+      "5. Если уже перевели деньги, назвали код или данные карты — позвоните в банк по официальному номеру и попросите заморозить операцию/карту.",
+      "",
+      "Главное: срочность, запрет перезванивать и злость на проверку — красный флаг.",
+      "",
+      DISCLAIMER[lang],
+    ],
+    uz: [
+      PANIC_MENU_TITLES[6][lang],
+      "",
+      "📋 Barcha shoshilinch qadamlar",
+      "",
+      "1. Qo'ng'iroq yoki yozishmani tugating. Bahslashmang va hech narsani isbotlamang.",
+      "2. Yaqin insoningizga kontaktlarda saqlangan raqam orqali qayta qo'ng'iroq qiling.",
+      "3. Oilaviy kod so'z yoki ijtimoiy tarmoqlarda yo'q shaxsiy savolni so'rang.",
+      "4. Shaxs tasdiqlanmasa, pul o'tkazmang va boshqa qarindosh yoki oila do'stini chaqiring.",
+      "5. Agar pul o'tkazgan, kod yoki karta ma'lumotini aytgan bo'lsangiz — bankning rasmiy raqamiga qo'ng'iroq qilib, operatsiya/kartani muzlatishni so'rang.",
+      "",
+      "Asosiysi: shoshirish, qayta qo'ng'iroq qilishni taqiqlash yoki tekshiruvga jahli chiqish — qizil belgi.",
+      "",
+      DISCLAIMER[lang],
+    ],
+    en: [
+      PANIC_MENU_TITLES[6][lang],
+      "",
+      "📋 All urgent steps",
+      "",
+      "1. End the call or conversation. Do not argue or prove anything.",
+      "2. Call the loved one using the number already saved in contacts.",
+      "3. Ask the family code word or a private question that is not on social media.",
+      "4. If identity is not confirmed, do not send money and call another relative or family friend.",
+      "5. If you already sent money, shared a code, or shared card data, call your bank on the official number and ask them to freeze the operation/card.",
+      "",
+      "Key point: urgency, forbidding a callback, or anger at verification is a red flag.",
+      "",
+      DISCLAIMER[lang],
+    ],
+  };
+
+  return lines[lang].join("\n");
+}
+
 export function buildEmergencyFollowUpText(
   action: EmergencyFollowUpAction,
   panicId: PanicScenarioId,
@@ -4762,6 +4814,9 @@ export function buildEmergencyFollowUpText(
     case "trusted_person":
       return guidedTrustedPersonText(panicId, lang, options);
     case "full":
+      if (panicId === 6 && options.liveCallContext === "relative") {
+        return relativeFullPlanText(lang);
+      }
       return buildDetailedPanicScenarioText(panicId, lang);
     case "more":
       return guidedMoreAdviceText(panicId, lang, options);
