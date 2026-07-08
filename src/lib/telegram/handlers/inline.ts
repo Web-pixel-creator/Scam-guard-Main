@@ -1274,6 +1274,9 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   if (
     /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
       normalized,
+    ) ||
+    /(?:приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили).{0,80}(?:файл|документ|архив|file|document).{0,100}(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|повестк|takvim|таквим|chaqiruvsud|sudga|вирус|virus)/iu.test(
+      normalized,
     )
   ) {
     return "malicious_file";

@@ -4,8 +4,8 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-07-08 - TG-017 News-derived UZ live phrase expansion
 
-- Expanded the Telegram live victim-phrase regression lock to 201 cases and the
-  inline mass smoke to 104 phrases, using recent Uzbekistan scam-news examples
+- Expanded the Telegram live victim-phrase regression lock to 202 cases and the
+  inline mass smoke to 105 phrases, using recent Uzbekistan scam-news examples
   and user live QA screenshots.
 - Added coverage for foreign-number bank/operator calls (`+98`, `+988`, `+996`),
   Telegram deletion/Premium/voting takeovers, APK court-summons files, fake
@@ -14,6 +14,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   asks to borrow money" wording.
 - Added the short live/inline phrase `мне предлагают бот для заработка 500 тысяч
   сум в день` after live Telegram QA exposed a cold fallback.
+- Added the live/inline phrase `в телеграм пришел файл повестка.pdf.apk` after
+  QA showed that `pdf.apk` was being treated as a domain-like artifact before
+  the file-received intent could answer calmly.
 - Tightened victim-intent priority so Apple ID popups are not swallowed by the
   generic Telegram-account rule, and acquaintance money requests do not steal
   romance/dating scam routing.

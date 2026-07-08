@@ -971,6 +971,15 @@ export const LIVE_PHRASE_CASES = [
   },
   {
     area: "news-derived file",
+    text: "в телеграм пришел файл повестка.pdf.apk",
+    expected: {
+      kind: "victim_intent",
+      intent: "file_received",
+      replyIncludes: "Файл от незнакомого источника",
+    },
+  },
+  {
+    area: "news-derived file",
     text: "мне прислали голосовое сообщение как файл и говорят открыть",
     expected: {
       kind: "victim_intent",

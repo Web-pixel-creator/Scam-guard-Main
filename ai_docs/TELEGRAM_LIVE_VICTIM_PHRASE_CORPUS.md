@@ -2,7 +2,7 @@
 
 Status: WIP QA corpus for Telegram chat and inline behavior.
 
-Regression lock: 201 live phrases are currently enforced through
+Regression lock: 202 live phrases are currently enforced through
 `src/lib/telegram/live-phrase-cases.ts` and
 `src/lib/telegram/handlers/check.followup-routing.test.ts`.
 
@@ -72,6 +72,7 @@ Expected intent: collect context, ask for the exact request, or route to live-ca
 мне скинули линк
 мне прислали файл
 мне отправили APK
+в телеграм пришел файл повестка.pdf.apk
 мне прислали QR
 у меня просят код
 у меня просят ссылку

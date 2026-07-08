@@ -58,7 +58,10 @@ export interface VictimIntentMatch {
   askedContext?: AskedContextKind;
 }
 
-const URL_RE = /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b)/iu;
+const EXPLICIT_URL_RE = /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/)/iu;
+const DOMAIN_LIKE_RE = /\b[a-z0-9-]+\.[a-z]{2,}\b/giu;
+const FILE_NAME_LIKE_RE =
+  /\b[\p{L}0-9_-]+\.(?:apk|exe|pdf|pptx|docx?|xlsx?|zip|rar|7z|gif|jpe?g|png|mp3|ogg|mp4)\b/iu;
 const PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/u;
 const TELEGRAM_HANDLE_RE = /@[a-zA-Z0-9_]{3,}/u;
 const LONG_MESSAGE_LIMIT = 260;
@@ -75,7 +78,15 @@ function normalizeVictimText(text: string): string {
 }
 
 function hasConcreteArtifact(text: string): boolean {
-  return URL_RE.test(text) || PHONE_RE.test(text) || TELEGRAM_HANDLE_RE.test(text);
+  if (EXPLICIT_URL_RE.test(text) || PHONE_RE.test(text) || TELEGRAM_HANDLE_RE.test(text)) {
+    return true;
+  }
+
+  for (const [domainLike] of text.matchAll(DOMAIN_LIKE_RE)) {
+    if (!FILE_NAME_LIKE_RE.test(domainLike)) return true;
+  }
+
+  return false;
 }
 
 function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
@@ -196,6 +207,9 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
+      text,
+    ) ||
+    /(?:приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили).{0,80}(?:файл|документ|архив|file|document).{0,100}(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|повестк|takvim|таквим|chaqiruvsud|sudga|вирус|virus)/iu.test(
       text,
     )
   ) {
@@ -522,11 +536,11 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
 
   if (
     hasVictimFrame(normalized) &&
-    /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
+    /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
       normalized,
     ) ||
     (hasVictimFrame(normalized) &&
-      /(?:файл|документ|apk|архив|pdf|file|document|fayl).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
+      /(?:файл|документ|apk|архив|pdf|file|document|fayl).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
         normalized,
       ))
   ) {
