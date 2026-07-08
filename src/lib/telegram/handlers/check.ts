@@ -188,7 +188,7 @@ const TELEGRAM_IMAGE_ANALYSIS_OPTIONS = {
 } as const;
 const TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS",
-  8000,
+  12_000,
   1000,
   15_000,
 );
@@ -764,10 +764,35 @@ function isNegatedVoiceDoneIntent(transcript: string): boolean {
   );
 }
 
+const UZ_REQUESTED_ACTION_VOICE_RE =
+  /(?:yuborish(?:imni|ni)|jo['’]?natish(?:imni|ni)|jonatish(?:imni|ni)|aytish(?:imni|ni)|berish(?:imni|ni)|kiritish(?:imni|ni)|o['’]?tkazish(?:imni|ni)|otkazish(?:imni|ni)|to['’]?lash(?:imni|ni)|tolash(?:imni|ni)).{0,70}(?:so['’]?ra|sora|talab)|(?:so['’]?ra|sora|talab).{0,100}(?:yuborish(?:imni|ni)|jo['’]?natish(?:imni|ni)|jonatish(?:imni|ni)|aytish(?:imni|ni)|berish(?:imni|ni)|kiritish(?:imni|ni)|o['’]?tkazish(?:imni|ni)|otkazish(?:imni|ni)|to['’]?lash(?:imni|ni)|tolash(?:imni|ni))/;
+const UZ_EXPLICIT_DONE_VOICE_RE =
+  /(?:^|\s)(?:men|biz)\s+.{0,50}(?:yub[oa]rdim|jo['’]?natdim|jonatdim|aytdim|berdim|kiritdim|o['’]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['’]?tkazdim|otkazdim|to['’]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)(?=\s|[.!?,;:]|$)/;
+
+function isRequestedActionVoiceText(text: string): boolean {
+  return UZ_REQUESTED_ACTION_VOICE_RE.test(text) && !UZ_EXPLICIT_DONE_VOICE_RE.test(text);
+}
+
 function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return null;
   if (isNegatedVoiceDoneIntent(text)) return null;
+  const requestedAction = isRequestedActionVoiceText(text);
+  if (requestedAction) {
+    if (
+      /(?:hozir|xozir).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call)/.test(text) ||
+      /(?:menga|bizga).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,80}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
+        text,
+      ) ||
+      /(?:хозир|xozir).{0,80}(кунгирок|телефон|звон|call)/.test(text) ||
+      /(?:менга|бизга).{0,80}(кунгирок|телефон|звон|call).{0,80}(киляп|килиш|килди|килган|килмокда|кел)/.test(
+        text,
+      )
+    ) {
+      return 6;
+    }
+    return null;
+  }
 
   if (
     /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
@@ -968,11 +993,11 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
     /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|telefon|zvon|call)/.test(text) ||
-    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,50}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
+    /(?:menga|bizga).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,80}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
       text,
     ) ||
     /(?:хозир|xozir).{0,50}(кунгирок|телефон|звон|call)/.test(text) ||
-    /(?:менга|бизга).{0,50}(кунгирок|телефон|звон|call).{0,50}(киляп|килиш|килди|килган|кел)/.test(
+    /(?:менга|бизга).{0,80}(кунгирок|телефон|звон|call).{0,80}(киляп|килиш|килди|килган|килмокда|кел)/.test(
       text,
     ) ||
     /(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?(?:on|in)\s+(?:a\s+)?(?:phone\s+)?(?:call|line)|(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?on\s+the\s+phone/.test(
@@ -1008,7 +1033,7 @@ function classifyLiveCallContext(text: string | undefined): LiveCallContext {
   if (!normalized) return "generic";
 
   if (
-    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona|ota|aka|uka|opa|singil|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one).{0,160}(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card)|(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card).{0,160}(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona|ota|aka|uka|opa|singil|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one)/iu.test(
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona(?:m|ngiz)?|ota(?:m|ngiz)?|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one).{0,180}(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|zudlik|muammo|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card)|(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|zudlik|muammo|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card).{0,180}(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona(?:m|ngiz)?|ota(?:m|ngiz)?|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one)/iu.test(
       normalized,
     )
   ) {

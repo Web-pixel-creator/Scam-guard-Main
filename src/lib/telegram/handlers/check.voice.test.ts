@@ -148,7 +148,7 @@ describe("handleVoice", () => {
       "data:audio/ogg;base64,AAAA",
       "ru",
       "tg:42",
-      expect.objectContaining({ timeoutMs: expect.any(Number) }),
+      expect.objectContaining({ timeoutMs: 12_000 }),
     );
     expect(hoisted.runCheck).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -453,6 +453,11 @@ describe("handleVoice", () => {
       text: "Menga Soliqdan qo'ng'iroq qildi, SMS kod so'radi",
       context: "government",
     },
+    {
+      id: "uz-relative-sister-car-urgent-transfer-call",
+      text: "Menga singlim qo'ng'iroq qilyapti. U mashinasi bilan muammo bo'lib qolganini aytib, zudlik bilan pul o'tkazishimni so'rayapti.",
+      context: "relative",
+    },
   ] as const)(
     "keeps the right UZ live-call context for short voice wording: $id",
     async ({ id, text, context }) => {
@@ -477,6 +482,43 @@ describe("handleVoice", () => {
       );
     },
   );
+
+  it("checks a longer Uzbek channel-admin voice asking for an SMS code", async () => {
+    const text =
+      "Kanal administratori menga yozmoqda. U mendan SMS kodini yuborishimni so'rayapti.";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+    hoisted.runCheck.mockResolvedValue({
+      ...FAKE_RESULT,
+      level: "high_risk",
+      score: 55,
+      reasons: ["asks_for_sms_code", "unknown_sender"],
+      display: text,
+    });
+
+    await handleVoice("voice-file-id", ctx("uz"), {
+      fileSize: 1024,
+      duration: 5,
+      fileUniqueId: "uz-channel-admin-sms-code-request",
+    });
+
+    expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+      }),
+    );
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: text,
+        type: "text",
+        lang: "uz",
+        channel: "telegram",
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ text: expect.stringContaining("Yuqori xavf") }),
+    );
+  });
 
   it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {
     for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(isVoiceSttPanicReplayFixture)) {

@@ -65,6 +65,10 @@ describe("evaluateText — relative_in_distress (R14.5)", () => {
     { name: "UZ aka avariyaga tushdi", text: "Akangiz avariyaga tushdi, pul kerak" },
     { name: "UZ do'st kasalxonada", text: "Do'stingiz kasalxonada, tezda pul yuboring" },
     { name: "UZ farzand shoshilinch pul", text: "Farzandingiz uchun shoshilinch pul kerak boldi" },
+    {
+      name: "UZ singlim mashina muammo zudlik bilan pul",
+      text: "Menga singlim qo'ng'iroq qilyapti. U mashinasi bilan muammo bo'lib qolganini aytib, zudlik bilan pul o'tkazishimni so'rayapti.",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
@@ -722,6 +726,21 @@ describe("evaluateText — asks_for_sms_code soft bypasses", () => {
     expect(evaluateText("hello, i am from bank security, send sms code")).toContain(
       "impersonates_bank",
     );
+  });
+});
+
+describe("evaluateText — Uzbek reported SMS-code requests", () => {
+  it("flags a channel admin asking the user to send an SMS code", () => {
+    const text =
+      "Kanal administratori menga yozmoqda. U mendan SMS kodini yuborishimni so'rayapti.";
+
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it("does not flag a neutral channel admin message without a code request", () => {
+    const text = "Kanal administratori menga yozmoqda. U ertaga yangi post chiqishini aytdi.";
+
+    expect(evaluateText(text)).not.toContain("asks_for_sms_code");
   });
 });
 

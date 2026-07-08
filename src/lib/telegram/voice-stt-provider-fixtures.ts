@@ -341,6 +341,23 @@ export const VOICE_STT_PROVIDER_REPLAY_FIXTURES: readonly VoiceSttProviderReplay
     note: "Short Uzbek Soliq/government call with code request should route to live-call SOS.",
   },
   {
+    id: "uz-relative-sister-car-urgent-transfer-call",
+    lang: "uz",
+    transcript:
+      "Menga singlim qo'ng'iroq qilyapti. U mashinasi bilan muammo bo'lib qolganini aytib, zudlik bilan pul o'tkazishimni so'rayapti.",
+    sourceKind: "synthetic_provider_like",
+    expectation: { kind: "panic", panicId: 6 },
+    note: "Longer Uzbek loved-one distress call should route to live-call SOS.",
+  },
+  {
+    id: "uz-channel-admin-sms-code-request",
+    lang: "uz",
+    transcript: "Kanal administratori menga yozmoqda. U mendan SMS kodini yuborishimni so'rayapti.",
+    sourceKind: "synthetic_provider_like",
+    expectation: { kind: "normal_check" },
+    note: "Channel admin asking for SMS code is checked by runCheck, not emergency-routing.",
+  },
+  {
     id: "uz-not-transfer-money",
     lang: "uz",
     transcript: "Men pul o'tkazmadim",

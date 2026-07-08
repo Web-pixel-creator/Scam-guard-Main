@@ -96,6 +96,9 @@ describe("transcribeVoiceCore", () => {
     expect(String(form.get("prompt"))).toContain("Uzbek");
     expect(String(form.get("prompt"))).toContain("SMS-kod");
     expect(String(form.get("prompt"))).toContain("kod yubormadim");
+    expect(String(form.get("prompt"))).toContain("singlim qo'ng'iroq qilyapti");
+    expect(String(form.get("prompt"))).toContain("kanal administratori menga yozmoqda");
+    expect(String(form.get("prompt"))).toContain("SMS kodini yuborishimni so'rayapti");
     expect(form.get("file")).toBeInstanceOf(Blob);
   });
 

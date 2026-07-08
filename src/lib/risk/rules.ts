@@ -124,6 +124,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_sms_code", re: /\bkodni\s+(?:kiriting|yozing|tasdiqlang)\b/i },
   {
     code: "asks_for_sms_code",
+    re: /(?:sms|otp|code|kod(?:i|ini)?).{0,60}(?:yuborishimni|yuborishni|jo['’]?natishimni|jonatishimni|berishimni|aytishimni).{0,40}(?:so['’]?ra|sora|talab)|(?:so['’]?ra|sora|talab).{0,80}(?:sms|otp|code|kod(?:i|ini)?)/i,
+  },
+  {
+    code: "asks_for_sms_code",
     re: /кодни\s+(?:киритинг|ёзинг|езинг|тасдиқланг|тасдикланг|айтинг|юборинг)/i,
   },
   {
@@ -183,7 +187,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "relative_in_distress",
-    re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,40}(беда|авари|больниц|задержали|срочно нужны деньги)|(farzand|o['’]g['’]il|qiz|aka|uka|do['’]st).{0,40}(avariya|kasalxona|shoshilinch.{0,10}pul)/i,
+    re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,80}(беда|авари|больниц|задержали|срочно нужны деньги|срочно.{0,20}(деньг|перевести))|(farzand|o['’]g['’]il|qiz|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|ona(?:m|ngiz)?|ota(?:m|ngiz)?|do['’]st|qarindosh|yaqin).{0,140}(avariya|kasalxona|shoshilinch.{0,20}pul|zudlik.{0,40}pul|mashina.{0,40}muammo|muammo.{0,60}pul|pul.{0,40}o['’]?tkaz)/i,
   },
   {
     code: "requests_card_digits",
