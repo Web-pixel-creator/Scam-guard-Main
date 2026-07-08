@@ -23,7 +23,7 @@ const REPORT_CONTEXT_RE =
 const SIMPLE_EXPLAIN_RE =
   /(?:объясни|поясни|скажи|можно)\s*.{0,30}(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|человеческ)|(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|для\s+(?:мамы|папы|пожил)|я\s+пожил|мне\s+сложно)|(?:explain|say|tell)\s*.{0,30}(?:simply|simple\s+words|like\s+i'?m\s+(?:five|old|elderly)|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:simple\s+words|eli5|like\s+i'?m\s+five|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:oddiy|sodda|tushunarli)\s*.{0,30}(?:qilib|so'zlar|tushuntir)|(?:buvimga|onamga|otamga|keksalar)/i;
 const EXPLAIN_RE =
-  /^(?:почему|почему\s+так|объясни|поясни|я\s+не\s+понял[а]?|не\s+понял[а]?|что\s+это\s+значит|why|why\s+so|explain|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega|tushunmadim|izohla)[\s?!.,]*$/i;
+  /^(?:почему(?:\s+.{1,120})?|объясни(?:\s+.{0,120})?|поясни(?:\s+.{0,120})?|я\s+не\s+понял[а]?(?:\s+.{0,80})?|не\s+понял[а]?(?:\s+.{0,80})?|что\s+это\s+значит|why(?:\s+.{0,120})?|explain(?:\s+.{0,120})?|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega(?:\s+.{0,120})?|tushunmadim|izohla(?:\s+.{0,120})?)[\s?!.,]*$/i;
 // "Is this made by AI / a neural net?" style questions about the last check.
 // We cannot reliably detect AI generation, so we answer honestly and redirect
 // to what actually matters for safety instead of returning a generic card.

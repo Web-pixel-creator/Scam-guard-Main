@@ -339,12 +339,12 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Ссылка: сначала проверим",
         description:
-          "Пока не открывайте и ничего не вводите. Пришлите саму ссылку или полный текст просьбы.",
+          "Пока не открывайте и ничего не вводите. Если не добавили саму ссылку или полный текст — добавьте их в запрос.",
       },
       code_request: {
         title: "Код: никому не называйте",
         description:
-          "SMS, push, OTP, PIN и пароли не диктуем. Пришлите полный текст просьбы или скрин.",
+          "SMS, push, OTP, PIN и пароли не диктуем. Если это не весь текст просьбы — добавьте его или скрин.",
       },
       sent_code: {
         title: "Код уже отправлен: действуйте срочно",
@@ -369,7 +369,7 @@ const PREVIEW_COPY: Record<
       transfer_request: {
         title: "Перевод: нужна причина",
         description:
-          "Не переводите незнакомцам или на «безопасный счёт». Пришлите кому, куда и зачем просят перевести.",
+          "Не переводите незнакомцам или на «безопасный счёт». Если не указано кому, куда и зачем — добавьте причину перевода.",
       },
       app_request: {
         title: "Приложение: не устанавливайте",
@@ -534,7 +534,7 @@ const PREVIEW_COPY: Record<
       voting_link: {
         title: "Голосование/канал: сначала проверим",
         description:
-          "Не переходите по ссылке и не входите в Telegram заново. Пришлите ссылку или текст приглашения целиком.",
+          "Не переходите по ссылке и не входите в Telegram заново. Если ссылки или текста ещё нет — добавьте их.",
       },
       next_step: {
         title: "Что делать: остановитесь и пришлите просьбу",
@@ -578,11 +578,12 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Havola: avval tekshiramiz",
         description:
-          "Hozircha ochmang va hech narsa kiritmang. Havolani yoki so'rov matnini to'liq yuboring.",
+          "Hozircha ochmang va hech narsa kiritmang. Havola yoki to'liq matn hali bo'lmasa, uni so'rovga qo'shing.",
       },
       code_request: {
         title: "Kod: hech kimga aytmang",
-        description: "SMS, push, OTP, PIN va parollarni aytmang. To'liq xabar yoki skrin yuboring.",
+        description:
+          "SMS, push, OTP, PIN va parollarni aytmang. Agar bu to'liq matn bo'lmasa, xabar yoki skrinni qo'shing.",
       },
       sent_code: {
         title: "Kod yuborilgan: tez harakat qiling",
@@ -606,7 +607,7 @@ const PREVIEW_COPY: Record<
       transfer_request: {
         title: "Pul o'tkazma: sabab kerak",
         description:
-          "Notanish odamga yoki «xavfsiz hisob»ga pul o'tkazmang. Kimga va nega so'ralganini yuboring.",
+          "Notanish odamga yoki «xavfsiz hisob»ga pul o'tkazmang. Kimga, qayerga va nega so'ralgani yo'q bo'lsa, sababni qo'shing.",
       },
       app_request: {
         title: "Ilova: o'rnatmang",
@@ -769,7 +770,7 @@ const PREVIEW_COPY: Record<
       voting_link: {
         title: "Ovoz berish/kanal: avval tekshiramiz",
         description:
-          "Havolaga o'tmang va Telegramga qayta kirmang. Havola yoki taklif matnini to'liq yuboring.",
+          "Havolaga o'tmang va Telegramga qayta kirmang. Havola yoki matn hali bo'lmasa, uni qo'shing.",
       },
       next_step: {
         title: "Nima qilish kerak: to'xtang va so'rovni yuboring",
@@ -813,12 +814,12 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Link: check it first",
         description:
-          "Do not open it or enter anything yet. Send the actual link or the full request text.",
+          "Do not open it or enter anything yet. If the link or full text is missing, add it to the query.",
       },
       code_request: {
         title: "Code: do not share it with anyone",
         description:
-          "Do not read out SMS, push, OTP, PIN or passwords. Send the full request text or screenshot.",
+          "Do not read out SMS, push, OTP, PIN or passwords. If this is not the full request, add the text or screenshot.",
       },
       sent_code: {
         title: "Code already sent: act now",
@@ -843,7 +844,7 @@ const PREVIEW_COPY: Record<
       transfer_request: {
         title: "Transfer: reason needed",
         description:
-          "Do not transfer to strangers or a “safe account”. Send who, where and why they ask you to pay.",
+          "Do not transfer to strangers or a “safe account”. If who, where or why is missing, add the reason for the transfer.",
       },
       app_request: {
         title: "App: do not install it",
@@ -1008,7 +1009,7 @@ const PREVIEW_COPY: Record<
       voting_link: {
         title: "Voting/channel: check it first",
         description:
-          "Do not open the link or sign in to Telegram again. Send the link or invitation text.",
+          "Do not open the link or sign in to Telegram again. If the link or text is missing, add it.",
       },
       next_step: {
         title: "What to do: pause and send the request",
@@ -1382,13 +1383,13 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   }
 
   if (
-    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|друг|подруга).{0,160}(?:ии|ai|deepfake|дипфейк|видеосвяз|видео|голос).{0,160}(?:деньг|помощ|перевод|сроч)|(?:ии|ai|deepfake|дипфейк|видеосвяз|голос).{0,160}(?:родствен|близк|мама|папа|друг).{0,160}(?:деньг|помощ|перевод|сроч)/iu.test(
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруга).{0,160}(?:ии|ai|deepfake|дипфейк|видеосвяз|видео|голос).{0,160}(?:деньг|помощ|перевод|сроч)|(?:ии|ai|deepfake|дипфейк|видеосвяз|голос).{0,160}(?:родствен|близк|мама|папа|брат|сестр|внук|внуч|друг).{0,160}(?:деньг|помощ|перевод|сроч)/iu.test(
       normalized,
     ) ||
     /(?:знаком|одноклассник|коллег|друг|подруг).{0,120}(?:сроч|одолж|займи|занять|верну\s+через).{0,100}(?:деньг|сум|руб|доллар|перевод)|(?:сроч|одолж|займи|занять|верну\s+через).{0,120}(?:знаком|одноклассник|коллег|друг|подруг)/iu.test(
       normalized,
     ) ||
-    /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
+    /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь|брат|сестр|внук|внуч).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь|брат|сестр|внук|внуч).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
       normalized,
     )
   ) {
@@ -1415,7 +1416,7 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
 }
 
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
-  const normalized = text.toLowerCase();
+  const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
 

@@ -110,6 +110,20 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("answers specific why follow-ups about the last result instead of running a new check", async () => {
+    await handleCheck("Почему домен подозрительный?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "generic", level: "suspicious" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Коротко");
+    expect(hoisted.sentMessages[0].text).toContain("подозрительные признаки");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("answers next-step follow-ups after high-risk results", async () => {
     await handleCheck("Что еще посоветуешь?", {
       chatId: 100,
@@ -224,14 +238,11 @@ describe("handleCheck follow-up routing", () => {
   });
 
   it("routes third-party relative money calls as trusted-person verification, not generic live-call SOS", async () => {
-    await handleCheck(
-      "моей бабушке звонил мошенник он просил срочно прислать деньги на помощь",
-      {
-        chatId: 100,
-        userId: 42,
-        session: sessionWith(),
-      },
-    );
+    await handleCheck("моей бабушке звонил мошенник он просил срочно прислать деньги на помощь", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
     expect(hoisted.sentMessages).toHaveLength(1);
@@ -450,7 +461,9 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages).toHaveLength(1);
     expect(hoisted.sentMessages[0].text).toContain("настоящий оператор связи");
     expect(hoisted.sentMessages[0].text).not.toContain("настоящий банк");
-    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain('"lastLiveCallContext":"operator"');
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain(
+      '"lastLiveCallContext":"operator"',
+    );
   });
 
   it("answers legacy live victim phrase before runCheck", async () => {

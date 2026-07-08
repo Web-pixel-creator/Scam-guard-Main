@@ -536,6 +536,11 @@ describe("handleInlineQuery", () => {
       title: "Близкий в беде: перезвоните",
     },
     {
+      text: "мне звонит сестра\nПросит срочно перевести деньги, так как у нее случилась проблема с машиной",
+      id: "check-unknown-relative-distress",
+      title: "Близкий в беде: перезвоните",
+    },
+    {
       text: "знакомый пишет срочно одолжи деньги верну через пару часов",
       id: "check-unknown-relative-distress",
       title: "Близкий в беде: перезвоните",
@@ -736,6 +741,11 @@ describe("handleInlineQuery", () => {
       title: "Код: никому не называйте",
     },
     {
+      text: "мне пишет администратор канала\nон просит прислать ему смс",
+      id: "check-unknown-code-request",
+      title: "Код: никому не называйте",
+    },
+    {
       text: "незнакомец кинул ссылку",
       id: "check-unknown-link-request",
       title: "Ссылка: сначала проверим",
@@ -925,6 +935,51 @@ describe("handleInlineQuery", () => {
       "Одного значения мало для уверенного вывода",
     );
   });
+
+  it.each([
+    {
+      text: "мне прислали ссылку https://digital-quik.com/gallery/kalice",
+      title: "Ссылка: сначала проверим",
+      forbidden: "Пришлите саму ссылку",
+    },
+    {
+      text: "мне ссылку прислали проголосовать\nhttps://www.flaticon.com/search?author_id=1&style_id=1299&type=standard&word=game",
+      title: "Голосование/канал: сначала проверим",
+      forbidden: "Пришлите ссылку",
+    },
+    {
+      text: "мне пишет администратор канала\nон просит прислать ему смс",
+      title: "Код: никому не называйте",
+      forbidden: "Пришлите полный текст",
+    },
+  ])(
+    "does not ask for already supplied inline details in '$text'",
+    async ({ text, title, forbidden }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "unknown",
+        score: 0,
+        reasons: ["unknown_sender"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(text, { userId: 42, session }, `iq-copy-${title}`);
+
+      const article = hoisted.answerCalls[0].results[0] as {
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expect(article.title).toBe(title);
+      expect(article.description).not.toContain(forbidden);
+      expect(article.input_message_content.message_text).not.toContain(forbidden);
+      expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
+    },
+  );
 
   it.each([
     {
