@@ -46,4 +46,14 @@ describe("panic scenario first card human guidance", () => {
     expect(text).toContain("официальный сайт");
     expect(text).not.toContain("настоящий банк спокойно дождётся");
   });
+
+  it("uses family-specific live-call copy when a loved one urgently asks for money", () => {
+    const text = buildPanicScenarioText(6, "ru", { liveCallContext: "relative" });
+
+    expect(firstContentLine(text)).toContain("ПРОВЕРЬТЕ ЛИЧНОСТЬ");
+    expect(text).toContain("перезвоните по уже сохранённому номеру");
+    expect(text).toContain("кодовое слово");
+    expect(text).not.toContain("настоящая организация спокойно дождётся");
+    expect(text).not.toContain("официальному номеру");
+  });
 });

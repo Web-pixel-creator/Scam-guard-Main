@@ -466,6 +466,28 @@ describe("handleCheck follow-up routing", () => {
     );
   });
 
+  it("routes live relative distress calls to family verification copy, not organization copy", async () => {
+    await handleCheck(
+      "мне звонит сестра. Просит срочно перевести деньги, так как у нее случилась проблема с машиной",
+      {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      },
+    );
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("ПРОВЕРЬТЕ ЛИЧНОСТЬ");
+    expect(hoisted.sentMessages[0].text).toContain("сохранённому номеру");
+    expect(hoisted.sentMessages[0].text).toContain("кодовое слово");
+    expect(hoisted.sentMessages[0].text).not.toContain("настоящая организация");
+    expect(hoisted.sentMessages[0].text).not.toContain("официальному номеру");
+    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain(
+      '"lastLiveCallContext":"relative"',
+    );
+  });
+
   it("answers legacy live victim phrase before runCheck", async () => {
     await handleCheck("мне пишут в телеграме", {
       chatId: 100,

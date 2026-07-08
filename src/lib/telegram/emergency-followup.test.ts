@@ -452,6 +452,28 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(operatorMore).toContain("номер оператора связи");
   });
 
+  it("uses relative-specific live-call follow-up text for loved-one money pressure", () => {
+    const contacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "relative",
+    });
+    const script = buildEmergencyFollowUpText("script", 6, "ru", {
+      liveCallContext: "relative",
+    });
+    const more = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "relative",
+    });
+
+    expect(contacts).toContain("Проверить близкого безопасно");
+    expect(contacts).toContain("сохранённому номеру из контактов");
+    expect(script).toContain("сохранённому номеру");
+    expect(script).toContain("кодовое слово");
+    expect(more).toContain("перезвоните близкому");
+    expect(contacts).not.toContain(
+      "официальный сайт, приложение или сохранённый номер организации",
+    );
+    expect(script).not.toContain("официальному номеру");
+  });
+
   it("keeps active live-call buttons focused on ending the call first", () => {
     const data = callbackData(buildLiveCallActiveKeyboard("ru"));
 

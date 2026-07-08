@@ -1004,6 +1004,14 @@ function classifyLiveCallContext(text: string | undefined): LiveCallContext {
   if (!normalized) return "generic";
 
   if (
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona|ota|aka|uka|opa|singil|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one).{0,160}(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card)|(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card).{0,160}(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona|ota|aka|uka|opa|singil|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one)/iu.test(
+      normalized,
+    )
+  ) {
+    return "relative";
+  }
+
+  if (
     /(?:налогов|налог|фнс|солик|солиқ|soliq|one\s?id|oneid|my\.gov|id\.gov|gov\.uz|госуслуг|госорган|давлат|pinfl|пинфл|jshshir|полици|милици|мвд|ииб|iib|прокуратур|prokuratura|суд|court|sud|кадастр|kadastr|нотариус|notary|юрист|lawyer|коллектор|tax|government|police|prosecutor)/iu.test(
       normalized,
     )
