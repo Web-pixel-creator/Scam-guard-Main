@@ -17,6 +17,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added the live/inline phrase `в телеграм пришел файл повестка.pdf.apk` after
   QA showed that `pdf.apk` was being treated as a domain-like artifact before
   the file-received intent could answer calmly.
+- Polished live inline QA for `мне прислали ссылку проголосовать за лучшую
+  мамочку`: the preview now uses the voting/channel warning instead of the
+  generic link-request card.
 - Tightened victim-intent priority so Apple ID popups are not swallowed by the
   generic Telegram-account rule, and acquaintance money requests do not steal
   romance/dating scam routing.

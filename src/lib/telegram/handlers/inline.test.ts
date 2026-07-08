@@ -546,6 +546,11 @@ describe("handleInlineQuery", () => {
       title: "Голосование/канал: сначала проверим",
     },
     {
+      text: "мне прислали ссылку проголосовать за лучшую мамочку",
+      id: "check-unknown-voting-link",
+      title: "Голосование/канал: сначала проверим",
+    },
+    {
       text: "мне прислали APK я ухожу из этого мира",
       id: "check-unknown-malicious-file",
       title: "Файл/вирус: не открывайте",

@@ -1272,6 +1272,17 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   }
 
   if (
+    /(?:голосован|голосовать|проголос|опрос|лучш.{0,30}мам|мамочк|vote|voting).{0,120}(?:канал|групп|чат|ссылк|линк|link|url|перейти|зайти|открыть|кнопк)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат|ссылк|линк|link|url|перейти|зайти|открыть|кнопк).{0,120}(?:голосован|голосовать|проголос|опрос|лучш.{0,30}мам|мамочк|vote|voting)/iu.test(
+      normalized,
+    )
+  ) {
+    return "voting_link";
+  }
+
+  if (
     /(?:apk|\.apk|exe|\.exe|pdf\.apk|pptx|\.pptx|gif|стикер|открытк|голосов(?:ое|ой)|takvim|таквим|повестк|chaqiruvsud|sudga|so['’]?nggi|последн.{0,20}слов|покидаю.{0,40}мир|ухожу.{0,40}мир|вирус|virus).{0,180}(?:откры|скач|установ|пришл|файл|ссылк|документ|yukla|och|o['’]?rnat)?/iu.test(
       normalized,
     ) ||
