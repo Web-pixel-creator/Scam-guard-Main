@@ -88,13 +88,21 @@ export const LIVE_PHRASE_CASES = [
     area: "emotion",
     text: "yordam kerak",
     lang: "uz",
-    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Men yoningizdaman" },
+    expected: {
+      kind: "victim_intent",
+      intent: "emotional_help",
+      replyIncludes: "Men yoningizdaman",
+    },
   },
   {
     area: "emotion",
     text: "qo'rqyapman",
     lang: "uz",
-    expected: { kind: "victim_intent", intent: "emotional_help", replyIncludes: "Men yoningizdaman" },
+    expected: {
+      kind: "victim_intent",
+      intent: "emotional_help",
+      replyIncludes: "Men yoningizdaman",
+    },
   },
   {
     area: "advice",
@@ -216,6 +224,16 @@ export const LIVE_PHRASE_CASES = [
   },
   {
     area: "call",
+    text: "мне звонят с другой страны. Просто звонок с другой страны, брать трубку?",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "call",
+    text: "мне звонят из Нигерии",
+    expected: { kind: "panic", panicId: 6 },
+  },
+  {
+    area: "call",
     text: "мне звонят с номера +998",
     expected: { kind: "panic", panicId: 6 },
   },
@@ -254,6 +272,11 @@ export const LIVE_PHRASE_CASES = [
     area: "bank call",
     text: "звонили и сказали что карта заблокирована",
     expected: { kind: "victim_intent", intent: "bank_call", replyIncludes: "официальный канал" },
+  },
+  {
+    area: "operator call",
+    text: "мне звонит директор билайна",
+    expected: { kind: "victim_intent", intent: "operator_call", replyIncludes: "оператор" },
   },
   {
     area: "authority call",
@@ -394,6 +417,15 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "friend money",
+    text: "моей бабушке звонил мошенник. Он просил срочно прислать деньги на помощь",
+    expected: {
+      kind: "victim_intent",
+      intent: "friend_money",
+      replyIncludes: "подтвердите личность",
+    },
+  },
+  {
     area: "support",
     text: "мне пишет кто-то из техподдержки",
     expected: {
@@ -498,7 +530,11 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "earning channel",
     text: "меня приглашают в канал для заработка",
-    expected: { kind: "victim_intent", intent: "earning_channel", replyIncludes: "быстрым заработком" },
+    expected: {
+      kind: "victim_intent",
+      intent: "earning_channel",
+      replyIncludes: "быстрым заработком",
+    },
   },
   {
     area: "crypto investment",
@@ -557,7 +593,11 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "earning channel",
     text: "меня зовут вступить в канал для заработка",
-    expected: { kind: "victim_intent", intent: "earning_channel", replyIncludes: "быстрым заработком" },
+    expected: {
+      kind: "victim_intent",
+      intent: "earning_channel",
+      replyIncludes: "быстрым заработком",
+    },
   },
   {
     area: "earning channel",
@@ -905,6 +945,24 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "news-derived official",
+    text: "Хотели в Soliq войти",
+    expected: {
+      kind: "victim_intent",
+      intent: "gov_service_login",
+      replyIncludes: "Soliq",
+    },
+  },
+  {
+    area: "news-derived official",
+    text: "мне звонили из солик",
+    expected: {
+      kind: "victim_intent",
+      intent: "official_impersonation",
+      replyIncludes: "налоговой",
+    },
+  },
+  {
     area: "news-derived foreign call",
     text: "мне звонят с +988 и представляются сотрудником банка, просят данные карты и SMS",
     expected: { kind: "panic", panicId: 6 },
@@ -1058,6 +1116,15 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "news-derived children",
     text: "ребенку обещают бесплатные бонусы в игре и просят код",
+    expected: {
+      kind: "victim_intent",
+      intent: "child_game_bonus",
+      replyIncludes: "Бесплатные бонусы",
+    },
+  },
+  {
+    area: "news-derived children",
+    text: "ребёнку обещают робуксы и просят код",
     expected: {
       kind: "victim_intent",
       intent: "child_game_bonus",
@@ -1499,6 +1566,11 @@ export const LIVE_PHRASE_CASES = [
   {
     area: "apk installed",
     text: "я уже установил apk",
+    expected: { kind: "panic", panicId: 2 },
+  },
+  {
+    area: "apk installed",
+    text: "я установил приложение и дал доступ к смс",
     expected: { kind: "panic", panicId: 2 },
   },
   {
