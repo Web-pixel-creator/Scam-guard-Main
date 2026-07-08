@@ -471,6 +471,11 @@ describe("handleInlineQuery", () => {
       title: "Приложение: не устанавливайте",
     },
     {
+      text: "я установил приложение и дал доступ к смс",
+      id: "check-unknown-app-request",
+      title: "Приложение: не устанавливайте",
+    },
+    {
       text: "мне звонят из банка",
       id: "check-unknown-bank-call",
       title: "Звонок из банка: перезвоните сами",
@@ -502,6 +507,11 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "просят войти в OneID и сказать SMS код",
+      id: "check-unknown-gov-service",
+      title: "OneID/госуслуги: не вводите код",
+    },
+    {
+      text: "menga soliqdan qongiroq qilishdi va OneID kodini sorashdi",
       id: "check-unknown-gov-service",
       title: "OneID/госуслуги: не вводите код",
     },
@@ -556,6 +566,11 @@ describe("handleInlineQuery", () => {
       title: "Файл/вирус: не открывайте",
     },
     {
+      text: "в телеграм пришел файл повестка.pdf.apk",
+      id: "check-unknown-malicious-file",
+      title: "Файл/вирус: не открывайте",
+    },
+    {
       text: "оповещение безопасности Apple iOS повреждена на 72 установить программу",
       id: "check-unknown-apple-security",
       title: "Apple/iOS: не устанавливайте «защиту»",
@@ -602,6 +617,11 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "ребенку предлагают бесплатные бонусы в игре просят код",
+      id: "check-unknown-child-game-bonus",
+      title: "Игровые бонусы: не вводите код",
+    },
+    {
+      text: "ребёнку обещают робуксы и просят код",
       id: "check-unknown-child-game-bonus",
       title: "Игровые бонусы: не вводите код",
     },

@@ -68,8 +68,10 @@ const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "sent_money",
   "telegram_takeover",
   "malicious_file",
+  "app_request",
   "utility_impersonation",
   "official_impersonation",
+  "gov_service",
   "pension_benefit",
   "phone_borrowing",
   "money_mule",
@@ -1168,6 +1170,20 @@ function hasCodeRequestIntent(normalized: string): boolean {
   );
 }
 
+function hasInstalledAppAccessIntent(normalized: string): boolean {
+  return (
+    /(?:я|мы|уже|только\s+что)?.{0,70}(?:установил|установила|поставил|поставила|скачал|скачала|дал(?:а)?\s+доступ|разрешил|разрешила).{0,100}(?:прилож|apk|anydesk|teamviewer|rustdesk|sms|смс|уведом|экран|телефон|доступ)/iu.test(
+      normalized,
+    ) ||
+    /(?:men|allaqachon|hozirgina)?.{0,70}(?:ilova|apk|anydesk|teamviewer|rustdesk|sms|xabar|ruxsat|ekran).{0,100}(?:o['’]?rnatdim|yukladim|berdim|ruxsat)/iu.test(
+      normalized,
+    ) ||
+    /(?:i|already|just)?.{0,70}(?:installed|downloaded|gave|allowed|granted).{0,100}(?:app|apk|anydesk|teamviewer|rustdesk|sms|notification|screen|phone|access)/iu.test(
+      normalized,
+    )
+  );
+}
+
 function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInlineIntent | null {
   switch (kind) {
     case "emotional_help":
@@ -1350,7 +1366,7 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   }
 
   if (
-    /(?:ребен|дет[ией]|школьник|game|игр|robux|bonus|бонус|валют).{0,180}(?:код|sms|смс|мессенджер|данн|подар|бесплатн|запуг|вымог)/iu.test(
+    /(?:реб[её]н|дет[ией]|школьник|game|игр|robux|roblox|робукс|bonus|бонус|валют).{0,180}(?:код|sms|смс|мессенджер|данн|подар|бесплатн|запуг|вымог)/iu.test(
       normalized,
     )
   ) {
@@ -1544,6 +1560,10 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "sim_swap";
+  }
+
+  if (hasInstalledAppAccessIntent(normalized)) {
+    return "app_request";
   }
 
   if (hasSentCodeIntent(normalized)) {
@@ -1752,14 +1772,6 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "link_request";
   }
 
-  if (hasSentCodeIntent(normalized)) {
-    return "sent_code";
-  }
-
-  if (hasCodeRequestIntent(normalized)) {
-    return "code_request";
-  }
-
   if (
     /(?:просят|просит|сказали|говорят|нужно|надо).{0,80}(?:подтверд|одобр|разреш|разрешить|согласиться|нажать да)/iu.test(
       normalized,
@@ -1788,7 +1800,9 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
         normalized,
       ) ||
       /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
-      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized))
+      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(
+        normalized,
+      ))
   ) {
     return "card_request";
   }
@@ -2086,13 +2100,52 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
 }
 
 function hasConcreteInlineArtifact(text: string): boolean {
-  return /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d)/iu.test(
-    text,
-  );
+  if (
+    /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d)/iu.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+
+  const fileLikeExtensions = new Set([
+    "apk",
+    "exe",
+    "pdf",
+    "pptx",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "zip",
+    "rar",
+    "gif",
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "ogg",
+    "mp3",
+    "mp4",
+  ]);
+
+  for (const match of text.matchAll(/\b[a-z0-9-]+\.([a-z]{2,})\b/giu)) {
+    const extension = match[1]?.toLowerCase();
+    if (extension && !fileLikeExtensions.has(extension)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-function shouldUsePreflightInlineIntent(text: string, intent: HumanInlineIntent | null): intent is HumanInlineIntent {
-  return Boolean(intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteInlineArtifact(text));
+function shouldUsePreflightInlineIntent(
+  text: string,
+  intent: HumanInlineIntent | null,
+): intent is HumanInlineIntent {
+  return Boolean(
+    intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteInlineArtifact(text),
+  );
 }
 
 function humanIntentArticle(
