@@ -73,7 +73,11 @@ vi.mock("@/lib/telegram/reputation.server", () => ({
   enrichTelegramReputation: (_input: string, result: unknown) => Promise.resolve(result),
 }));
 
-import { handleCheck } from "./check";
+import {
+  __resetTelegramCheckCachesForTests,
+  __telegramCheckCacheStatsForTests,
+  handleCheck,
+} from "./check";
 
 function ctx(userId = 42): HandlerCtx {
   const session: Session = {
@@ -98,6 +102,7 @@ describe("handleCheck speed helpers", () => {
       Promise.resolve(safeResult(input)),
     );
     hoisted.saveSession.mockResolvedValue({ ok: true });
+    __resetTelegramCheckCachesForTests();
   });
 
   it("reuses a short-lived cached result for repeated normalized text by the same user", async () => {
@@ -114,6 +119,19 @@ describe("handleCheck speed helpers", () => {
     await handleCheck("shared-looking cache regression text", ctx(7103));
 
     expect(hoisted.runCheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("bounds cached check results for high-cardinality traffic", async () => {
+    const uniqueChecks = __telegramCheckCacheStatsForTests().checkResultMaxEntries + 5;
+
+    for (let index = 0; index < uniqueChecks; index += 1) {
+      await handleCheck(`bounded cache regression ${index}`, ctx(7110));
+    }
+
+    expect(hoisted.runCheck.mock.calls.length).toBeGreaterThan(0);
+    expect(__telegramCheckCacheStatsForTests().checkResultSize).toBeLessThanOrEqual(
+      __telegramCheckCacheStatsForTests().checkResultMaxEntries,
+    );
   });
 
   it("deduplicates concurrent checks for the same normalized text by the same user", async () => {

@@ -142,6 +142,18 @@ const CHECK_RESULT_CACHE_TTL_MS = readBoundedIntEnv(
   5_000,
   10 * 60_000,
 );
+const CHECK_RESULT_CACHE_MAX_ENTRIES = readBoundedIntEnv(
+  "TELEGRAM_CHECK_CACHE_MAX_ENTRIES",
+  500,
+  50,
+  10_000,
+);
+const VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES = readBoundedIntEnv(
+  "TELEGRAM_VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES",
+  500,
+  50,
+  10_000,
+);
 const TELEGRAM_AI_EXPLANATION_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_AI_EXPLANATION_TIMEOUT_MS",
   2500,
@@ -186,6 +198,8 @@ const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
+const MEDIA_GROUP_FALLBACK_MAX_ENTRIES = 500;
+const IMAGE_OCR_REPEAT_MAX_ENTRIES = 500;
 type VoiceMeta = {
   fileSize?: number;
   duration?: number;
@@ -213,12 +227,43 @@ const voiceTranscriptInFlight = new Map<string, Promise<VoiceTranscriptWorkResul
 const checkResultCache = new Map<string, CheckResultCacheEntry>();
 const checkResultInFlight = new Map<string, CheckResultInFlightEntry>();
 
+export function __resetTelegramCheckCachesForTests(): void {
+  mediaGroupOcrFallbacks.clear();
+  recentImageOcrFallbacks.clear();
+  voiceTranscriptCache.clear();
+  voiceTranscriptInFlight.clear();
+  checkResultCache.clear();
+  checkResultInFlight.clear();
+}
+
+export function __telegramCheckCacheStatsForTests(): {
+  checkResultMaxEntries: number;
+  checkResultSize: number;
+  voiceTranscriptMaxEntries: number;
+  voiceTranscriptSize: number;
+} {
+  return {
+    checkResultMaxEntries: CHECK_RESULT_CACHE_MAX_ENTRIES,
+    checkResultSize: checkResultCache.size,
+    voiceTranscriptMaxEntries: VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES,
+    voiceTranscriptSize: voiceTranscriptCache.size,
+  };
+}
+
 function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
   const value = Number.parseInt(raw, 10);
   if (!Number.isFinite(value)) return fallback;
   return Math.max(min, Math.min(max, value));
+}
+
+function pruneOldestEntries<K, V>(map: Map<K, V>, maxEntries: number): void {
+  while (map.size > maxEntries) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey === undefined) return;
+    map.delete(oldestKey);
+  }
 }
 
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
@@ -284,6 +329,7 @@ function getCachedCheckResult(key: string, now = Date.now()): RunCheckResult | n
 function rememberCheckResult(key: string, result: RunCheckResult, now = Date.now()): void {
   pruneCheckResultCache(now);
   checkResultCache.set(key, { result, cachedAt: now });
+  pruneOldestEntries(checkResultCache, CHECK_RESULT_CACHE_MAX_ENTRIES);
 }
 
 function getInFlightCheckResult(key: string, now = Date.now()): Promise<RunCheckResult> | null {
@@ -293,6 +339,7 @@ function getInFlightCheckResult(key: string, now = Date.now()): Promise<RunCheck
 
 function rememberInFlightCheckResult(key: string, work: Promise<RunCheckResult>): void {
   checkResultInFlight.set(key, { work, startedAt: Date.now() });
+  pruneOldestEntries(checkResultInFlight, CHECK_RESULT_CACHE_MAX_ENTRIES);
   void work
     .finally(() => {
       if (checkResultInFlight.get(key)?.work === work) {
@@ -342,6 +389,7 @@ function rememberVoiceTranscript(
   if (!key) return;
   pruneVoiceTranscriptCache();
   voiceTranscriptCache.set(key, { text, cachedAt: Date.now() });
+  pruneOldestEntries(voiceTranscriptCache, VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES);
 }
 
 function getInFlightVoiceTranscript(
@@ -361,6 +409,7 @@ function rememberInFlightVoiceTranscript(
   if (!key) return;
 
   voiceTranscriptInFlight.set(key, work);
+  pruneOldestEntries(voiceTranscriptInFlight, VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES);
   void work
     .finally(() => {
       if (voiceTranscriptInFlight.get(key) === work) {
@@ -401,6 +450,8 @@ function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [userId, timestamp] of recentImageOcrFallbacks) {
     if (now - timestamp > IMAGE_OCR_REPEAT_TTL_MS) recentImageOcrFallbacks.delete(userId);
   }
+  pruneOldestEntries(mediaGroupOcrFallbacks, MEDIA_GROUP_FALLBACK_MAX_ENTRIES);
+  pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
 }
 
 type OcrFallbackReply = "long" | "short" | "suppress";
@@ -439,7 +490,9 @@ function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbac
     const key = `${userId}:${mediaGroupId}`;
     const previous = mediaGroupOcrFallbacks.get(key);
     mediaGroupOcrFallbacks.set(key, now);
+    pruneOldestEntries(mediaGroupOcrFallbacks, MEDIA_GROUP_FALLBACK_MAX_ENTRIES);
     recentImageOcrFallbacks.set(userId, now);
+    pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
     return previous !== undefined && now - previous <= MEDIA_GROUP_FALLBACK_TTL_MS
       ? "suppress"
       : "long";
@@ -447,6 +500,7 @@ function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbac
 
   const previous = recentImageOcrFallbacks.get(userId);
   recentImageOcrFallbacks.set(userId, now);
+  pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
   return previous !== undefined && now - previous <= IMAGE_OCR_REPEAT_TTL_MS ? "short" : "long";
 }
 
