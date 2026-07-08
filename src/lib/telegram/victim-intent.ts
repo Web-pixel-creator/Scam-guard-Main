@@ -425,6 +425,18 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    hasVictimFrame(normalized) &&
+    /(?:приш[её]л|пришла|пришло|приходит|получил[аи]?|поступил[ао]?|keldi|oldim|received|got).{0,80}(?:sms|смс|otp|код|парол|цифр|сообщени|уведомлени|code|password|digits|kod|verification)|(?:sms|смс|otp|код|парол|цифр|сообщени|уведомлени|code|password|digits|kod|verification).{0,80}(?:приш[её]л|пришла|пришло|приходит|получил[аи]?|поступил[ао]?|keldi|oldim|received|got)/iu.test(
+      normalized,
+    ) &&
+    /(?:зачем|почему|не\s+понимаю|не\s+понял[аи]?|не\s+знаю|сам|сама|како[йе].?то|какой-то|nimaga|nega|tushunmadim|why|not\s+sure|don['’]?t\s+understand)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
     /(?:курьер|доставк|посылк|почт|заказ|delivery|courier).{0,120}(?:sms|смс|код|цифр|сообщени|уведомлени|получ|подтверд|продикт|назвать)|(?:sms|смс|код|цифр|сообщени|уведомлени).{0,120}(?:курьер|доставк|посылк|почт|заказ|delivery|courier)/iu.test(
       normalized,
     )
@@ -514,10 +526,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
-    /(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:ссылк|линк|url|link|havola)/iu.test(
-      normalized,
-    ) ||
+    (hasVictimFrame(normalized) &&
+      /(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:ссылк|линк|url|link|havola)/iu.test(
+        normalized,
+      )) ||
     (hasVictimFrame(normalized) &&
       /(?:ссылк|линк|url|link|havola).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
         normalized,
@@ -535,10 +547,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    hasVictimFrame(normalized) &&
-    /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
-      normalized,
-    ) ||
+    (hasVictimFrame(normalized) &&
+      /(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:файл|документ|apk|архив|pdf|file|document|fayl)/iu.test(
+        normalized,
+      )) ||
     (hasVictimFrame(normalized) &&
       /(?:файл|документ|apk|архив|pdf|file|document|fayl).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|отправил[аи]?|дали|приш[её]л[ао]?|пришли|поступил[ао]?|получил[аи]?|получили|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
         normalized,

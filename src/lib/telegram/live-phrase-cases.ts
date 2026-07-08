@@ -1492,6 +1492,35 @@ export const LIVE_PHRASE_CASES = [
     expected: { kind: "victim_intent", intent: "apk_request", replyIncludes: "Do not install" },
   },
   {
+    area: "received code",
+    text: "мне пришел какой то код мне пришел код на телефон зачем я не понял",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Код никому не называйте",
+    },
+  },
+  {
+    area: "uzbek received code",
+    text: "menga kod keldi nimaga tushunmadim",
+    lang: "uz",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Kodni hech kimga aytmang",
+    },
+  },
+  {
+    area: "english received code",
+    text: "I got a verification code and I don't understand why",
+    lang: "en",
+    expected: {
+      kind: "victim_intent",
+      intent: "code_request",
+      replyIncludes: "Do not tell anyone the code",
+    },
+  },
+  {
     area: "sent code",
     text: "Я только что передал код из СМС",
     expected: { kind: "panic", panicId: 1 },
