@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - P1 Telegram context-stitching QA
+
+- Fixed the direct-chat channel-admin preface so it routes to
+  Telegram-message context guidance instead of a cold risk check.
+- Added `prod:telegram-context-smoke` for low-signal link preface -> URL check
+  -> why follow-up, plus channel-admin preface -> SMS-code direct guidance.
+- Deployed `0cf0ee2` via Railway deployment
+  `9c12ac76-1bca-4a8c-b13e-78a966411feb`; production context, live, inline
+  and user-story smokes passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` rows `P1-2026-07-09-003`,
+  `QA-2026-07-09-007` and `ERR-2026-07-09-007`.
+
 ## 2026-07-09 - QA-001 P1 web/Telegram production flow rerun
 
 - Added `prod:web-p1-smoke` for the P1 web/admin path: homepage, report and
