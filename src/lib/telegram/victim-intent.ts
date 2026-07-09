@@ -772,6 +772,26 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
+    /(?:мне|нам|со\s+мной|меня).{0,70}(?:пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?|обратил[аси]?ь?).{0,100}(?:админ|администратор|модератор|владелец).{0,80}(?:канал|чат|групп)/iu.test(
+      normalized,
+    ) ||
+    /(?:админ|администратор|модератор|владелец).{0,80}(?:канал|чат|групп).{0,100}(?:пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?|обратил[аси]?ь?).{0,70}(?:мне|нам|со\s+мной|меня)/iu.test(
+      normalized,
+    ) ||
+    /(?:menga|meni|men\s+bilan).{0,80}(?:kanal|guruh|chat).{0,80}(?:admini|administratori|admin|administrator|moderator).{0,80}(?:yoz|murojaat|bog['’]?lan)/iu.test(
+      normalized,
+    ) ||
+    /(?:kanal|guruh|chat).{0,80}(?:admini|administratori|admin|administrator|moderator).{0,80}(?:menga|meni|men\s+bilan).{0,80}(?:yoz|murojaat|bog['’]?lan)/iu.test(
+      normalized,
+    ) ||
+    /(?:channel|group|chat).{0,80}(?:admin|administrator|moderator|owner).{0,80}(?:messag|writ|text|contact).{0,80}(?:me|us)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "telegram_message" };
+  }
+
+  if (
     /(?:мне|со\s+мной).{0,60}(?:пишет|написал|связался|пишут).{0,80}(?:незнаком|неизвестн|номер|кто-то|какой.?то|odam|notanish|someone|stranger)/iu.test(
       normalized,
     )

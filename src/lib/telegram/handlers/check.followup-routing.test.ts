@@ -252,6 +252,33 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("answers channel-admin prefaces as context requests instead of running a cold check", async () => {
+    await handleCheck("мне пишет администратор канала", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("пишут в Telegram");
+    expect(hoisted.sentMessages[0].text).toContain("Пришлите текст сообщения");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("keeps channel-admin SMS-code requests on immediate code guidance", async () => {
+    await handleCheck("мне пишет администратор канала он просит прислать ему смс код", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Код никому не называйте");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("answers ambiguous confirmation requests after a phone check without running a new check", async () => {
     await handleCheck("Попросил подтверждение", {
       chatId: 100,

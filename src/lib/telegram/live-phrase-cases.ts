@@ -1213,6 +1213,24 @@ export const LIVE_PHRASE_CASES = [
     },
   },
   {
+    area: "telegram message",
+    text: "мне пишет администратор канала",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_message",
+      replyIncludes: "вам пишут в Telegram",
+    },
+  },
+  {
+    area: "telegram message",
+    text: "администратор канала написал мне",
+    expected: {
+      kind: "victim_intent",
+      intent: "telegram_message",
+      replyIncludes: "вам пишут в Telegram",
+    },
+  },
+  {
     area: "bank contact",
     text: "как мне связаться с банком?",
     expected: {
