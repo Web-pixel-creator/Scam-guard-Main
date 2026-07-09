@@ -359,6 +359,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     /(?:меня|нас|маму|папу|друга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
       normalized,
     ) ||
+    /(?:^|[\s,.;:!?])(?:это|bu|shu)\s+(?:скам|мошенник(?:и|ам|ов)?|мошенничество|обман|scam|fraud|firib|firibgarlik)(?:mi|ми)?(?:\?|$|[\s,.;:!?])|(?:^|[\s,.;:!?])(?:scam|firib(?:garlik)?)(?:mi|ми|\?)?(?:$|[\s,.;:!?])/iu.test(
+      normalized,
+    ) ||
     /(?:звонил[аи]?|позвонил[аи]?|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?).{0,60}(?:мошенник|скамер|скам|scammer|fraudster)|(?:мошенник|скамер|scammer|fraudster).{0,60}(?:звонил[аи]?|позвонил[аи]?|писал[аи]?|написал[аи]?)/iu.test(
       normalized,
     ) ||
@@ -587,6 +590,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
       normalized,
     ) ||
     /(?:майор|лжемайор|следователь|следственн|прокуратур|мвд|полици|налогов|солик|солиқ|кадастр|суд|major|police|prosecutor|tax|court|mayor|politsiya|prokuratura|soliq|kadastr|iib).{0,120}(?:звон(?:ит|ят|или|ил|ила)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?)/iu.test(
+      normalized,
+    ) ||
+    /(?:soliq|солик|солиқ|davlat\s+xizmat|mygov|my\.gov|one\s?id).{0,120}(?:qo['’]?ng['’]?iroq|qong['’]?iroq|telefon|zvon|call|yoz|xabar|murojaat|sms|kod|karta|pasport|pinfl|jshshir|jarima|hujjat|pul).{0,120}(?:qil|kel|yoz|so['’]?ra|talab|ayt|yubor|ber)?/iu.test(
       normalized,
     )
   ) {
