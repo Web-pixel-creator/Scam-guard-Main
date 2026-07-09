@@ -1820,6 +1820,90 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
   });
 
+  it("flags fake Apple security popup screenshots with install guidance", async () => {
+    h.imageEvidence = {
+      text: "Оповещение безопасности Apple. На вашем iPhone обнаружено 8 вирусов. iOS повреждена на 72%. Нажмите кнопку ниже, чтобы получить инструкции по удалению всех вирусов. Установить",
+      visualCategory: "apk_prompt",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["fake_device_security_popup", "apk_install", "urgent_pressure"],
+      summary: "Ложное предупреждение безопасности телефона.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1023, chatId: 5023 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5023 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("не устанавливайте APK");
+    expect(result!.text).toContain("Просят установить APK");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("asks_to_install_apk");
+    expect(persisted).not.toContain("data:image");
+  });
+
+  it("flags APK court-summons screenshots with malicious-file guidance", async () => {
+    h.imageEvidence = {
+      text: "https://chaqiruvsud.click IIBB CHAQIRUVI_669.pdf.apk Hurmatli Djo! SUDga chaqirilgansiz! Biriktirilgan hujjat bilan tanishib chiqing!",
+      visualCategory: "apk_prompt",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["apk_install", "brand_impersonation"],
+      summary: "Файл .pdf.apk под видом судебной повестки.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1024, chatId: 5024 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5024 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("не устанавливайте APK");
+    expect(result!.text).toContain("Угрожают полицией / судом");
+    expect(result!.text).toContain("Подозрительный домен");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("asks_to_install_apk");
+    expect(persisted).toContain("threatens_legal_action");
+    expect(persisted).not.toContain("data:image");
+  });
+
+  it("flags fake Telegram deletion screenshots with account-takeover guidance", async () => {
+    h.imageEvidence = {
+      text: "Запрос на удаление учётной записи. Мы получили запрос на удаление учётной записи Telegram. Если это были не вы, отмените действие в приложении, нажав кнопку ниже. t.me/verification_login_service_bot?startapp=abc",
+      visualCategory: "chat_screenshot",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["telegram_account_takeover"],
+      summary: "Похоже на фишинг Telegram.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1025, chatId: 5025 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5025 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("Не нажимайте «Отмена»");
+    expect(result!.text).toContain("попытку угнать Telegram\\-аккаунт");
+    expect(result!.text).not.toContain("NFT/Stars");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("telegram_account_takeover_phishing");
+    expect(persisted).not.toContain("data:image");
+  });
+
   it("does not flag a restaurant QR menu as high risk without dangerous requests", async () => {
     h.imageEvidence = {
       text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",

@@ -191,6 +191,63 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("high_risk");
   });
 
+  it("flags fake Apple/iOS security popups as install-risk image evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "Оповещение безопасности Apple. На вашем iPhone обнаружено 8 вирусов. iOS повреждена на 72%. При дальнейшем повреждении системы устройство заблокируется, и все данные будут потеряны. Нажмите кнопку ниже, чтобы получить инструкции по удалению всех вирусов. Установить",
+    );
+
+    expect(evidence.visualCategory).toBe("apk_prompt");
+    expect(evidence.riskHints).toContain("fake_device_security_popup");
+    expect(evidence.riskHints).toContain("apk_install");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("ложное предупреждение безопасности");
+    expect(explanation).toContain("Ничего не устанавливайте");
+    expect(explanation).toContain("App Store/Play Market");
+  });
+
+  it("flags APK court-summons screenshots as malicious-file evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "https://chaqiruvsud.click IIBB CHAQIRUVI_669.pdf.apk Hurmatli Djo! SUDga chaqirilgansiz! Biriktirilgan hujjat bilan tanishib chiqing!",
+    );
+
+    expect(evidence.visualCategory).toBe("apk_prompt");
+    expect(evidence.riskHints).toContain("apk_install");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(reasons).toContain("threatens_legal_action");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("повесткой");
+    expect(explanation).toContain("Не открывайте и не устанавливайте");
+  });
+
+  it("flags fake Telegram deletion/verification screenshots without giveaway wording", () => {
+    const evidence = fallbackImageIntelligence(
+      "Запрос на удаление учётной записи. Мы получили запрос на удаление учётной записи Telegram. Если это были не вы, отмените действие в приложении, нажав кнопку ниже. t.me/verification_login_service_bot?startapp=abc",
+    );
+
+    expect(evidence.riskHints).toContain("telegram_account_takeover");
+    expect(evidence.riskHints).not.toContain("giveaway_or_prize_actions");
+    expect(evidence.riskHints).not.toContain("fake_captcha_or_voting");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("telegram_account_takeover_phishing");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("фишинг для угона Telegram");
+    expect(explanation).toContain("Настройки > Устройства");
+    expect(explanation).not.toContain("NFT/Stars");
+    expect(explanation).not.toContain("розыгрыш");
+  });
+
   it("redacts sensitive digits in model output", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Назовите SMS-код 123456 и карту 4111 1111 1111 1111",
