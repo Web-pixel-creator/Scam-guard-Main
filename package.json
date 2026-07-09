@@ -18,6 +18,7 @@
     "qa:telegram-visual": "vite-node scripts/telegram-bot-qa-visual.ts",
     "monitor:prod": "vite-node scripts/prod-monitor.ts",
     "prod:smoke": "vite-node scripts/prod-smoke.ts",
+    "prod:web-p1-smoke": "vite-node scripts/prod-web-p1-smoke.ts",
     "prod:family-smoke": "vite-node scripts/prod-family-shield-smoke.ts",
     "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts",
     "prod:admin-moderation-smoke": "vite-node scripts/prod-admin-moderation-smoke.ts",

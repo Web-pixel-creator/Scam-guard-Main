@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - QA-001 P1 web/Telegram production flow rerun
+
+- Added `prod:web-p1-smoke` for the P1 web/admin path: homepage, report and
+  appeal pages, rules-only high-risk web check, synthetic report/appeal
+  submission, admin reject/keep-reputation moderation, audit log and cleanup.
+- Re-ran production Telegram smokes for user-story, private/group scope,
+  live QR/Guardian, inline mode and base prod health.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: QA-001 is re-verified on
+  2026-07-09 and `QA-2026-07-09-006` records the exact commands/results.
+- Next queue is UX/logistics residual QA: direct/inline context stitching,
+  short UZ voice spot-checks after STT reset, image provider spot-checks, then
+  Family Shield proactive delivery.
+
 ## 2026-07-08 - TG-017 News-derived UZ live phrase expansion
 
 - Expanded the Telegram live victim-phrase regression lock to 202 cases and the
