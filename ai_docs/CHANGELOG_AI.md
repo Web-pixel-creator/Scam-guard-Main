@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - Residual Telegram text/context QA rerun
+
+- Re-ran production Telegram smokes against Railway production after the Family
+  Shield proactive alert and context-stitching fixes.
+- Passed: `prod:telegram-context-smoke`, `prod:telegram-user-story-smoke`,
+  `prod:telegram-live-qa-smoke`, `prod:telegram-false-positive-smoke`,
+  `prod:telegram-inline-smoke` and `prod:telegram-voice-out-smoke`.
+- Focused regression tests passed: `victim-intent` 128/128, `inline` 114/114
+  and `webhook.integration` 97/97.
+- The user-reported context cases are confirmed covered: low-signal link
+  preface -> URL check -> why follow-up, and channel-admin preface -> SMS-code
+  direct guidance.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `T-049`. `T-048` remains open
+  for manual real photo/screenshot spot-checks once vision provider quota is
+  available.
+
 ## 2026-07-09 - Family Shield proactive alert
 
 - Implemented opt-in proactive trusted-person notification for private
