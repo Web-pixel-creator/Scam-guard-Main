@@ -456,6 +456,7 @@ describe("handleCheck follow-up routing", () => {
         guardianTelegramUserId: 42,
         lang: "ru",
         guardianDisplayName: "Akmal",
+        cooldownMs: 30 * 60 * 1000,
       },
     ]);
     expect(JSON.stringify(hoisted.familyNotifyCalls[0])).not.toContain("kapitalbank.uz.evil.com");

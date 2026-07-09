@@ -237,10 +237,10 @@ async function getActiveFamilyRow(guardianTelegramUserId: number): Promise<Famil
   return (data as FamilyRow | null) ?? null;
 }
 
-function isCoolingDown(lastNotifiedAt: string | null, nowMs: number): boolean {
+function isCoolingDown(lastNotifiedAt: string | null, nowMs: number, cooldownMs: number): boolean {
   if (!lastNotifiedAt) return false;
   const lastMs = Date.parse(lastNotifiedAt);
-  return Number.isFinite(lastMs) && nowMs - lastMs < NOTIFICATION_COOLDOWN_MS;
+  return Number.isFinite(lastMs) && nowMs - lastMs < cooldownMs;
 }
 
 function safeGuardianLabel(label?: string): string | null {
@@ -307,13 +307,14 @@ export async function notifyTrustedContact(args: {
   guardianTelegramUserId: number;
   lang: Lang;
   guardianDisplayName?: string;
+  cooldownMs?: number;
 }): Promise<FamilyNotifyResult> {
   try {
     const row = await getActiveFamilyRow(args.guardianTelegramUserId);
     if (!row || row.trusted_chat_id === null) return { ok: false, reason: "not_linked" };
 
     const nowMs = Date.now();
-    if (isCoolingDown(row.last_notified_at, nowMs)) {
+    if (isCoolingDown(row.last_notified_at, nowMs, args.cooldownMs ?? NOTIFICATION_COOLDOWN_MS)) {
       return { ok: false, reason: "cooldown" };
     }
 

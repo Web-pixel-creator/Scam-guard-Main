@@ -236,6 +236,53 @@ describe("Family Shield v1", () => {
     expect(hoisted.sent[0].text).not.toMatch(/\+998|https?:\/\/|@fake|123456|CVV 123/i);
   });
 
+  it("allows a longer proactive cooldown without blocking manual alerts after the default window", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-07-09T12:00:00.000Z"));
+      const invite = await createFamilyInvite(2002);
+      expect(invite.ok).toBe(true);
+      if (!invite.ok) return;
+      const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+      expect(token).toBeTruthy();
+
+      const accepted = await acceptFamilyInvite({
+        token: token!,
+        trustedTelegramUserId: 3002,
+        trustedChatId: 4002,
+      });
+      expect(accepted.ok).toBe(true);
+
+      const proactiveCooldownMs = 30 * 60 * 1000;
+      const first = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+        cooldownMs: proactiveCooldownMs,
+      });
+
+      vi.setSystemTime(new Date("2026-07-09T12:04:00.000Z"));
+      const secondProactive = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+        cooldownMs: proactiveCooldownMs,
+      });
+      const manualAfterDefaultWindow = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+      });
+
+      expect(first).toEqual({ ok: true, trustedChatId: 4002 });
+      expect(secondProactive).toEqual({ ok: false, reason: "cooldown" });
+      expect(manualAfterDefaultWindow).toEqual({ ok: true, trustedChatId: 4002 });
+      expect(hoisted.sent).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not create a second invite while an active trusted contact exists", async () => {
     const invite = await createFamilyInvite(2101);
     expect(invite.ok).toBe(true);

@@ -115,6 +115,7 @@ const MAX_VOICE_BYTES = 2 * 1024 * 1024;
 const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 
 function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
   return match.askedContext !== undefined;
@@ -1159,6 +1160,7 @@ async function maybeAutoNotifyTrustedContact(
     guardianTelegramUserId: ctx.userId,
     lang: ctx.session.lang,
     guardianDisplayName: ctx.displayName,
+    cooldownMs: PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS,
   });
 
   if (result.ok || result.reason === "not_linked" || result.reason === "cooldown") return;
