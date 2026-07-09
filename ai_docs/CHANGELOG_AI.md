@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - Telegram image fallback and residual phrase QA
+
+- Live Telegram image QA confirmed that fake Telegram deletion/freeze screenshots
+  can still fall into the unreadable-image fallback when the vision provider
+  returns no usable text.
+- Added missing structured-image prompt hints for `telegram_account_takeover`
+  and `fake_device_security_popup`, with explicit rules for Telegram
+  account-deletion/verification/freeze screenshots and fake Apple/iOS/Android
+  security popups.
+- Added a dedicated unreadable-image fallback option for Telegram account
+  takeover screenshots so users get `Settings > Devices` / 2FA guidance instead
+  of a generic dead end.
+- Current regression before deploy: `src/lib/telegram` 1886/1886 and
+  `src/lib/risk` 473/473 passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `P1-2026-07-09-004`.
+
 ## 2026-07-09 - Family Shield duplicate-alert cooldown
 
 - Followed up on the real trusted-contact chat screenshot where two redacted
