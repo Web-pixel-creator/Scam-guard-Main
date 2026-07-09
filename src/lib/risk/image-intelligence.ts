@@ -120,7 +120,7 @@ const APK_RE =
 const FAKE_DEVICE_SECURITY_POPUP_RE =
   /(?:apple|iphone|ios|android|телефон|смартфон|устройств).{0,100}(?:вирус|virus|поврежден|повреждена|заражен|заражено|security|безопасност|blocked|заблокир|удален|data.{0,20}lost|данн.{0,30}потер).{0,140}(?:установ|скача|install|download|нажм|button|кнопк|ок|ok)|(?:оповещение\s+безопасности|security\s+alert).{0,80}(?:apple|iphone|ios|android)|(?:ios|iphone).{0,80}(?:поврежден|повреждена).{0,80}(?:\d+\s*%|процент)/i;
 const TELEGRAM_ACCOUNT_TAKEOVER_IMAGE_RE =
-  /(?:telegram|телеграм|teiegram|телеграмм|t\.me|telegram\.me).{0,160}(?:удален|удаление|заблокир|блокиров|заморож|muzlat|o['’]?chir|ochir|verification|verify|login|service|официальн|rasmiy|аккаунт|уч[её]тн.{0,20}запис|hisob)|(?:запрос\s+на\s+удаление|отменить\s+удаление|вернуть\s+аккаунт|аккаунт.{0,40}(?:удален|заблокир|заморож)|hisob.{0,80}(?:muzlat|o['’]?chir|blok)).{0,120}(?:telegram|телеграм|t\.me|havola|ссылк)/i;
+  /(?:telegram|телеграм|teiegram|телеграмм|t\.me|telegram\.me)[\s\S]{0,700}(?:удален|удаление|заблокир|блокиров|заморож|muzlat|o['’]?chir|ochir|verification|verify|login|service|официальн|rasmiy|аккаунт|уч[её]тн[\s\S]{0,20}запис|hisob|noma['’]?lum[\s\S]{0,40}qurilma|qurilmadan[\s\S]{0,30}kirish|tasdiqlash|havola|bosing)|(?:запрос\s+на\s+удаление|отменить\s+удаление|вернуть\s+аккаунт|аккаунт[\s\S]{0,40}(?:удален|заблокир|заморож)|hisob[\s\S]{0,120}(?:muzlat|o['’]?chir|blok|noma['’]?lum[\s\S]{0,40}qurilma|qurilmadan[\s\S]{0,30}kirish))[\s\S]{0,180}(?:telegram|телеграм|t\.me|havola|ссылк|link|bosing|tasdiq)/i;
 const PAYMENT_RE =
   /(предоплат|оплатите|оплата|переведите|перевод|to['’]?lov|pul o['’]?tkaz|payment|transfer|deposit|fee|комисс|карта|karta|uzcard|humo)/i;
 const QR_LOGIN_RE =
@@ -921,16 +921,6 @@ function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang)
     return telegramProfileExplanation(evidence, lang);
   }
 
-  if (hints.has("fake_device_security_popup")) {
-    if (lang === "uz") {
-      return "Bu soxta telefon xavfsizligi oynasiga o'xshaydi: iPhone/iOS/Android buzilgan, virus bor yoki ma'lumotlar yo'qoladi deb qo'rqitib, dastur o'rnatishga undashadi. Hech narsa o'rnatmang. Sahifani yoping, ilovani rasmiy App Store/Play Marketdan tashqarida yuklamang.";
-    }
-    if (lang === "en") {
-      return "This looks like a fake phone security pop-up: it scares you with viruses, damaged iOS/Android, or data loss and pushes you to install software. Do not install anything. Close the page and only use official App Store/Play Market apps.";
-    }
-    return "Похоже на ложное предупреждение безопасности телефона: пугают вирусами, повреждением iOS/Android или потерей данных и подталкивают установить программу. Ничего не устанавливайте. Закройте страницу, приложения ставьте только из официального App Store/Play Market.";
-  }
-
   if (hints.has("telegram_account_takeover")) {
     if (lang === "uz") {
       return "Bu Telegram akkauntini o'g'irlashga o'xshaydi: bloklash, o'chirish, muzlatish yoki 'tekshiruv' bilan qo'rqitib, havola/bot orqali kirishga undashadi. Havolaga kirmang, kod kiritmang. Telegram ichida Settings > Devices orqali begona sessiyalarni tekshiring va 2FA yoqing.";
@@ -939,6 +929,16 @@ function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang)
       return "This looks like Telegram account-takeover phishing: it scares you with deletion, blocking, freezing, or verification and pushes you to a link or bot. Do not open the link or enter a code. In Telegram, check Settings > Devices and enable 2FA.";
     }
     return "Похоже на фишинг для угона Telegram: пугают удалением, блокировкой, заморозкой или «проверкой» аккаунта и ведут по ссылке/боту. Не переходите и не вводите код. В Telegram проверьте Настройки > Устройства и включите двухэтапную защиту.";
+  }
+
+  if (hints.has("fake_device_security_popup")) {
+    if (lang === "uz") {
+      return "Bu soxta telefon xavfsizligi oynasiga o'xshaydi: iPhone/iOS/Android buzilgan, virus bor yoki ma'lumotlar yo'qoladi deb qo'rqitib, dastur o'rnatishga undashadi. Hech narsa o'rnatmang. Sahifani yoping, ilovani rasmiy App Store/Play Marketdan tashqarida yuklamang.";
+    }
+    if (lang === "en") {
+      return "This looks like a fake phone security pop-up: it scares you with viruses, damaged iOS/Android, or data loss and pushes you to install software. Do not install anything. Close the page and only use official App Store/Play Market apps.";
+    }
+    return "Похоже на ложное предупреждение безопасности телефона: пугают вирусами, повреждением iOS/Android или потерей данных и подталкивают установить программу. Ничего не устанавливайте. Закройте страницу, приложения ставьте только из официального App Store/Play Market.";
   }
 
   if (hints.has("apk_install") || category === "apk_prompt") {

@@ -248,6 +248,31 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).not.toContain("розыгрыш");
   });
 
+  it("flags fake UZ Telegram freeze profile screenshots as account takeover", () => {
+    const evidence = fallbackImageIntelligence(
+      [
+        "Teiegram был(а) недавно",
+        "Teiegram Не в контактах",
+        "Страна телефона Узбекистан",
+        "Регистрация Январь 2026",
+        "Не официальный аккаунт",
+        "Hurmatli foydalanuvchi, sizning hisobingizga noma'lum qurilmadan kirish qilinganligi aniqlandi va xavfsizlik nuqtai nazaridan majburan muzlatib qo'yildi.",
+        "Shaxsiy tasdiqlashingizni 11 soat ichida yakunlash uchun quyidagi havolani bosing; aks holda hisobingiz butunlay muzlatib qo'yildi.",
+        "https://example-login.shop Telegram Web",
+      ].join("\n"),
+    );
+
+    expect(evidence.riskHints).toContain("telegram_account_takeover");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("telegram_account_takeover_phishing");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("фишинг для угона Telegram");
+    expect(explanation).toContain("Настройки > Устройства");
+  });
+
   it("redacts sensitive digits in model output", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Назовите SMS-код 123456 и карту 4111 1111 1111 1111",

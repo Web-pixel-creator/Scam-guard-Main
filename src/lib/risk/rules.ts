@@ -216,9 +216,9 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
 ];
 
 const TELEGRAM_ACCOUNT_DELETE_CONTEXT_RE =
-  /(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob).{0,100}(удал[её]н|удалени|заявк.{0,20}удален|заявк.{0,20}удалени|заблокир|блокиров|delete|deletion|blocked|o['’]?chir|bekor)|(удал[её]н|удалени|delete|deletion|blocked).{0,100}(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob)/i;
+  /(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob)[\s\S]{0,220}(удал[её]н|удалени|заявк[\s\S]{0,20}удален|заявк[\s\S]{0,20}удалени|заблокир|блокиров|заморож|muzlat|blok|delete|deletion|blocked|o['’]?chir|bekor|noma['’]?lum[\s\S]{0,40}qurilma|qurilmadan[\s\S]{0,30}kirish)|(удал[её]н|удалени|delete|deletion|blocked|muzlat|blok|qurilmadan[\s\S]{0,30}kirish)[\s\S]{0,220}(telegram|телеграм|телеграмм|аккаунт|профил|account|profile|akkaunt|hisob)/i;
 const TELEGRAM_ACCOUNT_ACTION_RE =
-  /(отмена|отменить|спасти|сохранить|восстанов|нажм|кнопк|перейд|ссылк|введите|укажите|код|sms|otp|парол|номер|cancel|restore|save|button|link|enter|code|password|phone|raqam|kod|parol)/i;
+  /(отмена|отменить|спасти|сохранить|восстанов|нажм|кнопк|перейд|ссылк|введите|укажите|код|sms|otp|парол|номер|cancel|restore|save|button|link|enter|code|password|phone|raqam|kod|parol|havola|bosing|o['’]?ting|kiring|tasdiq|tasdiqlash|yakunlash)/i;
 
 function shouldFlagTelegramAccountTakeoverPhishing(text: string): boolean {
   return TELEGRAM_ACCOUNT_DELETE_CONTEXT_RE.test(text) && TELEGRAM_ACCOUNT_ACTION_RE.test(text);

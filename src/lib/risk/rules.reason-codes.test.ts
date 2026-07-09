@@ -549,6 +549,10 @@ describe("evaluateText - telegram_account_takeover_phishing (research feed v1)",
       text: "Telegram akkaunt o'chiriladi. Bekor qilish uchun linkga o'ting va kodni kiriting.",
     },
     {
+      name: "UZ Telegram unknown-device freeze link",
+      text: "Telegram hisobingizga noma'lum qurilmadan kirish qilinganligi aniqlandi. Hisobingiz majburan muzlatib qo'yildi. 11 soat ichida tasdiqlash uchun havolani bosing.",
+    },
+    {
       name: "EN Telegram deletion cancel",
       text: "Your Telegram account deletion request is active. Press Cancel and enter the verification code.",
     },
