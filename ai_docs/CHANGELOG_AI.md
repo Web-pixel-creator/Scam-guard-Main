@@ -18,7 +18,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `3d187870-ce65-461b-b8b3-60c9a2ceafca` is `SUCCESS`; production Telegram
   context/live/inline/user-story smokes passed, and synthetic `prod:family-smoke`
   passed create invite -> accept -> safe notify failure -> revoke -> `open_rows=0`.
-  The remaining Family Shield check is a manual real two-account opt-in smoke.
+  Manual real two-account live smoke also passed: the trusted contact received
+  the proactive alert at 17:42 and the manual `Позвать близкого` alert at 17:46,
+  both redacted and with acknowledgement/opt-out controls.
 - Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `P2-2026-07-02-004`.
 
 ## 2026-07-09 - P1 Telegram context-stitching QA
