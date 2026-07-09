@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - Family Shield duplicate-alert cooldown
+
+- Followed up on the real trusted-contact chat screenshot where two redacted
+  Family Shield alerts arrived a few minutes apart.
+- Changed the proactive high-risk auto-notify path to use a 30-minute cooldown
+  while keeping manual `notifyTrustedContact` alerts on the short default
+  cooldown.
+- Verification: focused Family Shield/follow-up tests passed (255/255), and
+  full `src/lib/telegram` passed (1879/1879).
+- Deployed `5c01b8c` via Railway deployment
+  `5b7cf352-45be-4c01-bba1-fb388239ff47` with status `SUCCESS`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: row `P2-2026-07-02-004`, owner
+  note and `ERR-2026-07-09-009`.
+
 ## 2026-07-09 - Residual Telegram text/context QA rerun
 
 - Re-ran production Telegram smokes against Railway production after the Family
