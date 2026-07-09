@@ -431,6 +431,32 @@ function videoThumbnailFileId(video: NonNullable<TelegramMessage["video"]>): str
 }
 
 const AUDIO_DOCUMENT_EXT_RE = /\.(?:oga|ogg|opus|mp3|m4a|wav|webm)$/i;
+const DANGEROUS_FILE_EXT_RE =
+  /\.(?:apk|exe|bat|cmd|sh|scr|msi|jar|dll|com|pif|vbs|js|ps1|lnk)(?:[\s.]|$)/i;
+const NULL_BYTE = String.fromCharCode(0);
+const FILE_NAME_CONFUSABLES: Readonly<Record<string, string>> = {
+  а: "a",
+  е: "e",
+  о: "o",
+  р: "p",
+  с: "c",
+  х: "x",
+  к: "k",
+  м: "m",
+};
+
+function normalizeFileNameForExtensionCheck(fileName: string): string {
+  return fileName
+    .normalize("NFKC")
+    .split(NULL_BYTE)
+    .join(" ")
+    .replace(/[аеорсхкм]/giu, (char) => FILE_NAME_CONFUSABLES[char.toLowerCase()] ?? char);
+}
+
+function isDangerousFileName(fileName?: string): boolean {
+  if (!fileName) return false;
+  return DANGEROUS_FILE_EXT_RE.test(normalizeFileNameForExtensionCheck(fileName.trim()));
+}
 
 function isAudioDocument(document: NonNullable<TelegramMessage["document"]>): boolean {
   const mimeType = document.mime_type?.trim().toLowerCase();
@@ -566,9 +592,13 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     const imageFileId =
       m.photo && m.photo.length > 0
         ? largestPhotoFileId(m.photo)
-        : m.document?.mime_type?.startsWith("image/")
+        : m.document?.mime_type?.startsWith("image/") && !isDangerousFileName(m.document.file_name)
           ? m.document.file_id
           : null;
+
+    if (m.document && isDangerousFileName(m.document.file_name)) {
+      return { kind: "outOfScope", reason: "document" };
+    }
 
     if (imageFileId && session.scenario === "report_desc") {
       return m.media_group_id
@@ -594,9 +624,13 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (
     m.document &&
     typeof m.document.mime_type === "string" &&
+    !isDangerousFileName(m.document.file_name) &&
     m.document.mime_type.startsWith("image/")
   ) {
     return imageRoute(m.document.file_id, m.media_group_id, source);
+  }
+  if (m.document && isDangerousFileName(m.document.file_name)) {
+    return { kind: "outOfScope", reason: "document" };
   }
   if (m.document && isAudioDocument(m.document)) {
     const caption = messageCaption(m);
@@ -635,6 +669,9 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (m.audio != null) {
     const caption = messageCaption(m);
     const fileName = m.audio.file_name ?? m.audio.title;
+    if (isDangerousFileName(fileName)) {
+      return { kind: "outOfScope", reason: "document" };
+    }
     return {
       kind: "voice",
       fileId: m.audio.file_id,

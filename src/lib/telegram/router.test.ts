@@ -386,6 +386,28 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "image", fileId: "doc1" });
   });
 
+  it.each([
+    ["null byte hidden APK", "app.apk\u0000.jpg", "image/jpeg"],
+    ["double extension APK", "photo.jpg.apk", "image/jpeg"],
+    ["hidden dangerous segment APK", "app.apk.jpg", "image/jpeg"],
+    ["trailing whitespace APK", "update.apk ", "image/jpeg"],
+    ["Windows executable image spoof", "setup.exe", "image/png"],
+    ["Windows shortcut image spoof", "invoice.lnk.jpg", "image/jpeg"],
+    ["Cyrillic homoglyph APK", "app.арк", "image/jpeg"],
+    ["audio MIME APK spoof", "voice.apk", "audio/ogg"],
+  ])("keeps dangerous document filenames out of media routes: %s", (_label, fileName, mimeType) => {
+    const update = messageUpdate({
+      document: {
+        file_id: "spoofed-doc",
+        file_name: fileName,
+        mime_type: mimeType,
+        file_size: 2048,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "outOfScope", reason: "document" });
+  });
+
   it("routes a contact card as a contact", () => {
     const update = messageUpdate({
       contact: { phone_number: "+998901234567", first_name: "Ali" },
@@ -434,6 +456,21 @@ describe("decideRoute content types (no active scenario)", () => {
       mimeType: "audio/ogg",
       fileUniqueId: "audio-unique-1",
     });
+  });
+
+  it("keeps dangerous audio filenames out of the voice/STT route", () => {
+    const update = messageUpdate({
+      audio: {
+        file_id: "audio-evil",
+        file_unique_id: "audio-evil-unique",
+        file_name: "voice.apk",
+        file_size: 12345,
+        duration: 10,
+        mime_type: "audio/ogg",
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "outOfScope", reason: "document" });
   });
 
   it("routes an audio document to the voice/STT handler", () => {
