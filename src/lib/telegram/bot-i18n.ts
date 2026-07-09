@@ -391,6 +391,11 @@ export const bot_dict: BotDict = {
     uz: "🏦 Bank/kod",
     en: "🏦 Bank/code",
   },
+  btn_image_triage_telegram_account: {
+    ru: "🔐 Telegram аккаунт",
+    uz: "🔐 Telegram akkaunt",
+    en: "🔐 Telegram account",
+  },
   btn_image_triage_telegram_profile: {
     ru: "👤 Профиль/чат",
     uz: "👤 Profil/chat",
@@ -420,6 +425,11 @@ export const bot_dict: BotDict = {
     ru: "🏦 Банк, код, карта или APK\n\nОпасно, если просят SMS-код, PIN, CVV, пароль, карту, APK или «защитное приложение». Банк не просит это в Telegram.\n\nБезопасный шаг: ничего не отправляйте. Если уже ввели код/карту или APK — нажмите /panic.",
     uz: "🏦 Bank, kod, karta yoki APK\n\nSMS-kod, PIN, CVV, parol, karta, APK yoki «xavfsizlik ilovasi» so'ralsa — xavfli. Bank Telegram orqali buni so'ramaydi.\n\nXavfsiz qadam: hech narsa yubormang. Kod/karta kiritgan yoki APK o'rnatgan bo'lsangiz — /panic ni bosing.",
     en: "🏦 Bank, code, card, or APK\n\nDanger: SMS code, PIN, CVV, password, card data, APK, or “security app”. Banks do not ask for this through Telegram.\n\nSafe step: send nothing. If you already entered a code/card or installed an APK, use /panic.",
+  },
+  image_triage_telegram_account: {
+    ru: "🔐 Telegram аккаунт: проверка, удаление или блокировка\n\nЕсли на скрине пугают удалением, заморозкой, «проверкой», галочкой Telegram, кнопкой «Отмена/Запустить» или ведут в бот/по ссылке — это похоже на угон аккаунта.\n\nБезопасный шаг: не нажимайте кнопку и не вводите код. Откройте Telegram сами: Настройки → Устройства, завершите чужие сеансы и включите двухэтапную защиту.",
+    uz: "🔐 Telegram akkaunt: tekshiruv, o'chirish yoki bloklash\n\nSkrinda o'chirish, muzlatish, «tekshiruv», Telegram belgisi, «Bekor qilish/Boshlash» tugmasi yoki bot/havola orqali kirish bo'lsa — bu akkauntni o'g'irlashga o'xshaydi.\n\nXavfsiz qadam: tugmani bosmang va kod kiritmang. Telegramni o'zingiz oching: Sozlamalar → Qurilmalar, begona seanslarni yoping va ikki bosqichli himoyani yoqing.",
+    en: "🔐 Telegram account: verification, deletion, or block\n\nIf the screen scares you with deletion, freezing, “verification”, a Telegram checkmark, a “Cancel/Start” button, or sends you to a bot/link, it looks like account-takeover phishing.\n\nSafe step: do not tap the button or enter a code. Open Telegram yourself: Settings → Devices, end unknown sessions, and enable two-step verification.",
   },
   image_triage_telegram_profile: {
     ru: "👤 Профиль или чат Telegram\n\nПо одному скрину профиля я не могу честно сказать, кто это. Поля вроде «не в контактах», страны телефона или «не официальный аккаунт» — это подсказки, но не доказательство мошенничества.\n\nВажнее просьба: код, деньги, карта, APK, ссылка/QR или срочность. Пришлите сообщение, следующий экран или коротко напишите, что человек просит сделать.",

@@ -51,6 +51,7 @@ export type VictimIntentKind =
   | "bank_contact_question"
   | "report_question"
   | "acknowledgement"
+  | "blackmail_threat"
   | "trust_or_greeting";
 
 export interface VictimIntentMatch {
@@ -103,7 +104,7 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
 }
 
 function hasVictimFrame(text: string): boolean {
-  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|маму|папу|друга|сын|дочь|menga|meni|men|bizga|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
+  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|мама|папа|бабушк[аеи]?|дедушк[аеи]?|брат|сестра|маму|папу|друга|сын|дочь|мени|бизни|менга|menga|meni|men|bizga|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
     text,
   );
 }
@@ -200,6 +201,9 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
     ) ||
     /(?:hurmatli|telegram|akkaunt|hisob).{0,180}(?:muzlat|o['’]?chir|blok|tasdiq|havola|parol|kod|premium|sovg['’]?a|ovoz)/iu.test(
       text,
+    ) ||
+    /(?:просит|просят|попросил[аи]?|пишет|прислал[аи]?|звонит|зв[оа]нят)[\s\S]{0,60}(?:проголосова|голосован)[\s\S]{0,80}(?:конкурс|голосовани|племянниц|дочк|подруг|внучк|лучш)|(?:конкурс|konkurs|tanlov)[\s\S]{0,80}(?:проголос|голосован|ovoz\s+ber)|ovoz\s+ber[\s\S]{0,60}(?:konkurs|tanlov)/iu.test(
+      text,
     )
   ) {
     return { kind: "telegram_takeover", askedContext: "link_qr" };
@@ -276,7 +280,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:деньг|сум|перевод).{0,120}(?:по\s+ошибк|ошибочн|случайн|вернуть|обратно|друг.{0,20}счет|друг.{0,20}счёт)|(?:вернуть|снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
+    /(?:деньг|сум|перевод).{0,120}(?:по\s+ошибк|ошибочн|случайн|вернуть|обратно|друг.{0,20}счет|друг.{0,20}счёт)|(?:снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|вернуть.{0,80}(?:по\s+ошибк|ошибочн|случайн|чуж)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
       text,
     )
   ) {
@@ -329,6 +333,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     ) ||
     /(?:это\s+точно\s+бот|что\s+это\s+за\s+бот|а\s+вы\s+кто|как\s+ты\s+работаешь|ты\s+не\s+мошенник|вы\s+не\s+мошенник|are\s+you\s+a\s+scam|who\s+are\s+you|how\s+do\s+you\s+work)/iu.test(
       normalized,
+    ) ||
+    /(?:^|[\s,.;:!?])(?:ты|вы|это)\s+бот(?=$|[\s,.;:!?])|are\s+you\s+(?:a\s+)?bot|botmisan|botmisiz|ботмисан|ботмисиз/iu.test(
+      normalized,
     )
   ) {
     return { kind: "trust_or_greeting" };
@@ -348,18 +355,56 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:я\s+боюсь|мне\s+страшно|помогите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|я\s+запутал(?:ся|ась)|я\s+волнуюсь|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|yordam|qo['’]?rqyapman|nima\s+qilishni\s+bilmayman)/iu.test(
+    /(?:я\s+боюсь|мне\s+страшно|п[оа]м[оа]гите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|я\s+запутал(?:ся|ась)|я\s+волнуюсь|не\s+понимаю,?\s+что\s+происходит|мне\s+плохо|я\s+в\s+панике|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|yordam|[её]рдам|qo['’]?rqyapman|nima\s+qilishni\s+bilmayman)/iu.test(
       normalized,
     )
   ) {
     return { kind: "emotional_help" };
   }
 
+  // Blackmail / sextortion pressure: "pay or we publish your photos/chat".
+  // Must come before the generic scam-concern block so the victim gets the
+  // dedicated "do not pay, payment does not delete anything" guidance.
   if (
-    /(?:меня|нас|маму|папу|друга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
+    /(?:опублику|вылож[иау]|разошл|распростран|солью|сольют|слить|скинут?\s+всем|отправ(?:ит|ят|лю)\s+(?:всем|друзьям|родным|близким|контактам)|tarqat|e['’]?lon\s+qil|таркат)[\s\S]{0,80}(?:фото|видео|переписк|интим|голы|скрин|rasm|surat|видео|расм|сурат)|(?:фото|видео|переписк|интим|rasm|surat|расм|сурат)[\s\S]{0,80}(?:опублику|вылож|разошл|распростран|солью|сольют|всем\s+контакт|друзьям|родным|tarqat|e['’]?lon|таркат)/iu.test(
       normalized,
     ) ||
-    /(?:^|[\s,.;:!?])(?:это|bu|shu)\s+(?:скам|мошенник(?:и|ам|ов)?|мошенничество|обман|scam|fraud|firib|firibgarlik)(?:mi|ми)?(?:\?|$|[\s,.;:!?])|(?:^|[\s,.;:!?])(?:scam|firib(?:garlik)?)(?:mi|ми|\?)?(?:$|[\s,.;:!?])/iu.test(
+    /(?:шантаж|вымога|sextortion|blackmail|shantaj|tovlamachi)/iu.test(normalized) ||
+    /(?:требу(?:ет|ют)|просят|хотят|talab\s+qil)[\s\S]{0,40}(?:ден[ьи]?г|пул|pul|оплат|перевод)[\s\S]{0,80}(?:иначе|а\s+то|не\s+то|aks\s+holda|bo['’]?lmasa)|(?:иначе|а\s+то|aks\s+holda|bo['’]?lmasa)[\s\S]{0,60}(?:опублику|разошл|вылож|расскаж|tarqat|e['’]?lon|таркат)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "blackmail_threat", askedContext: "transfer" };
+  }
+
+  // Already-deceived aftermath: past-tense RU/UZ "I was scammed / money is
+  // gone". The right answer is bank-first damage control (report_question),
+  // not another "what do they ask you to do" prompt.
+  if (
+    /(?:^|[\s,.;:!?])(?:[оа]бманули|обманул[иа]|развели|надули|облапошили|кинули(?!\s+(?:ссылк|линк|url|фото|скрин|файл|сообщени|в\s+групп|в\s+чат))|aldashdi|aldab\s+ket(?:ishdi|di)|алдашди|алдаб\s+кет(?:ишди|ди)|obmanuli|razveli)(?=$|[\s,.;:!?])/iu.test(
+      normalized,
+    ) ||
+    /(?:меня|нас|мени|бизни|менга|маму|папу|друга|meni|bizni|menga|menya|menia|nas)[\s\S]{0,60}(?:[оа]бманул|развел|кинул|надул|облапошил|aldashdi|aldab\s+ket|aldadi|алдашди|алдаб\s+кет|obmanul|razveli|kinuli)/iu.test(
+      normalized,
+    ) ||
+    /(?:украли|сняли|списали|увели|похитили|ukrali)[\s\S]{0,40}(?:ден[ьи]?г|пул|pul|dengi)|(?:ден[ьи]?г\w*|пул|pul|dengi)[\s\S]{0,50}(?:украли|сняли|списали|увели|ушли|пропали|исчезли|ushli|yechib\s+olishdi|yechildi|ketdi|yo['’]?qoldi|o['’]?g['’]?irlashdi|кетди|йуколди)/iu.test(
+      normalized,
+    ) ||
+    /(?:kartamdan|hisobimdan|картамдан|хисобимдан|ҳисобимдан)[\s\S]{0,50}(?:pul|пул)[\s\S]{0,50}(?:yech|olishdi|ket|еч|олишди|кет)/iu.test(
+      normalized,
+    ) ||
+    /(?:как|можно\s+ли|поможет\s+ли|получится\s+ли|реально\s+ли|kak)\s+[\s\S]{0,30}?(?:вернуть|vernut)\s+(?:ден[ьи]?г\w*|перевод|средства|dengi)|pulni\s+(?:qanday\s+)?qaytar|(?:get|got)\s+(?:my\s+)?money\s+back/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "report_question" };
+  }
+
+  if (
+    /(?:меня|нас|маму|папу|друга|мени|бизни|менга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
+      normalized,
+    ) ||
+    /(?:^|[\s,.;:!?])(?:это|bu|shu)\s+(?:скам|мошенник(?:и|ам|ов)?|мошенничество|обман|scam|fraud|firib|firibgarlik)(?:mi|ми)?(?:\?|$|[\s,.;:!?])|(?:^|[\s,.;:!?])(?:scam|firib(?:gar(?:lik|lar)?)?|фирибгар(?:лик|лар)?|мошен+ик(?:и|ов)?|обман|развод|кидалово)(?:mi|ми|\?)?(?:$|[\s,.;:!?])/iu.test(
       normalized,
     ) ||
     /(?:звонил[аи]?|позвонил[аи]?|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?).{0,60}(?:мошенник|скамер|скам|scammer|fraudster)|(?:мошенник|скамер|scammer|fraudster).{0,60}(?:звонил[аи]?|позвонил[аи]?|писал[аи]?|написал[аи]?)/iu.test(
@@ -378,13 +423,16 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   if (
     /(?:как\s+(?:мне\s+)?(?:связаться|позвонить|перезвонить)\s+(?:с|в)\s+банк|какой\s+номер\s+(?:банка|капиталбанка|kapitalbank|uzum|хамкор|hamkor)|номер\s+(?:банка|капиталбанка|kapitalbank|uzum|хамкор|hamkor)|bankka\s+qanday\s+qo['’]?ng['’]?iroq|bank\s+(?:number|phone)|how\s+(?:do\s+i\s+)?call\s+(?:the\s+)?bank)/iu.test(
       normalized,
+    ) ||
+    /(?:как|где|kak)\s+[\s\S]{0,20}?(?:заблокировать|заморозить|блокировать|zablokirovat)\s+(?:карт|счет|счёт|kartu)|kartani\s+(?:qanday\s+)?blok|картани\s+(?:кандай\s+)?блок|how\s+(?:do\s+i\s+|to\s+)?(?:block|freeze)\s+(?:my\s+)?card/iu.test(
+      normalized,
     )
   ) {
     return { kind: "bank_contact_question" };
   }
 
   if (
-    /(?:куда\s+(?:звонить|обращаться|писать)|как\s+(?:пожаловаться|заявить|сообщить)|куда\s+пожаловаться|полици[яю]|102|cyber\s*police|киберполици|shikoyat|politsiyaga\s+qanday|qayerga\s+(?:murojaat|shikoyat)|where\s+(?:do\s+i\s+)?report|how\s+(?:do\s+i\s+)?report).{0,100}(?:обман|мошен|скам|номер|деньг|перев|код|ald|firib|scam|fraud)?/iu.test(
+    /(?:куда\s+(?:звонить|обращаться|писать)|как\s+(?:пожаловаться|заявить|сообщить)|куда\s+пожаловаться|полици[яю]|милици[яю]|102|cyber\s*police|киберполици|shikoyat|politsiyaga\s+qanday|qayerga\s+(?:murojaat|shikoyat)|where\s+(?:do\s+i\s+)?report|how\s+(?:do\s+i\s+)?report).{0,100}(?:обман|мошен|скам|номер|деньг|перев|код|ald|firib|scam|fraud)?/iu.test(
       normalized,
     )
   ) {
@@ -642,6 +690,9 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
       normalized,
     ) ||
     /^(?:мне\s+)?звонят(?:\s+прямо\s+сейчас)?[!.,\s]*$/iu.test(normalized) ||
+    /(?:^|[\s,.;:!?])(?:они|снова|опять)\s+(?:опять\s+|снова\s+)?звон(?:ит|ят)(?=$|[\s,.;:!?])|звон(?:ит|ят)\s+(?:опять|снова)/iu.test(
+      normalized,
+    ) ||
     /(?:menga|meni).{0,80}(?:qo['’]?ng['’]?iroq|qongiroq).{0,80}(?:qilyap|qilish|qildi|notanish|noma['’]?lum|raqam)/iu.test(
       normalized,
     )
@@ -711,10 +762,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:работ|ваканс|подработ|заработ|легк.{0,20}доход|удаленн.{0,20}работ|стажиров|работодатель).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат|карта)/iu.test(
+    /(?:работ|ваканс|подработ|заработ|легк.{0,20}доход|удаленн.{0,20}работ|стажиров|работодатель).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|залог|оплат|карта)/iu.test(
       normalized,
     ) ||
-    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров|работодатель)/iu.test(
+    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|залог|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров|работодатель)/iu.test(
       normalized,
     ) ||
     /(?:ish|vakans|daromad|oylik|masofaviy).{0,120}(?:to['’]?lov|o['’]?qish|forma|tekshir|garov|depozit|karta)/iu.test(
@@ -1017,6 +1068,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Если уже ушли деньги или код — сначала банк: попросите заблокировать карту/операцию. Затем можно обратиться в полицию/102 и сохранить чеки, номера, ссылки и переписку.\n\nЧтобы предупредить других через Ishonch Guard, нажмите «Сообщить случай» или пришлите номер, ссылку, username и короткое описание.",
       uz: "Pul yoki kod ketgan bo'lsa — avval bank: karta/operatsiyani bloklashni so'rang. Keyin politsiya/102 ga murojaat qiling va chek, raqam, havola, yozishmalarni saqlang.\n\nIshonch Guard orqali boshqalarni ogohlantirish uchun «Xabar berish» tugmasini bosing yoki raqam, havola, username va qisqa tavsif yuboring.",
       en: "If money or a code was already sent, call the bank first and ask to block the card/operation. Then contact police/102 and save receipts, numbers, links, and chat history.\n\nTo warn others through Ishonch Guard, tap “Report” or send the number, link, username, and a short description.",
+    },
+    blackmail_threat: {
+      ru: "Это вымогательство. Платить нельзя: оплата не удаляет материалы и обычно ведёт к новым требованиям.\n\nНе отвечайте и не переводите деньги. Сохраните скрины переписки и профиль отправителя, затем заблокируйте его и пожалуйтесь в Telegram. Если тяжело одному — подключите близкого человека. Пошаговая помощь есть в /panic.",
+      uz: "Bu tovlamachilik. Pul to'lash mumkin emas: to'lov materiallarni o'chirmaydi va odatda yangi talablarga olib keladi.\n\nJavob bermang va pul o'tkazmang. Yozishma skrinlarini va yuboruvchi profilini saqlang, keyin uni bloklang va Telegramga shikoyat qiling. Yolg'iz og'ir bo'lsa — yaqin insonni jalb qiling. Bosqichma-bosqich yordam /panic da bor.",
+      en: "This is extortion. Do not pay: payment does not delete the material and usually leads to new demands.\n\nDo not reply or send money. Save screenshots of the chat and the sender's profile, then block them and report to Telegram. If it feels heavy alone, involve a trusted person. Step-by-step help is in /panic.",
     },
     acknowledgement: {
       ru: "Хорошо. Делайте спокойно, по одному безопасному шагу.\n\nЕсли появится новая просьба — код, карта, перевод, APK, ссылка или звонок — пришлите сюда, я помогу проверить.",

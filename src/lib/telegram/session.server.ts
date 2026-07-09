@@ -206,11 +206,27 @@ function asScenario(value: unknown): Scenario {
     : "none";
 }
 
-function defaultSession(telegramUserId: number): Session {
-  // R1.4 — отсутствует сохранённый язык → дефолт ru, нейтральный сценарий.
+/**
+ * Первый контакт до выбора языка в /start: используем `language_code` из
+ * Telegram как подсказку, чтобы узбекоязычный пользователь не получал русский
+ * ответ. Подсказка не сохраняется — выбор языка в /start остаётся источником
+ * истины, как только строка сессии существует.
+ */
+export function langFromTelegramCode(code: string | undefined): Lang | null {
+  if (!code) return null;
+  const lower = code.toLowerCase();
+  if (lower === "uz" || lower.startsWith("uz-")) return "uz";
+  if (lower === "en" || lower.startsWith("en-")) return "en";
+  if (lower === "ru" || lower.startsWith("ru-")) return "ru";
+  return null;
+}
+
+function defaultSession(telegramUserId: number, langHint?: string): Session {
+  // R1.4 — отсутствует сохранённый язык → дефолт ru (или язык клиента Telegram),
+  // нейтральный сценарий.
   return {
     telegramUserId,
-    lang: "ru",
+    lang: langFromTelegramCode(langHint) ?? "ru",
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {},
@@ -274,7 +290,7 @@ export function isSessionStateScopedToChat(
  * возвращает дефолт `{ lang:"ru", scenario:"none", scenarioStep:0, scenarioData:{} }`
  * (R1.4, R15.1).
  */
-export async function loadSession(telegramUserId: number): Promise<Session> {
+export async function loadSession(telegramUserId: number, langHint?: string): Promise<Session> {
   try {
     const { data, error } = await sessions()
       .select("*")
@@ -283,14 +299,14 @@ export async function loadSession(telegramUserId: number): Promise<Session> {
 
     if (error) {
       console.error("telegram loadSession failed", error.message);
-      return defaultSession(telegramUserId);
+      return defaultSession(telegramUserId, langHint);
     }
-    if (!data) return defaultSession(telegramUserId);
+    if (!data) return defaultSession(telegramUserId, langHint);
 
     return rowToSession(data as TelegramSessionRow);
   } catch (e) {
     console.error("telegram loadSession threw", e instanceof Error ? e.message : "unknown");
-    return defaultSession(telegramUserId);
+    return defaultSession(telegramUserId, langHint);
   }
 }
 

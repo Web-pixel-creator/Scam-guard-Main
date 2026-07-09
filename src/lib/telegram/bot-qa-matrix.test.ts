@@ -111,6 +111,7 @@ describe("Telegram Bot QA Matrix v1", () => {
       imageTriageCallback("casino"),
       imageTriageCallback("wallet"),
       imageTriageCallback("bank"),
+      imageTriageCallback("telegram_account"),
       imageTriageCallback("telegram_profile"),
       imageTriageCallback("qr_menu"),
       CB.mediaTips,
@@ -132,6 +133,16 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("What matters is the request");
     expect(text).toContain("code, money, card data, APK, link/QR, or urgency");
     expect(text).not.toMatch(/definitely a scammer|created recently|has reports/i);
+  });
+
+  it("gives unreadable Telegram account screenshots account-takeover guidance", () => {
+    const text = buildImageTriageText("telegram_account", "en");
+
+    expect(text).toContain("Telegram account");
+    expect(text).toContain("account-takeover phishing");
+    expect(text).toContain("do not tap the button or enter a code");
+    expect(text).toContain("Settings");
+    expect(text).toContain("Devices");
   });
 
   it("keeps image triage category answers compact instead of repeating the full menu", () => {

@@ -8,6 +8,7 @@ export type ImageTriageKind =
   | "casino"
   | "wallet"
   | "bank"
+  | "telegram_account"
   | "telegram_profile"
   | "qr_menu";
 
@@ -18,6 +19,7 @@ const IMAGE_TRIAGE_KINDS: readonly ImageTriageKind[] = [
   "casino",
   "wallet",
   "bank",
+  "telegram_account",
   "telegram_profile",
   "qr_menu",
 ];
@@ -27,6 +29,7 @@ const TRIAGE_TEXT_KEY: Record<ImageTriageKind, BotStringKey> = {
   casino: "image_triage_casino",
   wallet: "image_triage_wallet",
   bank: "image_triage_bank",
+  telegram_account: "image_triage_telegram_account",
   telegram_profile: "image_triage_telegram_profile",
   qr_menu: "image_triage_qr_menu",
 };
@@ -55,9 +58,15 @@ export function buildImageTriageKeyboard(lang: Lang): InlineKeyboard {
     ],
     [
       {
+        text: bt("btn_image_triage_telegram_account", lang),
+        callback_data: imageTriageCallback("telegram_account"),
+      },
+      {
         text: bt("btn_image_triage_telegram_profile", lang),
         callback_data: imageTriageCallback("telegram_profile"),
       },
+    ],
+    [
       {
         text: bt("btn_image_triage_qr_menu", lang),
         callback_data: imageTriageCallback("qr_menu"),

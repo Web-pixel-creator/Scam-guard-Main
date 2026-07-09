@@ -937,8 +937,9 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
 
     await dispatchUpdate(messageUpdate({ text: "/help" }), deps);
 
-    // The session was loaded for the user.
-    expect(loadSession).toHaveBeenCalledWith(100);
+    // The session was loaded for the user (language hint comes from the
+    // update's `from.language_code`; absent here).
+    expect(loadSession).toHaveBeenCalledWith(100, undefined);
     // R15.4 — the active scenario was reset before handling the command.
     expect(resetScenario).toHaveBeenCalledTimes(1);
     expect(resetScenario).toHaveBeenCalledWith(100);

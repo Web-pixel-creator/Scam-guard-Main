@@ -183,7 +183,11 @@ export const telegramUpdateSchema = z
     callback_query: z
       .object({
         id: z.string(),
-        from: z.object({ id: z.number(), first_name: z.string().optional() }),
+        from: z.object({
+          id: z.number(),
+          first_name: z.string().optional(),
+          language_code: z.string().optional(),
+        }),
         message: z.object({ chat: chatSchema, message_id: z.number().optional() }).optional(),
         data: z.string(),
       })
@@ -756,7 +760,7 @@ export function getHandlers(): Handlers {
 
 export interface DispatchDeps {
   handlers: Handlers;
-  loadSession: (userId: number) => Promise<Session>;
+  loadSession: (userId: number, langHint?: string) => Promise<Session>;
   resetScenario: (userId: number) => Promise<void>;
 }
 
@@ -800,7 +804,11 @@ export async function dispatchUpdate(
   if (!target) return; // nothing/no-one to respond to
 
   const { userId, chatId, chatType, displayName } = target;
-  let session = await loadSession(userId);
+  // First contact before /start language pick: fall back to the Telegram
+  // client language so an Uzbek speaker is not answered in Russian.
+  const langHint =
+    update.message?.from?.language_code ?? update.callback_query?.from?.language_code;
+  let session = await loadSession(userId, langHint);
   if (!isSessionStateScopedToChat(session, chatId, chatType)) {
     await resetScenario(userId);
     session = { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} };
