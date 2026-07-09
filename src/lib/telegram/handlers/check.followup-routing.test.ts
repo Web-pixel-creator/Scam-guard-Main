@@ -5,6 +5,14 @@ const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   runCheckCalls: [] as Array<{ input: string; type?: string }>,
   saveSessionCalls: [] as Array<{ userId: number; patch: unknown }>,
+  familyNotifyCalls: [] as Array<{
+    guardianTelegramUserId: number;
+    lang: string;
+    guardianDisplayName?: string;
+  }>,
+  familyNotifyResult: { ok: false, reason: "not_linked" } as
+    | { ok: true; trustedChatId: number }
+    | { ok: false; reason: "not_linked" | "cooldown" | "send_failed" | "storage_unavailable" },
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
@@ -46,6 +54,17 @@ vi.mock("@/lib/telegram/session.server", () => ({
     chatId: number,
     chatType = "private",
   ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
+}));
+
+vi.mock("@/lib/telegram/family-shield.server", () => ({
+  notifyTrustedContact: (args: {
+    guardianTelegramUserId: number;
+    lang: string;
+    guardianDisplayName?: string;
+  }) => {
+    hoisted.familyNotifyCalls.push(args);
+    return Promise.resolve(hoisted.familyNotifyResult);
+  },
 }));
 
 vi.mock("@/lib/telegram/public-post.server", () => ({
@@ -94,6 +113,8 @@ describe("handleCheck follow-up routing", () => {
     hoisted.sentMessages.length = 0;
     hoisted.runCheckCalls.length = 0;
     hoisted.saveSessionCalls.length = 0;
+    hoisted.familyNotifyCalls.length = 0;
+    hoisted.familyNotifyResult = { ok: false, reason: "not_linked" };
   });
 
   it("answers confidence follow-ups from the last result instead of running a new check", async () => {
@@ -417,6 +438,41 @@ describe("handleCheck follow-up routing", () => {
     expect(saved).toContain('"high_risk"');
     expect(saved).not.toContain("kapitalbank.uz.evil.com");
     expect(saved).not.toContain("Fresh risk check");
+  });
+
+  it("auto-notifies a linked trusted contact after a private high-risk check", async () => {
+    hoisted.familyNotifyResult = { ok: true, trustedChatId: 700 };
+
+    await handleCheck("https://kapitalbank.uz.evil.com/login", {
+      chatId: 100,
+      userId: 42,
+      chatType: "private",
+      displayName: "Akmal",
+      session: sessionWith(),
+    });
+
+    expect(hoisted.familyNotifyCalls).toEqual([
+      {
+        guardianTelegramUserId: 42,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+      },
+    ]);
+    expect(JSON.stringify(hoisted.familyNotifyCalls[0])).not.toContain("kapitalbank.uz.evil.com");
+  });
+
+  it("does not auto-notify trusted contacts from group checks", async () => {
+    hoisted.familyNotifyResult = { ok: true, trustedChatId: 700 };
+
+    await handleCheck("https://kapitalbank.uz.evil.com/login", {
+      chatId: -100,
+      userId: 42,
+      chatType: "group",
+      displayName: "Akmal",
+      session: sessionWith(),
+    });
+
+    expect(hoisted.familyNotifyCalls).toHaveLength(0);
   });
 
   it("answers orphan helper phrases without a fake insufficient-data card", async () => {

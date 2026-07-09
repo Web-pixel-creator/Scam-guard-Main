@@ -1059,6 +1059,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["how it works", CB.howItWorks],
     ["family menu", CB.familyMenu],
     ["family codeword", "family:codeword"],
+    ["family trusted ack", "family:trusted_ack"],
     ["trainer", CB.trainer],
     ["media tips", CB.mediaTips],
     ["image triage", imageTriageCallback("gift")],

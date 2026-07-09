@@ -19,6 +19,7 @@ export const FAMILY_CB = {
   notify: "family:notify",
   codewordGuide: "family:codeword",
   revoke: "family:revoke",
+  trustedAck: "family:trusted_ack",
   trustedOptOut: "family:trusted_opt_out",
 } as const;
 
@@ -401,6 +402,7 @@ export function buildFamilyAlreadyLinkedKeyboard(lang: Lang): InlineKeyboard {
 
 export function buildTrustedAlertKeyboard(lang: Lang): InlineKeyboard {
   return [
+    [{ text: bt("family_btn_trusted_ack", lang), callback_data: FAMILY_CB.trustedAck }],
     [{ text: bt("family_btn_trusted_stop_alerts", lang), callback_data: FAMILY_CB.trustedOptOut }],
   ];
 }

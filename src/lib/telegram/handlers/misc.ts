@@ -165,7 +165,10 @@ function imageTriageSnapshot(kind: ImageTriageKind): LastCheckSnapshot | null {
   };
 }
 
-function liveCallContextForPanic(ctx: HandlerCtx, panicId: PanicScenarioId): LiveCallContext | null {
+function liveCallContextForPanic(
+  ctx: HandlerCtx,
+  panicId: PanicScenarioId,
+): LiveCallContext | null {
   return panicId === 6 ? asLiveCallContext(ctx.session.scenarioData.lastLiveCallContext) : null;
 }
 
@@ -176,7 +179,8 @@ function emergencyFollowUpOptions(ctx: HandlerCtx, panicId: PanicScenarioId) {
 
 async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
   const liveCallContext = liveCallContextForPanic(ctx, panicId);
-  const preservedContext = liveCallContext === null ? undefined : { lastLiveCallContext: liveCallContext };
+  const preservedContext =
+    liveCallContext === null ? undefined : { lastLiveCallContext: liveCallContext };
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
@@ -331,6 +335,11 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
     } else {
       await sendI18n(ctx.chatId, "family_storage_error", lang);
     }
+    return true;
+  }
+
+  if (action === FAMILY_CB.trustedAck) {
+    await sendI18n(ctx.chatId, "family_trusted_ack_ok", lang);
     return true;
   }
 

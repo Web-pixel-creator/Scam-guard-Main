@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - Family Shield proactive alert
+
+- Implemented opt-in proactive trusted-person notification for private
+  high-risk Telegram checks by reusing the existing `notifyTrustedContact`
+  Family Shield path.
+- Kept the alert redacted: the auto path passes only guardian id, language and a
+  safe display name; no checked text, links, numbers, screenshots, codes, card
+  data or raw evidence are sent to the trusted contact.
+- Added a trusted-contact acknowledgement callback (`family:trusted_ack`) beside
+  the existing opt-out button.
+- Verification: focused Family Shield/follow-up/webhook/i18n tests passed
+  (1020/1020), and the full `src/lib/telegram` suite passed (1878/1878).
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `P2-2026-07-02-004`.
+
 ## 2026-07-09 - P1 Telegram context-stitching QA
 
 - Fixed the direct-chat channel-admin preface so it routes to

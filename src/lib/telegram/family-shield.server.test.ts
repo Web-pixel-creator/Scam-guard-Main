@@ -231,6 +231,7 @@ describe("Family Shield v1", () => {
     expect(hoisted.sent).toHaveLength(1);
     expect(hoisted.sent[0].text).toContain("Ishonch Guard");
     expect(hoisted.sent[0].text).toContain("Akmal");
+    expect(JSON.stringify(hoisted.sent[0].keyboard)).toContain("family:trusted_ack");
     expect(JSON.stringify(hoisted.sent[0].keyboard)).toContain("family:trusted_opt_out");
     expect(hoisted.sent[0].text).not.toMatch(/\+998|https?:\/\/|@fake|123456|CVV 123/i);
   });

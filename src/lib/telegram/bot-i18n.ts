@@ -290,7 +290,7 @@ export const bot_dict: BotDict = {
   voice_metadata_fallback_note: {
     ru: "Я пока не смог надёжно разобрать голос, но вижу текст в названии или подписи аудио:\n«{text}»\n\nПроверю этот текст как подсказку.",
     uz: "Ovozni ishonchli tushuna olmadim, lekin audio nomi yoki izohida matn ko'rinyapti:\n«{text}»\n\nShu matnni ko'rsatma sifatida tekshiraman.",
-    en: "I could not reliably understand the voice, but I can see text in the audio name or caption:\n\"{text}\"\n\nI will check that text as a hint.",
+    en: 'I could not reliably understand the voice, but I can see text in the audio name or caption:\n"{text}"\n\nI will check that text as a hint.',
   },
   voice_transcript_uncertain: {
     ru: "Я распознал голос, но текста мало для честной проверки.\n\nНажмите «Исправить текст» или напишите одним сообщением: что обещают и что просят сделать.\n\nЕсли уже отправили код, установили APK или сейчас на звонке — нажмите «Что делать срочно».",
@@ -661,7 +661,7 @@ export const bot_dict: BotDict = {
   why_explanation: {
     ru: "🧠 Как я проверяю\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком, госорганом или службой поддержки\n5\uFE0F\u20E3 Просят перевести деньги, перейти по ссылке или подтвердить вход\n\nЕсли признаков мало, я попрошу больше контекста: что именно просят сделать, ссылку, номер, код, карту, перевод или скрин.\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
     uz: "🧠 Qanday tekshiraman\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Bank, davlat idorasi yoki qo'llab-quvvatlash xizmati nomidan yozadi\n5\uFE0F\u20E3 Pul o'tkazish, havolaga kirish yoki loginni tasdiqlashni so'raydi\n\nBelgilar kam bo'lsa, men ko'proq kontekst so'rayman: aynan nima qilishni so'rashyapti, havola, raqam, kod, karta, o'tkazma yoki skrin.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",
-    en: "🧠 How I check\n\nI don't guess and I don't call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a \"secure app\"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying \"don't hang up\"\n4\uFE0F\u20E3 Claiming to be a bank, government agency, or support team\n5\uFE0F\u20E3 Asking you to transfer money, open a link, or confirm a login\n\nIf there are not enough signs, I ask for more context: what exactly they want you to do, a link, number, code, card, transfer, or screenshot.\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.",
+    en: '🧠 How I check\n\nI don\'t guess and I don\'t call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a "secure app"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying "don\'t hang up"\n4\uFE0F\u20E3 Claiming to be a bank, government agency, or support team\n5\uFE0F\u20E3 Asking you to transfer money, open a link, or confirm a login\n\nIf there are not enough signs, I ask for more context: what exactly they want you to do, a link, number, code, card, transfer, or screenshot.\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.',
   },
 
   // ── Share advice + elder hints (Sprint 3.3 / 3.6) ────────────────────────
@@ -716,6 +716,11 @@ export const bot_dict: BotDict = {
     ru: "Отключить эти сигналы",
     uz: "Bu signallarni o'chirish",
     en: "Stop these alerts",
+  },
+  family_btn_trusted_ack: {
+    ru: "✅ Я помогу сейчас",
+    uz: "✅ Hozir yordam beraman",
+    en: "✅ I will help now",
   },
   family_menu_text: {
     ru: "👪 Семейный щит\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
@@ -811,6 +816,11 @@ export const bot_dict: BotDict = {
     ru: "Активных сигналов для вас сейчас нет.",
     uz: "Siz uchun hozir faol signal yo'q.",
     en: "There are no active alerts linked to you right now.",
+  },
+  family_trusted_ack_ok: {
+    ru: "Спасибо. Позвоните близкому по сохранённому номеру и спокойно помогите проверить ситуацию. Не просите пересылать SMS-коды, PIN, CVV, пароли, фото карты, ссылки или файлы.",
+    uz: "Rahmat. Yaqin insoningizga saqlangan raqam orqali qo'ng'iroq qiling va vaziyatni xotirjam tekshirishga yordam bering. SMS-kod, PIN, CVV, parol, karta rasmi, havola yoki fayl yuborishni so'ramang.",
+    en: "Thank you. Call your trusted person using a saved number and calmly help verify the situation. Do not ask them to forward SMS codes, PIN, CVV, passwords, card photos, links, or files.",
   },
 
   // ── Deterministic fallback for hosted URLs without reason codes ────────────

@@ -99,6 +99,7 @@ import {
   classifyVictimIntent,
   type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
+import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -1148,6 +1149,22 @@ function shouldAutoSendGuardianIntro(result: RunCheckResult): boolean {
   return !isQrFocusedResult(result);
 }
 
+async function maybeAutoNotifyTrustedContact(
+  ctx: HandlerCtx,
+  guardian: ReturnType<typeof buildGuardianAngelSnapshot>,
+): Promise<void> {
+  if (!guardian || ctx.chatType !== "private") return;
+
+  const result = await notifyTrustedContact({
+    guardianTelegramUserId: ctx.userId,
+    lang: ctx.session.lang,
+    guardianDisplayName: ctx.displayName,
+  });
+
+  if (result.ok || result.reason === "not_linked" || result.reason === "cooldown") return;
+  console.error("family shield proactive notify failed", result.reason);
+}
+
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
@@ -1177,6 +1194,8 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
       keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian),
     });
   }
+
+  await maybeAutoNotifyTrustedContact(ctx, guardian);
 }
 
 function addImageMediaContextToExplanation(
