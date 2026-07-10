@@ -1260,13 +1260,30 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
       return "job_offer";
     case "investment_offer":
       return "investment_offer";
+    case "earning_channel":
+      return "earning_channel";
     case "travel_migration_prepayment":
       return "travel_migration_prepayment";
     case "bank_contact_question":
       return "bank_contact";
     case "acknowledgement":
     case "trust_or_greeting":
+    case "privacy_question":
       return "next_step";
+    case "blackmail_threat":
+    case "violence_threat":
+    case "identity_loan":
+      return "general_scam_concern";
+    case "withdrawal_blocked":
+      return "investment_offer";
+    case "unauthorized_charge":
+      return "bank_contact";
+    case "account_hacked_other":
+      return "safety_question";
+    case "scammer_recontact":
+      return "unknown_contact";
+    case "relative_already_paid":
+      return "sent_money";
   }
 }
 

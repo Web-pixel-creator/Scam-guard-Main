@@ -64,7 +64,7 @@ export interface ReportDraft {
    * Non-sensitive caller category for live-call SOS copy. Stores only a coarse
    * context label, never the caller text, number, URL, or account.
    */
-  lastLiveCallContext?: "generic" | "bank" | "government" | "operator";
+  lastLiveCallContext?: "generic" | "bank" | "government" | "operator" | "relative";
   /**
    * Last check context for short follow-up questions like "точно?".
    * Stores only non-sensitive summary metadata: no raw input, OCR text,

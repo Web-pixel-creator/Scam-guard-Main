@@ -36,7 +36,7 @@ export type LivePhraseCase = {
   expected: LivePhraseExpectedRoute;
 };
 
-export const LIVE_PHRASE_CASES = [
+export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
   {
     area: "emotion",
     text: "помогите",
@@ -1652,4 +1652,4 @@ export const LIVE_PHRASE_CASES = [
     lang: "uz",
     expected: { kind: "risk_pipeline" },
   },
-] as const satisfies readonly LivePhraseCase[];
+];

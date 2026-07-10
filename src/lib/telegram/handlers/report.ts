@@ -368,6 +368,16 @@ function hintLabel(hint: ImageRiskHint, lang: Lang): string {
       uz: "yopiq Telegram taklifi",
       en: "private Telegram invite",
     },
+    telegram_account_takeover: {
+      ru: "угон Telegram-аккаунта",
+      uz: "Telegram akkauntini olib qo'yish",
+      en: "Telegram account takeover",
+    },
+    fake_device_security_popup: {
+      ru: "фейковое окно безопасности",
+      uz: "soxta xavfsizlik oynasi",
+      en: "fake security pop-up",
+    },
   };
   return labels[hint][lang];
 }
