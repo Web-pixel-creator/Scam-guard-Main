@@ -44,6 +44,31 @@ describe("classifyVictimIntent", () => {
     ["незнакомый номер просит проголосовать за племянницу в конкурсе", "telegram_takeover"],
     // Fake job with a deposit.
     ["предлагают работу на дому надо внести залог", "job_offer"],
+    // Withdrawal trap (investment/casino "pay a tax to withdraw").
+    ["не могу вывести деньги с платформы", "withdrawal_blocked"],
+    ["требуют налог чтобы вывести мой выигрыш", "withdrawal_blocked"],
+    ["вложился через наставника а вывод заблокировали", "withdrawal_blocked"],
+    ["pulimni qaytarib bo'lmayapti", "withdrawal_blocked"],
+    // Loan opened in the victim's name.
+    ["на меня оформили кредит", "identity_loan"],
+    ["взяли микрозайм на мое имя", "identity_loan"],
+    ["kredit rasmiylashtirishibdi ustimga", "identity_loan"],
+    // Unauthorized charges and paid subscriptions.
+    ["пришло смс о списании которое я не делал", "unauthorized_charge"],
+    ["подписали на платные смс списывают деньги", "unauthorized_charge"],
+    // Non-Telegram account takeover.
+    ["взломали инстаграм", "account_hacked_other"],
+    ["взломали почту", "account_hacked_other"],
+    // Same scammer returns from a new number.
+    ["он пишет мне с нового номера опять", "scammer_recontact"],
+    // Privacy questions before sharing evidence.
+    ["это анонимно?", "privacy_question"],
+    ["ты не сольешь мои данные?", "privacy_question"],
+    // Physical threats.
+    ["угрожают приехать домой если не заплачу", "violence_threat"],
+    // A relative has already paid.
+    ["бабушка перевела деньги мошенникам", "relative_already_paid"],
+    ["onam firibgarga pul o'tkazib yubordi", "relative_already_paid"],
     ["меня пытаются обмануть", "general_scam_concern"],
     ["звонил мошенник", "general_scam_concern"],
     ["я думаю это мошенники", "general_scam_concern"],

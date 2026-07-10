@@ -52,6 +52,14 @@ export type VictimIntentKind =
   | "report_question"
   | "acknowledgement"
   | "blackmail_threat"
+  | "violence_threat"
+  | "withdrawal_blocked"
+  | "identity_loan"
+  | "unauthorized_charge"
+  | "account_hacked_other"
+  | "scammer_recontact"
+  | "privacy_question"
+  | "relative_already_paid"
   | "trust_or_greeting";
 
 export interface VictimIntentMatch {
@@ -162,6 +170,16 @@ function isGovServiceLoginIntent(text: string): boolean {
 }
 
 function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
+  // A relative/friend has ALREADY sent money or told a code — damage control
+  // in the second person, not the "verify identity first" prevention advice.
+  if (
+    /(?:бабушк|дедушк|мама|мать|папа|отец|сын|дочь|брат|сестр|родствен|близк|друг|подруг|жена|муж|onam|otam|buvim|bobom|akam|ukam|opam|singlim|xotinim|erim)[\s\S]{0,80}(?:перевел[аи]?|отправил[аи]?|отдал[аи]?|оплатил[аи]?|скинул[аи]?|заплатил[аи]?|назвал[аи]?|сообщил[аи]?|продиктовал[аи]?|o['’]?tkazdi|yubordi|berdi|to['’]?ladi|aytdi)[\s\S]{0,60}(?:деньг|ден[ьи]г|сум|перевод|код|карт|pul|kod|karta)|(?:onam|otam|buvim|bobom|akam|ukam|opam|singlim|xotinim|erim)[\s\S]{0,60}(?:pul|kod|karta)[\s\S]{0,60}(?:o['’]?tkaz|yubor|ber|to['’]?la|ayt)(?:di|ib\s+yubordi|gan)/iu.test(
+      text,
+    )
+  ) {
+    return { kind: "relative_already_paid", askedContext: "transfer" };
+  }
+
   if (
     /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
       text,
@@ -341,6 +359,16 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     return { kind: "trust_or_greeting" };
   }
 
+  // Privacy questions decide whether a victim shares evidence at all — answer
+  // honestly (hashing, redaction, no raw screenshots) instead of a risk card.
+  if (
+    /(?:это\s+)?(?:анонимно|конфиденциально)(?=$|[\s,.;:!?])|анонимност|не\s+соль[ёе](?:шь|те)|сольют\s+(?:мои\s+)?(?:данные|номер)|куда\s+(?:уходят|попадают|деваются)\s+(?:мои\s+)?(?:данные|номера)|(?:мои\s+)?данные\s+(?:не\s+)?(?:передают|попадут|сохраня|защищ)|maxfiymi|anonimmi|is\s+(?:this|it)\s+(?:anonymous|private|confidential)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "privacy_question" };
+  }
+
   if (
     /^(?:(?:хорошо|ок|okay|ok|понял[аи]?|понятно|спасибо|спс|рахмат|rahmat)(?:\s+(?:спасибо|сделаю|понял[аи]?|ок|рахмат|rahmat))?|сделаю|готово|tushunarli|mayli|xo['’]?p|thanks|thank\s+you|done)[!.,\s]*$/iu.test(
       normalized,
@@ -360,6 +388,16 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "emotional_help" };
+  }
+
+  // Threats of physical violence ("we will come to your home") — this is a
+  // crime, the answer must lead with 102, not with a risk verdict.
+  if (
+    /(?:угрожа(?:ет|ют)|грозит(?:ся)?|грозят(?:ся)?|пригрозил[аи]?|tahdid\s+qil)[\s\S]{0,80}(?:приехать|приед(?:у|ем|ут)|прийти|прид(?:у|ем|ут)|найти|найд(?:у|ем|ут)|вычисл|адрес|домой|расправ|избить|избьют|изобьют|убить|убьют|порежут|сожгут|kelamiz|boramiz|uyingga|manzil)|(?:знаем|узнаем)[\s\S]{0,30}(?:где\s+ты|твой\s+адрес|адрес)|(?:мы\s+)?приедем\s+к\s+тебе|найдем\s+тебя|uyingni\s+bilamiz/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "violence_threat", askedContext: "transfer" };
   }
 
   // Blackmail / sextortion pressure: "pay or we publish your photos/chat".
@@ -398,6 +436,51 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     )
   ) {
     return { kind: "report_question" };
+  }
+
+  // Investment/casino withdrawal trap: "pay a tax/fee to withdraw".
+  if (
+    /(?:не\s+могу|не\s+получается|не\s+да[юе]т|не\s+дают|нельзя|отказыва(?:ют|ется))[\s\S]{0,60}(?:вывести|вывод|снять|забрать)|(?:вывод|вывести\s+деньги|снять\s+деньги)[\s\S]{0,60}(?:заблокир|заморож|недоступ|отклоня|не\s+прош[ёе]л)|(?:налог|комисси|сбор|страховк|верификаци|депозит)[\s\S]{0,80}(?:вывод|вывести|снять|забрать|получить)[\s\S]{0,50}(?:ден[ьи]?г|выигрыш|прибыл|средств)|(?:pulimni|pulni|mablag['’]?(?:imni|ni)?|yutuq(?:ni|imni)?)[\s\S]{0,60}(?:qaytarib|yechib|chiqarib|olib)[\s\S]{0,50}(?:bo['’]?lm|olmayap|berishmayap|bermayap)|(?:yechish|chiqarish)[\s\S]{0,50}uchun[\s\S]{0,60}(?:soliq|komissiya|to['’]?lov|garov)|(?:can['’]?t|cannot)\s+withdraw|withdrawal[\s\S]{0,50}(?:blocked|frozen|fee|tax)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "withdrawal_blocked", askedContext: "transfer" };
+  }
+
+  // Loan/credit fraudulently opened in the victim's name.
+  if (
+    /(?:на\s+меня|на\s+мо[ёе]\s+имя|без\s+моего\s+ведома|ustimga|nomimga|mening\s+nomimga)[\s\S]{0,60}(?:оформ|взяли|повесили|навесили|открыли|набрали|rasmiylashtir|olishibdi|ochishibdi)|(?:оформили|взяли|повесили|навесили|открыли|набрали)[\s\S]{0,40}(?:кредит|за[ёе]м|займ|микрозайм|ссуд)|(?:кредит|за[ёе]м|займ|микрозайм|ссуд|kredit|qarz|mikroqarz)[\s\S]{0,60}(?:на\s+мо[ёе]\s+имя|на\s+меня|без\s+моего\s+ведома|ustimga|nomimga|rasmiylashtirishibdi|rasmiylashtirilgan|olishibdi)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "identity_loan", askedContext: "transfer" };
+  }
+
+  // A charge/subscription the victim did not make.
+  if (
+    /(?:смс|sms|сообщени|уведомлени)[\s\S]{0,60}(?:списани|списали|снят|оплат|покупк|платеж)[\s\S]{0,80}не\s+(?:делал|совершал|покупал|платил|заказывал)|(?:списали|списание|сняли)[\s\S]{0,60}не\s+(?:делал|совершал|покупал|платил|заказывал)|(?:подписал[иа]|подключил[иа])[\s\S]{0,50}(?:платн|подписк)|платн(?:ые|ая|ую)\s+(?:подписк|смс|sms|услуг)[\s\S]{0,60}(?:списыва|снима|ден[ьи]?г)|(?:men\s+qilmagan|sotib\s+olmagan)[\s\S]{0,60}(?:to['’]?lov|xarid|yechil)|pullik\s+(?:obuna|sms|xizmat)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unauthorized_charge", askedContext: "card" };
+  }
+
+  // Non-Telegram account takeover (Telegram itself routes to panic:5).
+  if (
+    /(?:взломали|взломан[аы]?|угнали|увели|украли)[\s\S]{0,50}(?:инстаграм|instagram|инсту|почт[уа]|email|e-?mail|имейл|мыло|facebook|фейсбук|vk|вконтакте|одноклассник|tiktok|тикток|whatsapp|ватсап|imo|имо)|(?:инстаграм|instagram|почт[уа]|email|e-?mail|facebook|фейсбук|vk|вконтакте|tiktok|тикток|whatsapp|ватсап|imo)[\s\S]{0,50}(?:взломали|взломан|угнали|увели|не\s+могу\s+(?:зайти|войти))|(?:instagram|pochta|email|whatsapp|imo)[\s\S]{0,50}(?:buzib|buzishdi|o['’]?g['’]?irla|olib\s+qo['’]?yishdi)|(?:buzib\s+kirishdi|buzishdi)[\s\S]{0,50}(?:instagram|pochta|email|whatsapp|imo)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "account_hacked_other", askedContext: "code" };
+  }
+
+  // The same scammer comes back from a new number/account.
+  if (
+    /(?:пишет|написал|звонит|позвонил|объявился|вернулся|вышел\s+на\s+связь)[\s\S]{0,60}с\s+(?:нов(?:ого|ым)|друго(?:го|й))\s+(?:номер|аккаунт|акк)|с\s+(?:нов(?:ого|ым)|друго(?:го|й))\s+(?:номер|аккаунт)[\s\S]{0,50}(?:пишет|написал|звонит|позвонил)|(?:мошенник|скамер|он|она|тот\s+же)[\s\S]{0,40}(?:опять|снова)[\s\S]{0,40}(?:пишет|написал|звонит|позвонил|объявился)|(?:yana|qayta)[\s\S]{0,40}(?:yozyapti|yozdi|qo['’]?ng['’]?iroq)[\s\S]{0,50}(?:yangi|boshqa)\s+(?:raqam|akkaunt)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "scammer_recontact" };
   }
 
   if (
@@ -1068,6 +1151,46 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Если уже ушли деньги или код — сначала банк: попросите заблокировать карту/операцию. Затем можно обратиться в полицию/102 и сохранить чеки, номера, ссылки и переписку.\n\nЧтобы предупредить других через Ishonch Guard, нажмите «Сообщить случай» или пришлите номер, ссылку, username и короткое описание.",
       uz: "Pul yoki kod ketgan bo'lsa — avval bank: karta/operatsiyani bloklashni so'rang. Keyin politsiya/102 ga murojaat qiling va chek, raqam, havola, yozishmalarni saqlang.\n\nIshonch Guard orqali boshqalarni ogohlantirish uchun «Xabar berish» tugmasini bosing yoki raqam, havola, username va qisqa tavsif yuboring.",
       en: "If money or a code was already sent, call the bank first and ask to block the card/operation. Then contact police/102 and save receipts, numbers, links, and chat history.\n\nTo warn others through Ishonch Guard, tap “Report” or send the number, link, username, and a short description.",
+    },
+    violence_threat: {
+      ru: "Угроза приехать или применить силу — это уже не просто мошенничество, это преступление. Чаще всего так запугивают на расстоянии, но безопасность важнее всего.\n\n1. Не платите и не соглашайтесь на встречу.\n2. Позвоните в милицию — 102. Сохраните скрины угроз, номера и username.\n3. Расскажите близкому человеку — не оставайтесь с этим один на один.\nЕсли угрожают из-за фото или переписки — платить всё равно нельзя: оплата не останавливает шантаж.",
+      uz: "Kelib qolish yoki kuch ishlatish tahdidi — bu endi oddiy firibgarlik emas, bu jinoyat. Ko'pincha bu masofadan qo'rqitish, lekin xavfsizlik hammasidan muhim.\n\n1. Pul to'lamang va uchrashuvga rozi bo'lmang.\n2. Militsiyaga qo'ng'iroq qiling — 102. Tahdid skrinlarini, raqam va username'ni saqlang.\n3. Yaqin insonga ayting — bu bilan yolg'iz qolmang.\nRasm yoki yozishma uchun tahdid qilishsa ham to'lash mumkin emas: to'lov shantajni to'xtatmaydi.",
+      en: "A threat to come to you or use force is no longer just a scam — it is a crime. Most often it is remote intimidation, but safety comes first.\n\n1. Do not pay and do not agree to meet.\n2. Call the police — 102. Save screenshots of the threats, numbers, and usernames.\n3. Tell a trusted person — do not stay alone with this.\nIf they threaten you over photos or chats, still do not pay: payment does not stop blackmail.",
+    },
+    withdrawal_blocked: {
+      ru: "Похоже на ловушку с выводом средств: «налог», «комиссия» или «верификация», чтобы отдать ваши же деньги — продолжение той же схемы. Настоящая площадка не берёт плату за вывод ваших денег.\n\n1. Больше ничего не платите и не пополняйте баланс.\n2. Сохраните скрины кабинета, баланса и переписки с «поддержкой» или «наставником».\n3. Если пополняли картой — позвоните в банк по официальному номеру.\nПришлите ссылку платформы или @username наставника — проверю признаки.",
+      uz: "Bu pulni yechishdagi tuzoqqa o'xshaydi: o'z pulingizni olish uchun «soliq», «komissiya» yoki «verifikatsiya» — o'sha sxemaning davomi. Haqiqiy platforma pulingizni qaytarish uchun haq olmaydi.\n\n1. Boshqa hech narsa to'lamang va balans to'ldirmang.\n2. Kabinet, balans va «ustoz» yoki «qo'llab-quvvatlash» bilan yozishma skrinlarini saqlang.\n3. Karta orqali to'lagan bo'lsangiz — bankka rasmiy raqam orqali qo'ng'iroq qiling.\nPlatforma havolasini yoki ustozning @username'ini yuboring — belgilarini tekshiraman.",
+      en: "This looks like a withdrawal trap: a “tax”, “fee”, or “verification” to release your own money is part of the same scheme. A real platform does not charge you to give your money back.\n\n1. Do not pay or top up anything else.\n2. Save screenshots of the account, balance, and chats with “support” or the “mentor”.\n3. If you paid by card, call your bank using the official number.\nSend the platform link or the mentor's @username and I will check the signs.",
+    },
+    identity_loan: {
+      ru: "Если кредит или займ оформили на ваше имя без вас — решается это по официальной линии, платить тому, кто пишет или звонит, не нужно.\n\n1. Позвоните в банк/МФО, где оформлен кредит, по официальному номеру: заявите о мошенническом оформлении.\n2. Подайте заявление в милицию (102) — оно нужно для оспаривания долга.\n3. Проверьте свою кредитную историю в кредитном бюро и смените пароли от банковских приложений.\nСохраните все SMS и документы. Напишите, просили ли у вас до этого код, паспорт или фото документов.",
+      uz: "Kredit yoki qarz sizning nomingizga sizsiz rasmiylashtirilgan bo'lsa — bu rasmiy yo'l bilan hal qilinadi, yozayotgan yoki qo'ng'iroq qilayotganga pul to'lash kerak emas.\n\n1. Kredit rasmiylashtirilgan bank/MFTga rasmiy raqam orqali qo'ng'iroq qiling: firibgarlik haqida bildiring.\n2. Militsiyaga ariza bering (102) — qarzni bekor qilish uchun kerak bo'ladi.\n3. Kredit byurosida kredit tarixingizni tekshiring va bank ilovalari parollarini almashtiring.\nBarcha SMS va hujjatlarni saqlang. Oldin sizdan kod, pasport yoki hujjat rasmi so'ralganmi — yozing.",
+      en: "If a loan was opened in your name without you, it is resolved through official channels — do not pay whoever writes or calls.\n\n1. Call the bank/lender where the loan was opened using the official number and report fraudulent registration.\n2. File a police report (102) — you will need it to dispute the debt.\n3. Check your credit history at the credit bureau and change your banking app passwords.\nSave all SMS and documents. Tell me if anyone asked you for a code, passport, or document photos before this.",
+    },
+    unauthorized_charge: {
+      ru: "Списание, которого вы не делали — повод сразу действовать через банк, а не через того, кто пишет или звонит.\n\n1. Позвоните в банк по официальному номеру: оспорьте операцию и при необходимости заблокируйте карту.\n2. Платные SMS-подписки отключаются у мобильного оператора — позвоните оператору по официальному номеру.\n3. Никому не называйте код из SMS «для отмены списания» — так крадут остальное.\nПришлите текст SMS без кода — проверю признаки.",
+      uz: "Siz qilmagan yechib olish — bank orqali darhol harakat qilish sababi, yozayotgan yoki qo'ng'iroq qilayotgan odam orqali emas.\n\n1. Bankka rasmiy raqam orqali qo'ng'iroq qiling: operatsiyani e'tiroz bildiring, kerak bo'lsa kartani bloklang.\n2. Pullik SMS-obunalar mobil operatorda o'chiriladi — operatorga rasmiy raqam orqali qo'ng'iroq qiling.\n3. «Yechib olishni bekor qilish» uchun SMS-koddan hech kimga aytmang — shunday qilib qolganini o'g'irlashadi.\nSMS matnini kodsiz yuboring — belgilarini tekshiraman.",
+      en: "A charge you did not make means acting through the bank right away, not through whoever writes or calls.\n\n1. Call the bank using the official number: dispute the operation and block the card if needed.\n2. Paid SMS subscriptions are cancelled through your mobile operator — call the operator's official number.\n3. Never share an SMS code “to cancel the charge” — that is how the rest gets stolen.\nSend the SMS text without the code and I will check the signs.",
+    },
+    account_hacked_other: {
+      ru: "Возвращаем доступ и закрываем чужой вход:\n\n1. С другого устройства запустите восстановление пароля («Забыли пароль») — доступ вернётся через привязанную почту или номер.\n2. Сразу включите двухфакторную защиту и завершите чужие сеансы в настройках.\n3. Проверьте привязанную почту: если она тоже взломана — сначала верните её.\n4. Предупредите друзей: от вашего имени могут просить деньги или коды.\nЕсли от вашего имени уже просят деньги — пришлите скрин, помогу составить предупреждение.",
+      uz: "Kirishni qaytaramiz va begona kirishni yopamiz:\n\n1. Boshqa qurilmadan parolni tiklashni boshlang («Parolni unutdingizmi») — kirish bog'langan pochta yoki raqam orqali qaytadi.\n2. Darhol ikki bosqichli himoyani yoqing va sozlamalarda begona seanslarni tugating.\n3. Bog'langan pochtani tekshiring: u ham buzilgan bo'lsa — avval uni qaytaring.\n4. Do'stlaringizni ogohlantiring: sizning nomingizdan pul yoki kod so'rashlari mumkin.\nSizning nomingizdan pul so'rashayotgan bo'lsa — skrin yuboring, ogohlantirish matnini tuzishga yordam beraman.",
+      en: "Let's restore access and close the intruder's session:\n\n1. From another device, start password recovery (“Forgot password”) — access returns through the linked email or number.\n2. Enable two-factor protection right away and end unknown sessions in settings.\n3. Check the linked email: if it is also hacked, recover it first.\n4. Warn your friends: someone may ask them for money or codes in your name.\nIf money is already being requested in your name, send a screenshot and I will help write a warning.",
+    },
+    scammer_recontact: {
+      ru: "Если тот же человек выходит на связь с нового номера или аккаунта — не отвечайте и не спорьте: любая реакция для него сигнал, что канал живой.\n\n1. Заблокируйте новый номер/аккаунт и сохраните скрин.\n2. Пришлите номер или @username сюда — проверю и учту в базе.\n3. Если появились угрозы или требования денег — напишите, дам следующий шаг.",
+      uz: "O'sha odam yangi raqam yoki akkauntdan chiqsa — javob bermang va bahslashmang: har qanday javob u uchun kanal ishlayapti degan signal.\n\n1. Yangi raqam/akkauntni bloklang va skrin saqlang.\n2. Raqam yoki @username'ni shu yerga yuboring — tekshiraman va bazada hisobga olaman.\n3. Tahdid yoki pul talabi paydo bo'lsa — yozing, keyingi qadamni aytaman.",
+      en: "If the same person contacts you from a new number or account, do not reply and do not argue: any reaction tells them the channel works.\n\n1. Block the new number/account and save a screenshot.\n2. Send the number or @username here — I will check it and record it.\n3. If threats or money demands appear, write to me and I will give the next step.",
+    },
+    privacy_question: {
+      ru: "Да, можно спокойно: я не публикую ваши сообщения и не храню сырые данные.\n\nНомера и ссылки сохраняются только в виде необратимого отпечатка (хеша), коды и данные карт вырезаются автоматически, скриншоты не сохраняются вовсе. Жалобы публикуются только обезличенно и только после проверки модератором.\n\nПришлите, что случилось — проверим.",
+      uz: "Ha, xotirjam bo'ling: xabarlaringizni e'lon qilmayman va xom ma'lumotlarni saqlamayman.\n\nRaqam va havolalar faqat qaytarib bo'lmaydigan iz (hash) ko'rinishida saqlanadi, kodlar va karta ma'lumotlari avtomatik o'chiriladi, skrinshotlar umuman saqlanmaydi. Shikoyatlar faqat shaxssiz ko'rinishda va moderator tekshiruvidan keyin e'lon qilinadi.\n\nNima bo'lganini yuboring — tekshiramiz.",
+      en: "Yes, you can share safely: I do not publish your messages and do not store raw data.\n\nNumbers and links are stored only as an irreversible fingerprint (hash), codes and card data are cut out automatically, and screenshots are not stored at all. Reports are published only anonymized and only after moderator review.\n\nSend what happened and we will check it.",
+    },
+    relative_already_paid: {
+      ru: "Если близкий уже перевёл деньги или назвал код — сейчас дорога каждая минута, действуйте вместе с ним.\n\n1. Позвоните вместе в его банк по официальному номеру: попросите заморозить перевод или заблокировать карту.\n2. Сохраните чеки, номера, переписку — это доказательства.\n3. Подайте заявление в милицию — 102.\nНе ругайте близкого: стыд мешает жертвам просить помощь. Подключите «Семейный щит» в меню — в следующий раз бот предупредит вас сразу.",
+      uz: "Yaqiningiz allaqachon pul o'tkazgan yoki kod aytgan bo'lsa — har bir daqiqa muhim, u bilan birga harakat qiling.\n\n1. Birga uning bankiga rasmiy raqam orqali qo'ng'iroq qiling: o'tkazmani muzlatish yoki kartani bloklashni so'rang.\n2. Chek, raqam va yozishmalarni saqlang — bular dalil.\n3. Militsiyaga ariza bering — 102.\nYaqiningizni koyimang: uyat jabrlanuvchilarga yordam so'rashga xalaqit beradi. Menyudan «Oila qalqoni»ni ulang — keyingi safar bot sizni darhol ogohlantiradi.",
+      en: "If a loved one has already transferred money or shared a code, every minute counts — act together with them.\n\n1. Call their bank together using the official number: ask to freeze the transfer or block the card.\n2. Save receipts, numbers, and chats — they are evidence.\n3. File a police report — 102.\nDo not scold your loved one: shame stops victims from asking for help. Enable Family Shield in the menu so the bot warns you immediately next time.",
     },
     blackmail_threat: {
       ru: "Это вымогательство. Платить нельзя: оплата не удаляет материалы и обычно ведёт к новым требованиям.\n\nНе отвечайте и не переводите деньги. Сохраните скрины переписки и профиль отправителя, затем заблокируйте его и пожалуйтесь в Telegram. Если тяжело одному — подключите близкого человека. Пошаговая помощь есть в /panic.",

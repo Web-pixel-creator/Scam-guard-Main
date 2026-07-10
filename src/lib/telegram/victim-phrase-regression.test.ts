@@ -193,6 +193,25 @@ const MUST_NOT_BE_GENERIC: CorpusCase[] = [
   { text: "они опять звонят" },
   { text: "не понимаю что происходит объясни", replyIncludes: "Я рядом" },
   { text: "my mom sent money to a scammer what now", lang: "en" },
+  // K. Вторая волна (gap probe 2026-07-10): вывод средств, кредиты на имя,
+  // списания, взлом соцсетей, угрозы, повторный контакт, приватность, близкие.
+  { text: "не могу вывести деньги с платформы", replyIncludes: "ловушку с выводом" },
+  { text: "требуют налог чтобы вывести мой выигрыш", replyIncludes: "не платите" },
+  { text: "вложился через наставника а вывод заблокировали", replyIncludes: "наставника" },
+  { text: "pulimni qaytarib bo'lmayapti", lang: "uz", replyIncludes: "to'lamang" },
+  { text: "на меня оформили кредит", replyIncludes: "милицию" },
+  { text: "взяли микрозайм на мое имя", replyIncludes: "кредитную историю" },
+  { text: "kredit rasmiylashtirishibdi ustimga", lang: "uz", replyIncludes: "Militsiyaga" },
+  { text: "пришло смс о списании которое я не делал", replyIncludes: "оспорьте" },
+  { text: "подписали на платные смс списывают деньги", replyIncludes: "оператор" },
+  { text: "взломали инстаграм", replyIncludes: "двухфакторную" },
+  { text: "взломали почту", replyIncludes: "Забыли пароль" },
+  { text: "он пишет мне с нового номера опять", replyIncludes: "Заблокируйте" },
+  { text: "это анонимно?", replyIncludes: "хеша" },
+  { text: "ты не сольешь мои данные?", replyIncludes: "не храню" },
+  { text: "угрожают приехать домой если не заплачу", replyIncludes: "102" },
+  { text: "бабушка перевела деньги мошенникам", replyIncludes: "заморозить" },
+  { text: "onam firibgarga pul o'tkazib yubordi", lang: "uz", replyIncludes: "bankiga" },
 ];
 
 beforeEach(() => {
