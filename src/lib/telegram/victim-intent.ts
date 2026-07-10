@@ -6,6 +6,7 @@ import {
 } from "@/lib/telegram/check-context-buttons";
 import { CB } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
+import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 
 export type VictimIntentKind =
   | "emotional_help"
@@ -76,14 +77,19 @@ const TELEGRAM_HANDLE_RE = /@[a-zA-Z0-9_]{3,}/u;
 const LONG_MESSAGE_LIMIT = 260;
 
 function normalizeVictimText(text: string): string {
-  return text
-    .normalize("NFKC")
-    .replace(/[’‘`]/g, "'")
-    .replace(/ё/g, "е")
-    .replace(/Ё/g, "Е")
-    .toLocaleLowerCase("ru")
-    .trim()
-    .replace(/\s+/g, " ");
+  return (
+    text
+      .normalize("NFKC")
+      .replace(/[’‘`]/g, "'")
+      .replace(/ё/g, "е")
+      .replace(/Ё/g, "Е")
+      .toLocaleLowerCase("ru")
+      .trim()
+      .replace(/\s+/g, " ")
+      // Emotional letter stretching («памагитееее») — collapse 3+ repeats of a
+      // letter to two. Digits are excluded so phone/amount payloads survive.
+      .replace(/([^\d\s])\1{2,}/g, "$1$1")
+  );
 }
 
 function hasConcreteArtifact(text: string): boolean {
@@ -335,6 +341,16 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
 export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = normalizeVictimText(text);
   if (!normalized) return null;
+  const direct = classifyNormalizedVictimIntent(normalized);
+  if (direct) return direct;
+  // Latin-keyboard fallback: «menya obmanuli» → «меня обманули». Runs only
+  // when the original text matched nothing, so native Uzbek Latin phrases
+  // (understood directly by the patterns) are unaffected.
+  const translit = transliterateRuLatin(normalized);
+  return translit === null ? null : classifyNormalizedVictimIntent(translit);
+}
+
+function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch | null {
   if (looksLikeScamPayloadRatherThanVictimPhrase(normalized)) return null;
   if (
     /(?:мошенник|скамер|scammer|fraudster).{0,40}(?:написал[аи]?|пиш(?:ет|ут)|сказал[аи]?)\s*:/iu.test(
@@ -487,7 +503,7 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
     /(?:меня|нас|маму|папу|друга|мени|бизни|менга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
       normalized,
     ) ||
-    /(?:^|[\s,.;:!?])(?:это|bu|shu)\s+(?:скам|мошенник(?:и|ам|ов)?|мошенничество|обман|scam|fraud|firib|firibgarlik)(?:mi|ми)?(?:\?|$|[\s,.;:!?])|(?:^|[\s,.;:!?])(?:scam|firib(?:gar(?:lik|lar)?)?|фирибгар(?:лик|лар)?|мошен+ик(?:и|ов)?|обман|развод|кидалово)(?:mi|ми|\?)?(?:$|[\s,.;:!?])/iu.test(
+    /(?:^|[\s,.;:!?])(?:это|bu|shu)\s+(?:скам|мошенник(?:и|ам|ов)?|мошенничество|обман|scam|fraud|firib|firibgarlik)(?:mi|ми)?(?:\?|$|[\s,.;:!?])|(?:^|[\s,.;:!?])(?:scam|skam|скам|firib(?:gar(?:lik|lar)?)?|фирибгар(?:лик|лар)?|мошен+ик(?:и|ов)?|обман|развод|кидалово)(?:mi|ми|\?)?(?:$|[\s,.;:!?])/iu.test(
       normalized,
     ) ||
     /(?:звонил[аи]?|позвонил[аи]?|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?).{0,60}(?:мошенник|скамер|скам|scammer|fraudster)|(?:мошенник|скамер|scammer|fraudster).{0,60}(?:звонил[аи]?|позвонил[аи]?|писал[аи]?|написал[аи]?)/iu.test(

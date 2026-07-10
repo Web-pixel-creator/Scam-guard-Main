@@ -99,6 +99,7 @@ import {
   classifyVictimIntent,
   type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
+import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
@@ -915,10 +916,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(деньг|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(ден[ьи]?г|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс)/.test(
       text,
     ) ||
-    /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс).{0,80}(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
+    /(?:ден[ьи]?г|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс).{0,80}(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
       text,
     ) ||
     /(?:pul|sum|som|uzs|karta|balans).{0,80}(yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad)/.test(
@@ -1084,6 +1085,14 @@ function classifyTextPanicIntent(
   source?: TelegramForwardSourceContext,
 ): PanicScenarioId | null {
   if (source) return null;
+  const direct = classifyGatedTextPanicIntent(text);
+  if (direct !== null) return direct;
+  // Latin-keyboard fallback: «ya perevel dengi», «vzlomali telegram».
+  const translit = transliterateRuLatin(normalizeVoiceIntentText(text));
+  return translit === null ? null : classifyGatedTextPanicIntent(translit);
+}
+
+function classifyGatedTextPanicIntent(text: string): PanicScenarioId | null {
   if (isQuotedOrThirdPartyDoneIntent(text)) return null;
   const normalized = normalizeVoiceIntentText(text);
   const panicId = classifyVoicePanicIntent(text);

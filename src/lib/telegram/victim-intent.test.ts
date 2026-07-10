@@ -69,6 +69,14 @@ describe("classifyVictimIntent", () => {
     // A relative has already paid.
     ["бабушка перевела деньги мошенникам", "relative_already_paid"],
     ["onam firibgarga pul o'tkazib yubordi", "relative_already_paid"],
+    // Latin-keyboard transliteration fallback.
+    ["menya razveli na dengi", "report_question"],
+    ["pomogite", "emotional_help"],
+    ["moshenniki", "general_scam_concern"],
+    ["eto skam?", "general_scam_concern"],
+    // Letter stretching collapses before classification.
+    ["памагитеееее", "emotional_help"],
+    ["меня обманулиииии", "report_question"],
     ["меня пытаются обмануть", "general_scam_concern"],
     ["звонил мошенник", "general_scam_concern"],
     ["я думаю это мошенники", "general_scam_concern"],

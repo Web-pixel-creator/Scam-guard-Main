@@ -212,6 +212,12 @@ const MUST_NOT_BE_GENERIC: CorpusCase[] = [
   { text: "угрожают приехать домой если не заплачу", replyIncludes: "102" },
   { text: "бабушка перевела деньги мошенникам", replyIncludes: "заморозить" },
   { text: "onam firibgarga pul o'tkazib yubordi", lang: "uz", replyIncludes: "bankiga" },
+  // L. Транслит-раскладка и растянутые буквы.
+  { text: "menya razveli na dengi", replyIncludes: "банк" },
+  { text: "ya perevel dengi moshennikam" },
+  { text: "vzlomali telegram" },
+  { text: "pomogite", replyIncludes: "Я рядом" },
+  { text: "памагитеееее", replyIncludes: "Я рядом" },
 ];
 
 beforeEach(() => {
