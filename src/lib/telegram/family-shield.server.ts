@@ -17,7 +17,9 @@ export const FAMILY_CB = {
   menu: "family:menu",
   invite: "family:invite",
   notify: "family:notify",
+  codewordGuide: "family:codeword",
   revoke: "family:revoke",
+  trustedAck: "family:trusted_ack",
   trustedOptOut: "family:trusted_opt_out",
 } as const;
 
@@ -235,10 +237,10 @@ async function getActiveFamilyRow(guardianTelegramUserId: number): Promise<Famil
   return (data as FamilyRow | null) ?? null;
 }
 
-function isCoolingDown(lastNotifiedAt: string | null, nowMs: number): boolean {
+function isCoolingDown(lastNotifiedAt: string | null, nowMs: number, cooldownMs: number): boolean {
   if (!lastNotifiedAt) return false;
   const lastMs = Date.parse(lastNotifiedAt);
-  return Number.isFinite(lastMs) && nowMs - lastMs < NOTIFICATION_COOLDOWN_MS;
+  return Number.isFinite(lastMs) && nowMs - lastMs < cooldownMs;
 }
 
 function safeGuardianLabel(label?: string): string | null {
@@ -269,7 +271,8 @@ export function buildTrustedAlertText(lang: Lang, guardianLabel?: string): strin
       "Nima qilish kerak:\n" +
       "1. Uni shoshirmang va koyimang.\n" +
       "2. SMS-kod, PIN, CVV, parol, karta rasmi yoki ilova o'rnatishni so'ramang.\n" +
-      "3. Bankka faqat rasmiy raqam orqali qayta qo'ng'iroq qilishga yordam bering."
+      "3. Agar ovoz yoki video shubhali bo'lsa, saqlangan raqamga qayta qo'ng'iroq qiling va oilaviy maxfiy so'z yoki shaxsiy savolni so'rang.\n" +
+      "4. Bankka faqat rasmiy raqam orqali qayta qo'ng'iroq qilishga yordam bering."
     );
   }
   if (lang === "en") {
@@ -280,7 +283,8 @@ export function buildTrustedAlertText(lang: Lang, guardianLabel?: string): strin
       "What to do:\n" +
       "1. Do not rush or judge them.\n" +
       "2. Do not ask them to forward SMS codes, PIN, CVV, passwords, card photos, or install apps.\n" +
-      "3. Help them call the bank back using an official number."
+      "3. If a voice or video feels suspicious, call back using a saved number and ask the family code word or a private question.\n" +
+      "4. Help them call the bank back using an official number."
     );
   }
   return (
@@ -290,21 +294,27 @@ export function buildTrustedAlertText(lang: Lang, guardianLabel?: string): strin
     "Что сделать:\n" +
     "1. Не торопите и не ругайте его.\n" +
     "2. Не просите пересылать SMS-коды, PIN, CVV, пароли, фото карты или ставить приложения.\n" +
-    "3. Помогите перезвонить в банк только по официальному номеру."
+    "3. Если голос или видео вызывают сомнение, перезвоните по сохранённому номеру и спросите семейное кодовое слово или личный вопрос.\n" +
+    "4. Помогите перезвонить в банк только по официальному номеру."
   );
+}
+
+export function buildFamilyCodewordGuideText(lang: Lang): string {
+  return bt("family_codeword_guide", lang);
 }
 
 export async function notifyTrustedContact(args: {
   guardianTelegramUserId: number;
   lang: Lang;
   guardianDisplayName?: string;
+  cooldownMs?: number;
 }): Promise<FamilyNotifyResult> {
   try {
     const row = await getActiveFamilyRow(args.guardianTelegramUserId);
     if (!row || row.trusted_chat_id === null) return { ok: false, reason: "not_linked" };
 
     const nowMs = Date.now();
-    if (isCoolingDown(row.last_notified_at, nowMs)) {
+    if (isCoolingDown(row.last_notified_at, nowMs, args.cooldownMs ?? NOTIFICATION_COOLDOWN_MS)) {
       return { ok: false, reason: "cooldown" };
     }
 
@@ -386,12 +396,14 @@ export function buildFamilyInviteKeyboard(inviteUrl: string, lang: Lang): Inline
 export function buildFamilyAlreadyLinkedKeyboard(lang: Lang): InlineKeyboard {
   return [
     [{ text: bt("family_btn_notify", lang), callback_data: FAMILY_CB.notify }],
+    [{ text: bt("family_btn_codeword", lang), callback_data: FAMILY_CB.codewordGuide }],
     [{ text: bt("family_btn_revoke", lang), callback_data: FAMILY_CB.revoke }],
   ];
 }
 
 export function buildTrustedAlertKeyboard(lang: Lang): InlineKeyboard {
   return [
+    [{ text: bt("family_btn_trusted_ack", lang), callback_data: FAMILY_CB.trustedAck }],
     [{ text: bt("family_btn_trusted_stop_alerts", lang), callback_data: FAMILY_CB.trustedOptOut }],
   ];
 }
@@ -399,6 +411,7 @@ export function buildTrustedAlertKeyboard(lang: Lang): InlineKeyboard {
 export function buildFamilySetupKeyboard(lang: Lang): InlineKeyboard {
   return [
     [{ text: bt("family_btn_create_invite", lang), callback_data: FAMILY_CB.invite }],
+    [{ text: bt("family_btn_codeword", lang), callback_data: FAMILY_CB.codewordGuide }],
     [{ text: bt("family_btn_notify", lang), callback_data: FAMILY_CB.notify }],
   ];
 }

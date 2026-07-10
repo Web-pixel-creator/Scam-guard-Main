@@ -1,3 +1,6 @@
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
+
 import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 import type { InputType } from "@/lib/risk/detect";
 import type { ReasonCode } from "@/lib/risk/rules";
@@ -58,6 +61,11 @@ type GeminiTtsConfig = {
 
 type TtsConfig = OpenAiTtsConfig | GeminiTtsConfig;
 
+export type VoiceOutPrerecordedRef = {
+  kind: "panic";
+  panicId: PanicScenarioId;
+};
+
 const VOICE_OUT_DAILY_LIMIT = 5;
 const VOICE_OUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const VOICE_OUT_TIMEOUT_MS = 12_000;
@@ -69,6 +77,13 @@ const DEFAULT_TTS_MODEL = "gpt-4o-mini-tts";
 const DEFAULT_TTS_VOICE = "alloy";
 const DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
 const DEFAULT_GEMINI_TTS_VOICE = "Kore";
+const DEFAULT_PRERECORDED_VOICE_OUT_DIR = path.join("public", "audio", "voice-out");
+const PRERECORDED_VOICE_EXTENSIONS = [
+  { ext: "ogg", mimeType: "audio/ogg" },
+  { ext: "oga", mimeType: "audio/ogg" },
+  { ext: "mp3", mimeType: "audio/mpeg" },
+  { ext: "wav", mimeType: "audio/wav" },
+] as const;
 const recentVoiceOutRequests = new Map<string, number>();
 const VOICE_OUT_PANIC_ACTIONS: readonly EmergencyFollowUpAction[] = [
   "more",
@@ -319,6 +334,41 @@ function releaseVoiceOutRequest(key: string): void {
   recentVoiceOutRequests.delete(key);
 }
 
+function prerecordedVoiceOutBaseDir(): string {
+  const configured = process.env.VOICE_OUT_PRERECORDED_DIR?.trim();
+  return configured ? configured : path.join(process.cwd(), DEFAULT_PRERECORDED_VOICE_OUT_DIR);
+}
+
+async function loadPrerecordedVoiceOut(
+  ref: VoiceOutPrerecordedRef | undefined,
+  lang: Lang,
+): Promise<VoiceOutResult | null> {
+  if (!ref) return null;
+
+  for (const candidate of PRERECORDED_VOICE_EXTENSIONS) {
+    const filename = `${ref.kind}-${ref.panicId}-${lang}.${candidate.ext}`;
+    const filePath = path.join(prerecordedVoiceOutBaseDir(), filename);
+    try {
+      const info = await stat(filePath);
+      if (!info.isFile() || info.size <= 0 || info.size > MAX_AUDIO_BYTES) continue;
+
+      const bytes = await readFile(filePath);
+      return {
+        ok: true,
+        bytes: new Uint8Array(bytes),
+        mimeType: candidate.mimeType,
+        filename,
+      };
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT" || code === "ENOTDIR") continue;
+      console.error("voice-out prerecorded load failed", filename, code ?? "unknown");
+    }
+  }
+
+  return null;
+}
+
 function buildVoiceOutPreparingText(lang: Lang): string {
   return textByLang(lang, {
     ru: "Готовлю короткую голосовую подсказку...",
@@ -359,6 +409,23 @@ function buildVoiceOutCaption(lang: Lang, text: string): string {
     uz: `🔊 Ovozda: «${clipped}»\n\nKod, karta va parollarni ovozda aytmayman.`,
     en: `🔊 Voice tip: "${clipped}"\n\nI do not read codes, cards, or passwords aloud.`,
   });
+}
+
+function isProviderOnlyVoiceOutCallback(callbackData: string | undefined): boolean {
+  if (!callbackData) return false;
+  if (callbackData === VOICE_OUT_CB.guardian) return true;
+  const panicCallback = parseVoiceOutPanicCallback(callbackData);
+  return panicCallback !== null && panicCallback.action !== null;
+}
+
+function withoutProviderOnlyVoiceOutButtons(
+  keyboard: InlineKeyboard | undefined,
+): InlineKeyboard | undefined {
+  if (!keyboard) return undefined;
+  const filtered = keyboard
+    .map((row) => row.filter((button) => !isProviderOnlyVoiceOutCallback(button.callback_data)))
+    .filter((row) => row.length > 0);
+  return filtered.length > 0 ? filtered : undefined;
 }
 
 async function fetchWithTimeout(
@@ -609,6 +676,7 @@ export async function sendVoiceOutResponse(args: {
   text: string | null;
   keyboard?: InlineKeyboard;
   callbackQueryId?: string;
+  prerecorded?: VoiceOutPrerecordedRef;
 }): Promise<void> {
   if (!args.text) {
     await sendMessage({
@@ -638,7 +706,8 @@ export async function sendVoiceOutResponse(args: {
 
   await sendVoiceOutChatAction(args.chatId);
 
-  const result = await synthesizeVoiceOut(args.text, args.userId);
+  let result = await loadPrerecordedVoiceOut(args.prerecorded, args.lang);
+  result ??= await synthesizeVoiceOut(args.text, args.userId);
   if (result.ok) {
     const sent = await sendAudioFile({
       chatId: args.chatId,
@@ -662,6 +731,9 @@ export async function sendVoiceOutResponse(args: {
   await sendMessage({
     chatId: args.chatId,
     text: escapeMarkdownV2(buildVoiceOutFallbackText(args.lang, fallbackResult)),
-    keyboard: args.keyboard,
+    keyboard:
+      fallbackResult.reason === "rate_limited"
+        ? withoutProviderOnlyVoiceOutButtons(args.keyboard)
+        : args.keyboard,
   });
 }

@@ -7,3 +7,4 @@
 - [x] 5. Add unit tests for text length, callbacks, and command menus
 - [x] 6. Run typecheck, lint, tests, build
 - [x] 7. Commit, push, deploy, and smoke-test production
+- [x] 8. Add manual source/status/updated-at digest records with stale fallback

@@ -12,9 +12,24 @@ import type { InputType } from "@/lib/risk/detect";
 import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
 import type { RiskLevel } from "@/lib/risk/rules";
 
+export type SessionChatType = "private" | "group" | "supergroup" | "channel";
+
+export interface SessionChatScope {
+  chatId: number;
+  chatType: SessionChatType;
+}
+
+export interface ReportDraftTarget {
+  type: InputType;
+  hash: string;
+  display: string;
+  incidentOnly: boolean;
+}
+
 export type Scenario =
   | "none" // нейтральное состояние
   | "await_check" // после /check ждём контент
+  | "conversation_check" // ждём несколько текстовых сообщений для проверки диалога
   | "report_value" // ждём значение жалобы
   | "report_desc" // ждём описание
   | "report_scamType" // опционально
@@ -22,18 +37,34 @@ export type Scenario =
   | "report_amount"; // опционально
 
 export interface ReportDraft {
+  /**
+   * Legacy pre-DSCAN-R2-004 raw target from existing rows only. New saves must
+   * convert it into `target` and remove this field before persistence.
+   */
   value?: string;
+  target?: ReportDraftTarget;
   noValue?: boolean;
+  /** Redacted report narrative only; never raw user evidence. */
   description?: string;
   scamType?: string;
   city?: string;
   amountLostUzs?: number;
+  /**
+   * Chat boundary for state that can influence a later bot response. This
+   * prevents private context from being reused in group chats by the same user.
+   */
+  chatScope?: SessionChatScope;
   /**
    * Emergency Copilot v2 context. Stores only a scenario id + timestamp,
    * never raw user evidence, codes, phone numbers, links or card data.
    */
   lastPanicId?: number;
   lastPanicAt?: string;
+  /**
+   * Non-sensitive caller category for live-call SOS copy. Stores only a coarse
+   * context label, never the caller text, number, URL, or account.
+   */
+  lastLiveCallContext?: "generic" | "bank" | "government" | "operator" | "relative";
   /**
    * Last check context for short follow-up questions like "точно?".
    * Stores only non-sensitive summary metadata: no raw input, OCR text,
@@ -46,6 +77,12 @@ export interface ReportDraft {
    * screenshots, codes, card data or files.
    */
   guardian?: GuardianAngelSnapshot;
+  /**
+   * Conversation Check v1 draft. Stores only derived metadata while collecting
+   * a short user-supplied conversation. Never store raw chat text, OCR, links,
+   * phone numbers, usernames, cards, codes, passwords, seed phrases or files.
+   */
+  conversation?: ConversationDraftSnapshot;
 }
 
 export type LastCheckContext =
@@ -66,6 +103,48 @@ export interface LastCheckSnapshot {
   at: string;
 }
 
+export type ConversationStage =
+  | "opener"
+  | "trust_building"
+  | "authority_claim"
+  | "urgency"
+  | "verification_request"
+  | "payment_request"
+  | "apk_install"
+  | "qr_login"
+  | "investment_pitch"
+  | "romance_pivot";
+
+export type ConversationRequestedAction =
+  | "say_code"
+  | "send_card"
+  | "transfer_money"
+  | "install_app"
+  | "scan_qr"
+  | "connect_wallet"
+  | "send_document"
+  | "keep_call";
+
+export type ConversationPressureFlag =
+  | "urgent"
+  | "secrecy"
+  | "fear"
+  | "promised_profit"
+  | "relationship_trust"
+  | "official_impersonation";
+
+export interface ConversationDraftSnapshot {
+  startedAt: string;
+  updatedAt: string;
+  messageCount: number;
+  totalChars: number;
+  strongestLevel: RiskLevel;
+  stageCounts: Partial<Record<ConversationStage, number>>;
+  reasonCounts: Record<string, number>;
+  requestedActions: ConversationRequestedAction[];
+  pressureFlags: ConversationPressureFlag[];
+}
+
 export interface Session {
   telegramUserId: number;
   lang: Lang; // default "ru" если не задан (R1.4)
@@ -81,6 +160,7 @@ const VALID_LANGS: readonly Lang[] = ["ru", "uz", "en"];
 const VALID_SCENARIOS: readonly Scenario[] = [
   "none",
   "await_check",
+  "conversation_check",
   "report_value",
   "report_desc",
   "report_scamType",
@@ -126,11 +206,27 @@ function asScenario(value: unknown): Scenario {
     : "none";
 }
 
-function defaultSession(telegramUserId: number): Session {
-  // R1.4 — отсутствует сохранённый язык → дефолт ru, нейтральный сценарий.
+/**
+ * Первый контакт до выбора языка в /start: используем `language_code` из
+ * Telegram как подсказку, чтобы узбекоязычный пользователь не получал русский
+ * ответ. Подсказка не сохраняется — выбор языка в /start остаётся источником
+ * истины, как только строка сессии существует.
+ */
+export function langFromTelegramCode(code: string | undefined): Lang | null {
+  if (!code) return null;
+  const lower = code.toLowerCase();
+  if (lower === "uz" || lower.startsWith("uz-")) return "uz";
+  if (lower === "en" || lower.startsWith("en-")) return "en";
+  if (lower === "ru" || lower.startsWith("ru-")) return "ru";
+  return null;
+}
+
+function defaultSession(telegramUserId: number, langHint?: string): Session {
+  // R1.4 — отсутствует сохранённый язык → дефолт ru (или язык клиента Telegram),
+  // нейтральный сценарий.
   return {
     telegramUserId,
-    lang: "ru",
+    lang: langFromTelegramCode(langHint) ?? "ru",
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {},
@@ -149,12 +245,52 @@ function rowToSession(row: TelegramSessionRow): Session {
   };
 }
 
+function normalizeChatType(chatType?: SessionChatType): SessionChatType {
+  return chatType ?? "private";
+}
+
+function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
+  if (!data) return false;
+  return Boolean(
+    data.lastPanicId ?? data.lastPanicAt ?? data.lastCheck ?? data.guardian ?? data.conversation,
+  );
+}
+
+export function withSessionChatScope(
+  data: ReportDraft | undefined,
+  chatId: number,
+  chatType?: SessionChatType,
+): ReportDraft {
+  return {
+    ...(data ?? {}),
+    chatScope: {
+      chatId,
+      chatType: normalizeChatType(chatType),
+    },
+  };
+}
+
+export function isSessionStateScopedToChat(
+  session: Session,
+  chatId: number,
+  chatType?: SessionChatType,
+): boolean {
+  const affectsNextReply =
+    session.scenario !== "none" || hasStatefulScenarioData(session.scenarioData);
+  if (!affectsNextReply) return true;
+
+  const scope = session.scenarioData.chatScope;
+  if (!scope || typeof scope.chatId !== "number") return false;
+
+  return scope.chatId === chatId && scope.chatType === normalizeChatType(chatType);
+}
+
 /**
  * Загрузка сессии по Telegram_User_Id. При отсутствии строки (или сбое чтения)
  * возвращает дефолт `{ lang:"ru", scenario:"none", scenarioStep:0, scenarioData:{} }`
  * (R1.4, R15.1).
  */
-export async function loadSession(telegramUserId: number): Promise<Session> {
+export async function loadSession(telegramUserId: number, langHint?: string): Promise<Session> {
   try {
     const { data, error } = await sessions()
       .select("*")
@@ -163,14 +299,14 @@ export async function loadSession(telegramUserId: number): Promise<Session> {
 
     if (error) {
       console.error("telegram loadSession failed", error.message);
-      return defaultSession(telegramUserId);
+      return defaultSession(telegramUserId, langHint);
     }
-    if (!data) return defaultSession(telegramUserId);
+    if (!data) return defaultSession(telegramUserId, langHint);
 
     return rowToSession(data as TelegramSessionRow);
   } catch (e) {
     console.error("telegram loadSession threw", e instanceof Error ? e.message : "unknown");
-    return defaultSession(telegramUserId);
+    return defaultSession(telegramUserId, langHint);
   }
 }
 

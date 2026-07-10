@@ -160,6 +160,27 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(telegram).toContain("не отправляйте коды");
   });
 
+  it("keeps sextortion, publication-threat and minor-safety first cards distinct", () => {
+    const sextortion = buildPanicScenarioText(7, "ru");
+    const publicationThreat = buildPanicScenarioText(9, "ru");
+    const minorSafety = buildPanicScenarioText(10, "ru");
+
+    expect(sextortion).toContain("НЕ ПЛАТИТЕ И НЕ ОТПРАВЛЯЙТЕ НОВЫЕ ФОТО/ВИДЕО");
+    expect(sextortion).toContain("скриншоты чата, профиля");
+    expect(sextortion).not.toContain("ссылку на пост/профиль");
+
+    expect(publicationThreat).toContain("НЕ ПЛАТИТЕ ЗА «УДАЛЕНИЕ»");
+    expect(publicationThreat).toContain("ссылку на пост/профиль");
+    expect(publicationThreat).toContain("поддержку платформы");
+    expect(publicationThreat).not.toContain("новые фото/видео");
+
+    expect(minorSafety).toContain("ПОКАЖИ ПЕРЕПИСКУ ВЗРОСЛОМУ");
+    expect(minorSafety).toContain("Если первый взрослый не помогает");
+    expect(minorSafety).not.toContain("платите за «удаление»");
+
+    expect(new Set([sextortion, publicationThreat, minorSafety]).size).toBe(3);
+  });
+
   it("formats already-happened financial ready phrases without incoming-call fallback", () => {
     const smsCode = buildEmergencyFollowUpText("script", 1, "ru");
     const transfer = buildEmergencyFollowUpText("script", 3, "ru");
@@ -182,13 +203,23 @@ describe("Emergency Copilot v2 follow-up routing", () => {
   });
 
   it("formats trusted-person guidance by scenario instead of always using bank wording", () => {
-    const blackmail = buildEmergencyFollowUpText("trusted_person", 9, "ru");
+    const sextortion = buildEmergencyFollowUpText("trusted_person", 7, "ru");
+    const publicationThreat = buildEmergencyFollowUpText("trusted_person", 9, "ru");
+    const minorSafety = buildEmergencyFollowUpText("trusted_person", 10, "ru");
     const romance = buildEmergencyFollowUpText("trusted_person", 8, "ru");
     const apk = buildEmergencyFollowUpText("trusted_person", 2, "ru");
 
-    expect(blackmail).toContain("Мне угрожают");
-    expect(blackmail).toContain("сохранить доказательства");
-    expect(blackmail).not.toContain("звоню в банк");
+    expect(sextortion).toContain("Мне угрожают/давят");
+    expect(sextortion).toContain("сохранить доказательства");
+    expect(sextortion).not.toContain("звоню в банк");
+
+    expect(publicationThreat).toContain("угрожают публикацией");
+    expect(publicationThreat).toContain("сохранить ссылки/скриншоты");
+    expect(publicationThreat).not.toBe(sextortion);
+
+    expect(minorSafety).toContain("Позови взрослого");
+    expect(minorSafety).toContain("Если первый взрослый не помогает");
+    expect(minorSafety).not.toBe(sextortion);
 
     expect(romance).toContain("Посмотри переписку со стороны");
     expect(romance).toContain("Поставьте паузу на переводы");
@@ -356,6 +387,7 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     const crypto = buildPanicScenarioText(14, "ru");
     const grant = buildPanicScenarioText(15, "ru");
     const jobScript = buildEmergencyFollowUpText("script", 12, "ru");
+    const jobContacts = buildEmergencyFollowUpText("contacts", 12, "ru");
     const cryptoContacts = buildEmergencyFollowUpText("contacts", 14, "ru");
     const grantTrusted = buildEmergencyFollowUpText("trusted_person", 15, "ru");
 
@@ -369,6 +401,9 @@ describe("Emergency Copilot v2 follow-up routing", () => {
     expect(grant).toContain("официальный сайт");
     expect(jobScript).toContain("Сначала спокойно проверю источник");
     expect(jobScript).not.toContain("входящему звонку");
+    expect(jobContacts).toContain("Проверить источник");
+    expect(jobContacts).toContain("юридическое название");
+    expect(jobContacts).not.toContain("Куда обратиться");
     expect(cryptoContacts).toContain("Крипто/TON");
     expect(cryptoContacts).toContain("seed-фразу");
     expect(grantTrusted).toContain("Поставьте паузу");
@@ -385,14 +420,65 @@ describe("Emergency Copilot v2 follow-up routing", () => {
 
   it("formats live-call follow-up as a guided post-call flow", () => {
     const more = buildEmergencyFollowUpText("more", 6, "ru");
-    const contacts = buildEmergencyFollowUpText("contacts", 6, "ru");
+    const bankContacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "bank",
+    });
     const script = buildEmergencyFollowUpText("script", 6, "ru");
+    const governmentMore = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const governmentContacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const governmentScript = buildEmergencyFollowUpText("script", 6, "ru", {
+      liveCallContext: "government",
+    });
+    const operatorMore = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "operator",
+    });
 
     expect(more).toContain("Хорошо, звонок завершён");
-    expect(more).toContain("перезвоните в банк только по номеру");
-    expect(contacts).toContain("Проверьте мой счёт");
-    expect(contacts).toContain("Не звоните на входящий номер");
-    expect(script).toContain("Я не обсуждаю деньги, коды, карты и приложения");
+    expect(more).toContain("официальный сайт, приложение или сохранённый номер организации");
+    expect(more).not.toContain("перезвоните в банк только по номеру");
+    expect(bankContacts).toContain("Проверьте мой счёт");
+    expect(bankContacts).toContain("Не звоните на входящий номер");
+    expect(script).toContain("Я не обсуждаю деньги, коды, документы, карты и приложения");
+    expect(governmentMore).toContain("официальный сайт, приложение или номер госоргана");
+    expect(governmentMore).not.toContain("перезвоните в банк");
+    expect(governmentContacts).toContain("Официальный канал госоргана");
+    expect(governmentContacts).not.toContain("Проверьте мой счёт");
+    expect(governmentScript).toContain("проверю запрос через официальный сайт");
+    expect(governmentScript).not.toContain("перезвонить в банк");
+    expect(operatorMore).toContain("номер оператора связи");
+  });
+
+  it("uses relative-specific live-call follow-up text for loved-one money pressure", () => {
+    const contacts = buildEmergencyFollowUpText("contacts", 6, "ru", {
+      liveCallContext: "relative",
+    });
+    const script = buildEmergencyFollowUpText("script", 6, "ru", {
+      liveCallContext: "relative",
+    });
+    const more = buildEmergencyFollowUpText("more", 6, "ru", {
+      liveCallContext: "relative",
+    });
+    const full = buildEmergencyFollowUpText("full", 6, "ru", {
+      liveCallContext: "relative",
+    });
+
+    expect(contacts).toContain("Проверить близкого безопасно");
+    expect(contacts).toContain("сохранённому номеру из контактов");
+    expect(script).toContain("сохранённому номеру");
+    expect(script).toContain("кодовое слово");
+    expect(more).toContain("перезвоните близкому");
+    expect(full).toContain("Все срочные шаги");
+    expect(full).toContain("сохранённому номеру из контактов");
+    expect(full).toContain("семейное кодовое слово");
+    expect(full).not.toContain("Национальный банк Узбекистана");
+    expect(contacts).not.toContain(
+      "официальный сайт, приложение или сохранённый номер организации",
+    );
+    expect(script).not.toContain("официальному номеру");
   });
 
   it("keeps active live-call buttons focused on ending the call first", () => {

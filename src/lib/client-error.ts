@@ -14,9 +14,17 @@ function getErrorMessage(error: unknown): string {
       : String(error ?? "");
 }
 
-export function safeCheckErrorMessage(error: unknown, lang: Lang): string {
+export type SafeClientErrorReason = "rate_limited" | "unavailable";
+
+export function safeClientErrorReason(error: unknown): SafeClientErrorReason {
   const msg = getErrorMessage(error).toLowerCase();
-  if (msg.includes("rate_limited") || msg.includes("429")) return t("rate_limited", lang);
+  if (msg.includes("rate_limited") || msg.includes("429")) return "rate_limited";
+
+  return "unavailable";
+}
+
+export function safeCheckErrorMessage(error: unknown, lang: Lang): string {
+  if (safeClientErrorReason(error) === "rate_limited") return t("rate_limited", lang);
 
   return CHECK_UNAVAILABLE[lang];
 }

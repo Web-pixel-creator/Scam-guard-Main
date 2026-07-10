@@ -37,6 +37,7 @@ import {
   handleVoice,
 } from "@/lib/telegram/handlers/check";
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
+import { handleConversationScenarioStep } from "@/lib/telegram/handlers/conversation";
 import {
   handleScenarioStep as handleReportScenarioStep,
   handleScenarioImage as handleReportScenarioImage,
@@ -75,6 +76,10 @@ async function handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void> 
       ...ctx,
       session: { ...ctx.session, scenario: "none", scenarioStep: 0 },
     });
+    return;
+  }
+  if (ctx.session.scenario === "conversation_check") {
+    await handleConversationScenarioStep(text, ctx);
     return;
   }
   await handleReportScenarioStep(text, ctx);

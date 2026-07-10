@@ -4,10 +4,12 @@ import { randomBytes } from "node:crypto";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { getEmbedAllowedFrameAncestors } from "./lib/config.server";
 import {
   addScriptNonceToContentSecurityPolicy,
+  buildEmbedCheckContentSecurityPolicy,
   DEFAULT_CONTENT_SECURITY_POLICY,
-  EMBED_CHECK_CONTENT_SECURITY_POLICY,
+  parseEmbedFrameAncestorAllowlist,
 } from "./lib/security/csp";
 import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
 
@@ -38,12 +40,13 @@ function withSecurityHeaders(response: Response, pathname = "", cspNonce?: strin
     );
   }
   if (pathname === EMBED_CHECK_PATH) {
+    const embedPolicy = buildEmbedCheckContentSecurityPolicy(
+      parseEmbedFrameAncestorAllowlist(getEmbedAllowedFrameAncestors()),
+    );
     response.headers.delete("X-Frame-Options");
     response.headers.set(
       "Content-Security-Policy",
-      cspNonce
-        ? addScriptNonceToContentSecurityPolicy(EMBED_CHECK_CONTENT_SECURITY_POLICY, cspNonce)
-        : EMBED_CHECK_CONTENT_SECURITY_POLICY,
+      cspNonce ? addScriptNonceToContentSecurityPolicy(embedPolicy, cspNonce) : embedPolicy,
     );
   }
   return response;

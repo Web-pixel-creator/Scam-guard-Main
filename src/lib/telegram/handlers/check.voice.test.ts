@@ -48,14 +48,26 @@ vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: hoisted.saveSession,
   loadSession: vi.fn(),
   resetScenario: vi.fn(),
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 import { handleCheck, handleVoice } from "./check";
+import { bt } from "../bot-i18n";
+import {
+  VOICE_STT_PROVIDER_REPLAY_FIXTURES,
+  isVoiceSttNegatedAckReplayFixture,
+  isVoiceSttNormalReplayFixture,
+  isVoiceSttPanicReplayFixture,
+} from "../voice-stt-provider-fixtures";
 
-function ctx(): HandlerCtx {
+function ctx(lang: Session["lang"] = "ru"): HandlerCtx {
   const session: Session = {
     telegramUserId: 42,
-    lang: "ru",
+    lang,
     scenario: "none",
     scenarioStep: 0,
     scenarioData: {},
@@ -74,6 +86,49 @@ beforeEach(() => {
 });
 
 describe("handleVoice", () => {
+  it.each(["Мне звонят из налоговой и просят данные", "Звонит из налоговой и просит данные"])(
+    "uses government live-call copy when the caller claims to be tax office: %s",
+    async (text) => {
+      await handleCheck(text, ctx());
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({
+            lastPanicId: 6,
+            lastLiveCallContext: "government",
+          }),
+        }),
+      );
+
+      const joined = hoisted.sendMessage.mock.calls
+        .map(([message]) => String(message.text))
+        .join("\n");
+      expect(joined).toContain("налоговая, госорган или полиция");
+      expect(joined).not.toContain("настоящий банк спокойно дождётся");
+    },
+  );
+
+  it("keeps government live-call context for text follow-up questions", async () => {
+    const followUpCtx = ctx();
+    followUpCtx.session.scenarioData = {
+      lastPanicId: 6,
+      lastPanicAt: new Date().toISOString(),
+      lastLiveCallContext: "government",
+    };
+
+    await handleCheck("что дальше", followUpCtx);
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
+    expect(joined).toContain("официальный сайт, приложение или номер госоргана");
+    expect(joined).not.toContain("перезвоните в банк");
+  });
+
   it("transcribes voice notes and runs the normal check pipeline", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,
@@ -93,7 +148,7 @@ describe("handleVoice", () => {
       "data:audio/ogg;base64,AAAA",
       "ru",
       "tg:42",
-      expect.objectContaining({ timeoutMs: expect.any(Number) }),
+      expect.objectContaining({ timeoutMs: 12_000 }),
     );
     expect(hoisted.runCheck).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -135,6 +190,62 @@ describe("handleVoice", () => {
     expect(sentTexts.findIndex((text) => text.includes("Распознаю голос"))).toBeLessThan(
       sentTexts.findIndex((text) => text.includes("Я распознал голос")),
     );
+  });
+
+  it("trims long voice transcript previews on a word boundary with an ellipsis", async () => {
+    const transcript = `${"добрый ".repeat(25)}неизвестный профиль просит SMS код и данные карты`;
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 34,
+      mimeType: "audio/ogg",
+      fileUniqueId: "long-voice-preview",
+    });
+
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: transcript,
+        type: "text",
+      }),
+    );
+    const transcriptNote = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .find((text) => text.includes("Я распознал голос"));
+
+    expect(transcriptNote).toContain("…");
+    expect(transcriptNote).not.toContain("неизв");
+  });
+
+  it("adds a redacted hook phrase to voice check results", async () => {
+    const transcript =
+      "The courier says open https://evil.example/pay, message @seller, and pay by card only 123456.";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+    hoisted.runCheck.mockResolvedValue({
+      ...FAKE_RESULT,
+      display: "delivery card-only voice transcript",
+      level: "suspicious",
+      score: 35,
+      reasons: ["fake_delivery_payment"],
+      explanation: null,
+    });
+
+    await handleVoice("voice-file-id", ctx("en"), {
+      fileSize: 1024,
+      duration: 8,
+      mimeType: "audio/ogg",
+      fileUniqueId: "voice-hook-redaction",
+    });
+
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
+
+    expect(joined).toContain("Key phrase from the voice note");
+    expect(joined).toContain("card only");
+    expect(joined).not.toContain("evil.example");
+    expect(joined).not.toContain("@seller");
+    expect(joined).not.toContain("123456");
   });
 
   it("keeps delivery card-only voice transcripts in the suspicious lane", async () => {
@@ -296,6 +407,210 @@ describe("handleVoice", () => {
     }
   });
 
+  it("uses government live-call copy for voice transcripts about tax-office calls", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({
+      text: "Hozir menga soliqdan qo'ng'iroq qilishyapti va ma'lumot so'rashyapti",
+    });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "uz-tax-call-voice",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({
+          lastPanicId: 6,
+          lastLiveCallContext: "government",
+        }),
+      }),
+    );
+
+    const joined = hoisted.sendMessage.mock.calls
+      .map(([message]) => String(message.text))
+      .join("\n");
+    expect(joined).toContain("налоговая, госорган или полиция");
+    expect(joined).not.toContain("настоящий банк спокойно дождётся");
+  });
+
+  it.each([
+    {
+      id: "uz-relative-urgent-money-call",
+      text: "Menga akam qo'ng'iroq qildi, shoshilinch pul so'radi",
+      context: "relative",
+    },
+    {
+      id: "uz-operator-sim-block-call",
+      text: "Menga Beeline operatori telefon qildi, raqam bloklanadi deyapti",
+      context: "operator",
+    },
+    {
+      id: "uz-government-soliq-code-call",
+      text: "Menga Soliqdan qo'ng'iroq qildi, SMS kod so'radi",
+      context: "government",
+    },
+    {
+      id: "uz-relative-sister-car-urgent-transfer-call",
+      text: "Menga singlim qo'ng'iroq qilyapti. U mashinasi bilan muammo bo'lib qolganini aytib, zudlik bilan pul o'tkazishimni so'rayapti.",
+      context: "relative",
+    },
+  ] as const)(
+    "keeps the right UZ live-call context for short voice wording: $id",
+    async ({ id, text, context }) => {
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+
+      await handleVoice("voice-file-id", ctx("uz"), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: id,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({
+            lastPanicId: 6,
+            lastLiveCallContext: context,
+          }),
+        }),
+      );
+    },
+  );
+
+  it("checks a longer Uzbek channel-admin voice asking for an SMS code", async () => {
+    const text =
+      "Kanal administratori menga yozmoqda. U mendan SMS kodini yuborishimni so'rayapti.";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text });
+    hoisted.runCheck.mockResolvedValue({
+      ...FAKE_RESULT,
+      level: "high_risk",
+      score: 55,
+      reasons: ["asks_for_sms_code", "unknown_sender"],
+      display: text,
+    });
+
+    await handleVoice("voice-file-id", ctx("uz"), {
+      fileSize: 1024,
+      duration: 5,
+      fileUniqueId: "uz-channel-admin-sms-code-request",
+    });
+
+    expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+      }),
+    );
+    expect(hoisted.runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: text,
+        type: "text",
+        lang: "uz",
+        channel: "telegram",
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ text: expect.stringContaining("Yuqori xavf") }),
+    );
+  });
+
+  it("routes production-like STT emergency corpus without needing raw audio fixtures", async () => {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(isVoiceSttPanicReplayFixture)) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
+        fileSize: 1024,
+        duration: 9,
+        fileUniqueId: fixture.id,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenario: "none",
+          scenarioData: expect.objectContaining({ lastPanicId: fixture.expectation.panicId }),
+        }),
+      );
+    }
+  });
+
+  it("acknowledges negated STT phrases without running the generic risk card", async () => {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(
+      isVoiceSttNegatedAckReplayFixture,
+    )) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: fixture.id,
+      });
+
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: bt("voice_negated_done_ack", fixture.lang),
+        }),
+      );
+      expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+        }),
+      );
+    }
+  });
+
+  it("passes non-emergency STT replay phrases into the normal check pipeline", async () => {
+    for (const fixture of VOICE_STT_PROVIDER_REPLAY_FIXTURES.filter(
+      isVoiceSttNormalReplayFixture,
+    )) {
+      vi.clearAllMocks();
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: fixture.transcript });
+      hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
+      hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+
+      await handleVoice("voice-file-id", ctx(fixture.lang), {
+        fileSize: 1024,
+        duration: 8,
+        fileUniqueId: fixture.id,
+      });
+
+      expect(hoisted.runCheck).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: fixture.transcript,
+          type: "text",
+          lang: fixture.lang,
+          channel: "telegram",
+        }),
+      );
+      expect(hoisted.saveSession).not.toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          scenarioData: expect.objectContaining({ lastPanicId: expect.any(Number) }),
+        }),
+      );
+      expect(hoisted.sendMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: bt("voice_negated_done_ack", fixture.lang),
+        }),
+      );
+    }
+  });
+
   it("reuses a cached transcript for the same Telegram file_unique_id", async () => {
     await handleVoice("voice-file-id", ctx(), {
       fileSize: 1024,
@@ -323,6 +638,39 @@ describe("handleVoice", () => {
     expect(hoisted.runCheck).toHaveBeenCalledWith(
       expect.objectContaining({ input: "caller asks for SMS code" }),
     );
+  });
+
+  it("shares an in-flight STT request for the same Telegram file_unique_id", async () => {
+    let resolveTranscript!: (value: { text: string }) => void;
+    hoisted.transcribeVoiceCore.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTranscript = resolve;
+        }),
+    );
+
+    const first = handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-inflight-voice",
+    });
+
+    await vi.waitFor(() => expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1));
+
+    const second = handleVoice("voice-file-id-again", ctx(), {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-inflight-voice",
+    });
+
+    resolveTranscript({ text: "caller asks for SMS code" });
+    await Promise.all([first, second]);
+
+    expect(hoisted.getFile).toHaveBeenCalledTimes(1);
+    expect(hoisted.downloadFileAsDataUrl).toHaveBeenCalledTimes(1);
+    expect(hoisted.checkSharedRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.runCheck).toHaveBeenCalledTimes(2);
   });
 
   it("logs voice timings without exposing transcript content", async () => {
@@ -388,6 +736,33 @@ describe("handleVoice", () => {
         keyboard: expect.arrayContaining([
           expect.arrayContaining([expect.objectContaining({ callback_data: "emergency" })]),
         ]),
+      }),
+    );
+  });
+
+  it("uses risky audio filename text as a fallback when transcription fails", async () => {
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: null });
+
+    await handleVoice("voice-file-id", ctx(), {
+      fileSize: 1024,
+      duration: 2,
+      mimeType: "audio/mpeg",
+      fileUniqueId: "uz-app-sms-permission",
+      fileName: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+    });
+
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        scenario: "none",
+        scenarioData: expect.objectContaining({ lastPanicId: 2 }),
+      }),
+    );
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        text: expect.stringContaining("Men ilovani o'rnatdim va SMSga ruxsat"),
       }),
     );
   });

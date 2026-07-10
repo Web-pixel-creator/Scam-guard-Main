@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   addScriptNonceToContentSecurityPolicy,
+  buildEmbedCheckContentSecurityPolicy,
   DEFAULT_CONTENT_SECURITY_POLICY,
   EMBED_CHECK_CONTENT_SECURITY_POLICY,
+  parseEmbedFrameAncestorAllowlist,
   UNICORN_STUDIO_SCRIPT_SRC,
 } from "./csp";
 
@@ -34,7 +36,7 @@ describe("content security policy", () => {
     expect(DEFAULT_CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
   });
 
-  it("keeps the embeddable widget frameable without allowing inline scripts", () => {
+  it("keeps the embeddable widget frameable only for self/dev by default", () => {
     const scriptSrc = directive(EMBED_CHECK_CONTENT_SECURITY_POLICY, "script-src");
     const styleSrc = directive(EMBED_CHECK_CONTENT_SECURITY_POLICY, "style-src");
     const styleSrcElem = directive(EMBED_CHECK_CONTENT_SECURITY_POLICY, "style-src-elem");
@@ -46,9 +48,31 @@ describe("content security policy", () => {
     expect(styleSrc).not.toContain("'unsafe-inline'");
     expect(styleSrcElem).not.toContain("'unsafe-inline'");
     expect(styleSrcAttr).toBe("style-src-attr 'unsafe-inline'");
-    expect(frameAncestors).toContain("https:");
+    expect(frameAncestors).toBe("frame-ancestors 'self' http://localhost:* http://127.0.0.1:*");
+    expect(frameAncestors).not.toContain("https:");
     expect(frameAncestors).toContain("http://localhost:*");
     expect(EMBED_CHECK_CONTENT_SECURITY_POLICY).toContain("object-src 'none'");
+  });
+
+  it("builds embed frame-ancestors from explicit HTTPS partner origins", () => {
+    const policy = buildEmbedCheckContentSecurityPolicy([
+      "https://mahalla.example",
+      "https://bank.example:8443",
+    ]);
+    const frameAncestors = directive(policy, "frame-ancestors");
+
+    expect(frameAncestors).toBe(
+      "frame-ancestors 'self' https://mahalla.example https://bank.example:8443 http://localhost:* http://127.0.0.1:*",
+    );
+    expect(frameAncestors.split(/\s+/)).not.toContain("https:");
+  });
+
+  it("normalizes and rejects unsafe embed frame ancestor allowlist entries", () => {
+    expect(
+      parseEmbedFrameAncestorAllowlist(
+        "https://trusted.example/path, http://evil.example, javascript:alert(1), https://trusted.example",
+      ),
+    ).toEqual(["https://trusted.example"]);
   });
 
   it("adds a request nonce to script-src without allowing unsafe-inline", () => {

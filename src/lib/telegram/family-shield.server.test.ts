@@ -103,9 +103,13 @@ vi.mock("@/lib/telegram/api.server", async (importOriginal) => {
 
 import {
   acceptFamilyInvite,
+  buildFamilyAlreadyLinkedKeyboard,
+  buildFamilyCodewordGuideText,
   buildFamilyInviteKeyboard,
+  buildFamilySetupKeyboard,
   buildTrustedAlertText,
   createFamilyInvite,
+  FAMILY_CB,
   notifyTrustedContact,
   parseFamilyStartArg,
   revokeFamilyShieldForTrusted,
@@ -164,6 +168,26 @@ describe("Family Shield v1", () => {
     expect(shareUrl.searchParams.get("text")).toContain("Прими приглашение");
   });
 
+  it("offers an offline codeword guide without storing the secret", () => {
+    const setupCallbacks = buildFamilySetupKeyboard("ru")
+      .flat()
+      .map((button) => button.callback_data);
+    const linkedCallbacks = buildFamilyAlreadyLinkedKeyboard("ru")
+      .flat()
+      .map((button) => button.callback_data);
+    const text = buildFamilyCodewordGuideText("ru");
+
+    expect(setupCallbacks).toContain(FAMILY_CB.codewordGuide);
+    expect(linkedCallbacks).toContain(FAMILY_CB.codewordGuide);
+    expect(bt("family_menu_text", "ru")).toContain("Как проверить голос");
+    expect(text).toContain("Не пишите кодовое слово в бот");
+    expect(text).toContain("сохранённому номеру");
+    expect(text).toContain("личный вопрос");
+    expect(text).not.toMatch(/введите|пришлите.*кодовое|сохраню|запомню/i);
+    expect(buildFamilyCodewordGuideText("en")).toContain("Do not write the code word");
+    expect(buildFamilyCodewordGuideText("uz")).toContain("Maxfiy so'zni botga");
+  });
+
   it("rejects linking the guardian account as its own trusted contact", async () => {
     const invite = await createFamilyInvite(1001);
     expect(invite.ok).toBe(true);
@@ -207,8 +231,56 @@ describe("Family Shield v1", () => {
     expect(hoisted.sent).toHaveLength(1);
     expect(hoisted.sent[0].text).toContain("Ishonch Guard");
     expect(hoisted.sent[0].text).toContain("Akmal");
+    expect(JSON.stringify(hoisted.sent[0].keyboard)).toContain("family:trusted_ack");
     expect(JSON.stringify(hoisted.sent[0].keyboard)).toContain("family:trusted_opt_out");
     expect(hoisted.sent[0].text).not.toMatch(/\+998|https?:\/\/|@fake|123456|CVV 123/i);
+  });
+
+  it("allows a longer proactive cooldown without blocking manual alerts after the default window", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-07-09T12:00:00.000Z"));
+      const invite = await createFamilyInvite(2002);
+      expect(invite.ok).toBe(true);
+      if (!invite.ok) return;
+      const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+      expect(token).toBeTruthy();
+
+      const accepted = await acceptFamilyInvite({
+        token: token!,
+        trustedTelegramUserId: 3002,
+        trustedChatId: 4002,
+      });
+      expect(accepted.ok).toBe(true);
+
+      const proactiveCooldownMs = 30 * 60 * 1000;
+      const first = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+        cooldownMs: proactiveCooldownMs,
+      });
+
+      vi.setSystemTime(new Date("2026-07-09T12:04:00.000Z"));
+      const secondProactive = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+        cooldownMs: proactiveCooldownMs,
+      });
+      const manualAfterDefaultWindow = await notifyTrustedContact({
+        guardianTelegramUserId: 2002,
+        lang: "ru",
+        guardianDisplayName: "Akmal",
+      });
+
+      expect(first).toEqual({ ok: true, trustedChatId: 4002 });
+      expect(secondProactive).toEqual({ ok: false, reason: "cooldown" });
+      expect(manualAfterDefaultWindow).toEqual({ ok: true, trustedChatId: 4002 });
+      expect(hoisted.sent).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not create a second invite while an active trusted contact exists", async () => {
@@ -273,6 +345,8 @@ describe("Family Shield v1", () => {
 
     expect(text).toContain("позвоните");
     expect(text).toContain("Не просите пересылать SMS-коды");
+    expect(text).toContain("кодовое слово");
+    expect(text).toContain("сохранённому номеру");
     expect(text).not.toMatch(/мошенник|точно скам/i);
   });
 });

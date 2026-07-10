@@ -1,5 +1,14 @@
 import process from "node:process";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { checkProxyIpHeaderTrust } from "./security-smoke-env";
+
+// Usage:
+//   railway run npm run prod:security-smoke
+//   railway run npm run prod:security-smoke -- https://your-app.example.com
+//   PUBLIC_APP_URL=https://your-app.example.com railway run npm run prod:security-smoke
+//
+// Passing a public URL enables additional HTTP security-header checks. Without
+// a URL, the smoke keeps the historical Supabase/RLS-only behavior.
 
 type CheckResult = {
   label: string;
@@ -28,13 +37,89 @@ function record(label: string, ok: boolean, detail: string): void {
   console.log(`${ok ? "OK" : "FAIL"} ${label}: ${detail}`);
 }
 
+function recordResult(result: CheckResult): void {
+  record(result.label, result.ok, result.detail);
+}
+
+function cspDirective(policy: string, name: string): string {
+  return (
+    policy
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name} `)) ?? ""
+  );
+}
+
+function optionalPublicUrl(): { value: string | null; error: string | null } {
+  const raw =
+    process.argv.slice(2).find((arg) => !arg.startsWith("--")) ??
+    process.env.PUBLIC_APP_URL?.trim() ??
+    "";
+  if (!raw) return { value: null, error: null };
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:") {
+      return { value: null, error: `public URL must use https, got ${parsed.protocol}` };
+    }
+    return {
+      value: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
+      error: null,
+    };
+  } catch {
+    return { value: null, error: `invalid public URL: ${raw}` };
+  }
+}
+
+async function checkPublicSecurityHeaders(publicUrl: string): Promise<void> {
+  const healthz = await fetch(`${publicUrl}/healthz`);
+  const healthzCsp = healthz.headers.get("content-security-policy") ?? "";
+  const healthzScriptSrc = cspDirective(healthzCsp, "script-src");
+
+  record(
+    "public healthz security headers",
+    healthz.status === 200 &&
+      healthz.headers.get("x-content-type-options") === "nosniff" &&
+      healthz.headers.get("x-frame-options") === "DENY" &&
+      healthz.headers.get("referrer-policy") === "strict-origin-when-cross-origin" &&
+      healthz.headers.get("permissions-policy") === "camera=(), microphone=(), geolocation=()" &&
+      healthz.headers.get("strict-transport-security") ===
+        "max-age=63072000; includeSubDomains; preload" &&
+      cspDirective(healthzCsp, "frame-ancestors") === "frame-ancestors 'none'" &&
+      !healthzScriptSrc.includes("'unsafe-inline'"),
+    `status=${healthz.status}, frame=${cspDirective(healthzCsp, "frame-ancestors") || "missing"}`,
+  );
+
+  const embed = await fetch(`${publicUrl}/embed/check`);
+  const embedCsp = embed.headers.get("content-security-policy") ?? "";
+  const embedFrameAncestors = cspDirective(embedCsp, "frame-ancestors");
+  const embedScriptSrc = cspDirective(embedCsp, "script-src");
+
+  record(
+    "public embed security headers",
+    embed.status === 200 &&
+      embed.headers.get("x-content-type-options") === "nosniff" &&
+      embed.headers.get("x-frame-options") === null &&
+      embed.headers.get("referrer-policy") === "strict-origin-when-cross-origin" &&
+      embed.headers.get("permissions-policy") === "camera=(), microphone=(), geolocation=()" &&
+      embed.headers.get("strict-transport-security") ===
+        "max-age=63072000; includeSubDomains; preload" &&
+      embedFrameAncestors.startsWith("frame-ancestors 'self'") &&
+      !embedFrameAncestors.split(/\s+/).includes("https:") &&
+      !embedScriptSrc.includes("'unsafe-inline'"),
+    `status=${embed.status}, frame=${embedFrameAncestors || "missing"}`,
+  );
+}
+
 function expectedDeny(
   error: { code?: string; message?: string; details?: string } | null,
 ): boolean {
   if (!error) return false;
   const text = `${error.code ?? ""} ${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
   return (
+    error.code === "PGRST205" ||
     text.includes("permission denied") ||
+    text.includes("could not find the table") ||
     text.includes("row-level security") ||
     text.includes("violates row-level security") ||
     text.includes("not allowed")
@@ -88,7 +173,100 @@ async function expectServiceCanCount(
   );
 }
 
+async function listAllAuthUsers(service: SupabaseClient): Promise<User[]> {
+  const users: User[] = [];
+  const perPage = 1000;
+
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await service.auth.admin.listUsers({ page, perPage });
+    if (error) throw new Error(`auth admin listUsers failed: ${error.message}`);
+
+    const batch = data.users ?? [];
+    users.push(...batch);
+    if (batch.length < perPage) return users;
+  }
+}
+
+function normalizeEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isEmailConfirmed(user: User | undefined): boolean {
+  return Boolean(user?.email_confirmed_at ?? user?.confirmed_at);
+}
+
+async function checkAdminAuthPolicy(service: SupabaseClient): Promise<void> {
+  const { data: allowlistRows, error: allowlistError } = await service
+    .from("admin_allowlist")
+    .select("email");
+  if (allowlistError) {
+    record(
+      "service can read admin allowlist",
+      false,
+      `failed (${allowlistError.code ?? "no_code"})`,
+    );
+    return;
+  }
+  record(
+    "service can read admin allowlist",
+    true,
+    `rows=${Array.isArray(allowlistRows) ? allowlistRows.length : 0}`,
+  );
+
+  const { data: adminRoleRows, error: adminRolesError } = await service
+    .from("user_roles")
+    .select("user_id,role")
+    .eq("role", "admin");
+  if (adminRolesError) {
+    record("service can read admin roles", false, `failed (${adminRolesError.code ?? "no_code"})`);
+    return;
+  }
+
+  const authUsers = await listAllAuthUsers(service);
+  const usersById = new Map(authUsers.map((user) => [user.id, user]));
+  const allowlistEmails = new Set(
+    (allowlistRows ?? [])
+      .map((row) => normalizeEmail((row as { email?: unknown }).email))
+      .filter(Boolean),
+  );
+  const adminRoles = adminRoleRows ?? [];
+  const outsideAllowlist = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    return !allowlistEmails.has(normalizeEmail(user?.email));
+  });
+  const unconfirmedAllowlisted = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    const email = normalizeEmail(user?.email);
+    return allowlistEmails.has(email) && !isEmailConfirmed(user);
+  });
+  const confirmedAllowlistedAdminCount = adminRoles.filter((row) => {
+    const user = usersById.get(String(row.user_id));
+    return allowlistEmails.has(normalizeEmail(user?.email)) && isEmailConfirmed(user);
+  }).length;
+
+  record(
+    "admin roles require confirmed allowlist",
+    outsideAllowlist.length === 0 &&
+      unconfirmedAllowlisted.length === 0 &&
+      confirmedAllowlistedAdminCount > 0,
+    `admins=${adminRoles.length}, confirmed_allowlisted=${confirmedAllowlistedAdminCount}, outside_allowlist=${outsideAllowlist.length}, unconfirmed_allowlisted=${unconfirmedAllowlisted.length}`,
+  );
+}
+
 async function main(): Promise<void> {
+  console.log("Production security smoke target: Supabase project from env");
+  console.log("Secret values are read from env and are not printed.");
+
+  recordResult(checkProxyIpHeaderTrust(process.env));
+  const publicUrl = optionalPublicUrl();
+  if (publicUrl.error) {
+    record("public security headers target", false, publicUrl.error);
+  } else if (publicUrl.value) {
+    await checkPublicSecurityHeaders(publicUrl.value);
+  } else {
+    console.log("SKIP public security headers: pass PUBLIC_APP_URL or first argument to enable.");
+  }
+
   const supabaseUrl = env("SUPABASE_URL");
   const anonKey = publicKey();
   const serviceRoleKey = env("SUPABASE_SERVICE_ROLE_KEY");
@@ -100,9 +278,6 @@ async function main(): Promise<void> {
   };
   const anon = createClient(supabaseUrl, anonKey, clientOptions);
   const service = createClient(supabaseUrl, serviceRoleKey, clientOptions);
-
-  console.log("Production security smoke target: Supabase project from env");
-  console.log("Secret values are read from env and are not printed.");
 
   await expectNoRowsOrDenied(
     anon,
@@ -146,6 +321,14 @@ async function main(): Promise<void> {
     "rate_limit_buckets",
     "scope,key_hash",
   );
+  await expectNoRowsOrDenied(
+    anon,
+    "anon cannot read embed_origin_events",
+    "embed_origin_events",
+    "id,referrer_origin,referrer_host",
+  );
+  await expectNoRowsOrDenied(anon, "anon cannot read admin_allowlist", "admin_allowlist", "email");
+  await expectNoRowsOrDenied(anon, "anon cannot read user_roles", "user_roles", "user_id,role");
 
   const { data: hiddenEntities, error: hiddenEntitiesError } = await anon
     .from("entities")
@@ -263,6 +446,13 @@ async function main(): Promise<void> {
     "rate_limit_buckets",
     "scope",
   );
+  await expectServiceCanCount(
+    service,
+    "service can count embed_origin_events",
+    "embed_origin_events",
+    "id",
+  );
+  await checkAdminAuthPolicy(service);
 
   const { error: serviceStatsError } = await service.rpc("get_check_stats");
   record(

@@ -71,6 +71,7 @@ describe("Telegram Bot QA Matrix v1", () => {
         CB.showLang,
         CB.howItWorks,
         CB.digest,
+        CB.trainer,
         CB.familyMenu,
       ]),
     );
@@ -79,19 +80,25 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(formatHelp("ru")).toContain("/panic");
     expect(formatHelp("ru")).toContain("/family");
     expect(formatHelp("ru")).toContain("/digest");
+    expect(formatHelp("ru")).toContain("/trainer");
     expect(formatHelp("ru")).toContain("/appeal");
   });
 
   it("gives a useful fallback for unsupported video and audio", () => {
     const text = bt("out_of_scope", "ru");
+    const mediaTips = bt("media_capture_help", "ru");
     const keyboard = buildUnsupportedMediaKeyboard("ru");
 
+    expect(text).toContain("не смотрю весь ролик");
+    expect(text).toContain("кадр-превью");
     expect(text).toContain("аудиофайл до 60 секунд");
     expect(text).toContain("скрин кадра");
     expect(text).toContain("QR, username, реквизиты");
     expect(text).toContain("гарантированный доход");
     expect(text).toContain("что обещают");
     expect(text).toContain("что просят сделать");
+    expect(mediaTips).toContain("кадр-превью");
+    expect(mediaTips).toContain("не весь ролик");
     expect(callbacks(keyboard)).toEqual([CB.checkAnother, CB.emergency, CB.report, CB.mediaTips]);
   });
 
@@ -104,6 +111,8 @@ describe("Telegram Bot QA Matrix v1", () => {
       imageTriageCallback("casino"),
       imageTriageCallback("wallet"),
       imageTriageCallback("bank"),
+      imageTriageCallback("telegram_account"),
+      imageTriageCallback("telegram_profile"),
       imageTriageCallback("qr_menu"),
       CB.mediaTips,
       CB.checkAnother,
@@ -114,6 +123,26 @@ describe("Telegram Bot QA Matrix v1", () => {
     expect(text).toContain("wallet");
     expect(text).toContain("следующего экрана");
     expect(text).not.toMatch(/точно мошенник|создан недавно|есть жалобы/i);
+  });
+
+  it("gives Telegram profile screenshots a conservative next-step triage answer", () => {
+    const text = buildImageTriageText("telegram_profile", "en");
+
+    expect(text).toContain("Telegram profile or chat");
+    expect(text).toContain("clues, not proof of fraud");
+    expect(text).toContain("What matters is the request");
+    expect(text).toContain("code, money, card data, APK, link/QR, or urgency");
+    expect(text).not.toMatch(/definitely a scammer|created recently|has reports/i);
+  });
+
+  it("gives unreadable Telegram account screenshots account-takeover guidance", () => {
+    const text = buildImageTriageText("telegram_account", "en");
+
+    expect(text).toContain("Telegram account");
+    expect(text).toContain("account-takeover phishing");
+    expect(text).toContain("do not tap the button or enter a code");
+    expect(text).toContain("Settings");
+    expect(text).toContain("Devices");
   });
 
   it("keeps image triage category answers compact instead of repeating the full menu", () => {
@@ -327,7 +356,9 @@ describe("Telegram Bot QA Matrix v1", () => {
       const actionCallbacks = callbacks(formatted.keyboard);
 
       expect(formatted.text.length).toBeLessThanOrEqual(4096);
-      expect(actionCallbacks).toEqual(expect.arrayContaining([CB.report, CB.checkAnother, CB.why]));
+      expect(actionCallbacks).toEqual(
+        expect.arrayContaining([CB.report, CB.checkAnother, CB.why, CB.explainSimple]),
+      );
       if (level === "high_risk") {
         expect(actionCallbacks).toContain(CB.emergency);
       }

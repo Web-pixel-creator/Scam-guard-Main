@@ -28,7 +28,7 @@ import {
   type InlineQueryCtx,
   type DispatchDeps,
 } from "./router";
-import type { Session, Scenario } from "./session.server";
+import { withSessionChatScope, type Session, type Scenario } from "./session.server";
 
 // ---------------------------------------------------------------------------
 // Test helpers — build valid Sessions and Telegram updates
@@ -50,7 +50,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 /** A `message` update from `from.id`/`chat.id` carrying the given message fields. */
 function messageUpdate(
   message: Record<string, unknown>,
-  opts: { userId?: number; chatId?: number } = {},
+  opts: { userId?: number; chatId?: number; chatType?: "private" | "group" | "supergroup" } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   const chatId = opts.chatId ?? userId;
@@ -59,7 +59,7 @@ function messageUpdate(
     message: {
       message_id: 1,
       from: { id: userId },
-      chat: { id: chatId },
+      chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) },
       ...message,
     },
   } as unknown as TelegramUpdate;
@@ -68,7 +68,7 @@ function messageUpdate(
 /** A `callback_query` update. */
 function callbackUpdate(
   data: string,
-  opts: { userId?: number; chatId?: number } = {},
+  opts: { userId?: number; chatId?: number; chatType?: "private" | "group" | "supergroup" } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   const chatId = opts.chatId ?? userId;
@@ -77,7 +77,7 @@ function callbackUpdate(
     callback_query: {
       id: "cb1",
       from: { id: userId },
-      message: { chat: { id: chatId } },
+      message: { chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) } },
       data,
     },
   } as unknown as TelegramUpdate;
@@ -199,6 +199,8 @@ describe("parseCommand (R4.9)", () => {
       "/help",
       "/chatid",
       "/call",
+      "/conversation",
+      "/trainer",
       "/safety",
       "/family",
       "/appeal",
@@ -384,6 +386,28 @@ describe("decideRoute content types (no active scenario)", () => {
     expect(action).toEqual({ kind: "image", fileId: "doc1" });
   });
 
+  it.each([
+    ["null byte hidden APK", "app.apk\u0000.jpg", "image/jpeg"],
+    ["double extension APK", "photo.jpg.apk", "image/jpeg"],
+    ["hidden dangerous segment APK", "app.apk.jpg", "image/jpeg"],
+    ["trailing whitespace APK", "update.apk ", "image/jpeg"],
+    ["Windows executable image spoof", "setup.exe", "image/png"],
+    ["Windows shortcut image spoof", "invoice.lnk.jpg", "image/jpeg"],
+    ["Cyrillic homoglyph APK", "app.арк", "image/jpeg"],
+    ["audio MIME APK spoof", "voice.apk", "audio/ogg"],
+  ])("keeps dangerous document filenames out of media routes: %s", (_label, fileName, mimeType) => {
+    const update = messageUpdate({
+      document: {
+        file_id: "spoofed-doc",
+        file_name: fileName,
+        mime_type: mimeType,
+        file_size: 2048,
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "outOfScope", reason: "document" });
+  });
+
   it("routes a contact card as a contact", () => {
     const update = messageUpdate({
       contact: { phone_number: "+998901234567", first_name: "Ali" },
@@ -434,6 +458,21 @@ describe("decideRoute content types (no active scenario)", () => {
     });
   });
 
+  it("keeps dangerous audio filenames out of the voice/STT route", () => {
+    const update = messageUpdate({
+      audio: {
+        file_id: "audio-evil",
+        file_unique_id: "audio-evil-unique",
+        file_name: "voice.apk",
+        file_size: 12345,
+        duration: 10,
+        mime_type: "audio/ogg",
+      },
+    });
+    const action = decideRoute(update, makeSession());
+    expect(action).toEqual({ kind: "outOfScope", reason: "document" });
+  });
+
   it("routes an audio document to the voice/STT handler", () => {
     const update = messageUpdate({
       document: {
@@ -451,6 +490,7 @@ describe("decideRoute content types (no active scenario)", () => {
       fileSize: 12345,
       mimeType: "audio/ogg",
       fileUniqueId: "doc-audio-unique-1",
+      fileName: "audio_2026-06-15_14-58-19.ogg",
     });
   });
 
@@ -469,6 +509,7 @@ describe("decideRoute content types (no active scenario)", () => {
       fileId: "doc-audio-2",
       fileSize: 54321,
       fileUniqueId: "doc-audio-unique-2",
+      fileName: "forwarded-voice.m4a",
     });
   });
 
@@ -509,6 +550,7 @@ describe("decideRoute content types (no active scenario)", () => {
       kind: "image",
       fileId: "video-thumb",
       mediaGroupId: "video-album-1",
+      mediaKind: "video_thumbnail",
     });
   });
 
@@ -747,6 +789,36 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls[0].arg).toBe("check me");
   });
 
+  it("dispatches audio filename metadata to handleVoice", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+    await dispatchUpdate(
+      messageUpdate({
+        audio: {
+          file_id: "audio-1",
+          file_unique_id: "audio-unique-1",
+          file_size: 1024,
+          duration: 2,
+          mime_type: "audio/mpeg",
+          file_name: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+        },
+      }),
+      deps,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleVoice");
+    expect(calls[0].arg).toBe("audio-1");
+    expect(calls[0].extra).toEqual(
+      expect.objectContaining({
+        fileSize: 1024,
+        duration: 2,
+        mimeType: "audio/mpeg",
+        fileUniqueId: "audio-unique-1",
+        fileName: "Men ilovani o'rnatdim va SMSga ruxsat.mp3",
+      }),
+    );
+  });
+
   it("dispatches a plain meta-question to handleMetaIntent before handleCheck", async () => {
     const { deps, calls } = makeDeps(makeSession());
     await dispatchUpdate(
@@ -787,7 +859,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("dispatches a scenario-step message to handleScenarioStep when a scenario is active", async () => {
-    const session = makeSession({ scenario: "report_desc", scenarioStep: 2 });
+    const session = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 2,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(messageUpdate({ text: "это описание" }), deps);
     expect(calls).toHaveLength(1);
@@ -798,7 +874,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("dispatches report_desc screenshot evidence to handleScenarioImage", async () => {
-    const session = makeSession({ scenario: "report_desc", scenarioStep: 1 });
+    const session = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(
       messageUpdate({
@@ -816,7 +896,11 @@ describe("dispatchUpdate priority routing", () => {
   });
 
   it("resets await_check before dispatching a screenshot to handleImage", async () => {
-    const session = makeSession({ scenario: "await_check", scenarioStep: 0 });
+    const session = makeSession({
+      scenario: "await_check",
+      scenarioStep: 0,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(session);
     await dispatchUpdate(messageUpdate({ photo: [{ file_id: "full", file_size: 5000 }] }), deps);
     expect(resetScenario).toHaveBeenCalledWith(100);
@@ -853,8 +937,9 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
 
     await dispatchUpdate(messageUpdate({ text: "/help" }), deps);
 
-    // The session was loaded for the user.
-    expect(loadSession).toHaveBeenCalledWith(100);
+    // The session was loaded for the user (language hint comes from the
+    // update's `from.language_code`; absent here).
+    expect(loadSession).toHaveBeenCalledWith(100, undefined);
     // R15.4 — the active scenario was reset before handling the command.
     expect(resetScenario).toHaveBeenCalledTimes(1);
     expect(resetScenario).toHaveBeenCalledWith(100);
@@ -887,7 +972,11 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
   });
 
   it("does NOT reset when a non-command message arrives during a scenario", async () => {
-    const activeSession = makeSession({ scenario: "report_value", scenarioStep: 1 });
+    const activeSession = makeSession({
+      scenario: "report_value",
+      scenarioStep: 1,
+      scenarioData: withSessionChatScope({}, 100),
+    });
     const { deps, calls, resetScenario } = makeDeps(activeSession);
 
     await dispatchUpdate(messageUpdate({ text: "some answer" }), deps);
@@ -904,6 +993,57 @@ describe("dispatchUpdate — command interrupts an active scenario (R15.4)", () 
     await dispatchUpdate(messageUpdate({ text: "/start" }), deps);
     expect(resetScenario).not.toHaveBeenCalled();
     expect(calls[0].name).toBe("handleCommand");
+  });
+});
+
+describe("dispatchUpdate chat-scopes Telegram session state", () => {
+  it("clears unscoped active scenario state before a group message can use it", async () => {
+    const activeSession = makeSession({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { value: "+998901112233" },
+    });
+    const { deps, calls, resetScenario } = makeDeps(activeSession);
+
+    await dispatchUpdate(
+      messageUpdate(
+        { text: "групповой текст" },
+        { userId: 100, chatId: -100777, chatType: "supergroup" },
+      ),
+      deps,
+    );
+
+    expect(resetScenario).toHaveBeenCalledWith(100);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("групповой текст");
+    expect(calls[0].ctx).toMatchObject({
+      chatId: -100777,
+      chatType: "supergroup",
+      session: { scenario: "none", scenarioData: {} },
+    });
+  });
+
+  it("keeps active scenario state only in the chat where it was created", async () => {
+    const activeSession = makeSession({
+      scenario: "report_value",
+      scenarioStep: 0,
+      scenarioData: withSessionChatScope({}, -100777, "supergroup"),
+    });
+    const { deps, calls, resetScenario } = makeDeps(activeSession);
+
+    await dispatchUpdate(
+      messageUpdate(
+        { text: "@bad_actor" },
+        { userId: 100, chatId: -100777, chatType: "supergroup" },
+      ),
+      deps,
+    );
+
+    expect(resetScenario).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleScenarioStep");
+    expect(calls[0].arg).toBe("@bad_actor");
   });
 });
 

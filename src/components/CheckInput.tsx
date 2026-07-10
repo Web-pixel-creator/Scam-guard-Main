@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { safeCheckErrorMessage } from "@/lib/client-error";
+import { safeCheckErrorMessage, safeClientErrorReason } from "@/lib/client-error";
 import { useServerFn } from "@tanstack/react-start";
 import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
@@ -125,7 +125,7 @@ export function CheckInput({
         clearImage();
       }
     } catch (e: unknown) {
-      console.error(e);
+      console.error("ocr extraction failed", safeClientErrorReason(e));
       const msg = (e as { message?: string })?.message ?? "";
       if (msg.includes("rate_limited") || msg.includes("429")) setError(t("rate_limited", lang));
       else setError(t("ocr_failed", lang));
@@ -172,7 +172,7 @@ export function CheckInput({
       onResult?.(r as CheckResult);
       if (ocrPreviewOpen) clearImage();
     } catch (e: unknown) {
-      console.error(e);
+      console.error("check failed", safeClientErrorReason(e));
       setError(safeCheckErrorMessage(e, lang));
     } finally {
       setLoading(false);

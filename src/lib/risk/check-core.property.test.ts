@@ -55,7 +55,7 @@ vi.mock("./rate-limit", () => ({
   checkRateLimit: () => ({ ok: true, remaining: 10, retryAfterSec: 0 }),
 }));
 
-import { ocrExtractCore, runCheck } from "./check-core";
+import { analyzeImageCore, ocrExtractCore, runCheck } from "./check-core";
 
 // Unique rate-limit key per run (defensive, in case the mock above is bypassed).
 let keyCounter = 0;
@@ -81,6 +81,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 // Longest run of consecutive digits in a string (0 if none).
@@ -231,6 +232,7 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
   });
 
   it("OCR output is deterministically redacted after the AI provider response", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-api-key");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -256,6 +258,24 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(text).not.toContain("8600 1234 5678 9012");
     expect(text).not.toContain("+998901234567");
     expect(maxDigitRun(text)).toBeLessThanOrEqual(3);
+  });
+
+  it("rejects invalid image data URLs before any AI provider call", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-api-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      ocrExtractCore("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==", "ru", nextKey()),
+    ).resolves.toEqual({ text: null });
+    await expect(
+      analyzeImageCore("data:image/svg+xml;base64,PHN2Zy8+", "ru", nextKey()),
+    ).resolves.toBeNull();
+    await expect(
+      ocrExtractCore("data:image/png;base64,not valid base64 ***", "ru", nextKey()),
+    ).resolves.toEqual({ text: null });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("keeps Telegram invite surrounding text as scoring evidence", async () => {
@@ -370,6 +390,27 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.level).toBe("high_risk");
   });
 
+  it("confirmed reports override a verified official-looking contact", async () => {
+    hoisted.entityRow = {
+      report_count: 3,
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+    };
+
+    const result = await runCheck({
+      input: "+998712000044",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.verifiedContact).not.toBeNull();
+    expect(result.knownReports).toBe(3);
+    expect(result.reasons).toContain("known_reported");
+    expect(result.level).toBe("high_risk");
+  });
+
   it("enriches official-number near misses without changing risk scoring", async () => {
     const result = await runCheck({
       input: "1258",
@@ -390,6 +431,22 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.level).toBe("unknown");
     expect(result.score).toBe(0);
     expect(result.reasons).toEqual([]);
+  });
+
+  it("does not verify country-code-prefixed short codes as official contacts", async () => {
+    const result = await runCheck({
+      input: "+9981340",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+    });
+
+    expect(result.verifiedContact).toBeNull();
+    expect(result.phoneIntelligence?.officialDirectoryStatus).not.toBe("matched");
+    expect(result.reasons).not.toContain("valid_uz_phone");
+    expect(result.level).toBe("unknown");
+    expect(result.score).toBe(0);
   });
 
   it("card and remote-access requests also override official contact matches", async () => {

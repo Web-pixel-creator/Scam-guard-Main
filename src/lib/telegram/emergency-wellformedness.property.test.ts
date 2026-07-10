@@ -12,14 +12,13 @@ import fc from "fast-check";
 import {
   buildDetailedPanicScenarioText,
   buildPanicScenarioText,
-  type PanicScenarioId,
+  PANIC_SCENARIO_IDS,
 } from "@/lib/telegram/emergency";
 import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 
 /** Validates: Requirements 5.1, 5.2, 5.4, 5.5 */
 
 const LANGS = ["ru", "uz", "en"] as const;
-const SCENARIO_IDS: PanicScenarioId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 /**
  * Extract phone numbers and short codes from VERIFIED_CONTACTS for matching.
@@ -75,7 +74,7 @@ function startsWithUppercase(line: string): boolean {
 describe("Emergency text — Property 4: Emergency text well-formedness", () => {
   it("satisfies well-formedness constraints for all scenarios × langs (fast-check, ≥100 iterations)", () => {
     fc.assert(
-      fc.property(fc.constantFrom(...SCENARIO_IDS), fc.constantFrom(...LANGS), (id, lang) => {
+      fc.property(fc.constantFrom(...PANIC_SCENARIO_IDS), fc.constantFrom(...LANGS), (id, lang) => {
         const text = buildPanicScenarioText(id, lang);
 
         // (1) Compact first card: ≤900 characters
@@ -97,7 +96,7 @@ describe("Emergency text — Property 4: Emergency text well-formedness", () => 
   });
 
   it("keeps verified contacts in the detailed full checklist", () => {
-    for (const id of SCENARIO_IDS) {
+    for (const id of PANIC_SCENARIO_IDS) {
       for (const lang of LANGS) {
         const text = buildDetailedPanicScenarioText(id, lang);
         expect(

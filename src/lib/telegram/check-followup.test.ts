@@ -141,6 +141,36 @@ describe("last check follow-up router", () => {
     expect(text).not.toMatch(/score|threshold|порог|коэффициент|вес\s*(?:риска|=|:)/i);
   });
 
+  it("routes explain-like-grandmother phrases to a simpler last-check answer", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["asks_for_sms_code", "asks_to_scan_qr"] }),
+      now,
+    );
+
+    const action = classifyLastCheckFollowUp("Объясни как бабушке", scenarioWith(snapshot), now);
+
+    expect(action).toBe("simple_explain");
+    const text = buildLastCheckFollowUpText(action!, snapshot, "ru");
+    expect(text).toContain("Объясню совсем просто");
+    expect(text).toContain("ключ от ваших денег");
+    expect(text).toContain("просят код из SMS");
+    expect(text).toContain("Безопасный шаг сейчас");
+    expect(text).not.toMatch(/score|threshold|порог|коэффициент|вес\s*(?:риска|=|:)/i);
+  });
+
+  it("supports simple explain phrases in RU, UZ and EN", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult(), now);
+    const context = scenarioWith(snapshot);
+
+    expect(classifyLastCheckFollowUp("простыми словами", context, now)).toBe("simple_explain");
+    expect(classifyLastCheckFollowUp("oddiy qilib tushuntir", context, now)).toBe("simple_explain");
+    expect(classifyLastCheckFollowUp("explain in simple words", context, now)).toBe(
+      "simple_explain",
+    );
+  });
+
   it("answers real Russian high-risk confidence follow-ups with action-first guidance", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
     const snapshot = buildLastCheckSnapshot(
@@ -178,6 +208,20 @@ describe("last check follow-up router", () => {
     expect(profileText).toContain("Telegram не показывает мне скрытую SCAM-метку");
     expect(profileText).not.toContain("Что я увидел");
     expect(profileText).not.toContain("Отправитель неизвестен");
+  });
+
+  it("keeps simple unknown phone explanations from treating a valid number as evidence", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const phone = buildLastCheckSnapshot(
+      baseResult({ type: "phone", level: "unknown", reasons: ["valid_uz_phone"] }),
+      now,
+    );
+
+    const text = buildLastCheckFollowUpText("simple_explain", phone, "ru");
+
+    expect(text).toContain("Номер сам по себе не доказывает");
+    expect(text).not.toContain("Корректный узбекский номер");
+    expect(text).not.toContain("Что я заметил");
   });
 
   it("does not intercept real scam payloads that need a fresh check", () => {
@@ -283,6 +327,16 @@ describe("last check follow-up router", () => {
     const text = buildOrphanCheckFollowUpText(action!, "ru");
     expect(text).toContain("Официальный обратный звонок");
     expect(text).toContain("1340");
+  });
+
+  it("answers orphan simple-explain requests without a fake insufficient-data card", () => {
+    const action = classifyOrphanCheckFollowUp("объясни простыми словами");
+
+    expect(action).toBe("simple_explain");
+    const text = buildOrphanCheckFollowUpText(action!, "ru");
+    expect(text).toContain("Совсем просто");
+    expect(text).toContain("конкретную проверку");
+    expect(text).not.toContain("Недостаточно данных");
   });
 
   it("does not classify orphan follow-ups when the text contains a new artifact", () => {

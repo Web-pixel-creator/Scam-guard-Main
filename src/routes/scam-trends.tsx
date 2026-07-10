@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, Radar, ShieldAlert } from "lucide-react";
+import { ScamMapIndexPanel } from "@/components/ScamMapIndexPanel";
 import { SchemeTrendsPanel } from "@/components/SchemeTrendsPanel";
 import { useLang } from "@/lib/lang-context";
 
@@ -88,9 +89,9 @@ function ScamTrendsPage() {
                 <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
                 {
                   {
-                    ru: "Обновлено: июнь 2026",
-                    uz: "Yangilangan: iyun 2026",
-                    en: "Updated: June 2026",
+                    ru: "Обновлено: июль 2026",
+                    uz: "Yangilangan: iyul 2026",
+                    en: "Updated: July 2026",
                   }[lang]
                 }
               </p>
@@ -99,6 +100,7 @@ function ScamTrendsPage() {
         </div>
       </section>
 
+      <ScamMapIndexPanel />
       <SchemeTrendsPanel />
     </main>
   );

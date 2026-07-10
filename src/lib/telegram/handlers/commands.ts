@@ -18,8 +18,9 @@
 // Command-initiated scenarios (started here via SESSION STATE only — the actual
 // content/step processing lives in sibling tasks 8.3 `check` / 8.4 `report`,
 // which this module deliberately does NOT import to keep parallel work safe):
-//   /check     → set scenario "await_check", prompt for content   (R4.1, R4.8, R15.2)
-//   /report    → set scenario "report_value", prompt for value    (R6.1, R15.2)
+//   /check        → set scenario "await_check", prompt for content   (R4.1, R4.8, R15.2)
+//   /conversation → set scenario "conversation_check", collect short text chain
+//   /report       → set scenario "report_value", prompt for value    (R6.1, R15.2)
 //
 // callback_data for the language buttons (consumed by the callback handler,
 // task 8.5) comes from the shared `CB.lang(...)` contract in `format.ts`:
@@ -38,6 +39,7 @@ import {
   formatWelcome,
 } from "@/lib/telegram/format";
 import { formatWeeklyScamDigest } from "@/lib/telegram/digest";
+import { buildTrainerIntro } from "@/lib/telegram/scam-trainer";
 import {
   buildLiveCallActiveKeyboard,
   buildPanicMenuText,
@@ -46,11 +48,12 @@ import {
 } from "@/lib/telegram/emergency";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
-import { loadSession, saveSession } from "@/lib/telegram/session.server";
+import { loadSession, saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 import { getPublicAppUrl } from "@/lib/config.server";
+import { startConversationCheck } from "@/lib/telegram/handlers/conversation";
 import {
   acceptFamilyInvite,
   buildFamilyAlreadyLinkedKeyboard,
@@ -87,7 +90,7 @@ async function startCheckScenario(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "await_check",
     scenarioStep: 0,
-    scenarioData: {},
+    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -106,7 +109,7 @@ async function startReportScenario(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "report_value",
     scenarioStep: 0,
-    scenarioData: {},
+    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -135,7 +138,11 @@ async function startLiveCallCopilot(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(undefined, 6),
+    scenarioData: withSessionChatScope(
+      withPanicContextData(undefined, 6),
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
   await sendMessage({
     chatId: ctx.chatId,
@@ -147,29 +154,10 @@ async function startLiveCallCopilot(ctx: HandlerCtx): Promise<void> {
 async function sendChatId(ctx: HandlerCtx): Promise<void> {
   const chatType = ctx.chatType ?? "unknown";
   const isGroup = chatType === "group" || chatType === "supergroup";
+  const { lang } = ctx.session;
   const text = isGroup
-    ? [
-        "🛠 Chat ID для настройки",
-        "",
-        `Chat ID: ${ctx.chatId}`,
-        `Тип чата: ${chatType}`,
-        "",
-        "Скопируйте это значение в Railway:",
-        `TELEGRAM_MODERATION_CHAT_ID=${ctx.chatId}`,
-        "",
-        "После redeploy проверьте:",
-        "railway run npm run moderation:smoke",
-        "",
-        "Не отправляйте сюда реальные жалобы, пока smoke-тест не прошёл.",
-      ].join("\n")
-    : [
-        "🛠 Chat ID",
-        "",
-        "Это личный чат. Для moderation-уведомлений нужен ID приватной группы.",
-        "",
-        "Создайте приватную группу, добавьте туда @scamguard_bot и напишите там:",
-        "/chatid",
-      ].join("\n");
+    ? bt("chatid_group", lang, { chatId: ctx.chatId, chatType })
+    : bt("chatid_private", lang);
 
   await sendMessage({
     chatId: ctx.chatId,
@@ -323,6 +311,16 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
     case "/call":
       await startLiveCallCopilot(ctx);
       return;
+
+    case "/conversation":
+      await startConversationCheck(ctx);
+      return;
+
+    case "/trainer": {
+      const { text, keyboard } = buildTrainerIntro(lang);
+      await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(text), keyboard });
+      return;
+    }
 
     case "/digest": {
       const { text, keyboard } = formatWeeklyScamDigest(lang);

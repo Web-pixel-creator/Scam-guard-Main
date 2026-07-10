@@ -27,6 +27,15 @@ export function HomeImpactCounters() {
     reported_loss_uzs: 0,
   };
 
+  // Don't show an all-zero "dead service" block. Keep the loading skeleton, but
+  // once data has loaded, render only when there is something real to show.
+  const hasMeaningfulData =
+    stats.total > 0 ||
+    stats.dangerous > 0 ||
+    stats.confirmed_entities > 0 ||
+    stats.reported_loss_uzs > 0;
+  if (!isLoading && !hasMeaningfulData) return null;
+
   const lossValue =
     stats.reported_loss_uzs > 0
       ? `${formatUzsCompact(stats.reported_loss_uzs, lang)} UZS`
@@ -68,16 +77,16 @@ export function HomeImpactCounters() {
       icon: CircleDollarSign,
       value: lossValue,
       label: {
-        ru: "заявлено потерь",
-        uz: "ko'rsatilgan zarar",
-        en: "reported losses",
+        ru: "подтверждённых потерь",
+        uz: "tasdiqlangan zarar",
+        en: "confirmed losses",
       }[lang],
       detail:
         stats.reports_with_loss_amount > 0
           ? {
-              ru: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} жалоб с суммой`,
-              uz: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} ta summa bilan`,
-              en: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} reports with amount`,
+              ru: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} подтверждённых жалоб с суммой`,
+              uz: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} ta tasdiqlangan summa bilan`,
+              en: `${formatImpactNumber(stats.reports_with_loss_amount, lang)} confirmed reports with amount`,
             }[lang]
           : {
               ru: "покажем после первых данных",
@@ -90,9 +99,9 @@ export function HomeImpactCounters() {
       icon: ShieldCheck,
       value: formatImpactNumber(stats.confirmed_entities, lang),
       label: {
-        ru: "модерированных записей",
-        uz: "moderatsiyalangan yozuv",
-        en: "moderated records",
+        ru: "проверенных вручную записей",
+        uz: "qo'lda tekshirilgan yozuvlar",
+        en: "manually reviewed records",
       }[lang],
       detail: {
         ru: "только после проверки",
@@ -128,9 +137,9 @@ export function HomeImpactCounters() {
           <p className="mt-3 max-w-2xl text-[15px] leading-[1.65] text-[#52525B]">
             {
               {
-                ru: "Это только агрегаты: сколько проверок прошло, сколько раз бот увидел риск и какую сумму потерь пользователи сами указали в жалобах.",
-                uz: "Bu faqat agregat raqamlar: tekshiruvlar, xavf ogohlantirishlari va foydalanuvchilar shikoyatda ko'rsatgan zarar summasi.",
-                en: "These are aggregates only: checks completed, risk alerts shown, and loss amounts users chose to include in reports.",
+                ru: "Это только общие цифры: проверки и предупреждения о риске показывают raw activity сервиса, а сумма потерь считается только по подтверждённым модератором жалобам.",
+                uz: "Bu faqat umumiy raqamlar: tekshiruvlar va xavf ogohlantirishlari servisning raw activity ko'rsatkichlari, zarar summasi esa faqat moderator tasdiqlagan shikoyatlardan hisoblanadi.",
+                en: "These are general totals only: checks and risk alerts are raw service activity, while loss totals use only moderator-confirmed reports.",
               }[lang]
             }
           </p>
@@ -165,9 +174,9 @@ export function HomeImpactCounters() {
       <p className="mt-5 border-t border-[#E2E0D8] pt-4 text-[13px] leading-relaxed text-[#71717A]">
         {
           {
-            ru: "Мы не публикуем список номеров, аккаунтов или людей в этих счётчиках. Сумма потерь - это данные из жалоб пользователей, а не гарантия возврата или точная оценка предотвращённых потерь.",
-            uz: "Bu hisoblagichlarda raqamlar, akkauntlar yoki odamlar ro'yxati ko'rsatilmaydi. Zarar summasi - foydalanuvchi shikoyatlaridagi ma'lumot, qaytarish kafolati yoki aniq oldini olingan zarar emas.",
-            en: "These counters do not publish numbers, accounts or people. Loss totals come from user reports; they are not a recovery guarantee or an exact prevented-loss estimate.",
+            ru: "Мы не публикуем список номеров, аккаунтов или людей в этих счётчиках. Сумма потерь берётся только из подтверждённых жалоб; это не гарантия возврата и не точная оценка предотвращённых потерь.",
+            uz: "Bu hisoblagichlarda raqamlar, akkauntlar yoki odamlar ro'yxati ko'rsatilmaydi. Zarar summasi faqat tasdiqlangan shikoyatlardan olinadi; bu qaytarish kafolati yoki aniq oldini olingan zarar emas.",
+            en: "These counters do not publish numbers, accounts or people. Loss totals come only from confirmed reports; they are not a recovery guarantee or an exact prevented-loss estimate.",
           }[lang]
         }
       </p>

@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
@@ -5,7 +9,13 @@ const hoisted = vi.hoisted(() => ({
     | { ok: true; remaining: number; retryAfterSec: number }
     | { ok: false; retryAfterSec: number },
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
-  sentAudio: [] as Array<{ chatId: number; audio: Uint8Array; caption?: string }>,
+  sentAudio: [] as Array<{
+    chatId: number;
+    audio: Uint8Array;
+    caption?: string;
+    filename?: string;
+    mimeType?: string;
+  }>,
   sentActions: [] as Array<{ chatId: number; action: string }>,
   answeredCallbacks: [] as Array<{ id: string; text?: string }>,
 }));
@@ -16,10 +26,18 @@ vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
 
 vi.mock("@/lib/telegram/api.server", () => ({
   escapeMarkdownV2: (text: string) => text,
-  sendAudioFile: vi.fn(async (opts: { chatId: number; audio: Uint8Array; caption?: string }) => {
-    hoisted.sentAudio.push(opts);
-    return { ok: true };
-  }),
+  sendAudioFile: vi.fn(
+    async (opts: {
+      chatId: number;
+      audio: Uint8Array;
+      caption?: string;
+      filename?: string;
+      mimeType?: string;
+    }) => {
+      hoisted.sentAudio.push(opts);
+      return { ok: true };
+    },
+  ),
   sendChatAction: vi.fn(async (chatId: number, action: string) => {
     hoisted.sentActions.push({ chatId, action });
   }),
@@ -43,6 +61,7 @@ import {
   synthesizeVoiceOut,
   VOICE_OUT_CB,
 } from "@/lib/telegram/voice-out.server";
+import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 
 const originalEnv = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -57,6 +76,7 @@ const originalEnv = {
   LEGACY_GEMINI_TTS_API_KEY: process.env["Gemini TTS"],
   TTS_PROVIDER: process.env.TTS_PROVIDER,
   VOICE_OUT_TTS_PROVIDER: process.env.VOICE_OUT_TTS_PROVIDER,
+  VOICE_OUT_PRERECORDED_DIR: process.env.VOICE_OUT_PRERECORDED_DIR,
 };
 
 function restoreEnv(): void {
@@ -124,6 +144,82 @@ describe("telegram Voice-out / TTS", () => {
     expect(text).toContain("Не называйте код");
     expect(text).not.toContain("https://");
     expect(text).not.toContain("+998");
+  });
+
+  it("sends prerecorded panic audio before TTS budget or provider calls", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "voice-out-"));
+    try {
+      process.env.VOICE_OUT_PRERECORDED_DIR = dir;
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.OPENAI_TTS_API_KEY;
+      delete process.env.GEMINI_TTS_API_KEY;
+      delete process.env["Gemini TTS"];
+      hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await writeFile(path.join(dir, "panic-4-ru.wav"), new Uint8Array([7, 8, 9]));
+
+      await sendVoiceOutResponse({
+        chatId: 10,
+        userId: 1001,
+        lang: "ru",
+        text: buildPanicVoiceOutText(4, "ru"),
+        keyboard: [[{ text: "OK", callback_data: "ok" }]],
+        prerecorded: { kind: "panic", panicId: 4 },
+      });
+
+      expect(checkSharedRateLimit).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(hoisted.sentMessages).toHaveLength(0);
+      expect(hoisted.sentAudio).toEqual([
+        expect.objectContaining({
+          chatId: 10,
+          audio: new Uint8Array([7, 8, 9]),
+          filename: "panic-4-ru.wav",
+          mimeType: "audio/wav",
+        }),
+      ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers prerecorded OGG panic audio over WAV fallback", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "voice-out-"));
+    try {
+      process.env.VOICE_OUT_PRERECORDED_DIR = dir;
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.OPENAI_TTS_API_KEY;
+      delete process.env.GEMINI_TTS_API_KEY;
+      delete process.env["Gemini TTS"];
+      hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await writeFile(path.join(dir, "panic-6-en.wav"), new Uint8Array([1, 2, 3]));
+      await writeFile(path.join(dir, "panic-6-en.ogg"), new Uint8Array([4, 5, 6]));
+
+      await sendVoiceOutResponse({
+        chatId: 11,
+        userId: 1002,
+        lang: "en",
+        text: buildPanicVoiceOutText(6, "en"),
+        prerecorded: { kind: "panic", panicId: 6 },
+      });
+
+      expect(checkSharedRateLimit).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(hoisted.sentMessages).toHaveLength(0);
+      expect(hoisted.sentAudio).toEqual([
+        expect.objectContaining({
+          chatId: 11,
+          audio: new Uint8Array([4, 5, 6]),
+          filename: "panic-6-en.ogg",
+          mimeType: "audio/ogg",
+        }),
+      ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 
   it("does not reuse a Gemini-compatible OpenAI key as a speech endpoint", async () => {
@@ -415,6 +511,44 @@ describe("telegram Voice-out / TTS", () => {
       expect.objectContaining({
         chatId: 10,
         text: expect.stringContaining("Голосовой ответ пока не подключён"),
+      }),
+    ]);
+  });
+
+  it("removes provider-only voice buttons from the rate-limit fallback keyboard", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_TTS_API_KEY;
+    delete process.env.GEMINI_TTS_API_KEY;
+    delete process.env["Gemini TTS"];
+    hoisted.rateLimitResult = { ok: false, retryAfterSec: 3600 };
+    vi.stubGlobal("fetch", vi.fn());
+
+    await sendVoiceOutResponse({
+      chatId: 30,
+      userId: 3003,
+      lang: "en",
+      text: "I am with you. End the call and call the bank back on the official number.",
+      keyboard: [
+        [
+          { text: "Voice", callback_data: "voiceout:guardian" },
+          { text: "Full plan", callback_data: "guardian:full_plan" },
+        ],
+        [
+          { text: "Context voice", callback_data: "voiceout:panic:4:script" },
+          { text: "Static SOS voice", callback_data: "voiceout:panic:4" },
+        ],
+      ],
+    });
+
+    expect(checkSharedRateLimit).toHaveBeenCalled();
+    expect(hoisted.sentAudio).toHaveLength(0);
+    expect(hoisted.sentMessages).toEqual([
+      expect.objectContaining({
+        chatId: 30,
+        keyboard: [
+          [{ text: "Full plan", callback_data: "guardian:full_plan" }],
+          [{ text: "Static SOS voice", callback_data: "voiceout:panic:4" }],
+        ],
       }),
     ]);
   });

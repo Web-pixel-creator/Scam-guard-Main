@@ -74,10 +74,7 @@ export function StatsStrip() {
           [ {{ ru: "статистика", uz: "statistika", en: "stats" }[lang]} ]
         </span>
         <span className="inline-flex items-center gap-2 label-md text-[#52525B]">
-          <span className="relative inline-flex h-1.5 w-1.5">
-            <span className="absolute inset-0 rounded-full bg-[#059669] animate-ping opacity-70" />
-            <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-[#059669]" />
-          </span>
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#059669]" />
           {
             { ru: "обновляется в реальном времени", uz: "real vaqtda yangilanadi", en: "live" }[
               lang

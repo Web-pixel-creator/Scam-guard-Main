@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDownUp,
   Loader2,
   ShieldCheck,
   Check,
@@ -12,6 +13,8 @@ import {
   ArrowLeft,
   ChevronDown,
   FileText,
+  ListFilter,
+  Inbox,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -24,7 +27,14 @@ import {
   getEntityCheck,
 } from "@/lib/admin.functions";
 import { ReasonTimeline } from "@/components/ReasonTimeline";
-import type { ReasonCode, RiskLevel } from "@/lib/risk/rules";
+import {
+  operatorQueuePriority,
+  operatorQueueSummary,
+  sortOperatorQueueReports,
+  type OperatorQueuePriority,
+  type OperatorQueueSortMode,
+} from "@/lib/admin-operator-queue";
+import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -33,7 +43,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const FILTERS = ["new", "confirmed", "rejected", "all"] as const;
+const FILTERS = ["new", "confirmed", "rejected", "duplicate", "all"] as const;
 type FilterKey = (typeof FILTERS)[number];
 const APPEAL_FILTERS = ["new", "reviewing", "resolved", "rejected", "all"] as const;
 type AppealFilterKey = (typeof APPEAL_FILTERS)[number];
@@ -49,10 +59,17 @@ type AdminReport = {
   amount_lost_uzs?: number | null;
   language?: string | null;
   created_at: string;
+  target_signal_count?: number | null;
+  target_last_report_at?: string | null;
   target_report_count?: number | null;
   target_last_seen_at?: string | null;
   target_moderation_status?: string | null;
   target_risk_level?: string | null;
+  target_check_risk_level?: string | null;
+  target_check_risk_score?: number | null;
+  target_check_reason_codes?: string[] | null;
+  target_check_has_ai_explanation?: boolean | null;
+  target_check_created_at?: string | null;
 };
 
 function AdminPage() {
@@ -60,6 +77,7 @@ function AdminPage() {
   const nav = useNavigate();
   const [status, setStatus] = useState<FilterKey>("new");
   const [appealStatus, setAppealStatus] = useState<AppealFilterKey>("new");
+  const [reportSort, setReportSort] = useState<OperatorQueueSortMode>("priority");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -94,8 +112,13 @@ function AdminPage() {
     enabled: !!user && isAdmin,
     queryFn: () => listAppealsFn({ data: { status: appealStatus } }),
   });
-  const selectedReport =
-    (reports.data?.find((r) => r.id === selectedReportId) as AdminReport | undefined) ?? null;
+  const reportRows = useMemo(() => (reports.data ?? []) as AdminReport[], [reports.data]);
+  const sortedReports = useMemo(
+    () => sortOperatorQueueReports(reportRows, reportSort),
+    [reportRows, reportSort],
+  );
+  const reportQueueSummary = useMemo(() => operatorQueueSummary(reportRows), [reportRows]);
+  const selectedReport = reportRows.find((r) => r.id === selectedReportId) ?? null;
 
   useEffect(() => {
     if (selectedReportId && reports.data && !selectedReport) {
@@ -247,27 +270,73 @@ function AdminPage() {
             <p className="label-md mb-2">01 — Жалобы</p>
             <h2 className="apex-h2">Входящие жалобы</h2>
             <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
-              Каждая карточка показывает безопасную маску, суть жалобы и силу повторного сигнала.
+              Подтверждайте риск только по понятному описанию опасной просьбы. Мало контекста —
+              отклоните: жалоба останется в истории, а повторные сигналы поднимут приоритет.
               Публичная метка появляется только после ручного подтверждения.
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((s) => (
+          <div className="flex flex-col gap-3 sm:items-end">
+            <div className="flex flex-wrap gap-1.5">
+              {FILTERS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatus(s)}
+                  aria-pressed={status === s}
+                  className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
+                    status === s
+                      ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
+                      : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
+                  }`}
+                >
+                  {labelStatus(s)}
+                </button>
+              ))}
+            </div>
+            <div className="inline-flex w-full overflow-hidden rounded-[4px] border border-[#E2E0D8] bg-white sm:w-auto">
               <button
-                key={s}
-                onClick={() => setStatus(s)}
-                aria-pressed={status === s}
-                className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
-                  status === s
-                    ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
-                    : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
+                type="button"
+                onClick={() => setReportSort("priority")}
+                aria-pressed={reportSort === "priority"}
+                className={`inline-flex flex-1 items-center justify-center gap-1.5 px-3 py-2 apex-mono transition-colors sm:flex-none ${
+                  reportSort === "priority"
+                    ? "bg-[#0B0B0F] apex-on-dark text-white"
+                    : "text-[#52525B] hover:bg-[#FCFBF7] hover:text-[#18181B]"
                 }`}
               >
-                {labelStatus(s)}
+                <ListFilter className="h-3.5 w-3.5" aria-hidden="true" /> Сначала срочное
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setReportSort("newest")}
+                aria-pressed={reportSort === "newest"}
+                className={`inline-flex flex-1 items-center justify-center gap-1.5 border-l border-[#E2E0D8] px-3 py-2 apex-mono transition-colors sm:flex-none ${
+                  reportSort === "newest"
+                    ? "bg-[#0B0B0F] apex-on-dark text-white"
+                    : "text-[#52525B] hover:bg-[#FCFBF7] hover:text-[#18181B]"
+                }`}
+              >
+                <ArrowDownUp className="h-3.5 w-3.5" aria-hidden="true" /> Сначала новые
+              </button>
+            </div>
           </div>
         </div>
+
+        {!reports.isLoading && reportQueueSummary.total > 0 && (
+          <div className="mb-5 grid grid-cols-2 gap-[1px] border border-[#E2E0D8] bg-[#E2E0D8] lg:grid-cols-4">
+            <QueueMetric label="Всего в фильтре" value={reportQueueSummary.total} />
+            <QueueMetric
+              label="Смотреть первым"
+              value={reportQueueSummary.reviewNext}
+              tone="danger"
+            />
+            <QueueMetric
+              label="Нужен контекст"
+              value={reportQueueSummary.needsContext}
+              tone="warn"
+            />
+            <QueueMetric label="Повторы" value={reportQueueSummary.repeatedTargets} tone="warn" />
+          </div>
+        )}
 
         {reports.isLoading && (
           <p className="apex-mono inline-flex items-center gap-2 text-[#52525B]">
@@ -275,95 +344,64 @@ function AdminPage() {
           </p>
         )}
         {reports.data?.length === 0 && (
-          <p className="apex-mono text-[#71717A]">— ПУСТО. НЕТ ЗАПИСЕЙ —</p>
+          <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+            <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+            <p className="text-[14px] text-[#52525B]">Новых жалоб нет</p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] mt-1">
-          {reports.data?.map((r) => (
-            <div key={r.id} className="bg-white/90 backdrop-blur-[4px] p-5 sm:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
-                      {r.entity_type}
-                    </span>
-                    <code className="text-[13px] font-mono text-[#18181B] break-all">
-                      {r.redacted_value}
-                    </code>
-                    <StatusBadge status={r.status} />
-                    {r.scam_type && (
-                      <span className="apex-mono text-[#71717A]">· {r.scam_type}</span>
-                    )}
-                    {r.city && <span className="apex-mono text-[#71717A]">· {r.city}</span>}
-                    <span
-                      className={`apex-mono ${
-                        reportSignalCount(r) > 1 ? "text-[#9A3412]" : "text-[#71717A]"
-                      }`}
-                    >
-                      · {reportSignalLabel(reportSignalCount(r))}
-                    </span>
-                  </div>
-                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
-                    {r.description}
-                  </p>
-                  <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
-                    <ReportFact label="Что проверить" value={r.redacted_value} mono />
-                    <ReportFact
-                      label="Сигналы по цели"
-                      value={reportSignalLabel(reportSignalCount(r))}
-                      tone={reportSignalCount(r) > 1 ? "warn" : "neutral"}
-                    />
-                    <ReportFact label="Тип схемы" value={r.scam_type ?? "не указан"} />
-                    <ReportFact label="Город" value={r.city ?? "не указан"} />
-                    <ReportFact label="Ущерб" value={formatLoss(r.amount_lost_uzs)} />
-                    <ReportFact
-                      label="Статус цели"
-                      value={labelTargetStatus(r.target_moderation_status)}
-                    />
-                    <ReportFact label="Риск цели" value={labelRiskLevel(r.target_risk_level)} />
-                    <ReportFact
-                      label="Последний сигнал"
-                      value={formatDateTime(r.target_last_seen_at ?? r.created_at)}
-                    />
-                  </dl>
-                  <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
-                    В админке тоже показана безопасная маска. Если для решения не хватает контекста,
-                    не ставьте публичную метку: жалоба останется в истории, а повторные сигналы
-                    усилят приоритет проверки.
-                  </p>
-                  {reportSignalCount(r) > 1 && (
-                    <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
-                      По этой цели уже есть повторные сигналы. Перед публичной меткой проверьте
-                      контекст в описании и похожие записи в базе.
+          {sortedReports.map((r) => {
+            const priority = operatorQueuePriority(r);
+            return (
+              <div key={r.id} className="bg-white/90 backdrop-blur-[4px] p-5 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
+                        {r.entity_type}
+                      </span>
+                      <code className="text-[13px] font-mono text-[#18181B] break-all">
+                        {r.redacted_value}
+                      </code>
+                      <StatusBadge status={r.status} />
+                      <QueuePriorityBadge priority={priority} />
+                      <span className="ml-auto">
+                        <RiskChip level={r.target_risk_level} />
+                      </span>
+                    </div>
+                    <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                      {r.description}
                     </p>
-                  )}
-                  <p className="mt-3 apex-mono text-[#A1A1AA]">
-                    {new Date(r.created_at).toLocaleString()} · LANG: {r.language}
-                    {r.amount_lost_uzs ? ` · ${r.amount_lost_uzs.toLocaleString()} UZS` : ""}
-                  </p>
-                </div>
-                <div className="lg:w-[280px] shrink-0 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReportId(r.id)}
-                    className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
-                  >
-                    <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Открыть детали
-                  </button>
-                  {r.status === "new" && (
-                    <>
-                      <div className="rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] p-3">
-                        <p className="apex-mono mb-2 text-[#71717A]">Решение модератора</p>
-                        <p className="text-[13px] leading-relaxed text-[#52525B]">
-                          {moderationDecisionHint(reportSignalCount(r))}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
+                    <ReportReasonSummary report={r} compact />
+                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
+                      {[
+                        r.scam_type,
+                        r.city,
+                        reportSignalLabel(reportSignalCount(r)),
+                        formatDateTime(
+                          r.target_last_report_at ?? r.target_last_seen_at ?? r.created_at,
+                        ),
+                        `ущерб ${formatLoss(r.amount_lost_uzs)}`,
+                      ]
+                        .filter(Boolean)
+                        .join("  ·  ")}
+                    </p>
+                    {reportSignalCount(r) > 1 && (
+                      <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
+                        По этой цели уже есть повторные сигналы. Перед публичной меткой проверьте
+                        контекст в описании и похожие записи в базе.
+                      </p>
+                    )}
+                  </div>
+                  <div className="lg:w-[220px] shrink-0 flex flex-col gap-2">
+                    {r.status === "new" && (
+                      <>
                         <button
                           type="button"
                           disabled={moderate.isPending}
                           onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
+                          className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
                         >
                           <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
                         </button>
@@ -371,17 +409,24 @@ function AdminPage() {
                           type="button"
                           disabled={moderate.isPending}
                           onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
-                          className="apex-btn-outline inline-flex items-center gap-1.5"
+                          className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
                         >
                           <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
                         </button>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReportId(r.id)}
+                      className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-[#71717A] hover:text-[#18181B] transition-colors"
+                    >
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Открыть детали
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -430,7 +475,10 @@ function AdminPage() {
           </p>
         )}
         {appeals.data?.length === 0 && (
-          <p className="apex-mono text-[#71717A]">— ПУСТО. НЕТ АПЕЛЛЯЦИЙ —</p>
+          <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+            <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+            <p className="text-[14px] text-[#52525B]">Апелляций нет</p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] mt-1">
@@ -446,13 +494,8 @@ function AdminPage() {
                       {a.target_display}
                     </code>
                     <StatusBadge status={a.status} />
-                    {a.contact_display && (
-                      <span className="apex-mono text-[#71717A]">
-                        · контакт: {a.contact_display}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-[14px] leading-[1.6] text-[#18181B] whitespace-pre-wrap prose-pretty">
+                  <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
                     {a.reason}
                   </p>
                   {a.resolution && (
@@ -460,8 +503,13 @@ function AdminPage() {
                       Решение: {a.resolution}
                     </p>
                   )}
-                  <p className="mt-3 apex-mono text-[#A1A1AA]">
-                    {new Date(a.created_at).toLocaleString()}
+                  <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
+                    {[
+                      a.contact_display ? `контакт: ${a.contact_display}` : null,
+                      new Date(a.created_at).toLocaleString(),
+                    ]
+                      .filter(Boolean)
+                      .join("  ·  ")}
                   </p>
                 </div>
                 {(a.status === "new" || a.status === "reviewing") && (
@@ -527,7 +575,10 @@ function AdminPage() {
             </tbody>
           </table>
           {entities.data?.length === 0 && (
-            <p className="apex-mono text-[#71717A] py-6">— ПУСТО —</p>
+            <div className="flex flex-col items-center gap-1.5 py-12 text-center">
+              <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
+              <p className="text-[14px] text-[#52525B]">В базе пока пусто</p>
+            </div>
           )}
         </div>
       </section>
@@ -619,7 +670,9 @@ function ReportDetailDialog({
                 <ReportFact label="Когда поступило" value={formatDateTime(report.created_at)} />
                 <ReportFact
                   label="Последний сигнал"
-                  value={formatDateTime(report.target_last_seen_at ?? report.created_at)}
+                  value={formatDateTime(
+                    report.target_last_report_at ?? report.target_last_seen_at ?? report.created_at,
+                  )}
                 />
               </dl>
             </section>
@@ -643,6 +696,20 @@ function ReportDetailDialog({
                 себе. Подтверждайте риск только если в жалобе видно опасную просьбу: код, карта,
                 перевод, APK, QR-вход или подозрительная ссылка.
               </p>
+            </section>
+
+            <section>
+              <p className="apex-mono mb-3 text-[#71717A]">Почему система отметила цель</p>
+              <ReportReasonSummary report={report} />
+              {reportReasonCodes(report).length > 0 && (
+                <div className="mt-3">
+                  <ReasonTimeline
+                    reasonCodes={reportReasonCodes(report)}
+                    riskLevel={reportCheckRiskLevel(report)}
+                    hasAiExplanation={Boolean(report.target_check_has_ai_explanation)}
+                  />
+                </div>
+              )}
             </section>
           </div>
 
@@ -736,7 +803,9 @@ function EntityRow({
           {entity.display_mask}
         </td>
         <td className="py-3 px-2 sm:px-3 tabular-nums">{entity.report_count}</td>
-        <td className="py-3 px-2 sm:px-3 apex-mono">{entity.risk_level}</td>
+        <td className="py-3 px-2 sm:px-3">
+          <RiskChip level={entity.risk_level} />
+        </td>
         <td className="py-3 px-2 sm:px-3 apex-mono">{labelStatus(entity.moderation_status)}</td>
         <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA] flex items-center gap-1">
           {new Date(entity.last_seen_at).toLocaleString()}
@@ -784,6 +853,120 @@ function Stat({ label, value, highlight }: { label: string; value?: number; high
   );
 }
 
+function QueueMetric({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "warn" | "danger";
+}) {
+  const valueClass =
+    tone === "danger" ? "text-[#991B1B]" : tone === "warn" ? "text-[#9A3412]" : "text-[#18181B]";
+  return (
+    <div className="bg-white/90 p-4">
+      <p className="apex-mono text-[#71717A]">{label}</p>
+      <p
+        className={`mt-2 font-display text-[24px] font-extrabold leading-none tabular-nums ${valueClass}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function QueuePriorityBadge({ priority }: { priority: OperatorQueuePriority }) {
+  const config: Record<
+    OperatorQueuePriority["band"],
+    { label: string; title: string; className: string }
+  > = {
+    review_next: {
+      label: "Смотреть первым",
+      title: "Высокий риск, сильный score или повторные сигналы по цели.",
+      className: "border-[#FCA5A5]/60 bg-[#FEF2F2] text-[#991B1B]",
+    },
+    needs_context: {
+      label: "Нужен контекст",
+      title: "По цели мало сохранённого risk-контекста; решение лучше принимать по тексту жалобы.",
+      className: "border-[#FDBA74]/60 bg-[#FFF7ED] text-[#9A3412]",
+    },
+    standard: {
+      label: "Обычная очередь",
+      title: "Нет сильных признаков для повышения приоритета.",
+      className: "border-[#E2E0D8] bg-white text-[#71717A]",
+    },
+  };
+  const current = config[priority.band];
+
+  return (
+    <span
+      className={`apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border ${current.className}`}
+      title={`${current.title} Score: ${priority.score}.`}
+    >
+      {current.label}
+    </span>
+  );
+}
+
+function ReportReasonSummary({
+  report,
+  compact = false,
+}: {
+  report: AdminReport;
+  compact?: boolean;
+}) {
+  const reasons = reportRawReasonCodes(report);
+  const visibleReasons = reasons.slice(0, compact ? 3 : 6);
+  const hiddenReasonCount = Math.max(0, reasons.length - visibleReasons.length);
+  const hasSummary = hasReportCheckSummary(report);
+
+  return (
+    <div className="mt-4 border border-[#E2E0D8] bg-[#FCFBF7] p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="apex-mono mb-1 text-[#71717A]">Последняя проверка цели</p>
+          <p className="text-[13px] leading-relaxed text-[#52525B]">
+            {hasSummary
+              ? `${labelRiskLevel(report.target_check_risk_level)}${
+                  typeof report.target_check_risk_score === "number"
+                    ? ` · score ${report.target_check_risk_score}`
+                    : ""
+                }`
+              : "Нет сохранённой проверки для этой цели."}
+          </p>
+        </div>
+        {report.target_check_created_at && (
+          <span className="apex-mono shrink-0 text-[#A1A1AA]">
+            {formatDateTime(report.target_check_created_at)}
+          </span>
+        )}
+      </div>
+
+      {visibleReasons.length > 0 ? (
+        <ul className="mt-3 grid gap-1 text-[13px] leading-relaxed text-[#52525B] sm:grid-cols-2">
+          {visibleReasons.map((code) => (
+            <li key={code}>• {reasonLabel(code)}</li>
+          ))}
+          {hiddenReasonCount > 0 && <li className="text-[#71717A]">• ещё {hiddenReasonCount}</li>}
+        </ul>
+      ) : (
+        hasSummary && (
+          <p className="mt-3 text-[13px] leading-relaxed text-[#71717A]">
+            Reason-кодов нет: решение можно принимать только по тексту жалобы и повторным сигналам.
+          </p>
+        )
+      )}
+
+      {hasSummary && (
+        <p className="mt-3 apex-mono text-[#A1A1AA]">
+          {report.target_check_has_ai_explanation ? "rules + AI explanation" : "rules only"}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ReportFact({
   label,
   value,
@@ -809,11 +992,45 @@ function ReportFact({
   );
 }
 
+function hasReportCheckSummary(report: AdminReport) {
+  return (
+    Boolean(report.target_check_risk_level) ||
+    typeof report.target_check_risk_score === "number" ||
+    reportRawReasonCodes(report).length > 0 ||
+    Boolean(report.target_check_created_at)
+  );
+}
+
+function reportRawReasonCodes(report: AdminReport): string[] {
+  return (report.target_check_reason_codes ?? []).filter(
+    (code): code is string => typeof code === "string" && code.trim().length > 0,
+  );
+}
+
+function reportReasonCodes(report: AdminReport): ReasonCode[] {
+  return reportRawReasonCodes(report).filter((code): code is ReasonCode => code in REASON_LABELS);
+}
+
+function reasonLabel(code: string) {
+  return REASON_LABELS[code as ReasonCode]?.ru ?? code;
+}
+
+function isRiskLevel(value?: string | null): value is RiskLevel {
+  return value === "safe" || value === "unknown" || value === "suspicious" || value === "high_risk";
+}
+
+function reportCheckRiskLevel(report: AdminReport): RiskLevel {
+  if (isRiskLevel(report.target_check_risk_level)) return report.target_check_risk_level;
+  if (isRiskLevel(report.target_risk_level)) return report.target_risk_level;
+  return "unknown";
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; border: string }> = {
     new: { bg: "bg-[#FFF7ED]", text: "text-[#9A3412]", border: "border-[#FDBA74]/70" },
     confirmed: { bg: "bg-[#FEF2F2]", text: "text-[#991B1B]", border: "border-[#FCA5A5]/60" },
     rejected: { bg: "bg-[#F4F4F5]", text: "text-[#3F3F46]", border: "border-[#E4E4E7]" },
+    duplicate: { bg: "bg-[#F8FAFC]", text: "text-[#475569]", border: "border-[#CBD5E1]" },
   };
   const s = map[status] ?? map.rejected;
   return (
@@ -821,6 +1038,43 @@ function StatusBadge({ status }: { status: string }) {
       className={`apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border ${s.bg} ${s.text} ${s.border}`}
     >
       {labelStatus(status)}
+    </span>
+  );
+}
+
+function RiskChip({ level }: { level?: string | null }) {
+  const map: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+    high_risk: {
+      bg: "bg-[#FEF2F2]",
+      text: "text-[#991B1B]",
+      border: "border-[#FCA5A5]/60",
+      dot: "bg-[#DC2626]",
+    },
+    suspicious: {
+      bg: "bg-[#FFF7ED]",
+      text: "text-[#9A3412]",
+      border: "border-[#FDBA74]/70",
+      dot: "bg-[#EA580C]",
+    },
+    safe: {
+      bg: "bg-[#F0FDF4]",
+      text: "text-[#166534]",
+      border: "border-[#86EFAC]/60",
+      dot: "bg-[#16A34A]",
+    },
+  };
+  const s = map[level ?? ""] ?? {
+    bg: "bg-[#F4F4F5]",
+    text: "text-[#3F3F46]",
+    border: "border-[#E4E4E7]",
+    dot: "bg-[#A1A1AA]",
+  };
+  return (
+    <span
+      className={`apex-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[999px] border ${s.bg} ${s.text} ${s.border}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden="true" />
+      {labelRiskLevel(level)}
     </span>
   );
 }
@@ -834,14 +1088,19 @@ function labelStatus(s: string) {
         confirmed: "Подтверждено",
         resolved: "Решено",
         rejected: "Отклонено",
+        duplicate: "Дубликаты",
         all: "Все",
       } as Record<string, string>
     )[s] ?? s
   );
 }
 
-function reportSignalCount(report: { entity_hash: string; target_report_count?: number | null }) {
-  const value = Number(report.target_report_count ?? 1);
+function reportSignalCount(report: {
+  entity_hash: string;
+  target_signal_count?: number | null;
+  target_report_count?: number | null;
+}) {
+  const value = Number(report.target_signal_count ?? report.target_report_count ?? 1);
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 1;
 }
 

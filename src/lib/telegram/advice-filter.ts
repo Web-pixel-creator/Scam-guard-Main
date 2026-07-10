@@ -31,6 +31,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       "asks_for_pin",
       "asks_for_card_cvv",
       "requests_card_digits",
+      "sim_swap_or_number_transfer",
     ]),
     advice: {
       ru: "Не сообщайте SMS-код или PIN",
@@ -62,6 +63,8 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       "fake_loan_offer",
       "too_good_to_be_true",
       "relative_in_distress",
+      "money_mule_recruitment",
+      "advance_fee_prize_inheritance",
     ]),
     advice: {
       ru: "Не переводите деньги на «безопасный счёт»",
@@ -93,6 +96,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       "fake_boss_request",
       "brand_name_typo",
       "brand_impersonation",
+      "oneid_government_phishing",
     ]),
     advice: {
       ru: "Перезвоните в организацию по официальному номеру",
@@ -156,7 +160,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Investment fast-profit pitches -> avoid deposit/signal/withdrawal-fee funnels.
   {
-    reasons: new Set<ReasonCode>(["investment_fast_profit_pitch"]),
+    reasons: new Set<ReasonCode>(["investment_fast_profit_pitch", "romance_investment_pivot"]),
     advice: {
       ru: "Не вносите депозит и не платите за сигналы, пока не проверены лицензия, договор и официальный сайт",
       uz: "Litsenziya, shartnoma va rasmiy sayt tekshirilmaguncha depozit kiritmang va signal uchun to'lamang",

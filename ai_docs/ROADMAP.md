@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Last updated: 2026-06-18.
+Last updated: 2026-07-05.
 
 This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
 
@@ -41,6 +41,13 @@ Already shipped:
   Supabase HMAC-hashed buckets across Node instances with in-memory fallback.
 - Telegram Voice STT v1: short voice notes are transcribed in memory, redacted
   and checked by the existing rules pipeline.
+- Telegram Voice-in/STT replay corpus v1.1: production-like and live sanitized
+  transcript rows now cover RU/UZ/EN emergency routing, negated already-done
+  phrases, Uzbek Cyrillic and live Uzbek provider variants such as
+  `SMS kodni yubardim`, `Men SMS-kod yubormadim.` and
+  `Men esa SMS-kod yubormadim.` without committing raw audio; negated
+  already-done phrases now receive a dedicated acknowledgement instead of a
+  generic insufficient-data card.
 - Official-number Lookalike v1: phone/short-code checks now compare unknown
   numbers with the verified contact directory and explain near misses without
   unsupported accusations.
@@ -50,6 +57,12 @@ Already shipped:
 - Weekly Scam Digest v1: Telegram `/digest` and the main menu now show a
   compact deterministic RU/UZ/EN digest for casino/frispin, NFT/Stars, TON,
   bank/SMS-code and APK funnels, with check/report/emergency next actions.
+- Weekly Scam Digest data model: `/digest` now renders from manual
+  source/status/updated-at records, filters drafts and stale records, and uses a
+  safe evergreen fallback before any future research-feed automation.
+- Private moderation chat workflow: optional moderator alerts now cover new
+  reports, reputation appeals and high-signal research items using redacted
+  summaries/admin links only.
 - Website Trust Surface v1: the website now has `/official-numbers`, a
   searchable verified-contact directory, safer homepage trust counters and a
   callback guidance block that warns caller ID can be spoofed.
@@ -106,6 +119,12 @@ Already shipped:
   instead of replaying the generic scenario summary. Repeated taps are
   de-duplicated and Telegram gets an `upload_voice` action while synthesis is
   running.
+- Telegram Latency/Cost Pass v1: slow text checks show a delayed visible
+  checking status, repeated normalized text checks use a short per-user
+  cache/in-flight de-duplication, public Telegram metadata has a soft
+  timeout/cache, low-signal passports skip AI, decoded login/payment/wallet QR
+  payloads bypass visual AI, URL reputation is cached/de-duplicated, and
+  voice STT / Voice-out paths keep cache, duplicate and budget guards.
 - Emergency Callback Context Binding v1: panic follow-up and Voice-out buttons
   now carry the originating scenario id, while legacy callbacks remain a
   fallback. Stale keyboards from older emergency scenarios no longer answer
@@ -122,32 +141,63 @@ Already shipped:
   repeated "I am nearby" boilerplate, and Telegram/phone passports phrase
   missing local complaints as "not found in Ishonch Guard", not as proof of
   safety.
+- Telegram Conversation Check v1: `/conversation` and the main-menu whole-chat
+  action collect a bounded 2-8 message conversation, store only derived
+  stage/action/reason metadata in the session, and render how the scam pressure
+  evolves without persisting raw chat text.
+- Telegram Simple Explanation v1: result cards now include a simple-words
+  explanation button, and RU/UZ/EN phrases such as "объясни как бабушке",
+  "oddiy qilib" and "simple words" reuse the last check context without
+  exposing internal score/threshold/weight details or weak unknown-result
+  evidence.
+- Family Codeword Guide v1: Family Shield now includes a privacy-first
+  codeword guide for voice-clone/deepfake prevention. The bot teaches families
+  to agree on a phrase offline, verifies suspicious voice/video pressure through
+  saved-number callback plus a codeword/private question, and never asks users
+  to send the actual codeword to the bot.
+- Telegram Scam-call Trainer v1: `/trainer` and the main menu now open a
+  five-situation defensive mini-quiz. Score stays in callback data, no answer
+  state or `checks` rows are stored, and content avoids attacker-ready scripts.
+- Website Privacy-safe Scam Map/Index v1: `/scam-trends` now includes a
+  national tactics index, category buckets and a locked regional layer with
+  explicit publication thresholds. It does not read private reports or expose
+  raw targets, screenshots, OCR, URLs, phone numbers, usernames or low-count
+  region data.
+- Embed Origin Analytics v1: `/embed/check` now records service-role-only
+  privacy-safe usage telemetry with partner/referrer origin metadata and
+  aggregate result shape only. It does not store raw input, redacted input,
+  hashes, full referrer URLs, paths, query strings, fragments, phone numbers or
+  Telegram ids.
 
-Remaining implementation order after the 2026-06-18 product feedback:
+Remaining implementation order after the 2026-07-02 reconciliation:
 
-1. **Voice-in v2.** Add transcript preview/confirmation, edit-text recovery,
-   confidence-aware fallback, RU/UZ mixed speech tests and direct routing from
-   obvious panic/live-call transcripts.
-2. **QR clarity pass.** Make every photo/QR result explicit about whether a QR
-   was actually decoded, what destination type was found, and why benign menu
-   QR differs from login/payment/device-link QR.
-3. **Voice/STT UX hardening.** Waiting indicator, exhausted-STT-budget wording
-   and direct voice-to-SOS routing are shipped. Next: transcript
-   confirmation/edit recovery and confidence-aware fallback so users can fix
-   bad recognition without re-spending STT budget.
-4. **Latency pass.** Use timing diagnostics to isolate 5-10 second paths, then
-   cache or skip AI on low-signal checks where deterministic output is enough.
-5. **Phone Reputation v2 and Inline QA.** Improve phone reputation and inline
-   answers only after the emergency context bugs are closed.
-6. **Weekly schemes data model.** Move the weekly digest from static copy to a
-   source/status/updated-at model with a safe stale fallback before automating
-   any research-feed publishing.
-7. **Private moderation chat.** If added, keep it operator-only with redacted
-   summaries and links to admin review, not raw reports or user evidence.
-8. **External signals and public trust surfaces.** Add Google Safe Browsing /
-   URLhaus / PhishTank, public living-experience stories and the scam-call
-   trainer after the bot trust fixes above. Paid line-type/VoIP providers stay
-   optional.
+1. **Voice-in/STT regression corpus and confidence tuning.** Transcript
+   preview, correction, low-signal fallback, waiting state, STT-budget wording
+   and direct voice-to-SOS routing are shipped. The first production-like STT
+   corpus slices now cover RU/UZ/EN SMS-code, card security-code,
+   remote-access, money-transfer, Telegram login-QR, live-call and negated
+   already-happened phrases. The local real-provider capture/replay workflow is
+   also in place and now has manifest/audio path validation tests. Next: collect
+   real provider audio/transcript fixtures from live QA when `OPENAI_API_KEY`
+   and local audio are available, then tune confidence heuristics from
+   production examples.
+2. **Prerecorded Voice-out release QA.** Static SOS OGG architecture is closed;
+   keep human listen-through for tone/pronunciation in the release checklist.
+3. **Phone Reputation v2 and Inline QA.** First inline QA and phone reputation
+   wording/source-confidence slices shipped: low-signal phone/Telegram inline
+   answers reuse the shared Risk Passport, and phone reputation copy now names
+   moderator-confirmed Ishonch Guard reports plus public-scope limits. The
+   automated inline regression matrix now covers phone, Telegram username and
+   phone-reputation source/scope cases, and a production synthetic inline smoke
+   now verifies webhook handling plus non-persistence. The real Telegram-client
+   checklist is documented in `ai_docs/TELEGRAM_INLINE_QA.md`. Next: collect
+   sanitized inline QA examples/screenshots from a real client.
+4. **Public living-experience stories.** Build only after moderation,
+   compliance and privacy review; never publish raw reports or low-count
+   regional details.
+5. **External signals and public trust surfaces.** Google Safe Browsing /
+   URLhaus / PhishTank are shipped as optional additive URL signals with
+   sanitized provider payloads. Paid line-type/VoIP providers stay optional.
 
 Operational hardening that continues in parallel:
 
@@ -159,9 +209,76 @@ Operational hardening that continues in parallel:
 - Keep Voice-out/TTS daily limits. The current per-user cap is intentional cost
   protection; future tuning should improve the waiting state and idempotency,
   not remove the budget guard.
-- Consider a private moderator Telegram chat for new reports and appeals. It
-  should receive only redacted summaries and moderation links, never raw codes,
-  cards, screenshots, full OCR text or unredacted phone numbers.
+- Web/embed Risk Passport compact reuse shipped: the shared passport presenter
+  now feeds website and partner iframe low-signal phone/Telegram checks without
+  changing scoring or making high-risk cards less urgent.
+- Embed origin analytics/logging shipped: `/embed/check` origin usage telemetry
+  is service-role-only, RLS-protected and stores no raw checked evidence.
+- P1 user-story QA for web and Telegram flows passed in production on
+  2026-07-02: homepage high-risk, report success, appeal/admin moderation,
+  live Telegram image/QR, Guardian Angel high-risk and private/group scoping.
+- CSP/security headers reconciliation passed in production on 2026-07-02:
+  main-site and embed headers now have server-level regression coverage, and
+  `prod:security-smoke -- <public-url>` verifies live `/healthz` and
+  `/embed/check` headers.
+- Emergency profile-map refactor shipped on 2026-07-02: `/panic` scenario ids,
+  menu pages, contact-button roles and family-first follow-up ordering now
+  derive from `PANIC_SCENARIO_PROFILES` / `PANIC_SCENARIO_IDS`, with existing
+  SOS copy unchanged.
+- Voice-out prerecorded SOS assets revalidated again on 2026-07-04: all 45
+  RU/UZ/EN OGG files for panic scenarios 1-15 pass `tts:validate-assets`, and
+  the focused Telegram voice-out/emergency/webhook suite passes (`3 files /
+  135 tests`). With explicit action-time approval, the production
+  `prod:telegram-voice-out-smoke` also passed: Telegram accepted RU/UZ/EN
+  `panic-6` OGG audio, the production webhook accepted a `voiceout:panic:6`
+  callback, and cleanup completed.
+- Voice-in/STT corpus slices shipped on 2026-07-02: production-like RU/UZ/EN
+  transcripts for SMS-code, card security-code, remote-access, money-transfer,
+  Telegram login-QR and live-call emergencies route to SOS, and negated
+  already-happened phrases do not. On 2026-07-04 the replay corpus added UZ
+  Cyrillic SMS-code, money-transfer, active-call and negated-code coverage.
+- Voice-in/STT fixture workflow shipped on 2026-07-02: replay rows live in
+  `voice-stt-provider-fixtures.ts`, local audio captures stay ignored, and
+  `npm run stt:transcribe-fixtures` emits sanitized transcripts for manual
+  review. Collector helper tests now cover manifest validation, supported audio
+  extensions, expected transcript fragments and scoped local audio paths. On
+  2026-07-04 the first provider-sanitized transcript rows were captured through
+  production STT provider from ignored local English audio; RU/UZ human/live
+  provider examples remain the next corpus expansion.
+- Inline Risk Passport QA slice shipped on 2026-07-02: Telegram inline
+  low-signal phone/Telegram results now show honest passport sections with
+  limitations and the next context prompt; high-risk inline cards stay urgent.
+- Phone Reputation v2 wording/source-confidence slice shipped on 2026-07-02:
+  Telegram, inline and shared Risk Passport copy now distinguishes
+  moderator-confirmed Ishonch Guard reports from unverified complaints, number
+  owner data, carrier data and hidden external labels.
+- Inline QA regression matrix expanded on 2026-07-02: automated coverage now
+  includes low-signal Telegram username passports and phone reputation
+  source/scope rendering in inline mode, while high-risk inline cards stay
+  action-first.
+- Production Telegram inline smoke added on 2026-07-02: synthetic inline
+  updates for high-risk text, low-signal phone and low-signal username previews
+  pass through the deployed webhook and verify no `checks` or chat-scoped
+  sessions are persisted. Real Telegram-client screenshots remain a manual QA
+  follow-up.
+- Telegram inline real-client QA checklist added on 2026-07-02: `ai_docs/TELEGRAM_INLINE_QA.md`
+  defines safe visual cases, capture/redaction rules, moderator-chat
+  non-delivery expectations and an evidence-log template. Next queue item is
+  capturing the sanitized screenshots/examples, plus real provider Voice-in/STT
+  audio/transcript examples when key/audio access is available.
+- TG-006 tracker reconciliation completed on 2026-07-02: the stale Partial
+  status for Risk Passport username/phone checks is closed with focused
+  formatter, public metadata, shared Risk Passport and inline regression
+  evidence. The tracker now has no Partial or Planned rows.
+- Conversation Check v1 reconciliation completed on 2026-07-02: the
+  pig-butchering / romance-grooming memory gap is covered by explicit
+  `/conversation` mode, which stores only derived stage/action/reason metadata
+  and catches romance/trust-building to investment/crypto/payment escalation.
+  Passive always-on profiling remains a future product/privacy decision, not a
+  current implementation blocker.
+- The private moderator Telegram chat must receive only redacted summaries and
+  moderation links, never raw codes, cards, screenshots, full OCR text or
+  unredacted phone numbers.
 
 Important boundary: do not copy MTProto-style account-age, hidden scam-label,
 DC/country or private spam-history claims from third-party Telegram tools. Our
@@ -237,6 +354,8 @@ Disallowed claims:
     confirmation, safe callback and trusted-contact help - shipped as immediate
     v1; timed reminders remain later.
 12. Voice-out / TTS v1 for short opt-in safety answers - shipped with text fallback when TTS is not configured.
+13. Simple explanation follow-up for elder-friendly verdict explanations -
+    shipped as Telegram Simple Explanation v1.
 
 ## Stage 3 - Website Trust And Distribution
 
@@ -245,14 +364,14 @@ Disallowed claims:
 3. Honest impact counters: checks, dangerous results, user-reported loss totals - shipped as Website Honest Impact Counters v1.
 4. Embeddable check widget for media, banks and community sites - shipped as v1.
 5. Public living-experience stories page: moderated, anonymized scam tactics and lessons.
-6. Scam-call trainer: interactive education flow that people can share.
-7. Scam map/index: aggregated trend surface only after data/compliance review.
+6. Scam-call trainer: shipped first as Telegram Scam-call Trainer v1.
+7. Scam map/index: shipped as Website Privacy-safe Scam Map/Index v1.
 8. "Verified by Ishonch Guard" badge only after manual moderation.
 
 ## Stage 4 - Reliability And Security
 
 1. Monitor shared Postgres-backed rate limits; move to Redis/KV only if scale requires it.
-2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals.
+2. Google Safe Browsing / URLhaus / PhishTank as additive URL signals - shipped.
 3. Production observability: error rate, provider quota, Telegram webhook latency.
 4. Compliance review for Uzbekistan personal-data law and retention windows.
 5. Legal review of appeal/removal moderation guidelines before community reputation growth.

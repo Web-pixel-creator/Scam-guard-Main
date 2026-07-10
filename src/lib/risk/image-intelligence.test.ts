@@ -6,6 +6,8 @@ import {
   buildImageUserExplanation,
   fallbackImageIntelligence,
   hasUsableImageEvidence,
+  isBenignImageContext,
+  isEvidenceBackedBenignImageContext,
   mergeDecodedQrEvidence,
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
@@ -189,6 +191,88 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("high_risk");
   });
 
+  it("flags fake Apple/iOS security popups as install-risk image evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "Оповещение безопасности Apple. На вашем iPhone обнаружено 8 вирусов. iOS повреждена на 72%. При дальнейшем повреждении системы устройство заблокируется, и все данные будут потеряны. Нажмите кнопку ниже, чтобы получить инструкции по удалению всех вирусов. Установить",
+    );
+
+    expect(evidence.visualCategory).toBe("apk_prompt");
+    expect(evidence.riskHints).toContain("fake_device_security_popup");
+    expect(evidence.riskHints).toContain("apk_install");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("ложное предупреждение безопасности");
+    expect(explanation).toContain("Ничего не устанавливайте");
+    expect(explanation).toContain("App Store/Play Market");
+  });
+
+  it("flags APK court-summons screenshots as malicious-file evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "https://chaqiruvsud.click IIBB CHAQIRUVI_669.pdf.apk Hurmatli Djo! SUDga chaqirilgansiz! Biriktirilgan hujjat bilan tanishib chiqing!",
+    );
+
+    expect(evidence.visualCategory).toBe("apk_prompt");
+    expect(evidence.riskHints).toContain("apk_install");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(reasons).toContain("threatens_legal_action");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("повесткой");
+    expect(explanation).toContain("Не открывайте и не устанавливайте");
+  });
+
+  it("flags fake Telegram deletion/verification screenshots without giveaway wording", () => {
+    const evidence = fallbackImageIntelligence(
+      "Запрос на удаление учётной записи. Мы получили запрос на удаление учётной записи Telegram. Если это были не вы, отмените действие в приложении, нажав кнопку ниже. t.me/verification_login_service_bot?startapp=abc",
+    );
+
+    expect(evidence.riskHints).toContain("telegram_account_takeover");
+    expect(evidence.riskHints).not.toContain("giveaway_or_prize_actions");
+    expect(evidence.riskHints).not.toContain("fake_captcha_or_voting");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("telegram_account_takeover_phishing");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("фишинг для угона Telegram");
+    expect(explanation).toContain("Настройки > Устройства");
+    expect(explanation).not.toContain("NFT/Stars");
+    expect(explanation).not.toContain("розыгрыш");
+  });
+
+  it("flags fake UZ Telegram freeze profile screenshots as account takeover", () => {
+    const evidence = fallbackImageIntelligence(
+      [
+        "Teiegram был(а) недавно",
+        "Teiegram Не в контактах",
+        "Страна телефона Узбекистан",
+        "Регистрация Январь 2026",
+        "Не официальный аккаунт",
+        "Hurmatli foydalanuvchi, sizning hisobingizga noma'lum qurilmadan kirish qilinganligi aniqlandi va xavfsizlik nuqtai nazaridan majburan muzlatib qo'yildi.",
+        "Shaxsiy tasdiqlashingizni 11 soat ichida yakunlash uchun quyidagi havolani bosing; aks holda hisobingiz butunlay muzlatib qo'yildi.",
+        "https://example-login.shop Telegram Web",
+      ].join("\n"),
+    );
+
+    expect(evidence.riskHints).toContain("telegram_account_takeover");
+
+    const { reasons, score } = scoreImageEvidence(evidence);
+    expect(reasons).toContain("telegram_account_takeover_phishing");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "ru");
+    expect(explanation).toContain("фишинг для угона Telegram");
+    expect(explanation).toContain("Настройки > Устройства");
+  });
+
   it("redacts sensitive digits in model output", () => {
     const evidence = sanitizeImageIntelligence({
       text: "Назовите SMS-код 123456 и карту 4111 1111 1111 1111",
@@ -260,6 +344,30 @@ describe("image intelligence evidence builder", () => {
 
     const input = buildImageCheckInput(merged);
     expect(input).toContain("Decoded QR URL/value: https://kapitalbank.uz.evil.top/login");
+  });
+
+  it("does not let a category-only benign image context force a safe verdict", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: null,
+      visualCategory: "delivery_sms",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Looks like a delivery SMS.",
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(isBenignImageContext(evidence!)).toBe(true);
+    expect(isEvidenceBackedBenignImageContext(evidence!)).toBe(false);
+  });
+
+  it("keeps readable delivery screenshots eligible for a safe no-reasons verdict", () => {
+    const evidence = fallbackImageIntelligence(
+      "Delivery order 106894935 is ready for pickup at the parcel point.",
+    );
+
+    expect(evidence.visualCategory).toBe("delivery_sms");
+    expect(isEvidenceBackedBenignImageContext(evidence)).toBe(true);
   });
 
   it("tells the user which benign QR domains were actually decoded", () => {
@@ -500,6 +608,25 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("suspicious");
   });
 
+  it("surfaces private Telegram invite screenshots without storing the invite code", () => {
+    const evidence = fallbackImageIntelligence(
+      "Join my private Telegram chat for details: https://t.me/+SecretInvite12345",
+    );
+
+    expect(evidence.text).not.toContain("SecretInvite12345");
+    expect(evidence.riskHints).toContain("telegram_invite_or_private_link");
+
+    const { input, reasons, score } = scoreImageEvidence(evidence);
+    expect(input).toContain("private Telegram invite link");
+    expect(input).not.toContain("SecretInvite12345");
+    expect(reasons).toContain("suspicious_invite_link");
+    expect(score.level).toBe("suspicious");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "en");
+    expect(explanation).toContain("invite link to a private Telegram chat");
+    expect(explanation).toContain("I cannot inspect what is inside");
+  });
+
   it("does not turn ordinary Telegram news/product posts into scam promo reasons", () => {
     const news = fallbackImageIntelligence(
       "Just News. Supreme Court expected to release ruling on tariffs on January 14th. @just",
@@ -529,6 +656,8 @@ describe("image intelligence evidence builder", () => {
 
     expect(evidence.visualCategory).toBe("telegram_profile_card");
     expect(evidence.riskHints).toEqual([]);
+    expect(isBenignImageContext(evidence)).toBe(true);
+    expect(isEvidenceBackedBenignImageContext(evidence)).toBe(false);
 
     const { input, reasons, score } = scoreImageEvidence(evidence);
     expect(input).toContain("скрин профиля Telegram");

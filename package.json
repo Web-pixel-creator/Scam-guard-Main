@@ -18,9 +18,21 @@
     "qa:telegram-visual": "vite-node scripts/telegram-bot-qa-visual.ts",
     "monitor:prod": "vite-node scripts/prod-monitor.ts",
     "prod:smoke": "vite-node scripts/prod-smoke.ts",
+    "prod:web-p1-smoke": "vite-node scripts/prod-web-p1-smoke.ts",
     "prod:family-smoke": "vite-node scripts/prod-family-shield-smoke.ts",
     "prod:security-smoke": "vite-node scripts/prod-security-smoke.ts",
+    "prod:admin-moderation-smoke": "vite-node scripts/prod-admin-moderation-smoke.ts",
+    "prod:telegram-scope-smoke": "vite-node scripts/prod-telegram-scope-smoke.ts",
+    "prod:telegram-live-qa-smoke": "vite-node scripts/prod-telegram-live-qa-smoke.ts",
+    "prod:telegram-inline-smoke": "vite-node scripts/prod-telegram-inline-smoke.ts",
+    "prod:telegram-context-smoke": "vite-node scripts/prod-telegram-context-smoke.ts",
+    "prod:telegram-false-positive-smoke": "vite-node scripts/prod-telegram-false-positive-smoke.ts",
+    "prod:telegram-user-story-smoke": "vite-node scripts/prod-telegram-user-story-smoke.ts",
+    "prod:telegram-voice-out-smoke": "vite-node scripts/prod-telegram-voice-out-smoke.ts",
     "tts:smoke": "vite-node scripts/tts-smoke.ts",
+    "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
+    "tts:validate-assets": "vite-node scripts/validate-voice-out-assets.ts",
+    "stt:transcribe-fixtures": "vite-node scripts/transcribe-voice-stt-fixtures.ts",
     "moderation:smoke": "vite-node scripts/moderation-alert-smoke.ts"
   },
   "dependencies": {
@@ -103,9 +115,15 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.60.0",
     "vite": "^7.3.1",
+    "vite-node": "^5.3.0",
     "vitest": "4.1.8"
   },
   "overrides": {
-    "brace-expansion": "5.0.6"
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.12"
+    },
+    "minimatch@10.2.5": {
+      "brace-expansion": "5.0.6"
+    }
   }
 }

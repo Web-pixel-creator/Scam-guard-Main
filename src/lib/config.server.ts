@@ -79,3 +79,13 @@ export function getPublicAppUrl(): string {
     return fallback;
   }
 }
+
+/**
+ * Comma/space-separated HTTPS origins allowed to frame `/embed/check`.
+ * Example: `https://partner.example,https://bank.example`.
+ * The CSP parser keeps only explicit HTTPS origins; localhost is added by the
+ * embed CSP builder for development.
+ */
+export function getEmbedAllowedFrameAncestors(): string | undefined {
+  return process.env.EMBED_ALLOWED_FRAME_ANCESTORS;
+}

@@ -36,6 +36,8 @@ export type ImageRiskHint =
   | "apk_install"
   | "qr_login"
   | "qr_payment"
+  | "telegram_account_takeover"
+  | "fake_device_security_popup"
   | "payment_request"
   | "card_data"
   | "urgent_pressure"
@@ -87,6 +89,8 @@ const RISK_HINTS: readonly ImageRiskHint[] = [
   "apk_install",
   "qr_login",
   "qr_payment",
+  "telegram_account_takeover",
+  "fake_device_security_popup",
   "payment_request",
   "card_data",
   "urgent_pressure",
@@ -112,7 +116,11 @@ const QR_RE = /\b(qr|qr-код|qr.?kod)\b/i;
 const SECRET_RE =
   /(sms.?код|код из sms|код из смс|otp|verification code|tasdiq.{0,10}kod|pin|cvv|cvc|парол|password)/i;
 const APK_RE =
-  /(apk|установ(и|ите).{0,30}прилож|install.{0,30}(app|apk)|ilova.{0,20}o['’]rnating)/i;
+  /(apk|\.apk|pdf\.apk|pptx|\.pptx|exe|\.exe|установ(и|ите).{0,30}(?:програм|софт|apk|файл)|скача(?:й|йте|ть).{0,30}(?:програм|apk|файл)|install.{0,30}(apk|file)|download.{0,30}(apk|file)|yukla.{0,30}(?:apk|fayl))/i;
+const FAKE_DEVICE_SECURITY_POPUP_RE =
+  /(?:apple|iphone|ios|android|телефон|смартфон|устройств).{0,100}(?:вирус|virus|поврежден|повреждена|заражен|заражено|security|безопасност|blocked|заблокир|удален|data.{0,20}lost|данн.{0,30}потер).{0,140}(?:установ|скача|install|download|нажм|button|кнопк|ок|ok)|(?:оповещение\s+безопасности|security\s+alert).{0,80}(?:apple|iphone|ios|android)|(?:ios|iphone).{0,80}(?:поврежден|повреждена).{0,80}(?:\d+\s*%|процент)/i;
+const TELEGRAM_ACCOUNT_TAKEOVER_IMAGE_RE =
+  /(?:telegram|телеграм|teiegram|телеграмм|t\.me|telegram\.me)[\s\S]{0,700}(?:удален|удаление|заблокир|блокиров|заморож|muzlat|o['’]?chir|ochir|verification|verify|login|service|официальн|rasmiy|аккаунт|уч[её]тн[\s\S]{0,20}запис|hisob|noma['’]?lum[\s\S]{0,40}qurilma|qurilmadan[\s\S]{0,30}kirish|tasdiqlash|havola|bosing)|(?:запрос\s+на\s+удаление|отменить\s+удаление|вернуть\s+аккаунт|аккаунт[\s\S]{0,40}(?:удален|заблокир|заморож)|hisob[\s\S]{0,120}(?:muzlat|o['’]?chir|blok|noma['’]?lum[\s\S]{0,40}qurilma|qurilmadan[\s\S]{0,30}kirish))[\s\S]{0,180}(?:telegram|телеграм|t\.me|havola|ссылк|link|bosing|tasdiq)/i;
 const PAYMENT_RE =
   /(предоплат|оплатите|оплата|переведите|перевод|to['’]?lov|pul o['’]?tkaz|payment|transfer|deposit|fee|комисс|карта|karta|uzcard|humo)/i;
 const QR_LOGIN_RE =
@@ -142,7 +150,7 @@ const CASINO_BONUS_RE =
 const CASINO_ACTION_RE =
   /(депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|пополн|бонус|ссылк|перейти|вход на сайт|без vpn|регистрац|запущ|bonus|deposit|top\s?up|link|signup|register|launched|always here|no registration|mini\s?app|telegram app|первые\s+\d+\s+деп)/i;
 const GIVEAWAY_CONTEXT_RE =
-  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq|stars?|зв[её]зд|ton\s?знаток|tonznatok)/i;
+  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq|\bstars?\b|зв[её]зд|ton\s?знаток|tonznatok)/i;
 const GIVEAWAY_ACTION_RE =
   /(капч|captcha|реакци|reaction|проголос|голос|vote|voting|подпис|subscribe|участв|раздач|выда[еёю]|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп|join|claim|получ)/i;
 const FAKE_CAPTCHA_VOTING_RE =
@@ -211,6 +219,8 @@ function hasStrongDangerHint(hints: readonly ImageRiskHint[]): boolean {
       "apk_install",
       "qr_login",
       "qr_payment",
+      "telegram_account_takeover",
+      "fake_device_security_popup",
       "payment_request",
       "card_data",
       "wallet_or_defi_urgency",
@@ -325,6 +335,12 @@ function deriveHints(text: string): ImageRiskHint[] {
   if (APK_RE.test(text)) hints.push("apk_install");
   if (QR_LOGIN_RE.test(text)) hints.push("qr_login");
   if (QR_PAYMENT_RE.test(text)) hints.push("qr_payment");
+  if (TELEGRAM_ACCOUNT_TAKEOVER_IMAGE_RE.test(text)) hints.push("telegram_account_takeover");
+  if (FAKE_DEVICE_SECURITY_POPUP_RE.test(text)) {
+    hints.push("fake_device_security_popup");
+    hints.push("apk_install");
+    hints.push("urgent_pressure");
+  }
   if (PAYMENT_RE.test(text) && !WALLET_CONTEXT_RE.test(text)) hints.push("payment_request");
   if (/(cvv|pin|карта|karta|card).{0,40}(номер|raqam|digits|цифр)/i.test(text))
     hints.push("card_data");
@@ -372,6 +388,7 @@ function deriveCategory(
 ): ImageVisualCategory {
   if (hints.includes("apk_install")) return "apk_prompt";
   if (hints.includes("qr_login") || hints.includes("qr_payment")) return "qr_login_or_payment";
+  if (hints.includes("telegram_account_takeover")) return "chat_screenshot";
   if (hints.includes("casino_bonus_or_free_spins")) return "casino_or_betting_promo";
   if (hints.includes("giveaway_or_prize_actions") || hints.includes("fake_captcha_or_voting")) {
     return "crypto_giveaway_or_nft";
@@ -401,11 +418,13 @@ function deriveQrPurpose(text: string, hints: ImageRiskHint[]): ImageQrPurpose {
 }
 
 export function fallbackImageIntelligence(text: string | null): ImageIntelligenceResult {
-  const redacted = clampText(text ? redactText(text) : null, 2000);
+  const rawSource = text ?? "";
+  const redacted = clampText(rawSource ? redactText(rawSource) : null, 2000);
   const source = redacted ?? "";
-  const qrPresent = QR_RE.test(source);
-  const hints = deriveHints(source);
-  const visualCategory = deriveCategory(source, qrPresent, hints);
+  const analysisSource = [rawSource, source].filter(Boolean).join("\n");
+  const qrPresent = QR_RE.test(analysisSource);
+  const hints = deriveHints(analysisSource);
+  const visualCategory = deriveCategory(analysisSource, qrPresent, hints);
   return {
     text: redacted,
     visualCategory,
@@ -459,7 +478,7 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
     confidence: pickEnum(rec.confidence, CONFIDENCES, fallback.confidence),
     qr: {
       present: qrPresent,
-      visibleUrl: visibleUrl ? redactText(visibleUrl).slice(0, 500) : null,
+      visibleUrl: visibleUrl ? redactDecodedQrValue(visibleUrl).slice(0, 500) : null,
       purpose: qrPurpose,
       decodedValues: [],
     },
@@ -477,10 +496,15 @@ function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
 }
 
 function redactDecodedQrValue(value: string): string {
-  return redactText(value)
+  return value
+    .trim()
     .replace(/((?:tg|telegram):\/\/login\?token=)[^&\s]+/i, "$1[hidden]")
     .replace(/((?:otpauth):\/\/[^\s?]+(?:\?[^#\s]*?\bsecret=))[^&\s]+/i, "$1[hidden]")
-    .replace(/([?&](?:token|secret|session|auth|code)=)[^&\s]+/gi, "$1[hidden]");
+    .replace(
+      /([?&](?:token|secret|session|auth|code|password|pass|otp|pin|cvv)=)[^&\s]+/gi,
+      "$1[hidden]",
+    )
+    .replace(/\b(?:\d[ -]?){13,19}\b/g, "[card]");
 }
 
 function classifyDecodedQrValue(value: string): DecodedQrKind {
@@ -655,6 +679,41 @@ export function isBenignImageContext(evidence: ImageIntelligenceResult): boolean
   );
 }
 
+function readableImageText(evidence: ImageIntelligenceResult): string | null {
+  if (!evidence.text || LOW_INFORMATION_IMAGE_TEXT_RE.test(evidence.text)) return null;
+  return evidence.text;
+}
+
+function hasImageQrSignal(evidence: ImageIntelligenceResult, text: string): boolean {
+  return Boolean(
+    evidence.qr.present ||
+    evidence.qr.visibleUrl ||
+    evidence.qr.purpose !== "unknown" ||
+    decodedQrValues(evidence).length > 0 ||
+    QR_RE.test(text),
+  );
+}
+
+export function isEvidenceBackedBenignImageContext(evidence: ImageIntelligenceResult): boolean {
+  if (!isBenignImageContext(evidence)) return false;
+
+  const text = readableImageText(evidence);
+  if (!text) return false;
+
+  switch (evidence.visualCategory) {
+    case "delivery_sms":
+      return DELIVERY_RE.test(text);
+    case "restaurant_menu_qr":
+      return MENU_RE.test(text) && hasImageQrSignal(evidence, text);
+    case "qr_menu_or_info":
+      return QR_RE.test(text) && hasImageQrSignal(evidence, text);
+    case "telegram_profile_card":
+      return false;
+    default:
+      return false;
+  }
+}
+
 function dangerousHintText(hint: ImageRiskHint): string {
   switch (hint) {
     case "otp_or_secret":
@@ -665,6 +724,10 @@ function dangerousHintText(hint: ImageRiskHint): string {
       return "Просят отсканировать QR-код, чтобы войти или подтвердить аккаунт.";
     case "qr_payment":
       return "Просят отсканировать QR-код для оплаты или перевода.";
+    case "telegram_account_takeover":
+      return "Похоже на фишинг Telegram: пугают блокировкой, удалением или проверкой аккаунта и ведут по ссылке/боту.";
+    case "fake_device_security_popup":
+      return "Похоже на ложное предупреждение безопасности телефона: пугают вирусами или повреждением iOS/Android и подталкивают установить программу.";
     case "payment_request":
       return "Просят предоплату до услуги или перевод денег.";
     case "card_data":
@@ -686,7 +749,7 @@ function dangerousHintText(hint: ImageRiskHint): string {
     case "ton_referral_or_earning":
       return "Обещают TON, crypto или Stars за приглашения, referral link или друзей.";
     case "telegram_invite_or_private_link":
-      return "Есть invite-ссылка в закрытый Telegram-канал или группу.";
+      return "Image evidence: private Telegram invite link to a closed chat or channel.";
   }
 }
 
@@ -856,6 +919,36 @@ function scenarioImageExplanation(evidence: ImageIntelligenceResult, lang: Lang)
 
   if (category === "telegram_profile_card" && !hasStrongDangerHint(evidence.riskHints)) {
     return telegramProfileExplanation(evidence, lang);
+  }
+
+  if (hints.has("telegram_account_takeover")) {
+    if (lang === "uz") {
+      return "Bu Telegram akkauntini o'g'irlashga o'xshaydi: bloklash, o'chirish, muzlatish yoki 'tekshiruv' bilan qo'rqitib, havola/bot orqali kirishga undashadi. Havolaga kirmang, kod kiritmang. Telegram ichida Settings > Devices orqali begona sessiyalarni tekshiring va 2FA yoqing.";
+    }
+    if (lang === "en") {
+      return "This looks like Telegram account-takeover phishing: it scares you with deletion, blocking, freezing, or verification and pushes you to a link or bot. Do not open the link or enter a code. In Telegram, check Settings > Devices and enable 2FA.";
+    }
+    return "Похоже на фишинг для угона Telegram: пугают удалением, блокировкой, заморозкой или «проверкой» аккаунта и ведут по ссылке/боту. Не переходите и не вводите код. В Telegram проверьте Настройки > Устройства и включите двухэтапную защиту.";
+  }
+
+  if (hints.has("fake_device_security_popup")) {
+    if (lang === "uz") {
+      return "Bu soxta telefon xavfsizligi oynasiga o'xshaydi: iPhone/iOS/Android buzilgan, virus bor yoki ma'lumotlar yo'qoladi deb qo'rqitib, dastur o'rnatishga undashadi. Hech narsa o'rnatmang. Sahifani yoping, ilovani rasmiy App Store/Play Marketdan tashqarida yuklamang.";
+    }
+    if (lang === "en") {
+      return "This looks like a fake phone security pop-up: it scares you with viruses, damaged iOS/Android, or data loss and pushes you to install software. Do not install anything. Close the page and only use official App Store/Play Market apps.";
+    }
+    return "Похоже на ложное предупреждение безопасности телефона: пугают вирусами, повреждением iOS/Android или потерей данных и подталкивают установить программу. Ничего не устанавливайте. Закройте страницу, приложения ставьте только из официального App Store/Play Market.";
+  }
+
+  if (hints.has("apk_install") || category === "apk_prompt") {
+    if (lang === "uz") {
+      return "Rasmda APK, .exe yoki shubhali fayl/ilova ko'rinmoqda. Uni sud chaqiruvi, hujjat, tabrik, ovozli xabar yoki xavfsizlik dasturi deb atashlari mumkin, lekin bunday fayl telefoningizga kirish, SMS va bank ilovalarini o'g'irlashi mumkin. Ochmang va o'rnatmang.";
+    }
+    if (lang === "en") {
+      return "The image shows an APK, .exe, or suspicious file/app. It may be presented as a court notice, document, greeting, voice message, or security app, but such files can steal access to the phone, SMS, and banking apps. Do not open or install it.";
+    }
+    return "На изображении виден APK, .exe или подозрительный файл/приложение. Его могут назвать повесткой, документом, открыткой, голосовым или защитной программой, но такой файл может получить доступ к телефону, SMS и банковским приложениям. Не открывайте и не устанавливайте.";
   }
 
   if (hints.has("casino_bonus_or_free_spins") || category === "casino_or_betting_promo") {

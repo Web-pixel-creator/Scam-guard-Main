@@ -26,7 +26,6 @@ import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { UnicornBackground } from "@/components/UnicornBackground";
 import { StatsStrip } from "@/components/StatsStrip";
 import { HomeTrustSurface } from "@/components/HomeTrustSurface";
 import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
@@ -121,6 +120,7 @@ function Index() {
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const [formVisible, setFormVisible] = useState(true);
+  const [showAllSchemes, setShowAllSchemes] = useState(false);
 
   // Re-clicking the brand/Home link while already on "/" does not unmount
   // this component — subscribe to router resolves and reset the result so the
@@ -149,7 +149,7 @@ function Index() {
 
   return (
     <div className="overflow-hidden home-stripes-bg">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-14 md:space-y-20 lg:space-y-24 pt-3 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-16 md:space-y-28 lg:space-y-32 pt-3 md:pt-4">
         {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
         <section className="relative isolate pt-1 md:pt-2">
           <div
@@ -174,10 +174,7 @@ function Index() {
             <div className="relative text-center px-0">
               {/* Compact pain badge — single visual signal, no separate quote block */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] mb-5 animate-fade-in-up font-mono">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                </span>
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                 {
                   {
                     ru: "Звонят мошенники? Проверьте за 3 секунды",
@@ -280,30 +277,17 @@ function Index() {
             ref={formRef}
             className={`scroll-mt-24 w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}
           >
-            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[380px] md:min-h-[440px] bg-[#fde7d3]">
-              <UnicornBackground
-                projectId="pSxbKYCCk7vGhrLFRLrG"
-                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-              />
-              {/* Brand-color overlay: forces any hue from the animated canvas into our orange palette */}
+            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[340px] md:min-h-[400px] border border-[#EAD9C4] bg-[#FDF6EE]">
+              {/* Calm warm wash — static, low-noise: lets the input breathe */}
               <div
                 aria-hidden
-                className="absolute inset-0 z-10 pointer-events-none"
-                style={{
-                  background: "linear-gradient(135deg, #FB923C 0%, #F97316 50%, #C2410C 100%)",
-                  mixBlendMode: "color",
-                  opacity: 0.85,
-                }}
-              />
-              <div
-                aria-hidden
-                className="absolute inset-0 z-10 pointer-events-none"
+                className="absolute inset-0 z-0 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(60% 50% at 50% 50%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 70%)",
+                    "radial-gradient(120% 80% at 50% -10%, rgba(251,146,60,0.16) 0%, rgba(251,146,60,0) 58%)",
                 }}
               />
-              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-8 md:py-12 min-h-[380px] md:min-h-[440px]">
+              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[340px] md:min-h-[400px]">
                 <div className="w-full max-w-3xl cta-glow rounded-[8px]">
                   <CheckInput hideInlineResult onResult={setHomeResult} />
                 </div>
@@ -481,9 +465,9 @@ function Index() {
                   en: "“A bank manager DMs you and asks for the SMS code.”",
                 },
                 check: {
-                  ru: "Боты, каналы-ловушки и псевдо-сотрудники банков — определяем по паттернам.",
-                  uz: "Botlar, tuzoq-kanallar va soxta bank xodimlarini namunalar bo'yicha aniqlaymiz.",
-                  en: "Detect bots, trap channels and fake bank employees by behavior patterns.",
+                  ru: "Боты, каналы-ловушки и поддельных «сотрудников банка» — узнаём по характерным признакам.",
+                  uz: "Botlar, tuzoq-kanallar va soxta «bank xodimlari»ni xos belgilar bo'yicha aniqlaymiz.",
+                  en: "We spot bots, trap channels and fake “bank staff” by their tell-tale signs.",
                 },
               },
               {
@@ -496,9 +480,9 @@ function Index() {
                   en: "“Pay the delivery fee via this link or your parcel is returned.”",
                 },
                 check: {
-                  ru: "Фишинг, поддельные платёжки и вредоносные APK — отделяем от настоящих.",
-                  uz: "Fishing, soxta to'lov sahifalari va zararli APK fayllarini haqiqiylaridan ajratamiz.",
-                  en: "Phishing, fake payment pages and malicious APKs — separated from the real ones.",
+                  ru: "Поддельные сайты, фальшивые оплаты и опасные приложения (APK) — отличаем от настоящих.",
+                  uz: "Soxta saytlar, qalbaki to'lovlar va xavfli ilovalar (APK) — haqiqiylaridan ajratamiz.",
+                  en: "Fake sites, bogus payment pages and dangerous apps (APK) — told apart from the real ones.",
                 },
               },
               {
@@ -515,9 +499,9 @@ function Index() {
                   en: "“Urgent! A suspicious transaction on your card…”",
                 },
                 check: {
-                  ru: "Признаки социальной инженерии: давление, срочность, просьба о коде или переводе.",
-                  uz: "Ijtimoiy muhandislik belgilari: bosim, shoshqaloqlik, kod yoki o'tkazma so'rovi.",
-                  en: "Social-engineering signals: pressure, urgency, asking for codes or transfers.",
+                  ru: "Признаки психологического давления: торопят, пугают, просят код или перевод.",
+                  uz: "Psixologik bosim belgilari: shoshiradi, qo'rqitadi, kod yoki o'tkazma so'raydi.",
+                  en: "Signs of pressure tactics: they rush you, scare you, ask for a code or transfer.",
                 },
               },
             ].map((c, idx) => (
@@ -528,18 +512,20 @@ function Index() {
                 <span className="absolute top-6 right-6 apex-mono">0{idx + 1}</span>
 
                 <div
-                  className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-6 transition-colors"
+                  className="flex items-center justify-center w-11 h-11 rounded-[10px] border border-[#FED7AA]/70 bg-[#FFF7ED] mb-6 transition-colors"
                   style={{ color: c.accent }}
                 >
-                  <c.i aria-hidden="true" focusable="false" className="h-4 w-4" strokeWidth={1.5} />
+                  <c.i
+                    aria-hidden="true"
+                    focusable="false"
+                    className="h-[18px] w-[18px]"
+                    strokeWidth={1.75}
+                  />
                 </div>
 
                 {/* Pain badge — red dot signals "this is the problem" */}
                 <div className="inline-flex items-center gap-1.5 mb-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                  </span>
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                   {{ ru: "Болевая точка", uz: "Og'riqli nuqta", en: "Pain point" }[lang]}
                 </div>
 
@@ -848,9 +834,9 @@ function Index() {
                     en: "“I can't tell if this is a real bank or a scam.”",
                   },
                   out: {
-                    ru: "Сверяем с базой жалоб и паттернами в реальном времени.",
-                    uz: "Shikoyatlar bazasi va naqshlar bilan real vaqtda tekshiramiz.",
-                    en: "We cross-check against the reports DB and live patterns.",
+                    ru: "Сверяем с базой жалоб и характерными признаками за секунды.",
+                    uz: "Shikoyatlar bazasi va xos belgilar bilan bir necha soniyada tekshiramiz.",
+                    en: "We cross-check against the reports database and tell-tale signs in seconds.",
                   },
                 },
                 {
@@ -874,7 +860,7 @@ function Index() {
                   className="relative bg-[#F4F2EB] p-8 sm:p-10 md:p-12 apex-stripes min-h-[300px] md:min-h-[320px] flex flex-col gap-5"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="block font-sans text-5xl md:text-6xl font-medium tracking-[-0.05em] text-[#D4D1C6] leading-none tabular-nums">
+                    <span className="block font-serif-italic text-6xl md:text-7xl font-normal text-[#C2410C]/30 leading-none tabular-nums">
                       {s.i}
                     </span>
                     <span className="apex-mono text-[#71717A]">
@@ -889,10 +875,7 @@ function Index() {
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                    </span>
+                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     {
                       {
                         ru: "Что чувствует человек",
@@ -984,10 +967,7 @@ function Index() {
                 <div className="flex items-start justify-between gap-4 mb-10">
                   <div>
                     <p className="text-[11px] font-medium tracking-[0.12em] uppercase mb-3 inline-flex items-center gap-2">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                      </span>
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                       <span className="bg-gradient-to-r from-[#F97316] via-[#FB923C] to-[#C2410C] bg-clip-text text-transparent">
                         {{ ru: "Опасность · 98%", uz: "Xavf · 98%", en: "Risk · 98%" }[lang]}
                       </span>
@@ -1112,7 +1092,11 @@ function Index() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] ${
+              showAllSchemes ? "" : "sm:[&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1"
+            }`}
+          >
             {(
               [
                 {
@@ -1132,9 +1116,9 @@ function Index() {
                 },
                 {
                   n: "02",
-                  ru: "APK от мнимого банка",
-                  uz: "Soxta bank APK",
-                  en: "Fake bank APK",
+                  ru: "Поддельное приложение «банка»",
+                  uz: "Soxta «bank ilovasi»",
+                  en: "Fake “bank app”",
                   d_ru: "Просят установить «безопасное приложение» — оно крадёт SMS и данные.",
                   d_uz: "«Xavfsiz ilova» o'rnatishni so'rashadi — u SMS o'g'irlaydi.",
                   d_en: "They push a “safe app” that steals SMS and data.",
@@ -1180,15 +1164,15 @@ function Index() {
                   ru: "Фейковая доставка",
                   uz: "Soxta yetkazib berish",
                   en: "Fake delivery",
-                  d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это фишинг карты.",
-                  d_uz: "«Kuryer» to'lov havolasini yuboradi — bu fishing.",
-                  d_en: "A “courier” sends a payment link — card phishing.",
+                  d_ru: "«Курьер» отправляет ссылку для оплаты доставки — это кража данных карты.",
+                  d_uz: "«Kuryer» to'lov havolasini yuboradi — bu karta ma'lumotlarini o'g'irlash.",
+                  d_en: "A “courier” sends a payment link to steal your card details.",
                   bait_ru: "«Доплатите 12 000 сум за доставку по ссылке»",
                   bait_uz: "«Yetkazib berish uchun 12 000 so'm to'lang»",
                   bait_en: "“Pay 12,000 UZS delivery fee via this link.”",
-                  loss_ru: "Реквизиты карты уходят на фишинг-сайт",
-                  loss_uz: "Karta ma'lumotlari fishing saytga ketadi",
-                  loss_en: "Card details captured by phishing site",
+                  loss_ru: "Данные карты уходят на поддельный сайт",
+                  loss_uz: "Karta ma'lumotlari soxta saytga ketadi",
+                  loss_en: "Card details captured by a fake site",
                 },
                 {
                   n: "06",
@@ -1206,49 +1190,55 @@ function Index() {
                   loss_en: "Card details handed to scammers",
                 },
               ] as const
-            ).map((s) => (
-              <div
-                key={s.en}
-                className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="apex-mono">
-                    {{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}
-                  </span>
-                  <span className="flex-1 h-px bg-[#E2E0D8]" />
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+            )
+              .slice(0, showAllSchemes ? 6 : 3)
+              .map((s) => (
+                <div
+                  key={s.en}
+                  className="relative bg-white/85 backdrop-blur-[4px] p-8 sm:p-10 md:p-12 min-h-[340px] flex flex-col"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="apex-mono">
+                      {{ ru: `Случай №${s.n}`, uz: `Holat №${s.n}`, en: `Case #${s.n}` }[lang]}
                     </span>
-                    {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
-                  </span>
-                </div>
+                    <span className="flex-1 h-px bg-[#E2E0D8]" />
+                    <span className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.18em] uppercase text-[#B91C1C] font-mono">
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+                      {{ ru: "ОБМАН", uz: "ALDOV", en: "SCAM" }[lang]}
+                    </span>
+                  </div>
 
-                <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-3 tracking-tight text-[#18181B] leading-[1.3] text-balance">
-                  {s[lang]}
-                </h3>
-                <p className="card-body mb-5">
-                  {(s as never as Record<string, string>)["d_" + lang]}
-                </p>
-
-                {/* Scammer bait */}
-                <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13px] leading-[1.55] text-[#18181B] italic font-serif-italic">
-                  {(s as never as Record<string, string>)["bait_" + lang]}
-                </blockquote>
-
-                {/* Consequence — what you lose */}
-                <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
-                  <p className="apex-mono text-[#B91C1C] mb-1.5">
-                    ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
+                  <h3 className="font-sans text-[18px] md:text-[19px] font-medium mb-3 tracking-tight text-[#18181B] leading-[1.3] text-balance">
+                    {s[lang]}
+                  </h3>
+                  <p className="card-body mb-5">
+                    {(s as never as Record<string, string>)["d_" + lang]}
                   </p>
-                  <p className="card-body">
-                    {(s as never as Record<string, string>)["loss_" + lang]}
-                  </p>
+
+                  {/* Scammer bait */}
+                  <blockquote className="border-l-2 border-[#DC2626]/30 pl-3 mb-5 text-[13px] leading-[1.55] text-[#18181B] italic font-serif-italic">
+                    {(s as never as Record<string, string>)["bait_" + lang]}
+                  </blockquote>
+
+                  {/* Consequence — what you lose */}
+                  <div className="mt-auto pt-4 border-t border-[#E2E0D8]">
+                    <p className="apex-mono text-[#B91C1C] mb-1.5">
+                      ⚠ {{ ru: "Что теряете", uz: "Nima yo'qotasiz", en: "What you lose" }[lang]}
+                    </p>
+                    <p className="card-body">
+                      {(s as never as Record<string, string>)["loss_" + lang]}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
+          {!showAllSchemes && (
+            <div className="mt-8 flex justify-center">
+              <button type="button" onClick={() => setShowAllSchemes(true)} className="apex-pill">
+                {{ ru: "Показать ещё 3 схемы", uz: "Yana 3 ta sxema", en: "Show 3 more" }[lang]}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* FAQ — pain scenarios with green "what we do" answer */}
@@ -1359,9 +1349,9 @@ function Index() {
               },
               {
                 q: {
-                  ru: "Установил подозрительный APK — телефон скомпрометирован?",
-                  uz: "Shubhali APK o'rnatdim — telefonim xavf ostidami?",
-                  en: "I installed a sketchy APK — is my phone compromised?",
+                  ru: "Установил подозрительное приложение (APK) — телефон в опасности?",
+                  uz: "Shubhali ilova (APK) o'rnatdim — telefonim xavf ostidami?",
+                  en: "I installed a suspicious app (APK) — is my phone in danger?",
                 },
                 pain: {
                   ru: "«Приложение просит доступ ко всем SMS и контактам — это нормально?»",
@@ -1457,10 +1447,7 @@ function Index() {
                 <div className="px-6 sm:px-7 md:px-8 pb-6 sm:pb-7 md:pb-8 -mt-1">
                   {/* Pain scenario — what the user is actually feeling */}
                   <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] font-mono">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                    </span>
+                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
                     {
                       {
                         ru: "Что вы думаете в этот момент",
@@ -1705,10 +1692,7 @@ function Index() {
         >
           <div className="flex items-start justify-between gap-4 mb-4">
             <span className="apex-mono text-[#991B1B] inline-flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-              </span>
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
               {
                 {
                   ru: "Если уже случилось — звоните сразу",
@@ -1914,10 +1898,7 @@ function Index() {
                 {{ ru: "Версия 3.1", uz: "Versiya 3.1", en: "Version 3.1" }[lang]}
               </p>
               <p className="apex-mono flex items-center gap-2">
-                <span className="relative inline-flex h-2 w-2 shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-[#F97316]/40 animate-ping" />
-                  <span className="relative inline-block h-2 w-2 rounded-full bg-[#F97316]" />
-                </span>
+                <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
                 {{ ru: "Сервис работает", uz: "Xizmat ishlamoqda", en: "Service online" }[lang]}
               </p>
             </div>

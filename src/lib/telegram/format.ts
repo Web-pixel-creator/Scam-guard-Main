@@ -28,7 +28,13 @@ import {
 import { t, type Lang } from "@/lib/i18n";
 import { REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
-import type { PhoneReputationConfidence } from "@/lib/risk/phone-reputation";
+import {
+  formatNoPhoneReputationLine,
+  formatPhoneReputationEvidenceLine,
+  formatPhoneReputationScopeLine,
+  phoneReputationConfidence,
+  phoneReputationConfidenceLabel,
+} from "@/lib/risk/phone-reputation";
 import { findMatchingPatterns } from "@/lib/scam-patterns";
 import {
   TEMPLATES,
@@ -74,13 +80,18 @@ const VERDICT_KEY: Record<RiskLevel, BotStringKey> = {
 export const CB = {
   report: "report",
   checkAnother: "check_another",
+  conversationStart: "conversation_start",
+  conversationAnalyze: "conversation_analyze",
+  conversationCancel: "conversation_cancel",
   emergency: "emergency",
   liveCall: "panic:6",
   why: "why",
+  explainSimple: "explain_simple",
   showLang: "show_lang",
   safety: "safety",
   howItWorks: "how_it_works",
   digest: "digest",
+  trainer: "trainer:start",
   mediaTips: "media_tips",
   familyMenu: "family:menu",
   notifyTrusted: "family:notify",
@@ -153,7 +164,9 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   ) {
     return "phone";
   }
-  if (result.type === "telegram") return "telegram_profile";
+  if (result.type === "telegram" || isTelegramProfileScreenshotBrief(result.explanation)) {
+    return "telegram_profile";
+  }
 
   return null;
 }
@@ -229,7 +242,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: string;
       meaning: string;
       nextStep: string;
-      reports: (count: number) => string;
       foreignWarning: string;
       weakWarning: string;
     }
@@ -241,10 +253,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Репутация Ishonch",
       meaning: "📌 Что это значит",
       nextStep: "🧭 Следующий шаг",
-      reports: (count) =>
-        count === 0
-          ? "подтвержд. жалоб в Ishonch Guard не найдено"
-          : `${count} подтвержд. жалоб — оценивайте осторожнее`,
       foreignWarning: "🚩 Важно",
       weakWarning: "⚠️ Формат",
     },
@@ -255,10 +263,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Ishonch reputatsiyasi",
       meaning: "📌 Bu nimani bildiradi",
       nextStep: "🧭 Keyingi qadam",
-      reports: (count) =>
-        count === 0
-          ? "Ishonch Guardda tasdiqlangan shikoyat topilmadi"
-          : `${count} tasdiqlangan shikoyat — ehtiyotroq baholang`,
       foreignWarning: "🚩 Muhim",
       weakWarning: "⚠️ Format",
     },
@@ -269,10 +273,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
       reputation: "🛡 Ishonch reputation",
       meaning: "📌 What this means",
       nextStep: "🧭 Next step",
-      reports: (count) =>
-        count === 0
-          ? "no confirmed Ishonch Guard reports found"
-          : `${count} confirmed reports — use extra caution`,
       foreignWarning: "🚩 Important",
       weakWarning: "⚠️ Format",
     },
@@ -282,7 +282,6 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
     ? `${passport.country.name[lang]} (+${passport.country.callingCode})`
     : c.unknownCountry;
   const operator = passport.uzOperator?.[lang];
-  const reportCount = result.phoneReputation?.confirmedReportCount ?? result.knownReports ?? 0;
   const lines: string[] = [l.passport, "", l.region];
 
   lines.push(`• ${c.number}: ${country}`);
@@ -306,21 +305,32 @@ function renderPhonePassportBrief(result: RunCheckResult, lang: Lang): string | 
   }
 
   lines.push("", l.reputation);
-  lines.push(`• ${l.reports(reportCount)}`);
+  if (result.phoneReputation) {
+    lines.push(`• ${formatPhoneReputationEvidenceLine(result.phoneReputation, lang)}`);
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  } else if (result.knownReports > 0) {
+    lines.push(
+      `• ${formatPhoneReputationEvidenceLine(
+        {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: result.knownReports,
+          confidence: phoneReputationConfidence(result.knownReports),
+          riskLevel: result.level,
+          publicScope: "confirmed_moderated_reports_only",
+        },
+        lang,
+      )}`,
+    );
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  } else {
+    lines.push(`• ${formatNoPhoneReputationLine(lang)}`);
+    lines.push(`• ${formatPhoneReputationScopeLine(lang)}`);
+  }
   lines.push("", l.meaning);
   lines.push(c.contextMatters);
   lines.push("", l.nextStep);
   lines.push(bt("prompt_more_context_phone", lang));
   return lines.join("\n");
-}
-
-function phoneReputationConfidenceLabel(confidence: PhoneReputationConfidence, lang: Lang): string {
-  const labels: Record<PhoneReputationConfidence, Record<Lang, string>> = {
-    low: { ru: "низкая", uz: "past", en: "low" },
-    medium: { ru: "средняя", uz: "o'rtacha", en: "medium" },
-    high: { ru: "высокая", uz: "yuqori", en: "high" },
-  };
-  return labels[confidence][lang];
 }
 
 function renderPhoneReputationObservation(result: RunCheckResult, lang: Lang): string | null {
@@ -380,8 +390,8 @@ function renderRiskPassport(result: RunCheckResult, lang: Lang): string | null {
     kind === "phone"
       ? (renderPhonePassportBrief(result, lang) ?? bt("brief_unknown_phone", lang))
       : truncateExplanation(result.explanation ?? bt("brief_unknown_telegram_profile", lang), {
-          maxLines: 18,
-          maxChars: 1400,
+          maxLines: 24,
+          maxChars: 1800,
         });
   const prompt =
     kind === "phone"
@@ -461,13 +471,16 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
   const neutralContext = detectNeutralContext(result);
   const hasForwardSourceBrief = isForwardSourceBrief(result.explanation);
   const hasDecodedQrBrief = isDecodedQrEvidenceBrief(result.explanation);
+  const hasTelegramProfileScreenshotBrief = isTelegramProfileScreenshotBrief(result.explanation);
   const truncateOptions = hasForwardSourceBrief
     ? { maxLines: 6, maxChars: 380 }
-    : result.type === "telegram"
-      ? { maxLines: 16, maxChars: 1100 }
-      : result.level === "unknown"
-        ? { maxLines: 3, maxChars: 190 }
-        : { maxLines: 4, maxChars: 230 };
+    : hasTelegramProfileScreenshotBrief
+      ? { maxLines: 9, maxChars: 900 }
+      : result.type === "telegram"
+        ? { maxLines: 16, maxChars: 1100 }
+        : result.level === "unknown"
+          ? { maxLines: 3, maxChars: 190 }
+          : { maxLines: 4, maxChars: 230 };
 
   if (
     neutralContext &&
@@ -500,6 +513,33 @@ function isDecodedQrEvidenceBrief(explanation: string | null): explanation is st
   return /(?:QR (?:прочитан|decoded|o['’]qildi)|Адрес рядом с QR|Address visible near the QR|QR yonidagi manzil|QR виден, но|QR is visible|QR ko['’]rinadi)/iu.test(
     explanation,
   );
+}
+
+function isTelegramProfileScreenshotBrief(explanation: string | null): explanation is string {
+  if (!explanation) return false;
+  return /^(?:По скриншоту профиля видно:|From the Telegram profile screenshot I can see:|Telegram profil skrinshotidan ko'rinadi:)/u.test(
+    explanation,
+  );
+}
+
+function extractVoiceHookBrief(explanation: string | null): string | null {
+  if (!explanation) return null;
+  const firstLine = explanation.split(/\r?\n/u, 1)[0]?.trim() ?? "";
+  return /^(?:Ключевая фраза из голосового|Key phrase from the voice note|Ovozdan asosiy ibora):/u.test(
+    firstLine,
+  )
+    ? firstLine
+    : null;
+}
+
+function extractVideoThumbnailBrief(explanation: string | null): string | null {
+  if (!explanation) return null;
+  const firstLine = explanation.split(/\r?\n/u, 1)[0]?.trim() ?? "";
+  return /^(?:Я проверил только кадр-превью видео|I checked only the video preview frame|Men videoning faqat preview-kadrini tekshirdim)/u.test(
+    firstLine,
+  )
+    ? firstLine
+    : null;
 }
 
 function isDecodedInformationalQr(result: RunCheckResult): boolean {
@@ -574,6 +614,18 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
     isDecodedQrEvidenceBrief(explanation)
   ) {
     parts.push(escapeMarkdownV2(truncateExplanation(explanation, { maxLines: 4, maxChars: 320 })));
+  }
+  const voiceHookBrief = extractVoiceHookBrief(explanation);
+  if (result.level === "high_risk" && voiceHookBrief) {
+    parts.push(
+      escapeMarkdownV2(truncateExplanation(voiceHookBrief, { maxLines: 1, maxChars: 220 })),
+    );
+  }
+  const videoThumbnailBrief = extractVideoThumbnailBrief(explanation);
+  if (result.level === "high_risk" && videoThumbnailBrief) {
+    parts.push(
+      escapeMarkdownV2(truncateExplanation(videoThumbnailBrief, { maxLines: 1, maxChars: 240 })),
+    );
   }
 
   // Reason labels
@@ -833,7 +885,10 @@ function buildResultKeyboard(result: RunCheckResult, lang: Lang): InlineKeyboard
   if (shouldAskWhatTheyRequested(result)) {
     keyboard.push(...buildAskedContextKeyboardRows(lang));
   }
-  keyboard.push(row, [{ text: bt("btn_why", lang), callback_data: CB.why }]);
+  keyboard.push(row, [
+    { text: bt("btn_why", lang), callback_data: CB.why },
+    { text: bt("btn_explain_simple", lang), callback_data: CB.explainSimple },
+  ]);
   if (level === "high_risk") {
     keyboard.push([
       { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
@@ -875,11 +930,18 @@ export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeybo
     [{ text: "\u{1F4DE} " + bt("btn_live_call_now", lang), callback_data: CB.liveCall }],
     [
       { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
+      {
+        text: "\u{1F9F5} " + bt("btn_quick_conversation", lang),
+        callback_data: CB.conversationStart,
+      },
+    ],
+    [
       { text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency },
+      { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
     ],
     [
       { text: "\u{1F46A} " + bt("btn_quick_family", lang), callback_data: CB.familyMenu },
-      { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
+      { text: "\u{1F3A7} " + bt("btn_quick_trainer", lang), callback_data: CB.trainer },
     ],
     [
       { text: "\u{1F4F0} " + bt("btn_quick_digest", lang), callback_data: CB.digest },

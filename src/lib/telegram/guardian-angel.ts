@@ -13,7 +13,7 @@ const NEW_ARTIFACT_RE =
 const DONE_RE =
   /(?:сделал|сделала|готово|позвонил|позвонила|заблокировал|заблокировала|положил|положила|done|finished|called|blocked|qildim|tayyor|qo'ng'iroq qildim)/i;
 const SAFE_CALL_RE =
-  /(?:номер|банк|позвон|куда звон|горяч|официальн|call|bank|number|hotline|raqam|bankka|qo'ng'iroq)/i;
+  /(?:safe\s+callback|official\s+callback|bank\s+(?:number|contact|contacts|hotline)|official\s+number|where\s+(?:should\s+i\s+)?(?:to\s+)?call|call\s+the\s+bank|xavfsiz\s+qo'ng'iroq|rasmiy\s+raqam|bank(?:ka)?\s+(?:raqam|qo'ng'iroq)|qayerga\s+qo'ng'iroq|(?:\u043f\u043e\u0437\u0432\u043e\u043d\u0438\u0442\u044c|\u043f\u0435\u0440\u0435\u0437\u0432\u043e\u043d\u0438\u0442\u044c)\s+\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d|(?:\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d|\u043e\u0444\u0438\u0446\u0438\u0430\u043b)\w*\s+\u043e\u0431\u0440\u0430\u0442\u043d\w*\s+\u0437\u0432\u043e\u043d|(?:\u0434\u0430\u0439|\u0434\u0430\u0439\u0442\u0435|\u043f\u043e\u043a\u0430\u0436\u0438|\u043f\u043e\u0434\u0441\u043a\u0430\u0436\u0438|\u043d\u0443\u0436\u0435\u043d|\u043d\u0443\u0436\u043d\u044b|\u0433\u0434\u0435|\u043a\u0443\u0434\u0430|\u043a\u0430\u043a).{0,40}(?:\u043d\u043e\u043c\u0435\u0440|\u0442\u0435\u043b\u0435\u0444\u043e\u043d|\u043a\u043e\u043d\u0442\u0430\u043a\u0442|\u0431\u0430\u043d\u043a|\u0433\u043e\u0440\u044f\u0447|\u0437\u0432\u043e\u043d|\u043f\u0435\u0440\u0435\u0437\u0432\u043e\u043d)|(?:\u043d\u043e\u043c\u0435\u0440|\u0442\u0435\u043b\u0435\u0444\u043e\u043d|\u043a\u043e\u043d\u0442\u0430\u043a\u0442|\u0433\u043e\u0440\u044f\u0447\w*\s+\u043b\u0438\u043d\u0438\w*).{0,35}(?:\u0431\u0430\u043d\u043a|\u043e\u0444\u0438\u0446\u0438\u0430\u043b))/i;
 const FULL_PLAN_RE =
   /(?:весь|полный|чек.?лист|план|инструкц|all steps|full plan|checklist|to'liq|reja)/i;
 const NEXT_RE =
@@ -45,6 +45,8 @@ const BANK_REASONS = new Set<ReasonCode>([
   "telegram_bank_contact",
   "asks_not_to_hang_up",
   "threatens_account_block",
+  "oneid_government_phishing",
+  "sim_swap_or_number_transfer",
 ]);
 
 const CARD_REASONS = new Set<ReasonCode>([
@@ -65,6 +67,8 @@ const MONEY_REASONS = new Set<ReasonCode>([
   "fake_delivery_payment",
   "fake_loan_offer",
   "dropper_recruitment",
+  "money_mule_recruitment",
+  "advance_fee_prize_inheritance",
 ]);
 
 const TELEGRAM_REASONS = new Set<ReasonCode>([
@@ -83,6 +87,7 @@ const CRYPTO_REASONS = new Set<ReasonCode>([
   "wallet_action_urgency",
   "ton_referral_earning_scheme",
   "investment_fast_profit_pitch",
+  "romance_investment_pivot",
 ]);
 
 function hasReason(snapshot: GuardianAngelSnapshot, set: Set<ReasonCode>): boolean {
@@ -394,7 +399,7 @@ export function buildGuardianAngelKeyboard(
 export function buildGuardianAngelIntro(snapshot: GuardianAngelSnapshot, lang: Lang): string {
   if (lang === "uz") {
     return (
-      "Bu yuqori xavfdan keyingi avtomatik yordam — yangi tekshiruv emas va tugma bosilgan javob emas.\n\n" +
+      "Men yoningizdaman va xavfsiz tugatishga yordam beraman — qadam-baqadam.\n\n" +
       "Hozir hammasini birdan qilmaymiz — faqat bitta xavfsiz qadam.\n\n" +
       `🧭 Hozir: ${primaryStep(snapshot, lang)}.\n\n` +
       "Qilsangiz — «✅ Qildim» ni bosing."
@@ -402,14 +407,14 @@ export function buildGuardianAngelIntro(snapshot: GuardianAngelSnapshot, lang: L
   }
   if (lang === "en") {
     return (
-      "This is an automatic safety prompt after a high-risk result, not a new check or a button response.\n\n" +
+      "I am here with you. Let us get to a safe place step by step.\n\n" +
       "We will not do everything at once — only one safe step now.\n\n" +
       `🧭 Now: ${primaryStep(snapshot, lang)}.\n\n` +
       "When done, tap “✅ I did it”."
     );
   }
   return (
-    "Это авто-подсказка после высокого риска — не новая проверка и не ответ на нажатую кнопку.\n\n" +
+    "Я рядом и помогу довести ситуацию до безопасного конца — шаг за шагом.\n\n" +
     "Сейчас не делаем всё сразу — только один безопасный шаг.\n\n" +
     `🧭 Сейчас: ${primaryStep(snapshot, lang)}.\n\n` +
     "Когда сделаете — нажмите «✅ Сделал шаг»."

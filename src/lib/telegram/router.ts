@@ -27,6 +27,7 @@
 import { z } from "zod";
 import { classifyMetaIntent, type MetaIntent } from "@/lib/meta-intent";
 import {
+  isSessionStateScopedToChat,
   loadSession as loadSessionImpl,
   resetScenario as resetScenarioImpl,
   type Session,
@@ -89,6 +90,8 @@ const audioSchema = z
   .object({
     file_id: z.string(),
     file_unique_id: z.string().optional(),
+    file_name: z.string().optional(),
+    title: z.string().optional(),
     file_size: z.number().optional(),
     duration: z.number().optional(),
     mime_type: z.string().optional(),
@@ -180,7 +183,11 @@ export const telegramUpdateSchema = z
     callback_query: z
       .object({
         id: z.string(),
-        from: z.object({ id: z.number(), first_name: z.string().optional() }),
+        from: z.object({
+          id: z.number(),
+          first_name: z.string().optional(),
+          language_code: z.string().optional(),
+        }),
         message: z.object({ chat: chatSchema, message_id: z.number().optional() }).optional(),
         data: z.string(),
       })
@@ -205,6 +212,8 @@ export type BotCommand =
   | "/help"
   | "/chatid"
   | "/call"
+  | "/conversation"
+  | "/trainer"
   | "/digest"
   | "/appeal"
   | "/safety"
@@ -221,6 +230,8 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set<BotCommand>([
   "/help",
   "/chatid",
   "/call",
+  "/conversation",
+  "/trainer",
   "/digest",
   "/appeal",
   "/safety",
@@ -318,11 +329,19 @@ export interface Handlers {
     ctx: HandlerCtx,
     mediaGroupId?: string,
     source?: TelegramForwardSourceContext,
+    mediaKind?: ImageRouteMediaKind,
   ): Promise<void>;
   handleVoice(
     fileId: string,
     ctx: HandlerCtx,
-    meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
+    meta?: {
+      fileSize?: number;
+      duration?: number;
+      mimeType?: string;
+      fileUniqueId?: string;
+      fileName?: string;
+      caption?: string;
+    },
   ): Promise<void>;
   /** Telegram contact card → phone check (8.3 / R21). */
   handlePhoneFromContact(phone: string, ctx: HandlerCtx): Promise<void>;
@@ -339,6 +358,8 @@ export interface Handlers {
 // ---------------------------------------------------------------------------
 
 /** What the router decided to do with an update. Pure, side-effect free. */
+export type ImageRouteMediaKind = "video_thumbnail";
+
 export type RouteAction =
   | { kind: "callback"; data: string; callbackQueryId: string }
   | { kind: "command"; command: ParsedCommand }
@@ -346,7 +367,13 @@ export type RouteAction =
   | { kind: "scenarioStep"; text: string }
   | { kind: "scenarioImage"; fileId: string; mediaGroupId?: string }
   | { kind: "check"; content: string; source?: TelegramForwardSourceContext }
-  | { kind: "image"; fileId: string; mediaGroupId?: string; source?: TelegramForwardSourceContext }
+  | {
+      kind: "image";
+      fileId: string;
+      mediaGroupId?: string;
+      source?: TelegramForwardSourceContext;
+      mediaKind?: ImageRouteMediaKind;
+    }
   | {
       kind: "voice";
       fileId: string;
@@ -354,6 +381,8 @@ export type RouteAction =
       duration?: number;
       mimeType?: string;
       fileUniqueId?: string;
+      fileName?: string;
+      caption?: string;
     }
   | { kind: "contact"; phone: string }
   | { kind: "outOfScope"; reason: OutOfScopeKind }
@@ -406,6 +435,32 @@ function videoThumbnailFileId(video: NonNullable<TelegramMessage["video"]>): str
 }
 
 const AUDIO_DOCUMENT_EXT_RE = /\.(?:oga|ogg|opus|mp3|m4a|wav|webm)$/i;
+const DANGEROUS_FILE_EXT_RE =
+  /\.(?:apk|exe|bat|cmd|sh|scr|msi|jar|dll|com|pif|vbs|js|ps1|lnk)(?:[\s.]|$)/i;
+const NULL_BYTE = String.fromCharCode(0);
+const FILE_NAME_CONFUSABLES: Readonly<Record<string, string>> = {
+  а: "a",
+  е: "e",
+  о: "o",
+  р: "p",
+  с: "c",
+  х: "x",
+  к: "k",
+  м: "m",
+};
+
+function normalizeFileNameForExtensionCheck(fileName: string): string {
+  return fileName
+    .normalize("NFKC")
+    .split(NULL_BYTE)
+    .join(" ")
+    .replace(/[аеорсхкм]/giu, (char) => FILE_NAME_CONFUSABLES[char.toLowerCase()] ?? char);
+}
+
+function isDangerousFileName(fileName?: string): boolean {
+  if (!fileName) return false;
+  return DANGEROUS_FILE_EXT_RE.test(normalizeFileNameForExtensionCheck(fileName.trim()));
+}
 
 function isAudioDocument(document: NonNullable<TelegramMessage["document"]>): boolean {
   const mimeType = document.mime_type?.trim().toLowerCase();
@@ -494,11 +549,13 @@ function imageRoute(
   fileId: string,
   mediaGroupId?: string,
   source?: TelegramForwardSourceContext,
+  mediaKind?: ImageRouteMediaKind,
 ): RouteAction {
   const action = mediaGroupId
     ? { kind: "image" as const, fileId, mediaGroupId }
     : { kind: "image" as const, fileId };
-  return source ? { ...action, source } : action;
+  const actionWithMediaKind = mediaKind ? { ...action, mediaKind } : action;
+  return source ? { ...actionWithMediaKind, source } : actionWithMediaKind;
 }
 
 /**
@@ -539,9 +596,13 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     const imageFileId =
       m.photo && m.photo.length > 0
         ? largestPhotoFileId(m.photo)
-        : m.document?.mime_type?.startsWith("image/")
+        : m.document?.mime_type?.startsWith("image/") && !isDangerousFileName(m.document.file_name)
           ? m.document.file_id
           : null;
+
+    if (m.document && isDangerousFileName(m.document.file_name)) {
+      return { kind: "outOfScope", reason: "document" };
+    }
 
     if (imageFileId && session.scenario === "report_desc") {
       return m.media_group_id
@@ -567,17 +628,24 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   if (
     m.document &&
     typeof m.document.mime_type === "string" &&
+    !isDangerousFileName(m.document.file_name) &&
     m.document.mime_type.startsWith("image/")
   ) {
     return imageRoute(m.document.file_id, m.media_group_id, source);
   }
+  if (m.document && isDangerousFileName(m.document.file_name)) {
+    return { kind: "outOfScope", reason: "document" };
+  }
   if (m.document && isAudioDocument(m.document)) {
+    const caption = messageCaption(m);
     return {
       kind: "voice",
       fileId: m.document.file_id,
       fileSize: m.document.file_size,
       mimeType: m.document.mime_type,
       fileUniqueId: m.document.file_unique_id,
+      ...(m.document.file_name ? { fileName: m.document.file_name } : {}),
+      ...(caption ? { caption } : {}),
     };
   }
   // Non-image documents (APK, PDF, etc.) — never downloaded, safety advice given.
@@ -589,7 +657,7 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
   }
   if (m.video != null) {
     const fileId = videoThumbnailFileId(m.video);
-    if (fileId) return imageRoute(fileId, m.media_group_id, source);
+    if (fileId) return imageRoute(fileId, m.media_group_id, source, "video_thumbnail");
     return { kind: "outOfScope", reason: "video" };
   }
   if (m.voice != null) {
@@ -603,6 +671,11 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
     };
   }
   if (m.audio != null) {
+    const caption = messageCaption(m);
+    const fileName = m.audio.file_name ?? m.audio.title;
+    if (isDangerousFileName(fileName)) {
+      return { kind: "outOfScope", reason: "document" };
+    }
     return {
       kind: "voice",
       fileId: m.audio.file_id,
@@ -610,6 +683,8 @@ export function decideRoute(update: TelegramUpdate, session: Session): RouteActi
       duration: m.audio.duration,
       mimeType: m.audio.mime_type,
       fileUniqueId: m.audio.file_unique_id,
+      ...(fileName ? { fileName } : {}),
+      ...(caption ? { caption } : {}),
     };
   }
   if (m.sticker != null) return { kind: "outOfScope", reason: "sticker" };
@@ -685,7 +760,7 @@ export function getHandlers(): Handlers {
 
 export interface DispatchDeps {
   handlers: Handlers;
-  loadSession: (userId: number) => Promise<Session>;
+  loadSession: (userId: number, langHint?: string) => Promise<Session>;
   resetScenario: (userId: number) => Promise<void>;
 }
 
@@ -729,7 +804,15 @@ export async function dispatchUpdate(
   if (!target) return; // nothing/no-one to respond to
 
   const { userId, chatId, chatType, displayName } = target;
-  let session = await loadSession(userId);
+  // First contact before /start language pick: fall back to the Telegram
+  // client language so an Uzbek speaker is not answered in Russian.
+  const langHint =
+    update.message?.from?.language_code ?? update.callback_query?.from?.language_code;
+  let session = await loadSession(userId, langHint);
+  if (!isSessionStateScopedToChat(session, chatId, chatType)) {
+    await resetScenario(userId);
+    session = { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} };
+  }
   const action = decideRoute(update, session);
 
   // R15.4 — a command aborts any active scenario before being handled.
@@ -784,10 +867,17 @@ export async function dispatchUpdate(
           { ...ctx, session: { ...session, scenario: "none", scenarioStep: 0, scenarioData: {} } },
           action.mediaGroupId,
           action.source,
+          action.mediaKind,
         );
         break;
       }
-      await handlers.handleImage(action.fileId, ctx, action.mediaGroupId, action.source);
+      await handlers.handleImage(
+        action.fileId,
+        ctx,
+        action.mediaGroupId,
+        action.source,
+        action.mediaKind,
+      );
       break;
     case "voice":
       await handlers.handleVoice(action.fileId, ctx, {
@@ -795,6 +885,8 @@ export async function dispatchUpdate(
         duration: action.duration,
         mimeType: action.mimeType,
         fileUniqueId: action.fileUniqueId,
+        fileName: action.fileName,
+        caption: action.caption,
       });
       break;
     case "contact":

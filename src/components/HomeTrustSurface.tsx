@@ -102,9 +102,9 @@ export function HomeTrustSurface() {
         <BadgeCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
         {
           {
-            ru: "Важно: совпадение с официальным номером не отменяет правило безопасности — банк не просит SMS-код, PIN, CVV, пароль или установку APK.",
-            uz: "Muhim: rasmiy raqam bilan moslik xavfsizlik qoidasini bekor qilmaydi — bank SMS-kod, PIN, CVV, parol yoki APK so'ramaydi.",
-            en: "Important: a match with an official number does not override safety rules — banks do not ask for SMS codes, PIN, CVV, passwords or APK installs.",
+            ru: "Важно: совпадение с официальным номером не отменяет правило безопасности — банк не просит SMS-код, PIN, CVV, пароль или установку приложений.",
+            uz: "Muhim: rasmiy raqam bilan moslik xavfsizlik qoidasini bekor qilmaydi — bank SMS-kod, PIN, CVV, parol yoki ilova o'rnatishni so'ramaydi.",
+            en: "Important: a match with an official number does not override safety rules — banks do not ask for SMS codes, PIN, CVV, passwords or app installs.",
           }[lang]
         }
       </p>

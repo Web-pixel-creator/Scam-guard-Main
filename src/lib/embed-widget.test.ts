@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildEmbedIframeSnippet,
   buildEmbedWidgetUrl,
-  EMBED_WIDGET_SANDBOX,
   normalizeEmbedLang,
   sanitizePartner,
 } from "@/lib/embed-widget";
@@ -39,8 +38,9 @@ describe("embed widget helpers", () => {
     });
 
     expect(snippet).toContain('src="https://example.com/embed/check?lang=en');
-    expect(snippet).toContain(`sandbox="${EMBED_WIDGET_SANDBOX}"`);
     expect(snippet).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+    expect(snippet).not.toContain("sandbox=");
+    expect(snippet).not.toContain("allow-same-origin");
     expect(snippet).not.toContain("<script");
   });
 });

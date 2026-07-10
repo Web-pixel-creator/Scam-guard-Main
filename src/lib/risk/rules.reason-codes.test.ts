@@ -7,7 +7,7 @@
 // membership in the reasons array (toContain / not.toContain) rather than strict
 // set equality, because realistic messages can legitimately fire several codes.
 import { describe, it, expect } from "vitest";
-import { evaluateText, scoreFromCodes } from "./rules";
+import { evaluateTelegram, evaluateText, scoreFromCodes } from "./rules";
 
 describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
   const positives: { name: string; text: string }[] = [
@@ -65,6 +65,10 @@ describe("evaluateText — relative_in_distress (R14.5)", () => {
     { name: "UZ aka avariyaga tushdi", text: "Akangiz avariyaga tushdi, pul kerak" },
     { name: "UZ do'st kasalxonada", text: "Do'stingiz kasalxonada, tezda pul yuboring" },
     { name: "UZ farzand shoshilinch pul", text: "Farzandingiz uchun shoshilinch pul kerak boldi" },
+    {
+      name: "UZ singlim mashina muammo zudlik bilan pul",
+      text: "Menga singlim qo'ng'iroq qilyapti. U mashinasi bilan muammo bo'lib qolganini aytib, zudlik bilan pul o'tkazishimni so'rayapti.",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
@@ -413,13 +417,27 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
       ...evaluateText("100 фриспинов, депозитный бонус и ссылка на Twin"),
       "suspicious_invite_link" as const,
     ];
+    const giveawayCodes = [
+      ...evaluateText("NFT giveaway: subscribe and join the prize channel"),
+      "suspicious_invite_link" as const,
+    ];
     const captchaCodes = [
       ...evaluateText("NFT giveaway: пройти капчу и проголосовать за приз"),
       "suspicious_invite_link" as const,
     ];
 
     expect(scoreFromCodes(casinoCodes).level).toBe("high_risk");
+    expect(scoreFromCodes(giveawayCodes).level).toBe("high_risk");
     expect(scoreFromCodes(captchaCodes).level).toBe("high_risk");
+  });
+
+  it("flags giveaway bait in private Telegram invite handles", () => {
+    const codes = evaluateTelegram("+giftNFT12345");
+
+    expect(codes).toEqual(
+      expect.arrayContaining(["suspicious_invite_link", "giveaway_engagement_bait"]),
+    );
+    expect(scoreFromCodes(codes).level).toBe("high_risk");
   });
 });
 
@@ -531,6 +549,10 @@ describe("evaluateText - telegram_account_takeover_phishing (research feed v1)",
       text: "Telegram akkaunt o'chiriladi. Bekor qilish uchun linkga o'ting va kodni kiriting.",
     },
     {
+      name: "UZ Telegram unknown-device freeze link",
+      text: "Telegram hisobingizga noma'lum qurilmadan kirish qilinganligi aniqlandi. Hisobingiz majburan muzlatib qo'yildi. 11 soat ichida tasdiqlash uchun havolani bosing.",
+    },
+    {
       name: "EN Telegram deletion cancel",
       text: "Your Telegram account deletion request is active. Press Cancel and enter the verification code.",
     },
@@ -611,5 +633,254 @@ describe("evaluateText - dropper_recruitment (research feed v1)", () => {
     const { score, level } = scoreFromCodes(["dropper_recruitment"]);
     expect(score).toBe(35);
     expect(level).toBe("suspicious");
+  });
+});
+
+// Soft / polite OTP-extraction bypasses. Real 2026 attackers rarely say "SMS
+// code" — they ask the victim to read back digits ("dictate the numbers", "the
+// code that will arrive", "code from the message/app"). These must still fire
+// `asks_for_sms_code`; neutral asks ("dictate your name") must NOT.
+describe("evaluateText — asks_for_sms_code soft bypasses", () => {
+  const positives: { name: string; text: string }[] = [
+    {
+      name: "RU поделитесь кодом из сообщения",
+      text: "Поделитесь, пожалуйста, кодом из сообщения для подтверждения входа.",
+    },
+    {
+      name: "RU назовите шесть цифр, которые отправлю",
+      text: "Назовите шесть цифр, которые я вам сейчас отправлю.",
+    },
+    {
+      name: "RU продиктуйте код, который придёт",
+      text: "Продиктуйте код, который придёт на ваш телефон.",
+    },
+    {
+      name: "RU озвучьте цифры с экрана",
+      text: "Откройте приложение и озвучьте цифры с экрана.",
+    },
+    {
+      name: "RU сообщите код из приложения",
+      text: "Сообщите код, который пришёл в приложении банка.",
+    },
+    {
+      name: "RU вам придёт код — продиктуйте",
+      text: "Вам сейчас придёт код — продиктуйте его, пожалуйста.",
+    },
+    {
+      name: "UZ xabar orqali kelgan kodni ayting",
+      text: "Kodni ayting, u sizga xabar orqali keladi.",
+    },
+    {
+      name: "UZ kodni kiriting with digits",
+      text: "Salom, bu kodni kiriting please: 1234",
+    },
+    {
+      name: "UZ Cyrillic kodni kiriting with digits",
+      text: "Салом, бу кодни киритинг: 1234",
+    },
+    {
+      name: "RU скажите шесть цифр, которые отправлю",
+      text: "Скажите шесть цифр, которые я вам сейчас отправлю.",
+    },
+    {
+      name: "RU продиктуйте шесть цифр",
+      text: "Продиктуйте шесть цифр.",
+    },
+    {
+      name: "RU прочитайте то, что придёт",
+      text: "Прочитайте то, что сейчас придёт в уведомлении.",
+    },
+    {
+      name: "UZ olti raqamni ayting",
+      text: "Olti raqamni ayting.",
+    },
+  ];
+
+  const negatives: { name: string; text: string }[] = [
+    { name: "RU назовите полное имя", text: "Назовите своё полное имя для регистрации." },
+    { name: "RU продиктуйте номер буквами", text: "Продиктуйте номер заказа по буквам." },
+    {
+      name: "RU поделитесь впечатлениями",
+      text: "Поделитесь, пожалуйста, впечатлениями о фильме.",
+    },
+    { name: "RU назовите остановку", text: "Назовите остановку для выхода." },
+    { name: "RU прочитайте приложение", text: "Прочитайте сообщение из приложения." },
+    { name: "RU озвучьте экран презентации", text: "Озвучьте текст с экрана презентации." },
+    { name: "RU код города", text: "Назовите код города 71." },
+    { name: "RU код товара", text: "Продиктуйте код товара 1234." },
+    { name: "UZ нейтральный документ", text: "Hujjatni jo'natishingiz mumkin." },
+    { name: "UZ Cyrillic neutral name entry", text: "Салом, исмингизни киритинг." },
+  ];
+
+  it.each(positives)("positive: $name", ({ text }) => {
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it.each(negatives)("negative: $name", ({ text }) => {
+    expect(evaluateText(text)).not.toContain("asks_for_sms_code");
+  });
+
+  it("flags plain English SMS-code requests", () => {
+    expect(evaluateText("hello, i am from bank security, send sms code")).toContain(
+      "asks_for_sms_code",
+    );
+  });
+
+  it("flags plain English bank security impersonation", () => {
+    expect(evaluateText("hello, i am from bank security, send sms code")).toContain(
+      "impersonates_bank",
+    );
+  });
+});
+
+describe("evaluateText — Uzbek reported SMS-code requests", () => {
+  it("flags a channel admin asking the user to send an SMS code", () => {
+    const text =
+      "Kanal administratori menga yozmoqda. U mendan SMS kodini yuborishimni so'rayapti.";
+
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it("does not flag a neutral channel admin message without a code request", () => {
+    const text = "Kanal administratori menga yozmoqda. U ertaga yangi post chiqishini aytdi.";
+
+    expect(evaluateText(text)).not.toContain("asks_for_sms_code");
+  });
+});
+
+describe("evaluateText — UZ critical scam patterns from audit", () => {
+  const positives: { name: string; text: string; code: string }[] = [
+    {
+      name: "OneID / id.gov.uz code confirmation",
+      text: "OneID orqali kirib, id.gov.uz sahifasida kodni tasdiqlang.",
+      code: "oneid_government_phishing",
+    },
+    {
+      name: "SIM reissue with SMS code",
+      text: "Для перевыпуска SIM-карты назовите SMS-код и паспортные данные.",
+      code: "sim_swap_or_number_transfer",
+    },
+    {
+      name: "money mule card transfer for percent",
+      text: "Принимайте переводы на карту и отправляйте дальше, оставляйте 10% себе.",
+      code: "money_mule_recruitment",
+    },
+    {
+      name: "lottery/prize tax",
+      text: "Вы выиграли приз, оплатите налог 50 000 сум для получения.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "Korea visa prepayment",
+      text: "Для визы в Корею внесите предоплату за оформление документов.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "Hajj tour deposit",
+      text: "Хадж тур: внесите аванс за бронь места сегодня.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "romance to crypto investment pivot",
+      text: "Я люблю тебя, давай построим будущее: вложи USDT в мою крипто-стратегию.",
+      code: "romance_investment_pivot",
+    },
+  ];
+
+  const negatives: { name: string; text: string; code: string }[] = [
+    {
+      name: "OneID public guide without action",
+      text: "OneID haqida rasmiy qo'llanma chop etildi.",
+      code: "oneid_government_phishing",
+    },
+    {
+      name: "SIM reissue office-only notice",
+      text: "Оператор сообщил, что перевыпуск SIM доступен только в офисе с паспортом.",
+      code: "sim_swap_or_number_transfer",
+    },
+    {
+      name: "money mule safety warning",
+      text: "Не передавайте карту, SIM или аккаунт третьим лицам и не принимайте чужие деньги.",
+      code: "money_mule_recruitment",
+    },
+    {
+      name: "tax news without payment request",
+      text: "Новости: налог на выигрыш изменился с нового года.",
+      code: "advance_fee_prize_inheritance",
+    },
+    {
+      name: "romance without investment pivot",
+      text: "Я скучаю, как прошел день?",
+      code: "romance_investment_pivot",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text, code }) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each(negatives)("negative: $name", ({ text, code }) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+});
+
+describe("evaluateText — soft card, PIN, transfer, and personal-data asks", () => {
+  const positives: { name: string; text: string; code: string }[] = [
+    {
+      name: "soft CVV as three digits on card back",
+      text: "Назовите три цифры на обороте карты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "card security code",
+      text: "Сообщите код безопасности карты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "secret bank app code",
+      text: "Скажите тайный код от приложения банка.",
+      code: "asks_for_pin",
+    },
+    {
+      name: "direct transfer to card/number",
+      text: "Отправьте перевод на эту карту по номеру.",
+      code: "asks_to_transfer_to_safe_account",
+    },
+    {
+      name: "PINFL and ID photo",
+      text: "Пришлите фото ID-карты и ПИНФЛ для проверки.",
+      code: "requests_personal_data",
+    },
+  ];
+
+  const negatives: { name: string; text: string; code: string }[] = [
+    {
+      name: "three favorite digits",
+      text: "Назовите три любимые цифры для анкеты.",
+      code: "asks_for_card_cvv",
+    },
+    {
+      name: "wifi password",
+      text: "Скажите пароль от Wi-Fi в офисе.",
+      code: "asks_for_pin",
+    },
+    {
+      name: "send product code",
+      text: "Отправьте код товара менеджеру.",
+      code: "asks_to_transfer_to_safe_account",
+    },
+    {
+      name: "passport office information",
+      text: "Паспорт можно получить в районном офисе.",
+      code: "requests_personal_data",
+    },
+  ];
+
+  it.each(positives)("positive: $name", ({ text, code }) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each(negatives)("negative: $name", ({ text, code }) => {
+    expect(evaluateText(text)).not.toContain(code);
   });
 });

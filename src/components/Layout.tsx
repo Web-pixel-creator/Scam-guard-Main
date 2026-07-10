@@ -44,13 +44,13 @@ export function Header() {
             <span className="font-display text-[15px] font-extrabold tracking-tight truncate">
               {t("brand", lang)}
             </span>
-            <span className="hidden sm:inline-flex ml-2 items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white/60 apex-mono">
+            <span className="hidden lg:inline-flex ml-2 items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white/60 apex-mono">
               <span className="h-1 w-1 rounded-full bg-emerald-500" />
               V1.0
             </span>
           </Link>
         </div>
-        <nav className="hidden md:flex items-center gap-1 apex-mono">
+        <nav className="hidden lg:flex items-center gap-1 apex-mono">
           <Link to="/check" className="nav-link">
             {t("nav_check", lang)}
           </Link>

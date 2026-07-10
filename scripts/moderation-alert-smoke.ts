@@ -7,7 +7,10 @@
 // screenshots, OCR, phone numbers, URLs, codes or card data.
 import process from "node:process";
 
-import { notifyModeration } from "@/lib/telegram/moderation-notifier.server";
+import {
+  notifyHighSignalResearchModeration,
+  notifyModeration,
+} from "@/lib/telegram/moderation-notifier.server";
 
 function env(name: string): string | null {
   const value = process.env[name]?.trim();
@@ -34,6 +37,14 @@ async function main(): Promise<void> {
 
   if (!result.ok) {
     fail("moderation alert was not sent; check bot membership and chat id");
+  }
+
+  if (process.argv.includes("--research")) {
+    const research = await notifyHighSignalResearchModeration({ limit: 5 });
+    if (!research.ok) {
+      fail("research moderation alert was not sent; check bot membership and chat id");
+    }
+    console.log("OK research moderation alert smoke test sent");
   }
 
   console.log("OK moderation alert smoke test sent");

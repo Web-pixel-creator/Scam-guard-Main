@@ -132,9 +132,9 @@ export const PUBLIC_SCHEME_TRENDS: readonly PublicSchemeTrend[] = [
     severity: "critical",
     reasonCodes: ["asks_to_install_apk", "apk_download_link", "malicious_file_bait"],
     title: {
-      ru: "APK или «защитное приложение»",
-      uz: "APK yoki «himoya ilovasi»",
-      en: "APK or security app request",
+      ru: "«Защитное приложение» (APK)",
+      uz: "«Himoya ilovasi» (APK)",
+      en: "“Security app” (APK)",
     },
     hook: {
       ru: "Присылают файл или ссылку на «обновление банка», «антивирус» или «защиту счёта».",
@@ -147,9 +147,9 @@ export const PUBLIC_SCHEME_TRENDS: readonly PublicSchemeTrend[] = [
       en: "Push an app that may read SMS or control the device.",
     },
     safeStep: {
-      ru: "Не устанавливайте APK. Если уже установили — включите авиарежим и блокируйте карты.",
-      uz: "APK o'rnatmang. O'rnatgan bo'lsangiz — aviarejimni yoqing va kartalarni bloklang.",
-      en: "Do not install APKs. If installed, turn on airplane mode and block cards.",
+      ru: "Не устанавливайте это приложение (APK). Если уже установили — включите авиарежим и блокируйте карты.",
+      uz: "Bu ilovani (APK) o'rnatmang. O'rnatgan bo'lsangiz — aviarejimni yoqing va kartalarni bloklang.",
+      en: "Do not install this app (APK). If installed, turn on airplane mode and block cards.",
     },
     sendToBot: {
       ru: "Пришлите ссылку на файл, название приложения или скрин просьбы.",

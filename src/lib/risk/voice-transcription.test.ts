@@ -66,6 +66,8 @@ describe("transcribeVoiceCore", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain("/models/gemini-3.5-flash:generateContent");
     const body = JSON.parse(String(init?.body));
+    expect(body.contents[0].parts[0].text).toContain("Uzbek");
+    expect(body.contents[0].parts[0].text).toContain("SMS-kod");
     expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/ogg");
   });
 
@@ -90,7 +92,56 @@ describe("transcribeVoiceCore", () => {
     expect(String(url)).toBe("https://api.openai.com/v1/audio/transcriptions");
     const form = init?.body as FormData;
     expect(form.get("model")).toBe("gpt-4o-mini-transcribe");
+    expect(form.get("language")).toBeNull();
+    expect(String(form.get("prompt"))).toContain("Uzbek");
+    expect(String(form.get("prompt"))).toContain("SMS-kod");
+    expect(String(form.get("prompt"))).toContain("kod yubormadim");
+    expect(String(form.get("prompt"))).toContain("singlim qo'ng'iroq qilyapti");
+    expect(String(form.get("prompt"))).toContain("kanal administratori menga yozmoqda");
+    expect(String(form.get("prompt"))).toContain("SMS kodini yuborishimni so'rayapti");
     expect(form.get("file")).toBeInstanceOf(Blob);
+  });
+
+  it("does not force the UI language as the STT language hint", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://api.openai.com/v1");
+    vi.stubEnv("OPENAI_MODEL", "gpt-4o-mini");
+
+    const fetchMock: FetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ text: "Men SMS kod yubormadim." }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await transcribeVoiceCore(DATA_URL, "ru", "tg:42");
+
+    const [, init] = fetchMock.mock.calls[0]!;
+    const form = init?.body as FormData;
+    expect(form.get("language")).toBeNull();
+    expect(String(form.get("prompt"))).toContain("UI language is Russian");
+    expect(String(form.get("prompt"))).toContain("spoken audio may be Russian, Uzbek");
+  });
+
+  it("normalizes a live Uzbek-Latin STT language-drift artifact", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://api.openai.com/v1");
+    vi.stubEnv("OPENAI_MODEL", "gpt-4o-mini");
+
+    const fetchMock: FetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ text: "Men SMS-kort, jo, hvorfor med dem." }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await transcribeVoiceCore(DATA_URL, "ru", "tg:42");
+
+    expect(result.text).toBe("Men SMS kod yubormadim.");
   });
 
   it("returns null without an AI key and does not call fetch", async () => {

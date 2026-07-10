@@ -121,6 +121,31 @@ describe("checkSharedRateLimit", () => {
     expect(JSON.stringify(hoisted.rpcCalls[0].args)).not.toContain(rawKey);
   });
 
+  it("supports Telegram public post fetch buckets without persisting the raw key", async () => {
+    enableShared();
+    hoisted.rpcResponse = {
+      data: [{ allowed: true, remaining: 4, retry_after_sec: 0, current_count: 1 }],
+      error: null,
+    };
+
+    const rawKey = "tgpost:tg:42";
+    const result = await checkSharedRateLimit("telegram_public_post", rawKey, 5, 60_000);
+
+    expect(result).toEqual({ ok: true, remaining: 4, retryAfterSec: 0 });
+    expect(hoisted.hashInputs).toEqual([`rate-limit:telegram_public_post:${rawKey}`]);
+    expect(hoisted.rpcCalls).toHaveLength(1);
+    expect(hoisted.rpcCalls[0]).toMatchObject({
+      name: "claim_rate_limit",
+      args: {
+        p_scope: "telegram_public_post",
+        p_key_hash: "a".repeat(64),
+        p_limit: 5,
+        p_window_seconds: 60,
+      },
+    });
+    expect(JSON.stringify(hoisted.rpcCalls[0].args)).not.toContain(rawKey);
+  });
+
   it("maps a blocked shared bucket into retryAfterSec", async () => {
     enableShared();
     hoisted.rpcResponse = {

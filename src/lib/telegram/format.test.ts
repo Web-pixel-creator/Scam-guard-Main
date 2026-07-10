@@ -546,6 +546,9 @@ describe("formatCheckResult — calm unknown contexts", () => {
       "• отправитель не подтверждён",
       "🧭 Следующий шаг",
       "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
+      "🧭 Как читать профиль Telegram",
+      "• Откройте профиль: Telegram может сам показать страну телефона, месяц регистрации, «не официальный аккаунт» и недавнюю смену имени/фото.",
+      "• Тревожно, когда это сочетается с просьбой дать код, деньги, карту, APK, QR-вход или ссылку.",
     ].join("\n");
 
     const { text } = formatCheckResult(
@@ -563,8 +566,47 @@ describe("formatCheckResult — calm unknown contexts", () => {
     expect(text).toContain(escapeMarkdownV2("скрытая SCAM-метка"));
     expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
     expect(text).toContain(escapeMarkdownV2("код, деньги, карту, APK"));
+    expect(text).toContain(escapeMarkdownV2("Как читать профиль Telegram"));
+    expect(text).toContain(escapeMarkdownV2("месяц регистрации"));
+    expect(text).toContain(escapeMarkdownV2("не официальный аккаунт"));
     expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context_telegram_profile", "ru")));
     expect(text).not.toContain("…");
+  });
+
+  it("keeps Telegram profile screenshot fields and fakeable caveat in the final card", () => {
+    const explanation = [
+      "По скриншоту профиля видно:",
+      "• Страна телефона: 🇺🇸 USA",
+      "• Регистрация на скриншоте: Январь 2026 г.",
+      "• Telegram показывает: не официальный аккаунт",
+      "• Изменение профиля: Пользователь обновил имя 19 дней назад",
+      "",
+      "Сам скрин можно подделать, поэтому это не доказательство скама. Важнее, что просит человек дальше: код, деньги, карту, APK, QR-вход, wallet или перейти по ссылке. Если есть переписка — пришлите сообщение или следующий экран.",
+    ].join("\n");
+
+    const { text, keyboard } = formatCheckResult(
+      baseResult({
+        type: "text",
+        level: "unknown",
+        score: 0,
+        reasons: [],
+        explanation,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("По скриншоту профиля видно"));
+    expect(text).toContain(escapeMarkdownV2("Страна телефона"));
+    expect(text).toContain(escapeMarkdownV2("Регистрация на скриншоте"));
+    expect(text).toContain(escapeMarkdownV2("не официальный аккаунт"));
+    expect(text).toContain(escapeMarkdownV2("Сам скрин можно подделать"));
+    expect(text).toContain(escapeMarkdownV2("не доказательство скама"));
+    expect(text).toContain(escapeMarkdownV2("Telegram-паспорт"));
+    expect(text).toContain(escapeMarkdownV2("пришлите сообщение или следующий экран"));
+    expect(text).not.toContain("…");
+    expect(callbacks(keyboard)).toEqual(
+      expect.arrayContaining(["asked:code", "asked:link_qr", CB.report, CB.checkAnother, CB.why]),
+    );
   });
 
   it("still shows a scam pattern when a strong linked reason is present", () => {
@@ -592,6 +634,7 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
     expect(cbs).toContain(CB.report);
     expect(cbs).toContain(CB.checkAnother);
     expect(cbs).toContain(CB.why);
+    expect(cbs).toContain(CB.explainSimple);
     expect(cbs).toContain(CB.notifyTrusted);
   });
 
@@ -603,20 +646,21 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
       expect(cbs).toContain(CB.report);
       expect(cbs).toContain(CB.checkAnother);
       expect(cbs).toContain(CB.why);
+      expect(cbs).toContain(CB.explainSimple);
     }
   });
 
-  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, Emergency in row 3 for high_risk", () => {
+  it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, Emergency in row 3 for high_risk", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
     expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
-    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why, CB.explainSimple]);
     expect(keyboard[2].map((b) => b.callback_data)).toEqual([CB.notifyTrusted, CB.emergency]);
   });
 
-  it("keyboard layout: Report+CheckAnother in row 1, Why in row 2, no row 3 for non-high_risk", () => {
+  it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, no row 3 for non-high_risk", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "safe" }), "ru");
     expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
-    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why]);
+    expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why, CB.explainSimple]);
     expect(keyboard).toHaveLength(2);
   });
 });
@@ -659,7 +703,10 @@ describe("formatCheckResult — known reports line (R4.11)", () => {
     expect(text).toContain(escapeMarkdownV2("Ishonch Guard"));
     expect(text).toContain(escapeMarkdownV2("3 подтверждённых жалоб"));
     expect(text).toContain(escapeMarkdownV2("Уверенность: средняя"));
-    expect(text).toContain(escapeMarkdownV2("не определяет владельца номера"));
+    expect(text).toContain(escapeMarkdownV2("подтверждённые модераторами жалобы"));
+    expect(text).toContain(escapeMarkdownV2("непроверенные жалобы"));
+    expect(text).toContain(escapeMarkdownV2("владельца номера"));
+    expect(text).toContain(escapeMarkdownV2("данные оператора"));
     expect(text).not.toMatch(/скрыт(ая|ой).*баз/i);
     expect(text).not.toContain("901234567");
   });
@@ -730,7 +777,11 @@ describe("formatCheckResult — Phone Directory v1", () => {
     expect(text).toContain(
       escapeMarkdownV2("В официальном справочнике Ishonch Guard совпадения нет."),
     );
-    expect(text).toContain(escapeMarkdownV2("подтвержд. жалоб в Ishonch Guard не найдено"));
+    expect(text).toContain(
+      escapeMarkdownV2("Подтверждённых модерированных жалоб в Ishonch Guard не найдено"),
+    );
+    expect(text).toContain(escapeMarkdownV2("не гарантия безопасности"));
+    expect(text).toContain(escapeMarkdownV2("непроверенные жалобы"));
     expect(text).toContain(escapeMarkdownV2("Сам номер не доказывает мошенничество"));
     expect(text).toContain(escapeMarkdownV2("SMS-код"));
     expect(text).toContain(escapeMarkdownV2("QR-вход"));
@@ -862,6 +913,23 @@ describe("formatCheckResult — compressed high-risk first card", () => {
     expect(text).not.toContain(escapeMarkdownV2(bt("section_where_report", "ru")));
     expect(text).not.toContain(escapeMarkdownV2("Cyber Police"));
     expect(text).not.toContain(escapeMarkdownV2(explanation));
+  });
+
+  it("keeps a short voice hook visible in high-risk cards", () => {
+    const explanation =
+      'Key phrase from the voice note: "caller asks for SMS code". I checked that text through the normal risk rules.\nDetailed model explanation that should stay out of the compressed card.';
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        reasons: ["asks_for_sms_code"],
+        explanation,
+      }),
+      "en",
+    );
+
+    expect(text).toContain(escapeMarkdownV2("Key phrase from the voice note"));
+    expect(text).toContain(escapeMarkdownV2("caller asks for SMS code"));
+    expect(text).not.toContain(escapeMarkdownV2("Detailed model explanation"));
   });
 });
 

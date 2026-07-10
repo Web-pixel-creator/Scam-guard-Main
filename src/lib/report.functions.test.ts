@@ -105,7 +105,13 @@ vi.mock("@/lib/telegram/moderation-notifier.server", () => ({
 }));
 
 import { INCIDENT_ONLY_REDACTED_VALUE } from "./report-boundary";
-import { submitReport, submitReportCore, reportRateLimitKeyForTelegram } from "./report.functions";
+import {
+  prepareReportIdentifier,
+  reportRateLimitKeyForTelegram,
+  submitPreparedReportCore,
+  submitReport,
+  submitReportCore,
+} from "./report.functions";
 
 const maxDigitRun = (s: string): number =>
   Math.max(0, ...(s.match(/\d+/g) ?? []).map((run) => run.length));
@@ -143,6 +149,66 @@ describe("submitReport privacy", () => {
     expect(maxDigitRun(description)).toBeLessThanOrEqual(3);
   });
 
+  it("redacts narrative identifiers and metadata before persistence", async () => {
+    const result = await submitReportCore(
+      {
+        value: "+998 90 123 45 67",
+        type: "text",
+        description:
+          "Email victim@example.com, Telegram @FakeSupportBot, link https://evil.example/reset?token=secret.",
+        scamType: "contact @FakeSupportBot",
+        city: "https://city.example/private",
+        lang: "ru",
+      },
+      "report:test:redaction-boundary",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "phone",
+    });
+
+    const stored = JSON.stringify(hoisted.reportRows[0]);
+    expect(stored).not.toContain("victim@example.com");
+    expect(stored).not.toContain("@FakeSupportBot");
+    expect(stored).not.toContain("https://evil.example/reset?token=secret");
+    expect(stored).not.toContain("https://city.example/private");
+    expect(stored).toContain("[telegram]");
+    expect(stored).toContain("[link]");
+
+    expect(hoisted.moderationNotices).toHaveLength(1);
+    const alert = JSON.stringify(hoisted.moderationNotices[0]);
+    expect(alert).not.toContain("@FakeSupportBot");
+    expect(alert).not.toContain("https://city.example/private");
+  });
+
+  it("accepts a prepared Telegram target without receiving the raw report value", async () => {
+    const target = await prepareReportIdentifier("@FakeSupportRaw");
+    const result = await submitPreparedReportCore(
+      {
+        target,
+        description: "Email victim@example.com and link https://evil.example/reset?token=secret.",
+        scamType: "contact @FakeSupportRaw",
+        lang: "ru",
+      },
+      "report:test:prepared-target",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "telegram",
+      entity_hash: target.hash,
+      redacted_value: target.display,
+    });
+
+    const stored = JSON.stringify(hoisted.reportRows[0]);
+    expect(stored).not.toContain("@FakeSupportRaw");
+    expect(stored).not.toContain("victim@example.com");
+    expect(stored).not.toContain("https://evil.example/reset?token=secret");
+  });
+
   it("stores situation-only reports without creating or updating public entities", async () => {
     const result = await submitReportCore(
       {
@@ -168,6 +234,29 @@ describe("submitReport privacy", () => {
     expect(hoisted.entityUpdates).toHaveLength(0);
   });
 
+  it("treats placeholder-only targets as situation-only reports", async () => {
+    const result = await submitReportCore(
+      {
+        value: "\u2014",
+        description: "Victim describes a new scam pattern without a concrete target.",
+        lang: "ru",
+      },
+      "report:test:placeholder-target",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "text",
+      redacted_value: INCIDENT_ONLY_REDACTED_VALUE,
+    });
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(0);
+    expect(hoisted.moderationNotices[0]).toMatchObject({
+      incidentOnly: true,
+    });
+  });
+
   it("continues to create an entity candidate when a report names a target", async () => {
     const result = await submitReportCore(
       {
@@ -186,7 +275,7 @@ describe("submitReport privacy", () => {
       entity_type: "telegram",
       display_mask: "@fa•••ty",
       moderation_status: "new",
-      report_count: 1,
+      report_count: 0,
     });
     expect(hoisted.reputationUpserts).toHaveLength(1);
     expect(hoisted.reputationUpserts[0]).toMatchObject({
@@ -198,7 +287,28 @@ describe("submitReport privacy", () => {
     });
   });
 
-  it("notifies moderation when a same-day duplicate report is accepted without a new row", async () => {
+  it("does not increment the public confirmed report count for an unmoderated follow-up report", async () => {
+    hoisted.existingEntity = { id: "entity-confirmed", report_count: 3 };
+
+    const result = await submitReportCore(
+      {
+        value: "@fakebank_support_entity",
+        type: "telegram",
+        description: "Another user submitted a new report that is not moderated yet.",
+        lang: "ru",
+      },
+      "report:test:confirmed-entity-unmoderated",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.entityInserts).toHaveLength(0);
+    expect(hoisted.entityUpdates).toHaveLength(1);
+    expect(hoisted.entityUpdates[0]).not.toHaveProperty("report_count");
+    expect(hoisted.entityUpdates[0]).toHaveProperty("last_seen_at");
+  });
+
+  it("stores same-day duplicate report evidence without updating public entities", async () => {
     hoisted.existingReportIds.push("existing-report-id");
 
     const result = await submitReportCore(
@@ -214,7 +324,14 @@ describe("submitReport privacy", () => {
     );
 
     expect(result).toEqual({ ok: true });
-    expect(hoisted.reportRows).toHaveLength(0);
+    expect(hoisted.reportRows).toHaveLength(1);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "telegram",
+      status: "duplicate",
+      scam_type: "fake bank",
+      city: "Tashkent",
+      language: "ru",
+    });
     expect(hoisted.entityInserts).toHaveLength(0);
     expect(hoisted.entityUpdates).toHaveLength(0);
     expect(hoisted.moderationNotices).toHaveLength(1);

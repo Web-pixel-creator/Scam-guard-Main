@@ -2,6 +2,1278 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-09 - Telegram image fallback and residual phrase QA
+
+- Live Telegram image QA confirmed that fake Telegram deletion/freeze screenshots
+  can still fall into the unreadable-image fallback when the vision provider
+  returns no usable text.
+- Added missing structured-image prompt hints for `telegram_account_takeover`
+  and `fake_device_security_popup`, with explicit rules for Telegram
+  account-deletion/verification/freeze screenshots and fake Apple/iOS/Android
+  security popups.
+- Added a dedicated unreadable-image fallback option for Telegram account
+  takeover screenshots so users get `Settings > Devices` / 2FA guidance instead
+  of a generic dead end.
+- Current regression before deploy: `src/lib/telegram` 1886/1886 and
+  `src/lib/risk` 473/473 passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `P1-2026-07-09-004`.
+
+## 2026-07-09 - Family Shield duplicate-alert cooldown
+
+- Followed up on the real trusted-contact chat screenshot where two redacted
+  Family Shield alerts arrived a few minutes apart.
+- Changed the proactive high-risk auto-notify path to use a 30-minute cooldown
+  while keeping manual `notifyTrustedContact` alerts on the short default
+  cooldown.
+- Verification: focused Family Shield/follow-up tests passed (255/255), and
+  full `src/lib/telegram` passed (1879/1879).
+- Deployed `5c01b8c` via Railway deployment
+  `5b7cf352-45be-4c01-bba1-fb388239ff47` with status `SUCCESS`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: row `P2-2026-07-02-004`, owner
+  note and `ERR-2026-07-09-009`.
+
+## 2026-07-09 - Residual Telegram text/context QA rerun
+
+- Re-ran production Telegram smokes against Railway production after the Family
+  Shield proactive alert and context-stitching fixes.
+- Passed: `prod:telegram-context-smoke`, `prod:telegram-user-story-smoke`,
+  `prod:telegram-live-qa-smoke`, `prod:telegram-false-positive-smoke`,
+  `prod:telegram-inline-smoke` and `prod:telegram-voice-out-smoke`.
+- Focused regression tests passed: `victim-intent` 128/128, `inline` 114/114
+  and `webhook.integration` 97/97.
+- The user-reported context cases are confirmed covered: low-signal link
+  preface -> URL check -> why follow-up, and channel-admin preface -> SMS-code
+  direct guidance.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `T-049`. `T-048` remains open
+  for manual real photo/screenshot spot-checks once vision provider quota is
+  available.
+
+## 2026-07-09 - Family Shield proactive alert
+
+- Implemented opt-in proactive trusted-person notification for private
+  high-risk Telegram checks by reusing the existing `notifyTrustedContact`
+  Family Shield path.
+- Kept the alert redacted: the auto path passes only guardian id, language and a
+  safe display name; no checked text, links, numbers, screenshots, codes, card
+  data or raw evidence are sent to the trusted contact.
+- Added a trusted-contact acknowledgement callback (`family:trusted_ack`) beside
+  the existing opt-out button.
+- Verification: focused Family Shield/follow-up/webhook/i18n tests passed
+  (1020/1020), and the full `src/lib/telegram` suite passed (1878/1878).
+- Post-deploy verification: Railway deployment
+  `3d187870-ce65-461b-b8b3-60c9a2ceafca` is `SUCCESS`; production Telegram
+  context/live/inline/user-story smokes passed, and synthetic `prod:family-smoke`
+  passed create invite -> accept -> safe notify failure -> revoke -> `open_rows=0`.
+  Manual real two-account live smoke also passed: the trusted contact received
+  the proactive alert at 17:42 and the manual `Позвать близкого` alert at 17:46,
+  both redacted and with acknowledgement/opt-out controls.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` row `P2-2026-07-02-004`.
+
+## 2026-07-09 - P1 Telegram context-stitching QA
+
+- Fixed the direct-chat channel-admin preface so it routes to
+  Telegram-message context guidance instead of a cold risk check.
+- Added `prod:telegram-context-smoke` for low-signal link preface -> URL check
+  -> why follow-up, plus channel-admin preface -> SMS-code direct guidance.
+- Deployed `0cf0ee2` via Railway deployment
+  `9c12ac76-1bca-4a8c-b13e-78a966411feb`; production context, live, inline
+  and user-story smokes passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx` rows `P1-2026-07-09-003`,
+  `QA-2026-07-09-007` and `ERR-2026-07-09-007`.
+
+## 2026-07-09 - QA-001 P1 web/Telegram production flow rerun
+
+- Added `prod:web-p1-smoke` for the P1 web/admin path: homepage, report and
+  appeal pages, rules-only high-risk web check, synthetic report/appeal
+  submission, admin reject/keep-reputation moderation, audit log and cleanup.
+- Re-ran production Telegram smokes for user-story, private/group scope,
+  live QR/Guardian, inline mode and base prod health.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: QA-001 is re-verified on
+  2026-07-09 and `QA-2026-07-09-006` records the exact commands/results.
+- Next queue is UX/logistics residual QA: direct/inline context stitching,
+  short UZ voice spot-checks after STT reset, image provider spot-checks, then
+  Family Shield proactive delivery.
+
+## 2026-07-08 - TG-017 News-derived UZ live phrase expansion
+
+- Expanded the Telegram live victim-phrase regression lock to 202 cases and the
+  inline mass smoke to 105 phrases, using recent Uzbekistan scam-news examples
+  and user live QA screenshots.
+- Added coverage for foreign-number bank/operator calls (`+98`, `+988`, `+996`),
+  Telegram deletion/Premium/voting takeovers, APK court-summons files, fake
+  voice/GIF/PPTX files, Apple ID/iOS popups, utility-payment links, MIB/gov calls,
+  Open Budget/DMED/game-bonus prompts, money-mule/ATM requests and "acquaintance
+  asks to borrow money" wording.
+- Added the short live/inline phrase `мне предлагают бот для заработка 500 тысяч
+  сум в день` after live Telegram QA exposed a cold fallback.
+- Added the live/inline phrase `в телеграм пришел файл повестка.pdf.apk` after
+  QA showed that `pdf.apk` was being treated as a domain-like artifact before
+  the file-received intent could answer calmly.
+- Polished live inline QA for `мне прислали ссылку проголосовать за лучшую
+  мамочку`: the preview now uses the voting/channel warning instead of the
+  generic link-request card.
+- Polished the next live inline QA slice: Apple/iOS "install protection from
+  viruses" phrases now keep the Apple/iOS warning instead of the generic
+  file-virus card, and the phone-borrowing preview no longer contains the
+  English word `unlocked` in Russian UI.
+- Tightened victim-intent priority so Apple ID popups are not swallowed by the
+  generic Telegram-account rule, and acquaintance money requests do not steal
+  romance/dating scam routing.
+- Verification: focused victim-intent/follow-up/inline tests and the full
+  `src/lib/telegram` Vitest suite passed.
+
+## 2026-07-06 - TG-016 Inline transfer-card preview priority
+
+- Live Telegram Web inline QA found that `@scamguard_bot мне сказали сделать
+  перевод на карту` still showed the card-data preview instead of the transfer
+  preview. The normal chat route was already correct; this was isolated to the
+  inline human-intent classifier.
+- Kept delivery, prize-fee, relative-distress, job and travel/migration previews
+  above generic transfer, and added a card guard so payment/transfer wording is
+  not swallowed just because the destination is a card.
+- Verification: focused inline tests and the full `src/lib/telegram` suite
+  passed.
+
+## 2026-07-06 - TG-016 Telegram live victim phrase matrix expansion
+
+- Expanded the real Telegram victim-phrase regression matrix from 79 to 164
+  cases, based on live inline/chat screenshots and the user-observed cold
+  fallbacks for phrases like "мне пишет незнакомый человек", "он хочет смс код",
+  "как мне связаться с банком", "меня пытаются обмануть", "мне сказали сделать
+  перевод на карту" and Uzbek/English equivalents.
+- Hardened victim-intent routing so implicit user frames such as "просят",
+  "спрашивают", "нужно" and "they asked..." are treated as a request from the
+  user's situation, not as a raw scam payload. Code, card, transfer, APK/remote
+  access, file/link, support impersonation, romance/contact, unknown-contact and
+  personal-data branches now catch more natural phrasing.
+- Fixed follow-up priority regressions where concrete new risk phrases could be
+  swallowed by generic "contact the bank" follow-up logic, and where "звонить"
+  accidentally matched live-call panic routing.
+- Verification: `telegram-live-phrase-matrix.ts`, focused follow-up/victim
+  tests and the full `src/lib/telegram` Vitest suite passed.
+
+## 2026-07-05 - TG-015 Telegram inline human phrase corpus
+
+- Researched common scam-request phrasing from bank/security guidance and
+  consumer anti-fraud sources, then added
+  `ai_docs/TELEGRAM_INLINE_PHRASE_CORPUS.md` as the seed corpus for low-signal
+  inline queries.
+- Expanded Telegram inline preview classification from the single bare-link
+  fallback into a human-intent layer: link, code, confirmation, card, transfer,
+  app/APK, bank call, personal data, delivery payment, prize fee,
+  OneID/government, SIM swap, relative distress, job-fee, investment/crypto,
+  romance-money and conversational safety requests.
+- Important product boundary: these classes only improve `unknown`/`suspicious`
+  inline previews and next-step copy. They do not raise the risk score without
+  the actual artifact/message, keeping inline mode honest.
+- Added regression coverage for representative Russian user phrases across all
+  16 classes.
+- Follow-up from live Telegram screenshots: added three more low-signal human
+  intents for `мне пишет незнакомый человек`, `одноклассник, но я не уверен что
+это он`, and `приглашают в канал для заработка`.
+- Follow-up from another live Telegram pass: added previews for `я только что
+передал код из СМС`, `как мне связаться с банком`, `меня пытаются обмануть`
+  and `голосование/канал + ссылка`; softened link/code preview copy so it gives
+  a calmer safe next step instead of a technical label.
+- Follow-up conversational fallback slice: added previews for `что мне делать
+дальше?`, `можно ли ему отвечать?`, `это безопасно или мошенники?` and generic
+  channel/chat invitations. These still do not invent a risk verdict; they pause
+  the user and ask for facts.
+- Live inline follow-up: multiline context such as `мне пишет незнакомый человек`
+  plus `он хочет смс код` now prioritizes the concrete code request over the
+  generic unknown-contact card. Inline rate-limit copy now includes retry
+  seconds.
+
+## 2026-07-05 - TG-015 Telegram inline preview UX polish
+
+- Reviewed live Telegram inline screenshots for phone, free text and Telegram
+  username/link checks. The scoring was honest, but the preview copy looked
+  unhelpful in the Telegram result list: `Паспорт номера`,
+  `Недостаточно данных` and `Telegram-паспорт` were too abstract and were
+  truncated before the useful next step.
+- Updated inline result titles/descriptions without changing scoring,
+  persistence or moderator delivery:
+  - low-signal phone checks now lead with `Номер: жалоб не найдено` /
+    `Номер: есть жалобы` and explicitly say that missing reports are not a
+    safety guarantee;
+  - low-signal Telegram username checks now lead with "Telegram: нужен
+    контекст" and ask for the request text, post link or screenshot;
+  - low-signal free-text checks now ask for the full message instead of
+    presenting a cold insufficient-data result.
+- Added regression coverage for the user-observed `Мне пишет мошенник` inline
+  case and updated the real-client inline QA checklist.
+- Added a separate bare-link-request preview for phrases such as
+  `у меня просят перейти по ссылке`: inline now asks for the actual URL and
+  warns not to open it until checked, instead of falling back to a generic
+  insufficient-context result.
+
+## 2026-07-05 - TG-014 UZ Voice QA matrix expansion
+
+- Added a committed Uzbek Voice-in QA matrix covering emergency routes, negated
+  acknowledgements and normal-check fallthroughs while the bot UI may remain in
+  Russian.
+- Expanded the STT replay corpus with Uzbek phrases for OTP, Telegram code,
+  APK/SMS permission, AnyDesk screen access, money transfer, card/PIN data,
+  Telegram login QR/lost access, active operator call, future "I will not send
+  code/card data" refusals, gift-link and delivery-payment requests.
+- Fixed a route-priority regression found by the matrix:
+  `Men ilovani o'rnatdim va SMSga ruxsat berdim` now routes to APK/remote-access
+  SOS (`panic:2`) instead of sent-code SOS (`panic:1`).
+- Added normal-check replay assertions so suspicious-but-not-already-happened
+  UZ voice transcripts must reach `runCheck` instead of emergency routing.
+
+## 2026-07-05 - TG-014 Voice-in Uzbek STT language drift
+
+- Reviewed a live Telegram voice note where the user said
+  `Men SMS kod yubormadim`, but STT returned
+  `Men SMS-kort, jo, hvorfor med dem.` and the bot fell through to the generic
+  "not enough data" card.
+- Root cause: Telegram UI language is not the same as spoken voice language.
+  Many users keep the bot UI in Russian while sending Uzbek voice notes, so
+  hard STT language hints from `ctx.session.lang` can degrade recognition.
+- Updated Voice-in transcription prompts for both Gemini and
+  OpenAI-compatible STT to keep detection multilingual across Russian, Uzbek
+  (Latin/Cyrillic) and English, with Uzbek-Latin anti-scam vocabulary such as
+  `SMS-kod`, `kod yubordim` and `kod yubormadim`.
+- Added a defensive normalizer for the captured live provider artifact
+  `SMS-kort / hvorfor med dem` so it maps back to the intended negated Uzbek
+  code phrase instead of producing a generic risk card.
+- Verification passed: focused voice transcription tests, focused Telegram
+  voice handler tests, full `src/lib/risk` and full `src/lib/telegram` suites.
+
+## 2026-07-05 - TG-014 Negated Voice-in acknowledgement UX
+
+- Reviewed the post-deploy live Telegram reply for
+  `Men esa SMS-kod yubormadim.`. The false SOS was gone, but the bot still
+  fell through to the generic "not enough data" risk card.
+- Added a dedicated negated already-done Voice-in acknowledgement before
+  `runCheck`: short "I did not send / enter / scan / transfer" transcripts now
+  get calm safety guidance and emergency fallback buttons without creating a
+  generic check result.
+- Added sanitized live replay fixture
+  `uz-live-not-sent-code-telegram-002`; the replay corpus now distinguishes
+  `negated_ack` from ordinary `normal_check`.
+
+## 2026-07-05 - TG-014 Live UZ negated Voice-in false SOS fix
+
+- Reviewed live Telegram production replies for two fresh user-sent voice notes.
+  Positive UZ sent-code voice routed correctly, but negated
+  `Men SMS-kod yubormadim.` ("I did not send the SMS code") falsely opened
+  the already-sent-code SOS flow.
+- Added punctuation-aware UZ negated Voice-in matching, split-form negation
+  variants such as `yubor madim`, and SMS-code positive-verb guards so
+  `yubor...` no longer matches `yubormadim`.
+- Added sanitized live replay fixture
+  `uz-live-not-sent-code-telegram-001` with no raw audio, Telegram file id or
+  provider payload. Verification passed: focused voice handler test, scoped
+  eslint and full Telegram suite.
+- Deployed commit `a5120cb` to Railway; production smoke and production
+  security smoke passed with the public production URL/header checks.
+
+## 2026-07-04 - TG-014 Live RU/UZ Voice-in/STT replay fix
+
+- Reviewed live Telegram voice-note replies from user-provided RU/UZ samples.
+  RU "I already sent SMS code" routed correctly to SOS, while UZ
+  "Men SMS kodni yubordim/yubardim" was transcribed well but fell through to
+  "not enough data".
+- Added tolerant UZ Voice-in routing for provider variants such as
+  `yubardim` and object-first wording (`SMS kodni yubardim`), plus sanitized
+  live replay rows for UZ sent-code and RU negated-code transcripts.
+- Verification passed: focused voice handler + STT fixture collector tests,
+  full Telegram suite and scoped eslint. Remaining UX note: RU negated
+  "I did not send SMS code" does not open SOS, but the ordinary risk card can
+  still feel too cautionary; track as conversational polish.
+- Deployed commit `d9fe6f2` to Railway; production smoke and production
+  security smoke passed with the public production URL/header checks.
+
+## 2026-07-04 - TG-014 Voice-in/STT provider transcript capture
+
+- Captured the first real-provider sanitized Voice-in/STT replay rows from
+  local ignored audio fixtures through the production STT provider:
+  English live-call pressure routes to SOS `panic:6`, while English negated
+  "I did not send the SMS code" remains on the normal check path.
+- Added `--timeout-ms` to `scripts/transcribe-voice-stt-fixtures.ts` after the
+  first Russian Windows TTS attempt hit the 15s collector timeout/noisy-empty
+  transcript path; poor local TTS captures were not committed to the replay
+  corpus.
+- Verification passed: focused voice handler + STT fixture collector tests and
+  scoped eslint.
+
+## 2026-07-04 - TG-015 Voice-out production smoke and release QA
+
+- Revalidated prerecorded SOS Voice-out assets after the post-deploy backlog:
+  all 45 RU/UZ/EN `.ogg` files for panic scenarios 1-15 passed
+  `npm run tts:validate-assets`.
+- Focused Telegram regressions passed:
+  `voice-out.server.test.ts`, `emergency-followup.test.ts` and
+  `webhook.integration.test.ts` (`3 files / 135 tests`).
+- With explicit action-time approval, production Telegram Voice-out smoke
+  passed against Railway: Telegram accepted `panic-6` RU/UZ/EN OGG audio,
+  the production webhook accepted a `voiceout:panic:6` callback, and cleanup
+  completed. The app-generated audio may remain in the QA chat as evidence.
+
+## 2026-07-04 - TG-014 Voice-in/STT Uzbek Cyrillic corpus
+
+- Extended Voice-in/STT already-happened emergency routing for Uzbek Cyrillic
+  transcripts after the live QA backlog called out UZ Cyrillic as a gap.
+- Added normalization for common Uzbek Cyrillic letters (`ў/қ/ғ/ҳ`) and replay
+  fixtures for SMS-code sent, money transferred, live-call pressure and a
+  negated "did not send code" phrase.
+- Verification passed: focused voice handler test and full Telegram suite.
+
+## 2026-07-02 - Conversation memory reconciliation
+
+- Reconciled the stale pig-butchering / romance-grooming note in
+  `OPEN_TASKS.md`. Explicit `/conversation` mode already stores only derived
+  stage/action/reason metadata and catches romance/trust-building followed by
+  investment/crypto/payment pressure without persisting raw chat text.
+- Clarified the product boundary: passive always-on profiling across ordinary
+  messages remains intentionally unshipped until a separate privacy/product
+  decision. The supported shipped path is user-triggered conversation analysis.
+- Verification passed: focused conversation-check and webhook integration tests
+  plus scoped TS eslint.
+
+## 2026-07-02 - TG-006 Risk Passport tracker reconciliation
+
+- Reconciled the stale `TG-006` Partial tracker row after ROAD-011/013/014/015
+  and the inline QA follow-ups. `TG-006` is now `Implemented`.
+- Evidence now points to the focused Risk Passport / formatter / public
+  metadata / inline regression slice covering low-signal phone and Telegram
+  username passports, Bot API limitation copy, moderated phone reputation
+  source/scope and no owner/hidden-label/account-age claims.
+- `FEATURE_USER_STORY_TRACKER.xlsx` now shows `Implemented=64`,
+  `Partial=0`, `Planned=0`; remaining work is external live evidence capture:
+  real Telegram-client inline screenshots and real STT provider examples.
+
+## 2026-07-02 - ROAD-017 Telegram inline client QA checklist
+
+- Added `ai_docs/TELEGRAM_INLINE_QA.md` for real Telegram-client inline visual
+  QA. The checklist covers empty, high-risk, low-signal phone, low-signal
+  Telegram username, long-query, EN and UZ cases.
+- Documented that no third chat is required; use an existing non-moderator
+  place where test messages are safe. Inline preview/insert must not notify the
+  moderator chat.
+- Added `private/telegram-inline-qa/` to `.gitignore` so raw local screenshots
+  stay out of commits unless explicitly sanitized and reviewed.
+
+## 2026-07-02 - ROAD-016 Production Telegram inline smoke
+
+- Added `scripts/prod-telegram-inline-smoke.ts` and
+  `npm run prod:telegram-inline-smoke` for production webhook validation of
+  Telegram inline-mode queries.
+- The smoke sends synthetic inline updates for high-risk text, low-signal phone
+  and low-signal Telegram username previews, then verifies webhook `200`,
+  no `checks` persistence and no chat-scoped session persistence.
+- Ran through Railway production env against the deployed app; passed and
+  cleaned its synthetic webhook/session rows. This validates production webhook
+  behavior, not visual Telegram-client rendering.
+
+## 2026-07-02 - TG-014 Voice-in/STT collector validation hardening
+
+- Hardened `scripts/transcribe-voice-stt-fixtures.ts` so manifest parsing,
+  audio extension mapping, expected-fragment checks and local audio path
+  resolution are testable before any provider call.
+- Local `audioPath` values are now scoped to the manifest directory to avoid
+  accidentally reading and sending unrelated local files to the STT provider.
+- Verification passed: new fixture collector helper tests, focused voice handler
+  tests, full Telegram suite, full risk suite, scoped TS eslint, script `--help`
+  and `tsc --noEmit`.
+
+## 2026-07-02 - ROAD-015 Inline QA regression matrix
+
+- Expanded Telegram inline-mode regression coverage for low-signal Telegram
+  username checks and phone reputation source/scope rendering.
+- The inline QA matrix now covers: non-persistent rules-only execution,
+  high-risk action-first cards, low-signal phone Risk Passport, low-signal
+  Telegram Risk Passport, and phone reputation source/confidence/scope copy.
+- Verification passed: focused inline handler tests, full Telegram suite, full
+  risk suite, scoped TS eslint and `tsc --noEmit`.
+
+## 2026-07-02 - ROAD-014 Phone Reputation v2 wording/source confidence
+
+- Added shared RU/UZ/EN Phone Reputation presentation helpers for confirmed
+  moderated report evidence, conservative confidence labels, no-report wording
+  and public-scope limits.
+- Low-signal Phone Passport, inline Risk Passport and high-risk Telegram result
+  cards now explicitly say the source is Ishonch Guard moderator-confirmed
+  reports, not unverified complaints, owner data, carrier data or hidden
+  external labels.
+- Verification passed: focused phone reputation / risk passport / inline /
+  formatter tests, full Telegram suite, full risk suite, scoped TS eslint and
+  `tsc --noEmit`.
+
+## 2026-07-02 - ROAD-013 Inline Risk Passport QA slice
+
+- Telegram inline-mode checks now reuse the shared Risk Passport presenter for
+  low-signal phone/Telegram results. Inline `@scamguard_bot <phone>` answers no
+  longer lead with a generic "not enough data" card when the honest response is
+  a number/profile passport with limitations and the next context question.
+- High-risk and suspicious inline results remain action-first and continue to
+  use the short verdict/safe-step card.
+- Verification passed: focused inline handler tests, risk-passport and
+  phone-reputation regressions, full Telegram suite, scoped TS eslint and
+  `tsc --noEmit`.
+
+## 2026-07-02 - TG-014 Voice-in/STT fixture workflow
+
+- Extracted Voice-in/STT transcript replay rows into
+  `src/lib/telegram/voice-stt-provider-fixtures.ts` so RU/UZ/EN provider-like
+  transcripts and negated phrases have one reviewable corpus.
+- Added `scripts/transcribe-voice-stt-fixtures.ts` and
+  `npm run stt:transcribe-fixtures` for local real-provider capture from
+  ignored audio manifests. The script uses `transcribeVoiceCore`, emits only
+  sanitized transcripts, and never commits raw audio.
+- Documented the workflow in `ai_docs/VOICE_STT_FIXTURES.md` and ignored
+  `private/voice-stt-fixtures/` plus local transcript captures.
+- Verification passed: focused voice test, full Telegram suite, voice/rules
+  risk regressions, scoped eslint, `tsc --noEmit`, and script `--help`.
+
+## 2026-07-02 - TG-014 Voice-in/STT EN provider-like corpus
+
+- Extended direct Voice-in/STT emergency routing for English provider-like
+  transcripts: already-sent SMS code, card back digits, AnyDesk/screen access,
+  money transfer, Telegram login QR and live-call phrases now open the matching
+  SOS scenario instead of falling through to a generic risk card.
+- Added English negated already-happened guards so "I did not send the SMS
+  code", "I didn't scan the Telegram QR" and similar phrases continue through
+  the normal check pipeline.
+- Verification passed: full Telegram suite, voice/rules risk regressions,
+  scoped eslint and `tsc --noEmit`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-014` now records the
+  RU/UZ/EN provider-like STT corpus, `QA-2026-07-02-012` was added, and the
+  next queue item remains real provider audio/transcript fixture collection
+  before Phone Reputation v2 / Inline QA.
+
+## 2026-07-02 - TG-014 Voice-in/STT corpus tuning
+
+- Added a first production-like STT transcript corpus for already-happened
+  emergencies without storing raw audio fixtures: RU/UZ card security-code,
+  remote-access and Telegram login-QR phrases now route directly to the
+  matching SOS scenario.
+- Added negated-phrase protection so transcripts such as "I did not send the
+  code" or "I did not scan the Telegram QR" continue through the normal check
+  pipeline instead of opening an already-happened emergency flow.
+- Verification passed: focused voice handler tests, full Telegram suite,
+  voice/rules risk regressions, scoped eslint and `tsc --noEmit`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-014` records the
+  2026-07-02 STT corpus slice, `QA-2026-07-02-011` was added, and the next
+  queue item is real provider audio/transcript fixture expansion before Phone
+  Reputation v2 / Inline QA.
+
+## 2026-07-02 - TG-015 Voice-out prerecorded SOS revalidation
+
+- Revalidated committed static SOS audio: `npm run tts:validate-assets`
+  confirmed 45 RU/UZ/EN OGG assets for panic scenarios 1-15, total 1,683,698
+  bytes, with durations from 7.73s to 14.05s.
+- Re-ran Voice-out routing regressions: prerecorded panic audio is still sent
+  before TTS budget/provider calls, and OGG remains preferred over WAV fallback.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015` now records the
+  2026-07-02 revalidation, `QA-2026-07-02-010` was added, and Status Summary
+  now points to Voice-in/STT real-audio corpus and confidence tuning.
+- Marked the Voice-out pre-record architecture pass complete in
+  `OPEN_TASKS.md`; human listen-through remains a release QA checklist item,
+  not an architecture blocker.
+
+## 2026-07-02 - UX-001 emergency profile-map refactor
+
+- Added `PANIC_SCENARIO_IDS` and `PANIC_SCENARIO_PROFILES` in
+  `src/lib/telegram/emergency.ts` so each SOS case has one source of truth for
+  profile, menu page, contact-button role and family-first keyboard behavior.
+- Rebuilt `/panic` menu pagination, panic-id parsing, contact-button labels and
+  follow-up keyboard ordering from the shared profile map. Existing SOS copy is
+  intentionally unchanged.
+- Updated emergency well-formedness and i18n completeness tests to iterate over
+  `PANIC_SCENARIO_IDS` instead of duplicating `1..15`.
+- Verification passed: targeted emergency/i18n/voice-out tests
+  (5 files / 767 tests), full Telegram suite (49 files / 1333 tests), `tsc`
+  and scoped eslint.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `UX-001 / T-047` is now
+  Implemented/Passed, `QA-2026-07-02-009` was added, and the next queue item is
+  the next narrow UX/logistics polish slice.
+
+## 2026-07-02 - SEC-002 CSP/security headers final reconciliation
+
+- Added `src/server.security-headers.test.ts`, covering baseline response
+  security headers, main-site `frame-ancestors 'none'`, per-request script
+  nonce insertion and `/embed/check` framing behavior without
+  `X-Frame-Options`.
+- Extended `prod-security-smoke` with optional public URL checks for
+  `/healthz` and `/embed/check` security headers while keeping the existing
+  Supabase/RLS-only behavior when no URL is supplied.
+- Ran production security smoke with
+  `https://scam-guard-main-production.up.railway.app`; public header checks and
+  Supabase/RLS checks passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `SEC-002 / T-046` is now
+  Implemented/Passed, `QA-2026-07-02-008` was added, and the next queue item is
+  UX/logistics fixes.
+
+## 2026-07-02 - QA-001 P1 web/Telegram user-story QA flows
+
+- Ran production web QA against
+  `https://scam-guard-main-production.up.railway.app`: homepage high-risk
+  result, `/report` success and `/appeal` success passed with synthetic marker
+  `QA-P1-WEB-20260702071934`.
+- Ran production admin moderation smoke for the same marker; report rejection,
+  appeal keep-reputation decision, audit entries and cleanup passed.
+- Ran production Telegram user-story, live QR/Guardian and private/group scope
+  smokes. User-facing Telegram smoke messages were sent only to an existing
+  private non-moderation QA chat, not the moderator chat.
+- Updated `prod-security-smoke` so `PGRST205` from anon reads is treated as a
+  valid denied/hidden response for service-role-only tables; service-role count
+  still verifies `embed_origin_events` exists.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-001 / T-045` is now
+  Implemented/Passed, `QA-2026-07-02-007` was added, and the next queue item is
+  `T-046 / SEC-002 CSP/security headers final reconciliation`.
+
+## 2026-07-02 - ROAD-012 embed origin analytics/logging
+
+- Added service-role-only `public.embed_origin_events` telemetry for
+  `/embed/check`, with RLS enabled, public client roles revoked and 180-day
+  retention through `private.prune_app_retention()`.
+- Added `src/lib/embed-origin-analytics.server.ts` to normalize embed telemetry
+  context to `partner`, `referrer_origin` and `referrer_host` only. It never
+  stores raw input, redacted input, input hashes, full referrer URLs, paths,
+  query strings, fragments, phone numbers or Telegram ids.
+- Updated the iframe check widget to send a small embed context from
+  `document.referrer`; the server validates and strips it before inserting
+  aggregate check/meta-intent result shape.
+- Added unit, server-function and static migration regressions for privacy-safe
+  telemetry boundaries.
+- Supabase local DB advisors/lint were attempted but blocked because the local
+  database was not running on `127.0.0.1:54322`.
+- Next queue item: P1 user-story QA for web and Telegram flows.
+
+## 2026-07-02 - ROAD-011 web/embed Risk Passport compact reuse
+
+- Added `src/lib/risk/risk-passport.ts`, a shared pure Risk Passport presenter
+  for shallow phone and Telegram checks. It produces compact sections for
+  visible metadata, directory status, Ishonch reputation, honest limitations,
+  meaning and next step without changing scoring or persistence.
+- Updated the website result card to show the shared passport structure for
+  low-signal phone/Telegram checks instead of duplicating generic explanation
+  text; high-risk and suspicious results remain action-first.
+- Updated `/embed/check` to render a height-conscious passport summary and hide
+  generic reasons/advice duplication for passport cards, keeping partner
+  iframes compact.
+- Added pure presenter tests and an SSR component regression for the embed
+  passport branch, including privacy checks that raw phone digits are not
+  rendered.
+- Next queue item: `T-044 / ROAD-012 Embed origin analytics/logging`.
+
+## 2026-07-02 - ROAD-010 private moderation chat research alerts
+
+- Extended `src/lib/telegram/moderation-notifier.server.ts` with a
+  high-signal research alert path built only from public scheme-trend metadata.
+- Added `buildHighSignalResearchModerationNotice()` and
+  `notifyHighSignalResearchModeration()` for operator-only research review;
+  the alert includes category, severity/source and reason-code ids, not raw
+  posts, user reports, OCR, screenshots, full URLs, phone numbers or user ids.
+- Kept the existing moderation chat contract: `TELEGRAM_MODERATION_CHAT_ID` is
+  optional, alerts use the same admin link button, and
+  `npm run moderation:smoke -- --research` can explicitly verify the research
+  workflow.
+- Added tests for research-item selection, redaction and Telegram send
+  payloads.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-010` is now Implemented,
+  `T-042` is Passed, `QA-2026-07-02-004` was added, and the next queue item is
+  `T-043 / ROAD-011 Web/embed Risk Passport compact reuse`.
+
+## 2026-07-02 - ROAD-009 Weekly Scam Digest data model
+
+- Refactored Telegram `/digest` from a single static text blob into
+  `WEEKLY_SCAM_DIGEST_ENTRIES` records with `source`, `status`, `updatedAt`,
+  `publishMode: "manual"`, tags and localized funnel copy.
+- Added a freshness gate: stale or partial published record sets fall back to
+  evergreen safety guidance instead of presenting old weekly trends as current.
+- Kept the public Telegram output deterministic and compact, with the same
+  check/report/emergency next actions and no user reports, raw links, phone
+  numbers, screenshots or source labels exposed.
+- Added tests for manual-publish metadata, draft filtering, stale fallback,
+  minimum topic count and public-text privacy guards.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-009` is now Implemented,
+  `T-041` is Passed, `QA-2026-07-02-003` was added, and the next queue item is
+  `T-042 / ROAD-010 Private moderation chat remaining workflow`.
+
+## 2026-07-02 - ROAD-008 privacy-safe scam map/index
+
+- Added `src/lib/trust/scam-map-index.ts`, a pure public-index helper that
+  aggregates existing non-personal scheme trends by category, severity, status
+  and source without reading private reports or raw evidence.
+- Added a privacy-safe map/index panel to `/scam-trends`: the page now shows a
+  national tactics index, category buckets and a locked regional layer with
+  explicit publication thresholds.
+- Locked the public regional boundary for future dynamic data: at least 5
+  moderated records, 3 distinct scheme types and 2 source types are required
+  before a region bucket can publish.
+- Added tests for category aggregation, regional suppression, threshold logic
+  and absence of private-evidence shaped fields in the public map payload.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-008` is now Implemented,
+  `T-040` is Passed, `QA-2026-07-02-002` was added, and the next queue item is
+  `T-041 / ROAD-009 Weekly Scam Digest data model`.
+
+## 2026-07-02 - ROAD-007 scam-call trainer mini-quiz
+
+- Added a Telegram `/trainer` flow and main-menu Trainer button with a
+  five-situation defensive mini-quiz for scam-call practice.
+- Kept the feature callback-only: score is carried in `trainer:*` callback data,
+  and the trainer does not create `checks` rows or store user answers.
+- Added RU/UZ/EN command-menu registration, localized help text and webhook
+  coverage for `/trainer`, the main-menu callback and answer progression.
+- Added defensive-content guards so the trainer teaches safe reactions without
+  publishing attacker-ready scripts, exact OTP examples or remote-access tool
+  playbooks.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-007` is now Implemented,
+  `T-039` is Passed, `QA-2026-07-02-001` was added, and the next queue item is
+  `T-040 / ROAD-008 privacy-safe scam map/index`.
+
+## 2026-07-01 - ROAD-006 family codeword
+
+- Added a Family Shield "Code word" callback and RU/UZ/EN guide that teaches
+  families to agree on a private phrase offline for suspicious voice/video
+  requests.
+- Kept the privacy boundary explicit: the bot does not ask users to send the
+  actual codeword and does not store a plaintext or recoverable family secret.
+- Updated trusted-contact alerts so helpers verify suspicious voice/video
+  pressure by calling a saved number and asking a family codeword or private
+  question.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-006` is now Implemented,
+  `T-038` is Passed, `QA-2026-07-01-023` was added, and the next queue item is
+  `T-039 / ROAD-007 scam-call trainer and mini-quiz`.
+
+## 2026-07-01 - ROAD-005 explain like grandmother
+
+- Added a result-card "Simple words" callback next to "Why?" so users can ask
+  for a calmer elder-friendly explanation without changing the deterministic
+  verdict.
+- Added RU/UZ/EN free-text routing for phrases such as "объясни как бабушке",
+  "простыми словами", "oddiy qilib" and "simple words". These follow-ups reuse
+  the last check context instead of creating a new `checks` row.
+- Simple explanations avoid score/threshold/weight wording, keep weak
+  topic-only evidence hidden for unknown phone/profile checks, and end with one
+  safe next step.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ROAD-005` is now Implemented,
+  `T-037` is Passed, `QA-2026-07-01-022` was added, and the next queue item is
+  `T-038 / ROAD-006 family codeword`.
+
+## 2026-07-01 - ROAD-004 conversation check v1
+
+- Implemented explicit Telegram `/conversation` mode plus a main-menu entry for
+  checking 2-8 forwarded/pasted chat messages as one short conversation.
+- Added a privacy-safe `conversation_check` session state: it stores message
+  count, aggregate length, stages, requested actions, pressure flags and reason
+  counts only. It does not persist raw chat text, URLs, phone numbers,
+  usernames, OTP/PIN/CVV values, cards, passwords, seed phrases, OCR or files.
+- Added deterministic stage/action extraction and compact RU/UZ/EN rendering
+  that explains how the scam pressure evolves, what action is requested, the
+  strongest visible signals and one safe next step.
+- Added regression tests for raw-evidence exclusion, `/conversation` collection
+  and analysis, and the boundary that ordinary URL checks outside explicit
+  conversation mode still go through the normal check pipeline.
+
+## 2026-07-01 - ROAD-004 conversation check design
+
+- Added `.kiro/specs/telegram-conversation-check-v1` with requirements,
+  design and implementation tasks for a privacy-first grouped conversation
+  check.
+- Locked the key boundary before implementation: conversation mode must be
+  explicit, unfinished drafts must expire, and `telegram_sessions` may keep
+  only derived stage/action/reason metadata, not raw transcripts, URLs, phone
+  numbers, usernames, OCR, codes, cards, passwords, seed phrases or files.
+- Left implementation open as the next ROAD-004 slice: add the collector,
+  deterministic stage/action extraction, compact RU/UZ/EN rendering and
+  regression tests that normal single-item checks are not captured.
+
+## 2026-07-01 - ROAD-003 speed/cost pass reconciled
+
+- Reconciled and verified the Telegram speed/cost pass already present in the
+  worktree: visible delayed "checking" status for slow text checks, short
+  per-user text check cache and in-flight de-duplication, Telegram public
+  metadata soft timeout/cache, low-signal passport AI skip, QR fast path for
+  pixel-decoded login/payment/wallet payloads, URL reputation cache/in-flight
+  de-duplication, voice STT cache/in-flight/budget and Voice-out duplicate/TTS
+  budget guards.
+- Closed `ROAD-003 / T-035` in `FEATURE_USER_STORY_TRACKER.xlsx` after focused
+  latency/cost verification passed.
+
+## 2026-07-01 - SEC-003 adversarial AI-output cooldown
+
+- Added a per-rate-limit-key cooldown for repeated unsafe AI-authored
+  explanations. After repeated firewall blocks in a short window, `runCheck`
+  keeps deterministic scoring, advice and persistence working but temporarily
+  skips further AI explanation calls for that key.
+- Extended the AI-output safety API so callers can see whether sanitization
+  blocked a provider response and record that event without exposing unsafe
+  text to users or `checks.ai_explanation`.
+- Added regression coverage for the bucket/cooldown behavior and an
+  end-to-end `runCheck` case proving the third repeated adversarial provider
+  output is handled rules-only without another AI call.
+
+## 2026-07-01 - CORE-009 retention/audit verification
+
+- Added static migration regression coverage for the Supabase retention and
+  admin audit contract: `private.prune_app_retention()` stays private and
+  service-role-only, preserves `admin_actions` and `reputation_appeals`, and
+  keeps the documented cleanup windows for checks, reports, Telegram sessions,
+  webhook dedup rows, rate-limit buckets, Telegram reputation observations and
+  Family Shield rows.
+- Verified the scheduled cleanup migration uses `cron.schedule` /
+  `cron.unschedule` rather than direct `cron.job` writes.
+- Re-ran the linked Supabase checks: remote migration history matches local and
+  `supabase db lint --linked --schema public,private --fail-on error` reported
+  no schema errors.
+
+## 2026-07-01 - CORE-005 URL reputation hardening
+
+- Hardened the existing Google Safe Browsing / URLhaus / PhishTank additive URL
+  reputation layer with normalized provider payloads: credentials, query
+  strings and fragments are stripped before external calls.
+- Mixed text/payment checks now extract URL tokens from the raw input for
+  reputation lookup while still refusing to send full message text, OTPs,
+  amounts or URL query secrets to providers.
+- Added a short in-memory URL reputation cache and in-flight de-duplication so
+  repeated checks do not multiply provider calls; provider failures are not
+  cached as clean results.
+- Verification added for sanitization, cache reuse, concurrent de-duplication
+  and payment-message URL extraction.
+
+## 2026-07-01 - Tracker reconciled for ADM-003 / CORE-004
+
+- Verified that Phone Reputation v1 is already implemented: confirmed targeted
+  reports update masked `entities`, incident-only reports do not create public
+  reputation, phone checks read reputation only from confirmed moderated rows,
+  and Telegram output shows source/confidence limits without owner or hidden
+  carrier/spam-label claims.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `ADM-003` and `CORE-004` are now
+  `Implemented`, `T-021` and `T-024` are closed, Status Summary counts are
+  `Implemented=47`, `Partial=4`, `Planned=7`, and the next queue item is
+  `T-025 / CORE-005`.
+- Verification passed: focused admin/reputation/phone/formatter suites
+  `6 files / 77 tests`; workbook formula-error scan found no errors.
+
+## 2026-07-01 - UZ scam-pattern audit slice
+
+- Added deterministic single-message coverage for OneID/government-service
+  phishing, SIM-swap/number-transfer pretexts, money mule recruitment,
+  advance-fee prize/inheritance/migration/Hajj prompts and romance-to-investment
+  pivots.
+- Hardened weak soft-ask coverage for CVV/card security code, bank PIN/password,
+  direct transfer-to-card requests and PINFL/ID/passport data requests.
+- Added positives and negatives for the new patterns, including false-positive
+  guards for "three favorite digits", Wi-Fi passwords, office-only SIM notices
+  and tax-news text.
+- Updated `SCAM_COVERAGE.md` to mark the deterministic slice as covered/partial
+  and to keep cumulative pig-butchering dialog risk as a separate architecture
+  task.
+
+## 2026-07-01 - Telegram smoke chat separated from moderation chat
+
+- Production Telegram user-flow smoke scripts now require
+  `TELEGRAM_QA_CHAT_ID` instead of sending ordinary bot replies to
+  `TELEGRAM_MODERATION_CHAT_ID`.
+- Added a fail-closed guard so `TELEGRAM_QA_CHAT_ID` cannot be missing or equal
+  to the moderation chat id.
+- Updated deployment/runbook docs to keep moderator alerts separate from QA
+  risk cards, language replies and Voice-out audio.
+
+## 2026-07-01 - TG-025 modern SOS copy closed
+
+- Split the compact first cards, full checklist copy and trusted-person
+  follow-ups for sextortion/photo-video blackmail, publication threats and
+  minor-safety pressure so they no longer share generic blackmail wording.
+- Minor-safety copy now leads with showing the chat to a trusted adult, keeps
+  non-blaming language, and tells the user to ask another adult if the first
+  one does not help.
+- Regenerated `TELEGRAM_BOT_QA_REPORT.md` after SOS copy changes and re-ran
+  visual QA.
+- Verification passed: scoped eslint; emergency/panic/voice-out suite
+  `4 files / 135 tests`; emergency property/i18n/follow-up suite
+  `5 files / 632 tests`; bot QA matrix `18 tests`; `qa:telegram-report`,
+  `qa:telegram-visual`, and `npm run build` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-025` is now `Implemented`,
+  `T-013` is closed, Status Summary counts are `Implemented=45`,
+  `Partial=6`, `Planned=7`, and the next queue item is `T-021 / ADM-003`.
+
+## 2026-07-01 - TG-013 video thumbnail UX closed
+
+- Telegram video thumbnails now carry a `video_thumbnail` media marker through
+  the router into the image-check result path.
+- Result cards for video-thumbnail analysis now explicitly say the bot checked
+  only the video preview frame, not the full clip, and asks for speech,
+  description, or button/link evidence separately when needed.
+- Re-verified that full video files are not fetched: only the Telegram-provided
+  thumbnail enters the in-memory image/QR/OCR pipeline.
+- Verification passed: scoped eslint; router/webhook/bot QA matrix
+  `3 files / 172 tests`; formatter/image-intelligence suites
+  `2 files / 70 tests`; `npm run build` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-013` is now `Implemented`,
+  `T-009` is closed, Status Summary counts are `Implemented=44`,
+  `Partial=7`, `Planned=7`, and the next queue item is `T-013 / TG-025`.
+
+## 2026-07-01 - ADM-001 production auth policy QA closed
+
+- Extended `prod:security-smoke` with admin auth-policy checks: anon cannot read
+  `admin_allowlist` or `user_roles`, service-role can read the allowlist, and
+  every `admin` role must belong to a confirmed allowlisted email.
+- Production verification passed with `admins=1`, `confirmed_allowlisted=1`,
+  `outside_allowlist=0`, and `unconfirmed_allowlisted=0`.
+- Verification passed: scoped eslint; focused admin/auth/security suites
+  `3 files / 18 tests`; `railway run npm run prod:security-smoke` passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-019` is closed,
+  `QA-2026-07-01-015` was added, and Status Summary now says the P1 test queue
+  is closed.
+
+## 2026-07-01 - TG-028 AI provider resilience QA closed
+
+- Added adversarial AI-output safety coverage for repeated prompt-injection
+  leaks, multilingual secret/payment/wallet/APK action requests, and safe-warning
+  decoys that mention the same dangerous terms only as things to refuse.
+- Re-verified AI degradation/fallback behavior: rules-only scoring still holds
+  when AI is missing, failing, quota-limited, retried, or served by fallback.
+- Verification passed: scoped eslint; focused AI safety/degradation suites
+  `3 files / 29 tests`; `railway run npm run prod:smoke --
+https://scam-guard-main-production.up.railway.app` passed with AI provider
+  healthy.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-015` is closed,
+  `QA-2026-07-01-014` was added, and Status Summary now points to `ADM-001`.
+
+## 2026-07-01 - CORE-001 false-positive QA closed
+
+- Added `prod:telegram-false-positive-smoke` for repeatable production Telegram
+  webhook checks of benign delivery status, ordinary sports news, and Telegram
+  product-news messages.
+- Re-verified the local deterministic false-positive boundaries: broad
+  delivery, betting/casino, Telegram/Web3 promo, image-intelligence, result
+  formatting, and webhook integration coverage.
+- Verification passed: scoped eslint; focused CORE-001 suites
+  `5 files / 272 tests`; production Telegram false-positive smoke passed with
+  all 3 benign cases `unknown` and no forbidden reason codes; `npm run build`
+  passed.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-022` is closed,
+  `QA-2026-07-01-013` was added, and Status Summary now points to
+  `TG-028/ADM-001`.
+
+## 2026-07-01 - CORE-006 verified contact override QA closed
+
+- Re-verified the existing `check-core` regression that confirmed high-risk
+  entity reputation keeps `known_reported` and final `high_risk` even when the
+  input also matches a verified official contact.
+- Re-verified the dangerous-request override path for official short-code-like
+  messages.
+- Verification passed: scoped eslint; focused risk suites
+  `4 files / 153 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-026` is closed,
+  `QA-2026-07-01-012` was added, and Status Summary now points to the
+  remaining P1 test queue starting with `CORE-001`.
+
+## 2026-07-01 - CORE-008 shared rate-limit gates verified
+
+- Added an explicit shared-rate-limit regression for the `telegram_public_post`
+  scope so public Telegram post fetch buckets use hashed keys through
+  `claim_rate_limit`.
+- Re-verified the existing CORE-008 guards: web check/OCR ignores spoofable
+  forwarded IP headers by default, Telegram image checks claim the image budget
+  before `getFile`/download, report and appeal submissions use shared buckets,
+  and Voice-out provider calls are budget-gated.
+- Verification passed: scoped eslint; focused CORE-008 suites
+  `7 files / 131 tests`; `railway run npm run prod:security-smoke` passed,
+  including `claim_rate_limit` and appeal-scope RPC checks.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-008` is now `Implemented`,
+  `T-028` is closed, `QA-2026-07-01-011` was added, and Status Summary now
+  points to the remaining P1 test queue starting with `CORE-006`.
+
+## 2026-07-01 - CORE-007 report/appeal privacy boundary closed
+
+- Tightened appeal contact normalization so URL contact hashes are computed from
+  normalized origin/path, without query or fragment tokens.
+- Added privacy regressions for report moderation alerts and appeal persistence:
+  raw URLs, Telegram handles/invites, email/card/code data, and tokenized
+  contact URLs must not persist or leak into alerts.
+- Verification passed: scoped eslint; report/appeal privacy suites
+  `2 files / 13 tests`; risk redaction suites `3 files / 42 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-007` is now `Implemented`,
+  `T-027` is closed, `QA-2026-07-01-010` was added, and Status Summary now
+  points to `CORE-008` shared rate-limit regression watch.
+
+## 2026-07-01 - CORE-003 short-code prefix regression closed
+
+- Added a `runCheck`-level regression for `+9981340`: it must not resolve to a
+  verified official contact, must not be marked as matched in the official
+  directory, must not get `valid_uz_phone`, and must remain `unknown` with score
+  `0`.
+- Existing helper coverage already confirmed `+9981340`, `+998102`, and
+  `+9981257` do not match official short codes.
+- Verification passed: scoped eslint plus verified contacts, phone intelligence,
+  and check-core property suites `3 files / 45 tests`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `CORE-003` is now `Implemented`,
+  `T-023` is passed, `QA-2026-07-01-009` was added, and Status Summary now
+  points to `CORE-007` then `CORE-008`.
+
+## 2026-07-01 - Post-deploy P1 web/Telegram live QA passed
+
+- Deployed `5af552e` as Railway deployment
+  `ad41dc8b-f8b6-4ca2-afb6-0016aebb24b0`.
+- Production smoke passed: home, healthz, webhook auth, Telegram webhook
+  pending count, and AI provider checks were healthy.
+- Telegram P1 production smokes passed: user-story flows, private/group session
+  scoping, live QR photo, and high-risk Guardian Angel.
+- Browser QA passed on production homepage high-risk result, `/report` success,
+  `/appeal` success, and admin moderation cleanup for marker
+  `QA-P1-WEB-20260701112907`; console warnings/errors stayed at `0`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: added `QA-2026-07-01-008` and
+  moved Status Summary to UX/logistics fixes or the next product backlog.
+
+## 2026-07-01 - TG-015 Voice-out provider-limit fallback UX
+
+- Rate-limit fallback now removes provider-only Voice-out buttons
+  (`voiceout:guardian` and contextual `voiceout:panic:<id>:<action>`) so users
+  do not keep tapping into the same daily provider limit.
+- Static SOS Voice-out buttons (`voiceout:panic:<id>`) and normal action
+  buttons stay visible because prerecorded SOS audio bypasses provider budget.
+- Added a regression covering the fallback keyboard and preserving non-voice
+  callbacks after the first test caught an over-broad filter.
+- Verification passed: scoped eslint, voice-out suite `1 file / 14 tests`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015` is now `Implemented`,
+  `T-011` is passed, `QA-2026-07-01-007` was added, and Status Summary now
+  points to remaining P1/P2 web/Telegram live QA.
+
+## 2026-07-01 - TG-015 Voice-out deploy and full playback smoke
+
+- Refreshed `bun.lock` after adding Voice-out scripts; first Railway deploy
+  failed at `bun install --frozen-lockfile`, then deployment
+  `962b98c9-b600-4c51-8e6d-98e14ebb15fd` succeeded.
+- Full production Voice-out smoke passed against
+  `https://scam-guard-main-production.up.railway.app`: Telegram accepted
+  panic-6 RU/UZ/EN OGG files and the deployed webhook accepted
+  `voiceout:panic:6`.
+- General `prod:smoke` also passed: home/healthz/webhook auth checks,
+  Telegram webhook info, and AI provider check were healthy.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-07-01-006`, `TG-015`,
+  `T-011`, and Status Summary now point to the remaining P2 provider-limit UX
+  decision or the next web/Telegram live QA pass.
+
+## 2026-07-01 - TG-015 Voice-out Telegram OGG smoke harness
+
+- Added `prod:telegram-voice-out-smoke`, a production-oriented smoke that sends
+  committed panic OGG files through Telegram Bot API `sendAudio` and can trigger
+  the app webhook voice-out callback after deployment.
+- Added `--skip-webhook` mode for pre-deploy validation: it verifies Telegram
+  accepts the local OGG assets without depending on the deployed app bundle.
+- Verification passed: scoped eslint for the new script, `npm run
+tts:validate-assets`, and `railway run npx vite-node
+scripts/prod-telegram-voice-out-smoke.ts --skip-webhook`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: fixed TG-015/T-011 column drift,
+  added `QA-2026-07-01-005`, and kept full app webhook playback as post-deploy
+  follow-up.
+
+## 2026-07-01 - TG-015 Voice-out SOS OGG assets
+
+- Added production-preferred `.ogg`/Opus Voice-out files for all main SOS
+  panic scenarios: `panic-1..15` in `ru`, `uz`, and `en` (`45` assets total).
+- Added `tts:validate-assets`, which checks required OGG files, Ogg/Opus
+  headers, duration bounds, size limits, and safe short SOS scripts.
+- Voice-out unit coverage now locks that prerecorded OGG is selected before WAV,
+  TTS budget checks, or provider calls.
+- Verification passed: scoped eslint, voice-out suite `1 file / 13 tests`,
+  `npm run tts:validate-assets`, and `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-015`, `T-011`,
+  `QA-2026-07-01-004`, and Status Summary now point to live Telegram playback
+  smoke plus the provider-limit button UX decision.
+
+## 2026-07-01 - TG-009 profile screenshot intelligence final-card QA
+
+- Profile screenshot explanations are now treated as Telegram-profile context
+  in the final formatter, so the user-facing card keeps visible native fields,
+  the fakeable-screenshot caveat, and quick "what did they ask for" buttons.
+- Added a formatter regression for Telegram profile screenshots and added a
+  synthetic profile screenshot fixture to the Telegram QA report/visual board.
+- Verification passed: scoped eslint, focused formatter/image-intelligence
+  suites `2 files / 70 tests`, `qa:telegram-report`, `qa:telegram-visual`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-009`, `T-007`,
+  `QA-2026-07-01-003`, and Status Summary now point to Voice-out audio review
+  or live username/profile screenshot smoke after deploy.
+
+## 2026-07-01 - TG-007/TG-008 username passport coach visible in final card
+
+- Fixed Telegram passport formatting so the Native Passport Coach block survives
+  the final user-facing `formatCheckResult` card instead of being truncated.
+- `telegram-bot-qa-report` now builds its username passport fixture through
+  `buildTelegramPublicMetadataBrief`, keeping the report aligned with the real
+  Telegram metadata builder.
+- Regenerated `TELEGRAM_BOT_QA_REPORT.md` and the Telegram visual QA board.
+- Verification passed: scoped eslint, focused Telegram suites `5 files / 83
+tests`, `qa:telegram-report`, and `qa:telegram-visual`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-007`, `TG-008`, `T-005`,
+  `T-006`, `QA-2026-07-01-002`, and Status Summary now point to the next
+  UX/logistics slice: Profile Screenshot Intelligence or Voice-out audio
+  review/compression.
+
+## 2026-07-01 - ROAD-002 / TG-019 report duplicate-signal polish
+
+- Web `/report` success copy is warmer and explicitly says public labeling is
+  manual; similar reports help raise review priority without revealing whether
+  this submission was a duplicate.
+- Admin `listReports` now attaches operator-only `target_signal_count` and
+  `target_last_report_at` from active report rows. Queue priority and admin
+  cards use that raw signal count while public `target_report_count` remains
+  confirmed-only.
+- Verification passed: scoped eslint for touched files, focused
+  admin/report tests `3 files / 28 tests`, `git diff --check`, and
+  `npm run build`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `TG-019`, `ROAD-002`, `T-012`,
+  `T-034`, `QA-2026-07-01-001`, and Status Summary now point to continuing
+  UX/logistics fixes; production/live report smoke remains a post-deploy check.
+
+## 2026-06-30 - P1 production Telegram user-story smoke passed
+
+- Added `prod:telegram-user-story-smoke`, a guarded production smoke for the
+  remaining Telegram P1 user-story flows.
+- The smoke verifies `/start`, RU/UZ/EN language callback persistence, a
+  synthetic UZ phone passport, benign delivery false-positive handling, and
+  RU/UZ/EN acknowledgement + confirmation follow-ups that must not create
+  `checks` rows.
+- Cleanup removes synthetic `checks`, `telegram_sessions` and
+  `telegram_webhook_updates` rows; secrets, chat ids and synthetic user ids are
+  not printed.
+- Verification passed: scoped eslint for the new script, focused Telegram/risk
+  suite `5 files / 198 tests`, `railway run npm run
+prod:telegram-user-story-smoke`, and general `railway run npm run prod:smoke`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-012`, `T-001` -
+  `T-004`, `TG-001`, `TG-002`, `TG-005`, `TG-006`, and Status Summary now point
+  to UX/logistics fixes next. Voice-out real RU/UZ/EN `.ogg` SOS assets and
+  compression remain a separate follow-up.
+
+## 2026-06-30 - P1 production Telegram QR + Guardian smoke passed
+
+- Added `prod:telegram-live-qa-smoke`, a guarded production smoke that uses
+  synthetic Telegram users and `TELEGRAM_MODERATION_CHAT_ID` without printing
+  secrets, chat ids or user ids.
+- The smoke verifies a high-risk verification-code/CVV text creates safe
+  `lastCheck` + Guardian Angel session metadata, then verifies a real Telegram
+  `sendPhoto` QR image goes through file_id download and pixel QR decode as
+  `asks_to_scan_qr`.
+- Cleanup removed synthetic `checks`, `telegram_sessions`,
+  `telegram_webhook_updates` rows and the uploaded QA Telegram photo.
+- Verification passed: scoped eslint for the new script, focused Telegram suite
+  `4 files / 127 tests`, `railway run npm run prod:telegram-live-qa-smoke`, and
+  general `railway run npm run prod:smoke`.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-011`, `T-008 /
+TG-010`, `TG-022`, `T-003 / TG-005`, and Status Summary now reflect that
+  image/QR + high-risk Guardian are no longer the next blocker. Remaining P1 is
+  Telegram start/check/passport/conversational live RU/UZ/EN and false-positive
+  user-story QA, then UX/logistics fixes; Voice-out human audio review/compression
+  remains separate.
+
+## 2026-06-30 - P1 Telegram private/group scope production QA passed
+
+- Added `prod:telegram-scope-smoke`, a guarded production smoke that sends
+  synthetic Telegram webhook callbacks, verifies private `/report` session
+  `chatScope`, verifies a supergroup callback resets instead of reusing private
+  state, and cleans synthetic `telegram_sessions` / `telegram_webhook_updates`
+  rows.
+- Production initially lagged the current session-scoping code, so
+  `prod:telegram-scope-smoke` correctly failed on missing `chatScope`; redeployed
+  current app to Railway deployment `53f77ca3...`.
+- After deployment, `railway run npm run prod:telegram-scope-smoke -- https://scam-guard-main-production.up.railway.app`
+  passed, and the general `prod:smoke` passed on the same production URL.
+- Added explicit `vite-node` dev dependency and scoped the `brace-expansion`
+  override so existing `prod:*` npm scripts run directly without the stale local
+  shim / ESLint minimatch failure.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `T-014 / TG-027` now records the
+  production pass; Status Summary now points to remaining P1 Telegram live QA
+  (image/QR, high-risk Guardian Angel, conversational follow-ups) before
+  UX/logistics fixes.
+
+## 2026-06-30 - P1 production web user-story QA passed
+
+- Production browser QA passed for the homepage high-risk result, `/report`
+  success path and `/appeal` success path against
+  `https://scam-guard-main-production.up.railway.app`.
+- Added `prod:admin-moderation-smoke`, a guarded production smoke that finds the
+  synthetic report/appeal by marker or hashed target, runs the same admin
+  moderation core functions, verifies audit actions, and cleans synthetic rows.
+- QA marker `QA-P1-WEB-20260630111649` was cleaned from reports, appeals,
+  entities, admin actions and checks after verification.
+- Updated `FEATURE_USER_STORY_TRACKER.xlsx`: `QA-2026-06-30-010` records the
+  run, and WEB-002 / WEB-003 / WEB-007 now point to production-pass status.
+- Next recommended P1 remains Telegram/private-group user-story QA or
+  UX/logistics fixes; Voice-out human audio review/compression is a separate
+  follow-up.
+
+## 2026-06-30 - Voice-out pre-record architecture first slice
+
+- Main SOS `voiceout:panic:{id}` callbacks now look for static audio before
+  live TTS. Default path: `public/audio/voice-out/panic-{id}-{lang}.ogg`,
+  overrideable with `VOICE_OUT_PRERECORDED_DIR`.
+- Static Voice-out audio bypasses Gemini/OpenAI calls and does not spend the
+  daily TTS budget; missing static audio falls back to the existing provider
+  chain and text fallback.
+- Emergency follow-up screens no longer repeat the "Озвучить главный шаг"
+  button, reducing the broad voice-button surface that QA flagged.
+- Generated static Gemini WAV assets for all 15 SOS panic scripts in RU, UZ and
+  EN. Remaining work is human audio review, optional `.ogg` compression when a
+  converter is available, and a separate decision on static Guardian Angel
+  audio.
+
+## 2026-06-30 - Telegram conversational follow-ups after QA feedback
+
+- Added post-check/post-SOS handling for short acknowledgements like
+  "Хорошо сделаю" so the bot answers warmly instead of running a fake
+  insufficient-data check.
+- Added handling for ambiguous confirmation requests such as
+  "Попросил подтверждение": the bot now warns about SMS codes, push
+  confirmations, QR login and card operations without changing the previous
+  verdict.
+- Voice transcript previews now trim on a word boundary with an ellipsis while
+  the risk check continues to use the full transcript.
+- Guardian Angel intro copy now uses human-facing companion wording instead of
+  explaining internal auto-prompt mechanics.
+- Recorded the remaining Voice-out pre-record architecture pass as an open
+  task after QA found live TTS buttons too broad and too provider-dependent.
+
+## 2026-06-29 - Proxy IP header trust is fail-closed and documented
+
+- Documented `TRUST_PROXY_IP_HEADERS` as an explicit opt-in for public
+  rate-limit identity behind a trusted edge proxy only.
+- Confirmed focused tests prove spoofable forwarding headers are ignored by
+  default and used only when the opt-in is set.
+- Added a `prod:security-smoke` env guard: if proxy IP header trust is enabled,
+  the smoke requires `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`.
+- Railway production security smoke confirmed `TRUST_PROXY_IP_HEADERS` is
+  unset/false and the full RLS/RPC smoke still passes.
+
+## 2026-06-29 - Public impact loss counters require confirmed reports
+
+- Public check and risk-alert counters remain aggregate raw service activity.
+- Public report/loss impact counters now count only
+  `reports.status='confirmed'` rows in both the `get_check_stats()` RPC and the
+  server-side fallback queries.
+- Updated homepage copy so loss totals are presented as moderator-confirmed
+  report impact, not unreviewed user-submitted amounts.
+
+## 2026-06-29 - Embed widget framing requires an origin allowlist
+
+- `/embed/check` no longer ships with broad `frame-ancestors https:`.
+- The embed CSP now defaults to `'self'` plus localhost development origins and
+  adds production partner origins only from `EMBED_ALLOWED_FRAME_ANCESTORS`.
+- Added regression coverage for rejecting unsafe allowlist entries and for
+  building CSP from explicit HTTPS partner origins.
+
+## 2026-06-29 - Same-day duplicate reports keep durable evidence
+
+- Same-day report dedupe now stores a redacted `reports.status='duplicate'`
+  row instead of relying only on a best-effort moderation notification.
+- Duplicate report rows do not refresh public `entities`, do not change
+  `entities.report_count`, and cannot be moderated as new reports.
+- Added regression coverage proving duplicate evidence is persisted while public
+  entity state remains unchanged, plus an admin `duplicate` report filter.
+
+## 2026-06-29 - Webhook dedup outages retry before dispatch
+
+- Telegram webhook processing now returns HTTP 503 before dispatch when the
+  shared `telegram_webhook_updates` dedup claim is unavailable.
+- The in-memory duplicate marker is written only after a successful shared claim
+  so a Telegram retry after a temporary storage outage is not lost locally.
+- Added regression coverage proving unavailable shared dedup does not dispatch
+  and a later successful retry can process the same `update_id`.
+
+## 2026-06-29 - Public stats use a short server cache
+
+- Added a 30-second in-process cache and in-flight de-duplication around
+  `getPublicStats` so repeated public requests do not each run the service-role
+  stats RPC and aggregate count/select queries.
+- Kept the existing aggregate-only public stats shape and fallback amount bound.
+- Added regression coverage proving two immediate public stats requests share
+  one set of service-role aggregate queries.
+
+## 2026-06-29 - Empty homepage quick reports stay incident-only
+
+- Added a shared quick-report payload helper so the homepage form sends
+  `incidentOnly: true` with the incident-only sentinel when the optional target
+  field is empty.
+- Added a server-side placeholder guard so dash-only legacy targets are treated
+  as situation-only reports and cannot create public entity candidates or daily
+  entity dedupe keys.
+- Added regression coverage for both the UI payload builder and the server path.
+
+## 2026-06-29 - Public entity report counts require moderation
+
+- `submitReportCore` now creates or refreshes entity moderation candidates
+  without incrementing public `entities.report_count`.
+- `moderateReportCore` recalculates `report_count` from confirmed reports when
+  a moderator confirms or rejects a report, so public reputation counts reflect
+  moderated evidence only.
+- Added a Supabase migration to backfill existing `entities.report_count` values
+  from `reports.status='confirmed'`, plus regression coverage for an
+  unmoderated follow-up report on an already confirmed entity.
+
+## 2026-06-29 - Telegram image downloads are rate-limited before file fetch
+
+- Added an early Telegram image-download budget before `getFile` and
+  `downloadFileAsDataUrl`, using the shared privacy-safe rate limiter with a
+  separate `telegram-image:<tg:userId>` key.
+- The final `analyzeImageCore`/`runCheck` limits remain in place as defense in
+  depth, but repeated screenshots are now rejected before Telegram media
+  metadata/download cost is incurred.
+- Added webhook regression coverage that first reproduced an 11th repeated
+  image reaching `getFile`, then passed with only 10 file fetch/download/OCR
+  calls and a friendly rate-limit reply.
+
+## 2026-06-29 - Telegram image safe verdicts require supporting evidence
+
+- Split benign image context from final safe-verdict eligibility. Telegram image
+  checks now use `isEvidenceBackedBenignImageContext` for `safeIfNoReasons`.
+- A model-only benign category such as `delivery_sms`, with no readable text,
+  QR signal or risk hints, now remains `unknown` instead of forcing `safe`.
+- Added unit and webhook regression coverage proving the model-only path no
+  longer reproduces while normal delivery/menu screenshots still stay out of
+  high-risk false positives.
+
+## 2026-06-29 - Web OCR image data URLs are server-validated
+
+- Added a shared image data URL validator for web OCR and image-intelligence
+  core paths. Only `image/png`, `image/jpeg` and `image/webp` base64 data URLs
+  within the screenshot byte limit are accepted.
+- The public `ocrExtract` server function rejects non-image, malformed,
+  non-base64 and oversized payloads before calling `ocrExtractCore`.
+- `ocrExtractCore` and `analyzeImageCore` now re-check the data URL before
+  building AI `image_url` messages, so direct core callers cannot forward
+  invalid media payloads to the AI provider.
+
+## 2026-06-29 - Telegram report drafts stop storing raw identifiers
+
+- Hardened the Telegram `/report` draft path so `telegram_sessions.scenario_data`
+  stores a prepared target `{ type, hash, display, incidentOnly }` instead of
+  raw usernames, phone numbers or URLs.
+- Free-form draft fields that may contain user evidence (`description`,
+  `scamType`, `city`) are redacted before session persistence, including retry
+  drafts after a failed final submit.
+- Added regression coverage for raw handle/email/link/code leakage in report
+  drafts, prepared Telegram target submission, and webhook callback retry
+  fixtures.
+
+## 2026-06-29 - Telegram session state is chat-scoped
+
+- Hardened `telegram_sessions.scenario_data` with a `chatScope` boundary so
+  `/report`, `/check`, `/call`, panic and follow-up context created in one
+  Telegram chat cannot be reused by the same user from another private/group
+  chat.
+- The router now resets active or contextual legacy session rows when they lack
+  a matching chat scope, then handles the current update as fresh input.
+- Added router, webhook and full Telegram regression coverage for scoped
+  scenarios, unscoped legacy resets and normal same-chat continuation.
+
+## 2026-06-29 - Admin allowlist gated on email confirmation
+
+- Added a Supabase migration so `admin_allowlist` no longer grants `admin` on
+  signup before `auth.users.email_confirmed_at` is set.
+- Added a confirmation update trigger that promotes allowlisted users only
+  after Supabase marks the mailbox verified, plus cleanup for previously
+  auto-granted unverified allowlisted admin rows.
+- Added focused migration regression coverage and updated deployment/database
+  docs with the email-confirmation requirement.
+
 ## 2026-06-22 - Telegram Native Passport Coach shipped
 
 - Username passports now teach users how to read Telegram's native profile card:

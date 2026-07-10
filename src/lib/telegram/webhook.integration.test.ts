@@ -58,6 +58,7 @@ const h = vi.hoisted(() => ({
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
   ocrText: null as string | null,
   imageEvidence: null as unknown,
+  voiceTranscript: "caller asks for SMS code",
 
   // Stub data URL returned by the (mocked) downloader — contains a sentinel we
   // assert NEVER lands in any persisted payload.
@@ -154,16 +155,37 @@ vi.mock("@/lib/risk/check-core", async (importActual) => {
         summary: null,
       };
     }),
+    transcribeVoiceCore: vi.fn(async () => ({ text: h.voiceTranscript })),
   };
 });
 
 // ── Report pipeline: never reached on the check/image path; stub to keep the
 //    handler aggregator's import graph hermetic (no real createServerFn run). ──
-vi.mock("@/lib/report.functions", () => ({
-  submitReport: vi.fn(async () => ({ ok: true })),
-  submitReportCore: vi.fn(async () => ({ ok: true })),
-  reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
-}));
+vi.mock("@/lib/report.functions", () => {
+  const target = (value: string, incidentOnly = false) => ({
+    type: incidentOnly
+      ? "text"
+      : value.startsWith("@") || value.includes("t.me")
+        ? "telegram"
+        : value.startsWith("http")
+          ? "url"
+          : value.replace(/\D/g, "").length >= 7
+            ? "phone"
+            : "text",
+    hash: `hash:${value.length}`,
+    display: incidentOnly ? "__ishonch_guard_incident_only__" : "[redacted]",
+    incidentOnly,
+  });
+
+  return {
+    submitReport: vi.fn(async () => ({ ok: true })),
+    prepareReportIdentifier: (value: string) => Promise.resolve(target(value)),
+    prepareIncidentOnlyReportTarget: (description: string) =>
+      Promise.resolve(target(description, true)),
+    submitPreparedReportCore: vi.fn(async () => ({ ok: true })),
+    reportRateLimitKeyForTelegram: (userId: number) => `report:tg:${userId}`,
+  };
+});
 
 // Import AFTER the mocks are registered. The handler aggregator installs the
 // REAL handlers into the REAL router via its module-load side effect, and
@@ -286,6 +308,32 @@ function videoUpdate(opts: {
   };
 }
 
+/** A voice message update. */
+function voiceUpdate(opts: {
+  userId: number;
+  chatId: number;
+  fileId?: string;
+  fileUniqueId?: string;
+  duration?: number;
+  fileSize?: number;
+}): unknown {
+  return {
+    update_id: nextSyntheticUpdateId(),
+    message: {
+      message_id: 1,
+      from: { id: opts.userId, language_code: "ru" },
+      chat: { id: opts.chatId },
+      voice: {
+        file_id: opts.fileId ?? "voice_1",
+        file_unique_id: opts.fileUniqueId ?? `voice_unique_${opts.userId}`,
+        file_size: opts.fileSize ?? 1024,
+        duration: opts.duration ?? 8,
+        mime_type: "audio/ogg",
+      },
+    },
+  };
+}
+
 /** A callback query update from an inline keyboard button. */
 function callbackUpdate(opts: {
   userId: number;
@@ -319,7 +367,8 @@ function expectHighRiskResultWithGuardian(chatId: number) {
   expect(result.chatId).toBe(chatId);
   expect(guardian.chatId).toBe(chatId);
   expect(result.text).toContain(RISK_EMOJI.high_risk);
-  expect(guardian.text).toContain("после высокого риска");
+  expect(guardian.text).toContain("Я рядом");
+  expect(guardian.text).toContain("один безопасный шаг");
   expect(callbackData(guardian.keyboard)).toContain("guardian:next");
   expect(callbackData(guardian.keyboard)).toContain("guardian:done");
   return result;
@@ -369,6 +418,7 @@ beforeEach(() => {
   h.sendNeverResolves = false;
   h.ocrText = null;
   h.imageEvidence = null;
+  h.voiceTranscript = "caller asks for SMS code";
   h.entityRow = null;
   h.sessionRow = null;
 
@@ -572,12 +622,14 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       expect.arrayContaining([
         CB.liveCall,
         CB.checkAnother,
+        CB.conversationStart,
         CB.report,
         CB.emergency,
         CB.safety,
         CB.showLang,
         CB.howItWorks,
         CB.digest,
+        CB.trainer,
         CB.familyMenu,
       ]),
     );
@@ -593,14 +645,163 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
       CB.liveCall,
       CB.checkAnother,
+      CB.conversationStart,
       CB.emergency,
-      CB.familyMenu,
       CB.report,
+      CB.familyMenu,
+      CB.trainer,
       CB.digest,
       CB.safety,
       CB.howItWorks,
       CB.showLang,
     ]);
+  });
+
+  it("opens the scam-call trainer from /trainer without persisting a check", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1116, chatId: 5116, text: "/trainer" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Тренажёр звонков");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("trainer:q:1:0");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("answers trainer callbacks with feedback and no check insert", async () => {
+    const question = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1117,
+          chatId: 5117,
+          data: CB.trainer,
+          id: "cb-trainer-start",
+        }),
+      ),
+    );
+    expect(question.status).toBe(200);
+    expect(h.sendCalls[0].text).toContain("Тренажёр звонков");
+
+    h.sendCalls.length = 0;
+    h.answerCalls.length = 0;
+    const answer = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1117,
+          chatId: 5117,
+          data: "trainer:a:1:0:0",
+          id: "cb-trainer-answer",
+        }),
+      ),
+    );
+
+    expect(answer.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-trainer-answer"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Верно");
+    expect(h.sendCalls[0].text).toContain("Счёт");
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual(["trainer:q:2:1"]);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("collects and analyzes a short conversation without persisting raw chat text", async () => {
+    const userId = 1115;
+    const chatId = 5115;
+
+    const start = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId, chatId, text: "/conversation" })),
+    );
+    expect(start.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Проверка переписки");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.conversationAnalyze);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.conversationCancel);
+
+    loadLatestSessionUpsert(userId);
+    expect(h.sessionRow).toMatchObject({
+      scenario: "conversation_check",
+      scenario_data: {
+        conversation: {
+          messageCount: 0,
+          strongestLevel: "unknown",
+        },
+      },
+    });
+
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+    h.upserts.length = 0;
+
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId,
+          text: "Это служба безопасности банка, срочно проверяем карту",
+        }),
+      ),
+    );
+    loadLatestSessionUpsert(userId);
+
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId,
+          text: "Назовите шесть цифр из SMS 123456 и не кладите трубку: https://evil.example",
+        }),
+      ),
+    );
+    loadLatestSessionUpsert(userId);
+
+    const draftJson = JSON.stringify((h.sessionRow as { scenario_data?: unknown }).scenario_data);
+    expect(draftJson).toContain("asks_for_sms_code");
+    expect(draftJson).toContain("keeps_user_on_call");
+    expect(draftJson).not.toContain("123456");
+    expect(draftJson).not.toContain("evil.example");
+    expect(draftJson).not.toContain("служба безопасности");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+    h.upserts.length = 0;
+
+    const analyze = await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId, data: CB.conversationAnalyze })),
+    );
+    expect(analyze.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Разговор");
+    expect(h.sendCalls[0].text).toContain("высокий риск");
+    expect(h.sendCalls[0].text).toContain("назвать код");
+    expect(h.sendCalls[0].text).toContain("Не называйте код");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.report);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(CB.checkAnother);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+
+    const finalSession = h.upserts.find((entry) => entry.table === "telegram_sessions")?.payload;
+    const finalJson = JSON.stringify(finalSession);
+    expect(finalJson).toContain("lastCheck");
+    expect(finalJson).not.toContain("conversation");
+    expect(finalJson).not.toContain("123456");
+    expect(finalJson).not.toContain("evil.example");
+  });
+
+  it("does not capture ordinary URLs outside explicit conversation mode", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId: 1116,
+          chatId: 5116,
+          text: "Проверьте https://kapitalbank.uz.evil.example/login",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(true);
+    expect(JSON.stringify(h.upserts)).not.toContain("conversation_check");
   });
 
   it("answers hidden /chatid command in a group without exposing secrets", async () => {
@@ -654,6 +855,28 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].chatId).toBe(-5108);
     expect(h.sendCalls[0].text).toContain("личном чате");
     expect(JSON.stringify(h.sendCalls[0])).not.toContain("https://t.me/");
+  });
+
+  it("shows the Family Shield codeword guide without storing a family secret", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1111,
+          chatId: 5111,
+          data: "family:codeword",
+          id: "cb-family-codeword",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-family-codeword"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Семейное кодовое слово");
+    expect(h.sendCalls[0].text).toContain("Не пишите кодовое слово в бот");
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("family:codeword");
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(JSON.stringify(h.inserts)).not.toMatch(/кодовое слово|code word|Maxfiy/i);
   });
 
   it("sends /panic with paginated scenario buttons (page 1)", async () => {
@@ -766,6 +989,53 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).not.toContain(imageTriageCallback("casino"));
   });
 
+  it("answers Telegram profile image triage without accusing and stores profile follow-up context", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1109,
+      lang: "en",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {
+        lastCheck: {
+          level: "unknown",
+          type: "unknown",
+          context: "image_unreadable",
+          at: new Date().toISOString(),
+        },
+      },
+      updated_at: new Date().toISOString(),
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1109,
+          chatId: 5109,
+          data: imageTriageCallback("telegram_profile"),
+          id: "cb-img-profile",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-img-profile"]);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Telegram profile or chat");
+    expect(h.sendCalls[0].text).toContain("clues, not proof of fraud");
+    expect(h.sendCalls[0].text).toContain("What matters is the request");
+    expect(h.sendCalls[0].text).not.toMatch(/definitely a scammer|created recently|has reports/i);
+    expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
+      CB.checkAnother,
+      CB.mediaTips,
+      CB.emergency,
+    ]);
+
+    const persisted = JSON.stringify(h.upserts);
+    expect(persisted).toContain('"context":"telegram_profile"');
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("SCREENSHOT_BYTES");
+  });
+
   it("answers orphan follow-up wording with guidance instead of insufficient-data risk card", async () => {
     const update = textUpdate({ userId: 1107, chatId: 5107, text: "Точно?" });
 
@@ -788,6 +1058,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     ["safety", CB.safety],
     ["how it works", CB.howItWorks],
     ["family menu", CB.familyMenu],
+    ["family codeword", "family:codeword"],
+    ["family trusted ack", "family:trusted_ack"],
+    ["trainer", CB.trainer],
     ["media tips", CB.mediaTips],
     ["image triage", imageTriageCallback("gift")],
     ["language switch", CB.lang("uz")],
@@ -827,7 +1100,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
             telegram_user_id: 1102,
             scenario: "report_value",
             scenario_step: 0,
-            scenario_data: {},
+            scenario_data: {
+              chatScope: { chatId: 5102, chatType: "private" },
+            },
           }),
         }),
       ]),
@@ -842,7 +1117,11 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       lang: "ru",
       scenario: "report_scamType",
       scenario_step: 2,
-      scenario_data: { value: "@bad", description: "long enough" },
+      scenario_data: {
+        target: { type: "telegram", hash: "hash:4", display: "[redacted]", incidentOnly: false },
+        description: "long enough",
+        chatScope: { chatId: 5103, chatType: "private" },
+      },
       updated_at: new Date(0).toISOString(),
     };
     const update = callbackUpdate({
@@ -877,7 +1156,9 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       lang: "ru",
       scenario: "report_value",
       scenario_step: 0,
-      scenario_data: {},
+      scenario_data: {
+        chatScope: { chatId: 5105, chatType: "private" },
+      },
       updated_at: new Date(0).toISOString(),
     };
     const update = callbackUpdate({
@@ -899,7 +1180,10 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
             telegram_user_id: 1105,
             scenario: "report_desc",
             scenario_step: 1,
-            scenario_data: { noValue: true },
+            scenario_data: {
+              noValue: true,
+              chatScope: { chatId: 5105, chatType: "private" },
+            },
           }),
         }),
       ]),
@@ -914,7 +1198,8 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       scenario: "report_amount",
       scenario_step: 4,
       scenario_data: {
-        value: "+998900000000",
+        target: { type: "phone", hash: "hash:13", display: "[redacted]", incidentOnly: false },
+        chatScope: { chatId: 5106, chatType: "private" },
         description: "Достаточно длинное описание",
       },
       updated_at: new Date(0).toISOString(),
@@ -1000,6 +1285,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 
   it.each([
     ["why", CB.why],
+    ["simple explain", CB.explainSimple],
     ["share advice", "share_advice"],
     ["live call hangup", "livecall:hangup"],
     ["live call words", "livecall:what_to_say"],
@@ -1042,6 +1328,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
       expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts", "family:notify"]),
     );
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain("voiceout:panic:2:more");
   });
 
   it("answers stale panic follow-up buttons using the callback scenario id instead of the latest session context", async () => {
@@ -1069,6 +1356,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual(
       expect.arrayContaining(["panicctx:2:more", "panicctx:2:contacts"]),
     );
+    expect(callbackData(h.sendCalls[0].keyboard)).not.toContain("voiceout:panic:2:more");
   });
 
   it("answers a card-data panic follow-up with verified bank contact guidance", async () => {
@@ -1206,6 +1494,22 @@ describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", 
 //    the image itself is NEVER persisted (R5.3, R12.2/R12.4).
 // ---------------------------------------------------------------------------
 describe("webhook end-to-end — screenshot OCR flow without saving the image (R5.3)", () => {
+  it("rate-limits repeated image checks before fetching Telegram file bytes", async () => {
+    h.ocrText = "ordinary screenshot text";
+
+    for (let i = 0; i < 11; i += 1) {
+      const response = await handleTelegramWebhook(
+        webhookRequest(photoUpdate({ userId: 9403, chatId: 5403, messageId: i + 1 })),
+      );
+      expect(response.status).toBe(200);
+    }
+
+    expect(h.getFileCalls).toHaveLength(10);
+    expect(h.downloadCalls).toHaveLength(10);
+    expect(h.ocrCalls).toHaveLength(10);
+    expect(h.sendCalls[h.sendCalls.length - 1].text).toContain("Слишком много запросов");
+  });
+
   it("downloads in memory, OCRs, checks, and never persists the raw image", async () => {
     h.ocrText = HIGH_RISK_TEXT; // OCR yields a deterministic high_risk text
     const update = photoUpdate({ userId: 1003, chatId: 5003 });
@@ -1267,7 +1571,10 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       lang: "ru",
       key: "tg:1009",
     });
-    expectHighRiskResultWithGuardian(5009);
+    const result = expectHighRiskResultWithGuardian(5009);
+    expect(result.text).toContain("кадр");
+    expect(result.text).toContain("превью видео");
+    expect(result.text).toContain("не весь ролик");
 
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).not.toContain("data:image");
@@ -1465,6 +1772,139 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
   });
 
+  it("keeps a model-only benign image category unknown instead of safe", async () => {
+    h.imageEvidence = {
+      text: null,
+      visualCategory: "delivery_sms",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Looks like a delivery SMS.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1021, chatId: 5021 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain(RISK_EMOJI.unknown);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.safe);
+
+    const checkInsert = h.inserts.find((i) => i.table === "checks");
+    expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
+  });
+
+  it("keeps Telegram profile screenshots unknown instead of marking them safe", async () => {
+    h.imageEvidence = {
+      text: "Lina\nНе в контактах\nСтрана телефона Uzbekistan\nРегистрация Июнь 2026 г.\nНе официальный аккаунт",
+      visualCategory: "telegram_profile_card",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: [],
+      summary: "Скрин профиля Telegram.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1022, chatId: 5022 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).not.toContain(RISK_EMOJI.safe);
+    expect(h.sendCalls[0].text).toContain("Telegram\\-паспорт");
+    expect(h.sendCalls[0].text).toContain("По скриншоту профиля видно");
+    expect(h.sendCalls[0].text).toContain("не официальный аккаунт");
+    expect(h.sendCalls[0].text).toContain("не доказательство скама");
+
+    const checkInsert = h.inserts.find((i) => i.table === "checks");
+    expect(JSON.stringify(checkInsert)).toContain('"risk_level":"unknown"');
+  });
+
+  it("flags fake Apple security popup screenshots with install guidance", async () => {
+    h.imageEvidence = {
+      text: "Оповещение безопасности Apple. На вашем iPhone обнаружено 8 вирусов. iOS повреждена на 72%. Нажмите кнопку ниже, чтобы получить инструкции по удалению всех вирусов. Установить",
+      visualCategory: "apk_prompt",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["fake_device_security_popup", "apk_install", "urgent_pressure"],
+      summary: "Ложное предупреждение безопасности телефона.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1023, chatId: 5023 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5023 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("не устанавливайте APK");
+    expect(result!.text).toContain("Просят установить APK");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("asks_to_install_apk");
+    expect(persisted).not.toContain("data:image");
+  });
+
+  it("flags APK court-summons screenshots with malicious-file guidance", async () => {
+    h.imageEvidence = {
+      text: "https://chaqiruvsud.click IIBB CHAQIRUVI_669.pdf.apk Hurmatli Djo! SUDga chaqirilgansiz! Biriktirilgan hujjat bilan tanishib chiqing!",
+      visualCategory: "apk_prompt",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["apk_install", "brand_impersonation"],
+      summary: "Файл .pdf.apk под видом судебной повестки.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1024, chatId: 5024 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5024 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("не устанавливайте APK");
+    expect(result!.text).toContain("Угрожают полицией / судом");
+    expect(result!.text).toContain("Подозрительный домен");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("asks_to_install_apk");
+    expect(persisted).toContain("threatens_legal_action");
+    expect(persisted).not.toContain("data:image");
+  });
+
+  it("flags fake Telegram deletion screenshots with account-takeover guidance", async () => {
+    h.imageEvidence = {
+      text: "Запрос на удаление учётной записи. Мы получили запрос на удаление учётной записи Telegram. Если это были не вы, отмените действие в приложении, нажав кнопку ниже. t.me/verification_login_service_bot?startapp=abc",
+      visualCategory: "chat_screenshot",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["telegram_account_takeover"],
+      summary: "Похоже на фишинг Telegram.",
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 1025, chatId: 5025 })),
+    );
+
+    expect(response.status).toBe(200);
+    const result = h.sendCalls.find(
+      (call) => call.chatId === 5025 && call.text.includes(RISK_EMOJI.high_risk),
+    );
+    expect(result).toBeDefined();
+    expect(result!.text).toContain("Не нажимайте «Отмена»");
+    expect(result!.text).toContain("попытку угнать Telegram\\-аккаунт");
+    expect(result!.text).not.toContain("NFT/Stars");
+
+    const persisted = JSON.stringify(h.inserts);
+    expect(persisted).toContain("telegram_account_takeover_phishing");
+    expect(persisted).not.toContain("data:image");
+  });
+
   it("does not flag a restaurant QR menu as high risk without dangerous requests", async () => {
     h.imageEvidence = {
       text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
@@ -1646,6 +2086,28 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
   });
 
+  it("explains the previous result in simple words without starting a new check", async () => {
+    const first = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: HIGH_RISK_TEXT })),
+    );
+    expect(first.status).toBe(200);
+
+    loadLatestSessionUpsert(1027);
+    h.sendCalls.length = 0;
+    h.inserts.length = 0;
+
+    const followUp = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: "Объясни простыми словами" })),
+    );
+
+    expect(followUp.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Объясню совсем просто");
+    expect(h.sendCalls[0].text).toContain("Безопасный шаг сейчас");
+    expect(h.sendCalls[0].text).not.toMatch(/score|threshold|вес/i);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
   it("still sends a suspicious payload after a last check into the risk pipeline", async () => {
     const first = await handleTelegramWebhook(
       webhookRequest(textUpdate({ userId: 1018, chatId: 5018, text: HIGH_RISK_TEXT })),
@@ -1749,5 +2211,38 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).toContain("asks_to_scan_qr");
     expect(persisted).toContain("guardian");
+  });
+});
+
+describe("webhook end-to-end - voice STT flow", () => {
+  it("routes an already-transferred voice emergency without a generic handler error", async () => {
+    h.dataUrl = "data:audio/ogg;base64,AAAA";
+    h.voiceTranscript =
+      "\u044f \u0443\u0436\u0435 \u043f\u0435\u0440\u0435\u0432\u0451\u043b \u0434\u0435\u043d\u044c\u0433\u0438 \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u043a\u0430\u043c, \u043f\u043e\u043c\u043e\u0433\u0438\u0442\u0435";
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(voiceUpdate({ userId: 1130, chatId: 5130 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toEqual(["voice_1"]);
+    expect(h.downloadCalls).toEqual(["photos/file_42.jpg"]);
+    expect(JSON.stringify(h.upserts)).toContain('"lastPanicId":3');
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(JSON.stringify(h.sendCalls)).not.toContain("Что-то пошло не так");
+  });
+
+  it("asks for corrected text when a voice transcript is too low-signal", async () => {
+    h.dataUrl = "data:audio/ogg;base64,AAAA";
+    h.voiceTranscript = "ha yoq";
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(voiceUpdate({ userId: 1131, chatId: 5131 })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+    expect(callbackData(h.sendCalls[h.sendCalls.length - 1].keyboard)).toContain("voice_correct");
+    expect(JSON.stringify(h.upserts)).not.toContain('"lastPanicId"');
   });
 });

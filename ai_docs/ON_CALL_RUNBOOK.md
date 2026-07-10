@@ -38,6 +38,11 @@ appeals can send a redacted summary plus an `/admin` link to the operator chat.
 These alerts must stay opt-in and must not include raw report text, screenshots,
 OCR, codes, card data, full phone numbers or full URLs.
 
+Production Telegram user-flow smoke tests are also separate from moderation
+alerts. They require `TELEGRAM_QA_CHAT_ID` and refuse to use
+`TELEGRAM_MODERATION_CHAT_ID`, because those checks generate ordinary bot
+replies such as risk cards, language help and Voice-out audio.
+
 To get the chat id safely, create a private Telegram group, add
 `@scamguard_bot`, send `/chatid` in that group and copy the returned `Chat ID`
 into Railway as `TELEGRAM_MODERATION_CHAT_ID`.
@@ -49,8 +54,16 @@ cd C:\Scam-guard\repo
 railway run npm run moderation:smoke
 ```
 
-The smoke alert is a non-user test message. If it fails, confirm the bot was
-added to the private chat and that Railway has `TELEGRAM_MODERATION_CHAT_ID`.
+The smoke alert is a non-user test message. To also verify the high-signal
+research review wording, run:
+
+```powershell
+railway run npm run moderation:smoke -- --research
+```
+
+That alert uses only public scheme metadata and reason-code ids. If either
+fails, confirm the bot was added to the private chat and that Railway has
+`TELEGRAM_MODERATION_CHAT_ID`.
 
 ## First Five Minutes
 

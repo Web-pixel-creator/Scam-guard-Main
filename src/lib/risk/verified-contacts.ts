@@ -698,9 +698,14 @@ export function findVerifiedContact(input: string): VerifiedContact | null {
     // Exact match (covers short codes and full numbers)
     if (digits === contactDigits) return contact;
 
-    // Input has country code, contact doesn't (or vice versa)
-    if (digits.startsWith("998") && digits.slice(3) === contactDigits) return contact;
-    if (contactDigits.startsWith("998") && contactDigits.slice(3) === digits) return contact;
+    // Country-code equivalence is valid only for full Uzbekistan numbers:
+    // +998XXXXXXXXX <-> XXXXXXXXX. Short official codes must match exactly.
+    if (digits.length === 12 && contactDigits.length === 9 && digits.startsWith("998")) {
+      if (digits.slice(3) === contactDigits) return contact;
+    }
+    if (contactDigits.length === 12 && digits.length === 9 && contactDigits.startsWith("998")) {
+      if (contactDigits.slice(3) === digits) return contact;
+    }
 
     // Input with leading 8 for local long-distance (old UZ format)
     if (digits.startsWith("8") && digits.length > 5 && digits.slice(1) === contactDigits)

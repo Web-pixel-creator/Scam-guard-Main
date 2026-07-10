@@ -83,12 +83,26 @@ describe("webhook Postgres dedup", () => {
     expect(h.dispatchCalls).toBe(0);
   });
 
-  it("fails open when shared dedup is unavailable", async () => {
+  it("fails closed with a retry response when shared dedup is unavailable", async () => {
     h.claimResult = "unavailable";
 
     const response = await handleTelegramWebhook(request(103));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
+    expect(h.dispatchCalls).toBe(0);
+  });
+
+  it("does not poison local dedup when a shared dedup outage is retried successfully", async () => {
+    h.claimResult = "unavailable";
+
+    const failed = await handleTelegramWebhook(request(104));
+    expect(failed.status).toBe(503);
+    expect(h.dispatchCalls).toBe(0);
+
+    h.claimResult = "claimed";
+    const retried = await handleTelegramWebhook(request(104));
+
+    expect(retried.status).toBe(200);
     expect(h.dispatchCalls).toBe(1);
   });
 });

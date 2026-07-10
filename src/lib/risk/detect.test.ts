@@ -152,6 +152,20 @@ describe("redactText — context-aware card detection", () => {
     expect(result).toContain("••••");
   });
 
+  it("redacts email, URL and Telegram identifiers in narrative text", () => {
+    const text =
+      "Contact victim@example.com, @FakeSupportBot or t.me/+SecretInvite and open https://evil.example/reset?token=secret.";
+    const result = redactText(text);
+
+    expect(result).not.toContain("victim@example.com");
+    expect(result).not.toContain("@FakeSupportBot");
+    expect(result).not.toContain("t.me/+SecretInvite");
+    expect(result).not.toContain("https://evil.example/reset?token=secret");
+    expect(result).toContain("v*****@example.com");
+    expect(result).toContain("[telegram]");
+    expect(result).toContain("[link]");
+  });
+
   it("beverage ad with EAN barcode does NOT trigger card redaction", () => {
     const text = "Акция! Купи Coca-Cola 1.5л. Штрих-код: 5449000000996. Скидка 20%!";
     const result = redactText(text);

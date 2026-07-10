@@ -17,16 +17,18 @@ describe("/start main menu inline buttons", () => {
     const { keyboard } = formatWelcome(lang);
 
     expect(keyboard).toBeDefined();
-    expect(keyboard).toHaveLength(5);
-    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2]);
+    expect(keyboard).toHaveLength(6);
+    expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 2]);
 
     const callbackDataValues = keyboard.flat().map((btn) => btn.callback_data);
     expect(callbackDataValues).toEqual([
       CB.liveCall,
       CB.checkAnother,
+      CB.conversationStart,
       CB.emergency,
-      CB.familyMenu,
       CB.report,
+      CB.familyMenu,
+      CB.trainer,
       CB.digest,
       CB.safety,
       CB.howItWorks,
@@ -63,7 +65,7 @@ describe("/start main menu inline buttons", () => {
     // regardless of which language the session is in.
     for (const lang of LANGS) {
       const { keyboard } = formatWelcome(lang);
-      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2]);
+      expect(keyboard.map((row) => row.length)).toEqual([1, 2, 2, 2, 2, 2]);
     }
   });
 });

@@ -35,7 +35,6 @@
 // import into the client bundle.
 import {
   sendMessage,
-  editMessageText,
   answerCallbackQuery,
   escapeMarkdownV2,
   type InlineKeyboard,
@@ -57,11 +56,18 @@ import {
   buildLiveCallPhraseKeyboard,
   parsePanicContextCallbackData,
   parseLiveCallCallback,
+  asLiveCallContext,
   withPanicContextData,
   type EmergencyFollowUpAction,
+  type LiveCallContext,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
-import { setLanguage, saveSession } from "@/lib/telegram/session.server";
+import {
+  setLanguage,
+  saveSession,
+  withSessionChatScope,
+  type LastCheckSnapshot,
+} from "@/lib/telegram/session.server";
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
@@ -71,12 +77,19 @@ import {
   buildImageTriageKeyboard,
   buildImageTriageText,
   parseImageTriageCallback,
+  type ImageTriageKind,
 } from "@/lib/telegram/image-fallback";
 import {
   buildAskedContextFollowUpKeyboard,
   buildAskedContextText,
   parseAskedContextCallback,
 } from "@/lib/telegram/check-context-buttons";
+import {
+  handleConversationAnalyze,
+  handleConversationCancel,
+  startConversationCheck,
+} from "@/lib/telegram/handlers/conversation";
+import { buildTrainerCallbackResponse } from "@/lib/telegram/scam-trainer";
 import {
   buildLastCheckFollowUpText,
   classifyLastCheckFollowUp,
@@ -97,6 +110,7 @@ import {
 } from "@/lib/telegram/voice-out.server";
 import {
   buildFamilyAlreadyLinkedKeyboard,
+  buildFamilyCodewordGuideText,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
   createFamilyInvite,
@@ -141,11 +155,40 @@ export function buildUnsupportedMediaKeyboard(lang: Lang): InlineKeyboard {
   ];
 }
 
+function imageTriageSnapshot(kind: ImageTriageKind): LastCheckSnapshot | null {
+  if (kind !== "telegram_profile") return null;
+  return {
+    level: "unknown",
+    type: "unknown",
+    context: "telegram_profile",
+    at: new Date().toISOString(),
+  };
+}
+
+function liveCallContextForPanic(
+  ctx: HandlerCtx,
+  panicId: PanicScenarioId,
+): LiveCallContext | null {
+  return panicId === 6 ? asLiveCallContext(ctx.session.scenarioData.lastLiveCallContext) : null;
+}
+
+function emergencyFollowUpOptions(ctx: HandlerCtx, panicId: PanicScenarioId) {
+  const liveCallContext = liveCallContextForPanic(ctx, panicId);
+  return liveCallContext === null ? {} : { liveCallContext };
+}
+
 async function rememberPanicContext(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+  const liveCallContext = liveCallContextForPanic(ctx, panicId);
+  const preservedContext =
+    liveCallContext === null ? undefined : { lastLiveCallContext: liveCallContext };
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(undefined, panicId),
+    scenarioData: withSessionChatScope(
+      withPanicContextData(preservedContext, panicId),
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 }
 
@@ -157,9 +200,11 @@ async function sendEmergencyFollowUp(
   const lang = ctx.session.lang;
   await sendMessage({
     chatId: ctx.chatId,
-    text: escapeMarkdownV2(buildEmergencyFollowUpText(action, panicId, lang)),
+    text: escapeMarkdownV2(
+      buildEmergencyFollowUpText(action, panicId, lang, emergencyFollowUpOptions(ctx, panicId)),
+    ),
     keyboard: buildEmergencyFollowUpKeyboard(lang, panicId, {
-      includeVoice: true,
+      includeVoice: false,
       voiceAction: action,
     }),
   });
@@ -260,6 +305,15 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
     return true;
   }
 
+  if (action === FAMILY_CB.codewordGuide) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildFamilyCodewordGuideText(lang)),
+      keyboard: buildFamilySetupKeyboard(lang),
+    });
+    return true;
+  }
+
   if (action === FAMILY_CB.revoke) {
     const revoked = await revokeFamilyShield(ctx.userId);
     if (revoked.ok) {
@@ -281,6 +335,11 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
     } else {
       await sendI18n(ctx.chatId, "family_storage_error", lang);
     }
+    return true;
+  }
+
+  if (action === FAMILY_CB.trustedAck) {
+    await sendI18n(ctx.chatId, "family_trusted_ack_ok", lang);
     return true;
   }
 
@@ -354,7 +413,12 @@ export async function handleCallback(
     }
     const text =
       panicId && voiceOutPanic?.action
-        ? buildEmergencyFollowUpText(voiceOutPanic.action, panicId, lang)
+        ? buildEmergencyFollowUpText(
+            voiceOutPanic.action,
+            panicId,
+            lang,
+            emergencyFollowUpOptions(ctx, panicId),
+          )
         : panicId
           ? buildPanicVoiceOutText(panicId, lang)
           : null;
@@ -367,6 +431,8 @@ export async function handleCallback(
         ? buildEmergencyFollowUpKeyboard(lang, panicId, { includeVoice: false })
         : undefined,
       callbackQueryId,
+      prerecorded:
+        panicId && voiceOutPanic?.action == null ? { kind: "panic", panicId } : undefined,
     });
     return;
   }
@@ -409,7 +475,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "report_value",
       scenarioStep: 0,
-      scenarioData: {},
+      scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
     });
     await sendMessage({
       chatId: ctx.chatId,
@@ -424,9 +490,24 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "await_check",
       scenarioStep: 0,
-      scenarioData: ctx.session.scenarioData,
+      scenarioData: withSessionChatScope(ctx.session.scenarioData, ctx.chatId, ctx.chatType),
     });
     await sendI18n(ctx.chatId, "check_prompt", lang);
+    return;
+  }
+
+  if (data === CB.conversationStart) {
+    await startConversationCheck(ctx);
+    return;
+  }
+
+  if (data === CB.conversationAnalyze) {
+    await handleConversationAnalyze(ctx);
+    return;
+  }
+
+  if (data === CB.conversationCancel) {
+    await handleConversationCancel(ctx);
     return;
   }
 
@@ -434,7 +515,7 @@ export async function handleCallback(
     await saveSession(ctx.userId, {
       scenario: "await_check",
       scenarioStep: 0,
-      scenarioData: ctx.session.scenarioData,
+      scenarioData: withSessionChatScope(ctx.session.scenarioData, ctx.chatId, ctx.chatType),
     });
     await sendI18n(ctx.chatId, "voice_correction_prompt", lang);
     return;
@@ -471,6 +552,16 @@ export async function handleCallback(
     return;
   }
 
+  const trainer = buildTrainerCallbackResponse(data, lang);
+  if (trainer !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(trainer.text),
+      keyboard: trainer.keyboard,
+    });
+    return;
+  }
+
   // Media fallback helper: show what evidence to extract from a video/audio message.
   if (data === CB.mediaTips) {
     await sendI18n(ctx.chatId, "media_capture_help", lang, buildUnsupportedMediaKeyboard(lang));
@@ -479,6 +570,22 @@ export async function handleCallback(
 
   const imageTriageKind = parseImageTriageCallback(data);
   if (imageTriageKind !== null) {
+    const snapshot = imageTriageSnapshot(imageTriageKind);
+    if (snapshot) {
+      const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+      await saveSession(ctx.userId, {
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: withSessionChatScope(
+          {
+            ...previousScenarioData,
+            lastCheck: snapshot,
+          },
+          ctx.chatId,
+          ctx.chatType,
+        ),
+      });
+    }
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
@@ -519,6 +626,19 @@ export async function handleCallback(
     return;
   }
 
+  if (data === CB.explainSimple) {
+    const snapshot = ctx.session.scenarioData.lastCheck;
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        snapshot
+          ? buildLastCheckFollowUpText("simple_explain", snapshot, lang)
+          : bt("why_explanation", lang),
+      ),
+    });
+    return;
+  }
+
   // 4b) «Я уже отправил код/деньги» (Emergency) — show the panic menu with scenario selection.
   // Previously sent the full emergency text but it exceeds Telegram's 4096 char limit.
   // Now opens the paginated panic menu (same as /panic command).
@@ -530,83 +650,33 @@ export async function handleCallback(
   }
 
   // 5) Panic menu pagination — "panic:more" / "panic:back".
+  // Send a fresh card instead of editing an old one: in live Telegram chats users
+  // often tap an older SOS menu, and editing it looks like the bot stayed silent.
   if (data === "panic:more") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage2(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:more2") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage3(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:back") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage1(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 
   if (data === "panic:back2") {
     const pageText = escapeMarkdownV2(buildPanicMenuText(lang));
     const keyboard = buildPanicKeyboardPage2(lang);
-    if (ctx.messageId) {
-      const editResult = await editMessageText({
-        chatId: ctx.chatId,
-        messageId: ctx.messageId,
-        text: pageText,
-        keyboard,
-      });
-      if (!editResult.ok) {
-        // Graceful degradation: send as new message if edit fails.
-        await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-      }
-    } else {
-      await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
-    }
+    await sendMessage({ chatId: ctx.chatId, text: pageText, keyboard });
     return;
   }
 

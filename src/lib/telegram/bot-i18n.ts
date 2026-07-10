@@ -40,9 +40,9 @@ export const bot_dict: BotDict = {
 
   // What the user can send (shown after language choice) (R1.3) ──────────────
   input_instruction: {
-    ru: "Что можно прислать на проверку:\n• номер телефона;\n• Telegram-username или ссылку;\n• ссылку на сайт или на APK-файл;\n• текст подозрительного сообщения;\n• скриншот переписки;\n• карточку контакта;\n• описание ситуации словами.\n\nПросто отправьте это сообщением — я отвечу оценкой риска. Команды: /help.",
-    uz: "Tekshirish uchun nima yuborish mumkin:\n• telefon raqami;\n• Telegram-username yoki havola;\n• sayt yoki APK-fayl havolasi;\n• shubhali xabar matni;\n• yozishma skrinshoti;\n• kontakt kartasi;\n• vaziyatni o‘z so‘zlaringiz bilan tavsiflash.\n\nShunchaki xabar qilib yuboring — men xavf bahosini qaytaraman. Buyruqlar: /help.",
-    en: "What you can send for a check:\n• a phone number;\n• a Telegram username or link;\n• a website or APK file link;\n• the text of a suspicious message;\n• a screenshot of a chat;\n• a contact card;\n• a description of the situation in your own words.\n\nJust send it as a message — I’ll reply with a risk assessment. Commands: /help.",
+    ru: "Что можно прислать на проверку:\n• номер телефона;\n• Telegram-username или ссылку;\n• ссылку на сайт или на APK-файл;\n• текст подозрительного сообщения;\n• скриншот переписки;\n• карточку контакта;\n• описание ситуации словами.\n\nДля нескольких сообщений переписки используйте /conversation.\n\nПросто отправьте это сообщением — я отвечу оценкой риска. Команды: /help.",
+    uz: "Tekshirish uchun nima yuborish mumkin:\n• telefon raqami;\n• Telegram-username yoki havola;\n• sayt yoki APK-fayl havolasi;\n• shubhali xabar matni;\n• yozishma skrinshoti;\n• kontakt kartasi;\n• vaziyatni o‘z so‘zlaringiz bilan tavsiflash.\n\nBir nechta yozishma xabari uchun /conversation dan foydalaning.\n\nShunchaki xabar qilib yuboring — men xavf bahosini qaytaraman. Buyruqlar: /help.",
+    en: "What you can send for a check:\n• a phone number;\n• a Telegram username or link;\n• a website or APK file link;\n• the text of a suspicious message;\n• a screenshot of a chat;\n• a contact card;\n• a description of the situation in your own words.\n\nFor several chat messages, use /conversation.\n\nJust send it as a message — I’ll reply with a risk assessment. Commands: /help.",
   },
 
   // ── /check (R4.1) ─────────────────────────────────────────────────────────
@@ -56,12 +56,57 @@ export const bot_dict: BotDict = {
     uz: "Tahlil qilinmoqda…",
     en: "Analyzing…",
   },
+  check_processing: {
+    ru: "Проверяю. Это может занять несколько секунд.",
+    uz: "Tekshiryapman. Bu bir necha soniya olishi mumkin.",
+    en: "Checking. This may take a few seconds.",
+  },
+  conversation_prompt: {
+    ru: "🧵 Проверка переписки\n\nПришлите 2–{max} сообщений из переписки по одному. Я буду собирать только безопасные признаки, не сам текст.\n\nКогда закончите — нажмите «Анализировать» или напишите «готово».",
+    uz: "🧵 Yozishmani tekshirish\n\nYozishmadan 2–{max} ta xabarni bittadan yuboring. Men matnning o'zini emas, faqat xavfsiz belgilarni yig'aman.\n\nTugatgach — «Tahlil qilish»ni bosing yoki «tayyor» deb yozing.",
+    en: "🧵 Conversation check\n\nSend 2–{max} chat messages one by one. I will collect only safe signals, not the raw text.\n\nWhen finished, tap “Analyze” or type “done”.",
+  },
+  conversation_added: {
+    ru: "Добавил сообщение {count}/{max}. Пришлите следующее или нажмите «Анализировать».",
+    uz: "{count}/{max} xabar qo'shildi. Keyingisini yuboring yoki «Tahlil qilish»ni bosing.",
+    en: "Added message {count}/{max}. Send the next one or tap “Analyze”.",
+  },
+  conversation_empty: {
+    ru: "Не вижу текста сообщения. Пришлите текст из переписки или нажмите «Отмена».",
+    uz: "Xabar matni ko'rinmayapti. Yozishma matnini yuboring yoki «Bekor qilish»ni bosing.",
+    en: "I do not see message text. Send chat text or tap “Cancel”.",
+  },
+  conversation_too_long: {
+    ru: "Это слишком длинно для короткой проверки переписки. Пришлите более короткий фрагмент или самое подозрительное сообщение.",
+    uz: "Bu qisqa yozishma tekshiruvi uchun juda uzun. Qisqaroq parcha yoki eng shubhali xabarni yuboring.",
+    en: "This is too long for a short conversation check. Send a shorter fragment or the most suspicious message.",
+  },
+  conversation_too_many: {
+    ru: "Лимит {max} сообщений уже достигнут. Нажмите «Анализировать» или «Отмена».",
+    uz: "{max} ta xabar limiti tugadi. «Tahlil qilish» yoki «Bekor qilish»ni bosing.",
+    en: "The {max}-message limit is reached. Tap “Analyze” or “Cancel”.",
+  },
+  conversation_not_enough: {
+    ru: "Для проверки переписки нужно минимум 2 сообщения. Пришлите ещё одно или нажмите «Отмена».",
+    uz: "Yozishmani tekshirish uchun kamida 2 ta xabar kerak. Yana bitta yuboring yoki «Bekor qilish»ni bosing.",
+    en: "I need at least 2 messages to check a conversation. Send one more or tap “Cancel”.",
+  },
+  conversation_expired: {
+    ru: "Проверка переписки истекла. Я очистил черновик. Начните заново через /conversation.",
+    uz: "Yozishma tekshiruvi muddati tugadi. Qoralama tozalandi. /conversation orqali qayta boshlang.",
+    en: "The conversation check expired. I cleared the draft. Start again with /conversation.",
+  },
+  conversation_cancelled: {
+    ru: "Ок, проверку переписки отменил. Можно прислать отдельный номер, ссылку, скриншот или сообщение.",
+    uz: "Yaxshi, yozishma tekshiruvi bekor qilindi. Alohida raqam, havola, skrinshot yoki xabar yuborishingiz mumkin.",
+    en: "OK, conversation check cancelled. You can send a single number, link, screenshot, or message.",
+  },
 
   // ── /help: command list (R3.1) ───────────────────────────────────────────
   help: {
-    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n📞 /call — Помощь во время звонка\n🔍 /check — Проверить номер или ссылку\n📢 /report — Сообщить о случае\n🧾 /appeal — Исправить ошибочную запись\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
-    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n📞 /call — Qo'ng'iroq paytida yordam\n🔍 /check — Raqam yoki havolani tekshirish\n📢 /report — Holat haqida xabar berish\n🧾 /appeal — Xato yozuvni tuzatish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
-    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n📞 /call — Help during a call\n🔍 /check — Check a number or link\n📢 /report — Report an incident\n🧾 /appeal — Correct a wrong record\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
+    ru: "📋 Команды бота\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Главное меню\n🧭 /menu — Главное меню\n📞 /call — Помощь во время звонка\n🔍 /check — Проверить номер или ссылку\n🧵 /conversation — Проверить несколько сообщений переписки\n🎧 /trainer — Тренажёр звонков\n📢 /report — Сообщить о случае\n🧾 /appeal — Исправить ошибочную запись\n🆘 /panic — Экстренная помощь\n👪 /family — Подключить близкого\n📰 /digest — Схемы недели\n🚨 /emergency — Срочные шаги\n🛡 /safety — Правила безопасности\n🌐 /lang — Сменить язык\n\n💡 Можно просто прислать сообщение без команды — я проверю его.",
+    uz: "📋 Bot buyruqlari\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Asosiy menyu\n🧭 /menu — Asosiy menyu\n📞 /call — Qo'ng'iroq paytida yordam\n🔍 /check — Raqam yoki havolani tekshirish\n🧵 /conversation — Bir nechta yozishma xabarini tekshirish\n🎧 /trainer — Qo'ng'iroq treneri\n📢 /report — Holat haqida xabar berish\n🧾 /appeal — Xato yozuvni tuzatish\n🆘 /panic — Shoshilinch yordam\n👪 /family — Yaqin insonni ulash\n📰 /digest — Haftalik sxemalar\n🚨 /emergency — Shoshilinch qadamlar\n🛡 /safety — Xavfsizlik qoidalari\n🌐 /lang — Tilni o'zgartirish\n\n💡 Buyruqsiz ham xabar yuboring — men tekshiraman.",
+    en: "📋 Bot Commands\n━━━━━━━━━━━━━━━━━━━━\n\n🚀 /start — Main menu\n🧭 /menu — Main menu\n📞 /call — Help during a call\n🔍 /check — Check a number or link\n🧵 /conversation — Check several chat messages\n🎧 /trainer — Call trainer\n📢 /report — Report an incident\n🧾 /appeal — Correct a wrong record\n🆘 /panic — Emergency help\n👪 /family — Link trusted person\n📰 /digest — Weekly scam digest\n🚨 /emergency — Urgent steps\n🛡 /safety — Safety rules\n🌐 /lang — Change language\n\n💡 You can also just send a message — I'll check it.",
   },
 
   appeal_help: {
@@ -114,9 +159,9 @@ export const bot_dict: BotDict = {
 
   // ── /safety: basic safety rules + scope reminder (R3.2, R3.3) ─────────────
   safety: {
-    ru: "🛡 *Правила безопасности*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Никому не сообщайте OTP/SMS-код, PIN, CVV или пароль\n❌ Не устанавливайте APK по ссылкам из сообщений\n❌ Не переводите деньги на «безопасный счёт»\n❌ Не сканируйте чужие QR-коды «для входа»\n\n✅ Сомневаетесь — положите трубку\n✅ Перезвоните в банк по номеру с карты\n✅ Проверьте номер/ссылку через этого бота\n\n🔒 Я анализирую только то, что вы сами присылаете. Я не читаю ваши чаты.",
-    uz: "🛡 *Xavfsizlik qoidalari*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Hech kimga OTP/SMS-kod, PIN, CVV yoki parolni aytmang\n❌ Xabardagi havolalar orqali APK o‘rnatmang\n❌ «Xavfsiz hisob»ga pul o‘tkazmang\n❌ Begona QR-kodlarni skanerlamang\n\n✅ Shubha qilsangiz — go‘shakni qo‘ying\n✅ Bankka karta orqasidagi raqam orqali qo‘ng‘iroq qiling\n✅ Raqam/havolani shu bot orqali tekshiring\n\n🔒 Men faqat o‘zingiz yuborgan ma‘lumotni tahlil qilaman. Chatlaringizni o‘qimayman.",
-    en: "🛡 *Safety Rules*\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Never share OTP/SMS codes, PIN, CVV or passwords\n❌ Don't install APKs from message links\n❌ Don't transfer money to a 'safe account'\n❌ Don't scan someone else's QR codes\n\n✅ If in doubt — hang up\n✅ Call your bank using the number on your card\n✅ Check the number/link with this bot\n\n🔒 I only analyze what you send me. I don't read your chats.",
+    ru: "🛡 Правила безопасности\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Никому не сообщайте OTP/SMS-код, PIN, CVV или пароль\n❌ Не устанавливайте APK по ссылкам из сообщений\n❌ Не переводите деньги на «безопасный счёт»\n❌ Не сканируйте чужие QR-коды «для входа»\n\n✅ Сомневаетесь — положите трубку\n✅ Перезвоните в банк по номеру с карты\n✅ Проверьте номер/ссылку через этого бота\n\n🔒 Я анализирую только то, что вы сами присылаете. Я не читаю ваши чаты.",
+    uz: "🛡 Xavfsizlik qoidalari\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Hech kimga OTP/SMS-kod, PIN, CVV yoki parolni aytmang\n❌ Xabardagi havolalar orqali APK o‘rnatmang\n❌ «Xavfsiz hisob»ga pul o‘tkazmang\n❌ Begona QR-kodlarni skanerlamang\n\n✅ Shubha qilsangiz — go‘shakni qo‘ying\n✅ Bankka karta orqasidagi raqam orqali qo‘ng‘iroq qiling\n✅ Raqam/havolani shu bot orqali tekshiring\n\n🔒 Men faqat o‘zingiz yuborgan ma‘lumotni tahlil qilaman. Chatlaringizni o‘qimayman.",
+    en: "🛡 Safety Rules\n━━━━━━━━━━━━━━━━━━━━\n\n❌ Never share OTP/SMS codes, PIN, CVV or passwords\n❌ Don't install APKs from message links\n❌ Don't transfer money to a 'safe account'\n❌ Don't scan someone else's QR codes\n\n✅ If in doubt — hang up\n✅ Call your bank using the number on your card\n✅ Check the number/link with this bot\n\n🔒 I only analyze what you send me. I don't read your chats.",
   },
 
   // ── /emergency: numbered checklist (R20.1, R20.2, R20.5) ──────────────────
@@ -182,9 +227,9 @@ export const bot_dict: BotDict = {
 
   // ── /report result messages (R6.7, R6.8) ──────────────────────────────────
   report_confirm: {
-    ru: "✅ Спасибо, сигнал принят.\n\nВы помогли предупредить других людей. Мы проверим сообщение вручную: публичная метка появится только после модерации.\n\nМодератор получил только безопасную краткую сводку — без кодов, карт, скриншотов и полных контактов.",
-    uz: "✅ Rahmat, signal qabul qilindi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz. Xabar qo'lda tekshiriladi: ommaviy belgi faqat moderatsiyadan keyin chiqadi.\n\nModerator faqat xavfsiz qisqa xulosa oldi — kodlar, kartalar, skrinshotlar va to'liq kontaktlarsiz.",
-    en: "✅ Thank you, the signal was received.\n\nYou helped warn other people. We will review it manually: a public label appears only after moderation.\n\nThe moderator received only a safe short summary — without codes, cards, screenshots, or full contacts.",
+    ru: "✅ Спасибо, сигнал принят.\n\nВы помогли предупредить других людей. Мы проверим сообщение вручную: публичная метка появится только после модерации. Если похожий сигнал уже был, ваш помогает поднять приоритет проверки.\n\nМодератор получил только безопасную краткую сводку — без кодов, карт, скриншотов и полных контактов.",
+    uz: "✅ Rahmat, signal qabul qilindi.\n\nSiz boshqa odamlarni ogohlantirishga yordam berdingiz. Xabar qo'lda tekshiriladi: ommaviy belgi faqat moderatsiyadan keyin chiqadi. Agar shunga o'xshash signal oldin ham bo'lgan bo'lsa, sizniki tekshiruv ustuvorligini oshirishga yordam beradi.\n\nModerator faqat xavfsiz qisqa xulosa oldi — kodlar, kartalar, skrinshotlar va to'liq kontaktlarsiz.",
+    en: "✅ Thank you, the signal was received.\n\nYou helped warn other people. We will review it manually: a public label appears only after moderation. If a similar signal already exists, yours helps raise review priority.\n\nThe moderator received only a safe short summary — without codes, cards, screenshots, or full contacts.",
   },
   report_error: {
     ru: "Не удалось отправить жалобу. Попробуйте, пожалуйста, ещё раз чуть позже.",
@@ -242,10 +287,20 @@ export const bot_dict: BotDict = {
     uz: "Ovozli xabar yoki audioni ishonchli tushuna olmadim.\n\nQisqa yozing: sizga nima va'da qilishdi va nima so'rashyapti — kod, karta, pul o'tkazish, APK, QR yoki havola.\n\nAgar kod yuborgan, ilova o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
     en: "I could not reliably understand the voice note or audio file yet.\n\nBriefly type what they promise and what they ask you to do: code, card, transfer, APK, QR, or link.\n\nIf you already sent a code, installed an app, or are on a call right now, tap “Emergency steps”.",
   },
+  voice_metadata_fallback_note: {
+    ru: "Я пока не смог надёжно разобрать голос, но вижу текст в названии или подписи аудио:\n«{text}»\n\nПроверю этот текст как подсказку.",
+    uz: "Ovozni ishonchli tushuna olmadim, lekin audio nomi yoki izohida matn ko'rinyapti:\n«{text}»\n\nShu matnni ko'rsatma sifatida tekshiraman.",
+    en: 'I could not reliably understand the voice, but I can see text in the audio name or caption:\n"{text}"\n\nI will check that text as a hint.',
+  },
   voice_transcript_uncertain: {
     ru: "Я распознал голос, но текста мало для честной проверки.\n\nНажмите «Исправить текст» или напишите одним сообщением: что обещают и что просят сделать.\n\nЕсли уже отправили код, установили APK или сейчас на звонке — нажмите «Что делать срочно».",
     uz: "Ovozni o'qidim, lekin halol tekshiruv uchun matn juda kam.\n\n«Matnni tuzatish» tugmasini bosing yoki bitta xabarda yozing: nima va'da qilishdi va nima so'rashyapti.\n\nAgar kod yuborgan, APK o'rnatgan yoki hozir qo'ng'iroqda bo'lsangiz — «Shoshilinch qadamlar» tugmasini bosing.",
     en: "I recognized the voice, but there is too little text for a fair check.\n\nTap “Correct text” or send one message: what they promise and what they ask you to do.\n\nIf you already sent a code, installed an APK, or are on a call right now, tap “Emergency steps”.",
+  },
+  voice_negated_done_ack: {
+    ru: "Хорошо. Главное — не отправляйте SMS-код, PIN, CVV, пароль или данные карты.\n\nЕсли вас просят назвать код, подтвердить вход, перевод или операцию по карте — завершите разговор и проверьте только через официальное приложение, сайт или сохранённый номер банка.\n\nЕсли вы всё-таки уже отправили код или ввели данные — нажмите «Что делать срочно».",
+    uz: "Yaxshi. Eng muhimi — SMS-kod, PIN, CVV, parol yoki karta ma'lumotlarini yubormang.\n\nAgar kod aytish, kirishni tasdiqlash, pul o'tkazish yoki karta operatsiyasini tasdiqlashni so'rashsa — suhbatni tugating va faqat rasmiy ilova, sayt yoki bankning saqlangan raqami orqali tekshiring.\n\nAgar kodni yuborgan yoki ma'lumot kiritgan bo'lsangiz — «Shoshilinch qadamlar»ni bosing.",
+    en: "Good. The main thing is: do not send an SMS code, PIN, CVV, password, or card details.\n\nIf they ask you to say a code, confirm a login, transfer, or card operation, end the conversation and verify only through the official app, website, or saved bank number.\n\nIf you already sent the code or entered details, tap “Emergency steps”.",
   },
   voice_correct_button: {
     ru: "✏️ Исправить текст",
@@ -281,14 +336,14 @@ export const bot_dict: BotDict = {
     en: "There are {count} confirmed reports about this contact in our database.",
   },
   phone_reputation_reports: {
-    ru: "Ishonch Guard: {count} подтверждённых жалоб после модерации. Уверенность: {confidence}.",
-    uz: "Ishonch Guard: moderatsiyadan keyin {count} ta tasdiqlangan shikoyat. Ishonch: {confidence}.",
-    en: "Ishonch Guard: {count} confirmed moderated report(s). Confidence: {confidence}.",
+    ru: "Источник: подтверждённые модераторами жалобы Ishonch Guard. Количество: {count} подтверждённых жалоб. Уверенность: {confidence}.",
+    uz: "Manba: Ishonch Guard moderatorlari tasdiqlagan shikoyatlar. Soni: {count} ta tasdiqlangan shikoyat. Ishonchlilik: {confidence}.",
+    en: "Source: Ishonch Guard moderator-confirmed reports. Count: {count} confirmed report(s). Confidence: {confidence}.",
   },
   phone_reputation_limit: {
-    ru: "Это не определяет владельца номера и не является данными оператора.",
-    uz: "Bu raqam egasini aniqlamaydi va operator ma'lumoti emas.",
-    en: "This does not identify the number owner and is not carrier data.",
+    ru: "Не включает непроверенные жалобы, владельца номера, данные оператора или скрытые внешние метки.",
+    uz: "Tekshirilmagan shikoyatlar, raqam egasi, operator ma'lumoti yoki yashirin tashqi belgilar kiritilmaydi.",
+    en: "Does not include unverified reports, number owner data, carrier data, or hidden external labels.",
   },
 
   // ── Contact card (R21.4) ──────────────────────────────────────────────────
@@ -336,6 +391,16 @@ export const bot_dict: BotDict = {
     uz: "🏦 Bank/kod",
     en: "🏦 Bank/code",
   },
+  btn_image_triage_telegram_account: {
+    ru: "🔐 Telegram аккаунт",
+    uz: "🔐 Telegram akkaunt",
+    en: "🔐 Telegram account",
+  },
+  btn_image_triage_telegram_profile: {
+    ru: "👤 Профиль/чат",
+    uz: "👤 Profil/chat",
+    en: "👤 Profile/chat",
+  },
   btn_image_triage_qr_menu: {
     ru: "🍽 Меню/QR",
     uz: "🍽 Menyu/QR",
@@ -360,6 +425,16 @@ export const bot_dict: BotDict = {
     ru: "🏦 Банк, код, карта или APK\n\nОпасно, если просят SMS-код, PIN, CVV, пароль, карту, APK или «защитное приложение». Банк не просит это в Telegram.\n\nБезопасный шаг: ничего не отправляйте. Если уже ввели код/карту или APK — нажмите /panic.",
     uz: "🏦 Bank, kod, karta yoki APK\n\nSMS-kod, PIN, CVV, parol, karta, APK yoki «xavfsizlik ilovasi» so'ralsa — xavfli. Bank Telegram orqali buni so'ramaydi.\n\nXavfsiz qadam: hech narsa yubormang. Kod/karta kiritgan yoki APK o'rnatgan bo'lsangiz — /panic ni bosing.",
     en: "🏦 Bank, code, card, or APK\n\nDanger: SMS code, PIN, CVV, password, card data, APK, or “security app”. Banks do not ask for this through Telegram.\n\nSafe step: send nothing. If you already entered a code/card or installed an APK, use /panic.",
+  },
+  image_triage_telegram_account: {
+    ru: "🔐 Telegram аккаунт: проверка, удаление или блокировка\n\nЕсли на скрине пугают удалением, заморозкой, «проверкой», галочкой Telegram, кнопкой «Отмена/Запустить» или ведут в бот/по ссылке — это похоже на угон аккаунта.\n\nБезопасный шаг: не нажимайте кнопку и не вводите код. Откройте Telegram сами: Настройки → Устройства, завершите чужие сеансы и включите двухэтапную защиту.",
+    uz: "🔐 Telegram akkaunt: tekshiruv, o'chirish yoki bloklash\n\nSkrinda o'chirish, muzlatish, «tekshiruv», Telegram belgisi, «Bekor qilish/Boshlash» tugmasi yoki bot/havola orqali kirish bo'lsa — bu akkauntni o'g'irlashga o'xshaydi.\n\nXavfsiz qadam: tugmani bosmang va kod kiritmang. Telegramni o'zingiz oching: Sozlamalar → Qurilmalar, begona seanslarni yoping va ikki bosqichli himoyani yoqing.",
+    en: "🔐 Telegram account: verification, deletion, or block\n\nIf the screen scares you with deletion, freezing, “verification”, a Telegram checkmark, a “Cancel/Start” button, or sends you to a bot/link, it looks like account-takeover phishing.\n\nSafe step: do not tap the button or enter a code. Open Telegram yourself: Settings → Devices, end unknown sessions, and enable two-step verification.",
+  },
+  image_triage_telegram_profile: {
+    ru: "👤 Профиль или чат Telegram\n\nПо одному скрину профиля я не могу честно сказать, кто это. Поля вроде «не в контактах», страны телефона или «не официальный аккаунт» — это подсказки, но не доказательство мошенничества.\n\nВажнее просьба: код, деньги, карта, APK, ссылка/QR или срочность. Пришлите сообщение, следующий экран или коротко напишите, что человек просит сделать.",
+    uz: "👤 Telegram profili yoki chat\n\nFaqat profil skriniga qarab bu kimligini aniq ayta olmayman. «Kontaktlarda yo'q», telefon mamlakati yoki «rasmiy akkaunt emas» kabi belgilar yordam beradi, lekin firibgarlik isboti emas.\n\nMuhimi — nima so'rashyapti: kod, pul, karta, APK, havola/QR yoki shoshirish. Xabarni, keyingi ekranni yoki odam nima qilishni so'raganini qisqa yuboring.",
+    en: "👤 Telegram profile or chat\n\nFrom one profile screenshot, I cannot honestly say who this is. Fields like “not in contacts”, phone country, or “not official account” are clues, not proof of fraud.\n\nWhat matters is the request: code, money, card data, APK, link/QR, or urgency. Send the message, the next screen, or briefly write what they ask you to do.",
   },
   image_triage_qr_menu: {
     ru: "🍽 Меню, ресторанный QR или информационный QR\n\nСам QR обычно не скам: он может открыть меню, акцию или бронирование. Риск появляется после перехода, если просят оплату, Telegram-вход, SMS-код, карту или APK.\n\nБезопасный шаг: проверьте адрес страницы. Если просят данные — пришлите адрес или следующий скрин.",
@@ -398,6 +473,16 @@ export const bot_dict: BotDict = {
     ru: "🔎 Новая проверка",
     uz: "🔎 Yangi tekshiruv",
     en: "🔎 New check",
+  },
+  btn_conversation_analyze: {
+    ru: "🧵 Анализировать",
+    uz: "🧵 Tahlil qilish",
+    en: "🧵 Analyze",
+  },
+  btn_conversation_cancel: {
+    ru: "Отмена",
+    uz: "Bekor qilish",
+    en: "Cancel",
   },
   btn_emergency: {
     ru: "🆘 Что делать срочно",
@@ -479,6 +564,11 @@ export const bot_dict: BotDict = {
     uz: "Yangi tekshiruv",
     en: "New check",
   },
+  btn_quick_conversation: {
+    ru: "Вся переписка",
+    uz: "Butun yozishma",
+    en: "Whole chat",
+  },
   btn_quick_report: {
     ru: "Сообщить случай",
     uz: "Holatni yuborish",
@@ -513,6 +603,11 @@ export const bot_dict: BotDict = {
     ru: "Схемы недели",
     uz: "Haftalik sxemalar",
     en: "Weekly scams",
+  },
+  btn_quick_trainer: {
+    ru: "Тренажёр",
+    uz: "Trener",
+    en: "Trainer",
   },
 
   // ── Live call copilot (Sprint 3.1) ────────────────────────────────────────
@@ -568,10 +663,15 @@ export const bot_dict: BotDict = {
     uz: "❓ Nima uchun?",
     en: "❓ Why?",
   },
+  btn_explain_simple: {
+    ru: "👵 Простыми словами",
+    uz: "👵 Oddiy qilib",
+    en: "👵 Simple words",
+  },
   why_explanation: {
-    ru: "🧠 *Как я проверяю*\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком в Telegram или звонят с неизвестного номера\n5\uFE0F\u20E3 Просят перевести деньги на «безопасный счёт» или по ссылке\n\nЕсли таких признаков нет — я пишу «недостаточно данных».\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
-    uz: "🧠 *Qanday tekshiraman*\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Telegramda bank nomidan yozadi yoki noma'lum raqamdan qo'ng'iroq qiladi\n5\uFE0F\u20E3 «Xavfsiz hisob»ga yoki havola orqali pul o'tkazishni so'raydi\n\nAgar bunday belgilar topilmasa — «ma'lumot yetarli emas» deb yozaman.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",
-    en: '🧠 *How I check*\n\nI don\'t guess and I don\'t call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a "secure app"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying "don\'t hang up"\n4\uFE0F\u20E3 Claiming to be a bank via Telegram or calling from an unknown number\n5\uFE0F\u20E3 Asking you to transfer money to a "safe account" or via a link\n\nIf none of these signs are found, I say "not enough data."\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.',
+    ru: "🧠 Как я проверяю\n\nЯ не угадываю и не называю людей мошенниками без оснований. Я ищу опасные признаки:\n\n1\uFE0F\u20E3 Просят SMS-код, PIN, CVV или пароль\n2\uFE0F\u20E3 Просят установить APK или «безопасное приложение»\n3\uFE0F\u20E3 Торопят, пугают или говорят «не кладите трубку»\n4\uFE0F\u20E3 Представляются банком, госорганом или службой поддержки\n5\uFE0F\u20E3 Просят перевести деньги, перейти по ссылке или подтвердить вход\n\nЕсли признаков мало, я попрошу больше контекста: что именно просят сделать, ссылку, номер, код, карту, перевод или скрин.\n\nВажно: даже если номер похож на официальный, его могут подменить. Лучше завершить разговор и перезвонить самому.\n\n🔒 Ваши данные не сохраняются в открытом виде.",
+    uz: "🧠 Qanday tekshiraman\n\nMen taxmin qilmayman va asossiz hech kimni firibgar deb aytmayman. Men xavfli belgilarni qidiraman:\n\n1\uFE0F\u20E3 SMS-kod, PIN, CVV yoki parol so'rashyapti\n2\uFE0F\u20E3 APK yoki «xavfsiz ilova» o'rnatishni aytishyapti\n3\uFE0F\u20E3 Shoshiltiradi, qo'rqitadi yoki «go'shakni qo'ymang» deydi\n4\uFE0F\u20E3 Bank, davlat idorasi yoki qo'llab-quvvatlash xizmati nomidan yozadi\n5\uFE0F\u20E3 Pul o'tkazish, havolaga kirish yoki loginni tasdiqlashni so'raydi\n\nBelgilar kam bo'lsa, men ko'proq kontekst so'rayman: aynan nima qilishni so'rashyapti, havola, raqam, kod, karta, o'tkazma yoki skrin.\n\nMuhim: raqam rasmiy ko'rinsa ham, uni soxtalashtirish mumkin. Suhbatni tugating va o'zingiz qayta qo'ng'iroq qiling.\n\n🔒 Ma'lumotlaringiz ochiq holda saqlanmaydi.",
+    en: '🧠 How I check\n\nI don\'t guess and I don\'t call people scammers without reason. I look for dangerous signs:\n\n1\uFE0F\u20E3 Asking for an SMS code, PIN, CVV or password\n2\uFE0F\u20E3 Asking you to install an APK or a "secure app"\n3\uFE0F\u20E3 Rushing you, scaring you, or saying "don\'t hang up"\n4\uFE0F\u20E3 Claiming to be a bank, government agency, or support team\n5\uFE0F\u20E3 Asking you to transfer money, open a link, or confirm a login\n\nIf there are not enough signs, I ask for more context: what exactly they want you to do, a link, number, code, card, transfer, or screenshot.\n\nImportant: even if a number looks official, it can be spoofed. Better to end the call and ring back yourself.\n\n🔒 Your data is not stored in plain form.',
   },
 
   // ── Share advice + elder hints (Sprint 3.3 / 3.6) ────────────────────────
@@ -612,6 +712,11 @@ export const bot_dict: BotDict = {
     uz: "👪 Yaqinni chaqirish",
     en: "👪 Notify trusted person",
   },
+  family_btn_codeword: {
+    ru: "🎙️ Как проверить голос",
+    uz: "🎙️ Ovozni tekshirish",
+    en: "🎙️ Verify voice safely",
+  },
   family_btn_revoke: {
     ru: "🗑 Отключить",
     uz: "🗑 O'chirish",
@@ -622,15 +727,25 @@ export const bot_dict: BotDict = {
     uz: "Bu signallarni o'chirish",
     en: "Stop these alerts",
   },
+  family_btn_trusted_ack: {
+    ru: "✅ Я помогу сейчас",
+    uz: "✅ Hozir yordam beraman",
+    en: "✅ I will help now",
+  },
   family_menu_text: {
-    ru: "👪 *Семейный щит*\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.",
-    uz: "👪 *Oila qalqoni*\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.",
-    en: "👪 *Family Shield*\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.",
+    ru: "👪 Семейный щит\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
+    uz: "👪 Oila qalqoni\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.\n\nAlohida «Ovozni tekshirish» tugmasini bosib, ovozli va video qo'ng'iroqlarni botga sir yubormasdan tekshirish bo'yicha oilaviy qoida kelishib oling.",
+    en: "👪 Family Shield\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.\n\nYou can also tap “Verify voice safely” and agree with your family how to verify voice and video calls without sending the secret to the bot.",
+  },
+  family_codeword_guide: {
+    ru: "🔐 Семейное кодовое слово\n\nЭто защита от звонков и голосовых, где мошенник звучит как близкий человек.\n\nКак договориться:\n1. Выберите короткую фразу, которую нельзя угадать из соцсетей.\n2. Обсудите её лично или по уже сохранённому номеру.\n3. Не пишите кодовое слово в бот, чат, заметки или SMS.\n4. Если звонят с просьбой о деньгах, коде или срочном переводе — завершите разговор, перезвоните по сохранённому номеру и спросите кодовое слово или личный вопрос.\n\nЕсли человек злится, торопит или запрещает перезванивать — это красный флаг. Деньги и коды не отправляем, пока личность не подтверждена другим каналом.",
+    uz: "🔐 Oilaviy maxfiy so'z\n\nBu yaqin inson ovoziga o'xshagan qo'ng'iroq yoki audio xabarlardan himoya qiladi.\n\nQanday kelishish kerak:\n1. Ijtimoiy tarmoqlardan topib bo'lmaydigan qisqa iborani tanlang.\n2. Uni yuzma-yuz yoki avvaldan saqlangan raqam orqali kelishib oling.\n3. Maxfiy so'zni botga, chatga, eslatmaga yoki SMSga yozmang.\n4. Pul, kod yoki shoshilinch o'tkazma so'rashsa — suhbatni tugating, saqlangan raqamga qayta qo'ng'iroq qiling va maxfiy so'z yoki shaxsiy savolni so'rang.\n\nAgar odam jahli chiqsa, shoshirsa yoki qayta qo'ng'iroq qilishni taqiqlasa — bu xavf belgisi. Shaxs boshqa kanal orqali tasdiqlanmaguncha pul ham, kod ham yubormang.",
+    en: "🔐 Family code word\n\nThis protects against calls or voice messages where a scammer sounds like someone close to you.\n\nHow to agree on it:\n1. Choose a short phrase that cannot be guessed from social media.\n2. Discuss it in person or through an already saved phone number.\n3. Do not write the code word in the bot, chat, notes, or SMS.\n4. If someone calls asking for money, a code, or an urgent transfer, end the call, call back using the saved number, and ask the code word or a private question.\n\nIf the person gets angry, rushes you, or forbids calling back, that is a red flag. Do not send money or codes until identity is confirmed through another channel.",
   },
   family_invite_text: {
-    ru: "🔗 *Приглашение создано*\n\nЭта ссылка не для вас — её должен открыть другой человек.\n\nЧто сделать сейчас:\n1. Нажмите «📤 Отправить в чат близкого».\n2. В открывшемся окне Telegram выберите родственника или друга и отправьте сообщение.\n3. Когда близкий откроет бота и нажмёт Start, связь включится.\n\nЕсли вы случайно открыли ссылку сами — ничего страшного. Вернитесь сюда и отправьте её другому человеку.\n\nЯ не буду отправлять близкому ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
-    uz: "🔗 *Taklif yaratildi*\n\nBu havola siz uchun emas — uni boshqa inson ochishi kerak.\n\nHozir nima qilish kerak:\n1. «📤 Yaqin kishiga yuborish»ni bosing.\n2. Telegram oynasida qarindosh yoki do'stingizni tanlab, xabarni yuboring.\n3. Yaqin inson botni ochib Start bosgandan keyin aloqa yoqiladi.\n\nAgar havolani tasodifan o'zingiz ochsangiz — xavotir olmang. Bu xabarga qaytib, uni boshqa insonga yuboring.\n\nMen yaqin insoningizga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
-    en: "🔗 *Invite created*\n\nThis link is not for you — another person must open it.\n\nWhat to do now:\n1. Tap “📤 Send invite to trusted person”.\n2. In the Telegram share window, choose a relative or friend and send the message.\n3. After they open the bot and tap Start, the link becomes active.\n\nIf you accidentally open the link yourself, that is okay. Come back here and send it to another person.\n\nI will not send your trusted person your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
+    ru: "🔗 Приглашение создано\n\nЭта ссылка не для вас — её должен открыть другой человек.\n\nЧто сделать сейчас:\n1. Нажмите «📤 Отправить в чат близкого».\n2. В открывшемся окне Telegram выберите родственника или друга и отправьте сообщение.\n3. Когда близкий откроет бота и нажмёт Start, связь включится.\n\nЕсли вы случайно открыли ссылку сами — ничего страшного. Вернитесь сюда и отправьте её другому человеку.\n\nЯ не буду отправлять близкому ваши номера, ссылки, скриншоты, коды или текст проверки — только короткий сигнал: «пожалуйста, помогите сейчас».",
+    uz: "🔗 Taklif yaratildi\n\nBu havola siz uchun emas — uni boshqa inson ochishi kerak.\n\nHozir nima qilish kerak:\n1. «📤 Yaqin kishiga yuborish»ni bosing.\n2. Telegram oynasida qarindosh yoki do'stingizni tanlab, xabarni yuboring.\n3. Yaqin inson botni ochib Start bosgandan keyin aloqa yoqiladi.\n\nAgar havolani tasodifan o'zingiz ochsangiz — xavotir olmang. Bu xabarga qaytib, uni boshqa insonga yuboring.\n\nMen yaqin insoningizga raqamlar, havolalar, skrinshotlar, kodlar yoki tekshiruv matnini yubormayman — faqat qisqa signal: «iltimos, hozir yordam bering».",
+    en: "🔗 Invite created\n\nThis link is not for you — another person must open it.\n\nWhat to do now:\n1. Tap “📤 Send invite to trusted person”.\n2. In the Telegram share window, choose a relative or friend and send the message.\n3. After they open the bot and tap Start, the link becomes active.\n\nIf you accidentally open the link yourself, that is okay. Come back here and send it to another person.\n\nI will not send your trusted person your numbers, links, screenshots, codes, or checked text — only a short signal: “please help now.”",
   },
   family_already_linked: {
     ru: "Близкий уже подключён.\n\nЧтобы создать новое приглашение, сначала отключите текущую связь. Если ситуация срочная, можно сразу позвать подключённого близкого.",
@@ -711,6 +826,11 @@ export const bot_dict: BotDict = {
     ru: "Активных сигналов для вас сейчас нет.",
     uz: "Siz uchun hozir faol signal yo'q.",
     en: "There are no active alerts linked to you right now.",
+  },
+  family_trusted_ack_ok: {
+    ru: "Спасибо. Позвоните близкому по сохранённому номеру и спокойно помогите проверить ситуацию. Не просите пересылать SMS-коды, PIN, CVV, пароли, фото карты, ссылки или файлы.",
+    uz: "Rahmat. Yaqin insoningizga saqlangan raqam orqali qo'ng'iroq qiling va vaziyatni xotirjam tekshirishga yordam bering. SMS-kod, PIN, CVV, parol, karta rasmi, havola yoki fayl yuborishni so'ramang.",
+    en: "Thank you. Call your trusted person using a saved number and calmly help verify the situation. Do not ask them to forward SMS codes, PIN, CVV, passwords, card photos, links, or files.",
   },
 
   // ── Deterministic fallback for hosted URLs without reason codes ────────────
@@ -854,6 +974,19 @@ export const bot_dict: BotDict = {
     ru: "Куда обратиться",
     uz: "Kimga murojaat",
     en: "Where to report",
+  },
+
+  // ── /chatid — operator setup helper (admin-only, group context) ────────────
+  // {chatId} and {chatType} are filled via bt(..., { chatId, chatType }).
+  chatid_group: {
+    ru: "🛠 Chat ID для настройки\n\nChat ID: {chatId}\nТип чата: {chatType}\n\nСкопируйте это значение в Railway:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nПосле redeploy проверьте:\nrailway run npm run moderation:smoke\n\nНе отправляйте сюда реальные жалобы, пока smoke-тест не прошёл.",
+    uz: "🛠 Chat ID sozlash uchun\n\nChat ID: {chatId}\nChat turi: {chatType}\n\nBu qiymatni Railway'ga ko'chiring:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nRedeploydan keyin tekshiring:\nrailway run npm run moderation:smoke\n\nSmoke-test o'tmaguncha shu yerga haqiqiy shikoyatlar yuburmang.",
+    en: "🛠 Chat ID for setup\n\nChat ID: {chatId}\nChat type: {chatType}\n\nCopy this value into Railway:\nTELEGRAM_MODERATION_CHAT_ID={chatId}\n\nAfter redeploy, verify with:\nrailway run npm run moderation:smoke\n\nDo not send real reports here until the smoke test passes.",
+  },
+  chatid_private: {
+    ru: "🛠 Chat ID\n\nЭто личный чат. Для moderation-уведомлений нужен ID приватной группы.\n\nСоздайте приватную группу, добавьте туда @scamguard_bot и напишите там:\n/chatid",
+    uz: "🛠 Chat ID\n\nBu shaxsiy chat. Moderatsiya xabarlari uchun yopiq guruh ID si kerak.\n\nYopiq guruh yarating, @scamguard_bot ni qo'shing va u yerda yozing:\n/chatid",
+    en: "🛠 Chat ID\n\nThis is a private chat. Moderation notifications need a private group ID.\n\nCreate a private group, add @scamguard_bot there and run:\n/chatid",
   },
 };
 

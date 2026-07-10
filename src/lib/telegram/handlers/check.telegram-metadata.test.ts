@@ -74,6 +74,11 @@ vi.mock("@/lib/telegram/reputation.server", () => ({
 
 vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: () => Promise.resolve(),
+  withSessionChatScope: (
+    data: Record<string, unknown> | undefined,
+    chatId: number,
+    chatType = "private",
+  ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
 import { handleCheck } from "@/lib/telegram/handlers/check";

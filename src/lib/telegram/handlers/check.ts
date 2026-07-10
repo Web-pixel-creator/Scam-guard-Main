@@ -22,6 +22,8 @@
 // Server-only: pulls in `*.server.ts` modules (Bot API + service-role core).
 // This module is wired into the router later (task 9.1) via `setHandlers`; it
 // deliberately does NOT import sibling handler modules or touch the aggregator.
+import { createHash } from "node:crypto";
+
 import {
   analyzeImageCore,
   runCheck,
@@ -39,22 +41,27 @@ import {
 } from "@/lib/telegram/api.server";
 import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
-import type { HandlerCtx } from "@/lib/telegram/router";
+import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
-import { saveSession } from "@/lib/telegram/session.server";
+import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
   classifyEmergencyFollowUp,
+  asLiveCallContext,
   buildPanicScenarioText,
+  hasRecentEmergencyContext,
   withPanicContextData,
+  type LiveCallContext,
   type PanicScenarioId,
 } from "@/lib/telegram/emergency";
 import {
+  buildAcknowledgementFollowUpText,
   buildLastCheckFollowUpText,
   buildOrphanCheckFollowUpText,
   buildImageUnreadableSnapshot,
   buildLastCheckSnapshot,
+  classifyAcknowledgementFollowUp,
   classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
@@ -71,7 +78,7 @@ import {
   fallbackImageIntelligence,
   buildImageUserExplanation,
   hasUsableImageEvidence,
-  isBenignImageContext,
+  isEvidenceBackedBenignImageContext,
   mergeDecodedQrEvidence,
 } from "@/lib/risk/image-intelligence";
 import { decodeQrFromDataUrl } from "@/lib/risk/qr-decoder";
@@ -86,6 +93,14 @@ import {
   type TelegramForwardSourceContext,
 } from "@/lib/telegram/forward-context";
 import { buildImageTriageKeyboard } from "@/lib/telegram/image-fallback";
+import {
+  buildVictimIntentKeyboard,
+  buildVictimIntentText,
+  classifyVictimIntent,
+  type VictimIntentMatch,
+} from "@/lib/telegram/victim-intent";
+import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
+import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -95,17 +110,53 @@ const MAX_TEXT_LENGTH = 2000;
 
 /** Верхний предел размера скачиваемого изображения: 6 МБ (R5.5). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const IMAGE_DOWNLOAD_RATE_LIMIT = 10;
+const IMAGE_DOWNLOAD_RATE_WINDOW_MS = 60_000;
 const MAX_VOICE_BYTES = 2 * 1024 * 1024;
 const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
+
+function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
+  return match.askedContext !== undefined;
+}
+
+function shouldVictimIntentOverridePanic(match: VictimIntentMatch): boolean {
+  return match.kind === "friend_money";
+}
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
+const VOICE_HOOK_PREVIEW_CHARS = 120;
 const VOICE_LOW_SIGNAL_MIN_LETTERS = 6;
 const VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS = 2;
 
 /** Через сколько мс ожидания показывать индикатор «печатает…» (R18.2). */
 const TYPING_DELAY_MS = 3000;
+const CHECK_PROCESSING_DELAY_MS = readBoundedIntEnv(
+  "TELEGRAM_CHECK_PROCESSING_DELAY_MS",
+  900,
+  100,
+  5_000,
+);
+const CHECK_RESULT_CACHE_TTL_MS = readBoundedIntEnv(
+  "TELEGRAM_CHECK_CACHE_TTL_MS",
+  60_000,
+  5_000,
+  10 * 60_000,
+);
+const CHECK_RESULT_CACHE_MAX_ENTRIES = readBoundedIntEnv(
+  "TELEGRAM_CHECK_CACHE_MAX_ENTRIES",
+  500,
+  50,
+  10_000,
+);
+const VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES = readBoundedIntEnv(
+  "TELEGRAM_VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES",
+  500,
+  50,
+  10_000,
+);
 const TELEGRAM_AI_EXPLANATION_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_AI_EXPLANATION_TIMEOUT_MS",
   2500,
@@ -140,7 +191,7 @@ const TELEGRAM_IMAGE_ANALYSIS_OPTIONS = {
 } as const;
 const TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS",
-  8000,
+  12_000,
   1000,
   15_000,
 );
@@ -150,9 +201,57 @@ const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
 const IMAGE_OCR_REPEAT_TTL_MS = 45_000;
+const MEDIA_GROUP_FALLBACK_MAX_ENTRIES = 500;
+const IMAGE_OCR_REPEAT_MAX_ENTRIES = 500;
+type VoiceMeta = {
+  fileSize?: number;
+  duration?: number;
+  mimeType?: string;
+  fileUniqueId?: string;
+  fileName?: string;
+  caption?: string;
+};
+type VoiceTranscriptWorkResult =
+  | { kind: "ok"; text: string }
+  | { kind: "failed" }
+  | { kind: "too_large" };
+type CheckResultCacheEntry = {
+  result: RunCheckResult;
+  cachedAt: number;
+};
+type CheckResultInFlightEntry = {
+  work: Promise<RunCheckResult>;
+  startedAt: number;
+};
 const mediaGroupOcrFallbacks = new Map<string, number>();
 const recentImageOcrFallbacks = new Map<number, number>();
 const voiceTranscriptCache = new Map<string, { text: string; cachedAt: number }>();
+const voiceTranscriptInFlight = new Map<string, Promise<VoiceTranscriptWorkResult>>();
+const checkResultCache = new Map<string, CheckResultCacheEntry>();
+const checkResultInFlight = new Map<string, CheckResultInFlightEntry>();
+
+export function __resetTelegramCheckCachesForTests(): void {
+  mediaGroupOcrFallbacks.clear();
+  recentImageOcrFallbacks.clear();
+  voiceTranscriptCache.clear();
+  voiceTranscriptInFlight.clear();
+  checkResultCache.clear();
+  checkResultInFlight.clear();
+}
+
+export function __telegramCheckCacheStatsForTests(): {
+  checkResultMaxEntries: number;
+  checkResultSize: number;
+  voiceTranscriptMaxEntries: number;
+  voiceTranscriptSize: number;
+} {
+  return {
+    checkResultMaxEntries: CHECK_RESULT_CACHE_MAX_ENTRIES,
+    checkResultSize: checkResultCache.size,
+    voiceTranscriptMaxEntries: VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES,
+    voiceTranscriptSize: voiceTranscriptCache.size,
+  };
+}
 
 function readBoundedIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
@@ -162,9 +261,95 @@ function readBoundedIntEnv(name: string, fallback: number, min: number, max: num
   return Math.max(min, Math.min(max, value));
 }
 
+function pruneOldestEntries<K, V>(map: Map<K, V>, maxEntries: number): void {
+  while (map.size > maxEntries) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey === undefined) return;
+    map.delete(oldestKey);
+  }
+}
+
 /** Ключ rate-limit бота ВСЕГДА основан на telegram_user_id (R10.1, R10.3). */
 function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
+}
+
+function imageDownloadBudgetKey(userId: number): string {
+  return `telegram-image:${rateLimitKeyFor(userId)}`;
+}
+
+function normalizeCheckCacheInput(input: string): string {
+  return input.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function buildCheckResultCacheKey(params: {
+  userId: number;
+  lang: string;
+  input: string;
+  type?: string;
+  publicPost: boolean;
+}): string {
+  return createHash("sha256")
+    .update(String(params.userId))
+    .update("\0")
+    .update(params.lang)
+    .update("\0")
+    .update(params.type ?? "auto")
+    .update("\0")
+    .update(params.publicPost ? "public-post" : "direct")
+    .update("\0")
+    .update(normalizeCheckCacheInput(params.input))
+    .digest("hex");
+}
+
+function pruneCheckResultCache(now = Date.now()): void {
+  for (const [key, value] of checkResultCache) {
+    if (now - value.cachedAt > CHECK_RESULT_CACHE_TTL_MS) {
+      checkResultCache.delete(key);
+    }
+  }
+}
+
+function pruneCheckResultInFlight(now = Date.now()): void {
+  for (const [key, value] of checkResultInFlight) {
+    if (now - value.startedAt > CHECK_RESULT_CACHE_TTL_MS) {
+      checkResultInFlight.delete(key);
+    }
+  }
+}
+
+function getCachedCheckResult(key: string, now = Date.now()): RunCheckResult | null {
+  pruneCheckResultCache(now);
+  const cached = checkResultCache.get(key);
+  if (!cached) return null;
+  if (now - cached.cachedAt > CHECK_RESULT_CACHE_TTL_MS) {
+    checkResultCache.delete(key);
+    return null;
+  }
+  return cached.result;
+}
+
+function rememberCheckResult(key: string, result: RunCheckResult, now = Date.now()): void {
+  pruneCheckResultCache(now);
+  checkResultCache.set(key, { result, cachedAt: now });
+  pruneOldestEntries(checkResultCache, CHECK_RESULT_CACHE_MAX_ENTRIES);
+}
+
+function getInFlightCheckResult(key: string, now = Date.now()): Promise<RunCheckResult> | null {
+  pruneCheckResultInFlight(now);
+  return checkResultInFlight.get(key)?.work ?? null;
+}
+
+function rememberInFlightCheckResult(key: string, work: Promise<RunCheckResult>): void {
+  checkResultInFlight.set(key, { work, startedAt: Date.now() });
+  pruneOldestEntries(checkResultInFlight, CHECK_RESULT_CACHE_MAX_ENTRIES);
+  void work
+    .finally(() => {
+      if (checkResultInFlight.get(key)?.work === work) {
+        checkResultInFlight.delete(key);
+      }
+    })
+    .catch(() => undefined);
 }
 
 function voiceSttBudgetKey(userId: number): string {
@@ -207,6 +392,34 @@ function rememberVoiceTranscript(
   if (!key) return;
   pruneVoiceTranscriptCache();
   voiceTranscriptCache.set(key, { text, cachedAt: Date.now() });
+  pruneOldestEntries(voiceTranscriptCache, VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES);
+}
+
+function getInFlightVoiceTranscript(
+  userId: number,
+  fileUniqueId?: string,
+): Promise<VoiceTranscriptWorkResult> | null {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  return key ? (voiceTranscriptInFlight.get(key) ?? null) : null;
+}
+
+function rememberInFlightVoiceTranscript(
+  userId: number,
+  fileUniqueId: string | undefined,
+  work: Promise<VoiceTranscriptWorkResult>,
+): void {
+  const key = voiceCacheKey(userId, fileUniqueId);
+  if (!key) return;
+
+  voiceTranscriptInFlight.set(key, work);
+  pruneOldestEntries(voiceTranscriptInFlight, VOICE_TRANSCRIPT_CACHE_MAX_ENTRIES);
+  void work
+    .finally(() => {
+      if (voiceTranscriptInFlight.get(key) === work) {
+        voiceTranscriptInFlight.delete(key);
+      }
+    })
+    .catch(() => undefined);
 }
 
 async function checkVoiceSttBudget(userId: number): Promise<void> {
@@ -221,6 +434,18 @@ async function checkVoiceSttBudget(userId: number): Promise<void> {
   }
 }
 
+async function checkImageDownloadBudget(userId: number): Promise<void> {
+  const result = await checkSharedRateLimit(
+    "check",
+    imageDownloadBudgetKey(userId),
+    IMAGE_DOWNLOAD_RATE_LIMIT,
+    IMAGE_DOWNLOAD_RATE_WINDOW_MS,
+  );
+  if (!result.ok) {
+    throw rateLimitedCheckError(result.retryAfterSec);
+  }
+}
+
 function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [key, timestamp] of mediaGroupOcrFallbacks) {
     if (now - timestamp > MEDIA_GROUP_FALLBACK_TTL_MS) mediaGroupOcrFallbacks.delete(key);
@@ -228,6 +453,8 @@ function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [userId, timestamp] of recentImageOcrFallbacks) {
     if (now - timestamp > IMAGE_OCR_REPEAT_TTL_MS) recentImageOcrFallbacks.delete(userId);
   }
+  pruneOldestEntries(mediaGroupOcrFallbacks, MEDIA_GROUP_FALLBACK_MAX_ENTRIES);
+  pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
 }
 
 type OcrFallbackReply = "long" | "short" | "suppress";
@@ -266,7 +493,9 @@ function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbac
     const key = `${userId}:${mediaGroupId}`;
     const previous = mediaGroupOcrFallbacks.get(key);
     mediaGroupOcrFallbacks.set(key, now);
+    pruneOldestEntries(mediaGroupOcrFallbacks, MEDIA_GROUP_FALLBACK_MAX_ENTRIES);
     recentImageOcrFallbacks.set(userId, now);
+    pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
     return previous !== undefined && now - previous <= MEDIA_GROUP_FALLBACK_TTL_MS
       ? "suppress"
       : "long";
@@ -274,6 +503,7 @@ function nextOcrFallbackReply(userId: number, mediaGroupId?: string): OcrFallbac
 
   const previous = recentImageOcrFallbacks.get(userId);
   recentImageOcrFallbacks.set(userId, now);
+  pruneOldestEntries(recentImageOcrFallbacks, IMAGE_OCR_REPEAT_MAX_ENTRIES);
   return previous !== undefined && now - previous <= IMAGE_OCR_REPEAT_TTL_MS ? "short" : "long";
 }
 
@@ -284,6 +514,13 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
 
 function rateLimitedVoiceSttError(retryAfter: number): RateLimitedError {
   const error = new Error("voice_stt_rate_limited") as RateLimitedError;
+  error.status = 429;
+  error.retryAfter = retryAfter;
+  return error;
+}
+
+function rateLimitedCheckError(retryAfter: number): RateLimitedError {
+  const error = new Error("rate_limited") as RateLimitedError;
   error.status = 429;
   error.retryAfter = retryAfter;
   return error;
@@ -314,6 +551,16 @@ function buildVoiceUncertainKeyboard(lang: HandlerCtx["session"]["lang"]): Inlin
   ];
 }
 
+function buildVoiceNegatedDoneKeyboard(lang: HandlerCtx["session"]["lang"]): InlineKeyboard {
+  return [
+    [{ text: bt("voice_correct_button", lang), callback_data: CB.voiceCorrect }],
+    [
+      { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+    ],
+  ];
+}
+
 function estimateBase64DataUrlBytes(dataUrl: string): number {
   const comma = dataUrl.indexOf(",");
   if (comma < 0) return 0;
@@ -323,14 +570,99 @@ function estimateBase64DataUrlBytes(dataUrl: string): number {
 }
 
 function sanitizeVoiceTranscriptPreview(text: string): string {
-  return text
+  const sanitized = text
     .normalize("NFKC")
     .replace(/https?:\/\/\S+|www\.\S+/gi, "ссылка скрыта")
     .replace(/@[A-Za-z0-9_]{3,}/g, "аккаунт скрыт")
     .replace(/\b(?:\d[\s-]?){4,}\b/g, "номер скрыт")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+    .trim();
+
+  return trimTextPreviewAtWordBoundary(sanitized, VOICE_TRANSCRIPT_PREVIEW_CHARS);
+}
+
+function cleanAudioMetadataText(value: string | undefined): string | null {
+  const text = value
+    ?.normalize("NFKC")
+    .split(/[\\/]/)
+    .pop()
+    ?.replace(/\.(?:mp3|m4a|ogg|oga|opus|wav|webm|aac|flac)$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text || text.length < 8) return null;
+
+  const letters = text.match(/[a-zа-я]/gi)?.length ?? 0;
+  if (letters < 6) return null;
+  return text;
+}
+
+function trimTextPreviewAtWordBoundary(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const clipped = text.slice(0, maxChars - 1).trimEnd();
+  const wordBoundary = clipped.replace(/\s+\S*$/u, "").trimEnd();
+  const base = wordBoundary.length >= Math.floor(maxChars * 0.6) ? wordBoundary : clipped;
+  return `${base}…`;
+}
+
+const VOICE_HOOK_KEYWORD_RE =
+  /(sms|otp|код|code|verification|cvv|cvc|pin|apk|карта|картой|card|перевод|перевести|transfer|оплат|payment|pay|доставк|посылк|delivery|courier|qr|telegram|банк|bank|кошел|wallet|karta|to['’]?lov|o['’]?tkaz|pul|kod|havola|ilova)/i;
+
+function extractVoiceMetadataFallbackText(meta?: VoiceMeta): string | null {
+  const candidates = [meta?.caption, meta?.fileName]
+    .map(cleanAudioMetadataText)
+    .filter((value): value is string => Boolean(value));
+  return candidates.find((value) => VOICE_HOOK_KEYWORD_RE.test(value)) ?? null;
+}
+
+function trimVoiceHookPhrase(value: string): string {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  if (trimmed.length <= VOICE_HOOK_PREVIEW_CHARS) return trimmed;
+  return `${trimmed.slice(0, VOICE_HOOK_PREVIEW_CHARS - 3).trimEnd()}...`;
+}
+
+function extractVoiceHookPhrase(transcript: string): string | null {
+  const preview = sanitizeVoiceTranscriptPreview(transcript);
+  if (!preview) return null;
+
+  const candidates = preview
+    .split(/(?:[.!?]\s+|[,;]\s+|\s+[–—-]\s+)/u)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 8);
+  const hook = candidates.find((part) => VOICE_HOOK_KEYWORD_RE.test(part)) ?? preview;
+  return trimVoiceHookPhrase(hook);
+}
+
+function buildVoiceHookExplanation(
+  transcript: string,
+  lang: HandlerCtx["session"]["lang"],
+): string | null {
+  const hook = extractVoiceHookPhrase(transcript);
+  if (!hook) return null;
+
+  if (lang === "uz") {
+    return `Ovozdan asosiy ibora: "${hook}". Men shu matnni odatiy xavf qoidalari bilan tekshirdim.`;
+  }
+  if (lang === "en") {
+    return `Key phrase from the voice note: "${hook}". I checked that text through the normal risk rules.`;
+  }
+  return `Ключевая фраза из голосового: «${hook}». Я проверил этот текст обычными правилами риска.`;
+}
+
+function withVoiceHookExplanation(
+  result: RunCheckResult,
+  transcript: string,
+  lang: HandlerCtx["session"]["lang"],
+): RunCheckResult {
+  if (result.reasons.length === 0) return result;
+
+  const hook = buildVoiceHookExplanation(transcript, lang);
+  if (!hook) return result;
+  return {
+    ...result,
+    explanation: result.explanation ? `${hook}\n${result.explanation}` : hook,
+  };
 }
 
 function buildVoiceTranscriptNote(
@@ -357,11 +689,25 @@ async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Pro
   });
 }
 
+async function sendVoiceMetadataFallbackNote(ctx: HandlerCtx, text: string): Promise<void> {
+  const preview = sanitizeVoiceTranscriptPreview(text);
+  if (!preview) return;
+  await replyText(
+    ctx.chatId,
+    bt("voice_metadata_fallback_note", ctx.session.lang, { text: preview }),
+    buildVoiceUncertainKeyboard(ctx.session.lang),
+  );
+}
+
 function normalizeVoiceIntentText(text: string): string {
   return text
     .normalize("NFKC")
     .toLowerCase()
     .replace(/ё/g, "е")
+    .replace(/[ўӯ]/g, "у")
+    .replace(/қ/g, "к")
+    .replace(/ғ/g, "г")
+    .replace(/ҳ/g, "х")
     .replace(/[‘’ʻʼ`´]/g, "'")
     .replace(/\s+/g, " ")
     .trim();
@@ -401,36 +747,168 @@ function isLowSignalVoiceTranscript(transcript: string): boolean {
   return meaningfulWords.length < VOICE_LOW_SIGNAL_MIN_MEANINGFUL_WORDS;
 }
 
+const NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
+const UZ_NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|ochmadim|och\s+madim|o'tkazmadim|o'tkaz\s+madim|otkazmadim|otkaz\s+madim|to'lamadim|to'la\s+madim|tolamadim|tola\s+madim|tasdiqlamadim|tasdiqla\s+madim|ruxsat\s+bermadim|ruxsat\s+ber\s+madim|skaner\s+qilmadim|scan\s+qilmadim|yubormayman|yubarmayman|jo'natmayman|jonatmayman|aytmayman|bermayman|kiritmayman|o'rnatmayman|ornatmayman|yuklamayman|ochmayman|o'tkazmayman|otkazmayman|to'lamayman|tolamayman|tasdiqlamayman|ruxsat\s+bermayman|skaner\s+qilmayman|scan\s+qilmayman)(?=\s|[.!?,;:]|$)/;
+const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
+const EN_NEGATED_VOICE_DONE_INTENT_RE =
+  /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
+
+function isNegatedVoiceDoneIntent(transcript: string): boolean {
+  const text = normalizeVoiceIntentText(transcript);
+  if (!text) return false;
+  return (
+    NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
+    UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
+    UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
+    EN_NEGATED_VOICE_DONE_INTENT_RE.test(text)
+  );
+}
+
+const UZ_REQUESTED_ACTION_VOICE_RE =
+  /(?:yuborish(?:imni|ni)|jo['’]?natish(?:imni|ni)|jonatish(?:imni|ni)|aytish(?:imni|ni)|berish(?:imni|ni)|kiritish(?:imni|ni)|o['’]?tkazish(?:imni|ni)|otkazish(?:imni|ni)|to['’]?lash(?:imni|ni)|tolash(?:imni|ni)).{0,70}(?:so['’]?ra|sora|talab)|(?:so['’]?ra|sora|talab).{0,100}(?:yuborish(?:imni|ni)|jo['’]?natish(?:imni|ni)|jonatish(?:imni|ni)|aytish(?:imni|ni)|berish(?:imni|ni)|kiritish(?:imni|ni)|o['’]?tkazish(?:imni|ni)|otkazish(?:imni|ni)|to['’]?lash(?:imni|ni)|tolash(?:imni|ni))/;
+const UZ_EXPLICIT_DONE_VOICE_RE =
+  /(?:^|\s)(?:men|biz)\s+.{0,50}(?:yub[oa]rdim|jo['’]?natdim|jonatdim|aytdim|berdim|kiritdim|o['’]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['’]?tkazdim|otkazdim|to['’]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)(?=\s|[.!?,;:]|$)/;
+
+function isRequestedActionVoiceText(text: string): boolean {
+  return UZ_REQUESTED_ACTION_VOICE_RE.test(text) && !UZ_EXPLICIT_DONE_VOICE_RE.test(text);
+}
+
 function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return null;
+  if (isNegatedVoiceDoneIntent(text)) return null;
+  const requestedAction = isRequestedActionVoiceText(text);
+  if (requestedAction) {
+    if (
+      /(?:hozir|xozir).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call)/.test(text) ||
+      /(?:menga|bizga).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,80}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
+        text,
+      ) ||
+      /(?:хозир|xozir).{0,80}(кунгирок|телефон|звон|call)/.test(text) ||
+      /(?:менга|бизга).{0,80}(кунгирок|телефон|звон|call).{0,80}(киляп|килиш|килди|килган|килмокда|кел)/.test(
+        text,
+      )
+    ) {
+      return 6;
+    }
+    return null;
+  }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?).{0,60}(смс|sms|otp|код|code)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
       text,
     ) ||
-    /(?:смс|sms|otp|код|code).{0,60}(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?)/.test(
+    /(?:cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?)/.test(
       text,
     ) ||
-    /(?:^|\s)(men|biz).{0,40}(yubor|jo'nat|jonat|ayt|ber|kirit).{0,60}(sms|kod|code|otp)/.test(
+    /(?:kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam).{0,80}(ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat)/.test(
       text,
     ) ||
-    /(?:sms|kod|code|otp).{0,60}(yubor|jo'nat|jonat|ayt|ber|kirit)/.test(text)
+    /(?:ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat).{0,80}(kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam)/.test(
+      text,
+    ) ||
+    /(?:карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам).{0,80}(айт|бер|юбор|жунат|курсат|кирит)/.test(
+      text,
+    ) ||
+    /(?:айт|бер|юбор|жунат|курсат|кирит).{0,80}(карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed).{0,80}(?:cvv|cvc|pin|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password)/.test(
+      text,
+    ) ||
+    /(?:cvv|cvc|pin|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password).{0,80}(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed)/.test(
+      text,
+    )
+  ) {
+    return 4;
+  }
+
+  if (
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:scanned|scan|confirmed|approved|allowed|linked|entered|typed).{0,80}(?:telegram|tg).{0,80}(?:qr|login|log\s+in|device|code)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:scanned|scan|confirmed|approved|allowed|linked|entered|typed).{0,80}(?:qr|login|log\s+in|device|code).{0,80}(?:telegram|tg)/.test(
+      text,
+    ) ||
+    /(?:telegram|tg).{0,80}(?:qr|login|log\s+in|device|code).{0,80}(?:scanned|scan|confirmed|approved|allowed|linked|entered|typed)/.test(
+      text,
+    ) ||
+    /(?:telegram|tg|телеграм).{0,80}(?:qr|куар|код|логин|кириш|устройств).{0,80}(?:сканер|scan|тасдик|улаш|богла|кирит|рухсат)/.test(
+      text,
+    ) ||
+    /(?:сканер|scan|тасдик|улаш|богла|кирит|рухсат).{0,80}(?:telegram|tg|телеграм).{0,80}(?:qr|куар|код|логин|кириш|устройств)/.test(
+      text,
+    )
+  ) {
+    return 5;
+  }
+
+  if (
+    /(?:ilova|programma|app|apk|anydesk|teamviewer|rustdesk).{0,100}(?:smsga|sms|xabarnoma|bildirishnoma|ekran|ruxsat)/.test(
+      text,
+    ) ||
+    /(?:smsga|sms|xabarnoma|bildirishnoma|ekran).{0,80}ruxsat\s+ber/.test(text) ||
+    /ruxsat\s+ber.{0,80}(?:smsga|sms|xabarnoma|bildirishnoma|ekran)/.test(text)
+  ) {
+    return 2;
+  }
+
+  if (
+    /(?:^|\s)(я|мы)\s+(?:уже\s+|только\s+что\s+|недавно\s+)?(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|скинул[аи]?|дал[аи]?).{0,60}(смс|sms|otp|код|code|цифр[аы]?)/.test(
+      text,
+    ) ||
+    /(?:смс|sms|otp|код|code|цифр[аы]?).{0,60}(отправил[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|скинул[аи]?)/.test(
+      text,
+    ) ||
+    /^(?:уже\s+)?(?:отправил|сообщил|назвал|сказал|передал|продиктовал|скинул|дал)[аи]?\s+(?:им\s+|ему\s+|ей\s+)?.{0,30}(?:смс|sms|otp|код|code)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(men|biz).{0,40}(yub[oa]r(?!\s*ma)|jo'nat(?!\s*ma)|jonat(?!\s*ma)|ayt(?!\s*ma)|ber(?!\s*ma)|kirit(?!\s*ma)).{0,60}(sms|kod|code|otp)/.test(
+      text,
+    ) ||
+    /(?:sms|kod|code|otp).{0,60}(yub[oa]r(?!\s*ma)|jo'nat(?!\s*ma)|jonat(?!\s*ma)|ayt(?!\s*ma)|ber(?!\s*ma)|kirit(?!\s*ma))/.test(
+      text,
+    ) ||
+    /(?:^|\s)(мен|биз).{0,40}(юбор|жунат|айт|бер|кирит).{0,60}(sms|смс|kod|код|code|otp)/.test(
+      text,
+    ) ||
+    /(?:sms|смс|kod|код|code|otp).{0,60}(юбор|жунат|айт|бер|кирит)/.test(text) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|entered|typed|confirmed).{0,60}(?:sms|otp|verification|login)?\s*(?:code|number|digits)/.test(
+      text,
+    ) ||
+    /(?:sms|otp|verification|login).{0,30}(?:code|number|digits).{0,60}(?:sent|shared|gave|given|told|read|entered|typed|confirmed)/.test(
+      text,
+    )
   ) {
     return 1;
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(установил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?).{0,80}(apk|апк|приложени[ея])/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|разрешил[аи]?|включил[аи]?|дал[аи]?).{0,80}(apk|апк|приложени[ея]|anydesk|teamviewer|rustdesk|удаленн(?:ый|ого)\s+доступ|доступ\s+к\s+(?:экрану|телефон[у]?|устройств[у]?|sms|смс|уведомлени)|спец\.?\s*возможност|специальн(?:ые|ых)\s+возможност)/.test(
       text,
     ) ||
-    /(?:apk|апк|приложени[ея]).{0,80}(доступ к sms|доступ к смс|уведомлени|спец\.? возможност|accessibility)/.test(
+    /(?:apk|апк|приложени[ея]|anydesk|teamviewer|rustdesk).{0,80}(доступ к sms|доступ к смс|доступ к экрану|уведомлени|спец\.?\s*возможност|специальн(?:ые|ых)\s+возможност|accessibility|удаленн(?:ый|ого)\s+доступ)/.test(
       text,
     ) ||
-    /(?:^|\s)(men|biz).{0,40}(o'rnat|ornat|yukla|skachat|och|ishga tushir).{0,80}(apk|ilova|programma|app)/.test(
+    /(?:^|\s)(men|biz).{0,40}(o'rnat|ornat|yukla|skachat|och|ishga tushir|ruxsat ber).{0,80}(apk|ilova|programma|app|anydesk|teamviewer|rustdesk|masofaviy|ekran)/.test(
       text,
     ) ||
-    /(?:apk|ilova|programma|app).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma)/.test(
+    /(?:apk|ilova|programma|app|anydesk|teamviewer|rustdesk|masofaviy|ekran).{0,80}(o'rnat|ornat|yukla|skachat|och|smsga ruxsat|xabarnoma|ruxsat ber)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(мен|биз).{0,40}(урнат|юкла|скач|оч|ишга\s+тушир|рухсат\s+бер).{0,80}(apk|апк|илова|программа|app|anydesk|teamviewer|rustdesk|масофавий|экран)/.test(
+      text,
+    ) ||
+    /(?:apk|апк|илова|программа|app|anydesk|teamviewer|rustdesk|масофавий|экран).{0,80}(урнат|юкла|скач|оч|smsга\s+рухсат|хабарнома|рухсат\s+бер)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:installed|downloaded|opened|started|allowed|enabled|gave).{0,80}(?:apk|anydesk|teamviewer|rustdesk|remote\s+access|screen\s+access|access\s+to\s+(?:my\s+)?screen|accessibility|special\s+permissions|unknown\s+app|app\s+from\s+(?:a\s+)?link)/.test(
+      text,
+    ) ||
+    /(?:apk|anydesk|teamviewer|rustdesk|remote\s+access|screen\s+access|access\s+to\s+(?:my\s+)?screen|accessibility|special\s+permissions|unknown\s+app|app\s+from\s+(?:a\s+)?link).{0,80}(?:installed|downloaded|opened|started|allowed|enabled|gave)/.test(
       text,
     )
   ) {
@@ -438,10 +916,10 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(деньг|перевод|сум|сумов|uzs|кар[тд]|баланс)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?).{0,80}(ден[ьи]?г|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс)/.test(
       text,
     ) ||
-    /(?:деньг|перевод|сум|сумов|uzs|кар[тд]|баланс).{0,80}(перевел[аи]?|перевёл[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
+    /(?:ден[ьи]?г|перевод|сум|сумов|uzs|кар[тд]|баланс|комисс).{0,80}(перевел[аи]?|перевёл[аи]?|сделал[аи]?|отправил[аи]?|скинул[аи]?|оплатил[аи]?|пополнил[аи]?)/.test(
       text,
     ) ||
     /(?:pul|sum|som|uzs|karta|balans).{0,80}(yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad)/.test(
@@ -449,17 +927,33 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
     ) ||
     /(?:yubor|jo'nat|jonat|o'tkaz|otkaz|to'la|tola|tolad|to'lad).{0,80}(pul|sum|som|uzs|karta|balans)/.test(
       text,
+    ) ||
+    /(?:пул|сум|som|uzs|карта|баланс).{0,80}(юбор|жунат|утказ|тола|тула|оплат|попол)/.test(text) ||
+    /(?:юбор|жунат|утказ|тола|тула|оплат|попол).{0,80}(пул|сум|som|uzs|карта|баланс)/.test(text) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:transferred|sent|paid|topped\s+up).{0,80}(?:money|transfer|sum|uzs|card|account|balance|wallet|phone\s+number|their\s+number)/.test(
+      text,
+    ) ||
+    /(?:money|transfer|sum|uzs|card|account|balance|wallet|phone\s+number|their\s+number).{0,80}(?:transferred|sent|paid|topped\s+up)/.test(
+      text,
     )
   ) {
     return 3;
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
       text,
     ) ||
     /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(text) ||
-    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(text)
+    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(text) ||
+    /(?:карта|card|cvv|cvc|pin|пин).{0,80}(кирит|бер|айт|юбор|жунат)/.test(text) ||
+    /(?:кирит|бер|айт|юбор|жунат).{0,80}(карта|card|cvv|cvc|pin|пин)/.test(text) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:entered|typed|gave|given|shared|sent).{0,80}(?:card|card\s+number|card\s+details|cvv|cvc|pin|expiry|expiration)/.test(
+      text,
+    ) ||
+    /(?:card|card\s+number|card\s+details|cvv|cvc|pin|expiry|expiration).{0,80}(?:entered|typed|gave|given|shared|sent)/.test(
+      text,
+    )
   ) {
     return 4;
   }
@@ -469,17 +963,56 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
       text,
     ) ||
     /(?:не могу|не получается).{0,40}(зайти|войти).{0,60}(telegram|телеграм)/.test(text) ||
-    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(text)
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|разрешил[аи]?).{0,80}(qr|куар|код).{0,80}(telegram|телеграм|вход|устройств)/.test(
+      text,
+    ) ||
+    /(?:telegram|телеграм).{0,80}(qr|куар|код).{0,80}(отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|разрешил[аи]?)/.test(
+      text,
+    ) ||
+    /(?:telegram|akkaunt|account).{0,80}(kira olmay|yo'qot|yoqot|o'g'ir|ogir|vzlom|hack)/.test(
+      text,
+    ) ||
+    /(?:telegram).{0,80}(qr|kod).{0,80}(skaner|scan|tasdiq|ulash|bog'la|bogla)/.test(text) ||
+    /(?:skaner|scan|tasdiq|ulash|bog'la|bogla).{0,80}(telegram).{0,80}(qr|kod)/.test(text) ||
+    /(?:telegram|телеграм).{0,80}(qr|куар|код).{0,80}(сканер|scan|тасдик|улаш|богла)/.test(text) ||
+    /(?:сканер|scan|тасдик|улаш|богла).{0,80}(telegram|телеграм).{0,80}(qr|куар|код)/.test(text) ||
+    /(?:lost|stolen|hacked|taken\s+over|can't\s+log\s+in|cannot\s+log\s+in|can\s+not\s+log\s+in).{0,80}(?:telegram|tg|account)/.test(
+      text,
+    ) ||
+    /(?:telegram|tg|account).{0,80}(?:lost|stolen|hacked|taken\s+over|can't\s+log\s+in|cannot\s+log\s+in|can\s+not\s+log\s+in)/.test(
+      text,
+    )
   ) {
     return 5;
   }
 
   if (
-    /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(ят|ит)/.test(text) ||
+    /(?:^|\s)(мне|нам)\s+(сейчас\s+)?звон(?:ят|ит(?!ь))/.test(text) ||
     /(?:^|\s)(я|мы)\s+(сейчас\s+)?на звонке/.test(text) ||
+    /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,80}(?:из\s+)?(?:банк|банка|налогов|полици|милици|мвд|прокуратур|суд|кадастр|госорган|оператор|связи)/.test(
+      text,
+    ) ||
+    /(?:банк|банка|налогов|полици|милици|мвд|прокуратур|суд|кадастр|госорган|оператор|связи).{0,80}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(
+      text,
+    ) ||
+    /(?:^|\s)звон(?:ит(?!ь)|ят|ил[аи]?).{0,50}(?:мошен|скам|обман|развод|фишинг)/.test(text) ||
+    /(?:^|\s)(?:мошен|скам|обман|развод|фишинг).{0,50}звон(?:ит(?!ь)|ят|ил[аи]?)/.test(text) ||
     /не кладите трубку/.test(text) ||
-    /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|zvon|call)/.test(text) ||
-    /(?:menga|bizga).{0,50}(qo'ng'iroq|qongiroq|zvon|call).{0,50}(qilyap|qilish|kel)/.test(text)
+    /(?:hozir|xozir).{0,50}(qo'ng'iroq|qongiroq|telefon|zvon|call)/.test(text) ||
+    /(?:menga|bizga).{0,80}(qo'ng'iroq|qongiroq|telefon|zvon|call).{0,80}(qilyap|qilish|qildi|qilgan|qilmoqda|kel)/.test(
+      text,
+    ) ||
+    /(?:хозир|xozir).{0,50}(кунгирок|телефон|звон|call)/.test(text) ||
+    /(?:менга|бизга).{0,80}(кунгирок|телефон|звон|call).{0,80}(киляп|килиш|килди|килган|килмокда|кел)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?(?:on|in)\s+(?:a\s+)?(?:phone\s+)?(?:call|line)|(?:^|\s)(?:i|we)(?:'m| am|'re| are)?\s+(?:still\s+)?on\s+the\s+phone/.test(
+      text,
+    ) ||
+    /(?:they|someone|the\s+caller|bank\s+caller).{0,40}(?:is|are|keeps?\s+)?(?:calling|on\s+the\s+phone|on\s+the\s+line)/.test(
+      text,
+    ) ||
+    /(?:do\s+not|don't).{0,30}(?:hang\s+up|end\s+the\s+call)/.test(text)
   ) {
     return 6;
   }
@@ -487,16 +1020,121 @@ function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   return null;
 }
 
-async function sendVoicePanicRoute(ctx: HandlerCtx, panicId: PanicScenarioId): Promise<void> {
+const QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE =
+  /(?:переслал|переслали|перешл|forward|forwarded|цитат|quote|скрин|screenshot|сообщени[ея]|message|xabar|он|она|они|мошенник|человек|клиент|пользователь|пострадавш|родственник|мама|папа|друг|they|he|she|someone|scammer|caller|user|client|victim|u\s+kishi).{0,80}(?:напис|пишет|сказ|говорит|сообщ|прислал|said|told|sent|wrote|yozdi|aytdi)/;
+
+function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
+  const normalized = normalizeVoiceIntentText(text);
+  const firstPersonIndex = normalized.search(/(?:^|\s)(?:я|мы|men|biz|i|we)\s+/);
+  if (firstPersonIndex <= 0) return false;
+  const prefix = normalized.slice(0, firstPersonIndex);
+  return QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE.test(prefix);
+}
+
+const TEXT_PANIC_DONE_INTENT_RE =
+  /(?:^|\s)(?:(?:\u044f|\u043c\u044b)\s+(?:\u0443\u0436\u0435\s+)?.{0,50}(?:\u043e\u0442\u043f\u0440\u0430\u0432|\u0441\u043e\u043e\u0431\u0449|\u043d\u0430\u0437\u0432\u0430|\u0441\u043a\u0430\u0437\u0430|\u043f\u0435\u0440\u0435\u0434\u0430|\u043f\u0440\u043e\u0434\u0438\u043a\u0442|\u0443\u0441\u0442\u0430\u043d\u043e\u0432|\u0441\u043a\u0430\u0447|\u0437\u0430\u043f\u0443\u0441\u0442|\u043e\u0442\u043a\u0440|\u0440\u0430\u0437\u0440\u0435\u0448|\u0432\u043a\u043b\u044e\u0447|\u0434\u0430\u043b|\u0441\u0434\u0435\u043b\u0430|\u043f\u0435\u0440\u0435\u0432|\u043e\u043f\u043b\u0430\u0442|\u043f\u043e\u043f\u043e\u043b\u043d|\u0432\u0432\u0435|\u0432\u0432\u0451|\u0432\u0431\u0438|\u0443\u043a\u0430\u0437|\u0441\u043a\u0430\u043d|\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434)|(?:men|biz).{0,50}(?:yub[oa]rdim|jo['\u2019]?natdim|jonatdim|aytdim|berdim|kiritdim|o['\u2019]?rnatdim|ornatdim|yukladim|ochdim|ruxsat berdim|o['\u2019]?tkazdim|otkazdim|to['\u2019]?ladim|toladim|skaner qildim|scan qildim|tasdiqladim)|(?:мен|биз).{0,50}(?:юбордим|жунатдим|айтдим|бердим|киритдим|урнатдим|юкладим|очдим|рухсат бердим|утказдим|толадим|сканер килдим|scan килдим|тасдикладим)|(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|dictated|entered|typed|confirmed|approved|installed|downloaded|opened|started|allowed|enabled|transferred|paid|topped\s+up|scanned))/i;
+
+// First-person "already done" phrasings that omit an explicit subject. The
+// Uzbek -dim suffix is first person by itself, and Russian victims often drop
+// «я» («отправил код»). Anchored/whole-word so forwarded scam imperatives
+// («отправьте код», «yuboring») do not pass the done-intent gate.
+const TEXT_PANIC_DONE_INTENT_BARE_RE =
+  /(?:^|[\s,.;:!?])(?:yub[oa]rdim|jo['’]?natdim|jonatdim|aytdim|berdim|kiritdim|o['’]?rnatdim|ornatdim|yukladim|ochdim|ruxsat\s+berdim|o['’]?tkazdim|otkazdim|to['’]?ladim|toladim|skaner\s+qildim|scan\s+qildim|tasdiqladim|юбордим|жунатдим|айтдим|бердим|киритдим|урнатдим|юкладим|очдим|рухсат\s+бердим|утказдим|толадим|тасдикладим)(?=$|[\s,.;:!?])|^(?:уже\s+)?(?:отправил|сообщил|назвал|сказал|передал|продиктовал|скинул|дал)[аи]?\s/i;
+
+function classifyLiveCallContext(text: string | undefined): LiveCallContext {
+  const normalized = normalizeVoiceIntentText(text ?? "");
+  if (!normalized) return "generic";
+
+  if (
+    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona(?:m|ngiz)?|ota(?:m|ngiz)?|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one).{0,180}(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|zudlik|muammo|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card)|(?:сроч|деньг|перевод|помощ|авар|машин|больниц|операци|лечение|код|карта|shoshil|zudlik|muammo|pul|o['’]?tkaz|yordam|avariya|mashina|kasalxona|kod|karta|urgent|money|transfer|help|accident|car|hospital|code|card).{0,180}(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|брат|сестр|внук|внуч|друг|подруг|ona(?:m|ngiz)?|ota(?:m|ngiz)?|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|qarindosh|yaqin|mother|father|mom|dad|sister|brother|grandma|grandpa|relative|friend|loved\s+one)/iu.test(
+      normalized,
+    )
+  ) {
+    return "relative";
+  }
+
+  if (
+    /(?:налогов|налог|фнс|солик|солиқ|soliq|one\s?id|oneid|my\.gov|id\.gov|gov\.uz|госуслуг|госорган|давлат|pinfl|пинфл|jshshir|полици|милици|мвд|ииб|iib|прокуратур|prokuratura|суд|court|sud|кадастр|kadastr|нотариус|notary|юрист|lawyer|коллектор|tax|government|police|prosecutor)/iu.test(
+      normalized,
+    )
+  ) {
+    return "government";
+  }
+
+  if (
+    /(?:оператор|связи|сим|sim|билайн|beeline|ucell|юселл|мобиуз|mobiuz|uzmobile|узмобайл|uztelecom|узтелеком|telecom|operator|aloqa|raqamni\s+ko['’]?chir|nomer)/iu.test(
+      normalized,
+    )
+  ) {
+    return "operator";
+  }
+
+  if (
+    /(?:банк|bank|карта|karta|card|humo|uzcard|kapitalbank|uzum|anorbank|hamkor|ипотека\s*банк|нацбанк|нбу|central\s+bank|марказий\s+банк)/iu.test(
+      normalized,
+    )
+  ) {
+    return "bank";
+  }
+
+  return "generic";
+}
+
+function classifyTextPanicIntent(
+  text: string,
+  source?: TelegramForwardSourceContext,
+): PanicScenarioId | null {
+  if (source) return null;
+  const direct = classifyGatedTextPanicIntent(text);
+  if (direct !== null) return direct;
+  // Latin-keyboard fallback: «ya perevel dengi», «vzlomali telegram».
+  const translit = transliterateRuLatin(normalizeVoiceIntentText(text));
+  return translit === null ? null : classifyGatedTextPanicIntent(translit);
+}
+
+function classifyGatedTextPanicIntent(text: string): PanicScenarioId | null {
+  if (isQuotedOrThirdPartyDoneIntent(text)) return null;
+  const normalized = normalizeVoiceIntentText(text);
+  const panicId = classifyVoicePanicIntent(text);
+  if (panicId === null) return null;
+  if (panicId === 6) return panicId;
+  if (
+    panicId === 5 &&
+    /(?:потерял[аи]?|украли|взломали|угнали|забрали|не\s+могу|не\s+получается).{0,80}(?:telegram|телеграм|аккаунт)/.test(
+      normalized,
+    )
+  ) {
+    return panicId;
+  }
+  return TEXT_PANIC_DONE_INTENT_RE.test(normalized) ||
+    TEXT_PANIC_DONE_INTENT_BARE_RE.test(normalized)
+    ? panicId
+    : null;
+}
+
+async function sendPanicRoute(
+  ctx: HandlerCtx,
+  panicId: PanicScenarioId,
+  triggerText?: string,
+): Promise<void> {
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const liveCallContext = panicId === 6 ? classifyLiveCallContext(triggerText) : undefined;
+  const nextScenarioData = withPanicContextData(previousScenarioData, panicId);
+  if (liveCallContext !== undefined) {
+    nextScenarioData.lastLiveCallContext = liveCallContext;
+  }
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withPanicContextData(previousScenarioData, panicId),
+    scenarioData: withSessionChatScope(nextScenarioData, ctx.chatId, ctx.chatType),
   });
   await sendMessage({
     chatId: ctx.chatId,
-    text: escapeMarkdownV2(buildPanicScenarioText(panicId, ctx.session.lang)),
+    text: escapeMarkdownV2(
+      liveCallContext === undefined
+        ? buildPanicScenarioText(panicId, ctx.session.lang)
+        : buildPanicScenarioText(panicId, ctx.session.lang, { liveCallContext }),
+    ),
     keyboard: buildEmergencyFollowUpKeyboard(ctx.session.lang, panicId),
   });
 }
@@ -534,6 +1172,23 @@ function shouldAutoSendGuardianIntro(result: RunCheckResult): boolean {
   return !isQrFocusedResult(result);
 }
 
+async function maybeAutoNotifyTrustedContact(
+  ctx: HandlerCtx,
+  guardian: ReturnType<typeof buildGuardianAngelSnapshot>,
+): Promise<void> {
+  if (!guardian || ctx.chatType !== "private") return;
+
+  const result = await notifyTrustedContact({
+    guardianTelegramUserId: ctx.userId,
+    lang: ctx.session.lang,
+    guardianDisplayName: ctx.displayName,
+    cooldownMs: PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS,
+  });
+
+  if (result.ok || result.reason === "not_linked" || result.reason === "cooldown") return;
+  console.error("family shield proactive notify failed", result.reason);
+}
+
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
@@ -545,11 +1200,15 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: {
-      ...previousScenarioData,
-      lastCheck,
-      ...(guardian ? { guardian } : {}),
-    },
+    scenarioData: withSessionChatScope(
+      {
+        ...previousScenarioData,
+        lastCheck,
+        ...(guardian ? { guardian } : {}),
+      },
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 
   if (guardian && shouldAutoSendGuardianIntro(result)) {
@@ -559,6 +1218,25 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
       keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian),
     });
   }
+
+  await maybeAutoNotifyTrustedContact(ctx, guardian);
+}
+
+function addImageMediaContextToExplanation(
+  explanation: string,
+  mediaKind: ImageRouteMediaKind | undefined,
+  lang: HandlerCtx["session"]["lang"],
+): string {
+  if (mediaKind !== "video_thumbnail") return explanation;
+
+  const note =
+    lang === "uz"
+      ? "Men videoning faqat preview-kadrini tekshirdim, butun rolikni emas. Muhim ma'lumot nutq, tavsif yoki tugmada bo'lsa, uni alohida yuboring."
+      : lang === "en"
+        ? "I checked only the video preview frame, not the full clip. If the important part was in speech, description, or a button, send it separately."
+        : "Я проверил только кадр-превью видео, не весь ролик. Если важная информация была в речи, описании или кнопке — пришлите её отдельно.";
+
+  return `${note}\n\n${explanation}`;
 }
 
 async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Promise<void> {
@@ -574,10 +1252,14 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: {
-      ...previousScenarioData,
-      lastCheck: buildImageUnreadableSnapshot(),
-    },
+    scenarioData: withSessionChatScope(
+      {
+        ...previousScenarioData,
+        lastCheck: buildImageUnreadableSnapshot(),
+      },
+      ctx.chatId,
+      ctx.chatType,
+    ),
   });
 }
 
@@ -615,6 +1297,26 @@ async function withTypingIndicator<T>(
  * (R10.2), любая другая ошибка → лог без Sensitive_Data + общая подсказка
  * (R11.3). Никогда не оставляет запрос без ответа.
  */
+async function withDeferredCheckStatus<T>(
+  ctx: HandlerCtx,
+  work: () => Promise<T>,
+  options: { shouldSend?: () => boolean } = {},
+): Promise<T> {
+  let finished = false;
+  const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+    if (!finished && (options.shouldSend?.() ?? true)) {
+      void replyText(ctx.chatId, bt("check_processing", ctx.session.lang)).catch(() => undefined);
+    }
+  }, CHECK_PROCESSING_DELAY_MS);
+
+  try {
+    return await work();
+  } finally {
+    finished = true;
+    clearTimeout(timer);
+  }
+}
+
 async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>): Promise<void> {
   try {
     await work();
@@ -658,15 +1360,53 @@ export async function handleCheck(
     return;
   }
 
+  const victimIntent = source ? null : classifyVictimIntent(trimmed);
+  if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+    });
+    return;
+  }
+
+  const textPanicId = classifyTextPanicIntent(trimmed, source);
+  if (textPanicId !== null) {
+    await sendPanicRoute(ctx, textPanicId, trimmed);
+    return;
+  }
+
+  if (
+    victimIntent !== null &&
+    hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&
+    shouldVictimIntentOverrideFollowUps(victimIntent)
+  ) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+    });
+    return;
+  }
+
   const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
+    const liveCallContext =
+      emergencyFollowUp.panicId === 6
+        ? asLiveCallContext(ctx.session.scenarioData.lastLiveCallContext)
+        : null;
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(
-        buildEmergencyFollowUpText(emergencyFollowUp.action, emergencyFollowUp.panicId, lang),
+        buildEmergencyFollowUpText(
+          emergencyFollowUp.action,
+          emergencyFollowUp.panicId,
+          lang,
+          liveCallContext === null ? {} : { liveCallContext },
+        ),
       ),
       keyboard: buildEmergencyFollowUpKeyboard(lang, emergencyFollowUp.panicId, {
-        includeVoice: true,
+        includeVoice: false,
         voiceAction: emergencyFollowUp.action,
       }),
     });
@@ -681,6 +1421,18 @@ export async function handleCheck(
         buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
       ),
       keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
+    });
+    return;
+  }
+
+  const emergencyAcknowledgement = classifyAcknowledgementFollowUp(trimmed);
+  if (
+    emergencyAcknowledgement !== null &&
+    hasRecentEmergencyContext(ctx.session.scenarioData ?? {})
+  ) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildAcknowledgementFollowUpText(lang)),
     });
     return;
   }
@@ -705,52 +1457,108 @@ export async function handleCheck(
     return;
   }
 
-  await guarded(ctx, "handleCheck", async () => {
-    const rateLimitKey = rateLimitKeyFor(ctx.userId);
-    const publicPostStartedAt = Date.now();
-    const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(trimmed, rateLimitKey);
-    logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
-      hasEvidence: publicPostEvidence !== null,
+  if (victimIntent !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
+    return;
+  }
 
-    const checkStartedAt = Date.now();
-    const result = await withTypingIndicator(ctx.chatId, async () => {
-      const checked = await runCheck({
-        input: publicPostEvidence?.checkInput ?? trimmed,
-        type: publicPostEvidence ? "text" : undefined,
-        lang,
-        rateLimitKey,
-        channel: CHANNEL,
-        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-      });
-      logTelegramTiming("check.run_check", checkStartedAt, {
-        type: checked.type,
-        level: checked.level,
-        reasonCount: checked.reasons.length,
-        hasPublicPostEvidence: publicPostEvidence !== null,
-      });
-      return checked;
-    });
-    const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
-    const enrichmentStartedAt = Date.now();
-    const enrichedMetadata = publicPostEvidence
-      ? postResult
-      : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
-    const enriched = publicPostEvidence
-      ? enrichedMetadata
-      : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
-    logTelegramTiming("check.enrichment", enrichmentStartedAt, {
-      publicPostEvidence: publicPostEvidence !== null,
-      level: enriched.level,
-      reasonCount: enriched.reasons.length,
-    });
-    await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
-    logTelegramTiming("check.total", startedAt, {
-      type: enriched.type,
-      level: enriched.level,
-      reasonCount: enriched.reasons.length,
-      publicPostEvidence: publicPostEvidence !== null,
-    });
+  await guarded(ctx, "handleCheck", async () => {
+    let suppressDeferredCheckStatus = false;
+    await withDeferredCheckStatus(
+      ctx,
+      async () => {
+        const rateLimitKey = rateLimitKeyFor(ctx.userId);
+        const publicPostStartedAt = Date.now();
+        const publicPostEvidence = await buildTelegramPublicPostCheckEvidence(
+          trimmed,
+          rateLimitKey,
+        );
+        logTelegramTiming("check.public_post_evidence", publicPostStartedAt, {
+          hasEvidence: publicPostEvidence !== null,
+        });
+
+        const checkInput = publicPostEvidence?.checkInput ?? trimmed;
+        const checkType = publicPostEvidence ? "text" : undefined;
+        const cacheKey = buildCheckResultCacheKey({
+          userId: ctx.userId,
+          lang,
+          input: checkInput,
+          type: checkType,
+          publicPost: publicPostEvidence !== null,
+        });
+        const cached = getCachedCheckResult(cacheKey);
+        if (cached) {
+          suppressDeferredCheckStatus = true;
+          await sendCheckResult(ctx, enrichForwardSourceContext(cached, source, lang));
+          logTelegramTiming("check.total", startedAt, {
+            type: cached.type,
+            level: cached.level,
+            reasonCount: cached.reasons.length,
+            publicPostEvidence: publicPostEvidence !== null,
+            cached: true,
+          });
+          return;
+        }
+
+        let checkWork = getInFlightCheckResult(cacheKey);
+        const reusedInFlight = checkWork !== null;
+        if (reusedInFlight) {
+          suppressDeferredCheckStatus = true;
+        }
+        if (!checkWork) {
+          checkWork = (async () => {
+            const checkStartedAt = Date.now();
+            const result = await runCheck({
+              input: checkInput,
+              type: checkType,
+              lang,
+              rateLimitKey,
+              channel: CHANNEL,
+              ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+            });
+            logTelegramTiming("check.run_check", checkStartedAt, {
+              type: result.type,
+              level: result.level,
+              reasonCount: result.reasons.length,
+              hasPublicPostEvidence: publicPostEvidence !== null,
+            });
+            const postResult = enrichTelegramPublicPostResult(result, publicPostEvidence, lang);
+            const enrichmentStartedAt = Date.now();
+            const enrichedMetadata = publicPostEvidence
+              ? postResult
+              : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+            const enriched = publicPostEvidence
+              ? enrichedMetadata
+              : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+            rememberCheckResult(cacheKey, enriched);
+            logTelegramTiming("check.enrichment", enrichmentStartedAt, {
+              publicPostEvidence: publicPostEvidence !== null,
+              level: enriched.level,
+              reasonCount: enriched.reasons.length,
+            });
+            return enriched;
+          })();
+          rememberInFlightCheckResult(cacheKey, checkWork);
+        }
+
+        const enriched = await withTypingIndicator(ctx.chatId, () => checkWork);
+        await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
+        logTelegramTiming("check.total", startedAt, {
+          type: enriched.type,
+          level: enriched.level,
+          reasonCount: enriched.reasons.length,
+          publicPostEvidence: publicPostEvidence !== null,
+          inFlight: reusedInFlight,
+        });
+      },
+      {
+        shouldSend: () => !suppressDeferredCheckStatus,
+      },
+    );
   });
 }
 
@@ -768,11 +1576,18 @@ export async function handleImage(
   ctx: HandlerCtx,
   mediaGroupId?: string,
   source?: TelegramForwardSourceContext,
+  mediaKind?: ImageRouteMediaKind,
 ): Promise<void> {
   const startedAt = Date.now();
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleImage", async () => {
+    const budgetStartedAt = Date.now();
+    await checkImageDownloadBudget(ctx.userId);
+    logTelegramTiming("image.download_budget", budgetStartedAt, {
+      mediaGroup: mediaGroupId !== undefined,
+    });
+
     // 1) Метаданные файла — позволяют отклонить превышение лимита ДО скачивания.
     const getFileStartedAt = Date.now();
     const meta = await getFile(fileId);
@@ -852,7 +1667,7 @@ export async function handleImage(
         rateLimitKey: rateLimitKeyFor(ctx.userId),
         channel: CHANNEL,
         skipAi: true,
-        safeIfNoReasons: isBenignImageContext(evidence),
+        safeIfNoReasons: isEvidenceBackedBenignImageContext(evidence),
       });
       logTelegramTiming("image.run_check", checkStartedAt, {
         type: result.type,
@@ -863,7 +1678,11 @@ export async function handleImage(
         kind: "ok" as const,
         result: {
           ...result,
-          explanation: buildImageUserExplanation(evidence, result.level, lang),
+          explanation: addImageMediaContextToExplanation(
+            buildImageUserExplanation(evidence, result.level, lang),
+            mediaKind,
+            lang,
+          ),
         },
       };
     });
@@ -883,10 +1702,121 @@ export async function handleImage(
   });
 }
 
+async function handleResolvedVoiceTranscript(
+  ctx: HandlerCtx,
+  transcriptText: string,
+  startedAt: number,
+  meta: VoiceMeta | undefined,
+  source: "cached" | "in_flight" | "metadata_fallback",
+): Promise<void> {
+  const lang = ctx.session.lang;
+  const metadataFallback = source === "metadata_fallback";
+
+  if (metadataFallback) {
+    await sendVoiceMetadataFallbackNote(ctx, transcriptText);
+  } else {
+    await sendVoiceTranscriptNote(ctx, transcriptText);
+  }
+  if (isLowSignalVoiceTranscript(transcriptText)) {
+    await replyText(
+      ctx.chatId,
+      bt("voice_transcript_uncertain", lang),
+      buildVoiceUncertainKeyboard(lang),
+    );
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      metadataFallback,
+      lowSignal: true,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
+  if (isNegatedVoiceDoneIntent(transcriptText)) {
+    await replyText(
+      ctx.chatId,
+      bt("voice_negated_done_ack", lang),
+      buildVoiceNegatedDoneKeyboard(lang),
+    );
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      metadataFallback,
+      negatedDoneAck: true,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
+  const panicId = classifyVoicePanicIntent(transcriptText);
+  if (panicId !== null) {
+    await sendPanicRoute(ctx, panicId, transcriptText);
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      metadataFallback,
+      routedToPanic: panicId,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
+
+  const checkStartedAt = Date.now();
+  const result = await runCheck({
+    input: transcriptText,
+    type: "text",
+    lang,
+    rateLimitKey: rateLimitKeyFor(ctx.userId),
+    channel: CHANNEL,
+    ...TELEGRAM_AI_EXPLANATION_OPTIONS,
+  });
+  logTelegramTiming("voice.run_check", checkStartedAt, {
+    cached: source === "cached",
+    inFlight: source === "in_flight",
+    metadataFallback,
+    type: result.type,
+    level: result.level,
+    reasonCount: result.reasons.length,
+  });
+  await sendCheckResult(ctx, withVoiceHookExplanation(result, transcriptText, lang));
+  logTelegramTiming("voice.total", startedAt, {
+    cached: source === "cached",
+    inFlight: source === "in_flight",
+    metadataFallback,
+    type: result.type,
+    level: result.level,
+    reasonCount: result.reasons.length,
+    transcriptChars: transcriptText.length,
+    durationSec: meta?.duration ?? null,
+  });
+}
+
+async function handleVoiceTranscriptionFailure(
+  ctx: HandlerCtx,
+  startedAt: number,
+  meta: VoiceMeta | undefined,
+): Promise<void> {
+  const fallbackText = extractVoiceMetadataFallbackText(meta);
+  if (fallbackText) {
+    await handleResolvedVoiceTranscript(ctx, fallbackText, startedAt, meta, "metadata_fallback");
+    return;
+  }
+
+  await replyText(
+    ctx.chatId,
+    bt("voice_transcription_failed", ctx.session.lang),
+    buildVoiceFallbackKeyboard(ctx.session.lang),
+  );
+}
+
 export async function handleVoice(
   fileId: string,
   ctx: HandlerCtx,
-  meta?: { fileSize?: number; duration?: number; mimeType?: string; fileUniqueId?: string },
+  meta?: VoiceMeta,
 ): Promise<void> {
   const startedAt = Date.now();
   const lang = ctx.session.lang;
@@ -908,56 +1838,30 @@ export async function handleVoice(
 
     const cachedTranscript = getCachedVoiceTranscript(ctx.userId, meta?.fileUniqueId);
     if (cachedTranscript) {
-      await sendVoiceTranscriptNote(ctx, cachedTranscript);
-      if (isLowSignalVoiceTranscript(cachedTranscript)) {
-        await replyText(
-          ctx.chatId,
-          bt("voice_transcript_uncertain", lang),
-          buildVoiceUncertainKeyboard(lang),
-        );
-        logTelegramTiming("voice.total", startedAt, {
-          cached: true,
-          lowSignal: true,
-          transcriptChars: cachedTranscript.length,
+      await handleResolvedVoiceTranscript(ctx, cachedTranscript, startedAt, meta, "cached");
+      return;
+    }
+
+    const inFlightTranscript = getInFlightVoiceTranscript(ctx.userId, meta?.fileUniqueId);
+    if (inFlightTranscript) {
+      await replyText(ctx.chatId, bt("voice_processing", lang));
+      const shared = await withTypingIndicator(ctx.chatId, () => inFlightTranscript, {
+        delayMs: 500,
+        repeatMs: 4000,
+      });
+      if (shared.kind === "failed") {
+        await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
+        return;
+      }
+      if (shared.kind === "too_large") {
+        await replyText(ctx.chatId, bt("voice_too_large", lang), buildVoiceFallbackKeyboard(lang));
+        logTelegramTiming("voice.reject", startedAt, {
+          reason: "shared_downloaded_size_limit",
           durationSec: meta?.duration ?? null,
         });
         return;
       }
-      const panicId = classifyVoicePanicIntent(cachedTranscript);
-      if (panicId !== null) {
-        await sendVoicePanicRoute(ctx, panicId);
-        logTelegramTiming("voice.total", startedAt, {
-          cached: true,
-          routedToPanic: panicId,
-          transcriptChars: cachedTranscript.length,
-          durationSec: meta?.duration ?? null,
-        });
-        return;
-      }
-      const checkStartedAt = Date.now();
-      const result = await runCheck({
-        input: cachedTranscript,
-        type: "text",
-        lang,
-        rateLimitKey: rateLimitKeyFor(ctx.userId),
-        channel: CHANNEL,
-        ...TELEGRAM_AI_EXPLANATION_OPTIONS,
-      });
-      logTelegramTiming("voice.run_check", checkStartedAt, {
-        cached: true,
-        type: result.type,
-        level: result.level,
-        reasonCount: result.reasons.length,
-      });
-      await sendCheckResult(ctx, result);
-      logTelegramTiming("voice.total", startedAt, {
-        cached: true,
-        type: result.type,
-        level: result.level,
-        reasonCount: result.reasons.length,
-        transcriptChars: cachedTranscript.length,
-        durationSec: meta?.duration ?? null,
-      });
+      await handleResolvedVoiceTranscript(ctx, shared.text, startedAt, meta, "in_flight");
       return;
     }
 
@@ -970,11 +1874,7 @@ export async function handleVoice(
       mimeType: meta?.mimeType ?? null,
     });
     if (!fileMeta) {
-      await replyText(
-        ctx.chatId,
-        bt("voice_transcription_failed", lang),
-        buildVoiceFallbackKeyboard(lang),
-      );
+      await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
       return;
     }
 
@@ -996,47 +1896,64 @@ export async function handleVoice(
     });
     await replyText(ctx.chatId, bt("voice_processing", lang));
 
+    const transcriptWork = (async (): Promise<VoiceTranscriptWorkResult> => {
+      const downloadStartedAt = Date.now();
+      const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
+      logTelegramTiming("voice.download", downloadStartedAt, {
+        ok: dataUrl !== null,
+        fileSizeBytes: fileSize,
+        durationSec: meta?.duration ?? null,
+      });
+      if (!dataUrl) return { kind: "failed" };
+      if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
+        return { kind: "too_large" };
+      }
+
+      const sttStartedAt = Date.now();
+      const transcript = await transcribeVoiceCore(
+        dataUrl,
+        lang,
+        rateLimitKeyFor(ctx.userId),
+        TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
+      );
+      logTelegramTiming("voice.transcribe", sttStartedAt, {
+        ok: Boolean(transcript.text),
+        transcriptChars: transcript.text?.length ?? 0,
+        durationSec: meta?.duration ?? null,
+      });
+      if (!transcript.text) return { kind: "failed" };
+      rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
+      return { kind: "ok", text: transcript.text };
+    })();
+    rememberInFlightVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcriptWork);
+
     const outcome = await withTypingIndicator(
       ctx.chatId,
       async () => {
-        const downloadStartedAt = Date.now();
-        const dataUrl = await downloadFileAsDataUrl(fileMeta.filePath);
-        logTelegramTiming("voice.download", downloadStartedAt, {
-          ok: dataUrl !== null,
-          fileSizeBytes: fileSize,
-          durationSec: meta?.duration ?? null,
-        });
-        if (!dataUrl) return { kind: "failed" as const };
-        if (estimateBase64DataUrlBytes(dataUrl) > MAX_VOICE_BYTES) {
-          return { kind: "too_large" as const };
-        }
+        const transcriptOutcome = await transcriptWork;
+        if (transcriptOutcome.kind !== "ok") return transcriptOutcome;
 
-        const sttStartedAt = Date.now();
-        const transcript = await transcribeVoiceCore(
-          dataUrl,
-          lang,
-          rateLimitKeyFor(ctx.userId),
-          TELEGRAM_VOICE_TRANSCRIBE_OPTIONS,
-        );
-        logTelegramTiming("voice.transcribe", sttStartedAt, {
-          ok: Boolean(transcript.text),
-          transcriptChars: transcript.text?.length ?? 0,
-          durationSec: meta?.duration ?? null,
-        });
-        if (!transcript.text) return { kind: "failed" as const };
-        rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
-        await sendVoiceTranscriptNote(ctx, transcript.text);
-        if (isLowSignalVoiceTranscript(transcript.text)) {
-          return { kind: "uncertain" as const, transcriptChars: transcript.text.length };
+        const transcriptText = transcriptOutcome.text;
+        await sendVoiceTranscriptNote(ctx, transcriptText);
+        if (isLowSignalVoiceTranscript(transcriptText)) {
+          return { kind: "uncertain" as const, transcriptChars: transcriptText.length };
         }
-        const panicId = classifyVoicePanicIntent(transcript.text);
+        if (isNegatedVoiceDoneIntent(transcriptText)) {
+          return { kind: "negated_done_ack" as const, transcriptChars: transcriptText.length };
+        }
+        const panicId = classifyVoicePanicIntent(transcriptText);
         if (panicId !== null) {
-          return { kind: "panic" as const, panicId, transcriptChars: transcript.text.length };
+          return {
+            kind: "panic" as const,
+            panicId,
+            transcriptText,
+            transcriptChars: transcriptText.length,
+          };
         }
 
         const checkStartedAt = Date.now();
         const result = await runCheck({
-          input: transcript.text,
+          input: transcriptText,
           type: "text",
           lang,
           rateLimitKey: rateLimitKeyFor(ctx.userId),
@@ -1049,17 +1966,17 @@ export async function handleVoice(
           level: result.level,
           reasonCount: result.reasons.length,
         });
-        return { kind: "ok" as const, result, transcriptChars: transcript.text.length };
+        return {
+          kind: "ok" as const,
+          result: withVoiceHookExplanation(result, transcriptText, lang),
+          transcriptChars: transcriptText.length,
+        };
       },
       { delayMs: 500, repeatMs: 4000 },
     );
 
     if (outcome.kind === "failed") {
-      await replyText(
-        ctx.chatId,
-        bt("voice_transcription_failed", lang),
-        buildVoiceFallbackKeyboard(lang),
-      );
+      await handleVoiceTranscriptionFailure(ctx, startedAt, meta);
       return;
     }
     if (outcome.kind === "too_large") {
@@ -1072,7 +1989,7 @@ export async function handleVoice(
       return;
     }
     if (outcome.kind === "panic") {
-      await sendVoicePanicRoute(ctx, outcome.panicId);
+      await sendPanicRoute(ctx, outcome.panicId, outcome.transcriptText);
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         routedToPanic: outcome.panicId,
@@ -1090,6 +2007,20 @@ export async function handleVoice(
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         lowSignal: true,
+        transcriptChars: outcome.transcriptChars,
+        durationSec: meta?.duration ?? null,
+      });
+      return;
+    }
+    if (outcome.kind === "negated_done_ack") {
+      await replyText(
+        ctx.chatId,
+        bt("voice_negated_done_ack", lang),
+        buildVoiceNegatedDoneKeyboard(lang),
+      );
+      logTelegramTiming("voice.total", startedAt, {
+        cached: false,
+        negatedDoneAck: true,
         transcriptChars: outcome.transcriptChars,
         durationSec: meta?.duration ?? null,
       });

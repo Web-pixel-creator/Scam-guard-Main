@@ -19,6 +19,129 @@ type AuditLogClient = {
   };
 };
 
+type ReportTargetRow = {
+  entity_hash?: string | null;
+};
+
+type EntityTargetContext = {
+  entity_hash: string;
+  report_count?: number | null;
+  last_seen_at?: string | null;
+  moderation_status?: string | null;
+  risk_level?: string | null;
+};
+
+type LatestCheckContext = {
+  input_hash: string;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  reason_codes?: string[] | null;
+  ai_explanation?: string | null;
+  created_at?: string | null;
+};
+
+type ReportSignalRow = {
+  entity_hash?: string | null;
+  created_at?: string | null;
+};
+
+type ReportSignalContext = {
+  entity_hash: string;
+  signal_count: number;
+  last_report_at: string | null;
+};
+
+const REPORT_SIGNAL_STATUSES = ["new", "reviewing", "duplicate", "confirmed"] as const;
+
+export function summarizeReportSignals(rows: ReportSignalRow[]): ReportSignalContext[] {
+  const byHash = new Map<string, ReportSignalContext>();
+
+  for (const row of rows) {
+    const entityHash = row.entity_hash;
+    if (!entityHash) continue;
+
+    const current = byHash.get(entityHash);
+    if (!current) {
+      byHash.set(entityHash, {
+        entity_hash: entityHash,
+        signal_count: 1,
+        last_report_at: row.created_at ?? null,
+      });
+      continue;
+    }
+
+    current.signal_count += 1;
+    if (dateMs(row.created_at) > dateMs(current.last_report_at)) {
+      current.last_report_at = row.created_at ?? current.last_report_at;
+    }
+  }
+
+  return Array.from(byHash.values());
+}
+
+export function attachReportOperatorContext<Report extends ReportTargetRow>(
+  reports: Report[],
+  entities: EntityTargetContext[],
+  checks: LatestCheckContext[] = [],
+  reportSignals: ReportSignalContext[] = [],
+) {
+  const entitiesByHash = new Map(entities.map((entity) => [entity.entity_hash, entity]));
+  const reportSignalsByHash = new Map(reportSignals.map((signal) => [signal.entity_hash, signal]));
+  const latestCheckByHash = new Map<string, LatestCheckContext>();
+  const newestChecks = [...checks].sort(
+    (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+  );
+
+  for (const check of newestChecks) {
+    if (!latestCheckByHash.has(check.input_hash)) {
+      latestCheckByHash.set(check.input_hash, check);
+    }
+  }
+
+  return reports.map((report) => {
+    const entity = report.entity_hash ? entitiesByHash.get(report.entity_hash) : undefined;
+    const signal = report.entity_hash ? reportSignalsByHash.get(report.entity_hash) : undefined;
+    const check = report.entity_hash ? latestCheckByHash.get(report.entity_hash) : undefined;
+    const reasonCodes = Array.isArray(check?.reason_codes)
+      ? check.reason_codes.filter((code): code is string => typeof code === "string")
+      : [];
+    const targetReportCount = positiveInteger(entity?.report_count) ?? 1;
+    const targetSignalCount = Math.max(
+      positiveInteger(signal?.signal_count) ?? 1,
+      targetReportCount,
+    );
+
+    return {
+      ...report,
+      target_report_count: targetReportCount,
+      target_signal_count: targetSignalCount,
+      target_last_report_at: signal?.last_report_at ?? entity?.last_seen_at ?? null,
+      target_last_seen_at: entity?.last_seen_at ?? null,
+      target_moderation_status: entity?.moderation_status ?? null,
+      target_risk_level: entity?.risk_level ?? null,
+      target_check_risk_level: check?.risk_level ?? null,
+      target_check_risk_score:
+        typeof check?.risk_score === "number" && Number.isFinite(check.risk_score)
+          ? check.risk_score
+          : null,
+      target_check_reason_codes: reasonCodes,
+      target_check_has_ai_explanation: Boolean(check?.ai_explanation),
+      target_check_created_at: check?.created_at ?? null,
+    };
+  });
+}
+
+function positiveInteger(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue > 0 ? Math.round(numberValue) : null;
+}
+
+function dateMs(value?: string | null): number {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 const moderateReportInputSchema = z.object({
   reportId: z.string().uuid(),
   decision: z.enum(["confirmed", "rejected"]),
@@ -49,10 +172,31 @@ async function assertAdmin(userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
+async function insertAdminAction(payload: AdminActionInsert): Promise<void> {
+  const { error } = await (supabaseAdmin as unknown as AuditLogClient)
+    .from("admin_actions")
+    .insert(payload);
+  if (error) throw new Error(error.message || "audit log insert failed");
+}
+
+async function confirmedReportCount(entityHash: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("entity_hash", entityHash)
+    .eq("status", "confirmed");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export const listReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ status: z.enum(["new", "confirmed", "rejected", "all"]).default("new") }).parse(d),
+    z
+      .object({
+        status: z.enum(["new", "confirmed", "rejected", "duplicate", "all"]).default("new"),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
@@ -69,32 +213,38 @@ export const listReports = createServerFn({ method: "POST" })
       new Set(reports.map((r) => r.entity_hash).filter((hash): hash is string => Boolean(hash))),
     );
     if (hashes.length === 0) {
-      return reports.map((report) => ({
-        ...report,
-        target_report_count: 1,
-        target_last_seen_at: null,
-        target_moderation_status: null,
-        target_risk_level: null,
-      }));
+      return attachReportOperatorContext(reports, [], []);
     }
 
-    const { data: entities, error: entitiesError } = await supabaseAdmin
-      .from("entities")
-      .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
-      .in("entity_hash", hashes);
-    if (entitiesError) throw new Error(entitiesError.message);
+    const [entitiesResult, checksResult, reportSignalsResult] = await Promise.all([
+      supabaseAdmin
+        .from("entities")
+        .select("entity_hash, report_count, last_seen_at, moderation_status, risk_level")
+        .in("entity_hash", hashes),
+      supabaseAdmin
+        .from("checks")
+        .select("input_hash, risk_level, risk_score, reason_codes, ai_explanation, created_at")
+        .in("input_hash", hashes)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabaseAdmin
+        .from("reports")
+        .select("entity_hash, created_at")
+        .in("entity_hash", hashes)
+        .in("status", [...REPORT_SIGNAL_STATUSES])
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ]);
+    if (entitiesResult.error) throw new Error(entitiesResult.error.message);
+    if (checksResult.error) throw new Error(checksResult.error.message);
+    if (reportSignalsResult.error) throw new Error(reportSignalsResult.error.message);
 
-    const byHash = new Map((entities ?? []).map((entity) => [entity.entity_hash, entity]));
-    return reports.map((report) => {
-      const entity = byHash.get(report.entity_hash);
-      return {
-        ...report,
-        target_report_count: entity?.report_count ?? 1,
-        target_last_seen_at: entity?.last_seen_at ?? null,
-        target_moderation_status: entity?.moderation_status ?? null,
-        target_risk_level: entity?.risk_level ?? null,
-      };
-    });
+    return attachReportOperatorContext(
+      reports,
+      entitiesResult.data ?? [],
+      checksResult.data ?? [],
+      summarizeReportSignals(reportSignalsResult.data ?? []),
+    );
   });
 
 export const listEntities = createServerFn({ method: "POST" })
@@ -147,53 +297,66 @@ export async function moderateReportCore(data: ModerateReportInput, adminUserId:
     .maybeSingle();
   if (error || !rep) throw new Error("Report not found");
 
-  await supabaseAdmin.from("reports").update({ status: data.decision }).eq("id", data.reportId);
+  await insertAdminAction({
+    admin_user_id: adminUserId,
+    action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
+    target_type: "report",
+    target_id: data.reportId,
+    reason: `risk_level: ${data.riskLevel}`,
+  });
+
+  const { error: updateReportError } = await supabaseAdmin
+    .from("reports")
+    .update({ status: data.decision })
+    .eq("id", data.reportId);
+  if (updateReportError) throw new Error(updateReportError.message);
 
   if (!isIncidentOnlyReportProjection(rep)) {
+    const confirmedCount = await confirmedReportCount(rep.entity_hash);
+    const targetStatus = confirmedCount > 0 ? "confirmed" : data.decision;
+    const targetRiskLevel =
+      targetStatus === "confirmed"
+        ? data.decision === "confirmed"
+          ? data.riskLevel
+          : "high_risk"
+        : "unknown";
+
     // Sync corresponding entity only for reports that name a target.
-    const { data: ent } = await supabaseAdmin
+    const { data: ent, error: entityLookupError } = await supabaseAdmin
       .from("entities")
       .select("id")
       .eq("entity_hash", rep.entity_hash)
       .maybeSingle();
+    if (entityLookupError) throw new Error(entityLookupError.message);
     if (ent) {
-      await supabaseAdmin
+      const { error: updateEntityError } = await supabaseAdmin
         .from("entities")
         .update({
-          moderation_status: data.decision,
-          risk_level: data.decision === "confirmed" ? data.riskLevel : "unknown",
+          moderation_status: targetStatus,
+          risk_level: targetRiskLevel,
+          report_count: confirmedCount,
         })
         .eq("id", ent.id);
+      if (updateEntityError) throw new Error(updateEntityError.message);
     } else {
-      await supabaseAdmin.from("entities").insert({
+      const { error: insertEntityError } = await supabaseAdmin.from("entities").insert({
         entity_type: rep.entity_type,
         entity_hash: rep.entity_hash,
         display_mask: rep.redacted_value,
-        moderation_status: data.decision,
-        risk_level: data.decision === "confirmed" ? data.riskLevel : "unknown",
-        report_count: 1,
+        moderation_status: targetStatus,
+        risk_level: targetRiskLevel,
+        report_count: confirmedCount,
       });
+      if (insertEntityError) throw new Error(insertEntityError.message);
     }
 
     if (rep.entity_type === "telegram") {
       await syncTelegramReputationAfterModeration({
         entityHash: rep.entity_hash,
         displayHint: rep.redacted_value,
-        riskLevel: data.decision === "confirmed" ? data.riskLevel : "unknown",
+        riskLevel: targetRiskLevel,
       });
     }
-  }
-  // Audit log: record who made the decision and why.
-  try {
-    await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
-      admin_user_id: adminUserId,
-      action: data.decision === "confirmed" ? "confirm_report" : "reject_report",
-      target_type: "report",
-      target_id: data.reportId,
-      reason: `risk_level: ${data.riskLevel}`,
-    });
-  } catch (e) {
-    console.error("audit log insert failed", e instanceof Error ? e.message : "");
   }
   return { ok: true };
 }
@@ -225,6 +388,14 @@ export async function resolveReputationAppealCore(
       ? "Public reputation was removed after appeal review."
       : "Appeal rejected; public reputation was kept after review.");
 
+  await insertAdminAction({
+    admin_user_id: adminUserId,
+    action: data.decision,
+    target_type: "reputation_appeal",
+    target_id: data.appealId,
+    reason: `${appeal.target_type}:${appeal.target_display} - ${resolution}`,
+  });
+
   const { error: updateAppealError } = await supabaseAdmin
     .from("reputation_appeals")
     .update({ status, resolution, updated_at: now })
@@ -232,13 +403,14 @@ export async function resolveReputationAppealCore(
   if (updateAppealError) throw new Error(updateAppealError.message);
 
   if (data.decision === "remove_reputation") {
-    await supabaseAdmin
+    const { error: updateEntityError } = await supabaseAdmin
       .from("entities")
       .update({ moderation_status: "rejected", risk_level: "unknown", last_seen_at: now })
       .eq("entity_hash", appeal.target_hash);
+    if (updateEntityError) throw new Error(updateEntityError.message);
 
     if (appeal.target_type === "telegram") {
-      await supabaseAdmin
+      const { error: updateTelegramError } = await supabaseAdmin
         .from("telegram_reputation_targets")
         .update({
           moderation_status: "rejected",
@@ -246,19 +418,8 @@ export async function resolveReputationAppealCore(
           updated_at: now,
         })
         .eq("target_hash", appeal.target_hash);
+      if (updateTelegramError) throw new Error(updateTelegramError.message);
     }
-  }
-
-  try {
-    await (supabaseAdmin as unknown as AuditLogClient).from("admin_actions").insert({
-      admin_user_id: adminUserId,
-      action: data.decision,
-      target_type: "reputation_appeal",
-      target_id: data.appealId,
-      reason: `${appeal.target_type}:${appeal.target_display} - ${resolution}`,
-    });
-  } catch (e) {
-    console.error("audit log insert failed", e instanceof Error ? e.message : "");
   }
 
   return { ok: true };

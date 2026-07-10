@@ -18,9 +18,12 @@
 //   3. Only after the token is accepted: parse + validate the JSON body with
 //      `telegramUpdateSchema`. Invalid/unsupported structure → 200 + ignore so
 //      Telegram stops re-delivering (R12.3).
-//   4. A valid update is dispatched inside try/catch. ANY processing error after
-//      a valid token is logged WITHOUT Sensitive_Data and still answered 200, so
-//      Telegram does not retry forever (R12.4 / R12.5 / R19.1 / R19.2).
+//   4. A valid update is dispatched inside try/catch after a dedup claim. ANY
+//      processing error after dispatch starts is logged WITHOUT Sensitive_Data
+//      and still answered 200, so Telegram does not retry forever (R12.4 /
+//      R12.5 / R19.1 / R19.2). If the shared dedup store is unavailable before
+//      dispatch, return 503 so Telegram retries instead of risking duplicate
+//      side effects.
 //
 // Handler wiring: importing/calling the aggregator (PART C) registers the
 // concrete `Handlers` via `setHandlers(...)` before any dispatch happens.
@@ -40,11 +43,13 @@ const MAX_PROCESSED_UPDATES = 5_000;
 const DISPATCH_ACK_TIMEOUT_MS = 8_000;
 
 const processedUpdateIds = new Map<number, number>();
+type UpdateProcessingDecision = "process" | "duplicate" | "retry";
 
 /**
  * Handle a single Telegram webhook request. Returns 401 for any token-stage
  * failure (missing secrets or bad/absent header) and 200 for everything after a
- * valid token — including invalid bodies and handler errors — per Requirement 12.
+ * valid token — including invalid bodies and handler errors — per Requirement
+ * 12, except a pre-dispatch shared-dedup outage returns 503 so Telegram retries.
  */
 export async function handleTelegramWebhook(request: Request): Promise<Response> {
   // ── Step 1 — read secrets INSIDE the handler (per-request). Fail closed. ──
@@ -79,8 +84,15 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   }
 
   // ── Step 4 — dispatch the valid update; any later error → log + 200. ──
-  if (!(await markUpdateForProcessing(update.update_id))) {
+  const processingDecision = await markUpdateForProcessing(update.update_id);
+  if (processingDecision === "duplicate") {
     return new Response("ok", { status: 200 });
+  }
+  if (processingDecision === "retry") {
+    return new Response("retry", {
+      status: 503,
+      headers: { "retry-after": "1" },
+    });
   }
 
   const dispatchPromise = dispatchUpdate(update).catch((err) => {
@@ -113,11 +125,18 @@ async function waitForDispatch(promise: Promise<void>, timeoutMs: number): Promi
   }
 }
 
-async function markUpdateForProcessing(updateId: number, nowMs = Date.now()): Promise<boolean> {
+async function markUpdateForProcessing(
+  updateId: number,
+  nowMs = Date.now(),
+): Promise<UpdateProcessingDecision> {
   pruneProcessedUpdateIds(nowMs);
 
   const expiresAt = processedUpdateIds.get(updateId);
-  if (expiresAt !== undefined && expiresAt > nowMs) return false;
+  if (expiresAt !== undefined && expiresAt > nowMs) return "duplicate";
+
+  const claim = await claimTelegramWebhookUpdate(updateId, nowMs);
+  if (claim === "duplicate") return "duplicate";
+  if (claim === "unavailable") return "retry";
 
   processedUpdateIds.set(updateId, nowMs + PROCESSED_UPDATE_TTL_MS);
   while (processedUpdateIds.size > MAX_PROCESSED_UPDATES) {
@@ -126,10 +145,7 @@ async function markUpdateForProcessing(updateId: number, nowMs = Date.now()): Pr
     processedUpdateIds.delete(oldest);
   }
 
-  const claim = await claimTelegramWebhookUpdate(updateId, nowMs);
-  if (claim === "duplicate") return false;
-
-  return true;
+  return "process";
 }
 
 function pruneProcessedUpdateIds(nowMs: number): void {

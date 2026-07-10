@@ -141,6 +141,12 @@ describe("findVerifiedContact lookup", () => {
     expect(r!.orgType).toBe("cybersecurity");
   });
 
+  it("does not strip country code into official short codes", () => {
+    expect(findVerifiedContact("+9981340")).toBeNull();
+    expect(findVerifiedContact("+998102")).toBeNull();
+    expect(findVerifiedContact("+9981257")).toBeNull();
+  });
+
   it("finds gov.uz trust phone 1007 (Prosecutor General)", () => {
     const r = findVerifiedContact("1007");
     expect(r).not.toBeNull();

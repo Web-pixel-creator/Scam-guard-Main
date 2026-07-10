@@ -33,6 +33,7 @@ import {
   buildImageTriageText,
   type ImageTriageKind,
 } from "@/lib/telegram/image-fallback";
+import { buildTelegramPublicMetadataBrief } from "@/lib/telegram/public-metadata.server";
 import {
   buildDetailedPanicScenarioText,
   buildEmergencyFollowUpKeyboard,
@@ -155,26 +156,11 @@ function telegramUsernamePassportFixture(): RunCheckResult {
     level: "unknown",
     score: 5,
     reasons: ["unknown_sender"],
-    explanation: [
-      "📋 Telegram-паспорт: @UiWebWeb",
-      "",
-      "👁 Что видно",
-      "• Bot API не видит этот username",
-      "• Это не доказательство скама",
-      "",
-      "🚫 Что недоступно",
-      "• скрытая SCAM-метка, возраст аккаунта, жалобы Telegram и кому он писал",
-      "",
-      "📌 Вывод",
-      "По одному username нельзя честно сказать «безопасно» или «скам».",
-      "",
-      "🛡 Репутация и признаки",
-      "• подтвержд. жалоб в Ishonch Guard не найдено",
-      "• отправитель не подтверждён",
-      "",
-      "🧭 Следующий шаг",
-      "Пришлите сообщение/скрин: что просят — код, деньги, карту, APK или ссылку?",
-    ].join("\n"),
+    explanation:
+      buildTelegramPublicMetadataBrief({ status: "not_found", username: "UiWebWeb" }, LANG, {
+        reasons: ["unknown_sender"],
+        knownReports: 0,
+      }) ?? null,
   });
 }
 
@@ -275,6 +261,29 @@ function telegramLoginQrFixture(): RunCheckResult {
   });
 }
 
+function telegramProfileScreenshotFixture(): RunCheckResult {
+  const evidence = fallbackImageIntelligence(
+    [
+      "Alina R. PlankaHub",
+      "Не в контактах",
+      "Страна телефона 🇺🇸 USA",
+      "Регистрация Январь 2026 г.",
+      "Не официальный аккаунт",
+      "Пользователь обновил имя 19 дней назад",
+      "Пользователь обновил фотографию 19 дней назад",
+    ].join("\n"),
+  );
+
+  return resultFixture({
+    type: "text",
+    display: "Скрин профиля Telegram",
+    level: "unknown",
+    score: 0,
+    reasons: [],
+    explanation: buildImageUserExplanation(evidence, "unknown", LANG),
+  });
+}
+
 function sections(): Section[] {
   const welcome = formatWelcome(LANG);
   const weekly = formatWeeklyScamDigest(LANG);
@@ -294,6 +303,7 @@ function sections(): Section[] {
     section("Report: optional step", bt("report_ask_scam_type", LANG), reportSkipKeyboard(LANG)),
     section("Report: retry", bt("report_error", LANG), reportRetryKeyboard(LANG)),
     renderCheckResult("Risk Passport: username", telegramUsernamePassportFixture()),
+    renderCheckResult("Image: скрин профиля Telegram", telegramProfileScreenshotFixture()),
     renderCheckResult("Risk Passport: иностранный номер", phonePassportFixture()),
     renderCheckResult("Risk result: инвестиции без ссылки", cryptoInvestmentFixture()),
     renderCheckResult("Risk result: закрытая Telegram invite-ссылка", suspiciousInviteFixture()),
@@ -423,7 +433,7 @@ function sections(): Section[] {
         section(
           `SOS ${id}: ${action}`,
           buildEmergencyFollowUpText(action, id, LANG),
-          buildEmergencyFollowUpKeyboard(LANG, id),
+          buildEmergencyFollowUpKeyboard(LANG, id, { includeVoice: false, voiceAction: action }),
         ),
       );
     }

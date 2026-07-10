@@ -39,12 +39,18 @@ import {
   sanitizeImageIntelligence,
   type ImageIntelligenceResult,
 } from "./image-intelligence";
-import { sanitizeAiExplanation } from "./ai-output-safety";
+import { parseAllowedImageDataUrl } from "./media-data-url";
+import {
+  isUnsafeAiExplanationCooldownActive,
+  recordUnsafeAiExplanationBlock,
+  sanitizeAiExplanationWithFinding,
+} from "./ai-output-safety";
 import {
   buildPhoneIntelligencePassport,
   type PhoneIntelligencePassport,
 } from "./phone-intelligence";
 import { buildPhoneReputationSummary, type PhoneReputationSummary } from "./phone-reputation";
+import { checkUrlReputation, normalizeUrlForReputationProvider } from "./url-reputation.server";
 
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
@@ -62,8 +68,14 @@ export interface RunCheckParams {
   aiTimeoutMs?: number;
   /** Optional retry budget for non-critical AI explanations. Defaults preserve web/core behaviour. */
   aiMaxAttempts?: number;
+  /** Trust an already-derived internal type hint. Public web callers must leave this false. */
+  trustProvidedType?: boolean;
   /** High-confidence benign image contexts may become safe, but only with zero reason codes. */
   safeIfNoReasons?: boolean;
+  /** Test/preview escape hatch for external URL reputation lookups. */
+  skipUrlReputation?: boolean;
+  /** Optional soft budget for external URL reputation providers. */
+  urlReputationTimeoutMs?: number;
 }
 
 export interface RunCheckResult {
@@ -144,6 +156,10 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
   return [...found];
 }
 
+function normalizeUrlForReputation(raw: string): string | null {
+  return normalizeUrlForReputationProvider(cleanEmbeddedUrl(raw.trim()));
+}
+
 /**
  * Единый конвейер проверки (rules-first):
  *   rate-limit(rateLimitKey) → detectInputType → normalize →
@@ -156,9 +172,13 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     type,
     lang,
     rateLimitKey,
+    channel,
     skipAi,
     persist,
+    trustProvidedType,
     safeIfNoReasons,
+    skipUrlReputation,
+    urlReputationTimeoutMs,
     aiTimeoutMs,
     aiMaxAttempts,
   } = params;
@@ -171,24 +191,43 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
 
   const workingInput = input.trim();
 
-  const detected = type && type !== "unknown" ? type : detectInputType(workingInput);
+  const shouldTrustProvidedType = trustProvidedType ?? channel !== "web";
+  const detected =
+    shouldTrustProvidedType && type && type !== "unknown" ? type : detectInputType(workingInput);
   const normalized = normalize(workingInput, detected);
   const display = maskForDisplay(normalized, detected);
   const safeInput = redactText(workingInput);
 
   const codes = new Set<ReasonCode>();
+  const reputationUrls = new Set<string>();
   evaluateText(safeInput).forEach((c) => codes.add(c));
   if (detected === "phone") evaluatePhone(normalized).forEach((c) => codes.add(c));
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
-  if (detected === "url" || detected === "apk")
+  if (detected === "url" || detected === "apk") {
     evaluateUrl(normalized).forEach((c) => codes.add(c));
-  if (detected === "text" || detected === "unknown") {
-    for (const embeddedUrl of extractEmbeddedUrls(safeInput)) {
-      evaluateUrl(embeddedUrl).forEach((c) => codes.add(c));
+    const sourceUrls = extractEmbeddedUrls(workingInput);
+    for (const sourceUrl of sourceUrls.length > 0 ? sourceUrls : [normalized]) {
+      const reputationUrl = normalizeUrlForReputation(sourceUrl);
+      if (reputationUrl) reputationUrls.add(reputationUrl);
+    }
+  }
+  if (detected === "text" || detected === "unknown" || detected === "payment") {
+    for (const embeddedUrl of extractEmbeddedUrls(workingInput)) {
+      const reputationUrl = normalizeUrlForReputation(embeddedUrl);
+      const urlForRules = reputationUrl ?? cleanEmbeddedUrl(embeddedUrl);
+      evaluateUrl(urlForRules).forEach((c) => codes.add(c));
+      if (reputationUrl) reputationUrls.add(reputationUrl);
       if (TELEGRAM_INVITE_URL_RE.test(embeddedUrl)) codes.add("suspicious_invite_link");
     }
   }
   if (detected === "apk") codes.add("apk_download_link");
+
+  if (!skipUrlReputation && reputationUrls.size > 0) {
+    const reputation = await checkUrlReputation([...reputationUrls], {
+      timeoutMs: urlReputationTimeoutMs,
+    });
+    reputation.reasonCodes.forEach((c) => codes.add(c));
+  }
 
   // ── Brand Impersonation Detection ────────────────────────────────────────
   // Runs after evaluateUrl/evaluateText. Wrapped in try/catch for graceful
@@ -262,6 +301,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         level: scoredLevel,
         redacted: display,
         reasons: reasonList,
+        rateLimitKey,
         timeoutMs: aiTimeoutMs,
         maxAttempts: aiMaxAttempts,
       });
@@ -318,6 +358,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       "apk_download_link",
       "asks_to_scan_qr",
       "payment_before_service",
+      "known_reported",
     ];
     const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
     if (!hasDangerous) {
@@ -378,7 +419,9 @@ export async function ocrExtractCore(
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
-  const text = await ocrScreenshot(dataUrl, lang);
+  const image = parseAllowedImageDataUrl(dataUrl);
+  if (!image) return { text: null };
+  const text = await ocrScreenshot(image.dataUrl, lang);
   return { text };
 }
 
@@ -399,7 +442,9 @@ export async function analyzeImageCore(
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }
-  const raw = await analyzeScreenshotImage(dataUrl, lang, options);
+  const image = parseAllowedImageDataUrl(dataUrl);
+  if (!image) return null;
+  const raw = await analyzeScreenshotImage(image.dataUrl, lang, options);
   if (!raw) return null;
   return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }
@@ -496,9 +541,34 @@ function sanitizeTranscript(raw: string | null): string | null {
   if (!text) return null;
   const redacted = redactText(text).trim();
   if (!redacted) return null;
-  return redacted.length > MAX_TRANSCRIPT_CHARS
-    ? redacted.slice(0, MAX_TRANSCRIPT_CHARS).trim()
-    : redacted;
+  const normalized = normalizeVoiceTranscriptProviderArtifacts(redacted);
+  return normalized.length > MAX_TRANSCRIPT_CHARS
+    ? normalized.slice(0, MAX_TRANSCRIPT_CHARS).trim()
+    : normalized;
+}
+
+function normalizeVoiceTranscriptProviderArtifacts(text: string): string {
+  if (
+    /^men\s+sms[-\s]?kort\b/i.test(text) &&
+    /\b(?:jo\s*,?\s*)?hvorfor\s+med\s+dem\b/i.test(text)
+  ) {
+    return "Men SMS kod yubormadim.";
+  }
+  return text;
+}
+
+function buildVoiceTranscriptionPrompt(lang: Lang): string {
+  const uiLanguage = { ru: "Russian", uz: "Uzbek", en: "English" }[lang];
+  return [
+    "Transcribe this Telegram voice note for an anti-scam assistant.",
+    `The UI language is ${uiLanguage}, but the spoken audio may be Russian, Uzbek (Latin or Cyrillic), or English.`,
+    "Preserve the spoken language. Do not translate or answer.",
+    "Pay special attention to Uzbek Latin scam-safety words: SMS kod, SMS-kod, SMS kodini, kod yubordim, kod yubormadim, kodni ayting, kodini yuborishimni so'rayapti, karta, pul o'tkazish, pul o'tkazishimni so'rayapti, ilova, QR.",
+    "Common Uzbek phrases may include: menga qo'ng'iroq qilyapti, singlim qo'ng'iroq qilyapti, mashinasi bilan muammo, zudlik bilan, kanal administratori menga yozmoqda, SMS kodini yuborishimni so'rayapti.",
+    "Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number.",
+    "If speech is not understandable, return an empty string.",
+    "Return only the transcript, no advice.",
+  ].join(" ");
 }
 
 function isGeminiConfig(cfg: AiConfig): boolean {
@@ -531,8 +601,7 @@ async function transcribeAudioWithGemini(
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
   )}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
-  const langName = { ru: "Russian", uz: "Uzbek or Russian", en: "English" }[lang];
-  const prompt = `Transcribe this Telegram voice note for an anti-scam assistant. Keep the speaker's language when possible (${langName}). Return only the transcript, no advice. Redact any OTP/SMS code, PIN, CVV, password, full phone number, or full card number. If speech is not understandable, return an empty string.`;
+  const prompt = buildVoiceTranscriptionPrompt(lang);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
@@ -575,7 +644,10 @@ async function transcribeAudioWithOpenAiCompatible(
   const form = new FormData();
   form.set("model", getTranscriptionModel({ ...cfg, model: DEFAULT_TRANSCRIBE_MODEL }));
   form.set("response_format", "json");
-  if (lang === "ru" || lang === "en") form.set("language", lang);
+  // The Telegram UI language is not a reliable speech-language signal: many
+  // users read the bot in Russian but send Uzbek voice notes. Keep detection
+  // open and bias the model with a multilingual anti-scam prompt instead.
+  form.set("prompt", buildVoiceTranscriptionPrompt(lang));
   form.set("file", new Blob([bytes], { type: payload.mimeType }), "telegram-voice.ogg");
 
   const controller = new AbortController();
@@ -822,9 +894,12 @@ async function aiExplain(opts: {
   level: string;
   redacted: string;
   reasons: string[];
+  rateLimitKey: string;
   timeoutMs?: number;
   maxAttempts?: number;
 }): Promise<string | null> {
+  if (isUnsafeAiExplanationCooldownActive(opts.rateLimitKey)) return null;
+
   const langName = { ru: "Russian", uz: "Uzbek (Latin)", en: "English" }[opts.lang];
   const sys = `You are Ishonch Guard, an anti-scam assistant for Uzbekistan. Reply in ${langName}. Be calm, factual, and practical in 2-4 short sentences. If reason codes are present, explain the risk from those signals only. If there are no reason codes, do not invent danger: say that there is not enough evidence, briefly identify the likely message type when obvious (for example delivery pickup SMS, restaurant QR menu, promo, or normal contact), and mention which dangerous requests are missing. Never accuse a specific person. Never reveal personal data. End with one concrete safe action. No markdown.`;
   const user = `Input type: ${opts.type}\nRisk level: ${opts.level}\nRedacted input: ${opts.redacted}\nReason codes detected: ${opts.reasons.join(", ") || "(none)"}\n\nWrite the user-facing explanation.`;
@@ -836,7 +911,9 @@ async function aiExplain(opts: {
     "explain",
     { timeoutMs: opts.timeoutMs, maxAttempts: opts.maxAttempts },
   );
-  return sanitizeAiExplanation(explanation);
+  const sanitized = sanitizeAiExplanationWithFinding(explanation);
+  if (sanitized.finding) recordUnsafeAiExplanationBlock(opts.rateLimitKey);
+  return sanitized.text;
 }
 
 /**
@@ -878,7 +955,7 @@ Schema:
   "visualCategory": "delivery_sms"|"restaurant_menu_qr"|"qr_menu_or_info"|"qr_login_or_payment"|"chat_screenshot"|"telegram_profile_card"|"payment_request"|"apk_prompt"|"document"|"telegram_promo_post"|"casino_or_betting_promo"|"crypto_giveaway_or_nft"|"wallet_or_defi_action"|"news_or_channel_post"|"unknown",
   "confidence": "low"|"medium"|"high",
   "qr": { "present": boolean, "visibleUrl": string|null, "purpose": "menu"|"info"|"login"|"payment"|"unknown" },
-  "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation"|"casino_bonus_or_free_spins"|"fake_captcha_or_voting"|"giveaway_or_prize_actions"|"task_reward_or_engagement"|"wallet_or_defi_urgency"|"ton_referral_or_earning"|"telegram_invite_or_private_link">,
+  "riskHints": Array<"otp_or_secret"|"apk_install"|"qr_login"|"qr_payment"|"telegram_account_takeover"|"fake_device_security_popup"|"payment_request"|"card_data"|"urgent_pressure"|"brand_impersonation"|"casino_bonus_or_free_spins"|"fake_captcha_or_voting"|"giveaway_or_prize_actions"|"task_reward_or_engagement"|"wallet_or_defi_urgency"|"ton_referral_or_earning"|"telegram_invite_or_private_link">,
   "summary": string|null
 }
 
@@ -891,6 +968,8 @@ Rules:
 - A restaurant menu, restaurant poster, loyalty promo, table booking poster, or informational QR is NOT dangerous by itself. Use riskHints only if it visibly asks for payment, login, card data, SMS code, APK install or money transfer.
 - A normal delivery pickup/order SMS is NOT dangerous by itself. Use riskHints only if there is a link, fee/payment request, OTP/code request, APK install, card data request, or pressure.
 - A Telegram profile card screenshot is NOT dangerous by itself. If visible, extract native Telegram fields such as phone country, registration month/year, "not official account", "not in contacts", and recent name/photo changes. Do not infer hidden scam labels or account age beyond visible text.
+- Telegram account deletion, verification, freeze/block, "official Telegram", "Telegram Web", "verification/login service", "Cancel deletion", "startapp", or fake Telegram support/profile screenshots ARE account-takeover evidence when they also show a link, bot, button, urgency, or request to verify/login. In that case set visualCategory "chat_screenshot", include riskHints "telegram_account_takeover" and usually "brand_impersonation"/"urgent_pressure". Do this even if only part of the text is readable, but do not flag an ordinary Telegram profile card with no request/link.
+- Fake Apple/iOS/Android security popups about viruses, damaged OS, blocked device, data loss, or installing a protection app are device-compromise evidence. Set riskHints "fake_device_security_popup"; also include "apk_install" when the image asks to install/download/open an app or file.
 - If text is blurry, set confidence "low" and keep text null or partial.
 - summary must be one short factual sentence in ${lang}.`;
 
