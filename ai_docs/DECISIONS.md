@@ -2,6 +2,254 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-072 - Telegram updates use a single fenced getUpdates leader
+
+The durable successor to D-070 is a single active `getUpdates` worker backed by
+a service-role-only Postgres leader lease. The worker requests `limit=1`, begins
+one metadata-only update lease, dispatches it, records `completed`, and only
+then advances the Telegram offset. Restart after completion but before offset
+advance is safe because redelivery observes `completed` and skips dispatch.
+
+The database stores only `update_id` and operational status/lease/fence/timing
+metadata. It never stores the Telegram payload, user/chat id, username, text,
+URL, phone, media, OCR or AI output. Session reads/writes and Bot API effects
+are checked against the current update fence; leader-owned work also requires
+the current leader fence. The design is at-least-once: a network ambiguity
+after Telegram accepts an outbound effect can still cause a duplicate message,
+so copy and handlers must remain retry-safe and must not claim exactly-once.
+
+Production cutover is explicit and ordered: deploy the migration and polling
+code, set `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, verify the authenticated
+polling-health endpoint reports an active leader, then run
+`npm run telegram:switch-to-polling`. The script refuses to remove the webhook
+without an active leader and always uses `drop_pending_updates=false`.
+
+## D-071 - Inline and post-check explanations share evidence truth
+
+Inline and direct post-check methodology must use the same canonical ranked
+reason collector. It includes deterministic reason codes plus explicit
+official-directory and moderated-report metadata; unknown runtime reason strings
+are ignored safely. `weird_domain` describes only unusual TLD/IP/parse-format
+signals, while OneID/government phishing describes a visible text/action
+pattern. Neither may claim a brand-domain comparison that did not run.
+
+A shared concrete-artifact detector recognizes URLs, bare/IDN domains, Telegram
+identifiers, actual code/card/phone values and dangerous files. A new artifact
+always bypasses follow-up helpers; a meta-question such as "why must I not send
+a code?" remains a follow-up. Recent-context arbitration is timestamp-based, so
+a newer check wins over an older panic context. High-risk next steps come from
+the exhaustive reason-to-protective-action policy instead of always assuming a
+bank scenario.
+
+## D-070 - Monotonic session writes are not a durable Telegram inbox
+
+Independent revalidation showed that `last_update_id` prevents an older late
+write but cannot serialize two application instances before they read and route
+the same old session. It also does not close the crash window between the
+shared dedup claim and actual dispatch. At that point SG-P1-009 remained in
+progress and production had to stay single-instance until a privacy-reviewed
+durable update lifecycle ordered processing and distinguished
+processing/completed. D-072 now supplies that local implementation; production
+cutover evidence is still required. No raw Telegram payload may be persisted
+without a separate retention, encryption and access-control decision.
+
+As containment, webhook registration pins `max_connections=1` and production
+monitoring fails on drift. Telegram defines this only as a simultaneous HTTPS
+connection limit, so it does not close the ordering or crash-recovery finding.
+
+## D-069 - Telegram session writes are ordered by update_id
+
+Webhook processing is serialized per Telegram user inside one Node process and
+session persistence is additionally guarded across instances by the
+service-role-only `save_telegram_session_sequenced` Postgres function. The
+function atomically applies a JSON patch only when the incoming Telegram
+`update_id` is not older than `telegram_sessions.last_update_id`; multiple
+writes from the same update remain allowed. An older cross-instance write is a
+stale no-op, not a storage outage.
+
+Telegram may choose a random next `update_id` after at least a week without
+updates, so `last_update_at` starts a new numeric epoch after seven days of
+inactivity. This prevents a legitimate lower post-idle id from permanently
+bricking the session, but does not change D-070's distributed-ordering limit.
+
+The current `update_id`, loaded language and session-storage failure flag live
+in Node `AsyncLocalStorage`, never in user data. A read failure in webhook
+context now fails closed instead of inventing a blank session; a write/RPC
+failure sets the same flag without logging database messages. After dispatch
+the bot sends a plain RU/UZ/EN warning that the step context was not saved.
+Check and unreadable-image results persist their safe snapshot before
+publication and restore the previous snapshot if Telegram explicitly rejects
+the main delivery. Same-user queue ownership is retained until handler work
+actually settles; a timer must not release still-running JavaScript work.
+
+The Postgres function is intentionally described only as a monotonic last-write
+guard. D-070 records the remaining distributed ordering and crash-recovery gap.
+
+## D-068 - Post-check helpers are actions, not new checks
+
+Natural confidence, methodology, trusted-person, recheck and disagreement
+phrases are deterministic `LastCheckFollowUpAction` values in RU/UZ/EN. They
+run before `runCheck` only when no new URL, number, code, card, transfer or other
+concrete payload is present. A trusted-person phrase gives manual safe-contact
+guidance and never sends a Family Shield notification. A recheck request is
+honest about privacy: raw links, text and screenshots are not retained, so the
+user must resubmit the artifact before a new verdict can exist.
+
+`LastCheckSnapshot.provenance` stores at most three enum-only methods, source
+classes and limitation classes selected with the same exhaustive reason policy
+as Inline. It never stores raw evidence, URLs, identifiers, OCR, provider
+payloads or narratives. Methodology answers therefore explain visible-domain,
+text, Telegram, official-directory, moderated-report or external-reputation
+evidence without inventing hidden owner or sender verification.
+
+## D-067 - Inline reason explanations are exhaustive and method-bound
+
+Inline presentation does not use a partial hand-written hint map or detector
+array order. `INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy>`
+assigns every deterministic reason an explicit priority, evidence method and
+honest limitation. The selected RU/UZ/EN explanation distinguishes visible
+text/URL/domain/phone/Telegram analysis, official-directory matches, moderated
+local reports and configured external reputation sources without claiming
+hidden Telegram data, sender identity, ownership or proof of fraud. Equal
+priorities use a deterministic reason-code tie-break. Inline descriptions are
+bounded to 120 characters; inserted messages retain the complete explanation.
+
+## D-066 - Scheduled production security checks are mandatory
+
+The scheduled GitHub production monitor explicitly sets
+`MONITOR_REQUIRE_SECRET_CHECKS=true`. A missing Telegram bot token or webhook
+secret is therefore a failed check and makes the process exit non-zero even
+when `MONITOR_FAIL_ON_WARN` is false. Optional local/operator runs may still
+leave this flag unset and report missing secret-backed checks as warnings. The
+exit decision is independent of alert delivery, so an unavailable alert route
+cannot turn a required skipped check into a green workflow.
+
+## D-065 - Moderation aggregate divergence is an explicit failure
+
+Telegram reputation synchronization is part of the privileged moderation
+integrity boundary. Count-query errors or missing/invalid exact counts must not
+be interpreted as zero, and a failed aggregate upsert must not be swallowed.
+The sync throws a typed stage-only error so the admin operation cannot report
+success while public reputation is cleared or stale. Because report/entity and
+Telegram aggregate writes are not one database transaction, a failure is
+reported as retryable partial completion; telemetry records only the bounded
+stage and never DB messages or target identifiers.
+
+## D-064 - Brand comparisons canonicalize both sides under one IDNA policy
+
+Protected-brand URL comparison must not partially normalize only the checked
+host. Browser-Punycode labels are decoded, NFKC/lowercased, stripped of exactly
+one terminal DNS root dot and compared with registry aliases through shared
+visual-confusable and bounded Cyrillic/transliteration keys. This supports
+fully Cyrillic and hybrid-script labels while preserving exact segment and
+official-domain controls. Text aliases use Unicode letter/number/mark
+lookarounds; ASCII `\b` is not a valid boundary for Cyrillic brands. Raw checked
+URLs remain separate display/input values; comparison keys are classifier-only.
+
+## D-063 - Every risk reason selects a protective action explicitly
+
+Telegram urgent advice must not be inferred from incomplete category sets.
+`REASON_PROTECTIVE_ACTION` exhaustively maps every `ReasonCode` to a typed
+`ProtectiveActionId` or an intentional `null` for context/protective signals
+that cannot create high risk alone. New reason codes therefore fail TypeScript
+until product-safe action semantics are chosen. `known_reported` stops the
+interaction and asks for independent official verification; external phishing
+and malware feed hits use link/APK avoidance. A high-risk formatter fallback
+must never ask for more evidence instead of giving an immediate safe action.
+
+## D-062 - Model narrative is never structured evidence
+
+AI-authored `explanation` is untrusted narrative and cannot select a Risk
+Passport kind or populate canonical visible/limits/bottom-line sections. A
+deterministic producer must pass structured Telegram text through the separate
+typed `TelegramPassportEvidence { provenance, text }` channel; provenance never
+blesses a mixed explanation field. AI output safety is evaluated per action
+clause, so a legitimate negated warning cannot exempt a sibling request to
+transfer money, connect/sign a wallet or install an APK. Semicolon and common
+RU/UZ/EN contrast/sequence boundaries define those independent clauses.
+
+## D-061 - Canonical build locks are audited and dev binds loopback
+
+The Docker build uses `bun.lock`, so a clean npm graph alone is insufficient.
+Both npm and Bun dependency graphs must resolve patched toolchain versions and
+pass their own audit. Vite is pinned to 7.3.6, esbuild to 0.28.1, and compatible
+transitive Babel/js-yaml/brace-expansion fixes are locked. The Vite development
+server binds `127.0.0.1` by default; external exposure requires an explicit CLI
+`--host` override on a trusted network. Nitro production `HOST=0.0.0.0` remains
+a separate runtime concern. Static tests protect package/lock/config invariants.
+
+## D-060 - Production shared-quota degradation fails closed
+
+A deployment-wide abuse budget must not silently become one fresh allowance per
+Node process during configuration drift, hashing failure, RPC outage or invalid
+RPC output. Production and Railway therefore return a blocked rate-limit result
+for every shared-control failure. Local fallback is permitted only outside
+production and is itself bounded to 4096 validated TTL/LRU keys; capacity
+overflow denies new identities, and full expiry cleanup is rate-limited. This
+trades temporary feature availability for bounded provider cost, moderation
+queues and process memory. Live release proof must confirm no protected sink
+runs during forced failure modes.
+
+## D-059 - Untrusted pixel decoding is isolated and admission-bounded
+
+Per-user download throttling does not protect the Node event loop from a highly
+compressed, computationally expensive PNG/JPEG. Local QR decode therefore runs
+in one per-process worker with a bounded total backlog, memory limit and hard
+deadline. Source bytes/pixels and downscaled QR attempts also have explicit work
+budgets. Saturation, timeout, worker crash and oversized input produce no decoded
+QR evidence; the existing honest unreadable-image/AI fallback handles the user
+flow. Production rollout still requires legitimate-corpus smoke plus a bounded-
+memory soak and worker crash/restart validation.
+
+## D-058 - Persistent displays fail closed, including Telegram custom schemes
+
+Prepared displays and redacted narratives are persistence boundaries, not best-
+effort presentation helpers. If a URL/APK cannot be parsed, its display becomes
+`[link]`; the raw malformed value must never be reused. `tg://` and
+`telegram://` identifiers are redacted as complete custom-scheme values before
+report/appeal writes, Telegram draft storage or moderation. Valid HTTP(S) URLs
+may retain a host/path indicator, but never credentials, query secrets or raw
+malformed input.
+
+## D-057 - External URL reputation receives origin only
+
+URL paths can contain password-reset, invite, signed-download or bearer material.
+Before any optional reputation-provider call, the URL is reduced to HTTP(S)
+scheme/origin; userinfo, path, query and fragment are removed. Deterministic local
+rules continue to inspect the full cleaned URL, so `.apk` and other path signals
+remain available without disclosing them externally. Path-specific provider
+coverage is intentionally traded for a strict privacy boundary.
+
+## D-056 - Mutable official handles expire closed
+
+Telegram usernames can be renamed or reassigned, so a historical source note is
+not permanent verification. A Telegram contact expires 30 days after `verifiedAt`
+unless its authoritative source is checked again. Expired entries remain in seed
+history but are excluded from risk lookup, public counts/search and action links;
+they cannot show a verified badge or alter a verdict. Static phone/emergency seed
+lifecycle remains a separate provenance task.
+
+## D-055 - Verified contacts are protective evidence, never a risk override
+
+An official phone or short code proves only that the destination appears in the
+maintained directory; it does not authenticate the caller or make the surrounding
+request safe. `REASON_TRUST_IMPACT` must classify every ReasonCode at compile time.
+A verified match may lower a verdict to `safe` only when all reasons are explicitly
+informational or protective. Any risk-classified reason, including a newly added
+code, fails closed and keeps the deterministic non-Safe verdict.
+
+## D-054 - Inline output is a privacy boundary, not a mirror
+
+Telegram Inline results can be inserted into another person's chat, so no
+preflight or fallback branch may echo raw user input. Every display is masked at
+the Inline presenter even when upstream code claims it is already safe;
+malformed URL displays fail closed to `[link]`. Inline typing also skips
+external URL-reputation providers, keeps `persist=false`/`skipAi=true`, and is
+capped at Telegram's 256-character query boundary. First-contact language uses
+`inline_query.from.language_code`; saved session language remains authoritative.
+Bot API `{ok:false}` is observable without logging the query/result, and only
+entity-parse failures receive one retry without `parse_mode`.
+
 ## D-053 - Repeated unsafe AI output slows explanations only
 
 If the AI explanation provider repeatedly returns text blocked by

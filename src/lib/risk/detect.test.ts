@@ -3,7 +3,9 @@ import {
   detectInputType,
   looksLikePaymentInput,
   luhnCheck,
+  maskForDisplay,
   normalizeTelegram,
+  normalizeUrl,
   redactText,
   shouldRedactAsCard,
 } from "./detect";
@@ -164,6 +166,49 @@ describe("redactText — context-aware card detection", () => {
     expect(result).toContain("v*****@example.com");
     expect(result).toContain("[telegram]");
     expect(result).toContain("[link]");
+  });
+
+  it("fails closed when a URL-shaped value cannot be parsed for display", () => {
+    const input = "https://victim:secret-token@%";
+    expect(detectInputType(input)).toBe("url");
+
+    const display = maskForDisplay(normalizeUrl(input), "url");
+    expect(display).toBe("[link]");
+    expect(display).not.toContain("secret-token");
+    expect(maskForDisplay(input, "apk")).toBe("[link]");
+  });
+
+  it("keeps a useful host-only display for a valid URL", () => {
+    const display = maskForDisplay(
+      normalizeUrl("https://user:pass@example.com/private/reset?token=secret"),
+      "url",
+    );
+
+    expect(display).toBe("example.com/…");
+    expect(display).not.toContain("user");
+    expect(display).not.toContain("token");
+  });
+
+  it("redacts tg and telegram custom-scheme identifiers", () => {
+    const input =
+      "Contact tg://resolve?domain=Secret_Handle&start=private-token or telegram://resolve?domain=OtherSecret&start=second-token.";
+    const result = redactText(input);
+
+    expect(result).not.toContain("Secret_Handle");
+    expect(result).not.toContain("private-token");
+    expect(result).not.toContain("OtherSecret");
+    expect(result).not.toContain("second-token");
+    expect(result.match(/\[telegram\]/g)).toHaveLength(2);
+  });
+
+  it.each([
+    "TG://login?token=DisposableSecret",
+    "telegram://join?invite=DisposableInvite",
+    "tg://user?id=123456789&hash=DisposableHash",
+  ])("redacts Telegram custom-scheme variant: %s", (value) => {
+    const result = redactText(`Open ${value} now`);
+    expect(result).toBe("Open [telegram] now");
+    expect(result).not.toContain("Disposable");
   });
 
   it("beverage ad with EAN barcode does NOT trigger card redaction", () => {

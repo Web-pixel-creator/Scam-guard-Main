@@ -1190,14 +1190,23 @@ async function maybeAutoNotifyTrustedContact(
 }
 
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
+async function restoreSessionAfterUndeliveredResult(ctx: HandlerCtx): Promise<void> {
+  await saveSession(ctx.userId, {
+    lang: ctx.session.lang,
+    scenario: ctx.session.scenario,
+    scenarioStep: ctx.session.scenarioStep,
+    scenarioData: ctx.session.scenarioData,
+  });
+}
+
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
   const formatted = formatCheckResult(result, ctx.session.lang);
   const lastCheck = buildLastCheckSnapshot(result);
   const guardian = buildGuardianAngelSnapshot(result);
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
 
-  await sendMessage({ chatId: ctx.chatId, text: formatted.text, keyboard: formatted.keyboard });
-  await saveSession(ctx.userId, {
+  const saved = await saveSession(ctx.userId, {
+    lang: ctx.session.lang,
     scenario: "none",
     scenarioStep: 0,
     scenarioData: withSessionChatScope(
@@ -1210,13 +1219,29 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
       ctx.chatType,
     ),
   });
+  if (saved?.ok === false) return;
+
+  const resultDelivery = await sendMessage({
+    chatId: ctx.chatId,
+    text: formatted.text,
+    keyboard: formatted.keyboard,
+  });
+  if (resultDelivery?.ok === false) {
+    console.error("telegram check result delivery failed");
+    await restoreSessionAfterUndeliveredResult(ctx);
+    return;
+  }
 
   if (guardian && shouldAutoSendGuardianIntro(result)) {
-    await sendMessage({
+    const guardianDelivery = await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildGuardianAngelIntro(guardian, ctx.session.lang)),
       keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian),
     });
+    if (guardianDelivery?.ok === false) {
+      console.error("telegram guardian intro delivery failed");
+      return;
+    }
   }
 
   await maybeAutoNotifyTrustedContact(ctx, guardian);
@@ -1244,12 +1269,8 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   if (reply === "suppress") return;
 
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
-  await replyText(
-    ctx.chatId,
-    bt(reply === "short" ? "ocr_failed_repeat" : "ocr_failed", ctx.session.lang),
-    buildImageTriageKeyboard(ctx.session.lang),
-  );
-  await saveSession(ctx.userId, {
+  const saved = await saveSession(ctx.userId, {
+    lang: ctx.session.lang,
     scenario: "none",
     scenarioStep: 0,
     scenarioData: withSessionChatScope(
@@ -1261,6 +1282,19 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
       ctx.chatType,
     ),
   });
+  if (saved?.ok === false) return;
+
+  const delivery = await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(
+      bt(reply === "short" ? "ocr_failed_repeat" : "ocr_failed", ctx.session.lang),
+    ),
+    keyboard: buildImageTriageKeyboard(ctx.session.lang),
+  });
+  if (delivery?.ok === false) {
+    console.error("telegram image fallback delivery failed");
+    await restoreSessionAfterUndeliveredResult(ctx);
+  }
 }
 
 /**
@@ -1327,7 +1361,7 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
       await replyText(ctx.chatId, bt(key, ctx.session.lang, { seconds: e.retryAfter }));
       return;
     }
-    console.error(`telegram ${label} failed`, e instanceof Error ? e.message : "unknown");
+    console.error(`telegram ${label} failed`, "handler_exception");
     await replyText(ctx.chatId, bt("generic_error", ctx.session.lang));
   }
 }
@@ -1389,6 +1423,34 @@ export async function handleCheck(
     return;
   }
 
+  const guardianFollowUp = classifyGuardianAngelFollowUp(trimmed, ctx.session.scenarioData);
+  if (guardianFollowUp !== null && ctx.session.scenarioData.guardian) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
+      ),
+      keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
+    });
+    return;
+  }
+
+  // Both Emergency Copilot and a later check can recognize short phrases such
+  // as "can I contact someone close?". The last-check classifier already
+  // compares timestamps and returns null when panic context is newer, so run it
+  // before the emergency classifier to prevent an old two-hour panic context
+  // from stealing a newer check follow-up.
+  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, ctx.session.scenarioData);
+  if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        buildLastCheckFollowUpText(lastCheckFollowUp, ctx.session.scenarioData.lastCheck, lang),
+      ),
+    });
+    return;
+  }
+
   const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
     const liveCallContext =
@@ -1413,18 +1475,6 @@ export async function handleCheck(
     return;
   }
 
-  const guardianFollowUp = classifyGuardianAngelFollowUp(trimmed, ctx.session.scenarioData);
-  if (guardianFollowUp !== null && ctx.session.scenarioData.guardian) {
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: escapeMarkdownV2(
-        buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
-      ),
-      keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
-    });
-    return;
-  }
-
   const emergencyAcknowledgement = classifyAcknowledgementFollowUp(trimmed);
   if (
     emergencyAcknowledgement !== null &&
@@ -1433,17 +1483,6 @@ export async function handleCheck(
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildAcknowledgementFollowUpText(lang)),
-    });
-    return;
-  }
-
-  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, ctx.session.scenarioData);
-  if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: escapeMarkdownV2(
-        buildLastCheckFollowUpText(lastCheckFollowUp, ctx.session.scenarioData.lastCheck, lang),
-      ),
     });
     return;
   }
@@ -1619,7 +1658,7 @@ export async function handleImage(
       // 3) Decode real QR pixels before AI evidence. This stays in memory and
       // never guesses QR contents when pixel decoding fails.
       const qrStartedAt = Date.now();
-      const decodedQr = decodeQrFromDataUrl(dataUrl);
+      const decodedQr = await decodeQrFromDataUrl(dataUrl);
       logTelegramTiming("image.qr_decode", qrStartedAt, {
         qrCount: decodedQr.values.length,
       });

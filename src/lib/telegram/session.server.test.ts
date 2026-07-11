@@ -16,6 +16,7 @@ const mockState = vi.hoisted(() => ({
   maybeSingleResult: { data: null as unknown, error: null as unknown },
   // Result returned by `upsert(...)`.
   upsertResult: { error: null as unknown },
+  rpcResult: { data: null as unknown, error: null as unknown },
   // Captured calls for assertions.
   calls: {
     from: [] as unknown[][],
@@ -23,6 +24,7 @@ const mockState = vi.hoisted(() => ({
     eq: [] as unknown[][],
     maybeSingle: 0,
     upsert: [] as unknown[][],
+    rpc: [] as unknown[][],
   },
 }));
 
@@ -52,21 +54,41 @@ vi.mock("@/integrations/supabase/client.server", () => {
       mockState.calls.from.push(args);
       return builder;
     },
+    rpc: async (...args: unknown[]) => {
+      mockState.calls.rpc.push(args);
+      return mockState.rpcResult;
+    },
   };
   return { supabaseAdmin };
 });
 
-import { loadSession, saveSession, setLanguage, resetScenario } from "./session.server";
+import {
+  loadSession,
+  saveSession,
+  setLanguage,
+  resetScenario,
+  TelegramSessionLoadError,
+} from "./session.server";
+import { runWithTelegramUpdateExecution } from "./update-execution.server";
+
+const fencedLease = {
+  updateId: 200,
+  leaseToken: "00000000-0000-4000-8000-000000000200",
+  processingFence: 3,
+  leaseExpiresAt: "2099-01-01T00:00:00.000Z",
+};
 
 beforeEach(() => {
   // Reset to neutral "success / no row" defaults before every test.
   mockState.maybeSingleResult = { data: null, error: null };
   mockState.upsertResult = { error: null };
+  mockState.rpcResult = { data: null, error: null };
   mockState.calls.from = [];
   mockState.calls.select = [];
   mockState.calls.eq = [];
   mockState.calls.maybeSingle = 0;
   mockState.calls.upsert = [];
+  mockState.calls.rpc = [];
   // Keep test output clean: the module logs on read/write failures by design.
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -142,6 +164,53 @@ describe("loadSession", () => {
 
     expect(session).toMatchObject({ telegramUserId: 99, lang: "ru", scenario: "none" });
   });
+
+  it("fails closed and marks storage unavailable when a webhook session read fails", async () => {
+    mockState.maybeSingleResult = {
+      data: null,
+      error: { message: "SECRET database read detail" },
+    };
+
+    await expect(runWithTelegramUpdateExecution(100, () => loadSession(99))).rejects.toBeInstanceOf(
+      TelegramSessionLoadError,
+    );
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
+  });
+
+  it("loads through the fenced RPC when the update owns a lease", async () => {
+    mockState.rpcResult = {
+      data: {
+        lease_valid: true,
+        session: {
+          telegram_user_id: 99,
+          lang: "en",
+          scenario: "none",
+          scenario_step: 0,
+          scenario_data: {},
+          updated_at: "2026-07-11T00:00:00.000Z",
+        },
+      },
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(200, () => loadSession(99), {
+      lease: fencedLease,
+    });
+
+    expect(execution.value.lang).toBe("en");
+    expect(mockState.calls.from).toHaveLength(0);
+    expect(mockState.calls.rpc[0]).toEqual([
+      "load_telegram_session_fenced",
+      {
+        p_telegram_user_id: 99,
+        p_update_id: 200,
+        p_lease_token: fencedLease.leaseToken,
+        p_processing_fence: 3,
+        p_leader_token: null,
+        p_leader_fence: null,
+      },
+    ]);
+  });
 });
 
 describe("saveSession", () => {
@@ -169,7 +238,107 @@ describe("saveSession", () => {
 
     const result = await saveSession(42, { scenarioStep: 3 });
 
-    expect(result).toEqual({ ok: false });
+    expect(result).toEqual({ ok: false, reason: "storage" });
+  });
+
+  it("uses the monotonic RPC inside a webhook update execution", async () => {
+    mockState.rpcResult = {
+      data: [{ applied: true, current_update_id: 101 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(101, () =>
+      saveSession(42, { scenario: "report_desc", scenarioStep: 1 }),
+    );
+
+    expect(execution).toEqual({ value: { ok: true }, sessionStorageFailed: false });
+    expect(mockState.calls.rpc).toEqual([
+      [
+        "save_telegram_session_sequenced",
+        {
+          p_telegram_user_id: 42,
+          p_update_id: 101,
+          p_patch: { scenario: "report_desc", scenario_step: 1 },
+        },
+      ],
+    ]);
+    expect(mockState.calls.upsert).toHaveLength(0);
+  });
+
+  it("persists a first-contact language hint with the first partial webhook save", async () => {
+    mockState.maybeSingleResult = { data: null, error: null };
+    mockState.rpcResult = {
+      data: [{ applied: true, current_update_id: 102 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(102, async () => {
+      const session = await loadSession(42, "uz");
+      expect(session.lang).toBe("uz");
+      return saveSession(42, { scenario: "await_check" });
+    });
+
+    expect(execution.sessionStorageFailed).toBe(false);
+    expect(mockState.calls.rpc.at(-1)).toEqual([
+      "save_telegram_session_sequenced",
+      {
+        p_telegram_user_id: 42,
+        p_update_id: 102,
+        p_patch: { lang: "uz", scenario: "await_check" },
+      },
+    ]);
+  });
+
+  it("rejects a stale update without marking storage unavailable", async () => {
+    mockState.rpcResult = {
+      data: [{ applied: false, current_update_id: 102 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(101, () =>
+      saveSession(42, { scenarioStep: 1 }),
+    );
+
+    expect(execution).toEqual({
+      value: { ok: false, reason: "stale" },
+      sessionStorageFailed: false,
+    });
+  });
+
+  it("marks a sequenced storage failure without logging the database message", async () => {
+    mockState.rpcResult = {
+      data: null,
+      error: { message: "SECRET database detail" },
+    };
+
+    const execution = await runWithTelegramUpdateExecution(101, () =>
+      saveSession(42, { scenarioStep: 1 }),
+    );
+
+    expect(execution).toEqual({
+      value: { ok: false, reason: "storage" },
+      sessionStorageFailed: true,
+    });
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
+  });
+
+  it("rejects a session write when the fenced lease is stale", async () => {
+    mockState.rpcResult = {
+      data: [{ lease_valid: false, applied: false, current_update_id: 200 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(
+      200,
+      () => saveSession(42, { scenarioStep: 1 }),
+      { lease: fencedLease },
+    );
+
+    expect(execution).toEqual({
+      value: { ok: false, reason: "storage" },
+      sessionStorageFailed: true,
+    });
+    expect(mockState.calls.rpc[0]?.[0]).toBe("save_telegram_session_fenced");
   });
 });
 
@@ -202,7 +371,7 @@ describe("setLanguage", () => {
 
     const result = await setLanguage(1002, "uz");
 
-    expect(result).toEqual({ ok: false });
+    expect(result).toEqual({ ok: false, reason: "storage" });
 
     // The persisted language remains ru — the failed write changed nothing.
     const reloaded = await loadSession(1002);

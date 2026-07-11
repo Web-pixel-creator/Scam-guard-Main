@@ -29,6 +29,51 @@ const HOMOGLYPH_MAP: ReadonlyMap<string, string> = new Map([
   ["1", "l"], // one → l
 ]);
 
+const CYRILLIC_TRANSLITERATION_MAP: ReadonlyMap<string, string> = new Map([
+  ["а", "a"],
+  ["б", "b"],
+  ["в", "v"],
+  ["г", "g"],
+  ["ғ", "g"],
+  ["д", "d"],
+  ["е", "e"],
+  ["ё", "e"],
+  ["ж", "zh"],
+  ["з", "z"],
+  ["и", "i"],
+  ["і", "i"],
+  ["ї", "i"],
+  ["й", "y"],
+  ["ј", "j"],
+  ["к", "k"],
+  ["қ", "q"],
+  ["л", "l"],
+  ["м", "m"],
+  ["н", "n"],
+  ["о", "o"],
+  ["ў", "o"],
+  ["п", "p"],
+  ["р", "r"],
+  ["с", "s"],
+  ["ѕ", "s"],
+  ["т", "t"],
+  ["у", "u"],
+  ["ф", "f"],
+  ["х", "x"],
+  ["ҳ", "h"],
+  ["ц", "c"],
+  ["ч", "ch"],
+  ["ш", "sh"],
+  ["щ", "shch"],
+  ["ъ", ""],
+  ["ы", "y"],
+  ["ь", ""],
+  ["э", "e"],
+  ["ю", "yu"],
+  ["я", "ya"],
+  ["ӏ", "l"],
+]);
+
 /**
  * Apply homoglyph normalization: replace known confusable characters
  * with their canonical Latin equivalents.
@@ -39,6 +84,32 @@ function applyHomoglyphs(input: string): string {
     result += HOMOGLYPH_MAP.get(char) ?? char;
   }
   return result;
+}
+
+function transliterateCyrillic(input: string): string {
+  let result = "";
+  for (const char of input) {
+    result += CYRILLIC_TRANSLITERATION_MAP.get(char) ?? char;
+  }
+  return result;
+}
+
+/**
+ * Canonical comparison key shared by checked labels and registry aliases.
+ * Applying the same transform to both sides avoids hybrid-script mismatches
+ * after IDNA decoding without pretending that the key is a display value.
+ */
+export function toDomainComparisonKey(input: string): string {
+  return transliterateCyrillic(applyHomoglyphs(input.normalize("NFKC").toLowerCase()));
+}
+
+/** Visual-confusable and ordinary transliteration alternatives for aliases. */
+export function toDomainComparisonKeys(input: string): ReadonlySet<string> {
+  const normalized = input.normalize("NFKC").toLowerCase();
+  return new Set([
+    transliterateCyrillic(applyHomoglyphs(normalized)),
+    transliterateCyrillic(normalized),
+  ]);
 }
 
 /**
@@ -191,16 +262,20 @@ export function normalizeDomain(rawUrl: string): NormalizedDomain {
   // 3. Strip www. prefix from hostname
   hostname = hostname.replace(/^www\./i, "");
 
-  // 4. Lowercase
-  hostname = hostname.toLowerCase();
-  path = path.toLowerCase();
+  // 4. Lowercase and normalize compatibility forms
+  hostname = hostname.normalize("NFKC").toLowerCase();
+  path = path.normalize("NFKC").toLowerCase();
+
+  // DNS absolute names may contain one terminal root dot. It is semantically
+  // equivalent to the same hostname without the dot; remove exactly one.
+  hostname = hostname.replace(/\.$/u, "");
 
   // 5. Decode punycode labels in hostname
   hostname = decodePunycodeHostname(hostname);
 
   // 6. Apply homoglyph normalization
-  hostname = applyHomoglyphs(hostname);
-  path = applyHomoglyphs(path);
+  hostname = toDomainComparisonKey(hostname);
+  path = toDomainComparisonKey(path);
 
   return { hostname, path };
 }

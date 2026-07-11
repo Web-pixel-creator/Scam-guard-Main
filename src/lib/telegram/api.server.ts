@@ -9,6 +9,8 @@
 // return `{ ok: false }`, `getFile`/`downloadFileAsDataUrl` return `null`, and
 // the void helpers swallow errors. Nothing throws out of this module.
 import { getTelegramBotToken } from "@/lib/config.server";
+import { TELEGRAM_WEBHOOK_MAX_CONNECTIONS } from "@/lib/telegram/webhook-delivery-policy";
+import { telegramOutboundEffectAllowed } from "@/lib/telegram/outbound-effect-guard";
 
 export interface InlineButton {
   text: string;
@@ -91,6 +93,10 @@ export interface AnswerInlineQueryOptions {
   nextOffset?: string;
 }
 
+export type AnswerInlineQueryResult =
+  | { ok: true }
+  | { ok: false; errorCode?: number; description?: string };
+
 /** Telegram OCR_Pipeline upper bound on downloaded files: 6 MB (R5.5). */
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const BOT_API_TIMEOUT_MS = 8_000;
@@ -108,7 +114,9 @@ const FILE_BASE = "https://api.telegram.org/file/bot";
 async function callBotApi(
   method: string,
   body: Record<string, unknown>,
+  timeoutMs = BOT_API_TIMEOUT_MS,
 ): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+  if (!(await outboundEffectAllowed(method))) return null;
   const token = getTelegramBotToken();
   if (!token) {
     // R17.4 — not configured: fail closed, do not throw, do not log the value.
@@ -123,7 +131,7 @@ async function callBotApi(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       },
-      BOT_API_TIMEOUT_MS,
+      timeoutMs,
     );
     const envelope = await readBotApiEnvelope(res);
     if (!res.ok) {
@@ -131,8 +139,8 @@ async function callBotApi(
       return envelope;
     }
     return envelope;
-  } catch (e) {
-    console.error(`telegram ${method} threw`, e instanceof Error ? e.message : "unknown");
+  } catch {
+    console.error(`telegram ${method} threw`, "network_exception");
     return null;
   }
 }
@@ -141,6 +149,7 @@ async function callBotApiForm(
   method: string,
   form: FormData,
 ): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+  if (!(await outboundEffectAllowed(method))) return null;
   const token = getTelegramBotToken();
   if (!token) {
     console.error(`telegram ${method} skipped: bot token not configured`);
@@ -161,10 +170,14 @@ async function callBotApiForm(
       return envelope;
     }
     return envelope;
-  } catch (e) {
-    console.error(`telegram ${method} threw`, e instanceof Error ? e.message : "unknown");
+  } catch {
+    console.error(`telegram ${method} threw`, "network_exception");
     return null;
   }
+}
+
+async function outboundEffectAllowed(method: string): Promise<boolean> {
+  return telegramOutboundEffectAllowed(method);
 }
 
 async function fetchWithTimeout(
@@ -296,7 +309,9 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
 }
 
 /** Answer an inline-mode query with compact article results. Best-effort. */
-export async function answerInlineQuery(opts: AnswerInlineQueryOptions): Promise<{ ok: boolean }> {
+export async function answerInlineQuery(
+  opts: AnswerInlineQueryOptions,
+): Promise<AnswerInlineQueryResult> {
   const body: Record<string, unknown> = {
     inline_query_id: opts.inlineQueryId,
     results: opts.results,
@@ -306,7 +321,12 @@ export async function answerInlineQuery(opts: AnswerInlineQueryOptions): Promise
   if (opts.nextOffset !== undefined) body.next_offset = opts.nextOffset;
 
   const res = await callBotApi("answerInlineQuery", body);
-  return { ok: res?.ok === true };
+  if (res?.ok === true) return { ok: true };
+
+  const failure: Extract<AnswerInlineQueryResult, { ok: false }> = { ok: false };
+  if (typeof res?.error_code === "number") failure.errorCode = res.error_code;
+  if (typeof res?.description === "string") failure.description = res.description;
+  return failure;
 }
 
 /**
@@ -379,8 +399,8 @@ export async function downloadFileAsDataUrl(filePath: string): Promise<string | 
 
     const mime = resolveMime(res.headers.get("content-type"), filePath);
     return `data:${mime};base64,${toBase64(bytes)}`;
-  } catch (e) {
-    console.error("telegram downloadFile threw", e instanceof Error ? e.message : "unknown");
+  } catch {
+    console.error("telegram downloadFile threw", "network_exception");
     return null;
   }
 }
@@ -391,8 +411,29 @@ export async function downloadFileAsDataUrl(filePath: string): Promise<string | 
  * заголовке `X-Telegram-Bot-Api-Secret-Token`. Возвращает `{ ok }`.
  */
 export async function setWebhook(url: string, secretToken: string): Promise<{ ok: boolean }> {
-  const res = await callBotApi("setWebhook", { url, secret_token: secretToken });
+  const res = await callBotApi("setWebhook", {
+    url,
+    secret_token: secretToken,
+    max_connections: TELEGRAM_WEBHOOK_MAX_CONNECTIONS,
+  });
   return { ok: res?.ok === true };
+}
+
+export async function deleteWebhook(dropPendingUpdates = false): Promise<{ ok: boolean }> {
+  const res = await callBotApi("deleteWebhook", { drop_pending_updates: dropPendingUpdates });
+  return { ok: res?.ok === true };
+}
+
+export async function getUpdates(options: {
+  offset?: number;
+  timeout?: number;
+  limit?: number;
+}): Promise<unknown[] | null> {
+  const timeout = Math.min(30, Math.max(0, Math.trunc(options.timeout ?? 25)));
+  const body: Record<string, unknown> = { timeout, limit: 1 };
+  if (options.offset !== undefined) body.offset = options.offset;
+  const res = await callBotApi("getUpdates", body, (timeout + 10) * 1_000);
+  return res?.ok === true && Array.isArray(res.result) ? res.result : null;
 }
 
 const MARKDOWN_V2_SPECIALS = new Set([

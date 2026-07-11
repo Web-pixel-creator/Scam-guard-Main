@@ -117,11 +117,30 @@ describe("checkUrlReputation", () => {
     });
 
     const body = firstFetchBody(fetchImpl);
-    expect(body).toContain("https://example.test/reset");
+    expect(body).toContain("https://example.test/");
+    expect(body).not.toContain("/reset");
     expect(body).not.toContain("user");
     expect(body).not.toContain("pass");
     expect(body).not.toContain("token=secret");
     expect(body).not.toContain("#frag");
+  });
+
+  it("does not disclose path-embedded bearer material to providers", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({}));
+
+    await checkUrlReputation(
+      ["https://files.example.test/share/bearer-secret-7f0c1a/document.pdf"],
+      {
+        env: { GOOGLE_SAFE_BROWSING_KEY: "test-key" },
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        cache: false,
+      },
+    );
+
+    const body = firstFetchBody(fetchImpl);
+    expect(body).toContain("https://files.example.test/");
+    expect(body).not.toContain("bearer-secret-7f0c1a");
+    expect(body).not.toContain("document.pdf");
   });
 
   it("reuses cached reputation results for repeated URL checks", async () => {
@@ -196,7 +215,7 @@ describe("checkUrlReputation", () => {
 
   it("normalizes reputation URLs without preserving sensitive URL components", () => {
     expect(normalizeUrlForReputationProvider("example.test/path?code=123456#fragment")).toBe(
-      "https://example.test/path",
+      "https://example.test/",
     );
     expect(normalizeUrlForReputationProvider("ftp://example.test/file")).toBeNull();
   });

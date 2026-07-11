@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getPublicStats, type PublicStats } from "@/lib/check.functions";
 import { useLang } from "@/lib/lang-context";
 import { Activity, ShieldCheck, Calendar, PhoneCall } from "lucide-react";
-import { VERIFIED_CONTACTS_COUNT } from "@/lib/risk/verified-contacts";
+import { getVerifiedContactsCount } from "@/lib/risk/verified-contacts";
 
 function formatNum(n: number, lang: string) {
   try {
@@ -52,7 +52,7 @@ export function StatsStrip() {
     {
       key: "official",
       icon: PhoneCall,
-      value: VERIFIED_CONTACTS_COUNT,
+      value: getVerifiedContactsCount(),
       label: {
         ru: "Проверенных официальных контактов",
         uz: "Tekshirilgan rasmiy kontaktlar",

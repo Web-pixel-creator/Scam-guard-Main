@@ -17,22 +17,99 @@ interface AdviceEntry {
   en: string;
 }
 
+export type ProtectiveActionId =
+  | "protect_secrets"
+  | "avoid_link_or_apk"
+  | "avoid_transfer"
+  | "end_pressure_call"
+  | "verify_official_channel"
+  | "secure_telegram_account"
+  | "protect_identity_access"
+  | "avoid_casino_deposit"
+  | "avoid_betting_payment"
+  | "avoid_giveaway_trap"
+  | "avoid_reward_chain"
+  | "verify_investment"
+  | "avoid_wallet_action"
+  | "avoid_invite_credentials"
+  | "verify_delivery_payment"
+  | "avoid_qr"
+  | "stop_reported_contact"
+  | "protect_personal_data";
+
+/**
+ * Exhaustive protective-action policy for every deterministic ReasonCode.
+ * `null` is intentional only for context/protective signals that cannot make a
+ * result high-risk by themselves. A new ReasonCode is a compile-time error
+ * until its user action is selected explicitly.
+ */
+export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | null> = {
+  asks_for_otp: "protect_secrets",
+  asks_for_sms_code: "protect_secrets",
+  asks_for_card_cvv: "protect_secrets",
+  asks_for_pin: "protect_secrets",
+  asks_to_install_apk: "avoid_link_or_apk",
+  asks_to_share_screen: "avoid_link_or_apk",
+  asks_to_transfer_to_safe_account: "avoid_transfer",
+  impersonates_bank: "verify_official_channel",
+  impersonates_operator: "verify_official_channel",
+  uses_urgency: "end_pressure_call",
+  threatens_legal_action: "end_pressure_call",
+  asks_not_to_hang_up: "end_pressure_call",
+  telegram_bank_contact: "verify_official_channel",
+  fake_loan_offer: "avoid_transfer",
+  suspicious_short_link: "avoid_link_or_apk",
+  apk_download_link: "avoid_link_or_apk",
+  unknown_sender: null,
+  new_telegram_account: null,
+  weird_domain: "avoid_link_or_apk",
+  brand_name_typo: "verify_official_channel",
+  payment_before_service: "avoid_transfer",
+  too_good_to_be_true: "avoid_transfer",
+  requests_personal_data: "protect_personal_data",
+  non_uz_phone: null,
+  valid_uz_phone: null,
+  verified_official: null,
+  known_reported: "stop_reported_contact",
+  asks_to_scan_qr: "avoid_qr",
+  relative_in_distress: "avoid_transfer",
+  requests_card_digits: "protect_secrets",
+  threatens_account_block: "end_pressure_call",
+  fake_delivery_payment: "verify_delivery_payment",
+  fake_boss_request: "verify_official_channel",
+  malicious_file_bait: "avoid_link_or_apk",
+  impersonates_official: "verify_official_channel",
+  suspicious_invite_link: "avoid_invite_credentials",
+  gambling_prediction_promo: "avoid_betting_payment",
+  giveaway_engagement_bait: "avoid_giveaway_trap",
+  crypto_casino_bonus_funnel: "avoid_casino_deposit",
+  fake_captcha_or_voting: "avoid_giveaway_trap",
+  task_reward_engagement_bait: "avoid_reward_chain",
+  wallet_action_urgency: "avoid_wallet_action",
+  ton_referral_earning_scheme: "avoid_reward_chain",
+  investment_fast_profit_pitch: "verify_investment",
+  romance_investment_pivot: "verify_investment",
+  oneid_government_phishing: "verify_official_channel",
+  sim_swap_or_number_transfer: "protect_secrets",
+  money_mule_recruitment: "avoid_transfer",
+  advance_fee_prize_inheritance: "avoid_transfer",
+  external_phishing_url: "avoid_link_or_apk",
+  external_malware_url: "avoid_link_or_apk",
+  hosted_app_platform: null,
+  brand_impersonation: "verify_official_channel",
+  telegram_account_takeover_phishing: "secure_telegram_account",
+  dropper_recruitment: "protect_identity_access",
+};
+
 interface AdviceCategory {
-  reasons: Set<ReasonCode>;
+  id: ProtectiveActionId;
   advice: AdviceEntry;
 }
 
 const REASON_ADVICE_MAP: AdviceCategory[] = [
   // OTP/code reasons → don't share codes
   {
-    reasons: new Set<ReasonCode>([
-      "asks_for_otp",
-      "asks_for_sms_code",
-      "asks_for_pin",
-      "asks_for_card_cvv",
-      "requests_card_digits",
-      "sim_swap_or_number_transfer",
-    ]),
+    id: "protect_secrets",
     advice: {
       ru: "Не сообщайте SMS-код или PIN",
       uz: "SMS-kod yoki PIN-ni aytmang",
@@ -41,14 +118,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Link/APK reasons → don't click or install
   {
-    reasons: new Set<ReasonCode>([
-      "suspicious_short_link",
-      "apk_download_link",
-      "asks_to_install_apk",
-      "weird_domain",
-      "malicious_file_bait",
-      "asks_to_share_screen",
-    ]),
+    id: "avoid_link_or_apk",
     advice: {
       ru: "Не переходите по ссылке и не устанавливайте APK",
       uz: "Havolaga o'tmang va APK o'rnatmang",
@@ -57,15 +127,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Money transfer reasons → don't send money
   {
-    reasons: new Set<ReasonCode>([
-      "asks_to_transfer_to_safe_account",
-      "payment_before_service",
-      "fake_loan_offer",
-      "too_good_to_be_true",
-      "relative_in_distress",
-      "money_mule_recruitment",
-      "advance_fee_prize_inheritance",
-    ]),
+    id: "avoid_transfer",
     advice: {
       ru: "Не переводите деньги на «безопасный счёт»",
       uz: "«Xavfsiz hisob»ga pul o'tkazmang",
@@ -74,12 +136,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Pressure/urgency reasons → hang up calmly
   {
-    reasons: new Set<ReasonCode>([
-      "uses_urgency",
-      "threatens_legal_action",
-      "asks_not_to_hang_up",
-      "threatens_account_block",
-    ]),
+    id: "end_pressure_call",
     advice: {
       ru: "Спокойно положите трубку — давление это признак обмана",
       uz: "Xotirjam go'shakni qo'ying — bosim aldov belgisi",
@@ -88,16 +145,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Impersonation reasons → call back on official number
   {
-    reasons: new Set<ReasonCode>([
-      "impersonates_bank",
-      "impersonates_operator",
-      "impersonates_official",
-      "telegram_bank_contact",
-      "fake_boss_request",
-      "brand_name_typo",
-      "brand_impersonation",
-      "oneid_government_phishing",
-    ]),
+    id: "verify_official_channel",
     advice: {
       ru: "Перезвоните в организацию по официальному номеру",
       uz: "Tashkilotga rasmiy raqami orqali qo'ng'iroq qiling",
@@ -106,7 +154,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Telegram account takeover phishing -> check sessions, don't press "cancel"
   {
-    reasons: new Set<ReasonCode>(["telegram_account_takeover_phishing"]),
+    id: "secure_telegram_account",
     advice: {
       ru: "Не нажимайте «Отмена» и не вводите код — проверьте Telegram → Устройства вручную",
       uz: "«Bekor qilish»ni bosmang va kod kiritmang — Telegram → Qurilmalarni qo'lda tekshiring",
@@ -115,7 +163,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Dropper recruitment -> never hand over financial/identity access
   {
-    reasons: new Set<ReasonCode>(["dropper_recruitment"]),
+    id: "protect_identity_access",
     advice: {
       ru: "Не передавайте карту, SIM, аккаунт или OneID третьим лицам",
       uz: "Karta, SIM, akkaunt yoki OneID'ni boshqa odamga bermang",
@@ -124,7 +172,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Casino/free-spins promos -> avoid deposit and payment funnels.
   {
-    reasons: new Set<ReasonCode>(["crypto_casino_bonus_funnel"]),
+    id: "avoid_casino_deposit",
     advice: {
       ru: "Не пополняйте баланс и не вводите карту/кошелёк по промо-ссылке с фриспинами или бонусом",
       uz: "Frispin yoki bonus havolasi orqali balans to‘ldirmang, karta/hamyon kiritmang",
@@ -133,7 +181,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Betting/prediction promos -> do not pay for closed-channel access or "guaranteed" wins
   {
-    reasons: new Set<ReasonCode>(["gambling_prediction_promo"]),
+    id: "avoid_betting_payment",
     advice: {
       ru: "Не платите за «прогноз», доступ в закрытый канал или гарантированный выигрыш",
       uz: "«Prognoz», yopiq kanal yoki kafolatlangan yutuq uchun pul to'lamang",
@@ -142,7 +190,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Giveaway / NFT engagement bait -> avoid captcha/vote/wallet traps
   {
-    reasons: new Set<ReasonCode>(["giveaway_engagement_bait", "fake_captcha_or_voting"]),
+    id: "avoid_giveaway_trap",
     advice: {
       ru: "Не проходите капчу, голосование, бота или спин ради NFT/Stars/подарка, если дальше просят код, карту или кошелёк",
       uz: "NFT/Stars/sovrin uchun captcha, ovoz, bot yoki spin qilmang, agar keyin kod/karta/hamyon so‘ralsa",
@@ -151,7 +199,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Task/reward/referral bait -> avoid engagement loops and referral pressure.
   {
-    reasons: new Set<ReasonCode>(["task_reward_engagement_bait", "ton_referral_earning_scheme"]),
+    id: "avoid_reward_chain",
     advice: {
       ru: "Не выполняйте цепочку заданий/рефералов ради обещанного TON, Stars, токенов или лёгкого заработка",
       uz: "TON, Stars, token yoki oson pul va’dasi uchun topshiriq/referral zanjiriga kirmang",
@@ -160,7 +208,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Investment fast-profit pitches -> avoid deposit/signal/withdrawal-fee funnels.
   {
-    reasons: new Set<ReasonCode>(["investment_fast_profit_pitch", "romance_investment_pivot"]),
+    id: "verify_investment",
     advice: {
       ru: "Не вносите депозит и не платите за сигналы, пока не проверены лицензия, договор и официальный сайт",
       uz: "Litsenziya, shartnoma va rasmiy sayt tekshirilmaguncha depozit kiritmang va signal uchun to'lamang",
@@ -169,7 +217,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Wallet / DeFi urgency -> avoid signing/seed phrase traps
   {
-    reasons: new Set<ReasonCode>(["wallet_action_urgency"]),
+    id: "avoid_wallet_action",
     advice: {
       ru: "Не подключайте кошелёк, не подписывайте транзакции и не вводите seed phrase по срочной ссылке",
       uz: "Shoshilinch havola orqali hamyon ulamang, tranzaksiya imzolamang va seed phrase kiritmang",
@@ -178,7 +226,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Private invite links -> avoid joining/paying without context
   {
-    reasons: new Set<ReasonCode>(["suspicious_invite_link"]),
+    id: "avoid_invite_credentials",
     advice: {
       ru: "Не вводите данные карты или Telegram-код после перехода по invite-ссылке",
       uz: "Invite havolasidan keyin karta ma'lumotlari yoki Telegram kodini kiritmang",
@@ -187,7 +235,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Fake delivery/payment links -> verify through the official service first.
   {
-    reasons: new Set<ReasonCode>(["fake_delivery_payment"]),
+    id: "verify_delivery_payment",
     advice: {
       ru: "Не оплачивайте доставку по ссылке из чата — откройте сервис вручную через официальное приложение или сайт",
       uz: "Yetkazib berishni chat havolasi orqali to'lamang — xizmatni rasmiy ilova yoki sayt orqali qo'lda oching",
@@ -196,16 +244,57 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // QR login/payment traps -> do not scan codes sent by another person.
   {
-    reasons: new Set<ReasonCode>(["asks_to_scan_qr"]),
+    id: "avoid_qr",
     advice: {
       ru: "Не сканируйте QR для входа, подключения устройства или оплаты, если его прислал другой человек",
       uz: "Boshqa odam yuborgan QR orqali login, qurilma ulash yoki to'lov qilmang",
       en: "Do not scan QR codes for login, device linking, or payment if someone else sent them",
     },
   },
+  // Confirmed local reports -> stop interaction and independently verify.
+  {
+    id: "stop_reported_contact",
+    advice: {
+      ru: "Прекратите контакт: не платите и не сообщайте коды; проверьте организацию через официальный канал",
+      uz: "Muloqotni to'xtating: pul yoki kod bermang; tashkilotni rasmiy kanal orqali tekshiring",
+      en: "Stop the interaction: do not pay or share codes; verify the organization through an official channel",
+    },
+  },
+  // Personal data requests -> do not send identity documents or details.
+  {
+    id: "protect_personal_data",
+    advice: {
+      ru: "Не отправляйте паспорт, фото документов или другие персональные данные",
+      uz: "Pasport, hujjat fotosi yoki boshqa shaxsiy ma'lumotlarni yubormang",
+      en: "Do not send a passport, document photos, or other personal data",
+    },
+  },
 ];
 
-const ADVICE_PRIORITY = [15, 5, 6, 7, 8, 14, 9, 10, 11, 13, 12, 0, 1, 2, 4, 3] as const;
+const ADVICE_PRIORITY = [
+  "stop_reported_contact",
+  "avoid_qr",
+  "secure_telegram_account",
+  "protect_identity_access",
+  "avoid_casino_deposit",
+  "avoid_betting_payment",
+  "verify_delivery_payment",
+  "avoid_giveaway_trap",
+  "avoid_reward_chain",
+  "verify_investment",
+  "avoid_invite_credentials",
+  "avoid_wallet_action",
+  "protect_secrets",
+  "protect_personal_data",
+  "avoid_link_or_apk",
+  "avoid_transfer",
+  "verify_official_channel",
+  "end_pressure_call",
+] as const satisfies readonly ProtectiveActionId[];
+
+const ADVICE_BY_ACTION = Object.fromEntries(
+  REASON_ADVICE_MAP.map((category) => [category.id, category.advice]),
+) as Record<ProtectiveActionId, AdviceEntry>;
 
 // ── Non-actionable context codes ────────────────────────────────────────────
 // These codes can be useful as observations, but they do not justify generic
@@ -247,22 +336,19 @@ export function filterAdvice(level: RiskLevel, reasons: string[], lang: Lang): s
     return [];
   }
 
-  // Map reasons to advice categories, preserving category order
-  const matched = new Set<number>();
+  // Resolve the exhaustive typed policy, then preserve action priority.
+  const matched = new Set<ProtectiveActionId>();
 
   for (const reason of reasons) {
-    for (let i = 0; i < REASON_ADVICE_MAP.length; i++) {
-      if (REASON_ADVICE_MAP[i].reasons.has(reason as ReasonCode)) {
-        matched.add(i);
-      }
-    }
+    const action = REASON_PROTECTIVE_ACTION[reason as ReasonCode];
+    if (action) matched.add(action);
   }
 
   // Collect advice strings in category order (deduplication is inherent)
   const result: string[] = [];
-  for (const idx of ADVICE_PRIORITY) {
-    if (!matched.has(idx)) continue;
-    result.push(REASON_ADVICE_MAP[idx].advice[lang]);
+  for (const action of ADVICE_PRIORITY) {
+    if (!matched.has(action)) continue;
+    result.push(ADVICE_BY_ACTION[action][lang]);
     if (result.length >= 3) break;
   }
 

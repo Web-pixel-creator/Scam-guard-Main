@@ -86,14 +86,14 @@ function callbackUpdate(
 /** An `inline_query` update. Inline mode has from.id but no chat id. */
 function inlineQueryUpdate(
   query: string,
-  opts: { userId?: number; id?: string } = {},
+  opts: { userId?: number; id?: string; languageCode?: string } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   return {
     update_id: 1,
     inline_query: {
       id: opts.id ?? "inline1",
-      from: { id: userId, language_code: "ru" },
+      from: { id: userId, language_code: opts.languageCode ?? "ru" },
       query,
       offset: "",
     },
@@ -755,12 +755,19 @@ function makeDeps(session: Session): {
 describe("dispatchUpdate priority routing", () => {
   it("dispatches an inline query without requiring a chat target", async () => {
     const { deps, calls, loadSession } = makeDeps(makeSession());
-    await dispatchUpdate(inlineQueryUpdate("+998901234567", { userId: 777, id: "iq1" }), deps);
-    expect(loadSession).toHaveBeenCalledWith(777);
+    await dispatchUpdate(
+      inlineQueryUpdate("+998901234567", {
+        userId: 777,
+        id: "iq1",
+        languageCode: "uz",
+      }),
+      deps,
+    );
+    expect(loadSession).toHaveBeenCalledWith(777, "uz");
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleInlineQuery");
     expect(calls[0].arg).toBe("+998901234567");
-    expect(calls[0].ctx).toMatchObject({ userId: 777, languageCode: "ru" });
+    expect(calls[0].ctx).toMatchObject({ userId: 777, languageCode: "uz" });
     expect(calls[0].extra).toBe("iq1");
   });
 

@@ -242,8 +242,8 @@ export async function notifyModeration(notice: ModerationNotice): Promise<{ ok: 
       keyboard: moderationKeyboard(),
       disablePreview: true,
     });
-  } catch (e) {
-    console.error("moderation notification failed", e instanceof Error ? e.message : "unknown");
+  } catch {
+    console.error("moderation notification failed", "delivery_exception");
     return { ok: false };
   }
 }

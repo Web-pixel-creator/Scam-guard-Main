@@ -110,11 +110,17 @@ const chatIdArb = fc.integer({ min: -1_000_000_000_000, max: 1_000_000_000_000 }
 
 const langArb = fc.constantFrom(...LANGS);
 
-// Concrete check-like text within the 2000-char limit so handleCheck reaches
-// the core instead of short-message helper/fallback routes.
-const contentArb = fc
-  .string({ minLength: 0, maxLength: 120 })
-  .map((s) => `please check this message ${s}`.slice(0, 2000));
+// A concrete URL target within the 2000-char limit guarantees that handleCheck
+// reaches the risk core. Natural phrases such as "please check this message"
+// are intentionally valid orphan-helper intents and therefore cannot be used
+// as a pipeline-reachability precondition for this rate-limit property.
+const urlLabelArb = fc
+  .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789"), {
+    minLength: 1,
+    maxLength: 40,
+  })
+  .map((chars) => chars.join(""));
+const contentArb = urlLabelArb.map((label) => `https://${label}.example/check`);
 
 // Non-empty phone-like string so handlePhoneFromContact reaches the core.
 const phoneArb = fc

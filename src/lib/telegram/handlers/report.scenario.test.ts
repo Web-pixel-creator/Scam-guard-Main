@@ -375,14 +375,17 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
 
     const sDesc = await runStep(
       ctx,
-      "Email victim@example.com, link https://evil.example/reset?token=secret, code 123456.",
+      "Email victim@example.com, link https://evil.example/reset?token=secret, Telegram tg://resolve?domain=Secret_Handle&start=private-token, code 123456.",
     );
     const secondDraft = JSON.stringify(sDesc[0].scenarioData);
     expect(secondDraft).not.toContain("@FakeSupportBot");
     expect(secondDraft).not.toContain("victim@example.com");
     expect(secondDraft).not.toContain("https://evil.example/reset?token=secret");
+    expect(secondDraft).not.toContain("Secret_Handle");
+    expect(secondDraft).not.toContain("private-token");
     expect(secondDraft).not.toContain("123456");
     expect(secondDraft).toContain("[link]");
+    expect(secondDraft).toContain("[telegram]");
   });
 });
 

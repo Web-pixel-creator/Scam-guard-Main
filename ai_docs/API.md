@@ -10,7 +10,7 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 
 | RPC                       | Auth   | Input                                                                                                | Returns                                                                                               |
 | ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `checkInput`              | public | `{ input: 1-2000, type?, lang, embed? }`                                                            | risk result or `{ metaIntent, response }` for questions to the bot                                    |
+| `checkInput`              | public | `{ input: 1-2000, type?, lang, embed? }`                                                             | risk result or `{ metaIntent, response }` for questions to the bot                                    |
 | `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
 | `getPublicStats`          | public | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
 | `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
@@ -25,20 +25,38 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
 retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
+Production/Railway shared-rate-limit configuration, HMAC or RPC failures also
+fail closed to the same rate-limited behavior; they never grant a new
+per-process allowance. Only non-production local/test runtimes use the bounded
+in-memory fallback.
 
-## Telegram webhook
+## Telegram update delivery
 
 - Path: `POST /api/telegram/webhook`.
 - Binding: `src/server.ts` intercepts the request before SSR.
 - Handler: `src/lib/telegram/webhook.server.ts`.
 - Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal `TELEGRAM_WEBHOOK_SECRET`.
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
-- Duplicate valid `update_id` deliveries are acknowledged with HTTP 200 and
-  ignored. The handler uses an in-memory fast path plus the shared Supabase
-  `telegram_webhook_updates` table, so Telegram retry duplicates are deduped
-  across production instances. If the shared store is temporarily unavailable
-  before dispatch, the webhook returns HTTP 503 with `Retry-After` and does not
-  process the update, allowing Telegram to retry without duplicate side effects.
+- `TELEGRAM_UPDATE_DELIVERY_MODE=webhook|polling|disabled` selects delivery;
+  the compatibility default is `webhook` until the explicit production cutover.
+- In webhook mode a valid update is acknowledged only after handler success and
+  durable `complete_telegram_update`. Handler failure, timeout, busy lease or
+  lifecycle outage returns HTTP 503 with `Retry-After`. Only a DB `completed`
+  row is acknowledged as a duplicate.
+- In polling mode one DB-fenced leader calls Bot API `getUpdates` with `limit=1`
+  and advances `offset=update_id+1` only after durable completion. Unsupported
+  update shapes with a valid `update_id` are skipped consistently.
+- `GET /api/telegram/polling-health` requires the webhook-secret header and
+  returns 200 only when polling mode has a current DB leader.
+- Dispatch is globally ordered by the polling leader before session load.
+  Service-role-only fenced session RPCs require the current update/leader lease
+  and still use the monotonic `last_update_id` write guard. Bot API calls from
+  an update execution verify the same fence before network I/O. Session failures are
+  propagated through request-local execution state and produce a localized
+  retry warning without database error details. Check-result and
+  unreadable-image cards are persisted before publication, suppressed when the
+  write is failed/stale, and their previous snapshot is restored when Telegram
+  explicitly rejects the main delivery.
 - `/panic` behaves as a small emergency copilot: selected scenarios store only `lastPanicId`/`lastPanicAt`, and short follow-up questions such as "what next", "bank number" or "what should I say" are answered contextually. `/call` is a direct entrypoint into the same live-call scenario (`lastPanicId=6`) and stores no phone number, call recording or raw evidence. Suspicious payloads still go through the normal risk pipeline.
 - `/trainer` opens a five-situation scam-call mini-quiz. It is callback-only:
   the score is encoded in `trainer:*` callback data, answers are not stored,
@@ -48,6 +66,15 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   post-check follow-up context created in a private chat is not reused from a
   group/supergroup chat by the same user; mismatched or legacy unscoped
   contextual rows are reset before routing the current update.
+- Post-check confidence, methodology, trusted-person, recheck and disagreement
+  phrases are helper actions, not fresh risk checks. They bypass `runCheck` only
+  when no new concrete payload is present. The last-check snapshot stores at
+  most three enum-only evidence methods, source classes and limitations; it
+  stores no raw link, text, screenshot, OCR or provider payload. Methodology
+  answers reuse the same ranked result-reason collector as Inline, including
+  explicit official-directory and moderated-report metadata. Bare domains and
+  other concrete new artifacts bypass helpers. A trusted-person phrase has no
+  notification side effect, and recheck requires resubmitting the artifact.
 - `/report` can submit a situation-only incident when the user has no concrete
   target. `incidentOnly=true` stores the redacted incident for
   moderation/research but does not upsert or bump public `entities`. Telegram
@@ -72,10 +99,22 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
   masked display values and redacted reason text. Admin removal hides the public
   reputation label without deleting report history.
+- Report and appeal target displays fail closed to `[link]` when URL parsing
+  fails; the malformed raw value is never reused as a display fallback.
+  Narrative redaction removes complete `tg://` and `telegram://` custom-scheme
+  identifiers before report/appeal persistence, Telegram draft persistence or
+  moderation formatting. Valid HTTP(S) targets still retain only a useful
+  host/path indicator such as `example.com/…`.
 - Telegram photos/screenshots use structured image intelligence before scoring.
   Repeated image checks claim a shared `telegram-image:<tg:userId>` budget
   before Telegram file metadata/download, so media-cost throttling happens
   before bytes are fetched.
+  Local PNG/JPEG QR extraction is isolated from the Node request/event-loop
+  thread in a single worker. The decoder accepts at most 4 MiB/4 megapixels,
+  rescales QR work to at most 1.5 megapixels, performs at most five scans within
+  a 350 ms worker budget, caps the total active-plus-queued backlog at four and
+  terminates an active job after 900 ms. Saturation, timeout, worker failure and
+  unsupported/oversized input all fail closed to no decoded QR evidence.
   Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe`
   only when no reason codes match and the benign category is backed by readable
   text/QR/profile evidence. Category-only model labels remain `unknown`;
@@ -84,6 +123,11 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
 - Web screenshot OCR accepts only server-validated base64 `image/png`,
   `image/jpeg` or `image/webp` data URLs within the decoded byte limit before
   any AI vision provider call.
+- Optional external URL-reputation providers receive only the normalized HTTP(S)
+  scheme/origin. Userinfo, path, query and fragment are never sent because paths
+  may contain reset, invite, signed-download or bearer secrets. The full cleaned
+  URL remains local for deterministic `.apk`, short-link, domain and other rules;
+  provider-origin minimization therefore does not weaken local path detection.
 - `getPublicStats` is served through the server function with a short
   server-side cache and in-flight de-duplication; browsers do not call
   `get_check_stats()` or service-role aggregate queries directly. Check and
@@ -101,10 +145,15 @@ retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only
   and offers emergency actions. Clear "already sent code / installed APK /
   transferred money / entered card / lost Telegram / on a call" transcripts
   route directly to `/panic` instead of waiting for a generic risk card.
-- AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains. Repeated unsafe provider outputs for the same rate-limit key open a short in-memory cooldown that skips further AI explanations for that key while keeping rules-first checks active.
-- Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`) and non-persistent (`persist=false`) so partial typed queries do not spam `checks` or AI providers. Low-signal phone/Telegram inline results reuse the compact Risk Passport presenter; high-risk results remain action-first. Enable inline mode separately in BotFather with `/setinline`.
+- AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains. Negation is scoped to its own action clause: `do not share OTP; transfer money` is blocked, while independently negated warnings remain allowed. Repeated unsafe provider outputs for the same rate-limit key open a short in-memory cooldown that skips further AI explanations for that key while keeping rules-first checks active.
+- Risk Passport kind comes only from deterministic result fields. AI `explanation` markers cannot select Telegram presentation or populate structured evidence sections. Only a separate typed `TelegramPassportEvidence { provenance, text }` value from an internal deterministic producer may be parsed; without it, web/embed/Inline renderers use fixed limitation copy.
+- Verified-contact matches are protective destination evidence, not proof that a surrounding message or caller is safe. The check core may return `safe` from a verified match only when every current ReasonCode is classified as informational/protective; any risk-classified code, including future codes that require compile-time classification, preserves the deterministic non-Safe verdict. Mutable Telegram directory entries also expire 30 days after `verifiedAt`; expired handles are removed from exact lookup, public counts/results and action links until re-verified.
+- Telegram direct-result advice is selected through exhaustive `REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | null>`. New reason codes cannot compile until they receive an action or intentional non-actionable classification. `known_reported`, `external_phishing_url` and `external_malware_url` high-risk cards give immediate stop/verify or link/APK avoidance instead of asking for more context; copy remains parallel in RU/UZ/EN.
+- Protected-brand detection canonicalizes browser-Punycode/Unicode labels and registry aliases under the same classifier-only comparison policy. It uses NFKC, shared visual-confusable plus bounded Cyrillic/transliteration keys, Unicode-aware text boundaries and removal of one terminal DNS root dot. Thus registered Cyrillic/hybrid IDNs are evaluated consistently, while `official.example.` remains equivalent to `official.example` for exact official-domain suppression.
+- Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`), skip external URL-reputation providers and are non-persistent (`persist=false`) so partial typed queries do not spam `checks`, external providers or AI. Queries are capped at the Bot API boundary of 256 characters. Every displayed value is masked again at the Inline presentation boundary, including human-intent preflight cards; malformed URL displays fail closed to `[link]`. First-contact Inline users pass Telegram's language hint into session loading, while an existing saved language still wins. `answerInlineQuery` failures preserve only the Bot API code/description for handling, are logged without query/result content, and entity-parse errors get one retry using the retained plain text rather than escaped Markdown. All 55 reason codes have an exhaustive typed Inline priority/evidence/limitation policy in RU/UZ/EN; it identifies whether the result came from visible text, URL/domain/phone/Telegram structure, the official directory, moderated local reports or a configured external feed without claiming hidden data or identity proof. Article descriptions are bounded to 120 characters, while inserted cards retain the complete explanation. Bot mentions and the continue button use a validated `TELEGRAM_BOT_USERNAME` with a safe fallback. Low-signal phone/Telegram results reuse the compact Risk Passport presenter; high-risk results remain action-first. Enable inline mode separately in BotFather with `/setinline`.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
 - Telegram reputation labels come only from the app-owned `telegram_reputation_targets` source layer. Unverified user reports are not shown to users. Confirmed moderated reports may add a short source/confidence brief, explicitly distinguished from hidden Telegram SCAM labels or Telegram-internal report history.
+- Admin report moderation treats Telegram aggregate synchronization as a required integrity step. Confirmed/unverified count errors, invalid exact counts and aggregate upsert failures reject with a typed stage error instead of becoming zero/success. The report/entity updates may already be committed, so callers must surface a retryable partial-failure state; logs contain only the stage, not a target hash or database message.
 - Family Shield uses `/family`, `family_*` deep links and `family:*` callbacks. Invite links are generated from HMAC-hashed tokens, pending invites expire after 24 hours, active-link duplicate creation is handled as a user-facing state, and trusted-contact alerts include no raw scam evidence. `family:codeword` is a teaching-only callback: it tells families how to agree on a voice-clone verification phrase offline and never asks the user to send or store the actual codeword. The trusted contact can opt out from future alerts from the alert itself.
 - Plain questions to the bot are routed through `src/lib/meta-intent.ts` before risk scoring. Telegram account visibility questions explain that hidden scam labels, account age, report history and spam history are not available unless the user sends real context or a future moderated source exists.
 

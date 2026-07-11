@@ -1,14 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   findVerifiedContact,
+  getActiveVerifiedContacts,
+  getVerifiedContactsCount,
+  isVerifiedContactActive,
+  TELEGRAM_CONTACT_MAX_AGE_DAYS,
   VERIFIED_CONTACTS,
-  VERIFIED_CONTACTS_COUNT,
   type VerifiedContact,
 } from "./verified-contacts";
 
 describe("verified-contacts seed data integrity", () => {
   it("contains at least 25 entries (target seed size)", () => {
-    expect(VERIFIED_CONTACTS_COUNT).toBeGreaterThanOrEqual(25);
+    expect(getVerifiedContactsCount()).toBeGreaterThanOrEqual(25);
   });
 
   it("all entries have trilingual org and description", () => {
@@ -158,6 +161,29 @@ describe("findVerifiedContact lookup", () => {
     expect(findVerifiedContact("9999")).toBeNull();
     expect(findVerifiedContact("")).toBeNull();
     expect(findVerifiedContact("abc")).toBeNull();
+  });
+
+  it("expires mutable Telegram handles after the freshness window", () => {
+    const telegram = VERIFIED_CONTACTS.find((contact) => contact.contactType === "telegram");
+    expect(telegram).toBeDefined();
+
+    const verifiedAt = Date.parse(telegram!.verifiedAt);
+    expect(isVerifiedContactActive(telegram!, verifiedAt + 29 * 24 * 60 * 60 * 1000)).toBe(true);
+    expect(
+      isVerifiedContactActive(
+        telegram!,
+        verifiedAt + (TELEGRAM_CONTACT_MAX_AGE_DAYS + 1) * 24 * 60 * 60 * 1000,
+      ),
+    ).toBe(false);
+    expect(
+      getActiveVerifiedContacts(
+        verifiedAt + (TELEGRAM_CONTACT_MAX_AGE_DAYS + 1) * 24 * 60 * 60 * 1000,
+      ),
+    ).not.toContain(telegram);
+  });
+
+  it("does not treat an expired Telegram handle as verified", () => {
+    expect(findVerifiedContact("@naboruz")).toBeNull();
   });
 
   it("finds NBU 1344", () => {

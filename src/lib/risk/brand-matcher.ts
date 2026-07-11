@@ -4,7 +4,12 @@
 // Returns structured BrandEvidence objects for downstream consumers.
 
 import { BRAND_REGISTRY, NEWS_DOMAIN_WHITELIST, type BrandEntry } from "./brand-registry";
-import { normalizeDomain, type NormalizedDomain } from "./domain-normalizer";
+import {
+  normalizeDomain,
+  toDomainComparisonKey,
+  toDomainComparisonKeys,
+  type NormalizedDomain,
+} from "./domain-normalizer";
 import type { ReasonCode } from "./rules";
 
 /**
@@ -47,7 +52,8 @@ export interface BrandMatchResult {
  */
 function isOfficialDomain(hostname: string, brand: BrandEntry): boolean {
   for (const official of brand.officialDomains) {
-    if (hostname === official || hostname.endsWith("." + official)) {
+    const officialKey = toDomainComparisonKey(official).replace(/\.$/u, "");
+    if (hostname === officialKey || hostname.endsWith("." + officialKey)) {
       return true;
     }
   }
@@ -59,7 +65,8 @@ function isOfficialDomain(hostname: string, brand: BrandEntry): boolean {
  */
 function isNewsDomain(hostname: string): boolean {
   for (const news of NEWS_DOMAIN_WHITELIST) {
-    if (hostname === news || hostname.endsWith("." + news)) {
+    const newsKey = toDomainComparisonKey(news).replace(/\.$/u, "");
+    if (hostname === newsKey || hostname.endsWith("." + newsKey)) {
       return true;
     }
   }
@@ -78,6 +85,10 @@ function getHostnameSegments(hostname: string): string[] {
  */
 function getPathSegments(path: string): string[] {
   return path.split(/[/.\s-]/).filter((s) => s.length > 0);
+}
+
+function matchesDomainToken(segment: string, alias: string): boolean {
+  return toDomainComparisonKeys(alias).has(segment);
 }
 
 function hasNonAscii(value: string): boolean {
@@ -175,11 +186,9 @@ export function matchBrandInUrl(
 
     // Check hostname segments for brand aliases
     for (const alias of brand.aliases) {
-      const aliasLower = alias.toLowerCase();
-
       if (brand.isGenericName) {
         // Generic brands: require exact segment match in hostname
-        if (hostnameSegments.some((seg) => seg === aliasLower)) {
+        if (hostnameSegments.some((seg) => matchesDomainToken(seg, alias))) {
           matched = true;
           matchedAlias = alias;
           matchedIn = "hostname";
@@ -188,7 +197,7 @@ export function matchBrandInUrl(
       } else {
         // Non-generic brands: check if alias appears as an exact segment
         // Word boundary detection: alias must be an exact segment (split by . and -)
-        if (hostnameSegments.some((seg) => seg === aliasLower)) {
+        if (hostnameSegments.some((seg) => matchesDomainToken(seg, alias))) {
           matched = true;
           matchedAlias = alias;
           matchedIn = "hostname";
@@ -205,11 +214,9 @@ export function matchBrandInUrl(
       }
 
       for (const alias of brand.aliases) {
-        const aliasLower = alias.toLowerCase();
-
         if (brand.isGenericName) {
           // Generic brands in path: require exact segment match
-          if (pathSegments.some((seg) => seg === aliasLower)) {
+          if (pathSegments.some((seg) => matchesDomainToken(seg, alias))) {
             matched = true;
             matchedAlias = alias;
             matchedIn = "path";
@@ -218,7 +225,7 @@ export function matchBrandInUrl(
         } else {
           // Non-generic brands in path: word boundary detection
           // Alias must appear as an exact segment (split by /, -, ., whitespace)
-          if (pathSegments.some((seg) => seg === aliasLower)) {
+          if (pathSegments.some((seg) => matchesDomainToken(seg, alias))) {
             matched = true;
             matchedAlias = alias;
             matchedIn = "path";
@@ -297,8 +304,6 @@ const URL_IN_TEXT_REGEX = /https?:\/\/[^\s<>"']+/gi;
  * Returns the matched alias or null.
  */
 function findBrandMentionInText(text: string, brand: BrandEntry): string | null {
-  const textLower = text.toLowerCase();
-
   for (const alias of brand.aliases) {
     const aliasLower = alias.toLowerCase();
 
@@ -307,8 +312,7 @@ function findBrandMentionInText(text: string, brand: BrandEntry): string | null 
       // Must NOT match common phrases like "click here" or "pay me".
       // We require the alias to appear as an exact token with word boundaries
       // AND check for false positive patterns.
-      const boundaryRegex = new RegExp(`\\b${escapeRegex(aliasLower)}\\b`, "i");
-      if (boundaryRegex.test(text)) {
+      if (hasUnicodeToken(text, aliasLower)) {
         // Check for false positive patterns for generic brands
         if (isGenericFalsePositive(text, aliasLower)) {
           continue;
@@ -317,14 +321,21 @@ function findBrandMentionInText(text: string, brand: BrandEntry): string | null 
       }
     } else {
       // Non-generic brands: word boundary detection
-      const boundaryRegex = new RegExp(`\\b${escapeRegex(aliasLower)}\\b`, "i");
-      if (boundaryRegex.test(text)) {
+      if (hasUnicodeToken(text, aliasLower)) {
         return alias;
       }
     }
   }
 
   return null;
+}
+
+function hasUnicodeToken(text: string, token: string): boolean {
+  const boundaryRegex = new RegExp(
+    `(?<![\\p{L}\\p{N}\\p{M}_])${escapeRegex(token)}(?![\\p{L}\\p{N}\\p{M}_])`,
+    "iu",
+  );
+  return boundaryRegex.test(text);
 }
 
 /**

@@ -6,23 +6,119 @@
   invite expiry, trusted-contact opt-out, env-driven invite URLs,
   guardian-language notification, redacted trusted alerts and explicit
   invite-handoff copy are now covered by tests.
-- **Telegram webhook `update_id` dedup is shared now.** The webhook uses an
-  in-memory fast path plus service-role claims in `telegram_webhook_updates`, so
-  Telegram retries are deduped across Node instances. If shared dedup storage is
-  temporarily unavailable before dispatch, the webhook returns 503 so Telegram
-  retries instead of risking duplicate side effects.
+- **Telegram durable lifecycle is fixed locally; production cutover is open.**
+  Single-leader `getUpdates(limit=1)`, metadata-only processing/completion
+  leases, fenced session I/O/outbound effects and completion-before-offset crash
+  recovery pass local PostgreSQL and application tests. Production still uses
+  webhook delivery until migration/deploy/leader-health/cutover evidence is
+  captured; do not mark SG-P1-009 live-fixed before that release gate.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
-- **Shared rate limit is shipped.** Public checks, reports, Telegram check/OCR/image
-  paths and public Telegram post fetches use Supabase `rate_limit_buckets` with
-  HMAC-hashed keys across Node instances. Local/test fallback remains
-  in-memory; watch Postgres bucket write volume before deciding on Redis/KV.
+- **Shared rate-limit degraded mode is fixed locally.** Public checks, reports,
+  appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
+  fetches use Supabase `rate_limit_buckets` with HMAC-hashed keys across Node
+  instances. The reproducer showed RPC failure granting a new process-local
+  budget and more than 6100 live fallback keys remaining in an unbounded map.
+  Production/Railway now fails closed on missing config, hash/RPC error or
+  invalid response. Dev/test fallback is capped at 4096 TTL/LRU keys, denies
+  new identities at capacity and rate-limits full cleanup. Focused degraded-
+  policy/cap tests pass 13/13, owning consumers pass 534/534 and the repository
+  suite passes 2652/2652. Railway forced-failure smoke and Postgres bucket-volume
+  observation remain open; Redis/KV is not required unless those measurements
+  show the database path cannot meet the agreed budget.
+- **Windows Vite/toolchain exposure is fixed locally.** The starting npm graph
+  reported seven findings (one high) and the canonical Bun graph later exposed
+  two additional transitive findings. Vite is pinned to 7.3.6, esbuild to
+  0.28.1, compatible Babel/js-yaml/brace-expansion fixes are locked, and both
+  `npm audit` and `bun audit` now report zero. The real Vite process was observed
+  listening only on `127.0.0.1:8080`; external bind now requires an explicit
+  CLI `--host`. Frozen Bun lock, Bun production build, three security regressions
+  and repository tests 2655/2655 pass. Docker image build could not run because
+  the local Docker Desktop Linux engine was not started; rerun it before commit/
+  deployment if container-level proof is required.
+- **AI-to-evidence provenance confusion is fixed locally.** A forged model
+  `Telegram passport:` marker could previously select a low-signal Telegram
+  presenter or promote invented official/safe lines into canonical sections.
+  Passport kind now depends only on deterministic input type, and structured
+  Telegram sections parse only a separate typed
+  `TelegramPassportEvidence { provenance, text }` value. The AI `explanation`
+  field is never authorized as evidence. Web/embed/Inline/check ownership tests
+  pass 198/198 and the repository suite passes 2667/2667. Deployment plus a
+  forged-marker live smoke across all three renderers remains open.
+- **Mixed-clause AI safety bypass is fixed locally.** A safe warning prefix no
+  longer exempts a sibling transfer, wallet or APK command separated by a
+  semicolon or common English/Russian/Uzbek contrast/sequence boundary. Six
+  adversarial mixed-clause cases and legitimate independently-negated warnings
+  pass; the 31-test focus also passed five consecutive executions. Deployment
+  and provider-output adversarial smoke remain open.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`. Voice-out/TTS is separately opt-in through `GEMINI_TTS_API_KEY` or `OPENAI_TTS_API_KEY`; without either, the bot sends a short text fallback instead of audio.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
+- **Telegram reputation partial failures are fixed locally.** Confirmed and
+  unverified count errors, missing exact counts and aggregate upsert failures
+  now reject with a typed stage-only error; the admin caller cannot return
+  `{ok:true}` after divergence. Logs omit database messages and target hashes.
+  Ownership tests pass 158/158 and the repository suite passes 2738/2738.
+  Railway forced-failure telemetry, operator retry UX and reconciliation smoke
+  remain open; the current multi-statement flow is not claimed to be atomic.
 - **Phone reputation wording is source-scoped.** Phone reputation cards name
   only moderator-confirmed Ishonch Guard reports and explicitly exclude
   unverified complaints, number owner data, carrier data and hidden external
   labels.
+- **Verified-contact false-Safe is fixed locally.** A real reproducer combining
+  official short code `1344` with bank impersonation and urgency previously
+  returned `safe`. All 55 ReasonCodes now have an exhaustive trust-impact
+  classification, and every one of the 52 risk codes blocks the protective
+  verified-contact downgrade. Risk tests pass 475/475; deployment and the
+  real-client RU/UZ/EN conflict matrix remain open release evidence.
+- **Missing high-risk protective actions are fixed locally.** Confirmed-report,
+  external-phishing and external-malware reason codes previously reached the
+  high-risk Telegram template with a generic request for more context. All 55
+  ReasonCodes now compile through exhaustive
+  `REASON_PROTECTIVE_ACTION`; every high-risk single/pair combination has a
+  non-empty immediate action, including stop/official verification and link/APK
+  avoidance in RU/UZ/EN. Telegram focus passes 227/227 and the repository suite
+  passes 2675/2675. Deployment and direct-bot RU/UZ/EN client proof remain open.
+- **Unicode/IDNA brand verdict defects are fixed locally.** Registered Cyrillic
+  text aliases, fully Cyrillic and hybrid-script IDNs, browser Punycode and
+  official domains with one terminal DNS root dot now share a two-sided
+  comparison policy. The original downgrade/bypass/false-positive cases pass,
+  as do every registered Cyrillic alias and official domain plus longer-token
+  negatives. Risk/core focus passes 165/165 and the repository suite passes
+  2733/2733. Deployment, external reputation compatibility and RU/UZ/EN client
+  presentation smoke remain open.
+- **Expired Telegram directory handles now fail closed locally.** The eight
+  mutable handles last checked on 2026-06-03 no longer enter verified lookup,
+  public directory results/counts or Telegram action links after the 30-day
+  freshness window. Focused registry/directory/check tests pass 47/47. Before
+  any handle is reactivated, its exact username must be confirmed from a current
+  primary source. `TRUST-002` remains in progress because phone/emergency source
+  ownership, explicit expiry and refresh operations are not yet implemented.
+- **External URL reputation is origin-only locally.** A bearer token embedded in
+  a URL path was reproduced in the Google Safe Browsing request body. Provider
+  payloads now contain only scheme/origin; userinfo, path, query and fragment are
+  excluded, while local rules retain full-path `.apk` and scam-signal analysis.
+  Risk tests pass 479/479. Deployment and a provider-compatibility smoke remain
+  open; path-specific provider detection is an explicit privacy tradeoff.
+- **Malformed URL and Telegram custom-scheme redaction is fixed locally.** The
+  reproducer showed raw `https://victim:secret-token@%`, `tg://` and
+  `telegram://` identifiers reaching report/appeal displays, narrative fields
+  or a Telegram report draft. Malformed URL/APK displays now fail closed to
+  `[link]`, and custom schemes are redacted centrally before persistence,
+  session or moderation use. The original seven failures now pass; focused
+  boundary tests pass 71/71, the owning risk/report/appeal/Telegram suite passes
+  528/528, and the repository suite passes 2643/2643. Railway deployment plus
+  report/appeal/Telegram draft smoke remain open release evidence.
+- **Synchronous QR CPU amplification is fixed locally.** A valid 4000x3000
+  uniform PNG compressed to about 50 KiB and blocked the Node event loop for
+  about 4.2 seconds because it triggered full-image plus overlapping tile scans.
+  PNG/JPEG QR decode now runs in one isolated worker with 4 MiB/4 MP input,
+  1.5 MP scan, five-attempt/350 ms work, four-job backlog, 900 ms deadline and
+  worker-memory budgets. Real PNG/JPEG QR plus Telegram webhook focus passes
+  104/104; the repository suite passes 2645/2645. A local four-job 3.6 MP burst
+  completed in about 91 ms with roughly 11 ms maximum observed event-loop lag.
+  This is a single synthetic measurement, not the required p99/soak proof:
+  Railway legitimate-corpus smoke, runtime CPU/RAM profile, 60-minute bounded-
+  memory soak and worker crash/restart validation remain open under `RES-004`.
 - **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
   rules-only and non-persistent while phone/Telegram username checks can show
   honest passport sections, limitations and the next context question instead
@@ -37,6 +133,11 @@
   while production inline smoke still passed. Defer this visual check to mobile
   Telegram or Telegram Desktop in Saved Messages / a private non-moderator QA
   chat.
+  2026-07-10 local P0 hardening: Inline now re-masks all inserted displays,
+  fails malformed URL displays closed, uses the first-contact RU/UZ/EN language
+  hint, skips external URL-reputation providers while typing, enforces the
+  256-character Bot API boundary and observes `answerInlineQuery` failures.
+  Deployment and real Desktop/Android/iOS evidence remain open release gates.
 - **Pig-butchering / romance grooming has explicit conversation memory now.**
   `/conversation` collects a short user-supplied thread, stores only derived
   stage/action/reason metadata in the Telegram session, and flags chains such
@@ -314,11 +415,22 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       a callback-only mini-quiz; a public web/share surface can reuse the same
       defensive scenarios later.
 - [x] ~~Harden Family Shield v1.1 before new large Telegram features.~~ Done: active-link guard, invite TTL, trusted-contact opt-out, env-driven bot username and redacted guardian alerts.
-- [x] ~~Add Telegram webhook `update_id` deduplication to prevent duplicate processing on retries.~~ Done first as an in-memory LRU, then upgraded to shared Postgres `telegram_webhook_updates` claims for multi-instance safety.
+- [x] ~~Replace Telegram claim-only dedup with a durable lifecycle.~~ Fixed
+      locally in D-072: single-leader polling, metadata-only leases/fences,
+      completion-gated offsets, fenced session/effect boundaries and 20 pgTAP
+      database assertions. Production deploy/cutover evidence remains open.
 - [x] ~~Enable GitHub secret scanning, push protection and Dependabot security updates.~~ Done on 2026-06-12; GitHub advanced non-provider/validity checks remain unavailable/disabled in current repo settings.
 - [x] ~~Add production monitor script for app/webhook/Telegram/AI failures.~~ Done as `npm run monitor:prod` with optional sanitized Telegram alerts.
 - [x] ~~Attach the production monitor to a real scheduler for public checks.~~ Done as `.github/workflows/prod-monitor.yml` every 30 minutes.
 - [x] ~~Add production GitHub secrets for deeper scheduled monitor checks.~~ Done for `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` and `OPENAI_MODEL`; manual GitHub Actions monitor run passed with webhook/Telegram/AI checks.
+- [x] ~~Make required scheduled monitor checks fail hard when a Telegram secret
+      is absent.~~ Fixed locally on 2026-07-11: the committed schedule sets
+      `MONITOR_REQUIRE_SECRET_CHECKS=true`, and policy tests prove a required
+      skip fails even when fail-on-warning is disabled.
+- [ ] Capture release evidence for the fail-hard monitor policy: pass with all
+      required secrets, fail in a controlled missing-secret Actions environment,
+      restore the secret and pass again. Do not remove a live production secret
+      solely for this drill.
 - [x] ~~Add `MONITOR_ALERT_CHAT_ID` (and optional `MONITOR_ALERT_BOT_TOKEN`) for sanitized Telegram operator alerts.~~ Done on 2026-06-14: Railway and GitHub Secrets have the alert chat id, and a direct Telegram alert test returned `ok: true`.
 - [x] ~~Document the lightweight on-call runbook for production monitor alerts.~~ Done in `ai_docs/ON_CALL_RUNBOOK.md`.
 - [x] ~~Add official-number lookalike detection after Family Shield/webhook hardening.~~ Done: near-miss phone/short-code checks compare against verified contacts and render "similar but not exact" guidance without changing scoring.
@@ -370,7 +482,16 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Add panic/live-call helper.~~ Done in PR #15–#16 (/panic interactive mode).
 - [x] ~~Add screenshot report upload path only after retention policy is defined.~~ Done as Report Screenshot Evidence v1: Telegram `/report` accepts screenshots during the description step, extracts a short redacted summary in memory and stores only that summary in the report draft; raw images, data URLs, QR payloads and full OCR text are not persisted.
 - [x] ~~Improve Telegram/account enrichment with public Bot API metadata where available; do not invent account age, report counts or spam history when Telegram returns `chat not found`.~~ Done in Telegram Public Metadata v1 and Telegram Link & Account Intelligence v2 no-DB phase, including a Telegram-account "what I can/cannot check" help screen.
-- [x] ~~Keep short Telegram follow-ups from becoming fake "not enough data" checks.~~ Done in Telegram Follow-up Memory v1 regression lock: post-check and orphan phrases such as "Точно?", "Что еще посоветуешь?" and "дай номер банка" bypass `runCheck` when no new artifact is present.
+- [x] ~~Keep short Telegram follow-ups from becoming fake "not enough data" checks.~~ Done in Telegram Follow-up Memory v1 and extended on 2026-07-11: confidence, methodology, trusted-person, recheck and disagreement phrases in RU/UZ/EN bypass `runCheck` when no new artifact is present. Methodology uses enum-only provenance, trusted-person text has no side effect and recheck requires resubmission.
+- [x] ~~Implement Telegram session/update reliability locally.~~ Done: durable
+      lifecycle, global polling leader, failure reacquisition, stale-fence
+      rejection, fenced session I/O and outbound effects, safe webhook fallback,
+      clean DB reset/lint and crash regressions.
+- [ ] Deploy the two 20260711 migrations and polling build; set
+      `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, require polling-health 200, run
+      `npm run telegram:switch-to-polling`, update the scheduled monitor mode,
+      and capture restart/completion-before-offset/normal multi-step production
+      transcripts. Preserve pending updates and do not claim exactly-once.
 - [x] ~~Keep description-only Telegram reports out of public reputation.~~ Done in Report Flow Reputation Boundary v1.
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [x] ~~Add honest phone intelligence before reputation claims.~~ Done in Phone Intelligence Passport v1: country/calling-code, Uzbekistan prefix/operator hints and official-directory status without owner/scam-label inference.

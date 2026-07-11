@@ -791,7 +791,7 @@ export async function dispatchUpdate(
   if (update.inline_query) {
     const query = update.inline_query;
     const userId = query.from.id;
-    const session = await loadSession(userId);
+    const session = await loadSession(userId, query.from.language_code);
     await handlers.handleInlineQuery(
       query.query,
       { userId, session, languageCode: query.from.language_code },

@@ -7,8 +7,11 @@ const hoisted = vi.hoisted(() => ({
   updates: [] as Array<Record<string, unknown>>,
   existingRow: null as null | Record<string, unknown>,
   reputationRow: null as null | Record<string, unknown>,
-  confirmedCount: 0,
-  unverifiedCount: 0,
+  confirmedCount: 0 as number | null,
+  unverifiedCount: 0 as number | null,
+  confirmedError: null as null | { message: string },
+  unverifiedError: null as null | { message: string },
+  upsertError: null as null | { message: string },
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => ({
@@ -22,7 +25,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
           },
           upsert: async (row: Record<string, unknown>) => {
             hoisted.upserts.push(row);
-            return { data: null, error: null };
+            return { data: null, error: hoisted.upsertError };
           },
           update: (row: Record<string, unknown>) => ({
             eq: async () => {
@@ -45,11 +48,15 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         const chain = {
           eq: (_column: string, value: string) => {
             if (value === "confirmed") {
-              return Promise.resolve({ count: hoisted.confirmedCount, error: null });
+              return Promise.resolve({
+                count: hoisted.confirmedCount,
+                error: hoisted.confirmedError,
+              });
             }
             return chain;
           },
-          in: () => Promise.resolve({ count: hoisted.unverifiedCount, error: null }),
+          in: () =>
+            Promise.resolve({ count: hoisted.unverifiedCount, error: hoisted.unverifiedError }),
         };
         return {
           select: () => chain,
@@ -92,6 +99,9 @@ beforeEach(() => {
   hoisted.reputationRow = null;
   hoisted.confirmedCount = 0;
   hoisted.unverifiedCount = 0;
+  hoisted.confirmedError = null;
+  hoisted.unverifiedError = null;
+  hoisted.upsertError = null;
 });
 
 describe("telegram reputation", () => {
@@ -241,5 +251,55 @@ describe("telegram reputation", () => {
       moderated_report_count: 2,
       unverified_report_count: 1,
     });
+  });
+
+  it.each([
+    ["confirmed count", "confirmedError"],
+    ["unverified count", "unverifiedError"],
+  ] as const)("fails closed when the %s query fails", async (_label, errorKey) => {
+    hoisted[errorKey] = { message: "database unavailable" };
+
+    await expect(
+      syncTelegramReputationAfterModeration({
+        entityHash: "hash-target",
+        displayHint: "@fa•••rt",
+        riskLevel: "high_risk",
+      }),
+    ).rejects.toThrow("Telegram reputation synchronization failed");
+
+    expect(hoisted.upserts).toHaveLength(0);
+  });
+
+  it("rejects a missing exact count instead of treating it as zero", async () => {
+    hoisted.confirmedCount = null;
+
+    await expect(
+      syncTelegramReputationAfterModeration({
+        entityHash: "hash-target",
+        displayHint: "@fa•••rt",
+        riskLevel: "high_risk",
+      }),
+    ).rejects.toThrow("Telegram reputation synchronization failed");
+
+    expect(hoisted.upserts).toHaveLength(0);
+  });
+
+  it("propagates the aggregate upsert failure instead of reporting success", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    hoisted.confirmedCount = 1;
+    hoisted.upsertError = { message: "write unavailable for hash-target" };
+
+    await expect(
+      syncTelegramReputationAfterModeration({
+        entityHash: "hash-target",
+        displayHint: "@fa•••rt",
+        riskLevel: "high_risk",
+      }),
+    ).rejects.toThrow("Telegram reputation synchronization failed");
+
+    expect(errorLog).toHaveBeenCalledWith("telegram reputation moderation sync failed", "upsert");
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("hash-target");
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("write unavailable");
+    errorLog.mockRestore();
   });
 });

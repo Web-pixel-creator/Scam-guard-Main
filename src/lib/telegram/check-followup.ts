@@ -2,8 +2,18 @@ import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
+import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
+import {
+  collectResultReasonCodesForPresentation,
+  INLINE_REASON_POLICY,
+  presentInlineReason,
+} from "@/lib/telegram/inline-reason-presentation";
 import type {
   LastCheckContext,
+  LastCheckEvidenceMethod,
+  LastCheckEvidenceSource,
+  LastCheckProvenance,
   LastCheckSnapshot,
   ReportDraft,
 } from "@/lib/telegram/session.server";
@@ -35,9 +45,23 @@ const ACKNOWLEDGEMENT_RE =
   /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо))?|ок(?:ей)?|спасибо|благодарю|рахмат|rahmat|tushunarli|yaxshi|qilaman|qildim|ok|okay|thanks|thank\s+you)[\s.!?]*$/i;
 const IDENTITY_RE =
   /^(?:(?:а\s+)?(?:вы|ты)\s+кто|кто\s+(?:вы|ты)|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz|sen\s+kimsan|nima\s+qila\s+olasan)[\s?!.,]*$/i;
+const EXTENDED_CONFIDENCE_RE =
+  /(?:ты|вы)\s+(?:действительно\s+|реально\s+|точно\s+)?(?:в\s+этом\s+)?уверен[аы]?|(?:are\s+you|you(?:'re|\s+are))\s+(?:really\s+|absolutely\s+)?sure(?:\s+about\s+(?:it|that|this))?|siz\s+(?:bunga\s+)?(?:aniq\s+)?ishonasizmi/i;
+const METHODOLOGY_RE =
+  /(?:как(?:им\s+образом)?\s+.{0,40}(?:проверил|проверили|определил|посчитал)|(?:проверил|проверили)\s+.{0,40}(?:как|образом|метод)|почему\s+.{0,40}(?:домен|ссылка|номер|аккаунт)\s+.{0,60}(?:подозр|опасн|риск).{0,60}(?:провер|метод|образ)|какие\s+источники\s+(?:ты|вы)\s+использовал[и]?|how\s+(?:did|do)\s+you\s+(?:check|verify|decide|determine)|what\s+(?:method|source)s?\s+did\s+you\s+use|which\s+sources?\s+did\s+you\s+use|qanday\s+.{0,40}(?:tekshir|aniqla)|nima\s+asosida\s+.{0,40}(?:tekshir|aniqla))/i;
+const TRUSTED_PERSON_RE =
+  /(?:(?:могу|можно|стоит|лучше)\s+.{0,35}(?:связаться|позвонить|поговорить|посоветоваться|показать)\s+.{0,35}(?:близк|родствен|друг|семь|мам|пап|родител)|(?:близк|родствен|друг|семь|мам|пап|родител)\w*\s+.{0,35}(?:позвон|связ|поговор|показ)|can\s+i\s+(?:call|contact|talk\s+to|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+i\s+trust|a\s+trusted\s+person|my\s+(?:family|friend|relative|mother|mom|father|parents?))|(?:call|contact|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+you\s+trust|a\s+trusted\s+person)|yaqin\s+odam\w*\s+bilan\s+.{0,30}(?:bog['’]?lan|gaplash|maslahat)|ishonchli\s+odam\w*\s+.{0,30}(?:qo['’]?ng['’]?iroq|bog['’]?lan|gaplash))/i;
+const RECHECK_RE =
+  /^(?:(?:а\s+)?можешь\s+перепроверить|перепроверь(?:те)?(?:\s+(?:ещ[её]\s+раз|заново|повторно))?|проверь(?:те)?\s+(?:это\s+)?(?:ещ[её](?:\s+раз)?|заново|повторно)|повтори(?:те)?\s+проверку|can\s+you\s+double[-\s]?check(?:\s+(?:it|this|that))?|check\s+(?:it|this|that)\s+again|recheck(?:\s+it)?|run\s+the\s+check\s+again|yana\s+bir\s+marta\s+tekshir(?:ing)?|qayta\s+tekshir(?:ing)?)[\s.!?]*$/i;
+const DISAGREEMENT_RE =
+  /(?:я\s+не\s+соглас|ты\s+ошиб|вы\s+ошиб|это\s+неправда|не\s+верю\s+этому\s+результату|i\s+disagree|you\s+(?:may\s+be\s+|are\s+)?wrong|i\s+do\s+not\s+trust\s+this\s+result|men\s+rozi\s+emas|xato\s+qildingiz|bu\s+natijaga\s+ishonmayman)/i;
 
-const SCAM_PAYLOAD_RE =
-  /(?:https?:\/\/|www\.|t\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d|sms.?код|смс.?код|код|парол|цифр|sms.?kod|sms.?code|verification.?code|\bkod\b|\bcode\b|otp|cvv|cvc|pin|пин|apk|перевед|перевести|оплат|оплата|карта|karta|to'?lov|o'?tkazma|transfer)/i;
+const NEW_SCAM_REQUEST_RE =
+  /(?:(?:просят|просит|попросил[аи]?|сказал[аи]?|требуют|требует|предлагают)\s+.{0,80}(?:код|парол|pin|cvv|карт|перевест|переводить|переведи|оплатить|apk|приложен)|(?:asks?|asked|told|wants?|requires?)\s+.{0,80}(?:code|otp|pin|cvv|card|send\s+(?:money|funds)|make\s+(?:a\s+)?(?:transfer|payment)|apk|install)|(?:so['’]?(?:rayapti|radi)|aytdi|talab)\s+.{0,80}(?:kod|pin|cvv|karta|to['’]?lov|o['’]?tkaz|apk)|(?:kod|pin|cvv|karta).{0,40}(?:so['’]?(?:rayapti|radi)|talab)|(?:transfer|send|pay)\s+(?:me\s+)?(?:money|funds?)\b|(?:переведи|переведите|оплати|оплатите|отправь|пришли)\s+.{0,40}(?:деньг|код|карт))/i;
+
+function hasNewCheckPayload(text: string): boolean {
+  return hasConcreteArtifact(text) || NEW_SCAM_REQUEST_RE.test(text);
+}
 
 const CRYPTO_CONTEXT_RE =
   /(крипт|биткоин|bitcoin|binance|trading|трейд|инвест|доходн|прибыл|forex|crypto|investment|investits|kripto|daromad|foyda)/i;
@@ -55,6 +79,10 @@ const TOPIC_ONLY_EXPLANATION_REASONS = new Set([
 
 export type LastCheckFollowUpAction =
   | "confidence"
+  | "methodology"
+  | "trusted_person"
+  | "recheck"
+  | "disagreement"
   | "next_steps"
   | "contacts"
   | "explain"
@@ -101,15 +129,44 @@ export function detectLastCheckContext(result: RunCheckResult): LastCheckContext
   return "generic";
 }
 
+const EVIDENCE_SOURCE: Record<LastCheckEvidenceMethod, LastCheckEvidenceSource> = {
+  text_pattern: "visible_input",
+  url_structure: "visible_input",
+  domain_comparison: "visible_input",
+  phone_format: "visible_input",
+  telegram_visible: "visible_input",
+  official_directory: "official_directory",
+  local_reports: "moderated_reports",
+  external_reputation: "external_reputation",
+  context: "visible_input",
+};
+
+function uniqueBounded<T extends string>(values: readonly T[]): T[] {
+  return [...new Set(values)].slice(0, 3);
+}
+
+function buildLastCheckProvenance(reasons: readonly ReasonCode[]): LastCheckProvenance {
+  const policies = reasons.map((reason) => INLINE_REASON_POLICY[reason]);
+  const methods = uniqueBounded(policies.map((policy) => policy.evidence));
+
+  return {
+    methods,
+    sources: uniqueBounded(methods.map((method) => EVIDENCE_SOURCE[method])),
+    limitations: uniqueBounded(policies.map((policy) => policy.limitation)),
+  };
+}
+
 export function buildLastCheckSnapshot(
   result: RunCheckResult,
   now = new Date(),
 ): LastCheckSnapshot {
+  const reasons = collectResultReasonCodesForPresentation(result).slice(0, 3);
   return {
     level: result.level,
     type: result.type,
     context: detectLastCheckContext(result),
-    reasons: result.reasons.slice(0, 3),
+    reasons,
+    provenance: buildLastCheckProvenance(reasons),
     at: now.toISOString(),
   };
 }
@@ -129,7 +186,7 @@ export function classifyLastCheckFollowUp(
   now = new Date(),
 ): LastCheckFollowUpAction | null {
   const trimmed = text.trim();
-  if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
+  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
 
   const snapshot = scenarioData?.lastCheck;
   if (!snapshot || !isRecent(snapshot, now)) return null;
@@ -137,11 +194,20 @@ export function classifyLastCheckFollowUp(
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
+  if (METHODOLOGY_RE.test(trimmed)) return "methodology";
+  if (TRUSTED_PERSON_RE.test(trimmed)) return "trusted_person";
+  if (RECHECK_RE.test(trimmed)) return "recheck";
+  if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
-  if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  if (
+    CONFIDENCE_RE.test(trimmed) ||
+    EXTENDED_CONFIDENCE_RE.test(trimmed) ||
+    QR_OPEN_RE.test(trimmed)
+  )
+    return "confidence";
   if (CONFIRMATION_REQUEST_RE.test(trimmed)) return "confirmation_request";
   if (ACKNOWLEDGEMENT_RE.test(trimmed)) return "acknowledgement";
   return null;
@@ -149,22 +215,31 @@ export function classifyLastCheckFollowUp(
 
 export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpAction | null {
   const trimmed = text.trim();
-  if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
+  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
+  if (METHODOLOGY_RE.test(trimmed)) return "methodology";
+  if (TRUSTED_PERSON_RE.test(trimmed)) return "trusted_person";
+  if (RECHECK_RE.test(trimmed)) return "recheck";
+  if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (EXPLAIN_RE.test(trimmed)) return "explain";
-  if (CONFIDENCE_RE.test(trimmed) || QR_OPEN_RE.test(trimmed)) return "confidence";
+  if (
+    CONFIDENCE_RE.test(trimmed) ||
+    EXTENDED_CONFIDENCE_RE.test(trimmed) ||
+    QR_OPEN_RE.test(trimmed)
+  )
+    return "confidence";
   if (CONFIRMATION_REQUEST_RE.test(trimmed)) return "confirmation_request";
   return null;
 }
 
 export function classifyAcknowledgementFollowUp(text: string): "acknowledgement" | null {
   const trimmed = text.trim();
-  if (!trimmed || SCAM_PAYLOAD_RE.test(trimmed)) return null;
+  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
   return ACKNOWLEDGEMENT_RE.test(trimmed) ? "acknowledgement" : null;
 }
 
@@ -270,13 +345,98 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   return `Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nЕсли просят код, карту, APK, логин или оплату — остановитесь и пришлите это сообщение.`;
 }
 
+function methodologyText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const reasonCodes = (snapshot.reasons ?? []).filter(
+    (reason): reason is ReasonCode => reason in INLINE_REASON_POLICY,
+  );
+  const presented = presentInlineReason(reasonCodes, lang);
+
+  if (lang === "uz") {
+    if (!presented) {
+      return "Oldingi natija ko'rinadigan ma'lumotdagi deterministik xavf qoidalariga asoslangan. Aniq xavf sababi saqlanmagan, shuning uchun usulni o'ylab topmayman.\n\nAniq qayta tekshirish uchun link, matn yoki skrinshotni yana yuboring.";
+    }
+    return `Oldingi natijani shunday oldim:\n${presented.evidence}\n\nCheklov: ${presented.limitation}\n\nMen yashirin egani yoki yuboruvchi shaxsini tekshirmadim; faqat ko'rinadigan ma'lumot va ko'rsatilgan manbadan foydalandim.`;
+  }
+  if (lang === "en") {
+    if (!presented) {
+      return "The previous result used deterministic risk rules on visible submitted data. No specific risk reason was retained, so I will not invent a method.\n\nFor a precise recheck, send the link, text, or screenshot again.";
+    }
+    return `How I got the previous result:\n${presented.evidence}\n\nLimitation: ${presented.limitation}\n\nI did not verify a hidden owner or sender identity; I used only visible submitted data and the stated source.`;
+  }
+  if (!presented) {
+    return "Прошлый результат основан на детерминированных правилах риска по видимым данным. Конкретная причина риска не сохранилась, поэтому я не буду придумывать метод.\n\nДля точной перепроверки пришлите ссылку, текст или скриншот заново.";
+  }
+  return `Вот как я получил прошлый результат:\n${presented.evidence}\n\nОграничение: ${presented.limitation}\n\nЯ не проверял скрытого владельца или личность отправителя — использовал только видимые данные и указанный источник.`;
+}
+
+function trustedPersonText(lang: Lang): string {
+  if (lang === "uz") {
+    return "Ha, albatta. Yaqin yoki ishonchli odam bilan o'zingiz bog'laning: saqlangan raqamga qo'ng'iroq qiling va vaziyatni birga tekshiring.\n\nUnga SMS-kod, PIN, CVV, parol, karta rasmi yoki shubhali fayl yubormang. Bu oddiy xabar yaqin odamga avtomatik signal yubormaydi.";
+  }
+  if (lang === "en") {
+    return "Yes. Contact someone you trust yourself: call a saved number and review the situation together.\n\nDo not forward SMS codes, PINs, CVV, passwords, card photos, or suspicious files. This ordinary message does not automatically notify anyone.";
+  }
+  return "Да. Свяжитесь с близким сами: позвоните по сохранённому номеру и спокойно проверьте ситуацию вместе.\n\nНе пересылайте ему SMS-коды, PIN, CVV, пароли, фото карты или подозрительные файлы. Обычная фраза в чате никому автоматически сигнал не отправляет.";
+}
+
+function recheckText(lang: Lang): string {
+  if (lang === "uz") {
+    return "Qayta tekshiraman, lekin maxfiylik sabab oldingi link, matn yoki skrinshotni saqlamayman. Shu materialni yana yuboring — u yangi tekshiruvdan o'tadi.\n\nYangi dalilsiz oldingi natijani o'zgartirmayman va tekshiruv bo'lib o'tgandek ko'rsatmayman.";
+  }
+  if (lang === "en") {
+    return "I can recheck it, but for privacy I do not keep the original link, text, or screenshot. Send the item again and it will go through a new check.\n\nWithout new evidence I will not change the previous result or pretend a recheck happened.";
+  }
+  return "Могу перепроверить, но ради приватности я не храню исходную ссылку или текст, а также скриншот. Пришлите заново ссылку, текст или скриншот — материал пройдёт новую проверку.\n\nБез новых данных я не изменю прошлый результат и не буду делать вид, что перепроверка уже состоялась.";
+}
+
+function disagreementText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  if (lang === "uz") {
+    return `Siz bu natijaga qo'shilmasligingiz mumkin. Bu ayblov emas, ko'rinadigan belgilar bo'yicha ehtiyotkor baho: ${levelText(snapshot.level, lang)}.\n\nMustaqil tekshiring: xabardagi kontakt orqali emas, rasmiy ilova, sayt yoki saqlangan raqamdan foydalaning. Qo'shimcha kontekst bo'lsa, uni yangi tekshiruvga yuboring.`;
+  }
+  if (lang === "en") {
+    return `You may disagree with this result. It is not an accusation; it is a cautious assessment of visible signals: ${levelText(snapshot.level, lang)}.\n\nVerify independently through the official app, website, or a saved number—not through the contact in the message. Send additional context as a new check.`;
+  }
+  return `Вы можете не соглашаться с результатом. Это не обвинение, а осторожная оценка видимых признаков: ${levelText(snapshot.level, lang)}.\n\nПроверьте независимо — через официальное приложение, сайт или сохранённый номер, а не контакт из сообщения. Дополнительный контекст пришлите как новую проверку.`;
+}
+
+function highRiskNextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const reasonBoundActions = filterAdvice("high_risk", snapshot.reasons ?? [], lang);
+  const fallback: Record<Lang, string[]> = {
+    ru: [
+      "Остановите разговор или контакт и не выполняйте просьбу из сообщения или звонка",
+      "Проверьте организацию или человека независимо — не через присланный контакт",
+    ],
+    uz: [
+      "Muloqotni to'xtating va xabar yoki qo'ng'iroqdagi so'rovni bajarmang",
+      "Tashkilot yoki odamni yuborilgan kontakt orqali emas, mustaqil tekshiring",
+    ],
+    en: [
+      "Stop the interaction and do not carry out the request in the message or call",
+      "Verify the organization or person independently, not through the supplied contact",
+    ],
+  };
+  const actions = reasonBoundActions.length > 0 ? reasonBoundActions : fallback[lang];
+  const heading: Record<Lang, string> = {
+    ru: "Следующий безопасный шаг:",
+    uz: "Keyingi xavfsiz qadam:",
+    en: "Next safe step:",
+  };
+  const resend: Record<Lang, string> = {
+    ru: "Новый экран, ссылку или просьбу пришлите как отдельную проверку.",
+    uz: "Yangi ekran, havola yoki so'rovni alohida tekshiruv sifatida yuboring.",
+    en: "Send any new screen, link, or request as a separate check.",
+  };
+
+  return `${heading[lang]}\n${actions.map((action, index) => `${index + 1}. ${action}`).join("\n")}\n${actions.length + 1}. ${resend[lang]}`;
+}
+
 function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.context === "image_unreadable") {
       return "Keyingi qadam:\n1. SMS/chat matnini qo'lda yuboring.\n2. QR ochilsa, ochilgan havolani yuboring.\n3. Agar faqat video/rasm bo'lsa, QR, username, rekvizit yoki va'da ko'ringan yaqinroq skrin yuboring.";
     }
     if (snapshot.level === "high_risk") {
-      return "Keyingi xavfsiz qadam:\n1. Muloqotni to'xtating.\n2. SMS-kod, karta yoki parol bermang.\n3. Bankka faqat rasmiy raqam orqali qo'ng'iroq qiling.\n4. Keyingi xabar yoki ekranni menga yuboring.";
+      return highRiskNextStepsText(snapshot, lang);
     }
     if (snapshot.context === "qr_menu") {
       return "Keyingi qadam:\n1. QR ochilsa, manzilni tekshiring.\n2. Kod, karta, login yoki to'lov so'ralsa — to'xtang.\n3. Shubhali ekran chiqsa, skrinshot yuboring.";
@@ -295,7 +455,7 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
       return "Next step:\n1. Paste the SMS/chat text manually.\n2. If it is a QR, send the link it opens.\n3. If it is only a video/image, send a closer screenshot showing the QR, username, payment details, or promise.";
     }
     if (snapshot.level === "high_risk") {
-      return "Next safe step:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, or passwords.\n3. Call your bank only using an official number.\n4. Send me the next message or screen.";
+      return highRiskNextStepsText(snapshot, lang);
     }
     if (snapshot.context === "qr_menu") {
       return "Next step:\n1. If you open the QR, check the page address.\n2. If it asks for a code, card, login, or payment — stop.\n3. If another screen looks suspicious, send a screenshot.";
@@ -313,7 +473,7 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return "Следующий шаг:\n1. Пришлите текст из SMS/чата вручную.\n2. Если это QR — пришлите ссылку, которая открывается.\n3. Если это видео/картинка — пришлите более близкий скрин, где видны QR, username, реквизиты или обещание.";
   }
   if (snapshot.level === "high_risk") {
-    return "Следующий безопасный шаг:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту или пароль.\n3. Перезвоните в банк только по официальному номеру.\n4. Пришлите мне следующий экран или сообщение.";
+    return highRiskNextStepsText(snapshot, lang);
   }
   if (snapshot.context === "qr_menu") {
     return "Следующий шаг:\n1. Если открываете QR — проверьте адрес страницы.\n2. Если просят код, карту, логин или оплату — остановитесь.\n3. Если появится новый подозрительный экран, пришлите скриншот.";
@@ -736,6 +896,14 @@ export function buildLastCheckFollowUpText(
   switch (action) {
     case "confidence":
       return confidenceText(snapshot, lang);
+    case "methodology":
+      return methodologyText(snapshot, lang);
+    case "trusted_person":
+      return trustedPersonText(lang);
+    case "recheck":
+      return recheckText(lang);
+    case "disagreement":
+      return disagreementText(snapshot, lang);
     case "next_steps":
       return nextStepsText(snapshot, lang);
     case "contacts":
@@ -758,6 +926,8 @@ export function buildLastCheckFollowUpText(
 export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, lang: Lang): string {
   if (action === "identity") return identityText(lang);
   if (action === "contacts") return contactsText(lang);
+  if (action === "trusted_person") return trustedPersonText(lang);
+  if (action === "recheck") return recheckText(lang);
   if (action === "confirmation_request") return confirmationRequestText(null, lang);
   if (action === "acknowledgement") return buildAcknowledgementFollowUpText(lang);
   if (action === "simple_explain") {
@@ -768,6 +938,24 @@ export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, la
       return "In simple words: I can explain only a concrete check.\n\nSend the link, number, username, screenshot, or message text. Until then, do not send codes, card data, passwords, or money.";
     }
     return "Совсем просто: я могу объяснить только конкретную проверку.\n\nПришлите ссылку, номер, username, скриншот или текст сообщения. Пока не отправляйте код, карту, пароль или деньги.";
+  }
+  if (action === "methodology") {
+    if (lang === "uz") {
+      return "Qaysi oldingi tekshiruv haqida so'rayotganingizni ko'rmayapman, shuning uchun usulni o'ylab topmayman. Link, matn yoki skrinshotni yana yuboring — keyin qaysi belgilar va manbalar ishlatilganini tushuntiraman.";
+    }
+    if (lang === "en") {
+      return "I cannot see which previous check you mean, so I will not invent a method. Send the link, text, or screenshot again and I will explain which signals and sources were used.";
+    }
+    return "Я не вижу, о какой прошлой проверке речь, поэтому не буду придумывать метод. Пришлите ссылку, текст или скриншот заново — после проверки я объясню, какие признаки и источники использованы.";
+  }
+  if (action === "disagreement") {
+    if (lang === "uz") {
+      return "Siz natijaga qo'shilmasligingiz mumkin. Hozir qaysi tekshiruv haqida gap ketayotganini ko'rmayapman. Materialni yana yuboring va uni rasmiy kanal orqali mustaqil tekshiring.";
+    }
+    if (lang === "en") {
+      return "You may disagree with a result. I cannot see which check you mean right now. Send the item again and verify it independently through an official channel.";
+    }
+    return "Вы можете не соглашаться с результатом. Сейчас я не вижу, о какой проверке речь. Пришлите материал заново и проверьте его независимо через официальный канал.";
   }
 
   if (action === "ai_origin") {

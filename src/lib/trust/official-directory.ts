@@ -1,7 +1,8 @@
 import type { Lang } from "@/lib/i18n";
 import {
-  VERIFIED_CONTACTS,
-  VERIFIED_CONTACTS_COUNT,
+  getActiveVerifiedContacts,
+  getVerifiedContactsCount,
+  isVerifiedContactActive,
   type ContactType,
   type OrgType,
   type UsageContext,
@@ -81,7 +82,7 @@ export function isUrlSource(source: string): boolean {
 
 export function getOfficialDirectoryStats(): OfficialDirectoryStats {
   const stats: OfficialDirectoryStats = {
-    total: VERIFIED_CONTACTS_COUNT,
+    total: getVerifiedContactsCount(),
     callable: 0,
     bank: 0,
     payment_system: 0,
@@ -90,7 +91,7 @@ export function getOfficialDirectoryStats(): OfficialDirectoryStats {
     cybersecurity: 0,
   };
 
-  for (const contact of VERIFIED_CONTACTS) {
+  for (const contact of getActiveVerifiedContacts()) {
     stats[contact.orgType] += 1;
     if (isCallableContact(contact)) stats.callable += 1;
   }
@@ -99,6 +100,8 @@ export function getOfficialDirectoryStats(): OfficialDirectoryStats {
 }
 
 export function getContactAction(contact: VerifiedContact): ContactAction | null {
+  if (!isVerifiedContactActive(contact)) return null;
+
   if (isCallableContact(contact)) {
     return {
       href: `tel:${contact.display.replace(/[^\d+]/g, "")}`,
@@ -147,7 +150,7 @@ export function filterOfficialContacts(
 ): VerifiedContact[] {
   const normalizedQuery = query.trim().toLowerCase();
 
-  return VERIFIED_CONTACTS.filter((contact) => {
+  return getActiveVerifiedContacts().filter((contact) => {
     if (filter !== "all" && contact.orgType !== filter) return false;
     if (!normalizedQuery) return true;
     return contactSearchText(contact).includes(normalizedQuery);

@@ -35,6 +35,33 @@ type TelegramReportSyncInput = {
   riskLevel: RiskLevel;
 };
 
+export type TelegramReputationSyncStage =
+  | "count_query"
+  | "confirmed_count"
+  | "unverified_count"
+  | "upsert";
+
+export class TelegramReputationSyncError extends Error {
+  readonly code = "TELEGRAM_REPUTATION_SYNC_FAILED";
+
+  constructor(readonly stage: TelegramReputationSyncStage) {
+    super(`Telegram reputation synchronization failed at ${stage}`);
+    this.name = "TelegramReputationSyncError";
+  }
+}
+
+function reputationSyncFailure(stage: TelegramReputationSyncStage): TelegramReputationSyncError {
+  console.error("telegram reputation moderation sync failed", stage);
+  return new TelegramReputationSyncError(stage);
+}
+
+function exactReportCount(value: unknown, stage: TelegramReputationSyncStage): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    throw reputationSyncFailure(stage);
+  }
+  return value as number;
+}
+
 function normalizedTelegramTarget(input: string, target: TelegramPublicTarget): string | null {
   if (target.kind === "none") return null;
   if (target.kind === "private_invite") return `invite:${target.value.toLowerCase()}`;
@@ -152,8 +179,8 @@ export async function observeTelegramReputationTarget(input: string): Promise<vo
         stores_raw_identifier: false,
       },
     });
-  } catch (e) {
-    console.error("telegram reputation observation failed", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("telegram reputation observation failed", "storage_exception");
   }
 }
 
@@ -191,19 +218,19 @@ export async function registerTelegramReportCandidate(args: {
         unverified_reports_affect_public_risk: false,
       },
     });
-  } catch (e) {
-    console.error(
-      "telegram report reputation candidate failed",
-      e instanceof Error ? e.message : "",
-    );
+  } catch {
+    console.error("telegram report reputation candidate failed", "storage_exception");
   }
 }
 
 export async function syncTelegramReputationAfterModeration(
   args: TelegramReportSyncInput,
 ): Promise<void> {
+  let confirmed: { count: number | null; error: unknown };
+  let unverified: { count: number | null; error: unknown };
+
   try {
-    const [confirmed, unverified] = await Promise.all([
+    [confirmed, unverified] = await Promise.all([
       supabaseAdmin
         .from("reports")
         .select("id", { count: "exact", head: true })
@@ -217,13 +244,21 @@ export async function syncTelegramReputationAfterModeration(
         .eq("entity_type", "telegram")
         .in("status", ["new", "reviewing"]),
     ]);
+  } catch {
+    throw reputationSyncFailure("count_query");
+  }
 
-    const moderatedCount = confirmed.count ?? 0;
-    const unverifiedCount = unverified.count ?? 0;
-    const hasModeratedReports = moderatedCount > 0;
-    const now = new Date().toISOString();
+  if (confirmed.error) throw reputationSyncFailure("confirmed_count");
+  if (unverified.error) throw reputationSyncFailure("unverified_count");
 
-    await supabaseAdmin.from("telegram_reputation_targets").upsert(
+  const moderatedCount = exactReportCount(confirmed.count, "confirmed_count");
+  const unverifiedCount = exactReportCount(unverified.count, "unverified_count");
+  const hasModeratedReports = moderatedCount > 0;
+  const now = new Date().toISOString();
+
+  let upsertResult: { error: unknown };
+  try {
+    upsertResult = await supabaseAdmin.from("telegram_reputation_targets").upsert(
       {
         target_hash: args.entityHash,
         target_type: "public_username",
@@ -243,12 +278,11 @@ export async function syncTelegramReputationAfterModeration(
       },
       { onConflict: "target_hash", ignoreDuplicates: false },
     );
-  } catch (e) {
-    console.error(
-      "telegram reputation moderation sync failed",
-      e instanceof Error ? e.message : "",
-    );
+  } catch {
+    throw reputationSyncFailure("upsert");
   }
+
+  if (upsertResult.error) throw reputationSyncFailure("upsert");
 }
 
 export async function getTelegramReputationForInput(
@@ -269,8 +303,8 @@ export async function getTelegramReputationForInput(
       .maybeSingle();
     if (error || !data) return null;
     return data as TelegramReputationRow;
-  } catch (e) {
-    console.error("telegram reputation lookup failed", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("telegram reputation lookup failed", "storage_exception");
     return null;
   }
 }

@@ -1652,4 +1652,230 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     lang: "uz",
     expected: { kind: "risk_pipeline" },
   },
+  {
+    area: "post-check confidence",
+    text: "ты точно в этом уверен?",
+    expected: { kind: "handler_reply", route: "orphan_followup", replyIncludes: "Я не вижу" },
+  },
+  {
+    area: "post-check confidence",
+    text: "siz bunga aniq ishonasizmi?",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Qaysi tekshiruv",
+    },
+  },
+  {
+    area: "post-check confidence",
+    text: "are you really sure about that?",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "I cannot see",
+    },
+  },
+  {
+    area: "post-check methodology",
+    text: "Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "не буду придумывать метод",
+    },
+  },
+  {
+    area: "post-check methodology",
+    text: "bu domenni qanday tekshirdingiz?",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "usulni o'ylab topmayman",
+    },
+  },
+  {
+    area: "post-check methodology",
+    text: "how did you check this domain?",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "will not invent a method",
+    },
+  },
+  {
+    area: "post-check trusted person",
+    text: "я могу связаться с близким?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Свяжитесь с близким сами",
+    },
+  },
+  {
+    area: "post-check trusted person",
+    text: "yaqin odamim bilan bog'lansam bo'ladimi?",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "o'zingiz bog'laning",
+    },
+  },
+  {
+    area: "post-check trusted person",
+    text: "can I call someone I trust?",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Contact someone you trust yourself",
+    },
+  },
+  {
+    area: "post-check recheck",
+    text: "перепроверь ещё раз",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "не храню исходную ссылку",
+    },
+  },
+  {
+    area: "post-check recheck",
+    text: "yana bir marta tekshir",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "oldingi link",
+    },
+  },
+  {
+    area: "post-check recheck",
+    text: "check it again",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "do not keep the original link",
+    },
+  },
+  {
+    area: "post-check methodology variant",
+    text: "Какие источники ты использовал?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "не буду придумывать метод",
+    },
+  },
+  {
+    area: "post-check trusted person variant",
+    text: "Можно связаться с мамой?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Свяжитесь с близким сами",
+    },
+  },
+  {
+    area: "post-check trusted person variant",
+    text: "Можно показать близкому?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Свяжитесь с близким сами",
+    },
+  },
+  {
+    area: "post-check trusted person variant",
+    text: "Can I show this to my mother?",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "Contact someone you trust yourself",
+    },
+  },
+  {
+    area: "post-check trusted person variant",
+    text: "yaqin odamim bilan boglansam bo'ladimi?",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "o'zingiz bog'laning",
+    },
+  },
+  {
+    area: "post-check trusted person variant",
+    text: "ishonchli odamga qongiroq qilsam bo'ladimi?",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "o'zingiz bog'laning",
+    },
+  },
+  {
+    area: "post-check recheck variant",
+    text: "А можешь перепроверить?",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "не храню исходную ссылку",
+    },
+  },
+  {
+    area: "post-check recheck variant",
+    text: "Проверь ещё",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "не храню исходную ссылку",
+    },
+  },
+  {
+    area: "post-check recheck variant",
+    text: "Can you double-check?",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "do not keep the original link",
+    },
+  },
+  {
+    area: "post-check disagreement",
+    text: "я не согласен, ты ошибся",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "можете не соглашаться",
+    },
+  },
+  {
+    area: "post-check disagreement",
+    text: "men rozi emasman, xato qildingiz",
+    lang: "uz",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "qo'shilmasligingiz mumkin",
+    },
+  },
+  {
+    area: "post-check disagreement",
+    text: "I disagree, you may be wrong",
+    lang: "en",
+    expected: {
+      kind: "handler_reply",
+      route: "orphan_followup",
+      replyIncludes: "may disagree",
+    },
+  },
 ];

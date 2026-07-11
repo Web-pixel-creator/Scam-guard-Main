@@ -31,14 +31,34 @@
    in-memory redacted transcript cache to avoid paying for duplicate STT. Slow
    STT calls show only a Telegram activity indicator, not extra chat messages.
 5. Short questions to the bot itself go through `meta-intent.ts` before scoring; concrete URLs, phones, usernames, forwarded text, bank/payment terms, APK mentions and long text bypass this and still reach `runCheck`.
-6. `runCheck` performs shared rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert. AI-authored explanations pass through `ai-output-safety.ts` before return or persistence; unsafe requests for OTP/CVV/PIN/password/card/seed data, APK installs, wallet signing or payments degrade to `null` while the deterministic verdict remains. Repeated unsafe provider outputs for the same rate-limit key open a short cooldown that skips further AI explanation calls for that key but still runs deterministic scoring, advice and persistence. For phone/short-code inputs it also builds an honest `PhoneIntelligencePassport` with country/calling-code, Uzbekistan prefix/operator hints, official-directory status and optional verified-contact lookalike evidence; this is explanatory metadata and does not claim an owner or change scoring. If a phone `entities` row is confirmed, it also returns `PhoneReputationSummary` with Ishonch Guard moderated report count/confidence only.
+6. `runCheck` performs shared rate-limit, input detection, normalization, display masking, `redactText`, rule evaluation, entity lookup, scoring, optional AI explanation and a redacted `checks` insert. AI-authored explanations pass through `ai-output-safety.ts` before return or persistence; unsafe requests for OTP/CVV/PIN/password/card/seed data, APK installs, wallet signing or payments degrade to `null` while the deterministic verdict remains. Negation is evaluated per action clause so a safe warning cannot shield a sibling unsafe command. Repeated unsafe provider outputs for the same rate-limit key open a short cooldown that skips further AI explanation calls for that key but still runs deterministic scoring, advice and persistence. For phone/short-code inputs it also builds an honest `PhoneIntelligencePassport` with country/calling-code, Uzbekistan prefix/operator hints, official-directory status and optional verified-contact lookalike evidence; this is explanatory metadata and does not claim an owner or change scoring. If a phone `entities` row is confirmed, it also returns `PhoneReputationSummary` with Ishonch Guard moderated report count/confidence only. Risk Passport renderers never parse model `explanation` as evidence: optional Telegram sections require a separate typed deterministic evidence object.
 7. `RiskResultCard` or Telegram formatting shows level, score, reason labels, advice and optional explanation. If the request came from `/embed/check`, the web server function may also write a service-role-only `embed_origin_events` row containing partner/referrer origin metadata and aggregate result shape only.
 8. User reports go through `submitReport`; both the identifier and the free-form description are redacted/hashed as appropriate before persistence.
 9. Admins moderate reports in `/admin`; public `entities` reputation changes only after moderation.
 
 ## Risk engine
 
-The engine is rules-first. `src/lib/risk/rules.ts` maps matched patterns to weighted `ReasonCode`s. Thresholds: score >= 50 => `high_risk`, score >= 20 => `suspicious`, score > 0 => `unknown`; `verified_official` forces `safe`.
+The engine is rules-first. `src/lib/risk/rules.ts` maps matched patterns to weighted `ReasonCode`s. Thresholds: score >= 50 => `high_risk`, score >= 20 => `suspicious`, score > 0 => `unknown`. `verified_official` may produce `safe` only when every sibling reason is informational/protective; it never overrides a risk-classified reason.
+
+Telegram presentation treats the deterministic reason union as a policy input,
+not a best-effort copy lookup. `REASON_PROTECTIVE_ACTION` is exhaustive across
+all `ReasonCode`s and resolves each code to a typed action or intentional null.
+High-risk single/pair reason combinations are regression-tested to always
+produce an immediate action; the generic request-for-context fallback is not a
+valid high-risk response.
+
+Brand normalization is a two-sided comparison boundary. URL labels are decoded
+from IDNA/Punycode, NFKC-normalized, lowercased and converted to classifier-only
+visual/transliteration keys; registry aliases receive the same transforms.
+Exactly one DNS root dot is removed before official/subdomain checks. Text brand
+mentions use Unicode-aware token lookarounds so Cyrillic aliases participate in
+the same rules-first scoring path without matching inside longer words.
+
+Moderation spans report/entity state and the Telegram reputation aggregate but
+is not a single database transaction. The aggregate sync validates both count
+queries and the upsert response and throws `TelegramReputationSyncError` on any
+partial failure. Admin callers therefore receive an explicit retryable failure
+instead of a false success; stage-only telemetry avoids target/DB-message leaks.
 
 AI never decides the score. It only explains the deterministic verdict or performs OCR extraction. If AI is unavailable, its user-facing explanation fails the safety firewall, or a per-key unsafe-output cooldown is active, the verdict still works with rules-only advice.
 
@@ -47,13 +67,20 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - Webhook auth fails closed when `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is missing.
 - The secret header is checked before body parsing.
 - Invalid bodies after a valid token return 200 so Telegram stops retrying.
-- Telegram `update_id` dedup uses an in-memory fast path plus the shared
-  Supabase `telegram_webhook_updates` table, so retry deliveries are processed
-  once across production instances. If the shared store is temporarily
-  unavailable, the webhook fails open to local dedup so user updates are not
-  dropped.
+- Telegram update delivery has an explicit webhook compatibility mode and a
+  durable polling mode. Polling elects one Postgres-fenced leader, calls
+  `getUpdates(limit=1)`, leases one metadata-only `update_id`, completes work,
+  then advances the offset. Completion-before-offset restart is recovered by
+  the DB `completed` state without redispatch.
+- The lifecycle table and private leader table store operational metadata only,
+  never Telegram payload/user content. Session I/O and outbound Telegram effects
+  require the current processing fence; polling work also requires the current
+  leader fence. Failure keeps the update retryable.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
-- Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
+  Same-user work remains serialized inside each process, while the polling
+  leader provides global ordering before session load. Fenced load/save RPCs
+  and monotonic `last_update_id` writes provide defense in depth.
+- Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Local PNG/JPEG QR decode has a stricter 4 MiB/4-megapixel boundary and runs in one isolated worker with a four-job backlog, 900 ms deadline and bounded scan work, so untrusted pixel processing does not block the Node request/event-loop thread. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
 - Short Telegram voice notes, native audio attachments and audio documents are
   downloaded in memory, capped at 60 seconds / 2 MB before transcription,
   transcribed through the configured AI provider and discarded. Voice STT has a
@@ -66,8 +93,12 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - Telegram reputation is stored separately in `telegram_reputation_targets` using HMAC-hashed targets and masked display hints. New checks can record first/last seen observations, but user-facing reputation labels are shown only after admin-moderated Ishonch Guard reports or future official sources.
 - Public check/report throttling uses a shared Supabase `rate_limit_buckets`
   table via service-role-only `claim_rate_limit()`, with raw rate-limit keys
-  HMAC-hashed before persistence. Local/test environments fall back to the
-  previous in-memory limiter when Supabase or `HASH_PEPPER_SECRET` is absent.
+  HMAC-hashed before persistence. Production/Railway fails closed if shared
+  configuration, hashing, RPC transport or response validation fails, so a
+  deployment-wide quota cannot silently become one allowance per process.
+  Local/test environments use a bounded in-memory fallback with at most 4096
+  TTL/LRU-refreshed keys; new identities fail closed at capacity and a bounded
+  full expiry scan runs at most once per second.
 - Partner iframe usage telemetry uses service-role-only `embed_origin_events`.
   It stores partner, referrer origin/host, language and aggregate result shape,
   not raw checked input, full URLs, paths, query strings, fragments, phone
@@ -83,4 +114,4 @@ Supabase Auth powers browser sessions. Client middleware attaches the bearer tok
 - Rate limits are shared through Supabase for the current production topology.
   Redis/KV remains a later option only if traffic outgrows Postgres-backed
   buckets.
-- Do not reintroduce Lovable Cloud/runtime coupling. Vite/TanStack/Nitro are configured directly in `vite.config.ts`.
+- Do not reintroduce Lovable Cloud/runtime coupling. Vite/TanStack/Nitro are configured directly in `vite.config.ts`. The development server is loopback-only by default; external access is an explicit operator CLI choice, while the built Nitro production server keeps its separate deployment `HOST`.

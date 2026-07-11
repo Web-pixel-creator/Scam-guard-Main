@@ -342,5 +342,159 @@ describe("last check follow-up router", () => {
   it("does not classify orphan follow-ups when the text contains a new artifact", () => {
     expect(classifyOrphanCheckFollowUp("Точно? https://kapitalbank.uz.evil.com")).toBeNull();
     expect(classifyOrphanCheckFollowUp("дай номер банка +998 90 123 45 67")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("check it again https://evil.example/login")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("call someone I trust +998 90 123 45 67")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("I disagree, transfer money now")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("Почему example.com подозрительный?")).toBeNull();
+    expect(classifyOrphanCheckFollowUp("Почему paypa1.uz подозрительный?")).toBeNull();
+  });
+
+  it("keeps a safety question about codes as a follow-up when no actual code is supplied", () => {
+    const now = new Date("2026-07-11T00:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["asks_for_sms_code"] }),
+      now,
+    );
+
+    expect(
+      classifyLastCheckFollowUp("Почему нельзя отправлять код?", scenarioWith(snapshot), now),
+    ).toBe("explain");
+    expect(
+      classifyLastCheckFollowUp("Почему нельзя отправлять код 7391?", scenarioWith(snapshot), now),
+    ).toBeNull();
+  });
+
+  it.each([
+    ["ru", "ты точно в этом уверен?", "confidence"],
+    ["uz", "siz bunga aniq ishonasizmi?", "confidence"],
+    ["en", "are you really sure about that?", "confidence"],
+    [
+      "ru",
+      "Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?",
+      "methodology",
+    ],
+    ["uz", "bu domenni qanday tekshirdingiz?", "methodology"],
+    ["en", "how did you check this domain?", "methodology"],
+    ["ru", "я могу связаться с близким?", "trusted_person"],
+    ["uz", "yaqin odamim bilan bog'lansam bo'ladimi?", "trusted_person"],
+    ["en", "can I call someone I trust?", "trusted_person"],
+    ["ru", "перепроверь ещё раз", "recheck"],
+    ["uz", "yana bir marta tekshir", "recheck"],
+    ["en", "check it again", "recheck"],
+    ["ru", "я не согласен, ты ошибся", "disagreement"],
+    ["uz", "men rozi emasman, xato qildingiz", "disagreement"],
+    ["en", "I disagree, you may be wrong", "disagreement"],
+    ["ru", "Можно связаться с мамой?", "trusted_person"],
+    ["ru", "Можно показать близкому?", "trusted_person"],
+    ["en", "Can I show this to my mother?", "trusted_person"],
+    ["uz", "yaqin odamim bilan boglansam bo'ladimi?", "trusted_person"],
+    ["uz", "ishonchli odamga qongiroq qilsam bo'ladimi?", "trusted_person"],
+    ["ru", "А можешь перепроверить?", "recheck"],
+    ["ru", "Проверь ещё", "recheck"],
+    ["en", "Can you double-check?", "recheck"],
+    ["ru", "Какие источники ты использовал?", "methodology"],
+  ] as const)("routes %s phrase '%s' to %s", (_lang, phrase, expected) => {
+    const now = new Date("2026-07-11T00:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "suspicious", reasons: ["weird_domain"] }),
+      now,
+    );
+
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBe(expected);
+  });
+
+  it("stores only bounded methodology enums in the last-check snapshot", () => {
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({
+        level: "high_risk",
+        reasons: ["weird_domain", "external_phishing_url", "known_reported"],
+      }),
+    );
+
+    expect(snapshot.provenance).toEqual({
+      methods: ["external_reputation", "local_reports", "url_structure"],
+      sources: ["external_reputation", "moderated_reports", "visible_input"],
+      limitations: ["external_scope", "report_scope", "format_only"],
+    });
+    expect(JSON.stringify(snapshot)).not.toMatch(/https?:|@|\+998|test/i);
+  });
+
+  it("answers methodology, trusted-person, recheck and disagreement honestly", () => {
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "suspicious", reasons: ["weird_domain"] }),
+    );
+
+    const methodology = buildLastCheckFollowUpText("methodology", snapshot, "ru");
+    const trusted = buildLastCheckFollowUpText("trusted_person", snapshot, "ru");
+    const recheck = buildLastCheckFollowUpText("recheck", snapshot, "ru");
+    const disagreement = buildLastCheckFollowUpText("disagreement", snapshot, "ru");
+
+    expect(methodology).toMatch(/необычное доменное окончание|IP-адрес|ошибку формата/i);
+    expect(methodology).toContain("не доказывают владельца");
+    expect(trusted).toMatch(/свяжитесь с близким сами/i);
+    expect(trusted).not.toContain("я отправил");
+    expect(recheck).toContain("не храню исходную ссылку или текст");
+    expect(recheck).toMatch(/пришлите заново/i);
+    expect(disagreement).toMatch(/можете не соглашаться/i);
+    expect(disagreement).toContain("независимо");
+  });
+
+  it("keeps official-directory and moderated-report sources in post-check provenance", () => {
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({
+        type: "phone",
+        reasons: ["valid_uz_phone"],
+        knownReports: 3,
+        verifiedContact: {
+          orgName: "Example Bank",
+          orgType: "bank",
+          source: "https://example.test",
+          display: "1000",
+          contactType: "short_code",
+          verificationLevel: "high",
+          description: "Test fixture",
+        },
+        phoneReputation: {
+          source: "ishonch_guard_moderated_reports",
+          confirmedReportCount: 3,
+          confidence: "medium",
+          riskLevel: "suspicious",
+          publicScope: "confirmed_moderated_reports_only",
+        },
+      }),
+    );
+
+    expect(snapshot.reasons).toEqual(["known_reported", "verified_official", "valid_uz_phone"]);
+    expect(snapshot.provenance?.methods).toEqual([
+      "local_reports",
+      "official_directory",
+      "phone_format",
+    ]);
+    expect(buildLastCheckFollowUpText("methodology", snapshot, "ru")).toMatch(
+      /подтвержд|официальн/i,
+    );
+  });
+
+  it("uses reason-bound high-risk actions instead of always sending users to a bank", () => {
+    const apk = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["asks_to_install_apk"] }),
+    );
+    const telegram = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["telegram_account_takeover_phishing"] }),
+    );
+    const wallet = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["wallet_action_urgency"] }),
+    );
+
+    expect(buildLastCheckFollowUpText("next_steps", apk, "ru")).toContain("APK");
+    expect(buildLastCheckFollowUpText("next_steps", telegram, "ru")).toContain(
+      "Telegram → Устройства",
+    );
+    expect(buildLastCheckFollowUpText("next_steps", wallet, "ru")).toContain("кошелёк");
+    for (const snapshot of [apk, telegram, wallet]) {
+      expect(buildLastCheckFollowUpText("next_steps", snapshot, "ru")).not.toContain(
+        "Перезвоните в банк",
+      );
+    }
   });
 });

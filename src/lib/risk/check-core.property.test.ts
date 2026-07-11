@@ -322,6 +322,22 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.reasons).not.toContain("crypto_casino_bonus_funnel");
   });
 
+  it("keeps full embedded URL paths for local rules while provider URLs are minimized", async () => {
+    const result = await runCheck({
+      input: "Скачайте обновление https://files.example.test/private/update.apk",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+
+    expect(result.reasons).toContain("apk_download_link");
+    expect(result.level).not.toBe("safe");
+  });
+
   it("confirmed high-risk entities use the dedicated known_reported reason code", async () => {
     hoisted.entityRow = {
       report_count: 7,
@@ -388,6 +404,21 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.verifiedContact!.orgName).toContain("Национальный банк");
     expect(result.reasons).toContain("asks_for_sms_code");
     expect(result.level).toBe("high_risk");
+  });
+
+  it("does not let an unlisted risk reason become Safe through a verified contact", async () => {
+    const result = await runCheck({
+      input: "Позвоните 1344: я сотрудник банка, срочно выполните инструкции",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      persist: false,
+    });
+
+    expect(result.verifiedContact).not.toBeNull();
+    expect(result.reasons).toEqual(expect.arrayContaining(["impersonates_bank", "uses_urgency"]));
+    expect(result.level).not.toBe("safe");
   });
 
   it("confirmed reports override a verified official-looking contact", async () => {

@@ -14,7 +14,9 @@
 ## Risk engine
 
 - Rules are deterministic and decide the score; AI only explains or OCRs.
-- New scam patterns require: `ReasonCode`, weight, regex/pattern, RU/UZ/EN labels, advice if needed, tests, and a `SCAM_COVERAGE.md` update.
+- New scam patterns require: `ReasonCode`, weight, regex/pattern, RU/UZ/EN labels,
+  an explicit `INLINE_REASON_POLICY` priority/evidence/limitation entry, advice
+  if needed, tests, and a `SCAM_COVERAGE.md` update.
 - Keep `scoreFromCodes` thresholds stable unless the change is explicitly documented in `DECISIONS.md`.
 
 ## AI provider
@@ -22,6 +24,10 @@
 - Use the OpenAI-compatible env contract: `OPENAI_API_KEY`, optional `OPENAI_MODEL`, optional `OPENAI_BASE_URL`.
 - Missing or failing AI must degrade to `null`; scoring must still work.
 - User-facing AI text must pass through `sanitizeAiExplanation` or a stricter structured-output path before return/persistence.
+- AI narrative fields must never be reinterpreted as canonical evidence by marker text. Structured evidence requires a separate typed value containing explicit deterministic provenance and data.
+- Every new `ReasonCode` must receive an explicit `REASON_PROTECTIVE_ACTION` entry; high-risk output may not fall back to asking for more context.
+- IDNA/Unicode security comparisons must canonicalize checked values and trusted registry values through the same classifier-only policy; do not use ASCII `\b` for Cyrillic token boundaries.
+- Moderation synchronization must inspect every database response and propagate partial failure; never coalesce an errored count to zero or swallow a required aggregate write error.
 - Never log prompts, secrets, raw screenshots or sensitive user input.
 
 ## i18n
@@ -41,6 +47,12 @@
 
 - File-based routing only.
 - Never hand-edit `src/routeTree.gen.ts`.
+- Telegram helper phrases must be typed actions before `runCheck`, must yield to
+  any new concrete payload and must not imply a recheck or trigger an external
+  side effect without explicit user action and the required evidence.
+- Webhook-driven Telegram session writes must run inside the update execution
+  context and use monotonic `update_id` sequencing. Do not publish a result that
+  depends on follow-up state until its session snapshot is confirmed saved.
 
 ## Server functions
 
@@ -51,5 +63,9 @@
 ## Tooling
 
 - Run TypeScript and tests before merging.
+- A scheduled production monitor must explicitly require every secret-backed
+  security check it claims to cover. Required missing credentials are failures,
+  not warning-only skips, and must produce a non-zero exit even when alert
+  delivery is unavailable.
 - Do not add Lovable Cloud/runtime coupling or Lovable-specific build wrappers.
 - Files marked generated should be changed at their source, not manually edited.

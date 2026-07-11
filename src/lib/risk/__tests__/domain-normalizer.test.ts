@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeDomain } from "../domain-normalizer";
+import { normalizeDomain, toDomainComparisonKey } from "../domain-normalizer";
 
 /**
  * Validates: Requirements 10.1, 10.2, 10.3, 10.4
@@ -80,12 +80,10 @@ describe("Domain Normalizer", () => {
   });
 
   describe("punycode decode fallback behavior", () => {
-    it("decodes valid punycode label and applies homoglyphs", () => {
-      // xn--e1afmapc decodes to пример (Cyrillic), then homoglyphs replace р→p, е→e, о→o etc.
+    it("decodes valid punycode label and produces an ASCII comparison key", () => {
+      // Decode first, then apply visual-confusable mapping and bounded Cyrillic transliteration.
       const result = normalizeDomain("xn--e1afmapc.xn--p1ai");
-      // After punycode decode we get Cyrillic "пример.рф"
-      // Then homoglyphs replace: Cyrillic р(U+0440)→p, е(U+0435)→e
-      expect(result.hostname).toBe("pиммпe.pф");
+      expect(result.hostname).toBe("pimmpe.pf");
     });
 
     it("falls back to raw ASCII on invalid punycode", () => {
@@ -177,6 +175,22 @@ describe("Domain Normalizer", () => {
     it("trims leading and trailing whitespace", () => {
       const result = normalizeDomain("  https://example.com  ");
       expect(result.hostname).toBe("example.com");
+    });
+  });
+
+  describe("security canonicalization", () => {
+    it("removes one terminal DNS root dot before official-domain comparison", () => {
+      expect(normalizeDomain("https://kapitalbank.uz./login")).toEqual({
+        hostname: "kapitalbank.uz",
+        path: "/login",
+      });
+    });
+
+    it("gives the same comparison key to decoded IDN and registered Cyrillic alias", () => {
+      const normalized = normalizeDomain("https://капиталбанк.com/login");
+      const label = normalized.hostname.split(".")[0];
+
+      expect(toDomainComparisonKey(label)).toBe(toDomainComparisonKey("капиталбанк"));
     });
   });
 });

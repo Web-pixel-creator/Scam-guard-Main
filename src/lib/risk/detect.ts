@@ -94,7 +94,7 @@ export function maskForDisplay(value: string, type: InputType): string {
       const u = new URL(value.startsWith("http") ? value : "https://" + value);
       return u.hostname + (u.pathname.length > 1 ? "/…" : "");
     } catch {
-      return value;
+      return "[link]";
     }
   }
   // text: redact phones/cards/OTP
@@ -107,6 +107,7 @@ const PHONE_INLINE_RE = /\+?\d[\d\s\-()]{7,}\d/g;
 const EMAIL_INLINE_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const TELEGRAM_LINK_INLINE_RE =
   /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:\+[A-Za-z0-9_-]{4,}|[A-Za-z][A-Za-z0-9_]{3,31})\b/gi;
+const TELEGRAM_SCHEME_INLINE_RE = /\b(?:tg|telegram):\/\/[^\s<>"'`]+/gi;
 const TELEGRAM_HANDLE_INLINE_RE = /(^|[^\w.])(@[A-Za-z][A-Za-z0-9_]{3,31})\b/g;
 const URL_INLINE_RE =
   /\b(?:https?:\/\/|www\.)[^\s<>"'`]+|\b[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:\/[^\s<>"'`]*)?/gi;
@@ -147,6 +148,16 @@ export function redactText(s: string): string {
     addReplacement(
       telegramLinkMatch.index,
       telegramLinkMatch.index + telegramLinkMatch[0].length,
+      "[telegram]",
+    );
+  }
+
+  TELEGRAM_SCHEME_INLINE_RE.lastIndex = 0;
+  let telegramSchemeMatch: RegExpExecArray | null;
+  while ((telegramSchemeMatch = TELEGRAM_SCHEME_INLINE_RE.exec(s)) !== null) {
+    addReplacement(
+      telegramSchemeMatch.index,
+      telegramSchemeMatch.index + telegramSchemeMatch[0].length,
       "[telegram]",
     );
   }

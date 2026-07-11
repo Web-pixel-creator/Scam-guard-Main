@@ -590,7 +590,7 @@ export async function handleScenarioImage(
       });
       return;
     }
-    console.error("telegram report image failed", e instanceof Error ? e.message : "unknown");
+    console.error("telegram report image failed", "handler_exception");
     await askForTypedDescription();
   }
 }
@@ -689,9 +689,9 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
       await keepDraftForRetry();
       await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
     }
-  } catch (e) {
+  } catch {
     // R6.8 — never crash; log without Sensitive_Data (R19.2).
-    console.error("telegram submitReport failed", e instanceof Error ? e.message : "unknown");
+    console.error("telegram submitReport failed", "handler_exception");
     await keepDraftForRetry();
     await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
   }
