@@ -391,6 +391,48 @@ async function main(): Promise<void> {
     await assertNoCheck(trustedText, trustedStartedAt, "trusted-person follow-up");
     console.log("OK trusted-person follow-up was explicit and did not trigger an automatic alert");
 
+    const recheckText = "Перепроверь ещё раз.";
+    const recheckStartedAt = new Date().toISOString();
+    const recheckReplies = await dispatchText({
+      chatId,
+      chatType,
+      userId: highRiskUserId,
+      text: recheckText,
+      messageOffset: 4,
+      messages: guard.messages,
+      violations: guard.violations,
+    });
+    assertReply("recheck follow-up", recheckReplies, [
+      /Могу перепроверить/iu,
+      /не храню исходную ссылку или текст/iu,
+      /не буду делать вид, что перепроверка уже состоялась/iu,
+    ]);
+    await assertNoCheck(recheckText, recheckStartedAt, "recheck follow-up");
+    console.log(
+      "OK recheck follow-up requested resubmission and did not pretend to re-run analysis",
+    );
+
+    const disagreementText = "Я не согласен с результатом, ты ошибся.";
+    const disagreementStartedAt = new Date().toISOString();
+    const disagreementReplies = await dispatchText({
+      chatId,
+      chatType,
+      userId: highRiskUserId,
+      text: disagreementText,
+      messageOffset: 5,
+      messages: guard.messages,
+      violations: guard.violations,
+    });
+    assertReply("disagreement follow-up", disagreementReplies, [
+      /Вы можете не соглашаться с результатом/iu,
+      /Это не обвинение/iu,
+      /Проверьте независимо/iu,
+    ]);
+    await assertNoCheck(disagreementText, disagreementStartedAt, "disagreement follow-up");
+    console.log(
+      "OK disagreement follow-up stayed non-accusatory and recommended independent checks",
+    );
+
     const domainUserId = syntheticTelegramUserId(2_000);
     ctx.userIds.push(domainUserId);
     const domainUrl = `https://payme1-security.xyz/login/${marker}`;
@@ -400,7 +442,7 @@ async function main(): Promise<void> {
       chatType,
       userId: domainUserId,
       text: domainUrl,
-      messageOffset: 4,
+      messageOffset: 6,
       messages: guard.messages,
       violations: guard.violations,
     });
@@ -425,7 +467,7 @@ async function main(): Promise<void> {
       chatType,
       userId: domainUserId,
       text: methodologyText,
-      messageOffset: 5,
+      messageOffset: 7,
       messages: guard.messages,
       violations: guard.violations,
     });

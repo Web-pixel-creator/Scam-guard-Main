@@ -12,10 +12,12 @@ Newest first. This tracks documentation/memory files, not every code commit.
   `sendMessage`/`sendChatAction` to `TELEGRAM_QA_CHAT_ID`, rejects another chat,
   credential or Bot API method, records reply text/message ids without secrets,
   and deletes its bot replies afterward.
-- The smoke verifies the exact Russian follow-ups "Ты точно в этом уверен?",
-  "Я могу связаться с близким?" and the long suspicious-domain methodology
-  question. It proves they reuse the saved result, do not create a new `checks`
-  row, and describe evidence/limitations without claiming hidden verification.
+- The smoke verifies all five post-check action families with exact Russian
+  follow-ups: confidence, trusted-person, recheck, disagreement and the long
+  suspicious-domain methodology question. It proves they reuse the saved
+  result and do not create a new `checks` row. Recheck requires resubmission
+  without pretending analysis ran; disagreement stays non-accusatory;
+  methodology names evidence/limitations without hidden-verification claims.
 - Verification: guard/follow-up tests pass (331/331); the full suite passes
   (120 files / 2881 tests), TypeScript and production build pass, dependency
   audit reports zero vulnerabilities, and ESLint has zero errors plus the same
