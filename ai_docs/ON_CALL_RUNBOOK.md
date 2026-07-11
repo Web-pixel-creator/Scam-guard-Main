@@ -25,8 +25,10 @@ The monitor checks:
 - Telegram webhook rejects missing secret with `401`;
 - Telegram webhook accepts the configured secret;
 - Telegram Bot API token works via `getMe`;
-- Telegram webhook info has the expected URL, no pending backlog and no fresh
-  Telegram delivery error;
+- Telegram delivery matches `TELEGRAM_UPDATE_DELIVERY_MODE`: webhook mode has
+  the expected URL/concurrency, while polling mode has an empty webhook URL and
+  authenticated polling-leader health 200;
+- Telegram has no pending backlog or fresh delivery error;
 - configured AI provider responds.
 
 By default, Telegram alerts are sent only for failed checks. Warnings become
@@ -199,6 +201,17 @@ For Family Shield changes, also run:
 ```powershell
 railway run npm run prod:family-smoke
 ```
+
+For Telegram handler/copy changes while production is in polling mode, run:
+
+```powershell
+railway run npm run prod:telegram-polling-dispatch-smoke -- https://scam-guard-main-production.up.railway.app
+```
+
+This command sends only to `TELEGRAM_QA_CHAT_ID`, refuses the moderation chat,
+does not acquire the polling leader, and cleans its messages/checks/sessions.
+Do not treat it as Inline client evidence; complete
+`ai_docs/TELEGRAM_INLINE_QA.md` in a real Telegram client.
 
 Update `ai_docs/CHANGELOG_AI.md` with the incident summary and verification
 commands if the alert required a real fix.

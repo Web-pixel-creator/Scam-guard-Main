@@ -7,7 +7,7 @@ const migrationSql = readFileSync(
     import.meta.url,
   ),
   "utf8",
-);
+).replace(/\r\n?/gu, "\n");
 
 describe("embed origin analytics migration", () => {
   it("creates a service-role-only RLS table for aggregate embed telemetry", () => {
