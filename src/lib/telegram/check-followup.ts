@@ -77,20 +77,23 @@ const TOPIC_ONLY_EXPLANATION_REASONS = new Set([
   "non_uz_phone",
 ]);
 
-export type LastCheckFollowUpAction =
-  | "confidence"
-  | "methodology"
-  | "trusted_person"
-  | "recheck"
-  | "disagreement"
-  | "next_steps"
-  | "contacts"
-  | "explain"
-  | "simple_explain"
-  | "ai_origin"
-  | "confirmation_request"
-  | "acknowledgement"
-  | "identity";
+export const ALL_LAST_CHECK_FOLLOW_UP_ACTIONS = [
+  "confidence",
+  "methodology",
+  "trusted_person",
+  "recheck",
+  "disagreement",
+  "next_steps",
+  "contacts",
+  "explain",
+  "simple_explain",
+  "ai_origin",
+  "confirmation_request",
+  "acknowledgement",
+  "identity",
+] as const;
+
+export type LastCheckFollowUpAction = (typeof ALL_LAST_CHECK_FOLLOW_UP_ACTIONS)[number];
 
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);

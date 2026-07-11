@@ -158,6 +158,21 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
 
+**`src/lib/telegram/intent-contract.ts`**
+
+- `TELEGRAM_INTENT_CONTRACTS` exhaustively maps typed meta, victim,
+  post-check, panic and fresh-risk-input ids to response actions, context and
+  direct/Inline side-effect boundaries.
+- `getTelegramIntentContract(id)` is the fail-closed lookup; canonical id
+  helpers prevent unnamespaced string construction in tests and tooling.
+
+**`src/lib/telegram/dialogue-corpus.ts`**
+
+- `TELEGRAM_DIALOGUE_CORPUS` expands reviewed RU/UZ/EN post-check phrases into
+  1,248 deterministic recent/orphan/stale/new-artifact rows.
+- `FOLLOW_UP_PHRASE_SEEDS` is the compact human-review surface; generated rows
+  are dialogue-state permutations, not a claim of 1,248 independent phrases.
+
 **`src/lib/embed-origin-analytics.server.ts`**
 
 - `normalizeEmbedTelemetryContext(context)` sanitizes an optional embed context

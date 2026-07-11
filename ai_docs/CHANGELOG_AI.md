@@ -2,6 +2,25 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-11 - Canonical Telegram intent/action contract and dialogue DSL
+
+- Derived meta, victim and post-check intent unions from exported typed lists,
+  then combined them with panic and fresh-risk-input ids in one namespaced
+  contract registry.
+- Encoded reply-only, direct-risk and Inline side-effect boundaries, including
+  no check rows or trusted-contact effects for helper replies and stateless
+  Inline checks.
+- Added a 1,248-row generated RU/UZ/EN dialogue corpus covering all 13
+  post-check actions across recent risk states, unreadable-image, orphan, stale
+  and new-artifact contexts.
+- Reconciled the legacy live phrase matrix to its actual 238 rows and mapped
+  every row to the canonical contract.
+- Verification: all Telegram tests pass (65 files / 3,431 tests), the full
+  project suite passes (122 files / 4,135 tests), TypeScript, production build,
+  Prettier and ESLint pass, and `npm audit` reports zero vulnerabilities. The
+  local Bun audit was unavailable because no Bun executable is installed; no
+  dependency or lockfile changed in this work.
+
 ## 2026-07-11 - Scheduled monitor follows the polling cutover
 
 - Set the scheduled GitHub production monitor to

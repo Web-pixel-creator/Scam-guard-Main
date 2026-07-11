@@ -2,6 +2,22 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-073 - Telegram intents have one side-effect contract
+
+Meta, victim, post-check, panic and fresh-risk-input identifiers are namespaced
+and mapped through one typed registry. The registry describes the response
+action, allowed channel, persistence boundary, trusted-contact boundary and
+copy safety policy. Reply-only intents forbid both check rows and trusted-person
+delivery; direct risk checks keep normal persistence and private high-risk
+notification, while Inline remains stateless.
+
+The QA corpus separates authored phrases from generated dialogue states. One
+reviewed phrase per post-check action/language is expanded through four safe
+surface variants and eight context states, producing 1,248 reproducible rows.
+The older live matrix actually contains 238 rows; documentation must not round
+that value up to the previously recorded 239. A new artifact always bypasses
+the follow-up layer and starts a fresh check.
+
 ## D-072 - Telegram updates use a single fenced getUpdates leader
 
 The durable successor to D-070 is a single active `getUpdates` worker backed by

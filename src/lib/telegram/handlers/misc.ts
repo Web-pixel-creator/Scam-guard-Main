@@ -71,6 +71,10 @@ import {
 import type { HandlerCtx, OutOfScopeKind } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
 import { getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
+import {
+  canonicalMetaIntentId,
+  enforceTelegramReplyContract,
+} from "@/lib/telegram/intent-contract";
 import { reportValueKeyboard } from "@/lib/telegram/report-flow";
 import {
   buildImageTriageFollowUpKeyboard,
@@ -347,9 +351,10 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
 }
 
 export async function handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void> {
+  const text = escapeMarkdownV2(getMetaIntentResponse(intent, ctx.session.lang));
   await sendMessage({
     chatId: ctx.chatId,
-    text: escapeMarkdownV2(getMetaIntentResponse(intent, ctx.session.lang)),
+    text: enforceTelegramReplyContract(canonicalMetaIntentId(intent), "direct", text),
   });
 }
 
