@@ -1,14 +1,17 @@
 import type { Lang } from "@/lib/i18n";
 import { bt } from "@/lib/telegram/bot-i18n";
 
-export type MetaIntent =
-  | "how_to_use"
-  | "what_can_you_do"
-  | "how_do_you_check"
-  | "why_failed"
-  | "explain_risk"
-  | "telegram_account_limits"
-  | "help";
+export const ALL_META_INTENTS = [
+  "how_to_use",
+  "what_can_you_do",
+  "how_do_you_check",
+  "why_failed",
+  "explain_risk",
+  "telegram_account_limits",
+  "help",
+] as const;
+
+export type MetaIntent = (typeof ALL_META_INTENTS)[number];
 
 export interface ClassifyMetaIntentOptions {
   isForwarded?: boolean;
@@ -18,16 +21,6 @@ type IntentPattern = {
   intent: MetaIntent;
   patterns: RegExp[];
 };
-
-export const ALL_META_INTENTS: readonly MetaIntent[] = [
-  "how_to_use",
-  "what_can_you_do",
-  "how_do_you_check",
-  "why_failed",
-  "explain_risk",
-  "telegram_account_limits",
-  "help",
-] as const;
 
 export const CANONICAL_META_PHRASES: ReadonlyArray<{ intent: MetaIntent; text: string }> = [
   { intent: "how_to_use", text: "как пользоваться ботом" },

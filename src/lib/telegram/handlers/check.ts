@@ -101,6 +101,13 @@ import {
 } from "@/lib/telegram/victim-intent";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
+import {
+  canonicalFollowUpIntentId,
+  canonicalVictimIntentId,
+  enforceTelegramReplyContract,
+  type CanonicalFollowUpIntentId,
+  type CanonicalVictimIntentId,
+} from "@/lib/telegram/intent-contract";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -117,6 +124,13 @@ const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
+
+function contractReplyText(
+  intentId: CanonicalFollowUpIntentId | CanonicalVictimIntentId,
+  text: string,
+): string {
+  return enforceTelegramReplyContract(intentId, "direct", escapeMarkdownV2(text));
+}
 
 function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
   return match.askedContext !== undefined;
@@ -1398,7 +1412,10 @@ export async function handleCheck(
   if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      text: contractReplyText(
+        canonicalVictimIntentId(victimIntent.kind),
+        buildVictimIntentText(victimIntent, lang),
+      ),
       keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
     return;
@@ -1417,7 +1434,10 @@ export async function handleCheck(
   ) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      text: contractReplyText(
+        canonicalVictimIntentId(victimIntent.kind),
+        buildVictimIntentText(victimIntent, lang),
+      ),
       keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
     return;
@@ -1444,7 +1464,8 @@ export async function handleCheck(
   if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(
+      text: contractReplyText(
+        canonicalFollowUpIntentId(lastCheckFollowUp),
         buildLastCheckFollowUpText(lastCheckFollowUp, ctx.session.scenarioData.lastCheck, lang),
       ),
     });
@@ -1482,7 +1503,10 @@ export async function handleCheck(
   ) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildAcknowledgementFollowUpText(lang)),
+      text: contractReplyText(
+        canonicalFollowUpIntentId("acknowledgement"),
+        buildAcknowledgementFollowUpText(lang),
+      ),
     });
     return;
   }
@@ -1491,7 +1515,10 @@ export async function handleCheck(
   if (orphanFollowUp !== null) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildOrphanCheckFollowUpText(orphanFollowUp, lang)),
+      text: contractReplyText(
+        canonicalFollowUpIntentId(orphanFollowUp),
+        buildOrphanCheckFollowUpText(orphanFollowUp, lang),
+      ),
     });
     return;
   }
@@ -1499,7 +1526,10 @@ export async function handleCheck(
   if (victimIntent !== null) {
     await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildVictimIntentText(victimIntent, lang)),
+      text: contractReplyText(
+        canonicalVictimIntentId(victimIntent.kind),
+        buildVictimIntentText(victimIntent, lang),
+      ),
       keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
     return;

@@ -8,60 +8,63 @@ import { CB } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 
-export type VictimIntentKind =
-  | "emotional_help"
-  | "general_scam_concern"
-  | "advice_question"
-  | "unknown_contact"
-  | "unknown_call"
-  | "foreign_call"
-  | "identity_uncertain"
-  | "telegram_message"
-  | "telegram_takeover"
-  | "bank_call"
-  | "operator_call"
-  | "link_received"
-  | "file_received"
-  | "apple_security"
-  | "code_request"
-  | "card_request"
-  | "transfer_request"
-  | "apk_request"
-  | "link_request"
-  | "personal_data_request"
-  | "utility_impersonation"
-  | "pension_benefit"
-  | "phone_borrowing"
-  | "money_mule"
-  | "open_budget"
-  | "medical_code"
-  | "child_game_bonus"
-  | "silent_call"
-  | "official_impersonation"
-  | "friend_money"
-  | "support_impersonation"
-  | "authority_impersonation"
-  | "gov_service_login"
-  | "romance_contact"
-  | "romance_money"
-  | "job_offer"
-  | "earning_channel"
-  | "investment_offer"
-  | "travel_migration_prepayment"
-  | "legal_impersonation"
-  | "bank_contact_question"
-  | "report_question"
-  | "acknowledgement"
-  | "blackmail_threat"
-  | "violence_threat"
-  | "withdrawal_blocked"
-  | "identity_loan"
-  | "unauthorized_charge"
-  | "account_hacked_other"
-  | "scammer_recontact"
-  | "privacy_question"
-  | "relative_already_paid"
-  | "trust_or_greeting";
+export const ALL_VICTIM_INTENTS = [
+  "emotional_help",
+  "general_scam_concern",
+  "advice_question",
+  "unknown_contact",
+  "unknown_call",
+  "foreign_call",
+  "identity_uncertain",
+  "telegram_message",
+  "telegram_takeover",
+  "bank_call",
+  "operator_call",
+  "link_received",
+  "file_received",
+  "apple_security",
+  "code_request",
+  "card_request",
+  "transfer_request",
+  "apk_request",
+  "link_request",
+  "personal_data_request",
+  "utility_impersonation",
+  "pension_benefit",
+  "phone_borrowing",
+  "money_mule",
+  "open_budget",
+  "medical_code",
+  "child_game_bonus",
+  "silent_call",
+  "official_impersonation",
+  "friend_money",
+  "support_impersonation",
+  "authority_impersonation",
+  "gov_service_login",
+  "romance_contact",
+  "romance_money",
+  "job_offer",
+  "earning_channel",
+  "investment_offer",
+  "travel_migration_prepayment",
+  "legal_impersonation",
+  "bank_contact_question",
+  "report_question",
+  "acknowledgement",
+  "blackmail_threat",
+  "violence_threat",
+  "withdrawal_blocked",
+  "identity_loan",
+  "unauthorized_charge",
+  "account_hacked_other",
+  "scammer_recontact",
+  "privacy_question",
+  "relative_already_paid",
+  "trust_or_greeting",
+] as const;
+
+export type VictimIntentKind = (typeof ALL_VICTIM_INTENTS)[number];
 
 export interface VictimIntentMatch {
   kind: VictimIntentKind;
