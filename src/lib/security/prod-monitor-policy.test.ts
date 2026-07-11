@@ -30,6 +30,7 @@ describe("production monitor required-check policy", () => {
     );
 
     expect(workflow).toMatch(/^\s+MONITOR_REQUIRE_SECRET_CHECKS:\s*["']?true["']?\s*$/mu);
+    expect(workflow).toMatch(/^\s+TELEGRAM_UPDATE_DELIVERY_MODE:\s*["']?polling["']?\s*$/mu);
     expect(workflow).toContain("TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}");
     expect(workflow).toContain("TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}");
   });

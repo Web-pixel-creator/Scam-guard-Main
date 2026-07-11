@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-11 - Scheduled monitor follows the polling cutover
+
+- Set the scheduled GitHub production monitor to
+  `TELEGRAM_UPDATE_DELIVERY_MODE=polling`. Without that explicit setting, the
+  monitor defaulted to webhook mode, treated the intentionally disabled
+  webhook 503 as a failure, and expected a webhook URL even though production
+  was healthy in polling mode.
+- Added a workflow regression assertion so a future edit cannot silently return
+  the scheduled monitor to the wrong delivery mode.
+
 ## 2026-07-11 - Polling-compatible production Telegram response QA
 
 - Added `prod:telegram-polling-dispatch-smoke` for production after webhook
