@@ -2,6 +2,19 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-12 - Canonical Telegram contract deployed and verified
+
+- Deployed clean `main` commit `4050172` to Railway as deployment
+  `37a91c7a` after the plan was renewed; `/healthz` returned 200.
+- The polling-aware production monitor passed home, health, webhook boundaries,
+  Telegram `getMe`, pending-update, singleton-leader and AI-provider checks.
+- The bounded polling dispatch smoke passed confidence, trusted-person, recheck,
+  disagreement and domain-methodology follow-ups. Bot API replies and synthetic
+  database rows were cleaned up with read-back.
+- BOT-001 now has production evidence. BOT-004 remains in progress until a
+  broader real-client RU/UZ/EN transcript matrix is captured; Inline visual QA
+  remains a separate real-client gate.
+
 ## 2026-07-11 - Canonical Telegram intent/action contract and dialogue DSL
 
 - Derived meta, victim and post-check intent unions from exported typed lists,
