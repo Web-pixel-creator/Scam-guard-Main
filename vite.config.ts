@@ -10,7 +10,9 @@ const nitroPreset = process.env.NITRO_PRESET ?? "node-server";
 
 export default defineConfig(({ command }) => ({
   server: {
-    host: "::",
+    // Development is local-only by default. Use an explicit CLI override such
+    // as `npm run dev -- --host 0.0.0.0` only on a trusted network.
+    host: "127.0.0.1",
     port: 8080,
     watch: {
       awaitWriteFinish: {

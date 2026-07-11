@@ -18,7 +18,13 @@
 // _Requirements: 5.3, 5.5_
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getTelegramBotToken } from "@/lib/config.server";
-import { getFile, downloadFileAsDataUrl, answerInlineQuery } from "./api.server";
+import {
+  getFile,
+  downloadFileAsDataUrl,
+  answerInlineQuery,
+  getUpdates,
+  setWebhook,
+} from "./api.server";
 
 // Мокаем источник токена. Фабрика hoisted наверх — реализацию переопределяем
 // в каждом тесте через vi.mocked(getTelegramBotToken).
@@ -114,6 +120,33 @@ describe("getFile", () => {
     expect(await getFile("id")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("не выводит текст сетевого исключения или URL с токеном в лог", async () => {
+    fetchMock.mockRejectedValue(
+      new Error(`request failed for https://api.telegram.org/bot${TOKEN}/getFile?secret=LEAK`),
+    );
+
+    expect(await getFile("id")).toBeNull();
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("network_exception");
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain("LEAK");
+  });
+});
+
+describe("getUpdates", () => {
+  it("long-polls exactly one ordered update at the requested offset", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: [{ update_id: 44 }] }), { status: 200 }),
+    );
+
+    await expect(getUpdates({ offset: 44, timeout: 25, limit: 99 })).resolves.toEqual([
+      { update_id: 44 },
+    ]);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/getUpdates`);
+    expect(JSON.parse(init.body)).toEqual({ offset: 44, timeout: 25, limit: 1 });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -172,6 +205,56 @@ describe("answerInlineQuery", () => {
           },
         },
       ],
+    });
+  });
+
+  it("preserves the Bot API error code and description for observable failures", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: false,
+          error_code: 400,
+          description: "Bad Request: query is too old",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await answerInlineQuery({
+      inlineQueryId: "inline-old",
+      results: [],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      errorCode: 400,
+      description: "Bad Request: query is too old",
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setWebhook
+// ---------------------------------------------------------------------------
+
+describe("setWebhook", () => {
+  it("pins Telegram delivery to one connection until durable ordering exists", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: true }), { status: 200 }),
+    );
+
+    const result = await setWebhook(
+      "https://app.example/api/telegram/webhook",
+      "fake-webhook-secret",
+    );
+
+    expect(result).toEqual({ ok: true });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/setWebhook`);
+    expect(JSON.parse(init.body)).toEqual({
+      url: "https://app.example/api/telegram/webhook",
+      secret_token: "fake-webhook-secret",
+      max_connections: 1,
     });
   });
 });

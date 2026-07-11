@@ -12,6 +12,11 @@ type ClaimRateLimitRow = {
   current_count: number;
 };
 
+const MAX_SHARED_KEY_LENGTH = 400;
+const MAX_LIMIT = 1000;
+const MAX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+let nextDegradedLogAt = 0;
+
 function sharedRateLimitEnabled(): boolean {
   return Boolean(
     process.env.SUPABASE_URL?.trim() &&
@@ -29,7 +34,16 @@ function toWindowSeconds(windowMs: number): number {
 }
 
 function validRequest(key: string, limit: number, windowMs: number): boolean {
-  return key.trim().length > 0 && Number.isInteger(limit) && limit > 0 && windowMs > 0;
+  return (
+    key.trim().length > 0 &&
+    key.length <= MAX_SHARED_KEY_LENGTH &&
+    Number.isInteger(limit) &&
+    limit > 0 &&
+    limit <= MAX_LIMIT &&
+    Number.isInteger(windowMs) &&
+    windowMs > 0 &&
+    windowMs <= MAX_WINDOW_MS
+  );
 }
 
 function rpcClient() {
@@ -43,6 +57,37 @@ function localFallback(
   windowMs: number,
 ): RateLimitResult {
   return checkRateLimit(fallbackKey(scope, key), limit, windowMs);
+}
+
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT?.trim());
+}
+
+function degradedResult(windowMs: number): RateLimitResult {
+  return {
+    ok: false,
+    remaining: 0,
+    retryAfterSec: Math.min(300, Math.max(1, Math.ceil(windowMs / 1000))),
+  };
+}
+
+function logDegraded(reason: string): void {
+  const now = Date.now();
+  if (now < nextDegradedLogAt) return;
+  nextDegradedLogAt = now + 60_000;
+  console.error(`shared rate-limit degraded: ${reason}`);
+}
+
+function fallbackOrDeny(
+  scope: SharedRateLimitScope,
+  key: string,
+  limit: number,
+  windowMs: number,
+  reason: string,
+): RateLimitResult {
+  if (!isProductionRuntime()) return localFallback(scope, key, limit, windowMs);
+  logDegraded(reason);
+  return degradedResult(windowMs);
 }
 
 function parseClaimRow(data: unknown): ClaimRateLimitRow | null {
@@ -63,7 +108,10 @@ function parseClaimRow(data: unknown): ClaimRateLimitRow | null {
  *
  * Raw keys can contain IPs or Telegram user ids, but only
  * HMAC("rate-limit:<scope>:<raw key>") is persisted. Local/test environments
- * without Supabase or HASH_PEPPER_SECRET keep the previous in-memory behavior.
+ * without Supabase or HASH_PEPPER_SECRET use the bounded in-memory behavior.
+ * Production/Railway fails closed when configuration, hashing or the shared RPC
+ * is unavailable; it never silently multiplies a deployment-wide quota into
+ * one fresh allowance per process.
  */
 export async function checkSharedRateLimit(
   scope: SharedRateLimitScope,
@@ -76,7 +124,7 @@ export async function checkSharedRateLimit(
   }
 
   if (!sharedRateLimitEnabled()) {
-    return localFallback(scope, key, limit, windowMs);
+    return fallbackOrDeny(scope, key, limit, windowMs, "missing shared configuration");
   }
 
   try {
@@ -89,14 +137,12 @@ export async function checkSharedRateLimit(
     });
 
     if (error) {
-      console.error("shared rate-limit rpc failed", error.message);
-      return localFallback(scope, key, limit, windowMs);
+      return fallbackOrDeny(scope, key, limit, windowMs, `rpc failure (${error.code ?? "error"})`);
     }
 
     const row = parseClaimRow(data);
     if (!row) {
-      console.error("shared rate-limit rpc returned an invalid shape");
-      return localFallback(scope, key, limit, windowMs);
+      return fallbackOrDeny(scope, key, limit, windowMs, "invalid rpc response");
     }
 
     return {
@@ -105,10 +151,12 @@ export async function checkSharedRateLimit(
       retryAfterSec: Math.max(0, Math.ceil(row.retry_after_sec)),
     };
   } catch (error) {
-    console.error(
-      "shared rate-limit unavailable",
-      error instanceof Error ? error.message : "unknown",
+    return fallbackOrDeny(
+      scope,
+      key,
+      limit,
+      windowMs,
+      error instanceof Error ? `exception (${error.name})` : "unknown exception",
     );
-    return localFallback(scope, key, limit, windowMs);
   }
 }

@@ -490,12 +490,8 @@ async function synthesizeOpenAiSpeech(
       mimeType: "audio/mpeg",
       filename: "ishonch-guard-voice.mp3",
     };
-  } catch (error) {
-    console.error(
-      "voice-out TTS failed",
-      cfg.provider,
-      error instanceof Error ? error.message : "unknown",
-    );
+  } catch {
+    console.error("voice-out TTS failed", cfg.provider, "provider_exception");
     return { ok: false, reason: "provider_error" };
   }
 }
@@ -611,12 +607,8 @@ async function synthesizeGeminiSpeech(
       mimeType,
       filename: "ishonch-guard-voice.audio",
     };
-  } catch (error) {
-    console.error(
-      "voice-out TTS failed",
-      cfg.provider,
-      error instanceof Error ? error.message : "unknown",
-    );
+  } catch {
+    console.error("voice-out TTS failed", cfg.provider, "provider_exception");
     return { ok: false, reason: "provider_error" };
   }
 }

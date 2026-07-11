@@ -69,6 +69,18 @@ function sentenceFragments(text: string): string[] {
     .filter(Boolean);
 }
 
+const ACTION_CLAUSE_BOUNDARY_RE =
+  /\s*[;]\s*|,\s*(?=(?:and\s+then|but|however|instead|then|но|однако|зато|затем|потом|вместо\s+этого|ammo|lekin|biroq|keyin|buning\s+o['’]?rniga)\b)|\s+(?=(?:and\s+then|but|however|instead|then|но|однако|зато|затем|потом|вместо\s+этого|ammo|lekin|biroq|keyin|buning\s+o['’]?rniga)\b)/iu;
+
+function actionFragments(text: string): string[] {
+  return sentenceFragments(text).flatMap((sentence) =>
+    sentence
+      .split(ACTION_CLAUSE_BOUNDARY_RE)
+      .map((part) => part.trim())
+      .filter(Boolean),
+  );
+}
+
 function compact(text: string): string {
   return text.replace(/[\s._\-*`'’"“”()[\]{}:;|\\/]+/g, "");
 }
@@ -116,7 +128,7 @@ export function findUnsafeAiOutput(text: string): UnsafeAiOutputFinding | null {
     return { sentence: trimmed.slice(0, 240), reason: "prompt_injection_leak" };
   }
 
-  for (const fragment of sentenceFragments(trimmed)) {
+  for (const fragment of actionFragments(trimmed)) {
     if (isSafeWarning(fragment)) continue;
     if (hasSensitiveTerm(fragment) && hasUnsafeRequest(fragment)) {
       return { sentence: fragment.slice(0, 240), reason: "sensitive_data_request" };

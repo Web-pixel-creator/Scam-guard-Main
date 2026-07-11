@@ -2,7 +2,7 @@
 
 Status: WIP QA corpus for Telegram chat and inline behavior.
 
-Regression lock: 202 live phrases are currently enforced through
+Regression lock: 239 live phrases are currently enforced through
 `src/lib/telegram/live-phrase-cases.ts` and
 `src/lib/telegram/handlers/check.followup-routing.test.ts`.
 
@@ -282,6 +282,41 @@ tushunarli
 mayli
 thanks
 done
+```
+
+## Post-check Questions
+
+Expected intent: answer from a recent privacy-safe snapshot, or explain that the
+artifact must be resent. These phrases must not create a cold risk check or
+silently notify a trusted contact. A phrase containing a new concrete URL,
+bare domain, number, Telegram identifier, actual code value, card value or
+dangerous file must bypass the helper and run as a new check.
+
+```text
+ты точно в этом уверен?
+siz bunga aniq ishonasizmi?
+are you really sure about that?
+Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?
+Какие источники ты использовал?
+bu domenni qanday tekshirdingiz?
+how did you check this domain?
+я могу связаться с близким?
+Можно связаться с мамой?
+Можно показать близкому?
+yaqin odamim bilan bog'lansam bo'ladimi?
+yaqin odamim bilan boglansam bo'ladimi?
+ishonchli odamga qongiroq qilsam bo'ladimi?
+can I call someone I trust?
+Can I show this to my mother?
+перепроверь ещё раз
+А можешь перепроверить?
+Проверь ещё
+yana bir marta tekshir
+check it again
+Can you double-check?
+я не согласен, ты ошибся
+men rozi emasman, xato qildingiz
+I disagree, you may be wrong
 ```
 
 ## Direct Scam Payloads

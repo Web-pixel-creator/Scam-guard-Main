@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { REASON_LABELS, type ReasonCode } from "@/lib/risk/rules";
 import type { Session } from "@/lib/telegram/session.server";
 
 const hoisted = vi.hoisted(() => ({
@@ -11,6 +12,17 @@ const hoisted = vi.hoisted(() => ({
   }>,
   nextResult: null as null | Record<string, unknown>,
   nextError: null as null | Error,
+  nextAnswerResult: null as null | {
+    ok: boolean;
+    errorCode?: number;
+    description?: string;
+  },
+  answerResults: [] as Array<{
+    ok: boolean;
+    errorCode?: number;
+    description?: string;
+  }>,
+  escapeMarkdown: false,
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
@@ -42,10 +54,17 @@ vi.mock("@/lib/telegram/api.server", () => ({
       isPersonal?: boolean;
     }) => {
       hoisted.answerCalls.push(opts);
-      return { ok: true };
+      return hoisted.answerResults.shift() ?? hoisted.nextAnswerResult ?? { ok: true };
     },
   ),
-  escapeMarkdownV2: (value: string) => value,
+  escapeMarkdownV2: (value: string) =>
+    hoisted.escapeMarkdown
+      ? [...value]
+          .map((character) =>
+            "_*[]()~`>#+-=|{}.!".includes(character) ? `\\${character}` : character,
+          )
+          .join("")
+      : value,
 }));
 
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
@@ -65,6 +84,13 @@ describe("handleInlineQuery", () => {
     hoisted.answerCalls.length = 0;
     hoisted.nextResult = null;
     hoisted.nextError = null;
+    hoisted.nextAnswerResult = null;
+    hoisted.answerResults.length = 0;
+    hoisted.escapeMarkdown = false;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("returns a help article for an empty inline query", async () => {
@@ -83,6 +109,142 @@ describe("handleInlineQuery", () => {
     });
   });
 
+  it("uses a validated configured bot username in Inline copy and the continue button", async () => {
+    vi.stubEnv("TELEGRAM_BOT_USERNAME", "@custom_guard_bot");
+
+    await handleInlineQuery("   ", { userId: 42, session }, "iq-custom-bot");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+      reply_markup: { inline_keyboard: Array<Array<{ url?: string }>> };
+    };
+    expect(article.input_message_content.message_text).toContain("@custom_guard_bot");
+    expect(article.input_message_content.message_text).not.toContain("@scamguard_bot");
+    expect(article.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/custom_guard_bot");
+  });
+
+  it("falls back to the canonical bot when the configured username is not a Telegram username", async () => {
+    vi.stubEnv("TELEGRAM_BOT_USERNAME", "bad/name?next=https://evil.example");
+
+    await handleInlineQuery("   ", { userId: 42, session }, "iq-invalid-bot");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+      reply_markup: { inline_keyboard: Array<Array<{ url?: string }>> };
+    };
+    expect(article.input_message_content.message_text).toContain("@scamguard_bot");
+    expect(article.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/scamguard_bot");
+    expect(JSON.stringify(article)).not.toContain("evil.example");
+  });
+
+  it("redacts an unlabeled numeric value from a preflight article", async () => {
+    await handleInlineQuery(
+      "мне пишет какой то незнакомый человек 123456",
+      { userId: 42, session },
+      "iq-preflight-secret",
+    );
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    const articleJson = JSON.stringify(hoisted.answerCalls[0].results[0]);
+    expect(articleJson).not.toContain("123456");
+    expect(articleJson).toContain("••••");
+  });
+
+  it.each([
+    {
+      name: "text secrets",
+      type: "text",
+      display: "код 123456 карта 8600123412341234 email alice@example.com",
+      forbidden: ["123456", "8600123412341234", "alice@example.com"],
+    },
+    {
+      name: "URL path token",
+      type: "url",
+      display: "https://evil.example/reset/SECRET-TOKEN",
+      forbidden: ["SECRET-TOKEN", "/reset/"],
+    },
+    {
+      name: "malformed URL path token",
+      type: "url",
+      display: "https://%zz/reset/SECRET-TOKEN",
+      forbidden: ["SECRET-TOKEN", "/reset/", "%zz"],
+    },
+  ])(
+    "sanitizes $name even if an upstream result exposes raw display",
+    async ({ type, display, forbidden }) => {
+      hoisted.nextResult = {
+        type,
+        display,
+        level: "suspicious",
+        score: 25,
+        reasons: ["weird_domain"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery("https://example.com/check", { userId: 42, session }, "iq-display");
+
+      const articleJson = JSON.stringify(hoisted.answerCalls[0].results[0]);
+      for (const secret of forbidden) expect(articleJson).not.toContain(secret);
+    },
+  );
+
+  it("rejects synthetic inline queries above the Bot API 256-character boundary", async () => {
+    await handleInlineQuery("x".repeat(257), { userId: 42, session }, "iq-too-long");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.answerCalls[0].results[0]).toMatchObject({ id: "too-long" });
+  });
+
+  it("preserves a 256-character inline query at the Bot API boundary", async () => {
+    await handleInlineQuery("x".repeat(256), { userId: 42, session }, "iq-max-length");
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "x".repeat(256) });
+  });
+
+  it("reports a Bot API answer failure without logging the query or result", async () => {
+    hoisted.nextAnswerResult = {
+      ok: false,
+      errorCode: 400,
+      description: "Bad Request: query is too old",
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await handleInlineQuery("что мне делать дальше?", { userId: 42, session }, "iq-failed");
+
+    expect(errorSpy).toHaveBeenCalledWith("telegram inline answer failed", 400);
+    expect(errorSpy.mock.calls.flat().join(" ")).not.toContain("что мне делать");
+  });
+
+  it("retries a Telegram entity-parse failure once without parse_mode", async () => {
+    hoisted.escapeMarkdown = true;
+    hoisted.answerResults.push(
+      {
+        ok: false,
+        errorCode: 400,
+        description: "Bad Request: can't parse entities",
+      },
+      { ok: true },
+    );
+
+    await handleInlineQuery("что мне делать дальше?", { userId: 42, session }, "iq-parse");
+
+    expect(hoisted.answerCalls).toHaveLength(2);
+    const first = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string; parse_mode?: string };
+    };
+    const retry = hoisted.answerCalls[1].results[0] as {
+      input_message_content: { message_text: string; parse_mode?: string };
+    };
+    expect(first.input_message_content.message_text).toContain("\\");
+    expect(retry.input_message_content.parse_mode).toBeUndefined();
+    expect(retry.input_message_content.message_text).not.toContain("\\");
+    expect(retry.input_message_content.message_text).toContain("@scamguard_bot");
+  });
+
   it("runs a non-persistent rules-only check for a non-empty query", async () => {
     await handleInlineQuery("https://t.me/+abcdef", { userId: 42, session }, "iq-check");
 
@@ -93,6 +255,7 @@ describe("handleInlineQuery", () => {
       rateLimitKey: "tg:inline:42",
       channel: "telegram",
       skipAi: true,
+      skipUrlReputation: true,
       persist: false,
     });
     expect(hoisted.answerCalls).toHaveLength(1);
@@ -127,6 +290,138 @@ describe("handleInlineQuery", () => {
     };
     expect(article.title).toContain("Высокий риск");
     expect(article.input_message_content.message_text).toContain("Не отправляйте SMS-код");
+  });
+
+  it("renders the actual weird-domain heuristic and limitation", async () => {
+    hoisted.nextResult = {
+      type: "url",
+      display: "https://paypa1.example",
+      level: "suspicious",
+      score: 30,
+      reasons: ["weird_domain"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(
+      "https://paypa1.example",
+      { userId: 42, session: { ...session, lang: "en" } },
+      "iq-domain-method",
+    );
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+    };
+    const message = article.input_message_content.message_text;
+    expect(message).toContain("Suspicious domain");
+    expect(message).toMatch(/unusual domain ending|IP address|invalid URL\/domain format/i);
+    expect(message).not.toContain("known brand variants");
+    expect(message).toContain("do not prove ownership");
+  });
+
+  it("presents an official-directory match even when scoring reasons are empty", async () => {
+    hoisted.nextResult = {
+      type: "text",
+      display: "1340",
+      level: "safe",
+      score: 0,
+      reasons: [],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: {
+        orgName: "Example Bank",
+        orgType: "bank",
+        source: "https://example.test",
+        display: "1340",
+        contactType: "short_code",
+        verificationLevel: "high",
+        description: "Test fixture",
+      },
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(
+      "1340",
+      { userId: 42, session: { ...session, lang: "en" } },
+      "iq-official-method",
+    );
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+    };
+    expect(article.input_message_content.message_text).toContain(
+      "exact match in the verified official directory",
+    );
+  });
+
+  it("uses explicit evidence priority when several reasons are returned", async () => {
+    hoisted.nextResult = {
+      type: "url",
+      display: "https://danger.example",
+      level: "high_risk",
+      score: 80,
+      reasons: ["valid_uz_phone", "weird_domain", "external_phishing_url"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(
+      "https://danger.example",
+      { userId: 42, session: { ...session, lang: "en" } },
+      "iq-reason-priority",
+    );
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+    };
+    expect(article.input_message_content.message_text).toContain(
+      "configured external reputation source",
+    );
+    expect(article.input_message_content.message_text).not.toContain("phone format");
+  });
+
+  it("renders every reason through the real Inline adapter in RU/UZ/EN", async () => {
+    const allReasons = Object.keys(REASON_LABELS) as ReasonCode[];
+
+    for (const lang of ["ru", "uz", "en"] as const) {
+      for (const [index, reason] of allReasons.entries()) {
+        hoisted.answerCalls.length = 0;
+        hoisted.nextResult = {
+          type: "text",
+          display: "bounded test value",
+          level: "suspicious",
+          score: 30,
+          reasons: [reason],
+          explanation: null,
+          knownReports: 0,
+          verifiedContact: null,
+          brandEvidence: [],
+        };
+
+        await handleInlineQuery(
+          `https://example.com/inline-${index}`,
+          { userId: 42, session: { ...session, lang } },
+          `iq-all-reasons-${lang}-${index}`,
+        );
+
+        const article = hoisted.answerCalls[0].results[0] as {
+          description: string;
+          input_message_content: { message_text: string };
+        };
+        const message = article.input_message_content.message_text;
+        expect(message, `${reason}:${lang}`).toContain(REASON_LABELS[reason][lang]);
+        expect(message, `${reason}:${lang}`).not.toContain("undefined");
+        expect(message.length, `${reason}:${lang}:message length`).toBeLessThanOrEqual(4096);
+        expect(
+          article.description.length,
+          `${reason}:${lang}:description length`,
+        ).toBeLessThanOrEqual(120);
+      }
+    }
   });
 
   it("shows retry seconds for rate-limited inline checks", async () => {

@@ -62,6 +62,36 @@ describe("ai-output-safety", () => {
 
   it.each([
     {
+      text: "Do not share your OTP; transfer money to this safe account.",
+      reason: "payment_or_wallet_action",
+    },
+    {
+      text: "Never send your PIN, instead install this APK.",
+      reason: "apk_install_action",
+    },
+    {
+      text: "Do not share your OTP, but connect this wallet to verify.",
+      reason: "payment_or_wallet_action",
+    },
+    {
+      text: "Do not send the SMS code and then install this APK.",
+      reason: "apk_install_action",
+    },
+    {
+      text: "Не сообщайте SMS-код; затем переведите деньги на безопасный счёт.",
+      reason: "payment_or_wallet_action",
+    },
+    {
+      text: "PIN-kodni yubormang, lekin APK ilovasini o'rnating.",
+      reason: "apk_install_action",
+    },
+  ] as const)("scopes safe negation to its own action clause: $text", ({ text, reason }) => {
+    expect(findUnsafeAiOutput(text)?.reason).toBe(reason);
+    expect(sanitizeAiExplanation(text)).toBeNull();
+  });
+
+  it.each([
+    {
       text: "Tasdiq kodini kiriting va karta raqamini yuboring.",
       reason: "sensitive_data_request",
     },
@@ -90,6 +120,15 @@ describe("ai-output-safety", () => {
     "Seed phrase'ni hech qayerga kiritmang.",
     "Не устанавливайте APK и не переводите деньги на безопасный счет.",
   ])("allows safe decoy warning: %s", (safe) => {
+    expect(findUnsafeAiOutput(safe)).toBeNull();
+    expect(sanitizeAiExplanation(safe)).toBe(safe);
+  });
+
+  it.each([
+    "Do not share your OTP; do not transfer money to any account.",
+    "Never send your PIN, and never install an APK from a chat.",
+    "Do not send the SMS code and then do not install this APK.",
+  ])("keeps every independently negated action safe: %s", (safe) => {
     expect(findUnsafeAiOutput(safe)).toBeNull();
     expect(sanitizeAiExplanation(safe)).toBe(safe);
   });

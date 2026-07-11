@@ -88,12 +88,12 @@ describe("brand_impersonation scoring integration", () => {
       expect(result.level).toBe("high_risk");
     });
 
-    it("brand_impersonation does not interfere with verified_official override", () => {
+    it("brand_impersonation overrides verified_official protection", () => {
       const codes: ReasonCode[] = ["brand_impersonation", "verified_official"];
       const result = scoreFromCodes(codes);
 
-      expect(result.score).toBe(0);
-      expect(result.level).toBe("safe");
+      expect(result.score).toBe(40);
+      expect(result.level).toBe("suspicious");
     });
   });
 });

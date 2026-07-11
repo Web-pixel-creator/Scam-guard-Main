@@ -60,6 +60,14 @@ export function getTelegramBotUsername(): string {
   return raw && /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : "scamguard_bot";
 }
 
+export type TelegramUpdateDeliveryMode = "webhook" | "polling" | "disabled";
+
+export function getTelegramUpdateDeliveryMode(): TelegramUpdateDeliveryMode {
+  const value = process.env.TELEGRAM_UPDATE_DELIVERY_MODE?.trim().toLowerCase();
+  if (value === "polling" || value === "disabled" || value === "webhook") return value;
+  return "webhook";
+}
+
 /**
  * Public app URL used for Telegram URL buttons and operational links.
  * This value is not secret. It falls back to the current Railway production

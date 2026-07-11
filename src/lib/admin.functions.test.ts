@@ -17,6 +17,7 @@ const hoisted = vi.hoisted(() => ({
   auditInserts: [] as Array<Record<string, unknown>>,
   auditError: null as null | { message: string },
   reputationUpserts: [] as Array<Record<string, unknown>>,
+  reputationUpsertError: null as null | { message: string },
   reputationUpdates: [] as Array<Record<string, unknown>>,
   appealRow: null as null | {
     target_hash: string;
@@ -107,7 +108,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         return {
           upsert: async (row: Record<string, unknown>) => {
             hoisted.reputationUpserts.push(row);
-            return { data: null, error: null };
+            return { data: null, error: hoisted.reputationUpsertError };
           },
           update: (row: Record<string, unknown>) => ({
             eq: async () => {
@@ -172,6 +173,7 @@ beforeEach(() => {
   hoisted.auditInserts.length = 0;
   hoisted.auditError = null;
   hoisted.reputationUpserts.length = 0;
+  hoisted.reputationUpsertError = null;
   hoisted.reputationUpdates.length = 0;
   hoisted.appealRow = {
     target_hash: "hash-target",
@@ -423,6 +425,21 @@ describe("moderateReportCore reputation boundary", () => {
     expect(hoisted.entityInserts).toHaveLength(0);
     expect(hoisted.entityUpdates).toHaveLength(0);
     expect(hoisted.reputationUpserts).toHaveLength(0);
+  });
+
+  it("does not return admin success when Telegram reputation synchronization fails", async () => {
+    hoisted.reputationUpsertError = { message: "write unavailable" };
+
+    await expect(
+      moderateReportCore(
+        { reportId: REPORT_ID, decision: "confirmed", riskLevel: "high_risk" },
+        ADMIN_ID,
+      ),
+    ).rejects.toThrow("Telegram reputation synchronization failed");
+
+    expect(hoisted.reportUpdates).toEqual([{ status: "confirmed" }]);
+    expect(hoisted.entityInserts).toHaveLength(1);
+    expect(hoisted.reputationUpserts).toHaveLength(1);
   });
 });
 

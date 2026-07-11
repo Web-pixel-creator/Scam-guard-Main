@@ -201,6 +201,11 @@ distribution, apply `20260702063847_embed_origin_analytics_v1.sql` so
 `embed_origin_events` table with no raw input or full referrer URLs.
 
 Runtime env (Node server): `PORT` (default 3000) and `HOST` (default 0.0.0.0).
+This production `HOST` is separate from the Vite development listener. Local
+`npm run dev` binds only `127.0.0.1:8080` by default. Exposing it requires an
+explicit trusted-network CLI override such as
+`npm run dev -- --host 0.0.0.0`; never make an external bind the committed
+default.
 Leave `TRUST_PROXY_IP_HEADERS` unset/false unless the deployment sits behind a
 trusted edge proxy that overwrites or strips spoofed forwarding headers. Enabling
 it without that proxy-chain proof lets clients partition public check/report/
@@ -248,8 +253,13 @@ job still exists and then run `prod:security-smoke`.
 Shared public rate limits are stored in `rate_limit_buckets` through the
 service-role-only `claim_rate_limit()` RPC. `HASH_PEPPER_SECRET` is required in
 production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
-before persistence. If Supabase or the pepper is missing in local/test
-environments, the app falls back to the in-memory limiter.
+before persistence. Production and Railway fail closed to rate-limited responses
+if shared configuration, hashing, RPC transport or response validation fails;
+there is no process-local production allowance. If Supabase or the pepper is
+missing in local/test environments, the app uses the bounded 4096-key in-memory
+limiter. Release validation must force missing-config, hash exception, RPC error
+and invalid-shape cases and confirm `429`/safe failure before any AI/media/fetch,
+report or appeal sink work.
 Public web rate-limit identity ignores proxy IP headers by default. Set
 `TRUST_PROXY_IP_HEADERS=true` only after confirming the edge proxy overwrites
 `CF-Connecting-IP`, `X-Real-IP` and `X-Forwarded-For`, then set
@@ -297,8 +307,9 @@ Useful environment variables:
 - `MONITOR_STALE_TELEGRAM_ERROR_MS` - how long a Telegram last-error can remain
   before it is ignored as stale, default `900000` (15 minutes).
 - `MONITOR_REQUIRE_SECRET_CHECKS=true` - fail if Telegram bot/webhook secrets are
-  missing. Use this for private schedulers such as Railway; keep it unset for
-  public GitHub cron until all secrets are configured there.
+  missing. The committed GitHub schedule sets this explicitly. Keep it unset
+  only for an intentionally limited local/operator run that is allowed to emit
+  warning-only skips.
 - `MONITOR_FAIL_ON_WARN=true` - make warnings fail the command.
 
 Optional Telegram alerting:
@@ -320,9 +331,10 @@ up to date when monitor checks, alert routing or production recovery commands
 change.
 
 The repository also includes `.github/workflows/prod-monitor.yml`, which runs
-the monitor on a 30-minute GitHub Actions schedule. By default it always checks
-the public app and `/healthz`; secret-backed checks become active after these
-GitHub repository secrets are added:
+the monitor on a 30-minute GitHub Actions schedule. That workflow commits
+`MONITOR_REQUIRE_SECRET_CHECKS=true`: a missing Telegram bot token or webhook
+secret is a hard failure, not a skipped green check. It always checks the public
+app and `/healthz`; secret-backed checks use these GitHub repository secrets:
 
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_WEBHOOK_SECRET`
@@ -331,6 +343,12 @@ GitHub repository secrets are added:
 - optional `OPENAI_MODEL`
 - optional `MONITOR_ALERT_CHAT_ID`
 - optional `MONITOR_ALERT_BOT_TOKEN`
+
+Before release, prove this policy in a controlled Actions environment: one run
+with all required secrets present, one intentionally missing-secret run that
+must fail, then a restored-secrets run that must pass. Do not remove a live
+production secret merely to create evidence when a protected test environment
+or temporary workflow copy can isolate the drill.
 
 ## Telegram bot webhook deployment
 
@@ -349,6 +367,11 @@ in order:
 Apply pending SQL migrations to your Supabase project. At minimum the Telegram
 bot requires `telegram_sessions`; newer deployments also include Family Shield,
 retention cleanup and security-definer hardening migrations.
+The session-ordering release additionally requires
+`20260711010000_telegram_session_update_sequence.sql`, which adds
+`telegram_sessions.last_update_id` and the service-role-only
+`save_telegram_session_sequenced` RPC. Do not deploy application instances that
+expect this RPC before the migration is applied.
 Telegram chat-scoped session hardening stores its boundary inside existing
 `telegram_sessions.scenario_data`, so it does not require an additional SQL
 migration. After deploy, any old active/contextual session row without a
@@ -361,6 +384,16 @@ supabase db push --linked --include-all --yes
 After migrations that change table/function shapes, regenerate
 `src/integrations/supabase/types.ts` when the project workflow needs fresh DB
 types (do not hand-edit that file).
+
+The migration is only the monotonic last-write layer. Keep Telegram on one
+application instance until D-070's durable processing lifecycle is implemented;
+do not use the migration as evidence that stale-read routing or crash recovery
+is solved. In a protected environment, force session SELECT and sequencing-RPC
+failures and confirm one localized retry warning while logs contain only stage
+codes. Also force Bot API `{ok:false}` for a result and verify no guardian or
+trusted-contact follow-on action occurs and the previous snapshot is restored.
+After the durable lifecycle exists, add queued-before-dispatch crash/restart and
+true out-of-order two-instance probes before scaling.
 
 ### 2. Set the bot secrets in the server environment
 
@@ -410,6 +443,12 @@ non-zero with a clear message if a secret is missing or Telegram returns
 not-ok. `setWebhook` does send the secret token to Telegram over HTTPS — that
 is by design; Telegram then echoes it back in the request header so the webhook
 can authenticate updates.
+
+Until D-070 is closed, the helper also sends `max_connections=1`. Immediately
+after registration, run the production monitor and verify the `telegram webhook
+info` check reports `max_connections=1` and `concurrency_ok=true`. A higher or
+missing value is a failed monitor check. This reduces concurrent delivery but
+does not replace the durable lifecycle/crash-recovery gate.
 
 ### 4. Enable Telegram inline mode
 
@@ -508,6 +547,28 @@ To also send one synthetic high-risk text through the latest Telegram session
 railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --live-telegram
 ```
 
+## Telegram polling cutover
+
+Do not delete the webhook first. Deploy in this order:
+
+1. Apply `20260711010000_telegram_session_update_sequence.sql` and
+   `20260711050337_telegram_update_lifecycle.sql`.
+2. Deploy the application with `TELEGRAM_UPDATE_DELIVERY_MODE=polling` while the
+   existing Telegram webhook still owns pending delivery.
+3. Call `GET /api/telegram/polling-health` with the
+   `X-Telegram-Bot-Api-Secret-Token` header and require HTTP 200.
+4. Run `railway run npm run telegram:switch-to-polling`. It refuses cutover
+   without an active leader and uses `drop_pending_updates=false`.
+5. Set the scheduled monitor's `TELEGRAM_UPDATE_DELIVERY_MODE=polling`; require
+   empty `getWebhookInfo.url`, bounded pending updates and polling-health 200.
+6. Send one approved `/start`/safe QA update, restart one app instance, and
+   verify no update is lost. Keep handlers retry-safe because delivery is
+   at-least-once, not exactly-once.
+
+Rollback: set the app to `webhook`, re-register with
+`scripts/register-telegram-webhook.ts`, verify `max_connections=1`, and only
+then stop polling mode. Never use `drop_pending_updates=true`.
+
 ## Deploy checklist
 
 - [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
@@ -524,7 +585,15 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
       `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` is set before enabling it.
 - [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`).
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.
-- [ ] `telegram_sessions` migration applied (Telegram bot session state).
+- [ ] `telegram_sessions` migrations applied, including
+      `20260711010000_telegram_session_update_sequence.sql` and its
+      service-role-only sequencing RPC.
+- [ ] `20260711050337_telegram_update_lifecycle.sql` is applied; production
+      service-role RPC and anon-deny smoke checks pass.
+- [ ] Polling leader health is 200 before the fail-closed webhook cutover;
+      `getWebhookInfo.url` is empty afterward and pending updates were preserved.
+- [ ] Restart/completion-before-offset/stale-leader probes pass before horizontal
+      application scaling. At most one polling leader may be active.
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Partner iframe origins, if any, are set in
       `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`
@@ -532,7 +601,8 @@ railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --l
 - [ ] Embed origin analytics migration is applied before broad partner
       distribution (`embed_origin_events` exists and `prod:security-smoke`
       passes).
-- [ ] Webhook registered via `scripts/register-telegram-webhook.ts`.
+- [ ] Delivery mode is explicit: polling cutover completed, or webhook registered
+      via `scripts/register-telegram-webhook.ts` with `max_connections=1`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally
       `--live-telegram` after user approval).

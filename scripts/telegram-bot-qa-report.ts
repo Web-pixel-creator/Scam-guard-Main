@@ -60,6 +60,11 @@ import {
 import { buildGuardianVoiceOutText, buildPanicVoiceOutText } from "@/lib/telegram/voice-out.server";
 import { buildTrustedAlertText } from "@/lib/telegram/family-shield.server";
 import {
+  buildLastCheckFollowUpText,
+  buildLastCheckSnapshot,
+  type LastCheckFollowUpAction,
+} from "@/lib/telegram/check-followup";
+import {
   reportRetryKeyboard,
   reportSkipKeyboard,
   reportValueKeyboard,
@@ -88,6 +93,14 @@ const GUARDIAN_ACTIONS: GuardianAngelAction[] = [
   GUARDIAN_CB.done,
   GUARDIAN_CB.safeCall,
   GUARDIAN_CB.fullPlan,
+];
+const POST_CHECK_ACTIONS: LastCheckFollowUpAction[] = [
+  "confidence",
+  "methodology",
+  "trusted_person",
+  "recheck",
+  "disagreement",
+  "next_steps",
 ];
 
 function unescapeMarkdownV2(value: string): string {
@@ -330,6 +343,41 @@ function sections(): Section[] {
     section("Image fallback: triage menu", bt("ocr_failed", LANG), buildImageTriageKeyboard(LANG)),
   ];
 
+  const postCheckSnapshot = buildLastCheckSnapshot(
+    resultFixture({
+      type: "url",
+      display: "https://paypa1.example",
+      level: "suspicious",
+      score: 30,
+      reasons: ["weird_domain"],
+    }),
+    new Date("2026-07-11T00:00:00.000Z"),
+  );
+  const postCheckHighRiskSnapshot = buildLastCheckSnapshot(
+    resultFixture({
+      type: "apk",
+      display: "update.apk",
+      level: "high_risk",
+      score: 80,
+      reasons: ["asks_to_install_apk"],
+    }),
+    new Date("2026-07-11T00:00:00.000Z"),
+  );
+  for (const lang of ["ru", "uz", "en"] as const) {
+    for (const action of POST_CHECK_ACTIONS) {
+      output.push(
+        section(
+          `Post-check ${lang.toUpperCase()}: ${action}`,
+          buildLastCheckFollowUpText(
+            action,
+            action === "next_steps" ? postCheckHighRiskSnapshot : postCheckSnapshot,
+            lang,
+          ),
+        ),
+      );
+    }
+  }
+
   for (const kind of IMAGE_KINDS) {
     output.push(
       section(
@@ -451,8 +499,8 @@ function renderReport(items: Section[]): string {
     "",
     "Generated from the current TypeScript formatters. This file is meant for product/UX review: if a bot response feels too long, generic, confusing, or unsafe here, fix the formatter and regenerate.",
     "",
-    "- Language: `ru`",
-    "- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Voice-out/TTS, Family Shield, report flow.",
+    "- Language: main surface `ru`; post-check action samples `ru/uz/en`.",
+    "- Scope: `/start`, `/help`, `/safety`, weekly digest, check results, RU/UZ/EN post-check actions, media fallbacks, image triage, asked-context hints, `/panic`, `/call`, Guardian Angel, Voice-out/TTS, Family Shield, report flow.",
     "- Privacy note: samples are synthetic and contain no real user secrets.",
     "",
   ];

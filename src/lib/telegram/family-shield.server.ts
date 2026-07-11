@@ -75,8 +75,8 @@ function inviteHashInput(token: string): string {
 async function hashInviteToken(token: string): Promise<string | null> {
   try {
     return await hashIdentifier(inviteHashInput(token));
-  } catch (e) {
-    console.error("family shield invite hash failed", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield invite hash failed", "crypto_exception");
     return null;
   }
 }
@@ -114,7 +114,7 @@ async function revokePendingInvites(guardianTelegramUserId: number): Promise<boo
     .eq("guardian_telegram_user_id", guardianTelegramUserId)
     .eq("status", "pending");
   if (error) {
-    console.error("family shield revoke pending failed", error.message);
+    console.error("family shield revoke pending failed", "storage_error");
     return false;
   }
   return true;
@@ -127,7 +127,7 @@ async function revokeFamilyRow(rowId: string): Promise<boolean> {
     .eq("id", rowId)
     .eq("status", "pending");
   if (error) {
-    console.error("family shield revoke row failed", error.message);
+    console.error("family shield revoke row failed", "storage_error");
     return false;
   }
   return true;
@@ -161,12 +161,12 @@ export async function createFamilyInvite(
       updated_at: now,
     });
     if (error) {
-      console.error("family shield invite insert failed", error.message);
+      console.error("family shield invite insert failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
     return { ok: true, inviteUrl: buildInviteUrl(token) };
-  } catch (e) {
-    console.error("family shield invite threw", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield invite threw", "storage_exception");
     return { ok: false, reason: "storage_unavailable" };
   }
 }
@@ -186,7 +186,7 @@ export async function acceptFamilyInvite(args: {
       .eq("status", "pending")
       .maybeSingle();
     if (error) {
-      console.error("family shield invite lookup failed", error.message);
+      console.error("family shield invite lookup failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
     if (!data) return { ok: false, reason: "invalid" };
@@ -213,13 +213,13 @@ export async function acceptFamilyInvite(args: {
       .eq("id", row.id)
       .eq("status", "pending");
     if (updateError) {
-      console.error("family shield invite accept failed", updateError.message);
+      console.error("family shield invite accept failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
 
     return { ok: true, guardianTelegramUserId: row.guardian_telegram_user_id };
-  } catch (e) {
-    console.error("family shield invite accept threw", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield invite accept threw", "storage_exception");
     return { ok: false, reason: "storage_unavailable" };
   }
 }
@@ -231,7 +231,7 @@ async function getActiveFamilyRow(guardianTelegramUserId: number): Promise<Famil
     .eq("status", "active")
     .maybeSingle();
   if (error) {
-    console.error("family shield active lookup failed", error.message);
+    console.error("family shield active lookup failed", "storage_error");
     return null;
   }
   return (data as FamilyRow | null) ?? null;
@@ -330,12 +330,12 @@ export async function notifyTrustedContact(args: {
       .update({ last_notified_at: now, updated_at: now })
       .eq("id", row.id);
     if (error) {
-      console.error("family shield notification timestamp failed", error.message);
+      console.error("family shield notification timestamp failed", "storage_error");
     }
 
     return { ok: true, trustedChatId: row.trusted_chat_id };
-  } catch (e) {
-    console.error("family shield notify threw", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield notify threw", "delivery_exception");
     return { ok: false, reason: "storage_unavailable" };
   }
 }
@@ -351,14 +351,14 @@ export async function revokeFamilyShieldForTrusted(
       .eq("status", "active")
       .select("id");
     if (error) {
-      console.error("family shield trusted revoke failed", error.message);
+      console.error("family shield trusted revoke failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
     return Array.isArray(data) && data.length > 0
       ? { ok: true }
       : { ok: false, reason: "not_linked" };
-  } catch (e) {
-    console.error("family shield trusted revoke threw", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield trusted revoke threw", "storage_exception");
     return { ok: false, reason: "storage_unavailable" };
   }
 }
@@ -374,14 +374,14 @@ export async function revokeFamilyShield(
       .in("status", ["pending", "active"])
       .select("id");
     if (error) {
-      console.error("family shield revoke failed", error.message);
+      console.error("family shield revoke failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
     return Array.isArray(data) && data.length > 0
       ? { ok: true }
       : { ok: false, reason: "not_linked" };
-  } catch (e) {
-    console.error("family shield revoke threw", e instanceof Error ? e.message : "");
+  } catch {
+    console.error("family shield revoke threw", "storage_exception");
     return { ok: false, reason: "storage_unavailable" };
   }
 }

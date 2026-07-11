@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { VERIFIED_CONTACTS, VERIFIED_CONTACTS_COUNT } from "@/lib/risk/verified-contacts";
+import {
+  VERIFIED_CONTACTS,
+  getActiveVerifiedContacts,
+  getVerifiedContactsCount,
+} from "@/lib/risk/verified-contacts";
 import {
   filterOfficialContacts,
   getContactAction,
@@ -10,7 +14,7 @@ import {
 
 describe("official-directory helpers", () => {
   it("returns every verified contact without query or filter", () => {
-    expect(filterOfficialContacts("", "all")).toHaveLength(VERIFIED_CONTACTS_COUNT);
+    expect(filterOfficialContacts("", "all")).toHaveLength(getVerifiedContactsCount());
   });
 
   it("filters contacts by organization type", () => {
@@ -28,20 +32,21 @@ describe("official-directory helpers", () => {
   });
 
   it("builds tel actions only for callable contacts", () => {
-    const callable = VERIFIED_CONTACTS.find(isCallableContact);
+    const callable = getActiveVerifiedContacts().find(isCallableContact);
     expect(callable).toBeDefined();
     expect(getContactAction(callable!)?.href.startsWith("tel:")).toBe(true);
 
     const telegram = VERIFIED_CONTACTS.find((contact) => contact.contactType === "telegram");
     expect(telegram).toBeDefined();
-    expect(getContactAction(telegram!)?.href.startsWith("tel:")).toBe(false);
+    expect(getContactAction(telegram!)).toBeNull();
+    expect(filterOfficialContacts("naboruz", "all")).toEqual([]);
   });
 
   it("computes stable public directory stats", () => {
     const stats = getOfficialDirectoryStats();
-    expect(stats.total).toBe(VERIFIED_CONTACTS_COUNT);
+    expect(stats.total).toBe(getVerifiedContactsCount());
     expect(stats.callable).toBe(
-      VERIFIED_CONTACTS.filter((contact) =>
+      getActiveVerifiedContacts().filter((contact) =>
         ["phone", "short_code", "toll_free"].includes(contact.contactType),
       ).length,
     );

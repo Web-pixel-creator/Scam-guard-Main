@@ -24,32 +24,103 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
 });
 
 vi.mock("@/integrations/supabase/client.server", () => {
-  const noop = async () => ({ data: null, error: null });
-  function builder(table: string) {
-    const b: any = {
-      select: () => b, eq: () => { b.__r = null; return b; },
+  type FakeBuilder = {
+    __r: unknown;
+    select: () => FakeBuilder;
+    eq: () => FakeBuilder;
+    maybeSingle: () => Promise<{ data: unknown; error: null }>;
+    single: () => Promise<{ data: unknown; error: null }>;
+    insert: () => Promise<{ error: null }>;
+    upsert: () => Promise<{ error: null }>;
+    update: () => FakeBuilder;
+    gte: () => FakeBuilder;
+    limit: () => FakeBuilder;
+    order: () => FakeBuilder;
+    in: () => FakeBuilder;
+    gt: () => FakeBuilder;
+  };
+
+  function builder(_table: string) {
+    const b: FakeBuilder = {
+      __r: null,
+      select: () => b,
+      eq: () => {
+        b.__r = null;
+        return b;
+      },
       maybeSingle: async () => ({ data: b.__r ?? null, error: null }),
       single: async () => ({ data: b.__r ?? null, error: null }),
-      insert: async () => ({ error: null }), upsert: async () => ({ error: null }),
-      update: () => b, gte: () => b, limit: () => b, order: () => b, in: () => b, gt: () => b,
+      insert: async () => ({ error: null }),
+      upsert: async () => ({ error: null }),
+      update: () => b,
+      gte: () => b,
+      limit: () => b,
+      order: () => b,
+      in: () => b,
+      gt: () => b,
     };
     return b;
   }
   return {
     supabaseAdmin: {
       from: (t: string) => builder(t),
-      rpc: async () => ({ data: { allowed: true, remaining: 99, retry_after_sec: 0 }, error: null }),
+      rpc: async (name: string) => {
+        if (name === "begin_telegram_update") {
+          return {
+            data: [
+              {
+                decision: "acquired",
+                processing_fence: 1,
+                retry_after_sec: 0,
+                lease_expires_at: "2099-01-01T00:00:00.000Z",
+                attempt_count: 1,
+              },
+            ],
+            error: null,
+          };
+        }
+        if (name === "complete_telegram_update" || name === "mark_telegram_update_failure") {
+          return { data: true, error: null };
+        }
+        if (name === "load_telegram_session_fenced") {
+          return { data: { lease_valid: true, session: null }, error: null };
+        }
+        if (name === "save_telegram_session_fenced") {
+          return {
+            data: [{ lease_valid: true, applied: true, current_update_id: 0 }],
+            error: null,
+          };
+        }
+        return { data: { allowed: true, remaining: 99, retry_after_sec: 0 }, error: null };
+      },
     },
   };
 });
 
 vi.mock("@/lib/risk/check-core", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/risk/check-core")>();
-  return { ...actual, analyzeImageCore: async () => null, transcribeVoiceCore: async () => ({ text: null }), ocrExtractCore: async () => ({ text: null }) };
+  return {
+    ...actual,
+    analyzeImageCore: async () => null,
+    transcribeVoiceCore: async () => ({ text: null }),
+    ocrExtractCore: async () => ({ text: null }),
+  };
 });
 
 vi.mock("@/lib/report.functions", () => {
-  const target = (v: string, io = false) => ({ type: v.startsWith("@") || v.includes("t.me") ? "telegram" : v.startsWith("http") ? "url" : v.replace(/\D/g, "").length >= 7 ? "phone" : "text", hash: `h:${v.length}`, display: io ? "__inc__" : "[redacted]", incidentOnly: io });
+  const target = (v: string, io = false) => ({
+    type:
+      v.startsWith("@") || v.includes("t.me")
+        ? "telegram"
+        : v.startsWith("http")
+          ? "url"
+          : v.replace(/\D/g, "").length >= 7
+            ? "phone"
+            : "text",
+    hash: `h:${v.length}`,
+    display: io ? "__inc__" : "[redacted]",
+    incidentOnly: io,
+  });
   return {
     submitReport: async () => ({ ok: true }),
     prepareReportIdentifier: (v: string) => Promise.resolve(target(v)),
@@ -63,7 +134,14 @@ vi.mock("@/lib/telegram/session.server", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/telegram/session.server")>();
   return {
     ...actual,
-    loadSession: async (userId: number) => ({ telegramUserId: userId, lang: "ru", scenario: "none", scenarioStep: 0, scenarioData: {}, updatedAt: new Date().toISOString() }),
+    loadSession: async (userId: number) => ({
+      telegramUserId: userId,
+      lang: "ru",
+      scenario: "none",
+      scenarioStep: 0,
+      scenarioData: {},
+      updatedAt: new Date().toISOString(),
+    }),
     saveSession: async () => ({ ok: true }),
   };
 });
@@ -79,12 +157,21 @@ function inlineReq(query: string, userId = 42): Request {
     headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": SECRET },
     body: JSON.stringify({
       update_id: updateId++,
-      inline_query: { id: `iq-${updateId}`, from: { id: userId, language_code: "ru" }, query, offset: "" },
+      inline_query: {
+        id: `iq-${updateId}`,
+        from: { id: userId, language_code: "ru" },
+        query,
+        offset: "",
+      },
     }),
   });
 }
 
-async function run(label: string, query: string, idx: number): Promise<{ title: string; desc: string }> {
+async function run(
+  label: string,
+  query: string,
+  idx: number,
+): Promise<{ title: string; desc: string }> {
   // Каждый запрос от нового userId → свежий rate-limit бакет (10/мин на user).
   const userId = 1000 + idx;
   await handleTelegramWebhook(inlineReq(query, userId));
@@ -175,12 +262,27 @@ const PHRASES: Array<[string, string]> = [
   ["я5: я уже дал номер карты", "я уже дал номер карты"],
   ["я6: я уже перешёл по ссылке", "я уже перешёл по ссылке"],
   // Новостные UZ-сценарии и реальные короткие формулировки
-  ["n1: +988 банк просит карту и SMS", "мне звонят с +988 и представляются сотрудником банка, просят данные карты и SMS"],
-  ["n2: +98 Uzmobile код", "мне звонят с +98 говорят Uzmobile и просят код для защиты номера от блокировки"],
-  ["n3: много иностранных звонков", "мне звонят по 15 раз с иностранного номера и просят карту и код из SMS"],
+  [
+    "n1: +988 банк просит карту и SMS",
+    "мне звонят с +988 и представляются сотрудником банка, просят данные карты и SMS",
+  ],
+  [
+    "n2: +98 Uzmobile код",
+    "мне звонят с +98 говорят Uzmobile и просят код для защиты номера от блокировки",
+  ],
+  [
+    "n3: много иностранных звонков",
+    "мне звонят по 15 раз с иностранного номера и просят карту и код из SMS",
+  ],
   ["n4: Uztelecom +996", "мне звонит Uztelecom с +996 договор истекает и просят SMS код"],
-  ["n5: Telegram удаление Отмена", "мне пришло сообщение от Telegram аккаунт удален нажмите Отмена чтобы спасти профиль"],
-  ["n6: Telegram Premium подарок", "мне пришел подарок Telegram Premium надо активировать по ссылке"],
+  [
+    "n5: Telegram удаление Отмена",
+    "мне пришло сообщение от Telegram аккаунт удален нажмите Отмена чтобы спасти профиль",
+  ],
+  [
+    "n6: Telegram Premium подарок",
+    "мне пришел подарок Telegram Premium надо активировать по ссылке",
+  ],
   ["n7: знакомый голосование", "мне пишет знакомый и просит проголосовать в конкурсе по ссылке"],
   ["n8: лучшая мамочка", "просят проголосовать за лучшую мамочку по ссылке"],
   ["n9: APK повестка", "прислали APK повестка в суд"],
@@ -189,7 +291,10 @@ const PHRASES: Array<[string, string]> = [
   ["n11: gif pptx открытка", "прислали GIF открытку с новым годом и файл pptx"],
   ["n12: Apple ID пароль", "всплывающее окно Apple ID просит пароль для проверки аккаунта"],
   ["n13: банкомат снять деньги", "у банкомата незнакомец просит снять деньги с моей карты"],
-  ["n14: газ нулевой баланс", "пишут что нулевой баланс за газ и нужно перейти по ссылке для проверки"],
+  [
+    "n14: газ нулевой баланс",
+    "пишут что нулевой баланс за газ и нужно перейти по ссылке для проверки",
+  ],
   ["n15: госорганы ФИО ПИНФЛ", "мне звонят из госорганов знают ФИО и ПИНФЛ просят код"],
   ["n16: три цифры карты", "у меня спрашивают три цифры на обороте карты"],
   ["n17: DMED поликлиника", "поликлиника просит SMS код для записи в DMED"],
@@ -242,7 +347,9 @@ describe("QA INLINE MASS — все типы фраз", () => {
       else if (/слишком много проверок/i.test(r.title)) limited++;
       else ok++;
     }
-    console.log(`\n═══ ИТОГ: осмысленных ${ok}/${PHRASES.length}, холодных ${cold}, rate-limited ${limited} ═══\n`);
+    console.log(
+      `\n═══ ИТОГ: осмысленных ${ok}/${PHRASES.length}, холодных ${cold}, rate-limited ${limited} ═══\n`,
+    );
     expect(PHRASES.length).toBeGreaterThan(0);
     expect(cold).toBe(0);
     expect(limited).toBe(0);

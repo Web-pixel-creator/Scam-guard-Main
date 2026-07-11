@@ -1,18 +1,37 @@
 import type { Lang } from "@/lib/i18n";
+import { maskForDisplay } from "@/lib/risk/detect";
 import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
-import type { RiskLevel, ReasonCode } from "@/lib/risk/rules";
+import type { RiskLevel } from "@/lib/risk/rules";
 import {
   answerInlineQuery,
   escapeMarkdownV2,
   type InlineQueryResultArticle,
 } from "@/lib/telegram/api.server";
+import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
 import type { InlineQueryCtx } from "@/lib/telegram/router";
+import {
+  collectResultReasonCodesForPresentation,
+  presentInlineReason,
+} from "@/lib/telegram/inline-reason-presentation";
 import { classifyVictimIntent, type VictimIntentKind } from "@/lib/telegram/victim-intent";
 
-const MAX_INLINE_QUERY_LENGTH = 2000;
+const MAX_INLINE_QUERY_LENGTH = 256;
 const MAX_INLINE_DESCRIPTION_LENGTH = 120;
-const BOT_URL = "https://t.me/scamguard_bot";
+const DEFAULT_BOT_USERNAME = "scamguard_bot";
+const INLINE_PLAIN_TEXT = new WeakMap<InlineQueryResultArticle, string>();
+
+function configuredBotUsername(): string {
+  const configured =
+    typeof process === "undefined"
+      ? ""
+      : (process.env.TELEGRAM_BOT_USERNAME ?? "").trim().replace(/^@/u, "");
+  return /^[A-Za-z][A-Za-z0-9_]{4,31}$/u.test(configured) ? configured : DEFAULT_BOT_USERNAME;
+}
+
+function applyConfiguredBotMention(value: string, username: string): string {
+  return value.replaceAll(`@${DEFAULT_BOT_USERNAME}`, `@${username}`);
+}
 
 type HumanInlineIntent =
   | "link_request"
@@ -114,7 +133,6 @@ type Copy = {
   stepLabel: string;
   levels: Record<RiskLevel, { title: string; description: string; step: string }>;
   reasonFallback: Record<RiskLevel, string>;
-  reasonHints: Partial<Record<ReasonCode, string>>;
 };
 
 const COPY: Record<Lang, Copy> = {
@@ -124,7 +142,7 @@ const COPY: Record<Lang, Copy> = {
     helpMessage:
       "Проверю номер, ссылку, Telegram username или текст сообщения.\n\nПример: @scamguard_bot +998901234567\n\nЯ не прошу SMS-коды, PIN, CVV или пароли.",
     tooLongTitle: "Слишком длинный текст",
-    tooLongDescription: "Сократите сообщение до 2000 символов",
+    tooLongDescription: "Сократите сообщение до 256 символов",
     rateLimitTitle: "Слишком много проверок",
     rateLimitDescription: "Подождите немного и попробуйте снова",
     errorTitle: "Не удалось проверить",
@@ -162,23 +180,6 @@ const COPY: Record<Lang, Copy> = {
       suspicious: "Есть признаки давления, неизвестного источника или подозрительной ссылки.",
       high_risk: "Есть признаки кражи кода, карты, денег или доступа.",
     },
-    reasonHints: {
-      asks_for_sms_code: "Просят SMS-код подтверждения",
-      asks_for_otp: "Просят одноразовый код",
-      asks_for_card_cvv: "Просят CVV/CVC карты",
-      asks_for_pin: "Просят PIN или пароль",
-      asks_to_install_apk: "Просят установить приложение/APK",
-      apk_download_link: "Есть ссылка на APK",
-      asks_to_transfer_to_safe_account: "Просят перевод на «безопасный счёт»",
-      asks_to_scan_qr: "Просят сканировать QR",
-      suspicious_invite_link: "Подозрительная invite-ссылка Telegram",
-      gambling_prediction_promo: "Промо ставок/казино/прогнозов",
-      giveaway_engagement_bait: "Розыгрыш/подарок как приманка",
-      fake_captcha_or_voting: "Капча или голосование как приманка",
-      known_reported: "Есть подтверждённые жалобы в Ishonch Guard",
-      non_uz_phone: "Номер не похож на узбекский",
-      verified_official: "Совпадает с официальным контактом",
-    },
   },
   uz: {
     helpTitle: "Ishonch Guard orqali tekshirish",
@@ -186,7 +187,7 @@ const COPY: Record<Lang, Copy> = {
     helpMessage:
       "Raqam, havola, Telegram username yoki xabar matnini tekshiraman.\n\nMisol: @scamguard_bot +998901234567\n\nMen SMS-kod, PIN, CVV yoki parol so'ramayman.",
     tooLongTitle: "Matn juda uzun",
-    tooLongDescription: "Xabarni 2000 belgigacha qisqartiring",
+    tooLongDescription: "Xabarni 256 belgigacha qisqartiring",
     rateLimitTitle: "Tekshiruvlar ko'p",
     rateLimitDescription: "Biroz kutib, qayta urinib ko'ring",
     errorTitle: "Tekshirib bo'lmadi",
@@ -224,23 +225,6 @@ const COPY: Record<Lang, Copy> = {
       suspicious: "Bosim, noma'lum manba yoki shubhali havola belgilari bor.",
       high_risk: "Kod, karta, pul yoki akkauntga kirishni o'g'irlash belgilari bor.",
     },
-    reasonHints: {
-      asks_for_sms_code: "SMS tasdiqlash kodini so'rashyapti",
-      asks_for_otp: "Bir martalik kod so'ralmoqda",
-      asks_for_card_cvv: "Karta CVV/CVC so'ralmoqda",
-      asks_for_pin: "PIN yoki parol so'ralmoqda",
-      asks_to_install_apk: "Ilova/APK o'rnatish so'ralmoqda",
-      apk_download_link: "APK havolasi bor",
-      asks_to_transfer_to_safe_account: "Pulni «xavfsiz hisob»ga o'tkazish so'ralmoqda",
-      asks_to_scan_qr: "QR skan qilish so'ralmoqda",
-      suspicious_invite_link: "Shubhali Telegram invite-havolasi",
-      gambling_prediction_promo: "Stavka/kazino/prognoz promosiga o'xshaydi",
-      giveaway_engagement_bait: "Sovg'a yoki yutuq orqali jalb qilish",
-      fake_captcha_or_voting: "Kapcha yoki ovoz berish orqali jalb qilish",
-      known_reported: "Ishonch Guardda tasdiqlangan shikoyatlar bor",
-      non_uz_phone: "Raqam O'zbekiston raqamiga o'xshamaydi",
-      verified_official: "Rasmiy kontakt bilan mos",
-    },
   },
   en: {
     helpTitle: "Check with Ishonch Guard",
@@ -248,7 +232,7 @@ const COPY: Record<Lang, Copy> = {
     helpMessage:
       "I can check a number, link, Telegram username or message text.\n\nExample: @scamguard_bot +998901234567\n\nI never ask for SMS codes, PINs, CVV or passwords.",
     tooLongTitle: "Text is too long",
-    tooLongDescription: "Shorten it to 2000 characters",
+    tooLongDescription: "Shorten it to 256 characters",
     rateLimitTitle: "Too many checks",
     rateLimitDescription: "Wait a bit and try again",
     errorTitle: "Could not check it",
@@ -285,23 +269,6 @@ const COPY: Record<Lang, Copy> = {
       unknown: "One value is not enough for a confident conclusion.",
       suspicious: "There are signs of pressure, unknown source or suspicious link.",
       high_risk: "There are signs of code, card, money or account-access theft.",
-    },
-    reasonHints: {
-      asks_for_sms_code: "They ask for an SMS confirmation code",
-      asks_for_otp: "They ask for a one-time code",
-      asks_for_card_cvv: "They ask for card CVV/CVC",
-      asks_for_pin: "They ask for a PIN or password",
-      asks_to_install_apk: "They ask to install an app/APK",
-      apk_download_link: "APK link detected",
-      asks_to_transfer_to_safe_account: "They ask for transfer to a safe account",
-      asks_to_scan_qr: "They ask to scan a QR code",
-      suspicious_invite_link: "Suspicious Telegram invite link",
-      gambling_prediction_promo: "Betting/casino/prediction promo",
-      giveaway_engagement_bait: "Gift or giveaway bait",
-      fake_captcha_or_voting: "Captcha or voting bait",
-      known_reported: "Confirmed Ishonch Guard reports exist",
-      non_uz_phone: "Number does not look Uzbek",
-      verified_official: "Matches an official contact",
     },
   },
 };
@@ -1042,6 +1009,18 @@ function isRateLimitedError(value: unknown): value is RateLimitedError {
   return value instanceof Error && (value as Partial<RateLimitedError>).status === 429;
 }
 
+function safeInlineDisplay(value: string, type: RunCheckResult["type"]): string {
+  const trimmed = value.trim();
+  if (type === "url" || type === "apk") {
+    try {
+      new URL(/^https?:\/\//iu.test(trimmed) ? trimmed : `https://${trimmed}`);
+    } catch {
+      return "[link]";
+    }
+  }
+  return maskForDisplay(trimmed, type);
+}
+
 function buildArticle(
   id: string,
   title: string,
@@ -1049,29 +1028,31 @@ function buildArticle(
   messageText: string,
   lang: Lang,
 ): InlineQueryResultArticle {
-  return {
+  const username = configuredBotUsername();
+  const resolvedTitle = applyConfiguredBotMention(title, username);
+  const resolvedDescription = applyConfiguredBotMention(description, username);
+  const resolvedMessageText = applyConfiguredBotMention(messageText, username);
+  const article: InlineQueryResultArticle = {
     type: "article",
     id,
-    title,
-    description,
+    title: resolvedTitle,
+    description: compactInlineDescription(resolvedDescription),
     input_message_content: {
-      message_text: escapeMarkdownV2(messageText),
+      message_text: escapeMarkdownV2(resolvedMessageText),
       parse_mode: "MarkdownV2",
       disable_web_page_preview: true,
     },
     reply_markup: {
-      inline_keyboard: [[{ text: COPY[lang].continueInBot, url: BOT_URL }]],
+      inline_keyboard: [[{ text: COPY[lang].continueInBot, url: `https://t.me/${username}` }]],
     },
   };
+  INLINE_PLAIN_TEXT.set(article, resolvedMessageText);
+  return article;
 }
 
-function topReason(result: RunCheckResult, copy: Copy): string {
-  const significant = result.reasons.find((reason) => reason !== "hosted_app_platform");
-  if (significant && copy.reasonHints[significant]) return copy.reasonHints[significant];
-  if (result.verifiedContact) return copy.reasonHints.verified_official ?? copy.reasonFallback.safe;
-  if (result.phoneReputation)
-    return copy.reasonHints.known_reported ?? copy.reasonFallback.suspicious;
-  return copy.reasonFallback[result.level];
+function topReason(result: RunCheckResult, lang: Lang, copy: Copy): string {
+  const reasons = collectResultReasonCodesForPresentation(result);
+  return presentInlineReason(reasons, lang)?.text ?? copy.reasonFallback[result.level];
 }
 
 function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
@@ -1081,8 +1062,8 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
     level.title,
     copy.checkedBy,
     "",
-    `${copy.displayLabel}: ${result.display}`,
-    `${copy.reasonLabel}: ${topReason(result, copy)}`,
+    `${copy.displayLabel}: ${safeInlineDisplay(result.display, result.type)}`,
+    `${copy.reasonLabel}: ${topReason(result, lang, copy)}`,
     `${copy.stepLabel}: ${level.step}`,
     "",
     "@scamguard_bot",
@@ -1103,7 +1084,7 @@ function formatHumanInlineMessage(
     title,
     copy.checkedBy,
     "",
-    `${copy.displayLabel}: ${result.display}`,
+    `${copy.displayLabel}: ${safeInlineDisplay(result.display, result.type)}`,
     "",
     intentCopy.description,
     "",
@@ -2020,7 +2001,7 @@ function formatPassportMessage(passport: RiskPassportSummary, lang: Lang): strin
     copy.checkedBy,
     passport.eyebrow,
     "",
-    `${copy.displayLabel}: ${passport.display}`,
+    `${copy.displayLabel}: ${safeInlineDisplay(passport.display, passport.kind)}`,
   ];
 
   for (const section of passport.sections) {
@@ -2122,50 +2103,10 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   return buildArticle(
     `check-${result.level}`,
     level.title,
-    `${level.description}. ${topReason(result, copy)}`,
+    `${level.description}. ${topReason(result, lang, copy)}`,
     formatInlineMessage(result, lang),
     lang,
   );
-}
-
-function hasConcreteInlineArtifact(text: string): boolean {
-  if (
-    /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/|@[a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{6,}\d)/iu.test(
-      text,
-    )
-  ) {
-    return true;
-  }
-
-  const fileLikeExtensions = new Set([
-    "apk",
-    "exe",
-    "pdf",
-    "pptx",
-    "doc",
-    "docx",
-    "xls",
-    "xlsx",
-    "zip",
-    "rar",
-    "gif",
-    "jpg",
-    "jpeg",
-    "png",
-    "webp",
-    "ogg",
-    "mp3",
-    "mp4",
-  ]);
-
-  for (const match of text.matchAll(/\b[a-z0-9-]+\.([a-z]{2,})\b/giu)) {
-    const extension = match[1]?.toLowerCase();
-    if (extension && !fileLikeExtensions.has(extension)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 function shouldUsePreflightInlineIntent(
@@ -2173,7 +2114,7 @@ function shouldUsePreflightInlineIntent(
   intent: HumanInlineIntent | null,
 ): intent is HumanInlineIntent {
   return Boolean(
-    intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteInlineArtifact(text),
+    intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteArtifact(text),
   );
 }
 
@@ -2185,7 +2126,7 @@ function humanIntentArticle(
   const intentCopy = PREVIEW_COPY[lang].humanIntents[intent];
   const result = {
     type: "text",
-    display,
+    display: safeInlineDisplay(display, "text"),
     level: "unknown",
     score: 0,
     reasons: ["unknown_sender"],
@@ -2225,13 +2166,46 @@ function rateLimitDescription(lang: Lang, retryAfter: number): string {
   return `Подождите немного: попробуйте снова через ${seconds} сек.`;
 }
 
+function withoutInlineParseMode(result: InlineQueryResultArticle): InlineQueryResultArticle {
+  const { parse_mode: _parseMode, ...inputMessageContent } = result.input_message_content;
+  return {
+    ...result,
+    input_message_content: {
+      ...inputMessageContent,
+      message_text: INLINE_PLAIN_TEXT.get(result) ?? inputMessageContent.message_text,
+    },
+  };
+}
+
+function isEntityParseFailure(
+  errorCode: number | undefined,
+  description: string | undefined,
+): boolean {
+  return errorCode === 400 && /parse|entit(?:y|ies)/iu.test(description ?? "");
+}
+
 async function answerOne(inlineQueryId: string, result: InlineQueryResultArticle): Promise<void> {
-  await answerInlineQuery({
+  const response = await answerInlineQuery({
     inlineQueryId,
     results: [result],
     cacheTime: 2,
     isPersonal: true,
   });
+  if (response.ok) return;
+
+  if (isEntityParseFailure(response.errorCode, response.description)) {
+    const retry = await answerInlineQuery({
+      inlineQueryId,
+      results: [withoutInlineParseMode(result)],
+      cacheTime: 2,
+      isPersonal: true,
+    });
+    if (retry.ok) return;
+    console.error("telegram inline answer failed", retry.errorCode ?? "unknown");
+    return;
+  }
+
+  console.error("telegram inline answer failed", response.errorCode ?? "unknown");
 }
 
 export async function handleInlineQuery(
@@ -2269,6 +2243,7 @@ export async function handleInlineQuery(
       rateLimitKey: `tg:inline:${ctx.userId}`,
       channel: "telegram",
       skipAi: true,
+      skipUrlReputation: true,
       persist: false,
     });
     await answerOne(inlineQueryId, resultArticle(result, lang));

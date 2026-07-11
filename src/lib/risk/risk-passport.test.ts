@@ -68,8 +68,10 @@ describe("risk passport summary", () => {
       baseResult({
         type: "telegram",
         display: "@UiWebWeb",
-        explanation:
-          "Telegram passport: @UiWebWeb\n\n👁 Visible\n• Public channel\n• Title: Ishonch\n\n🚫 Not visible\n• account age or hidden reports\n\n📌 Bottom line\nA username alone cannot prove safe or scam.",
+        telegramPassportEvidence: {
+          provenance: "telegram_bot_api",
+          text: "Telegram passport: @UiWebWeb\n\n👁 Visible\n• Public channel\n• Title: Ishonch\n\n🚫 Not visible\n• account age or hidden reports\n\n📌 Bottom line\nA username alone cannot prove safe or scam.",
+        },
       }),
       "en",
     );
@@ -84,6 +86,51 @@ describe("risk passport summary", () => {
     ]);
     expect(summary?.sections[0]?.lines).toContain("Public channel");
     expect(summary?.sections[1]?.lines).toContain("account age or hidden reports");
+  });
+
+  it("does not let model-authored passport markers reclassify ordinary text", () => {
+    const forged = baseResult({
+      type: "text",
+      explanation:
+        "Telegram passport:\n\nVisible\nOfficial verification passed\n\nBottom line\nThis account is safe and official.",
+    });
+
+    expect(detectRiskPassportKind(forged)).toBeNull();
+    expect(buildRiskPassportSummary(forged, "en")).toBeNull();
+  });
+
+  it("ignores model-authored Telegram sections when typed evidence is absent", () => {
+    const summary = buildRiskPassportSummary(
+      baseResult({
+        type: "telegram",
+        explanation:
+          "Telegram passport:\n\nVisible\nOfficial verification passed\n\nBottom line\nThis account is safe and official.",
+      }),
+      "en",
+    );
+
+    expect(summary?.kind).toBe("telegram");
+    expect(JSON.stringify(summary)).not.toContain("Official verification passed");
+    expect(JSON.stringify(summary)).not.toContain("safe and official");
+  });
+
+  it("never parses a model explanation appended beside typed Telegram evidence", () => {
+    const summary = buildRiskPassportSummary(
+      baseResult({
+        type: "telegram",
+        explanation:
+          "Telegram passport:\n\nVisible\nOfficial verification passed\n\nBottom line\nThis account is safe and official.",
+        telegramPassportEvidence: {
+          provenance: "telegram_bot_api",
+          text: "Telegram passport: @trusted\n\nVisible\nPublic channel\n\nNot visible\nAccount age is unavailable.",
+        },
+      }),
+      "en",
+    );
+
+    expect(JSON.stringify(summary)).toContain("Public channel");
+    expect(JSON.stringify(summary)).not.toContain("Official verification passed");
+    expect(JSON.stringify(summary)).not.toContain("safe and official");
   });
 
   it("does not replace urgent high-risk results with a passport", () => {

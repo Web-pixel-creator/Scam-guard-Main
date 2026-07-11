@@ -86,7 +86,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   requests_personal_data: 15,
   non_uz_phone: 5,
   valid_uz_phone: 0,
-  verified_official: -100,
+  verified_official: 0,
   known_reported: 50,
   asks_to_scan_qr: 50,
   relative_in_distress: 30,
@@ -117,6 +117,77 @@ const WEIGHTS: Record<ReasonCode, number> = {
   telegram_account_takeover_phishing: 50,
   dropper_recruitment: 35,
 };
+
+export type ReasonTrustImpact = "informational" | "protective" | "risk";
+
+/**
+ * Trust-boundary classification for every reason code.
+ *
+ * A verified contact is evidence about the destination, not proof that the
+ * surrounding message or caller is safe. New reason codes must be classified
+ * here at compile time; the safe downgrade fails closed for every `risk` code.
+ */
+export const REASON_TRUST_IMPACT: Record<ReasonCode, ReasonTrustImpact> = {
+  asks_for_otp: "risk",
+  asks_for_sms_code: "risk",
+  asks_for_card_cvv: "risk",
+  asks_for_pin: "risk",
+  asks_to_install_apk: "risk",
+  asks_to_share_screen: "risk",
+  asks_to_transfer_to_safe_account: "risk",
+  impersonates_bank: "risk",
+  impersonates_operator: "risk",
+  uses_urgency: "risk",
+  threatens_legal_action: "risk",
+  asks_not_to_hang_up: "risk",
+  telegram_bank_contact: "risk",
+  fake_loan_offer: "risk",
+  suspicious_short_link: "risk",
+  apk_download_link: "risk",
+  unknown_sender: "risk",
+  new_telegram_account: "risk",
+  weird_domain: "risk",
+  brand_name_typo: "risk",
+  payment_before_service: "risk",
+  too_good_to_be_true: "risk",
+  requests_personal_data: "risk",
+  non_uz_phone: "risk",
+  valid_uz_phone: "informational",
+  verified_official: "protective",
+  known_reported: "risk",
+  asks_to_scan_qr: "risk",
+  relative_in_distress: "risk",
+  requests_card_digits: "risk",
+  threatens_account_block: "risk",
+  fake_delivery_payment: "risk",
+  fake_boss_request: "risk",
+  malicious_file_bait: "risk",
+  impersonates_official: "risk",
+  suspicious_invite_link: "risk",
+  gambling_prediction_promo: "risk",
+  giveaway_engagement_bait: "risk",
+  crypto_casino_bonus_funnel: "risk",
+  fake_captcha_or_voting: "risk",
+  task_reward_engagement_bait: "risk",
+  wallet_action_urgency: "risk",
+  ton_referral_earning_scheme: "risk",
+  investment_fast_profit_pitch: "risk",
+  romance_investment_pivot: "risk",
+  oneid_government_phishing: "risk",
+  sim_swap_or_number_transfer: "risk",
+  money_mule_recruitment: "risk",
+  advance_fee_prize_inheritance: "risk",
+  external_phishing_url: "risk",
+  external_malware_url: "risk",
+  hosted_app_platform: "informational",
+  brand_impersonation: "risk",
+  telegram_account_takeover_phishing: "risk",
+  dropper_recruitment: "risk",
+};
+
+export function canVerifiedContactMarkSafe(codes: readonly ReasonCode[]): boolean {
+  return codes.every((code) => REASON_TRUST_IMPACT[code] !== "risk");
+}
 
 const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   { code: "asks_for_otp", re: /\b(otp|one[\s-]?time\s?(password|code))\b/i },
@@ -613,7 +684,9 @@ export function evaluateTelegram(handle: string): ReasonCode[] {
 export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: RiskLevel } {
   let score = 0;
   for (const c of codes) score += WEIGHTS[c] ?? 0;
-  if (codes.includes("verified_official")) return { score: 0, level: "safe" };
+  if (codes.includes("verified_official") && canVerifiedContactMarkSafe(codes)) {
+    return { score: 0, level: "safe" };
+  }
   if (codes.includes("brand_impersonation") && codes.includes("hosted_app_platform")) {
     score = Math.max(score, 50);
   }

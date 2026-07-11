@@ -143,6 +143,48 @@ describe("submitReputationAppealCore", () => {
     expect(alert).not.toContain("SecretInviteToken123");
   });
 
+  it("fails malformed URL appeal target displays closed", async () => {
+    const result = await submitReputationAppealCore(
+      {
+        target: "https://victim:secret-token@%",
+        reason: "This malformed target should be reviewed without exposing its credential.",
+        lang: "ru",
+      },
+      "appeal:test:malformed-url-display",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.inserts[0]).toMatchObject({ target_type: "url", target_display: "[link]" });
+    const { target_hash: _targetHash, ...displayFields } = hoisted.inserts[0];
+    expect(JSON.stringify(displayFields)).not.toContain("secret-token");
+    expect(JSON.stringify(hoisted.moderationNotices)).not.toContain("secret-token");
+  });
+
+  it("redacts Telegram custom schemes from appeal reason and contact display", async () => {
+    const result = await submitReputationAppealCore(
+      {
+        target: "@FakeSupportBot",
+        reason: "Evidence uses tg://resolve?domain=Secret_Handle&start=private-token.",
+        contact: "telegram://resolve?domain=ContactSecret&start=contact-token",
+        lang: "ru",
+      },
+      "appeal:test:telegram-custom-scheme",
+    );
+
+    expect(result).toEqual({ ok: true });
+    const {
+      target_hash: _targetHash,
+      contact_hash: _contactHash,
+      ...displayFields
+    } = hoisted.inserts[0];
+    const stored = JSON.stringify(displayFields);
+    expect(stored).not.toContain("Secret_Handle");
+    expect(stored).not.toContain("private-token");
+    expect(stored).not.toContain("ContactSecret");
+    expect(stored).not.toContain("contact-token");
+    expect(stored).toContain("[telegram]");
+  });
+
   it("rejects free text appeals so reports stay in the report flow", async () => {
     await expect(
       submitReputationAppealCore(

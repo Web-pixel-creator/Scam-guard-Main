@@ -11,11 +11,8 @@
 //     (and ∀ missing-config cases): the response status == 401, `dispatchUpdate`
 //     is NEVER called, and the request body is NEVER parsed/validated.
 //
-// Property 7 (design.md → "Webhook после валидного токена и валидной структуры
-//   всегда отвечает 200", Validates: Requirements 12.4, 12.5):
-//     ∀ valid update + matching token, the response status == 200 — even when
-//     `dispatchUpdate` throws (processing error after a valid token → log + 200,
-//     so Telegram does not retry forever).
+// Property 7: a valid update is acknowledged only after dispatch completes.
+// Handler failure remains retryable so an update is not silently lost.
 //
 // To exercise the real contract while keeping the test hermetic:
 //   - `@/lib/telegram/router` is mocked PARTIALLY via `vi.importActual` so the
@@ -56,8 +53,19 @@ vi.mock("@/lib/telegram/handlers", () => ({
   installTelegramHandlers: () => {},
 }));
 
-vi.mock("@/lib/telegram/webhook-dedup.server", () => ({
-  claimTelegramWebhookUpdate: vi.fn(async () => "claimed"),
+vi.mock("@/lib/telegram/update-lifecycle.server", () => ({
+  beginTelegramUpdate: vi.fn(async (updateId: number) => ({
+    decision: "acquired",
+    attemptCount: 1,
+    lease: {
+      updateId,
+      leaseToken: "00000000-0000-4000-8000-000000000001",
+      processingFence: 1,
+      leaseExpiresAt: "2099-01-01T00:00:00.000Z",
+    },
+  })),
+  completeTelegramUpdate: vi.fn(async () => true),
+  markTelegramUpdateFailure: vi.fn(async () => true),
 }));
 
 import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
@@ -240,10 +248,10 @@ describe("webhook contract - oversized bodies", () => {
   });
 });
 
-describe("webhook contract — Property 7: valid token + valid structure ⇒ always 200", () => {
+describe("webhook contract — Property 7: completion controls acknowledgement", () => {
   // Feature: telegram-bot-mvp, Property 7
   // Validates: Requirements 12.4, 12.5
-  it("returns 200 for any valid update, even when dispatchUpdate throws (fast-check, ≥100 runs)", async () => {
+  it("returns 200 after success and 503 after dispatch failure (fast-check, ≥100 runs)", async () => {
     // Valid updates that satisfy the REAL telegramUpdateSchema.
     const messageUpdateArb = fc.record({
       update_id: fc.integer({ min: 1, max: 2_147_483_647 }),
@@ -287,9 +295,7 @@ describe("webhook contract — Property 7: valid token + valid structure ⇒ alw
           });
           const response = await handleTelegramWebhook(request);
 
-          // Always 200 after a valid token + valid structure — including when the
-          // handler threw (the error is logged and swallowed) — R12.4 / R12.5.
-          expect(response.status).toBe(200);
+          expect(response.status).toBe(shouldThrow ? 503 : 200);
           // The valid update reached dispatch exactly once.
           expect(hoisted.dispatchCalls).toBe(1);
         },

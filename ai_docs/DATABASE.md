@@ -93,7 +93,8 @@ Telegram reputation targets are disabled the same way.
 
 ### `telegram_sessions`
 
-Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step, scenario_data, updated_at`.
+Per-user Telegram bot state: `telegram_user_id, lang, scenario, scenario_step,
+scenario_data, updated_at, last_update_id, last_update_at`.
 
 RLS: no public access. Service-role only. Used so bot state survives process restarts and multi-instance deploys.
 
@@ -115,6 +116,17 @@ legacy raw `scenario_data.value` rows are converted or reset before the next
 save.
 Rows idle for more than 30 days are eligible for retention cleanup.
 
+Legacy webhook-context writes call the service-role-only
+`save_telegram_session_sequenced(telegram_user_id, update_id, patch)` RPC.
+It atomically applies same/newer update patches and makes an older late write a
+stale no-op. Because Telegram may choose a new random `update_id` after at least
+one week without updates, a lower id is accepted after a seven-day session
+update-id inactivity epoch and becomes the new baseline. This is a last-write
+guard, not a durable cross-instance inbox:
+Durable processing instead calls `load_telegram_session_fenced` and
+`save_telegram_session_fenced`; both reject stale update/leader leases before
+reading or mutating session state.
+
 Telegram image intelligence is not stored as a separate table. Only the final
 `checks` row is persisted, with redacted input, hash, risk level, reason codes
 and optional explanation; raw images and data URLs are discarded. Web OCR and
@@ -125,14 +137,20 @@ evidence; low-signal image checks remain `unknown`.
 
 ### `telegram_webhook_updates`
 
-Short-lived Telegram webhook idempotency claims: `update_id, first_seen_at,
-expires_at`.
+Telegram update lifecycle metadata: `update_id, first_seen_at, expires_at,
+status, processing_fence, lease_token, leader_token, leader_fence,
+lease_expires_at, attempt_count, started_at, completed_at, updated_at,
+last_error_stage`.
 
 RLS/grants: no public access; service-role only. The table stores only Telegram
-`update_id` values for retry deduplication across multiple Node instances. It
+`update_id` and operational lease/fence values for crash recovery. It
 does not store chat ids, user ids, usernames, message text, URLs, phone numbers,
-OCR text or screenshots. Rows are eligible for cleanup after 2 days or when
+OCR text or screenshots. Processing rows retain up to 7 days of recovery
+metadata and completed rows approximately 3 days; cleanup removes rows when
 `expires_at <= now()`.
+
+`private.telegram_update_leaders` stores the singleton polling leader
+token/fence/expiry and no Telegram payload or user data.
 
 ### `rate_limit_buckets`
 
@@ -196,12 +214,17 @@ to `admin` only after `email_confirmed_at` is non-null.
 - `handle_confirmed_admin_allowlist_role()` email-confirmation trigger; grants
   `admin` to allowlisted users after Supabase marks the email confirmed.
 - `get_check_stats() -> (total, today, confirmed_entities, high_risk,
-  suspicious, dangerous, reports_total, reports_with_loss_amount,
-  reported_loss_uzs)` is service-role-only and called through the web server
+suspicious, dangerous, reports_total, reports_with_loss_amount,
+reported_loss_uzs)` is service-role-only and called through the web server
   function, not directly from the browser. Check/risk counters are raw
   aggregate activity; report/loss counters include only
   `reports.status='confirmed'`.
 - `claim_rate_limit(scope, key_hash, limit, window_seconds) -> (allowed, remaining, retry_after_sec, current_count)` is service-role-only and atomically increments one shared rate-limit bucket.
+- Telegram lifecycle RPCs `acquire/renew/release_telegram_update_leader`,
+  `telegram_update_leader_status`, `begin/renew/complete_telegram_update`,
+  `mark_telegram_update_failure`, `telegram_update_lease_current`,
+  `load_telegram_session_fenced` and `save_telegram_session_fenced` are
+  service-role-only SECURITY DEFINER functions with empty `search_path`.
 - `private.prune_app_retention(as_of timestamptz default now()) -> jsonb` deletes rows eligible under the retention windows and returns per-table counts.
 - `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.
 
@@ -215,7 +238,8 @@ under the windows below.
 - `checks`: 90 days.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
 - `telegram_sessions`: 30 days after last update.
-- `telegram_webhook_updates`: 2 days / `expires_at <= as_of`.
+- `telegram_webhook_updates`: processing up to 7 days, completed approximately
+  3 days / `expires_at <= as_of`.
 - `rate_limit_buckets`: `expires_at <= as_of` (normally one request window plus a short buffer).
 - `embed_origin_events`: 180 days.
 - `telegram_reputation_targets`: unconfirmed system/public/unverified observations after 180 days; confirmed rows retained until moderated removal.

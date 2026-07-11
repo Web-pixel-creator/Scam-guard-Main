@@ -11,6 +11,13 @@ import type { Lang } from "@/lib/i18n";
 import type { InputType } from "@/lib/risk/detect";
 import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
 import type { RiskLevel } from "@/lib/risk/rules";
+import {
+  currentTelegramSessionLanguage,
+  currentTelegramUpdateId,
+  currentTelegramUpdateLease,
+  markTelegramSessionStorageFailure,
+  rememberTelegramSessionLanguage,
+} from "@/lib/telegram/update-execution.server";
 
 export type SessionChatType = "private" | "group" | "supergroup" | "channel";
 
@@ -94,12 +101,46 @@ export type LastCheckContext =
   | "telegram_profile"
   | "generic";
 
+export type LastCheckEvidenceMethod =
+  | "text_pattern"
+  | "url_structure"
+  | "domain_comparison"
+  | "phone_format"
+  | "telegram_visible"
+  | "official_directory"
+  | "local_reports"
+  | "external_reputation"
+  | "context";
+
+export type LastCheckEvidenceSource =
+  | "visible_input"
+  | "official_directory"
+  | "moderated_reports"
+  | "external_reputation";
+
+export type LastCheckEvidenceLimitation =
+  | "signal_not_proof"
+  | "format_only"
+  | "telegram_visible_only"
+  | "official_identifier_only"
+  | "report_scope"
+  | "external_scope"
+  | "context_only";
+
+export interface LastCheckProvenance {
+  methods: LastCheckEvidenceMethod[];
+  sources: LastCheckEvidenceSource[];
+  limitations: LastCheckEvidenceLimitation[];
+}
+
 export interface LastCheckSnapshot {
   level: RiskLevel;
   type: InputType;
   context: LastCheckContext;
   /** Non-sensitive reason codes only; no raw user text, links, numbers, OCR, or image bytes. */
   reasons?: string[];
+  /** Bounded enum-only methodology snapshot; never raw evidence or provider payloads. */
+  provenance?: LastCheckProvenance;
   at: string;
 }
 
@@ -194,6 +235,10 @@ function sessions() {
   return (supabaseAdmin as unknown as SupabaseClient).from(TABLE);
 }
 
+function sessionRpc() {
+  return supabaseAdmin as unknown as SupabaseClient;
+}
+
 function asLang(value: unknown): Lang {
   return typeof value === "string" && (VALID_LANGS as readonly string[]).includes(value)
     ? (value as Lang)
@@ -286,27 +331,80 @@ export function isSessionStateScopedToChat(
 }
 
 /**
- * Загрузка сессии по Telegram_User_Id. При отсутствии строки (или сбое чтения)
- * возвращает дефолт `{ lang:"ru", scenario:"none", scenarioStep:0, scenarioData:{} }`
- * (R1.4, R15.1).
+ * Загрузка сессии по Telegram_User_Id. При отсутствии строки возвращает
+ * безопасный дефолт с языком из Telegram hint. В webhook-контексте сбой чтения
+ * fail-closed: помечает storage failure и бросает stage-only ошибку, чтобы
+ * текущий шаг не обрабатывался поверх вымышленной пустой сессии. Вне webhook
+ * сохраняется legacy/default fallback для локальных инструментов (R1.4, R15.1).
  */
 export async function loadSession(telegramUserId: number, langHint?: string): Promise<Session> {
   try {
-    const { data, error } = await sessions()
-      .select("*")
-      .eq("telegram_user_id", telegramUserId)
-      .maybeSingle();
+    const lease = currentTelegramUpdateLease();
+    let data: unknown;
+    let error: unknown;
+    if (lease) {
+      const result = await sessionRpc().rpc("load_telegram_session_fenced", {
+        p_telegram_user_id: telegramUserId,
+        p_update_id: lease.updateId,
+        p_lease_token: lease.leaseToken,
+        p_processing_fence: lease.processingFence,
+        p_leader_token: lease.leaderToken ?? null,
+        p_leader_fence: lease.leaderFence ?? null,
+      });
+      error = result.error;
+      const envelope = result.data;
+      if (
+        !error &&
+        envelope !== null &&
+        typeof envelope === "object" &&
+        !Array.isArray(envelope) &&
+        (envelope as Record<string, unknown>).lease_valid === true
+      ) {
+        data = (envelope as Record<string, unknown>).session ?? null;
+      } else if (!error) {
+        error = new Error("invalid_or_stale_lease");
+      }
+    } else {
+      const result = await sessions()
+        .select("*")
+        .eq("telegram_user_id", telegramUserId)
+        .maybeSingle();
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
-      console.error("telegram loadSession failed", error.message);
+      console.error("telegram loadSession failed", lease ? "fenced_rpc" : "select");
+      if (currentTelegramUpdateId() !== null) {
+        markTelegramSessionStorageFailure();
+        throw new TelegramSessionLoadError();
+      }
       return defaultSession(telegramUserId, langHint);
     }
-    if (!data) return defaultSession(telegramUserId, langHint);
+    if (!data) {
+      const session = defaultSession(telegramUserId, langHint);
+      rememberTelegramSessionLanguage(session.lang);
+      return session;
+    }
 
-    return rowToSession(data as TelegramSessionRow);
+    const session = rowToSession(data as TelegramSessionRow);
+    rememberTelegramSessionLanguage(session.lang);
+    return session;
   } catch (e) {
-    console.error("telegram loadSession threw", e instanceof Error ? e.message : "unknown");
+    if (e instanceof TelegramSessionLoadError) throw e;
+    console.error("telegram loadSession failed", "exception");
+    if (currentTelegramUpdateId() !== null) {
+      markTelegramSessionStorageFailure();
+      throw new TelegramSessionLoadError();
+    }
     return defaultSession(telegramUserId, langHint);
+  }
+}
+
+export class TelegramSessionLoadError extends Error {
+  constructor() {
+    super("telegram_session_load_failed");
+    this.name = "TelegramSessionLoadError";
   }
 }
 
@@ -318,7 +416,7 @@ export async function loadSession(telegramUserId: number, langHint?: string): Pr
 export async function saveSession(
   telegramUserId: number,
   patch: Partial<Omit<Session, "telegramUserId">>,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: true } | { ok: false; reason: "storage" | "stale" }> {
   // Map camelCase patch → snake_case columns; `updated_at` всегда ставит сервер.
   const row: Record<string, unknown> = {
     telegram_user_id: telegramUserId,
@@ -329,16 +427,64 @@ export async function saveSession(
   if (patch.scenarioStep !== undefined) row.scenario_step = patch.scenarioStep;
   if (patch.scenarioData !== undefined) row.scenario_data = patch.scenarioData;
 
+  const updateId = currentTelegramUpdateId();
+  const lease = currentTelegramUpdateLease();
+
   try {
+    if (updateId !== null) {
+      const sequencedPatch = { ...row };
+      delete sequencedPatch.telegram_user_id;
+      delete sequencedPatch.updated_at;
+      const sessionLanguage = currentTelegramSessionLanguage();
+      if (sequencedPatch.lang === undefined && sessionLanguage !== null) {
+        sequencedPatch.lang = sessionLanguage;
+      }
+      const rpcName = lease ? "save_telegram_session_fenced" : "save_telegram_session_sequenced";
+      const { data, error } = await sessionRpc().rpc(rpcName, {
+        p_telegram_user_id: telegramUserId,
+        p_update_id: updateId,
+        p_patch: sequencedPatch,
+        ...(lease
+          ? {
+              p_lease_token: lease.leaseToken,
+              p_processing_fence: lease.processingFence,
+              p_leader_token: lease.leaderToken ?? null,
+              p_leader_fence: lease.leaderFence ?? null,
+            }
+          : {}),
+      });
+
+      if (error) {
+        markTelegramSessionStorageFailure();
+        console.error("telegram saveSession failed", "sequenced_rpc");
+        return { ok: false, reason: "storage" };
+      }
+
+      const result = Array.isArray(data) ? data[0] : data;
+      if (
+        !result ||
+        typeof result !== "object" ||
+        typeof result.applied !== "boolean" ||
+        (lease && result.lease_valid !== true)
+      ) {
+        markTelegramSessionStorageFailure();
+        console.error("telegram saveSession failed", "invalid_rpc_result");
+        return { ok: false, reason: "storage" };
+      }
+      return result.applied ? { ok: true } : { ok: false, reason: "stale" };
+    }
+
     const { error } = await sessions().upsert(row, { onConflict: "telegram_user_id" });
     if (error) {
-      console.error("telegram saveSession failed", error.message);
-      return { ok: false };
+      markTelegramSessionStorageFailure();
+      console.error("telegram saveSession failed", "legacy_upsert");
+      return { ok: false, reason: "storage" };
     }
     return { ok: true };
   } catch (e) {
-    console.error("telegram saveSession threw", e instanceof Error ? e.message : "unknown");
-    return { ok: false };
+    markTelegramSessionStorageFailure();
+    console.error("telegram saveSession threw", e instanceof Error ? "exception" : "unknown");
+    return { ok: false, reason: "storage" };
   }
 }
 

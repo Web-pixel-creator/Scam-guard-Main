@@ -2,34 +2,77 @@
 
 ## Overview
 
-After a check result or emergency scenario, users often ask short human follow-ups:
-"Tочно?", "что дальше?", "дай номер банка", "что еще посоветуешь?". These must not be
-treated as fresh scam payloads. The bot should answer using the latest safe session
-context while still sending real links, numbers, usernames and suspicious text to the
-risk pipeline.
+After a check result, users often ask short human follow-ups such as «Ты точно
+уверен?», «Почему домен подозрительный?», «Можно связаться с близким?» or
+“check it again”. These messages are helper actions, not fresh scam payloads.
+The bot must answer from a recent privacy-safe snapshot while sending any new
+link, number, username, payment request, secret request or other concrete
+artifact through the normal risk pipeline.
 
 ## Requirements
 
-1. The bot SHALL route short post-check questions about confidence, next steps,
-   explanation and official contacts before `runCheck`.
-2. The bot SHALL recognize Russian, Uzbek and English follow-up phrases using valid
-   UTF-8 text patterns.
-3. The bot SHALL keep a safe `lastCheck` snapshot only: risk level, input type,
-   coarse context and timestamp. It SHALL NOT store raw links, phone numbers, OCR text,
-   card data, codes or image bytes in the snapshot.
-4. The bot SHALL ignore stale `lastCheck` snapshots older than 20 minutes.
-5. The bot SHALL let a newer emergency context win over an older check context.
-6. The bot SHALL not intercept messages that contain a new artifact: URL, Telegram
-   username/link, phone number, SMS/OTP/CVV/PIN/card/payment/APK terms.
-7. If there is no usable recent context, the bot SHALL answer orphan follow-ups with
-   safe generic guidance instead of returning a fake "not enough data" risk card.
-8. Official contact replies SHALL tell users to call only official numbers and include
-   verified bank/payment short codes.
+1. The bot SHALL represent post-check behavior with the shared typed
+   `LastCheckFollowUpAction` taxonomy:
+   - `confidence`;
+   - `methodology`;
+   - `trusted_person`;
+   - `recheck`;
+   - `disagreement`;
+   - `next_steps`;
+   - `contacts`;
+   - `explain`;
+   - `simple_explain`;
+   - `ai_origin`;
+   - `confirmation_request`;
+   - `acknowledgement`;
+   - `identity`.
+2. The bot SHALL recognize supported Russian, Uzbek and English helper phrases
+   with deterministic classifiers and parallel localized responses.
+3. The bot SHALL keep only a privacy-safe `lastCheck` snapshot: risk level,
+   input type, coarse context, timestamp, at most three non-sensitive reason
+   codes and bounded enum-only provenance. Provenance SHALL contain at most
+   three evidence methods, source classes and limitations.
+4. The snapshot SHALL NOT contain raw links, phone numbers, usernames, message
+   text, OCR text, screenshots, card data, codes, passwords, files, provider
+   payloads or other raw evidence.
+5. The bot SHALL ignore a `lastCheck` snapshot older than 20 minutes. If a
+   recent panic/emergency timestamp is equal to or newer than the check
+   timestamp, emergency context SHALL win and the last-check helper SHALL not
+   intercept the message.
+6. A message containing a new concrete artifact SHALL bypass helper routing and
+   reach the normal risk pipeline. This includes URLs, Telegram usernames or
+   links, phone numbers, codes, card/payment data, transfers, APK/install
+   requests and other actionable scam evidence.
+7. A `methodology` answer SHALL use only retained reason/provenance enums. It
+   SHALL identify the available method/source and limitation without inventing
+   hidden checks, provider data, identity proof or internal score thresholds.
+8. A free-text `trusted_person` action SHALL provide manual safe-contact
+   guidance only. It SHALL NOT notify a Family Shield contact or cause any other
+   side effect.
+9. A `recheck` action SHALL explain that the original artifact was not retained
+   and ask the user to submit it again. It SHALL NOT claim that a new check was
+   performed or silently change the previous result.
+10. A `disagreement` action SHALL acknowledge uncertainty and explain safe next
+    steps without overriding the deterministic verdict in the absence of new
+    evidence.
+11. If there is no usable recent context, the bot SHALL render a safe orphan
+    response for recognized helper actions instead of returning a fabricated
+    “not enough data” risk card.
+12. Official-contact replies SHALL direct users to independently verified
+    channels and SHALL not treat a phone number supplied in the suspicious
+    conversation as trusted.
 
 ## Acceptance
 
-- "Точно?" after a menu QR/safe screenshot returns a confidence answer, not a new check.
-- "Что еще посоветуешь?" after APK/card/OTP/high-risk result returns next safe steps.
-- "дай номер банка" after a card/phone/emergency result returns official callback guidance.
-- "Почему так?" returns a plain explanation without internal weights or thresholds.
-- "Точно? https://evil.example/login" still goes to the risk pipeline.
+- «Ты точно в этом уверен?» after a recent result returns `confidence`, not a
+  new risk check.
+- «Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?»
+  returns `methodology` based only on retained enum provenance.
+- «Я могу связаться с близким?» returns manual guidance and produces no trusted
+  contact notification.
+- «Перепроверь ещё раз» asks the user to resend the raw artifact and does not
+  pretend that a recheck occurred.
+- A disagreement phrase does not change the result without new evidence.
+- «Ты точно? https://evil.example/login» bypasses helpers and reaches the risk
+  pipeline.
+- A newer recent panic context wins over an older `lastCheck` snapshot.

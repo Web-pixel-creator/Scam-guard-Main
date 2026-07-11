@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   runCheckCalls: [] as Array<{ input: string; type?: string }>,
   saveSessionCalls: [] as Array<{ userId: number; patch: unknown }>,
+  saveSessionResult: { ok: true } as { ok: true } | { ok: false; reason: "storage" | "stale" },
   familyNotifyCalls: [] as Array<{
     guardianTelegramUserId: number;
     lang: string;
@@ -47,7 +48,7 @@ vi.mock("@/lib/telegram/api.server", () => ({
 vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: (userId: number, patch: unknown) => {
     hoisted.saveSessionCalls.push({ userId, patch });
-    return Promise.resolve({ ok: true });
+    return Promise.resolve(hoisted.saveSessionResult);
   },
   withSessionChatScope: (
     data: Record<string, unknown> | undefined,
@@ -113,6 +114,7 @@ describe("handleCheck follow-up routing", () => {
     hoisted.sentMessages.length = 0;
     hoisted.runCheckCalls.length = 0;
     hoisted.saveSessionCalls.length = 0;
+    hoisted.saveSessionResult = { ok: true };
     hoisted.familyNotifyCalls.length = 0;
     hoisted.familyNotifyResult = { ok: false, reason: "not_linked" };
   });
@@ -143,6 +145,84 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).toContain("Коротко");
     expect(hoisted.sentMessages[0].text).toContain("подозрительные признаки");
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
+  it("routes a bare domain in a why-question as a new artifact, not an old explanation", async () => {
+    await handleCheck("Почему paypa1.uz подозрительный?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(snapshot({ context: "generic", level: "suspicious" })),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("paypa1.uz");
+  });
+
+  it("keeps a code-safety question on the recent explanation when no code value is supplied", async () => {
+    await handleCheck("Почему нельзя отправлять код?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(
+        snapshot({ context: "generic", level: "high_risk", reasons: ["asks_for_sms_code"] }),
+      ),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("SMS-код");
+  });
+
+  it("routes new post-check actions without a cold check or trusted-contact side effect", async () => {
+    const recent = snapshot({
+      context: "generic",
+      level: "suspicious",
+      reasons: ["weird_domain"],
+    });
+
+    for (const phrase of [
+      "ты точно в этом уверен?",
+      "Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?",
+      "я могу связаться с близким?",
+      "перепроверь ещё раз",
+      "я не согласен, ты ошибся",
+    ]) {
+      await handleCheck(phrase, {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(recent),
+      });
+    }
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(5);
+    expect(hoisted.familyNotifyCalls).toHaveLength(0);
+    expect(hoisted.sentMessages.map((message) => message.text).join("\n")).not.toContain(
+      "Недостаточно данных",
+    );
+  });
+
+  it("lets a newer last check win over an older panic context for overlapping follow-ups", async () => {
+    const checkAt = new Date();
+    const panicAt = new Date(checkAt.getTime() - 60_000);
+
+    await handleCheck("я могу связаться с близким?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWithData({
+        lastPanicId: 6,
+        lastPanicAt: panicAt.toISOString(),
+        lastCheck: snapshot({
+          at: checkAt.toISOString(),
+          context: "generic",
+          level: "suspicious",
+        }),
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Свяжитесь с близким сами");
+    expect(hoisted.sentMessages[0].text).not.toContain("ЗАВЕРШИТЕ ЗВОНОК");
   });
 
   it("answers next-step follow-ups after high-risk results", async () => {
@@ -439,6 +519,25 @@ describe("handleCheck follow-up routing", () => {
     expect(saved).not.toContain("kapitalbank.uz.evil.com");
     expect(saved).not.toContain("Fresh risk check");
   });
+
+  it.each(["storage", "stale"] as const)(
+    "does not publish a result when the session write is %s",
+    async (reason) => {
+      hoisted.saveSessionResult = { ok: false, reason };
+
+      await handleCheck(`https://evil.example/${reason}`, {
+        chatId: 100,
+        userId: 42,
+        chatType: "private",
+        session: sessionWith(),
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(1);
+      expect(hoisted.saveSessionCalls).toHaveLength(1);
+      expect(hoisted.sentMessages).toHaveLength(0);
+      expect(hoisted.familyNotifyCalls).toHaveLength(0);
+    },
+  );
 
   it("auto-notifies a linked trusted contact after a private high-risk check", async () => {
     hoisted.familyNotifyResult = { ok: true, trustedChatId: 700 };

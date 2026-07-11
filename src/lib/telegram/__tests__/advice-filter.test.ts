@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { filterAdvice } from "@/lib/telegram/advice-filter";
+import { filterAdvice, REASON_PROTECTIVE_ACTION } from "@/lib/telegram/advice-filter";
+import { REASON_LABELS, scoreFromCodes, type ReasonCode } from "@/lib/risk/rules";
 
 describe("filterAdvice", () => {
   describe("high_risk with multiple reasons", () => {
@@ -18,6 +19,41 @@ describe("filterAdvice", () => {
       for (const item of result) {
         expect(item).toBeTruthy();
         expect(typeof item).toBe("string");
+      }
+    });
+  });
+
+  describe("exhaustive high-risk protective actions", () => {
+    const reasonCodes = Object.keys(REASON_LABELS) as ReasonCode[];
+
+    it("binds every current ReasonCode to an explicit action or intentional null", () => {
+      expect(Object.keys(REASON_PROTECTIVE_ACTION).sort()).toEqual([...reasonCodes].sort());
+      for (const reason of reasonCodes) {
+        if (REASON_PROTECTIVE_ACTION[reason] === null) continue;
+        expect(filterAdvice("suspicious", [reason], "en"), reason).toHaveLength(1);
+      }
+    });
+
+    it.each(["known_reported", "external_phishing_url", "external_malware_url"] as const)(
+      "returns an immediate action for %s in every language",
+      (reason) => {
+        for (const lang of ["ru", "uz", "en"] as const) {
+          const advice = filterAdvice("high_risk", [reason], lang);
+          expect(advice.length).toBeGreaterThan(0);
+          expect(advice.join(" ").toLowerCase()).not.toMatch(
+            /more context|больше контекст|ko'proq/iu,
+          );
+        }
+      },
+    );
+
+    it("never produces a high-risk single/pair verdict without a protective action", () => {
+      for (let left = 0; left < reasonCodes.length; left += 1) {
+        for (let right = left; right < reasonCodes.length; right += 1) {
+          const reasons = [...new Set([reasonCodes[left], reasonCodes[right]])];
+          if (scoreFromCodes(reasons).level !== "high_risk") continue;
+          expect(filterAdvice("high_risk", reasons, "en"), reasons.join("+")).not.toEqual([]);
+        }
       }
     });
   });

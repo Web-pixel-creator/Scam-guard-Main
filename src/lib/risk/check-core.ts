@@ -24,6 +24,7 @@ import {
   evaluateTelegram,
   evaluateText,
   evaluateUrl,
+  canVerifiedContactMarkSafe,
   scoreFromCodes,
   type ReasonCode,
   type RiskLevel,
@@ -214,7 +215,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   if (detected === "text" || detected === "unknown" || detected === "payment") {
     for (const embeddedUrl of extractEmbeddedUrls(workingInput)) {
       const reputationUrl = normalizeUrlForReputation(embeddedUrl);
-      const urlForRules = reputationUrl ?? cleanEmbeddedUrl(embeddedUrl);
+      const urlForRules = cleanEmbeddedUrl(embeddedUrl);
       evaluateUrl(urlForRules).forEach((c) => codes.add(c));
       if (reputationUrl) reputationUrls.add(reputationUrl);
       if (TELEGRAM_INVITE_URL_RE.test(embeddedUrl)) codes.add("suspicious_invite_link");
@@ -329,8 +330,8 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   // Check if the input matches a known official contact. Works for:
   //   - detected "phone" (full numbers like +998712000044)
   //   - short digit-only inputs (1340, 0611, 1257, 102) even when detected as "text"
-  // If match + no dangerous reason codes → lower to "safe". Dangerous behavior
-  // (OTP/APK/card requests) always overrides verified match.
+  // A verified destination can lower risk only when every reason is explicitly
+  // informational/protective. Any current or future risk reason fails closed.
   let verifiedContact: RunCheckResult["verifiedContact"] = null;
   let finalLevel = scoredLevel;
 
@@ -345,23 +346,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       verificationLevel: match.verificationLevel,
       description: match.description[lang],
     };
-    const DANGEROUS_CODES: readonly string[] = [
-      "asks_for_sms_code",
-      "asks_for_otp",
-      "asks_for_card_cvv",
-      "asks_for_pin",
-      "asks_to_share_screen",
-      "asks_to_transfer_to_safe_account",
-      "requests_personal_data",
-      "requests_card_digits",
-      "asks_to_install_apk",
-      "apk_download_link",
-      "asks_to_scan_qr",
-      "payment_before_service",
-      "known_reported",
-    ];
-    const hasDangerous = reasonList.some((c) => DANGEROUS_CODES.includes(c));
-    if (!hasDangerous) {
+    if (canVerifiedContactMarkSafe(reasonList)) {
       finalLevel = "safe";
     }
   }

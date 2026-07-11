@@ -50,6 +50,9 @@ export interface VerifiedContact {
   verifiedAt: string;
 }
 
+export const TELEGRAM_CONTACT_MAX_AGE_DAYS = 30;
+const TELEGRAM_CONTACT_MAX_AGE_MS = TELEGRAM_CONTACT_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SEED DATA — only from official websites / gov.uz / cbu.uz
 // ═══════════════════════════════════════════════════════════════════════════
@@ -662,6 +665,27 @@ export const VERIFIED_CONTACTS: readonly VerifiedContact[] = [
   },
 ];
 
+/**
+ * Mutable Telegram handles expire unless they are re-verified against a
+ * primary source. Phone and emergency contacts remain in the static seed until
+ * a separate provenance migration gives them an explicit lifecycle.
+ */
+export function isVerifiedContactActive(
+  contact: VerifiedContact,
+  now: number = Date.now(),
+): boolean {
+  if (contact.contactType !== "telegram") return true;
+
+  const verifiedAt = Date.parse(contact.verifiedAt);
+  if (!Number.isFinite(verifiedAt)) return false;
+  const age = now - verifiedAt;
+  return age >= 0 && age <= TELEGRAM_CONTACT_MAX_AGE_MS;
+}
+
+export function getActiveVerifiedContacts(now: number = Date.now()): readonly VerifiedContact[] {
+  return VERIFIED_CONTACTS.filter((contact) => isVerifiedContactActive(contact, now));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOOKUP
 // ═══════════════════════════════════════════════════════════════════════════
@@ -680,7 +704,7 @@ export function findVerifiedContact(input: string): VerifiedContact | null {
   // Telegram handle matching (case-insensitive, with or without @)
   if (trimmed.startsWith("@") || /^[a-zA-Z][a-zA-Z0-9_]{3,}$/.test(trimmed)) {
     const normalized = trimmed.toLowerCase().replace(/^@/, "");
-    for (const contact of VERIFIED_CONTACTS) {
+    for (const contact of getActiveVerifiedContacts()) {
       if (contact.contactType === "telegram") {
         const contactNorm = contact.normalized.toLowerCase().replace(/^@/, "");
         if (normalized === contactNorm) return contact;
@@ -692,7 +716,7 @@ export function findVerifiedContact(input: string): VerifiedContact | null {
   const digits = trimmed.replace(/[^\d]/g, "");
   if (digits.length === 0) return null;
 
-  for (const contact of VERIFIED_CONTACTS) {
+  for (const contact of getActiveVerifiedContacts()) {
     const contactDigits = contact.normalized.replace(/[^\d]/g, "");
 
     // Exact match (covers short codes and full numbers)
@@ -715,5 +739,7 @@ export function findVerifiedContact(input: string): VerifiedContact | null {
   return null;
 }
 
-/** Total number of entries in the verified directory. */
-export const VERIFIED_CONTACTS_COUNT = VERIFIED_CONTACTS.length;
+/** Current active directory count; evaluated at call time so long-lived servers expire handles. */
+export function getVerifiedContactsCount(now: number = Date.now()): number {
+  return getActiveVerifiedContacts(now).length;
+}

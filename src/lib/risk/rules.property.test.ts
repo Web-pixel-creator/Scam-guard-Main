@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { scoreFromCodes, type ReasonCode, type RiskLevel } from "./rules";
+import {
+  canVerifiedContactMarkSafe,
+  REASON_TRUST_IMPACT,
+  scoreFromCodes,
+  type ReasonCode,
+  type RiskLevel,
+} from "./rules";
 
 // Property-based tests for the risk scoring rules (Properties 6 and 10 from
 // design.md of the telegram-bot-mvp spec). Each property is a single fast-check
@@ -44,6 +50,16 @@ const RESEARCH_FEED_CODES = [
   "advance_fee_prize_inheritance",
 ] as const satisfies readonly ReasonCode[];
 
+/** Codes added by provider, platform and broader impersonation integrations. */
+const ADDITIONAL_CODES = [
+  "impersonates_official",
+  "external_phishing_url",
+  "external_malware_url",
+  "hosted_app_platform",
+  "brand_impersonation",
+  "suspicious_invite_link",
+] as const satisfies readonly ReasonCode[];
+
 /** The 26 reason codes that existed before the new local-scenario codes. */
 const OLD_CODES = [
   "asks_for_otp",
@@ -74,7 +90,7 @@ const OLD_CODES = [
   "verified_official",
 ] as const satisfies readonly ReasonCode[];
 
-const ALL_CODES: readonly ReasonCode[] = [...OLD_CODES, ...NEW_CODES, ...RESEARCH_FEED_CODES];
+const ALL_CODES = Object.keys(REASON_TRUST_IMPACT) as ReasonCode[];
 
 // ---------------------------------------------------------------------------
 // Legacy reference for Property 10.
@@ -129,14 +145,18 @@ function legacyScoreFromCodes(codes: readonly (typeof OLD_CODES)[number][]): {
 }
 
 describe("risk rules — property-based scoring invariants", () => {
-  // Sanity guard so the fixtures above stay in sync with rules.ts: the universe
-  // must be exactly the 26 old + 4 new codes, with no overlaps or duplicates.
+  // Sanity guard so the fixtures above stay in sync with the exhaustive
+  // REASON_TRUST_IMPACT record in rules.ts.
   it("fixtures cover the full reason-code universe without overlap", () => {
     expect(OLD_CODES.length).toBe(26);
     expect(NEW_CODES.length).toBe(4);
     expect(RESEARCH_FEED_CODES.length).toBe(19);
-    expect(new Set(ALL_CODES).size).toBe(49);
-    for (const c of [...NEW_CODES, ...RESEARCH_FEED_CODES]) {
+    expect(ADDITIONAL_CODES.length).toBe(6);
+    expect(new Set(ALL_CODES).size).toBe(55);
+    expect(
+      new Set([...OLD_CODES, ...NEW_CODES, ...RESEARCH_FEED_CODES, ...ADDITIONAL_CODES]),
+    ).toEqual(new Set(ALL_CODES));
+    for (const c of [...NEW_CODES, ...RESEARCH_FEED_CODES, ...ADDITIONAL_CODES]) {
       expect(OLD_CODES).not.toContain(c);
     }
   });
@@ -146,18 +166,12 @@ describe("risk rules — property-based scoring invariants", () => {
   // For any set of reason codes containing "asks_to_scan_qr",
   // scoreFromCodes(codes).level === "high_risk".
   //
-  // Assumption (documented): "verified_official" is excluded from the generator.
-  // It is the sole short-circuit in scoreFromCodes (returns "safe" regardless of
-  // other codes), and the property "QR request => high_risk" presupposes there is
-  // no verified official contact overriding the verdict. With verified_official
-  // excluded, every other weight is >= 0 and asks_to_scan_qr alone weighs 50, so
-  // the total is always >= 50 => high_risk.
+  // A verified contact is protective evidence only; it cannot override the QR
+  // risk reason or any other risk-classified reason.
   //
   // Validates: Requirements 14.4
   it("Property 6: any code set containing asks_to_scan_qr is high_risk", () => {
-    const candidatePool = ALL_CODES.filter(
-      (c) => c !== "asks_to_scan_qr" && c !== "verified_official",
-    );
+    const candidatePool = ALL_CODES.filter((c) => c !== "asks_to_scan_qr");
 
     fc.assert(
       fc.property(fc.subarray(candidatePool), (others) => {
@@ -170,18 +184,35 @@ describe("risk rules — property-based scoring invariants", () => {
 
   // Feature: telegram-bot-mvp, Property 10: thresholds preserved when adding reason codes
   //
-  // For any set of codes drawn only from the OLD 26 (i.e. excluding the four new
-  // codes), the current scoreFromCodes result is identical to the pre-refactor
-  // behavior reproduced by legacyScoreFromCodes. This proves the new codes did
-  // not perturb scoring/thresholds for pre-existing inputs.
+  // For legacy code sets without the intentionally changed verified-official
+  // override, thresholds remain identical to the pre-refactor oracle.
   //
   // Validates: Requirements 14.1, 4.2
   it("Property 10: legacy code sets score identically to the pre-refactor oracle", () => {
+    const legacyScoringCodes = OLD_CODES.filter((code) => code !== "verified_official");
     fc.assert(
-      fc.property(fc.subarray([...OLD_CODES]), (codes) => {
+      fc.property(fc.subarray(legacyScoringCodes), (codes) => {
         expect(scoreFromCodes(codes)).toEqual(legacyScoreFromCodes(codes));
       }),
       { numRuns: 100 },
     );
+  });
+
+  it("every risk-classified reason overrides verified-contact protection", () => {
+    const riskCodes = ALL_CODES.filter((code) => REASON_TRUST_IMPACT[code] === "risk");
+
+    expect(riskCodes.length).toBe(52);
+    for (const code of riskCodes) {
+      expect(canVerifiedContactMarkSafe([code])).toBe(false);
+      expect(scoreFromCodes(["verified_official", code]).level).not.toBe("safe");
+    }
+
+    const protectiveOnly: ReasonCode[] = [
+      "verified_official",
+      "valid_uz_phone",
+      "hosted_app_platform",
+    ];
+    expect(canVerifiedContactMarkSafe(protectiveOnly)).toBe(true);
+    expect(scoreFromCodes(protectiveOnly)).toEqual({ score: 0, level: "safe" });
   });
 });

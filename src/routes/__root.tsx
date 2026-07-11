@@ -16,6 +16,8 @@ import { Header, Footer } from "@/components/Layout";
 import { A11yPanel } from "@/components/A11yPanel";
 import { useEffect } from "react";
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -109,12 +111,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
       },
       // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
-      {
-        rel: "preconnect",
-        href: "https://keacrmbtxccnernxhfhn.supabase.co",
-        crossOrigin: "anonymous",
-      },
-      { rel: "dns-prefetch", href: "https://keacrmbtxccnernxhfhn.supabase.co" },
+      ...(supabaseUrl
+        ? [
+            {
+              rel: "preconnect",
+              href: supabaseUrl,
+              crossOrigin: "anonymous" as const,
+            },
+            { rel: "dns-prefetch", href: supabaseUrl },
+          ]
+        : []),
     ],
   }),
   shellComponent: RootShell,

@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getEmbedAllowedFrameAncestors } from "./lib/config.server";
+import { getTelegramUpdateDeliveryMode, getTelegramWebhookSecret } from "./lib/config.server";
 import {
   addScriptNonceToContentSecurityPolicy,
   buildEmbedCheckContentSecurityPolicy,
@@ -12,6 +13,17 @@ import {
   parseEmbedFrameAncestorAllowlist,
 } from "./lib/security/csp";
 import { handleTelegramWebhook } from "./lib/telegram/webhook.server";
+import { startTelegramUpdatesPollingIfConfigured } from "./lib/telegram/updates-poller.server";
+import { getTelegramUpdateLeaderStatus } from "./lib/telegram/update-lifecycle.server";
+
+let telegramPollingInitialized = false;
+
+function ensureTelegramPollingStarted(): void {
+  if (telegramPollingInitialized) return;
+  telegramPollingInitialized = true;
+  const stopTelegramPolling = startTelegramUpdatesPollingIfConfigured();
+  if (stopTelegramPolling) process.once("SIGTERM", stopTelegramPolling);
+}
 
 // ── Security headers applied to every response ──────────────────────────────
 const SECURITY_HEADERS: Record<string, string> = {
@@ -63,6 +75,7 @@ function withSecurityHeaders(response: Response, pathname = "", cspNonce?: strin
 // delegate to the framework-agnostic core. The core still verifies the secret
 // token FIRST and fails closed (R12 / R17.4) — this binding does not weaken it.
 const TELEGRAM_WEBHOOK_PATH = "/api/telegram/webhook";
+const TELEGRAM_POLLING_HEALTH_PATH = "/api/telegram/polling-health";
 
 // Lightweight liveness endpoint for platform health checks (Railway, etc.).
 // Answers 200 without touching the SSR renderer, so probes stay cheap and do
@@ -110,6 +123,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default {
   async fetch(request: Request, _env: unknown, ctx: unknown) {
+    ensureTelegramPollingStarted();
     const cspNonce = createCspNonce();
     let response: Response;
     try {
@@ -129,6 +143,24 @@ export default {
       // Telegram webhook: handle POST /api/telegram/webhook.
       if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
         return withSecurityHeaders(await handleTelegramWebhook(request), pathname);
+      }
+
+      if (request.method === "GET" && pathname === TELEGRAM_POLLING_HEALTH_PATH) {
+        const secret = getTelegramWebhookSecret();
+        const header = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+        if (!secret || header !== secret) {
+          return withSecurityHeaders(new Response("unauthorized", { status: 401 }), pathname);
+        }
+        if (getTelegramUpdateDeliveryMode() !== "polling") {
+          return withSecurityHeaders(new Response("disabled", { status: 503 }), pathname);
+        }
+        const leader = await getTelegramUpdateLeaderStatus();
+        return withSecurityHeaders(
+          new Response(leader?.active ? "ok" : "unavailable", {
+            status: leader?.active ? 200 : 503,
+          }),
+          pathname,
+        );
       }
 
       const handler = await getServerEntry();

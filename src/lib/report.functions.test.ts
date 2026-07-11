@@ -183,6 +183,47 @@ describe("submitReport privacy", () => {
     expect(alert).not.toContain("https://city.example/private");
   });
 
+  it("fails malformed URL target displays closed before persistence and moderation", async () => {
+    const result = await submitReportCore(
+      {
+        value: "https://victim:secret-token@%",
+        description: "Malformed credential-bearing target submitted for review.",
+        lang: "ru",
+      },
+      "report:test:malformed-url-display",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_type: "url",
+      redacted_value: "[link]",
+    });
+    expect(hoisted.entityInserts[0]).toMatchObject({ display_mask: "[link]" });
+    expect(JSON.stringify(hoisted.reportRows)).not.toContain("secret-token");
+    expect(JSON.stringify(hoisted.moderationNotices)).not.toContain("secret-token");
+  });
+
+  it("redacts Telegram custom schemes from report narratives and metadata", async () => {
+    const result = await submitReportCore(
+      {
+        value: "@FakeSupportBot",
+        description: "Contact tg://resolve?domain=Secret_Handle&start=private-token now.",
+        scamType: "telegram://resolve?domain=SchemeSecret&start=scam-token",
+        city: "tg://resolve?domain=CitySecret&start=city-token",
+        lang: "ru",
+      },
+      "report:test:telegram-custom-scheme",
+    );
+
+    expect(result).toEqual({ ok: true });
+    const stored = JSON.stringify(hoisted.reportRows[0]);
+    expect(stored).not.toContain("Secret_Handle");
+    expect(stored).not.toContain("private-token");
+    expect(stored).not.toContain("SchemeSecret");
+    expect(stored).not.toContain("CitySecret");
+    expect(stored).toContain("[telegram]");
+  });
+
   it("accepts a prepared Telegram target without receiving the raw report value", async () => {
     const target = await prepareReportIdentifier("@FakeSupportRaw");
     const result = await submitPreparedReportCore(

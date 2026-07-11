@@ -1,8 +1,8 @@
 name: CI
 
-# Runs type-check, the full test suite (Vitest + fast-check) and the production
-# build on every push to main and on every pull request. Keeps regressions out
-# of main — nothing merges without a green build.
+# Runs lint, type-check, the full test suite (Vitest + fast-check), the production
+# build, and database migration checks on every push to main and pull request.
+# Keeps regressions out of main — nothing merges without a green build.
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   verify:
-    name: type-check · test · build
+    name: lint · type-check · test · build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
 
+      - name: Lint
+        run: bun run lint
+
       - name: Type check
         run: bunx tsc --noEmit
 
@@ -44,3 +47,26 @@ jobs:
 
       - name: Production build
         run: bun run build
+
+  database:
+    name: migrations · schema lint · pgTAP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.104.0
+
+      - name: Apply migrations to a clean local database
+        run: supabase db start
+
+      - name: Lint database schema
+        run: supabase db lint --local --level error --fail-on error
+
+      - name: Database tests (pgTAP)
+        run: supabase test db --local

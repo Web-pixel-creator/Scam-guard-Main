@@ -52,3 +52,4 @@ package-lock.json
 *.sln
 *.sw?
 supabase/.temp/
+supabase/.branches/

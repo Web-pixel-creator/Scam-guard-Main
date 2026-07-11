@@ -48,57 +48,9 @@ const INPUT_TYPES = [
   "unknown",
 ] as const satisfies readonly InputType[];
 
-// The full ReasonCode universe (kept as a runtime array because `ReasonCode`
-// is a compile-time-only union; the `satisfies` clause rejects any typo).
-const ALL_REASON_CODES = [
-  "asks_for_otp",
-  "asks_for_sms_code",
-  "asks_for_card_cvv",
-  "asks_for_pin",
-  "asks_to_install_apk",
-  "asks_to_share_screen",
-  "asks_to_transfer_to_safe_account",
-  "impersonates_bank",
-  "impersonates_operator",
-  "uses_urgency",
-  "threatens_legal_action",
-  "asks_not_to_hang_up",
-  "telegram_bank_contact",
-  "fake_loan_offer",
-  "suspicious_short_link",
-  "apk_download_link",
-  "unknown_sender",
-  "new_telegram_account",
-  "weird_domain",
-  "brand_name_typo",
-  "payment_before_service",
-  "too_good_to_be_true",
-  "requests_personal_data",
-  "non_uz_phone",
-  "valid_uz_phone",
-  "verified_official",
-  "asks_to_scan_qr",
-  "relative_in_distress",
-  "requests_card_digits",
-  "threatens_account_block",
-  "fake_delivery_payment",
-  "fake_boss_request",
-  "malicious_file_bait",
-  "impersonates_official",
-  "suspicious_invite_link",
-  "gambling_prediction_promo",
-  "giveaway_engagement_bait",
-  "crypto_casino_bonus_funnel",
-  "fake_captcha_or_voting",
-  "task_reward_engagement_bait",
-  "wallet_action_urgency",
-  "ton_referral_earning_scheme",
-  "investment_fast_profit_pitch",
-  "hosted_app_platform",
-  "brand_impersonation",
-  "telegram_account_takeover_phishing",
-  "dropper_recruitment",
-] as const satisfies readonly ReasonCode[];
+// Runtime universe follows the exhaustive localized ReasonCode record, so
+// property generators cannot silently miss newly added reason codes.
+const ALL_REASON_CODES = Object.keys(REASON_LABELS) as ReasonCode[];
 
 /** Generator for an arbitrary, valid RunCheckResult (see check-core.ts). */
 const runCheckResultArb: fc.Arbitrary<RunCheckResult> = fc.record({
@@ -914,6 +866,19 @@ describe("formatCheckResult — compressed high-risk first card", () => {
     expect(text).not.toContain(escapeMarkdownV2("Cyber Police"));
     expect(text).not.toContain(escapeMarkdownV2(explanation));
   });
+
+  it.each(["known_reported", "external_phishing_url", "external_malware_url"] as const)(
+    "renders immediate protective advice instead of a context request for %s",
+    (reason) => {
+      const { text } = formatCheckResult(
+        baseResult({ level: "high_risk", reasons: [reason], knownReports: 1 }),
+        "en",
+      );
+
+      expect(text).toContain(escapeMarkdownV2(bt("section_action_now", "en")));
+      expect(text).not.toContain(escapeMarkdownV2(bt("advice_send_more_context", "en")));
+    },
+  );
 
   it("keeps a short voice hook visible in high-risk cards", () => {
     const explanation =

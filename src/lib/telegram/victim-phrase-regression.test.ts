@@ -50,6 +50,41 @@ vi.mock("@/integrations/supabase/client.server", () => {
   return {
     supabaseAdmin: {
       from: (table: string) => builder(table),
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        if (name === "begin_telegram_update") {
+          return {
+            data: [
+              {
+                decision: "acquired",
+                processing_fence: 1,
+                retry_after_sec: 0,
+                lease_expires_at: "2099-01-01T00:00:00.000Z",
+                attempt_count: 1,
+              },
+            ],
+            error: null,
+          };
+        }
+        if (name === "complete_telegram_update" || name === "mark_telegram_update_failure") {
+          return { data: true, error: null };
+        }
+        if (name === "load_telegram_session_fenced") {
+          return { data: { lease_valid: true, session: h.sessionRow }, error: null };
+        }
+        if (name === "save_telegram_session_fenced") {
+          return {
+            data: [{ lease_valid: true, applied: true, current_update_id: args.p_update_id }],
+            error: null,
+          };
+        }
+        if (name === "save_telegram_session_sequenced") {
+          return {
+            data: [{ applied: true, current_update_id: args.p_update_id }],
+            error: null,
+          };
+        }
+        return { data: null, error: null };
+      },
     },
   };
 });

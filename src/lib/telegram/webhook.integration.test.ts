@@ -53,6 +53,7 @@ const h = vi.hoisted(() => ({
   downloadCalls: [] as string[],
   sendShouldThrow: false,
   sendNeverResolves: false,
+  sendResultOk: true,
 
   // Image analysis core stub
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
@@ -68,8 +69,14 @@ const h = vi.hoisted(() => ({
   fromCalls: [] as string[],
   inserts: [] as { table: string; payload: unknown }[],
   upserts: [] as { table: string; payload: unknown }[],
+  rpcs: [] as { name: string; args: Record<string, unknown> }[],
+  sessionRpcResult: {
+    data: [{ applied: true, current_update_id: 0 }] as unknown,
+    error: null as unknown,
+  },
   entityRow: null as unknown, // entities lookup result (null = no confirmed entity)
   sessionRow: null as unknown, // telegram_sessions row (null = default ru session)
+  sessionSelectError: null as unknown,
 }));
 
 // ── Bot API: keep escapeMarkdownV2 real, replace all network helpers. ────────
@@ -81,7 +88,7 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
       h.sendCalls.push(opts);
       if (h.sendShouldThrow) throw new Error("sendMessage boom (simulated handler error)");
       if (h.sendNeverResolves) return new Promise(() => {});
-      return { ok: true };
+      return { ok: h.sendResultOk };
     }),
     sendChatAction: vi.fn(async (chatId: number) => {
       h.chatActionCalls.push(chatId);
@@ -112,7 +119,9 @@ vi.mock("@/integrations/supabase/client.server", () => {
       eq: () => b,
       maybeSingle: async () => {
         if (table === "entities") return { data: h.entityRow, error: null };
-        if (table === "telegram_sessions") return { data: h.sessionRow, error: null };
+        if (table === "telegram_sessions") {
+          return { data: h.sessionRow, error: h.sessionSelectError };
+        }
         return { data: null, error: null };
       },
       insert: async (payload: unknown) => {
@@ -132,6 +141,52 @@ vi.mock("@/integrations/supabase/client.server", () => {
       from: (table: string) => {
         h.fromCalls.push(table);
         return builder(table);
+      },
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        h.rpcs.push({ name, args });
+        if (name === "begin_telegram_update") {
+          return {
+            data: [
+              {
+                decision: "acquired",
+                processing_fence: 1,
+                retry_after_sec: 0,
+                lease_expires_at: "2099-01-01T00:00:00.000Z",
+                attempt_count: 1,
+              },
+            ],
+            error: null,
+          };
+        }
+        if (name === "complete_telegram_update" || name === "mark_telegram_update_failure") {
+          return { data: true, error: null };
+        }
+        if (name === "load_telegram_session_fenced") {
+          return h.sessionSelectError
+            ? { data: null, error: h.sessionSelectError }
+            : { data: { lease_valid: true, session: h.sessionRow }, error: null };
+        }
+        if (name === "save_telegram_session_sequenced" || name === "save_telegram_session_fenced") {
+          h.upserts.push({
+            table: "telegram_sessions",
+            payload: {
+              telegram_user_id: args.p_telegram_user_id,
+              ...(args.p_patch as Record<string, unknown>),
+              last_update_id: args.p_update_id,
+            },
+          });
+          if (name === "save_telegram_session_fenced" && Array.isArray(h.sessionRpcResult.data)) {
+            return {
+              ...h.sessionRpcResult,
+              data: h.sessionRpcResult.data.map((row) => ({
+                ...(row as Record<string, unknown>),
+                lease_valid: true,
+              })),
+            };
+          }
+          return h.sessionRpcResult;
+        }
+        return { data: null, error: null };
       },
     },
   };
@@ -191,6 +246,7 @@ vi.mock("@/lib/report.functions", () => {
 // REAL handlers into the REAL router via its module-load side effect, and
 // webhook.server re-installs them (idempotent) before dispatching.
 import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
+import { __resetTelegramUserUpdateQueuesForTests } from "./update-serialization.server";
 import { CB, RISK_EMOJI } from "./format";
 import { imageTriageCallback } from "./image-fallback";
 import { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK } from "./report-flow";
@@ -404,6 +460,7 @@ beforeEach(() => {
   // Reset capture state.
   syntheticUpdateId = 10_000;
   __resetTelegramWebhookDedupeForTests();
+  __resetTelegramUserUpdateQueuesForTests();
   h.sendCalls.length = 0;
   h.chatActionCalls.length = 0;
   h.answerCalls.length = 0;
@@ -414,13 +471,20 @@ beforeEach(() => {
   h.fromCalls.length = 0;
   h.inserts.length = 0;
   h.upserts.length = 0;
+  h.rpcs.length = 0;
+  h.sessionRpcResult = {
+    data: [{ applied: true, current_update_id: 0 }],
+    error: null,
+  };
   h.sendShouldThrow = false;
   h.sendNeverResolves = false;
+  h.sendResultOk = true;
   h.ocrText = null;
   h.imageEvidence = null;
   h.voiceTranscript = "caller asks for SMS code";
   h.entityRow = null;
   h.sessionRow = null;
+  h.sessionSelectError = null;
 
   // Secrets the webhook reads per-request (R12.1 / R17.4). Fake values only.
   process.env.TELEGRAM_WEBHOOK_SECRET = SECRET;
@@ -510,6 +574,75 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
 
     // The real core logged the check (redacted) into `checks`.
     expect(h.inserts.some((i) => i.table === "checks")).toBe(true);
+  });
+
+  it("warns honestly when a stateful command cannot persist its session", async () => {
+    h.sessionRpcResult = {
+      data: null,
+      error: { message: "private database detail" },
+    };
+    const update = textUpdate({ userId: 1190, chatId: 5190, text: "/check" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.rpcs.some((call) => call.name === "save_telegram_session_fenced")).toBe(true);
+    expect(h.sendCalls.at(-1)?.text).toContain("Не удалось сохранить контекст");
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain(
+      "private database detail",
+    );
+  });
+
+  it("fails closed and warns when the existing session cannot be loaded", async () => {
+    h.sessionSelectError = { message: "SECRET database read detail" };
+    const update = textUpdate({ userId: 1192, chatId: 5192, text: "описание по отчёту" });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(503);
+    expect(h.rpcs.some((call) => call.name === "save_telegram_session_fenced")).toBe(false);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("Не удалось сохранить контекст");
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
+  });
+
+  it("rolls back unseen check context and skips guardian side effects when delivery fails", async () => {
+    h.sendResultOk = false;
+    const update = textUpdate({ userId: 1193, chatId: 5193, text: HIGH_RISK_TEXT });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    const sessionWrites = h.rpcs.filter((call) => call.name === "save_telegram_session_fenced");
+    expect(sessionWrites).toHaveLength(2);
+    expect(sessionWrites[0].args.p_patch).toMatchObject({
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: expect.objectContaining({ lastCheck: expect.any(Object) }),
+    });
+    expect(sessionWrites[1].args.p_patch).toMatchObject({
+      lang: "ru",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {},
+    });
+  });
+
+  it("suppresses a stale check result without emitting a false storage warning", async () => {
+    h.sessionRpcResult = {
+      data: [{ applied: false, current_update_id: 999999 }],
+      error: null,
+    };
+    const update = textUpdate({ userId: 1191, chatId: 5191, text: HIGH_RISK_TEXT });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(0);
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain(
+      "session failure warning",
+    );
   });
 
   it("answers inline queries without chat id and without persisting partial previews", async () => {
@@ -1461,8 +1594,8 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
 // ---------------------------------------------------------------------------
 // 3. A throw inside a handler → still 200 (Telegram must not retry, R12.5).
 // ---------------------------------------------------------------------------
-describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", () => {
-  it("returns 200 even when a handler throws after a valid token", async () => {
+describe("webhook end-to-end — incomplete dispatch stays retryable", () => {
+  it("returns 503 when a handler throws after a valid token", async () => {
     h.sendShouldThrow = true; // make the Bot API send throw inside the handler
     // /help routes straight to handleCommand → sendMessage (not wrapped in the
     // check-handler guard), so the throw propagates out of dispatchUpdate.
@@ -1470,12 +1603,12 @@ describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", 
 
     const response = await handleTelegramWebhook(webhookRequest(update));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     // The handler WAS reached (it attempted to send before throwing).
     expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("returns 200 after the ack timeout even if dispatch is still running", async () => {
+  it("returns 503 after the response timeout while dispatch is still running", async () => {
     vi.useFakeTimers();
     h.sendNeverResolves = true;
     const update = textUpdate({ userId: 1004, chatId: 5004, text: "/help" });
@@ -1484,7 +1617,7 @@ describe("webhook end-to-end — handler error still acknowledges 200 (R12.5)", 
     await vi.advanceTimersByTimeAsync(8_000);
 
     const response = await responsePromise;
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expect(h.sendCalls.length).toBeGreaterThanOrEqual(1);
   });
 });

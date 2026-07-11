@@ -18,22 +18,34 @@
 //   3. Only after the token is accepted: parse + validate the JSON body with
 //      `telegramUpdateSchema`. Invalid/unsupported structure → 200 + ignore so
 //      Telegram stops re-delivering (R12.3).
-//   4. A valid update is dispatched inside try/catch after a dedup claim. ANY
-//      processing error after dispatch starts is logged WITHOUT Sensitive_Data
-//      and still answered 200, so Telegram does not retry forever (R12.4 /
-//      R12.5 / R19.1 / R19.2). If the shared dedup store is unavailable before
-//      dispatch, return 503 so Telegram retries instead of risking duplicate
-//      side effects.
+//   4. A valid update receives a metadata-only processing lease. HTTP 200 is
+//      returned only after handler success and durable completion. Failure,
+//      timeout, a busy lease or lifecycle outage returns 503 so Telegram keeps
+//      the raw payload retryable. Only a completed retry is acknowledged.
 //
 // Handler wiring: importing/calling the aggregator (PART C) registers the
 // concrete `Handlers` via `setHandlers(...)` before any dispatch happens.
 //
 // Server-only (.server.ts): reads secrets and pulls in service-role modules.
 // Never import this file into the client bundle.
-import { getTelegramBotToken, getTelegramWebhookSecret } from "@/lib/config.server";
+import {
+  getTelegramBotToken,
+  getTelegramUpdateDeliveryMode,
+  getTelegramWebhookSecret,
+} from "@/lib/config.server";
 import { dispatchUpdate, telegramUpdateSchema, type TelegramUpdate } from "@/lib/telegram/router";
 import { installTelegramHandlers } from "@/lib/telegram/handlers";
-import { claimTelegramWebhookUpdate } from "@/lib/telegram/webhook-dedup.server";
+import { sendMessage } from "@/lib/telegram/api.server";
+import { langFromTelegramCode } from "@/lib/telegram/session.server";
+import { executeTelegramUpdate } from "@/lib/telegram/update-dispatch.server";
+import { installTelegramOutboundEffectFence } from "@/lib/telegram/outbound-effect-fence.server";
+import {
+  beginTelegramUpdate,
+  completeTelegramUpdate,
+  markTelegramUpdateFailure,
+  renewTelegramUpdateLease,
+  type TelegramUpdateLease,
+} from "@/lib/telegram/update-lifecycle.server";
 
 /** Telegram sends the configured secret in this header (case-insensitive). */
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -42,14 +54,19 @@ const PROCESSED_UPDATE_TTL_MS = 10 * 60 * 1000;
 const MAX_PROCESSED_UPDATES = 5_000;
 const DISPATCH_ACK_TIMEOUT_MS = 8_000;
 
+installTelegramOutboundEffectFence();
+
 const processedUpdateIds = new Map<number, number>();
-type UpdateProcessingDecision = "process" | "duplicate" | "retry";
+type UpdateProcessingDecision =
+  | { decision: "process"; lease: TelegramUpdateLease }
+  | { decision: "duplicate" }
+  | { decision: "retry"; retryAfterSec: number };
 
 /**
  * Handle a single Telegram webhook request. Returns 401 for any token-stage
- * failure (missing secrets or bad/absent header) and 200 for everything after a
- * valid token — including invalid bodies and handler errors — per Requirement
- * 12, except a pre-dispatch shared-dedup outage returns 503 so Telegram retries.
+ * failure (missing secrets or bad/absent header). Invalid bodies after valid
+ * auth are acknowledged, while valid updates are acknowledged only after
+ * durable completion; incomplete or uncertain work stays retryable with 503.
  */
 export async function handleTelegramWebhook(request: Request): Promise<Response> {
   // ── Step 1 — read secrets INSIDE the handler (per-request). Fail closed. ──
@@ -69,6 +86,13 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     return new Response("unauthorized", { status: 401 });
   }
 
+  if (getTelegramUpdateDeliveryMode() !== "webhook") {
+    return new Response("webhook disabled", {
+      status: 503,
+      headers: { "retry-after": "5" },
+    });
+  }
+
   // ── Step 3 — only now parse + validate the structure (R12.3). ──
   // Make sure the concrete handlers are wired before any dispatch.
   installTelegramHandlers();
@@ -83,41 +107,113 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     return new Response("ok", { status: 200 });
   }
 
-  // ── Step 4 — dispatch the valid update; any later error → log + 200. ──
+  // Step 4: lease, dispatch and acknowledge only after durable completion.
   const processingDecision = await markUpdateForProcessing(update.update_id);
-  if (processingDecision === "duplicate") {
+  if (processingDecision.decision === "duplicate") {
     return new Response("ok", { status: 200 });
   }
-  if (processingDecision === "retry") {
+  if (processingDecision.decision === "retry") {
     return new Response("retry", {
       status: 503,
-      headers: { "retry-after": "1" },
+      headers: { "retry-after": String(processingDecision.retryAfterSec) },
     });
   }
 
-  const dispatchPromise = dispatchUpdate(update).catch((err) => {
+  const lease = processingDecision.lease;
+  const dispatchPromise = executeAndCompleteTelegramUpdate(update, lease);
+  const outcome = await waitForDispatch(dispatchPromise, DISPATCH_ACK_TIMEOUT_MS);
+  if (outcome === "completed") {
+    rememberCompletedUpdate(update.update_id);
+    return new Response("ok", { status: 200 });
+  }
+  if (outcome === "timeout") {
+    console.error("telegram webhook: dispatch still running after ack timeout");
+  } else {
     // R12.5 / R19.1 / R19.2 — log WITHOUT Sensitive_Data, still answer 200 so
     // Telegram does not retry indefinitely.
-    console.error(
-      "telegram webhook: dispatch failed",
-      err instanceof Error ? err.message : "unknown",
-    );
-  });
-
-  const completed = await waitForDispatch(dispatchPromise, DISPATCH_ACK_TIMEOUT_MS);
-  if (!completed) {
-    console.error("telegram webhook: dispatch still running after ack timeout");
+    console.error("telegram webhook: dispatch failed", "handler_exception");
   }
-  return new Response("ok", { status: 200 });
+  return new Response("retry", { status: 503, headers: { "retry-after": "1" } });
 }
 
-async function waitForDispatch(promise: Promise<void>, timeoutMs: number): Promise<boolean> {
+export async function executeAndCompleteTelegramUpdate(
+  update: TelegramUpdate,
+  lease: TelegramUpdateLease,
+): Promise<boolean> {
+  let leaseCurrent = true;
+  let renewalRunning = false;
+  const renewalTimer = setInterval(() => {
+    if (renewalRunning || !leaseCurrent) return;
+    renewalRunning = true;
+    void renewTelegramUpdateLease(lease)
+      .then((renewed) => {
+        if (!renewed) leaseCurrent = false;
+      })
+      .finally(() => {
+        renewalRunning = false;
+      });
+  }, 30_000);
+  renewalTimer.unref?.();
+  try {
+    await executeTelegramUpdate(
+      update,
+      {
+        dispatch: dispatchUpdate,
+        onSessionWriteFailure: notifySessionWriteFailure,
+      },
+      { lease },
+    );
+  } catch {
+    clearInterval(renewalTimer);
+    await markTelegramUpdateFailure(lease, "dispatch");
+    return false;
+  }
+
+  clearInterval(renewalTimer);
+  if (!leaseCurrent) {
+    await markTelegramUpdateFailure(lease, "heartbeat");
+    return false;
+  }
+  const completed = await completeTelegramUpdate(lease);
+  if (!completed) await markTelegramUpdateFailure(lease, "completion");
+  return completed;
+}
+
+function sessionFailureTarget(update: TelegramUpdate): {
+  chatId: number;
+  languageCode?: string;
+} | null {
+  const message = update.message ?? update.callback_query?.message;
+  if (!message) return null;
+  const languageCode =
+    update.message?.from?.language_code ?? update.callback_query?.from.language_code;
+  return { chatId: message.chat.id, languageCode };
+}
+
+async function notifySessionWriteFailure(update: TelegramUpdate): Promise<void> {
+  const target = sessionFailureTarget(update);
+  if (!target) return;
+  const lang = langFromTelegramCode(target.languageCode) ?? "ru";
+  const text =
+    lang === "uz"
+      ? "Bu qadamning kontekstini saqlab bo'lmadi. Oxirgi amalni takrorlang; oldingi savolga javob bergandek davom etmang."
+      : lang === "en"
+        ? "I could not save the context for this step. Repeat your last action; do not continue as if the previous prompt was saved."
+        : "Не удалось сохранить контекст этого шага. Повторите последнее действие и не продолжайте так, будто предыдущий вопрос сохранился.";
+  const response = await sendMessage({ chatId: target.chatId, text, parseMode: "None" });
+  if (!response.ok) console.error("telegram session failure warning failed");
+}
+
+async function waitForDispatch(
+  promise: Promise<boolean>,
+  timeoutMs: number,
+): Promise<"completed" | "failed" | "timeout"> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      promise.then(() => true),
-      new Promise<boolean>((resolve) => {
-        timer = setTimeout(() => resolve(false), timeoutMs);
+      promise.then((completed): "completed" | "failed" => (completed ? "completed" : "failed")),
+      new Promise<"timeout">((resolve) => {
+        timer = setTimeout(() => resolve("timeout"), timeoutMs);
       }),
     ]);
   } finally {
@@ -132,20 +228,23 @@ async function markUpdateForProcessing(
   pruneProcessedUpdateIds(nowMs);
 
   const expiresAt = processedUpdateIds.get(updateId);
-  if (expiresAt !== undefined && expiresAt > nowMs) return "duplicate";
+  if (expiresAt !== undefined && expiresAt > nowMs) return { decision: "duplicate" };
 
-  const claim = await claimTelegramWebhookUpdate(updateId, nowMs);
-  if (claim === "duplicate") return "duplicate";
-  if (claim === "unavailable") return "retry";
+  const claim = await beginTelegramUpdate(updateId);
+  if (claim.decision === "completed") return { decision: "duplicate" };
+  if (claim.decision !== "acquired") {
+    return { decision: "retry", retryAfterSec: claim.retryAfterSec };
+  }
+  return { decision: "process", lease: claim.lease };
+}
 
+function rememberCompletedUpdate(updateId: number, nowMs = Date.now()): void {
   processedUpdateIds.set(updateId, nowMs + PROCESSED_UPDATE_TTL_MS);
   while (processedUpdateIds.size > MAX_PROCESSED_UPDATES) {
     const oldest = processedUpdateIds.keys().next().value as number | undefined;
     if (oldest === undefined) break;
     processedUpdateIds.delete(oldest);
   }
-
-  return "process";
 }
 
 function pruneProcessedUpdateIds(nowMs: number): void {

@@ -7,6 +7,7 @@ const hoisted = vi.hoisted(() => ({
     error?: { message: string; code?: string } | null;
   },
   hashInputs: [] as string[],
+  hashError: false,
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 vi.mock("./hash", () => ({
   hashIdentifier: async (value: string) => {
     hoisted.hashInputs.push(value);
+    if (hoisted.hashError) throw new Error("hash unavailable");
     return "a".repeat(64);
   },
 }));
@@ -28,6 +30,8 @@ vi.mock("./hash", () => ({
 import { checkSharedRateLimit } from "./shared-rate-limit.server";
 
 const originalEnv = {
+  NODE_ENV: process.env.NODE_ENV,
+  RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   HASH_PEPPER_SECRET: process.env.HASH_PEPPER_SECRET,
@@ -49,6 +53,7 @@ function enableShared(): void {
 beforeEach(() => {
   hoisted.rpcCalls.length = 0;
   hoisted.hashInputs.length = 0;
+  hoisted.hashError = false;
   hoisted.rpcResponse = null;
   restoreEnv();
 });
@@ -168,5 +173,78 @@ describe("checkSharedRateLimit", () => {
     expect(await checkSharedRateLimit("report", key, 1, 60_000)).toMatchObject({ ok: true });
     expect(await checkSharedRateLimit("report", key, 1, 60_000)).toMatchObject({ ok: false });
     expect(hoisted.rpcCalls).toHaveLength(2);
+  });
+
+  it("fails closed in production when shared configuration is incomplete", async () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.HASH_PEPPER_SECRET;
+
+    await expect(
+      checkSharedRateLimit("check", "production-missing-config", 10, 60_000),
+    ).resolves.toEqual({
+      ok: false,
+      remaining: 0,
+      retryAfterSec: 60,
+    });
+    expect(hoisted.rpcCalls).toHaveLength(0);
+  });
+
+  it("fails closed in production when the shared RPC is unavailable", async () => {
+    process.env.NODE_ENV = "production";
+    enableShared();
+    hoisted.rpcResponse = { data: null, error: { message: "network unavailable" } };
+
+    await expect(checkSharedRateLimit("report", "production-rpc-down", 3, 60_000)).resolves.toEqual(
+      {
+        ok: false,
+        remaining: 0,
+        retryAfterSec: 60,
+      },
+    );
+    expect(hoisted.rpcCalls).toHaveLength(1);
+  });
+
+  it("fails closed in production when the shared RPC response is malformed", async () => {
+    process.env.NODE_ENV = "production";
+    enableShared();
+    hoisted.rpcResponse = { data: [{ remaining: 5 }], error: null };
+
+    await expect(
+      checkSharedRateLimit("appeal", "production-invalid-row", 3, 60_000),
+    ).resolves.toEqual({
+      ok: false,
+      remaining: 0,
+      retryAfterSec: 60,
+    });
+  });
+
+  it("fails closed when Railway is detected even if NODE_ENV is missing", async () => {
+    delete process.env.NODE_ENV;
+    process.env.RAILWAY_ENVIRONMENT = "production";
+    delete process.env.HASH_PEPPER_SECRET;
+
+    await expect(
+      checkSharedRateLimit("check", "railway-missing-config", 10, 60_000),
+    ).resolves.toEqual({
+      ok: false,
+      remaining: 0,
+      retryAfterSec: 60,
+    });
+  });
+
+  it("fails closed in production when rate-limit key hashing throws", async () => {
+    process.env.NODE_ENV = "production";
+    enableShared();
+    hoisted.hashError = true;
+
+    await expect(
+      checkSharedRateLimit("check", "production-hash-down", 10, 60_000),
+    ).resolves.toEqual({
+      ok: false,
+      remaining: 0,
+      retryAfterSec: 60,
+    });
+    expect(hoisted.rpcCalls).toHaveLength(0);
   });
 });

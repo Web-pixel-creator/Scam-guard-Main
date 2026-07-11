@@ -90,11 +90,10 @@ export function normalizeUrlForReputationProvider(raw: string): string | null {
   try {
     const url = new URL(candidate);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    url.username = "";
-    url.password = "";
-    url.search = "";
-    url.hash = "";
-    return url.toString();
+    // Provider boundary: paths can contain password-reset, invite, signed-file
+    // or bearer material. External reputation gets origin only; deterministic
+    // local rules still inspect the full URL inside check-core.
+    return `${url.origin}/`;
   } catch {
     return null;
   }

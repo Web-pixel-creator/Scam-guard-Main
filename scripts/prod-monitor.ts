@@ -10,18 +10,19 @@
 // Security: this script never prints bot tokens, webhook secrets, alert chat ids,
 // Supabase keys or user content.
 import process from "node:process";
+import {
+  shouldFailMonitor,
+  skippedSecretMonitorCheck,
+  type MonitorCheck,
+  type MonitorSeverity,
+} from "./prod-monitor-policy";
+import { hasSafeTelegramWebhookConcurrency } from "@/lib/telegram/webhook-delivery-policy";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_STALE_TELEGRAM_ERROR_MS = 15 * 60 * 1000;
 
-type Severity = "ok" | "warn" | "fail";
-
-interface MonitorCheck {
-  name: string;
-  severity: Severity;
-  detail: string;
-}
+type Severity = MonitorSeverity;
 
 interface MonitorConfig {
   publicUrl: string;
@@ -34,6 +35,7 @@ interface MonitorConfig {
   alertOnWarn: boolean;
   alertChatId: string | null;
   alertBotToken: string | null;
+  telegramDeliveryMode: "webhook" | "polling";
 }
 
 function env(name: string): string | null {
@@ -42,11 +44,7 @@ function env(name: string): string | null {
 }
 
 function skippedSecretCheck(name: string, secretName: string, config: MonitorConfig): MonitorCheck {
-  return result(
-    name,
-    config.requireSecretChecks ? "fail" : "warn",
-    `skipped: ${secretName} is not set`,
-  );
+  return skippedSecretMonitorCheck(name, secretName, config.requireSecretChecks);
 }
 
 function numberEnv(name: string, fallback: number): number {
@@ -83,6 +81,10 @@ function parseConfig(): MonitorConfig {
   }
 
   const alertChatId = env("MONITOR_ALERT_CHAT_ID");
+  const deliveryMode = env("TELEGRAM_UPDATE_DELIVERY_MODE")?.toLowerCase() ?? "webhook";
+  if (deliveryMode !== "webhook" && deliveryMode !== "polling") {
+    throw new Error("TELEGRAM_UPDATE_DELIVERY_MODE must be webhook or polling");
+  }
   return {
     publicUrl: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
     timeoutMs: numberEnv("MONITOR_TIMEOUT_MS", DEFAULT_TIMEOUT_MS),
@@ -99,6 +101,7 @@ function parseConfig(): MonitorConfig {
     alertBotToken: alertChatId
       ? (env("MONITOR_ALERT_BOT_TOKEN") ?? env("TELEGRAM_BOT_TOKEN"))
       : null,
+    telegramDeliveryMode: deliveryMode,
   };
 }
 
@@ -164,12 +167,15 @@ async function checkWebhookSecretFlow(config: MonitorConfig): Promise<MonitorChe
     401,
     config.timeoutMs,
   );
+  const expectedAuthenticatedStatus = config.telegramDeliveryMode === "webhook" ? 200 : 503;
   const validSecret = await postWebhook(
-    "webhook accepts valid secret",
+    config.telegramDeliveryMode === "webhook"
+      ? "webhook accepts valid secret"
+      : "webhook disabled after valid secret",
     webhookUrl,
     baseUpdate(),
     { "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
-    200,
+    expectedAuthenticatedStatus,
     config.timeoutMs,
   );
   return [missingSecret, validSecret];
@@ -231,13 +237,16 @@ async function checkTelegramBot(config: MonitorConfig): Promise<MonitorCheck[]> 
       | {
           url?: string;
           pending_update_count?: number;
+          max_connections?: number;
           last_error_date?: number;
           last_error_message?: string;
         }
       | undefined;
-    const expectedUrl = `${config.publicUrl}${WEBHOOK_PATH}`;
+    const expectedUrl =
+      config.telegramDeliveryMode === "polling" ? "" : `${config.publicUrl}${WEBHOOK_PATH}`;
     const actualUrl = webhook?.url ?? "";
     const pending = webhook?.pending_update_count ?? -1;
+    const maxConnections = webhook?.max_connections;
     const lastError = webhook?.last_error_message ?? "";
     const lastErrorDate = webhook?.last_error_date;
     const lastErrorAgeMs =
@@ -248,19 +257,49 @@ async function checkTelegramBot(config: MonitorConfig): Promise<MonitorCheck[]> 
 
     const urlOk = actualUrl === expectedUrl;
     const pendingOk = pending <= config.maxPendingUpdates;
-    const severity: Severity = urlOk && pendingOk && !recentError ? "ok" : "fail";
+    const concurrencyOk =
+      config.telegramDeliveryMode === "polling"
+        ? true
+        : hasSafeTelegramWebhookConcurrency(maxConnections);
+    const errorOk = config.telegramDeliveryMode === "polling" || !recentError;
+    const severity: Severity = urlOk && pendingOk && concurrencyOk && errorOk ? "ok" : "fail";
     const lastErrorDetail = lastError
       ? `${recentError ? "recent" : "stale"} telegram error`
       : "none";
     checks.push(
       result(
-        "telegram webhook info",
+        "telegram update delivery info",
         severity,
-        `url_ok=${urlOk}, pending=${pending}, max=${config.maxPendingUpdates}, last_error=${lastErrorDetail}`,
+        `mode=${config.telegramDeliveryMode}, url_ok=${urlOk}, pending=${pending}, max=${config.maxPendingUpdates}, max_connections=${maxConnections ?? "missing"}, concurrency_ok=${concurrencyOk}, last_error=${lastErrorDetail}`,
       ),
     );
   } catch (error) {
-    checks.push(result("telegram webhook info", "fail", safeError(error)));
+    checks.push(result("telegram update delivery info", "fail", safeError(error)));
+  }
+
+  if (config.telegramDeliveryMode === "polling") {
+    const webhookSecret = env("TELEGRAM_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      checks.push(skippedSecretCheck("telegram polling leader", "TELEGRAM_WEBHOOK_SECRET", config));
+    } else {
+      try {
+        const response = await fetchWithTimeout(
+          `${config.publicUrl}/api/telegram/polling-health`,
+          { headers: { "X-Telegram-Bot-Api-Secret-Token": webhookSecret } },
+          config.timeoutMs,
+          "telegram polling leader",
+        );
+        checks.push(
+          result(
+            "telegram polling leader",
+            response.status === 200 ? "ok" : "fail",
+            `status=${response.status}, expected=200`,
+          ),
+        );
+      } catch (error) {
+        checks.push(result("telegram polling leader", "fail", safeError(error)));
+      }
+    }
   }
 
   return checks;
@@ -339,9 +378,7 @@ function shouldAlert(checks: MonitorCheck[], config: MonitorConfig): boolean {
 }
 
 function shouldFail(checks: MonitorCheck[], config: MonitorConfig): boolean {
-  return checks.some(
-    (check) => check.severity === "fail" || (config.failOnWarn && check.severity === "warn"),
-  );
+  return shouldFailMonitor(checks, config.failOnWarn);
 }
 
 async function sendAlert(checks: MonitorCheck[], config: MonitorConfig): Promise<MonitorCheck> {

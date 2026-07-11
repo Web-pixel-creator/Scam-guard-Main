@@ -10,6 +10,14 @@ import {
 import type { ReasonCode, RiskLevel } from "@/lib/risk/rules";
 
 export type RiskPassportKind = "phone" | "telegram";
+export type TelegramPassportProvenance =
+  | "telegram_bot_api"
+  | "ishonch_guard_moderated_reports"
+  | "source_controlled";
+export interface TelegramPassportEvidence {
+  provenance: TelegramPassportProvenance;
+  text: string;
+}
 export type RiskPassportSectionId =
   | "visible"
   | "directory"
@@ -29,6 +37,8 @@ export interface RiskPassportInput {
   verifiedContact: unknown | null;
   phoneIntelligence?: PhoneIntelligencePassport | null;
   phoneReputation?: PhoneReputationSummary | null;
+  /** Structured text kept separate from model-authored `explanation`. */
+  telegramPassportEvidence?: TelegramPassportEvidence | null;
 }
 
 export interface RiskPassportSection {
@@ -211,9 +221,6 @@ export function detectRiskPassportKind(result: RiskPassportInput): RiskPassportK
   }
 
   if (result.level === "unknown" && result.type === "telegram") return "telegram";
-  if (result.level === "unknown" && TELEGRAM_PASSPORT_RE.test(result.explanation ?? "")) {
-    return "telegram";
-  }
 
   return null;
 }
@@ -309,7 +316,9 @@ function phoneDirectoryLines(
 
 function buildTelegramPassportSummary(result: RiskPassportInput, lang: Lang): RiskPassportSummary {
   const copy = COPY[lang];
-  const parsed = parseTelegramPassportSections(result.explanation ?? "", lang);
+  const parsed = result.telegramPassportEvidence
+    ? parseTelegramPassportSections(result.telegramPassportEvidence.text, lang)
+    : [];
   const sections =
     parsed.length > 0
       ? parsed

@@ -28,6 +28,7 @@ import process from "node:process";
 
 import { getTelegramBotToken, getTelegramWebhookSecret } from "@/lib/config.server";
 import { setWebhook } from "@/lib/telegram/api.server";
+import { TELEGRAM_WEBHOOK_MAX_CONNECTIONS } from "@/lib/telegram/webhook-delivery-policy";
 
 /** Fixed public path the Worker entry (src/server.ts) intercepts. */
 const WEBHOOK_PATH = "/api/telegram/webhook";
@@ -82,6 +83,9 @@ async function main(): Promise<void> {
   const webhookUrl = resolveWebhookUrl();
   console.log(`→ Registering Telegram webhook: ${webhookUrl}`);
   console.log("  (bot token and webhook secret read from env; values are not printed)");
+  console.log(
+    `  max_connections=${TELEGRAM_WEBHOOK_MAX_CONNECTIONS} until durable update ordering is deployed`,
+  );
 
   const { ok } = await setWebhook(webhookUrl, secret);
   if (!ok) {

@@ -286,7 +286,8 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     });
 
     const body = String(vi.mocked(fetch).mock.calls[0]?.[1]?.body);
-    expect(body).toContain("https://evil.example/reset");
+    expect(body).toContain("https://evil.example/");
+    expect(body).not.toContain("/reset");
     expect(body).not.toContain("token=secret");
     expect(body).not.toContain("They sent OTP");
     expect(body).not.toContain("123456");
@@ -310,9 +311,51 @@ describe("runCheck — deterministic unknown for hosted URLs (no AI hallucinatio
     });
 
     const body = String(vi.mocked(fetch).mock.calls[0]?.[1]?.body);
-    expect(body).toContain("https://pay.example/invoice");
+    expect(body).toContain("https://pay.example/");
+    expect(body).not.toContain("/invoice");
     expect(body).not.toContain("Оплатите доставку");
     expect(body).not.toContain("25000");
     expect(body).not.toContain("secret123");
+  });
+});
+
+describe("runCheck — Unicode and DNS canonicalization", () => {
+  it("keeps a Cyrillic protected-brand OTP message high risk", async () => {
+    const result = await runCheck({
+      input: "анорбанк: enter your OTP code",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.reasons).toEqual(expect.arrayContaining(["asks_for_otp", "brand_impersonation"]));
+    expect(result.level).toBe("high_risk");
+  });
+
+  it("flags a protected-brand Cyrillic IDN", async () => {
+    const result = await runCheck({
+      input: "https://капиталбанк.com/login",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.reasons).toContain("brand_impersonation");
+    expect(result.level).toBe("suspicious");
+  });
+
+  it("does not label an official domain with a DNS root dot as impersonation", async () => {
+    const result = await runCheck({
+      input: "https://kapitalbank.uz./login",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.reasons).not.toContain("brand_impersonation");
+    expect(result.level).toBe("unknown");
   });
 });
