@@ -385,15 +385,15 @@ After migrations that change table/function shapes, regenerate
 `src/integrations/supabase/types.ts` when the project workflow needs fresh DB
 types (do not hand-edit that file).
 
-The migration is only the monotonic last-write layer. Keep Telegram on one
-application instance until D-070's durable processing lifecycle is implemented;
-do not use the migration as evidence that stale-read routing or crash recovery
-is solved. In a protected environment, force session SELECT and sequencing-RPC
-failures and confirm one localized retry warning while logs contain only stage
-codes. Also force Bot API `{ok:false}` for a result and verify no guardian or
+The session migration is only the monotonic last-write layer; it is not evidence
+that stale-read routing or crash recovery is solved. Production must also have
+`20260711050337_telegram_update_lifecycle.sql` and the fenced polling lifecycle.
+In a protected environment, force session SELECT and sequencing-RPC failures
+and confirm one localized retry warning while logs contain only stage codes.
+Also force Bot API `{ok:false}` for a result and verify no guardian or
 trusted-contact follow-on action occurs and the previous snapshot is restored.
-After the durable lifecycle exists, add queued-before-dispatch crash/restart and
-true out-of-order two-instance probes before scaling.
+Before scaling, repeat queued-before-dispatch crash/restart and true out-of-order
+two-instance probes; at most one polling leader may be active.
 
 ### 2. Set the bot secrets in the server environment
 
@@ -444,11 +444,12 @@ not-ok. `setWebhook` does send the secret token to Telegram over HTTPS — that
 is by design; Telegram then echoes it back in the request header so the webhook
 can authenticate updates.
 
-Until D-070 is closed, the helper also sends `max_connections=1`. Immediately
-after registration, run the production monitor and verify the `telegram webhook
-info` check reports `max_connections=1` and `concurrency_ok=true`. A higher or
-missing value is a failed monitor check. This reduces concurrent delivery but
-does not replace the durable lifecycle/crash-recovery gate.
+Webhook registration (including rollback from polling) sends
+`max_connections=1`. Immediately after registration, run the production monitor
+and verify the `telegram webhook info` check reports `max_connections=1` and
+`concurrency_ok=true`. A higher or missing value is a failed monitor check. This
+is conservative webhook delivery configuration; it does not replace the durable
+lifecycle/crash-recovery gate.
 
 ### 4. Enable Telegram inline mode
 
@@ -569,6 +570,28 @@ Rollback: set the app to `webhook`, re-register with
 `scripts/register-telegram-webhook.ts`, verify `max_connections=1`, and only
 then stop polling mode. Never use `drop_pending_updates=true`.
 
+### Polling-compatible Telegram response smoke
+
+After cutover, webhook-injection smoke scripts correctly receive 503 and must
+not be used as polling success evidence. Use the production dispatch harness:
+
+```powershell
+railway run npm run prod:telegram-polling-dispatch-smoke -- https://your-app.example.com
+```
+
+It requires `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, authenticated
+`/api/telegram/polling-health` 200 and a dedicated `TELEGRAM_QA_CHAT_ID` that is
+not the moderation chat. Synthetic inbound payloads stay in the CLI process; it
+does not acquire the polling leader or persist a fake update payload. Real
+handler replies are transport-guarded to the QA chat, then deleted. Synthetic
+`checks` and `telegram_sessions` rows are deleted and read back as absent.
+
+This validates production configuration, Supabase writes, router/handler copy
+and Bot API delivery. It does not validate Telegram's `getUpdates` ingress with
+a fake payload; restart/re-election and an approved real-client update cover
+that boundary. It also cannot validate Inline visual delivery because Telegram
+requires a real client-generated `inline_query_id`.
+
 ## Deploy checklist
 
 - [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
@@ -606,5 +629,7 @@ then stop polling mode. Never use `drop_pending_updates=true`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally
       `--live-telegram` after user approval).
+- [ ] In polling mode, `prod:telegram-polling-dispatch-smoke` passes and cleanup
+      read-back finds no synthetic checks or sessions.
 - [ ] Family Shield smoke passes after its migration or related env changes
       (`npm run prod:family-smoke`).

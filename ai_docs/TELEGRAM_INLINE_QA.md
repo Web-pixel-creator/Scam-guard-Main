@@ -4,9 +4,9 @@ Date: 2026-07-10
 
 This checklist covers the real Telegram-client visual QA step for
 `@scamguard_bot <query>` inline mode. It complements
-`npm run prod:telegram-inline-smoke`, which validates the deployed webhook and
-non-persistence invariants with synthetic inline queries, but cannot render the
-Telegram client's inline result list.
+the automated Inline handler tests and, in webhook-mode environments,
+`npm run prod:telegram-inline-smoke`. Neither can render the Telegram client's
+inline result list.
 
 ## Scope
 
@@ -30,7 +30,9 @@ chat unless the case is explicitly about report/appeal moderator delivery.
 ## Preconditions
 
 - BotFather inline mode is enabled for `@scamguard_bot` with a short placeholder.
-- Production webhook is configured and healthy.
+- Production Telegram delivery is healthy in its configured mode. Current
+  production uses polling; an intentionally disabled webhook returning 503 is
+  expected there.
 - Do not paste real SMS codes, card data, passwords, document photos or private
   screenshots into inline queries.
 - Store raw screenshots locally under:
@@ -39,7 +41,7 @@ chat unless the case is explicitly about report/appeal moderator delivery.
 
 ## Companion Automated Check
 
-Run this before or after the visual pass:
+In a protected deployment that is intentionally in webhook mode, run:
 
 ```bash
 railway run npm run prod:telegram-inline-smoke -- https://scam-guard-main-production.up.railway.app
@@ -48,6 +50,20 @@ railway run npm run prod:telegram-inline-smoke -- https://scam-guard-main-produc
 Expected: the smoke passes, returns webhook `200` for all synthetic inline
 updates, and confirms no `checks` or chat-scoped Telegram sessions were
 persisted.
+
+Do not run that webhook-injection script as a polling production gate: polling
+mode correctly returns 503 from the webhook. For polling production, run the
+non-Inline response harness and the repository Inline tests, then complete this
+real-client checklist:
+
+```bash
+railway run npm run prod:telegram-polling-dispatch-smoke -- https://scam-guard-main-production.up.railway.app
+npm run test:run -- src/lib/telegram/handlers/inline.test.ts src/lib/telegram/inline.mass.test.ts
+```
+
+The polling harness deliberately does not invent an `inline_query_id`; only a
+real Telegram client can supply an id accepted by `answerInlineQuery` and prove
+that the result list renders.
 
 ## Deferred Client Note
 

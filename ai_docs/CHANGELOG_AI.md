@@ -2,6 +2,32 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-11 - Polling-compatible production Telegram response QA
+
+- Added `prod:telegram-polling-dispatch-smoke` for production after webhook
+  cutover. It first requires authenticated polling-health 200, then executes
+  synthetic text updates through the real router/handlers without acquiring or
+  disturbing the singleton polling leader.
+- Added a fail-closed Bot API transport guard: the QA process permits only
+  `sendMessage`/`sendChatAction` to `TELEGRAM_QA_CHAT_ID`, rejects another chat,
+  credential or Bot API method, records reply text/message ids without secrets,
+  and deletes its bot replies afterward.
+- The smoke verifies the exact Russian follow-ups "Ты точно в этом уверен?",
+  "Я могу связаться с близким?" and the long suspicious-domain methodology
+  question. It proves they reuse the saved result, do not create a new `checks`
+  row, and describe evidence/limitations without claiming hidden verification.
+- Verification: guard/follow-up tests pass (331/331); the full suite passes
+  (120 files / 2881 tests), TypeScript and production build pass, dependency
+  audit reports zero vulnerabilities, and ESLint has zero errors plus the same
+  eight Fast Refresh warnings. The production run passed against the active
+  polling leader. The suspicious URL produced `suspicious` with two
+  deterministic reasons; all Bot API replies, synthetic checks and sessions
+  were cleaned up with DB read-back.
+- Normalized CRLF/LF in the embed-origin migration contract test after the full
+  Windows regression exposed an otherwise false missing-`GRANT` failure.
+- This is not a fake Inline success: real Inline delivery still requires a real
+  Telegram-client `inline_query_id` and remains a separate visual QA gate.
+
 ## 2026-07-11 - Durable single-leader Telegram update lifecycle
 
 - Reproduced SG-P1-009: the webhook claimed `update_id`, returned 200 after an
@@ -25,8 +51,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Verification: clean local `supabase db reset`, 20/20 pgTAP tests, Supabase DB
   lint with no schema errors, 119 files / 2877 Vitest tests, TypeScript,
   production build and dependency audit all pass. ESLint has zero errors and
-  the same eight non-fatal Fast Refresh warnings. Production deployment and
-  Telegram cutover remain pending.
+  the same eight non-fatal Fast Refresh warnings. Production migrations,
+  polling cutover, restart/re-election probe and production monitoring were
+  subsequently completed successfully.
 
 ## 2026-07-11 - Revalidated Inline and post-check evidence truth
 
