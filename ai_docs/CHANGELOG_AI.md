@@ -4,6 +4,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-07-12 - Release-gate expansion verified locally
 
+- PR #84 is now merged and deployed exactly at `190c82a2` / Railway
+  `be7d6f8d`. All app/database/security jobs, production smokes and monitor
+  `29205158630` passed. The canonical tracker now records 12 Passed, 16 In
+  Progress, 18 Blocked and 5 Deferred gates, and a dated release-readiness plan
+  defines every remaining live/external step without claiming it complete.
 - Corrected the first remote gate run without weakening policy: coverage now
   uses the committed Bun lock instead of an ignored npm lock, CycloneDX is
   uploaded before the blocking scan, and the runtime image removes unused
