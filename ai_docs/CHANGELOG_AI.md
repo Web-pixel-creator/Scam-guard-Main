@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-12 - Polling-aware smokes and passport-question precedence
+
+- Made the one-shot app and synthetic Inline smokes explicit about Telegram's
+  configured delivery mode. In polling mode, an authenticated webhook `503`,
+  an empty webhook URL and a healthy polling leader are the expected state;
+  webhook injection is no longer reported as handler-delivery evidence.
+- Added a shared delivery policy with regression coverage so the smoke scripts
+  cannot silently return to webhook-only assumptions.
+- Routed generic document-safety questions such as “Почему мошенники просят
+  фото паспорта?” before broad scam concern and stale-result follow-up logic.
+  The production dispatch harness now proves the reply is document-specific,
+  creates no new check and cleans up its synthetic Safe context.
+- Verification: 4227/4227 tests, TypeScript, lint with 0 errors, production
+  build and `npm audit` with 0 known vulnerabilities. Deployment and exact-SHA
+  production evidence are intentionally recorded after merge.
+
 ## 2026-07-12 - Repository security revalidation fixes verified locally
 
 - Revalidated clean `main` revision `4bd9403` across 388 ranked files and 109

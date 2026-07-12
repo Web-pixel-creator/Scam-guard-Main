@@ -77,6 +77,8 @@ const FILE_NAME_LIKE_RE =
   /\b[\p{L}0-9_-]+\.(?:apk|exe|pdf|pptx|docx?|xlsx?|zip|rar|7z|gif|jpe?g|png|mp3|ogg|mp4)\b/iu;
 const PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/u;
 const TELEGRAM_HANDLE_RE = /@[a-zA-Z0-9_]{3,}/u;
+const PERSONAL_DATA_REQUEST_RE =
+  /(?:паспорт|фото\s+(?:паспорта|документ|id|айди)|документ|удостоверени|id.?карт|пинфл|pinfl|jshshir|инн|дата\s+рождения|адрес|прописка|personal\s+data|passport|id\s+card|date\s+of\s+birth|address|pasport|hujjat|jshshir|tug['’]?ilgan|manzil)/iu;
 const LONG_MESSAGE_LIMIT = 260;
 
 function normalizeVictimText(text: string): string {
@@ -502,6 +504,12 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "scammer_recontact" };
   }
 
+  // A concrete document/identity-data request is more specific than a generic
+  // mention of a scammer and must not be swallowed by the broad concern route.
+  if (hasAskVerb(normalized) && PERSONAL_DATA_REQUEST_RE.test(normalized)) {
+    return { kind: "personal_data_request" };
+  }
+
   if (
     /(?:меня|нас|маму|папу|друга|мени|бизни|менга|onam|otam|meni|bizni|me|my\s+(?:mom|dad|friend)).{0,80}(?:обманыва|обманут|развод|скам|мошенник|ald[aao]yap|firib|scam|fraud)/iu.test(
       normalized,
@@ -605,16 +613,6 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     )
   ) {
     return { kind: "code_request", askedContext: "code" };
-  }
-
-  if (
-    hasVictimRequestFrame(normalized) &&
-    hasAskVerb(normalized) &&
-    /(?:паспорт|фото\s+(?:паспорта|документ|id|айди)|документ|удостоверени|id.?карт|пинфл|pinfl|jshshir|инн|дата\s+рождения|адрес|прописка|personal\s+data|passport|id\s+card|date\s+of\s+birth|address|pasport|hujjat|jshshir|tug['’]?ilgan|manzil)/iu.test(
-      normalized,
-    )
-  ) {
-    return { kind: "personal_data_request" };
   }
 
   if (isTravelMigrationPrepaymentIntent(normalized)) {

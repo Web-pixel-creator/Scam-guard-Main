@@ -198,6 +198,13 @@ Signatures and intent only. See file paths for source.
 - `getTelegramIntentContract(id)` is the fail-closed lookup; canonical id
   helpers prevent unnamespaced string construction in tests and tooling.
 
+**`src/lib/telegram/victim-intent.ts`**
+
+- `classifyVictimIntent(text)` gives concrete passport/document/personal-data
+  requests precedence over broad scam concern and stale check follow-ups. The
+  phrase may describe scammers generically; it does not need to claim that the
+  current user was already asked for the document.
+
 **`src/lib/telegram/dialogue-corpus.ts`**
 
 - `TELEGRAM_DIALOGUE_CORPUS` expands reviewed RU/UZ/EN post-check phrases into
@@ -465,11 +472,16 @@ Signatures and intent only. See file paths for source.
 
 ## Operational scripts
 
+- `src/lib/security/telegram-delivery-policy.ts` strictly parses `webhook` or
+  `polling`, defines the expected authenticated webhook status and validates
+  URL/pending/error state without duplicating mode assumptions in each smoke.
+
 - `scripts/prod-smoke.ts`: one-shot production smoke test. Checks the public
-  app, `/healthz`, Telegram webhook secret behavior, Telegram webhook pending
-  state and the configured OpenAI-compatible AI provider. With `--live-telegram`
-  it sends one synthetic high-risk text through the latest Telegram session
-  without printing token, secret or chat id values.
+  app, `/healthz`, Telegram webhook secret behavior, delivery-mode-specific
+  update state, polling leader and the configured OpenAI-compatible AI provider.
+  `--live-telegram` is available only in webhook mode; polling mode points to
+  the dedicated dispatch harness instead of treating a disabled webhook as a
+  failed bot.
 - `scripts/prod-monitor.ts`: delivery-mode-aware production monitor for the app,
   Telegram webhook/polling state, authenticated polling-leader health and AI provider. It can
   send sanitized Telegram alerts to an operator chat without printing token,

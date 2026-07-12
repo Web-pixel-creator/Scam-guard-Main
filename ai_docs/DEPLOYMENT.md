@@ -592,6 +592,14 @@ a fake payload; restart/re-election and an approved real-client update cover
 that boundary. It also cannot validate Inline visual delivery because Telegram
 requires a real client-generated `inline_query_id`.
 
+The general `prod:smoke` and synthetic `prod:telegram-inline-smoke` are also
+delivery-mode aware. With `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, both require
+the authenticated webhook to remain disabled with `503`; `prod:smoke` also
+requires an empty webhook URL and polling-leader health `200`. The Inline smoke
+then proves only the transport shutdown and absence of `checks`/session side
+effects. It is not evidence that Telegram delivered or rendered an Inline
+article; use the Desktop/Android/iOS real-client matrix for that claim.
+
 ## Deploy checklist
 
 - [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).

@@ -173,6 +173,7 @@ describe("handleCheck follow-up routing", () => {
   });
 
   it.each([
+    ["Почему мошенники просят фото паспорта?", "ru", "Паспорт, ПИНФЛ"],
     ["Почему меня просят отправить паспорт?", "ru", "Паспорт, ПИНФЛ"],
     ["Nega mendan pasport yuborishni so'rashyapti?", "uz", "Pasport, JSHSHIR"],
     ["Why are they asking me to send a passport?", "en", "Do not send passport data"],
