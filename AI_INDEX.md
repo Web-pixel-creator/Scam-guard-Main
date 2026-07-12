@@ -30,6 +30,8 @@
 | `ai_docs/MODERATION_GUIDELINES.md`     | Report/reputation moderation and appeal/removal rules.              |
 | `ai_docs/DEPLOYMENT.md`                | Hosting, env vars, secrets, how to run.                             |
 | `ai_docs/ON_CALL_RUNBOOK.md`           | Production monitor alert triage and recovery steps.                 |
+| `ai_docs/RECOVERY_AND_KEY_ROTATION.md` | Backup/restore, rollback, secret rotation and Supabase Auth gates.  |
+| `ai_docs/CANARY_72H.md`                | Fixed-RC 72-hour production and billing observation gate.           |
 | `ai_docs/TELEGRAM_INTENT_CONTRACT.md`  | Canonical bot intent/action ids, side effects and dialogue corpus.  |
 | `ai_docs/CODING_RULES.md`              | Code, color, i18n, privacy and security rules.                      |
 | `ai_docs/DECISIONS.md`                 | Decisions made and why.                                             |

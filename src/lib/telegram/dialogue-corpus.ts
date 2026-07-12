@@ -1,6 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import {
   ALL_LAST_CHECK_FOLLOW_UP_ACTIONS,
+  FOLLOW_UP_GOLDEN_PHRASES,
   type LastCheckFollowUpAction,
 } from "@/lib/telegram/check-followup";
 import {
@@ -25,7 +26,7 @@ export interface DialogueCorpusRow {
   utterance: string;
   action: LastCheckFollowUpAction;
   intentId: CanonicalFollowUpIntentId;
-  surfaceVariant: "canonical" | "uppercase" | "padded" | "emphatic";
+  surfaceVariant: "canonical" | "uppercase" | "padded" | "emphatic" | "reply" | "typo";
 }
 
 export const FOLLOW_UP_PHRASE_SEEDS: Readonly<
@@ -109,7 +110,10 @@ const DIALOGUE_CONTEXTS: readonly DialogueContext[] = [
   "new_artifact",
 ];
 
-function surfaceVariants(seed: string): ReadonlyArray<{
+function surfaceVariants(
+  seed: string,
+  golden: Readonly<Record<"reply" | "typo", string>>,
+): ReadonlyArray<{
   name: DialogueCorpusRow["surfaceVariant"];
   text: string;
 }> {
@@ -119,6 +123,8 @@ function surfaceVariants(seed: string): ReadonlyArray<{
     { name: "uppercase", text: seed.toLocaleUpperCase("ru") },
     { name: "padded", text: `  ${seed}  ` },
     { name: "emphatic", text: `${withoutTerminalPunctuation}?!` },
+    { name: "reply", text: golden.reply },
+    { name: "typo", text: golden.typo },
   ];
 }
 
@@ -126,7 +132,10 @@ function buildDialogueCorpus(): DialogueCorpusRow[] {
   const rows: DialogueCorpusRow[] = [];
   for (const action of ALL_LAST_CHECK_FOLLOW_UP_ACTIONS) {
     for (const lang of ["ru", "uz", "en"] as const) {
-      for (const surface of surfaceVariants(FOLLOW_UP_PHRASE_SEEDS[action][lang])) {
+      for (const surface of surfaceVariants(
+        FOLLOW_UP_PHRASE_SEEDS[action][lang],
+        FOLLOW_UP_GOLDEN_PHRASES[action][lang],
+      )) {
         for (const context of DIALOGUE_CONTEXTS) {
           rows.push({
             id: `${action}:${lang}:${surface.name}:${context}`,

@@ -411,6 +411,40 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     expect(result.level).toBe("suspicious");
   });
 
+  it("aborts a provider that stays pending beyond the configured soft budget", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-api-key";
+    let sawAbort = false;
+    const fetchMock = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => {
+              sawAbort = true;
+              reject(Object.assign(new Error("request timed out"), { name: "AbortError" }));
+            },
+            { once: true },
+          );
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCheck({
+      input: SUSPICIOUS_INPUT,
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      aiTimeoutMs: 500,
+      aiMaxAttempts: 3,
+    });
+
+    expect(sawAbort).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.explanation).toBeNull();
+    expect(result.level).toBe("suspicious");
+    assertDegradedReply(result, "en");
+  });
+
   it("does not retry quota-exhausted 429 provider errors", async () => {
     process.env.OPENAI_API_KEY = "test-openai-api-key";
     const fetchMock = vi.fn(async () => ({
@@ -489,27 +523,31 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     expect(result.level).toBe("high_risk");
   });
 
-  it("exhausts transient retries and still keeps rules-only scoring", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-api-key";
-    const fetchMock = vi.fn(async () => ({
-      ok: false,
-      status: 503,
-      json: async () => ({}),
-      text: async () => "temporary unavailable",
-    }));
-    vi.stubGlobal("fetch", fetchMock);
+  it.each([500, 502, 503])(
+    "exhausts transient %i retries and still keeps rules-only scoring",
+    async (status) => {
+      process.env.OPENAI_API_KEY = "test-openai-api-key";
+      const fetchMock = vi.fn(async () => ({
+        ok: false,
+        status,
+        json: async () => ({}),
+        text: async () => "temporary unavailable",
+      }));
+      vi.stubGlobal("fetch", fetchMock);
 
-    const result = await runCheck({
-      input: HIGH_RISK_INPUT,
-      lang: "ru",
-      rateLimitKey: nextKey(),
-      channel: "telegram",
-    });
+      const result = await runCheck({
+        input: HIGH_RISK_INPUT,
+        lang: "ru",
+        rateLimitKey: nextKey(),
+        channel: "telegram",
+      });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(result.explanation).toBeNull();
-    expect(result.level).toBe("high_risk");
-  });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(result.explanation).toBeNull();
+      expect(result.level).toBe("high_risk");
+      assertDegradedReply(result, "ru");
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------

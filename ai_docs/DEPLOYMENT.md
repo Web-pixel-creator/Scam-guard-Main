@@ -51,6 +51,16 @@ Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
+Backup/restore, application rollback, credential rotation and Supabase Auth
+hardening are release drills, not ad-hoc incident commands. Follow
+`ai_docs/RECOVERY_AND_KEY_ROTATION.md`; never test a restore by overwriting the
+production project and never rotate `HASH_PEPPER_SECRET` until versioned
+dual-read migration support exists.
+
+The public-release canary follows `ai_docs/CANARY_72H.md`. It starts only after
+the exact RC deployment and every required migration are fixed; any code,
+schema, secret or runtime-config change restarts the 72-hour clock.
+
 1. Create a project from the GitHub repo (`New Project → Deploy from GitHub`),
    pointing at the deploy branch. Railway auto-detects `Dockerfile` and
    `railway.toml`.
@@ -602,7 +612,12 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
 
 ## Deploy checklist
 
-- [ ] CI is green (`.github/workflows/ci.yml`: type-check · tests · build).
+- [ ] CI is green (`.github/workflows/ci.yml`: lint, type-check, full tests,
+      build, coverage floors and clean database checks).
+- [ ] Security Gates are green (`.github/workflows/security.yml`: CodeQL,
+      Gitleaks, release-container High/Critical Trivy scan and CycloneDX SBOM).
+      SBOM generation is not a claim of signed provenance; add attestation only
+      when the published release artifact has a stable digest/registry owner.
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.

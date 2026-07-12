@@ -2,6 +2,37 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-12 - Release-gate expansion verified locally
+
+- Corrected the first remote gate run without weakening policy: coverage now
+  uses the committed Bun lock instead of an ignored npm lock, CycloneDX is
+  uploaded before the blocking scan, and the runtime image removes unused
+  npm/Corepack/Yarn packages. A local release-image build remained non-root and
+  Trivy reported zero fixed High/Critical OS or library findings.
+- Expanded the canonical RU/UZ/EN post-check dialogue DSL from 1,248 to 1,872
+  context rows. Every one of 13 actions now includes a reviewed natural reply
+  to the bot and common typo per language through exact normalized lookup;
+  handler tests forbid cold checks, session writes and trusted-contact effects.
+- Added slow-provider abort and exhausted 500/502/503 retry cases to the existing
+  no-key/network/401/429/fallback matrix. Rules-based verdicts and safe replies
+  remain deterministic under every covered degradation path.
+- Added a 1,000-update polling lifecycle simulation with process offset loss,
+  leader changes, pre-effect failure and completion acknowledgement loss. Every
+  update completed with exactly one modeled outward effect.
+- Added immutable CI action pins, repository coverage floors, CodeQL, Gitleaks,
+  release-container Trivy High/Critical scanning and a CycloneDX SBOM workflow.
+  Local measured coverage is statements 82.84%, branches 76.98%, functions
+  89.29% and lines 84.71%; the new remote security jobs still require a real
+  green GitHub run before their gate can be marked Passed.
+- Published privacy-safe backup/restore, rollback, key-rotation and 72-hour
+  canary contracts. The privacy page now states the actual RU/UZ/EN retention,
+  raw screenshot disposal and moderated `/appeal` path. Supabase Auth settings,
+  real restore/rotation drills, legal review, signed provenance and the 72-hour
+  observation remain external evidence gates.
+- Verification: 127 files / 4,866 tests, TypeScript, lint with 0 errors and 8
+  existing warnings, production build and `npm audit` with 0 known
+  vulnerabilities.
+
 ## 2026-07-12 - Polling-aware smokes and passport-question precedence
 
 - Made the one-shot app and synthetic Inline smokes explicit about Telegram's

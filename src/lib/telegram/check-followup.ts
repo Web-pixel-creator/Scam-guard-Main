@@ -101,6 +101,113 @@ export const ALL_LAST_CHECK_FOLLOW_UP_ACTIONS = [
 
 export type LastCheckFollowUpAction = (typeof ALL_LAST_CHECK_FOLLOW_UP_ACTIONS)[number];
 
+export type GoldenFollowUpPhraseKind = "reply" | "typo";
+
+export const FOLLOW_UP_GOLDEN_PHRASES: Readonly<
+  Record<
+    LastCheckFollowUpAction,
+    Readonly<Record<Lang, Readonly<Record<GoldenFollowUpPhraseKind, string>>>>
+  >
+> = {
+  confidence: {
+    ru: { reply: "Да, но ты точно уверен?", typo: "Ты точна уверен?" },
+    uz: { reply: "Ha, lekin aniqmi?", typo: "Ishonsa boladimi?" },
+    en: { reply: "Okay, but are you sure?", typo: "R u sure?" },
+  },
+  methodology: {
+    ru: { reply: "А как именно ты это проверил?", typo: "Как ты это праверил?" },
+    uz: {
+      reply: "Buni nimaga asoslanib tekshirdingiz?",
+      typo: "Qande tekshirdiz?",
+    },
+    en: { reply: "What did you base that on?", typo: "How u check this?" },
+  },
+  trusted_person: {
+    ru: { reply: "Тогда можно позвонить маме?", typo: "Можна связаться с близким?" },
+    uz: {
+      reply: "Unda yaqinimga qo'ng'iroq qilsam bo'ladimi?",
+      typo: "Yaqin odamga qongiroq qilsam boladimi?",
+    },
+    en: { reply: "Then can I call my family?", typo: "Can I call my famly?" },
+  },
+  recheck: {
+    ru: { reply: "Да, перепроверь ещё раз", typo: "Перепроверь ешё раз" },
+    uz: { reply: "Ha, qayta tekshiring", typo: "Qayta tekshr" },
+    en: { reply: "Yes, check it again please", typo: "Chek it again pls" },
+  },
+  disagreement: {
+    ru: { reply: "Нет, я не согласен с этим", typo: "Ты ашибся" },
+    uz: { reply: "Yo'q, bu natijaga ishonmayman", typo: "Xato qildiz" },
+    en: { reply: "No, I disagree with this result", typo: "U are wrong" },
+  },
+  next_steps: {
+    ru: { reply: "Хорошо, а что теперь?", typo: "Че делать дальше?" },
+    uz: { reply: "Xo'p, endi nima qilay?", typo: "Nma qilay?" },
+    en: { reply: "Okay, now what?", typo: "Wat should I do next?" },
+  },
+  contacts: {
+    ru: { reply: "Тогда дай номер банка", typo: "Номер баннка?" },
+    uz: { reply: "Unda bank raqamini bering", typo: "Bank nomeri qane?" },
+    en: { reply: "Then give me the bank number", typo: "Bank no?" },
+  },
+  explain: {
+    ru: { reply: "А почему так?", typo: "Пачему?" },
+    uz: { reply: "Xo'p, nega bunday?", typo: "Nma uchun?" },
+    en: { reply: "Okay, why is that?", typo: "Y is that?" },
+  },
+  simple_explain: {
+    ru: { reply: "Можно объяснить проще?", typo: "Объясни папроще" },
+    uz: { reply: "Soddaroq ayting", typo: "Sodaroq tushuntir" },
+    en: { reply: "Can you say it more simply?", typo: "Explain simpl pls" },
+  },
+  ai_origin: {
+    ru: { reply: "То есть это сделал ИИ?", typo: "Это нейронка?" },
+    uz: { reply: "Demak, bu sun'iy intellektmi?", typo: "Bu suniy intelektmi?" },
+    en: { reply: "So was this made by AI?", typo: "Is this AI gen?" },
+  },
+  confirmation_request: {
+    ru: { reply: "То есть мне не подтверждать?", typo: "Просят подтвердить аперацию" },
+    uz: { reply: "Demak, tasdiqlamaymi?", typo: "Tasdiqlash kere" },
+    en: { reply: "So should I confirm it?", typo: "Shud I confirm?" },
+  },
+  acknowledgement: {
+    ru: { reply: "Ясно, спасибо", typo: "Спс" },
+    uz: { reply: "Tushundim, rahmat", typo: "Raxmat" },
+    en: { reply: "Got it, thanks", typo: "Thx" },
+  },
+  identity: {
+    ru: { reply: "А ты кто вообще?", typo: "Кто ты такой" },
+    uz: { reply: "Bu qanday bot?", typo: "Siz kims" },
+    en: { reply: "What is this bot?", typo: "Who r u" },
+  },
+};
+
+function normalizeGoldenFollowUpPhrase(text: string): string {
+  return text
+    .trim()
+    .toLocaleLowerCase("ru")
+    .replace(/[.!?,;:]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+const GOLDEN_FOLLOW_UP_ACTION_BY_PHRASE = new Map<string, LastCheckFollowUpAction>();
+for (const action of ALL_LAST_CHECK_FOLLOW_UP_ACTIONS) {
+  for (const lang of ["ru", "uz", "en"] as const) {
+    for (const phrase of Object.values(FOLLOW_UP_GOLDEN_PHRASES[action][lang])) {
+      const key = normalizeGoldenFollowUpPhrase(phrase);
+      if (GOLDEN_FOLLOW_UP_ACTION_BY_PHRASE.has(key)) {
+        throw new Error(`Duplicate golden follow-up phrase: ${key}`);
+      }
+      GOLDEN_FOLLOW_UP_ACTION_BY_PHRASE.set(key, action);
+    }
+  }
+}
+
+function classifyGoldenFollowUpPhrase(text: string): LastCheckFollowUpAction | null {
+  return GOLDEN_FOLLOW_UP_ACTION_BY_PHRASE.get(normalizeGoldenFollowUpPhrase(text)) ?? null;
+}
+
 function isRecent(snapshot: LastCheckSnapshot, now: Date): boolean {
   const at = Date.parse(snapshot.at);
   return Number.isFinite(at) && now.getTime() - at <= RECENT_CHECK_WINDOW_MS;
@@ -201,6 +308,9 @@ export function classifyLastCheckFollowUp(
   if (!snapshot || !isRecent(snapshot, now)) return null;
   if (hasNewerRecentPanicContext(scenarioData, snapshot, now)) return null;
 
+  const goldenAction = classifyGoldenFollowUpPhrase(trimmed);
+  if (goldenAction) return goldenAction;
+
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (METHODOLOGY_RE.test(trimmed)) return "methodology";
@@ -226,6 +336,9 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   const trimmed = text.trim();
   if (!trimmed || hasNewCheckPayload(trimmed)) return null;
 
+  const goldenAction = classifyGoldenFollowUpPhrase(trimmed);
+  if (goldenAction && goldenAction !== "acknowledgement") return goldenAction;
+
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
   if (METHODOLOGY_RE.test(trimmed)) return "methodology";
@@ -249,6 +362,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
 export function classifyAcknowledgementFollowUp(text: string): "acknowledgement" | null {
   const trimmed = text.trim();
   if (!trimmed || hasNewCheckPayload(trimmed)) return null;
+  if (classifyGoldenFollowUpPhrase(trimmed) === "acknowledgement") return "acknowledgement";
   return ACKNOWLEDGEMENT_RE.test(trimmed) ? "acknowledgement" : null;
 }
 

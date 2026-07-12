@@ -36,4 +36,41 @@ describe("toolchain security boundaries", () => {
     expect(bunLock).not.toContain("esbuild@0.27.");
     expect(bunLock).not.toContain("brace-expansion@1.1.12");
   });
+
+  it.each(["ci.yml", "security.yml"])("pins every action in %s to a commit SHA", (name) => {
+    const workflow = readFileSync(resolve(process.cwd(), ".github", "workflows", name), "utf8");
+    const actions = [...workflow.matchAll(/^\s*uses:\s+[^@\s]+@([^\s#]+)/gmu)];
+
+    expect(actions.length).toBeGreaterThan(0);
+    for (const action of actions) expect(action[1]).toMatch(/^[0-9a-f]{40}$/u);
+    expect(workflow).not.toMatch(/bun-version:\s*latest/iu);
+  });
+
+  it("enforces coverage, SAST, secret, container and SBOM gates", () => {
+    const ci = readFileSync(resolve(process.cwd(), ".github", "workflows", "ci.yml"), "utf8");
+    const security = readFileSync(
+      resolve(process.cwd(), ".github", "workflows", "security.yml"),
+      "utf8",
+    );
+
+    expect(ci).toContain("--coverage.thresholds.statements=80");
+    expect(ci).toContain("--coverage.thresholds.branches=75");
+    expect(ci).toContain("--coverage.thresholds.functions=85");
+    expect(ci).toContain("--coverage.thresholds.lines=80");
+    expect(security).toContain("github/codeql-action/init@");
+    expect(security).toContain("gitleaks/gitleaks-action@");
+    expect(security).toContain("aquasecurity/trivy-action@");
+    expect(security).toContain("format: cyclonedx");
+    expect(security).toContain("actions/upload-artifact@");
+  });
+
+  it("keeps package managers out of the non-root production image", () => {
+    const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
+
+    expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
+    expect(dockerfile).toContain("/usr/local/lib/node_modules/corepack");
+    expect(dockerfile).toContain("/opt/yarn-v1.22.22");
+    expect(dockerfile).toMatch(/USER\s+node/u);
+    expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
+  });
 });

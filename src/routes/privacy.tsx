@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Lock, ShieldCheck, EyeOff, Database, FileWarning } from "lucide-react";
+import { Lock, ShieldCheck, EyeOff, Database, FileWarning, Clock3, BadgeCheck } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 
 export const Route = createFileRoute("/privacy")({
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
 });
 
-const ICONS = [EyeOff, Database, ShieldCheck, FileWarning] as const;
+const ICONS = [EyeOff, Database, ShieldCheck, Clock3, BadgeCheck, FileWarning] as const;
 
 const TEXT = {
   ru: {
@@ -42,8 +42,24 @@ const TEXT = {
           "Номера и Telegram ID хешируются и хранятся в защищённом виде.",
           "В интерфейсе показывается только маскированная версия (например, +998 90 ••• •• 12).",
           "Тексты сообщений автоматически чистятся от карт, OTP и личных номеров.",
-          "Скриншоты, которые вы прикрепляете, не публикуются автоматически.",
+          "Скриншоты обрабатываются в памяти и удаляются; сохраняться может только очищенный текст и результат проверки.",
           "Жалобы проходят модерацию перед тем, как влиять на публичный risk score.",
+        ],
+      },
+      {
+        title: "Сроки хранения",
+        items: [
+          "Очищенные проверки хранятся до 90 дней, сессии Telegram — до 30 дней после последней активности.",
+          "Закрытые жалобы хранятся до 365 дней, незавершённые новые/проверяемые — до 180 дней.",
+          "Апелляции содержат только хеш, маску и очищенный текст; окончательный срок для них требует отдельного юридического решения.",
+        ],
+      },
+      {
+        title: "Исправление публичной репутации",
+        items: [
+          "Через /appeal в Telegram можно запросить проверку или снятие публичной метки.",
+          "Решение принимает модератор, а изменение записывается в журнал действий.",
+          "Для апелляции не отправляйте паспорт, пароль, код, PIN, CVV или полный номер карты.",
         ],
       },
       {
@@ -84,8 +100,24 @@ const TEXT = {
           "Raqam va Telegram ID xeshlanadi hamda himoyalangan tarzda saqlanadi.",
           "Interfeysda faqat maskalangan ko'rinish ko'rsatiladi.",
           "Xabar matnlaridagi karta, OTP va shaxsiy raqamlar avtomatik tozalanadi.",
-          "Biriktirilgan skrinshotlar avtomatik ravishda e'lon qilinmaydi.",
+          "Skrinshotlar xotirada qayta ishlanib o'chiriladi; faqat tozalangan matn va tekshiruv natijasi saqlanishi mumkin.",
           "Shikoyatlar publik risk score'ga ta'sir qilishidan oldin moderatsiyadan o'tadi.",
+        ],
+      },
+      {
+        title: "Saqlash muddatlari",
+        items: [
+          "Tozalangan tekshiruvlar 90 kungacha, Telegram sessiyalari oxirgi faollikdan keyin 30 kungacha saqlanadi.",
+          "Yakunlangan shikoyatlar 365 kungacha, tugallanmagan new/reviewing yozuvlar 180 kungacha saqlanadi.",
+          "Apellyatsiyada faqat xesh, maska va tozalangan matn qoladi; yakuniy muddat alohida yuridik qarorni talab qiladi.",
+        ],
+      },
+      {
+        title: "Ommaviy reputatsiyani tuzatish",
+        items: [
+          "Telegramdagi /appeal orqali ommaviy belgini tekshirish yoki olib tashlashni so'rash mumkin.",
+          "Qarorni moderator qabul qiladi va o'zgarish audit jurnaliga yoziladi.",
+          "Apellyatsiya uchun pasport, parol, kod, PIN, CVV yoki to'liq karta raqamini yubormang.",
         ],
       },
       {
@@ -126,8 +158,24 @@ const TEXT = {
           "Numbers and Telegram IDs are hashed and stored in a protected form.",
           "The UI only shows a masked version (e.g. +998 90 ••• •• 12).",
           "Message text is automatically cleaned of card numbers, OTPs and personal phone numbers.",
-          "Screenshots you attach are not published automatically.",
+          "Screenshots are processed in memory and discarded; only cleaned text and the check result may be retained.",
           "Reports go through moderation before they affect any public risk score.",
+        ],
+      },
+      {
+        title: "Retention periods",
+        items: [
+          "Cleaned checks are retained for up to 90 days; Telegram sessions for up to 30 days after last activity.",
+          "Terminal reports are retained for up to 365 days; stale new/reviewing reports for up to 180 days.",
+          "Appeals retain only a hash, masked display and cleaned text; their final period still requires a separate legal decision.",
+        ],
+      },
+      {
+        title: "Correcting public reputation",
+        items: [
+          "Use /appeal in Telegram to request review or removal of a public label.",
+          "A moderator decides and the change is recorded in the audit log.",
+          "Never send a passport, password, code, PIN, CVV or full card number as appeal evidence.",
         ],
       },
       {

@@ -22,7 +22,7 @@
   `getUpdates(limit=1)`, metadata-only processing/completion leases, fenced
   session I/O/outbound effects and completion-before-offset crash recovery pass
   local PostgreSQL and application tests. Production deployment `8064b403` at
-  revision `4bd9403` reports a healthy polling leader; the scheduled monitor
+  revision `5c6094a` reports a healthy polling leader; the scheduled monitor
   observes `mode=polling`, an empty pending queue and the intentionally disabled
   webhook. Targeted multi-instance failover and provider-failure evidence remain
   open, and the system is not claimed to provide exactly-once delivery.
@@ -534,6 +534,22 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.~~ Done as Reputation Appeals v1: `/appeal`, privacy-safe `reputation_appeals`, admin review actions and audit logging.
 - [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
 - [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.
+- [ ] Execute the isolated backup/restore and Railway rollback/return drills in
+      `RECOVERY_AND_KEY_ROTATION.md`; capture RPO/RTO and count-only invariants.
+- [ ] Enable and read back Supabase leaked-password protection plus the approved
+      password/MFA policy. This is a Dashboard/Management-API setting and is not
+      proven by `supabase/config.toml` or migrations.
+- [ ] Design versioned `HASH_PEPPER_SECRET` dual-read/new-write support before
+      attempting pepper rotation; direct replacement would orphan deterministic
+      identifier hashes.
+- [ ] Start `CANARY_72H.md` only after the admin-role migration, exact final RC
+      and real-client release evidence are complete. Require at least 144
+      successful eligible half-hour monitor runs and repeat bounded smokes at
+      the entry/exit points.
+- [ ] Record Railway plan, payment method, spend/usage alert and workload sleep
+      policy through the Dashboard. CLI evidence currently proves `plan=pro`,
+      `sleepApplication=false`, one replica and successful deployments, but not
+      payment-method expiry or account-level spending alerts.
 
 ## Research feed
 
