@@ -2,17 +2,26 @@
 
 ## Fragile / risky spots
 
+- **The authoritative 10/10 release sequence is documented.** See
+  `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
+  is deployed at `190c82a2`; 4,867 tests, coverage thresholds, CodeQL, Gitleaks,
+  Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
+  gate counts are 12 Passed, 16 In Progress, 18 Blocked and 5 Deferred. The
+  release remains NO-GO until real Telegram/Inline clients, production Supabase
+  apply/read-back, finding-specific live closure, soak and recovery drills,
+  legal/privacy approval and the fixed-RC 72-hour canary are complete.
+
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
   remains open.** The independent repository pass produced 15 findings
-  (1 High, 9 Medium, 5 Low). The current branch adds exact-subject trust,
-  sink credential minimization, QR/provider/domain corrections, admin-role
-  revocation, admission-before-side-effects, step-scoped monitor secrets and
-  passport follow-up precedence. Integration proof: 4227/4227 tests, TypeScript,
-  build, npm audit, 28-migration reset, 38/38 pgTAP and schema lint pass. The
-  application patch is deployed at `fdbc6ff8`; the exact admin-role migration
-  still requires authenticated production Supabase apply. Do not mark findings
-  Closed until their targeted live/read-back evidence and privacy-safe
-  historical-data review are complete.
+  (1 High, 9 Medium, 5 Low). Exact-subject trust, sink credential minimization,
+  QR/provider/domain corrections, admin-role revocation,
+  admission-before-side-effects, step-scoped monitor secrets and passport
+  follow-up precedence are deployed at `190c82a2`. Integration proof includes
+  4,867 tests, coverage, CodeQL, Gitleaks, Trivy, CycloneDX, TypeScript, build,
+  npm audit, a 28-migration reset, 38/38 pgTAP and schema lint. The exact
+  admin-role migration still requires authenticated production Supabase apply.
+  Do not mark findings Closed until their targeted live/read-back evidence and
+  privacy-safe historical-data review are complete.
 
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale
   invite expiry, trusted-contact opt-out, env-driven invite URLs,
@@ -21,8 +30,8 @@
 - **Telegram durable lifecycle is deployed in polling mode.** Single-leader
   `getUpdates(limit=1)`, metadata-only processing/completion leases, fenced
   session I/O/outbound effects and completion-before-offset crash recovery pass
-  local PostgreSQL and application tests. Production deployment `8064b403` at
-  revision `5c6094a` reports a healthy polling leader; the scheduled monitor
+  local PostgreSQL and application tests. Production deployment `be7d6f8d` at
+  revision `190c82a2` reports a healthy polling leader; the scheduled monitor
   observes `mode=polling`, an empty pending queue and the intentionally disabled
   webhook. Targeted multi-instance failover and provider-failure evidence remain
   open, and the system is not claimed to provide exactly-once delivery.
