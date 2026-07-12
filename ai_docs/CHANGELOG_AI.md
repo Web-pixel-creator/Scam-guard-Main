@@ -4,6 +4,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 ## 2026-07-12 - Release-gate expansion verified locally
 
+- Corrected the first remote gate run without weakening policy: coverage now
+  uses the committed Bun lock instead of an ignored npm lock, CycloneDX is
+  uploaded before the blocking scan, and the runtime image removes unused
+  npm/Corepack/Yarn packages. A local release-image build remained non-root and
+  Trivy reported zero fixed High/Critical OS or library findings.
 - Expanded the canonical RU/UZ/EN post-check dialogue DSL from 1,248 to 1,872
   context rows. Every one of 13 actions now includes a reviewed natural reply
   to the bot and common typo per language through exact normalized lookup;

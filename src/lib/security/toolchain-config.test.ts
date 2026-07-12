@@ -63,4 +63,14 @@ describe("toolchain security boundaries", () => {
     expect(security).toContain("format: cyclonedx");
     expect(security).toContain("actions/upload-artifact@");
   });
+
+  it("keeps package managers out of the non-root production image", () => {
+    const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
+
+    expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
+    expect(dockerfile).toContain("/usr/local/lib/node_modules/corepack");
+    expect(dockerfile).toContain("/opt/yarn-v1.22.22");
+    expect(dockerfile).toMatch(/USER\s+node/u);
+    expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
+  });
 });
