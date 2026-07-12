@@ -7,4 +7,7 @@
 - [x] Map the existing 238-row live phrase matrix to canonical contracts.
 - [x] Add cardinality, side-effect, dialogue-routing and response-bound tests.
 - [x] Run full Telegram and repository validation.
-- [ ] Capture production dialogue evidence before marking BOT-004 fully passed.
+- [ ] Capture the broad real-client RU/UZ/EN dialogue matrix before marking
+      BOT-004 fully passed. The bounded production smoke already covers
+      confidence, methodology, trusted-person, recheck and disagreement without
+      unintended checks or trusted-contact side effects.

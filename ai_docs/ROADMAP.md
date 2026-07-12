@@ -267,9 +267,11 @@ Operational hardening that continues in parallel:
   capturing the sanitized screenshots/examples, plus real provider Voice-in/STT
   audio/transcript examples when key/audio access is available.
 - TG-006 tracker reconciliation completed on 2026-07-02: the stale Partial
-  status for Risk Passport username/phone checks is closed with focused
+  status for Risk Passport username/phone checks was closed with focused
   formatter, public metadata, shared Risk Passport and inline regression
-  evidence. The tracker now has no Partial or Planned rows.
+  evidence. At that historical snapshot the tracker had no Partial or Planned
+  rows. The 2026-07-12 security-revalidated tracker has one Partial row and no
+  Planned rows; use its Status Summary rather than this historical count.
 - Conversation Check v1 reconciliation completed on 2026-07-02: the
   pig-butchering / romance-grooming memory gap is covered by explicit
   `/conversation` mode, which stores only derived stage/action/reason metadata

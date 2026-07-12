@@ -25,7 +25,12 @@ describe("image intelligence evidence builder", () => {
       text: "Уважаемые гости! Посетите сайт chenson.uz. Узнайте больше о меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
       visualCategory: "restaurant_menu_qr",
       confidence: "high",
-      qr: { present: true, visibleUrl: "https://chenson.uz/loyalty", purpose: "menu" },
+      qr: {
+        present: true,
+        visibleUrl: "https://chenson.uz/loyalty",
+        purpose: "menu",
+        decodedValues: ["https://chenson.uz/loyalty"],
+      },
       riskHints: [],
       summary: "Похоже на ресторанное меню и QR программы лояльности.",
     });
@@ -37,6 +42,81 @@ describe("image intelligence evidence builder", () => {
     expect(input).not.toContain("https://chenson.uz/loyalty");
     expect(reasons).not.toContain("asks_to_scan_qr");
     expect(score.level).not.toBe("high_risk");
+  });
+
+  it("keeps a readable provider URL in deterministic scoring input even for benign context", () => {
+    const visibleUrl = "https://evil.uz/kapitalbank";
+    const evidence = sanitizeImageIntelligence({
+      text: `QR ${visibleUrl}`,
+      visualCategory: "qr_menu_or_info",
+      confidence: "high",
+      qr: { present: true, visibleUrl, purpose: "info" },
+      riskHints: [],
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(isEvidenceBackedBenignImageContext(evidence!)).toBe(true);
+    expect(buildImageCheckInput(evidence!)).toContain(visibleUrl);
+  });
+
+  it("ignores a model-only URL guess even when the provider labels the QR benign", () => {
+    const guessed = sanitizeImageIntelligence({
+      text: "QR menu",
+      visualCategory: "qr_menu_or_info",
+      confidence: "high",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapital-bank-verify.click/login",
+        purpose: "info",
+      },
+      riskHints: [],
+    });
+
+    expect(guessed).not.toBeNull();
+    expect(isBenignImageContext(guessed!)).toBe(true);
+    const { input, reasons } = scoreImageEvidence(guessed!);
+    expect(input).not.toContain("kapital-bank-verify.click");
+    expect(reasons).toHaveLength(0);
+  });
+
+  it("does not bind a truncated official provider URL to a longer observed phishing host", () => {
+    const observedUrl = "https://kapitalbank.uz.evil.com/login";
+    const evidence = sanitizeImageIntelligence({
+      text: `QR ${observedUrl}`,
+      visualCategory: "qr_menu_or_info",
+      confidence: "high",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapitalbank.uz",
+        purpose: "info",
+      },
+      riskHints: [],
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(evidence!.qr.visibleUrl).toBe(observedUrl);
+    const { input, reasons, score } = scoreImageEvidence(evidence!);
+    expect(input).toContain(observedUrl);
+    expect(reasons.length).toBeGreaterThan(0);
+    expect(score.level).not.toBe("safe");
+  });
+
+  it("matches a complete observed URL across host case and sentence punctuation", () => {
+    const evidence = sanitizeImageIntelligence({
+      text: "QR HTTPS://KAPITALBANK.UZ/help.",
+      visualCategory: "qr_menu_or_info",
+      confidence: "high",
+      qr: {
+        present: true,
+        visibleUrl: "https://kapitalbank.uz/help",
+        purpose: "info",
+      },
+      riskHints: [],
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(evidence!.qr.visibleUrlObservedInText).toBe(true);
+    expect(buildImageCheckInput(evidence!)).toContain("KAPITALBANK.UZ/help");
   });
 
   it("does not flag a domain the model only guessed near an undecoded QR (P3)", () => {
@@ -464,6 +544,68 @@ describe("image intelligence evidence builder", () => {
     expect(buildImageCheckInput(authenticator)).toContain("secret=[hidden]");
   });
 
+  it("redacts decoded Wi-Fi passwords and labeled recovery phrases", () => {
+    const wifi = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["WIFI:T:WPA;S:VictimHome;P:correct-horse-battery-staple;;"],
+      urls: [],
+    });
+    const mnemonic = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: [
+        "Seed phrase: abandon ability able about above absent absorb abstract absurd abuse access accident",
+      ],
+      urls: [],
+    });
+    const labeledPassword = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["Password: secret-passphrase"],
+      urls: [],
+    });
+    const separatedOtp = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["OTP: 1 2 3 4 5 6"],
+      urls: [],
+    });
+    const escapedWifi = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: [String.raw`WIFI:T:WPA;S:VictimHome;P:secret\;password;;`],
+      urls: [],
+    });
+    const localizedPassword = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["Пароль: секретная-фраза"],
+      urls: [],
+    });
+
+    expect(wifi.qr.decodedValues?.[0]).toContain("S:VictimHome");
+    expect(wifi.qr.decodedValues?.[0]).toContain("P:[hidden]");
+    expect(wifi.riskHints).toContain("otp_or_secret");
+    expect(buildImageCheckInput(wifi)).not.toContain("correct-horse-battery-staple");
+    expect(mnemonic.qr.decodedValues?.[0]).toContain("Seed phrase: [hidden]");
+    expect(mnemonic.riskHints).toContain("otp_or_secret");
+    expect(buildImageCheckInput(mnemonic)).not.toContain(
+      "abandon ability able about above absent absorb abstract absurd abuse access accident",
+    );
+    expect(buildImageCheckInput(labeledPassword)).toContain("Password: [hidden]");
+    expect(buildImageCheckInput(labeledPassword)).not.toContain("secret-passphrase");
+    expect(buildImageCheckInput(separatedOtp)).toContain("OTP: [hidden]");
+    expect(buildImageCheckInput(separatedOtp)).not.toContain("1 2 3 4 5 6");
+    expect(buildImageCheckInput(escapedWifi)).toContain("P:[hidden]");
+    expect(buildImageCheckInput(escapedWifi)).not.toContain(String.raw`secret\;password`);
+    expect(buildImageCheckInput(localizedPassword)).toContain("Пароль: [hidden]");
+    expect(buildImageCheckInput(localizedPassword)).not.toContain("секретная-фраза");
+  });
+
+  it("preserves non-secret decoded QR controls", () => {
+    const wifi = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["WIFI:T:nopass;S:PublicLibrary;;"],
+      urls: [],
+    });
+    const menu = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["https://chenson.uz/menu"],
+      urls: ["https://chenson.uz/menu"],
+    });
+
+    expect(wifi.qr.decodedValues?.[0]).toBe("WIFI:T:nopass;S:PublicLibrary;;");
+    expect(wifi.riskHints).not.toContain("otp_or_secret");
+    expect(buildImageCheckInput(menu)).toContain("https://chenson.uz/menu");
+  });
+
   it("builds decoded-only evidence only for actionable QR values", () => {
     const login = buildDecodedQrOnlyImageEvidence({
       values: ["tg://login?token=SECRET_TOKEN_SHOULD_NOT_LEAK"],
@@ -625,6 +767,37 @@ describe("image intelligence evidence builder", () => {
     const explanation = buildImageUserExplanation(evidence, score.level, "en");
     expect(explanation).toContain("invite link to a private Telegram chat");
     expect(explanation).toContain("I cannot inspect what is inside");
+  });
+
+  it.each([
+    "t.me/+SecretInvite12345",
+    "telegram.me/+SecretInvite12345",
+    "t.me/joinchat/SecretInvite12345",
+    "telegram.me/joinchat/SecretInvite12345",
+    "https://telegram.me/joinchat/SecretInvite12345",
+  ])("masks an OCR-observed private invite while retaining its risk signal: %s", (value) => {
+    const evidence = fallbackImageIntelligence(`Join my private Telegram chat: ${value}`);
+    const { input, reasons, score } = scoreImageEvidence(evidence);
+
+    expect(input).not.toContain("SecretInvite12345");
+    expect(evidence.riskHints).toContain("telegram_invite_or_private_link");
+    expect(reasons).toContain("suspicious_invite_link");
+    expect(score.level).toBe("suspicious");
+  });
+
+  it.each([
+    "tg://join?invite=SecretInvite12345",
+    "t.me/+SecretInvite12345",
+    "telegram.me/joinchat/SecretInvite12345",
+  ])("masks a pixel-decoded private invite while retaining its risk signal: %s", (value) => {
+    const evidence = buildDecodedQrOnlyImageEvidence({ values: [value], urls: [value] });
+
+    expect(evidence).not.toBeNull();
+    const { input, reasons, score } = scoreImageEvidence(evidence!);
+    expect(input).not.toContain("SecretInvite12345");
+    expect(evidence!.riskHints).toContain("telegram_invite_or_private_link");
+    expect(reasons).toContain("suspicious_invite_link");
+    expect(score.level).toBe("suspicious");
   });
 
   it("does not turn ordinary Telegram news/product posts into scam promo reasons", () => {

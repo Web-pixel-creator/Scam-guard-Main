@@ -2,16 +2,29 @@
 
 ## Fragile / risky spots
 
+- **2026-07-12 security revalidation fixes are complete locally, deployment
+  evidence is open.** The independent repository pass produced 15 findings
+  (1 High, 9 Medium, 5 Low). The current branch adds exact-subject trust,
+  sink credential minimization, QR/provider/domain corrections, admin-role
+  revocation, admission-before-side-effects, step-scoped monitor secrets and
+  passport follow-up precedence. Integration proof: 4222/4222 tests, TypeScript,
+  build, npm audit, 28-migration reset, 38/38 pgTAP and schema lint pass. Do not
+  mark these findings Closed until the exact commit is deployed, the migration
+  is preflighted/applied, targeted production smokes pass and privacy-safe
+  historical-data review is completed.
+
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale
   invite expiry, trusted-contact opt-out, env-driven invite URLs,
   guardian-language notification, redacted trusted alerts and explicit
   invite-handoff copy are now covered by tests.
-- **Telegram durable lifecycle is fixed locally; production cutover is open.**
-  Single-leader `getUpdates(limit=1)`, metadata-only processing/completion
-  leases, fenced session I/O/outbound effects and completion-before-offset crash
-  recovery pass local PostgreSQL and application tests. Production still uses
-  webhook delivery until migration/deploy/leader-health/cutover evidence is
-  captured; do not mark SG-P1-009 live-fixed before that release gate.
+- **Telegram durable lifecycle is deployed in polling mode.** Single-leader
+  `getUpdates(limit=1)`, metadata-only processing/completion leases, fenced
+  session I/O/outbound effects and completion-before-offset crash recovery pass
+  local PostgreSQL and application tests. Production deployment `8064b403` at
+  revision `4bd9403` reports a healthy polling leader; the scheduled monitor
+  observes `mode=polling`, an empty pending queue and the intentionally disabled
+  webhook. Targeted multi-instance failover and provider-failure evidence remain
+  open, and the system is not claimed to provide exactly-once delivery.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is fixed locally.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
@@ -64,12 +77,13 @@
   only moderator-confirmed Ishonch Guard reports and explicitly exclude
   unverified complaints, number owner data, carrier data and hidden external
   labels.
-- **Verified-contact false-Safe is fixed locally.** A real reproducer combining
-  official short code `1344` with bank impersonation and urgency previously
-  returned `safe`. All 55 ReasonCodes now have an exhaustive trust-impact
-  classification, and every one of the 52 risk codes blocks the protective
-  verified-contact downgrade. Risk tests pass 475/475; deployment and the
-  real-client RU/UZ/EN conflict matrix remain open release evidence.
+- **Verified-contact trust is now exact-subject locally.** A real reproducer
+  combining official short code `1344` with unrelated attacker content returned
+  `safe` and exposed whole-result verified metadata. Badge, phone passport and
+  Safe now require an exact standalone destination; embedded tokens return no
+  verified metadata. Exhaustive reason trust classification remains defense in
+  depth, and warning-prefix sibling clauses no longer suppress recruitment
+  risk. Deployment and the real-client RU/UZ/EN conflict matrix remain open.
 - **Missing high-risk protective actions are fixed locally.** Confirmed-report,
   external-phishing and external-malware reason codes previously reached the
   high-risk Telegram template with a generic request for more context. All 55
@@ -81,7 +95,9 @@
 - **Unicode/IDNA brand verdict defects are fixed locally.** Registered Cyrillic
   text aliases, fully Cyrillic and hybrid-script IDNs, browser Punycode and
   official domains with one terminal DNS root dot now share a two-sided
-  comparison policy. The original downgrade/bypass/false-positive cases pass,
+  comparison policy. Official/news allowlists now use a separate lossless DNS
+  identity, so `kapita1bank.uz`/`sp0t.uz` cannot inherit trust from a lossy
+  similarity skeleton. The original downgrade/bypass/false-positive cases pass,
   as do every registered Cyrillic alias and official domain plus longer-token
   negatives. Risk/core focus passes 165/165 and the repository suite passes
   2733/2733. Deployment, external reputation compatibility and RU/UZ/EN client
@@ -137,7 +153,10 @@
   fails malformed URL displays closed, uses the first-contact RU/UZ/EN language
   hint, skips external URL-reputation providers while typing, enforces the
   256-character Bot API boundary and observes `answerInlineQuery` failures.
-  Deployment and real Desktop/Android/iOS evidence remain open release gates.
+  The hardened Inline build is deployed at revision `4bd9403`; real
+  Desktop/Android/iOS RU/UZ/EN visual and insertion evidence remains the open
+  release gate. The 2026-07-12 credential sanitizer for Markdown and plaintext
+  retry is locally verified but is not deployed yet.
 - **Pig-butchering / romance grooming has explicit conversation memory now.**
   `/conversation` collects a short user-supplied thread, stores only derived
   stage/action/reason metadata in the Telegram session, and flags chains such
@@ -427,10 +446,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       is absent.~~ Fixed locally on 2026-07-11: the committed schedule sets
       `MONITOR_REQUIRE_SECRET_CHECKS=true`, and policy tests prove a required
       skip fails even when fail-on-warning is disabled.
-- [ ] Capture release evidence for the fail-hard monitor policy: pass with all
-      required secrets, fail in a controlled missing-secret Actions environment,
-      restore the secret and pass again. Do not remove a live production secret
-      solely for this drill.
+- [x] ~~Capture release evidence for the fail-hard monitor policy.~~ Done on
+      2026-07-11 without changing production secrets: the normal scheduled
+      configuration passed, a controlled missing-secret drill failed the job,
+      and the restored normal run passed again.
 - [x] ~~Add `MONITOR_ALERT_CHAT_ID` (and optional `MONITOR_ALERT_BOT_TOKEN`) for sanitized Telegram operator alerts.~~ Done on 2026-06-14: Railway and GitHub Secrets have the alert chat id, and a direct Telegram alert test returned `ok: true`.
 - [x] ~~Document the lightweight on-call runbook for production monitor alerts.~~ Done in `ai_docs/ON_CALL_RUNBOOK.md`.
 - [x] ~~Add official-number lookalike detection after Family Shield/webhook hardening.~~ Done: near-miss phone/short-code checks compare against verified contacts and render "similar but not exact" guidance without changing scoring.
@@ -487,11 +506,16 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       lifecycle, global polling leader, failure reacquisition, stale-fence
       rejection, fenced session I/O and outbound effects, safe webhook fallback,
       clean DB reset/lint and crash regressions.
-- [ ] Deploy the two 20260711 migrations and polling build; set
-      `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, require polling-health 200, run
-      `npm run telegram:switch-to-polling`, update the scheduled monitor mode,
-      and capture restart/completion-before-offset/normal multi-step production
-      transcripts. Preserve pending updates and do not claim exactly-once.
+- [x] ~~Deploy the two 20260711 migrations and polling build; switch production
+      and the scheduled monitor to polling; verify leader health and normal
+      multi-step delivery.~~ Done on 2026-07-11/12. Deployment `8064b403` at
+      revision `4bd9403` is healthy, polling leader health returns 200, pending
+      updates remain empty, the scheduled production monitor passes, and the
+      bounded five-action Telegram dialogue smoke passes. Pending updates were
+      preserved; exactly-once delivery is not claimed.
+- [ ] Capture a dedicated multi-instance polling failover/re-election drill and
+      a forced Telegram provider-failure recovery trace without destructive
+      production traffic.
 - [x] ~~Keep description-only Telegram reports out of public reputation.~~ Done in Report Flow Reputation Boundary v1.
 - [x] ~~Add moderated Telegram reputation directory before showing community report labels, first-seen dates or confidence labels on Telegram targets.~~ Done for Telegram targets with hashed identifiers, source/confidence labels and moderation gate.
 - [x] ~~Add honest phone intelligence before reputation claims.~~ Done in Phone Intelligence Passport v1: country/calling-code, Uzbekistan prefix/operator hints and official-directory status without owner/scam-label inference.

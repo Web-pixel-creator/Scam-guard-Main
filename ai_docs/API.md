@@ -25,6 +25,8 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
 retryAfterSec }`. Admin functions throw `Unauthorized` or `Forbidden: admin only`.
+Web/embed meta-intents claim the same shared `check` bucket before any
+`embed_origin_events` insert; a denied request performs no analytics write.
 Production/Railway shared-rate-limit configuration, HMAC or RPC failures also
 fail closed to the same rate-limited behavior; they never grant a new
 per-process allowance. Only non-production local/test runtimes use the bounded
@@ -95,6 +97,12 @@ in-memory fallback.
   descriptions, screenshots, OCR, codes, cards, full phone numbers, full URLs or
   user ids. `npm run moderation:smoke -- --research` verifies the research alert
   wording separately from ordinary user-flow QA.
+- Reports, appeals, check/QR rows, Inline Markdown/plaintext retry, public-post
+  body/preview/button text and moderation egress share an idempotent RU/UZ/EN
+  sink sanitizer for labeled passwords/passphrases, separated OTP/PIN/CVV,
+  labeled recovery phrases and private keys before the existing phone/card/URL
+  masking. Raw values remain available only where hashing/deduplication needs
+  them and never enter display or persistence fields.
 - `/appeal` submits a privacy-safe correction/removal request for phone,
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
   masked display values and redacted reason text. Admin removal hides the public
@@ -115,6 +123,9 @@ in-memory fallback.
   a 350 ms worker budget, caps the total active-plus-queued backlog at four and
   terminates an active job after 900 ms. Saturation, timeout, worker failure and
   unsupported/oversized input all fail closed to no decoded QR evidence.
+  The `/report` screenshot path claims the same media budget before `getFile`;
+  decoded Wi-Fi passwords, labeled credentials/recovery phrases and
+  authenticator/login secrets are removed before check input or persistence.
   Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe`
   only when no reason codes match and the benign category is backed by readable
   text/QR/profile evidence. Category-only model labels remain `unknown`;
@@ -147,10 +158,10 @@ in-memory fallback.
   route directly to `/panic` instead of waiting for a generic risk card.
 - AI-authored check explanations are filtered by `ai-output-safety.ts` before they can be returned or stored. If a provider output asks the user for codes, CVV/PIN/password/card/seed data, APK installs, wallet signing or payments, `explanation` becomes `null` and the deterministic verdict/advice remains. Negation is scoped to its own action clause: `do not share OTP; transfer money` is blocked, while independently negated warnings remain allowed. Repeated unsafe provider outputs for the same rate-limit key open a short in-memory cooldown that skips further AI explanations for that key while keeping rules-first checks active.
 - Risk Passport kind comes only from deterministic result fields. AI `explanation` markers cannot select Telegram presentation or populate structured evidence sections. Only a separate typed `TelegramPassportEvidence { provenance, text }` value from an internal deterministic producer may be parsed; without it, web/embed/Inline renderers use fixed limitation copy.
-- Verified-contact matches are protective destination evidence, not proof that a surrounding message or caller is safe. The check core may return `safe` from a verified match only when every current ReasonCode is classified as informational/protective; any risk-classified code, including future codes that require compile-time classification, preserves the deterministic non-Safe verdict. Mutable Telegram directory entries also expire 30 days after `verifiedAt`; expired handles are removed from exact lookup, public counts/results and action links until re-verified.
+- Verified-contact matches are protective destination evidence, not proof that a surrounding message or caller is safe. Badge, phone passport and `safe` require the complete input to be the exact standalone phone, short code or Telegram handle; an official token embedded in unrelated content returns no verified metadata. Every current ReasonCode is still compile-time classified, and any risk code preserves the deterministic non-Safe verdict. Mutable Telegram directory entries also expire 30 days after `verifiedAt`; expired handles are removed from exact lookup, public counts/results and action links until re-verified.
 - Telegram direct-result advice is selected through exhaustive `REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | null>`. New reason codes cannot compile until they receive an action or intentional non-actionable classification. `known_reported`, `external_phishing_url` and `external_malware_url` high-risk cards give immediate stop/verify or link/APK avoidance instead of asking for more context; copy remains parallel in RU/UZ/EN.
-- Protected-brand detection canonicalizes browser-Punycode/Unicode labels and registry aliases under the same classifier-only comparison policy. It uses NFKC, shared visual-confusable plus bounded Cyrillic/transliteration keys, Unicode-aware text boundaries and removal of one terminal DNS root dot. Thus registered Cyrillic/hybrid IDNs are evaluated consistently, while `official.example.` remains equivalent to `official.example` for exact official-domain suppression.
-- Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`), skip external URL-reputation providers and are non-persistent (`persist=false`) so partial typed queries do not spam `checks`, external providers or AI. Queries are capped at the Bot API boundary of 256 characters. Every displayed value is masked again at the Inline presentation boundary, including human-intent preflight cards; malformed URL displays fail closed to `[link]`. First-contact Inline users pass Telegram's language hint into session loading, while an existing saved language still wins. `answerInlineQuery` failures preserve only the Bot API code/description for handling, are logged without query/result content, and entity-parse errors get one retry using the retained plain text rather than escaped Markdown. All 55 reason codes have an exhaustive typed Inline priority/evidence/limitation policy in RU/UZ/EN; it identifies whether the result came from visible text, URL/domain/phone/Telegram structure, the official directory, moderated local reports or a configured external feed without claiming hidden data or identity proof. Article descriptions are bounded to 120 characters, while inserted cards retain the complete explanation. Bot mentions and the continue button use a validated `TELEGRAM_BOT_USERNAME` with a safe fallback. Low-signal phone/Telegram results reuse the compact Risk Passport presenter; high-risk results remain action-first. Enable inline mode separately in BotFather with `/setinline`.
+- Protected-brand detection keeps two domain representations: lossless WHATWG/IDNA `hostnameIdentity` for official/news allowlists and a lossy NFKC visual-confusable/Cyrillic skeleton only for additive detection. Distinct digit-confusable hosts cannot inherit official/news suppression; exact official subdomains and one terminal DNS root dot remain supported.
+- Telegram inline mode handles `inline_query` updates for `@scamguard_bot <number/link/text>`. Inline previews are rules-only (`skipAi=true`), skip external URL-reputation providers and are non-persistent (`persist=false`) so partial typed queries do not spam `checks`, external providers or AI. Queries are capped at the Bot API boundary of 256 characters. Every displayed value is masked and credential-sanitized again at the Inline presentation boundary, including human-intent preflight cards and the entity-parse plaintext retry; malformed URL displays fail closed to `[link]`. First-contact Inline users pass Telegram's language hint into session loading, while an existing saved language still wins. `answerInlineQuery` failures preserve only the Bot API code/description for handling and are logged without query/result content. All 55 reason codes have an exhaustive typed Inline priority/evidence/limitation policy in RU/UZ/EN; it identifies whether the result came from visible text, URL/domain/phone/Telegram structure, the official directory, moderated local reports or a configured external feed without claiming hidden data or identity proof. Article descriptions are bounded to 120 characters, while inserted cards retain the complete explanation. Bot mentions and the continue button use a validated `TELEGRAM_BOT_USERNAME` with a safe fallback. Low-signal phone/Telegram results reuse the compact Risk Passport presenter; high-risk results remain action-first. Enable inline mode separately in BotFather with `/setinline`.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
 - Telegram reputation labels come only from the app-owned `telegram_reputation_targets` source layer. Unverified user reports are not shown to users. Confirmed moderated reports may add a short source/confidence brief, explicitly distinguished from hidden Telegram SCAM labels or Telegram-internal report history.
 - Admin report moderation treats Telegram aggregate synchronization as a required integrity step. Confirmed/unverified count errors, invalid exact counts and aggregate upsert failures reject with a typed stage error instead of becoming zero/success. The report/entity updates may already be committed, so callers must surface a retryable partial-failure state; logs contain only the stage, not a target hash or database message.
@@ -173,7 +184,9 @@ Browser session token (Supabase) is attached by `attachSupabaseAuth` on every se
 Allowlisted admin signup is gated on Supabase email confirmation: a new account
 gets at most the baseline `user` role until `auth.users.email_confirmed_at` is
 set, then the database trigger may add `admin` if the email is still in
-`admin_allowlist`.
+`admin_allowlist`. Allowlist deletion/update, confirmed-email drift or loss of
+confirmation reconciles and revokes durable `admin` in the same transaction;
+the baseline `user` role remains.
 
 ## Website embed
 

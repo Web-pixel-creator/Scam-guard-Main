@@ -57,6 +57,8 @@ export interface ImageIntelligenceResult {
   qr: {
     present: boolean;
     visibleUrl: string | null;
+    visibleUrlObservedInText?: boolean;
+    observedUrls?: string[];
     purpose: ImageQrPurpose;
     decodedValues?: string[];
   };
@@ -105,6 +107,7 @@ const RISK_HINTS: readonly ImageRiskHint[] = [
 ];
 
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/i;
+const OBSERVED_URL_RE = new RegExp(URL_RE.source, "giu");
 const LOW_INFORMATION_IMAGE_TEXT_RE =
   /(?:не\s+(?:смог|удалось|получилось).{0,40}(?:прочита|распозна|увид)|не\s+читается|размыт|blurry|could(?:n'?t| not).{0,40}(?:read|recognize|extract)|can(?:not|'?t).{0,40}(?:read|recognize|extract)|not\s+readable|unable\s+to\s+read|o['’]?qiy\s+olmad|aniq\s+ko['’]?rinmay)/i;
 
@@ -132,7 +135,8 @@ const BRAND_RE =
   /(банк|central bank|markaziy bank|kapitalbank|uzcard|humo|payme|click|uzum|ucell|beeline|mobiuz|uzmobile|gov|my\.gov)/i;
 const TELEGRAM_POST_RE =
   /(@[a-z0-9_]{3,}|t\.me\/|telegram\.me\/|telegram|канал|подпис|subscribe|join|button|кнопк|перейти|открыть канал|open channel|комментар|reactions?|реакци|просмотр|views?|бот|mini\s?app)/i;
-const TELEGRAM_PRIVATE_INVITE_RE = /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-z0-9_-]+/i;
+const TELEGRAM_PRIVATE_INVITE_RE =
+  /(?:\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:\+|joinchat\/)[a-z0-9_-]+|\b(?:tg|telegram):\/\/join\?[^#\s]*\binvite=[^&\s]+)/i;
 const TELEGRAM_PROFILE_CARD_RE =
   /(страна\s+телефона|регистрац(?:ия|ии)?\s*:?\s*(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр|20\d{2})|не\s+официальн(?:ый|ая|ое)\s+аккаунт|не\s+в\s+контактах|обновил(?:а)?\s+(?:имя|фото|фотографию)|phone\s+country|country\s+phone|registration\s*:?\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|20\d{2})|not\s+official\s+account|not\s+in\s+contacts|updated\s+(?:name|photo))/i;
 const TELEGRAM_PROFILE_OFFER_RE =
@@ -417,8 +421,37 @@ function deriveQrPurpose(text: string, hints: ImageRiskHint[]): ImageQrPurpose {
   return "unknown";
 }
 
+function stripUrlSentencePunctuation(value: string): string {
+  return value.replace(/[.,!?;:'"\]}»”’]+$/gu, "");
+}
+
+function observedUrlIdentity(value: string): string | null {
+  const stripped = stripUrlSentencePunctuation(value.trim());
+  if (!stripped) return null;
+  try {
+    const parsed = new URL(/^https?:\/\//iu.test(stripped) ? stripped : `https://${stripped}`);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function extractObservedUrls(text: string): string[] {
+  const byIdentity = new Map<string, string>();
+  for (const match of text.match(OBSERVED_URL_RE) ?? []) {
+    const stripped = stripUrlSentencePunctuation(match);
+    const identity = observedUrlIdentity(stripped);
+    if (identity && !byIdentity.has(identity)) byIdentity.set(identity, stripped);
+  }
+  return [...byIdentity.values()];
+}
+
 export function fallbackImageIntelligence(text: string | null): ImageIntelligenceResult {
   const rawSource = text ?? "";
+  const rawObservedUrls = extractObservedUrls(rawSource);
+  const observedUrls = rawObservedUrls.map((value) => redactDecodedQrValue(value).slice(0, 500));
+  const rawVisibleUrl = rawObservedUrls[0] ?? null;
   const redacted = clampText(rawSource ? redactText(rawSource) : null, 2000);
   const source = redacted ?? "";
   const analysisSource = [rawSource, source].filter(Boolean).join("\n");
@@ -431,7 +464,9 @@ export function fallbackImageIntelligence(text: string | null): ImageIntelligenc
     confidence: source.length > 0 ? "medium" : "low",
     qr: {
       present: qrPresent,
-      visibleUrl: source.match(URL_RE)?.[0] ?? null,
+      visibleUrl: rawVisibleUrl ? redactDecodedQrValue(rawVisibleUrl).slice(0, 500) : null,
+      visibleUrlObservedInText: rawVisibleUrl !== null,
+      observedUrls,
       purpose: deriveQrPurpose(source, hints),
       decodedValues: [],
     },
@@ -448,7 +483,7 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
   const rec = obj as Record<string, unknown>;
   const rawText = asString(rec.text);
   const text = clampText(rawText ? redactText(rawText) : null, 2000);
-  const fallback = fallbackImageIntelligence(text);
+  const fallback = fallbackImageIntelligence(rawText);
 
   const modelHints = Array.isArray(rec.riskHints)
     ? rec.riskHints.filter((h): h is ImageRiskHint => RISK_HINTS.includes(h as ImageRiskHint))
@@ -457,7 +492,15 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
 
   const qrObj = rec.qr && typeof rec.qr === "object" ? (rec.qr as Record<string, unknown>) : {};
   const qrPresent = typeof qrObj.present === "boolean" ? qrObj.present : fallback.qr.present;
-  const visibleUrl = asString(qrObj.visibleUrl) ?? fallback.qr.visibleUrl;
+  const modelVisibleUrl = asString(qrObj.visibleUrl);
+  const rawObservedUrls = extractObservedUrls(rawText ?? "");
+  const modelVisibleIdentity = modelVisibleUrl ? observedUrlIdentity(modelVisibleUrl) : null;
+  const matchingObservedUrl = modelVisibleIdentity
+    ? rawObservedUrls.find((value) => observedUrlIdentity(value) === modelVisibleIdentity)
+    : undefined;
+  const selectedVisibleUrl = matchingObservedUrl ?? rawObservedUrls[0] ?? modelVisibleUrl;
+  const visibleUrlObservedInText = matchingObservedUrl !== undefined || rawObservedUrls.length > 0;
+  const observedUrls = rawObservedUrls.map((value) => redactDecodedQrValue(value).slice(0, 500));
   const qrPurpose = pickEnum(qrObj.purpose, QR_PURPOSES, deriveQrPurpose(text ?? "", riskHints));
   const derivedCategory = deriveCategory(text ?? "", qrPresent, riskHints);
   const modelCategory = pickEnum(rec.visualCategory, CATEGORIES, derivedCategory);
@@ -478,7 +521,11 @@ export function sanitizeImageIntelligence(raw: unknown): ImageIntelligenceResult
     confidence: pickEnum(rec.confidence, CONFIDENCES, fallback.confidence),
     qr: {
       present: qrPresent,
-      visibleUrl: visibleUrl ? redactDecodedQrValue(visibleUrl).slice(0, 500) : null,
+      visibleUrl: selectedVisibleUrl
+        ? redactDecodedQrValue(selectedVisibleUrl).slice(0, 500)
+        : null,
+      visibleUrlObservedInText,
+      observedUrls,
       purpose: qrPurpose,
       decodedValues: [],
     },
@@ -495,13 +542,73 @@ function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
   return decodedQrValues(evidence).map((value) => `Decoded QR URL/value: ${value}`);
 }
 
+const WIFI_PASSWORD_FIELD_RE = /(^|;)P:(?:\\.|[^;])+(?=;|$)/i;
+const LABELED_PASSWORD_RE =
+  /((?<![\p{L}\p{N}_])(?:password|passcode|passwd|pwd|parol|пароль)\s*[:=]\s*)[^;\r\n]+/giu;
+const LABELED_OTP_RE =
+  /((?<![\p{L}\p{N}_])(?:otp|sms(?:\s+verification)?\s+code|verification\s+code|смс\s*код|код\s+из\s+смс|tasdiq\s+kodi)\s*[:=]\s*)(?:\d[\s.-]*){4,8}/giu;
+const LABELED_PASSWORD_MARKER_RE =
+  /(?<![\p{L}\p{N}_])(?:password|passcode|passwd|pwd|parol|пароль)\s*[:=]/iu;
+const LABELED_OTP_MARKER_RE =
+  /(?<![\p{L}\p{N}_])(?:otp|sms(?:\s+verification)?\s+code|verification\s+code|смс\s*код|код\s+из\s+смс|tasdiq\s+kodi)\s*[:=]\s*(?:\d[\s.-]*){4,8}/iu;
+const SENSITIVE_QUERY_VALUE_RE =
+  /[?&](?:token|secret|session|auth|code|password|pass|otp|pin|cvv|invite)=[^&\s]+/iu;
+const LABELED_RECOVERY_PHRASE_RE =
+  /((?<![\p{L}\p{N}_])(?:(?:seed|recovery|backup|mnemonic)\s*(?:phrase|words?)?|сид[-\s]?фраза|фраза\s+восстановления|резервные\s+слова|tiklash\s+(?:iborasi|so['’]?zlari)|maxfiy\s+ibora)\s*[:=]\s*)([^;\r\n]+)/giu;
+const RECOVERY_PHRASE_LENGTHS = new Set([12, 15, 18, 21, 24]);
+
+function redactLabeledRecoveryPhrase(value: string): string {
+  return value.replace(
+    LABELED_RECOVERY_PHRASE_RE,
+    (full: string, label: string, candidate: string) => {
+      const words = candidate
+        .trim()
+        .split(/[\s,]+/u)
+        .filter(Boolean);
+      if (
+        RECOVERY_PHRASE_LENGTHS.has(words.length) &&
+        words.every((word) => /^\p{L}{2,}$/u.test(word))
+      ) {
+        return `${label}[hidden]`;
+      }
+      return full;
+    },
+  );
+}
+
+function decodedQrContainsSecret(value: string): boolean {
+  if (WIFI_PASSWORD_FIELD_RE.test(value)) return true;
+  if (
+    LABELED_PASSWORD_MARKER_RE.test(value) ||
+    LABELED_OTP_MARKER_RE.test(value) ||
+    SENSITIVE_QUERY_VALUE_RE.test(value)
+  ) {
+    return true;
+  }
+  return redactLabeledRecoveryPhrase(value) !== value;
+}
+
+function shouldAddDecodedSecretHint(value: string): boolean {
+  if (TELEGRAM_PRIVATE_INVITE_RE.test(value)) return false;
+  const kind = classifyDecodedQrValue(value);
+  if (kind === "telegram_login" || kind === "authenticator") return false;
+  return decodedQrContainsSecret(value);
+}
+
 function redactDecodedQrValue(value: string): string {
-  return value
+  return redactLabeledRecoveryPhrase(value)
     .trim()
+    .replace(WIFI_PASSWORD_FIELD_RE, "$1P:[hidden]")
+    .replace(LABELED_PASSWORD_RE, "$1[hidden]")
+    .replace(LABELED_OTP_RE, "$1[hidden]")
     .replace(/((?:tg|telegram):\/\/login\?token=)[^&\s]+/i, "$1[hidden]")
+    .replace(
+      /((?<![\p{L}\p{N}_.-])(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:joinchat\/|\+))[^/?#\s]+/giu,
+      "$1[hidden]",
+    )
     .replace(/((?:otpauth):\/\/[^\s?]+(?:\?[^#\s]*?\bsecret=))[^&\s]+/i, "$1[hidden]")
     .replace(
-      /([?&](?:token|secret|session|auth|code|password|pass|otp|pin|cvv)=)[^&\s]+/gi,
+      /([?&](?:token|secret|session|auth|code|password|pass|otp|pin|cvv|invite)=)[^&\s]+/gi,
       "$1[hidden]",
     )
     .replace(/\b(?:\d[ -]?){13,19}\b/g, "[card]");
@@ -521,7 +628,10 @@ function classifyDecodedQrValue(value: string): DecodedQrKind {
   try {
     const url = new URL(trimmed);
     const protocol = url.protocol.toLowerCase();
-    if (protocol === "tg:" || protocol === "telegram:") return "telegram_login";
+    if (protocol === "tg:" || protocol === "telegram:") {
+      const route = `${url.hostname}${url.pathname}`.replace(/^\/+|\/+$/gu, "");
+      return /^login(?:\/|$)/iu.test(route) ? "telegram_login" : "unknown";
+    }
     if (protocol === "otpauth:") return "authenticator";
     if (protocol === "ton:" || protocol === "tonkeeper:" || protocol === "wc:") {
       return "wallet_deeplink";
@@ -714,6 +824,24 @@ export function isEvidenceBackedBenignImageContext(evidence: ImageIntelligenceRe
   }
 }
 
+function readableVisibleQrUrl(evidence: ImageIntelligenceResult): string | null {
+  const visibleUrl = evidence.qr.visibleUrl;
+  if (!visibleUrl) return null;
+
+  const pixelDecoded = decodedQrValues(evidence).some((value) => value === visibleUrl);
+  const readableInText =
+    evidence.qr.visibleUrlObservedInText === true ||
+    Boolean(evidence.text && evidence.text.includes(visibleUrl));
+  return pixelDecoded || readableInText ? visibleUrl : null;
+}
+
+function readableImageUrls(evidence: ImageIntelligenceResult): string[] {
+  const values = [...(evidence.qr.observedUrls ?? [])];
+  const visibleUrl = readableVisibleQrUrl(evidence);
+  if (visibleUrl) values.push(visibleUrl);
+  return [...new Set(values)];
+}
+
 function dangerousHintText(hint: ImageRiskHint): string {
   switch (hint) {
     case "otp_or_secret":
@@ -772,22 +900,23 @@ export function buildImageCheckInput(evidence: ImageIntelligenceResult): string 
     } else {
       lines.push("Контекст изображения: похоже на информационный плакат.");
     }
+    // A benign provider category may change presentation, but a model-only
+    // URL guess is still not evidence. Keep the destination only when OCR or
+    // pixel decoding independently made that exact value readable.
+    for (const visibleUrl of readableImageUrls(evidence)) {
+      lines.push(`Видимый адрес из QR/изображения: ${visibleUrl}`);
+    }
     lines.push(...decodedLines);
     return lines.join("\n").slice(0, 2000);
   }
 
   if (evidence.text) lines.push(evidence.text);
-  if (evidence.qr.visibleUrl) {
-    const visibleUrl = evidence.qr.visibleUrl;
-    const qrPixelDecoded = decodedQrValues(evidence).length > 0;
-    const urlReadableInText = Boolean(evidence.text && evidence.text.includes(visibleUrl));
+  for (const visibleUrl of readableImageUrls(evidence)) {
     // P3: only let a QR-adjacent URL drive domain scoring when it is genuinely
     // readable — a pixel-decoded QR payload or a URL that also appears in OCR
     // text. A URL the model merely guessed near a QR it could not decode must
     // not produce a "suspicious domain" verdict on its own.
-    if (qrPixelDecoded || urlReadableInText) {
-      lines.push(`Видимый адрес из QR/изображения: ${visibleUrl}`);
-    }
+    lines.push(`Видимый адрес из QR/изображения: ${visibleUrl}`);
   }
   for (const line of decodedLines) {
     if (
@@ -808,6 +937,10 @@ export function mergeDecodedQrEvidence(
 ): ImageIntelligenceResult {
   if (decoded.values.length === 0) return evidence;
 
+  const containsDecodedSecret = decoded.values.some(shouldAddDecodedSecretHint);
+  const containsDecodedPrivateInvite = decoded.values.some((value) =>
+    TELEGRAM_PRIVATE_INVITE_RE.test(value),
+  );
   const decodedValues = [
     ...new Set(decoded.values.map((value) => redactDecodedQrValue(value).slice(0, 500))),
   ];
@@ -820,6 +953,8 @@ export function mergeDecodedQrEvidence(
   const combinedForHints = [combinedText, decodedUrls.join("\n")].filter(Boolean).join("\n");
   const riskHints = uniqueHints([
     ...evidence.riskHints,
+    ...(containsDecodedSecret ? (["otp_or_secret"] as const) : []),
+    ...(containsDecodedPrivateInvite ? (["telegram_invite_or_private_link"] as const) : []),
     ...decodedHints(kinds),
     ...deriveHints(combinedForHints),
   ]);
@@ -860,11 +995,15 @@ export function buildDecodedQrOnlyImageEvidence(
   if (decoded.values.length === 0) return null;
 
   const kinds = decodedKinds(decoded.values);
+  const containsPrivateInvite = decoded.values.some((value) =>
+    TELEGRAM_PRIVATE_INVITE_RE.test(value),
+  );
   const actionable =
     kinds.has("telegram_login") ||
     kinds.has("authenticator") ||
     kinds.has("payment") ||
-    kinds.has("wallet_deeplink");
+    kinds.has("wallet_deeplink") ||
+    containsPrivateInvite;
   if (!actionable) return null;
 
   const evidence = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), decoded);

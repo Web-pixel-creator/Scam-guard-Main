@@ -2,6 +2,38 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-076 - Admission and entitlement changes precede side effects
+
+Public meta-intents claim the shared check budget before embed analytics, and
+Telegram report/image paths claim the shared media budget before Bot API file
+metadata or download. A denied request performs no protected downstream work.
+The durable `admin` role is an exact projection of current confirmed-email
+allowlist eligibility: allowlist deletion, email drift or confirmation loss
+revokes it in the same transaction. Per-user advisory locks serialize competing
+eligibility transitions. Production-monitor secrets are visible only to the
+final monitor step; checkout/tool actions use immutable SHAs and a pinned Bun.
+
+## D-075 - Secret minimization is enforced at every durable or chat sink
+
+`redactText` begins with one RU/UZ/EN-aware credential sanitizer for labeled
+passwords/passphrases, separated OTP/PIN/CVV values, labeled recovery phrases
+and private keys, then applies the established phone/card/URL masking. Reports,
+appeals, check/QR input, Inline articles and plaintext retry, public-post text/
+previews/buttons, sessions and moderation alerts inherit or repeat that sink
+boundary. QR Wi-Fi passwords, authenticator secrets and standard labeled
+mnemonics are additionally removed before structured evidence can reach a
+check row. Ordinary safety prose and numeric amounts remain intact.
+
+## D-074 - Trust evidence is exact-subject and cannot lower independent risk
+
+An official contact badge, phone passport or Safe override requires the whole
+input to be that exact standalone phone, short code or Telegram handle. An
+official token embedded in unrelated content is not exposed as verified
+metadata. Official/news allowlists compare a lossless WHATWG/IDNA DNS identity;
+the visual/transliteration skeleton is only additive suspicious evidence.
+Provider image categories may affect presentation but cannot omit a visible
+destination before deterministic URL/brand scoring.
+
 ## D-073 - Telegram intents have one side-effect contract
 
 Meta, victim, post-check, panic and fresh-risk-input identifiers are namespaced

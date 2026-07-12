@@ -2,6 +2,35 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-12 - Repository security revalidation fixes verified locally
+
+- Revalidated clean `main` revision `4bd9403` across 388 ranked files and 109
+  full-file receipts. Fifteen findings survived validation: 1 High, 9 Medium
+  and 5 Low; no Critical finding was confirmed.
+- Bound verified-contact badge/passport/Safe to an exact standalone subject,
+  separated lossless DNS allowlist identity from similarity skeletons and kept
+  every independently OCR-observed or pixel-decoded image destination in
+  deterministic scoring. Provider-only URL guesses cannot become evidence.
+- Added one sink credential sanitizer for reports, appeals, checks/QR, Inline,
+  public posts and moderation alerts; report screenshots now claim media
+  admission before Bot API file access.
+- Added exact admin-role reconciliation for allowlist/email/confirmation
+  transitions, meta-intent admission before analytics, step-scoped production
+  monitor secrets with SHA-pinned actions and passport/document follow-up
+  precedence.
+- Added a count-only admin entitlement preflight and verified it against the
+  production environment through Railway with ordered pagination, uniqueness
+  checks and a stable double-read: Auth users 1, current admins 1, eligible
+  admins 1, stale roles 0 and missing roles 0; no identifier or email was logged.
+- Independent integration verification passes: 4222/4222 tests, TypeScript,
+  production build, npm audit (0), 28-migration local reset, pgTAP 38/38 and
+  schema lint. Fixed-state redaction/QR probes pass and the old vulnerable
+  contact/provider/domain/Inline/public-post/moderation/passport/media-order
+  assertions no longer hold.
+- This entry is local-only evidence. Production deployment, migration apply,
+  targeted smokes, historical privacy review and the broad real-client RU/UZ/EN
+  bot/Inline matrix remain open before the findings can be marked Closed.
+
 ## 2026-07-12 - Canonical Telegram contract deployed and verified
 
 - Deployed clean `main` commit `4050172` to Railway as deployment

@@ -6,7 +6,7 @@ Signatures and intent only. See file paths for source.
 
 | Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Optional embed context records privacy-safe origin usage telemetry only for iframe calls.                                                              |
+| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                     |
 | `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
 | `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
@@ -18,6 +18,18 @@ Signatures and intent only. See file paths for source.
 | `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin  | Dashboard counts.                                                                                                                                                                                                    |
 
 ## Risk engine
+
+**`src/lib/admin-role-preflight.ts`**
+
+- `summarizeAdminRoleDrift(users, allowlistEmails, adminUserIds)` compares the
+  confirmed allowlist projection with durable admin-role rows and returns only
+  aggregate current/eligible/stale/missing counts. It never returns an email or
+  user id, so `npm run admin-role:preflight` is safe to retain as deployment
+  evidence.
+- `collectCountedPages(fetchPage, pageSize?)` consumes exact-count pages and
+  fails closed on missing, changing, truncated or oversized results. The live
+  preflight additionally orders both PostgREST sources, rejects duplicate page
+  identities and requires two identical reads before producing counts.
 
 **`src/lib/request-ip.server.ts`**
 
@@ -40,7 +52,16 @@ Signatures and intent only. See file paths for source.
   input, while valid URLs keep only a host/path indicator.
 - `redactText(s)` masks full cards, inline phones, OTP-like digit runs, ordinary
   URLs/Telegram handles and complete `tg://`/`telegram://` custom-scheme
-  identifiers before narrative persistence or presentation.
+  identifiers before narrative persistence or presentation. It first calls
+  `redactSensitiveSecrets`, so labeled passwords, separated codes, recovery
+  phrases and private keys cannot bypass the older digit/URL controls.
+
+**`src/lib/risk/sensitive-text.ts`**
+
+- `sanitizeSensitiveTextForSink(input)` returns an idempotently sanitized value
+  plus bounded secret-class metadata while preserving ordinary safety prose,
+  numeric amounts and phone-shaped values for the established phone masker.
+- `redactSensitiveSecrets(input)` is the string-only sink helper.
 
 **`src/lib/risk/rules.ts`**
 
@@ -81,7 +102,7 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/risk/check-core.ts`**
 
-- `runCheck(params)` is the transport-independent check pipeline. It uses the shared production limiter with a local fallback. `persist:false` is reserved for non-final previews such as Telegram inline typing and skips the `checks` insert while preserving deterministic scoring. A verified-contact match is protective destination evidence only: it cannot downgrade any risk-classified reason to Safe.
+- `runCheck(params)` is the transport-independent check pipeline. It uses the shared production limiter with a local fallback. `persist:false` is reserved for non-final previews such as Telegram inline typing and skips the `checks` insert while preserving deterministic scoring. Verified metadata, phone passport and Safe require an exact standalone contact; embedded official tokens are not trusted. Composite text/image payloads retain embedded destinations for deterministic URL/brand scoring.
 - `ocrExtractCore(dataUrl, lang, rateLimitKey)` is the transport-independent OCR pipeline; it uses the same shared check limiter and rejects non-allowlisted image data URLs before building AI `image_url` messages.
 - `analyzeImageCore(dataUrl, lang, rateLimitKey)` returns structured, redacted image evidence for Telegram photos/screenshots; it uses the same shared check limiter and validates png/jpeg/webp base64 data URLs before AI image analysis.
 - `parseAllowedImageDataUrl(value, { maxBytes? })` in `src/lib/risk/media-data-url.ts` normalizes AI-bound image data URLs and enforces MIME/base64/decoded-size limits.
@@ -89,9 +110,10 @@ Signatures and intent only. See file paths for source.
 
 **`src/lib/risk/domain-normalizer.ts`**
 
-- `normalizeDomain(rawUrl)` strips scheme/`www`, separates path, decodes
-  Punycode labels, removes one terminal DNS root dot and returns lowercase
-  classifier comparison keys.
+- `normalizeDomain(rawUrl)` returns both `hostnameIdentity` (lossless WHATWG/
+  IDNA DNS identity for allowlists) and `hostname` (lossy visual/transliteration
+  skeleton for additive detection), plus the normalized path.
+- `toDnsIdentityKey(value)` never collapses digit/letter confusables.
 - `toDomainComparisonKey(value)` and `toDomainComparisonKeys(value)` apply the
   shared NFKC, visual-confusable and bounded Cyrillic/transliteration policy to
   both checked labels and registry aliases.
@@ -118,11 +140,21 @@ Signatures and intent only. See file paths for source.
 - `fallbackImageIntelligence(text)` builds deterministic evidence when model JSON is invalid, including Telegram promo/Web3 screenshot hints. The precision pass also recognizes Stars/NFT spin/lucky-draw/777 mechanics and public voting/contest domains without turning ordinary Telegram news/product posts into scam results.
 - `hasUsableImageEvidence(evidence)` rejects low-information model output such as "could not read the image" so blurry screenshots stay in the explicit fallback path.
 - `mergeDecodedQrEvidence(evidence, decoded)` injects real pixel-decoded QR values into structured image evidence before scoring.
+- QR merging removes Wi-Fi passwords, labeled RU/UZ/EN passwords/OTP/recovery
+  phrases, authenticator/login tokens and sensitive URI values before evidence
+  reaches `runCheck`; non-login secret-bearing QR adds `otp_or_secret`.
 - `isEvidenceBackedBenignImageContext(evidence)` is the strict gate for final
   no-reasons `safe` image verdicts. It requires a benign category plus readable
   delivery/menu/QR/profile evidence and zero risk hints; category-only model
   labels stay `unknown`.
-- `buildImageCheckInput(evidence)` converts benign/dangerous image evidence into a rules-safe input string; Telegram casino/free-spins, NFT/Stars giveaways, vote/captcha gates, task rewards, wallet urgency and TON referral screenshots feed the existing scam-research-feed-v2 reason codes.
+- `buildImageCheckInput(evidence)` converts benign/dangerous image evidence into
+  a rules-safe input string. Deterministic URL/brand scoring receives every
+  complete URL token independently observed in pre-redaction OCR or pixel QR
+  decode; provider-only guesses and truncated-prefix substitutions are not
+  evidence. Private Telegram invite tokens are masked while their risk signal
+  remains. Telegram casino/free-spins, NFT/Stars giveaways, vote/captcha gates,
+  task rewards, wallet urgency and TON referral screenshots feed the existing
+  scam-research-feed-v2 reason codes.
 - `buildImageUserExplanation(evidence, level, lang)` creates the short Telegram explanation for image results, with scenario-specific copy for casino/free-spins, NFT/Stars giveaways, task rewards, wallet/DeFi urgency, TON referrals, private invites and benign Telegram posts. QR copy now distinguishes real pixel-decoded payloads, URLs merely visible near a QR and QR codes that are visible but unreadable; Telegram login tokens and 2FA secrets stay hidden.
 
 **`src/lib/risk/qr-decoder.ts`**
@@ -401,7 +433,8 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText` now returns compact panic first cards, `buildDetailedPanicScenarioText` keeps the full checklist for `panicctx:full`, plus panic keyboard builders, live-call callback parser and Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. First panic cards keep the urgent action first and short human guidance cues without repeating "I am nearby" in every message; follow-up answers are guided for stressed/elderly users, keep safe-callback boundaries and use scenario-specific ready phrases/contact destinations for financial, APK, Telegram takeover, live-call, romance, sextortion/photo-video blackmail, publication threats, minor-safety, AI voice-clone, fake job/easy-money, delivery/top-up, crypto/TON/wallet and government grant/benefit cases. Minor-safety and publication-threat trusted-person flows have distinct copy instead of sharing the generic blackmail branch. The panic menu is paginated through page 3 (`panic:more2` / `panic:back2`) for scenarios `12..15`.
 - `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check and orphan helper follow-up questions before `runCheck` (regressed for live phrases like "Точно?", "Что еще посоветуешь?" and "дай номер банка"), sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring.
-- `src/lib/telegram/handlers/report.ts`: owns the `/report` state machine, stores only prepared target hashes/masked displays plus redacted draft text, and accepts screenshots only on the description step. Report screenshots are downloaded/analyzed in memory through structured image evidence, converted to a short redacted summary, and never stored as raw images, data URLs, decoded QR payloads or full OCR text.
+- `src/lib/telegram/media-admission.server.ts`: `claimTelegramImageDownloadBudget(userId)` claims the shared media bucket before any Bot API file metadata or body download; ordinary image and report-screenshot paths use the same boundary.
+- `src/lib/telegram/handlers/report.ts`: owns the `/report` state machine, claims media admission before `getFile`, stores only prepared target hashes/masked displays plus redacted draft text, and accepts screenshots only on the description step. Report screenshots are downloaded/analyzed in memory through structured image evidence, converted to a short redacted summary, and never stored as raw images, data URLs, decoded QR payloads or full OCR text.
 - `src/lib/telegram/handlers/inline.ts`: answers Telegram inline-mode queries with one compact `InlineQueryResultArticle`; empty queries show usage help, non-empty queries are capped at 256 characters and call `runCheck(skipAi:true, skipUrlReputation:true, persist:false)`. `safeInlineDisplay` masks human-preflight and upstream displays again before insertion and fails closed for malformed URLs. Low-signal phone/Telegram results reuse the shared Risk Passport summary; higher-risk results remain action-first. `answerOne` logs only a generic failure/code and retries entity-parse failures once with the retained real plain text, not MarkdownV2 escape slashes. Copy/buttons use validated `TELEGRAM_BOT_USERNAME` with a safe fallback.
 - `src/lib/telegram/forward-context.ts`: sanitizes visible public Telegram forward source metadata and builds RU/UZ/EN reply-only source briefs with scheme/goal/safe-step copy when deterministic reason codes reveal a concrete tactic. It never changes scoring input and never persists source metadata.
 - `src/lib/telegram/image-fallback.ts`: builds `imgtriage:*` callback data, the full unreadable-image category keyboard, compact post-category follow-up keyboards and hook/risk/safe-step copy; it is presentation-only and does not run scoring or persistence.
@@ -410,7 +443,7 @@ Signatures and intent only. See file paths for source.
 - `src/lib/telegram/handlers/misc.ts`: handles callbacks and unsupported input; video and unsupported/oversized media fallbacks include capture instructions and next-step buttons; `guardian:*` callbacks answer with stored high-risk guidance or an honest no-context fallback; `family:codeword` shows the offline family-codeword guide without persistence; `imgtriage:*` and `asked:*` callbacks answer with scenario-specific safe steps for unreadable images or low-context username/phone checks and avoid repeating generic risk verdicts; result `why` callbacks use recent `lastCheck` context when available.
 - `src/lib/telegram/check-context-buttons.ts`: presentation-only "what did they ask for?" buttons for inconclusive phone/Telegram-profile checks. It maps `asked:*` callbacks to short RU/UZ/EN safe-step responses for code, card, transfer, APK, link/QR and live-call contexts without changing scoring or persistence.
 - `src/lib/telegram/public-metadata.server.ts`: extracts public Telegram targets, preserves public post ids from `t.me/username/123` and `t.me/s/username/123`, skips lookup for private/internal links, calls `getChatInfo` via an injectable lookup for public usernames with a soft metadata timeout and bounded short in-memory cache, and builds compact safe RU/UZ/EN Telegram Passport briefs. Username-only checks show visible public data, Ishonch Guard confirmed-report status, hard Bot API limitations, conservative visible username hints (random/generated, brand/support lookalike, promo wording), a Telegram Native Passport Coach that teaches users how to read Telegram-client profile signals without claiming Bot API access, and one concrete next step instead of a raw "insufficient data" dead end; missing local reports are described as not found, never as proof of safety. Slow Telegram metadata responses fall back to an honest unavailable passport instead of blocking the whole check on the full Bot API timeout. When Telegram/Web3 risk reasons exist, it renders a scenario-first evidence brief before hard Bot API limitations; profile-only checks keep limitation-first wording. Public post fallback copy says to forward/paste/screenshot the post when the public web page cannot be read. Enrichment never changes scoring.
-- `src/lib/telegram/public-post.server.ts`: validates public Telegram post links, fetches only `https://t.me/s/<username>/<postId>` with timeout/body/shared rate limits, parses visible post text, outbound links, link previews and inline buttons from Telegram web HTML, redacts sensitive digits, builds rules-safe check input, and prepends a source limitation brief without changing score/level/reasons.
+- `src/lib/telegram/public-post.server.ts`: validates public Telegram post links, fetches only `https://t.me/s/<username>/<postId>` with timeout/body/shared rate limits, parses visible post text, outbound links, link previews and inline buttons from Telegram web HTML, sanitizes credentials in body/preview/button text, builds rules-safe check input, and prepends a source limitation brief without changing score/level/reasons.
 - `src/lib/telegram/format.ts`: formats result cards; Telegram profile/invite checks use a dedicated context prompt and longer safe truncation budget so Telegram Passport limitations are not cut off, unknown phone cards render a visual Phone Passport, inconclusive phone/Telegram-profile cards add `asked:*` context buttons, unknown cards hide weak topic-only observations, suspicious cards use a compact "what noticed" evidence section, and high-risk first cards are compressed to urgent actions plus a short evidence summary instead of long generic explanation/reporting blocks. Visible-source briefs for forwarded Telegram posts remain as compact evidence.
 - `src/lib/telegram/reputation.server.ts`: observes Telegram targets by HMAC hash, registers unverified Telegram report candidates, and renders source/confidence labels only for moderated reputation. `syncTelegramReputationAfterModeration` fail-closes on count query/error/shape or aggregate upsert failure and throws typed stage-only `TelegramReputationSyncError`; it never converts a failed read to zero or returns false success.
 - `src/lib/telegram/handlers/commands.ts`: `/call` stores minimal panic context `6` and opens the active live-call copilot directly with the hangup-first keyboard; `/trainer` opens the callback-only scam-call mini-quiz without persistence.

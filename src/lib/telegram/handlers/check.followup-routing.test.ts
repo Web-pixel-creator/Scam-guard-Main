@@ -172,6 +172,43 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).toContain("SMS-код");
   });
 
+  it.each([
+    ["Почему меня просят отправить паспорт?", "ru", "Паспорт, ПИНФЛ"],
+    ["Nega mendan pasport yuborishni so'rashyapti?", "uz", "Pasport, JSHSHIR"],
+    ["Why are they asking me to send a passport?", "en", "Do not send passport data"],
+  ])(
+    "routes a new passport request ahead of a recent Safe result: %s",
+    async (phrase, lang, expectedText) => {
+      await handleCheck(phrase, {
+        chatId: 100,
+        userId: 42,
+        session: {
+          ...sessionWith(snapshot({ context: "generic", level: "safe" })),
+          lang: lang as Session["lang"],
+        },
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      expect(hoisted.sentMessages).toHaveLength(1);
+      expect(hoisted.sentMessages[0].text).toContain(expectedText);
+      expect(hoisted.sentMessages[0].text).not.toContain("Безопасно");
+      expect(hoisted.familyNotifyCalls).toHaveLength(0);
+    },
+  );
+
+  it("routes an orphan passport request to current safety guidance, not a generic explanation", async () => {
+    await handleCheck("Почему меня просят отправить паспорт?", {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Паспорт, ПИНФЛ");
+    expect(hoisted.sentMessages[0].text).not.toContain("не вижу, к какой именно проверке");
+  });
+
   it("routes new post-check actions without a cold check or trusted-contact side effect", async () => {
     const recent = snapshot({
       context: "generic",

@@ -240,6 +240,31 @@ describe("last check follow-up router", () => {
     ).toBeNull();
   });
 
+  it.each([
+    ["ru", "Почему меня просят отправить паспорт?"],
+    ["uz", "Nega mendan pasport yuborishni so'rashyapti?"],
+    ["en", "Why are they asking me to send a passport?"],
+    ["ru-id", "Почему требуют фото ID-карты и адрес?"],
+    ["uz-id", "Nega JSHSHIR va hujjat rasmini yuborishni so'rashyapti?"],
+    ["en-id", "Why do they require a photo of my ID and date of birth?"],
+  ])("treats a new personal-data request as a fresh safety event (%s)", (_lang, phrase) => {
+    const now = new Date("2026-07-12T10:00:00.000Z");
+    const recentSafe = buildLastCheckSnapshot(baseResult({ level: "safe" }), now);
+
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(recentSafe), now)).toBeNull();
+    expect(classifyOrphanCheckFollowUp(phrase)).toBeNull();
+  });
+
+  it("preserves a legitimate confidence follow-up after the personal-data guard", () => {
+    const now = new Date("2026-07-12T10:00:00.000Z");
+    const recentSafe = buildLastCheckSnapshot(baseResult({ level: "safe" }), now);
+
+    expect(classifyLastCheckFollowUp("Are you sure?", scenarioWith(recentSafe), now)).toBe(
+      "confidence",
+    );
+    expect(classifyOrphanCheckFollowUp("Are you sure?")).toBe("confidence");
+  });
+
   it("ignores stale last-check context", () => {
     const now = new Date("2026-06-06T05:30:01.000Z");
     const snapshot = buildLastCheckSnapshot(baseResult(), new Date("2026-06-06T05:00:00.000Z"));

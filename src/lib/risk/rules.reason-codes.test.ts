@@ -629,6 +629,18 @@ describe("evaluateText - dropper_recruitment (research feed v1)", () => {
     expect(evaluateText(text)).not.toContain("dropper_recruitment");
   });
 
+  it("does not let a safety sentence suppress a later recruitment clause", () => {
+    const text = "Do not sell your bank card to strangers. Sell your bank card to us for a reward.";
+
+    expect(evaluateText(text)).toContain("dropper_recruitment");
+  });
+
+  it("does not let a contrast conjunction extend negation to a dangerous clause", () => {
+    const text = "Do not sell your bank card to strangers, but sell your bank card to us.";
+
+    expect(evaluateText(text)).toContain("dropper_recruitment");
+  });
+
   it("is suspicious without changing global thresholds", () => {
     const { score, level } = scoreFromCodes(["dropper_recruitment"]);
     expect(score).toBe(35);

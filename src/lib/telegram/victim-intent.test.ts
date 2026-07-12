@@ -111,6 +111,7 @@ describe("classifyVictimIntent", () => {
     ["у меня просят паспорт", "personal_data_request"],
     ["у меня просят пинфл", "personal_data_request"],
     ["menga pasport so'rashyapti", "personal_data_request"],
+    ["Nega mendan pasport yuborishni so'rashyapti?", "personal_data_request"],
     ["мне звонили из банка", "bank_call"],
     ["мне звонит директор билайна", "operator_call"],
     ["мне звонит оператор Beeline", "operator_call"],

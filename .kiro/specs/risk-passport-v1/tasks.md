@@ -22,9 +22,11 @@
   - Route each context button to concrete safety guidance.
   - Prevent context button taps from re-running the same shallow check.
 
-- [ ] 5. Update web/embed compact rendering where relevant
+- [x] 5. Update web/embed compact rendering where relevant
   - Reuse the same passport data for web and iframe summaries.
   - Keep partner embed output compact and privacy-preserving.
+  - Shipped as ROAD-011 with shared presenter ownership and focused web/embed
+    regression coverage.
 
 - [x] 6. Add tests
   - Unit-test builder evidence boundaries.

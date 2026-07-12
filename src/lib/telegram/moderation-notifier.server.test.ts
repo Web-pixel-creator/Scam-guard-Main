@@ -87,6 +87,29 @@ describe("moderation notifier", () => {
     expect(payload?.text).toContain("Полный номер/username, решение и история цели доступны");
   });
 
+  it("sanitizes credential classes again at the Telegram moderation egress", async () => {
+    process.env.TELEGRAM_MODERATION_CHAT_ID = "-1001234567890";
+    const markers = [
+      "notifier-secret",
+      "9 1 4 2 8 7",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    ];
+
+    const result = await notifyModeration({
+      kind: "report",
+      entityType: "text",
+      redactedValue: `password ${markers[0]}`,
+      scamType: `OTP: ${markers[1]}`,
+      city: `seed phrase: ${markers[2]}`,
+      language: "en",
+    });
+
+    expect(result).toEqual({ ok: true });
+    const calls = hoisted.sendMessage.mock.calls as unknown as Array<[{ text: string }]>;
+    const payload = calls[0][0];
+    for (const marker of markers) expect(payload.text).not.toContain(marker);
+  });
+
   it("formats incident-only reports without a public target", () => {
     const text = formatModerationNoticeForTelegram({
       kind: "report",

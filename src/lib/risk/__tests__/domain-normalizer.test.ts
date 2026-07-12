@@ -182,8 +182,19 @@ describe("Domain Normalizer", () => {
     it("removes one terminal DNS root dot before official-domain comparison", () => {
       expect(normalizeDomain("https://kapitalbank.uz./login")).toEqual({
         hostname: "kapitalbank.uz",
+        hostnameIdentity: "kapitalbank.uz",
         path: "/login",
       });
+    });
+
+    it("keeps DNS identity distinct from the lossy similarity skeleton", () => {
+      const officialCollision = normalizeDomain("https://kapita1bank.uz/login");
+      const newsCollision = normalizeDomain("https://sp0t.uz/kapitalbank");
+
+      expect(officialCollision.hostname).toBe("kapitalbank.uz");
+      expect(officialCollision.hostnameIdentity).toBe("kapita1bank.uz");
+      expect(newsCollision.hostname).toBe("spot.uz");
+      expect(newsCollision.hostnameIdentity).toBe("sp0t.uz");
     });
 
     it("gives the same comparison key to decoded IDN and registered Cyrillic alias", () => {

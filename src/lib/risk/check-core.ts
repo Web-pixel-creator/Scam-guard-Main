@@ -111,6 +111,8 @@ export type RateLimitedError = Error & { status: 429; retryAfter: number };
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 const POSSIBLE_VERIFIED_CONTACT_RE = /@[a-zA-Z][a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{2,}\d/g;
+const EXACT_PHONE_CONTACT_RE = /^\+?\d[\d\s().-]{2,}\d$/;
+const EXACT_TELEGRAM_CONTACT_RE = /^@[a-zA-Z][a-zA-Z0-9_]{3,}$/;
 const EMBEDDED_URL_RE =
   /\bhttps?:\/\/[^\s<>()]+|\b(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
 const TELEGRAM_INVITE_URL_RE = /^(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+/i;
@@ -143,6 +145,26 @@ function findVerifiedContactForCheck(
   return null;
 }
 
+function isExactVerifiedContactInput(input: string, match: VerifiedContact): boolean {
+  const trimmed = input.trim();
+  if (match.contactType === "telegram") {
+    return (
+      EXACT_TELEGRAM_CONTACT_RE.test(trimmed) &&
+      trimmed.toLowerCase() === match.normalized.toLowerCase()
+    );
+  }
+
+  if (match.contactType === "short_code") {
+    return /^\d{3,5}$/.test(trimmed) && trimmed === match.normalized;
+  }
+
+  if (!EXACT_PHONE_CONTACT_RE.test(trimmed)) return false;
+  const exactMatch = findVerifiedContact(trimmed);
+  return (
+    exactMatch?.normalized === match.normalized && exactMatch.contactType === match.contactType
+  );
+}
+
 function cleanEmbeddedUrl(raw: string): string {
   return raw.replace(/[.,!?;:)\]}>"'`]+$/g, "");
 }
@@ -155,6 +177,12 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
     if (found.size >= max) break;
   }
   return [...found];
+}
+
+function isStandaloneUrlPayload(input: string): boolean {
+  const trimmed = cleanEmbeddedUrl(input.trim());
+  const urls = extractEmbeddedUrls(trimmed, 2);
+  return urls.length === 1 && cleanEmbeddedUrl(urls[0]) === trimmed;
 }
 
 function normalizeUrlForReputation(raw: string): string | null {
@@ -193,8 +221,12 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   const workingInput = input.trim();
 
   const shouldTrustProvidedType = trustProvidedType ?? channel !== "web";
-  const detected =
+  const inferredType =
     shouldTrustProvidedType && type && type !== "unknown" ? type : detectInputType(workingInput);
+  const detected =
+    (inferredType === "url" || inferredType === "apk") && !isStandaloneUrlPayload(workingInput)
+      ? "text"
+      : inferredType;
   const normalized = normalize(workingInput, detected);
   const display = maskForDisplay(normalized, detected);
   const safeInput = redactText(workingInput);
@@ -238,10 +270,21 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     if (detected === "url" || detected === "apk") {
       // URL input: normalize domain and check for brand impersonation in URL
       const normalizedDomain = normalizeDomain(normalized);
-      const urlResult = matchBrandInUrl(normalizedDomain, normalizedDomain.hostname);
+      const urlResult = matchBrandInUrl(normalizedDomain, normalizedDomain.hostnameIdentity);
       if (urlResult.detected) {
         codes.add("brand_impersonation");
         brandEvidence = urlResult.evidence;
+      }
+    }
+
+    if (detected === "text" || detected === "unknown" || detected === "payment") {
+      for (const embeddedUrl of extractEmbeddedUrls(workingInput)) {
+        const normalizedDomain = normalizeDomain(embeddedUrl);
+        const urlResult = matchBrandInUrl(normalizedDomain, normalizedDomain.hostnameIdentity);
+        if (urlResult.detected) {
+          codes.add("brand_impersonation");
+          brandEvidence = [...brandEvidence, ...urlResult.evidence];
+        }
       }
     }
 
@@ -335,16 +378,20 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   let verifiedContact: RunCheckResult["verifiedContact"] = null;
   let finalLevel = scoredLevel;
 
-  const match = findVerifiedContactForCheck(workingInput, detected, normalized);
-  if (match) {
+  const candidateMatch = findVerifiedContactForCheck(workingInput, detected, normalized);
+  const exactVerifiedMatch =
+    candidateMatch && isExactVerifiedContactInput(workingInput, candidateMatch)
+      ? candidateMatch
+      : null;
+  if (exactVerifiedMatch) {
     verifiedContact = {
-      orgName: match.org[lang],
-      orgType: match.orgType,
-      source: match.source,
-      display: match.display,
-      contactType: match.contactType,
-      verificationLevel: match.verificationLevel,
-      description: match.description[lang],
+      orgName: exactVerifiedMatch.org[lang],
+      orgType: exactVerifiedMatch.orgType,
+      source: exactVerifiedMatch.source,
+      display: exactVerifiedMatch.display,
+      contactType: exactVerifiedMatch.contactType,
+      verificationLevel: exactVerifiedMatch.verificationLevel,
+      description: exactVerifiedMatch.description[lang],
     };
     if (canVerifiedContactMarkSafe(reasonList)) {
       finalLevel = "safe";
@@ -354,7 +401,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   const isShortCodeInput = /^\d{3,5}$/.test(workingInput);
   const phoneIntelligence =
     detected === "phone" || isShortCodeInput
-      ? buildPhoneIntelligencePassport(workingInput, normalized, match)
+      ? buildPhoneIntelligencePassport(workingInput, normalized, exactVerifiedMatch)
       : null;
 
   // ── Persist to checks (with the FINAL level the user sees) ───────────────

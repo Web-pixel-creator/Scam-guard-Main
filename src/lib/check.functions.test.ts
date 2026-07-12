@@ -50,6 +50,17 @@ const hoisted = vi.hoisted(() => ({
     amountRows: [{ amount_lost_uzs: 250_000 }, { amount_lost_uzs: 125_000 }],
   },
   embedEvents: [] as unknown[],
+  sharedRateLimitCalls: [] as Array<{
+    scope: string;
+    key: string;
+    limit: number;
+    windowMs: number;
+  }>,
+  sharedRateLimitResults: [] as Array<{
+    ok: boolean;
+    remaining?: number;
+    retryAfterSec: number;
+  }>,
 }));
 
 // Fixed core result with EVERY documented RunCheckResult field. The wrapper must
@@ -104,6 +115,21 @@ vi.mock("./risk/check-core", () => ({
     hoisted.ocrCalls.push(args);
     return { text: "extracted text" };
   }),
+}));
+
+vi.mock("./risk/shared-rate-limit.server", () => ({
+  checkSharedRateLimit: vi.fn(
+    async (scope: string, key: string, limit: number, windowMs: number) => {
+      hoisted.sharedRateLimitCalls.push({ scope, key, limit, windowMs });
+      return (
+        hoisted.sharedRateLimitResults.shift() ?? {
+          ok: true,
+          remaining: 9,
+          retryAfterSec: 0,
+        }
+      );
+    },
+  ),
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => ({
@@ -197,6 +223,8 @@ beforeEach(() => {
   hoisted.stats.reportLossStatuses.length = 0;
   hoisted.stats.reportAmountSelectStatuses.length = 0;
   hoisted.embedEvents.length = 0;
+  hoisted.sharedRateLimitCalls.length = 0;
+  hoisted.sharedRateLimitResults.length = 0;
   delete process.env.TRUST_PROXY_IP_HEADERS;
 });
 
@@ -397,6 +425,47 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     ]);
     expect(JSON.stringify(hoisted.embedEvents)).not.toContain("998901234567");
     expect(JSON.stringify(hoisted.embedEvents)).not.toContain("secret=");
+  });
+
+  it("rejects the 11th meta-intent before analytics using the shared check bucket", async () => {
+    hoisted.requestIp = "192.0.2.55";
+    hoisted.sharedRateLimitResults.push(
+      ...Array.from({ length: 10 }, (_, index) => ({
+        ok: true,
+        remaining: 9 - index,
+        retryAfterSec: 0,
+      })),
+      { ok: false, remaining: 0, retryAfterSec: 42 },
+    );
+
+    const request = {
+      data: {
+        input: "why could not analyze the image",
+        lang: "en" as const,
+        embed: { partner: "Rate Limited Partner", referrer: "https://partner.example" },
+      },
+    };
+
+    for (let index = 0; index < 10; index += 1) {
+      await expect(checkInput(request)).resolves.toMatchObject({ metaIntent: "why_failed" });
+    }
+    await expect(checkInput(request)).rejects.toMatchObject({
+      message: "rate_limited",
+      status: 429,
+      retryAfter: 42,
+    });
+
+    expect(hoisted.sharedRateLimitCalls).toHaveLength(11);
+    expect(new Set(hoisted.sharedRateLimitCalls.map((call) => call.key))).toEqual(
+      new Set(["check:192.0.2.55"]),
+    );
+    expect(hoisted.sharedRateLimitCalls[0]).toMatchObject({
+      scope: "check",
+      limit: 10,
+      windowMs: 60_000,
+    });
+    expect(hoisted.embedEvents).toHaveLength(10);
+    expect(hoisted.runCheckCalls).toHaveLength(0);
   });
 
   it("returns Telegram-account capability help without pretending to inspect hidden data", async () => {

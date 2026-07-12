@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizePublicStatsRow, type PublicStats } from "@/lib/trust/impact-stats";
 import { publicRateLimitKey } from "@/lib/request-ip.server";
 import { MAX_IMAGE_DATA_URL_LENGTH, parseAllowedImageDataUrl } from "./risk/media-data-url";
+import { checkSharedRateLimit } from "./risk/shared-rate-limit.server";
 import {
   embedTelemetryContextSchema,
   recordEmbedOriginEvent,
@@ -19,8 +20,17 @@ export interface MetaIntentCheckResult {
 export type { PublicStats } from "@/lib/trust/impact-stats";
 
 const PUBLIC_STATS_CACHE_TTL_MS = 30_000;
+const CHECK_RATE_LIMIT = 10;
+const CHECK_RATE_WINDOW_MS = 60_000;
 let publicStatsCache: { value: PublicStats; expiresAt: number } | null = null;
 let publicStatsInFlight: Promise<PublicStats> | null = null;
+
+function rateLimitedError(retryAfter: number): Error & { status: 429; retryAfter: number } {
+  const error = new Error("rate_limited") as Error & { status: 429; retryAfter: number };
+  error.status = 429;
+  error.retryAfter = retryAfter;
+  return error;
+}
 
 const checkSchema = z.object({
   input: z.string().min(1).max(2000),
@@ -54,8 +64,19 @@ const ocrSchema = z.object({
 export const checkInput = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => checkSchema.parse(data))
   .handler(async ({ data }) => {
+    const rateLimitKey = publicRateLimitKey("check");
     const metaIntent = classifyMetaIntent(data.input);
     if (metaIntent) {
+      // Meta-intents return before runCheck, so they must claim the same shared
+      // check bucket here before their service-role analytics write.
+      const admission = await checkSharedRateLimit(
+        "check",
+        rateLimitKey,
+        CHECK_RATE_LIMIT,
+        CHECK_RATE_WINDOW_MS,
+      );
+      if (!admission.ok) throw rateLimitedError(admission.retryAfterSec);
+
       const result = {
         metaIntent,
         response: getMetaIntentResponse(metaIntent, data.lang),
@@ -71,7 +92,7 @@ export const checkInput = createServerFn({ method: "POST" })
     const result = await runCheck({
       input: data.input,
       lang: data.lang,
-      rateLimitKey: publicRateLimitKey("check"),
+      rateLimitKey,
       channel: "web",
     });
     await recordEmbedOriginEvent({

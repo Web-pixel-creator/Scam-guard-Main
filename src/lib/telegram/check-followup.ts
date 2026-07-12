@@ -58,9 +58,15 @@ const DISAGREEMENT_RE =
 
 const NEW_SCAM_REQUEST_RE =
   /(?:(?:просят|просит|попросил[аи]?|сказал[аи]?|требуют|требует|предлагают)\s+.{0,80}(?:код|парол|pin|cvv|карт|перевест|переводить|переведи|оплатить|apk|приложен)|(?:asks?|asked|told|wants?|requires?)\s+.{0,80}(?:code|otp|pin|cvv|card|send\s+(?:money|funds)|make\s+(?:a\s+)?(?:transfer|payment)|apk|install)|(?:so['’]?(?:rayapti|radi)|aytdi|talab)\s+.{0,80}(?:kod|pin|cvv|karta|to['’]?lov|o['’]?tkaz|apk)|(?:kod|pin|cvv|karta).{0,40}(?:so['’]?(?:rayapti|radi)|talab)|(?:transfer|send|pay)\s+(?:me\s+)?(?:money|funds?)\b|(?:переведи|переведите|оплати|оплатите|отправь|пришли)\s+.{0,40}(?:деньг|код|карт))/i;
+const NEW_PERSONAL_DATA_REQUEST_RE =
+  /(?:(?:просят|просит|попросил[аи]?|требуют|требует|нужно|надо).{0,100}(?:отправить|прислать|показать|дать|сообщить)?.{0,40}(?:паспорт|фото\s+(?:паспорта|документ)|документ|удостоверени|id.?карт|пинфл|инн|дат[ау]\s+рождения|адрес|пропис)|(?:asks?|asked|wants?|requires?|told\s+me).{0,100}(?:send|share|show|provide)?.{0,40}(?:passport|document\s+photo|photo\s+of\s+(?:my\s+)?id|id\s+card|personal\s+data|date\s+of\s+birth|address)|(?:so['’]?(?:rayapti|radi)|talab|aytdi).{0,100}(?:yubor|ber|ko['’]?rsat)?.{0,40}(?:pasport|hujjat|jshshir|tug['’]?ilgan|manzil)|(?:passport|pasport|паспорт|id\s+card|id.?карт|пинфл|jshshir|hujjat).{0,100}(?:send|share|provide|yubor|jo['’]?nat|отправ|присл|показ|сообщ|просят|просит|so['’]?(?:rayapti|radi)))/iu;
 
 function hasNewCheckPayload(text: string): boolean {
-  return hasConcreteArtifact(text) || NEW_SCAM_REQUEST_RE.test(text);
+  return (
+    hasConcreteArtifact(text) ||
+    NEW_SCAM_REQUEST_RE.test(text) ||
+    NEW_PERSONAL_DATA_REQUEST_RE.test(text)
+  );
 }
 
 const CRYPTO_CONTEXT_RE =

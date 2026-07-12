@@ -121,7 +121,7 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
 }
 
 function hasVictimFrame(text: string): boolean {
-  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|мама|папа|бабушк[аеи]?|дедушк[аеи]?|брат|сестра|маму|папу|друга|сын|дочь|мени|бизни|менга|menga|meni|men|bizga|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
+  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|мама|папа|бабушк[аеи]?|дедушк[аеи]?|брат|сестра|маму|папу|друга|сын|дочь|мени|бизни|менга|menga|mendan|meni|men|bizga|bizdan|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
     text,
   );
 }
