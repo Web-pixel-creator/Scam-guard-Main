@@ -7,14 +7,19 @@
 // Security: uses synthetic Telegram users only, never prints secrets or user ids,
 // sends no chat messages, and removes its own webhook/session rows. Synthetic
 // inline query ids cannot be delivered to Telegram clients, so this validates
-// the production webhook path and non-persistence invariants, not visual client
-// rendering.
+// the production transport boundary and non-persistence invariants, not visual
+// client rendering or polling-mode handler delivery.
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { detectInputType, normalize } from "@/lib/risk/detect";
 import { hashIdentifier } from "@/lib/risk/hash";
+import {
+  expectedAuthenticatedWebhookStatus,
+  parseTelegramDeliveryMode,
+  type TelegramDeliveryMode,
+} from "@/lib/security/telegram-delivery-policy";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -237,6 +242,7 @@ async function runCase(options: {
   testCase: InlineSmokeCase;
   index: number;
   markerRoot: string;
+  deliveryMode: TelegramDeliveryMode;
 }): Promise<void> {
   const userId = syntheticTelegramUserId(options.index * 1_000);
   const updateId = nextUpdateId();
@@ -257,8 +263,11 @@ async function runCase(options: {
       languageCode: options.testCase.languageCode,
     }),
   );
-  if (res.status !== 200) {
-    fail(`${options.testCase.label} webhook returned status=${res.status}`);
+  const expectedStatus = expectedAuthenticatedWebhookStatus(options.deliveryMode);
+  if (res.status !== expectedStatus) {
+    fail(
+      `${options.testCase.label} webhook returned status=${res.status}, expected=${expectedStatus}`,
+    );
   }
 
   await assertNoCheckByInput(
@@ -268,12 +277,15 @@ async function runCase(options: {
     options.testCase.label,
   );
   await assertNoSession(userId, options.testCase.label);
-  console.log(`OK ${options.testCase.label}: webhook 200, no checks/session persisted`);
+  console.log(
+    `OK ${options.testCase.label}: mode=${options.deliveryMode}, webhook=${expectedStatus}, no checks/session persisted`,
+  );
 }
 
 async function main(): Promise<void> {
   const publicUrl = parsePublicUrl();
   const webhookSecret = getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
+  const deliveryMode = parseTelegramDeliveryMode(process.env.TELEGRAM_UPDATE_DELIVERY_MODE);
   getRequiredEnv("SUPABASE_URL");
   getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -316,6 +328,7 @@ async function main(): Promise<void> {
         testCase,
         index: index + 1,
         markerRoot,
+        deliveryMode,
       });
     }
   } finally {
@@ -323,7 +336,13 @@ async function main(): Promise<void> {
   }
 
   console.log("OK cleanup done");
-  console.log("OK production Telegram inline smoke passed");
+  if (deliveryMode === "polling") {
+    console.log(
+      "OK polling transport boundary passed; real Inline handler/client delivery remains a separate real-client check",
+    );
+  } else {
+    console.log("OK production Telegram inline webhook smoke passed");
+  }
 }
 
 main().catch((error) => {

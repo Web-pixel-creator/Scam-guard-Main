@@ -2,6 +2,15 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-077 - Production Telegram evidence must match the active delivery mode
+
+Webhook and polling are mutually exclusive production states. In polling mode,
+an authenticated webhook `503` and empty webhook URL are healthy boundaries,
+not bot failures; the polling leader and dedicated dispatch harness provide
+handler/delivery evidence. Synthetic Inline webhook payloads may prove shutdown
+and non-persistence only. Real Inline rendering/insertion requires a genuine
+Telegram client query and is never inferred from a fabricated query id.
+
 ## D-076 - Admission and entitlement changes precede side effects
 
 Public meta-intents claim the shared check budget before embed analytics, and

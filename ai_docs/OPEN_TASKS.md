@@ -2,16 +2,17 @@
 
 ## Fragile / risky spots
 
-- **2026-07-12 security revalidation fixes are complete locally, deployment
-  evidence is open.** The independent repository pass produced 15 findings
+- **2026-07-12 security revalidation fixes are deployed, live closure evidence
+  remains open.** The independent repository pass produced 15 findings
   (1 High, 9 Medium, 5 Low). The current branch adds exact-subject trust,
   sink credential minimization, QR/provider/domain corrections, admin-role
   revocation, admission-before-side-effects, step-scoped monitor secrets and
-  passport follow-up precedence. Integration proof: 4222/4222 tests, TypeScript,
-  build, npm audit, 28-migration reset, 38/38 pgTAP and schema lint pass. Do not
-  mark these findings Closed until the exact commit is deployed, the migration
-  is preflighted/applied, targeted production smokes pass and privacy-safe
-  historical-data review is completed.
+  passport follow-up precedence. Integration proof: 4227/4227 tests, TypeScript,
+  build, npm audit, 28-migration reset, 38/38 pgTAP and schema lint pass. The
+  application patch is deployed at `fdbc6ff8`; the exact admin-role migration
+  still requires authenticated production Supabase apply. Do not mark findings
+  Closed until their targeted live/read-back evidence and privacy-safe
+  historical-data review are complete.
 
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale
   invite expiry, trusted-contact opt-out, env-driven invite URLs,
@@ -153,10 +154,12 @@
   fails malformed URL displays closed, uses the first-contact RU/UZ/EN language
   hint, skips external URL-reputation providers while typing, enforces the
   256-character Bot API boundary and observes `answerInlineQuery` failures.
-  The hardened Inline build is deployed at revision `4bd9403`; real
+  The hardened Inline build is deployed at revision `fdbc6ff8`; real
   Desktop/Android/iOS RU/UZ/EN visual and insertion evidence remains the open
   release gate. The 2026-07-12 credential sanitizer for Markdown and plaintext
-  retry is locally verified but is not deployed yet.
+  retry is deployed. The synthetic Inline smoke is now polling-aware and proves
+  authenticated webhook shutdown plus zero `checks`/session side effects; it
+  intentionally does not claim real handler rendering or insertion.
 - **Pig-butchering / romance grooming has explicit conversation memory now.**
   `/conversation` collects a short user-supplied thread, stores only derived
   stage/action/reason metadata in the Telegram session, and flags chains such

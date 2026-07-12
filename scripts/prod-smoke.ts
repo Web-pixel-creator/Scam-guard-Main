@@ -8,6 +8,12 @@
 // Security: this script never prints bot tokens, webhook secrets, Supabase
 // service-role keys, API keys, Telegram user ids or chat ids.
 import process from "node:process";
+import {
+  expectedAuthenticatedWebhookStatus,
+  parseTelegramDeliveryMode,
+  telegramDeliveryInfoIsHealthy,
+  type TelegramDeliveryMode,
+} from "@/lib/security/telegram-delivery-policy";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const STALE_TELEGRAM_ERROR_MS = 15 * 60 * 1000;
@@ -20,7 +26,11 @@ interface SmokeResult {
   detail: string;
 }
 
-function parseArgs(): { publicUrl: string; liveTelegram: boolean } {
+function parseArgs(): {
+  publicUrl: string;
+  liveTelegram: boolean;
+  deliveryMode: TelegramDeliveryMode;
+} {
   const args = process.argv.slice(2);
   const liveTelegram = args.includes("--live-telegram");
   const publicUrl = args.find((arg) => !arg.startsWith("--")) ?? process.env.PUBLIC_APP_URL;
@@ -46,6 +56,7 @@ function parseArgs(): { publicUrl: string; liveTelegram: boolean } {
   return {
     publicUrl: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
     liveTelegram,
+    deliveryMode: parseTelegramDeliveryMode(process.env.TELEGRAM_UPDATE_DELIVERY_MODE),
   };
 }
 
@@ -83,8 +94,13 @@ async function checkHttpStatus(
   } satisfies SmokeResult;
 }
 
-async function checkApp(publicUrl: string, webhookSecret: string): Promise<SmokeResult[]> {
+async function checkApp(
+  publicUrl: string,
+  webhookSecret: string,
+  deliveryMode: TelegramDeliveryMode,
+): Promise<SmokeResult[]> {
   const webhookUrl = `${publicUrl}${WEBHOOK_PATH}`;
+  const authenticatedStatus = expectedAuthenticatedWebhookStatus(deliveryMode);
   return [
     await checkHttpStatus("home", publicUrl, {}, 200),
     await checkHttpStatus("healthz", `${publicUrl}/healthz`, {}, 200),
@@ -99,7 +115,9 @@ async function checkApp(publicUrl: string, webhookSecret: string): Promise<Smoke
       401,
     ),
     await checkHttpStatus(
-      "webhook accepts valid secret",
+      deliveryMode === "webhook"
+        ? "webhook accepts valid secret"
+        : "webhook disabled after valid secret",
       webhookUrl,
       {
         method: "POST",
@@ -109,12 +127,15 @@ async function checkApp(publicUrl: string, webhookSecret: string): Promise<Smoke
         },
         body: JSON.stringify({ update_id: nextUpdateId() }),
       },
-      200,
+      authenticatedStatus,
     ),
   ];
 }
 
-async function checkTelegramWebhook(botToken: string): Promise<SmokeResult> {
+async function checkTelegramWebhook(
+  botToken: string,
+  deliveryMode: TelegramDeliveryMode,
+): Promise<SmokeResult> {
   const res = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
   if (!res.ok) {
     return { name: "telegram getWebhookInfo", ok: false, detail: `status=${res.status}` };
@@ -138,13 +159,30 @@ async function checkTelegramWebhook(botToken: string): Promise<SmokeResult> {
   const isStaleLastError =
     typeof lastErrorAgeMs === "number" && lastErrorAgeMs > STALE_TELEGRAM_ERROR_MS;
   const hasUrl = Boolean(data.result?.url);
+  const hasRecentError = Boolean(lastError) && !isStaleLastError;
   const lastErrorDetail = lastError ? `${lastError}${isStaleLastError ? " (stale)" : ""}` : "none";
 
   return {
-    name: "telegram webhook info",
-    ok: data.ok === true && hasUrl && pending === 0 && (!lastError || isStaleLastError),
-    detail: `has_url=${hasUrl}, pending=${pending}, last_error=${lastErrorDetail}`,
+    name: "telegram update delivery info",
+    ok:
+      data.ok === true &&
+      telegramDeliveryInfoIsHealthy({
+        mode: deliveryMode,
+        hasWebhookUrl: hasUrl,
+        pendingUpdates: pending,
+        hasRecentError,
+      }),
+    detail: `mode=${deliveryMode}, has_url=${hasUrl}, pending=${pending}, last_error=${lastErrorDetail}`,
   };
+}
+
+async function checkPollingLeader(publicUrl: string, webhookSecret: string): Promise<SmokeResult> {
+  return checkHttpStatus(
+    "telegram polling leader",
+    `${publicUrl}/api/telegram/polling-health`,
+    { headers: { "X-Telegram-Bot-Api-Secret-Token": webhookSecret } },
+    200,
+  );
 }
 
 async function checkAiProvider(): Promise<SmokeResult> {
@@ -245,7 +283,7 @@ function nextUpdateId(): number {
 }
 
 async function main(): Promise<void> {
-  const { publicUrl, liveTelegram } = parseArgs();
+  const { publicUrl, liveTelegram, deliveryMode } = parseArgs();
   const botToken = getRequiredEnv("TELEGRAM_BOT_TOKEN");
   const webhookSecret = getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
 
@@ -253,12 +291,23 @@ async function main(): Promise<void> {
   console.log("Secret values are read from env and are not printed.");
 
   const results: SmokeResult[] = [];
-  results.push(...(await checkApp(publicUrl, webhookSecret)));
-  results.push(await checkTelegramWebhook(botToken));
+  results.push(...(await checkApp(publicUrl, webhookSecret, deliveryMode)));
+  results.push(await checkTelegramWebhook(botToken, deliveryMode));
+  if (deliveryMode === "polling") {
+    results.push(await checkPollingLeader(publicUrl, webhookSecret));
+  }
   results.push(await checkAiProvider());
   if (liveTelegram) {
-    results.push(await checkLiveTelegram(publicUrl, webhookSecret));
-    results.push(await checkTelegramWebhook(botToken));
+    if (deliveryMode === "webhook") {
+      results.push(await checkLiveTelegram(publicUrl, webhookSecret));
+      results.push(await checkTelegramWebhook(botToken, deliveryMode));
+    } else {
+      results.push({
+        name: "live telegram synthetic update",
+        ok: false,
+        detail: "polling mode requires prod:telegram-polling-dispatch-smoke",
+      });
+    }
   }
 
   for (const result of results) printResult(result);

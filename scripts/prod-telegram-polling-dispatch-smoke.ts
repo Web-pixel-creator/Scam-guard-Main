@@ -481,6 +481,50 @@ async function main(): Promise<void> {
     console.log(
       "OK domain-methodology follow-up named evidence and limitations without overclaiming",
     );
+
+    const passportUserId = syntheticTelegramUserId(3_000);
+    ctx.userIds.push(passportUserId);
+    const safeSetupText = "1344";
+    const safeSetupStartedAt = new Date().toISOString();
+    await dispatchText({
+      chatId,
+      chatType,
+      userId: passportUserId,
+      text: safeSetupText,
+      messageOffset: 8,
+      messages: guard.messages,
+      violations: guard.violations,
+    });
+    const safeSetupCheck = await requireOneCheck(
+      ctx,
+      safeSetupText,
+      safeSetupStartedAt,
+      "passport stale-safe setup",
+    );
+    if (safeSetupCheck.risk_level !== "safe") {
+      fail("passport stale-safe setup did not persist a Safe lastCheck");
+    }
+
+    const passportText = "Почему мошенники просят фото паспорта?";
+    const passportStartedAt = new Date().toISOString();
+    const passportReplies = await dispatchText({
+      chatId,
+      chatType,
+      userId: passportUserId,
+      text: passportText,
+      messageOffset: 9,
+      messages: guard.messages,
+      violations: guard.violations,
+    });
+    assertReply("passport new-safety request", passportReplies, [
+      /Паспорт/iu,
+      /не отправляйте/iu,
+      /официальн/iu,
+    ]);
+    await assertNoCheck(passportText, passportStartedAt, "passport new-safety request");
+    console.log(
+      "OK passport request overrode stale Safe context and returned document-specific guidance",
+    );
   } finally {
     for (const message of guard.messages) {
       if (message.messageId !== undefined) ctx.messageIds.add(message.messageId);
