@@ -31,7 +31,9 @@
 
 ## Release Evidence
 
-- [ ] Deploy the current exhaustive Inline presentation hardening.
+- [x] Deploy the current exhaustive Inline presentation hardening. Revision
+      `4bd9403` is running as Railway deployment `8064b403` and the synthetic
+      Inline production smoke passes.
 - [ ] Run the real Telegram Desktop/Android/iOS RU/UZ/EN visual and insertion
       matrix.
 - [ ] Capture sanitized screenshots and confirm no `checks`, session or

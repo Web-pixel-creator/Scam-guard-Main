@@ -56,6 +56,13 @@ vi.mock("./rate-limit", () => ({
 }));
 
 import { analyzeImageCore, ocrExtractCore, runCheck } from "./check-core";
+import {
+  buildImageCheckInput,
+  fallbackImageIntelligence,
+  isEvidenceBackedBenignImageContext,
+  mergeDecodedQrEvidence,
+  sanitizeImageIntelligence,
+} from "./image-intelligence";
 
 // Unique rate-limit key per run (defensive, in case the mock above is bypassed).
 let keyCounter = 0;
@@ -400,8 +407,7 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
       skipAi: true,
     });
 
-    expect(result.verifiedContact).not.toBeNull();
-    expect(result.verifiedContact!.orgName).toContain("Национальный банк");
+    expect(result.verifiedContact).toBeNull();
     expect(result.reasons).toContain("asks_for_sms_code");
     expect(result.level).toBe("high_risk");
   });
@@ -416,7 +422,7 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
       persist: false,
     });
 
-    expect(result.verifiedContact).not.toBeNull();
+    expect(result.verifiedContact).toBeNull();
     expect(result.reasons).toEqual(expect.arrayContaining(["impersonates_bank", "uses_urgency"]));
     expect(result.level).not.toBe("safe");
   });
@@ -496,9 +502,149 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
         skipAi: true,
       });
 
-      expect(result.verifiedContact).not.toBeNull();
+      expect(result.verifiedContact).toBeNull();
       expect(result.reasons).toContain(code);
       expect(result.level).not.toBe("safe");
     }
+  });
+
+  it("does not transfer verified-contact trust to unrelated sibling content", async () => {
+    const unrelated = await runCheck({
+      input: "Call 1344 secure-checking.net/session",
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+    const decoy = await runCheck({
+      input:
+        "Do not sell your bank card to strangers. Sell your bank card to us for a reward. Call 1340.",
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+
+    expect(unrelated.verifiedContact).toBeNull();
+    expect(unrelated.level).not.toBe("safe");
+    expect(decoy.reasons).toContain("dropper_recruitment");
+    expect(decoy.level).not.toBe("safe");
+  });
+
+  it("keeps provider-visible phishing URLs in the complete deterministic verdict", async () => {
+    const visibleUrl = "https://evil.uz/kapitalbank";
+    const evidence = sanitizeImageIntelligence({
+      text: `QR ${visibleUrl}`,
+      visualCategory: "qr_menu_or_info",
+      confidence: "high",
+      qr: { present: true, visibleUrl, purpose: "info" },
+      riskHints: [],
+    });
+    expect(evidence).not.toBeNull();
+
+    const result = await runCheck({
+      input: buildImageCheckInput(evidence!),
+      type: "text",
+      trustProvidedType: true,
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      safeIfNoReasons: isEvidenceBackedBenignImageContext(evidence!),
+      persist: false,
+    });
+
+    expect(result.type).toBe("text");
+    expect(result.reasons).toContain("brand_impersonation");
+    expect(result.level).not.toBe("safe");
+  });
+
+  it("uses DNS identity, not a similarity skeleton, for trusted domain exclusions", async () => {
+    const cases = [
+      ["https://kapita1bank.uz/login", "brand_impersonation"],
+      ["https://sp0t.uz/kapitalbank", "brand_impersonation"],
+    ] as const;
+
+    for (const [input, reason] of cases) {
+      const result = await runCheck({
+        input,
+        lang: "en",
+        rateLimitKey: nextKey(),
+        channel: "web",
+        skipAi: true,
+        skipUrlReputation: true,
+        persist: false,
+      });
+      expect(result.reasons).toContain(reason);
+      expect(result.level).toBe("suspicious");
+    }
+
+    const official = await runCheck({
+      input: "https://help.kapitalbank.uz/login",
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+    expect(official.reasons).not.toContain("brand_impersonation");
+  });
+
+  it("removes decoded QR credentials before the checks persistence sink", async () => {
+    const cases = [
+      {
+        name: "wifi",
+        value: "WIFI:T:WPA;S:VictimHome;P:correct-horse-battery-staple;;",
+        secret: "correct-horse-battery-staple",
+      },
+      {
+        name: "mnemonic",
+        value:
+          "Seed phrase: abandon ability able about above absent absorb abstract absurd abuse access accident",
+        secret:
+          "abandon ability able about above absent absorb abstract absurd abuse access accident",
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      hoisted.insertCalls.length = 0;
+      const evidence = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+        values: [testCase.value],
+        urls: [],
+      });
+
+      await runCheck({
+        input: buildImageCheckInput(evidence),
+        lang: "en",
+        rateLimitKey: nextKey(),
+        channel: "telegram",
+        skipAi: true,
+        skipUrlReputation: true,
+      });
+
+      expect(hoisted.insertCalls).toHaveLength(1);
+      expect(String(hoisted.insertCalls[0].redacted_input)).not.toContain(testCase.secret);
+    }
+
+    hoisted.insertCalls.length = 0;
+    const publicWifi = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["WIFI:T:nopass;S:PublicLibrary;;"],
+      urls: [],
+    });
+    await runCheck({
+      input: buildImageCheckInput(publicWifi),
+      lang: "en",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+    });
+    expect(String(hoisted.insertCalls[0].redacted_input)).toContain("PublicLibrary");
   });
 });

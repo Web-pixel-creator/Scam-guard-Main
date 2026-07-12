@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { redactSensitiveSecrets } from "./sensitive-text";
 
 export type InputType = Database["public"]["Enums"]["input_type"];
 
@@ -106,7 +107,7 @@ const OTP_RE = /\b\d{4,8}\b/g;
 const PHONE_INLINE_RE = /\+?\d[\d\s\-()]{7,}\d/g;
 const EMAIL_INLINE_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const TELEGRAM_LINK_INLINE_RE =
-  /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:\+[A-Za-z0-9_-]{4,}|[A-Za-z][A-Za-z0-9_]{3,31})\b/gi;
+  /\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/(?:\+[A-Za-z0-9_-]{4,}|joinchat\/[A-Za-z0-9_-]{4,}|[A-Za-z][A-Za-z0-9_]{3,31})\b/gi;
 const TELEGRAM_SCHEME_INLINE_RE = /\b(?:tg|telegram):\/\/[^\s<>"'`]+/gi;
 const TELEGRAM_HANDLE_INLINE_RE = /(^|[^\w.])(@[A-Za-z][A-Za-z0-9_]{3,31})\b/g;
 const URL_INLINE_RE =
@@ -127,6 +128,7 @@ function hasReplacementOverlap(
 }
 
 export function redactText(s: string): string {
+  s = redactSensitiveSecrets(s);
   type Replacement = { start: number; end: number; replacement: string };
   const replacements: Replacement[] = [];
   const addReplacement = (start: number, end: number, replacement: string): void => {

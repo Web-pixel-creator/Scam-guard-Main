@@ -110,6 +110,36 @@ describe("submitReputationAppealCore", () => {
     expect(String(row.contact_display)).not.toContain("owner@example.com");
   });
 
+  it("removes passwords, separated codes, and recovery phrases from the inserted appeal row", async () => {
+    const password = "Correct-Horse-Battery-Staple";
+    const separatedOtp = "9 1 4 2 8 7";
+    const recoveryPhrase =
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon";
+    const contactSecret = "AppealContactSecret7";
+
+    const result = await submitReputationAppealCore(
+      {
+        target: "@FakeSupportBot",
+        reason:
+          `Wrong label. password = ${password}. OTP: ${separatedOtp}. ` +
+          `seed phrase: ${recoveryPhrase}.`,
+        contact: `password = ${contactSecret}`,
+        lang: "en",
+      },
+      "appeal:test:credential-sink",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.inserts).toHaveLength(1);
+    const stored = JSON.stringify(hoisted.inserts[0]);
+    for (const marker of [password, separatedOtp, recoveryPhrase, contactSecret]) {
+      expect(stored).not.toContain(marker);
+    }
+    expect(hoisted.inserts[0].contact_hash).toBe(
+      `hash:appeal-contact:password = ${contactSecret.toLowerCase()}`,
+    );
+  });
+
   it("redacts appeal links and Telegram identifiers before persistence and alerts", async () => {
     const result = await submitReputationAppealCore(
       {

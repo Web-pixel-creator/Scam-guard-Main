@@ -6,6 +6,7 @@
 import { BRAND_REGISTRY, NEWS_DOMAIN_WHITELIST, type BrandEntry } from "./brand-registry";
 import {
   normalizeDomain,
+  toDnsIdentityKey,
   toDomainComparisonKey,
   toDomainComparisonKeys,
   type NormalizedDomain,
@@ -52,7 +53,7 @@ export interface BrandMatchResult {
  */
 function isOfficialDomain(hostname: string, brand: BrandEntry): boolean {
   for (const official of brand.officialDomains) {
-    const officialKey = toDomainComparisonKey(official).replace(/\.$/u, "");
+    const officialKey = toDnsIdentityKey(official);
     if (hostname === officialKey || hostname.endsWith("." + officialKey)) {
       return true;
     }
@@ -65,7 +66,7 @@ function isOfficialDomain(hostname: string, brand: BrandEntry): boolean {
  */
 function isNewsDomain(hostname: string): boolean {
   for (const news of NEWS_DOMAIN_WHITELIST) {
-    const newsKey = toDomainComparisonKey(news).replace(/\.$/u, "");
+    const newsKey = toDnsIdentityKey(news);
     if (hostname === newsKey || hostname.endsWith("." + newsKey)) {
       return true;
     }
@@ -169,14 +170,14 @@ export function matchBrandInUrl(
   rawHostname: string,
 ): BrandMatchResult {
   const evidence: BrandEvidence[] = [];
-  const { hostname, path } = normalizedUrl;
+  const { hostname, hostnameIdentity, path } = normalizedUrl;
 
   const hostnameSegments = getHostnameSegments(hostname);
   const pathSegments = getPathSegments(path);
 
   for (const brand of BRAND_REGISTRY) {
     // Skip if this is an official domain or subdomain
-    if (isOfficialDomain(hostname, brand)) {
+    if (isOfficialDomain(hostnameIdentity, brand)) {
       continue;
     }
 
@@ -209,7 +210,7 @@ export function matchBrandInUrl(
     // If not found in hostname, check path segments
     if (!matched) {
       // News domain whitelist: suppress path-only matches on news sites
-      if (isNewsDomain(hostname)) {
+      if (isNewsDomain(hostnameIdentity)) {
         continue;
       }
 
@@ -400,7 +401,7 @@ function escapeRegex(str: string): string {
 function hasNonOfficialUrl(urls: string[], brand: BrandEntry): boolean {
   for (const url of urls) {
     const normalized = normalizeDomain(url);
-    if (!isOfficialDomain(normalized.hostname, brand)) {
+    if (!isOfficialDomain(normalized.hostnameIdentity, brand)) {
       return true;
     }
   }

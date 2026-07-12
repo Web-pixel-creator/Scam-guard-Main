@@ -149,6 +149,35 @@ describe("submitReport privacy", () => {
     expect(maxDigitRun(description)).toBeLessThanOrEqual(3);
   });
 
+  it("removes credential classes from every report persistence and notification sink", async () => {
+    const password = "Correct-Horse-Battery-Staple";
+    const separatedOtp = "9 1 4 2 8 7";
+    const recoveryPhrase =
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon";
+
+    const result = await submitReportCore(
+      {
+        value: `password = ${password}`,
+        description: `OTP: ${separatedOtp}. seed phrase: ${recoveryPhrase}`,
+        scamType: "password notifier-secret",
+        city: "OTP: 1 2 3 4",
+        lang: "en",
+      },
+      "report:test:credential-sink",
+    );
+
+    expect(result).toEqual({ ok: true });
+    const allSinkPayloads = JSON.stringify({
+      reports: hoisted.reportRows,
+      entities: hoisted.entityInserts,
+      notices: hoisted.moderationNotices,
+    });
+    for (const marker of [password, separatedOtp, recoveryPhrase, "notifier-secret", "1 2 3 4"]) {
+      expect(allSinkPayloads).not.toContain(marker);
+    }
+    expect(String(hoisted.reportRows[0].description)).toContain("seed phrase");
+  });
+
   it("redacts narrative identifiers and metadata before persistence", async () => {
     const result = await submitReportCore(
       {

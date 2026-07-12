@@ -70,6 +70,7 @@ import {
   reportSkipKeyboard,
   reportValueKeyboard,
 } from "@/lib/telegram/report-flow";
+import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
 
 // ── Limits (mirror reportSchema in report.functions.ts) ─────────────────────
 const VALUE_MAX = 500; // R6.6
@@ -537,6 +538,7 @@ export async function handleScenarioImage(
   }
 
   try {
+    await claimTelegramImageDownloadBudget(ctx.userId);
     const meta = await getFile(fileId);
     if (!meta) {
       await askForTypedDescription();

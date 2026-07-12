@@ -23,7 +23,9 @@
 
 ## Release Evidence
 
-- [ ] Deploy the current post-check/provenance hardening.
+- [x] Deploy the current post-check/provenance hardening. Revision `4bd9403` is
+      running as Railway deployment `8064b403`; the bounded five-action
+      production dialogue smoke passed.
 - [ ] Capture real RU/UZ/EN multi-turn transcripts for confidence,
       methodology, trusted-person, recheck and disagreement.
 - [ ] Re-run session-loss/restart behavior after deployment.

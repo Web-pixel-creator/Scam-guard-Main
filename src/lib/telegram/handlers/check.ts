@@ -108,6 +108,7 @@ import {
   type CanonicalFollowUpIntentId,
   type CanonicalVictimIntentId,
 } from "@/lib/telegram/intent-contract";
+import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -117,8 +118,6 @@ const MAX_TEXT_LENGTH = 2000;
 
 /** Верхний предел размера скачиваемого изображения: 6 МБ (R5.5). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
-const IMAGE_DOWNLOAD_RATE_LIMIT = 10;
-const IMAGE_DOWNLOAD_RATE_WINDOW_MS = 60_000;
 const MAX_VOICE_BYTES = 2 * 1024 * 1024;
 const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
@@ -288,10 +287,6 @@ function rateLimitKeyFor(userId: number): string {
   return `tg:${userId}`;
 }
 
-function imageDownloadBudgetKey(userId: number): string {
-  return `telegram-image:${rateLimitKeyFor(userId)}`;
-}
-
 function normalizeCheckCacheInput(input: string): string {
   return input.trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -448,18 +443,6 @@ async function checkVoiceSttBudget(userId: number): Promise<void> {
   }
 }
 
-async function checkImageDownloadBudget(userId: number): Promise<void> {
-  const result = await checkSharedRateLimit(
-    "check",
-    imageDownloadBudgetKey(userId),
-    IMAGE_DOWNLOAD_RATE_LIMIT,
-    IMAGE_DOWNLOAD_RATE_WINDOW_MS,
-  );
-  if (!result.ok) {
-    throw rateLimitedCheckError(result.retryAfterSec);
-  }
-}
-
 function pruneOcrFallbackMemory(now = Date.now()): void {
   for (const [key, timestamp] of mediaGroupOcrFallbacks) {
     if (now - timestamp > MEDIA_GROUP_FALLBACK_TTL_MS) mediaGroupOcrFallbacks.delete(key);
@@ -528,13 +511,6 @@ function isRateLimitedError(e: unknown): e is RateLimitedError {
 
 function rateLimitedVoiceSttError(retryAfter: number): RateLimitedError {
   const error = new Error("voice_stt_rate_limited") as RateLimitedError;
-  error.status = 429;
-  error.retryAfter = retryAfter;
-  return error;
-}
-
-function rateLimitedCheckError(retryAfter: number): RateLimitedError {
-  const error = new Error("rate_limited") as RateLimitedError;
   error.status = 429;
   error.retryAfter = retryAfter;
   return error;
@@ -1443,6 +1419,21 @@ export async function handleCheck(
     return;
   }
 
+  // A current request for passport/ID data is a new safety event, never an
+  // explanation of an older result. Keep it ahead of every stale-context
+  // follow-up branch even if a classifier later regresses.
+  if (victimIntent?.kind === "personal_data_request") {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: contractReplyText(
+        canonicalVictimIntentId(victimIntent.kind),
+        buildVictimIntentText(victimIntent, lang),
+      ),
+      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+    });
+    return;
+  }
+
   const guardianFollowUp = classifyGuardianAngelFollowUp(trimmed, ctx.session.scenarioData);
   if (guardianFollowUp !== null && ctx.session.scenarioData.guardian) {
     await sendMessage({
@@ -1652,7 +1643,7 @@ export async function handleImage(
 
   await guarded(ctx, "handleImage", async () => {
     const budgetStartedAt = Date.now();
-    await checkImageDownloadBudget(ctx.userId);
+    await claimTelegramImageDownloadBudget(ctx.userId);
     logTelegramTiming("image.download_budget", budgetStartedAt, {
       mediaGroup: mediaGroupId !== undefined,
     });

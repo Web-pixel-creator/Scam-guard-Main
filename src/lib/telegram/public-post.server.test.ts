@@ -204,6 +204,35 @@ describe("telegram public post fetch", () => {
     expect(evidence?.text).not.toContain("4111111111111111");
   });
 
+  it("sanitizes credential text in post bodies, previews, and button labels", () => {
+    const password = "Correct-Horse-Battery-Staple";
+    const recoveryPhrase =
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon";
+    const evidence = parseTelegramPublicPostHtml(
+      telegramHtml(`
+        <div class="tgme_widget_message_text js-message_text">
+          password = ${password}
+        </div>
+        <a class="tgme_widget_message_link_preview" href="https://example.com/read">
+          <div class="link_preview_title">seed phrase: ${recoveryPhrase}</div>
+        </a>
+        <div class="tgme_widget_message_inline_keyboard">
+          <a class="tgme_widget_message_inline_button" href="https://example.com/action">
+            <span class="tgme_widget_message_inline_button_text">password notifier-secret</span>
+          </a>
+        </div>
+      `),
+      { username: "TonZnatok", postId: "123" },
+    );
+
+    const serialized = JSON.stringify(evidence);
+    for (const marker of [password, recoveryPhrase, "notifier-secret"]) {
+      expect(serialized).not.toContain(marker);
+    }
+    expect(evidence?.text).toContain("password");
+    expect(evidence?.checkInput).toContain("Visible buttons:");
+  });
+
   it("fetches only the validated Telegram public web URL", async () => {
     const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
       expect(url).toBe("https://t.me/s/TonZnatok/123");

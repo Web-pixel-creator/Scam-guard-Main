@@ -598,6 +598,9 @@ requires a real client-generated `inline_query_id`.
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
 - [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.
+- [ ] Before applying the exact admin-role reconciliation migration, run
+      `npm run admin-role:preflight` in the production environment and require
+      `staleAdminRoleCount=0` and `missingAdminRoleCount=0`; retain counts only.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with
       admin email(s), and Supabase email confirmation kept enabled so
       allowlisted admins receive `admin` only after verifying mailbox ownership.

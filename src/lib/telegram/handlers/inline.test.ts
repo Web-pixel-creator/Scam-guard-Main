@@ -245,6 +245,42 @@ describe("handleInlineQuery", () => {
     expect(retry.input_message_content.message_text).toContain("@scamguard_bot");
   });
 
+  it("does not republish credential classes in Markdown or plaintext retry messages", async () => {
+    const markers = [
+      "Correct-Horse-Battery-Staple",
+      "12 34 56",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    ];
+    hoisted.nextResult = {
+      type: "text",
+      display: `password = ${markers[0]}; OTP: ${markers[1]}; ` + `seed phrase: ${markers[2]}`,
+      level: "suspicious",
+      score: 25,
+      reasons: ["asks_for_password"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+    hoisted.escapeMarkdown = true;
+    hoisted.answerResults.push(
+      { ok: false, errorCode: 400, description: "Bad Request: can't parse entities" },
+      { ok: true },
+    );
+
+    await handleInlineQuery("ordinary check payload", { userId: 42, session }, "iq-secrets");
+
+    expect(hoisted.answerCalls).toHaveLength(2);
+    for (const call of hoisted.answerCalls) {
+      const article = call.results[0] as {
+        input_message_content: { message_text: string };
+      };
+      for (const marker of markers) {
+        expect(article.input_message_content.message_text).not.toContain(marker);
+      }
+    }
+  });
+
   it("runs a non-persistent rules-only check for a non-empty query", async () => {
     await handleInlineQuery("https://t.me/+abcdef", { userId: 42, session }, "iq-check");
 

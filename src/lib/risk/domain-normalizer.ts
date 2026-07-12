@@ -7,8 +7,10 @@
  * Result of domain normalization: a fully normalized hostname and path.
  */
 export interface NormalizedDomain {
-  /** Fully normalized hostname (lowercase, no protocol/www, punycode decoded, homoglyphs replaced) */
+  /** Lossy visual/transliteration skeleton used only to add suspicious evidence. */
   hostname: string;
+  /** Canonical DNS identity used for official/news allowlist decisions. */
+  hostnameIdentity: string;
   /** Path component (lowercase, homoglyphs applied) */
   path: string;
 }
@@ -110,6 +112,23 @@ export function toDomainComparisonKeys(input: string): ReadonlySet<string> {
     transliterateCyrillic(applyHomoglyphs(normalized)),
     transliterateCyrillic(normalized),
   ]);
+}
+
+/**
+ * Canonical DNS identity key. Unlike the similarity skeleton, this must not
+ * collapse distinct labels such as `1`/`l` or `0`/`o`.
+ */
+export function toDnsIdentityKey(input: string): string {
+  const normalized = input.trim().normalize("NFC").toLowerCase();
+  if (!normalized) return "";
+
+  try {
+    return new URL(`http://${normalized}`).hostname.toLowerCase().replace(/\.$/u, "");
+  } catch {
+    // Invalid hostnames remain distinct raw identities and cannot become
+    // trusted merely because a lossy similarity transform accepts them.
+    return normalized.replace(/\.$/u, "");
+  }
 }
 
 /**
@@ -262,20 +281,18 @@ export function normalizeDomain(rawUrl: string): NormalizedDomain {
   // 3. Strip www. prefix from hostname
   hostname = hostname.replace(/^www\./i, "");
 
-  // 4. Lowercase and normalize compatibility forms
-  hostname = hostname.normalize("NFKC").toLowerCase();
+  // 4. Preserve a lossless DNS identity before building a visual skeleton.
+  hostname = hostname.normalize("NFC").toLowerCase();
   path = path.normalize("NFKC").toLowerCase();
 
-  // DNS absolute names may contain one terminal root dot. It is semantically
-  // equivalent to the same hostname without the dot; remove exactly one.
-  hostname = hostname.replace(/\.$/u, "");
+  const hostnameIdentity = toDnsIdentityKey(hostname);
 
-  // 5. Decode punycode labels in hostname
-  hostname = decodePunycodeHostname(hostname);
+  // 5. Decode canonical A-labels for the visual/transliteration skeleton.
+  hostname = decodePunycodeHostname(hostnameIdentity);
 
   // 6. Apply homoglyph normalization
   hostname = toDomainComparisonKey(hostname);
   path = toDomainComparisonKey(path);
 
-  return { hostname, path };
+  return { hostname, hostnameIdentity, path };
 }

@@ -18,7 +18,9 @@ Risk-check log: `id, input_type, redacted_input, input_hash, risk_level, risk_sc
 RLS/grants: public direct inserts are revoked. Writes go through server functions
 using the service-role client after validation, redaction and hashing. Public
 cannot select; admins can read via admin server functions. Rows older than 90
-days are eligible for retention cleanup. Stores redacted/hashed data only.
+days are eligible for retention cleanup. Stores redacted/hashed data only;
+decoded QR Wi-Fi/password/OTP/recovery/authenticator secrets are removed before
+the check input is constructed or inserted.
 
 ### `reports`
 
@@ -26,8 +28,10 @@ User-submitted reports: `id, entity_type, redacted_value, entity_hash, descripti
 
 RLS/grants: public direct inserts are revoked. Reports are accepted through
 `submitReport`, which validates payloads and redacts free-form `description`
-before service-role insert. Anonymous by default; admins moderate through admin
-server functions. Terminal reports (`confirmed`, `rejected`, `duplicate`) older
+plus target, scam type and city fields before service-role insert. The shared
+sink sanitizer covers labeled passwords, separated codes, recovery phrases and
+private keys before reports, entity candidates or moderation notifications.
+Anonymous by default; admins moderate through admin server functions. Terminal reports (`confirmed`, `rejected`, `duplicate`) older
 than 365 days and stale open reports (`new`, `reviewing`) older than 180 days
 are eligible for retention cleanup.
 
@@ -86,6 +90,8 @@ RLS/grants: enabled; `anon` and `authenticated` have no direct table access.
 Submissions and admin decisions go through server functions using the
 service-role client. Targets and optional contacts are HMAC-hashed before
 storage. Display fields are masked/redacted and intended for admin triage only.
+Reason and contact display use the same sink credential sanitizer; contact
+hashing still uses the normalized original value so deduplication remains stable.
 
 Admin decisions do not delete reports. A successful removal moves the public
 `entities` record to `moderation_status='rejected'` and `risk_level='unknown'`;
@@ -133,7 +139,8 @@ and optional explanation; raw images and data URLs are discarded. Web OCR and
 core image-intelligence paths validate data URL MIME, base64 form and decoded
 byte size before an image can reach an external AI provider. Category-only
 benign image labels are not persisted as `safe` without readable supporting
-evidence; low-signal image checks remain `unknown`.
+evidence and deterministic destination scoring; low-signal image checks remain
+`unknown`.
 
 ### `telegram_webhook_updates`
 
@@ -203,7 +210,16 @@ RBAC rows: `id, user_id, role, created_at`, unique by `(user_id, role)`.
 Emails eligible for admin access after mailbox verification. Managed by
 SQL/service-role only. Signup creates a baseline `user` role unless Supabase has
 already set `auth.users.email_confirmed_at`; an allowlisted account is promoted
-to `admin` only after `email_confirmed_at` is non-null.
+to `admin` only after `email_confirmed_at` is non-null. Migration
+`20260712142514_reconcile_admin_role_lifecycle.sql` makes the durable role an
+exact projection: allowlist removal/update, confirmed-email drift or loss of
+confirmation revokes `admin` immediately while preserving the baseline `user`.
+Email identity is `lower(btrim(email))` in both SQL and the preflight. Migration
+repair is set-based, so it does not retain one advisory transaction lock per
+existing Auth user; runtime transitions remain serialized per user.
+Before applying that migration to a live project, run
+`npm run admin-role:preflight` in the production environment and require zero
+stale and zero missing roles. The command emits aggregate counts only.
 
 ## Functions / triggers
 
@@ -212,7 +228,12 @@ to `admin` only after `email_confirmed_at` is non-null.
 - `handle_new_user_role()` signup trigger; it no longer grants allowlisted
   admins before email confirmation.
 - `handle_confirmed_admin_allowlist_role()` email-confirmation trigger; grants
-  `admin` to allowlisted users after Supabase marks the email confirmed.
+  or revokes `admin` after email/confirmation changes.
+- `private.reconcile_admin_role(user_id)` serializes one user's entitlement
+  transition with an advisory transaction lock and projects current confirmed
+  allowlist eligibility; direct execution is revoked from API roles.
+- `private.handle_admin_allowlist_role_change()` reconciles users affected by
+  allowlist INSERT/UPDATE/DELETE in the same transaction.
 - `get_check_stats() -> (total, today, confirmed_entities, high_risk,
 suspicious, dangerous, reports_total, reports_with_loss_amount,
 reported_loss_uzs)` is service-role-only and called through the web server
@@ -250,8 +271,12 @@ under the windows below.
 
 - Identifiers are hashed into `entity_hash` / `input_hash`.
 - Human-visible strings are masked (`display_mask`, `redacted_input`, `redacted_value`).
-- OTP/SMS codes, full card numbers, full phones, PINs, passwords and passport data must be redacted before persistence.
-- Screenshots are OCR'd/analyzed in memory and discarded; image uploads for reports are not wired yet.
+- OTP/SMS codes, full card numbers, full phones, PINs, labeled passwords,
+  recovery phrases, private keys and passport data must be redacted before
+  persistence or Telegram publication.
+- Screenshots are OCR'd/analyzed in memory and discarded. Telegram report
+  screenshots are supported only as transient description evidence after the
+  shared media admission check; raw images and decoded QR payloads are not stored.
 - Public exposure requires admin moderation.
 - Description-only incident reports are useful for review/research, but they do
   not affect public entity reputation.

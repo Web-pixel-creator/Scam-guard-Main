@@ -1,6 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { redactText } from "@/lib/risk/detect";
+import { redactSensitiveSecrets } from "@/lib/risk/sensitive-text";
 import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 import { extractTelegramPublicTarget } from "@/lib/telegram/public-metadata.server";
 
@@ -217,7 +218,7 @@ function extractInlineButtons(
   )) {
     const attrs = match[1];
     const inner = match[2];
-    const text = sanitizeMetaText(inner, { redact: false });
+    const text = redactSensitiveSecrets(sanitizeMetaText(inner, { redact: false }));
     const href = normalizeHref(decodeHtmlEntities(getAttr(attrs, "href") ?? "").trim());
     const url = href && !isTelegramSelfLink(href, target) ? href : null;
     if (!text && !url) continue;

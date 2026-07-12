@@ -121,6 +121,22 @@ const h = vi.hoisted(() => ({
     } | null,
   },
   imageError: { current: null as Error | null },
+  imageAnalysisCalls: [] as Array<{ dataUrl: string; lang: string; rateLimitKey: string }>,
+  getFileCalls: [] as string[],
+  downloadCalls: [] as string[],
+  mediaAdmissionCalls: [] as Array<{
+    scope: string;
+    key: string;
+    limit: number;
+    windowMs: number;
+  }>,
+  mediaAdmissionResult: {
+    current: { ok: true, remaining: 9, retryAfterSec: 0 } as {
+      ok: boolean;
+      remaining: number;
+      retryAfterSec: number;
+    },
+  },
 }));
 
 // Session store — capture the persisted patches, never hit Supabase.
@@ -148,14 +164,28 @@ vi.mock("@/lib/telegram/api.server", () => ({
     return Promise.resolve({ ok: true });
   },
   escapeMarkdownV2: (s: string) => s,
-  getFile: () => Promise.resolve(h.fileMeta.current),
-  downloadFileAsDataUrl: () => Promise.resolve(h.dataUrl.current),
+  getFile: (fileId: string) => {
+    h.getFileCalls.push(fileId);
+    return Promise.resolve(h.fileMeta.current);
+  },
+  downloadFileAsDataUrl: (filePath: string) => {
+    h.downloadCalls.push(filePath);
+    return Promise.resolve(h.dataUrl.current);
+  },
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
-  analyzeImageCore: async () => {
+  analyzeImageCore: async (dataUrl: string, lang: string, rateLimitKey: string) => {
+    h.imageAnalysisCalls.push({ dataUrl, lang, rateLimitKey });
     if (h.imageError.current) throw h.imageError.current;
     return h.imageEvidence.current;
+  },
+}));
+
+vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
+  checkSharedRateLimit: async (scope: string, key: string, limit: number, windowMs: number) => {
+    h.mediaAdmissionCalls.push({ scope, key, limit, windowMs });
+    return h.mediaAdmissionResult.current;
   },
 }));
 
@@ -274,6 +304,11 @@ beforeEach(() => {
   h.dataUrl.current = "data:image/jpeg;base64,ZmFrZQ==";
   h.imageEvidence.current = null;
   h.imageError.current = null;
+  h.imageAnalysisCalls.length = 0;
+  h.getFileCalls.length = 0;
+  h.downloadCalls.length = 0;
+  h.mediaAdmissionCalls.length = 0;
+  h.mediaAdmissionResult.current = { ok: true, remaining: 9, retryAfterSec: 0 };
 });
 
 afterEach(() => {
@@ -522,6 +557,12 @@ describe("/report — screenshot evidence in report_desc", () => {
 
     await handleScenarioImage("photo-file-id", ctx);
 
+    expect(h.mediaAdmissionCalls).toEqual([
+      { scope: "check", key: "telegram-image:tg:777", limit: 10, windowMs: 60_000 },
+    ]);
+    expect(h.getFileCalls).toEqual(["photo-file-id"]);
+    expect(h.downloadCalls).toEqual(["photos/file.jpg"]);
+    expect(h.imageAnalysisCalls).toHaveLength(1);
     expect(h.saveCalls).toHaveLength(1);
     expect(h.saveCalls[0].patch.scenario).toBe("report_scamType");
     expect(h.saveCalls[0].patch.scenarioStep).toBe(2);
@@ -570,6 +611,26 @@ describe("/report — screenshot evidence in report_desc", () => {
 
     expect(h.saveCalls).toHaveLength(0);
     expect(sentTexts()).toContain(bt("image_too_large", "ru"));
+  });
+
+  it("rejects before getFile and download when the shared media budget is exhausted", async () => {
+    h.mediaAdmissionResult.current = { ok: false, remaining: 0, retryAfterSec: 37 };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { target: expectedTarget("@scammer_bank") },
+    });
+
+    await handleScenarioImage("rate-limited-photo", ctx);
+
+    expect(h.mediaAdmissionCalls).toEqual([
+      { scope: "check", key: "telegram-image:tg:777", limit: 10, windowMs: 60_000 },
+    ]);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    expect(h.imageAnalysisCalls).toHaveLength(0);
+    expect(h.saveCalls).toHaveLength(0);
+    expect(sentTexts().join("\n")).toContain("37");
   });
 });
 

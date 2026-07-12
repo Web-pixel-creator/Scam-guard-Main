@@ -154,6 +154,27 @@ describe("redactText — context-aware card detection", () => {
     expect(result).toContain("••••");
   });
 
+  it.each([
+    ["labeled password", "password = Correct-Horse-Battery-Staple", "Correct-Horse-Battery-Staple"],
+    ["unseparated password label", "password hunter2", "hunter2"],
+    ["spaced OTP", "OTP: 9 1 4 2 8 7", "9 1 4 2 8 7"],
+    ["hyphenated OTP", "SMS code 12-34", "12-34"],
+    [
+      "recovery phrase",
+      "seed phrase: apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    ],
+  ])("redacts %s at both text boundaries", (_name, input, marker) => {
+    expect(redactText(input)).not.toContain(marker);
+    expect(maskForDisplay(input, "text")).not.toContain(marker);
+  });
+
+  it("keeps ordinary password and recovery safety prose useful", () => {
+    const input = "Never share your password or seed phrase with support.";
+    expect(redactText(input)).toBe(input);
+    expect(maskForDisplay(input, "text")).toContain("Never share your password");
+  });
+
   it("redacts email, URL and Telegram identifiers in narrative text", () => {
     const text =
       "Contact victim@example.com, @FakeSupportBot or t.me/+SecretInvite and open https://evil.example/reset?token=secret.";
@@ -166,6 +187,18 @@ describe("redactText — context-aware card detection", () => {
     expect(result).toContain("v*****@example.com");
     expect(result).toContain("[telegram]");
     expect(result).toContain("[link]");
+  });
+
+  it.each([
+    "t.me/+SecretInvite12345",
+    "telegram.me/+SecretInvite12345",
+    "t.me/joinchat/SecretInvite12345",
+    "telegram.me/joinchat/SecretInvite12345",
+    "https://t.me/joinchat/SecretInvite12345",
+  ])("redacts the complete private invite link: %s", (value) => {
+    const result = redactText(`Join ${value} now`);
+    expect(result).not.toContain("SecretInvite12345");
+    expect(result).toContain("[telegram]");
   });
 
   it("fails closed when a URL-shaped value cannot be parsed for display", () => {

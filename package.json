@@ -35,7 +35,8 @@
     "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
     "tts:validate-assets": "vite-node scripts/validate-voice-out-assets.ts",
     "stt:transcribe-fixtures": "vite-node scripts/transcribe-voice-stt-fixtures.ts",
-    "moderation:smoke": "vite-node scripts/moderation-alert-smoke.ts"
+    "moderation:smoke": "vite-node scripts/moderation-alert-smoke.ts",
+    "admin-role:preflight": "vite-node scripts/admin-role-preflight.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

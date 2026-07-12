@@ -79,6 +79,31 @@ describe("Brand Matcher — Key Detection Scenarios (Requirement 11)", () => {
       expect(matchBrandInUrl(normalizeDomain(raw), raw).detected).toBe(false);
     });
 
+    it("does not treat an invalid double-root-dot hostname as official", () => {
+      const raw = "https://kapitalbank.uz../login";
+      expect(matchBrandInUrl(normalizeDomain(raw), raw).detected).toBe(true);
+    });
+
+    it.each(["https://kapita1bank.uz/login", "https://shop.kapita1bank.uz/login"])(
+      "does not let a similarity collision enter the official-domain allowlist: %s",
+      (raw) => {
+        const result = matchBrandInUrl(normalizeDomain(raw), raw);
+
+        expect(result.detected).toBe(true);
+        expect(result.evidence).toEqual(
+          expect.arrayContaining([expect.objectContaining({ brandId: "kapitalbank" })]),
+        );
+      },
+    );
+
+    it("does not let a news-domain similarity collision suppress path evidence", () => {
+      const collision = "https://sp0t.uz/kapitalbank";
+      const legitimateNews = "https://news.spot.uz/kapitalbank";
+
+      expect(matchBrandInUrl(normalizeDomain(collision), collision).detected).toBe(true);
+      expect(matchBrandInUrl(normalizeDomain(legitimateNews), legitimateNews).detected).toBe(false);
+    });
+
     it.each(IDN_ALIAS_CASES)(
       "matches registered IDN alias %s/%s after browser Punycode",
       (id, alias) => {

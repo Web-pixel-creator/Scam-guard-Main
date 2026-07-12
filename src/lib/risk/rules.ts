@@ -302,9 +302,26 @@ const DROPPER_ACTION_RE =
 const DROPPER_SAFETY_CONTEXT_RE =
   /(не передавай|не передавайте|не продавай|не продавайте|не сдавай|не сдавайте|нельзя передавать|do not sell|don't sell|do not transfer|sotmang|bermang|topshirmang)/i;
 
+function hasUnsafeClauseDespiteSafetyContext(
+  text: string,
+  contextRe: RegExp,
+  actionRe: RegExp,
+): boolean {
+  if (!contextRe.test(text) || !actionRe.test(text)) return false;
+  if (!DROPPER_SAFETY_CONTEXT_RE.test(text)) return true;
+
+  return text
+    .split(
+      /[.!?;\r\n]+|(?<![\p{L}\p{N}_])(?:but|however|lekin|ammo|\u043d\u043e|\u043e\u0434\u043d\u0430\u043a\u043e)(?![\p{L}\p{N}_])/iu,
+    )
+    .some(
+      (clause) =>
+        contextRe.test(clause) && actionRe.test(clause) && !DROPPER_SAFETY_CONTEXT_RE.test(clause),
+    );
+}
+
 function shouldFlagDropperRecruitment(text: string): boolean {
-  if (DROPPER_SAFETY_CONTEXT_RE.test(text)) return false;
-  return DROPPER_TARGET_RE.test(text) && DROPPER_ACTION_RE.test(text);
+  return hasUnsafeClauseDespiteSafetyContext(text, DROPPER_TARGET_RE, DROPPER_ACTION_RE);
 }
 
 const GAMBLING_CONTEXT_RE =
@@ -426,8 +443,7 @@ const MONEY_MULE_OBJECT_RE =
   /(перевод|деньги|сум|so['’]?m|sum|на карту|карта|karta|hisob|account|transfer|money|card)/i;
 
 function shouldFlagMoneyMuleRecruitment(text: string): boolean {
-  if (DROPPER_SAFETY_CONTEXT_RE.test(text)) return false;
-  return MONEY_MULE_CONTEXT_RE.test(text) && MONEY_MULE_OBJECT_RE.test(text);
+  return hasUnsafeClauseDespiteSafetyContext(text, MONEY_MULE_CONTEXT_RE, MONEY_MULE_OBJECT_RE);
 }
 
 const ADVANCE_FEE_CONTEXT_RE =
