@@ -83,6 +83,10 @@ vi.mock("@/lib/telegram/reputation.server", () => ({
 
 import { handleCheck } from "@/lib/telegram/handlers/check";
 import { LIVE_PHRASE_CASES } from "@/lib/telegram/live-phrase-cases";
+import {
+  ALL_LAST_CHECK_FOLLOW_UP_ACTIONS,
+  FOLLOW_UP_GOLDEN_PHRASES,
+} from "@/lib/telegram/check-followup";
 
 function sessionWithData(scenarioData: Session["scenarioData"] = {}): Session {
   return {
@@ -237,6 +241,50 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages.map((message) => message.text).join("\n")).not.toContain(
       "Недостаточно данных",
     );
+  });
+
+  it("answers every reviewed RU/UZ/EN reply and typo without check or contact side effects", async () => {
+    const recent = snapshot({
+      context: "generic",
+      level: "suspicious",
+      reasons: ["weird_domain"],
+    });
+
+    for (const action of ALL_LAST_CHECK_FOLLOW_UP_ACTIONS) {
+      for (const lang of ["ru", "uz", "en"] as const) {
+        for (const phrase of Object.values(FOLLOW_UP_GOLDEN_PHRASES[action][lang])) {
+          hoisted.sentMessages.length = 0;
+          hoisted.runCheckCalls.length = 0;
+          hoisted.saveSessionCalls.length = 0;
+          hoisted.familyNotifyCalls.length = 0;
+
+          await handleCheck(phrase, {
+            chatId: 100,
+            userId: 42,
+            session: { ...sessionWith(recent), lang },
+          });
+
+          expect(hoisted.runCheckCalls, `${action}/${lang}: ${phrase}`).toHaveLength(0);
+          expect(hoisted.sentMessages, `${action}/${lang}: ${phrase}`).toHaveLength(1);
+          expect(hoisted.sentMessages[0].text.trim().length).toBeGreaterThan(20);
+          expect(hoisted.saveSessionCalls, `${action}/${lang}: ${phrase}`).toHaveLength(0);
+          expect(hoisted.familyNotifyCalls, `${action}/${lang}: ${phrase}`).toHaveLength(0);
+        }
+      }
+    }
+  });
+
+  it("never lets a reviewed reply prefix hide a newly supplied artifact", async () => {
+    await handleCheck("R u sure? https://kapitalbank.uz.evil.example/login", {
+      chatId: 100,
+      userId: 42,
+      chatType: "private",
+      session: { ...sessionWith(snapshot()), lang: "en" },
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toContain("kapitalbank.uz.evil.example");
+    expect(hoisted.familyNotifyCalls).toHaveLength(1);
   });
 
   it("lets a newer last check win over an older panic context for overlapping follow-ups", async () => {

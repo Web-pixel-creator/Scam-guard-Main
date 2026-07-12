@@ -6,7 +6,7 @@ Signatures and intent only. See file paths for source.
 
 | Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                     |
+| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                    |
 | `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
 | `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
@@ -208,9 +208,11 @@ Signatures and intent only. See file paths for source.
 **`src/lib/telegram/dialogue-corpus.ts`**
 
 - `TELEGRAM_DIALOGUE_CORPUS` expands reviewed RU/UZ/EN post-check phrases into
-  1,248 deterministic recent/orphan/stale/new-artifact rows.
-- `FOLLOW_UP_PHRASE_SEEDS` is the compact human-review surface; generated rows
-  are dialogue-state permutations, not a claim of 1,248 independent phrases.
+  1,872 deterministic recent/orphan/stale/new-artifact rows.
+- `FOLLOW_UP_PHRASE_SEEDS` plus `FOLLOW_UP_GOLDEN_PHRASES` are the compact
+  human-review surface. The latter adds one natural reply-to-bot and one common
+  typo per action/language through exact normalized lookup; generated rows are
+  dialogue-state permutations, not a claim of 1,872 independent phrases.
 
 **`src/lib/embed-origin-analytics.server.ts`**
 

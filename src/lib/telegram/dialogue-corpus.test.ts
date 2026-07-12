@@ -44,12 +44,26 @@ function scenario(snapshot: LastCheckSnapshot): ReportDraft {
 }
 
 describe("canonical Telegram multi-turn dialogue corpus", () => {
-  it("contains 1,248 unique RU/UZ/EN context rows", () => {
-    expect(TELEGRAM_DIALOGUE_CORPUS).toHaveLength(1248);
-    expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.id)).size).toBe(1248);
+  it("contains 1,872 unique RU/UZ/EN context rows", () => {
+    expect(TELEGRAM_DIALOGUE_CORPUS).toHaveLength(1872);
+    expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.id)).size).toBe(1872);
     expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.lang))).toEqual(
       new Set(["ru", "uz", "en"]),
     );
+  });
+
+  it("covers reply-to-bot and common-typo variants for every action and language", () => {
+    for (const action of new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.action))) {
+      for (const lang of ["ru", "uz", "en"] as const) {
+        const variants = new Set(
+          TELEGRAM_DIALOGUE_CORPUS.filter((row) => row.action === action && row.lang === lang).map(
+            (row) => row.surfaceVariant,
+          ),
+        );
+        expect(variants).toContain("reply");
+        expect(variants).toContain("typo");
+      }
+    }
   });
 
   it.each(TELEGRAM_DIALOGUE_CORPUS)("routes $id according to its dialogue context", (row) => {

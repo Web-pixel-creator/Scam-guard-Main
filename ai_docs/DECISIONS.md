@@ -2,6 +2,23 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-079 - CI security gates scan the release shape, not only source tests
+
+Every workflow action is pinned to an immutable commit and runtime versions are
+fixed. CI enforces repository coverage floors above 75–85% by metric. A separate
+workflow runs JavaScript/TypeScript CodeQL, full-history Gitleaks, builds the
+actual Dockerfile, fails on fixed High/Critical OS or library findings and emits
+a CycloneDX image SBOM. The SBOM is evidence inventory, not signed provenance;
+attestation remains open until a stable published artifact digest exists.
+
+## D-078 - Dialogue typo handling is a reviewed exact corpus
+
+Common RU/UZ/EN typos and reply-to-bot phrases are admitted through an exact,
+normalized golden map before broad regex routing. This expands realistic
+multi-turn coverage without making safety intents fuzzy enough to swallow
+unrelated text. New artifacts still bypass every follow-up mapping and stale or
+orphan context rules remain unchanged.
+
 ## D-077 - Production Telegram evidence must match the active delivery mode
 
 Webhook and polling are mutually exclusive production states. In polling mode,
@@ -53,8 +70,9 @@ delivery; direct risk checks keep normal persistence and private high-risk
 notification, while Inline remains stateless.
 
 The QA corpus separates authored phrases from generated dialogue states. One
-reviewed phrase per post-check action/language is expanded through four safe
-surface variants and eight context states, producing 1,248 reproducible rows.
+canonical phrase plus reviewed reply-to-bot and typo variants per post-check
+action/language is expanded through six safe surface variants and eight context
+states, producing 1,872 reproducible rows.
 The older live matrix actually contains 238 rows; documentation must not round
 that value up to the previously recorded 239. A new artifact always bypasses
 the follow-up layer and starts a fresh check.
