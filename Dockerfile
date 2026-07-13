@@ -22,6 +22,8 @@ ARG SUPABASE_PUBLISHABLE_KEY
 
 ENV NITRO_PRESET=node-server
 RUN bun run build
+RUN mkdir -p dist/ops \
+  && bun build scripts/polling-resource-soak.ts --target=node --outfile=dist/ops/polling-resource-soak.mjs
 
 # ── Runtime stage (Node — Nitro node-server is a plain Node bundle) ────────
 FROM node:22-bookworm-slim AS runtime

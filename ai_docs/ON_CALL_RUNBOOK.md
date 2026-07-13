@@ -213,6 +213,19 @@ does not acquire the polling leader, and cleans its messages/checks/sessions.
 Do not treat it as Inline client evidence; complete
 `ai_docs/TELEGRAM_INLINE_QA.md` in a real Telegram client.
 
+For a release polling/resource gate, run the bundled non-network soak in the
+Railway runtime:
+
+```powershell
+railway ssh node dist/ops/polling-resource-soak.mjs --duration-minutes=60
+```
+
+It spends no Telegram, Supabase, reputation or AI API quota and writes no
+records or messages. Require `SOAK_FINAL.passed=true`, zero lost updates, zero
+duplicate modeled effects and bounded queue/RSS/event-loop/latency metrics. The
+offset-loss and stale-leader probes are synthetic; separately verify an actual
+instance restart and polling-leader recovery with an approved QA update.
+
 Update `ai_docs/CHANGELOG_AI.md` with the incident summary and verification
 commands if the alert required a real fix.
 
