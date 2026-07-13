@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { runPollingResourceSoak } from "./polling-resource-soak";
 
 describe("polling resource soak harness", () => {
-  it("covers restart, leader handoff and both failure boundaries without lost or duplicate effects", async () => {
+  it("covers offset loss, leader handoff and both failure boundaries without lost or duplicate effects", async () => {
     const result = await runPollingResourceSoak({
       durationMs: 220,
       enqueueIntervalMs: 8,

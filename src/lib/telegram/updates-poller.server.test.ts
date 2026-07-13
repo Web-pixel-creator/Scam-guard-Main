@@ -63,6 +63,21 @@ describe("single-leader Telegram polling crash contract", () => {
     });
   });
 
+  it("prepares handlers only for a schema-valid update", async () => {
+    const prepareHandlers = vi.fn();
+    const d = deps({ prepareHandlers });
+
+    await runTelegramPollingCycle(77, leader, d);
+    expect(prepareHandlers).toHaveBeenCalledTimes(1);
+
+    await runTelegramPollingCycle(
+      77,
+      leader,
+      deps({ fetchUpdates: vi.fn(async () => []), prepareHandlers }),
+    );
+    expect(prepareHandlers).toHaveBeenCalledTimes(1);
+  });
+
   it("advances the offset only after durable completion", async () => {
     const d = deps({ execute: vi.fn(async () => false) });
     await expect(runTelegramPollingCycle(undefined, leader, d)).resolves.toEqual({

@@ -495,6 +495,10 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `src/lib/telegram/webhook.server.ts`: compatibility webhook handler with fail-closed secret validation, capped body parsing and durable update lifecycle; returns 200 only after confirmed completion and 503 on handler/lease/completion uncertainty.
 - `src/lib/telegram/update-lifecycle.server.ts`: strict service-role RPC boundary for polling leader leases, update processing/completion leases, failure release and current-fence checks.
 - `src/lib/telegram/updates-poller.server.ts`: singleton `getUpdates(limit=1)` supervisor; advances offset only after durable completion and safely skips completion-before-offset redelivery.
+- `src/lib/telegram/polling-cycle.ts`: dependency-injected core for one polling
+  cycle. Production supplies handler installation and network/database
+  dependencies; isolated tests and the soak reuse the same offset/claim/execute
+  state machine without importing the application handler graph.
 - `src/lib/telegram/polling-resource-soak.ts`: non-network production-shaped
   soak harness around `runTelegramPollingCycle`; generates controlled updates
   and bounded media fixtures, injects the two completion failure boundaries,

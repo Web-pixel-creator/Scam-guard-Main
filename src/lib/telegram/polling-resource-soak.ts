@@ -7,9 +7,9 @@ import type {
   TelegramUpdateLeaderLease,
 } from "@/lib/telegram/update-lifecycle.server";
 import {
-  runTelegramPollingCycle,
+  runTelegramPollingCycleCore,
   type TelegramPollingCycleDeps,
-} from "@/lib/telegram/updates-poller.server";
+} from "@/lib/telegram/polling-cycle";
 
 const MIB = 1024 * 1024;
 
@@ -140,8 +140,9 @@ export async function runPollingResourceSoak(
   const endAt = startedAt + options.durationMs;
   let nextEnqueueAt = startedAt;
   let nextProgressAt = startedAt + options.progressIntervalMs;
-  const handoffAt = startedAt + options.durationMs / 3;
-  const restartAt = startedAt + (options.durationMs * 2) / 3;
+  const expectedUpdates = Math.ceil(options.durationMs / options.enqueueIntervalMs);
+  const handoffAfterUpdates = Math.max(1, Math.ceil(expectedUpdates / 3));
+  const offsetLossAfterUpdates = Math.max(1, Math.ceil((expectedUpdates * 2) / 3));
 
   const leaders: TelegramUpdateLeaderLease[] = [
     { leaseToken: leaseToken(101), fence: 101, leaseExpiresAt: "2099-01-01T00:00:00.000Z" },
@@ -259,7 +260,11 @@ export async function runPollingResourceSoak(
   };
 
   try {
-    while (performance.now() < endAt || confirmedBefore <= updates.length) {
+    while (
+      performance.now() < endAt ||
+      nextEnqueueAt < endAt ||
+      confirmedBefore <= updates.length
+    ) {
       const now = performance.now();
       while (nextEnqueueAt <= now && nextEnqueueAt < endAt) {
         const updateId = updates.length + 1;
@@ -273,24 +278,24 @@ export async function runPollingResourceSoak(
         }
       }
 
-      if (!staleLeader && now >= handoffAt) {
+      if (!staleLeader && updates.length >= handoffAfterUpdates) {
         staleLeader = activeLeader;
         activeLeader = leaders[1]!;
         staleProbePending = true;
       }
-      if (!offsetLossReplayPassed && now >= restartAt) {
+      if (!offsetLossReplayPassed && updates.length >= offsetLossAfterUpdates) {
         offset = undefined;
         offsetLossReplayPassed = true;
       }
 
       maxQueueDepth = Math.max(maxQueueDepth, queueDepth());
       if (staleProbePending && confirmedBefore <= updates.length && staleLeader) {
-        const staleResult = await runTelegramPollingCycle(offset, staleLeader, deps);
+        const staleResult = await runTelegramPollingCycleCore(offset, staleLeader, deps);
         if (staleResult.retryAfterMs > 0) retries += 1;
         staleProbePending = false;
       }
 
-      const result = await runTelegramPollingCycle(offset, activeLeader, deps);
+      const result = await runTelegramPollingCycleCore(offset, activeLeader, deps);
       offset = result.offset;
       if (result.retryAfterMs > 0) {
         retries += 1;
