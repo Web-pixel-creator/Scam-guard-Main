@@ -50,12 +50,27 @@ Newest first. This tracks documentation/memory files, not every code commit.
   setup denies unmocked network access globally; corpus tests also keep local
   hard guards. These are routing/copy regressions, not model training, not live
   chats and not a replacement for real-client acceptance testing.
-- Local verification: 134 files / 8,583 tests, TypeScript, changed-file
-  Prettier, lint with 0 errors and 8 existing warnings, production build and
-  `npm audit` with 0 known vulnerabilities. No production, Telegram Bot API,
-  database, reputation or AI-provider call was made by the dialogue QA. Review,
-  merge, deployment and real Telegram Desktop/Android/iOS RU/UZ/EN QA remain
-  open; BOT-004 stays In Progress.
+- PR #86 passed application/database/security CI and deployed the dialogue
+  perimeter. The first bounded production polling-dispatch run then exposed an
+  ambiguous high-risk confidence sentence: it did not clearly distinguish an
+  organization's official callback number from a known person's previously
+  saved number. PR #87 corrected that RU/UZ/EN copy and added a regression.
+- The exact production revision is
+  `5ceb9eaa2ed447e0072a7cee4b25e16eae673b03` / Railway deployment
+  `8c76285e-51c0-4539-b305-d2d1d3301227`. The final bounded dispatch harness
+  passed confidence, trusted-person, recheck, disagreement,
+  domain-methodology and passport flows and deleted its Bot API replies and
+  synthetic database rows. General production smoke, monitor and RLS/security
+  smoke also passed. A stale domain-methodology harness assertion was updated
+  to the retained-provenance contract without weakening its evidence,
+  limitation or no-overclaim checks.
+- Final verification: 134 files / 8,584 tests, TypeScript, changed-file
+  Prettier, lint with 0 errors and 8 existing warnings, production build,
+  `npm audit` with 0 known vulnerabilities, CodeQL, Gitleaks, container/SBOM,
+  migrations, schema lint and pgTAP. The bulk dialogue corpora remained local
+  and made no AI-provider, Telegram or database calls; only the bounded
+  production smokes used configured services. BOT-004 remains In Progress
+  until real Telegram Desktop/Android/iOS RU/UZ/EN acceptance is captured.
 
 ## 2026-07-12 - Release-gate expansion verified locally
 
