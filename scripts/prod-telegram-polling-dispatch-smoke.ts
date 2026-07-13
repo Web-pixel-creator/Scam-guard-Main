@@ -472,10 +472,10 @@ async function main(): Promise<void> {
       violations: guard.violations,
     });
     assertReply("domain methodology follow-up", methodologyReplies, [
-      /Вот как я получил прошлый результат/iu,
+      /Сохранённая причина именно по домену/iu,
+      /Основание:/iu,
       /Ограничение:/iu,
-      /видим/iu,
-      /не проверял скрытого владельца/iu,
+      /сам по себе не доказывает, что владелец домена — мошенник/iu,
     ]);
     await assertNoCheck(methodologyText, methodologyStartedAt, "domain methodology follow-up");
     console.log(
