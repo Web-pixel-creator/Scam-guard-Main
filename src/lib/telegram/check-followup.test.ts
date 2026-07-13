@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { evaluateText, type ReasonCode } from "@/lib/risk/rules";
 import {
   buildImageUnreadableSnapshot,
   buildLastCheckFollowUpText,
   buildLastCheckSnapshot,
   buildOrphanCheckFollowUpText,
+  classifyAcknowledgementFollowUp,
   classifyOrphanCheckFollowUp,
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
@@ -29,7 +31,160 @@ function scenarioWith(snapshot: LastCheckSnapshot, extra: Partial<ReportDraft> =
   return { ...extra, lastCheck: snapshot };
 }
 
+const NATURAL_FOLLOW_UP_PARAPHRASES = [
+  ["Могу ли я доверять этому результату?", "confidence"],
+  ["Это точно мошенники?", "confidence"],
+  ["How sure are you?", "confidence"],
+  ["Are you certain?", "confidence"],
+  ["Can I rely on this result?", "confidence"],
+  ["Ishonchingiz komilmi?", "confidence"],
+  ["Natijaga ishonsam bo'ladimi?", "confidence"],
+  ["Откуда такой вывод?", "methodology"],
+  ["На чём основан результат?", "methodology"],
+  ["Ты реально проверял ссылку?", "methodology"],
+  ["What evidence did you use?", "methodology"],
+  ["What is this based on?", "methodology"],
+  ["What is this verdict based on?", "methodology"],
+  ["What was that answer based on?", "methodology"],
+  ["Did you actually check the link?", "methodology"],
+  ["Why did you flag the domain?", "methodology"],
+  ["Bu nimaga asoslangan?", "methodology"],
+  ["Qaysi dalillardan foydalandingiz?", "methodology"],
+  ["Havolani rostdan tekshirdingizmi?", "methodology"],
+  ["Можно спросить у мужа?", "trusted_person"],
+  ["Позвонить дочери?", "trusted_person"],
+  ["Показать это сыну?", "trusted_person"],
+  ["Can I ask my husband?", "trusted_person"],
+  ["Should I call my daughter?", "trusted_person"],
+  ["Can I show this to my son?", "trusted_person"],
+  ["Can I ask someone close to me?", "trusted_person"],
+  ["Turmush o'rtog'imdan so'rasam bo'ladimi?", "trusted_person"],
+  ["Qizimga qo'ng'iroq qilsam bo'ladimi?", "trusted_person"],
+  ["Buni o'g'limga ko'rsatsam bo'ladimi?", "trusted_person"],
+  ["Yaqin odamdan so'rasam bo'ladimi?", "trusted_person"],
+  ["Спасибо, понял", "acknowledgement"],
+  ["Хорошо, благодарю", "acknowledgement"],
+  ["Thanks, got it", "acknowledgement"],
+  ["Okay, thank you", "acknowledgement"],
+  ["Tushunarli, rahmat", "acknowledgement"],
+  ["Rahmat, tushundim", "acknowledgement"],
+] as const;
+
 describe("last check follow-up router", () => {
+  it.each(["Спасибо за помощь", "Thanks for your help", "Yordamingiz uchun rahmat"])(
+    "keeps a wrapper-only acknowledgement as a follow-up: %s",
+    (text) => {
+      const now = new Date("2026-07-13T08:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+      expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe("acknowledgement");
+      expect(classifyAcknowledgementFollowUp(text)).toBe("acknowledgement");
+    },
+  );
+
+  it.each(NATURAL_FOLLOW_UP_PARAPHRASES)(
+    "recognizes a natural recent-result paraphrase: %s",
+    (text, expectedAction) => {
+      const now = new Date("2026-07-13T08:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+      expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe(expectedAction);
+      if (expectedAction === "acknowledgement") {
+        expect(classifyAcknowledgementFollowUp(text)).toBe("acknowledgement");
+      }
+    },
+  );
+
+  it.each([
+    ["С чего ты сделал такой вывод?", "explain"],
+    ["Какие признаки ты увидел?", "methodology"],
+    ["Ты вообще это проверял каким-то образом?", "methodology"],
+    ["Как ты пришёл к этой оценке?", "methodology"],
+    ["Bu xulosaga nimaga asoslanib keldingiz?", "explain"],
+    ["Qaysi belgilarni ko'rdingiz?", "methodology"],
+    ["Buni biror usul bilan tekshirdingizmi?", "methodology"],
+    ["Bu bahoga qanday keldingiz?", "methodology"],
+    ["What made you reach that conclusion?", "explain"],
+    ["What signs did you notice?", "methodology"],
+    ["Did you actually check it in some way?", "methodology"],
+    ["How did you arrive at this rating?", "methodology"],
+  ] as const)(
+    "keeps a natural result-basis question on both recent and orphan follow-up routes: %s",
+    (text, expectedAction) => {
+      const now = new Date("2026-07-13T08:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+      expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe(expectedAction);
+      expect(classifyOrphanCheckFollowUp(text)).toBe(expectedAction);
+    },
+  );
+
+  it.each([
+    "С чего ты сделал вывод, что завтра будет дождь?",
+    "Какие признаки простуды ты увидел?",
+    "Qaysi belgilarni kasallikda ko'rdingiz?",
+    "Bu bahoga matematika imtihonida qanday keldingiz?",
+    "What signs of rain did you notice?",
+    "How did you arrive at this rating for the restaurant?",
+  ])("does not turn an unrelated result-like question into a check follow-up: %s", (text) => {
+    const now = new Date("2026-07-13T08:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+    expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBeNull();
+    expect(classifyOrphanCheckFollowUp(text)).toBeNull();
+  });
+
+  it.each([
+    "My husband asked me to send the code.",
+    "Дочь просит перевести деньги.",
+    "Qizim kodni yuborishni so'rayapti.",
+    "Дочь позвонила мне.",
+    "Qizim qo'ng'iroq qildi.",
+    "Thanks, send me the code.",
+    "What evidence is admissible in court?",
+    "What is this court verdict based on?",
+    "Are you certain what the weather is?",
+    "Can I ask my husband to check https://example.com/login?",
+  ])("does not hide a new payload or unrelated question as a follow-up: %s", (text) => {
+    const now = new Date("2026-07-13T08:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+    expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBeNull();
+  });
+
+  it.each([
+    ["Thanks for your help: are you sure? send me the code", "asks_for_sms_code"],
+    ["После прошлого результата хочу уточнить: ты уверен? отправь мне пароль", "asks_for_pin"],
+    ["Ты точно уверен? Теперь покажи экран телефона", "asks_to_share_screen"],
+    ["Are you sure? Install this APK", "asks_to_install_apk"],
+    ["Qaysi dalillardan foydalandingiz? SMS kodni yuboring", "asks_for_sms_code"],
+  ] as const)(
+    "keeps a dangerous clause after follow-up wording on the fresh-check path: %s",
+    (text, expectedReason: ReasonCode) => {
+      const now = new Date("2026-07-13T08:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+      expect(evaluateText(text), text).toContain(expectedReason);
+      expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now), text).toBeNull();
+      expect(classifyOrphanCheckFollowUp(text), text).toBeNull();
+    },
+  );
+
+  it.each([
+    ["Что мне делать прямо сейчас?", "next_steps"],
+    ["What should I do right now?", "next_steps"],
+    ["Hozir nima qilay?", "next_steps"],
+  ] as const)(
+    "keeps a broad urgency signal attached to the recent result: %s",
+    (text, expectedAction) => {
+      const now = new Date("2026-07-13T08:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+      expect(evaluateText(text)).toContain("uses_urgency");
+      expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe(expectedAction);
+    },
+  );
+
   it("answers a short confidence question after a recent QR/menu check", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
     const snapshot = buildLastCheckSnapshot(
@@ -186,6 +341,7 @@ describe("last check follow-up router", () => {
     expect(text).toContain("Не сообщайте SMS-код");
     expect(text).toContain("эти шаги вам не навредят");
     expect(text).not.toContain("Не могу гарантировать на 100%");
+    expect(text).not.toContain("Перезвоните в банк");
   });
 
   it("does not expose weak topic-only evidence in unknown explanations", () => {
@@ -398,8 +554,14 @@ describe("last check follow-up router", () => {
       "Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?",
       "methodology",
     ],
+    ["ru", "Почему домен подозрительный?", "methodology"],
+    ["ru", "Почему ты считаешь этот домен подозрительным?", "methodology"],
     ["uz", "bu domenni qanday tekshirdingiz?", "methodology"],
+    ["uz", "Nega domen shubhali?", "methodology"],
+    ["uz", "Nega bu domenni shubhali deb hisobladingiz?", "methodology"],
     ["en", "how did you check this domain?", "methodology"],
+    ["en", "Why is the domain suspicious?", "methodology"],
+    ["en", "Why did you consider this domain suspicious?", "methodology"],
     ["ru", "я могу связаться с близким?", "trusted_person"],
     ["uz", "yaqin odamim bilan bog'lansam bo'ladimi?", "trusted_person"],
     ["en", "can I call someone I trust?", "trusted_person"],
@@ -426,6 +588,115 @@ describe("last check follow-up router", () => {
     );
 
     expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ru",
+      "Почему домен подозрительный?",
+      "необычное доменное окончание",
+      "не доказывают владельца",
+    ],
+    ["uz", "Nega domen shubhali?", "noodatiy domen oxiri", "egani"],
+    ["en", "Why is the domain suspicious?", "unusual domain ending", "do not prove ownership"],
+  ] as const)(
+    "answers a short %s domain question from retained reason provenance",
+    (lang, phrase, evidence, limitation) => {
+      const now = new Date("2026-07-11T00:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(
+        baseResult({ type: "url", level: "suspicious", reasons: ["weird_domain"] }),
+        now,
+      );
+
+      const action = classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now);
+      expect(action).toBe("methodology");
+
+      const text = buildLastCheckFollowUpText(action!, snapshot, lang, phrase);
+      expect(text).toContain(evidence);
+      expect(text).toContain(limitation);
+      expect(text).not.toMatch(/повторно провер|rechecked|qayta tekshir/u);
+    },
+  );
+
+  it.each([
+    ["ru", "Почему домен подозрительный?", "домен не был отдельной причиной"],
+    [
+      "ru",
+      "Почему домен подозрительный ты посчитал, ты его проверил каким-то образом?",
+      "домен не был отдельной причиной",
+    ],
+    ["uz", "Nega domen shubhali?", "domen alohida xavf sababi bo'lmagan"],
+    ["en", "Why is the domain suspicious?", "did not contain a domain-specific risk reason"],
+  ] as const)(
+    "rejects the false domain premise after a non-domain %s result",
+    (lang, phrase, expected) => {
+      const snapshot = buildLastCheckSnapshot(
+        baseResult({ type: "phone", level: "suspicious", reasons: ["asks_for_sms_code"] }),
+      );
+      const text = buildLastCheckFollowUpText("methodology", snapshot, lang, phrase);
+
+      expect(text).toContain(expected);
+      expect(text).not.toMatch(/просят SMS|asks for an SMS|SMS.*so'ral/u);
+    },
+  );
+
+  it("does not attribute a URL result's unrelated SMS-code reason to the domain", () => {
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ type: "url", level: "suspicious", reasons: ["asks_for_sms_code"] }),
+    );
+    const text = buildLastCheckFollowUpText(
+      "methodology",
+      snapshot,
+      "ru",
+      "Почему домен подозрительный?",
+    );
+
+    expect(text).toContain("домен не был отдельной причиной");
+    expect(text).not.toContain("SMS");
+  });
+
+  it.each([
+    "Почему paypa1.uz подозрительный?",
+    "Why is paypa1.uz suspicious?",
+    "Nega paypa1.uz shubhali?",
+    "Почему домен https://paypa1.uz/login подозрительный?",
+  ])("keeps a concrete domain or URL as a fresh check: %s", (phrase) => {
+    const now = new Date("2026-07-11T00:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "suspicious", reasons: ["weird_domain"] }),
+      now,
+    );
+
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBeNull();
+  });
+
+  it.each([
+    ["После прошлого результата хочу уточнить: Почему домен подозрительный?", "methodology"],
+    ["After the last result I want to clarify: Why is the domain suspicious?", "methodology"],
+    ["Oldingi natijadan keyin aniqlashtirmoqchiman: Nega domen shubhali?", "methodology"],
+    ["Спасибо за помощь. Ещё вопрос: Почему это опасно?", "explain"],
+  ] as const)(
+    "keeps a natural conversational lead-in attached to the recent result: %s",
+    (phrase, action) => {
+      const now = new Date("2026-07-11T00:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(
+        baseResult({ level: "suspicious", reasons: ["weird_domain"] }),
+        now,
+      );
+
+      expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBe(action);
+    },
+  );
+
+  it.each([
+    "После прошлого результата хочу уточнить: Как проверить номер с помощью бота?",
+    "After the last result I want to clarify: How do I check a link here?",
+    "Oldingi natijadan keyin aniqlashtirmoqchiman: Raqamni qanday tekshirish mumkin?",
+  ])("keeps a procedural check question outside recent-result follow-ups: %s", (phrase) => {
+    const now = new Date("2026-07-11T00:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBeNull();
   });
 
   it("stores only bounded methodology enums in the last-check snapshot", () => {

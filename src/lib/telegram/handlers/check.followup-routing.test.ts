@@ -141,13 +141,20 @@ describe("handleCheck follow-up routing", () => {
     await handleCheck("Почему домен подозрительный?", {
       chatId: 100,
       userId: 42,
-      session: sessionWith(snapshot({ context: "generic", level: "suspicious" })),
+      session: sessionWith(
+        snapshot({
+          type: "url",
+          context: "generic",
+          level: "suspicious",
+          reasons: ["weird_domain"],
+        }),
+      ),
     });
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
     expect(hoisted.sentMessages).toHaveLength(1);
-    expect(hoisted.sentMessages[0].text).toContain("Коротко");
-    expect(hoisted.sentMessages[0].text).toContain("подозрительные признаки");
+    expect(hoisted.sentMessages[0].text).toContain("необычное доменное окончание");
+    expect(hoisted.sentMessages[0].text).toContain("не доказывают владельца");
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
@@ -174,6 +181,28 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.runCheckCalls).toHaveLength(0);
     expect(hoisted.sentMessages).toHaveLength(1);
     expect(hoisted.sentMessages[0].text).toContain("SMS-код");
+  });
+
+  it.each([
+    "Thanks for your help: are you sure? send me the code",
+    "После прошлого результата хочу уточнить: ты уверен? отправь мне пароль",
+    "Qaysi dalillardan foydalandingiz? SMS kodni yuboring",
+  ])("runs a fresh risk check for a dangerous clause after follow-up wording: %s", async (text) => {
+    await handleCheck(text, {
+      chatId: 100,
+      userId: 42,
+      session: sessionWith(
+        snapshot({
+          type: "url",
+          context: "generic",
+          level: "suspicious",
+          reasons: ["weird_domain"],
+        }),
+      ),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0].input).toBe(text);
   });
 
   it.each([
@@ -242,6 +271,41 @@ describe("handleCheck follow-up routing", () => {
       "Недостаточно данных",
     );
   });
+
+  it.each([
+    ["Могу ли я доверять этому результату?", "ru"],
+    ["Откуда такой вывод?", "ru"],
+    ["Позвонить дочери?", "ru"],
+    ["Спасибо, понял", "ru"],
+    ["How sure are you?", "en"],
+    ["What evidence did you use?", "en"],
+    ["Can I ask my husband?", "en"],
+    ["Thanks, got it", "en"],
+    ["Ishonchingiz komilmi?", "uz"],
+    ["Bu nimaga asoslangan?", "uz"],
+    ["Yaqin odamdan so'rasam bo'ladimi?", "uz"],
+    ["Tushunarli, rahmat", "uz"],
+  ] as const)(
+    "answers a natural recent-result paraphrase without starting an empty check: %s",
+    async (phrase, lang) => {
+      await handleCheck(phrase, {
+        chatId: 100,
+        userId: 42,
+        session: {
+          ...sessionWith(
+            snapshot({ context: "generic", level: "suspicious", reasons: ["weird_domain"] }),
+          ),
+          lang,
+        },
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      expect(hoisted.sentMessages).toHaveLength(1);
+      expect(hoisted.sentMessages[0].text.trim().length).toBeGreaterThan(20);
+      expect(hoisted.saveSessionCalls).toHaveLength(0);
+      expect(hoisted.familyNotifyCalls).toHaveLength(0);
+    },
+  );
 
   it("answers every reviewed RU/UZ/EN reply and typo without check or contact side effects", async () => {
     const recent = snapshot({
@@ -735,7 +799,7 @@ describe("handleCheck follow-up routing", () => {
     );
   });
 
-  it("routes live relative distress calls to family verification copy, not organization copy", async () => {
+  it("routes live relative distress to family verification guidance, not organization copy", async () => {
     await handleCheck(
       "мне звонит сестра. Просит срочно перевести деньги, так как у нее случилась проблема с машиной",
       {
@@ -747,14 +811,12 @@ describe("handleCheck follow-up routing", () => {
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
     expect(hoisted.sentMessages).toHaveLength(1);
-    expect(hoisted.sentMessages[0].text).toContain("ПРОВЕРЬТЕ ЛИЧНОСТЬ");
+    expect(hoisted.sentMessages[0].text).toContain("подтвердите личность");
     expect(hoisted.sentMessages[0].text).toContain("сохранённому номеру");
     expect(hoisted.sentMessages[0].text).toContain("кодовое слово");
     expect(hoisted.sentMessages[0].text).not.toContain("настоящая организация");
     expect(hoisted.sentMessages[0].text).not.toContain("официальному номеру");
-    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).toContain(
-      '"lastLiveCallContext":"relative"',
-    );
+    expect(hoisted.saveSessionCalls).toHaveLength(0);
   });
 
   it("answers legacy live victim phrase before runCheck", async () => {

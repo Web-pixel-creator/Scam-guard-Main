@@ -67,11 +67,24 @@ Signatures and intent only. See file paths for source.
 
 - `ReasonCode` union + weights.
 - `evaluateText`, `evaluateUrl`, `evaluatePhone`, `evaluateTelegram`.
+- Text evaluation splits natural clauses and applies request, object, polarity,
+  safety and neutral-context checks before direct-danger reasons. Cross-clause
+  pronouns retain typed OTP/card/passport/PIN/CVV context; QR codes,
+  screenshots, technical addresses/ids and safety warnings are kept out of
+  unrelated sensitive-data reasons.
 - Research-feed text rules include `telegram_account_takeover_phishing`, `dropper_recruitment`, `gambling_prediction_promo`, and Telegram/Web3 promo funnel codes for casino/free-spins, CAPTCHA/voting, task rewards, wallet urgency and TON referral earning.
 - `REASON_TRUST_IMPACT: Record<ReasonCode, "informational" | "protective" | "risk">` is an exhaustive compile-time trust map for all 55 reason codes.
 - `canVerifiedContactMarkSafe(codes)` returns true only when every reason is explicitly informational/protective; new unclassified ReasonCodes fail TypeScript.
 - `scoreFromCodes(codes) -> { score, level }`; `verified_official` can produce Safe only without any risk-classified sibling code.
 - `REASON_LABELS`, `ADVICE` in RU/UZ/EN.
+
+**`src/lib/risk/mixed-clause-adversarial-corpus.ts`**
+
+- `MIXED_CLAUSE_ADVERSARIAL_CORPUS` supplies 363 unique, language-balanced
+  offline messages: 330 neutral/safety-plus-danger permutations and 33 genuine
+  safety controls over 11 action families. It covers comma, colon, dash,
+  semicolon and `но/lekin/but` in both clause orders so a neutral token cannot
+  suppress a later unsafe request.
 
 **`src/lib/risk/phone-intelligence.ts`**
 
@@ -188,7 +201,11 @@ Signatures and intent only. See file paths for source.
   before `getFile`/download, while final image analysis and scoring keep the
   normal `tg:<userId>` check budget.
 
-**`src/lib/meta-intent.ts`**: pure deterministic router for questions to the bot itself, including Telegram-account visibility limits, with scam-context override before risk scoring.
+**`src/lib/meta-intent.ts`**: pure deterministic RU/UZ/EN router for questions
+to the bot itself. Strict capability frames do not reinterpret past-action or
+victim-emergency narration as a bot-capability question. Qualified card/order/
+tracking numbers and non-Telegram bank/email/social accounts fail closed
+instead of receiving misleading phone or Telegram-profile instructions.
 
 **`src/lib/telegram/intent-contract.ts`**
 
@@ -204,6 +221,10 @@ Signatures and intent only. See file paths for source.
   requests precedence over broad scam concern and stale check follow-ups. The
   phrase may describe scammers generically; it does not need to claim that the
   current user was already asked for the document.
+- Completed disclosure to an untrusted recipient uses the distinct
+  `personal_data_already_shared` aftercare route; an explicitly official
+  portal/app upload remains benign. Completed family payments require an
+  adversarial recipient or shared SMS/OTP context before aftercare is selected.
 
 **`src/lib/telegram/dialogue-corpus.ts`**
 
@@ -213,6 +234,52 @@ Signatures and intent only. See file paths for source.
   human-review surface. The latter adds one natural reply-to-bot and one common
   typo per action/language through exact normalized lookup; generated rows are
   dialogue-state permutations, not a claim of 1,872 independent phrases.
+
+**`src/lib/telegram/conversation-wrapper.ts`**
+
+- `stripConversationWrappers(text)` removes up to three allowlisted harmless
+  RU/UZ/EN lead-ins while preserving the actual request. Wrapper-only thanks
+  remain meaningful, and callers still inspect the original text for concrete
+  artifacts first.
+
+**`src/lib/telegram/text-panic-intent.ts`**
+
+- `classifyTextPanicIntent(text, source?)` is the shared pure emergency gate for
+  typed text: forwarded/quoted third-party narration and negated actions stay
+  out, first-person already-done events and active live calls keep their
+  scenario, and Russian Latin-keyboard text gets the existing transliteration
+  fallback.
+- `classifyVoicePanicIntent`, `classifyLiveCallContext`,
+  `isNegatedVoiceDoneIntent` and `normalizeVoiceIntentText` are reused by the
+  Telegram handler. The module has no session, database or Bot API side effect.
+
+**`src/lib/telegram/human-dialogue-corpus.ts`**
+
+- `HUMAN_DIALOGUE_CORPUS` expands 336 reviewed RU/UZ/EN capability, method,
+  greeting and ordinary-conversation variants over three explicit prefixes
+  into 1,008 deterministic cases. The rows are offline QA, not training data,
+  live transcripts or Telegram session simulation.
+
+**`src/lib/telegram/synthetic-multiturn-dialogue-corpus.ts`**
+
+- `SYNTHETIC_MULTITURN_DIALOGUES` contains exactly 1,000 deterministic
+  two-/three-turn sequences (2,500 user turns) across scam-risk,
+  post-result, capability and ordinary dialogue. Risk snapshots use the real
+  deterministic evaluator and all 13 post-check actions; generation performs
+  no external call and does not replace Desktop/Android/iOS acceptance QA.
+
+**`src/lib/telegram/everyday-dialogue-corpus.ts`**
+
+- `EVERYDAY_DIALOGUE_CORPUS` contains 540 semantically distinct two-turn
+  dialogues: 180 per language and 36 per each of 15 categories. Every row keeps
+  the first user phrase, its production route and reply, a natural follow-up,
+  and the second production reply. Actual text routing includes meta,
+  victim-guidance, retained-result, panic and fresh-risk families.
+  Mixed-clause rows require a protective victim/risk outcome even when a safe
+  or neutral fragment comes first.
+- `EVERYDAY_DIALOGUE_STATS` reports dialogue, turn, language, category and
+  first-route-family counts. Corpus construction calls no external service and
+  is exported separately for human review; it does not train the model.
 
 **`src/lib/embed-origin-analytics.server.ts`**
 

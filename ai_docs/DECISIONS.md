@@ -2,6 +2,37 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-080 - Conversational QA is deterministic, typed and offline
+
+Human-style dialogue corpora exercise the same production classifiers,
+response builders and typed side-effect contracts, but they never train a
+model and never stand in for real Telegram-client acceptance evidence. Vitest
+rejects every unmocked network request, so large RU/UZ/EN corpora consume no AI,
+reputation, Telegram or production quota.
+
+Bot-capability questions use strict grammatical frames and must yield to a
+concrete artifact, a direct danger request or post-action emergency context.
+Likewise, confidence or methodology wording is reply-only only when the full
+original message contains no strong fresh-risk reason; a later password, code,
+APK, screen-sharing, payment or identity-data request returns to the check path.
+Risk text is evaluated by clause: a safety/neutral fragment may suppress only
+its own action, never a later unsafe clause after punctuation or a contrast
+word. Cross-clause pronouns retain the preceding typed object (OTP, card,
+passport, PIN or CVV) rather than becoming a generic code. Explicit requests
+for passport/personal identity data carry weight 20 so the deterministic
+result is at least `suspicious`; technical addresses and process/transaction
+ids remain neutral.
+
+Generated context/state permutations are reported separately from authored
+core phrases and unique user utterances. Review/merge/deploy plus real
+Desktop/Android/iOS and Inline rendering/insertion remain independent gates.
+The reviewable everyday artifact keeps 540 distinct first phrases and a second
+question/answer for each, balanced across RU/UZ/EN; repeated punctuation alone
+never counts as a separate dialogue.
+Emergency text classification is a shared pure module used by both the real
+handler and corpus generation, so active calls and first-person already-done
+events cannot be documented with a different reply family than production.
+
 ## D-079 - CI security gates scan the release shape, not only source tests
 
 Every workflow action is pinned to an immutable commit and runtime versions are

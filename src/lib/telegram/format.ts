@@ -26,7 +26,7 @@ import {
   type InlineKeyboard,
 } from "@/lib/telegram/api.server";
 import { t, type Lang } from "@/lib/i18n";
-import { REASON_LABELS, type RiskLevel } from "@/lib/risk/rules";
+import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import {
   formatNoPhoneReputationLine,
@@ -553,8 +553,18 @@ function isDecodedInformationalQr(result: RunCheckResult): boolean {
 /**
  * Renders reason labels as a bullet list (max 3 items).
  */
+function presentationReasonCodes(codes: readonly ReasonCode[]): ReasonCode[] {
+  if (!codes.includes("asks_for_otp") || !codes.includes("asks_for_sms_code")) {
+    return [...codes];
+  }
+
+  // An SMS confirmation code is already an OTP. Keep both codes for scoring,
+  // but show one human-readable observation instead of repeating the same fact.
+  return codes.filter((code) => code !== "asks_for_otp");
+}
+
 function renderReasons(result: RunCheckResult, lang: Lang): string {
-  const reasonLines = result.reasons
+  const reasonLines = presentationReasonCodes(result.reasons)
     .map((code) => REASON_LABELS[code]?.[lang])
     .filter((label): label is string => Boolean(label))
     .slice(0, 3);
@@ -629,7 +639,7 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
 
   // Reason labels
-  const reasonLines = observableReasons
+  const reasonLines = presentationReasonCodes(observableReasons)
     .map((code) => REASON_LABELS[code]?.[lang])
     .filter((label): label is string => Boolean(label))
     .slice(0, 3);
@@ -638,7 +648,12 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
   }
 
   // Matching scam patterns
-  const matchingPatterns = findMatchingPatterns(observableReasons);
+  const matchingPatterns = findMatchingPatterns(observableReasons).filter(
+    // The reason label already says that an SMS/OTP code is requested. Repeating
+    // the same fact as a named pattern makes the answer feel robotic and adds no
+    // evidence for the user.
+    (pattern) => pattern.id !== "otp-code-scam",
+  );
   if (matchingPatterns.length > 0) {
     matchingPatterns.slice(0, 3).forEach((p) => {
       parts.push(`• ${escapeMarkdownV2(p.title[lang])}`);
@@ -677,7 +692,7 @@ function renderWhyDangerous(result: RunCheckResult, lang: Lang): string {
   }
 
   // Reason labels
-  const reasonLines = result.reasons
+  const reasonLines = presentationReasonCodes(result.reasons)
     .map((code) => REASON_LABELS[code]?.[lang])
     .filter((label): label is string => Boolean(label))
     .slice(0, result.type === "telegram" ? 2 : 3);

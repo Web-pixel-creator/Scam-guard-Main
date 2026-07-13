@@ -185,7 +185,7 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
     id: "safe-account-transfer",
     severity: "critical",
-    reasonCodes: ["payment_before_service", "asks_for_otp"],
+    reasonCodes: ["payment_before_service", "asks_to_transfer_to_safe_account"],
     title: {
       ru: "Перевод на 'безопасный счёт'",
       uz: "'Xavfsiz hisob'ga o'tkazish",
@@ -405,7 +405,7 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
     id: "telegram-account-takeover",
     severity: "critical",
-    reasonCodes: ["asks_to_scan_qr", "asks_for_sms_code"],
+    reasonCodes: ["telegram_account_takeover_phishing"],
     title: {
       ru: "Угон Telegram-аккаунта",
       uz: "Telegram akkauntini o'g'irlash",

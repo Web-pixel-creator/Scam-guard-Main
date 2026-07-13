@@ -83,7 +83,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   brand_name_typo: 20,
   payment_before_service: 20,
   too_good_to_be_true: 15,
-  requests_personal_data: 15,
+  requests_personal_data: 20,
   non_uz_phone: 5,
   valid_uz_phone: 0,
   verified_official: 0,
@@ -207,17 +207,11 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
     // attacker never says "code": "the code from the message/app/Telegram/bot",
     // "the code that will arrive / that arrived / that I sent". See CODING_RULES
     // (new patterns need positives + negatives + tests).
-    re: /(sms.?код|код(ом|а|у)? из (смс|sms|сообщени[яюе]|приложени[яюе]|telegram|телеграмма?|бота|уведомлени[яюе])|подтверд(и|ите) код|tasdiq(lash)? kod|kodni ayting|kodni yuboring|verification code|код подтвер|6.?значн|код,? котор(ый|ая|ое|ые).{0,25}(прид[её]т|приш(?:л|ёл|е?л)|приходит|пришёл|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|код,? что (прид[её]т|приш(?:л|ёл))|(прид[её]т|приш(?:л|ёл|е?л)).{0,15}код)|kod,? (keladigan|kelgan|jo['’]?natilgan)/i,
+    re: /(?:sms.?код|код(?:ом|а|у)? из (?:смс|sms|сообщени[яюе]|приложени[яюе]|telegram|телеграмма?|бота|уведомлени[яюе])|подтверд(?:и|ите) код|tasdiq(?:lash)? kod|(?<![-\p{L}\p{N}])kodni (?:ayt(?:ing|ib\s+bering)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|ber(?:ing)?)\b|verification code|код подтвер|6.?значн|код,? котор(?:ый|ая|ое|ые).{0,25}(?:прид[её]т|приш(?:л|ёл|е?л)|приходит|пришёл|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|код,? что (?:прид[её]т|приш(?:л|ёл))|(?:прид[её]т|приш(?:л|ёл|е?л)).{0,15}код|kod,? (?:keladigan|kelgan|jo['’]?natilgan)|(?:kelgan|keladigan|jo['’]?natilgan).{0,15}kod(?:ni)?.{0,20}(?:ayt(?:ing|ib\s+bering)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|ber(?:ing)?)\b)/iu,
   },
-  { code: "asks_for_card_cvv", re: /\b(cvv|cvc|cvv2)\b|трёхзначн|uch xonali kod/i },
-  { code: "asks_for_pin", re: /\b(pin|пин-?код|pin.?kod)\b/i },
   {
     code: "asks_to_install_apk",
-    re: /(установ(и|ите).{0,30}(прилож|apk)|apk.?(скачайте|yuklab)|o['’]rnating.{0,30}(ilova|apk)|install.{0,30}(app|apk))/i,
-  },
-  {
-    code: "asks_to_share_screen",
-    re: /(демонстр.{0,15}экран|share.{0,5}screen|screen.?share|anydesk|teamviewer|rustdesk|quick.?support)/i,
+    re: /(установ(и|ите).{0,30}(прилож|apk)|apk.{0,35}(?:скачайте|yuklab|o['’]?rnat)|(?:o['’]?rnat|yukla).{0,35}(?:ilova|apk)|install.{0,30}(app|apk))/i,
   },
   {
     code: "asks_to_transfer_to_safe_account",
@@ -225,7 +219,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "impersonates_bank",
-    re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|payme|click)/i,
+    re: /(служб(а|ы) безопасности банка|сотрудник банка|bank xavfsizlik|bank xodimi|central bank|центральн(ый|ого) банк|markaziy bank|hamkorbank|kapitalbank|uzcard|humo|\bpayme\b|\bclick\b)/i,
   },
   { code: "impersonates_operator", re: /(оператор связи|ucell|beeline|mobiuz|ums|uzmobile)/i },
   {
@@ -238,11 +232,11 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "threatens_legal_action",
-    re: /(полици(я|ей)|суд|арест|уголовн|jinoiy|sud|hibsga|police|lawsuit|criminal case)/i,
+    re: /(полици(я|ей)|(?<![\p{L}\p{N}_])(?:суд(?:а|у|ом|е|ы|ов|ебн\p{L}*|га|дан|да|нинг|ни)?|sud(?:ga|dan|da|ning|ni)?)(?![\p{L}\p{N}_])|арест|уголовн|jinoiy|hibsga|police|lawsuit|criminal case)/iu,
   },
   {
     code: "asks_not_to_hang_up",
-    re: /(не клад(и|ите) трубку|не отключ|не завершайте|telefonni qo['’]ymang|don'?t hang up)/i,
+    re: /(не клад(и|ите) трубку|не отключ|не завершайте|(?:telefonni|go['’]?shakni) qo['’]?yma(?:ng)?|don'?t hang up)/i,
   },
   {
     code: "telegram_bank_contact",
@@ -258,7 +252,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "relative_in_distress",
-    re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,80}(беда|авари|больниц|задержали|срочно нужны деньги|срочно.{0,20}(деньг|перевести))|(farzand|o['’]g['’]il|qiz|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|ona(?:m|ngiz)?|ota(?:m|ngiz)?|do['’]st|qarindosh|yaqin).{0,140}(avariya|kasalxona|shoshilinch.{0,20}pul|zudlik.{0,40}pul|mashina.{0,40}muammo|muammo.{0,60}pul|pul.{0,40}o['’]?tkaz)/i,
+    re: /(родственник|сын|дочь|брат|сестра|друг|внук).{0,80}(беда|авари|больниц|задержали|срочно нужны деньги|срочно.{0,20}(деньг|перевести))|(?<![\p{L}\p{N}_])(?:farzand(?:im|ing|ingiz|imiz|lari)?|o['’]g['’]il(?:im|ing|ingiz|imiz|lari)?|qiz(?:im|ing|ingiz|imiz|lari)?|aka(?:m|ngiz)?|uka(?:m|ngiz)?|opa(?:m|ngiz)?|sing(?:il|lim|lingiz)|ona(?:m|ngiz)?|ota(?:m|ngiz)?|do['’]st(?:im|ing|ingiz|imiz|lari)?|qarindosh(?:im|ing|ingiz|imiz|lari)?|yaqin(?:im|ing|ingiz|imiz|lari)?)(?![\p{L}\p{N}_]).{0,140}(?:avariya|kasalxona|shoshilinch.{0,20}pul|zudlik.{0,40}pul|mashina.{0,40}muammo|muammo.{0,60}pul|pul.{0,40}o['’]?tkaz)/iu,
   },
   {
     code: "requests_card_digits",
@@ -274,7 +268,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "payment_before_service",
-    re: /(предоплат|аванс|задаток|оплатите.{0,30}(до|сначала)|брон[ьи].{0,30}(оплат|предоплат|аванс|задаток)|оплат.{0,30}брон|oldindan.{0,20}to['’]lov|avans|zaklad|bron.{0,30}(to['’]lov|tolov|pay|deposit|avans)|xizmatdan oldin|first.{0,20}pay|prepay|deposit)/i,
+    re: /(предоплат|аванс|задаток|оплатите.{0,30}(до|сначала)|брон[ьи].{0,30}(оплат|предоплат|аванс|задаток)|оплат.{0,30}брон|oldindan.{0,20}to['’]lov|avans|zaklad|bron.{0,30}(to['’]lov|tolov|pay|deposit|avans)|xizmatdan oldin|first.{0,20}pay|prepay|deposit|payment.{0,30}(?:requested|required).{0,25}before)/i,
   },
   {
     code: "fake_boss_request",
@@ -298,7 +292,7 @@ function shouldFlagTelegramAccountTakeoverPhishing(text: string): boolean {
 const DROPPER_TARGET_RE =
   /(дроппер|дроп|банковск.{0,20}карт|кар(та|ту|ты)|sim|сим.{0,5}карт|номер|oneid|аккаунт|кошел[её]к|криптокошел|bank card|sim card|phone number|account|wallet|crypto wallet|karta|sim karta|raqam|hisob|hamyon|akkaunt)/i;
 const DROPPER_ACTION_RE =
-  /(продай|продам|сдам|аренд|оформ.{0,30}(на себя|для нас|на вас)|открой.{0,30}(на себя|для нас|на вас)|передай|дай доступ|доступ.{0,20}(передай|дай)|за.{0,30}(сум|тыс|ming|so['’]?m)|вознагражд|sot|ijara|ochib ber|topshir|berib tur|mukofot|pul|rent|sell|open.{0,30}for us|reward)/i;
+  /(продай|продам|сдам|аренд|оформ.{0,30}(на себя|для нас|на вас)|открой.{0,30}(на себя|для нас|на вас)|передай|дай доступ|доступ.{0,20}(передай|дай)|за.{0,30}(сум|тыс|ming|so['’]?m)|вознагражд|(?<![\p{L}\p{N}_])sot(?:ing|aman|amiz|adi|iladi|moqchi)?(?![\p{L}\p{N}_])|ijara|ochib ber|topshir|berib tur|mukofot|rent|sell|open.{0,30}for us|reward)/iu;
 const DROPPER_SAFETY_CONTEXT_RE =
   /(не передавай|не передавайте|не продавай|не продавайте|не сдавай|не сдавайте|нельзя передавать|do not sell|don't sell|do not transfer|sotmang|bermang|topshirmang)/i;
 
@@ -355,13 +349,20 @@ function shouldFlagCryptoCasinoBonusFunnel(text: string): boolean {
   return CRYPTO_CASINO_CONTEXT_RE.test(text) && CRYPTO_CASINO_ACTION_RE.test(text);
 }
 
-const FAKE_CAPTCHA_VOTING_CONTEXT_RE =
-  /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting|verify|verification|проверка|подтверд|confirm)/i;
+const FAKE_CAPTCHA_VOTING_ACTION_RE =
+  /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting)/i;
+const FAKE_CAPTCHA_VOTING_VERIFICATION_RE = /(verify|verification|проверка|подтверд|confirm)/i;
 const FAKE_CAPTCHA_VOTING_REWARD_RE =
   /(nft|stars?|зв[её]зд|подар|gift|розыгрыш|разыгр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|статуэт|награ|award|contest|airdrop|giveaway|lottery|wallet|кошел|ton|seed|login|telegram.{0,20}code|sms|otp|код|sovrin|yutuq|hamyon)/i;
+const FAKE_CAPTCHA_VOTING_STRONG_REWARD_RE =
+  /(nft|stars?|зв[её]зд|подар|gift|розыгрыш|разыгр|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|статуэт|награ|award|contest|airdrop|giveaway|lottery|wallet|кошел|ton|seed|login|sovrin|yutuq|hamyon)/i;
 
 function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
-  return FAKE_CAPTCHA_VOTING_CONTEXT_RE.test(text) && FAKE_CAPTCHA_VOTING_REWARD_RE.test(text);
+  return (
+    (FAKE_CAPTCHA_VOTING_ACTION_RE.test(text) && FAKE_CAPTCHA_VOTING_REWARD_RE.test(text)) ||
+    (FAKE_CAPTCHA_VOTING_VERIFICATION_RE.test(text) &&
+      FAKE_CAPTCHA_VOTING_STRONG_REWARD_RE.test(text))
+  );
 }
 
 const TASK_REWARD_CONTEXT_RE =
@@ -462,35 +463,153 @@ function shouldFlagAdvanceFeePrizeInheritance(text: string): boolean {
 }
 
 const SOFT_CARD_CVV_ASK_RE =
-  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|продиктуй(те)?(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введите(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|ayting|kiriting|yuboring|send|enter|tell)/i;
+  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|продиктуй(те)?(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введ(и|ите)(?![а-яёa-z])|скинь(те)?(?![а-яёa-z])|пришл(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|просят|просит|требуют|требует|попросил(?:и|а)?|просил(?:и|а)?|(?<![\p{L}\p{N}_])(?:ayt(?:ing|ishni)?|kirit(?:ing|ishni)?|yubor(?:ing|ishni)?|so['’]?ra(?:di|shdi|shyapti|yapti))(?![\p{L}\p{N}_])|\b(?:send|enter|tell|forward|reveal|share|show|give|provide|submit|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?|want(?:ed|s|ing)?)\b)/iu;
 const SOFT_CARD_CVV_OBJECT_RE =
   /(cvv|cvc|код безопасности|xavfsizlik kodi|security code|код.{0,20}(на обороте|с обратной стороны)|оборот.{0,20}карт|back of (the )?card|((три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali).{0,30}(карт|card|karta|оборот|back))|((карт|card|karta|оборот|back).{0,30}(три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali)))/i;
 
 function shouldFlagSoftCardCvvRequest(text: string): boolean {
-  return SOFT_CARD_CVV_ASK_RE.test(text) && SOFT_CARD_CVV_OBJECT_RE.test(text);
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previous = clauses[index - 1] ?? "";
+    const carriesCvv = SOFT_CARD_CVV_OBJECT_RE.test(previous) && PRONOUN_REQUEST_RE.test(clause);
+    const candidate = carriesCvv ? `${clause} CVV` : clause;
+    return (
+      SOFT_CARD_CVV_ASK_RE.test(candidate) &&
+      SOFT_CARD_CVV_OBJECT_RE.test(candidate) &&
+      !SENSITIVE_PIN_CVV_SAFETY_RE.test(candidate) &&
+      !SENSITIVE_PIN_CVV_NEUTRAL_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause)
+    );
+  });
 }
 
 const SOFT_PIN_PASSWORD_OBJECT_RE =
   /(pin|пин|тайн.{0,12}код|секретн.{0,12}код|kod.{0,20}(ilova|bank)|bank.{0,20}kodi|maxfiy kod|ilova kodi|парол.{0,30}(банк|аккаунт|кабинет|прилож|telegram|oneid)|password.{0,30}(bank|account|app|telegram|oneid)|(банк|аккаунт|кабинет|прилож|telegram|oneid).{0,30}парол|(bank|account|app|telegram|oneid).{0,30}password)/i;
 
 function shouldFlagSoftPinOrPasswordRequest(text: string): boolean {
-  return SOFT_CARD_CVV_ASK_RE.test(text) && SOFT_PIN_PASSWORD_OBJECT_RE.test(text);
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previous = clauses[index - 1] ?? "";
+    const carriesPin =
+      SOFT_PIN_PASSWORD_OBJECT_RE.test(previous) && PRONOUN_REQUEST_RE.test(clause);
+    const candidate = carriesPin ? `${clause} PIN` : clause;
+    return (
+      SOFT_CARD_CVV_ASK_RE.test(candidate) &&
+      SOFT_PIN_PASSWORD_OBJECT_RE.test(candidate) &&
+      !SENSITIVE_PIN_CVV_SAFETY_RE.test(candidate) &&
+      !SENSITIVE_PIN_CVV_NEUTRAL_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause)
+    );
+  });
+}
+
+const SENSITIVE_PIN_CVV_SAFETY_RE =
+  /(?:не\s+(?:сообща|говори|называ|передава|показыва|отправля|вводи)|(?:do\s+not|don['’]?t|never|not\s+to)\s+(?:share|tell|send|show|give|enter|provide|submit)|(?:pin|cvv|cvc|пин).{0,35}(?:hech\s+kimga|aytmang|yubormang|kiritmang|ko['’]?rsatmang))/iu;
+const SENSITIVE_PIN_CVV_NEUTRAL_RE =
+  /(?:password\s+policy|change\s+(?:a|the|your)\s+password|create\s+(?:a|the|your)\s+password|requires?\s+(?:a\s+)?password\s+to\s+(?:sign|log)\s+in|(?:pin|cvv|cvc).{0,30}(?:remain|keep|should).{0,20}secret|what\s+is\s+(?:a\s+)?(?:pin|cvv|cvc))/iu;
+
+const SCREEN_SHARE_REQUEST_RE =
+  /(?:демонстр.{0,20}экран|покаж(?:и|ите|ать).{0,25}экран|поделит(?:есь|ься).{0,25}экран|(?:прос(?:ят|ит)|попросил(?:и|а)?|требу(?:ют|ет)).{0,35}(?:показать|включить).{0,25}экран|(?:дай(?:те)?|просят\s+дать).{0,25}доступ\s+к\s+экран|включ(?:и|ите).{0,25}(?:показ|трансляц).{0,15}экран|дай(?:те)?\s+удал[её]нн.{0,20}доступ.{0,30}(?:телефон|устройств|компьютер)|\bshare\b.{0,30}(?:your\s+|the\s+|phone\s+)?screen\b|let\s+(?:me|us)\s+see\s+(?:your\s+|the\s+)?screen\b|(?:ask(?:ed|s|ing)?|want(?:ed|s|ing)?|need(?:ed|s|ing)?).{0,35}screen\s+sharing|start\s+screen\s+sharing|give\s+(?:me\s+|us\s+)?remote\s+access.{0,30}(?:phone|device|computer)|allow\s+remote\s+(?:control|access).{0,30}(?:phone|device|computer)|(?:install|download|open|use|connect).{0,30}(?:anydesk|teamviewer|rustdesk|quick\s*support)|ekran(?:im|ingiz|ni)?.{0,30}(?:ko['’]?rsat(?:ing)?|ulash(?:ing)?|ko['’]?rmoqchi)|(?:telefon|qurilma)(?:ingiz|ga)?.{0,35}masofaviy\s+kirish.{0,20}ber(?:ing)?)/iu;
+const SCREEN_SHARE_SAFETY_RE =
+  /(?:не\s+(?:показыва|делись|делитесь|включай|включайте|давай|давайте|устанавливай|скачивай)|(?:do\s+not|don['’]?t|never|not\s+to)\s+(?:share|show|start|give|install|download|open|use|connect)|(?:ekran|masofaviy\s+kirish|anydesk|teamviewer|rustdesk).{0,35}(?:ko['’]?rsatmang|ulashmang|bermang|o['’]?rnatmang|yuklamang))/iu;
+
+function shouldFlagScreenShareRequest(text: string): boolean {
+  return splitRiskClauses(text).some(
+    (clause) =>
+      SCREEN_SHARE_REQUEST_RE.test(clause) &&
+      !SCREEN_SHARE_SAFETY_RE.test(clause) &&
+      !isGeneralSafetyClause(clause),
+  );
 }
 
 const TRANSFER_DESTINATION_RE =
-  /(перевед|отправь(те)?|сделай(те)? перевод|оплат|to['’]?lang|o['’]?tkazing|yuboring|send|transfer|pay).{0,60}(на (эт(от|у) )?(номер|карту)|по номеру|на карту|qr|qr.?код|karta|raqam|hisob|card|number|wallet)/i;
+  /(?:(?:перевед(?:и|ите)|сделай(?:те)?\s+перевод|оплат(?:и|ите)|to['’]?lang|o['’]?tkazing|transfer|pay)\b.{0,60}(?:на\s+(?:эт(?:от|у)\s+)?(?:номер|карту)|по\s+номеру|qr|qr.?код|karta|raqam|hisob|card|number|wallet)|(?:перевед(?:и|ите)|оплат(?:и|ите)).{0,20}(?:оплат|плат[её]ж|деньг|сумм)|отправь(?:те)?\s+(?:мне\s+)?(?:перевод|деньги|сумму)|send\s+(?:me\s+)?(?:money|funds?|payment)|(?:make|complete)\s+(?:the|this)\s+payment|yuboring\s+(?:menga\s+)?(?:pul|to['’]?lov)|to['’]?lovni\s+qiling|(?:отправь(?:те)?|yuboring|send)\b.{0,25}(?:на\s+(?:карту|номер)|to\s+(?:the\s+|this\s+)?(?:card|number|wallet|account)|karta|hisob|wallet)|(?:просят|просит|попросил(?:и|а)?|просил(?:и|а)?|требуют|требует|велят).{0,45}(?:перевести|отправить|заплатить|оплатить).{0,30}(?:деньги|средства|сумму)|\b(?:ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?)\b.{0,45}(?:(?:send|transfer|pay).{0,20}(?:money|funds?)|(?:a\s+)?money\s+transfer|payment)|(?:so['’]?ra(?:di|shdi|yapti)|talab\s+qil).{0,45}(?:pul|to['’]?lov).{0,30}(?:yubor|o['’]?tkaz|to['’]?la)|(?:pulni|pul|to['’]?lovni).{0,45}(?:o['’]?tkazish|yuborish|to['’]?lash)(?:ni)?.{0,45}(?:so['’]?ra(?:di|shdi|shyapti|yapti)|talab\s+qil)|(?:pulni|pul|to['’]?lovni).{0,25}(?:o['’]?tkaz(?:ing)?|yubor(?:ing)?|to['’]?la(?:ng)?)(?![\p{L}]))/iu;
+const TRANSFER_SAFETY_RE =
+  /(?:не\s+(?:плати|оплачивай|переводи|отправляй)|(?:do\s+not|don['’]?t|never|not\s+to)\s+(?:pay|make\s+(?:(?:a|the|this)\s+)?payment|send\s+(?:money|funds)|transfer)|(?:pul|to['’]?lov).{0,24}(?:yubormang|o['’]?tkazmang|to['’]?lamang))/iu;
+
+const SAFETY_CLAUSE_SPLIT_RE =
+  /[,.!?;،:\u2013\u2014\n]+|\s+(?:but|however|then|after\s+that|но|однако|затем|потом|lekin|keyin)\s+/iu;
+
+function splitRiskClauses(text: string): string[] {
+  return text
+    .replace(/,?\s*(?:please|пожалуйста|iltimos)\s*,?/giu, " ")
+    .split(SAFETY_CLAUSE_SPLIT_RE)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+const PRONOUN_REQUEST_RE =
+  /(?:\bask(?:ed|s|ing)?\b.{0,14}\bfor\s+it\b|\b(?:want(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?)\b.{0,14}\bit\b|\b(?:send|forward|share|tell|read(?:\s+out)?|give|show|reveal|provide|submit)\s+it\b|\b(?:told|asked|instructed)\b.{0,22}\b(?:send|forward|share|tell|read(?:\s+out)?|give|show|reveal|provide|submit)\s+it\b|(?:его|е[её]|их|это)\s+(?:просят|просит|попросил(?:и|а)?|требуют|требует).{0,22}(?:отправить|прислать|назвать|сообщить|передать|показать|открыть|сканировать)|(?:назов(?:и|ите)|скаж(?:и|ите)|сообщ(?:и|ите)|пришл(?:и|ите)|отправь(?:те)?|передай(?:те)?|покаж(?:и|ите)|открой(?:те)?)\s+(?:его|е[её]|их|это)(?:\s+мне)?|(?:uni|ularni)\s+(?:menga\s+)?(?:ayt(?:ing)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|ko['’]?rsat(?:ing)?|och(?:ing)?|skaner(?:lang|lash))|(?:uni|ularni).{0,24}(?:so['’]?ra(?:di|shdi|shyapti|yapti)|talab\s+qil))/iu;
+
+const GENERAL_SAFETY_ACTION_RE =
+  /(?:(?:do\s+not|don['’]?t|never|should\s+not|shouldn['’]?t|must\s+not|mustn['’]?t)\s+(?:ever\s+)?(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|never\b.{0,35}\b(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|(?:unsafe|dangerous|risky)\s+to\s+(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|avoid\s+(?:sending|sharing|revealing|providing|submitting|telling|entering|installing|downloading|transferring|paying|scanning|giving|showing|forwarding|reading)|(?:не|никогда\s+не|нельзя)\s+(?:отправля|сообща|говори|называ|передава|показыва|вводи|устанавлива|скачива|переводи|оплачива|сканиру)|(?:опасно|нельзя)\s+(?:отправлять|сообщать|передавать|показывать|вводить|устанавливать|скачивать|переводить|оплачивать|сканировать)|(?:yubormang|aytmang|kiritmang|bermang|ko['’]?rsatmang|o['’]?rnatmang|yuklamang|o['’]?tkazmang|to['’]?lamang|skanerlamang))/iu;
+
+function isGeneralSafetyClause(clause: string): boolean {
+  return GENERAL_SAFETY_ACTION_RE.test(clause);
+}
+
+function hasUnsafeClause(text: string, unsafe: RegExp, safety: RegExp): boolean {
+  return splitRiskClauses(text).some(
+    (clause) => unsafe.test(clause) && !safety.test(clause) && !isGeneralSafetyClause(clause),
+  );
+}
 
 function shouldFlagDirectTransferRequest(text: string): boolean {
-  return TRANSFER_DESTINATION_RE.test(text);
+  return hasUnsafeClause(text, TRANSFER_DESTINATION_RE, TRANSFER_SAFETY_RE);
 }
 
 const PERSONAL_DATA_ASK_RE =
-  /(пришл(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|назов(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введите(?![а-яёa-z])|yuboring|ayting|kiriting|send|enter|tell)/i;
+  /(пришл(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|назов(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введите(?![а-яёa-z])|попросил(?:и|а)?|просил(?:и|а)?|просят|просит|требуют|требует|(?<![\p{L}\p{N}_])(?:yubor(?:ing|ishni)|ayt(?:ing|ishni)|kiriting|so['’]?ra(?:di|shdi|shyapti|yapti))(?![\p{L}\p{N}_])|\b(?:send|enter|tell|share|show|provide|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?)\b)/iu;
 const PERSONAL_DATA_OBJECT_RE =
-  /(паспорт|фото.{0,20}(id|айди|удостовер|пасп)|id.?карта|удостоверени|дата рождения|адрес прописки|прописка|инн|pinfl|пинфл|jshshir|паспорт серия|pasport|tug['’]?ilgan sana|manzil|inn|id card|date of birth|address)/i;
+  /(паспорт|фото.{0,20}(id|айди|удостовер|пасп)|id.?карта|удостоверени|дата рождения|адрес прописки|прописка|инн|pinfl|пинфл|jshshir|паспорт серия|pasport|tug['’]?ilgan sana|manzil|inn|passport(?:\s+number)?|national\s+id|identity\s+document|\bid\b|id card|date of birth|address)/i;
+const PERSONAL_DATA_SAFETY_RE =
+  /(?:не\s+(?:отправля|присыла|сообща|говори|передава|показыва)|(?:do\s+not|don['’]?t|never|not\s+to)\s+(?:send|share|give|show|tell|enter|provide|submit)|(?:pasport|pinfl|jshshir|manzil).{0,35}(?:yubormang|aytmang|kiritmang|bermang))/iu;
+const PERSONAL_DATA_NEUTRAL_RE =
+  /(?:\b(?:ask(?:ed|s|ing)?|inquir(?:ed|es|ing))\s+about\b|\b(?:form|checkout|delivery)\b.{0,35}\baddress\b|\baddress\b.{0,35}\b(?:delivery|shipping)\b|\b(?:website|web|server|ip|network|email)\s+address\b|\b(?:html\s+element|process|user|transaction|order|tracking|session)\s+id\b|passport\s+(?:renewal|information|office|appointment)|how\s+to\s+(?:renew|replace).{0,20}passport)/iu;
 
 function shouldFlagPersonalDataRequest(text: string): boolean {
-  return PERSONAL_DATA_ASK_RE.test(text) && PERSONAL_DATA_OBJECT_RE.test(text);
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previous = clauses[index - 1] ?? "";
+    const candidate =
+      PERSONAL_DATA_OBJECT_RE.test(previous) && PRONOUN_REQUEST_RE.test(clause)
+        ? `${clause} passport`
+        : clause;
+    return (
+      PERSONAL_DATA_ASK_RE.test(candidate) &&
+      PERSONAL_DATA_OBJECT_RE.test(candidate) &&
+      !PERSONAL_DATA_SAFETY_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause) &&
+      !PERSONAL_DATA_NEUTRAL_RE.test(candidate)
+    );
+  });
+}
+
+const CARD_DATA_ASK_RE =
+  /(?:отправь|пришли|скажи|назови|сообщи|передай|покажи|продиктуй|предоставь|укажи|просят|просит|требуют|требует|\b(?:send|tell|give|share|show|provide|submit|read\s+out|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?)\b|(?<![\p{L}\p{N}_])(?:yubor(?:ing)?|ayt(?:ing)?|ko['’]?rsat(?:ing)?|so['’]?ra(?:yapti)?|talab)(?![\p{L}\p{N}_]))/iu;
+const CARD_DATA_OBJECT_RE =
+  /(?:данн(?:ые|ых)?\s+карт|номер.{0,20}карт|реквизит(?:ы|ов)?\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|(?:last|final)\s+(?:four|4)\s+digits.{0,24}(?:bank\s+)?card|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rekvizit|rasm))/iu;
+const CARD_DATA_SAFETY_RE =
+  /(?:(?:не\s+(?:отправля|сообща|говори|передава|показыва)|do\s+not|don['’]?t|never|not\s+to|yubormang|aytmang|bermang).{0,45}(?:данн(?:ые|ых)?\s+карт|номер\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rasm))|(?:karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rasm)).{0,45}(?:yubormang|aytmang|bermang))/iu;
+const CARD_DATA_NEUTRAL_RE =
+  /(?:\b(?:ask(?:ed|s|ing)?|inquir(?:ed|es|ing))\s+about\b.{0,30}\bcard\s+(?:details|data|number)\b|card\s+(?:details|data)\s+(?:security|policy|validation))/iu;
+
+function shouldFlagCardDataRequest(text: string): boolean {
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previous = clauses[index - 1] ?? "";
+    const candidate =
+      CARD_DATA_OBJECT_RE.test(previous) && PRONOUN_REQUEST_RE.test(clause)
+        ? `${clause} card number`
+        : clause;
+    return (
+      CARD_DATA_ASK_RE.test(candidate) &&
+      CARD_DATA_OBJECT_RE.test(candidate) &&
+      !CARD_DATA_SAFETY_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause) &&
+      !CARD_DATA_NEUTRAL_RE.test(candidate)
+    );
+  });
 }
 
 // Real-world attackers often avoid the literal word "code/SMS" and instead ask
@@ -498,38 +617,184 @@ function shouldFlagPersonalDataRequest(text: string): boolean {
 // that I'll send"). Combined with a hint that those digits come from a message
 // or device, this is the same OTP-extraction tactic.
 const PROXY_CODE_ASK_RE =
-  /(продиктуй(те)?|назов(и|ите)|скаж(и|ите)|озвуч(ь|ьте)|прочитай(те)?|передай(те)?|сбрось(те)?|напиши(те)?|введите|скинь(те)?|подели(сь|тесь)|сообщ(и|ите)|пришлит(е|ь)?|отправь(те)?|предоставь(те)?|укажите)|(ayting|aytingiz|o['’]?qib bering|jo['’]?nating|kiriting|yozing|baham ko['’]?ring|yuboring)/i;
+  /(продиктуй(те)?|назов(и|ите)|скаж(и|ите)|озвуч(ь|ьте)|прочитай(те)?|передай(те)?|сбрось(те)?|напиши(те)?|введите|скинь(те)?|подели(сь|тесь)|сообщ(и|ите)|пришлит(е|ь)?|отправь(те)?|предоставь(те)?|укажите)|(ayting|aytingiz|o['’]?qib bering|jo['’]?nating|kiriting|yozing|baham ko['’]?ring|yuboring)|\b(tell|read|send|share|give|enter|type|forward|provide)\b/i;
 const PROXY_CODE_DIGIT_RE =
   /(цифр(ы|у|ах)?|числ(а|о)|код(ом|а|у)?|символ(ы|ов)?|number|digits?|kod(ni)?|raqam(ni|lar|lari)?|belgi)/i;
 const PROXY_CODE_CONTEXT_SOURCE_RE =
-  /(из сообщени|из (смс|sms|telegram|телеграмма?)|с экрана|из приложени|из (письма|бота)|из уведомлени|from (message|sms|app|notification)|xabar|ilova)/i;
+  /(из сообщени|из (смс|sms|telegram|телеграмма?)|с экрана|из приложени|из (письма|бота)|(?:из|в) уведомлени|from (message|sms|app|notification)|xabar|ilova)/i;
 const PROXY_CODE_STRONG_SOURCE_RE =
-  /(котор(ый|ая|ое|ые).{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|то,? что.{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю)|что (прид[её]т|приш(?:л|ёл))|(прид[её]т|приш(?:л|ёл|е?л)).{0,15}код|u sizga.{0,40}keladi)/i;
+  /(котор(ый|ая|ое|ые).{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю|смс|sms)|то,? что.{0,30}(прид[её]т|приш(?:л|ёл|е?л)|приходит|отправл[её]н|отправлю|пришлю|передам|сброшу|направлю)|что (прид[её]т|приш(?:л|ёл))|(прид[её]т|приш(?:л|ёл|е?л)).{0,15}код|u sizga.{0,40}keladi|(?:code|digits?).{0,30}(?:you\s+)?(?:receive|received|arrive|arrived|were\s+sent)|(?:received|arriving).{0,20}(?:code|digits?))/i;
 const PROXY_CODE_COUNT_RE =
   /\b\d|значн|шесть|шести|четыре|четыр[её]х|пять|пяти|olti|to['’]?rt|besh|xonali|raqamli/i;
 const PROXY_CODE_NEUTRAL_CONTEXT_RE =
-  /(код города|городской код|почтов(ый|ого) код|код товара|артикул|номер заказа|order number|postal code|city code)/i;
+  /(код города|городской код|почтов(ый|ого) код|код товара|артикул|номер заказа|order number|postal code|city code|dress code|coupon code|promo(?:tional)? code|tracking code|code style|shahar kodi|kod shahri)/i;
+const PHYSICAL_ACCESS_CODE_RE =
+  /(?:(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza).{0,40}(?:code|код|kod)|(?:code|код|kod).{0,40}(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza))/iu;
+const OTP_CODE_CONTEXT_RE =
+  /(?:sms|смс|otp|one[\s-]?time|verification|confirmation|подтвержд|tasdiq|xabar|сообщени|notification|уведомлен)/iu;
+const GENERIC_CODE_PROGRAMMING_RE =
+  /(?:исходн(?:ый|ого)\s+код|пример\s+кода|код\s+на\s+(?:python|javascript|typescript|java)|source\s+code|code\s+(?:sample|example)|python|javascript|typescript|programming|dastur\s+kodi)/iu;
+const GENERIC_CODE_REQUEST_RE =
+  /(?:(?:отправь|пришли|скинь|введи|скажи|назови|прочитай|озвучь|продиктуй|передай|предоставь|укажи|сообщи|просят|просит|требуют|требует).{0,35}(?:этот\s+|тот\s+|сам\s+)?код|(?:попросил(?:и|а)?|просил(?:и|а)?|требовал(?:и|а)?).{0,45}(?:отправить|прислать|назвать|сообщить|продиктовать|передать).{0,25}код|\b(?:read(?:\s+out)?|enter|forward|tell|send|share|give|reveal|provide|submit)\b.{0,45}(?:the\s+|your\s+|this\s+|a\s+)?code|\b(?:ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?|want(?:ed|s|ing)?)\b.{0,45}(?:the\s+|your\s+|this\s+|a\s+|my\s+)?(?:verification\s+)?code|(?:the\s+|my\s+|your\s+)?(?:verification\s+)?code.{0,30}\b(?:was|is|has\s+been)\s+(?:requested|required|wanted|demanded)\b|(?:kodni|kod).{0,35}(?:yubor|ayt|o['’]?qib\s+ber|jo['’]?nat|talab)|(?:yubor|ayt|o['’]?qib\s+ber|jo['’]?nat|talab).{0,35}(?:kodni|kod))/iu;
+const GENERIC_CODE_SAFETY_RE =
+  /(?:(?:не\s+(?:отправля|вводи|говори|называ|передава|показыва)|(?:do\s+not|don['’]?t|never)\s+(?:send|enter|tell|share|give|forward|reveal|provide|submit)).{0,35}(?:код|code|otp)|(?:kodni|kod).{0,30}(?:yubormang|aytmang|kiritmang|jo['’]?natmang))/iu;
+
+const ACCOUNT_CODE_CONTEXT_RE =
+  /(?:банк|банков|сч[её]т|аккаунт|вход|логин|telegram|телеграм|bank|banking|account|login|sign[\s-]?in|hisob|kirish)/iu;
+const CODE_TOKEN_RE = /(?:код|code|kod)/giu;
+
+function isPhysicalAccessCodeOnly(text: string): boolean {
+  const clauses = splitRiskClauses(text);
+  if (!clauses.some((clause) => PHYSICAL_ACCESS_CODE_RE.test(clause))) return false;
+
+  return clauses.every((clause) => {
+    if (!PHYSICAL_ACCESS_CODE_RE.test(clause)) {
+      return (
+        !GENERIC_CODE_REQUEST_RE.test(clause) &&
+        !(PROXY_CODE_ASK_RE.test(clause) && PROXY_CODE_DIGIT_RE.test(clause))
+      );
+    }
+
+    const codeMentions = clause.match(CODE_TOKEN_RE)?.length ?? 0;
+    const asksForAnotherCode =
+      codeMentions > 1 && (GENERIC_CODE_REQUEST_RE.test(clause) || PROXY_CODE_ASK_RE.test(clause));
+    return (
+      !OTP_CODE_CONTEXT_RE.test(clause) &&
+      !ACCOUNT_CODE_CONTEXT_RE.test(clause) &&
+      !asksForAnotherCode
+    );
+  });
+}
+
+const GENERIC_PASSWORD_REQUEST_RE =
+  /(?:(?:скажи|назови|введи|отправь|пришли|покажи|раскрой|продиктуй|предоставь|укажи|сообщи|передай|просят|просит|требуют|требует).{0,35}(?:парол|password)|(?:попросил(?:и|а)?|просил(?:и|а)?|требовал(?:и|а)?).{0,45}(?:назвать|сообщить|отправить|прислать|раскрыть|продиктовать).{0,25}(?:парол|password)|\b(?:tell|enter|send|share|show|reveal|forward|provide|submit)\b.{0,35}(?:the\s+|your\s+|this\s+|a\s+|my\s+)?(?:bank\s+)?password|\b(?:ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?|want(?:ed|s|ing)?)\b.{0,35}(?:the\s+|your\s+|this\s+|my\s+)(?:bank\s+)?password|(?:the\s+|my\s+|your\s+)?(?:bank\s+)?password.{0,30}\b(?:was|is|has\s+been)\s+(?:requested|required|wanted|demanded)\b|(?:parolni|parol).{0,30}(?:ayt|kirit|yubor|ko['’]?rsat|talab)|(?:ayt|kirit|yubor|ko['’]?rsat|talab).{0,30}(?:parolni|parol))/iu;
+const GENERIC_PASSWORD_NEUTRAL_RE =
+  /(?:wi[-\s]?fi|router|роутер|вай[-\s]?фай|office\s+wifi|mehmon\s+wifi|password\s+policy|парольн.{0,15}политик|password\s+reset\s+(?:instruction|guide|steps?)|(?:advice|tips?|guidance).{0,24}password\s+(?:security|protection)|совет.{0,24}(?:защит|безопасн).{0,20}парол|password\s+field.{0,24}(?:ui|form|screen|interface)|(?:ui|form|screen|interface).{0,24}password\s+field|change\s+(?:a|the|your)\s+password|create\s+(?:a|the|your)\s+password|requires?\s+(?:a\s+)?password\s+to\s+(?:sign|log)\s+in)/iu;
+const GENERIC_PASSWORD_SAFETY_RE =
+  /(?:(?:не\s+(?:отправля|вводи|говори|называ|передава|показыва|раскрыва)|(?:do\s+not|don['’]?t|never)\s+(?:send|enter|tell|share|give|show|forward|reveal|provide|submit)).{0,35}(?:парол|password)|(?:parolni|parol).{0,30}(?:yubormang|aytmang|kiritmang|ko['’]?rsatmang))/iu;
 
 function shouldFlagProxyCodeRequest(text: string): boolean {
-  if (PROXY_CODE_NEUTRAL_CONTEXT_RE.test(text)) return false;
-  if (!PROXY_CODE_ASK_RE.test(text)) return false;
-  if (PROXY_CODE_STRONG_SOURCE_RE.test(text)) return true;
-  const hasDigitObject = PROXY_CODE_DIGIT_RE.test(text);
-  const hasContextSource = PROXY_CODE_CONTEXT_SOURCE_RE.test(text);
+  const eligibleText = splitRiskClauses(text)
+    .filter(
+      (clause) =>
+        !isPhysicalAccessCodeOnly(clause) &&
+        !PROXY_CODE_NEUTRAL_CONTEXT_RE.test(clause) &&
+        !GENERIC_CODE_PROGRAMMING_RE.test(clause),
+    )
+    .join(", ");
+  if (!eligibleText) return false;
+  if (/(?:cvv|cvc|xavfsizlik\s+kodi|security\s+code)/iu.test(eligibleText)) return false;
+  if (
+    /(?:прочитай|прочитайте)\s+то,?\s+что.{0,40}(?:прид[её]т|пришл[её]т).{0,40}уведомлени/iu.test(
+      eligibleText,
+    )
+  ) {
+    return true;
+  }
+  if (!PROXY_CODE_ASK_RE.test(eligibleText)) return false;
+  if (PROXY_CODE_STRONG_SOURCE_RE.test(eligibleText)) {
+    const clauses = splitRiskClauses(eligibleText);
+    return clauses.some((clause, index) => {
+      if (!PROXY_CODE_ASK_RE.test(clause)) return false;
+      if (PROXY_CODE_DIGIT_RE.test(clause)) return true;
+      if (PROXY_CODE_CONTEXT_SOURCE_RE.test(clause) && PROXY_CODE_STRONG_SOURCE_RE.test(clause)) {
+        return true;
+      }
+      const previous = clauses[index - 1] ?? "";
+      const next = clauses[index + 1] ?? "";
+      return (
+        (PROXY_CODE_STRONG_SOURCE_RE.test(previous) && PRONOUN_REQUEST_RE.test(clause)) ||
+        (/(?:\bто\b|\bwhat\b)/iu.test(clause) &&
+          PROXY_CODE_STRONG_SOURCE_RE.test(`${clause}, ${next}`) &&
+          PROXY_CODE_CONTEXT_SOURCE_RE.test(next))
+      );
+    });
+  }
+  const hasDigitObject = PROXY_CODE_DIGIT_RE.test(eligibleText);
+  const hasContextSource = PROXY_CODE_CONTEXT_SOURCE_RE.test(eligibleText);
   // Otherwise require a digit/code object AND a digit-count hint to avoid
   // matching "dictate your full name" or "say your address".
-  return hasDigitObject && (hasContextSource || PROXY_CODE_COUNT_RE.test(text));
+  return hasDigitObject && (hasContextSource || PROXY_CODE_COUNT_RE.test(eligibleText));
+}
+
+function shouldFlagGenericCodeRequest(text: string): boolean {
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previous = clauses[index - 1] ?? "";
+    const previousIsTypedNonOtpCode =
+      /(?:qr.?code|qr.?код|qr.?kod|cvv|cvc|security\s+code|код\s+безопасности|xavfsizlik\s+kodi|\bpin\b|\bпин\b|pin.?код)/iu.test(
+        previous,
+      );
+    const carriesCode =
+      /(?:sms|otp|verification\s+code|код|kod|\bcode\b)/iu.test(previous) &&
+      !previousIsTypedNonOtpCode &&
+      !isPhysicalAccessCodeOnly(previous) &&
+      !PROXY_CODE_NEUTRAL_CONTEXT_RE.test(previous) &&
+      !GENERIC_CODE_PROGRAMMING_RE.test(previous) &&
+      PRONOUN_REQUEST_RE.test(clause);
+    const candidate = carriesCode ? `${clause} code` : clause;
+    if (isPhysicalAccessCodeOnly(candidate)) return false;
+    if (carriesCode && !isGeneralSafetyClause(clause)) return true;
+    return (
+      !PROXY_CODE_NEUTRAL_CONTEXT_RE.test(candidate) &&
+      !GENERIC_CODE_PROGRAMMING_RE.test(candidate) &&
+      !/(?:cvv|cvc|xavfsizlik\s+kodi|security\s+code|karta(?:ning)?.{0,20}kod)/iu.test(candidate) &&
+      !/(?:qr.?код|qr.?kod|qr code)/iu.test(candidate) &&
+      GENERIC_CODE_REQUEST_RE.test(candidate) &&
+      !GENERIC_CODE_SAFETY_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause)
+    );
+  });
+}
+
+function shouldFlagGenericPasswordRequest(text: string): boolean {
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previousMentionsPassword =
+      index > 0 && /(?:парол|password|parol)/iu.test(clauses[index - 1] ?? "");
+    const carriesPassword = previousMentionsPassword && PRONOUN_REQUEST_RE.test(clause);
+    const candidate = carriesPassword ? `${clause} password` : clause;
+    return (
+      !GENERIC_PASSWORD_NEUTRAL_RE.test(candidate) &&
+      GENERIC_PASSWORD_REQUEST_RE.test(candidate) &&
+      !GENERIC_PASSWORD_SAFETY_RE.test(candidate) &&
+      !isGeneralSafetyClause(clause)
+    );
+  });
 }
 
 const QR_MENTION_RE = /(qr.?код|qr.?kod|qr code|qr)/i;
-const QR_SCAN_ACTION_RE = /(скан|отскан|skaner|scan)/i;
+const QR_SCAN_ACTION_RE =
+  /(скан|отскан|перейд|откр|оплат(?:и|ите)(?![\p{L}])|\bskaner|\bo['’]t|\boch|\bto['’]la(?:ng)?\b|\bscan\b|\bopen\b|\bfollow\b|\bpay\b)/iu;
+const QR_DIRECT_ACTION_RE =
+  /(?:(?:сканируй|отсканируй|перейди|открой|оплати).{0,25}qr|qr.{0,25}(?:сканируй|отсканируй|перейди|открой|оплати)|(?:qr(?:ni|[-\s]?(?:kodni|kod))|qr\s+orqali).{0,30}(?:skaner(?:lang|la\b|\s+qil(?:ing)?\b)|o['’]?t(?:ing)?\b|\boch(?:ing)?\b|ochib\s+ko['’]?ring|to['’]?la(?:ng)?\b)|\b(?:scan|open|follow|pay)\b.{0,18}(?:(?:this|the|a|via|by)\s+)?qr)/iu;
+const QR_REQUEST_ACTION_RE =
+  /(?:(?:просят|просит|попросил(?:и|а)?|просил(?:и|а)?|велят|требуют|требует).{0,55}(?:сканир|отсканир).{0,25}qr|(?:ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|tell(?:s|ing)?|says?|wants?|must|needs?).{0,65}(?:(?:scan|open|follow|pay).{0,25}qr|qr.{0,20}scan)|qr.{0,20}scan.{0,30}\b(?:was|is|has\s+been)\s+(?:requested|required|wanted)\b|(?:qr(?:ni|[-\s]?(?:kodni|kod))|qr).{0,35}(?:skaner(?:lash|\s+qilish|\s+qil)).{0,35}(?:so['’]?ra(?:di|shdi|shyapti|yapti)|aytishdi|deyishdi)|(?:skaner(?:lash|\s+qilish)).{0,35}(?:so['’]?ra(?:di|shdi|shyapti|yapti)|aytishdi|deyishdi).{0,35}qr)/iu;
+const QR_SAFETY_RE =
+  /(?:(?:не\s+(?:сканируй|открывай|переходи|оплачивай)|(?:do\s+not|don['’]?t|never|did\s+not|didn['’]?t)\s+(?:scan|open|follow|pay)).{0,30}qr|\b(?:can|could|does|will|would)\s+(?:you|this\s+bot|the\s+bot|it)\s+(?:check|scan|review|inspect|analy[sz]e).{0,30}qr|qr.{0,30}(?:skaner\s+qil(?:mang|madim|madi|magan|mayman)|ochmang|o['’]?tmang|to['’]?lamang))/iu;
+const QR_NEUTRAL_CONTEXT_RE =
+  /(?:restaurant|menu|museum|audio\s+guide|wi[-\s]?fi|connect\s+to\s+wi[-\s]?fi|ресторан|меню|музе|аудиогид|вай[-\s]?фай|taomnom|menyu|muzey)/iu;
 const QR_DANGEROUS_CONTEXT_RE =
-  /(войти|вход|авториз|личн.{0,12}кабинет|аккаунт|подтверд|вериф|смс.{0,20}код|sms.{0,20}code|код.{0,20}(смс|sms|подтвержд)|парол|pin|cvv|карт|банк|оплат|перевод|выигрыш|приз|розыгрыш|kiring|tizimga|hisob|akkaunt|tasdiq|tasdiq.{0,20}kod|parol|karta|bank|to['’]?lov|pul|sovrin|yutuq|login|account|verify|confirm|verification.{0,20}code|password|payment|transfer|card|bank|prize|giveaway|lottery)/i;
+  /(?:войти|вход|авториз|личн.{0,12}кабинет|аккаунт|подтверд|вериф|смс.{0,20}код|sms.{0,20}code|парол|pin|cvv|карт|банк|оплат|перевод|выигрыш|приз|розыгрыш|kiring|tizimga|hisob|akkaunt|tasdiq|parol|karta|bank|to['’]?lov|pul|sovrin|yutuq|login|account|verify|confirm|password|payment|transfer|card|prize|giveaway|lottery|telegram)/iu;
 
 function shouldFlagQrScan(text: string): boolean {
-  return (
-    QR_MENTION_RE.test(text) && QR_SCAN_ACTION_RE.test(text) && QR_DANGEROUS_CONTEXT_RE.test(text)
-  );
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    const previousMentionsQr = index > 0 && QR_MENTION_RE.test(clauses[index - 1] ?? "");
+    const candidate = QR_MENTION_RE.test(clause) || !previousMentionsQr ? clause : `QR ${clause}`;
+    const carriesQrRequest =
+      previousMentionsQr && PRONOUN_REQUEST_RE.test(clause) && QR_SCAN_ACTION_RE.test(clause);
+    return (
+      QR_MENTION_RE.test(candidate) &&
+      QR_SCAN_ACTION_RE.test(candidate) &&
+      (QR_DIRECT_ACTION_RE.test(candidate) ||
+        QR_REQUEST_ACTION_RE.test(candidate) ||
+        carriesQrRequest) &&
+      !QR_SAFETY_RE.test(clause) &&
+      !isGeneralSafetyClause(clause) &&
+      (!QR_NEUTRAL_CONTEXT_RE.test(candidate) || QR_DANGEROUS_CONTEXT_RE.test(candidate))
+    );
+  });
 }
 
 const SHORT_LINK_HOSTS = [
@@ -545,10 +810,40 @@ const SHORT_LINK_HOSTS = [
   "ow.ly",
 ];
 
+const SAFETY_SENSITIVE_PATTERN_CODES = new Set<ReasonCode>([
+  "asks_for_otp",
+  "asks_for_sms_code",
+  "asks_to_install_apk",
+  "asks_to_transfer_to_safe_account",
+  "requests_card_digits",
+  "fake_delivery_payment",
+]);
+
 export function evaluateText(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
-  for (const { code, re } of PATTERNS) if (re.test(text)) codes.add(code);
+  const isStandaloneCodeSafetyWarning =
+    GENERIC_CODE_SAFETY_RE.test(text) &&
+    !hasUnsafeClause(text, GENERIC_CODE_REQUEST_RE, GENERIC_CODE_SAFETY_RE);
+  for (const { code, re } of PATTERNS) {
+    if (!re.test(text)) continue;
+    if (code === "asks_for_sms_code" && isPhysicalAccessCodeOnly(text)) continue;
+    if (
+      SAFETY_SENSITIVE_PATTERN_CODES.has(code) &&
+      GENERAL_SAFETY_ACTION_RE.test(text) &&
+      !splitRiskClauses(text).some((clause) => re.test(clause) && !isGeneralSafetyClause(clause))
+    ) {
+      continue;
+    }
+    if (
+      isStandaloneCodeSafetyWarning &&
+      (code === "asks_for_sms_code" || code === "asks_for_otp")
+    ) {
+      continue;
+    }
+    codes.add(code);
+  }
   if (shouldFlagQrScan(text)) codes.add("asks_to_scan_qr");
+  if (shouldFlagScreenShareRequest(text)) codes.add("asks_to_share_screen");
   if (shouldFlagTelegramAccountTakeoverPhishing(text))
     codes.add("telegram_account_takeover_phishing");
   if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
@@ -569,7 +864,10 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagSoftPinOrPasswordRequest(text)) codes.add("asks_for_pin");
   if (shouldFlagDirectTransferRequest(text)) codes.add("asks_to_transfer_to_safe_account");
   if (shouldFlagPersonalDataRequest(text)) codes.add("requests_personal_data");
+  if (shouldFlagCardDataRequest(text)) codes.add("requests_card_digits");
   if (shouldFlagProxyCodeRequest(text)) codes.add("asks_for_sms_code");
+  if (shouldFlagGenericCodeRequest(text)) codes.add("asks_for_sms_code");
+  if (shouldFlagGenericPasswordRequest(text)) codes.add("asks_for_pin");
   if (shouldFlagPrivateTelegramInviteEvidence(text)) codes.add("suspicious_invite_link");
   // Heuristics
   if (
@@ -579,9 +877,6 @@ export function evaluateText(text: string): ReasonCode[] {
     )
   ) {
     codes.add("too_good_to_be_true");
-  }
-  if (/(паспорт|passport|seriya)/i.test(text) && /(отправ|yuboring|send)/i.test(text)) {
-    codes.add("requests_personal_data");
   }
   return [...codes];
 }

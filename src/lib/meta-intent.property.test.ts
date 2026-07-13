@@ -7,34 +7,41 @@ import {
   getMetaIntentResponse,
 } from "./meta-intent";
 
-const scamSignals = [
+const concreteOrActionableScamSignals = [
   "https://evil.example",
   "www.bad-site.com",
+  "paypa1.uz",
+  "пример.рф",
   "+998 90 123 45 67",
   "@fake_support",
   "t.me/fake_bank",
-  "SMS-kod",
-  "CVV",
-  "APK",
   "оплатите проверку",
-  "деньги",
-  "payment",
   "безопасный счёт",
   "не кладите трубку",
   "xavfsiz hisob",
 ] as const;
+
+const capabilityTopicWords = ["APK", "деньги", "payment"] as const;
 
 const safeNoise = [
   "coffee",
   "alpha",
   "neutral",
   "ordinary",
-  "weather",
   "table",
   "restaurant",
   "screen",
   "short",
-  "hello",
+  "window",
+] as const;
+
+const conversationalWrappers = [
+  "После прошлого результата хочу уточнить: ",
+  "Спасибо за помощь. Ещё вопрос: ",
+  "After the previous result, I want to clarify: ",
+  "Thanks for your help. One more question: ",
+  "Oldingi natijadan keyin aniqlashtirmoqchiman: ",
+  "Yordamingiz uchun rahmat. Yana bir savol: ",
 ] as const;
 
 describe("meta-intent classifier properties", () => {
@@ -58,11 +65,11 @@ describe("meta-intent classifier properties", () => {
     );
   });
 
-  it("scam context signals always override meta-intent detection", () => {
+  it("concrete artifacts and actionable scam instructions override meta-intent detection", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...CANONICAL_META_PHRASES),
-        fc.constantFrom(...scamSignals),
+        fc.constantFrom(...concreteOrActionableScamSignals),
         fc.boolean(),
         ({ text }, signal, signalFirst) => {
           const mixed = signalFirst ? `${signal} ${text}` : `${text} ${signal}`;
@@ -72,11 +79,33 @@ describe("meta-intent classifier properties", () => {
     );
   });
 
+  it("keeps capability questions answerable when they only name a risky topic", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...capabilityTopicWords), (topic) => {
+        expect(classifyMetaIntent(`Can you check a screenshot about ${topic}?`)).toBe(
+          "can_check_image",
+        );
+      }),
+    );
+  });
+
   it("forwarded messages always bypass meta-intent detection", () => {
     fc.assert(
       fc.property(fc.constantFrom(...CANONICAL_META_PHRASES), ({ text }) => {
         expect(classifyMetaIntent(text, { isForwarded: true })).toBeNull();
       }),
+    );
+  });
+
+  it("known safe conversational wrappers preserve the inner meta intent", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...CANONICAL_META_PHRASES),
+        fc.constantFrom(...conversationalWrappers),
+        ({ intent, text }, wrapper) => {
+          expect(classifyMetaIntent(`${wrapper}${text}`)).toBe(intent);
+        },
+      ),
     );
   });
 

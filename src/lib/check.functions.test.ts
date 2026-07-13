@@ -291,7 +291,7 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     expect(hoisted.runCheckCalls[0]).not.toHaveProperty("type");
 
     // lang omitted → schema default "ru"
-    await checkInput({ data: { input: "hello" } });
+    await checkInput({ data: { input: "neutral input sample" } });
     expect(hoisted.runCheckCalls[1].lang).toBe("ru");
   });
 
@@ -362,6 +362,19 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
       metaIntent: "why_failed",
       response: expect.stringContaining("изображение"),
     });
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+  });
+
+  it.each([
+    ["а ты можешь проанализировать ссылку?", "can_check_link"],
+    ["Привет!", "greeting"],
+    ["Какая сегодня погода?", "off_topic"],
+  ] as const)("keeps conversational text out of the risk pipeline: %s", async (input, intent) => {
+    hoisted.requestIp = "192.0.2.1";
+
+    const result = await checkInput({ data: { input, lang: "ru" } });
+
+    expect(result).toMatchObject({ metaIntent: intent });
     expect(hoisted.runCheckCalls).toHaveLength(0);
   });
 

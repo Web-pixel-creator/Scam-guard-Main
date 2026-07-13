@@ -26,6 +26,7 @@
 // Never import this module into the client bundle.
 import { z } from "zod";
 import { classifyMetaIntent, type MetaIntent } from "@/lib/meta-intent";
+import { classifyLastCheckFollowUp } from "@/lib/telegram/check-followup";
 import {
   isSessionStateScopedToChat,
   loadSession as loadSessionImpl,
@@ -849,9 +850,20 @@ export async function dispatchUpdate(
       await handlers.handleScenarioImage(action.fileId, ctx, action.mediaGroupId);
       break;
     case "check": {
+      // Questions about an immediately preceding result must keep that result's
+      // bounded provenance.  Routing them through a generic meta answer first
+      // loses the saved reason codes and produces circular explanations such as
+      // "the domain is suspicious because it is suspicious".
       const intent = classifyMetaIntent(action.content, {
         isForwarded: update.message?.forward_origin != null,
       });
+      const recentFollowUp = classifyLastCheckFollowUp(action.content, session.scenarioData);
+      const needsRecentProvenance =
+        recentFollowUp && (!intent || intent === "explain_risk" || intent === "how_do_you_check");
+      if (needsRecentProvenance) {
+        await handlers.handleCheck(action.content, ctx, action.source);
+        break;
+      }
       if (intent) {
         await handlers.handleMetaIntent(intent, ctx);
         break;

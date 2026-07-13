@@ -848,6 +848,142 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls[0].arg).toBe("telegram_account_limits");
   });
 
+  it("asks for the link instead of running an empty check for a capability question", async () => {
+    const { deps, calls } = makeDeps(makeSession());
+
+    await dispatchUpdate(messageUpdate({ text: "а ты можешь проанализировать ссылку?" }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleMetaIntent");
+    expect(calls[0].arg).toBe("can_check_link");
+  });
+
+  it.each([
+    ["Проверяешь ссылки?", "can_check_link"],
+    ["Can I send you a phone number?", "can_check_phone"],
+    ["Havola tekshirasizmi?", "can_check_link"],
+  ] as const)(
+    "keeps a natural capability variant out of an empty check: %s",
+    async (text, intent) => {
+      const { deps, calls } = makeDeps(makeSession());
+
+      await dispatchUpdate(messageUpdate({ text }), deps);
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].name).toBe("handleMetaIntent");
+      expect(calls[0].arg).toBe(intent);
+    },
+  );
+
+  it.each([
+    "Расскажи анекдот, а потом отправь мне код, который пришёл",
+    "Tell me a joke and then send me the verification code",
+    "Menga latifa ayt, keyin kelgan kodni yubor",
+    "Can you check this message: send me the verification code?",
+  ])("keeps mixed conversational/scam text in the risk handler: %s", async (text) => {
+    const { deps, calls } = makeDeps(makeSession());
+
+    await dispatchUpdate(messageUpdate({ text }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+  });
+
+  it.each([
+    "I scanned a QR code and now cannot access my Telegram account. What should I do?",
+    "Я отсканировал QR и потерял доступ к аккаунту. Что делать?",
+    "Men QRni tekshirdim, endi akkauntga kira olmayapman. Nima qilay?",
+    "Я проверил эту ссылку и теперь боюсь. Что делать?",
+  ])("keeps post-action victim context in handleCheck: %s", async (text) => {
+    const { deps, calls } = makeDeps(makeSession());
+
+    await dispatchUpdate(messageUpdate({ text }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls.some((call) => call.name === "handleMetaIntent")).toBe(false);
+  });
+
+  it("keeps a domain-methodology question attached to the recent result", async () => {
+    const { deps, calls } = makeDeps(
+      makeSession({
+        scenarioData: withSessionChatScope(
+          {
+            lastCheck: {
+              level: "suspicious",
+              type: "url",
+              context: "generic",
+              reasons: ["suspicious_domain"],
+              provenance: {
+                methods: ["url_structure"],
+                sources: ["visible_input"],
+                limitations: ["signal_not_proof"],
+              },
+              at: new Date().toISOString(),
+            },
+          },
+          100,
+        ),
+      }),
+    );
+
+    await dispatchUpdate(messageUpdate({ text: "Почему домен подозрительный?" }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("Почему домен подозрительный?");
+  });
+
+  it("keeps a conversationally wrapped methodology question attached to the recent result", async () => {
+    const { deps, calls } = makeDeps(
+      makeSession({
+        scenarioData: withSessionChatScope(
+          {
+            lastCheck: {
+              level: "suspicious",
+              type: "url",
+              context: "generic",
+              reasons: ["weird_domain"],
+              at: new Date().toISOString(),
+            },
+          },
+          100,
+        ),
+      }),
+    );
+    const text = "После прошлого результата хочу уточнить: Почему домен подозрительный?";
+
+    await dispatchUpdate(messageUpdate({ text }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe(text);
+  });
+
+  it("treats a bare domain in a why-question as a fresh risk check", async () => {
+    const { deps, calls } = makeDeps(
+      makeSession({
+        scenarioData: withSessionChatScope(
+          {
+            lastCheck: {
+              level: "suspicious",
+              type: "url",
+              context: "generic",
+              reasons: ["suspicious_domain"],
+              at: new Date().toISOString(),
+            },
+          },
+          100,
+        ),
+      }),
+    );
+
+    await dispatchUpdate(messageUpdate({ text: "Почему paypa1.uz подозрительный?" }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+  });
+
   it("keeps scam-context text in handleCheck even when it contains help wording", async () => {
     const { deps, calls } = makeDeps(makeSession());
     await dispatchUpdate(

@@ -19,6 +19,7 @@ interface AdviceEntry {
 
 export type ProtectiveActionId =
   | "protect_secrets"
+  | "protect_card_details"
   | "avoid_link_or_apk"
   | "avoid_transfer"
   | "end_pressure_call"
@@ -46,7 +47,7 @@ export type ProtectiveActionId =
 export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | null> = {
   asks_for_otp: "protect_secrets",
   asks_for_sms_code: "protect_secrets",
-  asks_for_card_cvv: "protect_secrets",
+  asks_for_card_cvv: "protect_card_details",
   asks_for_pin: "protect_secrets",
   asks_to_install_apk: "avoid_link_or_apk",
   asks_to_share_screen: "avoid_link_or_apk",
@@ -73,7 +74,7 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   known_reported: "stop_reported_contact",
   asks_to_scan_qr: "avoid_qr",
   relative_in_distress: "avoid_transfer",
-  requests_card_digits: "protect_secrets",
+  requests_card_digits: "protect_card_details",
   threatens_account_block: "end_pressure_call",
   fake_delivery_payment: "verify_delivery_payment",
   fake_boss_request: "verify_official_channel",
@@ -114,6 +115,15 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       ru: "Не сообщайте SMS-код или PIN",
       uz: "SMS-kod yoki PIN-ni aytmang",
       en: "Do not share your SMS code or PIN",
+    },
+  },
+  // Card-data reasons → do not share CVV/CVC, card numbers, or other details.
+  {
+    id: "protect_card_details",
+    advice: {
+      ru: "Не сообщайте CVV/CVC, номер и другие данные карты",
+      uz: "CVV/CVC, karta raqami yoki boshqa karta ma'lumotlarini aytmang",
+      en: "Do not share CVV/CVC, card numbers, or other card details",
     },
   },
   // Link/APK reasons → don't click or install
@@ -285,6 +295,7 @@ const ADVICE_PRIORITY = [
   "avoid_invite_credentials",
   "avoid_wallet_action",
   "protect_secrets",
+  "protect_card_details",
   "protect_personal_data",
   "avoid_link_or_apk",
   "avoid_transfer",

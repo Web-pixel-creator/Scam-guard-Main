@@ -117,6 +117,25 @@ describe("filterAdvice", () => {
     });
   });
 
+  describe("card details", () => {
+    it.each(["asks_for_card_cvv", "requests_card_digits"] as const)(
+      "gives card-specific guidance for %s in every language",
+      (reason) => {
+        const ru = filterAdvice("high_risk", [reason], "ru");
+        const uz = filterAdvice("high_risk", [reason], "uz");
+        const en = filterAdvice("high_risk", [reason], "en");
+
+        expect(ru).toEqual([expect.stringMatching(/CVV|CVC|данн.*карт/iu)]);
+        expect(uz).toEqual([expect.stringMatching(/CVV|CVC|karta/iu)]);
+        expect(en).toEqual([expect.stringMatching(/CVV|CVC|card details/iu)]);
+
+        for (const advice of [...ru, ...uz, ...en]) {
+          expect(advice).not.toMatch(/SMS.code|SMS-код|SMS-kod/iu);
+        }
+      },
+    );
+  });
+
   describe("max 3 limit", () => {
     it("returns at most 3 items even with many different reason categories", () => {
       // Pick reasons from all 5 different categories
