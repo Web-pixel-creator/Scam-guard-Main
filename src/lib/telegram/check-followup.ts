@@ -513,7 +513,7 @@ function bankContacts(lang: Lang): string {
 function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.level === "high_risk") {
-      return "Men buni xavfli holatdek qabul qilgan bo'lardim.\n\nHozir:\n1. Suhbatni to'xtating.\n2. SMS-kod, karta, parol yoki login bermang.\n3. Tashkilot yoki odamni rasmiy ilova, sayt yoki saqlangan raqam orqali o'zingiz tekshiring.\n\nAgar bu xato bo'lsa ham, bu qadamlar sizga zarar qilmaydi.";
+      return "Men buni xavfli holatdek qabul qilgan bo'lardim.\n\nHozir:\n1. Suhbatni to'xtating.\n2. SMS-kod, karta, parol yoki login bermang.\n3. Tashkilotni rasmiy ilova yoki sayt orqali yoxud o‘sha yerdagi rasmiy raqamga qo‘ng‘iroq qilib tekshiring. Tanish odamga esa oldindan saqlangan raqamdan qayta qo‘ng‘iroq qiling.\n\nAgar bu xato bo'lsa ham, bu qadamlar sizga zarar qilmaydi.";
     }
     if (snapshot.context === "image_unreadable") {
       return "Bu rasm bo'yicha aniq ayta olmayman: matn yoki QR ishonchli o'qilmadi.\n\nMen xavfni o'ylab topmayman. Aniq tekshirish uchun SMS/chat matnini, QR ochadigan havolani yoki sizdan nima so'rashganini yuboring.";
@@ -535,7 +535,7 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
 
   if (lang === "en") {
     if (snapshot.level === "high_risk") {
-      return "I would treat this as risky.\n\nRight now:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, passwords, or logins.\n3. Verify the organization or person yourself through the official app, website, or a saved number.\n\nEven if it turns out to be harmless, these steps do not hurt you.";
+      return "I would treat this as risky.\n\nRight now:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, passwords, or logins.\n3. Verify an organization in its official app or website, or call the official number shown there. Call a person back on a number you already had saved.\n\nEven if it turns out to be harmless, these steps do not hurt you.";
     }
     if (snapshot.context === "image_unreadable") {
       return "I cannot be sure from that image: the text or QR was not readable enough.\n\nI will not invent a risk from a blurry picture. For a precise check, send the SMS/chat text, the link opened by the QR, or what they ask you to do.";
@@ -556,7 +556,7 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
 
   if (snapshot.level === "high_risk") {
-    return "Я бы действовал как при реальном риске.\n\nСейчас:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту, пароль или логин.\n3. Проверьте организацию или человека сами — через официальное приложение, сайт или сохранённый номер.\n\nДаже если тревога окажется ложной, эти шаги вам не навредят.";
+    return "Я бы действовал как при реальном риске.\n\nСейчас:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту, пароль или логин.\n3. Проверьте организацию через её официальное приложение или сайт либо сами позвоните по указанному там официальному номеру. Знакомому человеку перезвоните по номеру, который был сохранён у вас раньше.\n\nДаже если тревога окажется ложной, эти шаги вам не навредят.";
   }
   if (snapshot.context === "image_unreadable") {
     return "По этой картинке я не могу сказать точно: текст или QR не прочитались достаточно надёжно.\n\nЯ не буду выдумывать риск по мутному скрину. Для точной проверки пришлите текст из SMS/чата, ссылку, которая открывается по QR, или коротко: что вас просят сделать.";
