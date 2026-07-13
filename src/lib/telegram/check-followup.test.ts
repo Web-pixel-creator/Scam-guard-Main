@@ -339,9 +339,24 @@ describe("last check follow-up router", () => {
     expect(action).toBe("confidence");
     expect(text).toContain("Я бы действовал как при реальном риске");
     expect(text).toContain("Не сообщайте SMS-код");
+    expect(text).toContain("официальному номеру");
     expect(text).toContain("эти шаги вам не навредят");
     expect(text).not.toContain("Не могу гарантировать на 100%");
     expect(text).not.toContain("Перезвоните в банк");
+  });
+
+  it("keeps an independent official callback in every high-risk confidence reply", () => {
+    const now = new Date("2026-06-06T05:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", reasons: ["asks_for_sms_code"] }),
+      now,
+    );
+
+    expect(buildLastCheckFollowUpText("confidence", snapshot, "ru")).toContain(
+      "официальному номеру",
+    );
+    expect(buildLastCheckFollowUpText("confidence", snapshot, "uz")).toContain("rasmiy raqamga");
+    expect(buildLastCheckFollowUpText("confidence", snapshot, "en")).toContain("official number");
   });
 
   it("does not expose weak topic-only evidence in unknown explanations", () => {
