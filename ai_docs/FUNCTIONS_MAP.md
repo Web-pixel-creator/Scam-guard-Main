@@ -495,6 +495,15 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `src/lib/telegram/webhook.server.ts`: compatibility webhook handler with fail-closed secret validation, capped body parsing and durable update lifecycle; returns 200 only after confirmed completion and 503 on handler/lease/completion uncertainty.
 - `src/lib/telegram/update-lifecycle.server.ts`: strict service-role RPC boundary for polling leader leases, update processing/completion leases, failure release and current-fence checks.
 - `src/lib/telegram/updates-poller.server.ts`: singleton `getUpdates(limit=1)` supervisor; advances offset only after durable completion and safely skips completion-before-offset redelivery.
+- `src/lib/telegram/polling-cycle.ts`: dependency-injected core for one polling
+  cycle. Production supplies handler installation and network/database
+  dependencies; isolated tests and the soak reuse the same offset/claim/execute
+  state machine without importing the application handler graph.
+- `src/lib/telegram/polling-resource-soak.ts`: non-network production-shaped
+  soak harness around `runTelegramPollingCycle`; generates controlled updates
+  and bounded media fixtures, injects the two completion failure boundaries,
+  probes stale-leader and local-offset-loss recovery, and reports CPU/RSS,
+  event-loop, queue, latency, retry, loss and duplicate-effect metrics.
 - `src/lib/telegram/outbound-effect-fence.server.ts`: installs the AsyncLocalStorage-to-DB fence used before Telegram Bot API network effects.
 - `src/lib/telegram/outbound-effect-guard.ts`: browser-safe guard indirection that keeps Node/DB modules out of shared API bundles.
 - `src/lib/telegram/update-execution.server.ts`: `runWithTelegramUpdateExecution(updateId, work)` exposes request-local update id, loaded language and session-storage-failure state through `AsyncLocalStorage`; `currentTelegramUpdateId()`, `rememberTelegramSessionLanguage()`, `currentTelegramSessionLanguage()` and `markTelegramSessionStorageFailure()` are the narrow helpers.
@@ -557,6 +566,10 @@ instead of receiving misleading phone or Telegram-profile instructions.
   secret or chat id values.
 - `scripts/switch-telegram-to-polling.ts`: fail-closed cutover; requires an
   active DB polling leader and calls `deleteWebhook(drop_pending_updates=false)`.
+- `scripts/polling-resource-soak.ts`: parameterized CLI for the in-memory
+  polling/resource harness; the Docker build ships a self-contained Node bundle
+  at `dist/ops/polling-resource-soak.mjs` for Railway runtime evidence without
+  API calls or persistent writes.
 - `scripts/prod-monitor-policy.ts`: `skippedSecretMonitorCheck()` converts a
   missing secret into `fail` when that check is required, otherwise `warn`;
   `shouldFailMonitor()` makes every failed check fatal independently of the

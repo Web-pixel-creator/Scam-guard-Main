@@ -602,6 +602,31 @@ a fake payload; restart/re-election and an approved real-client update cover
 that boundary. It also cannot validate Inline visual delivery because Telegram
 requires a real client-generated `inline_query_id`.
 
+### Polling/resource soak
+
+The production image contains a self-contained, non-secret soak runner. It uses
+the real `runTelegramPollingCycle` code path with controlled in-memory updates;
+it does not call Telegram, Supabase, a reputation service or the AI provider and
+does not persist user data. Run the 60-minute profile inside a Railway runtime:
+
+```powershell
+railway ssh node dist/ops/polling-resource-soak.mjs --duration-minutes=60
+```
+
+The default profile generates ten updates per second and admits a bounded 3 MiB
+PNG/JPEG/WebP fixture every 200 updates. It probes a pre-effect failure,
+completion-acknowledgement loss, stale-leader rejection and recovery after loss
+of the process-local offset. `SOAK_FINAL.passed` is true only when there are no
+lost updates or duplicate modeled outward effects and the queue, RSS growth,
+event-loop p99 and update latency stay within their configured bounds.
+
+This is production-shaped resource and failure-model evidence, not a claim that
+the operating-system process physically restarted or that Telegram delivered a
+real update. Complete the gate with one approved real-client update plus an
+actual Railway instance restart/leader re-election, and verify health, pending
+updates and the absence of duplicate replies afterward. The delivery guarantee
+remains at-least-once with bounded idempotent handling, never exactly-once.
+
 The general `prod:smoke` and synthetic `prod:telegram-inline-smoke` are also
 delivery-mode aware. With `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, both require
 the authenticated webhook to remain disabled with `503`; `prod:smoke` also
@@ -643,6 +668,9 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       `getWebhookInfo.url` is empty afterward and pending updates were preserved.
 - [ ] Restart/completion-before-offset/stale-leader probes pass before horizontal
       application scaling. At most one polling leader may be active.
+- [ ] The 60-minute `polling-resource-soak` passes in a Railway runtime; retain
+      the sanitized `SOAK_FINAL` metrics and separately capture a real instance
+      restart/leader re-election with one approved QA update.
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Partner iframe origins, if any, are set in
       `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`

@@ -1,48 +1,31 @@
 import { getTelegramUpdateDeliveryMode } from "@/lib/config.server";
 import { getUpdates } from "@/lib/telegram/api.server";
 import { installTelegramHandlers } from "@/lib/telegram/handlers";
-import { telegramUpdateSchema, type TelegramUpdate } from "@/lib/telegram/router";
+import {
+  runTelegramPollingCycleCore,
+  type TelegramPollingCycleDeps,
+  type TelegramPollingCycleResult,
+} from "@/lib/telegram/polling-cycle";
 import {
   acquireTelegramUpdateLeader,
   beginTelegramUpdate,
   releaseTelegramUpdateLeader,
   renewTelegramUpdateLeader,
-  type BeginTelegramUpdateResult,
   type TelegramUpdateLeaderLease,
 } from "@/lib/telegram/update-lifecycle.server";
 import { executeAndCompleteTelegramUpdate } from "@/lib/telegram/webhook.server";
 
 const LONG_POLL_SECONDS = 25;
 const LEADER_RETRY_MS = 5_000;
-const POLL_RETRY_MS = 2_000;
 const LEADER_RENEW_MS = 20_000;
 
-export interface TelegramPollingCycleDeps {
-  fetchUpdates: (offset?: number) => Promise<unknown[] | null>;
-  begin: (
-    updateId: number,
-    leader: TelegramUpdateLeaderLease,
-  ) => Promise<BeginTelegramUpdateResult>;
-  execute: (
-    update: TelegramUpdate,
-    lease: Extract<
-      BeginTelegramUpdateResult,
-      {
-        decision: "acquired";
-      }
-    >["lease"],
-  ) => Promise<boolean>;
-}
-
-export interface TelegramPollingCycleResult {
-  offset?: number;
-  retryAfterMs: number;
-}
+export type { TelegramPollingCycleDeps, TelegramPollingCycleResult };
 
 const defaultCycleDeps: TelegramPollingCycleDeps = {
   fetchUpdates: (offset) => getUpdates({ offset, timeout: LONG_POLL_SECONDS, limit: 1 }),
   begin: (updateId, leader) => beginTelegramUpdate(updateId, leader),
   execute: executeAndCompleteTelegramUpdate,
+  prepareHandlers: installTelegramHandlers,
 };
 
 export async function runTelegramPollingCycle(
@@ -50,42 +33,7 @@ export async function runTelegramPollingCycle(
   leader: TelegramUpdateLeaderLease,
   deps: TelegramPollingCycleDeps = defaultCycleDeps,
 ): Promise<TelegramPollingCycleResult> {
-  const updates = await deps.fetchUpdates(offset);
-  if (updates === null) return { offset, retryAfterMs: POLL_RETRY_MS };
-  if (updates.length === 0) return { offset, retryAfterMs: 0 };
-
-  const raw = updates[0];
-  const updateId = updateIdFromUnknown(raw);
-  if (updateId === null) {
-    console.error("telegram polling received invalid update", "missing_update_id");
-    return { offset, retryAfterMs: POLL_RETRY_MS };
-  }
-
-  const parsed = telegramUpdateSchema.safeParse(raw);
-  if (!parsed.success) {
-    console.error("telegram polling ignored unsupported update", "schema");
-    return { offset: updateId + 1, retryAfterMs: 0 };
-  }
-
-  installTelegramHandlers();
-  const claim = await deps.begin(updateId, leader);
-  if (claim.decision === "completed") return { offset: updateId + 1, retryAfterMs: 0 };
-  if (claim.decision !== "acquired") {
-    return { offset, retryAfterMs: Math.max(1_000, claim.retryAfterSec * 1_000) };
-  }
-
-  const completed = await deps.execute(parsed.data, claim.lease);
-  return completed
-    ? { offset: updateId + 1, retryAfterMs: 0 }
-    : { offset, retryAfterMs: POLL_RETRY_MS };
-}
-
-function updateIdFromUnknown(value: unknown): number | null {
-  if (!value || typeof value !== "object") return null;
-  const updateId = (value as Record<string, unknown>).update_id;
-  return typeof updateId === "number" && Number.isSafeInteger(updateId) && updateId >= 0
-    ? updateId
-    : null;
+  return runTelegramPollingCycleCore(offset, leader, deps);
 }
 
 function delay(ms: number, signal: AbortSignal): Promise<void> {
