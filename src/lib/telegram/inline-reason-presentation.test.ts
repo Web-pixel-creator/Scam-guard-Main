@@ -7,6 +7,8 @@ import {
 } from "@/lib/telegram/inline-reason-presentation";
 
 const ALL_REASONS = Object.keys(REASON_LABELS) as ReasonCode[];
+const FORBIDDEN_USER_FACING_JARGON =
+  /(?:deterministic|deterministik|детерминирован\w*|(?:a\s+)?rule\s+found|правил\w*.{0,20}нашл\w*|qoida.{0,20}topdi)/iu;
 
 describe("Inline reason presentation policy", () => {
   it("exhaustively covers every ReasonCode with RU/UZ/EN evidence and limitations", () => {
@@ -24,6 +26,9 @@ describe("Inline reason presentation policy", () => {
           10,
         );
         expect(presented?.text).toContain(REASON_LABELS[reason][lang]);
+        expect(presented?.text, `${reason}:${lang}:jargon`).not.toMatch(
+          FORBIDDEN_USER_FACING_JARGON,
+        );
       }
     }
   });
@@ -62,7 +67,7 @@ describe("Inline reason presentation policy", () => {
       evidence: "text_pattern",
       limitation: "signal_not_proof",
     });
-    expect(presented?.evidence).toMatch(/видимом тексте.*OneID\/госуслуг/i);
+    expect(presented?.evidence).toMatch(/видимом тексте.*OneID.*госуслуг/i);
     expect(presented?.evidence).not.toMatch(/структура домена|вариантами брендов/i);
     expect(presented?.limitation).toMatch(/не доказывает/i);
   });

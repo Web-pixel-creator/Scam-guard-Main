@@ -151,6 +151,46 @@ export const bot_dict: BotDict = {
     uz: "👤 Telegram akkauntni tekshirish\n\nMen faqat ko‘rinadigan belgilarni tekshira olaman: username yoki t.me havolasi, agar Telegram botga bersa ommaviy nom/tavsif, hamda kontekst: kod, pul, karta, APK, QR orqali kirish yoki havola so‘ralyaptimi.\n\nMen yashirin SCAM belgisini, akkaunt yoshini, shikoyatlar tarixini yoki u kimlarga yozganini ko‘ra olmayman — Telegram odatda buni botga bermaydi.\n\nYaxshisi @username bilan birga odam sizdan nima so‘rayotgani ko‘ringan xabar yoki skrinshotni yuboring.",
     en: "👤 Telegram account checks\n\nI can check only visible signals: a username or t.me link, public title/description if Telegram exposes it to the bot, and the context: whether they ask for a code, money, card details, APK, QR login, or a link.\n\nI cannot see hidden SCAM labels, account age, report history, or who they messaged — Telegram usually does not expose that to bots.\n\nBest: send the @username together with the message or screenshot showing what the person asks you to do.",
   },
+  meta_can_check_link: {
+    ru: "Да. Пришлите ссылку целиком — открывать её не нужно. Я проверю адрес и видимые признаки риска, а потом коротко объясню результат. До проверки ничего на странице не вводите.",
+    uz: "Ha. Havolani to'liq yuboring — uni ochish shart emas. Men manzil va ko'rinadigan xavf belgilarini tekshirib, natijani qisqa tushuntiraman. Tekshiruvgacha sahifaga hech narsa kiritmang.",
+    en: "Yes. Send the full link — you do not need to open it. I will check the address and visible risk signs, then explain the result briefly. Do not enter anything on the page before the check.",
+  },
+  meta_can_check_phone: {
+    ru: "Да. Пришлите номер телефона целиком. Я проверю формат, доступные открытые признаки и подтверждённые данные Ishonch Guard, но не буду угадывать владельца. Если был звонок, добавьте одной фразой, что вас просили сделать.",
+    uz: "Ha. Telefon raqamini to'liq yuboring. Men format, ochiq belgilar va Ishonch Guard tasdiqlagan ma'lumotlarni tekshiraman, lekin egasini taxmin qilmayman. Qo'ng'iroq bo'lgan bo'lsa, sizdan nima so'ralganini bir jumlada yozing.",
+    en: "Yes. Send the full phone number. I will check its format, available public signs, and confirmed Ishonch Guard data without guessing the owner. If there was a call, add one sentence about what they asked you to do.",
+  },
+  meta_can_check_image: {
+    ru: "Да. Отправьте изображение как фото или скриншот, чтобы текст был хорошо виден. Исходный файл не сохраняется в базе Ishonch Guard; для распознавания он может быть передан настроенному сервису анализа. Не присылайте фото паспорта, карты, пароля или SMS-кода.",
+    uz: "Ha. Matn aniq ko'rinadigan qilib rasm yoki skrinshot yuboring. Asl fayl Ishonch Guard bazasida saqlanmaydi; tanib olish uchun u sozlangan tahlil xizmatiga yuborilishi mumkin. Pasport, karta, parol yoki SMS-kod rasmini yubormang.",
+    en: "Yes. Send a clear photo or screenshot with readable text. The original file is not stored in the Ishonch Guard database; it may be sent to the configured analysis service for recognition. Do not send passport, card, password, or SMS-code photos.",
+  },
+  meta_can_check_account: {
+    ru: "Да. Пришлите @username или t.me-ссылку и, если можете, сообщение или скриншот с просьбой аккаунта. Я вижу только открытые признаки Telegram и не буду угадывать скрытую историю или владельца.",
+    uz: "Ha. @username yoki t.me havolasini, imkon bo'lsa akkaunt nima so'raganini ko'rsatadigan xabar yoki skrinshot bilan yuboring. Men faqat Telegramdagi ochiq belgilarni ko'raman; yashirin tarix yoki egani taxmin qilmayman.",
+    en: "Yes. Send the @username or t.me link and, if possible, the message or screenshot showing what the account asked for. I can check only public Telegram signs and will not guess hidden history or ownership.",
+  },
+  meta_can_check_message: {
+    ru: "Да. Скопируйте сообщение целиком или отправьте скриншот. Перед отправкой уберите настоящий SMS-код, пароль и полные данные карты — для оценки они не нужны.",
+    uz: "Ha. Xabarni to'liq ko'chirib yuboring yoki skrinshot jo'nating. Yuborishdan oldin haqiqiy SMS-kod, parol va to'liq karta ma'lumotlarini olib tashlang — tekshiruv uchun ular kerak emas.",
+    en: "Yes. Paste the full message or send a screenshot. Remove any real SMS code, password, and full card details first — they are not needed for the check.",
+  },
+  meta_can_check_qr: {
+    ru: "Да. Пришлите чёткий скриншот QR-кода и, если ссылка уже известна, добавьте её текстом. Не сканируйте подозрительный QR только ради проверки и ничего не подтверждайте на открывшейся странице.",
+    uz: "Ha. QR-kodning aniq skrinshotini yuboring; agar havola allaqachon ma'lum bo'lsa, uni matn bilan ham qo'shing. Faqat tekshirish uchun shubhali QRni skanerlamang va ochilgan sahifada hech narsani tasdiqlamang.",
+    en: "Yes. Send a clear screenshot of the QR code and add the link as text if you already know it. Do not scan a suspicious QR just to test it, and do not confirm anything on the page it opens.",
+  },
+  meta_greeting: {
+    ru: "Привет! Я помогу спокойно проверить подозрительную ссылку, номер, сообщение или скриншот. Пришлите то, что вас насторожило, или коротко напишите, что произошло.",
+    uz: "Salom! Shubhali havola, raqam, xabar yoki skrinshotni xotirjam tekshirishga yordam beraman. Sizni nima bezovta qilganini yuboring yoki vaziyatni qisqa yozing.",
+    en: "Hello! I can help you calmly check a suspicious link, number, message, or screenshot. Send what concerned you, or briefly tell me what happened.",
+  },
+  meta_off_topic: {
+    ru: "С этим я не лучший помощник — я помогаю разбираться с мошенничеством и цифровой безопасностью. Если вас насторожили ссылка, звонок, сообщение или просьба о деньгах, пришлите это сюда.",
+    uz: "Bu mavzuda yaxshi yordam bera olmayman — men firibgarlik va raqamli xavfsizlik bo'yicha yordam beraman. Shubhali havola, qo'ng'iroq, xabar yoki pul so'rovi bo'lsa, shu yerga yuboring.",
+    en: "That is outside what I handle — I focus on scams and digital safety. If a link, call, message, or request for money concerns you, send it here.",
+  },
   meta_help: {
     ru: "Я рядом. Отправьте номер, username, ссылку, текст подозрительного сообщения или скриншот — я проверю. Если вы уже сообщили код, установили приложение или перевели деньги, нажмите /panic.\n\nПолезные команды: /check — проверка, /report — сообщить о случае, /family — подключить близкого, /safety — правила безопасности, /lang — язык.",
     uz: "Men yordam beraman. Raqam, username, havola, shubhali xabar matni yoki skrinshot yuboring — tekshiraman. Agar kod yuborgan, ilova o'rnatgan yoki pul o'tkazgan bo'lsangiz, /panic ni bosing.\n\nFoydali buyruqlar: /check — tekshirish, /report — holat haqida xabar berish, /family — yaqin insonni ulash, /safety — xavfsizlik qoidalari, /lang — til.",

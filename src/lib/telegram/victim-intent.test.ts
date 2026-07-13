@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyVictimIntent } from "@/lib/telegram/victim-intent";
+import { buildVictimIntentText, classifyVictimIntent } from "@/lib/telegram/victim-intent";
 
 describe("classifyVictimIntent", () => {
   it.each([
@@ -214,6 +214,9 @@ describe("classifyVictimIntent", () => {
     ["what should I do", "advice_question"],
     ["someone asked me for a verification code", "code_request"],
     ["курьер сказал нужна смс для получения посылки", "code_request"],
+    ["Мне сказали оплатить по реквизитам из чата", "transfer_request"],
+    ["Mendan bir martalik parol bor xabarni boshqa chatga yuborishni so'rashdi", "code_request"],
+    ["Menga turli noma'lum raqamlardan qayta-qayta qo'ng'iroq qilishdi", "unknown_call"],
   ])("maps '%s' to %s", (text, kind) => {
     expect(classifyVictimIntent(text)?.kind).toBe(kind);
   });
@@ -231,5 +234,145 @@ describe("classifyVictimIntent", () => {
       ),
     ).toBeNull();
     expect(classifyVictimIntent("Salom, men bank xodimi, kodingizni ayting.")).toBeNull();
+  });
+
+  it.each([
+    "I scanned a QR code and now cannot access my Telegram account. What should I do?",
+    "Я отсканировал QR и потерял доступ к аккаунту. Что делать?",
+    "Men QRni tekshirdim, endi akkauntga kira olmayapman. Nima qilay?",
+  ])("recognizes post-QR account loss as a Telegram takeover: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "telegram_takeover",
+      askedContext: "link_qr",
+    });
+  });
+
+  it("keeps completed-link concern in the advice flow", () => {
+    expect(classifyVictimIntent("Я проверил эту ссылку и теперь боюсь. Что делать?")).toEqual({
+      kind: "advice_question",
+    });
+  });
+
+  it("does not mistake the artifact label 'QR code' for an SMS-code request", () => {
+    expect(classifyVictimIntent("I scanned a QR code. What should I do?")).toEqual({
+      kind: "advice_question",
+    });
+  });
+});
+
+describe("classifyVictimIntent — bounded everyday incident wording", () => {
+  it.each([
+    ["I have a suspicious conversation going on.", "general_scam_concern"],
+    ["Ular xabardagi olti raqamni aytishimni talab qilyapti.", "code_request"],
+    ["Они торопят меня с переводом на другую карту.", "transfer_request"],
+    ["Suhbatdosh o'rniga hisobni men to'lashimni so'rayapti.", "transfer_request"],
+    ["A Telegram login link appeared in my chat.", "link_received"],
+    ["Menga noma'lum kontaktdan arxiv keldi.", "file_received"],
+    ["When I answer, nobody says anything.", "silent_call"],
+    ["Бабушке звонят и говорят, что внук попал в беду.", "friend_money"],
+    ["Money was just taken from my card without permission.", "unauthorized_charge"],
+    ["Они получили доступ к моему аккаунту.", "account_hacked_other"],
+    ["Men notanish odamga pasport rasmini yubordim.", "personal_data_already_shared"],
+    ["Как мне сейчас поступить?", "advice_question"],
+  ] as const)("routes %s to protective %s guidance", (text, kind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(kind);
+  });
+
+  it.each([
+    ["Your order is ready, now tell me the six digits.", "code_request"],
+    ["This is an information notice, install the APK for protection.", "file_received"],
+  ] as const)("keeps direct danger on protective guidance for %s", (text, kind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(kind);
+  });
+
+  it("does not treat a direct passport command as a victim self-report", () => {
+    expect(classifyVictimIntent("Send the passport scan to this chat.")).toBeNull();
+  });
+
+  it("uses post-incident document aftercare instead of prevention copy", () => {
+    const match = classifyVictimIntent("Men notanish odamga pasport rasmini yubordim.");
+    expect(match).toEqual({ kind: "personal_data_already_shared" });
+    const text = buildVictimIntentText(match!, "uz");
+    expect(text).toContain("Hujjatlar allaqachon yuborilgan");
+    expect(text).toContain("Bank va hujjatni bergan idoraga");
+    expect(text).toContain("102");
+    expect(text).not.toContain("yubormang");
+  });
+
+  it("uses natural Uzbek unknown-call wording", () => {
+    expect(buildVictimIntentText({ kind: "unknown_call", askedContext: "call" }, "uz")).toContain(
+      "suhbatni davom ettirmaslik xavfsizroq",
+    );
+  });
+
+  it.each([
+    ["Я отправил фото паспорта незнакомцу.", "personal_data_already_shared"],
+    ["Men notanish odamga pasport rasmini yubordim.", "personal_data_already_shared"],
+    ["I sent a passport photo to a stranger.", "personal_data_already_shared"],
+    ["Мама успела назвать код из SMS.", "relative_already_paid"],
+    ["Дедушка уже снял деньги и отдал их незнакомому курьеру.", "relative_already_paid"],
+    ["Onam SMS kodni aytib ulgurdi.", "relative_already_paid"],
+    ["Singlim tasdiqlash kodini ularga aytib bo'ldi.", "relative_already_paid"],
+    ["My grandmother already sent money to scammers.", "relative_already_paid"],
+    [
+      "My grandfather already withdrew the money and handed it to a stranger.",
+      "relative_already_paid",
+    ],
+    ["Men begona saytga parolimni kiritib bo'ldim.", "account_hacked_other"],
+    ["У меня только что списали деньги без разрешения.", "unauthorized_charge"],
+    ["Kartamdan ruxsatsiz pul yechildi.", "unauthorized_charge"],
+    ["Qarindoshimizga o'g'lining ovozida yordam so'rab qo'ng'iroq qilishdi.", "friend_money"],
+    ["Ularning oilaviy chatida shoshilinch pul yig'ish boshlandi.", "friend_money"],
+    ["Qizimga dugonasining ovozida pul so'rab xabar kelibdi.", "friend_money"],
+    ["Do'stimga tanish akkauntdan pul o'tkazish iltimosi keldi.", "friend_money"],
+  ] as const)("keeps completed and family incidents on their precise route: %s", (text, kind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(kind);
+  });
+
+  it.each([
+    "My mother already paid the electricity bill.",
+    "Мама уже оплатила коммунальные услуги.",
+    "Onam elektr to'lovini to'ladi.",
+    "I sent my passport scan through the official government portal.",
+    "Я отправил скан паспорта через официальный государственный портал.",
+    "Men pasport skanini rasmiy davlat portali orqali yubordim.",
+    "I already sent money back to my friend.",
+    "Я уже вернул деньги другу.",
+    "Сестра отправила мне деньги на продукты.",
+    "Otam ijara pulini to'ladi.",
+    "Opam menga oziq-ovqat uchun pul yubordi.",
+    "Друг вернул мне деньги.",
+    "Do'stim qarzini qaytardi.",
+    "My mother told me the door code.",
+    "Мама назвала мне код от подъезда.",
+    "Onam menga eshik kodini aytdi.",
+    "I sent my passport through my bank official app.",
+    "I sent my ID through the official visa application center.",
+    "Я отправил паспорт через официальное приложение банка.",
+  ])("does not invent scam aftercare for an explicitly benign completed action: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+});
+
+describe("classifyVictimIntent — physical access context stays clause-local", () => {
+  it.each([
+    "Код домофона 1234, но они просят отправить код",
+    "Код от двери 1234 — незнакомец просит назвать код входа в банк",
+    "Eshik kodi 1234, lekin ular kodni yuborishni so'rashyapti",
+    "The door code is 1234, but they asked me to send the bank login code",
+  ])("keeps the dangerous follow-up on code protection: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "code_request",
+      askedContext: "code",
+    });
+  });
+
+  it.each([
+    "Код домофона 1234",
+    "Мама назвала мне код от подъезда",
+    "My mother told me the door code",
+    "Onam menga eshik kodini aytdi",
+  ])("keeps a genuine physical-code message on the neutral path: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
   });
 });

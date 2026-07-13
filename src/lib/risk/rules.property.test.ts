@@ -124,7 +124,7 @@ const LEGACY_WEIGHTS: Record<(typeof OLD_CODES)[number], number> = {
   brand_name_typo: 20,
   payment_before_service: 20,
   too_good_to_be_true: 15,
-  requests_personal_data: 15,
+  requests_personal_data: 20,
   non_uz_phone: 5,
   valid_uz_phone: 0,
   verified_official: -100,

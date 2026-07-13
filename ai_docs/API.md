@@ -166,7 +166,25 @@ in-memory fallback.
 - Telegram reputation labels come only from the app-owned `telegram_reputation_targets` source layer. Unverified user reports are not shown to users. Confirmed moderated reports may add a short source/confidence brief, explicitly distinguished from hidden Telegram SCAM labels or Telegram-internal report history.
 - Admin report moderation treats Telegram aggregate synchronization as a required integrity step. Confirmed/unverified count errors, invalid exact counts and aggregate upsert failures reject with a typed stage error instead of becoming zero/success. The report/entity updates may already be committed, so callers must surface a retryable partial-failure state; logs contain only the stage, not a target hash or database message.
 - Family Shield uses `/family`, `family_*` deep links and `family:*` callbacks. Invite links are generated from HMAC-hashed tokens, pending invites expire after 24 hours, active-link duplicate creation is handled as a user-facing state, and trusted-contact alerts include no raw scam evidence. `family:codeword` is a teaching-only callback: it tells families how to agree on a voice-clone verification phrase offline and never asks the user to send or store the actual codeword. The trusted contact can opt out from future alerts from the alert itself.
-- Plain questions to the bot are routed through `src/lib/meta-intent.ts` before risk scoring. Telegram account visibility questions explain that hidden scam labels, account age, report history and spam history are not available unless the user sends real context or a future moderated source exists.
+- Plain questions to the bot are routed through `src/lib/meta-intent.ts` before
+  risk scoring. Strict RU/UZ/EN capability frames answer questions such as
+  whether the bot can inspect a link, screenshot or QR, but any concrete
+  artifact, unsafe request or post-action emergency keeps the normal check/
+  victim route. Qualified card/order/tracking numbers are not described as
+  phone checks, and bank/email/social accounts are not described as Telegram
+  profile checks. Telegram visibility answers still state that hidden scam
+  labels, account age, report history and spam history are unavailable.
+- Dialogue and mixed-clause QA suites are local deterministic tests. Their
+  Vitest setup rejects unmocked `fetch`, so they make no OpenAI-compatible,
+  reputation, Telegram Bot API, Supabase or production request and consume no
+  external quota. A later real-client acceptance run is a separate, explicitly
+  bounded operation.
+- The everyday dialogue review artifact contains 540 two-turn scenarios / 1,080
+  user turns across RU/UZ/EN. Both replies are rendered through production
+  builders, but the artifact stores no provider output and records zero API
+  calls per row. Replaying these cases locally is free of AI-provider usage;
+  sending the same texts to a deployed bot would be a separate billable/live
+  operation.
 
 ## Website trust surfaces
 

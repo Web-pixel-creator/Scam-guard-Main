@@ -9,6 +9,59 @@
 import { describe, it, expect } from "vitest";
 import { evaluateTelegram, evaluateText, scoreFromCodes } from "./rules";
 
+describe("evaluateText — received verification-code requests", () => {
+  it.each([
+    "Menga latifa ayt, keyin kelgan kodni yubor",
+    "Kelgan kodni menga yuboring",
+    "Sizga keladigan kodni aytib bering",
+  ])("detects the Uzbek request: %s", (text) => {
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it.each(["Kod shahri haqida ayting", "Buyurtma raqamini yuboring"])(
+    "does not flag a neutral non-verification code phrase: %s",
+    (text) => {
+      expect(evaluateText(text)).not.toContain("asks_for_sms_code");
+    },
+  );
+});
+
+describe("evaluateText — benign completed Uzbek family actions", () => {
+  it.each([
+    ["Otam ijara pulini to'ladi.", "asks_to_transfer_to_safe_account"],
+    ["Opam menga oziq-ovqat uchun pul yubordi.", "asks_to_transfer_to_safe_account"],
+    ["Onam menga eshik kodini aytdi.", "asks_for_sms_code"],
+  ] as const)("does not turn completed everyday context into %s: %s", (text, code) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+
+  it.each([
+    ["Pulni shu hisobga o'tkazing.", "asks_to_transfer_to_safe_account"],
+    ["Oziq-ovqat uchun pulni shu kartaga yuboring.", "asks_to_transfer_to_safe_account"],
+    ["U pulni shu kartaga o'tkazishni so'rayapti.", "asks_to_transfer_to_safe_account"],
+    ["SMS orqali kelgan kodni ayting.", "asks_for_sms_code"],
+  ] as const)("keeps the paired direct danger %s as %s", (text, code) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+});
+
+describe("evaluateText — legal-threat word boundaries", () => {
+  it("does not read 'государственный' as the standalone word 'суд'", () => {
+    expect(
+      evaluateText("Я отправил скан паспорта через официальный государственный портал."),
+    ).not.toContain("threatens_legal_action");
+  });
+
+  it.each([
+    "Если не заплатите, подадим в суд.",
+    "Они угрожают судом и арестом.",
+    "Говорят, что начнут судебное дело.",
+    "SUDga chaqirilgansiz, hujjatni oching.",
+  ])("keeps a real legal threat: %s", (text) => {
+    expect(evaluateText(text)).toContain("threatens_legal_action");
+  });
+});
+
 describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
   const positives: { name: string; text: string }[] = [
     // RU — verb after the QR mention (branch: qr.?код .{0,30} (скан|войти|подтверд|вериф))
@@ -38,6 +91,8 @@ describe("evaluateText — asks_to_scan_qr (R14.4)", () => {
       text: "Посетите сайт chenson.uz. Узнайте больше о нашем меню, акциях и онлайн-бронировании столов. Зарегистрируйтесь в Telegram-боте, отсканировав QR-код ниже.",
     },
     { name: "UZ нейтральная покупка", text: "Men bugun dokondan non sotib oldim" },
+    { name: "UZ отрицание сканирования", text: "Men bank QR-kodini skaner qilmadim." },
+    { name: "UZ описание QR-меню", text: "Bu QR-kod menyu sahifasini ochadi." },
   ];
 
   it.each(positives)("позитив: $name", ({ text }) => {
@@ -351,6 +406,13 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     expect(evaluateText(neutral)).not.toContain("fake_captcha_or_voting");
   });
 
+  it("does not turn an ordinary SMS verification-code request into a captcha prize gate", () => {
+    const text = "The caller asks me to send the verification code that arrived by SMS.";
+
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+    expect(evaluateText(text)).not.toContain("fake_captcha_or_voting");
+  });
+
   it("flags voting domains when voting is tied to contest or prize mechanics", () => {
     const text =
       "Зайдите проголосуйте! https://voting.blockchain-life.com Со сцены пойду забирать статуэтку, какую речь сказать?";
@@ -619,6 +681,14 @@ describe("evaluateText - dropper_recruitment (research feed v1)", () => {
       name: "UZ neutral bank card",
       text: "Bank kartamni yangi raqamga bog'lashim kerak.",
     },
+    {
+      name: "UZ ordinary bank card purchase",
+      text: "Men yangi bank kartasini sotib oldim.",
+    },
+    {
+      name: "UZ safe-account transfer is not dropper recruitment",
+      text: "Menga notanish odam yozdi. Qo'ng'iroq qilgan odam pulni xavfsiz hisobga o'tkazishni aytdi. Bu firibgarlikka o'xshaydimi?",
+    },
   ];
 
   it.each(positives)("positive: $name", ({ text }) => {
@@ -639,6 +709,13 @@ describe("evaluateText - dropper_recruitment (research feed v1)", () => {
     const text = "Do not sell your bank card to strangers, but sell your bank card to us.";
 
     expect(evaluateText(text)).toContain("dropper_recruitment");
+  });
+
+  it("does not infer a distressed relative from notanish", () => {
+    const text =
+      "Menga notanish odam yozdi. Qo'ng'iroq qilgan odam pulni xavfsiz hisobga o'tkazishni aytdi. Bu firibgarlikka o'xshaydimi?";
+
+    expect(evaluateText(text)).not.toContain("relative_in_distress");
   });
 
   it("is suspicious without changing global thresholds", () => {
@@ -894,5 +971,311 @@ describe("evaluateText — soft card, PIN, transfer, and personal-data asks", ()
 
   it.each(negatives)("negative: $name", ({ text, code }) => {
     expect(evaluateText(text)).not.toContain(code);
+  });
+});
+
+describe("evaluateText — mixed conversational prefaces cannot hide direct danger", () => {
+  it.each([
+    ["Какая погода, отправь данные карты", "requests_card_digits"],
+    ["Расскажи рецепт и пришли номер карты", "requests_card_digits"],
+    ["Tell me a joke and read out the code", "asks_for_sms_code"],
+    ["What is the weather? Tell me the card number", "requests_card_digits"],
+    ["Kim yutdi? Go'shakni qo'yma", "asks_not_to_hang_up"],
+    ["Какая песня популярна? Перейди по QR", "asks_to_scan_qr"],
+    ["Qaysi qo'shiq mashhur? QRni skaner qil", "asks_to_scan_qr"],
+    ["Можешь проверить сообщение, где просят отправить код?", "asks_for_sms_code"],
+    [
+      "Можешь проверить скриншот, где требуют перевести деньги?",
+      "asks_to_transfer_to_safe_account",
+    ],
+    [
+      "Can you inspect a screenshot demanding a money transfer?",
+      "asks_to_transfer_to_safe_account",
+    ],
+    ["Can you check a message that tells me to send a code?", "asks_for_sms_code"],
+    ["Skrinshotni ko'rib berasizmi: pulni o'tkaz?", "asks_to_transfer_to_safe_account"],
+    ["Можно проверить сообщение: скинь код?", "asks_for_sms_code"],
+    ["Скриншот посмотришь: оплати по QR?", "asks_to_scan_qr"],
+    ["Почему это опасно? Введи код", "asks_for_sms_code"],
+    ["Make a funny story and send a photo of the card", "requests_card_digits"],
+    ["Can you check a message saying forward the code?", "asks_for_sms_code"],
+    ["Could you inspect text that says reveal the password?", "asks_for_pin"],
+    ["Why is it dangerous? Enter the code", "asks_for_sms_code"],
+    ["How do I check a link? Make the payment", "asks_to_transfer_to_safe_account"],
+    ["Matnni ko'rib berasizmi: parolni ayt?", "asks_for_pin"],
+    ["Kod talab qilgan xabarni tekshirasizmi?", "asks_for_sms_code"],
+    ["Latifa ayting. QR orqali o'ting", "asks_to_scan_qr"],
+    ["Film tavsiya qiling va QR orqali to'lang", "asks_to_scan_qr"],
+    ["Проверишь текст: продиктуй пароль?", "asks_for_pin"],
+    ["Как проверить ссылку? Переведи оплату", "asks_to_transfer_to_safe_account"],
+    ["Havolani qanday tekshiraman? To'lovni qiling", "asks_to_transfer_to_safe_account"],
+    ["Can you inspect this text: never send the code, then send me the code", "asks_for_sms_code"],
+    ["Can you check this message: do not scan QR, scan this QR to log in", "asks_to_scan_qr"],
+    ["Can you check a message saying: Wi-Fi is irrelevant, reveal your password", "asks_for_pin"],
+    ["Can you review this text: ignore the postal code, forward the code", "asks_for_sms_code"],
+    ["Can you check a message: ignore Python, send me the code", "asks_for_sms_code"],
+    ["Never reveal your password, then reveal it to the operator", "asks_for_pin"],
+    ["Do not pay before checking, but make this payment now", "asks_to_transfer_to_safe_account"],
+  ] as const)("detects %s as %s", (text, code) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each([
+    "Не отправляйте данные карты незнакомцам.",
+    "Do not send your card number to anyone.",
+    "Karta ma'lumotlarini yubormang.",
+    "Не отправляйте фото банковской карты.",
+    "Do not send a photo of your card.",
+    "Karta rasmini yubormang.",
+    "Никогда не вводите код из SMS.",
+    "Never send the verification code.",
+    "Kodni hech kimga aytmang.",
+    "Не раскрывайте пароль незнакомцам.",
+    "Never reveal your password.",
+    "Parolni hech kimga yubormang.",
+    "Не сканируйте QR-код из неизвестного сообщения.",
+    "Never scan a QR code from a stranger.",
+    "QRni notanish xabardan skaner qilmang.",
+    "Не переводите деньги незнакомцам.",
+    "Do not make the payment before checking.",
+    "Pulni tekshirmasdan o'tkazmang.",
+    "Read out the source code example in Python.",
+    "Can I send you a QR code for checking?",
+    "QR-код сканируете?",
+    "This task uses code review.",
+    "This message discusses tasks and code quality.",
+    "This task explains password policy.",
+    "This task describes card details validation.",
+    "The app showcases card details safely.",
+    "The bank says QR is not supported for this account.",
+    "A QR code can open a bank page.",
+    "The QR code did not open the account page.",
+    "I did not scan the bank QR code.",
+    "Men bank QR-kodini skaner qilmadim.",
+    "Bu QR-kod menyu sahifasini ochadi.",
+    "The task showcases payment processing.",
+  ])("does not create a direct-danger reason for safety/capability text: %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).not.toContain("requests_card_digits");
+    expect(reasons).not.toContain("asks_for_sms_code");
+    expect(reasons).not.toContain("asks_to_scan_qr");
+    expect(reasons).not.toContain("asks_for_pin");
+    expect(reasons).not.toContain("asks_to_transfer_to_safe_account");
+  });
+});
+
+describe("evaluateText — natural request framing and punctuation", () => {
+  it.each([
+    ["They asked me to send the code.", "asks_for_sms_code"],
+    ["They asked me for the code.", "asks_for_sms_code"],
+    ["The code was requested by the caller.", "asks_for_sms_code"],
+    ["The caller asked for my bank password.", "asks_for_pin"],
+    ["They requested my password.", "asks_for_pin"],
+    ["My bank password was requested.", "asks_for_pin"],
+    ["Они попросили меня отправить код.", "asks_for_sms_code"],
+    ["Звонивший попросил назвать пароль.", "asks_for_pin"],
+    ["Меня попросили прислать фото паспорта.", "requests_personal_data"],
+    ["Они попросили перевести деньги.", "asks_to_transfer_to_safe_account"],
+    ["Меня попросили сканировать QR для входа.", "asks_to_scan_qr"],
+    ["Mendan pasport rasmini yuborishni so'rashdi.", "requests_personal_data"],
+    ["A payment was requested before delivery.", "payment_before_service"],
+    ["A QR scan was requested for login.", "asks_to_scan_qr"],
+    ["They require the code.", "asks_for_sms_code"],
+    ["They require my password.", "asks_for_pin"],
+    ["They require card details.", "requests_card_digits"],
+    ["They require a payment to this account.", "asks_to_transfer_to_safe_account"],
+    ["They asked for my passport.", "requests_personal_data"],
+    ["My passport was requested.", "requests_personal_data"],
+    ["Provide your passport for verification.", "requests_personal_data"],
+    ["They asked me to show my ID.", "requests_personal_data"],
+    ["Send your national ID.", "requests_personal_data"],
+    ["They requested my passport number.", "requests_personal_data"],
+    ["Provide your home address.", "requests_personal_data"],
+    ["Send your address.", "requests_personal_data"],
+    ["Provide the code.", "asks_for_sms_code"],
+    ["Submit the code.", "asks_for_sms_code"],
+    ["Provide your password.", "asks_for_pin"],
+    ["Provide card details.", "requests_card_digits"],
+    ["Submit your card number.", "requests_card_digits"],
+    ["Предоставьте код.", "asks_for_sms_code"],
+    ["Укажите код.", "asks_for_sms_code"],
+    ["Предоставьте пароль.", "asks_for_pin"],
+    ["Сообщите пароль.", "asks_for_pin"],
+    ["Предоставьте данные карты.", "requests_card_digits"],
+    ["A code arrived by SMS. The caller asked for it.", "asks_for_sms_code"],
+    ["The code came by SMS. Send it to me.", "asks_for_sms_code"],
+    ["The code came by SMS. Read it to me.", "asks_for_sms_code"],
+    ["The code came by SMS. He told me to send it.", "asks_for_sms_code"],
+    ["I received a code in the app. They want it.", "asks_for_sms_code"],
+    ["The card number is on the screen. They asked for it.", "requests_card_digits"],
+    ["My card number is visible. He told me to share it.", "requests_card_digits"],
+    ["My passport is on the form. They requested it.", "requests_personal_data"],
+    ["The CVV security code is on the card. Send it to me.", "asks_for_card_cvv"],
+    ["The PIN code is shown. Tell it to me.", "asks_for_pin"],
+    ["Share your PIN with the operator.", "asks_for_pin"],
+    ["Tell me your CVV.", "asks_for_card_cvv"],
+    ["Share your screen with me.", "asks_to_share_screen"],
+    ["Please share your screen.", "asks_to_share_screen"],
+    ["You need to share your phone screen.", "asks_to_share_screen"],
+    ["Start screen sharing.", "asks_to_share_screen"],
+    ["Give me remote access to your phone.", "asks_to_share_screen"],
+    ["Let me see your screen.", "asks_to_share_screen"],
+    ["Allow remote control of your device.", "asks_to_share_screen"],
+    ["Покажите мне экран.", "asks_to_share_screen"],
+    ["Поделитесь экраном.", "asks_to_share_screen"],
+    ["Дайте удаленный доступ к телефону.", "asks_to_share_screen"],
+    ["Ekraningizni ko'rsating.", "asks_to_share_screen"],
+    ["Ekranni ulashing.", "asks_to_share_screen"],
+    ["Telefoningizga masofaviy kirish bering.", "asks_to_share_screen"],
+    ["Scan QR to log in to your bank account.", "asks_to_scan_qr"],
+    ["Scan a QR code to log in to your bank account.", "asks_to_scan_qr"],
+    ["Can you review this: scan QR to log in.", "asks_to_scan_qr"],
+    ["Send me, please, the code.", "asks_for_sms_code"],
+    ["Tell me, please, your password.", "asks_for_pin"],
+    ["Send me, please, the card number.", "requests_card_digits"],
+    ["Scan, please, the QR code to log in.", "asks_to_scan_qr"],
+    ["Пришлите, пожалуйста, код.", "asks_for_sms_code"],
+    ["Назовите, пожалуйста, пароль.", "asks_for_pin"],
+    ["Сканируйте, пожалуйста, QR для входа.", "asks_to_scan_qr"],
+    ["Never send the code: now send me the code.", "asks_for_sms_code"],
+    ["Never send the code — now send me the code.", "asks_for_sms_code"],
+    ["Never reveal your password — reveal it to the operator.", "asks_for_pin"],
+    ["Never scan QR — scan this QR to log in.", "asks_to_scan_qr"],
+    ["Do not pay: make this payment now.", "asks_to_transfer_to_safe_account"],
+    ["Do not share card details — send me the card number.", "requests_card_digits"],
+  ] as const)("detects natural request %s as %s", (text, code) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each([
+    ["The restaurant asks guests to scan a QR code for the menu.", "asks_to_scan_qr"],
+    ["The museum says scan the QR code for the audio guide.", "asks_to_scan_qr"],
+    ["Scan the QR code to see the menu.", "asks_to_scan_qr"],
+    ["Please scan the QR code to connect to Wi-Fi.", "asks_to_scan_qr"],
+    ["Tell me the dress code.", "asks_for_sms_code"],
+    ["Send me the coupon code.", "asks_for_sms_code"],
+    ["Send me the tracking code.", "asks_for_sms_code"],
+    ["The task asks for code style consistency.", "asks_for_sms_code"],
+    ["The password policy requires users to change a password.", "asks_for_pin"],
+    ["The app requires a password to sign in.", "asks_for_pin"],
+    ["The bank asks customers not to share card details.", "requests_card_digits"],
+    ["Karta ma'lumotlarini bank saytida tekshiring.", "requests_card_digits"],
+    ["The task showcases payment processing.", "asks_to_transfer_to_safe_account"],
+    ["Do not make payment before verifying.", "asks_to_transfer_to_safe_account"],
+    ["How do I make a payment in the app?", "asks_to_transfer_to_safe_account"],
+    ["The documentation explains how to make payment.", "asks_to_transfer_to_safe_account"],
+    ["Do not send your passport photo.", "requests_personal_data"],
+    ["I asked about my address.", "requests_personal_data"],
+    ["The form requires an address for delivery.", "requests_personal_data"],
+    ["They asked about card details security.", "requests_card_digits"],
+    ["Where is the passport renewal office?", "requests_personal_data"],
+    ["Do not provide your passport.", "requests_personal_data"],
+    ["Never submit your card number.", "requests_card_digits"],
+    ["Never provide the code.", "asks_for_sms_code"],
+    ["Do not provide your password.", "asks_for_pin"],
+    ["Never share your PIN.", "asks_for_pin"],
+    ["Do not tell anyone your CVV.", "asks_for_card_cvv"],
+    ["Your PIN should remain secret.", "asks_for_pin"],
+    ["A CVV is the security code on the back of a card.", "asks_for_card_cvv"],
+    ["Никому не сообщайте PIN-код.", "asks_for_pin"],
+    ["Никому не сообщайте CVV.", "asks_for_card_cvv"],
+    ["PIN-kodni hech kimga aytmang.", "asks_for_pin"],
+    ["CVV-ni yubormang.", "asks_for_card_cvv"],
+    ["Do not download AnyDesk.", "asks_to_share_screen"],
+    ["Can I share a screenshot?", "asks_to_share_screen"],
+    ["Can I share my screenshot with you?", "asks_to_share_screen"],
+    ["May I share the screenshot for analysis?", "asks_to_share_screen"],
+    ["Please share a screenshot of the message.", "asks_to_share_screen"],
+    ["This screenshot mentions TeamViewer.", "asks_to_share_screen"],
+    ["Can you check a screenshot about AnyDesk?", "asks_to_share_screen"],
+    ["The QR code is ready. Send it to me.", "asks_for_sms_code"],
+    ["The QR code is in the PDF. Share it with me.", "asks_for_sms_code"],
+    ["The CVV security code is on the card. Send it to me.", "asks_for_sms_code"],
+    ["The PIN code is shown. Tell it to me.", "asks_for_sms_code"],
+    [
+      "Banks never ask you to transfer money to a safe account.",
+      "asks_to_transfer_to_safe_account",
+    ],
+    ["Never transfer to a safe account.", "asks_to_transfer_to_safe_account"],
+    ["Avoid transferring money to a safe account.", "asks_to_transfer_to_safe_account"],
+    ["Never install an APK from a stranger.", "asks_to_install_apk"],
+    ["It is unsafe to install an APK.", "asks_to_install_apk"],
+    ["Never pay a delivery fee from a link.", "fake_delivery_payment"],
+    ["You should not send the code.", "asks_for_sms_code"],
+    ["Do not ever send the code.", "asks_for_sms_code"],
+    ["It is unsafe to share the code.", "asks_for_sms_code"],
+    ["You should not reveal your password.", "asks_for_pin"],
+    ["It is unsafe to send card details.", "requests_card_digits"],
+    ["You should not provide your passport.", "requests_personal_data"],
+    ["Send me the website address.", "requests_personal_data"],
+    ["Enter the server address.", "requests_personal_data"],
+    ["Tell me the IP address.", "requests_personal_data"],
+    ["Show me the HTML element ID.", "requests_personal_data"],
+    ["Send the process ID.", "requests_personal_data"],
+    ["Enter the user ID.", "requests_personal_data"],
+    ["Provide the transaction ID.", "requests_personal_data"],
+    ["Can this bot scan QR codes?", "asks_to_scan_qr"],
+    ["Xabarda kartaning CVV kodini ayting deyishdi.", "asks_for_sms_code"],
+  ] as const)("does not infer %s as %s", (text, code) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+});
+
+describe("evaluateText — sensitive-object carry across a safe or neutral clause", () => {
+  it.each([
+    ["Паспорт, его просят отправить", "requests_personal_data"],
+    ["Данные карты, их просят прислать", "requests_card_digits"],
+    ["Не отправляйте код, но назовите его мне", "asks_for_sms_code"],
+    ["Kod yubormang, lekin uni menga ayting", "asks_for_sms_code"],
+    ["QR, его просят открыть для входа", "asks_to_scan_qr"],
+    ["В анкете всё заполнено, пришлите CVV банковской карты", "asks_for_card_cvv"],
+    [
+      "This is a card game, however send the last four digits of your bank card",
+      "requests_card_digits",
+    ],
+  ] as const)("keeps the dangerous tail in %s", (text, code) => {
+    expect(evaluateText(text)).toContain(code);
+  });
+
+  it.each([
+    ["I received the code, tell me the weather", "asks_for_sms_code"],
+    ["I received the source code, send it to the reviewer", "asks_for_sms_code"],
+    ["Send me the password reset instructions", "asks_for_pin"],
+    ["Пришли советы по защите пароля", "asks_for_pin"],
+    ["Show me the password field in the UI", "asks_for_pin"],
+  ] as const)("does not turn the neutral request %s into %s", (text, code) => {
+    expect(evaluateText(text)).not.toContain(code);
+  });
+});
+
+describe("evaluateText — physical access context stays clause-local", () => {
+  it.each([
+    "Код домофона 1234, но отправь мне код входа в банк",
+    "Код от двери 1234 — отправь мне код входа в банк",
+    "Код подъезда 1234; пришли код входа в банк",
+    "Отправь мне код входа в банк, код домофона 1234",
+    "Код домофона 1234, но они просят отправить код",
+    "Eshik kodi 1234, lekin ular kodni yuborishni so'rashyapti",
+    "The door code is 1234, but send me the bank login code",
+    "The entrance code is 1234; tell me the bank account code",
+    "Код домофона 1234 отправь мне код входа в банк",
+    "Почтовый код 100000, но они просят отправить код",
+    "Tell me the dress code, but send me the bank login code",
+    "Исходный код на Python; теперь отправь код входа в банк",
+    "Buyurtma kodi 45, lekin SMS kodni yuboring",
+  ])("does not let a physical-code clause hide a dangerous request: %s", (text) => {
+    expect(evaluateText(text)).toContain("asks_for_sms_code");
+  });
+
+  it.each([
+    "Код домофона 1234",
+    "Мама назвала мне код от подъезда",
+    "Пришли мне код от двери",
+    "The door code is 1234",
+    "Tell me the entrance code",
+    "Onam menga eshik kodini aytdi",
+    "Eshik kodini menga ayting",
+  ])("keeps a genuine physical-access-code message neutral: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("asks_for_sms_code");
   });
 });

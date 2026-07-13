@@ -256,6 +256,63 @@ describe("formatCheckResult — MarkdownV2 validity", () => {
 // ---------------------------------------------------------------------------
 
 describe("formatCheckResult — brief/explanation section (UX v2)", () => {
+  it("does not label a generic SMS-code request as Telegram account takeover", () => {
+    const genericSms = formatCheckResult(
+      baseResult({
+        level: "suspicious",
+        score: 45,
+        reasons: ["asks_for_sms_code"],
+        display: "The caller asks for the verification code from SMS.",
+      }),
+      "en",
+    ).text;
+    const explicitTelegramTakeover = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        score: 70,
+        reasons: ["telegram_account_takeover_phishing"],
+      }),
+      "en",
+    ).text;
+
+    expect(genericSms).toContain("Asks for an SMS confirmation code");
+    expect(genericSms).not.toContain("SMS code / OTP request");
+    expect(genericSms).not.toContain("Telegram account takeover");
+    expect(explicitTelegramTakeover).toContain("Telegram account takeover");
+  });
+
+  it("does not invent a safe-account transfer for an OTP/SMS-code-only result", () => {
+    const result = baseResult({
+      level: "high_risk",
+      score: 90,
+      reasons: ["asks_for_otp", "asks_for_sms_code"],
+    });
+
+    const ruText = formatCheckResult(result, "ru").text;
+    expect(ruText).not.toContain("безопасный счёт");
+    expect(ruText).toContain("Просят SMS\\-код подтверждения");
+    expect(ruText).not.toContain("Просят OTP\\-код");
+    expect(formatCheckResult(result, "uz").text).not.toContain("Xavfsiz hisob");
+    expect(formatCheckResult(result, "en").text).not.toContain("safe account");
+  });
+
+  it.each([
+    ["ru", "asks_for_card_cvv", /CVV\/CVC.*данн.*карт/iu],
+    ["uz", "asks_for_card_cvv", /CVV\/CVC.*karta/iu],
+    ["en", "requests_card_digits", /CVV\/CVC.*card details/iu],
+  ] as const)(
+    "renders card-specific protective guidance for %s/%s",
+    (lang, reason, expectedAdvice) => {
+      const { text } = formatCheckResult(
+        baseResult({ level: "high_risk", score: 70, reasons: [reason] }),
+        lang,
+      );
+
+      expect(text.replaceAll("\\", "")).toMatch(expectedAdvice);
+      expect(text.replaceAll("\\", "")).not.toMatch(/SMS.code|SMS-код|SMS-kod/iu);
+    },
+  );
+
   it("опускает brief section, когда explanation === null и нет hosted_app_platform", () => {
     // For "safe" template which has "brief" section
     const { text } = formatCheckResult(baseResult({ level: "safe", explanation: null }), "ru");
@@ -917,20 +974,20 @@ describe("formatCheckResult - deterministic URL fallback and scam patterns", () 
   });
 
   it("shows matching scam-pattern names for detected reason codes in what_noticed section", () => {
-    const otpPattern = SCAM_PATTERNS.find((p) => p.id === "otp-code-scam");
-    expect(otpPattern).toBeDefined();
+    const deliveryPattern = SCAM_PATTERNS.find((p) => p.id === "fake-delivery-scam");
+    expect(deliveryPattern).toBeDefined();
 
     // "safe" template has "what_noticed" section where patterns appear
     const { text } = formatCheckResult(
       baseResult({
         level: "safe",
-        reasons: ["asks_for_sms_code"],
+        reasons: ["fake_delivery_payment"],
         explanation: null,
       }),
       "en",
     );
 
     // Pattern title should appear in the what_noticed section
-    expect(text).toContain(escapeMarkdownV2(otpPattern!.title.en));
+    expect(text).toContain(escapeMarkdownV2(deliveryPattern!.title.en));
   });
 });

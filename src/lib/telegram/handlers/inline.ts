@@ -1225,6 +1225,7 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
     case "apk_request":
       return "app_request";
     case "personal_data_request":
+    case "personal_data_already_shared":
       return "personal_data";
     case "friend_money":
       return "relative_distress";

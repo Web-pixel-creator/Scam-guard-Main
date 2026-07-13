@@ -217,9 +217,9 @@ export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
 
 const EVIDENCE_COPY: Record<InlineEvidenceMethod, Record<Lang, string>> = {
   text_pattern: {
-    ru: "Основание: детерминированное правило нашло этот запрос или сценарный сигнал в переданном тексте.",
-    uz: "Asos: deterministik qoida yuborilgan matnda shu so'rov yoki ssenariy signalini topdi.",
-    en: "Basis: a deterministic rule found this request or scenario signal in the submitted text.",
+    ru: "Основание: в присланном тексте прямо есть такая просьба или типичный признак этой схемы.",
+    uz: "Asos: yuborilgan matnda shunday so'rov yoki ushbu sxemaga xos belgi bor.",
+    en: "Basis: the submitted text directly contains this request or a typical sign of this scheme.",
   },
   url_structure: {
     ru: "Основание: проверены видимые структура, формат и назначение ссылки.",
@@ -265,14 +265,14 @@ const EVIDENCE_COPY: Record<InlineEvidenceMethod, Record<Lang, string>> = {
 
 const REASON_EVIDENCE_COPY: Partial<Record<ReasonCode, Record<Lang, string>>> = {
   weird_domain: {
-    ru: "Основание: детерминированная проверка отметила видимый структурный признак — необычное доменное окончание, IP-адрес вместо имени или ошибку формата URL/домена.",
-    uz: "Asos: deterministik tekshiruv ko'rinadigan tuzilma belgisini — noodatiy domen oxiri, nom o'rniga IP-manzil yoki URL/domen formatidagi xatoni aniqladi.",
-    en: "Basis: a deterministic check found a visible structural signal—an unusual domain ending, an IP address instead of a name, or an invalid URL/domain format.",
+    ru: "Основание: в адресе видно необычное доменное окончание, IP-адрес вместо имени или ошибка формата ссылки.",
+    uz: "Asos: manzilda noodatiy domen oxiri, nom o'rniga IP yoki havola formatida xato ko'rindi.",
+    en: "Basis: the address has an unusual domain ending, an IP instead of a name, or an invalid link format.",
   },
   oneid_government_phishing: {
-    ru: "Основание: правило нашло в видимом тексте сочетание OneID/госуслуг и действия вроде входа, подтверждения, обновления, заявки, кода или пароля.",
-    uz: "Asos: qoida ko'rinadigan matnda OneID/davlat xizmati konteksti bilan kirish, tasdiqlash, yangilash, ariza, kod yoki parolga oid harakatni birga topdi.",
-    en: "Basis: a rule found visible OneID/government-service context together with an action such as login, confirmation, update, application, code, or password.",
+    ru: "Основание: в видимом тексте OneID или госуслуги упомянуты вместе с просьбой войти, подтвердить данные, обновить заявку, назвать код или пароль.",
+    uz: "Asos: ko'rinadigan matnda OneID yoki davlat xizmati kirish, ma'lumotni tasdiqlash, arizani yangilash, kod yoki parolni aytish so'rovi bilan birga kelgan.",
+    en: "Basis: the visible text combines OneID or a government service with a request to sign in, confirm data, update an application, or provide a code or password.",
   },
 };
 

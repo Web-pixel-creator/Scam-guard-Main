@@ -845,7 +845,7 @@ function readableImageUrls(evidence: ImageIntelligenceResult): string[] {
 function dangerousHintText(hint: ImageRiskHint): string {
   switch (hint) {
     case "otp_or_secret":
-      return "Просят SMS-код подтверждения, PIN, CVV или пароль.";
+      return "Просят OTP/SMS-код подтверждения или другой секрет.";
     case "apk_install":
       return "Просят установить APK или подозрительное приложение.";
     case "qr_login":

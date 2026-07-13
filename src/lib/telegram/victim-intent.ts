@@ -29,6 +29,7 @@ export const ALL_VICTIM_INTENTS = [
   "apk_request",
   "link_request",
   "personal_data_request",
+  "personal_data_already_shared",
   "utility_impersonation",
   "pension_benefit",
   "phone_borrowing",
@@ -81,6 +82,56 @@ const PERSONAL_DATA_REQUEST_RE =
   /(?:паспорт|фото\s+(?:паспорта|документ|id|айди)|документ|удостоверени|id.?карт|пинфл|pinfl|jshshir|инн|дата\s+рождения|адрес|прописка|personal\s+data|passport|id\s+card|date\s+of\s+birth|address|pasport|hujjat|jshshir|tug['’]?ilgan|manzil)/iu;
 const LONG_MESSAGE_LIMIT = 260;
 
+const ADVICE_QUESTION_RE =
+  /(?:что\s+(?:мне\s+)?делать|как\s+понять|что\s+отвечать|что\s+мне\s+(?:ей|ему|им)\s+ответить|нужно\s+ли|можно\s+ли|это\s+точно\s+мошенник|what\s+should\s+i\s+do|should\s+i|how\s+do\s+i\s+know|what\s+do\s+i\s+reply|nima\s+qilay|qanday\s+bilaman|javob\s+beraymi)/iu;
+const COMPLETED_LINK_OR_QR_ACTION_RE =
+  /(?:(?:я|i|men)\s+)?(?:проверил[аи]?|отсканировал[аи]?|сканировал[аи]?|переш[её]л[аи]?|открыл[аи]?|нажал[аи]?|checked|scanned|opened|followed|clicked|tekshirdim|skaner\s+qildim|skanerladim|ochdim|bosdim|kirdim).{0,60}(?:ссылк|link|havola|qr(?:ni)?|куар)|(?:ссылк|link|havola|qr(?:ni)?|куар).{0,60}(?:проверил[аи]?|отсканировал[аи]?|сканировал[аи]?|переш[её]л[аи]?|открыл[аи]?|нажал[аи]?|checked|scanned|opened|followed|clicked|tekshirdim|skaner\s+qildim|skanerladim|ochdim|bosdim|kirdim)/iu;
+const QR_ARTIFACT_RE = /(?:qr(?:ni)?|куар)/iu;
+const ACCOUNT_ACCESS_LOSS_RE =
+  /(?:потерял[аи]?\s+доступ|не\s+могу\s+(?:войти|зайти|получить\s+доступ)).{0,60}(?:telegram|телеграм|аккаунт)|(?:telegram|телеграм|аккаунт).{0,60}(?:потерял[аи]?\s+доступ|не\s+могу\s+(?:войти|зайти|получить\s+доступ))|(?:cannot|can\s*not|can't|no\s+longer\s+can)\s+(?:access|log\s*in(?:to)?|sign\s*in(?:to)?).{0,40}(?:telegram|account)|lost\s+access.{0,40}(?:telegram|account)|(?:telegram|account).{0,40}(?:lost\s+access|cannot\s+(?:access|log\s*in|sign\s*in))|(?:akkaunt|telegram)(?:im)?ga.{0,40}(?:kira\s+olmayapman|kirolmayapman|kira\s+olmayman|kirolmayman)|(?:kira\s+olmayapman|kirolmayapman|kira\s+olmayman|kirolmayman).{0,40}(?:akkaunt|telegram)/iu;
+const POST_ACTION_CONCERN_RE =
+  /(?:боюсь|страшно|волнуюсь|переживаю|afraid|scared|worried|qo['’]?rq|xavotir)/iu;
+const UNKNOWN_CALL_RE =
+  /(?:неизвестн|незнаком|unknown|unfamiliar|hidden|notanish|noma['’]?lum|подозрительн|shubhali|suspicious).{0,80}(?:номер|абонент|звон|входящ|call|caller|raqam|qo['’]?ng['’]?iroq)|(?:номер|абонент|звон|входящ|call|caller|raqam|qo['’]?ng['’]?iroq).{0,80}(?:неизвестн|незнаком|unknown|unfamiliar|hidden|notanish|noma['’]?lum|подозрительн|shubhali|suspicious)/iu;
+
+// High-confidence early routes. These are intentionally narrower than the
+// generic request rules below: a completed incident needs aftercare, while a
+// request targeting a named relative needs identity verification guidance.
+const FAMILY_CONTEXT_RE =
+  /(?:^|[^\p{L}])(?:мам\p{L}*|пап\p{L}*|бабуш\p{L}*|дедуш\p{L}*|брат\p{L}*|сестр\p{L}*|сын\p{L}*|доч\p{L}*|родствен\p{L}*|близк\p{L}*|друг(?:|а|у|ом|е|и|ов|ья|ьям|ьями)|подруг\p{L}*|семейн\p{L}*|onam\p{L}*|otam\p{L}*|buvim\p{L}*|bobom\p{L}*|akam\p{L}*|ukam\p{L}*|opam\p{L}*|singlim\p{L}*|o['’]?g['’]?lim\p{L}*|qizim\p{L}*|qarindosh\p{L}*|yaqin\p{L}*|do['’]?stim\p{L}*|oilaviy|mother|father|mom|dad|grandmother|grandfather|grandma|grandpa|brother|sister|son|daughter|relative|friend|family)(?=$|[^\p{L}])/iu;
+const COMPLETED_FAMILY_ACTION_RE =
+  /(?:уже|успел[аи]?|already|ulgurdi|bo['’]?ldi|перевел[аи]?|перевёл[аи]?|отправил[аи]?|отдал[аи]?|оплатил[аи]?|снял[аи]?|назвал[аи]?|сообщил[аи]?|продиктовал[аи]?|o['’]?tkaz(?:di|ib)|yubor(?:di|ib)|berib|to['’]?la(?:di|b)|aytib|yechib|sent|gave|paid|transferred|withdrew|handed|told|shared)/iu;
+const FAMILY_SENSITIVE_VALUE_RE =
+  /(?:деньг|денег|перевод|оплат|комисс|код|sms|смс|карт|pul|qarz|o['’]?tkaz|to['’]?lov|komissiya|kod|karta|money|transfer|payment|commission|code|cash)/iu;
+const COMPLETED_FAMILY_COUNTERPARTY_RE =
+  /(?:мошен|незнаком|чуж|их\s+комисс|им\s+(?:деньг|код)|firibgar|notanish|begona|ular(?:ga|ning).{0,30}(?:komiss|pul|kod)|scammer|stranger|unknown\s+(?:person|courier)|them.{0,30}(?:money|code)|their\s+commission)/iu;
+const COMPLETED_CODE_SHARE_RE =
+  /(?:(?:назва(?:л|ть)|сообщ|продикт|ayt|told|shared|gave).{0,80}(?:sms|смс|код\s+(?:из\s+sms|подтверждения)|tasdiqlash\s+kod|sms\s+kod|confirmation\s+code)|(?:sms|смс|код\s+(?:из\s+sms|подтверждения)|tasdiqlash\s+kod|sms\s+kod|confirmation\s+code).{0,80}(?:назва(?:л|ть)|сообщ|продикт|ayt|told|shared|gave))/iu;
+const ACTIVE_FAMILY_REQUEST_RE =
+  /(?:просит|просят|просил[аи]?|попросил|просьб|сбор|занять|одолж|попал.{0,20}бед|голос.{0,40}помощ|so['’]?ra|iltimos|aytish|yig['’]?ish|muammoga\s+tush|ovoz.{0,40}yordam|asks?|asking|request|borrow|collection|in\s+trouble|voice.{0,40}(?:help|money))/iu;
+const FAMILY_REQUEST_VALUE_RE =
+  /(?:деньг|денег|перевод|оплат|помощ|бед|сбор|pul|qarz|o['’]?tkaz|to['’]?lov|to['’]?la|yordam|muammo|yig['’]?ish|money|transfer|pay|help|trouble|collection)/iu;
+const COMPLETED_PERSONAL_DATA_RE =
+  /(?:(?:я|i|men).{0,80}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim).{0,100}(?:паспорт|passport|pasport|удостоверен|identity\s+document|shaxsiy\s+hujjat)|(?:я|i|men).{0,80}(?:паспорт|passport|pasport|удостоверен|identity\s+document|shaxsiy\s+hujjat).{0,100}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim))/iu;
+const UNTRUSTED_PERSONAL_DATA_RECIPIENT_RE =
+  /(?:незнаком|чуж|мошен|begona|notanish|firibgar|stranger|scammer|someone\s+i\s+do\s+not\s+know|unknown\s+(?:person|chat|account))/iu;
+const COMPLETED_PASSWORD_ENTRY_RE =
+  /(?:(?:я|i|men).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim).{0,80}(?:парол|password|parol).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt)|(?:я|i|men).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt).{0,80}(?:парол|password|parol).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim))/iu;
+const UNAUTHORIZED_CHARGE_RE =
+  /(?:списали|списание|сняли).{0,80}(?:без\s+(?:моего\s+)?разрешения|котор(?:ый|ое)\s+я\s+не\s+совершал)|(?:без\s+(?:моего\s+)?разрешения).{0,80}(?:списали|сняли)|(?:kartamdan|hisobimdan).{0,80}ruxsatsiz.{0,80}(?:pul\s+yechildi|to['’]?lov)|ruxsatsiz.{0,80}(?:pul\s+yechildi|to['’]?lov)|(?:money|payment|charge).{0,80}(?:taken|charged|debited|appeared).{0,80}(?:without\s+(?:my\s+)?permission|i\s+did\s+not\s+make)/iu;
+const SAFE_ROUTINE_PAYMENT_RE =
+  /(?:(?:mother|mom).{0,60}(?:already\s+)?paid.{0,60}(?:electricity|utility)\s+bill|мам\p{L}*.{0,60}(?:уже\s+)?оплатил\p{L}*.{0,60}коммунальн\p{L}*\s+услуг\p{L}*|onam\p{L}*.{0,60}elektr\s+to['’]?lovini.{0,60}to['’]?ladi|i\s+already\s+sent\s+money\s+back\s+to\s+my\s+friend|я\s+уже\s+вернул\p{L}*\s+деньги\s+другу)/iu;
+const SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE =
+  /(?:(?:i|я|men).{0,80}(?:sent|отправил|yubordim).{0,80}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat).{0,120}(?:official|официальн\p{L}*|rasmiy).{0,80}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi)|(?:i|я|men).{0,80}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat).{0,80}(?:official|официальн\p{L}*|rasmiy).{0,80}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi).{0,80}(?:sent|отправил|yubordim))/iu;
+const SAFE_PHYSICAL_ACCESS_CODE_RE =
+  /(?:(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza).{0,50}(?:code|код|kod)|(?:code|код|kod).{0,50}(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza))/iu;
+
+function withoutQrCodeLabel(text: string): string {
+  return text
+    .replace(/\bqr[\s-]*(?:code|код|kod)\b/giu, "qr")
+    .replace(/\b(?:code|код|kod)[\s-]*qr\b/giu, "qr");
+}
+
 function normalizeVictimText(text: string): string {
   return (
     text
@@ -123,7 +174,7 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
 }
 
 function hasVictimFrame(text: string): boolean {
-  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|мама|папа|бабушк[аеи]?|дедушк[аеи]?|брат|сестра|маму|папу|друга|сын|дочь|мени|бизни|менга|menga|mendan|meni|men|bizga|bizdan|biz|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
+  return /(?:^|[\s,.;:!?])(?:мне|меня|у\s+меня|со\s+мной|я|он|она|они|незнакомец|мама|папа|бабушк[аеи]?|дедушк[аеи]?|брат|сестра|маму|папу|друга|сын|дочь|мени|бизни|менга|menga|mendan|meni|men|bizga|bizdan|biz|ular|onam|otam|i|me|my|they|someone|caller)(?=$|[\s,.;:!?])/iu.test(
     text,
   );
 }
@@ -144,6 +195,35 @@ function hasVictimRequestFrame(text: string): boolean {
       text,
     )
   );
+}
+
+const VICTIM_CLAUSE_SPLIT_RE =
+  /[,.!?;،:\u2013\u2014\n]+|\s+(?:but|however|then|after\s+that|но|однако|затем|потом|lekin|keyin)\s+/iu;
+const SENSITIVE_ACCOUNT_CODE_CONTEXT_RE =
+  /(?:банк|банков|сч[её]т|аккаунт|вход|логин|telegram|телеграм|bank|banking|account|login|sign[\s-]?in|hisob|kirish|sms|смс|otp|verification|tasdiq)/iu;
+
+function isSafePhysicalAccessOnly(text: string): boolean {
+  const clauses = text
+    .split(VICTIM_CLAUSE_SPLIT_RE)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+  if (!clauses.some((clause) => SAFE_PHYSICAL_ACCESS_CODE_RE.test(clause))) return false;
+
+  return clauses.every((clause) => {
+    if (!SAFE_PHYSICAL_ACCESS_CODE_RE.test(clause)) {
+      return !(
+        hasVictimRequestFrame(clause) &&
+        hasAskVerb(clause) &&
+        /(?:код|code|kod|парол|password|цифр|digits)/iu.test(clause)
+      );
+    }
+
+    const codeMentions = clause.match(/(?:код|code|kod)/giu)?.length ?? 0;
+    return !(
+      SENSITIVE_ACCOUNT_CODE_CONTEXT_RE.test(clause) ||
+      (codeMentions > 1 && hasAskVerb(clause))
+    );
+  });
 }
 
 function isTravelMigrationPrepaymentIntent(text: string): boolean {
@@ -181,23 +261,19 @@ function isGovServiceLoginIntent(text: string): boolean {
 }
 
 function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
-  // A relative/friend has ALREADY sent money or told a code — damage control
-  // in the second person, not the "verify identity first" prevention advice.
   if (
-    /(?:бабушк|дедушк|мама|мать|папа|отец|сын|дочь|брат|сестр|родствен|близк|друг|подруг|жена|муж|onam|otam|buvim|bobom|akam|ukam|opam|singlim|xotinim|erim)[\s\S]{0,80}(?:перевел[аи]?|отправил[аи]?|отдал[аи]?|оплатил[аи]?|скинул[аи]?|заплатил[аи]?|назвал[аи]?|сообщил[аи]?|продиктовал[аи]?|o['’]?tkazdi|yubordi|berdi|to['’]?ladi|aytdi)[\s\S]{0,60}(?:деньг|ден[ьи]г|сум|перевод|код|карт|pul|kod|karta)|(?:onam|otam|buvim|bobom|akam|ukam|opam|singlim|xotinim|erim)[\s\S]{0,60}(?:pul|kod|karta)[\s\S]{0,60}(?:o['’]?tkaz|yubor|ber|to['’]?la|ayt)(?:di|ib\s+yubordi|gan)/iu.test(
-      text,
-    )
+    FAMILY_CONTEXT_RE.test(text) &&
+    COMPLETED_FAMILY_ACTION_RE.test(text) &&
+    FAMILY_SENSITIVE_VALUE_RE.test(text) &&
+    (COMPLETED_FAMILY_COUNTERPARTY_RE.test(text) || COMPLETED_CODE_SHARE_RE.test(text))
   ) {
     return { kind: "relative_already_paid", askedContext: "transfer" };
   }
 
   if (
-    /(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сосед|сын|дочь).{0,180}(?:мошен|сроч|помощ|деньг|перевод|операци|лечение|авар|больниц)|(?:мошен|звонил|позвонил|пишет|просит).{0,180}(?:бабушк|дедушк|мама|папа|родствен|близк|друг|подруг|сын|дочь).{0,120}(?:деньг|помощ|перевод|сроч|лечение|авар|больниц)/iu.test(
-      text,
-    ) ||
-    /(?:родствен|близк|мама|папа|бабушк|дедушк|сын|дочь|друг|подруга).{0,160}(?:ии|ai|deepfake|дипфейк|видеосвяз|видео|голос).{0,160}(?:деньг|помощ|перевод|сроч)/iu.test(
-      text,
-    )
+    FAMILY_CONTEXT_RE.test(text) &&
+    ACTIVE_FAMILY_REQUEST_RE.test(text) &&
+    FAMILY_REQUEST_VALUE_RE.test(text)
   ) {
     return { kind: "friend_money", askedContext: "transfer" };
   }
@@ -391,16 +467,66 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   }
 
   if (
-    /^(?:(?:хорошо|ок|okay|ok|понял[аи]?|понятно|спасибо|спс|рахмат|rahmat)(?:\s+(?:спасибо|сделаю|понял[аи]?|ок|рахмат|rahmat))?|сделаю|готово|tushunarli|mayli|xo['’]?p|thanks|thank\s+you|done)[!.,\s]*$/iu.test(
+    /^(?:(?:хорошо|ок|okay|ok|понял[аи]?|понятно|спасибо|спс|рахмат|rahmat)(?:\s+(?:спасибо|сделаю|понял[аи]?|ок|рахмат|rahmat))?|спасибо\s+за\s+помощь|хорошо,?\s+я\s+так\s+и\s+сделаю|yordam\s+uchun\s+rahmat|yaxshi,?\s+shunday\s+qilaman|сделаю|готово|tushunarli|mayli|xo['’]?p|thanks|thank\s+you(?:\s+for\s+(?:the\s+)?help)?|okay,?\s+i\s+will\s+do\s+that|done)[!.,\s]*$/iu.test(
       normalized,
     )
   ) {
     return { kind: "acknowledgement" };
   }
 
+  // Post-action account loss is an incident, not a generic question about a
+  // "QR code".  Keep it ahead of both emotional-help and advice/code routing
+  // so the word "code" in the artifact label cannot hide a takeover signal.
+  if (
+    COMPLETED_LINK_OR_QR_ACTION_RE.test(normalized) &&
+    QR_ARTIFACT_RE.test(normalized) &&
+    ACCOUNT_ACCESS_LOSS_RE.test(normalized)
+  ) {
+    return { kind: "telegram_takeover", askedContext: "link_qr" };
+  }
+
+  // A victim who already interacted with a link/QR and is now worried needs
+  // next-step advice.  This is more specific than the generic emotional-help
+  // phrase "я боюсь" and preserves the completed-action context.
+  if (
+    COMPLETED_LINK_OR_QR_ACTION_RE.test(normalized) &&
+    POST_ACTION_CONCERN_RE.test(normalized) &&
+    ADVICE_QUESTION_RE.test(normalized)
+  ) {
+    return { kind: "advice_question" };
+  }
+
+  // Explicit benign completion context must not be reinterpreted as a scam
+  // merely because it mentions a relative, payment, passport, or portal.
+  if (
+    SAFE_ROUTINE_PAYMENT_RE.test(normalized) ||
+    SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE.test(normalized) ||
+    isSafePhysicalAccessOnly(normalized)
+  ) {
+    return null;
+  }
+
   const newsIntent = classifyNewsVictimIntent(normalized);
   if (newsIntent) {
     return newsIntent;
+  }
+
+  // Completed incidents must be classified before generic code/file/data
+  // request rules, otherwise the bot gives prevention advice after the harm
+  // has already happened.
+  if (
+    COMPLETED_PERSONAL_DATA_RE.test(normalized) &&
+    UNTRUSTED_PERSONAL_DATA_RECIPIENT_RE.test(normalized)
+  ) {
+    return { kind: "personal_data_already_shared" };
+  }
+
+  if (COMPLETED_PASSWORD_ENTRY_RE.test(normalized)) {
+    return { kind: "account_hacked_other", askedContext: "code" };
+  }
+
+  if (UNAUTHORIZED_CHARGE_RE.test(normalized)) {
+    return { kind: "unauthorized_charge", askedContext: "card" };
   }
 
   if (
@@ -549,12 +675,8 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "report_question" };
   }
 
-  if (
-    /(?:что\s+мне\s+делать|как\s+понять|что\s+отвечать|что\s+мне\s+(?:ей|ему|им)\s+ответить|нужно\s+ли|можно\s+ли|это\s+точно\s+мошенник|what\s+should\s+i\s+do|should\s+i|how\s+do\s+i\s+know|what\s+do\s+i\s+reply|nima\s+qilay|qanday\s+bilaman|javob\s+beraymi)/iu.test(
-      normalized,
-    )
-  ) {
-    if (/(?:код|sms|смс|otp|code|kod)/iu.test(normalized)) {
+  if (ADVICE_QUESTION_RE.test(normalized)) {
+    if (/(?:код|sms|смс|otp|code|kod)/iu.test(withoutQrCodeLabel(normalized))) {
       return { kind: "code_request", askedContext: "code" };
     }
     return { kind: "advice_question" };
@@ -564,10 +686,49 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "gov_service_login" };
   }
 
+  // Keep an ordinary unknown-number report on the call-safety route. Uzbek
+  // `qayta-qayta` contains `ayt`, which must not look like an ask verb and
+  // accidentally combine with a later short-token QR check.
+  if (
+    UNKNOWN_CALL_RE.test(normalized) &&
+    /(?:звон|call|caller|qo['’]?ng['’]?iroq)/iu.test(normalized) &&
+    !/(?:ссылк|линк|\b(?:url|link|havola|qr)\b|куар|sms|смс|otp|код|парол|code|password|деньг|перевод|оплат|money|transfer|payment|pul|o['’]?tkaz|to['’]?lov)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unknown_call", askedContext: "call" };
+  }
+
+  // Uzbek requests are often phrased with a verbal-noun action before the
+  // final `so'rashdi` ("asked me to forward ..."). Keep the one-time secret
+  // visible before generic "someone sent a message" fallbacks can win.
+  if (
+    hasVictimRequestFrame(normalized) &&
+    /(?:bir\s+martalik\s+(?:parol|kod)|sms\s+kod|tasdiqlash\s+kodi)/iu.test(normalized) &&
+    /(?:yuborishni|jo['’]?natishni|aytishni|ko['’]?rsatishni|so['’]?rash)/iu.test(normalized)
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
   if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    !/(?:сделать\s+перевод|перевод|перевести|transfer|o['’]?tkaz)/iu.test(normalized) &&
+    (/(?:оплат|pay(?:ment)?\b|to['’]?lov|to['’]?la).{0,50}(?:реквизит|сч[её]т|details?|account|hisob)/iu.test(
+      normalized,
+    ) ||
+      /(?:реквизит|сч[её]т|details?|account|hisob).{0,50}(?:оплат|pay(?:ment)?\b|to['’]?lov|to['’]?la)/iu.test(
+        normalized,
+      ))
+  ) {
+    return { kind: "transfer_request", askedContext: "transfer" };
+  }
+
+  if (
+    hasVictimRequestFrame(normalized) &&
+    hasAskVerb(normalized) &&
+    !/(?:сделать\s+перевод|перевод|перевести|оплат|transfer|payment|pay\b|to['’]?lov|to['’]?la|o['’]?tkaz)/iu.test(
+      normalized,
+    ) &&
     /(?:последн.{0,20}цифр.{0,30}карт|карт[ауые]|фото\s+карт|номер\s+карты|реквизит|cvv|cvc|(?:pin|пин)(?=$|[\s,.;:!?]))/iu.test(
       normalized,
     )
@@ -678,11 +839,11 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 
   if (
     (hasVictimFrame(normalized) &&
-      /(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:ссылк|линк|url|link|havola)/iu.test(
+      /(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave).{0,80}(?:ссылк|линк|\b(?:url|link|havola)\b)/iu.test(
         normalized,
       )) ||
     (hasVictimFrame(normalized) &&
-      /(?:ссылк|линк|url|link|havola).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
+      /(?:ссылк|линк|\b(?:url|link|havola)\b).{0,80}(?:прислал[аи]?|прислали|скинул[аи]?|кинули|отправил[аи]?|дали|yuborishdi|jo['’]?natishdi|sent|gave)/iu.test(
         normalized,
       ))
   ) {
@@ -692,7 +853,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:ссылк|линк|url|link|havola|qr|куар)/iu.test(normalized)
+    /(?:ссылк|линк|\b(?:url|link|havola|qr)\b|куар)/iu.test(normalized)
   ) {
     return { kind: "link_request", askedContext: "link_qr" };
   }
@@ -962,6 +1123,150 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "telegram_message" };
   }
 
+  // High-confidence everyday phrasing that does not carry a concrete payload.
+  // This is deliberately kept at the final fallback: all specific incident,
+  // panic and impersonation routes above retain priority, while quoted scam
+  // payloads were already rejected by looksLikeScamPayloadRatherThanVictimPhrase.
+  if (
+    /(?:помоги(?:те)?|помощь|не\s+понимаю.{0,30}(?:происходит|разобраться)|запутал(?:ся|ась)|adashib\s+qoldim|sarosimaga\s+tushdim|hozir\s+nima\s+bo['’]?layotganini\s+tushunmayapman|help\s+me|please\s+help|i\s+am\s+(?:afraid|lost|confused)|i\s+do\s+not\s+understand\s+what\s+is\s+happening\s+right\s+now)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "emotional_help" };
+  }
+
+  if (
+    /(?:подозрительн.{0,25}(?:переписк|разговор)|пытаются\s+(?:развести|обмануть)|хочет\s+меня\s+обмануть|похож.{0,30}(?:развод|обман|мошен)|(?:scam|fraud|fraudulent|scammer|suspicious).{0,80}(?:me|conversation|offer|person)|(?:i|someone|they).{0,80}(?:scam|fraud|trick\s+me)|aldashmoqchi|aldab\s+pul|firibgarlikka\s+o['’]?xsh|bu\s+(?:rost|firib))/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "general_scam_concern" };
+  }
+
+  const everydayAsk =
+    /(?:просят|просит|требу(?:ет|ют)|велят|сказал[аи]?|говорят|хочет|уговаривают|торопят|asks?|asked|demand|told|tell(?:s|ing)?|says?|wants?|pressure|needs?|so['’]?ra|talab|ayt|deyish|xohla|ko['’]?ndir|shoshir)/iu;
+  if (
+    everydayAsk.test(normalized) &&
+    /(?:sms|смс|otp|одноразов|verification|подтверждени|код|парол|code|password|digits|kod|parol|olti\s+raqam)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "code_request", askedContext: "code" };
+  }
+
+  if (
+    everydayAsk.test(normalized) &&
+    /(?:перевод|перевести|деньг|оплат|комисс|кошел[её]к|сч[её]т|transfer|money|payment|pay\b|wallet|cash|pul|to['’]?lov|to['’]?la|o['’]?tkaz|hamyon|hisob)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "transfer_request", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:прислал[аи]?|прислали|отправил[аи]?|отправили|получил[аи]?|приш[её]л|дали|sent|gave|received|yuborishdi|jo['’]?natdi|jo['’]?natishdi|keldi|oldim|berishdi).{0,100}(?:ссылк|link|havola)|(?:ссылк|link|havola).{0,100}(?:прислал|прислали|отправил|отправили|sent|gave|yubor|jo['’]?nat|ber)|(?:telegram\s+login\s+link).{0,80}(?:appeared|showed\s+up).{0,40}(?:chat|message)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "link_received", askedContext: "link_qr" };
+  }
+
+  if (
+    /(?:прислал[аи]?|прислали|отправил[аи]?|отправили|получил[аи]?|приш[её]л|sent|received|yuborishdi|jo['’]?natdi|keldi|oldim).{0,100}(?:файл|apk|архив|pdf|приложени|file|archive|app|fayl|ilova)|(?:файл|архив|pdf|file|archive|fayl).{0,100}(?:прислал|прислали|получил|sent|received|yubor|jo['’]?nat|oldim|keldi)/iu.test(
+      normalized,
+    ) ||
+    /(?:arxiv|ilova).{0,80}(?:keldi|yuborishdi|jo['’]?natishdi)/iu.test(normalized)
+  ) {
+    return { kind: "file_received" };
+  }
+
+  if (UNKNOWN_CALL_RE.test(normalized)) {
+    return { kind: "unknown_call", askedContext: "call" };
+  }
+
+  if (
+    /(?:звон|call|qo['’]?ng['’]?iroq).{0,80}(?:молчат|тишин|silent|nobody\s+says|jim\s+tur|hech\s+kim\s+gapir)/iu.test(
+      normalized,
+    ) ||
+    /(?:telefonni\s+ko['’]?tar|when\s+i\s+answer).{0,80}(?:hech\s+kim\s+gapir|nobody\s+says|silent)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "silent_call", askedContext: "call" };
+  }
+
+  if (
+    /(?:foreign|another\s+country|зарубеж|иностран|другой\s+стран|chet\s+el|xorij).{0,80}(?:номер|звон|call|raqam|qo['’]?ng['’]?iroq)|(?:номер|звон|call|raqam|qo['’]?ng['’]?iroq).{0,80}(?:foreign|another\s+country|зарубеж|иностран|chet\s+el|xorij)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "foreign_call", askedContext: "call" };
+  }
+
+  if (
+    FAMILY_CONTEXT_RE.test(normalized) &&
+    ACTIVE_FAMILY_REQUEST_RE.test(normalized) &&
+    FAMILY_REQUEST_VALUE_RE.test(normalized)
+  ) {
+    return { kind: "friend_money", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:бабуш|дедуш|внук|buvim|bobom|nabira|grandmother|grandfather|grandson|granddaughter).{0,140}(?:звон|qo['’]?ng['’]?iroq|call).{0,100}(?:бед|попал|попала|муаммо|muammo|trouble)|(?:звон|qo['’]?ng['’]?iroq|call).{0,100}(?:бабуш|дедуш|buvim|bobom|grandmother|grandfather).{0,100}(?:бед|попал|muammo|trouble)|(?:семейн|oilaviy|family).{0,80}(?:чат|chat).{0,80}(?:сбор\s+денег|pul\s+yig['’]?ish|money\s+collection)|(?:сбор\s+денег|pul\s+yig['’]?ish|money\s+collection).{0,80}(?:семейн|oilaviy|family).{0,80}(?:чат|chat)|(?:мам|пап|отам|onam|otam|mother|father|friend|друг).{0,140}(?:от\s+имени\s+родствен|qarindosh.*nomidan|request\s+for\s+money).{0,100}(?:оплат|to['’]?la|pay|money|account|hisob)|request\s+for\s+money.{0,80}(?:my\s+)?friend/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "friend_money", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:without\s+(?:my\s+)?permission|i\s+did\s+not\s+make|который\s+я\s+не\s+совершал|ruxsatsiz|men\s+qilmagan).{0,80}(?:payment|charge|money|плат[её]ж|списал|pul|to['’]?lov)|(?:payment|charge|плат[её]ж|списал|pul|to['’]?lov).{0,80}(?:without\s+(?:my\s+)?permission|i\s+did\s+not\s+make|который\s+я\s+не\s+совершал|ruxsatsiz|men\s+qilmagan)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unauthorized_charge", askedContext: "card" };
+  }
+
+  if (
+    /(?:money|funds?).{0,40}(?:was|were)\s+(?:just\s+)?(?:taken|charged|debited).{0,50}(?:card|account).{0,50}without\s+(?:my\s+)?permission/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unauthorized_charge", askedContext: "card" };
+  }
+
+  if (
+    /(?:email|почт|аккаунт|account|akkaunt).{0,80}(?:hacked|взлом|не\s+могу\s+войти|got\s+access|buzildi|kira\s+olmay)|(?:hacked|взлом|got\s+access|buzildi).{0,80}(?:email|почт|аккаунт|account|akkaunt)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "account_hacked_other", askedContext: "code" };
+  }
+
+  if (
+    /(?:они|they).{0,40}(?:получили\s+доступ|got\s+access).{0,60}(?:аккаунт|account)|ular.{0,40}akkauntimga\s+kirib\s+olishdi|(?:already|уже).{0,25}(?:entered|вв[её]л).{0,40}(?:password|парол).{0,60}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "account_hacked_other", askedContext: "code" };
+  }
+
+  if (
+    /(?:я\s+уже|i\s+(?:already\s+)?sent|men).{0,50}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim).{0,50}(?:паспорт|passport|pasport|удостоверени|identity\s+document|shaxsiy\s+hujjat).{0,60}(?:незнаком|stranger|notanish|begona)|(?:я|i|men).{0,30}(?:незнаком|notanish|begona|stranger).{0,40}(?:паспорт|passport|pasport|удостоверени|identity\s+document|shaxsiy\s+hujjat).{0,40}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim)|(?:i\s+sent|я\s+уже\s+отправил).{0,40}(?:passport\s+photo|скан\s+удостоверени).{0,40}(?:stranger|незнаком)|я\s+уже\s+отправил.{0,30}незнаком.{0,30}скан\s+удостоверени/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "personal_data_already_shared" };
+  }
+
+  if (
+    /(?:что\s+делать|как\s+(?:мне\s+)?(?:сейчас\s+)?поступить|стоит\s+ли|что\s+.{0,20}ответить|nima\s+qilay|hozir\s+qanday\s+yo['’]?l\s+tutay|javob\s+beray|qanday\s+bilaman|kerakmi|ochsam\s+bo['’]?ladimi|what\s+should\s+i\s+do|should\s+i|what\s+do\s+i\s+reply|how\s+do\s+i\s+know|can\s+i\s+open)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "advice_question" };
+  }
+
   return null;
 }
 
@@ -1006,7 +1311,7 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
     },
     unknown_call: {
       ru: "Если звонит незнакомый номер — безопаснее не продолжать разговор под давлением.\n\nЕсли звонок ещё идёт, спокойно завершите его. Не называйте код, карту, паспортные данные и не переводите деньги. Пришлите номер с экрана — я проверю публичные признаки.",
-      uz: "Notanish raqam qo'ng'iroq qilsa — bosim ostida suhbatni davom ettirmagan xavfsizroq.\n\nQo'ng'iroq davom etsa, xotirjam tugating. Kod, karta, pasport ma'lumoti aytmang va pul o'tkazmang. Ekrandagi raqamni yuboring — ochiq belgilarni tekshiraman.",
+      uz: "Notanish raqam qo'ng'iroq qilsa — bosim ostida suhbatni davom ettirmaslik xavfsizroq.\n\nQo'ng'iroq davom etsa, xotirjam tugating. Kod, karta, pasport ma'lumoti aytmang va pul o'tkazmang. Ekrandagi raqamni yuboring — ochiq belgilarni tekshiraman.",
       en: "If an unknown number is calling, it is safer not to continue under pressure.\n\nIf the call is still active, end it calmly. Do not share a code, card, passport data, or transfer money. Send the number from the screen and I will check public signals.",
     },
     foreign_call: {
@@ -1058,6 +1363,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Паспорт, ПИНФЛ, фото документов, адрес и дату рождения не отправляйте в чат незнакомцу.\n\nНастоящая организация проверяет такие данные только через официальный сайт, приложение, офис или сохранённый номер. Пришлите текст просьбы или ссылку, если она есть.",
       uz: "Pasport, JSHSHIR/PINFL, hujjat rasmi, manzil va tug'ilgan sanani notanish chatga yubormang.\n\nHaqiqiy tashkilot bunday ma'lumotni faqat rasmiy sayt, ilova, ofis yoki saqlangan raqam orqali tekshiradi. So'rov matni yoki havola bo'lsa yuboring.",
       en: "Do not send passport data, ID numbers, document photos, address, or date of birth to an unknown chat.\n\nA real organization verifies this only through an official site, app, office, or saved number. Send the request text or link if there is one.",
+    },
+    personal_data_already_shared: {
+      ru: "Документы уже отправлены — сейчас важно снизить риск.\n\n1. Прекратите контакт и сохраните переписку и профиль.\n2. Если вместе с документом отправляли логин, пароль или код — немедленно смените их и включите двухфакторную защиту.\n3. Свяжитесь с банком и органом, выдавшим документ, только по официальным каналам: уточните блокировку или замену документа и контроль заявок на кредит.\nЕсли документ уже используют или требуют деньги — сообщите в милицию по номеру 102.",
+      uz: "Hujjatlar allaqachon yuborilgan — endi xavfni kamaytirish kerak.\n\n1. Aloqani to'xtating, yozishma va profilni saqlang.\n2. Hujjat bilan login, parol yoki kod ham yuborilgan bo'lsa — darhol almashtiring va ikki bosqichli himoyani yoqing.\n3. Bank va hujjatni bergan idoraga faqat rasmiy kanal orqali murojaat qiling: hujjatni bloklash yoki almashtirish va kredit arizalarini nazorat qilishni aniqlashtiring.\nHujjat ishlatilayotgan bo'lsa yoki pul talab qilishsa — 102 ga xabar bering.",
+      en: "The documents have already been shared — reduce the risk now.\n\n1. Stop contact and save the chat and profile.\n2. If you also shared a login, password, or code, change it immediately and enable two-factor protection.\n3. Contact your bank and the authority that issued the document through official channels: ask about blocking or replacing it and monitoring credit applications.\nIf the document is already being used or someone demands money, report it to the police on 102.",
     },
     friend_money: {
       ru: "Если «друг» или близкий срочно просит деньги — сначала подтвердите личность другим каналом.\n\nНе переводите сразу. Позвоните по сохранённому номеру или спросите семейное кодовое слово/личный вопрос.",

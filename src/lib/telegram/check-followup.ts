@@ -1,9 +1,10 @@
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
-import { REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
+import { evaluateText, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
+import { stripConversationWrappers } from "@/lib/telegram/conversation-wrapper";
 import {
   collectResultReasonCodesForPresentation,
   INLINE_REASON_POLICY,
@@ -21,13 +22,13 @@ import type {
 const RECENT_CHECK_WINDOW_MS = 20 * 60 * 1000;
 
 const CONFIDENCE_RE =
-  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|это\s+безопасно|можно\s+доверять|sure|really|are\s+you\s+sure|is\s+it\s+safe|can\s+i\s+trust|aniqmi|rostmi|xavfsizmi|ishonsa\s+bo'ladimi)[\s?!.,]*$/i;
+  /^(?:точно|точно\?|а\s+точно|это\s+точно|ты\s+уверен[а]?|уверен[а]?|правда|реально|это\s+безопасно|(?:могу\s+ли\s+я|можно\s+ли|можно)\s+доверять\s+(?:этому\s+)?(?:результату|выводу|ответу)|это\s+точно\s+(?:мошенник(?:и|а)?|обман|скам)|sure|really|are\s+you\s+sure|how\s+sure\s+are\s+you|are\s+you\s+certain(?:\s+about\s+(?:it|this|the\s+result))?|is\s+it\s+safe|can\s+i\s+trust|can\s+i\s+rely\s+on\s+(?:this|the|your)\s+(?:result|answer|verdict)|aniqmi|rostmi|xavfsizmi|ishonsa\s+bo'ladimi|ishonchingiz\s+komilmi|natijaga\s+ishonsam\s+bo'ladimi)[\s?!.,]*$/i;
 const QR_OPEN_RE =
   /(?:можно|безопасно|стоит)\s+(?:открыть|сканировать|перейти).{0,25}qr|qr.{0,25}(?:можно|безопасно|открыть|сканировать|перейти)/i;
 const NEXT_STEPS_RE =
   /(?:что\s+(?:делать|дальше|посоветуешь)|что\s+мне\s+делать|как\s+(?:поступить|быть)|какой\s+следующий\s+шаг|что\s+еще|что\s+ещё|what\s+(?:should\s+i\s+do|next)|next\s+step|nima\s+qilay|keyin\s+nima|qanday\s+qilay)/i;
 const CONTACTS_RE =
-  /(?:дай|покажи|нужен|нужны|куда|как)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq)/i;
+  /(?:(?:дай|покажи|нужен|нужны|куда)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|как\s+.{0,20}(?:позвонить|связаться|найти)\s*.{0,20}(?:банк|служб|номер|контакт)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq))/i;
 const REPORT_CONTEXT_RE =
   /(?:пожаловаться|заявлен|полици|102|куда\s+звонить\s+если|обманул|обманули|мошен|скам|report|police|fraud|scam|shikoyat|aldadi|firib)/i;
 const SIMPLE_EXPLAIN_RE =
@@ -42,15 +43,40 @@ const AI_ORIGIN_RE =
 const CONFIRMATION_REQUEST_RE =
   /(?:попросил[аи]?|попросили|просят|просит|сказал[аи]?|нужно|надо|требу(?:ет|ют))\s+.{0,40}(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)|(?:подтвержден(?:ие|ия)|подтвердить|подтверждать)\s+.{0,40}(?:попросил[аи]?|попросили|просят|просит|нужно|надо|требу(?:ет|ют)|операци[яю]|вход)|(?:asked|asks|asking|need|needs)\s+.{0,40}(?:confirm|confirmation|verify|verification)|(?:confirm|confirmation|verify)\s+.{0,40}(?:operation|login|account)|(?:tasdiq|tasdiqlash)/i;
 const ACKNOWLEDGEMENT_RE =
-  /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо))?|ок(?:ей)?|спасибо|благодарю|рахмат|rahmat|tushunarli|yaxshi|qilaman|qildim|ok|okay|thanks|thank\s+you)[\s.!?]*$/i;
+  /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо|благодарю))?|ок(?:ей)?|спасибо(?:\s+за\s+помощь)?(?:[,\s]+(?:понял[а]?|понятно))?|благодарю|рахмат|rahmat(?:[,\s]+(?:tushundim|tushunarli))?|yordam(?:ingiz)?\s+uchun\s+rahmat|tushunarli(?:[,\s]+rahmat)?|yaxshi|qilaman|qildim|ok|okay(?:[,\s]+(?:thank\s+you|thanks?))?|thanks?(?:\s+for\s+(?:(?:your|the)\s+)?help)?(?:[,\s]+(?:got\s+it|understood))?|thank\s+you)[\s.!?]*$/i;
 const IDENTITY_RE =
   /^(?:(?:а\s+)?(?:вы|ты)\s+кто|кто\s+(?:вы|ты)|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz|sen\s+kimsan|nima\s+qila\s+olasan)[\s?!.,]*$/i;
 const EXTENDED_CONFIDENCE_RE =
   /(?:ты|вы)\s+(?:действительно\s+|реально\s+|точно\s+)?(?:в\s+этом\s+)?уверен[аы]?|(?:are\s+you|you(?:'re|\s+are))\s+(?:really\s+|absolutely\s+)?sure(?:\s+about\s+(?:it|that|this))?|siz\s+(?:bunga\s+)?(?:aniq\s+)?ishonasizmi/i;
 const METHODOLOGY_RE =
-  /(?:как(?:им\s+образом)?\s+.{0,40}(?:проверил|проверили|определил|посчитал)|(?:проверил|проверили)\s+.{0,40}(?:как|образом|метод)|почему\s+.{0,40}(?:домен|ссылка|номер|аккаунт)\s+.{0,60}(?:подозр|опасн|риск).{0,60}(?:провер|метод|образ)|какие\s+источники\s+(?:ты|вы)\s+использовал[и]?|how\s+(?:did|do)\s+you\s+(?:check|verify|decide|determine)|what\s+(?:method|source)s?\s+did\s+you\s+use|which\s+sources?\s+did\s+you\s+use|qanday\s+.{0,40}(?:tekshir|aniqla)|nima\s+asosida\s+.{0,40}(?:tekshir|aniqla))/i;
+  /(?:как(?:им\s+образом)?\s+.{0,40}(?:проверил|проверили|определил|посчитал)|(?:проверил|проверили)\s+.{0,40}(?:как|образом|метод)|почему\s+.{0,40}(?:домен|ссылка|номер|аккаунт)\s+.{0,60}(?:подозр|опасн|риск).{0,60}(?:провер|метод|образ)|какие\s+источники\s+(?:ты|вы)\s+использовал[и]?|откуда\s+(?:такой|этот)\s+вывод|на\s+ч[её]м\s+основан(?:ы|а|о)?\s+(?:этот\s+)?(?:результат|вывод|оценка)|(?:ты|вы)\s+(?:реально|действительно)\s+проверял[аи]?\s+(?:эту\s+|этот\s+)?(?:ссылку|домен|номер)|how\s+(?:did|do)\s+you\s+(?:check|verify|decide|determine)|what\s+(?:method|source)s?\s+did\s+you\s+use|which\s+sources?\s+did\s+you\s+use|what\s+evidence\s+did\s+you\s+use|what\s+(?:is|was)\s+(?:this|that|the\s+(?:result|answer|verdict))\s+based\s+on|did\s+you\s+(?:actually|really)\s+(?:check|verify)\s+(?:the|this)\s+(?:link|domain|number)|why\s+did\s+you\s+flag\s+(?:the|this)\s+(?:domain|link|number)|qanday\s+.{0,40}(?:tekshir|aniqla)|nima\s+asosida\s+.{0,40}(?:tekshir|aniqla)|bu\s+nimaga\s+asoslangan|qaysi\s+dalil(?:lar)?dan\s+foydalandingiz|(?:havola|domen|raqam)ni\s+(?:rostdan|haqiqatan)\s+tekshirdingizmi)/i;
+const SHORT_DOMAIN_METHODOLOGY_RE =
+  /^(?:почему\s+(?:(?:ты|вы)\s+)?(?:(?:счита(?:ешь|ете)|посчитал(?:а|и)?)\s+)?(?:этот\s+)?домен\s+(?:подозрительн[а-яё]*|опасн[а-яё]*|рискованн[а-яё]*)|why\s+(?:(?:(?:do|did)\s+you\s+(?:consider|think|mark|flag)\s+)|(?:(?:is|was)\s+))?(?:this\s+|the\s+)?domain(?:\s+(?:is|was|as|to\s+be))?\s+(?:suspicious|risky|dangerous)|nega\s+(?:bu\s+)?domen(?:ni)?\s+(?:shubhali|xavfli|xatarli)(?:\s+deb\s+(?:hisobla(?:dingiz|ysan)|o['’]?yla(?:dingiz|ysan)))?)[\s.!?]*$/iu;
+const DOMAIN_METHODOLOGY_FOCUS_RE = /(?:домен|domain|domen)/iu;
+const CONTEXTUAL_METHODOLOGY_RE =
+  /(?:как\s+(?:(?:ты|вы)\s+)?(?:проверяешь|определяешь|решаешь|анализируешь)|по\s+каким\s+признакам|расскажи.{0,30}как.{0,30}анализируешь|how\s+do\s+you\s+analy[sz]e|what\s+signs?\s+do\s+you\s+use\s+to\s+decide|tell\s+me\s+how\s+you\s+analy[sz]e|qanday.{0,70}(?:tekshir|aniqla|qaror|tahlil)|ma['’]?lumotni.{0,30}qanday.{0,30}tahlil)/iu;
+const RESULT_BASIS_METHODOLOGY_RE =
+  /^what\s+(?:is|was)\s+(?:this|that)\s+(?:result|answer|verdict)\s+based\s+on[\s?!.,]*$/iu;
+const NATURAL_RESULT_METHODOLOGY_RE =
+  /^(?:какие\s+признаки\s+(?:(?:ты|вы)\s+)?увидел[аи]?|(?:(?:ты|вы)\s+)?(?:вообще\s+)?это\s+проверял[аи]?(?:\s+каким[-\s]?то\s+образом)?|как\s+(?:(?:ты|вы)\s+)?приш[её]л(?:и)?\s+к\s+этой\s+оценке|qaysi\s+belgilarni\s+ko['’]?rdingiz|buni\s+biror\s+usul\s+bilan\s+tekshirdingizmi|bu\s+bahoga\s+qanday\s+keldingiz|what\s+signs\s+did\s+you\s+notice|did\s+you\s+actually\s+check\s+it\s+in\s+(?:some|any)\s+way|how\s+did\s+you\s+arrive\s+at\s+this\s+rating)[\s?!.,]*$/iu;
+const NATURAL_RESULT_EXPLAIN_RE =
+  /^(?:с\s+чего\s+(?:(?:ты|вы)\s+)?сделал[аи]?\s+(?:такой\s+)?вывод|bu\s+xulosaga\s+nimaga\s+asoslanib\s+keldingiz|what\s+made\s+you\s+reach\s+that\s+conclusion)[\s?!.,]*$/iu;
+const CONTEXTUAL_EXPLAIN_RE =
+  /^(?:nima\s+uchun(?:\s+.{1,120})?|xavfni.{0,40}tushuntir(?:ing)?|natijani.{0,40}tushuntir(?:ib)?(?:\s+bering)?|bu\s+bahoni.{0,40}izohla(?:b)?(?:\s+bering)?)[\s.!?]*$/iu;
+const PROCEDURAL_CHECK_RE =
+  /^(?:как\s+проверить\s+(?:номер|ссылку)|how\s+do\s+i\s+check\s+(?:a\s+)?(?:number|link)|(?:raqamni|havolani)\s+qanday\s+tekshirish\s+mumkin)[\s.!?]*$/iu;
+const DOMAIN_METHODOLOGY_REASONS = new Set<ReasonCode>([
+  "weird_domain",
+  "brand_name_typo",
+  "suspicious_short_link",
+  "apk_download_link",
+  "hosted_app_platform",
+  "external_phishing_url",
+  "external_malware_url",
+  "brand_impersonation",
+]);
 const TRUSTED_PERSON_RE =
-  /(?:(?:могу|можно|стоит|лучше)\s+.{0,35}(?:связаться|позвонить|поговорить|посоветоваться|показать)\s+.{0,35}(?:близк|родствен|друг|семь|мам|пап|родител)|(?:близк|родствен|друг|семь|мам|пап|родител)\w*\s+.{0,35}(?:позвон|связ|поговор|показ)|can\s+i\s+(?:call|contact|talk\s+to|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+i\s+trust|a\s+trusted\s+person|my\s+(?:family|friend|relative|mother|mom|father|parents?))|(?:call|contact|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+you\s+trust|a\s+trusted\s+person)|yaqin\s+odam\w*\s+bilan\s+.{0,30}(?:bog['’]?lan|gaplash|maslahat)|ishonchli\s+odam\w*\s+.{0,30}(?:qo['’]?ng['’]?iroq|bog['’]?lan|gaplash))/i;
+  /(?:(?:могу|можно|стоит|лучше)\s+.{0,35}(?:связаться|позвонить|поговорить|посоветоваться|показать|спросить)\s+.{0,35}(?:близк|родствен|друг|семь|мам|пап|родител|муж(?:а|у|ем)?|жен(?:а|у|е|ой|ы)|сын(?:а|у|ом)?|доч(?:ь|ери|ерью)?)|(?:связаться|позвонить|поговорить|посоветоваться|показать|спросить)\s+.{0,35}(?:близк|родствен|друг|семь|мам|пап|родител|муж(?:а|у|ем)?|жен(?:а|у|е|ой|ы)|сын(?:а|у|ом)?|доч(?:ь|ери|ерью)?)|(?:близк|родствен|друг|семь|мам|пап|родител)\w*\s+.{0,35}(?:позвон|связ|поговор|показ|спрос)|can\s+i\s+(?:call|contact|talk\s+to|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+(?:i\s+trust|close\s+to\s+me)|a\s+trusted\s+person|my\s+(?:family|friend|relative|mother|mom|father|parents?|husband|wife|spouse|daughter|son|child))|should\s+i\s+(?:call|contact|ask|show\s+(?:this\s+)?to)\s+my\s+(?:family|friend|relative|mother|mom|father|parents?|husband|wife|spouse|daughter|son|child)|(?:call|contact|ask|show\s+(?:this\s+)?to)\s+(?:someone\s+you\s+trust|a\s+trusted\s+person)|yaqin\s+odam\w*\s+bilan\s+.{0,30}(?:bog['’]?lan|gaplash|maslahat)|yaqin\s+odam\w*dan\s+.{0,20}so['’]?rasam\s+(?:bo['’]?ladimi|mumkinmi)|ishonchli\s+odam\w*\s+.{0,30}(?:qo['’]?ng['’]?iroq|bog['’]?lan|gaplash)|(?:turmush\s+o['’]?rtog['’]?im|erim|xotinim|qizim|o['’]?g['’]?lim|farzandim|yaqinim).{0,20}(?:so['’]?rasam|qo['’]?ng['’]?iroq\s+qilsam|ko['’]?rsatsam|gaplashsam|maslahatlashsam).{0,15}(?:bo['’]?ladimi|mumkinmi))/i;
 const RECHECK_RE =
   /^(?:(?:а\s+)?можешь\s+перепроверить|перепроверь(?:те)?(?:\s+(?:ещ[её]\s+раз|заново|повторно))?|проверь(?:те)?\s+(?:это\s+)?(?:ещ[её](?:\s+раз)?|заново|повторно)|повтори(?:те)?\s+проверку|can\s+you\s+double[-\s]?check(?:\s+(?:it|this|that))?|check\s+(?:it|this|that)\s+again|recheck(?:\s+it)?|run\s+the\s+check\s+again|yana\s+bir\s+marta\s+tekshir(?:ing)?|qayta\s+tekshir(?:ing)?)[\s.!?]*$/i;
 const DISAGREEMENT_RE =
@@ -61,11 +87,59 @@ const NEW_SCAM_REQUEST_RE =
 const NEW_PERSONAL_DATA_REQUEST_RE =
   /(?:(?:просят|просит|попросил[аи]?|требуют|требует|нужно|надо).{0,100}(?:отправить|прислать|показать|дать|сообщить)?.{0,40}(?:паспорт|фото\s+(?:паспорта|документ)|документ|удостоверени|id.?карт|пинфл|инн|дат[ау]\s+рождения|адрес|пропис)|(?:asks?|asked|wants?|requires?|told\s+me).{0,100}(?:send|share|show|provide)?.{0,40}(?:passport|document\s+photo|photo\s+of\s+(?:my\s+)?id|id\s+card|personal\s+data|date\s+of\s+birth|address)|(?:so['’]?(?:rayapti|radi)|talab|aytdi).{0,100}(?:yubor|ber|ko['’]?rsat)?.{0,40}(?:pasport|hujjat|jshshir|tug['’]?ilgan|manzil)|(?:passport|pasport|паспорт|id\s+card|id.?карт|пинфл|jshshir|hujjat).{0,100}(?:send|share|provide|yubor|jo['’]?nat|отправ|присл|показ|сообщ|просят|просит|so['’]?(?:rayapti|radi)))/iu;
 
+// Follow-up wording is never allowed to hide a fresh, high-confidence danger
+// that the production rules already detected in the original message. Keep
+// broad context-only signals (for example urgency or a bank mention) out of
+// this set so legitimate questions such as "what should I do right now?" stay
+// attached to the recent result.
+const FRESH_CHECK_RISK_REASONS = new Set<ReasonCode>([
+  "asks_for_otp",
+  "asks_for_sms_code",
+  "asks_for_card_cvv",
+  "asks_for_pin",
+  "asks_to_install_apk",
+  "asks_to_share_screen",
+  "asks_to_transfer_to_safe_account",
+  "threatens_legal_action",
+  "asks_not_to_hang_up",
+  "fake_loan_offer",
+  "payment_before_service",
+  "too_good_to_be_true",
+  "requests_personal_data",
+  "asks_to_scan_qr",
+  "relative_in_distress",
+  "requests_card_digits",
+  "threatens_account_block",
+  "fake_delivery_payment",
+  "fake_boss_request",
+  "malicious_file_bait",
+  "gambling_prediction_promo",
+  "giveaway_engagement_bait",
+  "crypto_casino_bonus_funnel",
+  "fake_captcha_or_voting",
+  "task_reward_engagement_bait",
+  "wallet_action_urgency",
+  "ton_referral_earning_scheme",
+  "investment_fast_profit_pitch",
+  "romance_investment_pivot",
+  "oneid_government_phishing",
+  "sim_swap_or_number_transfer",
+  "money_mule_recruitment",
+  "advance_fee_prize_inheritance",
+  "telegram_account_takeover_phishing",
+  "dropper_recruitment",
+]);
+
+function hasFreshDeterministicRisk(text: string): boolean {
+  return evaluateText(text).some((reason) => FRESH_CHECK_RISK_REASONS.has(reason));
+}
+
 function hasNewCheckPayload(text: string): boolean {
   return (
     hasConcreteArtifact(text) ||
     NEW_SCAM_REQUEST_RE.test(text) ||
-    NEW_PERSONAL_DATA_REQUEST_RE.test(text)
+    NEW_PERSONAL_DATA_REQUEST_RE.test(text) ||
+    hasFreshDeterministicRisk(text)
   );
 }
 
@@ -301,8 +375,11 @@ export function classifyLastCheckFollowUp(
   scenarioData: ReportDraft | undefined,
   now = new Date(),
 ): LastCheckFollowUpAction | null {
-  const trimmed = text.trim();
-  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
+  const original = text.trim();
+  if (!original || hasNewCheckPayload(original)) return null;
+  const trimmed = stripConversationWrappers(original);
+  if (!trimmed) return null;
+  if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
 
   const snapshot = scenarioData?.lastCheck;
   if (!snapshot || !isRecent(snapshot, now)) return null;
@@ -313,14 +390,27 @@ export function classifyLastCheckFollowUp(
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
-  if (METHODOLOGY_RE.test(trimmed)) return "methodology";
+  if (
+    METHODOLOGY_RE.test(trimmed) ||
+    SHORT_DOMAIN_METHODOLOGY_RE.test(trimmed) ||
+    CONTEXTUAL_METHODOLOGY_RE.test(trimmed) ||
+    RESULT_BASIS_METHODOLOGY_RE.test(trimmed) ||
+    NATURAL_RESULT_METHODOLOGY_RE.test(trimmed)
+  ) {
+    return "methodology";
+  }
   if (TRUSTED_PERSON_RE.test(trimmed)) return "trusted_person";
   if (RECHECK_RE.test(trimmed)) return "recheck";
   if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
-  if (EXPLAIN_RE.test(trimmed)) return "explain";
+  if (
+    EXPLAIN_RE.test(trimmed) ||
+    CONTEXTUAL_EXPLAIN_RE.test(trimmed) ||
+    NATURAL_RESULT_EXPLAIN_RE.test(trimmed)
+  )
+    return "explain";
   if (
     CONFIDENCE_RE.test(trimmed) ||
     EXTENDED_CONFIDENCE_RE.test(trimmed) ||
@@ -333,22 +423,38 @@ export function classifyLastCheckFollowUp(
 }
 
 export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpAction | null {
-  const trimmed = text.trim();
-  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
+  const original = text.trim();
+  if (!original || hasNewCheckPayload(original)) return null;
+  const trimmed = stripConversationWrappers(original);
+  if (!trimmed) return null;
+  if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
 
   const goldenAction = classifyGoldenFollowUpPhrase(trimmed);
   if (goldenAction && goldenAction !== "acknowledgement") return goldenAction;
 
   if (IDENTITY_RE.test(trimmed)) return "identity";
   if (AI_ORIGIN_RE.test(trimmed)) return "ai_origin";
-  if (METHODOLOGY_RE.test(trimmed)) return "methodology";
+  if (
+    METHODOLOGY_RE.test(trimmed) ||
+    SHORT_DOMAIN_METHODOLOGY_RE.test(trimmed) ||
+    CONTEXTUAL_METHODOLOGY_RE.test(trimmed) ||
+    RESULT_BASIS_METHODOLOGY_RE.test(trimmed) ||
+    NATURAL_RESULT_METHODOLOGY_RE.test(trimmed)
+  ) {
+    return "methodology";
+  }
   if (TRUSTED_PERSON_RE.test(trimmed)) return "trusted_person";
   if (RECHECK_RE.test(trimmed)) return "recheck";
   if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
-  if (EXPLAIN_RE.test(trimmed)) return "explain";
+  if (
+    EXPLAIN_RE.test(trimmed) ||
+    CONTEXTUAL_EXPLAIN_RE.test(trimmed) ||
+    NATURAL_RESULT_EXPLAIN_RE.test(trimmed)
+  )
+    return "explain";
   if (
     CONFIDENCE_RE.test(trimmed) ||
     EXTENDED_CONFIDENCE_RE.test(trimmed) ||
@@ -360,8 +466,10 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
 }
 
 export function classifyAcknowledgementFollowUp(text: string): "acknowledgement" | null {
-  const trimmed = text.trim();
-  if (!trimmed || hasNewCheckPayload(trimmed)) return null;
+  const original = text.trim();
+  if (!original || hasNewCheckPayload(original)) return null;
+  const trimmed = stripConversationWrappers(original);
+  if (!trimmed) return null;
   if (classifyGoldenFollowUpPhrase(trimmed) === "acknowledgement") return "acknowledgement";
   return ACKNOWLEDGEMENT_RE.test(trimmed) ? "acknowledgement" : null;
 }
@@ -405,7 +513,7 @@ function bankContacts(lang: Lang): string {
 function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.level === "high_risk") {
-      return "Men buni xavfli holatdek qabul qilgan bo'lardim.\n\nHozir:\n1. Suhbatni to'xtating.\n2. SMS-kod, karta, parol yoki login bermang.\n3. Bankka faqat rasmiy raqam orqali qo'ng'iroq qiling.\n\nAgar bu xato bo'lsa ham, bu qadamlar sizga zarar qilmaydi.";
+      return "Men buni xavfli holatdek qabul qilgan bo'lardim.\n\nHozir:\n1. Suhbatni to'xtating.\n2. SMS-kod, karta, parol yoki login bermang.\n3. Tashkilot yoki odamni rasmiy ilova, sayt yoki saqlangan raqam orqali o'zingiz tekshiring.\n\nAgar bu xato bo'lsa ham, bu qadamlar sizga zarar qilmaydi.";
     }
     if (snapshot.context === "image_unreadable") {
       return "Bu rasm bo'yicha aniq ayta olmayman: matn yoki QR ishonchli o'qilmadi.\n\nMen xavfni o'ylab topmayman. Aniq tekshirish uchun SMS/chat matnini, QR ochadigan havolani yoki sizdan nima so'rashganini yuboring.";
@@ -427,7 +535,7 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
 
   if (lang === "en") {
     if (snapshot.level === "high_risk") {
-      return "I would treat this as risky.\n\nRight now:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, passwords, or logins.\n3. Call your bank only using an official number.\n\nEven if it turns out to be harmless, these steps do not hurt you.";
+      return "I would treat this as risky.\n\nRight now:\n1. Stop the conversation.\n2. Do not share SMS codes, card data, passwords, or logins.\n3. Verify the organization or person yourself through the official app, website, or a saved number.\n\nEven if it turns out to be harmless, these steps do not hurt you.";
     }
     if (snapshot.context === "image_unreadable") {
       return "I cannot be sure from that image: the text or QR was not readable enough.\n\nI will not invent a risk from a blurry picture. For a precise check, send the SMS/chat text, the link opened by the QR, or what they ask you to do.";
@@ -448,7 +556,7 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
   }
 
   if (snapshot.level === "high_risk") {
-    return "Я бы действовал как при реальном риске.\n\nСейчас:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту, пароль или логин.\n3. Перезвоните в банк только по официальному номеру.\n\nДаже если тревога окажется ложной, эти шаги вам не навредят.";
+    return "Я бы действовал как при реальном риске.\n\nСейчас:\n1. Остановите разговор.\n2. Не сообщайте SMS-код, карту, пароль или логин.\n3. Проверьте организацию или человека сами — через официальное приложение, сайт или сохранённый номер.\n\nДаже если тревога окажется ложной, эти шаги вам не навредят.";
   }
   if (snapshot.context === "image_unreadable") {
     return "По этой картинке я не могу сказать точно: текст или QR не прочитались достаточно надёжно.\n\nЯ не буду выдумывать риск по мутному скрину. Для точной проверки пришлите текст из SMS/чата, ссылку, которая открывается по QR, или коротко: что вас просят сделать.";
@@ -476,20 +584,46 @@ function methodologyText(snapshot: LastCheckSnapshot, lang: Lang): string {
 
   if (lang === "uz") {
     if (!presented) {
-      return "Oldingi natija ko'rinadigan ma'lumotdagi deterministik xavf qoidalariga asoslangan. Aniq xavf sababi saqlanmagan, shuning uchun usulni o'ylab topmayman.\n\nAniq qayta tekshirish uchun link, matn yoki skrinshotni yana yuboring.";
+      return "Oldingi natija faqat siz yuborgan ko'rinadigan ma'lumotga asoslangan. Aniq xavf sababi saqlanmagan, shuning uchun qanday tekshirilganini o'ylab topmayman.\n\nAniq qayta tekshirish uchun link, matn yoki skrinshotni yana yuboring.";
     }
     return `Oldingi natijani shunday oldim:\n${presented.evidence}\n\nCheklov: ${presented.limitation}\n\nMen yashirin egani yoki yuboruvchi shaxsini tekshirmadim; faqat ko'rinadigan ma'lumot va ko'rsatilgan manbadan foydalandim.`;
   }
   if (lang === "en") {
     if (!presented) {
-      return "The previous result used deterministic risk rules on visible submitted data. No specific risk reason was retained, so I will not invent a method.\n\nFor a precise recheck, send the link, text, or screenshot again.";
+      return "The previous result used only the visible information you sent. No specific risk reason was retained, so I will not invent how it was checked.\n\nFor a precise recheck, send the link, text, or screenshot again.";
     }
     return `How I got the previous result:\n${presented.evidence}\n\nLimitation: ${presented.limitation}\n\nI did not verify a hidden owner or sender identity; I used only visible submitted data and the stated source.`;
   }
   if (!presented) {
-    return "Прошлый результат основан на детерминированных правилах риска по видимым данным. Конкретная причина риска не сохранилась, поэтому я не буду придумывать метод.\n\nДля точной перепроверки пришлите ссылку, текст или скриншот заново.";
+    return "Прошлый результат основан только на видимых данных, которые вы прислали. Конкретная причина риска не сохранилась, поэтому я не буду придумывать, как именно это проверялось.\n\nДля точной перепроверки пришлите ссылку, текст или скриншот заново.";
   }
   return `Вот как я получил прошлый результат:\n${presented.evidence}\n\nОграничение: ${presented.limitation}\n\nЯ не проверял скрытого владельца или личность отправителя — использовал только видимые данные и указанный источник.`;
+}
+
+function domainMethodologyText(snapshot: LastCheckSnapshot, lang: Lang): string {
+  const domainReasons = (snapshot.reasons ?? []).filter(
+    (reason): reason is ReasonCode =>
+      DOMAIN_METHODOLOGY_REASONS.has(reason as ReasonCode) && reason in INLINE_REASON_POLICY,
+  );
+  const presented = snapshot.type === "url" ? presentInlineReason(domainReasons, lang) : null;
+
+  if (!presented) {
+    if (lang === "uz") {
+      return "Saqlangan oldingi natijada domen alohida xavf sababi bo'lmagan. Shuning uchun uni tekshirib, shubhali deb topgandek ko'rsatmayman.\n\nDomenni tekshirish uchun manzilni to'liq yana yuboring.";
+    }
+    if (lang === "en") {
+      return "The saved previous result did not contain a domain-specific risk reason. I will not pretend that I checked the domain and found it suspicious.\n\nSend the full address again if you want the domain checked.";
+    }
+    return "В сохранённом прошлом результате домен не был отдельной причиной риска. Я не буду делать вид, что проверил домен и признал его подозрительным.\n\nЧтобы проверить именно домен, пришлите адрес целиком ещё раз.";
+  }
+
+  if (lang === "uz") {
+    return `Domen bo'yicha saqlangan sabab:\n${presented.evidence}\n\nCheklov: ${presented.limitation}\n\nBu belgi xavfni oshiradi, lekin o'zi domen egasi firibgar ekanini isbotlamaydi.`;
+  }
+  if (lang === "en") {
+    return `The saved domain-specific reason was:\n${presented.evidence}\n\nLimitation: ${presented.limitation}\n\nThis signal raises risk, but by itself it does not prove that the domain owner is a scammer.`;
+  }
+  return `Сохранённая причина именно по домену:\n${presented.evidence}\n\nОграничение: ${presented.limitation}\n\nЭтот признак повышает риск, но сам по себе не доказывает, что владелец домена — мошенник.`;
 }
 
 function trustedPersonText(lang: Lang): string {
@@ -1015,11 +1149,15 @@ export function buildLastCheckFollowUpText(
   action: LastCheckFollowUpAction,
   snapshot: LastCheckSnapshot,
   lang: Lang,
+  userText?: string,
 ): string {
   switch (action) {
     case "confidence":
       return confidenceText(snapshot, lang);
     case "methodology":
+      if (userText && DOMAIN_METHODOLOGY_FOCUS_RE.test(stripConversationWrappers(userText))) {
+        return domainMethodologyText(snapshot, lang);
+      }
       return methodologyText(snapshot, lang);
     case "trusted_person":
       return trustedPersonText(lang);

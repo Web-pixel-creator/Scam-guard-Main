@@ -282,19 +282,18 @@ describe("handleVoice", () => {
     expect(joined).not.toContain("Закрытый канал");
   });
 
-  it("checks corrected voice text without another STT call", async () => {
+  it("routes corrected voice text with a code request to protective local guidance", async () => {
     await handleCheck("corrected voice transcript asks for SMS code", ctx());
 
     expect(hoisted.getFile).not.toHaveBeenCalled();
     expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
     expect(hoisted.checkSharedRateLimit).not.toHaveBeenCalled();
     expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
-    expect(hoisted.runCheck).toHaveBeenCalledWith(
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: "corrected voice transcript asks for SMS code",
-        lang: "ru",
-        rateLimitKey: "tg:42",
-        channel: "telegram",
+        chatId: 100,
+        text: expect.stringContaining("Код никому не называйте"),
       }),
     );
   });
