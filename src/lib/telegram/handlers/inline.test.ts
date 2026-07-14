@@ -205,6 +205,31 @@ describe("handleInlineQuery", () => {
     expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "x".repeat(256) });
   });
 
+  it.each([1, 255])("preserves a %i-character inline query below the boundary", async (length) => {
+    const query = "я".repeat(length);
+
+    await handleInlineQuery(query, { userId: 42, session }, `iq-length-${length}`);
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ input: query });
+  });
+
+  it("counts astral Unicode input as characters instead of UTF-16 code units", async () => {
+    const accepted = "🙂".repeat(256);
+
+    await handleInlineQuery(accepted, { userId: 42, session }, "iq-unicode-max");
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ input: accepted });
+
+    hoisted.runCheckCalls.length = 0;
+    hoisted.answerCalls.length = 0;
+    await handleInlineQuery("🙂".repeat(257), { userId: 42, session }, "iq-unicode-too-long");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.answerCalls[0].results[0]).toMatchObject({ id: "too-long" });
+  });
+
   it("reports a Bot API answer failure without logging the query or result", async () => {
     hoisted.nextAnswerResult = {
       ok: false,

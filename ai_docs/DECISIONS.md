@@ -2,6 +2,16 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-081 - Inline release evidence follows the observable boundary
+
+Real Telegram clients prove preview rendering, insertion, language/layout,
+0/1/255/256-character input and visible privacy. Handler/API tests prove states
+that clients may prevent or cannot safely force: 257-character rejection,
+timeout, `{ok:false}`, entity-parse plaintext retry, zero persistence and zero
+external fetch. Production networking is never broken to manufacture a client
+screenshot. The bounded client pack is 17 cases on each of Desktop, Android and
+iOS (51 rows); it complements rather than repeats the 3,805-case offline corpus.
+
 ## D-080 - Conversational QA is deterministic, typed and offline
 
 Human-style dialogue corpora exercise the same production classifiers,

@@ -197,6 +197,13 @@
   check is rules-only/non-persistent. This closes only the automated corpus
   sub-gate; Desktop/Android/iOS preview, insertion, truncation, retry, timeout,
   privacy and language evidence remains release blocking.
+  2026-07-14 follow-up hardening counts the 256-character input boundary by
+  Unicode code points instead of JavaScript UTF-16 code units, so astral
+  characters such as emoji are not rejected at half the documented boundary.
+  `qa:telegram-inline-client-matrix` now emits the exact 17-case client pack;
+  run it on Desktop/Android/iOS for 51 rows. The 257-character, timeout,
+  `ok:false` and entity-parse retry branches stay automated-only because a
+  normal client may prevent or cannot safely force those states.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad

@@ -16,6 +16,7 @@
     "qa:qr-decode": "vite-node scripts/qr-decode-local.ts",
     "qa:telegram-report": "vite-node scripts/telegram-bot-qa-report.ts",
     "qa:telegram-visual": "vite-node scripts/telegram-bot-qa-visual.ts",
+    "qa:telegram-inline-client-matrix": "vite-node scripts/telegram-inline-client-matrix.ts",
     "monitor:prod": "vite-node scripts/prod-monitor.ts",
     "telegram:switch-to-polling": "vite-node scripts/switch-telegram-to-polling.ts",
     "prod:smoke": "vite-node scripts/prod-smoke.ts",
