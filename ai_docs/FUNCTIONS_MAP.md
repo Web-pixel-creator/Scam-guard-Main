@@ -586,6 +586,11 @@ instead of receiving misleading phone or Telegram-profile instructions.
   worker corpus/resource/crash harness; the Docker build ships it at
   `dist/ops/qr-worker-resource-soak.mjs` together with only the three runtime QR
   decoder packages.
+- `scripts/shared-rate-limit-failure-smoke.ts`: short-lived production-image
+  probe for config/hash/RPC/shape/transport failure and real `runCheck` 429
+  ordering. Its strict process-local fetch replacement permits only the
+  synthetic `claim_rate_limit` path, so it cannot call an external sink or
+  write production data.
 - `scripts/prod-monitor-policy.ts`: `skippedSecretMonitorCheck()` converts a
   missing secret into `fail` when that check is required, otherwise `warn`;
   `shouldFailMonitor()` makes every failed check fatal independently of the

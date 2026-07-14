@@ -41,7 +41,7 @@
   with one approved QA update remains open, and the system is not claimed to
   provide exactly-once delivery.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
-- **Shared rate-limit degraded mode is fixed locally.** Public checks, reports,
+- **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
   fetches use Supabase `rate_limit_buckets` with HMAC-hashed keys across Node
   instances. The reproducer showed RPC failure granting a new process-local
@@ -50,9 +50,14 @@
   invalid response. Dev/test fallback is capped at 4096 TTL/LRU keys, denies
   new identities at capacity and rate-limits full cleanup. Focused degraded-
   policy/cap tests pass 13/13, owning consumers pass 534/534 and the repository
-  suite passes 2652/2652. Railway forced-failure smoke and Postgres bucket-volume
-  observation remain open; Redis/KV is not required unless those measurements
-  show the database path cannot meet the agreed budget.
+  suite passes 2652/2652. PRs #96/#97 and exact main `00f3b11d` added and
+  deployed an isolated six-case Railway runtime probe for missing config, hash
+  exception, RPC error, invalid shape, transport error and real-consumer 429
+  ordering. It passed with zero external calls, writes or unexpected sinks;
+  post-probe production smoke passed and a count-only observation found zero
+  total/live/expired buckets. `RES-003` and `SG-P0-005` are closed. Continue
+  bucket-volume/degraded-429 monitoring; Redis/KV is unnecessary unless later
+  measurements show the database path cannot meet the agreed budget.
 - **Windows Vite/toolchain exposure is fixed locally.** The starting npm graph
   reported seven findings (one high) and the canonical Bun graph later exposed
   two additional transitive findings. Vite is pinned to 7.3.6, esbuild to
