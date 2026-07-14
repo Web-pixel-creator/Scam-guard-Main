@@ -60,12 +60,13 @@ After completion the isolated `tmux` session was deleted and public
 
 This is a deterministic failure-model and resource test. It is not evidence of
 exactly-once Telegram delivery, a physical container restart, a real Bot API
-update, or execution of the QR decoder. The following remain open:
+update, or execution of the QR decoder. At the time of this run the QR corpus
+and worker-recovery checks were still open; they passed later on 2026-07-14 and
+are recorded separately in `QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
+
+The following remains open for `RES-004`:
 
 1. restart the Railway instance in an approved window and capture polling-leader
    re-election, empty pending queue and one approved QA update with no duplicate
    reply;
-2. run a legitimate PNG/JPEG/QR corpus against the real worker and record
-   CPU/RSS/event-loop/latency results;
-3. terminate and restart the QR worker under load and prove bounded recovery;
-4. retain only sanitized counts and timings in release evidence.
+2. retain only sanitized counts and timings in release evidence.

@@ -15,7 +15,7 @@ not be relabelled as complete based only on unit tests or synthetic traffic.
 Current tracker summary:
 
 - Features: 72 Implemented, 1 Partial, 0 Planned.
-- Release gates: 12 Passed, 16 In Progress, 18 Blocked, 5 Deferred.
+- Release gates: 14 Passed, 15 In Progress, 17 Blocked, 5 Deferred.
 - Current security queue: 0 Open, 1 In Progress, 30 Deployed / Awaiting Live
   Verification, 4 Closed.
 
@@ -28,6 +28,11 @@ Current tracker summary:
   known vulnerabilities.
 - Coverage gates pass: 82.85% statements, 76.99% branches, 89.29% functions and
   84.71% lines.
+- The later PR #94 application/database/security pipelines pass with 8,591 tests.
+  Exact main `f1ddf349` is deployed as Railway `09f984bd`, image
+  `sha256:abbba9cf`; the production QR runtime modules and ten-minute
+  corpus/resource/crash/recovery profile pass. `RES-001` and `RES-002` are
+  closed as Passed.
 - CodeQL, full-history Gitleaks, release-container Trivy and Supabase
   migrations/schema lint/pgTAP pass. Trivy reports 0 fixed High/Critical OS or
   library findings.
@@ -122,9 +127,11 @@ tested failure model.
 with 36,000/36,000 completed, zero loss/duplicates, maximum queue 35, maximum
 RSS 101.41 MiB and event-loop p99 21.84 ms. No external service or database was
 called. The exit is still incomplete until an actual Railway instance restart
-and leader re-election handles one approved QA update without a duplicate reply;
-the legitimate QR-worker corpus and worker crash/restart checks also remain.
-See `POLLING_RESOURCE_SOAK_2026-07-14.md`.
+and leader re-election handles one approved QA update without a duplicate reply.
+The separate ten-minute QR-worker corpus and worker crash/recovery sub-gate has
+now passed: 5,055 cases, zero failures, queue 4/1, max RSS 234.60 MiB and
+event-loop p99 21.04 ms. See `POLLING_RESOURCE_SOAK_2026-07-14.md` and
+`QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
 
 ### 5. Backup, restore, rollback and key rotation — P2 operational gate
 
