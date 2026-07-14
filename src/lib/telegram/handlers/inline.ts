@@ -1,4 +1,5 @@
 import type { Lang } from "@/lib/i18n";
+import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { maskForDisplay } from "@/lib/risk/detect";
 import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
@@ -78,6 +79,47 @@ type HumanInlineIntent =
   | "reply_safety"
   | "safety_question"
   | "chat_invite";
+
+type InlineSmallTalkIntent = "thanks" | "identity";
+
+const INLINE_SMALL_TALK_COPY: Readonly<
+  Record<Lang, Readonly<Record<InlineSmallTalkIntent, { title: string; description: string }>>>
+> = {
+  ru: {
+    thanks: {
+      title: "Пожалуйста",
+      description:
+        "Если появится новая ссылка, номер или просьба — добавьте её после @scamguard_bot.",
+    },
+    identity: {
+      title: "Я — Ishonch Guard",
+      description:
+        "Помогаю проверить ссылку, номер, Telegram-аккаунт или текст по видимым признакам риска.",
+    },
+  },
+  uz: {
+    thanks: {
+      title: "Arzimaydi",
+      description: "Yangi havola, raqam yoki so'rov bo'lsa, uni @scamguard_bot dan keyin yozing.",
+    },
+    identity: {
+      title: "Men — Ishonch Guard",
+      description:
+        "Havola, raqam, Telegram akkaunti yoki matnni ko'rinadigan xavf belgilariga ko'ra tekshiraman.",
+    },
+  },
+  en: {
+    thanks: {
+      title: "You are welcome",
+      description: "If you get another link, number, or request, add it after @scamguard_bot.",
+    },
+    identity: {
+      title: "I am Ishonch Guard",
+      description:
+        "I check links, numbers, Telegram accounts, and message text for visible risk signs.",
+    },
+  },
+};
 
 const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "unknown_call",
@@ -2146,6 +2188,53 @@ function humanIntentArticle(
   );
 }
 
+function metaIntentArticle(intent: MetaIntent, lang: Lang): InlineQueryResultArticle {
+  const copy = COPY[lang];
+  const response = getMetaIntentResponse(intent, lang);
+  return buildArticle(
+    `meta-${intent.replaceAll("_", "-")}`,
+    copy.helpTitle,
+    response,
+    `${copy.helpTitle}\n\n${response}\n\n@scamguard_bot`,
+    lang,
+  );
+}
+
+function classifyInlineSmallTalk(text: string): InlineSmallTalkIntent | null {
+  const normalized = text
+    .normalize("NFKC")
+    .toLocaleLowerCase("ru")
+    .replace(/[.!?,;:]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (
+    /^(?:спасибо|спс|благодарю|спасибо\s+большое|большое\s+спасибо|огромное\s+спасибо|понял(?:а)?\s+спасибо|ясно\s+спасибо|rahmat|raxmat|rahmat\s+sizga|katta\s+rahmat|juda\s+katta\s+rahmat|tushundim\s+rahmat|thanks|thank\s+you|thx|thanks\s+a\s+lot|thank\s+you\s+so\s+much|many\s+thanks|got\s+it\s+thanks|спасибо\s+за\s+помощь\s+ещё\s+один\s+вопрос\s+(?:ясно\s+спасибо|спс)|yordamingiz\s+uchun\s+rahmat\s+yana\s+bir\s+savol\s+(?:tushundim\s+rahmat|raxmat)|thanks\s+for\s+your\s+help\s+one\s+more\s+question\s+(?:got\s+it\s+thanks|thx))$/iu.test(
+      normalized,
+    )
+  ) {
+    return "thanks";
+  }
+  if (
+    /^(?:(?:а\s+)?(?:вы|ты)\s+кто(?:\s+вообще)?|кто\s+(?:вы|ты)(?:\s+такой)?|а\s+ты\s+кто\s+вообще|что\s+это\s+за\s+бот|что\s+(?:ты|вы)\s+за\s+бот|siz\s+kimsiz|sen\s+kimsan(?:\s+o['’]?zi)?|siz\s+kims|bu\s+qanday\s+bot|who\s+are\s+you|who\s+r\s+u|what\s+are\s+you(?:\s+exactly)?|what\s+is\s+this\s+bot|what\s+bot\s+is\s+this|спасибо\s+за\s+помощь\s+ещё\s+один\s+вопрос\s+(?:а\s+ты\s+кто\s+вообще|кто\s+ты\s+такой)|yordamingiz\s+uchun\s+rahmat\s+yana\s+bir\s+savol\s+(?:bu\s+qanday\s+bot|siz\s+kims)|thanks\s+for\s+your\s+help\s+one\s+more\s+question\s+(?:what\s+is\s+this\s+bot|who\s+r\s+u))$/iu.test(
+      normalized,
+    )
+  ) {
+    return "identity";
+  }
+  return null;
+}
+
+function smallTalkArticle(intent: InlineSmallTalkIntent, lang: Lang): InlineQueryResultArticle {
+  const copy = INLINE_SMALL_TALK_COPY[lang][intent];
+  return buildArticle(
+    `small-talk-${intent}`,
+    copy.title,
+    copy.description,
+    `${copy.title}\n\n${copy.description}\n\n@scamguard_bot`,
+    lang,
+  );
+}
+
 function helpArticle(lang: Lang): InlineQueryResultArticle {
   const copy = COPY[lang];
   return buildArticle("help", copy.helpTitle, copy.helpDescription, copy.helpMessage, lang);
@@ -2228,6 +2317,18 @@ export async function handleInlineQuery(
       inlineQueryId,
       staticArticle("too-long", lang, copy.tooLongTitle, copy.tooLongDescription),
     );
+    return;
+  }
+
+  const smallTalkIntent = classifyInlineSmallTalk(trimmed);
+  if (smallTalkIntent) {
+    await answerOne(inlineQueryId, smallTalkArticle(smallTalkIntent, lang));
+    return;
+  }
+
+  const metaIntent = classifyMetaIntent(trimmed);
+  if (metaIntent) {
+    await answerOne(inlineQueryId, metaIntentArticle(metaIntent, lang));
     return;
   }
 

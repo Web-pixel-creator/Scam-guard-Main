@@ -82,6 +82,12 @@ For Inline in RU/UZ/EN, verify:
 7. no `checks` or Telegram-session persistence;
 8. no external URL-reputation request while typing.
 
+Automated prerequisite status (2026-07-14): passed locally for 3,805 source
+cases / 2,140 unique queries through the real Inline handler with Telegram and
+Supabase mocked, global fetch unused and database mutations zero. This proves
+bounded protocol/copy/privacy invariants only; it does not satisfy any visual,
+insertion or Bot API acceptance item above.
+
 Exit: `BOT-004`, `INL-001` and `INL-002` have a complete evidence matrix with no
 P0/P1 defect. A defect resets only the affected matrix after its fix is deployed.
 

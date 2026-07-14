@@ -179,6 +179,14 @@ function extractEmbeddedUrls(input: string, max = 5): string[] {
   return [...found];
 }
 
+function hideEmbeddedUrlsForTextRules(input: string): string {
+  let value = input;
+  for (const url of extractEmbeddedUrls(input)) {
+    value = value.replaceAll(url, "[link]");
+  }
+  return value;
+}
+
 function isStandaloneUrlPayload(input: string): boolean {
   const trimmed = cleanEmbeddedUrl(input.trim());
   const urls = extractEmbeddedUrls(trimmed, 2);
@@ -192,7 +200,7 @@ function normalizeUrlForReputation(raw: string): string | null {
 /**
  * Единый конвейер проверки (rules-first):
  *   rate-limit(rateLimitKey) → detectInputType → normalize →
- *   maskForDisplay + redactText → evaluate* → entities lookup →
+ *   local rule evaluation on the in-memory input + masked display → entities lookup →
  *   scoreFromCodes → aiExplain(optional) → insert into checks.
  */
 export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> {
@@ -233,7 +241,16 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
 
   const codes = new Set<ReasonCode>();
   const reputationUrls = new Set<string>();
-  evaluateText(safeInput).forEach((c) => codes.add(c));
+  // The deterministic text rules are local and side-effect free. For human
+  // prose, evaluate the complete in-memory text so privacy redaction cannot
+  // remove an action verb (for example Uzbek `parolini yuboring`) and downgrade
+  // a real scam request. Keep the established redacted path for standalone
+  // URLs/phones/Telegram ids; their typed evaluators run below. Only
+  // `display`/`safeInput` may cross into AI, persistence or user-visible sinks.
+  const textRuleInput = ["text", "unknown", "payment"].includes(detected)
+    ? hideEmbeddedUrlsForTextRules(workingInput)
+    : safeInput;
+  evaluateText(textRuleInput).forEach((c) => codes.add(c));
   if (detected === "phone") evaluatePhone(normalized).forEach((c) => codes.add(c));
   if (detected === "telegram") evaluateTelegram(normalized).forEach((c) => codes.add(c));
   if (detected === "url" || detected === "apk") {

@@ -93,3 +93,20 @@ results, the inserted card still keeps the risk level visible.
 When a query contains both social context and a concrete sensitive request, the
 sensitive request wins. Example: `мне пишет незнакомый человек\nОн хочет смс код`
 must show the code-sharing warning, not only the generic unknown-contact card.
+
+## 2026-07-14 full-dialogue adaptation
+
+`inline-adapted-dialogue-corpus.ts` reuses the complete 1,000-dialogue
+perimeter for Inline without pretending that Inline has direct-bot memory:
+
+- 2,500 individual user turns from all 1,000 dialogues;
+- 930 follow-ups joined to their original risk turn in one stateless query;
+- 363 mixed-clause adversarial messages;
+- 12 synthetic credential-boundary messages;
+- 3,805 source cases / 2,140 unique queries in total;
+- RU 1,270, UZ 1,269 and EN 1,266.
+
+The handler-level test denies external `fetch`, mocks Telegram/Supabase, forbids
+database mutations and fixes `runCheck` to rules-only/no-persistence options.
+This corpus is deterministic QA data. It is not training data, real chat data,
+3,805 Bot API messages or a replacement for the live client checklist.

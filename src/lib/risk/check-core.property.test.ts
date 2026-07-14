@@ -113,6 +113,28 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(hoisted.insertCalls).toHaveLength(0);
   });
 
+  it.each([
+    "Parol!2026 parolini yuboring",
+    "parolini yuboring",
+    "parolni kiriting",
+    "please send me your password",
+  ])("scores password requests before sink redaction: %s", async (input) => {
+    const result = await runCheck({
+      input,
+      type: "text",
+      lang: "uz",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+
+    expect(result.reasons).toContain("asks_for_pin");
+    expect(result.level).not.toBe("unknown");
+    expect(hoisted.insertCalls).toHaveLength(0);
+  });
+
   // Feature: telegram-bot-mvp, Property 1: Детерминизм scoring, независимость от AI.
   // For any input, runCheck with skipAi:true and with the AI available returns
   // the same level/score/reasons; AI only influences `explanation`.
