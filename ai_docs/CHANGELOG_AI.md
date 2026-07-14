@@ -33,6 +33,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Desktop/Android/iOS rendering/insertion proof. `BOT-004` remains In Progress;
   `INL-001` and `INL-002` remain blocked on the real-client matrix. See
   `TELEGRAM_INLINE_OFFLINE_QA_2026-07-14.md`.
+- PR #100 passed application CI, coverage, migrations/schema/pgTAP, CodeQL,
+  Gitleaks and container/SBOM gates and merged as main `87c5ff5`. Railway
+  deployment `78dc6e9b-2464-4e3c-a6ed-c7b0f71cc432` reached `SUCCESS`;
+  `/healthz` and the protected polling-leader endpoint returned `200`. The
+  production check did not replay the mass corpus and did not call AI.
 
 ## 2026-07-14 - Real Telegram restart/re-election gate closed
 

@@ -78,6 +78,17 @@ npm run build
 npm audit --audit-level=moderate
 ```
 
+## Deployment evidence
+
+PR #100 passed application CI, coverage, migrations/schema/pgTAP, CodeQL,
+Gitleaks and container/SBOM gates and merged as main `87c5ff5`. Railway
+deployment `78dc6e9b-2464-4e3c-a6ed-c7b0f71cc432` reached `SUCCESS` with image
+`sha256:78dd60cbd8b95c2d2ca84df3c917d5f997fe91bd92f6438fa65a3935afc1d057`.
+`/healthz` and the protected polling-leader endpoint returned `200`.
+
+No mass Inline corpus or AI call was made in production. This deployment proof
+does not convert the local corpus into Bot API or real-client evidence.
+
 ## Remaining live gate
 
 Complete `INL-002` on Telegram Desktop, Android and iOS in RU/UZ/EN: preview,
