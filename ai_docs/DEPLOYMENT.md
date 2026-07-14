@@ -620,6 +620,24 @@ recreation. Retain only the sanitized CPU/RSS/event-loop/latency counters. The
 runner creates its fixtures in memory and makes no Telegram, Supabase, AI or
 reputation-provider calls and performs no persistent writes.
 
+#### Recorded production run (2026-07-14)
+
+PR #94 merged as exact main
+`f1ddf3490573e667907beed2a027e468298f954d` and deployed as Railway
+`09f984bd-1930-4a2b-a04a-4f4ef46e2058`, image
+`sha256:abbba9cf1cb45f7ca4e4e6c5a40a6d78d37ef1c5672aab6def2dbba641a038e5`.
+The live require probe loaded all three decoder packages. A direct SSH attempt
+was transport-interrupted after 360 seconds with 3,002 cases and zero failures;
+the required full profile was repeated in a detached `tmux` session.
+
+The uninterrupted detached run completed 600.03 seconds and 5,055 cases with
+`QR_SOAK_FINAL.passed=true`: zero failures, PNG 2,087, JPEG 693, queue
+accepted/rejected 4/1, forced interruption fail-closed and worker recovery true,
+final/max RSS 165.88/234.60 MiB, RSS growth 110.08 MiB, event-loop p99/max
+21.04/28.26 ms and decode-latency p95/p99/max 50.09/225.53/279.47 ms. The
+session was deleted and the full production smoke passed afterward. Sanitized
+evidence is recorded in `ai_docs/QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
+
 ### Polling/resource soak
 
 The production image contains a self-contained, non-secret soak runner. It uses
@@ -700,9 +718,11 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
 - [x] The 60-minute `polling-resource-soak` passes in a Railway runtime; retain
       the sanitized `SOAK_FINAL` metrics. Evidence: 2026-07-14, exact main
       `868eb18d`, 36,000/36,000, zero loss/duplicates.
-- [ ] The deployed image resolves `jsqr`, `jpeg-js` and `pngjs`, and the
+- [x] The deployed image resolves `jsqr`, `jpeg-js` and `pngjs`, and the
       ten-minute `qr-worker-resource-soak` passes in that Railway runtime with
       PNG/JPEG decode, queue-bound and worker termination/recovery evidence.
+      Evidence: exact main `f1ddf349`, Railway `09f984bd`, 5,055 cases, zero
+      failures.
 - [ ] Separately capture a real Railway instance restart/leader re-election with
       one approved QA update, then prove health, empty pending queue and no
       duplicate reply.

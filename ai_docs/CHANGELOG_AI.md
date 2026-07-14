@@ -2,28 +2,37 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-14 - Production QR worker runtime packaging gap fixed locally
+## 2026-07-14 - Production QR worker runtime gap fixed and verified
 
 - A read-only probe of the deployed Railway image showed that its runtime did
   not contain `jsqr`, `jpeg-js` or `pngjs`. The eval worker in
   `qr-decoder.ts` resolves those packages at runtime, so production PNG/JPEG QR
   work could fail closed to empty evidence even though source-runtime tests
   passed.
-- The Docker runtime now copies only those three decoder packages. It still
-  excludes the package manager, build toolchain and the rest of development
-  dependencies.
+- PR #94 changed the Docker runtime to copy only those three decoder packages.
+  It still excludes the package manager, build toolchain and the rest of
+  development dependencies.
 - Added a self-contained QR worker corpus/resource/crash runner for the
   production image. It covers PNG/JPEG QR payloads, non-QR and malformed input,
   oversize rejection, four-job queue admission plus overflow rejection, forced
   in-flight worker termination and successful decode after worker recreation.
-- Local verification passes 8,591 tests, TypeScript, lint with 0 errors/8
-  existing warnings and the production build. A five-second staged runtime with
-  only the three decoder packages processed 50 cases with zero failures,
-  accepted/rejected 4/1 queue jobs, recovered after termination, reached
-  160.58 MiB max RSS and 38.17 ms event-loop p99.
-- Docker Desktop was not running locally, so the exact container build,
-  deployment read-back and ten-minute Railway runtime profile remain required
-  before this production gap is claimed closed.
+- Application, database and security CI passed with 8,591 tests, TypeScript,
+  lint with 0 errors/8 existing warnings, build, coverage, CodeQL, Gitleaks,
+  Trivy, CycloneDX, schema lint and pgTAP. The exact main merge
+  `f1ddf3490573e667907beed2a027e468298f954d` deployed as Railway
+  `09f984bd-1930-4a2b-a04a-4f4ef46e2058`, Docker image
+  `sha256:abbba9cf1cb45f7ca4e4e6c5a40a6d78d37ef1c5672aab6def2dbba641a038e5`.
+  A live require probe loaded all three packages.
+- The detached 10-minute Railway profile passed 5,055 cases with zero failures:
+  PNG 2,087, JPEG 693, queue accepted/rejected 4/1, forced in-flight
+  interruption failed closed and the recreated worker decoded successfully.
+  Final/max RSS was 165.88/234.60 MiB, RSS growth 110.08 MiB, event-loop
+  p99/max 21.04/28.26 ms and decode-latency p95/p99/max
+  50.09/225.53/279.47 ms. The runner made no external call or persistent write;
+  production smoke after load passed.
+- `RES-001` and `RES-002` are now Passed. `RES-004` remains In Progress only
+  for an approved physical Railway restart/leader re-election with one QA
+  update. See `QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
 
 ## 2026-07-14 - Railway polling/resource soak completed
 
@@ -43,10 +52,10 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - The runner was isolated and in-memory: no Telegram, Supabase, AI-provider or
   reputation-provider call and no synthetic persistence. Its `tmux` session was
   removed and production remained `200 ok` afterward.
-- This closes only the bounded polling/resource soak sub-gate. `RES-004` remains
-  In Progress pending a physical Railway restart/leader re-election with one
-  approved QA update and the separate legitimate QR-worker corpus and
-  crash/restart validation. See `POLLING_RESOURCE_SOAK_2026-07-14.md`.
+- This closes only the bounded polling/resource soak sub-gate. The separate QR
+  worker corpus/crash/recovery sub-gate passed later on 2026-07-14. `RES-004`
+  remains In Progress pending a physical Railway restart/leader re-election
+  with one approved QA update. See `POLLING_RESOURCE_SOAK_2026-07-14.md`.
 
 ## 2026-07-13 - Human-style Telegram dialogue perimeter verified locally
 

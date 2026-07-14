@@ -4,13 +4,13 @@
 
 - **The authoritative 10/10 release sequence is documented.** See
   `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
-  has since advanced through PR #89 at deployed main `868eb18d`; 8,587 tests,
+  has since advanced through PR #94 at deployed main `f1ddf349`; 8,591 tests,
   coverage thresholds, CodeQL, Gitleaks,
   Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
-  gate counts are 12 Passed, 17 In Progress, 17 Blocked and 5 Deferred. The
+  gate counts are 14 Passed, 15 In Progress, 17 Blocked and 5 Deferred. The
   release remains NO-GO until real Telegram/Inline clients, production Supabase
-  apply/read-back, finding-specific live closure, remaining restart/QR-worker
-  and recovery drills,
+  apply/read-back, finding-specific live closure, the physical restart/recovery
+  and remaining operational drills,
   legal/privacy approval and the fixed-RC 72-hour canary are complete.
 
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
@@ -139,7 +139,8 @@
   boundary tests pass 71/71, the owning risk/report/appeal/Telegram suite passes
   528/528, and the repository suite passes 2643/2643. Railway deployment plus
   report/appeal/Telegram draft smoke remain open release evidence.
-- **Synchronous QR CPU amplification is fixed locally.** A valid 4000x3000
+- **Synchronous QR CPU amplification and production packaging are fixed and
+  live-verified.** A valid 4000x3000
   uniform PNG compressed to about 50 KiB and blocked the Node event loop for
   about 4.2 seconds because it triggered full-image plus overlapping tile scans.
   PNG/JPEG QR decode now runs in one isolated worker with 4 MiB/4 MP input,
@@ -147,17 +148,18 @@
   worker-memory budgets. Real PNG/JPEG QR plus Telegram webhook focus passes
   104/104; the repository suite passes 2645/2645. A local four-job 3.6 MP burst
   completed in about 91 ms with roughly 11 ms maximum observed event-loop lag.
-  The general polling/media-admission 60-minute Railway soak now passes, but it
-  does not execute the QR decoder. A 2026-07-14 read-only production-image probe
-  then found `jsqr`, `jpeg-js` and `pngjs` absent from the runtime even though
-  the eval worker requires them dynamically; real production QR work could
-  therefore fail closed to empty evidence. The Docker runtime now selectively
-  copies only those three packages, and a new isolated legitimate/malformed QR
-  corpus proves queue overflow rejection plus forced worker termination and
-  recreation. The full suite passes 8,591/8,591 and a five-second staged
-  three-package runtime passed 50/50 cases. Exact container CI, deployment
-  read-back and the ten-minute Railway QR worker profile remain open under
-  `RES-004`.
+  The general polling/media-admission 60-minute Railway soak passes but does not
+  execute the QR decoder. A 2026-07-14 read-only production-image probe then
+  found `jsqr`, `jpeg-js` and `pngjs` absent even though the eval worker requires
+  them dynamically; production QR work could therefore fail closed to empty
+  evidence. PR #94 now selectively copies only those packages. Exact main
+  `f1ddf349` deployed as Railway `09f984bd`, image `sha256:abbba9cf`; the live
+  require probe passed. The detached 10-minute runtime profile processed 5,055
+  cases with zero failures, PNG 2,087, JPEG 693, queue 4/1, forced fail-closed
+  termination and successful worker recreation. Max RSS was 234.60 MiB,
+  event-loop p99 21.04 ms and decode p99 225.53 ms; post-load production smoke
+  passed. `RES-001` and `RES-002` are Passed. Only the approved physical
+  restart/leader-re-election evidence remains in `RES-004`.
 - **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
   rules-only and non-persistent while phone/Telegram username checks can show
   honest passport sections, limitations and the next context question instead
