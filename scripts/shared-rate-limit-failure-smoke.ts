@@ -90,6 +90,27 @@ async function expectDenied(mode: FailureMode): Promise<void> {
   assertOnlyClaimRpc(1);
 }
 
+async function expectHashFailureDenied(): Promise<void> {
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  assertCondition(cryptoDescriptor?.configurable, "runtime crypto cannot be isolated safely");
+  fetches.length = 0;
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    enumerable: cryptoDescriptor.enumerable,
+    value: undefined,
+  });
+
+  try {
+    const result = await checkSharedRateLimit("check", "runtime-smoke:hash-error", 10, 60_000);
+    assertCondition(!result.ok, "hash failure unexpectedly granted a request");
+    assertCondition(result.remaining === 0, "hash failure returned a non-zero allowance");
+    assertCondition(result.retryAfterSec === 60, "hash failure returned an unsafe retry window");
+    assertOnlyClaimRpc(0);
+  } finally {
+    Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+  }
+}
+
 async function main(): Promise<void> {
   // These values exist only in this short-lived process. The fetch replacement
   // below prevents every real network call and fails if any sink other than the
@@ -115,6 +136,7 @@ async function main(): Promise<void> {
     assertOnlyClaimRpc(0);
     process.env.HASH_PEPPER_SECRET = "synthetic-runtime-smoke-hmac-pepper";
 
+    await expectHashFailureDenied();
     await expectDenied("rpc_error");
     await expectDenied("invalid_shape");
     await expectDenied("transport_error");
@@ -147,6 +169,7 @@ async function main(): Promise<void> {
         isolated: true,
         cases: [
           "missing_config",
+          "hash_error",
           "rpc_error",
           "invalid_shape",
           "transport_error",
