@@ -33,6 +33,7 @@
     "prod:telegram-polling-dispatch-smoke": "vite-node scripts/prod-telegram-polling-dispatch-smoke.ts",
     "prod:polling-resource-soak": "vite-node scripts/polling-resource-soak.ts",
     "prod:qr-worker-resource-soak": "vite-node scripts/qr-worker-resource-soak.ts",
+    "prod:rate-limit-failure-smoke": "vite-node scripts/shared-rate-limit-failure-smoke.ts",
     "tts:smoke": "vite-node scripts/tts-smoke.ts",
     "tts:generate-assets": "vite-node scripts/generate-voice-out-assets.ts",
     "tts:validate-assets": "vite-node scripts/validate-voice-out-assets.ts",

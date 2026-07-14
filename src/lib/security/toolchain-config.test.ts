@@ -84,4 +84,12 @@ describe("toolchain security boundaries", () => {
       "scripts/qr-worker-resource-soak.ts --target=node --outfile=dist/ops/qr-worker-resource-soak.mjs",
     );
   });
+
+  it("ships the isolated shared rate-limit failure probe", () => {
+    const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
+
+    expect(dockerfile).toContain(
+      "scripts/shared-rate-limit-failure-smoke.ts --target=node --outfile=dist/ops/shared-rate-limit-failure-smoke.mjs",
+    );
+  });
 });
