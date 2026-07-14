@@ -2,7 +2,7 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-14 - Real Desktop Inline action order was corrected locally
+## 2026-07-14 - Real Desktop Inline action order was corrected and deployed
 
 - Real Telegram Desktop preview and insertion evidence for `INLINE-HIGH-RU`
   confirmed that classification, explanation, redaction and insertion worked,
@@ -15,9 +15,17 @@ Newest first. This tracks documentation/memory files, not every code commit.
   with the same ranked reason used by the explanation, traverse all 55 reason
   codes through both suspicious and high-risk paths, keep the full first action
   inside the 120-character preview and preserve the order after a plaintext
-  entity-parse retry. The real Desktop row remains failed until the corrected
-  production build is deployed and the same preview/insertion pair is captured
-  again.
+  entity-parse retry. The real Desktop row remains failed until the same
+  preview/insertion pair is captured again on the corrected production build.
+- PR #104 passed application, coverage, database, CodeQL, Gitleaks and
+  container/SBOM gates and merged as main `95a7a82`. Railway deployment
+  `aee41826-f392-4567-a5a9-2a34a70d205c` reached `SUCCESS`, image
+  `sha256:78965ddef506eac5288169786dc50e9157fb6de1b7bd6a1d2d952e9444cb201a`.
+  Home, health, authenticated polling leader, disabled-webhook policy and
+  Telegram delivery state passed with zero pending updates. The AI key was
+  deliberately removed from the smoke subprocess, so this verification made
+  no paid provider call. The real Desktop row still requires the same
+  post-deploy preview/insertion capture before it can pass.
 
 ## 2026-07-14 - Inline Unicode boundary and real-client evidence were hardened
 

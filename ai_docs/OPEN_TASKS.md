@@ -206,11 +206,12 @@
   normal client may prevent or cannot safely force those states.
   2026-07-14 Telegram Desktop exposed a real action-order defect in
   `INLINE-HIGH-RU`: the preview omitted the safe step and the inserted card
-  placed it below the evidence paragraph. The local fix now puts the top
-  reason-bound RU/UZ/EN action first and has Markdown/plaintext ordering
-  regressions. Deployment plus repeat Desktop preview/insertion evidence is
-  still required before that row passes; Android/iOS and the remaining matrix
-  remain open.
+  placed it below the evidence paragraph. The deployed main `95a7a82` now puts
+  the top reason-bound RU/UZ/EN action first and has Markdown/plaintext ordering
+  regressions across all 55 reason codes. Production health, polling leader and
+  Telegram delivery passed without an AI call. Repeat Desktop preview/insertion
+  evidence is still required before that row passes; Android/iOS and the
+  remaining matrix remain open.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad
