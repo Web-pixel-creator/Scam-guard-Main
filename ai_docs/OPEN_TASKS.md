@@ -191,6 +191,16 @@
   retry is deployed. The synthetic Inline smoke is now polling-aware and proves
   authenticated webhook shutdown plus zero `checks`/session side effects; it
   intentionally does not claim real handler rendering or insertion.
+  2026-07-14 local real-handler evidence covers 3,805 source cases / 2,140
+  unique RU/UZ/EN queries adapted from all 1,000 synthetic dialogues. Telegram
+  and Supabase are mocked, `fetch` is fail-closed, mutations are zero and every
+  check is rules-only/non-persistent. This closes only the automated corpus
+  sub-gate; Desktop/Android/iOS preview, insertion, truncation, retry, timeout,
+  privacy and language evidence remains release blocking.
+  Keep free-form password privacy under review: quoted, token-shaped and tested
+  punctuation/reverse-order secrets are redacted, while an unquoted multiword
+  phrase immediately before `password` is intentionally not matched by a broad
+  regex because that design erased real `asks_for_pin` scam signals.
 - **Pig-butchering / romance grooming has explicit conversation memory now.**
   `/conversation` collects a short user-supplied thread, stores only derived
   stage/action/reason metadata in the Telegram session, and flags chains such

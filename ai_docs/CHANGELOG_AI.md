@@ -2,6 +2,38 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - The 1,000-dialogue perimeter was adapted to Inline locally
+
+- Added a reproducible Inline corpus with 3,805 source cases / 2,140 unique
+  queries: all 2,500 user turns from the 1,000 synthetic dialogues, 930
+  stateless contextual follow-ups, 363 mixed-clause cases and 12 synthetic
+  credential-boundary fixtures. Distribution is RU 1,270, UZ 1,269 and EN
+  1,266.
+- Ran every case through the real `handleInlineQuery` and deterministic
+  `runCheck`. Telegram and Supabase were mocked, global `fetch` remained unused,
+  database mutations were zero and every check used `skipAi=true`,
+  `skipUrlReputation=true`, `persist=false`.
+- Added concise localized Inline replies for greetings, thanks and bot identity,
+  including reviewed corpus typos and natural variants. Exact small-talk
+  matching remains anchored, so a later OTP/PIN/CVV request cannot be swallowed.
+- Strengthened the corpus oracle: failure cards cannot count as successful risk
+  answers, safe controls cannot become warnings, expected acknowledgement and
+  identity routes are asserted, and visible secrets are checked after
+  MarkdownV2 de-escaping.
+- Fixed shared forward/reverse code redaction for punctuation, brackets and
+  value-first CVV/PIN/OTP forms. A proposed generic four-word reverse-passphrase
+  regex was removed after independent review proved it could erase
+  `asks_for_pin`; dedicated regressions now preserve password-request scoring.
+- Deterministic text rules now inspect the complete in-memory prose with
+  embedded URLs replaced by a neutral `[link]` marker; only redacted text may
+  cross AI, persistence and presentation boundaries. This preserves RU/UZ/EN
+  password-request signals without reintroducing URL-token false positives.
+- Local verification passed 137 files / 8,647 tests. This is offline corpus
+  evidence, not 3,805 Telegram messages, model training, Bot API delivery or
+  Desktop/Android/iOS rendering/insertion proof. `BOT-004` remains In Progress;
+  `INL-001` and `INL-002` remain blocked on the real-client matrix. See
+  `TELEGRAM_INLINE_OFFLINE_QA_2026-07-14.md`.
+
 ## 2026-07-14 - Real Telegram restart/re-election gate closed
 
 - Railway deployment `c2b98732-bc38-4fbf-aafa-920282eea161` started a new

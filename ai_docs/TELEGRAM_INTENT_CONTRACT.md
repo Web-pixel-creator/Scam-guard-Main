@@ -39,6 +39,16 @@ semantically distinct everyday two-turn dialogues and 363 mixed-clause
 messages. They execute production classifiers/builders with network access
 denied; they are not training data or real-client evidence.
 
+The Inline adapter replays this perimeter under a separate stateless contract:
+2,500 raw user turns, 930 follow-ups combined with their original risk turn,
+363 mixed-clause messages and 12 synthetic credential fixtures become 3,805
+source cases / 2,140 unique queries. A raw acknowledgement or identity turn may
+use concise localized Inline small talk; every other follow-up must avoid
+claiming a retained or rechecked previous object. A small-talk prefix never
+outranks a concrete OTP, PIN, CVV, password, APK, payment or screen-sharing
+request. External fetch, Telegram delivery and persistence are denied in this
+automated suite.
+
 Adding an intent requires updating its typed source list; contract cardinality
 tests then require a matching canonical entry. New user artifacts always bypass
 follow-up helpers and enter a fresh risk check. A confidence/methodology phrase

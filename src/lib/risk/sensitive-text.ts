@@ -12,19 +12,33 @@ const WORD_END = String.raw`(?![\p{L}\p{N}_])`;
 const EXPLICIT_VALUE_SEPARATOR = String.raw`(?:\s*[:=]\s*|\s+(?:is|это|bu)\s+)`;
 const VALUE_SEPARATOR = String.raw`(?:\s*[:=]\s*|\s+(?:is|это|bu)\s+|\s+)`;
 
-const PASSWORD_LABEL = String.raw`(?:password|passphrase|парол(?:ь|я|ем|ю)?|parol|maxfiy\s+so['’]?z)`;
+const PASSWORD_LABEL = String.raw`(?:password|passphrase|парол(?:ь|я|ем|ю)?|parol(?:i|ni|ini|ga|dan)?|maxfiy\s+so['’]?z)`;
+const PASSWORD_LABEL_END = String.raw`(?![\p{L}\p{N}_]|[!@#$%^&*._-]+\p{N})`;
 const EXPLICIT_PASSWORD_RE = new RegExp(
-  `(${WORD_START}${PASSWORD_LABEL}${WORD_END})(${EXPLICIT_VALUE_SEPARATOR})([^\\r\\n.!?;]{4,240})`,
+  `(${WORD_START}${PASSWORD_LABEL}${PASSWORD_LABEL_END})(${EXPLICIT_VALUE_SEPARATOR})([^\\r\\n.!?;]{4,240})`,
   "giu",
 );
 const PASSWORD_RE = new RegExp(
-  `(${WORD_START}${PASSWORD_LABEL}${WORD_END})(${VALUE_SEPARATOR})("[^"\\r\\n]{4,160}"|'[^'\\r\\n]{4,160}'|\\S{4,160})`,
+  `(${WORD_START}${PASSWORD_LABEL}${PASSWORD_LABEL_END})((?:\\s*[:=,;–—-]\\s*|\\s+(?:is|это|bu)\\s+|\\s+))("[^"\\r\\n]{4,160}"|'[^'\\r\\n]{4,160}'|\\S{4,160})`,
   "giu",
 );
 
 const CODE_LABEL = String.raw`(?:otp(?:\s+code)?|sms[\s-]*(?:code|kod|код)|смс[\s-]*код|код(?:\s+(?:подтверждения|из\s+смс))?|verification[\s-]+code|confirmation[\s-]+code|tasdiq(?:lash)?[\s-]+kod(?:i)?|bir[\s-]+martalik[\s-]+kod|pin|пин|cvv|cvc)`;
+const CODE_ADJACENCY_SEPARATOR = String.raw`(?:\s+(?:is|это|bu)\s+|[\s,;:=#№/–—()\[\]-]+)`;
 const CODE_RE = new RegExp(
-  `(${WORD_START}${CODE_LABEL}${WORD_END})(${VALUE_SEPARATOR})(\\d(?:[\\d\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]{0,38}\\d)?)`,
+  `(${WORD_START}${CODE_LABEL}${WORD_END})(${CODE_ADJACENCY_SEPARATOR})(\\d(?:[\\d\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]{0,38}\\d)?)`,
+  "giu",
+);
+const VALUE_FIRST_GROUPED_CODE_RE = new RegExp(
+  `(${WORD_START}\\d{1,4}(?:[\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]+\\d{1,4}){1,7})(${CODE_ADJACENCY_SEPARATOR})(${CODE_LABEL}${WORD_END})`,
+  "giu",
+);
+const VALUE_FIRST_COMPACT_CODE_RE = new RegExp(
+  `(${WORD_START}\\d{3,8})(${CODE_ADJACENCY_SEPARATOR})(${CODE_LABEL}${WORD_END})`,
+  "giu",
+);
+const VALUE_FIRST_PASSWORD_RE = new RegExp(
+  `(${WORD_START}(?:"[^"\\r\\n]{4,160}"|'[^'\\r\\n]{4,160}'|\\S{4,160}))(${CODE_ADJACENCY_SEPARATOR})(${PASSWORD_LABEL}${PASSWORD_LABEL_END})`,
   "giu",
 );
 
@@ -46,12 +60,22 @@ const PASSWORD_CONTEXT_WORDS = new Set([
   "change",
   "changed",
   "authentication",
+  "current",
+  "disclose",
+  "enter",
   "failed",
   "field",
+  "forward",
+  "give",
+  "incorrect",
+  "invalid",
   "length",
   "manager",
   "must",
+  "new",
+  "old",
   "policy",
+  "provide",
   "protection",
   "requirements",
   "required",
@@ -62,18 +86,67 @@ const PASSWORD_CONTEXT_WORDS = new Set([
   "\u0434\u043e\u043b\u0436\u043d\u0430",
   "\u0434\u043e\u043b\u0436\u043d\u044b",
   "reset",
+  "reveal",
   "security",
+  "secure",
+  "send",
+  "share",
   "sharing",
+  "show",
   "should",
+  "strong",
   "support",
+  "submit",
+  "tell",
+  "temporary",
+  "valid",
+  "weak",
+  "upload",
   "менеджер",
   "политика",
   "сброс",
   "сменить",
   "безопасность",
+  "безопасный",
+  "временный",
+  "надежный",
+  "надёжный",
+  "неверный",
+  "новый",
+  "старый",
+  "текущий",
+  "введите",
+  "вводить",
+  "отправить",
+  "отправьте",
+  "передайте",
+  "поделитесь",
+  "покажите",
+  "прислать",
+  "пришлите",
+  "продиктуйте",
+  "сообщите",
+  "eski",
   "himoya",
+  "ishonchli",
+  "noto'g'ri",
   "o'zgartirish",
+  "vaqtinchalik",
   "xavfsizlik",
+  "yangi",
+  "ayting",
+  "bering",
+  "kiritish",
+  "kiriting",
+  "kiritmang",
+  "ko'rsating",
+  "korsating",
+  "jo'nating",
+  "jo'natishni",
+  "ulashing",
+  "yuboring",
+  "yuborishni",
+  "yubormang",
 ]);
 
 function unquote(value: string): string {
@@ -89,9 +162,10 @@ function isLikelyPasswordValue(value: string, separator: string): boolean {
   // Preserve the established phone masker when a report quotes a phone after
   // a password label; redactText applies that type-specific control next.
   if (/^\+[\d\s()-]{6,}\d$/u.test(candidate)) return false;
+  if (PASSWORD_CONTEXT_WORDS.has(candidate.toLowerCase())) return false;
   if (/[:=]/u.test(separator) || /\b(?:is|это|bu)\b/iu.test(separator)) return true;
   if (/[\p{N}\p{P}\p{S}]/u.test(candidate)) return true;
-  return candidate.length >= 8 && !PASSWORD_CONTEXT_WORDS.has(candidate.toLowerCase());
+  return candidate.length >= 8;
 }
 
 function startsWithPhoneShapedValue(value: string): boolean {
@@ -158,6 +232,32 @@ export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSaniti
       if (digits.length < min || digits.length > max) return match;
       classes.add("code");
       return `${label}${separator}${HIDDEN_VALUE}`;
+    },
+  );
+
+  // Natural messages often put the value before the label. Run the grouped
+  // pattern first, then the compact one: if an unrelated order number precedes
+  // "614 CVV", the broad match can decline it and the compact pass still masks
+  // the nearest valid code instead of leaving the CVV exposed.
+  for (const pattern of [VALUE_FIRST_GROUPED_CODE_RE, VALUE_FIRST_COMPACT_CODE_RE]) {
+    value = value.replace(
+      pattern,
+      (match: string, candidate: string, separator: string, label: string) => {
+        const digits = candidate.replace(/\D/gu, "");
+        const { min, max } = codeDigitBounds(label);
+        if (digits.length < min || digits.length > max) return match;
+        classes.add("code");
+        return `${HIDDEN_VALUE}${separator}${label}`;
+      },
+    );
+  }
+
+  value = value.replace(
+    VALUE_FIRST_PASSWORD_RE,
+    (match: string, candidate: string, separator: string, label: string) => {
+      if (!isLikelyPasswordValue(candidate, separator)) return match;
+      classes.add("password");
+      return `${HIDDEN_VALUE}${separator}${label}`;
     },
   );
 

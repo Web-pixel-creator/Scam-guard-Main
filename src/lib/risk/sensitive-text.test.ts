@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { redactText } from "./detect";
+import { evaluateText } from "./rules";
 import { sanitizeSensitiveTextForSink } from "./sensitive-text";
 
 describe("sanitizeSensitiveTextForSink", () => {
@@ -8,10 +9,42 @@ describe("sanitizeSensitiveTextForSink", () => {
     ["password", "passphrase = correct horse battery staple", "correct horse battery staple"],
     ["password", "пароль = Секрет-42", "Секрет-42"],
     ["password", "parol = Maxfiy-42", "Maxfiy-42"],
+    ["password", "password, huntertwo", "huntertwo"],
+    ["password", "password; huntertwo", "huntertwo"],
+    ["password", "password — huntertwo", "huntertwo"],
+    ["password", "пароль, huntertwo", "huntertwo"],
+    ["password", "parol; huntertwo", "huntertwo"],
+    ["password", "password, Qwerty!2026", "Qwerty"],
+    ["password", "Parol!2026 parolini yuboring", "Parol!"],
+    ["password", "Soxta yordam xizmati Parol!2026 parolini yuborishni so'radi.", "Parol!"],
     ["code", "OTP: 9 1 4 2 8 7", "9 1 4 2 8 7"],
     ["code", "код подтверждения: 1 2 3 4 5 6", "1 2 3 4 5 6"],
     ["code", "tasdiqlash kodi: 1-2-3-4-5-6", "1-2-3-4-5-6"],
     ["code", "CVV: 1 2 3", "1 2 3"],
+    ["code", "the caller asks for 614 CVV", "614"],
+    ["code", "the caller asks for 614, CVV", "614"],
+    ["code", "the caller asks for 614 — CVV", "614"],
+    ["code", "the caller asks for 825/CVV", "825"],
+    ["code", "звонивший говорит: 917 это CVV", "917"],
+    ["code", "неизвестный просит 4821 PIN", "4821"],
+    ["code", "support asked for 638205 OTP", "638205"],
+    ["code", "CVV #825", "825"],
+    ["code", "CVV №825", "825"],
+    ["code", "CVV (825)", "825"],
+    ["code", "CVV — 825", "825"],
+    ["code", "CVV, 825", "825"],
+    ["code", "CVV; 825", "825"],
+    ["code", "CVV: #825", "825"],
+    ["code", "CVV = #825", "825"],
+    ["code", "CVV [825]", "825"],
+    ["code", "CVC/917", "917"],
+    ["code", "the caller asks for 614 (CVV)", "614"],
+    ["code", "the caller asks for 614 [CVV]", "614"],
+    ["password", "huntertwo password", "huntertwo"],
+    ["password", "huntertwo (password)", "huntertwo"],
+    ["password", "huntertwo [password]", "huntertwo"],
+    ["password", "Qwerty!2026 password", "Qwerty!2026"],
+    ["password", '"correct horse battery staple" password', "correct horse battery staple"],
     [
       "recovery_phrase",
       "seed phrase: apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
@@ -41,6 +74,13 @@ describe("sanitizeSensitiveTextForSink", () => {
     "\u041f\u0430\u0440\u043e\u043b\u044c \u043d\u0435\u043e\u0431\u0445\u043e\u0434\u0438\u043c\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043f\u043e\u0441\u043b\u0435 \u0432\u0445\u043e\u0434\u0430.",
     "Seed phrase means a wallet recovery secret; do not send it.",
     "The verification code field is required, but no code is included.",
+    "temporary password",
+    "incorrect password",
+    "надежный пароль",
+    "vaqtinchalik parol",
+    "never ever share your password",
+    "do not reuse your password",
+    "Do not share your bank password with a stranger.",
     "ПРОГНОЗ НА 100.000₽",
   ])("preserves legitimate text without an actual secret value", (input) => {
     expect(sanitizeSensitiveTextForSink(input)).toEqual({
@@ -61,6 +101,25 @@ describe("sanitizeSensitiveTextForSink", () => {
       redacted: false,
       classes: [],
     });
+  });
+
+  it("masks the nearest reverse-order CVV without swallowing an earlier order number", () => {
+    const result = sanitizeSensitiveTextForSink("order 1234 614 CVV");
+    expect(result.value).toContain("order 1234");
+    expect(result.value).not.toContain("614");
+    expect(result.classes).toContain("code");
+  });
+
+  it.each([
+    "please send me your password",
+    "send me your bank password",
+    "they ask me to share my bank password",
+    "parolini yuboring",
+    "parolni kiriting",
+    "parolni ko'rsating",
+  ])("does not erase password-request risk context before scoring: %s", (input) => {
+    expect(evaluateText(input)).toContain("asks_for_pin");
+    expect(evaluateText(redactText(input))).toContain("asks_for_pin");
   });
 
   it("removes a multiline PEM block through the shared persistence redactor", () => {

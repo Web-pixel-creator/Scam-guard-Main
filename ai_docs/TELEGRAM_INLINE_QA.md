@@ -8,6 +8,20 @@ the automated Inline handler tests and, in webhook-mode environments,
 `npm run prod:telegram-inline-smoke`. Neither can render the Telegram client's
 inline result list.
 
+## Local automated evidence — 2026-07-14
+
+The production Inline handler passed 3,805 offline source cases / 2,140 unique
+RU/UZ/EN queries derived from the full 1,000-dialogue perimeter. Telegram and
+Supabase were mocked, global `fetch` remained unused, database mutations were
+zero, and every deterministic check used `skipAi=true`,
+`skipUrlReputation=true`, `persist=false`. The run also enforces MarkdownV2,
+Telegram field limits, localized buttons, no failure-card false passes,
+small-talk/danger-tail precedence and visible credential redaction.
+
+See `TELEGRAM_INLINE_OFFLINE_QA_2026-07-14.md`. This automated sub-gate does
+not mark any row in the Evidence Log below as Passed and does not replace
+Telegram Desktop/Android/iOS preview and insertion QA.
+
 ## Scope
 
 Use this checklist when validating the actual Telegram UI:
@@ -59,6 +73,7 @@ real-client checklist:
 ```bash
 railway run npm run prod:telegram-polling-dispatch-smoke -- https://scam-guard-main-production.up.railway.app
 npm run test:run -- src/lib/telegram/handlers/inline.test.ts src/lib/telegram/inline.mass.test.ts
+npx vitest run src/lib/telegram/inline-adapted-dialogue-corpus.test.ts src/lib/risk/sensitive-text.test.ts
 ```
 
 The polling harness deliberately does not invent an `inline_query_id`; only a

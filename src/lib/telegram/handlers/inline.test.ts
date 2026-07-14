@@ -1193,8 +1193,8 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "как проверить номер",
-      id: "check-unknown-safety-question",
-      title: "Безопасно ли: проверим по фактам",
+      id: "meta-how-do-you-check",
+      title: "Проверить через Ishonch Guard",
     },
     {
       text: "какой номер полиции",
@@ -1223,18 +1223,18 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "привет",
-      id: "check-unknown-next-step",
-      title: "Что делать: остановитесь и пришлите просьбу",
+      id: "meta-greeting",
+      title: "Проверить через Ishonch Guard",
     },
     {
       text: "спасибо",
-      id: "check-unknown-next-step",
-      title: "Что делать: остановитесь и пришлите просьбу",
+      id: "small-talk-thanks",
+      title: "Пожалуйста",
     },
     {
       text: "а вы кто",
-      id: "check-unknown-next-step",
-      title: "Что делать: остановитесь и пришлите просьбу",
+      id: "small-talk-identity",
+      title: "Я — Ishonch Guard",
     },
   ])("maps everyday inline phrase '$text' to a useful preview", async ({ text, id, title }) => {
     hoisted.nextResult = {
