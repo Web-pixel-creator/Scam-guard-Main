@@ -15,7 +15,7 @@ not be relabelled as complete based only on unit tests or synthetic traffic.
 Current tracker summary:
 
 - Features: 72 Implemented, 1 Partial, 0 Planned.
-- Release gates: 14 Passed, 15 In Progress, 17 Blocked, 5 Deferred.
+- Release gates: 16 Passed, 13 In Progress, 17 Blocked, 5 Deferred.
 - Current security queue: 0 Open, 1 In Progress, 30 Deployed / Awaiting Live
   Verification, 4 Closed.
 
@@ -126,12 +126,17 @@ tested failure model.
 2026-07-14 evidence: the deployed-image 60-minute deterministic sub-gate passed
 with 36,000/36,000 completed, zero loss/duplicates, maximum queue 35, maximum
 RSS 101.41 MiB and event-loop p99 21.84 ms. No external service or database was
-called. The exit is still incomplete until an actual Railway instance restart
-and leader re-election handles one approved QA update without a duplicate reply.
+called. The remaining exit was completed on 2026-07-14: Railway deployment
+`c2b98732` replaced the application instance, the polling leader returned
+healthy, and one approved real Telegram greeting produced one client-visible
+reply. Two metadata-only lifecycle read-backs approximately 30 seconds apart
+remained at one completed attempt with no retry, processing row or failure.
 The separate ten-minute QR-worker corpus and worker crash/recovery sub-gate has
 now passed: 5,055 cases, zero failures, queue 4/1, max RSS 234.60 MiB and
 event-loop p99 21.04 ms. See `POLLING_RESOURCE_SOAK_2026-07-14.md` and
-`QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
+`QR_WORKER_RESOURCE_SOAK_2026-07-14.md`; final restart evidence is in
+`TELEGRAM_RESTART_QA_2026-07-14.md`. `RES-004` is Passed without an
+exactly-once claim.
 
 ### 5. Backup, restore, rollback and key rotation — P2 operational gate
 

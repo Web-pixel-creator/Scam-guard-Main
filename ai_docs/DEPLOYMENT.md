@@ -678,12 +678,14 @@ of the process-local offset. `SOAK_FINAL.passed` is true only when there are no
 lost updates or duplicate modeled outward effects and the queue, RSS growth,
 event-loop p99 and update latency stay within their configured bounds.
 
-This is production-shaped resource and failure-model evidence, not a claim that
-the operating-system process physically restarted or that Telegram delivered a
-real update. Complete the gate with one approved real-client update plus an
-actual Railway instance restart/leader re-election, and verify health, pending
-updates and the absence of duplicate replies afterward. The delivery guarantee
-remains at-least-once with bounded idempotent handling, never exactly-once.
+This is production-shaped resource and failure-model evidence, not by itself a
+claim that the operating-system process physically restarted or that Telegram
+delivered a real update. That separate gate passed on 2026-07-14: deployment
+`c2b98732` replaced the Railway instance, the polling leader was healthy, and an
+approved real greeting produced one reply with one stable completed lifecycle
+attempt and no retry/failure. See `TELEGRAM_RESTART_QA_2026-07-14.md`. The
+delivery guarantee remains at-least-once with bounded idempotent handling,
+never exactly-once.
 
 #### Recorded production-shaped run (2026-07-14)
 
@@ -745,9 +747,11 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       PNG/JPEG decode, queue-bound and worker termination/recovery evidence.
       Evidence: exact main `f1ddf349`, Railway `09f984bd`, 5,055 cases, zero
       failures.
-- [ ] Separately capture a real Railway instance restart/leader re-election with
-      one approved QA update, then prove health, empty pending queue and no
-      duplicate reply.
+- [x] Capture a real Railway instance replacement/polling-leader re-election
+      with one approved QA update, then prove health, empty pending queue and no
+      observed duplicate reply. Evidence: 2026-07-14, main `128e27d2`, Railway
+      `c2b98732`, one client-visible reply, one completed attempt, zero retries
+      or failures across two stable read-backs.
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Partner iframe origins, if any, are set in
       `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`
