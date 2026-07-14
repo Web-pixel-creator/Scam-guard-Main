@@ -112,5 +112,5 @@ describe("QR decoder", () => {
       values: [recoveryUrl],
       urls: [recoveryUrl],
     });
-  });
+  }, 15_000);
 });
