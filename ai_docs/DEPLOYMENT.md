@@ -602,6 +602,24 @@ a fake payload; restart/re-election and an approved real-client update cover
 that boundary. It also cannot validate Inline visual delivery because Telegram
 requires a real client-generated `inline_query_id`.
 
+### QR worker runtime corpus and crash probe
+
+The production QR decoder worker resolves three packages at runtime. Verify the
+deployed image contains exactly the required decoder dependencies, then run the
+isolated corpus/resource profile inside that same Railway runtime:
+
+```powershell
+railway ssh node --require=jsqr --require=jpeg-js --require=pngjs -p 1
+railway ssh node dist/ops/qr-worker-resource-soak.mjs --duration-minutes=10
+```
+
+Require `QR_SOAK_FINAL.passed=true`, zero corpus failures, successful PNG and
+JPEG decoding, four accepted queue jobs plus one rejected overflow job, an
+observed in-flight worker termination and a successful decode after worker
+recreation. Retain only the sanitized CPU/RSS/event-loop/latency counters. The
+runner creates its fixtures in memory and makes no Telegram, Supabase, AI or
+reputation-provider calls and performs no persistent writes.
+
 ### Polling/resource soak
 
 The production image contains a self-contained, non-secret soak runner. It uses
@@ -626,6 +644,17 @@ real update. Complete the gate with one approved real-client update plus an
 actual Railway instance restart/leader re-election, and verify health, pending
 updates and the absence of duplicate replies afterward. The delivery guarantee
 remains at-least-once with bounded idempotent handling, never exactly-once.
+
+#### Recorded production-shaped run (2026-07-14)
+
+The exact deployed image for main
+`868eb18d410f2616030a92b410a36b6bc3784c4e` completed an uninterrupted
+60-minute run with `SOAK_FINAL.passed=true`: 36,000/36,000 completed, zero lost
+updates, zero duplicate modeled effects, final/max queue 0/35, final/max RSS
+98.00/101.41 MiB, event-loop p99 21.84 ms and update-latency p99 2.57 ms. The
+sanitized build identity, metrics, isolation boundary and remaining physical
+restart/QR-worker gates are recorded in
+`ai_docs/POLLING_RESOURCE_SOAK_2026-07-14.md`.
 
 The general `prod:smoke` and synthetic `prod:telegram-inline-smoke` are also
 delivery-mode aware. With `TELEGRAM_UPDATE_DELIVERY_MODE=polling`, both require
@@ -668,9 +697,15 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       `getWebhookInfo.url` is empty afterward and pending updates were preserved.
 - [ ] Restart/completion-before-offset/stale-leader probes pass before horizontal
       application scaling. At most one polling leader may be active.
-- [ ] The 60-minute `polling-resource-soak` passes in a Railway runtime; retain
-      the sanitized `SOAK_FINAL` metrics and separately capture a real instance
-      restart/leader re-election with one approved QA update.
+- [x] The 60-minute `polling-resource-soak` passes in a Railway runtime; retain
+      the sanitized `SOAK_FINAL` metrics. Evidence: 2026-07-14, exact main
+      `868eb18d`, 36,000/36,000, zero loss/duplicates.
+- [ ] The deployed image resolves `jsqr`, `jpeg-js` and `pngjs`, and the
+      ten-minute `qr-worker-resource-soak` passes in that Railway runtime with
+      PNG/JPEG decode, queue-bound and worker termination/recovery evidence.
+- [ ] Separately capture a real Railway instance restart/leader re-election with
+      one approved QA update, then prove health, empty pending queue and no
+      duplicate reply.
 - [ ] Telegram bot secrets set server-side (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`), not in `VITE_*`.
 - [ ] Partner iframe origins, if any, are set in
       `EMBED_ALLOWED_FRAME_ANCESTORS` before distributing `/embed/check`

@@ -4,11 +4,13 @@
 
 - **The authoritative 10/10 release sequence is documented.** See
   `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
-  is deployed at `190c82a2`; 4,867 tests, coverage thresholds, CodeQL, Gitleaks,
+  has since advanced through PR #89 at deployed main `868eb18d`; 8,587 tests,
+  coverage thresholds, CodeQL, Gitleaks,
   Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
-  gate counts are 12 Passed, 16 In Progress, 18 Blocked and 5 Deferred. The
+  gate counts are 12 Passed, 17 In Progress, 17 Blocked and 5 Deferred. The
   release remains NO-GO until real Telegram/Inline clients, production Supabase
-  apply/read-back, finding-specific live closure, soak and recovery drills,
+  apply/read-back, finding-specific live closure, remaining restart/QR-worker
+  and recovery drills,
   legal/privacy approval and the fixed-RC 72-hour canary are complete.
 
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
@@ -30,11 +32,14 @@
 - **Telegram durable lifecycle is deployed in polling mode.** Single-leader
   `getUpdates(limit=1)`, metadata-only processing/completion leases, fenced
   session I/O/outbound effects and completion-before-offset crash recovery pass
-  local PostgreSQL and application tests. Production deployment `be7d6f8d` at
-  revision `190c82a2` reports a healthy polling leader; the scheduled monitor
+  local PostgreSQL and application tests. Production deployment `24b9cb4a` at
+  revision `868eb18d` reports a healthy polling leader; the scheduled monitor
   observes `mode=polling`, an empty pending queue and the intentionally disabled
-  webhook. Targeted multi-instance failover and provider-failure evidence remain
-  open, and the system is not claimed to provide exactly-once delivery.
+  webhook. The 2026-07-14 in-container 60-minute run passed 36,000/36,000 with
+  zero loss/duplicates, bounded queue/RSS/event-loop and the modeled leader,
+  offset and acknowledgement failures. A physical Railway restart/re-election
+  with one approved QA update remains open, and the system is not claimed to
+  provide exactly-once delivery.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is fixed locally.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
@@ -142,9 +147,17 @@
   worker-memory budgets. Real PNG/JPEG QR plus Telegram webhook focus passes
   104/104; the repository suite passes 2645/2645. A local four-job 3.6 MP burst
   completed in about 91 ms with roughly 11 ms maximum observed event-loop lag.
-  This is a single synthetic measurement, not the required p99/soak proof:
-  Railway legitimate-corpus smoke, runtime CPU/RAM profile, 60-minute bounded-
-  memory soak and worker crash/restart validation remain open under `RES-004`.
+  The general polling/media-admission 60-minute Railway soak now passes, but it
+  does not execute the QR decoder. A 2026-07-14 read-only production-image probe
+  then found `jsqr`, `jpeg-js` and `pngjs` absent from the runtime even though
+  the eval worker requires them dynamically; real production QR work could
+  therefore fail closed to empty evidence. The Docker runtime now selectively
+  copies only those three packages, and a new isolated legitimate/malformed QR
+  corpus proves queue overflow rejection plus forced worker termination and
+  recreation. The full suite passes 8,591/8,591 and a five-second staged
+  three-package runtime passed 50/50 cases. Exact container CI, deployment
+  read-back and the ten-minute Railway QR worker profile remain open under
+  `RES-004`.
 - **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
   rules-only and non-persistent while phone/Telegram username checks can show
   honest passport sections, limitations and the next context question instead

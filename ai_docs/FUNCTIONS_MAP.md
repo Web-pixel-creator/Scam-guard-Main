@@ -178,6 +178,18 @@ Signatures and intent only. See file paths for source.
   jobs and terminates an active job after 900 ms. Unsupported, oversized,
   saturated, timed-out or crashed work returns empty evidence; values remain
   deduplicated and clamped.
+- `terminateQrDecodeWorkerForOperationsProbe()` is an internal operations-only
+  hook for proving fail-closed interruption and worker recreation. No HTTP,
+  Telegram or client path exposes it.
+
+**`src/lib/risk/qr-worker-resource-soak.ts`**
+
+- `runQrWorkerResourceSoak(options)` exercises generated safe/suspicious/text
+  PNG QR, JPEG QR, non-QR, malformed and oversized fixtures, captures bounded
+  CPU/RSS/event-loop/decode-latency metrics, verifies four-job admission plus
+  overflow rejection, forces an in-flight worker termination and requires a
+  successful decode after worker recreation. It performs no external calls or
+  persistent writes.
 
 **`src/lib/risk/hash.ts`**: `hashIdentifier(value)`.
 
@@ -570,6 +582,10 @@ instead of receiving misleading phone or Telegram-profile instructions.
   polling/resource harness; the Docker build ships a self-contained Node bundle
   at `dist/ops/polling-resource-soak.mjs` for Railway runtime evidence without
   API calls or persistent writes.
+- `scripts/qr-worker-resource-soak.ts`: parameterized CLI for the in-memory QR
+  worker corpus/resource/crash harness; the Docker build ships it at
+  `dist/ops/qr-worker-resource-soak.mjs` together with only the three runtime QR
+  decoder packages.
 - `scripts/prod-monitor-policy.ts`: `skippedSecretMonitorCheck()` converts a
   missing secret into `fail` when that check is required, otherwise `warn`;
   `shouldFailMonitor()` makes every failed check fatal independently of the

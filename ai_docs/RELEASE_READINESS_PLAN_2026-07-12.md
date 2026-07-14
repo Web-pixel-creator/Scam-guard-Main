@@ -118,6 +118,14 @@ polling leader recovers; all synthetic records/messages are cleaned. Do not call
 the system exactly-once: the proof is bounded idempotent processing under the
 tested failure model.
 
+2026-07-14 evidence: the deployed-image 60-minute deterministic sub-gate passed
+with 36,000/36,000 completed, zero loss/duplicates, maximum queue 35, maximum
+RSS 101.41 MiB and event-loop p99 21.84 ms. No external service or database was
+called. The exit is still incomplete until an actual Railway instance restart
+and leader re-election handles one approved QA update without a duplicate reply;
+the legitimate QR-worker corpus and worker crash/restart checks also remain.
+See `POLLING_RESOURCE_SOAK_2026-07-14.md`.
+
 ### 5. Backup, restore, rollback and key rotation — P2 operational gate
 
 Perform an isolated Supabase restore from a real backup, validate table/RLS/RPC
