@@ -15,8 +15,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   with the same ranked reason used by the explanation, traverse all 55 reason
   codes through both suspicious and high-risk paths, keep the full first action
   inside the 120-character preview and preserve the order after a plaintext
-  entity-parse retry. The real Desktop row remains failed until the same
-  preview/insertion pair is captured again on the corrected production build.
+  entity-parse retry.
 - PR #104 passed application, coverage, database, CodeQL, Gitleaks and
   container/SBOM gates and merged as main `95a7a82`. Railway deployment
   `aee41826-f392-4567-a5a9-2a34a70d205c` reached `SUCCESS`, image
@@ -24,8 +23,14 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Home, health, authenticated polling leader, disabled-webhook policy and
   Telegram delivery state passed with zero pending updates. The AI key was
   deliberately removed from the smoke subprocess, so this verification made
-  no paid provider call. The real Desktop row still requires the same
-  post-deploy preview/insertion capture before it can pass.
+  no paid provider call.
+- The post-deploy Telegram Desktop retest passed. Its preview begins with the
+  complete reason-specific SMS/PIN action, and the inserted card places that
+  action directly after the title while keeping the reason, limitation,
+  attribution and launch button visible. Sanitized local evidence is stored as
+  `03-high-ru-preview-postfix.png` and `04-high-ru-inserted-postfix.png`. This
+  closes 1/17 Desktop cases and 1/51 total client rows; the wider client matrix
+  remains open.
 
 ## 2026-07-14 - Inline Unicode boundary and real-client evidence were hardened
 

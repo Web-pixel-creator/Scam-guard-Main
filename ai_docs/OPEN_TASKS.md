@@ -209,9 +209,12 @@
   placed it below the evidence paragraph. The deployed main `95a7a82` now puts
   the top reason-bound RU/UZ/EN action first and has Markdown/plaintext ordering
   regressions across all 55 reason codes. Production health, polling leader and
-  Telegram delivery passed without an AI call. Repeat Desktop preview/insertion
-  evidence is still required before that row passes; Android/iOS and the
-  remaining matrix remain open.
+  Telegram delivery passed without an AI call. The 2026-07-14 post-deploy
+  Telegram Desktop preview/insertion pair passed: the full SMS/PIN action is
+  first in the preview and immediately below the title after insertion, while
+  the reason, limitation and button remain visible. This closes 1/17 Desktop
+  cases and 1/51 total client rows. The other 16 Desktop rows plus all 17
+  Android and 17 iOS rows remain open.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad

@@ -53,6 +53,9 @@ high-risk/suspicious/low-signal rows, empty/1/255/256-character boundaries and
 four credential/malformed-link privacy rows. Do not replace these 51 rows with
 the 3,805-case offline corpus; each proves a different boundary.
 
+Current real-client progress: 1/17 Telegram Desktop cases and 1/51 total client
+rows passed. Android and iOS remain at 0/17 each.
+
 ## Scope
 
 Use this checklist when validating the actual Telegram UI:
@@ -217,4 +220,5 @@ sharing outside local QA. Do not upload raw private screenshots to the repo.
 | Date       | Tester | Client                           | Case ID        | Result         | Screenshot path                                                                                   | Notes                                                                                                                                                                                          |
 | ---------- | ------ | -------------------------------- | -------------- | -------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-07-02 |        | Telegram Desktop / iOS / Android | INLINE-HIGH-RU | Pass / Fail    | `private/telegram-inline-qa/2026-07-02/...`                                                       |                                                                                                                                                                                                |
-| 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU | Fail (pre-fix) | `private/telegram-inline-qa/2026-07-14/desktop/01-high-ru-preview.png`; `02-high-ru-inserted.png` | Result rendered and inserted correctly, but the preview omitted the safe action and the inserted card placed it below evidence. Fix deployed on main `95a7a82`; post-deploy retest is pending. |
+| 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU | Fail (pre-fix) | `private/telegram-inline-qa/2026-07-14/desktop/01-high-ru-preview.png`; `02-high-ru-inserted.png`                  | Result rendered and inserted correctly, but the preview omitted the safe action and the inserted card placed it below evidence. Fixed on main `95a7a82`; see the passing retest below.                                             |
+| 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU | Pass (post-fix) | `private/telegram-inline-qa/2026-07-14/desktop/03-high-ru-preview-postfix.png`; `04-high-ru-inserted-postfix.png` | Preview begins with the full reason-specific safe action. The inserted card puts the safe action immediately after the title, before evidence; reason, limitation, attribution and button are visible and no secret is exposed. |
