@@ -2,6 +2,27 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - Production shared rate-limit failure gate closed
+
+- PR #96 added a short-lived failure probe to the minimal production image.
+  It replaces network transport only inside the probe process, exposes no app
+  endpoint and cannot reach Telegram, Supabase, AI or another external sink.
+- A first Railway run passed missing-config, RPC error, invalid-shape,
+  transport-error and real-consumer `429` cases with zero external calls or
+  writes. PR #97 added the remaining HMAC/WebCrypto exception required by the
+  live acceptance matrix.
+- Both PRs passed application, coverage, database and security CI. The final
+  exact main `00f3b11ddaeabecaed1412238edec23861e35c5d` deployed as Railway
+  `6a8ec5f6-e758-4574-8d15-34eb1206ca43`, image
+  `sha256:b4cc9f1138528cb698ca5d26cec136b8ab1bf5c2d7ec7e111371c358564741b9`.
+- The final six-case in-container probe passed with zero external network
+  calls, database writes or unexpected sinks. Post-probe production smoke was
+  green, and a read-only count returned zero total/live/expired
+  `rate_limit_buckets`.
+- `RES-003` is Passed and `SG-P0-005` is Closed. Ongoing bucket-volume and
+  degraded-429 monitoring remains an operational watch. See
+  `SHARED_RATE_LIMIT_FAILURE_SMOKE_2026-07-14.md`.
+
 ## 2026-07-14 - Production QR worker runtime gap fixed and verified
 
 - A read-only probe of the deployed Railway image showed that its runtime did

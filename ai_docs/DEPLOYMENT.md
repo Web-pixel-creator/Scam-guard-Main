@@ -602,6 +602,28 @@ a fake payload; restart/re-election and an approved real-client update cover
 that boundary. It also cannot validate Inline visual delivery because Telegram
 requires a real client-generated `inline_query_id`.
 
+### Shared rate-limit forced-failure probe
+
+The production image contains a short-lived, network-isolated probe for the
+shared limiter. Run it inside the exact Railway deployment:
+
+```powershell
+railway ssh node dist/ops/shared-rate-limit-failure-smoke.mjs
+```
+
+Require `RATE_LIMIT_FAILURE_SMOKE_FINAL.passed=true`, all six cases
+(`missing_config`, `hash_error`, `rpc_error`, `invalid_shape`,
+`transport_error`, `consumer_429_before_sinks`) and zero external network
+calls, database writes and unexpected sink calls. The probe must remain an
+operator-only bundle with no application route. It changes only process-local
+synthetic values and restores its WebCrypto override before exit.
+
+The recorded 2026-07-14 run used exact main `00f3b11d`, Railway deployment
+`6a8ec5f6-e758-4574-8d15-34eb1206ca43` and image
+`sha256:b4cc9f1138528cb698ca5d26cec136b8ab1bf5c2d7ec7e111371c358564741b9`.
+All six cases passed; the normal production smoke passed immediately afterward.
+See `SHARED_RATE_LIMIT_FAILURE_SMOKE_2026-07-14.md`.
+
 ### QR worker runtime corpus and crash probe
 
 The production QR decoder worker resolves three packages at runtime. Verify the
