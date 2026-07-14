@@ -245,6 +245,17 @@ describe("handleInlineQuery", () => {
   });
 
   it("retries a Telegram entity-parse failure once without parse_mode", async () => {
+    hoisted.nextResult = {
+      type: "text",
+      display: "SMS code request",
+      level: "high_risk",
+      score: 60,
+      reasons: ["asks_for_sms_code"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
     hoisted.escapeMarkdown = true;
     hoisted.answerResults.push(
       {
@@ -255,7 +266,7 @@ describe("handleInlineQuery", () => {
       { ok: true },
     );
 
-    await handleInlineQuery("что мне делать дальше?", { userId: 42, session }, "iq-parse");
+    await handleInlineQuery("скажите код из SMS", { userId: 42, session }, "iq-parse");
 
     expect(hoisted.answerCalls).toHaveLength(2);
     const first = hoisted.answerCalls[0].results[0] as {
@@ -268,6 +279,10 @@ describe("handleInlineQuery", () => {
     expect(retry.input_message_content.parse_mode).toBeUndefined();
     expect(retry.input_message_content.message_text).not.toContain("\\");
     expect(retry.input_message_content.message_text).toContain("@scamguard_bot");
+    expect(retry.input_message_content.message_text.split("\n").slice(0, 2)).toEqual([
+      expect.stringContaining("Высокий риск"),
+      "Безопасный шаг: Не сообщайте SMS-код или PIN.",
+    ]);
   });
 
   it("does not republish credential classes in Markdown or plaintext retry messages", async () => {
@@ -330,28 +345,71 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).toContain("@scamguard_bot");
   });
 
-  it("leads with safe action for a high-risk inline result", async () => {
-    hoisted.nextResult = {
-      type: "text",
-      display: "код из SMS",
-      level: "high_risk",
-      score: 60,
-      reasons: ["asks_for_sms_code"],
-      explanation: null,
-      knownReports: 0,
-      verifiedContact: null,
-      brandEvidence: [],
-    };
+  it.each([
+    {
+      lang: "ru" as const,
+      title: "Высокий риск",
+      stepLabel: "Безопасный шаг",
+      step: "Не сообщайте SMS-код или PIN.",
+      checkedBy: "Проверено через Ishonch Guard",
+      reasonLabel: "Что заметил",
+    },
+    {
+      lang: "uz" as const,
+      title: "Yuqori xavf",
+      stepLabel: "Xavfsiz qadam",
+      step: "SMS-kod yoki PIN-ni aytmang.",
+      checkedBy: "Ishonch Guard orqali tekshirildi",
+      reasonLabel: "Nima ko'rindi",
+    },
+    {
+      lang: "en" as const,
+      title: "High risk",
+      stepLabel: "Safe step",
+      step: "Do not share your SMS code or PIN.",
+      checkedBy: "Checked by Ishonch Guard",
+      reasonLabel: "What I noticed",
+    },
+  ])(
+    "leads with the full safe action in $lang high-risk preview and inserted message",
+    async ({ lang, title, stepLabel, step, checkedBy, reasonLabel }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: "SMS code request",
+        level: "high_risk",
+        score: 60,
+        reasons: ["asks_to_scan_qr", "asks_for_sms_code"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
 
-    await handleInlineQuery("скажите код из SMS", { userId: 42, session }, "iq-high");
+      await handleInlineQuery(
+        "send the SMS code",
+        { userId: 42, session: { ...session, lang } },
+        `iq-high-${lang}`,
+      );
 
-    const article = hoisted.answerCalls[0].results[0] as {
-      title: string;
-      input_message_content: { message_text: string };
-    };
-    expect(article.title).toContain("Высокий риск");
-    expect(article.input_message_content.message_text).toContain("Не отправляйте SMS-код");
-  });
+      const article = hoisted.answerCalls[0].results[0] as {
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expect(article.title).toContain(title);
+      expect(article.description.startsWith(step)).toBe(true);
+      expect(article.description).toContain(REASON_LABELS.asks_for_sms_code[lang]);
+      expect(article.description.length).toBeLessThanOrEqual(120);
+
+      const message = article.input_message_content.message_text;
+      expect(message.split("\n").slice(0, 2)).toEqual([
+        expect.stringContaining(title),
+        `${stepLabel}: ${step}`,
+      ]);
+      expect(message.indexOf(stepLabel)).toBeLessThan(message.indexOf(checkedBy));
+      expect(message.indexOf(stepLabel)).toBeLessThan(message.indexOf(reasonLabel));
+    },
+  );
 
   it("renders the actual weird-domain heuristic and limitation", async () => {
     hoisted.nextResult = {
@@ -445,42 +503,63 @@ describe("handleInlineQuery", () => {
     expect(article.input_message_content.message_text).not.toContain("phone format");
   });
 
-  it("renders every reason through the real Inline adapter in RU/UZ/EN", async () => {
+  it("renders every reason through suspicious and action-first high-risk Inline paths", async () => {
     const allReasons = Object.keys(REASON_LABELS) as ReasonCode[];
+    const stepLabels = {
+      ru: "Безопасный шаг:",
+      uz: "Xavfsiz qadam:",
+      en: "Safe step:",
+    } as const;
 
     for (const lang of ["ru", "uz", "en"] as const) {
-      for (const [index, reason] of allReasons.entries()) {
-        hoisted.answerCalls.length = 0;
-        hoisted.nextResult = {
-          type: "text",
-          display: "bounded test value",
-          level: "suspicious",
-          score: 30,
-          reasons: [reason],
-          explanation: null,
-          knownReports: 0,
-          verifiedContact: null,
-          brandEvidence: [],
-        };
+      for (const level of ["suspicious", "high_risk"] as const) {
+        for (const [index, reason] of allReasons.entries()) {
+          hoisted.answerCalls.length = 0;
+          hoisted.nextResult = {
+            type: "text",
+            display: "bounded test value",
+            level,
+            score: level === "high_risk" ? 60 : 30,
+            reasons: [reason],
+            explanation: null,
+            knownReports: 0,
+            verifiedContact: null,
+            brandEvidence: [],
+          };
 
-        await handleInlineQuery(
-          `https://example.com/inline-${index}`,
-          { userId: 42, session: { ...session, lang } },
-          `iq-all-reasons-${lang}-${index}`,
-        );
+          await handleInlineQuery(
+            `https://example.com/inline-${index}`,
+            { userId: 42, session: { ...session, lang } },
+            `iq-all-reasons-${lang}-${level}-${index}`,
+          );
 
-        const article = hoisted.answerCalls[0].results[0] as {
-          description: string;
-          input_message_content: { message_text: string };
-        };
-        const message = article.input_message_content.message_text;
-        expect(message, `${reason}:${lang}`).toContain(REASON_LABELS[reason][lang]);
-        expect(message, `${reason}:${lang}`).not.toContain("undefined");
-        expect(message.length, `${reason}:${lang}:message length`).toBeLessThanOrEqual(4096);
-        expect(
-          article.description.length,
-          `${reason}:${lang}:description length`,
-        ).toBeLessThanOrEqual(120);
+          const article = hoisted.answerCalls[0].results[0] as {
+            description: string;
+            input_message_content: { message_text: string };
+          };
+          const message = article.input_message_content.message_text;
+          expect(message, `${reason}:${lang}:${level}`).toContain(REASON_LABELS[reason][lang]);
+          expect(message, `${reason}:${lang}:${level}`).not.toContain("undefined");
+          expect(message.length, `${reason}:${lang}:${level}:message length`).toBeLessThanOrEqual(
+            4096,
+          );
+          expect(
+            article.description.length,
+            `${reason}:${lang}:${level}:description length`,
+          ).toBeLessThanOrEqual(120);
+
+          if (level === "high_risk") {
+            const actionLine = message.split("\n")[1] ?? "";
+            expect(actionLine, `${reason}:${lang}:action line`).toMatch(
+              new RegExp(`^${stepLabels[lang]}\\s+`, "u"),
+            );
+            const action = actionLine.slice(stepLabels[lang].length).trim();
+            expect(action.length, `${reason}:${lang}:action`).toBeGreaterThan(0);
+            expect(article.description.startsWith(action), `${reason}:${lang}:preview action`).toBe(
+              true,
+            );
+          }
+        }
       }
     }
   });

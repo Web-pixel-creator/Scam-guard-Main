@@ -135,6 +135,12 @@ const EXPECTED_CONTINUE_BUTTON = {
   en: "Open Ishonch Guard",
 } as const;
 
+const EXPECTED_HIGH_RISK_ACTION_PREFIX = {
+  ru: "Безопасный шаг:",
+  uz: "Xavfsiz qadam:",
+  en: "Safe step:",
+} as const;
+
 const FALSE_PREVIOUS_CHECK_CLAIM =
   /(?:я\s+(?:уже\s+)?(?:проверил|перепроверил)\s+(?:прошл|предыдущ)|i\s+(?:already\s+)?(?:checked|rechecked)\s+(?:the\s+)?previous|oldingi\s+(?:xabar|natija).{0,30}(?:tekshirdim|qayta\s+tekshirdim))/iu;
 const USER_FACING_JARGON =
@@ -443,10 +449,11 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       expect(serialized, testCase.id).not.toContain("undefined");
       expect(serialized, testCase.id).not.toMatch(USER_FACING_JARGON);
       expect(FAILURE_OR_NON_ANSWER_IDS, testCase.id).not.toContain(article.id);
+      const plainMessage = markdownV2ToPlainText(article.input_message_content.message_text);
       const visiblePlainText = [
         article.title,
         article.description ?? "",
-        markdownV2ToPlainText(article.input_message_content.message_text),
+        plainMessage,
         button?.text ?? "",
       ].join("\n");
       for (const secret of testCase.forbiddenOutput) {
@@ -456,6 +463,15 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
         expect(visiblePlainText, `${testCase.id}: leaked fragment ${fragment}`).not.toContain(
           fragment,
         );
+      }
+
+      if (article.id === "check-high_risk") {
+        const actionPrefix = EXPECTED_HIGH_RISK_ACTION_PREFIX[testCase.lang];
+        const actionLine = plainMessage.split("\n")[1] ?? "";
+        expect(actionLine, testCase.id).toMatch(new RegExp(`^${actionPrefix}\\s+`, "u"));
+        const action = actionLine.slice(actionPrefix.length).trim();
+        expect(action.length, testCase.id).toBeGreaterThan(0);
+        expect(article.description?.startsWith(action), testCase.id).toBe(true);
       }
 
       if (

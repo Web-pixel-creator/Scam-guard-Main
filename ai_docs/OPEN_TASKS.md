@@ -204,6 +204,13 @@
   run it on Desktop/Android/iOS for 51 rows. The 257-character, timeout,
   `ok:false` and entity-parse retry branches stay automated-only because a
   normal client may prevent or cannot safely force those states.
+  2026-07-14 Telegram Desktop exposed a real action-order defect in
+  `INLINE-HIGH-RU`: the preview omitted the safe step and the inserted card
+  placed it below the evidence paragraph. The local fix now puts the top
+  reason-bound RU/UZ/EN action first and has Markdown/plaintext ordering
+  regressions. Deployment plus repeat Desktop preview/insertion evidence is
+  still required before that row passes; Android/iOS and the remaining matrix
+  remain open.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad

@@ -4,6 +4,7 @@ import { maskForDisplay } from "@/lib/risk/detect";
 import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
 import type { RiskLevel } from "@/lib/risk/rules";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
 import {
   answerInlineQuery,
   escapeMarkdownV2,
@@ -217,7 +218,7 @@ const COPY: Record<Lang, Copy> = {
       high_risk: {
         title: "🔴 Высокий риск",
         description: "Похоже на опасную схему",
-        step: "Не отправляйте SMS-код, карту, деньги и не устанавливайте приложение.",
+        step: "Не сообщайте коды или данные карты, не переводите деньги и не устанавливайте приложения.",
       },
     },
     reasonFallback: {
@@ -262,7 +263,7 @@ const COPY: Record<Lang, Copy> = {
       high_risk: {
         title: "🔴 Yuqori xavf",
         description: "Xavfli sxemaga o'xshaydi",
-        step: "SMS-kod, karta, pul yubormang va ilova o'rnatmang.",
+        step: "Kod yoki karta ma'lumotlarini bermang, pul yubormang va ilova o'rnatmang.",
       },
     },
     reasonFallback: {
@@ -307,7 +308,7 @@ const COPY: Record<Lang, Copy> = {
       high_risk: {
         title: "🔴 High risk",
         description: "This looks like a dangerous scheme",
-        step: "Do not send an SMS code, card data, money or install an app.",
+        step: "Do not share codes or card data. Do not send money or install an app.",
       },
     },
     reasonFallback: {
@@ -1101,9 +1102,36 @@ function topReason(result: RunCheckResult, lang: Lang, copy: Copy): string {
   return presentInlineReason(reasons, lang)?.text ?? copy.reasonFallback[result.level];
 }
 
+function ensureSentenceEnding(value: string): string {
+  return /[.!?…]$/u.test(value) ? value : `${value}.`;
+}
+
+function inlineSafeAction(result: RunCheckResult, lang: Lang, copy: Copy): string {
+  const reasons = collectResultReasonCodesForPresentation(result);
+  const primaryReason = presentInlineReason(reasons, lang)?.reason;
+  const reasonBoundAction = primaryReason
+    ? filterAdvice(result.level, [primaryReason], lang)[0]
+    : undefined;
+  return ensureSentenceEnding(reasonBoundAction ?? copy.levels[result.level].step);
+}
+
 function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   const copy = COPY[lang];
   const level = copy.levels[result.level];
+  if (result.level === "high_risk") {
+    return [
+      level.title,
+      `${copy.stepLabel}: ${inlineSafeAction(result, lang, copy)}`,
+      "",
+      copy.checkedBy,
+      "",
+      `${copy.displayLabel}: ${safeInlineDisplay(result.display, result.type)}`,
+      `${copy.reasonLabel}: ${topReason(result, lang, copy)}`,
+      "",
+      "@scamguard_bot",
+    ].join("\n");
+  }
+
   const lines = [
     level.title,
     copy.checkedBy,
@@ -1115,6 +1143,15 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
     "@scamguard_bot",
   ];
   return lines.join("\n");
+}
+
+function formatInlinePreviewDescription(result: RunCheckResult, lang: Lang): string {
+  const copy = COPY[lang];
+  const level = copy.levels[result.level];
+  const summary = `${level.description}. ${topReason(result, lang, copy)}`;
+  return result.level === "high_risk"
+    ? `${inlineSafeAction(result, lang, copy)} ${summary}`
+    : summary;
 }
 
 function formatHumanInlineMessage(
@@ -2150,7 +2187,7 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   return buildArticle(
     `check-${result.level}`,
     level.title,
-    `${level.description}. ${topReason(result, lang, copy)}`,
+    formatInlinePreviewDescription(result, lang),
     formatInlineMessage(result, lang),
     lang,
   );

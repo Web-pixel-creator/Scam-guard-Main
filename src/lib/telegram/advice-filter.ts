@@ -204,7 +204,7 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
     advice: {
       ru: "Не проходите капчу, голосование, бота или спин ради NFT/Stars/подарка, если дальше просят код, карту или кошелёк",
       uz: "NFT/Stars/sovrin uchun captcha, ovoz, bot yoki spin qilmang, agar keyin kod/karta/hamyon so‘ralsa",
-      en: "Do not complete captcha, voting, bot, or spin steps for NFT/Stars/gifts if the next step asks for a code, card, or wallet",
+      en: "Avoid NFT/Stars/gift captcha, voting, bot, or spin steps if they lead to a code, card, or wallet request",
     },
   },
   // Task/reward/referral bait -> avoid engagement loops and referral pressure.
