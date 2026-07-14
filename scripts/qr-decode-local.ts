@@ -14,6 +14,6 @@ function mimeFromPath(file: string): string {
 for (const file of files) {
   const bytes = readFileSync(file);
   const dataUrl = `data:${mimeFromPath(file)};base64,${bytes.toString("base64")}`;
-  const result = decodeQrFromDataUrl(dataUrl);
+  const result = await decodeQrFromDataUrl(dataUrl);
   console.log(`${basename(file)} ${JSON.stringify(result)}`);
 }

@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 import QRCode from "qrcode";
 import { PNG } from "pngjs";
 import { encode as encodeJpeg } from "jpeg-js";
-import { decodeQrFromDataUrl } from "./qr-decoder";
+import { decodeQrFromDataUrl, terminateQrDecodeWorkerForOperationsProbe } from "./qr-decoder";
 
 async function qrPngDataUrl(value: string): Promise<string> {
   return QRCode.toDataURL(value, {
@@ -98,5 +98,19 @@ describe("QR decoder", () => {
       results.filter((result) => result.urls.includes("https://example.com/bounded-queue")),
     ).toHaveLength(4);
     expect(results.filter((result) => result.values.length === 0)).toHaveLength(1);
+  });
+
+  it("fails the interrupted job closed and recreates the worker after termination", async () => {
+    const interrupted = decodeQrFromDataUrl(blankPngDataUrl(2000, 1800));
+
+    await expect(terminateQrDecodeWorkerForOperationsProbe()).resolves.toBe(true);
+    await expect(interrupted).resolves.toEqual({ values: [], urls: [] });
+
+    const recoveryUrl = "https://example.com/worker-recovered";
+    const recoveryQr = await qrPngDataUrl(recoveryUrl);
+    await expect(decodeQrFromDataUrl(recoveryQr)).resolves.toEqual({
+      values: [recoveryUrl],
+      urls: [recoveryUrl],
+    });
   });
 });

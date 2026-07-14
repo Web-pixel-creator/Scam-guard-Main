@@ -23,7 +23,8 @@ ARG SUPABASE_PUBLISHABLE_KEY
 ENV NITRO_PRESET=node-server
 RUN bun run build
 RUN mkdir -p dist/ops \
-  && bun build scripts/polling-resource-soak.ts --target=node --outfile=dist/ops/polling-resource-soak.mjs
+  && bun build scripts/polling-resource-soak.ts --target=node --outfile=dist/ops/polling-resource-soak.mjs \
+  && bun build scripts/qr-worker-resource-soak.ts --target=node --outfile=dist/ops/qr-worker-resource-soak.mjs
 
 # ── Runtime stage (Node — Nitro node-server is a plain Node bundle) ────────
 FROM node:22-bookworm-slim AS runtime
@@ -51,6 +52,13 @@ RUN rm -rf \
 # The Nitro node-server bundle is self-contained (deps are bundled into
 # dist/server). Copy just the build artifacts — no source, no devDeps.
 COPY --from=build /app/dist ./dist
+
+# The QR worker is created from an isolated eval source and resolves only these
+# three decoders at runtime. Copy the minimal modules explicitly so production
+# QR decoding cannot silently fail after the main server bundle is relocated.
+COPY --from=build /app/node_modules/jsqr ./node_modules/jsqr
+COPY --from=build /app/node_modules/jpeg-js ./node_modules/jpeg-js
+COPY --from=build /app/node_modules/pngjs ./node_modules/pngjs
 
 EXPOSE 3000
 USER node

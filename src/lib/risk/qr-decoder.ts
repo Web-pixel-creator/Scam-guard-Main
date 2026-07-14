@@ -293,6 +293,13 @@ class QrDecodeWorkerPool {
     });
   }
 
+  async terminateForOperationsProbe(): Promise<boolean> {
+    const worker = this.worker;
+    if (!worker) return false;
+    await worker.terminate();
+    return true;
+  }
+
   private createWorker(): Worker {
     const worker = new Worker(QR_WORKER_SOURCE, {
       eval: true,
@@ -355,4 +362,10 @@ const qrDecodePool = new QrDecodeWorkerPool();
 
 export async function decodeQrFromDataUrl(dataUrl: string): Promise<DecodedQrEvidence> {
   return qrDecodePool.decode(dataUrl);
+}
+
+// Internal operations hook used only by the isolated resource/crash harness.
+// It is not connected to an HTTP, Telegram or client-callable path.
+export async function terminateQrDecodeWorkerForOperationsProbe(): Promise<boolean> {
+  return qrDecodePool.terminateForOperationsProbe();
 }

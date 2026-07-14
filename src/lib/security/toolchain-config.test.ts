@@ -73,4 +73,15 @@ describe("toolchain security boundaries", () => {
     expect(dockerfile).toMatch(/USER\s+node/u);
     expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
   });
+
+  it("ships the isolated QR worker's runtime decoders and resource probe", () => {
+    const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
+
+    expect(dockerfile).toContain("/app/node_modules/jsqr ./node_modules/jsqr");
+    expect(dockerfile).toContain("/app/node_modules/jpeg-js ./node_modules/jpeg-js");
+    expect(dockerfile).toContain("/app/node_modules/pngjs ./node_modules/pngjs");
+    expect(dockerfile).toContain(
+      "scripts/qr-worker-resource-soak.ts --target=node --outfile=dist/ops/qr-worker-resource-soak.mjs",
+    );
+  });
 });

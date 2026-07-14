@@ -2,6 +2,52 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - Production QR worker runtime packaging gap fixed locally
+
+- A read-only probe of the deployed Railway image showed that its runtime did
+  not contain `jsqr`, `jpeg-js` or `pngjs`. The eval worker in
+  `qr-decoder.ts` resolves those packages at runtime, so production PNG/JPEG QR
+  work could fail closed to empty evidence even though source-runtime tests
+  passed.
+- The Docker runtime now copies only those three decoder packages. It still
+  excludes the package manager, build toolchain and the rest of development
+  dependencies.
+- Added a self-contained QR worker corpus/resource/crash runner for the
+  production image. It covers PNG/JPEG QR payloads, non-QR and malformed input,
+  oversize rejection, four-job queue admission plus overflow rejection, forced
+  in-flight worker termination and successful decode after worker recreation.
+- Local verification passes 8,591 tests, TypeScript, lint with 0 errors/8
+  existing warnings and the production build. A five-second staged runtime with
+  only the three decoder packages processed 50 cases with zero failures,
+  accepted/rejected 4/1 queue jobs, recovered after termination, reached
+  160.58 MiB max RSS and 38.17 ms event-loop p99.
+- Docker Desktop was not running locally, so the exact container build,
+  deployment read-back and ten-minute Railway runtime profile remain required
+  before this production gap is claimed closed.
+
+## 2026-07-14 - Railway polling/resource soak completed
+
+- PR #89 added a production-image-bundled polling/resource runner around the
+  real polling-cycle core. Application, database and security CI passed with
+  8,587 tests, TypeScript, lint with 0 errors/8 existing warnings, build,
+  coverage floors, CodeQL, Gitleaks, Trivy, CycloneDX, schema lint and pgTAP.
+- Clean main `868eb18d410f2616030a92b410a36b6bc3784c4e` deployed successfully as
+  Railway deployment `24b9cb4a-aefe-4807-9d2b-84fc6f931f3b`, image digest
+  `sha256:1a31e7b129757c8728ba46541f89bc048c4f71cc3bf15b8b481a08bbc9c8099c`.
+  Production smoke and `/healthz` passed before the run.
+- The uninterrupted 60-minute Railway run passed: 36,000 generated/completed
+  updates, zero lost updates, zero duplicate modeled effects, final/max queue
+  0/35, final/max RSS 98.00/101.41 MiB, event-loop p99 21.84 ms, update-latency
+  p99 2.57 ms and three bounded retries. Stale-leader rejection, process-offset
+  loss replay, pre-effect failure and completion-acknowledgement loss all passed.
+- The runner was isolated and in-memory: no Telegram, Supabase, AI-provider or
+  reputation-provider call and no synthetic persistence. Its `tmux` session was
+  removed and production remained `200 ok` afterward.
+- This closes only the bounded polling/resource soak sub-gate. `RES-004` remains
+  In Progress pending a physical Railway restart/leader re-election with one
+  approved QA update and the separate legitimate QR-worker corpus and
+  crash/restart validation. See `POLLING_RESOURCE_SOAK_2026-07-14.md`.
+
 ## 2026-07-13 - Human-style Telegram dialogue perimeter verified locally
 
 - Fixed the observed Telegram question `а ты можешь проанализировать ссылку?`:
