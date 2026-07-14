@@ -214,6 +214,7 @@ sharing outside local QA. Do not upload raw private screenshots to the repo.
 
 ## Evidence Log Template
 
-| Date       | Tester | Client                           | Case ID        | Result      | Screenshot path                             | Notes |
-| ---------- | ------ | -------------------------------- | -------------- | ----------- | ------------------------------------------- | ----- |
-| 2026-07-02 |        | Telegram Desktop / iOS / Android | INLINE-HIGH-RU | Pass / Fail | `private/telegram-inline-qa/2026-07-02/...` |       |
+| Date       | Tester | Client                           | Case ID        | Result         | Screenshot path                                                                                   | Notes                                                                                                                                                                            |
+| ---------- | ------ | -------------------------------- | -------------- | -------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-02 |        | Telegram Desktop / iOS / Android | INLINE-HIGH-RU | Pass / Fail    | `private/telegram-inline-qa/2026-07-02/...`                                                       |                                                                                                                                                                                  |
+| 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU | Fail (pre-fix) | `private/telegram-inline-qa/2026-07-14/desktop/01-high-ru-preview.png`; `02-high-ru-inserted.png` | Result rendered and inserted correctly, but the preview omitted the safe action and the inserted card placed it below evidence. Local action-first fix requires deployed retest. |

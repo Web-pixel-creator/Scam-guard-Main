@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - Real Desktop Inline action order was corrected locally
+
+- Real Telegram Desktop preview and insertion evidence for `INLINE-HIGH-RU`
+  confirmed that classification, explanation, redaction and insertion worked,
+  but the immediate safe action was omitted from the preview and appeared below
+  the evidence paragraph after insertion.
+- High-risk Inline previews and inserted cards now begin with the top
+  reason-bound RU/UZ/EN protective action. The generic fallbacks were also
+  rewritten to avoid unnatural phrases such as sending a physical card.
+- RU/UZ/EN regressions assert the complete action-first order, align the action
+  with the same ranked reason used by the explanation, traverse all 55 reason
+  codes through both suspicious and high-risk paths, keep the full first action
+  inside the 120-character preview and preserve the order after a plaintext
+  entity-parse retry. The real Desktop row remains failed until the corrected
+  production build is deployed and the same preview/insertion pair is captured
+  again.
+
 ## 2026-07-14 - Inline Unicode boundary and real-client evidence were hardened
 
 - Fixed the 256-character query gate to count Unicode code points rather than
