@@ -22,6 +22,10 @@ const MAX_INLINE_DESCRIPTION_LENGTH = 120;
 const DEFAULT_BOT_USERNAME = "scamguard_bot";
 const INLINE_PLAIN_TEXT = new WeakMap<InlineQueryResultArticle, string>();
 
+function unicodeCodePointLength(value: string): number {
+  return Array.from(value).length;
+}
+
 function configuredBotUsername(): string {
   const configured =
     typeof process === "undefined"
@@ -2312,7 +2316,7 @@ export async function handleInlineQuery(
     return;
   }
 
-  if (trimmed.length > MAX_INLINE_QUERY_LENGTH) {
+  if (unicodeCodePointLength(trimmed) > MAX_INLINE_QUERY_LENGTH) {
     await answerOne(
       inlineQueryId,
       staticArticle("too-long", lang, copy.tooLongTitle, copy.tooLongDescription),

@@ -75,10 +75,13 @@ For Inline in RU/UZ/EN, verify:
 
 1. high-risk, suspicious and low-signal cards;
 2. correct card layout and language on all three clients;
-3. insert-result output and Markdown/plaintext fallback;
-4. 0/1/255/256/257-character boundaries;
+3. insert-result output and normal Markdown on clients; prove plaintext retry
+   through deterministic entity-parse failure injection;
+4. 0/1/255/256-character boundaries on clients; prove 257-character rejection
+   through the handler because clients may truncate/refuse it first;
 5. malformed URL, OTP, password, recovery phrase and QR-secret privacy;
-6. timeout, `ok:false`, parse retry and empty-result UX;
+6. empty-result UX on clients; timeout, `ok:false` and parse retry through
+   deterministic API/handler failure injection without breaking production;
 7. no `checks` or Telegram-session persistence;
 8. no external URL-reputation request while typing.
 
@@ -87,6 +90,11 @@ cases / 2,140 unique queries through the real Inline handler with Telegram and
 Supabase mocked, global fetch unused and database mutations zero. This proves
 bounded protocol/copy/privacy invariants only; it does not satisfy any visual,
 insertion or Bot API acceptance item above.
+
+The reproducible client fixture generator emits 17 cases per client / 51 rows
+across Desktop, Android and iOS without a network call. Automated-only failure
+branches remain separate evidence and must not be recreated by damaging live
+Telegram delivery.
 
 Exit: `BOT-004`, `INL-001` and `INL-002` have a complete evidence matrix with no
 P0/P1 defect. A defect resets only the affected matrix after its fix is deployed.

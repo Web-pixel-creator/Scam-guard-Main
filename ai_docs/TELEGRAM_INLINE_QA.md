@@ -1,6 +1,6 @@
 # Telegram Inline Client QA
 
-Date: 2026-07-10
+Date: 2026-07-14
 
 This checklist covers the real Telegram-client visual QA step for
 `@scamguard_bot <query>` inline mode. It complements
@@ -21,6 +21,37 @@ small-talk/danger-tail precedence and visible credential redaction.
 See `TELEGRAM_INLINE_OFFLINE_QA_2026-07-14.md`. This automated sub-gate does
 not mark any row in the Evidence Log below as Passed and does not replace
 Telegram Desktop/Android/iOS preview and insertion QA.
+
+## Evidence split
+
+Do not force production failures that a normal client cannot reliably create.
+The release evidence is deliberately split:
+
+- **real client:** preview list, insertion, language/layout, ordinary Markdown,
+  empty/1/255/256-character input and privacy-visible output;
+- **automated failure injection:** 257-character rejection, Bot API timeout,
+  `{ok:false}`, Markdown entity-parse plaintext retry, zero persistence and zero
+  external fetch.
+
+Telegram documents the incoming query as up to 256 characters. A normal client
+may truncate or refuse a 257-character draft before it reaches the bot, so a
+real-client screenshot cannot prove the handler's rejection branch. Likewise,
+breaking production networking or deliberately shipping invalid Markdown is
+not an acceptable way to prove failure handling. The owning mocked handler/API
+tests are the evidence for those branches.
+
+Generate the exact bounded fixtures locally with no network/API call:
+
+```bash
+npm run qa:telegram-inline-client-matrix
+npm run qa:telegram-inline-client-matrix -- --case INLINE-HIGH-RU
+```
+
+The generator emits 17 safe synthetic cases per client. Run them on Telegram
+Desktop, Android and iOS: 51 client rows total. It includes nine RU/UZ/EN
+high-risk/suspicious/low-signal rows, empty/1/255/256-character boundaries and
+four credential/malformed-link privacy rows. Do not replace these 51 rows with
+the 3,805-case offline corpus; each proves a different boundary.
 
 ## Scope
 
@@ -79,6 +110,13 @@ npx vitest run src/lib/telegram/inline-adapted-dialogue-corpus.test.ts src/lib/r
 The polling harness deliberately does not invent an `inline_query_id`; only a
 real Telegram client can supply an id accepted by `answerInlineQuery` and prove
 that the result list renders.
+
+For the current polling deployment, also run the automated-only regression
+slice instead of trying to manufacture provider failures in a user client:
+
+```bash
+npx vitest run src/lib/telegram/handlers/inline.test.ts src/lib/telegram/api.server.test.ts
+```
 
 ## Deferred Client Note
 

@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - Inline Unicode boundary and real-client evidence were hardened
+
+- Fixed the 256-character query gate to count Unicode code points rather than
+  JavaScript UTF-16 code units; added 1/255/256/257 plus 256/257-emoji regressions.
+- Added `qa:telegram-inline-client-matrix`, a zero-network fixture generator for
+  17 cases per client / 51 Desktop-Android-iOS rows.
+- Split real-client proof from automated-only 257-character, timeout,
+  `{ok:false}`, parse-retry and external-sink evidence so QA does not damage
+  production to manufacture unobservable failures.
+
 ## 2026-07-14 - The 1,000-dialogue perimeter was adapted to Inline locally
 
 - Added a reproducible Inline corpus with 3,805 source cases / 2,140 unique
