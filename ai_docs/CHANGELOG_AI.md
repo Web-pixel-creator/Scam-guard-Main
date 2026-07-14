@@ -2,6 +2,22 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-14 - Real Telegram restart/re-election gate closed
+
+- Railway deployment `c2b98732-bc38-4fbf-aafa-920282eea161` started a new
+  application instance from main `128e27d2` while retaining the already
+  verified runtime image `sha256:b4cc9f11`. Health and polling-leader checks
+  returned `200`, and Telegram reported polling mode with an empty webhook URL
+  and zero pending updates.
+- The user sent the approved benign greeting `привет` from a real Telegram
+  client. The client screenshot showed one reply. Two metadata-only lifecycle
+  read-backs approximately 30 seconds apart both found exactly one completed
+  row, attempt count one, no retry, no processing row and no failure stage.
+- The post-update production smoke passed. `RES-004` is now Passed. This is a
+  bounded no-duplicate observation, not an exactly-once claim; production
+  remains at-least-once with durable idempotent handling. See
+  `TELEGRAM_RESTART_QA_2026-07-14.md`.
+
 ## 2026-07-14 - Production shared rate-limit failure gate closed
 
 - PR #96 added a short-lived failure probe to the minimal production image.

@@ -7,10 +7,9 @@
   has since advanced through PR #94 at deployed main `f1ddf349`; 8,591 tests,
   coverage thresholds, CodeQL, Gitleaks,
   Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
-  gate counts are 14 Passed, 15 In Progress, 17 Blocked and 5 Deferred. The
+  gate counts are 16 Passed, 13 In Progress, 17 Blocked and 5 Deferred. The
   release remains NO-GO until real Telegram/Inline clients, production Supabase
-  apply/read-back, finding-specific live closure, the physical restart/recovery
-  and remaining operational drills,
+  apply/read-back, finding-specific live closure and remaining operational drills,
   legal/privacy approval and the fixed-RC 72-hour canary are complete.
 
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
@@ -37,9 +36,12 @@
   observes `mode=polling`, an empty pending queue and the intentionally disabled
   webhook. The 2026-07-14 in-container 60-minute run passed 36,000/36,000 with
   zero loss/duplicates, bounded queue/RSS/event-loop and the modeled leader,
-  offset and acknowledgement failures. A physical Railway restart/re-election
-  with one approved QA update remains open, and the system is not claimed to
-  provide exactly-once delivery.
+  offset and acknowledgement failures. Railway deployment `c2b98732` then
+  replaced the application instance and re-elected a healthy polling leader.
+  One approved real Telegram greeting produced one client-visible reply; two
+  stable metadata-only read-backs found one completed attempt, no retry or
+  failure, and the pending queue remained empty. `RES-004` is Passed. The
+  system is still not claimed to provide exactly-once delivery.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
@@ -163,8 +165,8 @@
   cases with zero failures, PNG 2,087, JPEG 693, queue 4/1, forced fail-closed
   termination and successful worker recreation. Max RSS was 234.60 MiB,
   event-loop p99 21.04 ms and decode p99 225.53 ms; post-load production smoke
-  passed. `RES-001` and `RES-002` are Passed. Only the approved physical
-  restart/leader-re-election evidence remains in `RES-004`.
+  passed. `RES-001`, `RES-002` and `RES-004` are Passed; the restart/re-election
+  closure is recorded in `TELEGRAM_RESTART_QA_2026-07-14.md`.
 - **Telegram inline low-signal checks use Risk Passport now.** Inline mode stays
   rules-only and non-persistent while phone/Telegram username checks can show
   honest passport sections, limitations and the next context question instead

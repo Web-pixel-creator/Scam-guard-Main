@@ -2,11 +2,11 @@
 
 ## Decision
 
-The bounded production-shaped polling/resource run passed. This closes the
-60-minute in-container soak sub-gate, but it does not close `RES-004` by itself.
-An actual Railway instance restart with polling-leader re-election and one
-approved real Telegram update, plus the dedicated QR-worker corpus and
-crash/restart checks, remain required.
+The bounded production-shaped polling/resource run passed. It closed the
+60-minute in-container soak sub-gate. The dedicated QR-worker corpus and the
+real Railway restart/polling-leader QA were completed later on 2026-07-14;
+together these close `RES-004`. See `QR_WORKER_RESOURCE_SOAK_2026-07-14.md` and
+`TELEGRAM_RESTART_QA_2026-07-14.md`.
 
 ## Build identity
 
@@ -64,9 +64,9 @@ update, or execution of the QR decoder. At the time of this run the QR corpus
 and worker-recovery checks were still open; they passed later on 2026-07-14 and
 are recorded separately in `QR_WORKER_RESOURCE_SOAK_2026-07-14.md`.
 
-The following remains open for `RES-004`:
-
-1. restart the Railway instance in an approved window and capture polling-leader
-   re-election, empty pending queue and one approved QA update with no duplicate
-   reply;
-2. retain only sanitized counts and timings in release evidence.
+The final `RES-004` boundary was closed later on 2026-07-14. A new Railway
+instance reported a healthy polling leader and empty pending queue; one approved
+real Telegram greeting produced one visible reply, and two stable metadata-only
+read-backs found one completed attempt with no retry or failure. Only sanitized
+counts and timings were retained. This remains an at-least-once, not
+exactly-once, delivery claim.

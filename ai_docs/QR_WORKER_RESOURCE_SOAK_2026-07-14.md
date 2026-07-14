@@ -3,9 +3,8 @@
 ## Outcome
 
 The production QR runtime packaging gap is fixed and live-verified. `RES-001`
-and `RES-002` are Passed. `RES-004` remains In Progress only because an actual
-Railway instance restart/polling-leader re-election with one approved QA update
-has not yet been captured.
+and `RES-002` are Passed. The later real Railway restart/polling-leader QA is
+recorded in `TELEGRAM_RESTART_QA_2026-07-14.md`, so `RES-004` is also Passed.
 
 ## Root cause and correction
 
@@ -105,7 +104,8 @@ polling leader `200` and AI provider `200`.
 This proves production package availability, legitimate PNG/JPEG decoding,
 fail-closed invalid/oversized input, bounded queue admission, resource behavior,
 forced worker interruption and worker recreation in the exact deployed image.
-It does not claim that the main Railway application process physically
-restarted, that a polling leader was re-elected during such a restart or that a
-real Telegram update was delivered exactly once across that event. Those remain
-the final `RES-004` evidence item and must use one approved QA update.
+This QR run does not claim that the main Railway application process physically
+restarted or that Telegram delivered a real update. That separate boundary was
+closed later on 2026-07-14 with one approved real-client update and privacy-safe
+lifecycle read-back, as recorded in `TELEGRAM_RESTART_QA_2026-07-14.md`. Neither
+test claims exactly-once delivery.
