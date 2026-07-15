@@ -2,7 +2,7 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-15 - Desktop Inline defects and polling burst reliability were fixed locally
+## 2026-07-15 - Desktop Inline defects and polling burst reliability were deployed
 
 - Archived 41 user-supplied Telegram Desktop screenshots as ignored local
   pre-fix evidence under
@@ -42,13 +42,30 @@ Newest first. This tracks documentation/memory files, not every code commit.
   TypeScript, the production build and `npm audit` with zero known npm
   vulnerabilities. Focused evidence includes the Inline/risk suites plus
   234/234 merged polling/lifecycle/API/Inline reliability tests.
-- Draft PR #106 at candidate `b3c0611` passed application/coverage CI, migration
-  apply on a clean database, schema lint, 35 pgTAP assertions, CodeQL, Gitleaks
-  and container High/Critical/SBOM gates. This entry still does not claim a
-  release or live pass: the production Supabase migration/read-back, production
-  deployment, Desktop post-fix replay and Android/iOS RU/UZ/EN visual/insertion
-  QA are open. `INL-001`/`INL-002` must not move to Passed; `BOT-004` remains In
-  Progress. See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
+- PR #106 passed application/coverage CI, migration apply on a clean database,
+  schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and container
+  High/Critical/SBOM gates, then merged as
+  `87bf181b4d4df92e438e768f83ab4c02883f1d9f`.
+- Remote Supabase migration history records
+  `20260712142514_reconcile_admin_role_lifecycle.sql` and
+  `20260715040836_telegram_polling_stale_leader_reclaim.sql`. Local/remote
+  history matches, a linked dry-run reports no pending migration, and linked
+  production schema lint reports no errors. Direct live catalog grant/trigger
+  read-back remains open. The count-only admin
+  preflight found one current/eligible admin role and zero stale or missing
+  roles without emitting an identifier.
+- Railway deployment `39cf9f6d-294d-410a-9cef-972e41829561` reached `SUCCESS`
+  from the exact merge revision, image
+  `sha256:f289ebed30a5b96b3012904361b6aaa8a42cded15cd5fc1d75984690c5e84f11`.
+  Home/health, expected webhook-secret behavior, polling delivery with zero
+  pending updates and protected leader health passed. AI and alerting were
+  disabled, so the monitor made no paid model call and sent no Telegram message.
+  A one-minute in-memory soak also passed 600/600 with zero duplicates or loss.
+- This deployment closes the migration/deployment/health preconditions for
+  client retest, not the real-client gate. The 41 screenshots remain pre-fix evidence; Desktop post-fix replay and
+  Android/iOS RU/UZ/EN visual/insertion QA are open. `INL-001`/`INL-002` must
+  not move to Passed; `BOT-004` remains In Progress. See
+  `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
   `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
 
 ## 2026-07-14 - Real Desktop Inline action order was corrected and deployed

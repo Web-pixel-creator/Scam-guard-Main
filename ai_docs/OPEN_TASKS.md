@@ -2,21 +2,26 @@
 
 ## Fragile / risky spots
 
-- **2026-07-15 Inline/Desktop QA remediation is locally verified, not
-  released.** Forty-one Telegram Desktop screenshots under
+- **2026-07-15 Inline/Desktop QA remediation is deployed; migration/deployment/health
+  preconditions are verified; real-client acceptance remains open.** Forty-one Telegram Desktop screenshots under
   `private/telegram-inline-qa/2026-07-15/desktop/user-batch-01/` capture the
   pre-fix behavior for job fees, passport requests, multiline link context,
   ambiguous numbers, phone privacy, rate-limit refreshes and occasional empty
-  Inline results. The local candidate fixes those paths, extends clause-local
+  Inline results. The deployed release fixes those paths, extends clause-local
   RU/UZ/EN safety detection and hardens transient Inline delivery plus polling
   bursts. The repository suite passes 8,882/8,882; TypeScript, production build
-  and `npm audit` also pass, with zero known npm vulnerabilities. Draft PR #106
-  candidate `b3c0611` also passed application/coverage CI, clean-database
+  and `npm audit` also pass, with zero known npm vulnerabilities. PR #106
+  passed application/coverage CI, clean-database
   migration apply, schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and
-  container High/Critical/SBOM gates. This is not live proof: production deploy
-  and migration read-back, Desktop post-fix replay and all Android/iOS rows
-  remain open. Keep `INL-001`/`INL-002` out of Passed and `BOT-004` In Progress
-  until those gates are evidenced. See
+  container High/Critical/SBOM gates and merged as `87bf181b`. Remote migration
+  history contains both pending migrations, linked dry-run reports no pending
+  migration and schema lint is clean. Historical Railway deployment `39cf9f6d`
+  reached `SUCCESS` and passed the recorded health checks; the bounded
+  no-AI/no-alert monitor and one-minute local in-memory
+  soak passed without Telegram messages, production writes or paid AI calls.
+  This is migration/deployment/health evidence, not client proof: Desktop post-fix replay and
+  all Android/iOS rows remain open. Keep `INL-001`/`INL-002` out of Passed and
+  `BOT-004` In Progress until those gates are evidenced. See
   `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
   `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
 
@@ -26,8 +31,8 @@
   coverage thresholds, CodeQL, Gitleaks,
   Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
   gate counts are 16 Passed, 13 In Progress, 17 Blocked and 5 Deferred. The
-  release remains NO-GO until real Telegram/Inline clients, production Supabase
-  apply/read-back, finding-specific live closure and remaining operational drills,
+  release remains NO-GO until real Telegram/Inline clients, finding-specific
+  direct-catalog/live read-backs and remaining operational drills,
   legal/privacy approval and the fixed-RC 72-hour canary are complete.
 
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
@@ -38,9 +43,11 @@
   follow-up precedence are deployed at `190c82a2`. Integration proof includes
   4,867 tests, coverage, CodeQL, Gitleaks, Trivy, CycloneDX, TypeScript, build,
   npm audit, a 28-migration reset, 38/38 pgTAP and schema lint. The exact
-  admin-role migration still requires authenticated production Supabase apply.
-  Do not mark findings Closed until their targeted live/read-back evidence and
-  privacy-safe historical-data review are complete.
+  remote migration history now records the admin-role migration. A count-only stable
+  preflight found one current/eligible admin role and zero stale or missing
+  roles; it emitted no identifier. Direct live catalog trigger/grant read-back
+  and privacy-safe historical-data review remain open. Do not mark findings
+  Closed until their targeted live/read-back evidence is complete.
 
 - **Family Shield v1.1 hardening is shipped.** Active-link invite errors, stale
   invite expiry, trusted-contact opt-out, env-driven invite URLs,
@@ -60,7 +67,7 @@
   stable metadata-only read-backs found one completed attempt, no retry or
   failure, and the pending queue remained empty. `RES-004` is Passed. The
   system is still not claimed to provide exactly-once delivery.
-  A 2026-07-15 local candidate changes only the processing granularity: it
+  The deployed PR #106 change updates the processing granularity: it
   requests batches of 20, pre-validates strictly increasing update ids, keeps
   every message/callback/hybrid update in causal order and runs strict Inline
   work in chunks of at most four. While one stateful update is slow, only
@@ -71,9 +78,14 @@
   forward migration lets the current polling leader reclaim a stale-owner
   processing lease only after a 15-second drain grace, without weakening fences
   or webhook ownership. Merged reliability tests pass 234/234. PR #106 passed
-  clean-database migration apply, schema lint and 35 pgTAP assertions.
-  Production migration apply/read-back and a bounded live burst/restart retest
-  remain open.
+  clean-database migration apply, schema lint and 35 pgTAP assertions, then
+  merged as `87bf181b`. Remote history contains the forward migration; linked
+  dry-run reports no pending migration and schema lint is clean. Historical
+  Railway deployment `39cf9f6d` of that exact revision reached `SUCCESS`; its
+  health, Telegram delivery, empty pending queue and polling-leader checks
+  passed. A one-minute local in-memory soak passed 600/600
+  with no duplicate effect or loss. Direct live catalog-grant read-back and the
+  bounded approved-QA burst/restart drill remain open.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
@@ -260,10 +272,10 @@
   network/no-code/5xx `answerInlineQuery` failures are retried once and then
   surface to the durable lifecycle instead of being acknowledged as delivered.
   A 429 is delayed according to bounded Telegram `retry_after`, not retried
-  immediately. These statements are
-  local test evidence only. Replay the affected Desktop cases after deployment,
-  then complete Android/iOS RU/UZ/EN rendering, insertion, privacy, timeout and
-  recovery evidence before changing Inline tracker status.
+  immediately. These fixes are deployed on `87bf181b`; the statements still
+  represent automated plus migration/deployment/health evidence only. Replay the affected Desktop cases
+  now, then complete Android/iOS RU/UZ/EN rendering, insertion, privacy, timeout
+  and recovery evidence before changing Inline tracker status.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad

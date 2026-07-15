@@ -35,16 +35,20 @@ It exposed job-fee copy falling through to generic money-transfer advice,
 ambiguous instructions around numbers, a bare eight-digit value treated as a
 US/Canada phone, lost multiline link context, an incomplete passport preview,
 rate-limit refresh confusion and an occasional absent or unchanged second
-Inline result. The local candidate adds focused regressions and fixes for these
+Inline result. The deployed release adds focused regressions and fixes for these
 paths. Do not count any of the 41 files as post-fix proof.
 
-Local verification for the candidate passes 8,882/8,882 tests, TypeScript,
-production build and `npm audit` with zero known vulnerabilities. Draft PR #106
-candidate `b3c0611` passed application/coverage CI, clean-database migration,
-schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and container/SBOM gates.
-Production migration/read-back, deployment and real Desktop/Android/iOS replay
-remain open. `INL-001` and `INL-002` therefore remain outside Passed;
-`BOT-004` remains In Progress.
+Local verification passes 8,882/8,882 tests, TypeScript, production build and
+`npm audit` with zero known vulnerabilities. PR #106 passed
+application/coverage CI, clean-database migration, schema lint, 35 pgTAP
+assertions, CodeQL, Gitleaks and container/SBOM gates, then merged as
+`87bf181b4d4df92e438e768f83ab4c02883f1d9f`. Remote migration history contains
+both pending Supabase migrations; linked dry-run reports no pending migration
+and remote schema lint is clean. Historical Railway deployment `39cf9f6d` of the
+exact merge revision reached `SUCCESS` and passed the recorded health checks.
+Direct live catalog grant/trigger verification remains open.
+Real Desktop/Android/iOS replay remains open. `INL-001` and `INL-002` therefore
+remain outside Passed; `BOT-004` remains In Progress.
 
 ## Evidence split
 
@@ -108,10 +112,17 @@ chat unless the case is explicitly about report/appeal moderator delivery.
 - Production Telegram delivery is healthy in its configured mode. Current
   production uses polling; an intentionally disabled webhook returning 503 is
   expected there.
-- For the 2026-07-15 remediation replay, first confirm the exact candidate has
-  passed CI, its Supabase migration has applied successfully and the matching
-  application revision is deployed. Do not retest against the older production
+- The 2026-07-15 remediation replay must target production containing merge
+  `87bf181b4d4df92e438e768f83ab4c02883f1d9f` or a verified descendant. Railway
+  deployment `39cf9f6d-294d-410a-9cef-972e41829561` is historical PR #106
+  evidence; record the active commit, deployment and image at capture time.
+  Supabase migration history is current, linked dry-run reports no pending
+  migration, and remote schema lint is clean. Do not retest against an older
   build and label the result post-fix.
+- The bounded post-deploy monitor passed home/health, secret rejection,
+  polling-mode webhook shutdown, Telegram delivery with zero pending updates
+  and protected polling-leader health. AI and alerts were disabled, so it made
+  no paid AI call and sent no Telegram message.
 - Do not paste real SMS codes, card data, passwords, document photos or private
   screenshots into inline queries.
 - Store raw screenshots locally under:
@@ -144,6 +155,12 @@ npx vitest run src/lib/telegram/inline-adapted-dialogue-corpus.test.ts src/lib/r
 The polling harness deliberately does not invent an `inline_query_id`; only a
 real Telegram client can supply an id accepted by `answerInlineQuery` and prove
 that the result list renders.
+
+The polling harness is not a passive minimal gate: it sends real replies to the
+configured QA chat, temporarily writes synthetic lifecycle/session/check data
+and may call AI or reputation providers. Run it only as an explicitly approved,
+bounded QA drill. The post-deploy evidence for this release used the bounded
+no-AI/no-alert monitor and the local in-memory soak instead.
 
 For the current polling deployment, also run the automated-only regression
 slice instead of trying to manufacture provider failures in a user client:
