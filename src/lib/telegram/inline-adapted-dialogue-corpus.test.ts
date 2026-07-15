@@ -172,6 +172,27 @@ function markdownV2ToPlainText(value: string): string {
 }
 
 const FAILURE_OR_NON_ANSWER_IDS = new Set(["help", "error", "rate-limited", "too-long"]);
+const SCOPED_ARTICLE_ID_SUFFIX = /^[A-Za-z0-9_-]{16}$/u;
+
+function scopedArticleSemanticId(actual: string, label?: string): string {
+  expect(
+    [...actual].every((character) => (character.codePointAt(0) ?? 128) <= 127),
+    label,
+  ).toBe(true);
+  expect(new TextEncoder().encode(actual).length, label).toBeLessThanOrEqual(64);
+  expect(actual.length, label).toBeGreaterThan(17);
+  expect(actual.at(-17), label).toBe("-");
+
+  const semanticId = actual.slice(0, -17);
+  const suffix = actual.slice(-16);
+  expect(semanticId, label).toMatch(/^[A-Za-z0-9_-]{1,47}$/u);
+  expect(suffix, label).toMatch(SCOPED_ARTICLE_ID_SUFFIX);
+  return semanticId;
+}
+
+function expectScopedArticleId(actual: string, expectedSemanticId: string, label?: string): void {
+  expect(scopedArticleSemanticId(actual, label), label).toBe(expectedSemanticId);
+}
 
 describe("adapted 1,000-dialogue Inline perimeter", () => {
   const originalSupabaseUrl = process.env.SUPABASE_URL;
@@ -355,7 +376,7 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       expect(h.answerCalls.length, testCase.id).toBe(answerBefore + 1);
       expect(h.runCheckCalls.length, testCase.id).toBe(runCheckBefore);
       const article = h.answerCalls.at(-1)!.results[0] as InlineQueryResultArticle;
-      expect(article.id, testCase.id).toBe(testCase.articleId);
+      expectScopedArticleId(article.id, testCase.articleId, testCase.id);
       expect(article.title, testCase.id).toBe(testCase.title);
       expect(article.reply_markup?.inline_keyboard?.[0]?.[0]?.text, testCase.id).toBe(
         EXPECTED_CONTINUE_BUTTON[testCase.lang],
@@ -393,9 +414,10 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       );
 
       const article = h.answerCalls.at(-1)!.results[0] as InlineQueryResultArticle;
-      expect(article.id, testCase.query).not.toMatch(/^(?:small-talk-|meta-|help$)/u);
-      expect(FAILURE_OR_NON_ANSWER_IDS, testCase.query).not.toContain(article.id);
-      expect(article.id, testCase.query).not.toBe("check-safe");
+      const semanticId = scopedArticleSemanticId(article.id, testCase.query);
+      expect(semanticId, testCase.query).not.toMatch(/^(?:small-talk-|meta-|help$)/u);
+      expect(FAILURE_OR_NON_ANSWER_IDS, testCase.query).not.toContain(semanticId);
+      expect(semanticId, testCase.query).not.toBe("check-safe");
       expect(
         markdownV2ToPlainText(article.input_message_content.message_text),
         testCase.query,
@@ -424,7 +446,7 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
 
       const article = articleFromLastCall(testCase);
       expect(article.type, testCase.id).toBe("article");
-      expect(article.id.trim().length, testCase.id).toBeGreaterThan(0);
+      const semanticId = scopedArticleSemanticId(article.id, testCase.id);
       expect(article.title.trim().length, testCase.id).toBeGreaterThan(0);
       expect(article.title.length, testCase.id).toBeLessThanOrEqual(256);
       expect(article.description?.length ?? 0, testCase.id).toBeLessThanOrEqual(120);
@@ -448,7 +470,7 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       const serialized = JSON.stringify(article);
       expect(serialized, testCase.id).not.toContain("undefined");
       expect(serialized, testCase.id).not.toMatch(USER_FACING_JARGON);
-      expect(FAILURE_OR_NON_ANSWER_IDS, testCase.id).not.toContain(article.id);
+      expect(FAILURE_OR_NON_ANSWER_IDS, testCase.id).not.toContain(semanticId);
       const plainMessage = markdownV2ToPlainText(article.input_message_content.message_text);
       const visiblePlainText = [
         article.title,
@@ -465,7 +487,7 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
         );
       }
 
-      if (article.id === "check-high_risk") {
+      if (semanticId === "check-high_risk") {
         const actionPrefix = EXPECTED_HIGH_RISK_ACTION_PREFIX[testCase.lang];
         const actionLine = plainMessage.split("\n")[1] ?? "";
         expect(actionLine, testCase.id).toMatch(new RegExp(`^${actionPrefix}\\s+`, "u"));
@@ -479,19 +501,21 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
         testCase.expectedKind === "mixed_danger" ||
         testCase.expectedKind === "credential_boundary"
       ) {
-        expect(article.id, testCase.id).not.toBe("check-safe");
-        expect(article.id, testCase.id).not.toMatch(/^(?:small-talk-|meta-)/u);
+        expect(semanticId, testCase.id).not.toBe("check-safe");
+        expect(semanticId, testCase.id).not.toMatch(/^(?:small-talk-|meta-)/u);
         expect(article.title, testCase.id).not.toMatch(/^(?:🟢\s*)?(?:Безопасно|Xavfsiz|Safe)$/iu);
       }
 
       if (testCase.expectedKind === "mixed_safe_control") {
-        expect(article.id, testCase.id).toMatch(/^check-(?:safe|unknown)(?:-|$)/u);
-        expect(article.id, testCase.id).not.toMatch(/^check-(?:suspicious|danger)(?:-|$)/u);
+        expect(semanticId, testCase.id).toMatch(/^check-(?:safe|unknown)(?:-|$)/u);
+        expect(semanticId, testCase.id).not.toMatch(/^check-(?:suspicious|danger)(?:-|$)/u);
       }
 
       if (testCase.expectedKind === "meta") {
-        expect(article.id, testCase.id).toBe(
+        expectScopedArticleId(
+          article.id,
           `meta-${testCase.expectedMetaIntent!.replaceAll("_", "-")}`,
+          testCase.id,
         );
         const response = getMetaIntentResponse(testCase.expectedMetaIntent!, testCase.lang);
         expect(response.trim().length, testCase.id).toBeGreaterThan(20);
@@ -500,10 +524,10 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       if (testCase.expectedKind === "stateless_followup") {
         expect(serialized, testCase.id).not.toMatch(FALSE_PREVIOUS_CHECK_CLAIM);
         if (testCase.expectedFollowUpAction === "acknowledgement") {
-          expect(article.id, testCase.id).toBe("small-talk-thanks");
+          expectScopedArticleId(article.id, "small-talk-thanks", testCase.id);
         }
         if (testCase.expectedFollowUpAction === "identity") {
-          expect(article.id, testCase.id).toBe("small-talk-identity");
+          expectScopedArticleId(article.id, "small-talk-identity", testCase.id);
         }
       }
     }

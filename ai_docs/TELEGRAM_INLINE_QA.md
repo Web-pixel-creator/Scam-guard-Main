@@ -50,6 +50,37 @@ Direct live catalog grant/trigger verification remains open.
 Real Desktop/Android/iOS replay remains open. `INL-001` and `INL-002` therefore
 remain outside Passed; `BOT-004` remains In Progress.
 
+## Second Desktop remediation batch — 2026-07-15
+
+The owner supplied another 30 Telegram Desktop screenshots under
+`private/telegram-inline-qa/2026-07-15/desktop/user-batch-02/`. They confirm
+that a first-line preview often rendered, but adding a concrete second line
+could leave an unchanged result or no result; several previews also repeated a
+generic risk sentence until the useful action was truncated. The affected
+flows include code and sent-code questions, earning channels, official bank
+contact, voting links, next-step questions, safety questions and legal/
+authority impersonation.
+
+The local remediation branch now gives each edited query a content-addressed
+personal result id, keeps the concrete second line ahead of generic context,
+removes repeated risk filler from suspicious human-intent previews and keeps
+the inserted card factual and credential-redacted. It also adds explicit
+RU/UZ/EN handling for authority/legal pressure, SIM replacement, TON/wallet
+investment promises and ordinary user questions such as “what should I do
+now?” without treating the user's request for help as attacker urgency.
+
+Offline verification passes the new 1,175-case Inline context suite and the
+complete 10,131/10,131 project tests. Coverage is 84.76% statements, 78.91%
+branches, 90.89% functions and 86.82% lines, above the repository thresholds.
+TypeScript, lint (zero errors; eight existing Fast Refresh warnings), production
+build and `npm audit` also pass; no external AI, Telegram, reputation or
+Supabase call is made by the new corpus.
+
+This remains **pre-release, pre-replay evidence**. It does not turn either
+Desktop screenshot batch into a pass and it does not cover Android or iOS.
+`INL-001`/`INL-002` stay outside Passed and `BOT-004` stays In Progress until a
+deployed descendant is replayed on real clients.
+
 ## Evidence split
 
 Do not force production failures that a normal client cannot reliably create.

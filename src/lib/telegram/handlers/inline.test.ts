@@ -80,6 +80,28 @@ const session: Session = {
   updatedAt: new Date(0).toISOString(),
 };
 
+const SCOPED_ARTICLE_ID_SUFFIX = /^[A-Za-z0-9_-]{16}$/u;
+
+function scopedArticleSemanticId(actual: string, label?: string): string {
+  expect(
+    [...actual].every((character) => (character.codePointAt(0) ?? 128) <= 127),
+    label,
+  ).toBe(true);
+  expect(new TextEncoder().encode(actual).length, label).toBeLessThanOrEqual(64);
+  expect(actual.length, label).toBeGreaterThan(17);
+  expect(actual.at(-17), label).toBe("-");
+
+  const semanticId = actual.slice(0, -17);
+  const suffix = actual.slice(-16);
+  expect(semanticId, label).toMatch(/^[A-Za-z0-9_-]{1,47}$/u);
+  expect(suffix, label).toMatch(SCOPED_ARTICLE_ID_SUFFIX);
+  return semanticId;
+}
+
+function expectScopedArticleId(actual: string, expectedSemanticId: string, label?: string): void {
+  expect(scopedArticleSemanticId(actual, label), label).toBe(expectedSemanticId);
+}
+
 describe("handleInlineQuery", () => {
   beforeEach(() => {
     hoisted.runCheckCalls.length = 0;
@@ -105,10 +127,9 @@ describe("handleInlineQuery", () => {
       cacheTime: 10,
       isPersonal: true,
     });
-    expect(hoisted.answerCalls[0].results[0]).toMatchObject({
-      type: "article",
-      id: "help",
-    });
+    const article = hoisted.answerCalls[0].results[0] as { type: string; id: string };
+    expect(article.type).toBe("article");
+    expectScopedArticleId(article.id, "help");
   });
 
   it("uses a validated configured bot username in Inline copy and the continue button", async () => {
@@ -197,7 +218,8 @@ describe("handleInlineQuery", () => {
     await handleInlineQuery("x".repeat(257), { userId: 42, session }, "iq-too-long");
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
-    expect(hoisted.answerCalls[0].results[0]).toMatchObject({ id: "too-long" });
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expectScopedArticleId(article.id, "too-long");
   });
 
   it("preserves a 256-character inline query at the Bot API boundary", async () => {
@@ -229,7 +251,8 @@ describe("handleInlineQuery", () => {
     await handleInlineQuery("🙂".repeat(257), { userId: 42, session }, "iq-unicode-too-long");
 
     expect(hoisted.runCheckCalls).toHaveLength(0);
-    expect(hoisted.answerCalls[0].results[0]).toMatchObject({ id: "too-long" });
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expectScopedArticleId(article.id, "too-long");
   });
 
   it("reports a Bot API answer failure without logging the query or result", async () => {
@@ -389,11 +412,15 @@ describe("handleInlineQuery", () => {
 
     expect(hoisted.answerCalls).toHaveLength(2);
     const first = hoisted.answerCalls[0].results[0] as {
+      id: string;
       input_message_content: { message_text: string; parse_mode?: string };
     };
     const retry = hoisted.answerCalls[1].results[0] as {
+      id: string;
       input_message_content: { message_text: string; parse_mode?: string };
     };
+    expectScopedArticleId(first.id, "check-high_risk");
+    expect(retry.id).toBe(first.id);
     expect(first.input_message_content.message_text).toContain("\\");
     expect(retry.input_message_content.parse_mode).toBeUndefined();
     expect(retry.input_message_content.message_text).not.toContain("\\");
@@ -402,6 +429,24 @@ describe("handleInlineQuery", () => {
       expect.stringContaining("Высокий риск"),
       "Безопасный шаг: Не сообщайте SMS-код или PIN.",
     ]);
+  });
+
+  it("keeps scoped article IDs deterministic for the same content and fresh for an edited query", async () => {
+    const firstQuery = "спасибо";
+    const changedQuery = "спасибо!";
+
+    await handleInlineQuery(firstQuery, { userId: 42, session }, "iq-id-first");
+    await handleInlineQuery(firstQuery, { userId: 42, session }, "iq-id-repeat");
+    await handleInlineQuery(changedQuery, { userId: 42, session }, "iq-id-changed");
+
+    const [first, repeat, changed] = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string },
+    );
+    expectScopedArticleId(first.id, "small-talk-thanks");
+    expectScopedArticleId(repeat.id, "small-talk-thanks");
+    expectScopedArticleId(changed.id, "small-talk-thanks");
+    expect(repeat.id).toBe(first.id);
+    expect(changed.id).not.toBe(first.id);
   });
 
   it("propagates a transient failure of the plaintext entity fallback", async () => {
@@ -713,7 +758,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("rate-limited");
+    expectScopedArticleId(article.id, "rate-limited");
     expect(article.title).toBe("Слишком много проверок");
     expect(article.description).toContain("17 сек");
     expect(article.input_message_content.message_text).toContain("17 сек");
@@ -726,7 +771,7 @@ describe("handleInlineQuery", () => {
     await handleInlineQuery("неизвестный запрос", { userId: 42, session }, "iq-error");
 
     const article = hoisted.answerCalls[0].results[0] as { id: string };
-    expect(article.id).toBe("error");
+    expectScopedArticleId(article.id, "error");
     expect(hoisted.answerCalls[0].cacheTime).toBe(0);
   });
 
@@ -750,7 +795,7 @@ describe("handleInlineQuery", () => {
         description: string;
         input_message_content: { message_text: string };
       };
-      expect(article.id).toBe("ambiguous-numeric");
+      expectScopedArticleId(article.id, "ambiguous-numeric");
       expect(article.title).toBe(expectedTitle);
       expect(article.description).toMatch(/(?:код|kod|code|number|raqam|номер)/iu);
       expect(JSON.stringify(article)).not.toContain(query.replace(/\D/gu, ""));
@@ -801,7 +846,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe(id);
+    expectScopedArticleId(article.id, id);
     expect(article.title).toBe(title);
     expect(article.description).not.toContain("Подождите");
     expect(article.input_message_content.message_text).toContain(title);
@@ -847,7 +892,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("passport-phone");
+    expectScopedArticleId(article.id, "passport-phone");
     expect(article.title).toBe("Номер: жалоб не найдено");
     expect(article.description).toContain("это не гарантия");
     expect(article.description).toContain("В этом же запросе");
@@ -887,7 +932,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("passport-telegram");
+    expectScopedArticleId(article.id, "passport-telegram");
     expect(article.title).toBe("Telegram: нужен контекст");
     expect(article.description).toContain("Username сам не доказывает риск");
     expect(article.description).toContain("текст просьбы");
@@ -982,9 +1027,9 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-unknown-general-scam-concern");
+    expectScopedArticleId(article.id, "check-unknown-general-scam-concern");
     expect(article.title).toBe("Подозреваете обман: пришлите просьбу");
-    expect(article.description).toContain("Вы правильно остановились");
+    expect(article.description).toContain("Хорошо, что решили проверить");
     expect(article.input_message_content.message_text).toContain(
       "Что проверяли: Мне пишет мошенник",
     );
@@ -1011,7 +1056,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-unknown-link-request");
+    expectScopedArticleId(article.id, "check-unknown-link-request");
     expect(article.title).toBe("Ссылка: сначала проверим");
     expect(article.description).toContain("Вы упомянули ссылку");
     expect(article.description).toContain("в этот же запрос");
@@ -1033,7 +1078,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-unknown-link-request");
+    expectScopedArticleId(article.id, "check-unknown-link-request");
     expect(article.description).toContain("адреса здесь нет");
     expect(article.input_message_content.message_text).toContain("Спрашивает ссылку");
     expect(article.input_message_content.message_text).toContain("сам URL или полный текст");
@@ -1089,8 +1134,8 @@ describe("handleInlineQuery", () => {
 
       expect(hoisted.runCheckCalls).toHaveLength(expectedRunChecks);
       const article = hoisted.answerCalls[0].results[0] as { id: string };
-      expect(article.id).toBe(expectedId);
-      expect(article.id).not.toBe("check-unknown-link-request");
+      expectScopedArticleId(article.id, expectedId);
+      expect(scopedArticleSemanticId(article.id)).not.toBe("check-unknown-link-request");
     },
   );
 
@@ -1134,8 +1179,8 @@ describe("handleInlineQuery", () => {
 
       expect(hoisted.runCheckCalls).toHaveLength(1);
       const article = hoisted.answerCalls[0].results[0] as { id: string };
-      expect(article.id).toBe(expectedId);
-      expect(article.id).not.toBe("check-unknown-reply-safety");
+      expectScopedArticleId(article.id, expectedId);
+      expect(scopedArticleSemanticId(article.id)).not.toBe("check-unknown-reply-safety");
     },
   );
 
@@ -1148,7 +1193,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-unknown-reply-safety");
+    expectScopedArticleId(article.id, "check-unknown-reply-safety");
     expect(article.description).toContain("только текст просьбы");
     expect(article.description).toContain("Не вставляйте настоящий SMS-код");
     expect(article.input_message_content.message_text).toContain("В этот запрос добавьте");
@@ -1177,7 +1222,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-suspicious-personal-data");
+    expectScopedArticleId(article.id, "check-suspicious-personal-data");
     expect(article.title).toBe("Документы: не отправляйте фото");
     expect(article.description).toContain("Не отправляйте паспорт");
     expect(article.description).not.toContain("или...");
@@ -1197,7 +1242,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe("check-unknown-job-offer");
+    expectScopedArticleId(article.id, "check-unknown-job-offer");
     expect(article.description).toContain("до договора опасно");
     expect(article.input_message_content.message_text).toContain(
       "независимой проверки работодателя",
@@ -1227,7 +1272,7 @@ describe("handleInlineQuery", () => {
       title: string;
       description: string;
     };
-    expect(article.id).toBe("check-unknown");
+    expectScopedArticleId(article.id, "check-unknown");
     expect(article.title).toBe("Нужно больше контекста");
     expect(article.description).not.toContain("Пока не открывайте");
     expect(article.description).not.toContain("адреса здесь нет");
@@ -1597,7 +1642,7 @@ describe("handleInlineQuery", () => {
     {
       text: "что мне делать дальше?",
       id: "check-unknown-next-step",
-      title: "Что делать: остановитесь и пришлите просьбу",
+      title: "Что делать: пока ничего не отправляйте",
     },
     {
       text: "можно ли ему отвечать?",
@@ -1616,8 +1661,8 @@ describe("handleInlineQuery", () => {
     },
     {
       text: "мне пишет нотариус и требует оплатить штраф",
-      id: "check-unknown-general-scam-concern",
-      title: "Подозреваете обман: пришлите просьбу",
+      id: "check-unknown-official-impersonation",
+      title: "Госорган/инспектор: проверьте официально",
     },
     {
       text: "меня зовут вступить в какой то канал",
@@ -1730,7 +1775,7 @@ describe("handleInlineQuery", () => {
       description: string;
       input_message_content: { message_text: string };
     };
-    expect(article.id).toBe(id);
+    expectScopedArticleId(article.id, id);
     expect(article.title).toBe(title);
     expect(article.description).not.toContain("Вставьте полное сообщение");
     expect(article.input_message_content.message_text).toContain(title);
@@ -1819,9 +1864,10 @@ describe("handleInlineQuery", () => {
         description: string;
         input_message_content: { message_text: string };
       };
-      expect(article.id).toBe(id);
+      expectScopedArticleId(article.id, id);
       expect(article.title).toBe(title);
-      expect(article.description).toContain("Есть подозрительные признаки");
+      expect(article.description).not.toContain("Есть подозрительные признаки");
+      expect(article.description.length).toBeGreaterThan(0);
       expect(article.input_message_content.message_text).toContain("Требуется осторожность");
       expect(article.input_message_content.message_text).toContain(title);
       expect(article.input_message_content.message_text).not.toContain("Одного значения мало");

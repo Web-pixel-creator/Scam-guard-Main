@@ -228,7 +228,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "uses_urgency",
-    re: /(срочно|немедленно|прямо сейчас|tezda|hozir|darhol|urgent|immediately|right now)/i,
+    re: /(срочно|немедленно|прямо сейчас|tezda|darhol|hozir(?:ning\s+o['’]?zida|.{0,30}(?:ayt(?:ing)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|kirit(?:ing)?|to['’]?la(?:ng)?|o['’]?tkaz(?:ing)?|qil(?:ing)?)(?![\p{L}\p{N}_]))|urgent|immediately|right now)/iu,
   },
   {
     code: "threatens_legal_action",
@@ -393,9 +393,9 @@ function shouldFlagTonReferralEarningScheme(text: string): boolean {
 }
 
 const INVESTMENT_FAST_PROFIT_CONTEXT_RE =
-  /(инвест|трейд|торг|trading|trade|forex|gold|золото|валютн|бирж|рынок|крипт|crypto|investment|investits|daromad|foyda)/i;
+  /(инвест|трейд|торг|trading|trade|forex|gold|золото|валютн|бирж|рынок|крипт|crypto|investment|investits|daromad|foyda|ton|usdt|wallet|кошел|hamyon)/i;
 const INVESTMENT_FAST_PROFIT_HOOK_RE =
-  /(\+?\s?\d+(?:[.,]\d+)?\s?\$|\$\s?\d+|\d+\s?(?:usd|usdt|у\.?е\.?)|за\s+(?:день|сутки|час|недел|5\s+дней)|новичок|beginner|бесплатн|free|прям[о]?й эфир|механик|начать.{0,20}торг|гарантир|guaranteed|доходн|прибыл|profit|earn|заработ)/i;
+  /(\+?\s?\d+(?:[.,]\d+)?\s?\$|\$\s?\d+|\d+\s?(?:usd|usdt|у\.?е\.?)|за\s+(?:день|сутки|час|недел|5\s+дней)|новичок|beginner|бесплатн|free|прям[о]?й эфир|механик|начать.{0,20}торг|гарантир|guaranteed|доходн|прибыл|profit|earn.{0,24}(?:\d|profit|return|daily|day|week|month)|заработ)/i;
 const INVESTMENT_NEUTRAL_CONTEXT_RE =
   /(новост|обзор|аналитик|котировк|учебн|словар|истори[яи]\s+рынк|не\s+является\s+инвестиц|market\s+news|education|tutorial)/i;
 
@@ -426,15 +426,22 @@ function shouldFlagOneIdGovernmentPhishing(text: string): boolean {
 }
 
 const SIM_SWAP_CONTEXT_RE =
-  /(перевыпуск|перевыпуст|замена|дубликат|восстанов|перенести номер|перенос номера|sim.{0,10}swap|sim.{0,15}(almashtir|tiklash|dublikat)|номер.{0,30}(перенос|перевыпуск))/i;
+  /(перевыпуск|перевыпуст|замена|дубликат|восстанов|перенести номер|перенос номера|sim.{0,10}swap|sim.{0,25}(almashtir|tiklash|dublikat|replace|reissue|restore|duplicate|transfer)|(?:almashtir|tiklash|dublikat|replace|reissue|restore|duplicate|transfer).{0,25}(?:sim|esim|number|raqam)|номер.{0,30}(перенос|перевыпуск))/i;
 const SIM_SWAP_ASK_RE =
-  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|подтверд(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|введите(?![а-яёa-z])|пришл(и|ите)(?![а-яёa-z])|ayting|yuboring|kiriting|tasdiq|send|enter|confirm|tell)/i;
+  /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|подтверд(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|введите(?![а-яёa-z])|пришл(и|ите)(?![а-яёa-z])|прос(?:ит|ят)|требу(?:ет|ют)|ayting|yuboring|kiriting|tasdiq|so['’]?ra(?:yapti|moqda|di|shdi|shyapti)?|talab\s+qil|send|enter|confirm|tell|ask(?:s|ed|ing)?|request(?:s|ed|ing)?)/i;
+const SIM_SWAP_NEGATION_RE =
+  /(не\s+(?:просит|просят|требует|требуют)|so['’]?ramaydi|talab\s+qilmaydi|does\s+not\s+(?:ask|request|require))/i;
 const SIM_SWAP_ACTION_RE =
   /(сим|sim|номер|raqam).{0,40}(код|смс|sms|подтверд|паспорт|pinfl|пинфл|доступ|operator|оператор|tasdiq|kod|pasport)|((код|смс|sms|подтверд|паспорт|pinfl|пинфл|tasdiq|kod|pasport).{0,40}(сим|sim|номер|raqam))/i;
+const SIM_SWAP_EN_DIRECT_REQUEST_RE =
+  /\b(?:ask|asks|request|requests)\b.{0,40}\b(?:code|otp|pin)\b.{0,50}\b(?:replace|reissue|restore|duplicate|transfer)\b.{0,30}\b(?:sim|esim)\b/i;
 
 function shouldFlagSimSwapOrNumberTransfer(text: string): boolean {
   return (
-    SIM_SWAP_CONTEXT_RE.test(text) && SIM_SWAP_ASK_RE.test(text) && SIM_SWAP_ACTION_RE.test(text)
+    !SIM_SWAP_NEGATION_RE.test(text) &&
+    SIM_SWAP_CONTEXT_RE.test(text) &&
+    SIM_SWAP_ASK_RE.test(text) &&
+    (SIM_SWAP_ACTION_RE.test(text) || SIM_SWAP_EN_DIRECT_REQUEST_RE.test(text))
   );
 }
 
@@ -857,6 +864,8 @@ const SAFETY_SENSITIVE_PATTERN_CODES = new Set<ReasonCode>([
   "requests_card_digits",
   "fake_delivery_payment",
 ]);
+const USER_NEXT_STEP_QUESTION_RE =
+  /(?:(?:что|как)\s+(?:мне\s+)?(?:теперь\s+)?(?:делать|поступить).{0,30}(?:прямо\s+сейчас|сейчас)|what\s+should\s+i\s+do.{0,30}(?:right\s+now|now)|hozir.{0,30}(?:nima\s+qil|qanday\s+yo['’]?l\s+tut))/iu;
 
 export function evaluateText(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
@@ -865,6 +874,7 @@ export function evaluateText(text: string): ReasonCode[] {
     !hasUnsafeClause(text, GENERIC_CODE_REQUEST_RE, GENERIC_CODE_SAFETY_RE);
   for (const { code, re } of PATTERNS) {
     if (!re.test(text)) continue;
+    if (code === "uses_urgency" && USER_NEXT_STEP_QUESTION_RE.test(text)) continue;
     if (code === "asks_for_sms_code" && isPhysicalAccessCodeOnly(text)) continue;
     if (
       SAFETY_SENSITIVE_PATTERN_CODES.has(code) &&
@@ -896,7 +906,9 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
   if (shouldFlagRomanceInvestmentPivot(text)) codes.add("romance_investment_pivot");
   if (shouldFlagOneIdGovernmentPhishing(text)) codes.add("oneid_government_phishing");
-  if (shouldFlagSimSwapOrNumberTransfer(text)) codes.add("sim_swap_or_number_transfer");
+  if (shouldFlagSimSwapOrNumberTransfer(text)) {
+    codes.add("sim_swap_or_number_transfer");
+  }
   if (shouldFlagMoneyMuleRecruitment(text)) codes.add("money_mule_recruitment");
   if (shouldFlagAdvanceFeePrizeInheritance(text)) codes.add("advance_fee_prize_inheritance");
   if (shouldFlagSoftCardCvvRequest(text)) codes.add("asks_for_card_cvv");
@@ -906,6 +918,16 @@ export function evaluateText(text: string): ReasonCode[] {
   if (shouldFlagCardDataRequest(text)) codes.add("requests_card_digits");
   if (shouldFlagProxyCodeRequest(text)) codes.add("asks_for_sms_code");
   if (shouldFlagGenericCodeRequest(text)) codes.add("asks_for_sms_code");
+  // A generic "code" is already part of the SIM-swap evidence. Counting it
+  // again as an SMS-code request overstates the same signal and turns the
+  // actionable warning red. Keep the stronger extra signal when the message
+  // explicitly says SMS, OTP, or verification code.
+  if (
+    codes.has("sim_swap_or_number_transfer") &&
+    !/(?:смс|sms|otp|verification\s+code)/iu.test(text)
+  ) {
+    codes.delete("asks_for_sms_code");
+  }
   if (shouldFlagGenericPasswordRequest(text)) codes.add("asks_for_pin");
   if (shouldFlagPrivateTelegramInviteEvidence(text)) codes.add("suspicious_invite_link");
   // Heuristics
