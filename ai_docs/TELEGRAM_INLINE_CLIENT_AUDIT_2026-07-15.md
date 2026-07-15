@@ -1,26 +1,31 @@
 # Telegram Inline Client Audit — 2026-07-15
 
-Status: local remediation verified; live release evidence pending.
+Status: remediation merged and deployed; migration/deployment/health
+preconditions verified for client retest; post-fix real-client acceptance
+pending.
 
 ## Outcome
 
 The 41 screenshots in the owner-supplied Telegram Desktop batch are useful
 pre-fix evidence. They show that the backend usually returned and inserted an
 Inline article, but several responses were generic, ambiguous, stale or
-incomplete. The local candidate now has specific handling and regressions for
+incomplete. The deployed release now has specific handling and regressions for
 the reproduced job, passport, link, numeric, phone/privacy, rate-limit and
 delivery paths.
 
 This audit does **not** mark the Telegram client gate Passed. The screenshots
-were captured before the current fixes. Draft PR #106 candidate `b3c0611`
-passed application/coverage and all database/security CI jobs, but production
-migration/deployment, Desktop post-fix replay and all Android/iOS rows remain
-open. Keep `INL-001` and `INL-002` outside Passed and keep `BOT-004` In
-Progress.
+were captured before the current fixes. PR #106 passed all application,
+database and security jobs, merged as `87bf181b4d4df92e438e768f83ab4c02883f1d9f`,
+and historical Railway deployment `39cf9f6d` of that exact revision reached
+`SUCCESS` and passed the recorded health checks. Remote migration history
+contains both pending migrations; linked dry-run reports no pending migration
+and remote schema lint is clean. Direct live catalog grant/trigger verification
+remains open. Desktop post-fix replay and all Android/iOS rows remain open. Keep
+`INL-001` and `INL-002` outside Passed and keep `BOT-004` In Progress.
 
 ## Defect-to-fix map
 
-| Area                               | Pre-fix client evidence                                                                                | What was wrong                                                                                                                           | Local remediation                                                                                                                                                                                                                                                                                                   | Live acceptance condition                                                                                                                         |
+| Area                               | Pre-fix client evidence                                                                                | What was wrong                                                                                                                           | Remediation                                                                                                                                                                                                                                                                                                         | Live acceptance condition                                                                                                                         |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Job fee                            | `644eb9ee…`, `7bb7dda5…`, `fa1b9b11…`, `038857ba…`                                                     | Inline copy was repetitive and the direct bot could answer “urgent transfer” instead of explaining the fake-job fee.                     | Job-fee intent is routed before generic transfer copy; preview is concise and inserted/direct-bot guidance is specific and action-first in RU/UZ/EN.                                                                                                                                                                | Desktop preview, insertion and direct-bot follow-up all say not to pay the employer/recruiter and do not use generic bank-transfer copy.          |
 | Ambiguous number/phone             | `9eff32cd…`, `e50ec5a9…`, `9f8d6bfc…`                                                                  | “Add what they ask” did not say where; bare `12345678` could become a US/Canada phone passport.                                          | Bare 6-8 digit input gets “code or incomplete number”, never a country/owner inference; bare-phone recognition is narrowed and the prompt explicitly asks for a worded description of the other party's request.                                                                                                    | No raw short digits in preview/card; `12345678` is not classified as a phone; a full `+998…` phone still uses the phone passport.                 |
@@ -55,11 +60,14 @@ The abbreviated ids above map to exact paths in the manifest below.
 - Local handler/API tests do not render Telegram Desktop, Android or iOS and do
   not prove Bot API acceptance of a real `inline_query_id`.
 - PR #106 provides application/coverage CI, CodeQL, Gitleaks, container/SBOM
-  and clean-database migration/schema/35-pgTAP evidence for candidate `b3c0611`;
-  it is still not production deployment evidence.
-- The stale-leader change is a new migration. Local Docker was unavailable, but
-  the PR clean-database migration, schema lint and 35 pgTAP assertions passed.
-  Production apply/read-back remains mandatory.
+  and clean-database migration/schema/35-pgTAP evidence. Historical deployment
+  `39cf9f6d` of the exact merge revision reached `SUCCESS`; linked production
+  migration history, no-pending dry-run and remote schema lint checks passed.
+- Local Docker was unavailable, so local container/Postgres evidence was not
+  invented. The equivalent clean-database, pgTAP, schema, container and secret
+  gates passed in CI; linked migration-history/no-pending/schema-lint checks
+  passed. Direct live catalog owner, `search_path` and grant checks were not
+  available and remain open.
 - The transient delivery failure branch is intentionally tested with mocks. Do
   not break production networking or trigger provider limits for a screenshot.
 - At-least-once processing plus fencing is preserved; this audit does not claim
@@ -142,40 +150,71 @@ to the repository root.
 
 Manifest total: 41 files.
 
+## Production release evidence
+
+- PR #106 merged at `2026-07-15T05:49:51Z` as
+  `87bf181b4d4df92e438e768f83ab4c02883f1d9f`. Its final CI run passed
+  application lint/type/test/build, coverage, clean-database migration apply,
+  schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and container
+  High/Critical plus SBOM gates.
+- Production Supabase now records both
+  `20260712142514_reconcile_admin_role_lifecycle.sql` and
+  `20260715040836_telegram_polling_stale_leader_reclaim.sql`. Local and remote
+  migration histories match, a linked dry-run reports the remote database is
+  up to date, and linked schema lint reports no errors.
+- Railway deployment `39cf9f6d-294d-410a-9cef-972e41829561` reached `SUCCESS`
+  from the exact merge revision. Image digest:
+  `sha256:f289ebed30a5b96b3012904361b6aaa8a42cded15cd5fc1d75984690c5e84f11`.
+- The bounded production monitor passed with AI and alerting disabled:
+  home/health `200`, missing webhook secret `401`, valid secret with the
+  intentionally disabled polling-mode webhook `503`, Telegram `getMe` valid,
+  delivery `mode=polling`, pending updates `0`, and protected polling leader
+  `200`. It sent no Telegram message and made no paid AI call.
+- A one-minute local in-memory polling soak completed 600/600 updates with zero
+  duplicate effects, zero lost updates, queue depth returning to zero, bounded
+  memory/event-loop behavior, stale-leader rejection and offset-loss replay.
+  It used no Telegram, Supabase, reputation provider or AI network call.
+
+These facts close the migration/deployment/health preconditions for client
+retest only. They do not render a Telegram result list, insert a card or turn
+any pre-fix screenshot into a pass.
+
 ## Required live retest checklist
 
-1. Record the exact release commit, successful application/Supabase CI run,
-   production deployment id and applied migration/read-back before capturing a
-   post-fix screenshot.
-2. Confirm `/healthz`, authenticated polling-leader health and Telegram delivery
-   state are green with zero unexpected pending updates.
-3. On Telegram Desktop, replay the job-fee preview, insert it, open the bot and
-   send the equivalent direct phrase. Confirm all three use job-specific,
-   non-repetitive guidance.
-4. Replay passport and multiline-link cases. Confirm the second line changes the
-   preview, guidance is complete and the bot never requests the real document,
-   code or private screenshot.
-5. Replay `12345678`, a safe synthetic 6-digit value and a safe synthetic full
-   `+998` number. Confirm short digits are masked/ambiguous, while only the full
-   phone enters the phone passport.
-6. Type a bounded sequence of ordinary, distinct Inline queries. Confirm each
-   second result replaces the first and normal editing does not immediately
-   show the default 30-second limiter. Do not use real credentials or spam the
-   production bot.
-7. Verify the rate-limit article with the controlled QA procedure only if the
-   release owner approves it. Capture the countdown twice and confirm it is not
-   frozen by cache. Do not force 429/5xx or break networking; mocked tests own
-   that failure evidence.
-8. Replay the affected RU, UZ and EN copies on Desktop, including safe-only and
-   safe-prefix/danger-tail controls. Confirm specific actions, readable preview
-   length and no AI-style or invented-verdict wording.
-9. Repeat the 17-case bounded client matrix on Android and iOS, capturing preview
-   and insertion where safe. Keep 257-character and forced timeout/error cases
-   automated-only.
-10. Read back count-only production evidence: no new `checks`, chat sessions or
-    moderator messages from Inline; no raw query, code, phone or document value
-    in logs/evidence.
-11. Run the companion production smoke/monitor after the client pass. Only then
-    update the workbook: `INL-001`/`INL-002` may move according to actual evidence;
-    `BOT-004` remains In Progress until its wider real-client dialogue gate is
-    separately complete.
+1. [x] Record the release commit, successful application/Supabase CI run,
+       historical deployment identity and migration-history/no-pending/schema-lint
+       evidence. Before every post-fix capture, confirm active production contains
+       `87bf181b` or a verified descendant and record the current commit,
+       deployment and image identity.
+2. [x] Confirm `/healthz`, authenticated polling-leader health and Telegram delivery
+       state are green with zero unexpected pending updates.
+3. [ ] On Telegram Desktop, replay the job-fee preview, insert it, open the bot and
+       send the equivalent direct phrase. Confirm all three use job-specific,
+       non-repetitive guidance.
+4. [ ] Replay passport and multiline-link cases. Confirm the second line changes the
+       preview, guidance is complete and the bot never requests the real document,
+       code or private screenshot.
+5. [ ] Replay `12345678`, a safe synthetic 6-digit value and a safe synthetic full
+       `+998` number. Confirm short digits are masked/ambiguous, while only the full
+       phone enters the phone passport.
+6. [ ] Type a bounded sequence of ordinary, distinct Inline queries. Confirm each
+       second result replaces the first and normal editing does not immediately
+       show the default 30-second limiter. Do not use real credentials or spam the
+       production bot.
+7. [ ] Verify the rate-limit article with the controlled QA procedure only if the
+       release owner approves it. Capture the countdown twice and confirm it is not
+       frozen by cache. Do not force 429/5xx or break networking; mocked tests own
+       that failure evidence.
+8. [ ] Replay the affected RU, UZ and EN copies on Desktop, including safe-only and
+       safe-prefix/danger-tail controls. Confirm specific actions, readable preview
+       length and no AI-style or invented-verdict wording.
+9. [ ] Repeat the 17-case bounded client matrix on Android and iOS, capturing preview
+       and insertion where safe. Keep 257-character and forced timeout/error cases
+       automated-only.
+10. [ ] Read back count-only production evidence: no new `checks`, chat sessions or
+        moderator messages from Inline; no raw query, code, phone or document value
+        in logs/evidence.
+11. [ ] Run the companion production smoke/monitor after the client pass. Only then
+        update the workbook: `INL-001`/`INL-002` may move according to actual evidence;
+        `BOT-004` remains In Progress until its wider real-client dialogue gate is
+        separately complete.
