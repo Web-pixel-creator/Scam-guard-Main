@@ -1,8 +1,7 @@
 # Telegram Inline Client Audit — 2026-07-15
 
-Status: first remediation merged and deployed; second screenshot-driven
-remediation locally validated but not yet released; post-fix real-client
-acceptance pending.
+Status: both screenshot-driven remediations merged and deployed; post-fix
+real-client acceptance pending.
 
 ## Outcome
 
@@ -14,14 +13,15 @@ the reproduced job, passport, link, numeric, phone/privacy, rate-limit and
 delivery paths.
 
 This audit does **not** mark the Telegram client gate Passed. The screenshots
-were captured before the current fixes. PR #106 passed all application,
-database and security jobs, merged as `87bf181b4d4df92e438e768f83ab4c02883f1d9f`,
-and historical Railway deployment `39cf9f6d` of that exact revision reached
-`SUCCESS` and passed the recorded health checks. Remote migration history
-contains both pending migrations; linked dry-run reports no pending migration
-and remote schema lint is clean. Direct live catalog grant/trigger verification
-remains open. Desktop post-fix replay and all Android/iOS rows remain open. Keep
-`INL-001` and `INL-002` outside Passed and keep `BOT-004` In Progress.
+were captured before the current fixes. PR #108 passed all application,
+database and security jobs, merged as `da4c0a259a228d864432a77ccb1b3291468c52cf`,
+and Railway deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` of that exact
+revision reached `SUCCESS` and passed the bounded no-AI/no-alert monitor.
+Remote migration history remains current; linked dry-run reports no pending
+migration and remote schema lint is clean. Direct live catalog grant/trigger
+verification remains open. Desktop post-fix replay and all Android/iOS rows
+remain open. Keep `INL-001` and `INL-002` outside Passed and keep `BOT-004` In
+Progress.
 
 ## Batch 2 addendum
 
@@ -187,6 +187,18 @@ Manifest total: 41 files.
 
 ## Production release evidence
 
+- PR #108 merged as `da4c0a259a228d864432a77ccb1b3291468c52cf` after
+  application lint/type/test/build, coverage, Supabase migration/schema/pgTAP,
+  CodeQL, Gitleaks and container High/Critical plus SBOM jobs all passed.
+- Railway deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` reached `SUCCESS`
+  from that exact merge revision. Image digest:
+  `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
+- The post-PR #108 bounded monitor passed home/health `200`, missing webhook
+  secret `401`, expected polling-mode webhook `503`, Telegram `getMe`, delivery
+  `mode=polling` with pending updates `0`, and protected polling leader `200`.
+  AI and monitor alerts were disabled; the check made no paid model call and
+  sent no Telegram message.
+
 - PR #106 merged at `2026-07-15T05:49:51Z` as
   `87bf181b4d4df92e438e768f83ab4c02883f1d9f`. Its final CI run passed
   application lint/type/test/build, coverage, clean-database migration apply,
@@ -218,9 +230,9 @@ any pre-fix screenshot into a pass.
 
 1. [x] Record the release commit, successful application/Supabase CI run,
        historical deployment identity and migration-history/no-pending/schema-lint
-       evidence. Before every post-fix capture, confirm active production contains
-       `87bf181b` or a verified descendant and record the current commit,
-       deployment and image identity.
+       evidence. Active production contains exact merge `da4c0a2`, deployment
+       `a1c6eab5-a8da-4341-a7ff-387212cd3784` and image
+       `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
 2. [x] Confirm `/healthz`, authenticated polling-leader health and Telegram delivery
        state are green with zero unexpected pending updates.
 3. [ ] On Telegram Desktop, replay the job-fee preview, insert it, open the bot and

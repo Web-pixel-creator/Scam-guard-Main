@@ -76,8 +76,12 @@ TypeScript, lint (zero errors; eight existing Fast Refresh warnings), production
 build and `npm audit` also pass; no external AI, Telegram, reputation or
 Supabase call is made by the new corpus.
 
-This remains **pre-release, pre-replay evidence**. It does not turn either
-Desktop screenshot batch into a pass and it does not cover Android or iOS.
+This remediation is now **deployed but still pre-replay evidence**. PR #108
+merged as `da4c0a259a228d864432a77ccb1b3291468c52cf`; exact Railway deployment
+`a1c6eab5-a8da-4341-a7ff-387212cd3784` reached `SUCCESS`, and the bounded
+no-AI/no-alert monitor passed home/health, Telegram delivery with pending `0`
+and protected polling-leader health. This does not turn either Desktop
+screenshot batch into a pass and it does not cover Android or iOS.
 `INL-001`/`INL-002` stay outside Passed and `BOT-004` stays In Progress until a
 deployed descendant is replayed on real clients.
 
@@ -144,9 +148,10 @@ chat unless the case is explicitly about report/appeal moderator delivery.
   production uses polling; an intentionally disabled webhook returning 503 is
   expected there.
 - The 2026-07-15 remediation replay must target production containing merge
-  `87bf181b4d4df92e438e768f83ab4c02883f1d9f` or a verified descendant. Railway
-  deployment `39cf9f6d-294d-410a-9cef-972e41829561` is historical PR #106
-  evidence; record the active commit, deployment and image at capture time.
+  `da4c0a259a228d864432a77ccb1b3291468c52cf` or a verified descendant. Railway
+  deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` is the active PR #108
+  evidence, with image
+  `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
   Supabase migration history is current, linked dry-run reports no pending
   migration, and remote schema lint is clean. Do not retest against an older
   build and label the result post-fix.
