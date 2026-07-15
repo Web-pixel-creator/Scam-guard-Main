@@ -527,13 +527,52 @@ const TRANSFER_DESTINATION_RE =
 const TRANSFER_SAFETY_RE =
   /(?:не\s+(?:плати|оплачивай|переводи|отправляй)|(?:do\s+not|don['’]?t|never|not\s+to)\s+(?:pay|make\s+(?:(?:a|the|this)\s+)?payment|send\s+(?:money|funds)|transfer)|(?:pul|to['’]?lov).{0,24}(?:yubormang|o['’]?tkazmang|to['’]?lamang))/iu;
 
-const SAFETY_CLAUSE_SPLIT_RE =
-  /[,.!?;،:\u2013\u2014\n]+|\s+(?:but|however|then|after\s+that|но|однако|затем|потом|lekin|keyin)\s+/iu;
+const SAFETY_BASE_CLAUSE_SPLIT_RE =
+  /[,.!?;،:\u2013\u2014\n]+|\s+(?:but|however|then|after\s+that|after\s+which|но|однако|зато|затем|потом|после\s+чего|теперь|lekin|biroq|keyin)\s+|(?<!(?:not|don['’]?t|never|shouldn['’]?t|mustn['’]?t|can['’]?t|cannot|won['’]?t))\s+yet\s+/iu;
+const SAFETY_COORDINATION_RE = /\s+(?:and|и|va)\s+/giu;
+const SAFETY_COORDINATION_ACTION_RE =
+  /(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read|open|пришл|присыл|отправ|сообщ|говор|скаж|назов|переда|введ|установ|скач|перевед|оплат|скан|покаж|открой|yubor|jo['’]?nat|ayt|kirit|ber|o['’]?rnat|yukla|o['’]?tkaz|to['’]?la|skaner|ko['’]?rsat|och)/giu;
+
+/**
+ * Split a coordinating conjunction only when its following coordination
+ * segment contains another action. This preserves object lists such as
+ * "send a note and a passport photo", while a long neutral bridge cannot hide
+ * a later action. Both regular expressions are scanned once, so the work stays
+ * linear in the clause length.
+ */
+function splitCoordinatedRiskClause(clause: string): string[] {
+  const actions = Array.from(
+    clause.matchAll(SAFETY_COORDINATION_ACTION_RE),
+    (match) => match.index,
+  );
+  const coordinations = Array.from(clause.matchAll(SAFETY_COORDINATION_RE));
+  if (actions.length === 0 || coordinations.length === 0) return [clause];
+
+  const parts: string[] = [];
+  let partStart = 0;
+  let actionCursor = 0;
+  for (let index = 0; index < coordinations.length; index += 1) {
+    const match = coordinations[index];
+    const delimiterEnd = match.index + match[0].length;
+    const nextDelimiterStart = coordinations[index + 1]?.index ?? clause.length;
+
+    while (actionCursor < actions.length && actions[actionCursor] < delimiterEnd) {
+      actionCursor += 1;
+    }
+    if (actionCursor >= actions.length || actions[actionCursor] >= nextDelimiterStart) continue;
+
+    parts.push(clause.slice(partStart, match.index));
+    partStart = delimiterEnd;
+  }
+  parts.push(clause.slice(partStart));
+  return parts;
+}
 
 function splitRiskClauses(text: string): string[] {
   return text
     .replace(/,?\s*(?:please|пожалуйста|iltimos)\s*,?/giu, " ")
-    .split(SAFETY_CLAUSE_SPLIT_RE)
+    .split(SAFETY_BASE_CLAUSE_SPLIT_RE)
+    .flatMap(splitCoordinatedRiskClause)
     .map((clause) => clause.trim())
     .filter(Boolean);
 }
@@ -542,7 +581,7 @@ const PRONOUN_REQUEST_RE =
   /(?:\bask(?:ed|s|ing)?\b.{0,14}\bfor\s+it\b|\b(?:want(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?)\b.{0,14}\bit\b|\b(?:send|forward|share|tell|read(?:\s+out)?|give|show|reveal|provide|submit)\s+it\b|\b(?:told|asked|instructed)\b.{0,22}\b(?:send|forward|share|tell|read(?:\s+out)?|give|show|reveal|provide|submit)\s+it\b|(?:его|е[её]|их|это)\s+(?:просят|просит|попросил(?:и|а)?|требуют|требует).{0,22}(?:отправить|прислать|назвать|сообщить|передать|показать|открыть|сканировать)|(?:назов(?:и|ите)|скаж(?:и|ите)|сообщ(?:и|ите)|пришл(?:и|ите)|отправь(?:те)?|передай(?:те)?|покаж(?:и|ите)|открой(?:те)?)\s+(?:его|е[её]|их|это)(?:\s+мне)?|(?:uni|ularni)\s+(?:menga\s+)?(?:ayt(?:ing)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|ko['’]?rsat(?:ing)?|och(?:ing)?|skaner(?:lang|lash))|(?:uni|ularni).{0,24}(?:so['’]?ra(?:di|shdi|shyapti|yapti)|talab\s+qil))/iu;
 
 const GENERAL_SAFETY_ACTION_RE =
-  /(?:(?:do\s+not|don['’]?t|never|should\s+not|shouldn['’]?t|must\s+not|mustn['’]?t)\s+(?:ever\s+)?(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|never\b.{0,35}\b(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|(?:unsafe|dangerous|risky)\s+to\s+(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|avoid\s+(?:sending|sharing|revealing|providing|submitting|telling|entering|installing|downloading|transferring|paying|scanning|giving|showing|forwarding|reading)|(?:не|никогда\s+не|нельзя)\s+(?:отправля|сообща|говори|называ|передава|показыва|вводи|устанавлива|скачива|переводи|оплачива|сканиру)|(?:опасно|нельзя)\s+(?:отправлять|сообщать|передавать|показывать|вводить|устанавливать|скачивать|переводить|оплачивать|сканировать)|(?:yubormang|aytmang|kiritmang|bermang|ko['’]?rsatmang|o['’]?rnatmang|yuklamang|o['’]?tkazmang|to['’]?lamang|skanerlamang))/iu;
+  /(?:(?:do\s+not|don['’]?t|never|should\s+not|shouldn['’]?t|must\s+not|mustn['’]?t)\s+(?:(?:ever|yet)\s+)?(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|never\b.{0,35}\b(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|(?:unsafe|dangerous|risky)\s+to\s+(?:send|share|reveal|provide|submit|tell|enter|install|download|transfer|pay|scan|give|show|forward|read)|avoid\s+(?:sending|sharing|revealing|providing|submitting|telling|entering|installing|downloading|transferring|paying|scanning|giving|showing|forwarding|reading)|(?:не|никогда\s+не|нельзя)\s+(?:отправля|присыла|сообща|говори|называ|передава|показыва|вводи|устанавлива|скачива|переводи|оплачива|сканиру)|(?:опасно|нельзя)\s+(?:отправлять|присылать|сообщать|передавать|показывать|вводить|устанавливать|скачивать|переводить|оплачивать|сканировать)|(?:yubormang|aytmang|kiritmang|bermang|ko['’]?rsatmang|o['’]?rnatmang|yuklamang|o['’]?tkazmang|to['’]?lamang|skanerlamang))/iu;
 
 function isGeneralSafetyClause(clause: string): boolean {
   return GENERAL_SAFETY_ACTION_RE.test(clause);

@@ -1248,6 +1248,232 @@ describe("evaluateText — sensitive-object carry across a safe or neutral claus
   });
 });
 
+describe("evaluateText — a safe code clause cannot hide or contaminate a document request", () => {
+  it.each([
+    "Не присылайте SMS-код, но затем пришлите фото паспорта",
+    "SMS kodni yubormang, lekin keyin pasport rasmini yuboring",
+    "Do not send the SMS code, but then send a passport photo",
+    "Пришлите фото паспорта, но SMS-код никому не присылайте",
+    "Pasport rasmini yuboring, lekin SMS kodni hech kimga yubormang",
+    "Send a passport photo, but do not send the SMS code to anyone",
+    "Не присылайте SMS-код и пришлите фото паспорта",
+    "SMS kodni yubormang va pasport rasmini yuboring",
+    "Do not send the SMS code and send a passport photo",
+    "Пришлите фото паспорта и SMS-код никому не присылайте",
+    "Пришлите фото паспорта и SMS-код никому не передавайте",
+    "Pasport rasmini yuboring va SMS kodni hech kimga yubormang",
+    "Pasport rasmini yuboring va SMS kodni hech kimga aytmang",
+    "Send a passport photo and do not send the SMS code to anyone",
+    "Send a passport photo and do not reveal the SMS code to anyone",
+  ])("keeps only the dangerous document request in %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).toContain("requests_personal_data");
+    expect(reasons).not.toContain("asks_for_sms_code");
+  });
+
+  it.each([
+    "Примерное слово проверки, затем пришлите фото паспорта",
+    "Oddiy tekshiruv so'zi, keyin pasport rasmini yuboring",
+    "Example verification word, then send a passport photo",
+  ])("does not let a neutral prefix suppress the dangerous tail in %s", (text) => {
+    expect(evaluateText(text)).toContain("requests_personal_data");
+  });
+
+  it.each([
+    "Не присылайте SMS-код зато пришлите фото паспорта",
+    "Не присылайте SMS-код после чего пришлите фото паспорта",
+    "Не присылайте SMS-код теперь пришлите фото паспорта",
+    "Пришлите фото паспорта зато SMS-код никому не передавайте",
+    "Пришлите фото паспорта после чего SMS-код никому не передавайте",
+    "Пришлите фото паспорта теперь SMS-код никому не передавайте",
+    "SMS kodni yubormang biroq pasport rasmini yuboring",
+    "Pasport rasmini yuboring biroq SMS kodni hech kimga aytmang",
+    "Do not send the SMS code yet send a passport photo",
+    "Send a passport photo yet do not reveal the SMS code",
+  ])("recognizes bounded contrast and sequence variants in %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).toContain("requests_personal_data");
+    expect(reasons).not.toContain("asks_for_sms_code");
+  });
+
+  it.each([
+    "Не присылайте SMS-код и не отправляйте фото паспорта",
+    "Не отправляйте и не показывайте фото паспорта",
+    "SMS kodni yubormang va pasport rasmini ham yubormang",
+    "Pasport rasmini yubormang va hech kimga ko'rsatmang",
+    "Do not send the SMS code and do not send a passport photo",
+    "Do not send or share a passport photo",
+    "Do not yet send a passport photo",
+  ])("keeps a genuine safety-only coordination neutral in %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).not.toContain("requests_personal_data");
+    expect(reasons).not.toContain("asks_for_sms_code");
+  });
+
+  it.each([
+    "Пришлите обычный текст и фото паспорта и не сообщайте SMS-код",
+    "Oddiy matnni yuboring va pasport rasmini va SMS kodni yubormang",
+    "Send an ordinary note and a passport photo and do not share the SMS code",
+  ])("does not split a requested object list away from its action in %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).toContain("requests_personal_data");
+    expect(reasons).not.toContain("asks_for_sms_code");
+  });
+
+  it.each([
+    "Не отправляйте паспорт и сообщите SMS-код",
+    "Сообщите SMS-код и не отправляйте паспорт",
+    "Pasportni yubormang va SMS kodni ayting",
+    "SMS kodni ayting va pasportni yubormang",
+    "Do not send a passport photo and tell me the SMS code",
+    "Tell me the SMS code and do not send a passport photo",
+  ])("also preserves a dangerous code request in %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).toContain("asks_for_sms_code");
+    expect(reasons).not.toContain("requests_personal_data");
+  });
+});
+
+describe("evaluateText — long coordinated clauses cannot bypass safety boundaries", () => {
+  const padding = {
+    ru: " очень".repeat(40),
+    uz: " juda".repeat(40),
+    en: " very".repeat(40),
+  } as const;
+  const connector = { ru: "и", uz: "va", en: "and" } as const;
+  const fixtures = [
+    {
+      lang: "ru",
+      area: "passport",
+      safeLead: "Не присылайте SMS-код",
+      danger: "пришлите фото паспорта",
+      safeTail: "не присылайте фото паспорта",
+      expected: "requests_personal_data",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "uz",
+      area: "passport",
+      safeLead: "SMS kodni yubormang",
+      danger: "pasport rasmini yuboring",
+      safeTail: "pasport rasmini yubormang",
+      expected: "requests_personal_data",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "en",
+      area: "passport",
+      safeLead: "Do not send the SMS code",
+      danger: "send a passport photo",
+      safeTail: "do not send a passport photo",
+      expected: "requests_personal_data",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "ru",
+      area: "SMS",
+      safeLead: "Не отправляйте паспорт",
+      danger: "сообщите SMS-код",
+      safeTail: "не сообщайте SMS-код",
+      expected: "asks_for_sms_code",
+      excluded: "requests_personal_data",
+    },
+    {
+      lang: "uz",
+      area: "SMS",
+      safeLead: "Pasportni yubormang",
+      danger: "SMS kodni ayting",
+      safeTail: "SMS kodni yubormang",
+      expected: "asks_for_sms_code",
+      excluded: "requests_personal_data",
+    },
+    {
+      lang: "en",
+      area: "SMS",
+      safeLead: "Do not send a passport photo",
+      danger: "tell me the SMS code",
+      safeTail: "do not send the SMS code",
+      expected: "asks_for_sms_code",
+      excluded: "requests_personal_data",
+    },
+    {
+      lang: "ru",
+      area: "APK",
+      safeLead: "Не сообщайте SMS-код",
+      danger: "установите APK",
+      safeTail: "не устанавливайте APK",
+      expected: "asks_to_install_apk",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "uz",
+      area: "APK",
+      safeLead: "SMS kodni yubormang",
+      danger: "APKni o'rnating",
+      safeTail: "APKni o'rnatmang",
+      expected: "asks_to_install_apk",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "en",
+      area: "APK",
+      safeLead: "Do not send the SMS code",
+      danger: "install this APK",
+      safeTail: "do not install this APK",
+      expected: "asks_to_install_apk",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "ru",
+      area: "transfer",
+      safeLead: "Не сообщайте SMS-код",
+      danger: "переведите деньги на эту карту",
+      safeTail: "не переводите деньги на эту карту",
+      expected: "asks_to_transfer_to_safe_account",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "uz",
+      area: "transfer",
+      safeLead: "SMS kodni yubormang",
+      danger: "pulni shu kartaga o'tkazing",
+      safeTail: "pulni shu kartaga o'tkazmang",
+      expected: "asks_to_transfer_to_safe_account",
+      excluded: "asks_for_sms_code",
+    },
+    {
+      lang: "en",
+      area: "transfer",
+      safeLead: "Do not send the SMS code",
+      danger: "transfer money to this card",
+      safeTail: "do not transfer money to this card",
+      expected: "asks_to_transfer_to_safe_account",
+      excluded: "asks_for_sms_code",
+    },
+  ] as const;
+
+  const join = (fixture: (typeof fixtures)[number], first: string, second: string): string =>
+    `${first} ${connector[fixture.lang]}${padding[fixture.lang]} ${second}`;
+
+  it.each(fixtures)("keeps a long safe-first $lang $area danger", (fixture) => {
+    const reasons = evaluateText(join(fixture, fixture.safeLead, fixture.danger));
+    expect(reasons).toContain(fixture.expected);
+    expect(reasons).not.toContain(fixture.excluded);
+  });
+
+  it.each(fixtures)("keeps a long danger-first $lang $area danger", (fixture) => {
+    const reasons = evaluateText(join(fixture, fixture.danger, fixture.safeLead));
+    expect(reasons).toContain(fixture.expected);
+    expect(reasons).not.toContain(fixture.excluded);
+  });
+
+  it.each(fixtures)("keeps a long safety-only $lang $area coordination neutral", (fixture) => {
+    const reasons = evaluateText(join(fixture, fixture.safeLead, fixture.safeTail));
+    expect(reasons).not.toContain(fixture.expected);
+    expect(reasons).not.toContain(fixture.excluded);
+  });
+});
+
 describe("evaluateText — physical access context stays clause-local", () => {
   it.each([
     "Код домофона 1234, но отправь мне код входа в банк",

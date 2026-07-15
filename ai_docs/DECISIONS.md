@@ -2,6 +2,43 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-082 - Polling batches preserve stateful order and a contiguous ack frontier
+
+The single DB-fenced polling leader requests 20 updates per `getUpdates` call
+by default; the Bot API wrapper clamps explicit limits to `1..100`. Before any
+lease or handler side effect, the entire batch must have safe-integer, strictly
+increasing `update_id` values at or above the requested offset. Message,
+callback, hybrid and unsupported-shape records never reorder relative to one
+another. Strict-Inline-only work runs in just-in-time lifecycle chunks of at
+most four. While one stateful update is in flight, bounded read-ahead may include
+only following Inline updates for known different users; same-user and
+unknown-user Inline waits, and the next stateful/unsupported boundary is never
+crossed. The polling-scoped same-user serialization bypass is ignored for every
+stateful or webhook update.
+
+Offset advances only through the contiguous acknowledged frontier. Work after
+the first failed Inline sibling may already be durable `completed`; replay then
+skips that sibling, but the local frontier never jumps over the failure.
+Transient `answerInlineQuery` network/no-code and 5xx failures use the 2.5-second
+Bot API deadline, get one delivery retry, then fail the lifecycle with a
+sanitized error. A 429 is not immediately retried: bounded 1-60-second
+`retry_after` metadata is carried through lifecycle release to polling, and
+concurrent failures honor the longest required delay. Entity-parse failure gets
+one plaintext retry; a permanent rejection is drained so an expired query
+cannot block all later work.
+
+A newly current polling leader may reclaim an active processing row owned by a
+superseded polling leader after a 15-second drain grace, longer than the bounded
+Telegram outbound-effect timeout. Reclaim increments the processing fence and
+attempt count; the old worker remains fenced, while a current owner and
+webhook/non-leader lease remain protected. Renewal has a five-second deadline
+and conservative local expiry so an uncertain old process stops new long polls.
+
+D-082 supersedes only the `limit=1`/one-at-a-time processing granularity in
+D-072. D-072's metadata-only privacy boundary, singleton leader, lifecycle and
+outbound-effect fencing, completion-before-offset recovery and at-least-once
+(not exactly-once) delivery contract remain unchanged.
+
 ## D-081 - Inline release evidence follows the observable boundary
 
 Real Telegram clients prove preview rendering, insertion, language/layout,

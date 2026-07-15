@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   dispatchCalls: 0,
+  dispatchError: null as unknown,
   claimResult: "acquired" as "acquired" | "completed" | "unavailable",
 }));
 
@@ -12,6 +13,7 @@ vi.mock("@/lib/telegram/router", async (importActual) => {
     ...actual,
     dispatchUpdate: vi.fn(async () => {
       h.dispatchCalls++;
+      if (h.dispatchError) throw h.dispatchError;
     }),
   };
 });
@@ -41,7 +43,12 @@ vi.mock("@/lib/telegram/update-lifecycle.server", () => ({
   markTelegramUpdateFailure: vi.fn(async () => true),
 }));
 
-import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
+import { TelegramInlineAnswerDeliveryError } from "./inline-answer-delivery-error";
+import {
+  __resetTelegramWebhookDedupeForTests,
+  executeAndCompleteTelegramUpdate,
+  handleTelegramWebhook,
+} from "./webhook.server";
 
 const WEBHOOK_URL = "https://example.com/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
@@ -70,6 +77,7 @@ function request(updateId: number): Request {
 
 beforeEach(() => {
   h.dispatchCalls = 0;
+  h.dispatchError = null;
   h.claimResult = "acquired";
   process.env.TELEGRAM_WEBHOOK_SECRET = "secret";
   process.env.TELEGRAM_BOT_TOKEN = "bot-token";
@@ -134,5 +142,31 @@ describe("webhook Postgres dedup", () => {
 
     expect(response.status).toBe(503);
     expect(h.dispatchCalls).toBe(0);
+  });
+
+  it("preserves a sanitized Inline delivery delay for the polling caller", async () => {
+    const deliveryError = new TelegramInlineAnswerDeliveryError(17_000);
+    h.dispatchError = deliveryError;
+
+    await expect(
+      executeAndCompleteTelegramUpdate(
+        {
+          update_id: 106,
+          inline_query: {
+            id: "inline-106",
+            from: { id: 1001, first_name: "Test", language_code: "ru" },
+            query: "private query that must not be logged",
+          },
+        },
+        {
+          updateId: 106,
+          leaseToken: "00000000-0000-4000-8000-000000000106",
+          processingFence: 1,
+          leaseExpiresAt: "2099-01-01T00:00:00.000Z",
+        },
+      ),
+    ).rejects.toBe(deliveryError);
+
+    expect(deliveryError.retryAfterMs).toBe(17_000);
   });
 });

@@ -16,11 +16,13 @@ const hoisted = vi.hoisted(() => ({
     ok: boolean;
     errorCode?: number;
     description?: string;
+    retryAfterSec?: number;
   },
   answerResults: [] as Array<{
     ok: boolean;
     errorCode?: number;
     description?: string;
+    retryAfterSec?: number;
   }>,
   escapeMarkdown: false,
 }));
@@ -100,7 +102,7 @@ describe("handleInlineQuery", () => {
     expect(hoisted.answerCalls).toHaveLength(1);
     expect(hoisted.answerCalls[0]).toMatchObject({
       inlineQueryId: "iq-help",
-      cacheTime: 2,
+      cacheTime: 10,
       isPersonal: true,
     });
     expect(hoisted.answerCalls[0].results[0]).toMatchObject({
@@ -244,6 +246,123 @@ describe("handleInlineQuery", () => {
     expect(errorSpy.mock.calls.flat().join(" ")).not.toContain("что мне делать");
   });
 
+  it("retries one transient Bot API failure and delivers the original result", async () => {
+    hoisted.answerResults.push({ ok: false, errorCode: 502 }, { ok: true });
+
+    await handleInlineQuery("что мне делать дальше?", { userId: 42, session }, "iq-retry-502");
+
+    expect(hoisted.answerCalls).toHaveLength(2);
+    expect(hoisted.answerCalls[0]).toEqual(hoisted.answerCalls[1]);
+    expect(hoisted.answerCalls[0].cacheTime).toBe(10);
+  });
+
+  it.each([
+    [{ ok: false }, { ok: false }],
+    [
+      { ok: false, errorCode: 500, description: "Internal Server Error" },
+      { ok: false, errorCode: 503, description: "Service Unavailable" },
+    ],
+  ])(
+    "propagates exhausted transient delivery so polling can retry the update",
+    async (first, second) => {
+      hoisted.answerResults.push(first, second);
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await expect(
+        handleInlineQuery(
+          "уникальный секретный текст пользователя",
+          { userId: 42, session },
+          "iq-transient-failure",
+        ),
+      ).rejects.toMatchObject({
+        name: "TelegramInlineAnswerDeliveryError",
+        message: "telegram_inline_answer_transient",
+      });
+
+      expect(hoisted.answerCalls).toHaveLength(2);
+      expect(errorSpy).toHaveBeenCalledWith(
+        "telegram inline answer transient",
+        "errorCode" in second ? (second.errorCode ?? "network") : "network",
+      );
+      expect(errorSpy.mock.calls.flat().join(" ")).not.toContain("уникальный секретный");
+    },
+  );
+
+  it("does not immediately retry a 429 and propagates Telegram's bounded retry_after", async () => {
+    hoisted.nextAnswerResult = {
+      ok: false,
+      errorCode: 429,
+      description: "Too Many Requests",
+      retryAfterSec: 17,
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handleInlineQuery(
+        "уникальный секретный текст пользователя",
+        { userId: 42, session },
+        "iq-retry-after",
+      ),
+    ).rejects.toMatchObject({
+      name: "TelegramInlineAnswerDeliveryError",
+      message: "telegram_inline_answer_transient",
+      retryAfterMs: 17_000,
+    });
+
+    expect(hoisted.answerCalls).toHaveLength(1);
+    expect(errorSpy).toHaveBeenCalledWith("telegram inline answer transient", 429);
+    expect(errorSpy.mock.calls.flat().join(" ")).not.toContain("уникальный секретный");
+  });
+
+  it("caps an excessive Telegram retry_after before lifecycle replay", async () => {
+    hoisted.nextAnswerResult = {
+      ok: false,
+      errorCode: 429,
+      description: "Too Many Requests",
+      retryAfterSec: 86_400,
+    };
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handleInlineQuery("проверьте ссылку", { userId: 42, session }, "iq-retry-cap"),
+    ).rejects.toMatchObject({ retryAfterMs: 60_000 });
+
+    expect(hoisted.answerCalls).toHaveLength(1);
+  });
+
+  it("uses retry_after when an immediate 5xx retry is then rate-limited", async () => {
+    hoisted.answerResults.push(
+      { ok: false, errorCode: 502, description: "Bad Gateway" },
+      {
+        ok: false,
+        errorCode: 429,
+        description: "Too Many Requests",
+        retryAfterSec: 9,
+      },
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handleInlineQuery("проверьте ссылку", { userId: 42, session }, "iq-502-429"),
+    ).rejects.toMatchObject({ retryAfterMs: 9_000 });
+
+    expect(hoisted.answerCalls).toHaveLength(2);
+  });
+
+  it("does not retry a permanent forbidden/expired Inline query failure", async () => {
+    hoisted.nextAnswerResult = {
+      ok: false,
+      errorCode: 403,
+      description: "Forbidden",
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await handleInlineQuery("что мне делать дальше?", { userId: 42, session }, "iq-forbidden");
+
+    expect(hoisted.answerCalls).toHaveLength(1);
+    expect(errorSpy).toHaveBeenCalledWith("telegram inline answer failed", 403);
+  });
+
   it("retries a Telegram entity-parse failure once without parse_mode", async () => {
     hoisted.nextResult = {
       type: "text",
@@ -283,6 +402,21 @@ describe("handleInlineQuery", () => {
       expect.stringContaining("Высокий риск"),
       "Безопасный шаг: Не сообщайте SMS-код или PIN.",
     ]);
+  });
+
+  it("propagates a transient failure of the plaintext entity fallback", async () => {
+    hoisted.answerResults.push(
+      { ok: false, errorCode: 400, description: "Bad Request: can't parse entities" },
+      { ok: false, errorCode: 503, description: "Service Unavailable" },
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handleInlineQuery("скажите код из SMS", { userId: 42, session }, "iq-parse-transient"),
+    ).rejects.toMatchObject({ name: "TelegramInlineAnswerDeliveryError" });
+
+    expect(hoisted.answerCalls).toHaveLength(2);
+    expect(errorSpy).toHaveBeenCalledWith("telegram inline answer transient", 503);
   });
 
   it("does not republish credential classes in Markdown or plaintext retry messages", async () => {
@@ -333,6 +467,7 @@ describe("handleInlineQuery", () => {
       skipAi: true,
       skipUrlReputation: true,
       persist: false,
+      rateLimitProfile: "telegram_inline_preview",
     });
     expect(hoisted.answerCalls).toHaveLength(1);
     const article = hoisted.answerCalls[0].results[0] as {
@@ -548,7 +683,7 @@ describe("handleInlineQuery", () => {
             `${reason}:${lang}:${level}:description length`,
           ).toBeLessThanOrEqual(120);
 
-          if (level === "high_risk") {
+          if (level === "high_risk" || reason !== "requests_personal_data") {
             const actionLine = message.split("\n")[1] ?? "";
             expect(actionLine, `${reason}:${lang}:action line`).toMatch(
               new RegExp(`^${stepLabels[lang]}\\s+`, "u"),
@@ -582,6 +717,52 @@ describe("handleInlineQuery", () => {
     expect(article.title).toBe("Слишком много проверок");
     expect(article.description).toContain("17 сек");
     expect(article.input_message_content.message_text).toContain("17 сек");
+    expect(hoisted.answerCalls[0].cacheTime).toBe(0);
+  });
+
+  it("does not cache a transient Inline failure", async () => {
+    hoisted.nextError = new Error("temporary failure");
+
+    await handleInlineQuery("неизвестный запрос", { userId: 42, session }, "iq-error");
+
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expect(article.id).toBe("error");
+    expect(hoisted.answerCalls[0].cacheTime).toBe(0);
+  });
+
+  it.each([
+    ["ru", "12345678", "Код или неполный номер"],
+    ["uz", "12 34 56", "Kod yoki to'liq bo'lmagan raqam"],
+    ["en", "123-4567", "Code or incomplete number"],
+  ] as const)(
+    "keeps an ambiguous short numeric %s query out of phone passports and visible output",
+    async (lang, query, expectedTitle) => {
+      await handleInlineQuery(
+        query,
+        { userId: 42, session: { ...session, lang } },
+        `iq-ambiguous-${lang}`,
+      );
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      const article = hoisted.answerCalls[0].results[0] as {
+        id: string;
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expect(article.id).toBe("ambiguous-numeric");
+      expect(article.title).toBe(expectedTitle);
+      expect(article.description).toMatch(/(?:код|kod|code|number|raqam|номер)/iu);
+      expect(JSON.stringify(article)).not.toContain(query.replace(/\D/gu, ""));
+      expect(article.input_message_content.message_text).toContain("@scamguard_bot");
+    },
+  );
+
+  it("keeps a nine-digit Uzbekistan local number on the phone-check path", async () => {
+    await handleInlineQuery("901234567", { userId: 42, session }, "iq-nine-digit-phone");
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "901234567" });
   });
 
   it.each([
@@ -668,8 +849,9 @@ describe("handleInlineQuery", () => {
     };
     expect(article.id).toBe("passport-phone");
     expect(article.title).toBe("Номер: жалоб не найдено");
-    expect(article.description).toContain("Это не гарантия безопасности");
-    expect(article.description).toContain("код, карту, перевод, APK или QR");
+    expect(article.description).toContain("это не гарантия");
+    expect(article.description).toContain("В этом же запросе");
+    expect(article.description).toContain("не вставляйте настоящий код");
     expect(article.input_message_content.message_text).toContain("Номер: Узбекистан (+998)");
     expect(article.input_message_content.message_text).toContain("Beeline по префиксу 90");
     expect(article.input_message_content.message_text).toContain(
@@ -677,7 +859,10 @@ describe("handleInlineQuery", () => {
     );
     expect(article.input_message_content.message_text).toContain("не гарантия безопасности");
     expect(article.input_message_content.message_text).toContain("непроверенные жалобы");
-    expect(article.input_message_content.message_text).toContain("Напишите, что попросили");
+    expect(article.input_message_content.message_text).toContain(
+      "В @scamguard_bot опишите словами",
+    );
+    expect(article.input_message_content.message_text).toContain("Не присылайте сами SMS-коды");
     expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
   });
 
@@ -828,17 +1013,204 @@ describe("handleInlineQuery", () => {
     };
     expect(article.id).toBe("check-unknown-link-request");
     expect(article.title).toBe("Ссылка: сначала проверим");
-    expect(article.description).toContain("Пока не открывайте");
-    expect(article.description).toContain("саму ссылку");
+    expect(article.description).toContain("Вы упомянули ссылку");
+    expect(article.description).toContain("в этот же запрос");
     expect(article.input_message_content.message_text).toContain(
       "Что проверяли: у меня просят перейти по ссылке",
     );
+    expect(article.input_message_content.message_text).toContain("её адреса в запросе нет");
+    expect(article.input_message_content.message_text).toContain("без паролей и кодов");
+  });
+
+  it("uses the added line of a multiline link request instead of repeating the generic scam card", async () => {
+    const query = "Мне пишет мошенник\nСпрашивает ссылку, которую он мне отправил";
+
+    await handleInlineQuery(query, { userId: 42, session }, "iq-link-multiline");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("check-unknown-link-request");
+    expect(article.description).toContain("адреса здесь нет");
+    expect(article.input_message_content.message_text).toContain("Спрашивает ссылку");
+    expect(article.input_message_content.message_text).toContain("сам URL или полный текст");
+  });
+
+  it.each([
+    {
+      text: "Просят перейти по ссылке и назвать SMS-код",
+      expectedId: "check-unknown-code-request",
+      expectedRunChecks: 1,
+    },
+    {
+      text: "Просят открыть ссылку и отправить данные карты",
+      expectedId: "check-unknown-card-request",
+      expectedRunChecks: 1,
+    },
+    {
+      text: "Просят перейти по ссылке и перевести деньги на карту",
+      expectedId: "check-unknown-transfer-request",
+      expectedRunChecks: 1,
+    },
+    {
+      text: "Перейдите по ссылке и пришлите фото паспорта",
+      expectedId: "check-unknown-personal-data",
+      expectedRunChecks: 1,
+    },
+    {
+      text: "They ask me to follow a link and install AnyDesk",
+      expectedId: "check-unknown-app-request",
+      expectedRunChecks: 0,
+    },
+    {
+      text: "Havolani ochib SMS kodni ayt deyapti",
+      expectedId: "check-unknown-code-request",
+      expectedRunChecks: 1,
+    },
+  ])(
+    "lets the explicit danger win over a bare-link preflight: $text",
+    async ({ text, expectedId, expectedRunChecks }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "unknown",
+        score: 0,
+        reasons: ["unknown_sender"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(text, { userId: 42, session }, `iq-priority-${expectedId}`);
+
+      expect(hoisted.runCheckCalls).toHaveLength(expectedRunChecks);
+      const article = hoisted.answerCalls[0].results[0] as { id: string };
+      expect(article.id).toBe(expectedId);
+      expect(article.id).not.toBe("check-unknown-link-request");
+    },
+  );
+
+  it.each([
+    {
+      text: "Что мне отправить, если просят данные карты?",
+      expectedId: "check-unknown-card-request",
+    },
+    {
+      text: "Что мне написать, если просят перевести деньги?",
+      expectedId: "check-unknown-transfer-request",
+    },
+    {
+      text: "Что мне прислать, если просят фото паспорта?",
+      expectedId: "check-unknown-personal-data",
+    },
+    {
+      text: "Bu yerga nima yozay, karta CVV sini so'rashyapti?",
+      expectedId: "check-unknown-card-request",
+    },
+    {
+      text: "What should I reply if they ask for a passport photo?",
+      expectedId: "check-unknown-personal-data",
+    },
+  ])(
+    "does not let reply-safety wording hide the dangerous request: $text",
+    async ({ text, expectedId }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "unknown",
+        score: 0,
+        reasons: ["unknown_sender"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(text, { userId: 42, session }, `iq-reply-priority-${expectedId}`);
+
+      expect(hoisted.runCheckCalls).toHaveLength(1);
+      const article = hoisted.answerCalls[0].results[0] as { id: string };
+      expect(article.id).toBe(expectedId);
+      expect(article.id).not.toBe("check-unknown-reply-safety");
+    },
+  );
+
+  it("explains what may be added to Inline without inviting real secrets", async () => {
+    await handleInlineQuery("Мне ничего не присылать?", { userId: 42, session }, "iq-reply-safety");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("check-unknown-reply-safety");
+    expect(article.description).toContain("только текст просьбы");
+    expect(article.description).toContain("Не вставляйте настоящий SMS-код");
+    expect(article.input_message_content.message_text).toContain("В этот запрос добавьте");
+    expect(article.input_message_content.message_text).toContain("фото документов не вставляйте");
+  });
+
+  it("uses a document-specific complete response for an imperative passport request", async () => {
+    const query = "Пришлите фото паспорта для подтверждения личности";
+    hoisted.nextResult = {
+      type: "text",
+      display: query,
+      level: "suspicious",
+      score: 30,
+      reasons: ["requests_personal_data"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(query, { userId: 42, session }, "iq-passport-request");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("check-suspicious-personal-data");
+    expect(article.title).toBe("Документы: не отправляйте фото");
+    expect(article.description).toContain("Не отправляйте паспорт");
+    expect(article.description).not.toContain("или...");
+    expect(article.input_message_content.message_text).toContain("Запрашивают личные данные");
+    expect(article.input_message_content.message_text).toContain("Не отправляйте фото паспорта");
+    expect(article.input_message_content.message_text).not.toContain("Не вводите код/карту");
+  });
+
+  it("keeps job preview concise but inserts fuller next-step guidance", async () => {
+    const query = "предлагают работу но просят оплатить обучение";
+
+    await handleInlineQuery(query, { userId: 42, session }, "iq-job-copy");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expect(article.id).toBe("check-unknown-job-offer");
+    expect(article.description).toContain("до договора опасно");
+    expect(article.input_message_content.message_text).toContain(
+      "независимой проверки работодателя",
+    );
+    expect(article.input_message_content.message_text).toContain("название компании");
+    expect(article.input_message_content.message_text).not.toContain("срочный перевод");
   });
 
   it("does not override concrete URL checks with the bare-link fallback", async () => {
+    const checkedUrlRequest = "просят перейти по ссылке https://example.test/pay";
     hoisted.nextResult = {
       type: "url",
-      display: "https://example.test/pay",
+      display: checkedUrlRequest,
       level: "unknown",
       score: 0,
       reasons: ["hosted_app_platform"],
@@ -848,11 +1220,7 @@ describe("handleInlineQuery", () => {
       brandEvidence: [],
     };
 
-    await handleInlineQuery(
-      "просят перейти по ссылке https://example.test/pay",
-      { userId: 42, session },
-      "iq-url",
-    );
+    await handleInlineQuery(checkedUrlRequest, { userId: 42, session }, "iq-url");
 
     const article = hoisted.answerCalls[0].results[0] as {
       id: string;
@@ -862,6 +1230,7 @@ describe("handleInlineQuery", () => {
     expect(article.id).toBe("check-unknown");
     expect(article.title).toBe("Нужно больше контекста");
     expect(article.description).not.toContain("Пока не открывайте");
+    expect(article.description).not.toContain("адреса здесь нет");
   });
 
   it.each([

@@ -2,6 +2,55 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-15 - Desktop Inline defects and polling burst reliability were fixed locally
+
+- Archived 41 user-supplied Telegram Desktop screenshots as ignored local
+  pre-fix evidence under
+  `private/telegram-inline-qa/2026-07-15/desktop/user-batch-01/`. They reproduce
+  job-fee copy falling through to a generic transfer answer, repetitive
+  preview/insertion copy, ambiguous phone guidance, bare eight-digit strings
+  being treated as North American phones, lost multiline link context,
+  rate-limit refresh confusion, incomplete passport guidance and intermittent
+  missing/unchanged Inline results.
+- Added job-specific direct-bot and Inline guidance, improved RU/UZ/EN natural
+  routing, completed passport/link responses and made preview copy distinct
+  from the fuller inserted result. Bare 6-8 digit strings now get a privacy-safe
+  “code or incomplete number” card; 9-digit Uzbek local and explicit full
+  international phones remain on the phone path. Phone displays, secret
+  permutations and Unicode-bounded text remain masked before presentation.
+- Reworked mixed-clause detection so a safe clause cannot suppress a later
+  code, passport, transfer, APK or similar action across RU/UZ/EN punctuation,
+  contrast/sequence wording or an independently actionable conjunction. Object
+  lists and genuinely negated safety instructions remain neutral.
+- Guarded stateless Inline previews now receive a 60/minute policy only when
+  Telegram channel, no persistence, no AI, no URL reputation and the
+  server-owned Inline key all match. Rate/error articles are not cached, while
+  successful answers use a short cache. `answerInlineQuery` uses a bounded
+  timeout, retries one transient network/no-code/5xx failure and reports
+  transient exhaustion to the durable update lifecycle instead of falsely
+  completing it. A 429 is not retried immediately: bounded `retry_after` is
+  propagated to polling, and concurrent failures honor the longest delay.
+- The polling candidate requests batches of 20, validates the entire ordered id
+  batch before side effects and keeps stateful causal order. Strict Inline work
+  runs at most four-wide; during one slow stateful update, only following Inline
+  work for known different users may read ahead. The acknowledgement frontier
+  never crosses the first failed/busy update. Leader renewal now has a bounded
+  deadline/local expiry. A forward-only Supabase migration allows stale-owner
+  reclaim only after a 15-second outbound-effect drain grace while preserving
+  processing fences and webhook isolation.
+- Local verification passes the complete 8,882/8,882 application tests,
+  TypeScript, the production build and `npm audit` with zero known npm
+  vulnerabilities. Focused evidence includes the Inline/risk suites plus
+  234/234 merged polling/lifecycle/API/Inline reliability tests.
+- Draft PR #106 at candidate `b3c0611` passed application/coverage CI, migration
+  apply on a clean database, schema lint, 35 pgTAP assertions, CodeQL, Gitleaks
+  and container High/Critical/SBOM gates. This entry still does not claim a
+  release or live pass: the production Supabase migration/read-back, production
+  deployment, Desktop post-fix replay and Android/iOS RU/UZ/EN visual/insertion
+  QA are open. `INL-001`/`INL-002` must not move to Passed; `BOT-004` remains In
+  Progress. See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
+  `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
+
 ## 2026-07-14 - Real Desktop Inline action order was corrected and deployed
 
 - Real Telegram Desktop preview and insertion evidence for `INLINE-HIGH-RU`
@@ -15,8 +64,7 @@ Newest first. This tracks documentation/memory files, not every code commit.
   with the same ranked reason used by the explanation, traverse all 55 reason
   codes through both suspicious and high-risk paths, keep the full first action
   inside the 120-character preview and preserve the order after a plaintext
-  entity-parse retry. The real Desktop row remains failed until the same
-  preview/insertion pair is captured again on the corrected production build.
+  entity-parse retry.
 - PR #104 passed application, coverage, database, CodeQL, Gitleaks and
   container/SBOM gates and merged as main `95a7a82`. Railway deployment
   `aee41826-f392-4567-a5a9-2a34a70d205c` reached `SUCCESS`, image
@@ -24,8 +72,14 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Home, health, authenticated polling leader, disabled-webhook policy and
   Telegram delivery state passed with zero pending updates. The AI key was
   deliberately removed from the smoke subprocess, so this verification made
-  no paid provider call. The real Desktop row still requires the same
-  post-deploy preview/insertion capture before it can pass.
+  no paid provider call.
+- The post-deploy Telegram Desktop retest passed. Its preview begins with the
+  complete reason-specific SMS/PIN action, and the inserted card places that
+  action directly after the title while keeping the reason, limitation,
+  attribution and launch button visible. Sanitized local evidence is stored as
+  `03-high-ru-preview-postfix.png` and `04-high-ru-inserted-postfix.png`. This
+  closes 1/17 Desktop cases and 1/51 total client rows; the wider client matrix
+  remains open.
 
 ## 2026-07-14 - Inline Unicode boundary and real-client evidence were hardened
 

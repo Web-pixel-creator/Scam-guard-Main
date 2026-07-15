@@ -260,6 +260,165 @@ describe("classifyVictimIntent", () => {
   });
 });
 
+describe("classifyVictimIntent — job-entry fee priority", () => {
+  it.each([
+    "Меня просят оплатить обучение на работу как новичку",
+    "Mendan yangi ish uchun o'qish pulini to'lashni so'rashyapti",
+    "They ask me to pay for training as a newcomer to the job",
+  ])("routes a reversed-order job/training payment to job guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "job_offer" });
+  });
+
+  it.each([
+    "Почему я должен платить за обучение перед работой?",
+    "Nega ish boshlashdan oldin o'qish pulini to'lashim kerak?",
+    "Why should I pay a training fee before starting the job?",
+  ])("keeps a topic-explicit job-payment follow-up on job guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "job_offer" });
+  });
+
+  it.each([
+    ["Меня просят оплатить обучение в университете", "transfer_request"],
+    ["Меня просят оплатить информацию о работе", "transfer_request"],
+    ["Меня просят оплатить платформу для работы", "transfer_request"],
+    ["Ular komissiyani hozir to'lash kerak deyishyapti.", "transfer_request"],
+    ["They ask me to pay the utility bill at work", "utility_impersonation"],
+    ["Мне сказали оплатить по реквизитам из чата", "transfer_request"],
+    [
+      "Агентство предлагает работу за границей и просит оплатить обучение",
+      "travel_migration_prepayment",
+    ],
+  ] as const)("does not steal a neighbouring payment route: %s", (text, expectedKind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(expectedKind);
+  });
+
+  it.each([
+    ["Мне сказали оплатить проверку: так работает система", "transfer_request"],
+    ["They ask me to pay an activation fee so the network will work", "transfer_request"],
+    ["Меня просят оплатить обработку заявки", "transfer_request"],
+  ] as const)("does not treat a technical use of work/работ as a job: %s", (text, expectedKind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(expectedKind);
+  });
+
+  it("does not treat Uzbek bepul as a money request", () => {
+    expect(classifyVictimIntent("Mendan bepul kursga yozilishimni so'rashyapti")).toEqual({
+      kind: "telegram_message",
+    });
+    expect(
+      classifyVictimIntent("Chet elga bepul ishlash dasturini taklif qilishdi")?.kind,
+    ).not.toBe("travel_migration_prepayment");
+  });
+
+  it.each([
+    "Chet elga ishga kirish uchun oldindan pul so'rashyapti",
+    "Xorijga ishlash uchun komissiya so'rashyapti",
+    "Oldindan pul to'lashim kerak, keyin xorijga ishga yuborishadi",
+    "Komissiyani hozir to'lashim kerak, keyin chet elga ishlashga yuborishadi",
+    "They ask for a training fee before I can work abroad",
+    "A deposit must be paid before the job overseas",
+    "Oldindan to'lov so'rashyapti, keyin Koreyaga viza berishar ekan",
+    "They require a deposit before the visa is processed",
+  ])(
+    "keeps natural and reverse-order travel/work-abroad wording on travel guidance: %s",
+    (text) => {
+      expect(classifyVictimIntent(text)?.kind).toBe("travel_migration_prepayment");
+    },
+  );
+
+  it.each([
+    "Chet elga ishga kirish uchun o'qish pulini oldindan to'lashim kerak",
+    "They ask me to pay a training fee before starting work abroad",
+  ])("gives work-abroad prepayment priority over generic job guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("travel_migration_prepayment");
+  });
+
+  it("does not infer a job from an ordinary English commission request", () => {
+    expect(classifyVictimIntent("They say the commission must be paid now")?.kind).not.toBe(
+      "job_offer",
+    );
+  });
+
+  it.each([
+    [
+      "ru-forward",
+      `Оплату за интернет я внёс вчера.${" x".repeat(60)} Теперь визовое агентство просит внести депозит`,
+    ],
+    [
+      "ru-reverse",
+      `Виза для прошлой поездки уже готова.${" x".repeat(60)} Теперь просят предоплату, после этого свяжется визовое агентство`,
+    ],
+    [
+      "uz-forward",
+      `Pulim uyda qoldi.${" x".repeat(60)} Chet elga ishga yuborish uchun oldindan to'lov so'rashyapti`,
+    ],
+    [
+      "uz-reverse",
+      `Koreya haqida eski xabar bor.${" x".repeat(60)} Oldindan to'lov so'rashyapti, keyin xorijga ishga yuborishadi`,
+    ],
+    [
+      "en-forward",
+      `The payment yesterday was normal.${" x".repeat(60)} The travel agency now asks for a deposit`,
+    ],
+    [
+      "en-reverse",
+      `My old visa is already closed.${" x".repeat(60)} They now require a deposit before the travel agency will continue`,
+    ],
+  ] as const)(
+    "finds the late close travel/payment pair after an early distant match: %s",
+    (_id, text) => {
+      expect(classifyVictimIntent(text)?.kind).toBe("travel_migration_prepayment");
+    },
+  );
+
+  it.each([
+    "Мне предлагают работу без взноса, обучение бесплатное",
+    "За вакансию ничего платить не нужно",
+    "Menga pulsiz ishga kirish kursini taklif qilishdi",
+    "Ishga kirish uchun pul kerak emas",
+    "Ishga kirish uchun to'lov kerak emas",
+    "They offered me a job with no training fee",
+    "The job has free training and no deposit",
+    "No payment is required to start the job",
+  ])("does not turn explicitly free or waived job terms into job risk: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).not.toBe("job_offer");
+  });
+
+  it.each([
+    "Работа за границей без взноса, обучение бесплатное",
+    "Xorijga ishga kirish kursi pulsiz va to'lov kerak emas",
+    "They offered free training for a job overseas with no deposit",
+  ])("does not turn waived work-abroad terms into a travel prepayment risk: %s", (text) => {
+    const kind = classifyVictimIntent(text)?.kind;
+    expect(kind).not.toBe("job_offer");
+    expect(kind).not.toBe("travel_migration_prepayment");
+  });
+
+  it.each([
+    "Говорили, что работа без взноса, но теперь просят оплатить обучение перед работой",
+    "Просят внести депозит перед работой, хотя обучение бесплатное",
+    "Ishga kirish bepul deyishdi, lekin endi o'qish pulini to'lashni so'rashyapti",
+    "Ish uchun depozit to'lashni so'rashyapti, lekin o'qish bepul ekan",
+    "They said there is no training fee, but now they ask me to pay a deposit before starting the job",
+    "They ask me to pay a deposit before the job, although the training is free",
+  ])("does not let a waived clause hide a separate real job payment: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("job_offer");
+  });
+
+  it.each([
+    ["ru", "Не платите заранее", "сильный признак риска", "Срочный перевод"],
+    ["uz", "Oldindan", "kuchli xavf belgisi", "xavfsiz hisob"],
+    ["en", "Do not pay upfront", "strong risk signal", "safe accounts"],
+  ] as const)(
+    "uses action-first, bounded and job-specific %s copy",
+    (lang, actionLead, limitation, genericTransferCopy) => {
+      const text = buildVictimIntentText({ kind: "job_offer" }, lang);
+      expect(text.startsWith(actionLead)).toBe(true);
+      expect(text).toContain(limitation);
+      expect(text).not.toContain(genericTransferCopy);
+    },
+  );
+});
+
 describe("classifyVictimIntent — bounded everyday incident wording", () => {
   it.each([
     ["I have a suspicious conversation going on.", "general_scam_concern"],

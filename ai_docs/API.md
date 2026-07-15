@@ -45,15 +45,31 @@ in-memory fallback.
   durable `complete_telegram_update`. Handler failure, timeout, busy lease or
   lifecycle outage returns HTTP 503 with `Retry-After`. Only a DB `completed`
   row is acknowledged as a duplicate.
-- In polling mode one DB-fenced leader calls Bot API `getUpdates` with `limit=1`
-  and advances `offset=update_id+1` only after durable completion. Unsupported
-  update shapes with a valid `update_id` are skipped consistently.
+- In polling mode one DB-fenced leader calls Bot API `getUpdates` with a default
+  batch size of 20; the wrapper clamps an explicit limit to `1..100`. The full
+  returned batch is rejected before any lease or handler side effect unless all
+  `update_id` values are safe integers, strictly increasing and not below the
+  requested offset. Unsupported shapes with an otherwise valid ordered id are
+  acknowledged sequentially.
 - `GET /api/telegram/polling-health` requires the webhook-secret header and
   returns 200 only when polling mode has a current DB leader.
-- Dispatch is globally ordered by the polling leader before session load.
-  Service-role-only fenced session RPCs require the current update/leader lease
+- Message, callback, hybrid and unsupported-shape updates never reorder relative
+  to one another. Strict-Inline-only work executes in chunks of at most four.
+  During one slow stateful update, read-ahead is allowed only within its following
+  Inline window and only for known different users; same-user or unknown-user
+  Inline waits. Lifecycle leases are acquired just in time. Offset advances only
+  through the contiguous acknowledged frontier. A later completed sibling is
+  skipped from durable state on replay if an earlier sibling kept the frontier
+  back. The serializer bypass is polling-scoped and applies only to strict
+  Inline-only updates; webhook and all stateful work remain serialized.
+- Service-role-only fenced session RPCs require the current update/leader lease
   and still use the monotonic `last_update_id` write guard. Bot API calls from
-  an update execution verify the same fence before network I/O. Session failures are
+  an update execution verify the same fence before network I/O. A newly current
+  polling leader may reclaim a processing row owned by a superseded polling
+  leader after a 15-second outbound-effect drain grace, with a new processing
+  fence and attempt count; an active current owner or webhook/non-leader lease
+  cannot be stolen. Polling-leader renewal also has a five-second deadline and a
+  local expiry guard so an uncertain old process stops new long polls. Session failures are
   propagated through request-local execution state and produce a localized
   retry warning without database error details. Check-result and
   unreadable-image cards are persisted before publication, suppressed when the

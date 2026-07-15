@@ -63,6 +63,71 @@ describe("risk passport summary", () => {
     expect(JSON.stringify(summary)).not.toContain("998901234567");
   });
 
+  it("keeps an incomplete unprefixed number country-neutral", () => {
+    const summary = buildRiskPassportSummary(
+      baseResult({
+        type: "phone",
+        display: "123 45 ••• 78",
+        phoneIntelligence: {
+          digits: "12345678",
+          normalized: "12345678",
+          kind: "unknown",
+          isValidFormat: false,
+          isUzbekistan: false,
+          country: null,
+          uzPrefix: null,
+          uzOperator: null,
+          officialDirectoryStatus: "not_found",
+        },
+      }),
+      "en",
+    );
+
+    const visible = summary?.sections.find((section) => section.id === "visible");
+    expect(summary?.display).toBe("123 45 ••• 78");
+    expect(visible?.lines).toContain("Number: country/operator could not be identified reliably");
+    expect(visible?.lines).toContain("The number format looks incomplete or unusual.");
+    expect(JSON.stringify(summary)).not.toContain("US/Canada");
+    expect(JSON.stringify(summary)).not.toContain("(+1)");
+  });
+
+  it.each([
+    [
+      "ru",
+      "В @scamguard_bot опишите словами, что вас попросили сделать. Не присылайте сами SMS-коды, PIN, CVV, данные карты или фото документов.",
+    ],
+    [
+      "uz",
+      "Nima qilish so'ralganini @scamguard_bot ga so'z bilan yozing. SMS-kodning o'zini, PIN, CVV, karta ma'lumotlari yoki hujjat fotosini yubormang.",
+    ],
+    [
+      "en",
+      "In @scamguard_bot, describe in words what they asked you to do. Do not send actual SMS codes, PINs, CVVs, card details, or document photos.",
+    ],
+  ] as const)("asks for verbal context without requesting secrets in %s", (lang, expected) => {
+    const summary = buildRiskPassportSummary(
+      baseResult({
+        type: "phone",
+        display: "123 45 ••• 78",
+        phoneIntelligence: {
+          digits: "12345678",
+          normalized: "12345678",
+          kind: "unknown",
+          isValidFormat: false,
+          isUzbekistan: false,
+          country: null,
+          uzPrefix: null,
+          uzOperator: null,
+          officialDirectoryStatus: "not_found",
+        },
+      }),
+      lang,
+    );
+
+    const nextStep = summary?.sections.find((section) => section.id === "next_step");
+    expect(nextStep?.lines).toEqual([expected]);
+  });
+
   it("parses existing Telegram passport briefs into compact sections", () => {
     const summary = buildRiskPassportSummary(
       baseResult({

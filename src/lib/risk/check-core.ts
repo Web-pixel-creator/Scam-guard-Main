@@ -56,11 +56,15 @@ import { checkUrlReputation, normalizeUrlForReputationProvider } from "./url-rep
 /** Источник запроса — для аналитики/логов; не влияет на scoring. */
 export type CheckChannel = "web" | "telegram";
 
+export type RunCheckRateLimitProfile = "default" | "telegram_inline_preview";
+
 export interface RunCheckParams {
   input: string; // сырой ввод пользователя (до redaction)
   type?: InputType; // опционально; иначе detectInputType
   lang: Lang;
   rateLimitKey: string; // "check:<ip>" для веба, "tg:<userId>" для бота
+  /** Closed server-owned policy selector; callers cannot supply arbitrary limits. */
+  rateLimitProfile?: RunCheckRateLimitProfile;
   channel?: CheckChannel; // default "web"
   /** Set false for non-final previews such as Telegram inline typing. */
   persist?: boolean;
@@ -110,6 +114,8 @@ export type RateLimitedError = Error & { status: 429; retryAfter: number };
 /** Web/bot share the same best-effort limit: 10 requests / minute / key. */
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
+const TELEGRAM_INLINE_PREVIEW_RATE_LIMIT = 60;
+const TELEGRAM_INLINE_PREVIEW_KEY_RE = /^tg:inline:\d+$/u;
 const POSSIBLE_VERIFIED_CONTACT_RE = /@[a-zA-Z][a-zA-Z0-9_]{3,}|\+?\d[\d\s().-]{2,}\d/g;
 const EXACT_PHONE_CONTACT_RE = /^\+?\d[\d\s().-]{2,}\d$/;
 const EXACT_TELEGRAM_CONTACT_RE = /^@[a-zA-Z][a-zA-Z0-9_]{3,}$/;
@@ -122,6 +128,26 @@ function rateLimitedError(retryAfter: number): RateLimitedError {
   err.status = 429;
   err.retryAfter = retryAfter;
   return err;
+}
+
+function runCheckRateLimitPolicy(
+  params: Pick<
+    RunCheckParams,
+    "channel" | "persist" | "rateLimitKey" | "rateLimitProfile" | "skipAi" | "skipUrlReputation"
+  >,
+): { limit: number; windowMs: number } {
+  const isGuardedInlinePreview =
+    params.rateLimitProfile === "telegram_inline_preview" &&
+    params.channel === "telegram" &&
+    params.persist === false &&
+    params.skipAi === true &&
+    params.skipUrlReputation === true &&
+    TELEGRAM_INLINE_PREVIEW_KEY_RE.test(params.rateLimitKey);
+
+  return {
+    limit: isGuardedInlinePreview ? TELEGRAM_INLINE_PREVIEW_RATE_LIMIT : RATE_LIMIT,
+    windowMs: RATE_WINDOW_MS,
+  };
 }
 
 function findVerifiedContactForCheck(
@@ -209,6 +235,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     type,
     lang,
     rateLimitKey,
+    rateLimitProfile,
     channel,
     skipAi,
     persist,
@@ -220,8 +247,21 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
     aiMaxAttempts,
   } = params;
 
-  // ---- Rate limit: 10 checks / minute / key (shared in production) ----
-  const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
+  // ---- Rate limit: default 10/min; guarded stateless Inline previews 60/min ----
+  const rateLimitPolicy = runCheckRateLimitPolicy({
+    channel,
+    persist,
+    rateLimitKey,
+    rateLimitProfile,
+    skipAi,
+    skipUrlReputation,
+  });
+  const rl = await checkSharedRateLimit(
+    "check",
+    rateLimitKey,
+    rateLimitPolicy.limit,
+    rateLimitPolicy.windowMs,
+  );
   if (!rl.ok) {
     throw rateLimitedError(rl.retryAfterSec);
   }

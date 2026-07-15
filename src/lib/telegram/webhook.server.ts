@@ -38,6 +38,7 @@ import { installTelegramHandlers } from "@/lib/telegram/handlers";
 import { sendMessage } from "@/lib/telegram/api.server";
 import { langFromTelegramCode } from "@/lib/telegram/session.server";
 import { executeTelegramUpdate } from "@/lib/telegram/update-dispatch.server";
+import { inlineDeliveryRetryAfterMs } from "@/lib/telegram/inline-answer-delivery-error";
 import { installTelegramOutboundEffectFence } from "@/lib/telegram/outbound-effect-fence.server";
 import {
   beginTelegramUpdate,
@@ -163,9 +164,12 @@ export async function executeAndCompleteTelegramUpdate(
       },
       { lease },
     );
-  } catch {
+  } catch (error) {
     clearInterval(renewalTimer);
     await markTelegramUpdateFailure(lease, "dispatch");
+    // Polling needs the sanitized retry delay from Inline flood control. Other
+    // dispatch errors retain the established boolean failure contract.
+    if (inlineDeliveryRetryAfterMs(error) !== null) throw error;
     return false;
   }
 
@@ -211,7 +215,10 @@ async function waitForDispatch(
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      promise.then((completed): "completed" | "failed" => (completed ? "completed" : "failed")),
+      promise.then(
+        (completed): "completed" | "failed" => (completed ? "completed" : "failed"),
+        (): "failed" => "failed",
+      ),
       new Promise<"timeout">((resolve) => {
         timer = setTimeout(() => resolve("timeout"), timeoutMs);
       }),

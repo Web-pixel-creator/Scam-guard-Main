@@ -226,20 +226,82 @@ function isSafePhysicalAccessOnly(text: string): boolean {
   });
 }
 
+const UZ_TRAVEL_TOPIC_RE =
+  /(?:viza|koreya|rossiya|migratsiya|haj|umra|tur|sayohat|agentlik|(?:chet\s+el(?:ga|da|dagi)?|xorij(?:ga|da|dagi)?)\s+(?:ishga|ishlash(?:ga)?|ish))/iu;
+const UZ_PREPAYMENT_RE =
+  /(?:to['’]?lov|oldindan|komissiya|garov|depozit|bron|hujjat|o['’]?qish\s+puli|(?<!\p{L})pul\p{L}{0,8}(?!\p{L}))/iu;
+const EN_TRAVEL_TOPIC_RE =
+  /(?:visa|migration|korea|russia|hajj|umrah|tour|travel\s+agency|(?:work|job)\s+(?:abroad|overseas))/iu;
+const EN_PREPAYMENT_RE = /(?:prepay|fee|deposit|commission|advance|payment|training\s+fee)/iu;
+const WAIVED_JOB_PAYMENT_RE =
+  /(?:без\s+(?:какого[-\s]либо\s+|любого\s+)?(?:взноса?|оплаты?|предоплаты?|комиссии?|депозита?|залога?)|(?:бесплатн\p{L}*\s+(?:обучен\p{L}*|курс\p{L}*|оформлен\p{L}*)|(?:обучен\p{L}*|курс\p{L}*|оформлен\p{L}*)\s+бесплатн\p{L}*)|(?:не\s+(?:нужно|надо|требуется|просят)\s+(?:ничего\s+)?(?:платить|оплачивать|вносить|переводить)|(?:платить|оплачивать|вносить|переводить)\s+не\s+(?:нужно|надо|требуется))|(?<!\p{L})(?:bepul|pulsiz|tekin)(?!\p{L})|(?:(?:pul|to['’]?lov|badal|depozit|garov|komissiya)\s+(?:umuman\s+)?kerak\s+emas)|(?:(?:pul|badal|depozit|garov|komissiya)\s+to['’]?lash|to['’]?lov\s+qilish)\s+kerak\s+emas|(?:no\s+(?:(?:training|course|onboarding|registration)\s+)?(?:fee|payment|deposit|commission|charge)|without\s+(?:a\s+|any\s+|the\s+)?(?:fee|payment|deposit|commission|charge)|free\s+(?:training|course|onboarding|registration)|(?:training|course|onboarding|registration)\s+(?:is\s+)?free|(?:fee|payment|deposit|commission|charge)\s+(?:is\s+)?not\s+required|(?:do\s+not|don['’]?t|not\s+required\s+to)\s+pay(?:\s+(?:a\s+|any\s+|the\s+)?(?:fee|payment|deposit|commission|charge))?))/giu;
+
+function withoutWaivedJobPayments(text: string): string {
+  return text.replace(WAIVED_JOB_PAYMENT_RE, " [waived] ");
+}
+
+function allMatchIndices(text: string, pattern: RegExp): number[] {
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  const matcher = new RegExp(pattern.source, flags);
+  const indices: number[] = [];
+  for (const match of text.matchAll(matcher)) {
+    if (match.index !== undefined) indices.push(match.index);
+  }
+  return indices;
+}
+
+function hasNearbyPatterns(
+  text: string,
+  left: RegExp,
+  right: RegExp,
+  maxDistance: number,
+): boolean {
+  const leftIndices = allMatchIndices(text, left);
+  const rightIndices = allMatchIndices(text, right);
+  let leftCursor = 0;
+  let rightCursor = 0;
+
+  while (leftCursor < leftIndices.length && rightCursor < rightIndices.length) {
+    const leftIndex = leftIndices[leftCursor];
+    const rightIndex = rightIndices[rightCursor];
+    if (Math.abs(leftIndex - rightIndex) <= maxDistance) return true;
+    if (leftIndex < rightIndex) leftCursor += 1;
+    else rightCursor += 1;
+  }
+  return false;
+}
+
 function isTravelMigrationPrepaymentIntent(text: string): boolean {
+  const paymentEvidence = withoutWaivedJobPayments(text);
   return (
     /(?:агентств|турагент|турфирм|визов|виза|коре|росси|рф|миграц|работа\s+за\s+границ|патент|разрешени.{0,20}работ|паломнич|хадж|умра|тур|путевк|авиабилет).{0,140}(?:предоплат|комисс|сбор|депозит|залог|оплат|взнос|бронь|страхов|документ)/iu.test(
-      text,
+      paymentEvidence,
     ) ||
     /(?:предоплат|комисс|сбор|депозит|залог|оплат|взнос|бронь|страхов).{0,140}(?:агентств|турагент|турфирм|визов|виза|коре|росси|рф|миграц|работа\s+за\s+границ|патент|разрешени.{0,20}работ|паломнич|хадж|умра|тур|путевк|авиабилет)/iu.test(
-      text,
+      paymentEvidence,
     ) ||
-    /(?:viza|koreya|rossiya|migratsiya|haj|umra|tur|sayohat|agentlik).{0,140}(?:to['’]?lov|oldindan|komissiya|garov|depozit|bron|hujjat)/iu.test(
-      text,
-    ) ||
-    /(?:visa|migration|work\s+abroad|korea|russia|hajj|umrah|tour|travel\s+agency).{0,140}(?:prepay|fee|deposit|commission|advance|payment)/iu.test(
-      text,
-    )
+    hasNearbyPatterns(paymentEvidence, UZ_TRAVEL_TOPIC_RE, UZ_PREPAYMENT_RE, 140) ||
+    hasNearbyPatterns(paymentEvidence, EN_TRAVEL_TOPIC_RE, EN_PREPAYMENT_RE, 140)
+  );
+}
+
+const JOB_ENTRY_FEE_WINDOW_RE =
+  /(?:(?:(?<!\p{L})работ(?:а|у|ы|е|ой|ою|ам|ами|ах)(?!\p{L})|ваканс|подработ|заработ|стажиров|работодатель|трудоустрой|нович|(?<!\p{L})ish(?!\p{L})|vakans|daromad|oylik|masofaviy|yangi\s+xodim|ishga\s+kir|(?<!\p{L})job(?!\p{L})|(?:before|for|start(?:ing)?|access\s+to)\s+(?:the\s+)?work(?!\p{L})|(?<!\p{L})work(?=\s+(?:training|course|uniform|fee|deposit|access|onboarding))|vacanc|income|remote\s+work|employ|new\s+hire|newcomer|onboard).{0,140}(?:взнос|обуч|курс|(?<!\p{L})(?:спец|уни)?форм(?:а|у|ы|е|ой|ою|ам|ами|ах)?(?!\p{L})|провер|предоплат|комисс|депозит|залог|активац|оформлен|доступ|badal|o['’]?qish|kurs|forma|tekshir|garov|depozit|komiss|faollashtir|ro['’]?yxat|kirish|fee|training|course|uniform|verification|deposit|prepay|commission|activation|registration|access)|(?:взнос|обуч|курс|(?<!\p{L})(?:спец|уни)?форм(?:а|у|ы|е|ой|ою|ам|ами|ах)?(?!\p{L})|провер|предоплат|комисс|депозит|залог|активац|оформлен|доступ|badal|o['’]?qish|kurs|forma|tekshir|garov|depozit|komiss|faollashtir|ro['’]?yxat|kirish|fee|training|course|uniform|verification|deposit|prepay|commission|activation|registration|access).{0,140}(?:(?<!\p{L})работ(?:а|у|ы|е|ой|ою|ам|ами|ах)(?!\p{L})|ваканс|подработ|заработ|стажиров|работодатель|трудоустрой|нович|(?<!\p{L})ish(?!\p{L})|vakans|daromad|oylik|masofaviy|yangi\s+xodim|ishga\s+kir|(?<!\p{L})job(?!\p{L})|(?:before|for|start(?:ing)?|access\s+to)\s+(?:the\s+)?work(?!\p{L})|(?<!\p{L})work(?=\s+(?:training|course|uniform|fee|deposit|access|onboarding))|vacanc|income|remote\s+work|employ|new\s+hire|newcomer|onboard))/iu;
+const JOB_ENTRY_PAYMENT_ACTION_RE =
+  /(?:оплат|заплат|платить|внести|перевест|взнос|предоплат|депозит|залог|комисс|to['’]?la|to['’]?lov|(?<!\p{L})pul\p{L}{0,8}(?!\p{L})|badal|depozit|garov|komiss|\b(?:pay|payment|fee|deposit|commission|charge|prepay)\b)/iu;
+
+/**
+ * A bounded, topic-specific job-entry payment route. It intentionally requires
+ * both an employment/onboarding signal and a concrete fee/training object so
+ * ordinary payments merely mentioned near the word "work" stay on their own
+ * route. Work-abroad/visa prepayments retain the more specific travel route.
+ */
+function isJobEntryFeeIntent(text: string): boolean {
+  const paymentEvidence = withoutWaivedJobPayments(text);
+  return (
+    !isTravelMigrationPrepaymentIntent(paymentEvidence) &&
+    JOB_ENTRY_FEE_WINDOW_RE.test(paymentEvidence) &&
+    JOB_ENTRY_PAYMENT_ACTION_RE.test(paymentEvidence)
   );
 }
 
@@ -679,6 +741,12 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     if (/(?:код|sms|смс|otp|code|kod)/iu.test(withoutQrCodeLabel(normalized))) {
       return { kind: "code_request", askedContext: "code" };
     }
+    if (isTravelMigrationPrepaymentIntent(normalized)) {
+      return { kind: "travel_migration_prepayment", askedContext: "transfer" };
+    }
+    if (isJobEntryFeeIntent(normalized)) {
+      return { kind: "job_offer" };
+    }
     return { kind: "advice_question" };
   }
 
@@ -817,10 +885,17 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "friend_money", askedContext: "transfer" };
   }
 
+  // A fee tied to getting a job is more specific than a generic payment ask.
+  // Keep this after code/card/family routes and the travel prepayment route,
+  // but before the broad transfer fallback below.
+  if (isJobEntryFeeIntent(normalized)) {
+    return { kind: "job_offer" };
+  }
+
   if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:перевод|перевести|деньг|оплат|платеж|комисс|transfer|money|pay|payment|pul|to['’]?lov|o['’]?tkaz)/iu.test(
+    /(?:перевод|перевести|деньг|оплат|платеж|комисс|transfer|money|pay|payment|(?<!\p{L})pul\p{L}{0,8}(?!\p{L})|to['’]?lov|o['’]?tkaz)/iu.test(
       normalized,
     )
   ) {
@@ -1023,23 +1098,6 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   }
 
   if (
-    /(?:работ|ваканс|подработ|заработ|легк.{0,20}доход|удаленн.{0,20}работ|стажиров|работодатель).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|залог|оплат|карта)/iu.test(
-      normalized,
-    ) ||
-    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|залог|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров|работодатель)/iu.test(
-      normalized,
-    ) ||
-    /(?:ish|vakans|daromad|oylik|masofaviy).{0,120}(?:to['’]?lov|o['’]?qish|forma|tekshir|garov|depozit|karta)/iu.test(
-      normalized,
-    ) ||
-    /(?:job|work|vacancy|income|remote).{0,120}(?:fee|training|uniform|verification|deposit|prepay|card)/iu.test(
-      normalized,
-    )
-  ) {
-    return { kind: "job_offer" };
-  }
-
-  if (
     /(?:мне|меня|со\s+мной|menga|meni|me)?.{0,80}(?:предлага(?:ют|ет)|зов(?:ут|ет)|приглаша(?:ют|ет)|совет(?:уют|ует)|обеща(?:ют|ет)|aytishyap|taklif).{0,120}(?:инвест|крипт|crypto|ton|wallet|бирж|трейд|trading|доход|прибыл|сигнал|depozit|daromad|foyda)/iu.test(
       normalized,
     ) ||
@@ -1156,7 +1214,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 
   if (
     everydayAsk.test(normalized) &&
-    /(?:перевод|перевести|деньг|оплат|комисс|кошел[её]к|сч[её]т|transfer|money|payment|pay\b|wallet|cash|pul|to['’]?lov|to['’]?la|o['’]?tkaz|hamyon|hisob)/iu.test(
+    /(?:перевод|перевести|деньг|оплат|комисс|кошел[её]к|сч[её]т|transfer|money|payment|pay\b|wallet|cash|(?<!\p{L})pul\p{L}{0,8}(?!\p{L})|to['’]?lov|to['’]?la|o['’]?tkaz|hamyon|hisob)/iu.test(
       normalized,
     )
   ) {
@@ -1445,9 +1503,9 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "A romantic contact asking for money, a ticket, visa, treatment, or investment is a common scam pattern.\n\nDo not transfer anything yet. Pause, save the chat, and review it with a trusted person.",
     },
     job_offer: {
-      ru: "Работа/лёгкий доход становится опасной, если просят взнос, обучение, депозит, карту, APK или ваши документы.\n\nНе платите заранее. Пришлите текст предложения или ссылку.",
-      uz: "Ish/yengil daromad xavfli bo'ladi, agar badal, o'qish puli, depozit, karta, APK yoki hujjat so'ralsa.\n\nOldindan to'lamang. Taklif matni yoki havolani yuboring.",
-      en: "A job/easy-income offer becomes risky if they ask for a fee, training payment, deposit, card data, APK, or documents.\n\nDo not pay upfront. Send the offer text or link.",
+      ru: "Не платите заранее за вакансию, обучение, форму, активацию или доступ к работе. Не отправляйте карту или документы и не устанавливайте присланное приложение. Работа/лёгкий доход становятся особенно рискованными, когда просят заплатить до договора или оформления. Это сильный признак риска, но сам по себе он не доказывает мошенничество.\n\nПопросите название компании, официальный сайт и договор. Пришлите текст вакансии, ссылку или условия без личных данных.",
+      uz: "Oldindan vakansiya, o'qish, forma, faollashtirish yoki ishga kirish uchun pul to'lamang. Karta yoki hujjat yubormang va yuborilgan ilovani o'rnatmang. Shartnoma yoki rasmiy ishga qabuldan oldin pul so'rash — kuchli xavf belgisi, ammo o'zi firibgarlikni isbotlamaydi.\n\nKompaniya nomi, rasmiy sayt va shartnomani so'rang. Vakansiya matni, havola yoki shartlarni shaxsiy ma'lumotsiz yuboring.",
+      en: "Do not pay upfront for a vacancy, training, a uniform, activation, or access to a job. Do not send card data or documents, and do not install an app they provide. Asking for payment before a contract or formal onboarding is a strong risk signal, but not proof of fraud.\n\nAsk for the company name, official website, and contract. Send the vacancy text, link, or terms without personal data.",
     },
     earning_channel: {
       ru: "Канал или бот с быстрым заработком — риск. Часто сначала просят нажать кнопку, перейти по ссылке, ввести код, карту или оплатить «доступ».\n\nПока не переходите и ничего не вводите. Пришлите ссылку, username или скрин условий.",

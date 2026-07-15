@@ -339,7 +339,13 @@ export function buildPhoneIntelligencePassport(
   const rawDigits = digitsOnly(raw);
   const digits = normalizedDigits || rawDigits;
   const shortCode = isShortCode(raw, digits, verifiedContact);
-  const country = shortCode ? COUNTRY_CODES[0] : detectCountry(digits);
+  const rawValue = raw.trim();
+  const hasExplicitInternationalPrefix = rawValue.startsWith("+") || rawValue.startsWith("00");
+  const isUzbekLocalNumber = rawDigits.length === 9 && normalizedDigits.startsWith("998");
+  const isUzbekNumberWithoutPlus = rawDigits.length === 12 && rawDigits.startsWith("998");
+  const canInferCountry =
+    hasExplicitInternationalPrefix || isUzbekLocalNumber || isUzbekNumberWithoutPlus;
+  const country = shortCode ? COUNTRY_CODES[0] : canInferCountry ? detectCountry(digits) : null;
   const isUzbekistan = country?.iso === "UZ";
   const uzPrefix = isUzbekistan && digits.length >= 5 ? digits.slice(3, 5) : null;
   const uzOperator = uzPrefix ? (UZ_PREFIXES[uzPrefix] ?? null) : null;
@@ -359,7 +365,9 @@ export function buildPhoneIntelligencePassport(
     shortCode ||
     (isUzbekistan
       ? digits.length === 12
-      : Boolean(country) && digits.length >= 8 && digits.length <= 15);
+      : country?.iso === "US_CA"
+        ? digits.length === 11
+        : Boolean(country) && digits.length >= 8 && digits.length <= 15);
   const officialDirectoryStatus: OfficialDirectoryStatus = verifiedContact
     ? "matched"
     : digits.length >= 3

@@ -4,6 +4,7 @@ import {
   looksLikePaymentInput,
   luhnCheck,
   maskForDisplay,
+  normalizePhone,
   normalizeTelegram,
   normalizeUrl,
   redactText,
@@ -47,6 +48,43 @@ describe("detectInputType payment priority", () => {
 
   it("keeps pure phones as phone", () => {
     expect(detectInputType("+998 90 123 45 67")).toBe("phone");
+  });
+
+  it("treats an ambiguous bare 8-digit value as a redacted text secret", () => {
+    const normalized = normalizePhone("12345678");
+
+    expect(detectInputType("12345678")).toBe("text");
+    expect(normalized).toBe("12345678");
+    expect(maskForDisplay(normalized, "text")).toBe("••••");
+    expect(maskForDisplay(normalized, "text")).not.toMatch(/\d/u);
+  });
+
+  it("does not expose a bare payment-card-length number as a phone", () => {
+    const cardLike = "8600123456789012";
+    expect(detectInputType(cardLike)).toBe("text");
+    expect(maskForDisplay(cardLike, "text")).not.toContain(cardLike);
+  });
+
+  it("preserves the 256th Unicode code point instead of truncating by UTF-16 units", () => {
+    const text = `${"🙂".repeat(255)}X`;
+    const display = maskForDisplay(text, "text");
+
+    expect(Array.from(display)).toHaveLength(256);
+    expect(display.endsWith("X")).toBe(true);
+  });
+
+  it("strongly masks an explicitly prefixed but incomplete phone", () => {
+    const display = maskForDisplay("+12345678", "phone");
+    expect(display).toBe("+1 ••••• 78");
+    expect(display.replace(/\D/g, "")).toBe("178");
+  });
+
+  it.each([
+    ["+49 30 123456", "+49 30 123456"],
+    ["0049 30 123456", "+4930123456"],
+    ["90 123 45 67", "+998901234567"],
+  ])("preserves supported international and Uzbek local normalization: %s", (raw, expected) => {
+    expect(normalizePhone(raw)).toBe(expected);
   });
 });
 
@@ -173,6 +211,17 @@ describe("redactText — context-aware card detection", () => {
     const input = "Never share your password or seed phrase with support.";
     expect(redactText(input)).toBe(input);
     expect(maskForDisplay(input, "text")).toContain("Never share your password");
+  });
+
+  it("keeps a risk-driving tail in positions 241-256 visible after redaction", () => {
+    const secret = "OTP: 123456 ";
+    const riskDrivingTail = "назовите SMS-код";
+    const input = `${secret}${"a".repeat(240 - secret.length)}${riskDrivingTail}`;
+
+    expect(input).toHaveLength(256);
+    const display = maskForDisplay(input, "text");
+    expect(display).toContain(riskDrivingTail);
+    expect(display).not.toContain("123456");
   });
 
   it("redacts email, URL and Telegram identifiers in narrative text", () => {
