@@ -701,6 +701,9 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
       normalized,
     ) ||
     /(?:шантаж|вымога|sextortion|blackmail|shantaj|tovlamachi)/iu.test(normalized) ||
+    /(?:compromising\s+(?:photos?|videos?|materials?|images?)|(?:компромат|компрометирующ|kompromat).{0,100}(?:фото|видео|переписк|материал|rasm|surat|photo|video|image)|(?:фото|видео|переписк|rasm|surat|photo|video|image).{0,100}(?:компромат|компрометирующ|kompromat|compromising))/iu.test(
+      normalized,
+    ) ||
     /(?:требу(?:ет|ют)|просят|хотят|talab\s+qil)[\s\S]{0,40}(?:ден[ьи]?г|пул|pul|оплат|перевод)[\s\S]{0,80}(?:иначе|а\s+то|не\s+то|aks\s+holda|bo['’]?lmasa)|(?:иначе|а\s+то|aks\s+holda|bo['’]?lmasa)[\s\S]{0,60}(?:опублику|разошл|вылож|расскаж|tarqat|e['’]?lon|таркат)/iu.test(
       normalized,
     )

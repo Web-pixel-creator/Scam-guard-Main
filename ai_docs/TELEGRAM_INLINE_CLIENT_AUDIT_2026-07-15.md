@@ -1,7 +1,7 @@
 # Telegram Inline Client Audit — 2026-07-15
 
-Status: both screenshot-driven remediations merged and deployed; post-fix
-real-client acceptance pending.
+Status: two screenshot-driven remediations are deployed; the third visible
+follow-up remediation is locally verified and awaits deployment/replay.
 
 ## Outcome
 
@@ -12,7 +12,7 @@ incomplete. The deployed release now has specific handling and regressions for
 the reproduced job, passport, link, numeric, phone/privacy, rate-limit and
 delivery paths.
 
-This audit does **not** mark the Telegram client gate Passed. The screenshots
+This audit does **not** mark the Telegram client gate Passed. All screenshots
 were captured before the current fixes. PR #108 passed all application,
 database and security jobs, merged as `da4c0a259a228d864432a77ccb1b3291468c52cf`,
 and Railway deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` of that exact
@@ -22,6 +22,33 @@ migration and remote schema lint is clean. Direct live catalog grant/trigger
 verification remains open. Desktop post-fix replay and all Android/iOS rows
 remain open. Keep `INL-001` and `INL-002` outside Passed and keep `BOT-004` In
 Progress.
+
+## Batch 3 addendum
+
+The owner supplied seven more Telegram Desktop screenshots under
+`private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/`. They establish a
+more precise UX defect than Batch 2: changing the query did produce a fresh
+result id in the backend, but most second-line questions retained the same
+preview title and description. To a person typing in Telegram, the bot still
+looked silent. Passport aftercare visibly changed only because it already had a
+separate completed-action intent.
+
+The affected second lines ask whether to trust the sender, whether a scheme is
+fraud, whether a bank number from chat is safe, how to identify a substituted
+link, and why the situation is suspicious. The seventh screenshot adds a
+previously uncovered compromising-photo/blackmail phrase. The remediation
+keeps the concrete first-line intent but changes the visible RU/UZ/EN title and
+answer for each supported follow-up family. Compromising-photo wording now gets
+action-first blackmail aftercare instead of the generic “send more context”
+card.
+
+The branch adds 36 localized visible-follow-up contracts, exact-title checks
+across the 1,152-row generated context corpus, a regression against the
+`дал`/`дальше` substring collision and a mismatch control so an unrelated
+phone-number question cannot relabel a code warning. All are offline and keep
+`skipAi=true`, `skipUrlReputation=true`, `persist=false`, zero external fetch
+and zero database mutation. These seven screenshots remain pre-fix evidence,
+not client acceptance.
 
 ## Batch 2 addendum
 
@@ -66,6 +93,8 @@ These screenshots are pre-fix observations, not acceptance evidence.
 | SIM/operator                       | `e443dc79…`, `4330f389…`, `4a190eea…`                                                                  | Follow-up context needed a clearer independent callback action.                                                                          | Specific SIM/operator copy remains action-first and preserves the added question/context.                                                                                                                                                                                                                           | Preview/card name the SIM/eSIM risk and direct the user to the operator's independently found official number.                                    |
 | Family emergency impersonation     | `5b3019f0…`, `0d3c56b6…`, `3d7eb061…`                                                                  | The first result was useful, but the follow-up needed to remain tied to identity verification rather than generic transfer advice.       | Human-intent priority and inserted copy preserve callback/code-word verification.                                                                                                                                                                                                                                   | Added “how do I know?” context keeps the saved-number callback/family code-word action.                                                           |
 | Investment/romance/unknown         | `bbe39e48…`, `ba82561d…`, `3fa4480c…`, `7debf72d…`, `00e86256…`, `a12d6a0b…`, `f34b60a7…`, `a4720e0d…` | Initial previews were mostly useful; second-line context had to keep the correct intent instead of collapsing to a generic reply.        | Result-aware intent routing and stronger preflight priorities preserve investment, romance and unknown-contact semantics.                                                                                                                                                                                           | Each second query produces its own matching preview/card and avoids invented identity or safety claims.                                           |
+| Visibly unchanged follow-up        | Batch 3 `01`-`04`, `06`                                                                                | The query-scoped id changed, but the preview copy did not visibly answer trust, scam, bank-number, fake-link or next-action questions.    | RU/UZ/EN follow-up families now produce a distinct visible title and answer without discarding the concrete first-line safety intent; incompatible families fall back to the safer concrete card.                                                                                                                     | Replaying each pair visibly changes the preview and inserted card while keeping the same concrete safety family and no invented verification.     |
+| Photo blackmail                    | Batch 3 `07`                                                                                            | “They have compromising photos of me” stayed on a generic safety card and omitted immediate blackmail aftercare.                         | Shared victim/Inline routing recognizes compromising-photo wording and gives action-first no-pay, preserve-evidence, trusted-person, block/report and official-police guidance in RU/UZ/EN.                                                                                                                          | Desktop/Android/iOS preview and insertion show specific blackmail guidance without echoing private material or claiming the threat is verified.   |
 | Safe-prefix/danger-tail bypass     | Corpus regression; the client batch motivated multiline/compound replay.                               | A neutral or safe phrase could previously suppress a dangerous sibling clause in some long/compound forms.                               | Clause-local RU/UZ/EN parsing covers punctuation, contrast/sequence and conjunction segments with their own action while preserving object lists and true negations.                                                                                                                                                | Safe-first and danger-first live samples both show the dangerous action; safety-only controls remain neutral.                                     |
 | Missing/stale second result        | Owner observation plus second-query screenshots; failure branch is automated.                          | A transient `answerInlineQuery` failure could be logged and then acknowledged, so the user saw no result and the update could not retry. | Network/no-code/5xx gets one bounded immediate retry; 429 instead carries bounded `retry_after` to polling. Exhaustion keeps the lifecycle retryable. Strict Inline work may run four-wide, and different-user Inline can read ahead during one slow stateful update without crossing the acknowledgement frontier. | Two ordinary distinct queries render in order. Do not force a production outage: timeout/429/5xx exhaustion remains automated evidence.           |
 
@@ -73,15 +102,15 @@ The abbreviated ids above map to exact paths in the manifest below.
 
 ## Local verification
 
-- Complete project suite on the second remediation branch: 10,131/10,131 tests
+- Complete project suite on the current remediation branch: 10,172/10,172 tests
   passed across 475 test files.
 - New Inline context corpus: 1,175/1,175 passed, including 1,152 RU/UZ/EN
   dialogue mutations plus privacy, safe-control and contract checks.
 - Inline focus after the ambiguous-numeric change: 160/160 passed.
 - Risk suite: 1,411/1,411 passed.
 - Merged polling/lifecycle/API/Inline reliability focus: 234/234 passed.
-- Coverage passes the repository floor: 84.76% statements, 78.91% branches,
-  90.89% functions and 86.82% lines.
+- Coverage passes the repository floor: 84.87% statements, 79.06% branches,
+  90.91% functions and 86.92% lines.
 - TypeScript, lint with zero errors and production build passed.
 - `npm audit`: zero known vulnerabilities.
 - Corpus/handler checks keep AI, external URL reputation and persistence
@@ -89,7 +118,7 @@ The abbreviated ids above map to exact paths in the manifest below.
 
 ## Evidence limits
 
-- The 41 Batch 1 and 30 Batch 2 screenshots prove pre-fix client behavior only.
+- The 41 Batch 1, 30 Batch 2 and seven Batch 3 screenshots prove pre-fix client behavior only.
   They do not prove the current branch renders correctly in any Telegram
   client.
 - Local handler/API tests do not render Telegram Desktop, Android or iOS and do
@@ -185,6 +214,18 @@ to the repository root.
 
 Manifest total: 41 files.
 
+### Batch 3 — visibly unchanged follow-ups and photo blackmail
+
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/01-code-trust-followup.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/02-earning-scam-followup.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/03-bank-chat-number-followup.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/04-voting-fake-link-followup.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/05-passport-aftercare-working.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/06-next-step-first-line.png`
+- `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/07-blackmail-followup-ignored.png`
+
+Batch 3 total: seven files. Combined local pre-fix evidence: 78 files.
+
 ## Production release evidence
 
 - PR #108 merged as `da4c0a259a228d864432a77ccb1b3291468c52cf` after
@@ -241,6 +282,10 @@ any pre-fix screenshot into a pass.
 4. [ ] Replay passport and multiline-link cases. Confirm the second line changes the
        preview, guidance is complete and the bot never requests the real document,
        code or private screenshot.
+       Also replay all seven Batch 3 cases: the trust, scam-confirmation,
+       bank-number, fake-link and next-action pairs must visibly change; the
+       passport row must keep completed-action aftercare; the compromising-photo
+       row must show specific no-pay blackmail guidance.
 5. [ ] Replay `12345678`, a safe synthetic 6-digit value and a safe synthetic full
        `+998` number. Confirm short digits are masked/ambiguous, while only the full
        phone enters the phone passport.

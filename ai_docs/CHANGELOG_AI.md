@@ -2,6 +2,38 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-15 - Third Desktop Inline visible follow-up remediation is locally green
+
+- Archived seven additional owner-supplied Telegram Desktop screenshots as
+  ignored local pre-fix evidence under
+  `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/`.
+- Confirmed the remaining defect: edited Inline queries already received a new
+  query-scoped result id, but the visible preview often kept the same
+  intent-level title and description, so Telegram appeared not to answer the
+  second line.
+- Added explicit RU/UZ/EN visible answers for trust questions, scam
+  confirmation, chat/SMS bank numbers, fake/substituted links, “why” questions
+  and next actions while preserving the concrete first-line safety intent.
+- Fixed the Russian substring collision where `дал` inside `дальше` could turn
+  “what should I do next?” into a false “code/card already sent” route. A
+  concrete multiline situation now outranks broad meta/help wording, while
+  single-line greeting and methodology behavior remains unchanged.
+- Added dedicated blackmail-aftercare handling for compromising-photo wording:
+  do not pay or send more material, save evidence, tell a trusted person,
+  block/report and use an official police contact for direct threats.
+- Added 36 exact visible follow-up contracts plus screenshot-specific and
+  mismatch regressions. The 1,152 generated context rows still assert the
+  exact expected title rather than accepting any follow-up title. All new
+  tests prohibit network, paid AI/reputation calls and database mutations.
+- Local verification on lockfile-pinned dependencies passes 10,172/10,172
+  tests, TypeScript, lint with zero errors, the production build and `npm
+  audit` with zero known vulnerabilities. Coverage passes at 84.87%
+  statements, 79.06% branches, 90.91% functions and 86.92% lines.
+- This is local implementation evidence only. The seven screenshots are
+  pre-fix observations; deployment and replay of the same cases on real
+  Telegram clients remain required. `INL-001`/`INL-002` stay outside Passed
+  and `BOT-004` stays In Progress.
+
 ## 2026-07-15 - Second Desktop Inline context remediation deployed
 
 - PR #108 passed application lint/type/test/build, coverage, Supabase migration,

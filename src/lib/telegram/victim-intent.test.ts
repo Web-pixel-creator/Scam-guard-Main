@@ -35,6 +35,9 @@ describe("classifyVictimIntent", () => {
     ["требуют деньги иначе опубликуют мои фото", "blackmail_threat"],
     ["меня шантажируют", "blackmail_threat"],
     ["угрожают разослать фото всем контактам", "blackmail_threat"],
+    ["говорят что у них есть компромат с моими фото", "blackmail_threat"],
+    ["they say they have compromising photos of me", "blackmail_threat"],
+    ["menda kompromat rasmlar bor deb aytyapti", "blackmail_threat"],
     ["rasmlarimni tarqatishadi deb pul so'rashyapti", "blackmail_threat"],
     // Meta and aftermath questions.
     ["ты бот?", "trust_or_greeting"],
