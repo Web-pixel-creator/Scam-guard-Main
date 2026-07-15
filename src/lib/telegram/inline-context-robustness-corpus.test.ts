@@ -158,6 +158,50 @@ function regexEscape(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
+const EXPECTED_FOLLOW_UP_TITLES: Record<
+  Lang,
+  { bankChatNumber: string; scamConfirmation: string; nextAction: string }
+> = {
+  ru: {
+    bankChatNumber: "По номеру из чата не звоните",
+    scamConfirmation: "Похоже на схему обмана, но это не доказательство",
+    nextAction: "Что делать сейчас",
+  },
+  uz: {
+    bankChatNumber: "Chatdagi raqamga qo'ng'iroq qilmang",
+    scamConfirmation: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
+    nextAction: "Hozir nima qilish kerak",
+  },
+  en: {
+    bankChatNumber: "Do not call the number from the chat",
+    scamConfirmation: "It resembles a scam pattern, but is not proof",
+    nextAction: "What to do now",
+  },
+};
+
+const CORE_AS_LAST_LINE_MUTATIONS = new Set([
+  "polite-newline",
+  "generic-before",
+  "neutral-before-newline",
+  "crlf",
+  "blank-line",
+  "neutral-generic-danger",
+]);
+
+function expectedVisibleTitle(testCase: InlineContextRobustnessCase): string {
+  const followUps = EXPECTED_FOLLOW_UP_TITLES[testCase.lang];
+  if (testCase.seed === "bank_contact" && CORE_AS_LAST_LINE_MUTATIONS.has(testCase.mutation)) {
+    return followUps.bankChatNumber;
+  }
+  if (testCase.seed === "next_step" && CORE_AS_LAST_LINE_MUTATIONS.has(testCase.mutation)) {
+    return followUps.nextAction;
+  }
+  if (testCase.mutation === "generic-after" && testCase.lang !== "uz") {
+    return followUps.scamConfirmation;
+  }
+  return testCase.title;
+}
+
 async function runInline(
   lang: Lang,
   query: string,
@@ -268,7 +312,7 @@ describe("Inline 1,152-case context robustness corpus", () => {
 
       expectScopedSemanticId(article, testCase.semanticId);
       expectWellFormedArticle(article);
-      expect(article.title).toBe(testCase.title);
+      expect(article.title).toBe(expectedVisibleTitle(testCase));
       expect(article.description).toContain(testCase.action);
       expect(normalizeVisible(plainMessage)).toContain(normalizeVisible(testCase.preserve));
       expect(visible).not.toMatch(

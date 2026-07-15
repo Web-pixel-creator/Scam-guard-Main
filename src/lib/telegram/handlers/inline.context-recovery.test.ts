@@ -181,6 +181,143 @@ function expectLatestTail(article: InlineQueryResultArticle, tail: string): void
   expect(visibleMessage(article)).toContain(tail);
 }
 
+const VISIBLE_FOLLOW_UP_CASES = [
+  ...["Не доверять ему?", "Можно ли ему доверять?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Пришел код и просят его сказать",
+    tail,
+    title: "Нет: код ему не сообщайте",
+    action: "SMS",
+  })),
+  ...["Получается меня разводят?", "Значит это мошенники?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Меня приглашают в канал для заработка",
+    tail,
+    title: "Похоже на схему обмана, но это не доказательство",
+    action: "Не платите заранее",
+  })),
+  ...["А если номер взял из чата?", "Можно звонить по номеру из SMS?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Как мне связаться с банком?",
+    tail,
+    title: "По номеру из чата не звоните",
+    action: "Не используйте номер из чата",
+  })),
+  ...["Как узнать, что ссылка подставная?", "Как проверить, что ссылка фейковая?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Меня просят проголосовать в канале и перейти по ссылке",
+    tail,
+    title: "Подставную ссылку проверяют по адресу",
+    action: "Не переходите по ссылке",
+  })),
+  ...["Почему это подозрительно?", "С чего ты так решил?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Предлагают работу, но просят оплатить обучение",
+    tail,
+    title: "Почему это выглядит рискованно",
+    action: "Платить за вакансию",
+  })),
+  ...["Что теперь делать?", "Что мне делать дальше?"].map((tail) => ({
+    lang: "ru" as const,
+    first: "Пришел код и просят его сказать",
+    tail,
+    title: "Что делать сейчас",
+    action: "SMS",
+  })),
+  ...["Unga ishonmaslik kerakmi?", "Ishonsam bo'ladimi?"].map((tail) => ({
+    lang: "uz" as const,
+    first: "SMS kod keldi va uni aytishimni so'rashyapti",
+    tail,
+    title: "Yo'q: kodni unga aytmang",
+    action: "SMS",
+  })),
+  ...["Demak bu firibmi?", "Unda bu aldovmi?"].map((tail) => ({
+    lang: "uz" as const,
+    first: "Meni daromad kanaliga taklif qilishyapti",
+    tail,
+    title: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
+    action: "Oldindan to'lamang",
+  })),
+  ...["Chatdagi raqamga qo'ng'iroq qilsam bo'ladimi?", "Raqamni SMSdan oldim, nima qilay?"].map(
+    (tail) => ({
+      lang: "uz" as const,
+      first: "Bank bilan qanday bog'lansam bo'ladi?",
+      tail,
+      title: "Chatdagi raqamga qo'ng'iroq qilmang",
+      action: "foydalanmang",
+    }),
+  ),
+  ...["Havola soxta ekanini qanday bilaman?", "Bu fake link ekanini qanday tekshiraman?"].map(
+    (tail) => ({
+      lang: "uz" as const,
+      first: "Kanaldagi ovoz berish uchun havolaga o'tishni so'rashyapti",
+      tail,
+      title: "Soxta havolani manzil bo'yicha tekshiring",
+      action: "Havolaga o'tmang",
+    }),
+  ),
+  ...["Nega bu shubhali?", "Nimaga xavfli deb o'ylading?"].map((tail) => ({
+    lang: "uz" as const,
+    first: "Ish taklif qilishdi, lekin o'qish uchun pul so'rashyapti",
+    tail,
+    title: "Nega bu shubhali",
+    action: "to'lash xavfli",
+  })),
+  ...["Endi nima qilay?", "Keyin nima qilishim kerak?"].map((tail) => ({
+    lang: "uz" as const,
+    first: "SMS kod keldi va uni aytishimni so'rashyapti",
+    tail,
+    title: "Hozir nima qilish kerak",
+    action: "SMS",
+  })),
+  ...["Should I not trust them?", "Can I trust this person?"].map((tail) => ({
+    lang: "en" as const,
+    first: "An SMS code arrived and they ask me to tell it",
+    tail,
+    title: "No: do not tell them the code",
+    action: "SMS",
+  })),
+  ...["Does that mean this is a scam?", "Are they scamming me?"].map((tail) => ({
+    lang: "en" as const,
+    first: "They invite me to an earning channel",
+    tail,
+    title: "It resembles a scam pattern, but is not proof",
+    action: "Do not prepay",
+  })),
+  ...["Can I call the number from the chat?", "The phone number came in an SMS, is it safe?"].map(
+    (tail) => ({
+      lang: "en" as const,
+      first: "How do I contact the bank?",
+      tail,
+      title: "Do not call the number from the chat",
+      action: "Do not use a number from a chat",
+    }),
+  ),
+  ...["How do I know whether the link is fake?", "How can I check if this is a phishing URL?"].map(
+    (tail) => ({
+      lang: "en" as const,
+      first: "They ask me to vote in a channel and open a link",
+      tail,
+      title: "Check a suspicious link by its address",
+      action: "Do not open the link",
+    }),
+  ),
+  ...["Why is this suspicious?", "How did you decide this is risky?"].map((tail) => ({
+    lang: "en" as const,
+    first: "They offer a job but ask me to pay for training",
+    tail,
+    title: "Why this looks risky",
+    action: "before a contract is risky",
+  })),
+  ...["What should I do next?", "What do I do now?"].map((tail) => ({
+    lang: "en" as const,
+    first: "An SMS code arrived and they ask me to tell it",
+    tail,
+    title: "What to do now",
+    action: "SMS",
+  })),
+] as const;
+
 describe("Inline screenshot context recovery", () => {
   beforeAll(() => {
     process.env.SUPABASE_URL = "https://offline-inline-context.invalid";
@@ -227,21 +364,21 @@ describe("Inline screenshot context recovery", () => {
       lang: "ru" as const,
       first: "Меня приглашают в канал для заработка",
       tail: "Получается, меня разводят?",
-      title: "Канал заработка: осторожно",
+      title: "Похоже на схему обмана, но это не доказательство",
       action: "Не платите заранее",
     },
     {
       lang: "uz" as const,
       first: "Meni daromad uchun kanalga taklif qilishyapti",
       tail: "Bu firibgarlikmi?",
-      title: "Daromad kanali: ehtiyot bo'ling",
+      title: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
       action: "Oldindan to'lamang",
     },
     {
       lang: "en" as const,
       first: "They invite me to an earning channel",
       tail: "Is this a scam?",
-      title: "Earning channel: be careful",
+      title: "It resembles a scam pattern, but is not proof",
       action: "Do not prepay",
     },
   ])(
@@ -340,8 +477,8 @@ describe("Inline screenshot context recovery", () => {
     expectSemanticFreshId(base, "voting-link");
     expectSemanticFreshId(article, "voting-link");
     expect(article.id).not.toBe(base.id);
-    expect(article.title).toBe("Голосование/канал: сначала проверим");
-    expect(article.description).toContain("Не переходите по ссылке");
+    expect(article.title).toBe("Подставную ссылку проверяют по адресу");
+    expect(article.description).toContain("Без самого URL");
     expectLatestTail(article, tail);
   });
 
@@ -369,9 +506,20 @@ describe("Inline screenshot context recovery", () => {
     expect(repeatedBase.id).toBe(base.id);
     expectSemanticFreshId(article, "code-request");
     expect(article.id).not.toBe(base.id);
-    expect(article.title).toBe("Код: никому не называйте");
+    expect(article.title).toBe("Нет: код ему не сообщайте");
     expect(article.description).toContain("SMS");
     expectLatestTail(article, tail);
+  });
+
+  it("does not relabel a code warning when an unrelated phone-number question is appended", async () => {
+    const article = await runInline(
+      "en",
+      "An SMS code arrived and they ask me to tell it\nThe phone number came in an SMS, is it safe?",
+    );
+
+    expectSemanticFreshId(article, "code-request");
+    expect(article.title).toBe("Code: do not share it with anyone");
+    expect(article.description).toContain("SMS");
   });
 
   it("keeps official-bank guidance and includes the newly added chat-number question", async () => {
@@ -383,8 +531,8 @@ describe("Inline screenshot context recovery", () => {
     expectSemanticFreshId(base, "bank-contact");
     expectSemanticFreshId(article, "bank-contact");
     expect(article.id).not.toBe(base.id);
-    expect(article.title).toBe("Связаться с банком: только официальный номер");
-    expect(article.description).toContain("Не используйте номер из чата");
+    expect(article.title).toBe("По номеру из чата не звоните");
+    expect(article.description).toContain("может быть подменён");
     expectLatestTail(article, tail);
   });
 
@@ -413,4 +561,32 @@ describe("Inline screenshot context recovery", () => {
     expect(visibleMessage(literalMarker)).toContain("+ newline +");
     expectLatestTail(literalMarker, tail);
   });
+
+  it("routes a compromising-photo follow-up to blackmail guidance instead of repeating the generic safety card", async () => {
+    const first = "Это безопасно или мошенники?";
+    const tail = "Говорят, что у них есть компромат с моими фото";
+    const generic = await runInline("ru", first);
+    const article = await runInline("ru", `${first}\n${tail}`);
+
+    expectSemanticFreshId(article, "blackmail-threat");
+    expect(article.id).not.toBe(generic.id);
+    expect(article.title).toBe("Шантаж фото: не платите");
+    expect(article.description).toContain("Сохраните скриншоты");
+    expect(visibleMessage(article)).toContain("оплата не гарантирует удаление");
+    expectLatestTail(article, tail);
+  });
+
+  it.each(VISIBLE_FOLLOW_UP_CASES)(
+    "makes the added $lang question visibly answerable: $tail",
+    async ({ lang, first, tail, title, action }) => {
+      const base = await runInline(lang, first);
+      const article = await runInline(lang, `${first}\n${tail}`);
+
+      expect(article.id).not.toBe(base.id);
+      expect(article.title).toBe(title);
+      expect(article.title).not.toBe(base.title);
+      expect(article.description).toContain(action);
+      expectLatestTail(article, tail);
+    },
+  );
 });

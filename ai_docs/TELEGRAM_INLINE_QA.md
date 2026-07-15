@@ -85,6 +85,35 @@ screenshot batch into a pass and it does not cover Android or iOS.
 `INL-001`/`INL-002` stay outside Passed and `BOT-004` stays In Progress until a
 deployed descendant is replayed on real clients.
 
+## Third Desktop visible-follow-up batch — 2026-07-15
+
+Seven additional Telegram Desktop screenshots are stored locally under
+`private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/`. They show that
+fresh query-scoped ids alone were not enough: adding a second line often kept
+the same visible preview, so the user reasonably perceived no answer. Passport
+aftercare was the only supplied pair that already changed visibly. A separate
+sample with compromising photos exposed missing blackmail-specific guidance.
+
+The local remediation adds distinct RU/UZ/EN visible answers for six follow-up
+families: trust, scam confirmation, chat/SMS bank number, fake/substituted
+link, reason and next action. It preserves the first-line safety intent,
+refuses to relabel incompatible questions, fixes the Russian `дал`/`дальше`
+substring collision and adds action-first photo-blackmail guidance. The
+generated 1,152-row context corpus now checks the exact title expected for each
+mutation; 36 focused localized contracts assert that the second title differs
+from the first and that the inserted message preserves the new line.
+
+These checks are offline: network fetch is forbidden and Inline continues with
+AI, reputation and persistence disabled. This third batch is still pre-fix
+client evidence. Deployment plus replay of the same seven cases is required;
+Android/iOS and the wider RU/UZ/EN matrix remain open, so `INL-001`, `INL-002`
+and `BOT-004` do not change status.
+
+Lockfile-pinned local verification passes 10,172/10,172 tests, TypeScript,
+lint with zero errors (the same eight Fast Refresh warnings), production build
+and `npm audit` with zero known vulnerabilities. Coverage passes at 84.87%
+statements, 79.06% branches, 90.91% functions and 86.92% lines.
+
 ## Evidence split
 
 Do not force production failures that a normal client cannot reliably create.
