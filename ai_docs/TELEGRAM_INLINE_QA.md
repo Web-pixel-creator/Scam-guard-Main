@@ -39,8 +39,10 @@ Inline result. The local candidate adds focused regressions and fixes for these
 paths. Do not count any of the 41 files as post-fix proof.
 
 Local verification for the candidate passes 8,882/8,882 tests, TypeScript,
-production build and `npm audit` with zero known vulnerabilities. CI, the new
-Supabase migration/read-back, deployment and real Desktop/Android/iOS replay
+production build and `npm audit` with zero known vulnerabilities. Draft PR #106
+candidate `b3c0611` passed application/coverage CI, clean-database migration,
+schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and container/SBOM gates.
+Production migration/read-back, deployment and real Desktop/Android/iOS replay
 remain open. `INL-001` and `INL-002` therefore remain outside Passed;
 `BOT-004` remains In Progress.
 

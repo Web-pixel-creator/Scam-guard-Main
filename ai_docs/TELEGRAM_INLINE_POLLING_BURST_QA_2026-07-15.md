@@ -1,7 +1,7 @@
 # Telegram Inline Polling Burst QA — 2026-07-15
 
-Status: local candidate verified; CI, migration and production burst evidence
-pending.
+Status: local and PR CI candidate verified; production migration/deploy and
+burst evidence pending.
 
 ## Goal
 
@@ -70,6 +70,9 @@ No raw Telegram payload or user content is added to lifecycle storage.
 - TypeScript and production build passed.
 - `npm audit`: zero known vulnerabilities.
 - The migration contract regression passes 6/6 static expectations.
+- Draft PR #106 candidate `b3c0611` passed application/coverage CI,
+  clean-database migration apply, schema lint, 35 pgTAP assertions, CodeQL,
+  Gitleaks and container High/Critical/SBOM gates.
 - Full risk behavior remains green at 1,411/1,411; Inline focus remains green
   at 160/160.
 
@@ -82,8 +85,8 @@ fallback and stale-leader fencing/grace.
 
 ## Evidence limits and release blockers
 
-- Local Docker/Postgres on port 54322 was unavailable, so the expanded pgTAP
-  suite and schema lint were not executed locally. Supabase CI is mandatory.
+- Local Docker/Postgres on port 54322 was unavailable. PR #106 supplied the
+  missing clean-database migration, schema lint and 35-pgTAP evidence.
 - The new migration has not been applied to production and no production
   lifecycle row was modified for this local QA.
 - The application candidate has not been deployed. Existing production still

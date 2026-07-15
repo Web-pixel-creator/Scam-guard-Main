@@ -42,11 +42,13 @@ Newest first. This tracks documentation/memory files, not every code commit.
   TypeScript, the production build and `npm audit` with zero known npm
   vulnerabilities. Focused evidence includes the Inline/risk suites plus
   234/234 merged polling/lifecycle/API/Inline reliability tests.
-- This entry does not claim a release or live pass. CI, pgTAP/schema lint, the
-  production Supabase migration/read-back, production deployment, Desktop
-  post-fix replay and Android/iOS RU/UZ/EN visual/insertion QA are still open.
-  `INL-001`/`INL-002` must not move to Passed; `BOT-004` remains In Progress.
-  See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
+- Draft PR #106 at candidate `b3c0611` passed application/coverage CI, migration
+  apply on a clean database, schema lint, 35 pgTAP assertions, CodeQL, Gitleaks
+  and container High/Critical/SBOM gates. This entry still does not claim a
+  release or live pass: the production Supabase migration/read-back, production
+  deployment, Desktop post-fix replay and Android/iOS RU/UZ/EN visual/insertion
+  QA are open. `INL-001`/`INL-002` must not move to Passed; `BOT-004` remains In
+  Progress. See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
   `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
 
 ## 2026-07-14 - Real Desktop Inline action order was corrected and deployed

@@ -12,10 +12,11 @@ the reproduced job, passport, link, numeric, phone/privacy, rate-limit and
 delivery paths.
 
 This audit does **not** mark the Telegram client gate Passed. The screenshots
-were captured before the current local fixes. Application CI, the new Supabase
-migration, production deployment, Desktop post-fix replay and all Android/iOS
-rows remain open. Keep `INL-001` and `INL-002` outside Passed and keep
-`BOT-004` In Progress.
+were captured before the current fixes. Draft PR #106 candidate `b3c0611`
+passed application/coverage and all database/security CI jobs, but production
+migration/deployment, Desktop post-fix replay and all Android/iOS rows remain
+open. Keep `INL-001` and `INL-002` outside Passed and keep `BOT-004` In
+Progress.
 
 ## Defect-to-fix map
 
@@ -53,11 +54,12 @@ The abbreviated ids above map to exact paths in the manifest below.
   current branch renders correctly in any Telegram client.
 - Local handler/API tests do not render Telegram Desktop, Android or iOS and do
   not prove Bot API acceptance of a real `inline_query_id`.
-- The 8,882-test result is local application evidence, not application CI,
-  CodeQL/container/SBOM evidence or a production deployment result.
-- The stale-leader change is a new migration. Local contract tests pass, but
-  pgTAP/schema lint could not run against local Postgres because the Docker
-  database was unavailable. CI and production apply/read-back are mandatory.
+- PR #106 provides application/coverage CI, CodeQL, Gitleaks, container/SBOM
+  and clean-database migration/schema/35-pgTAP evidence for candidate `b3c0611`;
+  it is still not production deployment evidence.
+- The stale-leader change is a new migration. Local Docker was unavailable, but
+  the PR clean-database migration, schema lint and 35 pgTAP assertions passed.
+  Production apply/read-back remains mandatory.
 - The transient delivery failure branch is intentionally tested with mocks. Do
   not break production networking or trigger provider limits for a screenshot.
 - At-least-once processing plus fencing is preserved; this audit does not claim

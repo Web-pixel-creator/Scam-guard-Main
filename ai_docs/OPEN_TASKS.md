@@ -10,12 +10,15 @@
   Inline results. The local candidate fixes those paths, extends clause-local
   RU/UZ/EN safety detection and hardens transient Inline delivery plus polling
   bursts. The repository suite passes 8,882/8,882; TypeScript, production build
-  and `npm audit` also pass, with zero known npm vulnerabilities. This is not
-  live proof: application CI, the Supabase migration job, production deploy and
-  migration read-back, Desktop post-fix replay and all Android/iOS rows remain
-  open. Keep `INL-001`/`INL-002` out of Passed and `BOT-004` In Progress until
-  those gates are evidenced. See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md`
-  and `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
+  and `npm audit` also pass, with zero known npm vulnerabilities. Draft PR #106
+  candidate `b3c0611` also passed application/coverage CI, clean-database
+  migration apply, schema lint, 35 pgTAP assertions, CodeQL, Gitleaks and
+  container High/Critical/SBOM gates. This is not live proof: production deploy
+  and migration read-back, Desktop post-fix replay and all Android/iOS rows
+  remain open. Keep `INL-001`/`INL-002` out of Passed and `BOT-004` In Progress
+  until those gates are evidenced. See
+  `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
+  `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
 
 - **The authoritative 10/10 release sequence is documented.** See
   `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
@@ -67,8 +70,10 @@
   lifecycle. Leader renewal now has a bounded deadline/local expiry. A new
   forward migration lets the current polling leader reclaim a stale-owner
   processing lease only after a 15-second drain grace, without weakening fences
-  or webhook ownership. Merged reliability tests pass 234/234. CI, pgTAP/schema lint, production
-  migration apply/read-back and a bounded live burst/restart retest remain open.
+  or webhook ownership. Merged reliability tests pass 234/234. PR #106 passed
+  clean-database migration apply, schema lint and 35 pgTAP assertions.
+  Production migration apply/read-back and a bounded live burst/restart retest
+  remain open.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
