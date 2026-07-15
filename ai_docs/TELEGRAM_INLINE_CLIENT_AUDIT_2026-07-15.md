@@ -1,8 +1,8 @@
 # Telegram Inline Client Audit — 2026-07-15
 
-Status: remediation merged and deployed; migration/deployment/health
-preconditions verified for client retest; post-fix real-client acceptance
-pending.
+Status: first remediation merged and deployed; second screenshot-driven
+remediation locally validated but not yet released; post-fix real-client
+acceptance pending.
 
 ## Outcome
 
@@ -22,6 +22,35 @@ contains both pending migrations; linked dry-run reports no pending migration
 and remote schema lint is clean. Direct live catalog grant/trigger verification
 remains open. Desktop post-fix replay and all Android/iOS rows remain open. Keep
 `INL-001` and `INL-002` outside Passed and keep `BOT-004` In Progress.
+
+## Batch 2 addendum
+
+The second owner-supplied batch contains 30 Telegram Desktop screenshots under
+`private/telegram-inline-qa/2026-07-15/desktop/user-batch-02/`. It extends the
+first audit with three product-level failures:
+
+1. Editing a useful first query by adding a concrete second line could keep the
+   first result unchanged or leave the Inline list empty.
+2. The preview repeated generic risk wording before the specific action, so
+   Telegram truncated the part the user actually needed.
+3. Safe user questions such as “what should I do now?” and ordinary words such
+   as Uzbek `hozir` could distort severity instead of only preserving context.
+
+The local branch fixes those boundaries without changing the privacy contract:
+result ids now vary with the normalized query and rendered article; concrete
+danger tails outrank generic context; suspicious human-intent descriptions no
+longer prepend repetitive risk filler; real credentials remain masked; Inline
+still uses `skipAi=true`, `skipUrlReputation=true`, `persist=false` and makes no
+database mutation. Specific RU/UZ/EN contracts now cover code/sent-code,
+passport request and aftercare, authority/legal pressure, earning/job, bank,
+voting/link, tax, SIM replacement, family emergency, investment, unknown
+contact, reply safety and next-step questions.
+
+Representative Batch 2 evidence includes `4be66c7c…`/`6ad6eeb0…` for a changed
+code query, `0a1828f4…`/`c6443a94…` for an earning-channel follow-up,
+`7b8719b0…`/`6acb9087…` for official bank contact, `69c4735b…`/`278b7468…` for
+voting-link context and `175a52cd…`/`3f644e12…` for the next-step wording.
+These screenshots are pre-fix observations, not acceptance evidence.
 
 ## Defect-to-fix map
 
@@ -44,19 +73,25 @@ The abbreviated ids above map to exact paths in the manifest below.
 
 ## Local verification
 
-- Complete project suite: 8,882/8,882 tests passed.
+- Complete project suite on the second remediation branch: 10,131/10,131 tests
+  passed across 475 test files.
+- New Inline context corpus: 1,175/1,175 passed, including 1,152 RU/UZ/EN
+  dialogue mutations plus privacy, safe-control and contract checks.
 - Inline focus after the ambiguous-numeric change: 160/160 passed.
 - Risk suite: 1,411/1,411 passed.
 - Merged polling/lifecycle/API/Inline reliability focus: 234/234 passed.
-- TypeScript and production build passed.
+- Coverage passes the repository floor: 84.76% statements, 78.91% branches,
+  90.89% functions and 86.82% lines.
+- TypeScript, lint with zero errors and production build passed.
 - `npm audit`: zero known vulnerabilities.
 - Corpus/handler checks keep AI, external URL reputation and persistence
   disabled; the local remediation did not spend a paid model API budget.
 
 ## Evidence limits
 
-- The 41 screenshots prove pre-fix client behavior only. They do not prove the
-  current branch renders correctly in any Telegram client.
+- The 41 Batch 1 and 30 Batch 2 screenshots prove pre-fix client behavior only.
+  They do not prove the current branch renders correctly in any Telegram
+  client.
 - Local handler/API tests do not render Telegram Desktop, Android or iOS and do
   not prove Bot API acceptance of a real `inline_query_id`.
 - PR #106 provides application/coverage CI, CodeQL, Gitleaks, container/SBOM

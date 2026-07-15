@@ -419,6 +419,76 @@ describe("classifyVictimIntent — job-entry fee priority", () => {
   );
 });
 
+describe("classifyVictimIntent — concrete schemes survive conversational wrappers", () => {
+  it.each([
+    "Это безопасно или меня обманывают?\nЧеловек из РУВД пишет, что я подозреваемый по уголовному делу, и требует документы",
+    "Men hozir uydaman. IIB xodimi meni jinoyat ishida gumon qilib, hujjatlarni talab qilyapti",
+    "Please help me: a police investigator says I am a suspect in a criminal case and demands documents",
+  ])("keeps a reported authority accusation on legal-impersonation guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "legal_impersonation" });
+  });
+
+  it.each([
+    "Это безопасно? Оператор просит код для замены SIM-карты",
+    "Bu xavfsizmi? Operator SIM kartani almashtirish uchun kod so'rayapti",
+    "Please help me: the mobile operator asks for a code to replace my SIM card",
+  ])("keeps a SIM replacement secret request on operator guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "operator_call",
+      askedContext: "call",
+    });
+  });
+
+  it.each([
+    "Я сейчас дома. Предлагают вложить деньги в TON wallet с гарантированным доходом. Что делать?",
+    "Bu xavfsizmi? TON walletga pul qo'yib, kafolatlangan daromad olishni taklif qilishyapti",
+    "I am not in a hurry. They offer a TON wallet investment with guaranteed income",
+  ])("keeps a guaranteed-return wallet offer on investment guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "investment_offer",
+      askedContext: "transfer",
+    });
+  });
+
+  it.each([
+    "Это безопасно или меня обманывают? Предлагают работу, но просят оплатить обязательное обучение",
+    "Hozir nima qilishim kerak? Ish taklif qilishdi, lekin majburiy o'qish uchun pul so'rashyapti",
+    "Please help me: they offer me a job but ask me to pay for mandatory training",
+  ])("keeps a job-entry fee on job guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "job_offer" });
+  });
+
+  it.each([
+    "Это безопасно? Сын попал в аварию и просит срочно перевести деньги",
+    "Bu xavfsizmi? O'g'lim avariyaga tushdi deb, zudlik bilan pul o'tkazishni so'rashyapti",
+    "Please help me: they say my son had an accident and ask me to send money urgently",
+  ])("keeps family distress on identity-verification guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "friend_money",
+      askedContext: "transfer",
+    });
+  });
+
+  it.each([
+    "Я передал паспорт через официальный визовый центр по своей заявке",
+    "Я загрузил паспорт через официальный государственный портал по своей заявке",
+    "Men pasportimni rasmiy bank ilovasi orqali yukladim",
+    "I submitted my passport through the official visa application center",
+  ])("keeps an explicit official document handoff neutral: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Где находится РУВД и как до него доехать?",
+    "Men IIB manzilini qidiryapman",
+    "Where is the police department?",
+    "The mobile operator replaced my SIM at its official office",
+    "I track my own TON wallet investment income",
+  ])("does not infer a scheme from a neutral authority, SIM, or wallet reference: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+});
+
 describe("classifyVictimIntent — bounded everyday incident wording", () => {
   it.each([
     ["I have a suspicious conversation going on.", "general_scam_concern"],
@@ -456,6 +526,60 @@ describe("classifyVictimIntent — bounded everyday incident wording", () => {
     expect(text).toContain("Bank va hujjatni bergan idoraga");
     expect(text).toContain("102");
     expect(text).not.toContain("yubormang");
+  });
+
+  it.each([
+    "Я отправил фото своего паспорта.",
+    "Я уже загрузила скан удостоверения.",
+    "Men pasport rasmini yubordim.",
+    "Men shaxsiy hujjatni yukladim.",
+    "I sent a photo of my passport.",
+    "I already uploaded my identity document.",
+  ])("recognizes first-person document sharing without an explicit stranger: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "personal_data_already_shared" });
+  });
+
+  it.each([
+    "Я загрузила паспорт через официальное приложение банка.",
+    "Men pasportimni rasmiy bank ilovasi orqali yukladim.",
+    "I uploaded my passport through the official government portal.",
+  ])("keeps an explicit official document-upload channel neutral: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Мне звонят из РУВД.",
+    "Сотрудник ОВД написал мне.",
+    "Мне позвонили из МВД.",
+    "Menga IIBdan qo'ng'iroq qilishdi.",
+    "The police contacted me.",
+  ])("recognizes a named authority contacting the user: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "authority_impersonation",
+      askedContext: "call",
+    });
+  });
+
+  it.each([
+    "Я из РУВД, вас подозревают в мошенничестве.",
+    "Я из полиции/вас подозревают в мошенничестве.",
+    "Я сотрудник полиции, вы проходите по уголовному делу.",
+    "Men IIBdanman, siz firibgarlikda gumon qilinyapsiz.",
+    "I am from the police; you are suspected of fraud.",
+  ])("recognizes a quoted authority accusation as legal impersonation: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({ kind: "legal_impersonation" });
+  });
+
+  it.each([
+    "Где находится РУВД?",
+    "Как позвонить в ОВД?",
+    "Что означает МВД?",
+    "Men IIB manzilini qidiryapman.",
+    "Where is the police department?",
+    "I work at the police department.",
+    "В новостях сказали, что МВД расследует мошенничество.",
+  ])("keeps benign authority location/reference wording neutral: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
   });
 
   it("uses natural Uzbek unknown-call wording", () => {

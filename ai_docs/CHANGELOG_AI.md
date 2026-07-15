@@ -2,6 +2,30 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-15 - Second Desktop Inline context remediation is locally green
+
+- Archived 30 additional owner-supplied Telegram Desktop screenshots as ignored
+  local pre-fix evidence under
+  `private/telegram-inline-qa/2026-07-15/desktop/user-batch-02/`.
+- Fixed unchanged/missing second Inline results with query-scoped result ids;
+  concrete multiline danger now outranks generic context and suspicious
+  previews no longer waste their 120-character budget on repeated risk filler.
+- Expanded RU/UZ/EN handling for authority/legal pressure, SIM replacement,
+  TON/wallet investment promises, earning/channel, code/sent-code, bank,
+  voting/link, reply and next-step flows. User safety questions are no longer
+  counted as attacker urgency, and neutral `Wallet Earn` interface copy no
+  longer becomes an investment promise.
+- Added a 1,175-case offline context suite: 1,152 generated dialogue mutations
+  plus safe controls, privacy redaction and result-id contracts. It forbids
+  external fetch, AI/reputation use and database mutations.
+- Local verification passes 10,131/10,131 tests, TypeScript, lint with zero
+  errors, the production build and `npm audit` with zero known vulnerabilities.
+  Coverage passes at 84.76% statements, 78.91% branches, 90.89% functions and
+  86.82% lines.
+- This branch is not yet production/live-client evidence. Desktop post-deploy
+  replay and the complete Android/iOS matrix remain open, so `INL-001`,
+  `INL-002` and `BOT-004` are not marked Passed.
+
 ## 2026-07-15 - Desktop Inline defects and polling burst reliability were deployed
 
 - Archived 41 user-supplied Telegram Desktop screenshots as ignored local

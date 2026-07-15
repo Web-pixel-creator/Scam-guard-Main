@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { Lang } from "@/lib/i18n";
 import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { maskForDisplay } from "@/lib/risk/detect";
@@ -70,6 +72,7 @@ type HumanInlineIntent =
   | "child_game_bonus"
   | "silent_call"
   | "personal_data"
+  | "personal_data_aftercare"
   | "delivery_payment"
   | "prize_fee"
   | "gov_service"
@@ -185,6 +188,7 @@ const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "medical_code",
   "child_game_bonus",
   "silent_call",
+  "personal_data_aftercare",
   "relative_distress",
   "job_offer",
   "travel_migration_prepayment",
@@ -469,7 +473,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Госорган/инспектор: проверьте официально",
         description:
-          "МВД, МИБ/БПИ, налоговая, суд или инспектор не должны требовать код, карту, наличные или документы через чат/звонок. Проверяйте по официальному номеру.",
+          "РУВД, МВД, полиция и инспектор не должны просить код, деньги или документы в чате. Проверяйте по официальному номеру.",
       },
       pension_benefit: {
         title: "Пенсия/выплата: не называйте данные",
@@ -518,6 +522,13 @@ const PREVIEW_COPY: Record<
         message:
           "Не отправляйте фото паспорта, ПИНФЛ/ИНН, селфи, адрес или другие персональные данные. Проверьте просьбу через официальный канал. Сюда добавьте только её текст или ссылку — без самих документов и секретов.",
       },
+      personal_data_aftercare: {
+        title: "Паспорт уже отправлен: снизьте риск",
+        description:
+          "Сохраните переписку. Больше ничего не отправляйте; прекратите контакт и уточните меры защиты по официальному номеру.",
+        message:
+          "Сохраните переписку, профиль и время отправки. Больше ничего не отправляйте и не спорьте с собеседником. Если вы также сообщили код, карту или дали доступ — срочно звоните в банк. По паспорту обратитесь в выдавший документ орган или полицию только по официальному номеру и уточните меры защиты.",
+      },
       delivery_payment: {
         title: "Доставка: проверьте ссылку",
         description:
@@ -552,8 +563,7 @@ const PREVIEW_COPY: Record<
       },
       investment_offer: {
         title: "Инвестиции/крипта: осторожно",
-        description:
-          "Гарантированный доход, TON/USDT/wallet и быстрый процент — частый крючок. Не переводите депозит незнакомым.",
+        description: "Гарантированный доход и TON/USDT — частый крючок. Не переводите депозит.",
       },
       travel_migration_prepayment: {
         title: "Виза/тур: не платите заранее",
@@ -588,7 +598,7 @@ const PREVIEW_COPY: Record<
       general_scam_concern: {
         title: "Подозреваете обман: пришлите просьбу",
         description:
-          "Вы правильно остановились. Пришлите сообщение, ссылку, номер или что именно вас просят сделать.",
+          "Хорошо, что решили проверить. Добавьте в этот запрос сообщение, ссылку, номер или точную просьбу собеседника.",
       },
       voting_link: {
         title: "Голосование/канал: сначала проверим",
@@ -596,9 +606,9 @@ const PREVIEW_COPY: Record<
           "Не переходите по ссылке и не входите в Telegram заново. Если ссылки или текста ещё нет — добавьте их.",
       },
       next_step: {
-        title: "Что делать: остановитесь и пришлите просьбу",
+        title: "Что делать: пока ничего не отправляйте",
         description:
-          "Пока ничего не отправляйте. Пришлите текст, ссылку, номер или что уже произошло — я подскажу безопасный шаг.",
+          "Добавьте в этот запрос текст, ссылку, номер или то, что уже произошло — я подскажу конкретный безопасный шаг.",
       },
       reply_safety: {
         title: "Ответ: не раскрывайте данные",
@@ -715,7 +725,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Davlat organi/inspektor: rasmiy tekshiring",
         description:
-          "IIV, MIB/BPI, soliq, sud yoki inspektor chat/qo'ng'iroqda kod, karta, naqd pul yoki hujjat talab qilmasligi kerak.",
+          "IIB, IIV, soliq yoki sud chatda kod, pul yoki hujjat talab qilmasligi kerak. Faqat rasmiy raqamdan tekshiring.",
       },
       pension_benefit: {
         title: "Pensiya/to'lov: ma'lumot bermang",
@@ -764,6 +774,13 @@ const PREVIEW_COPY: Record<
         message:
           "Pasport rasmi, PINFL/STIR, selfi, manzil yoki boshqa shaxsiy ma'lumotlarni yubormang. So'rovni rasmiy kanal orqali tekshiring. Bu yerga faqat matn yoki havolani, hujjat va sirlarsiz qo'shing.",
       },
+      personal_data_aftercare: {
+        title: "Pasport yuborilgan: xavfni kamaytiring",
+        description:
+          "Yozishmani saqlang. Boshqa ma'lumot yubormang; aloqani to'xtatib, rasmiy raqam orqali himoya choralarini aniqlang.",
+        message:
+          "Yozishmani saqlang. Profil va yuborilgan vaqtni ham qayd eting. Boshqa ma'lumot yubormang va suhbatdosh bilan bahslashmang. Kod, karta yoki kirish huquqini ham bergan bo'lsangiz, darhol bankka qo'ng'iroq qiling. Pasport bo'yicha hujjatni bergan organ yoki politsiyaga faqat rasmiy raqam orqali murojaat qilib, himoya choralarini aniqlang.",
+      },
       delivery_payment: {
         title: "Yetkazib berish: havolani tekshiring",
         description: "Chatdagi boj/to'lovni to'lamang. SMS yoki havolani to'liq yuboring.",
@@ -797,8 +814,7 @@ const PREVIEW_COPY: Record<
       },
       investment_offer: {
         title: "Invest/kripto: ehtiyot bo'ling",
-        description:
-          "Kafolatlangan daromad, TON/USDT/wallet va tez foyda - keng tarqalgan tuzoq. Depozit yubormang.",
+        description: "Kafolatlangan TON/USDT daromadi - keng tarqalgan tuzoq. Depozit yubormang.",
       },
       travel_migration_prepayment: {
         title: "Viza/tur: oldindan to'lamang",
@@ -832,7 +848,7 @@ const PREVIEW_COPY: Record<
       general_scam_concern: {
         title: "Aldovdan shubhalanyapsiz: so'rovni yuboring",
         description:
-          "To'xtaganingiz to'g'ri. Xabar, havola, raqam yoki sizdan aynan nima so'ralayotganini yuboring.",
+          "Tekshirishga qaror qilganingiz yaxshi. Shu so'rovga xabar, havola, raqam yoki aniq iltimosni qo'shing.",
       },
       voting_link: {
         title: "Ovoz berish/kanal: avval tekshiramiz",
@@ -840,9 +856,9 @@ const PREVIEW_COPY: Record<
           "Havolaga o'tmang va Telegramga qayta kirmang. Havola yoki matn hali bo'lmasa, uni qo'shing.",
       },
       next_step: {
-        title: "Nima qilish kerak: to'xtang va so'rovni yuboring",
+        title: "Nima qilish kerak: hozircha hech narsa yubormang",
         description:
-          "Hozircha hech narsa yubormang. Matn, havola, raqam yoki nima bo'lganini yuboring - xavfsiz qadamni aytaman.",
+          "Shu so'rovga matn, havola, raqam yoki nima bo'lganini qo'shing — aniq xavfsiz qadamni aytaman.",
       },
       reply_safety: {
         title: "Javob: ma'lumot bermang",
@@ -960,7 +976,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Government/inspector: verify officially",
         description:
-          "Police, MIB/BPI, tax, court, or an inspector should not demand a code, card, cash, or documents by chat/call. Verify via an official number.",
+          "Police, tax, court, or an inspector should not demand codes, money, or documents in chat. Call an official number.",
       },
       pension_benefit: {
         title: "Pension/benefit: do not share data",
@@ -1009,6 +1025,13 @@ const PREVIEW_COPY: Record<
         message:
           "Do not send passport photos, tax ID, selfies, address or other personal data. Verify the request through an official channel. Add only its text or link here — without documents or secrets.",
       },
+      personal_data_aftercare: {
+        title: "Passport already sent: reduce the risk",
+        description:
+          "Save the chat. Send nothing else; end contact and ask about protective steps through an official number.",
+        message:
+          "Save the chat, profile, and time sent. Send nothing else and do not argue with the contact. If you also shared a code, card details, or access, call your bank now. For the passport, contact the issuing authority or police through an official number and ask what protective steps to take.",
+      },
       delivery_payment: {
         title: "Delivery: check the link",
         description:
@@ -1043,8 +1066,7 @@ const PREVIEW_COPY: Record<
       },
       investment_offer: {
         title: "Invest/crypto: be careful",
-        description:
-          "Guaranteed income, TON/USDT/wallet and fast returns are common bait. Do not send a deposit.",
+        description: "Guaranteed TON/USDT returns are common bait. Do not send a deposit.",
       },
       travel_migration_prepayment: {
         title: "Visa/tour: do not prepay",
@@ -1079,7 +1101,7 @@ const PREVIEW_COPY: Record<
       general_scam_concern: {
         title: "Suspect a scam: send the request",
         description:
-          "Good that you paused. Send the message, link, number or what exactly they ask you to do.",
+          "Good that you decided to check. Add the message, link, number, or the exact request here.",
       },
       voting_link: {
         title: "Voting/channel: check it first",
@@ -1087,9 +1109,9 @@ const PREVIEW_COPY: Record<
           "Do not open the link or sign in to Telegram again. If the link or text is missing, add it.",
       },
       next_step: {
-        title: "What to do: pause and send the request",
+        title: "What to do: do not send anything yet",
         description:
-          "Do not send anything yet. Send the text, link, number or what already happened - I will give a safe step.",
+          "Add the text, link, number, or what already happened here — I will give a specific safe step.",
       },
       reply_safety: {
         title: "Reply: do not reveal data",
@@ -1243,10 +1265,15 @@ function compactInlineDescription(value: string): string {
   const oneLine = value.replace(/\s+/gu, " ").trim();
   if (oneLine.length <= MAX_INLINE_DESCRIPTION_LENGTH) return oneLine;
 
-  const softLimit = MAX_INLINE_DESCRIPTION_LENGTH - 3;
+  const softLimit = MAX_INLINE_DESCRIPTION_LENGTH - 1;
   const boundary = oneLine.lastIndexOf(" ", softLimit);
   const end = boundary >= 60 ? boundary : softLimit;
-  return `${oneLine.slice(0, end).trimEnd()}...`;
+  const completeThought = oneLine
+    .slice(0, end)
+    .trimEnd()
+    .replace(/(?:[,;:]?\s+)(?:или|и|либо|or|and|yoki|va)$/iu, "")
+    .trimEnd();
+  return `${completeThought}…`;
 }
 
 function hasSentCodeIntent(normalized: string): boolean {
@@ -1257,10 +1284,10 @@ function hasSentCodeIntent(normalized: string): boolean {
     /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал|дала)/iu.test(
       normalized,
     ) ||
-    /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|pin|parol)?.{0,60}(?:yubordim|aytdim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+    /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|pin|parol).{0,60}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
       normalized,
     ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubordim|aytdim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
       normalized,
     ) ||
     /(?:i|already|just).{0,60}(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
@@ -1473,15 +1500,16 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
     case "apk_request":
       return "app_request";
     case "personal_data_request":
-    case "personal_data_already_shared":
       return "personal_data";
+    case "personal_data_already_shared":
+      return "personal_data_aftercare";
     case "friend_money":
       return "relative_distress";
     case "support_impersonation":
       return "bank_call";
     case "authority_impersonation":
     case "legal_impersonation":
-      return "general_scam_concern";
+      return "official_impersonation";
     case "gov_service_login":
       return "gov_service";
     case "romance_money":
@@ -1662,11 +1690,182 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   return null;
 }
 
+const HIGH_PRIORITY_SHARED_INLINE_INTENTS = new Set<HumanInlineIntent>([
+  "personal_data_aftercare",
+  "official_impersonation",
+  "relative_distress",
+  "job_offer",
+  "investment_offer",
+]);
+
+function isHighPrioritySharedInlineIntent(
+  intent: HumanInlineIntent | null,
+): intent is HumanInlineIntent {
+  return intent !== null && HIGH_PRIORITY_SHARED_INLINE_INTENTS.has(intent);
+}
+
+function hasEarningChannelInlineIntent(normalized: string): boolean {
+  return (
+    /(?:приглаша|добавля|зовут|позвали|вступить|подписаться).{0,100}(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
+      normalized,
+    ) ||
+    /(?:предлага(?:ют|ет)|зов(?:ут|ет)|приглаша(?:ют|ет)|обеща(?:ют|ет)).{0,120}(?:бот|канал|чат|групп|приложени).{0,160}(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
+      normalized,
+    ) ||
+    /(?:kanal|guruh|chat).{0,100}(?:daromad|ishlash|pul|foyda|kripto|ton|usdt|wallet|invest|stavka)/iu.test(
+      normalized,
+    ) ||
+    /(?:daromad|ishlash|pul|foyda|kripto|ton|usdt|wallet|invest|stavka).{0,100}(?:kanal|guruh|chat)/iu.test(
+      normalized,
+    ) ||
+    /(?:channel|group|chat).{0,100}(?:earn|income|profit|easy money|betting|crypto|ton|usdt|wallet|invest)/iu.test(
+      normalized,
+    ) ||
+    /(?:earn|earning|income|profit|easy money|betting|crypto|ton|usdt|wallet|invest).{0,100}(?:channel|group|chat)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasVotingLinkInlineIntent(normalized: string): boolean {
+  return (
+    /(?:голосован|голосовать|проголос|опрос|vote|voting).{0,120}(?:канал|групп|чат|ссылк|линк|link|url|перейти|зайти|открыть)/iu.test(
+      normalized,
+    ) ||
+    /(?:канал|групп|чат|ссылк|линк|link|url).{0,120}(?:голосован|голосовать|проголос|опрос|vote|voting)/iu.test(
+      normalized,
+    ) ||
+    /(?:ovoz|so['’]?rovnoma|vote).{0,120}(?:kanal|guruh|chat|havola|link|kir|o['’]?t)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasContextualLinkRequestIntent(normalized: string): boolean {
+  return (
+    /(?:просят|просит|сказали|говорят|нужно|надо|предлагают|скинули|прислали|дали).{0,80}(?:перейти|зайти|открыть|нажать|кликнуть|посмотреть)?.{0,40}(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
+      normalized,
+    ) ||
+    /(?:перейти|зайти|открыть|нажать|кликнуть).{0,40}(?:по\s+)?(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
+      normalized,
+    ) ||
+    /(?:so['’]?ra|ayt|kerak|yubor|berdi).{0,80}(?:havola|link|tugma|sayt).{0,40}(?:o['’]?t|kir|och|bos|bosing)?/iu.test(
+      normalized,
+    ) ||
+    /(?:havola|link|tugma|sayt).{0,60}(?:o['’]?t|kir|och|bos|bosing|yubordi)/iu.test(normalized) ||
+    /(?:ask|asked|asks|sent|gave|told|want|wants|need|needs).{0,80}(?:open|click|follow|go\s+to)?.{0,40}(?:link|url|button|site|website)/iu.test(
+      normalized,
+    ) ||
+    /(?:open|click|follow|go\s+to).{0,40}(?:the\s+)?(?:link|url|button|site|website)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasExplicitMoneyTransferInlineIntent(normalized: string): boolean {
+  return (
+    /(?:перевест|перевод|переведи|скин(?:уть|ьте)|отправ(?:ить|ьте)\s+деньг|на\s+(?:чужую\s+)?карту|на\s+(?:безопасн(?:ый|ого)\s+)?сч[её]т)/iu.test(
+      normalized,
+    ) ||
+    /(?:pul\s+yubor|o['’]?tkaz|kartaga|hisobga|xavfsiz\s+hisob)/iu.test(normalized) ||
+    /(?:transfer|send\s+money|wire|bank\s+account|safe\s+account)/iu.test(normalized)
+  );
+}
+
+function hasRelativeDistressInlineIntent(normalized: string): boolean {
+  return (
+    /(?:мама|папа|сын|дочь|брат|сестра|родствен|близк|внук|внуч|друг).{0,120}(?:авар|больниц|полици|срочн|деньг|перевед|код|помоги|попал|попала)/iu.test(
+      normalized,
+    ) ||
+    /(?:авар|больниц|полици|срочн|деньг|перевед|помоги|попал|попала).{0,120}(?:мама|папа|сын|дочь|брат|сестра|родствен|близк|внук|внуч|друг)/iu.test(
+      normalized,
+    ) ||
+    /(?:ona|ota|o['’]?g['’]?(?:il|l)|qiz|aka|uka|opa|singil|qarindosh|yaqin).{0,120}(?:avariya|kasalxona|politsiya|shoshilinch|zudlik|pul|o['’]?tkaz|yordam|kod)/iu.test(
+      normalized,
+    ) ||
+    /(?:mom|dad|son|daughter|brother|sister|relative|friend|loved one).{0,120}(?:accident|hospital|police|urgent|money|transfer|send|code|help)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasJobOfferInlineIntent(normalized: string): boolean {
+  return (
+    /(?:работ|ваканси|трудоустройств).{0,160}(?:просят|требуют|нужно|надо|обязательн).{0,80}(?:оплат|заплат|взнос|обучен|курс|форм|проверк)/iu.test(
+      normalized,
+    ) ||
+    /(?:оплат|заплат|взнос|предоплат).{0,100}(?:обучен|курс|ваканси|работ|трудоустройств)/iu.test(
+      normalized,
+    ) ||
+    /(?:ish|vakansiya).{0,160}(?:so['’]?ra|kerak|majburiy).{0,80}(?:pul|to['’]?lov|o['’]?qish|kurs|forma|tekshir)/iu.test(
+      normalized,
+    ) ||
+    /(?:job|work|vacancy|employment).{0,160}(?:ask|require|must|mandatory).{0,80}(?:pay|fee|training|course|uniform|check)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasInvestmentOfferInlineIntent(normalized: string): boolean {
+  return (
+    /(?:инвест|крипт|ton|usdt|wallet|бирж|трейд|доход|прибыл|процент|x2|икс).{0,160}(?:гарант|влож|депозит|пополни|перевед|платформ|сигнал|доход|быстр)/iu.test(
+      normalized,
+    ) ||
+    /(?:invest|kripto|crypto|ton|usdt|wallet|birja|treyd|daromad|foyda).{0,160}(?:kafolat|depozit|pul|platforma|signal|tez|foiz)/iu.test(
+      normalized,
+    ) ||
+    /(?:invest|crypto|ton|usdt|wallet|exchange|trading|profit|return).{0,160}(?:guarantee|guaranteed|deposit|platform|signal|fast|percent|income)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasReplySafetyInlineIntent(normalized: string): boolean {
+  return (
+    /(?:можно|стоит|надо|нужно|безопасно ли).{0,100}(?:отвечать|ответить|написать|писать|переписываться|говорить|разговаривать)/iu.test(
+      normalized,
+    ) ||
+    /(?:javob|yoz|gaplash).{0,100}(?:bersam|beraymi|bo['’]?ladimi|mumkinmi|kerakmi)/iu.test(
+      normalized,
+    ) ||
+    /(?:can|should).{0,80}(?:reply|answer|text|message|talk)/iu.test(normalized) ||
+    /(?:what|how).{0,60}(?:reply|answer|say|write)/iu.test(normalized)
+  );
+}
+
+function hasNextStepInlineIntent(normalized: string): boolean {
+  return (
+    /(?:что|как).{0,60}(?:делать|поступить|быть|дальше)/iu.test(normalized) ||
+    /(?:nima|qanday|keyin).{0,60}(?:qilay|qilish|qilishim|bo['’]?ladi|kerak|keyin)/iu.test(
+      normalized,
+    ) ||
+    /(?:what|how).{0,60}(?:do|should i do|next)/iu.test(normalized)
+  );
+}
+
+function hasOfficialLegalInlineIntent(normalized: string): boolean {
+  return (
+    /(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател).{0,220}(?:подозрев|обвиня|уголовн.{0,30}дел|розыск|требует.{0,50}документ)/iu.test(
+      normalized,
+    ) ||
+    /(?:iib|ichki\s+ishlar|politsiya|prokuratura|tergovchi).{0,220}(?:jinoyat\s+ishi|gumon|aybl|qidiruv|hujjat.{0,50}talab)/iu.test(
+      normalized,
+    ) ||
+    /(?:police|prosecutor|investigator|detective).{0,220}(?:suspect|accused|criminal\s+case|wanted|warrant|demands?.{0,50}documents?)/iu.test(
+      normalized,
+    )
+  );
+}
+
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
   const hasPriorityDanger = hasPriorityInlineDangerIntent(normalized);
+  const sharedVictimIntent = classifySharedVictimInlineIntent(text);
 
   if (
     /(?:как|можно|надо|нужно|что).{0,80}(?:вернуть|оспорить|заморозить).{0,80}(?:деньг|перевод|плат[её]ж).{0,100}(?:мошен|обман|скам)|(?:деньг|перевод|плат[её]ж).{0,80}(?:вернуть|оспорить|заморозить).{0,100}(?:мошен|обман|скам)/iu.test(
@@ -1674,6 +1873,10 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "sent_money";
+  }
+
+  if (hasOfficialLegalInlineIntent(normalized)) {
+    return "official_impersonation";
   }
 
   const newsIntent = classifyNewsHumanInlineIntent(normalized);
@@ -1687,6 +1890,16 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "next_step";
+  }
+
+  if (
+    sharedVictimIntent === "official_impersonation" &&
+    !hasPriorityDanger &&
+    /(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател|iib|ichki\s+ishlar|politsiya|prokuratura|tergovchi|police|prosecutor|investigator|detective)/iu.test(
+      normalized,
+    )
+  ) {
+    return sharedVictimIntent;
   }
 
   if (
@@ -1711,6 +1924,10 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     )
   ) {
     return "link_request";
+  }
+
+  if (hasVotingLinkInlineIntent(normalized)) {
+    return "voting_link";
   }
 
   if (
@@ -1817,6 +2034,9 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     /(?:sim|esim|raqam).{0,80}(?:almashtir|tikla|ko['’]?chir|dublikat|aktiv)/iu.test(normalized) ||
     /(?:sim|esim|number).{0,80}(?:swap|replace|restore|transfer|duplicate|activate)/iu.test(
       normalized,
+    ) ||
+    /(?:swap|replace|restore|transfer|duplicate|activate).{0,80}(?:sim|esim|number)/iu.test(
+      normalized,
     )
   ) {
     return "sim_swap";
@@ -1840,6 +2060,33 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
 
   if (hasCodeRequestIntent(normalized)) {
     return "code_request";
+  }
+
+  if (sharedVictimIntent === "personal_data_aftercare") {
+    return sharedVictimIntent;
+  }
+
+  if (hasCardRequestIntent(normalized)) {
+    return "card_request";
+  }
+
+  if (hasAppRequestIntent(normalized)) {
+    return "app_request";
+  }
+
+  if (hasPersonalDataRequestIntent(normalized)) {
+    return "personal_data";
+  }
+
+  if (hasRelativeDistressInlineIntent(normalized)) {
+    return "relative_distress";
+  }
+
+  const isTaxOrFeeLinkContext =
+    hasContextualLinkRequestIntent(normalized) &&
+    /(?:налог|пошлин|комисс|сбор|tax|fee|duty|soliq|boj|komiss)/iu.test(normalized);
+  if (hasExplicitMoneyTransferInlineIntent(normalized) && !isTaxOrFeeLinkContext) {
+    return "transfer_request";
   }
 
   if (
@@ -1867,6 +2114,43 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     /(?:how|where).{0,80}(?:contact|call|message).{0,80}(?:bank|support)/iu.test(normalized)
   ) {
     return "bank_contact";
+  }
+
+  // A later line that describes a concrete scheme or completed incident must
+  // override an earlier generic question such as "is this safe?" or "what do
+  // I do?".  The full, original text is deliberately passed to the shared
+  // victim classifier so line breaks remain part of the evidence shown back
+  // to the user even though regex matching itself is whitespace-tolerant.
+  if (hasEarningChannelInlineIntent(normalized)) {
+    return "earning_channel";
+  }
+
+  if (isHighPrioritySharedInlineIntent(sharedVictimIntent)) {
+    return sharedVictimIntent;
+  }
+
+  if (hasVotingLinkInlineIntent(normalized)) {
+    return "voting_link";
+  }
+
+  if (hasContextualLinkRequestIntent(normalized)) {
+    return "link_request";
+  }
+
+  if (hasJobOfferInlineIntent(normalized)) {
+    return "job_offer";
+  }
+
+  if (hasInvestmentOfferInlineIntent(normalized)) {
+    return "investment_offer";
+  }
+
+  if (hasReplySafetyInlineIntent(normalized)) {
+    return "reply_safety";
+  }
+
+  if (hasNextStepInlineIntent(normalized)) {
+    return "next_step";
   }
 
   if (
@@ -1955,37 +2239,11 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "unknown_contact";
   }
 
-  if (
-    /(?:приглаша|добавля|зовут|позвали|вступить|подписаться).{0,100}(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
-      normalized,
-    ) ||
-    /(?:предлага(?:ют|ет)|зов(?:ут|ет)|приглаша(?:ют|ет)|обеща(?:ют|ет)).{0,120}(?:бот|канал|чат|групп|приложени).{0,160}(?:заработ|доход|легк.{0,20}деньг|сум.{0,30}день|500\s*000|500000)/iu.test(
-      normalized,
-    ) ||
-    /(?:канал|групп|чат).{0,100}(?:заработ|доход|прибыл|легк.{0,20}деньг|ставк|крипт|ton|usdt|wallet|инвест)/iu.test(
-      normalized,
-    ) ||
-    /(?:kanal|guruh|chat).{0,100}(?:daromad|ishlash|pul|foyda|kripto|ton|usdt|wallet|invest|stavka)/iu.test(
-      normalized,
-    ) ||
-    /(?:channel|group|chat).{0,100}(?:earn|income|profit|easy money|betting|crypto|ton|usdt|wallet|invest)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasEarningChannelInlineIntent(normalized)) {
     return "earning_channel";
   }
 
-  if (
-    /(?:голосован|голосовать|проголос|опрос|vote|voting).{0,120}(?:канал|групп|чат|ссылк|линк|link|url|перейти|зайти|открыть)/iu.test(
-      normalized,
-    ) ||
-    /(?:канал|групп|чат|ссылк|линк|link|url).{0,120}(?:голосован|голосовать|проголос|опрос|vote|voting)/iu.test(
-      normalized,
-    ) ||
-    /(?:ovoz|so['’]?rovnoma|vote).{0,120}(?:kanal|guruh|chat|havola|link|kir|o['’]?t)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasVotingLinkInlineIntent(normalized)) {
     return "voting_link";
   }
 
@@ -2002,28 +2260,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "chat_invite";
   }
 
-  if (
-    !hasPriorityDanger &&
-    !hasConcreteUrl &&
-    (/(?:просят|просит|сказали|говорят|нужно|надо|предлагают|скинули|прислали|дали).{0,80}(?:перейти|зайти|открыть|нажать|кликнуть|посмотреть)?.{0,40}(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
-      normalized,
-    ) ||
-      /(?:перейти|зайти|открыть|нажать|кликнуть).{0,40}(?:по\s+)?(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
-        normalized,
-      ) ||
-      /(?:so['’]?ra|ayt|kerak|yubor|berdi).{0,80}(?:havola|link|tugma|sayt).{0,40}(?:o['’]?t|kir|och|bos|bosing)?/iu.test(
-        normalized,
-      ) ||
-      /(?:havola|link|tugma|sayt).{0,60}(?:o['’]?t|kir|och|bos|bosing|yubordi)/iu.test(
-        normalized,
-      ) ||
-      /(?:ask|asked|asks|sent|gave|told|want|wants|need|needs).{0,80}(?:open|click|follow|go\s+to)?.{0,40}(?:link|url|button|site|website)/iu.test(
-        normalized,
-      ) ||
-      /(?:open|click|follow|go\s+to).{0,40}(?:the\s+)?(?:link|url|button|site|website)/iu.test(
-        normalized,
-      ))
-  ) {
+  if (hasContextualLinkRequestIntent(normalized)) {
     return "link_request";
   }
 
@@ -2185,7 +2422,6 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "reply_safety";
   }
 
-  const sharedVictimIntent = classifySharedVictimInlineIntent(normalized);
   if (sharedVictimIntent) {
     return sharedVictimIntent;
   }
@@ -2307,7 +2543,7 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
     return buildArticle(
       `check-${result.level}-${humanIntent.replaceAll("_", "-")}`,
       intentCopy.title,
-      `${level.description}. ${intentCopy.description}`,
+      intentCopy.description,
       formatHumanInlineMessage(result, lang, intentCopy),
       lang,
     );
@@ -2486,6 +2722,36 @@ function throwInlineAnswerDeliveryError(response: {
   );
 }
 
+function scopeInlineArticle(
+  article: InlineQueryResultArticle,
+  query: string,
+  lang: Lang,
+): InlineQueryResultArticle {
+  const semanticId = article.id.replace(/[^A-Za-z0-9_-]/gu, "-").slice(0, 47) || "result";
+  const plainMessage = INLINE_PLAIN_TEXT.get(article) ?? article.input_message_content.message_text;
+  const fingerprint = createHash("sha256")
+    .update("inline-result-v1\0")
+    .update(semanticId)
+    .update("\0")
+    .update(lang)
+    .update("\0")
+    .update(query.normalize("NFKC").trim())
+    .update("\0")
+    .update(article.title)
+    .update("\0")
+    .update(article.description ?? "")
+    .update("\0")
+    .update(plainMessage)
+    .digest("base64url")
+    .slice(0, 16);
+
+  // Mutate the newly built article instead of cloning it: the WeakMap entry
+  // containing the plaintext Markdown fallback must remain attached to this
+  // exact object for answerOne's parse-error retry.
+  article.id = `${semanticId}-${fingerprint}`;
+  return article;
+}
+
 async function answerOne(
   inlineQueryId: string,
   result: InlineQueryResultArticle,
@@ -2547,40 +2813,43 @@ export async function handleInlineQuery(
   const lang = ctx.session.lang;
   const copy = COPY[lang];
   const trimmed = query.trim();
+  const answer = async (
+    article: InlineQueryResultArticle,
+    cacheTime = SUCCESS_INLINE_CACHE_SECONDS,
+  ): Promise<void> => {
+    await answerOne(inlineQueryId, scopeInlineArticle(article, trimmed, lang), cacheTime);
+  };
 
   if (trimmed.length === 0) {
-    await answerOne(inlineQueryId, helpArticle(lang));
+    await answer(helpArticle(lang));
     return;
   }
 
   if (unicodeCodePointLength(trimmed) > MAX_INLINE_QUERY_LENGTH) {
-    await answerOne(
-      inlineQueryId,
-      staticArticle("too-long", lang, copy.tooLongTitle, copy.tooLongDescription),
-    );
+    await answer(staticArticle("too-long", lang, copy.tooLongTitle, copy.tooLongDescription));
     return;
   }
 
   if (isAmbiguousShortNumericQuery(trimmed)) {
-    await answerOne(inlineQueryId, ambiguousNumericArticle(lang));
+    await answer(ambiguousNumericArticle(lang));
     return;
   }
 
   const smallTalkIntent = classifyInlineSmallTalk(trimmed);
   if (smallTalkIntent) {
-    await answerOne(inlineQueryId, smallTalkArticle(smallTalkIntent, lang));
+    await answer(smallTalkArticle(smallTalkIntent, lang));
     return;
   }
 
   const metaIntent = classifyMetaIntent(trimmed);
   if (metaIntent) {
-    await answerOne(inlineQueryId, metaIntentArticle(metaIntent, lang));
+    await answer(metaIntentArticle(metaIntent, lang));
     return;
   }
 
   const preflightIntent = classifyHumanInlineIntent(trimmed);
   if (shouldUsePreflightInlineIntent(trimmed, preflightIntent)) {
-    await answerOne(inlineQueryId, humanIntentArticle(trimmed, lang, preflightIntent));
+    await answer(humanIntentArticle(trimmed, lang, preflightIntent));
     return;
   }
 
@@ -2599,7 +2868,7 @@ export async function handleInlineQuery(
   } catch (error) {
     const fallbackIntent = classifyHumanInlineIntent(trimmed);
     if (isRateLimitedError(error) && shouldUsePreflightInlineIntent(trimmed, fallbackIntent)) {
-      await answerOne(inlineQueryId, humanIntentArticle(trimmed, lang, fallbackIntent));
+      await answer(humanIntentArticle(trimmed, lang, fallbackIntent));
       return;
     }
 
@@ -2611,9 +2880,9 @@ export async function handleInlineQuery(
           rateLimitDescription(lang, error.retryAfter),
         )
       : staticArticle("error", lang, copy.errorTitle, copy.errorDescription);
-    await answerOne(inlineQueryId, article, 0);
+    await answer(article, 0);
     return;
   }
 
-  await answerOne(inlineQueryId, resultArticle(result, lang));
+  await answer(resultArticle(result, lang));
 }

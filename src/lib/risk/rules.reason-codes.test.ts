@@ -1505,3 +1505,49 @@ describe("evaluateText — physical access context stays clause-local", () => {
     expect(evaluateText(text)).not.toContain("asks_for_sms_code");
   });
 });
+
+describe("evaluateText — Inline context severity regressions", () => {
+  it("does not treat neutral Uzbek 'hozir' context as urgency", () => {
+    const text =
+      "Men hozir uydaman va shoshmayapman, SMS kod keldi, notanish odam uni aytishimni so'rayapti";
+    const reasons = evaluateText(text);
+
+    expect(reasons).toContain("asks_for_sms_code");
+    expect(reasons).not.toContain("uses_urgency");
+    expect(scoreFromCodes(reasons).level, reasons.join(", ")).toBe("suspicious");
+  });
+
+  it("still detects a real Uzbek immediate-action demand", () => {
+    expect(evaluateText("Hozir SMS kodni ayting")).toContain("uses_urgency");
+  });
+
+  it.each([
+    "Operator SIM kartani almashtirish uchun kod so'rayapti",
+    "The mobile operator asks for a code to replace my SIM card",
+  ])("detects a SIM replacement code request: %s", (text) => {
+    const reasons = evaluateText(text);
+    expect(reasons).toContain("sim_swap_or_number_transfer");
+    expect(scoreFromCodes(reasons).level, reasons.join(", ")).toBe("suspicious");
+  });
+
+  it.each([
+    "Operator SIM almashtirishda kod so'ramaydi, faqat ofisga kelishni aytdi",
+    "The operator does not ask for a code when replacing a SIM in the office",
+  ])("keeps an explicit SIM no-code notice neutral: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("sim_swap_or_number_transfer");
+  });
+
+  it("detects a guaranteed TON wallet investment pitch", () => {
+    const reasons = evaluateText(
+      "Предлагают вложить деньги в TON wallet с гарантированным доходом",
+    );
+    expect(reasons).toContain("investment_fast_profit_pitch");
+    expect(scoreFromCodes(reasons).level).toBe("suspicious");
+  });
+
+  it("keeps a routine transfer between the user's own wallets neutral", () => {
+    expect(evaluateText("Я перевёл USDT между своими TON-кошельками")).not.toContain(
+      "investment_fast_profit_pitch",
+    );
+  });
+});

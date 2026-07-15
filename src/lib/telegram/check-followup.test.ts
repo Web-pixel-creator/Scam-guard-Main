@@ -175,12 +175,12 @@ describe("last check follow-up router", () => {
     ["What should I do right now?", "next_steps"],
     ["Hozir nima qilay?", "next_steps"],
   ] as const)(
-    "keeps a broad urgency signal attached to the recent result: %s",
+    "routes a user safety question without treating it as attacker urgency: %s",
     (text, expectedAction) => {
       const now = new Date("2026-07-13T08:00:00.000Z");
       const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
 
-      expect(evaluateText(text)).toContain("uses_urgency");
+      expect(evaluateText(text)).not.toContain("uses_urgency");
       expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe(expectedAction);
     },
   );

@@ -112,9 +112,7 @@ const ACTIVE_FAMILY_REQUEST_RE =
 const FAMILY_REQUEST_VALUE_RE =
   /(?:деньг|денег|перевод|оплат|помощ|бед|сбор|pul|qarz|o['’]?tkaz|to['’]?lov|to['’]?la|yordam|muammo|yig['’]?ish|money|transfer|pay|help|trouble|collection)/iu;
 const COMPLETED_PERSONAL_DATA_RE =
-  /(?:(?:я|i|men).{0,80}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim).{0,100}(?:паспорт|passport|pasport|удостоверен|identity\s+document|shaxsiy\s+hujjat)|(?:я|i|men).{0,80}(?:паспорт|passport|pasport|удостоверен|identity\s+document|shaxsiy\s+hujjat).{0,100}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim))/iu;
-const UNTRUSTED_PERSONAL_DATA_RECIPIENT_RE =
-  /(?:незнаком|чуж|мошен|begona|notanish|firibgar|stranger|scammer|someone\s+i\s+do\s+not\s+know|unknown\s+(?:person|chat|account))/iu;
+  /(?:(?:я|i|men).{0,80}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim).{0,120}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi))|(?:я|i|men).{0,80}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi)).{0,120}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim))/iu;
 const COMPLETED_PASSWORD_ENTRY_RE =
   /(?:(?:я|i|men).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim).{0,80}(?:парол|password|parol).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt)|(?:я|i|men).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt).{0,80}(?:парол|password|parol).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim))/iu;
 const UNAUTHORIZED_CHARGE_RE =
@@ -122,7 +120,34 @@ const UNAUTHORIZED_CHARGE_RE =
 const SAFE_ROUTINE_PAYMENT_RE =
   /(?:(?:mother|mom).{0,60}(?:already\s+)?paid.{0,60}(?:electricity|utility)\s+bill|мам\p{L}*.{0,60}(?:уже\s+)?оплатил\p{L}*.{0,60}коммунальн\p{L}*\s+услуг\p{L}*|onam\p{L}*.{0,60}elektr\s+to['’]?lovini.{0,60}to['’]?ladi|i\s+already\s+sent\s+money\s+back\s+to\s+my\s+friend|я\s+уже\s+вернул\p{L}*\s+деньги\s+другу)/iu;
 const SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE =
-  /(?:(?:i|я|men).{0,80}(?:sent|отправил|yubordim).{0,80}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat).{0,120}(?:official|официальн\p{L}*|rasmiy).{0,80}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi)|(?:i|я|men).{0,80}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat).{0,80}(?:official|официальн\p{L}*|rasmiy).{0,80}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi).{0,80}(?:sent|отправил|yubordim))/iu;
+  /(?:(?:i|я|men).{0,80}(?:sent|shared|submitted|uploaded|отправил[аи]?|выслал[аи]?|загрузил[аи]?|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim).{0,100}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat|hujjat\s+(?:rasmi|nusxasi)).{0,140}(?:official|официальн\p{L}*|rasmiy).{0,100}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi)|(?:i|я|men).{0,80}(?:passport|identity\s+document|\bid\b|паспорт|удостоверен|pasport|shaxsiy\s+hujjat|hujjat\s+(?:rasmi|nusxasi)).{0,100}(?:official|официальн\p{L}*|rasmiy).{0,100}(?:app|government\s+portal|bank(?:ing)?\s+app|visa\s+application\s+cent(?:er|re)|государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*|davlat\s+portali|bank\s+ilovasi|viza\s+markazi).{0,100}(?:sent|shared|submitted|uploaded|отправил[аи]?|выслал[аи]?|загрузил[аи]?|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim))/iu;
+const SAFE_OFFICIAL_DOCUMENT_HANDOFF_RE =
+  /(?:(?:я).{0,80}(?:передал[аи]?|послал[аи]?).{0,100}(?:паспорт|удостоверен).{0,140}(?:официальн\p{L}*).{0,100}(?:государственн\p{L}*\s+портал|приложен\p{L}*\s+банк\p{L}*|визов\p{L}*\s+центр\p{L}*)|(?:men).{0,80}(?:pasport|shaxsiy\s+hujjat).{0,140}(?:rasmiy).{0,100}(?:davlat\s+portali|bank\s+ilovasi|viza\s+markazi).{0,100}(?:topshirdim|taqdim\s+etdim))/iu;
+const SAFE_OFFICIAL_SIM_SERVICE_RE =
+  /(?:(?:mobile\s+operator|mobile\s+carrier|оператор|beeline|ucell|mobiuz|uzmobile|uztelecom).{0,100}(?:replaced|reissued|заменил\p{L}*|перевыпустил\p{L}*|almashtir\p{L}*).{0,80}(?:sim|e-?sim|сим).{0,100}(?:official\s+(?:office|store)|официальн\p{L}*\s+(?:офис|салон)|rasmiy\s+(?:ofis|do['’]?kon))|(?:official\s+(?:office|store)|официальн\p{L}*\s+(?:офис|салон)|rasmiy\s+(?:ofis|do['’]?kon)).{0,100}(?:mobile\s+operator|mobile\s+carrier|оператор|beeline|ucell|mobiuz|uzmobile|uztelecom).{0,100}(?:replaced|reissued|заменил\p{L}*|перевыпустил\p{L}*|almashtir\p{L}*).{0,80}(?:sim|e-?sim|сим))/iu;
+const AUTHORITY_CONTACT_RE =
+  /(?:(?:мне|нам|меня|со\s+мной).{0,70}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?|обратил[аси]?ь?).{0,140}(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател|майор|кадастр|налогов|солик|солиқ|суд)|(?:мне|нам|меня|со\s+мной).{0,70}(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател|майор|кадастр|налогов|солик|солиқ|суд).{0,140}(?:звон(?:ит|ят|или|ил|ила)|позвон(?:ил|ила|или)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?|обратил[аси]?ь?)|(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател|майор|кадастр|налогов|солик|солиқ|суд).{0,140}(?:звон(?:ит|ят|или|ил|ила)|пиш(?:ет|ут)|написал[аи]?|связал[аси]?ь?|обратил[аси]?ь?).{0,70}(?:мне|нам|меня)|(?:menga|bizga|men\s+bilan).{0,70}(?:qo['’]?ng['’]?iroq|qong['’]?iroq|telefon|yoz|xabar|bog['’]?lan).{0,140}(?:iib|ichki\s+ishlar|politsiya|prokuratura|prokuror|tergovchi|soliq|kadastr|sud)|(?:menga|bizga|men\s+bilan).{0,70}(?:iib|ichki\s+ishlar|politsiya|prokuratura|prokuror|tergovchi|soliq|kadastr|sud).{0,140}(?:qo['’]?ng['’]?iroq|qong['’]?iroq|telefon|yoz|xabar|bog['’]?lan)|(?:iib|ichki\s+ishlar|politsiya|prokuratura|prokuror|tergovchi|soliq|kadastr|sud).{0,140}(?:qo['’]?ng['’]?iroq|qong['’]?iroq|telefon|yoz|xabar|bog['’]?lan).{0,70}(?:menga|bizga)|(?:me|us).{0,70}(?:call(?:ed|ing|s)?|wrote|messag(?:ed|ing|es)?|text(?:ed|ing|s)?|contact(?:ed|ing|s)?).{0,140}(?:police|prosecutor|tax\s+(?:office|authority)|court|investigator|detective)|(?:police|prosecutor|tax\s+(?:office|authority)|court|investigator|detective).{0,140}(?:call(?:ed|ing|s)?|wrote|messag(?:ed|ing|es)?|text(?:ed|ing|s)?|contact(?:ed|ing|s)?).{0,70}(?:me|us))/iu;
+const QUOTED_RU_LEGAL_AUTHORITY_CLAIM_RE =
+  /(?:(?:(?:я|мы)\s+(?:(?:сотрудник|представитель|следователь|майор)\s+)?(?:из\s+)?(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур)|(?:это|говорит)\s+(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур)).{0,180}(?:вас\s+подозрева|вы\s+подозрева|вас\s+обвиня|против\s+вас.{0,35}(?:дело|производство)|вы\s+проходите\s+по\s+(?:уголовн\p{L}*\s+)?делу|вас\s+разыскива|вы\s+в\s+розыске|вам\s+грозит|вас\s+задержат)|(?:вас\s+подозрева|вы\s+подозрева|вас\s+обвиня|против\s+вас.{0,35}(?:дело|производство)|вы\s+проходите\s+по\s+(?:уголовн\p{L}*\s+)?делу|вас\s+разыскива|вы\s+в\s+розыске|вам\s+грозит|вас\s+задержат).{0,180}(?:(?:я|мы)\s+(?:(?:сотрудник|представитель|следователь|майор)\s+)?(?:из\s+)?(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур)|(?:это|говорит)\s+(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур)))/iu;
+const QUOTED_UZ_LEGAL_AUTHORITY_CLAIM_RE =
+  /(?:(?:men\s+(?:(?:iib|ichki\s+ishlar|politsiya|prokuratura)(?:dan)?(?:man)?|(?:iib|ichki\s+ishlar|politsiya|prokuratura)\s+xodimiman)|bu\s+(?:iib|ichki\s+ishlar|politsiya|prokuratura)).{0,180}(?:siz.{0,45}(?:gumon|ayblan|jinoyat\s+ishi|qidiruv)|sizga.{0,45}(?:jinoyat\s+ishi|ayblov)))/iu;
+const QUOTED_EN_LEGAL_AUTHORITY_CLAIM_RE =
+  /(?:(?:i\s+am|i['’]?m|this\s+is)\s+(?:(?:an?\s+)?(?:officer|investigator|detective)\s+(?:with|from)\s+|from\s+)?(?:the\s+)?(?:police|prosecutor['’]?s?\s+office).{0,180}(?:you\s+are\s+(?:suspected|accused|under\s+investigation)|you\s+are\s+wanted|there\s+is\s+(?:a\s+)?(?:criminal\s+)?case\s+against\s+you|a\s+warrant.{0,35}you))/iu;
+const AUTHORITY_LEGAL_TOPIC_RE =
+  /(?:рувд|(?<!\p{L})овд(?!\p{L})|мвд|полици|прокуратур|следовател|инспектор|(?<!\p{L})iib(?!\p{L})|ichki\s+ishlar|politsiya|prokuror|tergovchi|police|investigator|detective|prosecutor|law\s+enforcement\s+officer)/iu;
+const AUTHORITY_LEGAL_ALLEGATION_RE =
+  /(?:подозрева|подозреваем|обвиня|уголовн\p{L}*\s+дел|разыскива|розыск|задерж|jinoyat\s+ishi|gumon|ayblan|qidiruv|suspect(?:ed)?|criminal\s+case|accused|under\s+investigation|warrant)/iu;
+const OPERATOR_SIM_TOPIC_RE =
+  /(?:sim(?:-?карт\p{L}*)?|e-?sim|сим(?:-?карт\p{L}*)?|оператор|beeline|ucell|mobiuz|uzmobile|uztelecom|mobile\s+operator|mobile\s+carrier|cell(?:ular)?\s+carrier)/iu;
+const OPERATOR_SIM_CHANGE_RE =
+  /(?:замен|перевыпуск|восстанов|перенос\p{L}*\s+номер|almashtir|qayta\s+chiqar|raqam\p{L}*\s+ko['’]?chir|replace|replacement|swap|reissue|port(?:ing)?\s+(?:my\s+)?number)/iu;
+const OPERATOR_SIM_SECRET_RE = /(?:sms|смс|otp|код|code|kod|tasdiqlash)/iu;
+const INVESTMENT_VEHICLE_RE =
+  /(?:инвест|крипт|бирж|трейд|ton|wallet|кошел[её]к|invest|crypto|trading|exchange|hamyon)/iu;
+const INVESTMENT_PROMISE_RE =
+  /(?:гарантир|гарантирован|доход|прибыл|быстр\p{L}*\s+процент|кафолат|kafolat|daromad|foyda|tez\s+foiz|guaranteed|guarantee|income|profit|return|yield)/iu;
+const INVESTMENT_SOLICIT_RE =
+  /(?:предлага|приглаша|совету|обеща|влож|внести|пополни|taklif|va['’]?da|pul\s+qo['’]?y|depozit|offer|invite|promise|deposit)/iu;
 const SAFE_PHYSICAL_ACCESS_CODE_RE =
   /(?:(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza).{0,50}(?:code|код|kod)|(?:code|код|kod).{0,50}(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza))/iu;
 
@@ -269,6 +294,30 @@ function hasNearbyPatterns(
     else rightCursor += 1;
   }
   return false;
+}
+
+function isAuthorityLegalIncident(text: string): boolean {
+  return (
+    hasVictimFrame(text) &&
+    hasNearbyPatterns(text, AUTHORITY_LEGAL_TOPIC_RE, AUTHORITY_LEGAL_ALLEGATION_RE, 220)
+  );
+}
+
+function isOperatorSimSecretRequest(text: string): boolean {
+  return (
+    hasAskVerb(text) &&
+    OPERATOR_SIM_TOPIC_RE.test(text) &&
+    OPERATOR_SIM_CHANGE_RE.test(text) &&
+    OPERATOR_SIM_SECRET_RE.test(text)
+  );
+}
+
+function isHighConfidenceInvestmentOffer(text: string): boolean {
+  return (
+    INVESTMENT_VEHICLE_RE.test(text) &&
+    INVESTMENT_PROMISE_RE.test(text) &&
+    INVESTMENT_SOLICIT_RE.test(text)
+  );
 }
 
 function isTravelMigrationPrepaymentIntent(text: string): boolean {
@@ -484,6 +533,10 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
 export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = normalizeVictimText(text);
   if (!normalized) return null;
+  // Do not reinterpret an explicitly completed official SIM service as
+  // Russian Latin-keyboard input after the direct classifier correctly
+  // keeps it neutral.
+  if (SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized)) return null;
   const direct = classifyNormalizedVictimIntent(normalized);
   if (direct) return direct;
   // Latin-keyboard fallback: «menya obmanuli» → «меня обманули». Runs only
@@ -536,6 +589,22 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "acknowledgement" };
   }
 
+  // Authority contact/accusation signals must run before generic unknown-call
+  // and broad official-message routes, which would otherwise discard the
+  // named РУВД/ОВД/МВД (or IIB/police) context.
+  if (
+    isAuthorityLegalIncident(normalized) ||
+    QUOTED_RU_LEGAL_AUTHORITY_CLAIM_RE.test(normalized) ||
+    QUOTED_UZ_LEGAL_AUTHORITY_CLAIM_RE.test(normalized) ||
+    QUOTED_EN_LEGAL_AUTHORITY_CLAIM_RE.test(normalized)
+  ) {
+    return { kind: "legal_impersonation" };
+  }
+
+  if (AUTHORITY_CONTACT_RE.test(normalized)) {
+    return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
   // Post-action account loss is an incident, not a generic question about a
   // "QR code".  Keep it ahead of both emotional-help and advice/code routing
   // so the word "code" in the artifact label cannot hide a takeover signal.
@@ -563,9 +632,27 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   if (
     SAFE_ROUTINE_PAYMENT_RE.test(normalized) ||
     SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE.test(normalized) ||
+    SAFE_OFFICIAL_DOCUMENT_HANDOFF_RE.test(normalized) ||
+    SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized) ||
     isSafePhysicalAccessOnly(normalized)
   ) {
     return null;
+  }
+
+  // Concrete scheme evidence must keep priority over generic wrapper clauses
+  // such as "is this safe?" or "what should I do now?". These predicates
+  // require multiple topic-specific signals, so neutral mentions of an
+  // authority, a SIM, an investment wallet, or a job remain unaffected.
+  if (isOperatorSimSecretRequest(normalized)) {
+    return { kind: "operator_call", askedContext: "call" };
+  }
+
+  if (isHighConfidenceInvestmentOffer(normalized)) {
+    return { kind: "investment_offer", askedContext: "transfer" };
+  }
+
+  if (isJobEntryFeeIntent(normalized)) {
+    return { kind: "job_offer" };
   }
 
   const newsIntent = classifyNewsVictimIntent(normalized);
@@ -576,10 +663,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   // Completed incidents must be classified before generic code/file/data
   // request rules, otherwise the bot gives prevention advice after the harm
   // has already happened.
-  if (
-    COMPLETED_PERSONAL_DATA_RE.test(normalized) &&
-    UNTRUSTED_PERSONAL_DATA_RECIPIENT_RE.test(normalized)
-  ) {
+  if (COMPLETED_PERSONAL_DATA_RE.test(normalized)) {
     return { kind: "personal_data_already_shared" };
   }
 
