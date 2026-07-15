@@ -98,6 +98,23 @@ const maxDigitRun = (s: string): number =>
 const digitsOnly = (s: string): string => s.replace(/\D/g, "");
 
 describe("check-core property tests (telegram-bot-mvp)", () => {
+  it("redacts an ambiguous bare 8-digit value through the real Inline check boundary", async () => {
+    const result = await runCheck({
+      input: "12345678",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "telegram",
+      skipAi: true,
+      skipUrlReputation: true,
+      persist: false,
+    });
+
+    expect(result.type).toBe("text");
+    expect(result.display).toBe("••••");
+    expect(result.display).not.toMatch(/\d/u);
+    expect(hoisted.insertCalls).toHaveLength(0);
+  });
+
   it("does not persist checks when persist=false", async () => {
     const result = await runCheck({
       input: "Срочно назовите SMS код из банка",

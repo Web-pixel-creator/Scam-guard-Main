@@ -751,6 +751,31 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it.each([
+    ["Меня просят оплатить обучение на работу как новичку", "ru", "Не платите заранее"],
+    ["Mendan yangi ish uchun o'qish pulini to'lashni so'rashyapti", "uz", "Oldindan vakansiya"],
+    ["They ask me to pay for training as a newcomer to the job", "en", "Do not pay"],
+    ["Они снова просят оплатить обучение перед работой", "ru", "Не платите заранее"],
+    ["Ular yana ish uchun o'qish pulini to'lashni so'rashyapti", "uz", "Oldindan vakansiya"],
+    ["They keep asking me to pay the training fee before the job", "en", "Do not pay"],
+  ] as const)(
+    "routes job-entry payment guidance without running a risk check: %s",
+    async (text, lang, actionLead) => {
+      await handleCheck(text, {
+        chatId: 100,
+        userId: 42,
+        session: { ...sessionWith(), lang },
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      expect(hoisted.sentMessages).toHaveLength(1);
+      expect(hoisted.sentMessages[0].text.startsWith(actionLead)).toBe(true);
+      expect(hoisted.sentMessages[0].text).not.toMatch(
+        /(?:Срочный перевод|xavfsiz hisob|safe accounts)/u,
+      );
+    },
+  );
+
   it.each(LIVE_PHRASE_CASES.map((item) => [item.area, item.text, item] as const))(
     "routes live phrase matrix row '%s' / '%s'",
     async (_area, _text, item) => {

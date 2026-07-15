@@ -135,7 +135,7 @@ describe("getFile", () => {
 });
 
 describe("getUpdates", () => {
-  it("long-polls exactly one ordered update at the requested offset", async () => {
+  it("long-polls the requested ordered batch at the requested offset", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ ok: true, result: [{ update_id: 44 }] }), { status: 200 }),
     );
@@ -145,7 +145,26 @@ describe("getUpdates", () => {
     ]);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/getUpdates`);
-    expect(JSON.parse(init.body)).toEqual({ offset: 44, timeout: 25, limit: 1 });
+    expect(JSON.parse(init.body)).toEqual({ offset: 44, timeout: 25, limit: 99 });
+  });
+
+  it.each([
+    [undefined, 20],
+    [0, 1],
+    [-50, 1],
+    [4.9, 4],
+    [101, 100],
+    [5_000, 100],
+    [Number.NaN, 20],
+  ])("clamps the requested limit %s to %s", async (requested, expected) => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: [] }), { status: 200 }),
+    );
+
+    await getUpdates({ timeout: 25, ...(requested === undefined ? {} : { limit: requested }) });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body).limit).toBe(expected);
   });
 });
 
@@ -230,6 +249,54 @@ describe("answerInlineQuery", () => {
       errorCode: 400,
       description: "Bad Request: query is too old",
     });
+  });
+
+  it("preserves a valid Telegram retry_after parameter", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: false,
+          error_code: 429,
+          description: "Too Many Requests",
+          parameters: { retry_after: 3 },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(answerInlineQuery({ inlineQueryId: "inline-rate", results: [] })).resolves.toEqual(
+      {
+        ok: false,
+        errorCode: 429,
+        description: "Too Many Requests",
+        retryAfterSec: 3,
+      },
+    );
+  });
+
+  it("aborts a stalled inline answer after the bounded 2.5 second timeout", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+
+    try {
+      const pending = answerInlineQuery({ inlineQueryId: "inline-stalled", results: [] });
+      await vi.advanceTimersByTimeAsync(2_499);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(pending).resolves.toEqual({ ok: false });
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { normalizePhone } from "./detect";
 import { buildPhoneIntelligencePassport } from "./phone-intelligence";
 import { findVerifiedContact } from "./verified-contacts";
 
@@ -23,6 +24,71 @@ describe("phone intelligence passport", () => {
     expect(passport.country?.iso).toBe("DE");
     expect(passport.country?.name.ru).toBe("Германия");
     expect(passport.uzOperator).toBeNull();
+  });
+
+  it("does not infer a country or international kind from incomplete unprefixed digits", () => {
+    const raw = "12345678";
+    const passport = buildPhoneIntelligencePassport(raw, normalizePhone(raw), null);
+
+    expect(passport).toMatchObject({
+      normalized: "12345678",
+      kind: "unknown",
+      isValidFormat: false,
+      isUzbekistan: false,
+      country: null,
+      uzPrefix: null,
+      uzOperator: null,
+    });
+  });
+
+  it.each(["+12345678", "0012345678"])(
+    "does not call an incomplete US/Canada number valid: %s",
+    (raw) => {
+      const passport = buildPhoneIntelligencePassport(
+        raw,
+        raw.startsWith("00") ? "+12345678" : raw,
+        null,
+      );
+      expect(passport.country?.iso).toBe("US_CA");
+      expect(passport.isValidFormat).toBe(false);
+    },
+  );
+
+  it("keeps a full US/Canada number valid", () => {
+    const raw = "+12025550123";
+    const passport = buildPhoneIntelligencePassport(raw, raw, null);
+    expect(passport.country?.iso).toBe("US_CA");
+    expect(passport.isValidFormat).toBe(true);
+  });
+
+  it("preserves a full international number written with the 00 dialing prefix", () => {
+    const raw = "0049 30 123456";
+    const normalized = normalizePhone(raw);
+    const passport = buildPhoneIntelligencePassport(raw, normalized, null);
+
+    expect(normalized).toBe("+4930123456");
+    expect(passport).toMatchObject({
+      normalized: "+4930123456",
+      kind: "international",
+      isValidFormat: true,
+      isUzbekistan: false,
+    });
+    expect(passport.country?.iso).toBe("DE");
+  });
+
+  it("preserves a nine-digit Uzbek local number", () => {
+    const raw = "90 123 45 67";
+    const normalized = normalizePhone(raw);
+    const passport = buildPhoneIntelligencePassport(raw, normalized, null);
+
+    expect(normalized).toBe("+998901234567");
+    expect(passport).toMatchObject({
+      kind: "uz_mobile",
+      isValidFormat: true,
+      isUzbekistan: true,
+      uzPrefix: "90",
+    });
+    expect(passport.country?.iso).toBe("UZ");
   });
 
   it("marks verified short codes as matched official directory contacts", () => {

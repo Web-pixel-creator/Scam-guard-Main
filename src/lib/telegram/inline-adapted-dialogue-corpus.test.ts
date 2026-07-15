@@ -419,7 +419,7 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
       expect(h.answerCalls.length, testCase.id).toBe(before + 1);
       const call = h.answerCalls.at(-1)!;
       expect(call.inlineQueryId, testCase.id).toBe(inlineQueryId);
-      expect(call.cacheTime, testCase.id).toBe(2);
+      expect(call.cacheTime, testCase.id).toBe(10);
       expect(call.isPersonal, testCase.id).toBe(true);
 
       const article = articleFromLastCall(testCase);

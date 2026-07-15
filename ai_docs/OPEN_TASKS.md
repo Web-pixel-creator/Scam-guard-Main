@@ -2,6 +2,21 @@
 
 ## Fragile / risky spots
 
+- **2026-07-15 Inline/Desktop QA remediation is locally verified, not
+  released.** Forty-one Telegram Desktop screenshots under
+  `private/telegram-inline-qa/2026-07-15/desktop/user-batch-01/` capture the
+  pre-fix behavior for job fees, passport requests, multiline link context,
+  ambiguous numbers, phone privacy, rate-limit refreshes and occasional empty
+  Inline results. The local candidate fixes those paths, extends clause-local
+  RU/UZ/EN safety detection and hardens transient Inline delivery plus polling
+  bursts. The repository suite passes 8,882/8,882; TypeScript, production build
+  and `npm audit` also pass, with zero known npm vulnerabilities. This is not
+  live proof: application CI, the Supabase migration job, production deploy and
+  migration read-back, Desktop post-fix replay and all Android/iOS rows remain
+  open. Keep `INL-001`/`INL-002` out of Passed and `BOT-004` In Progress until
+  those gates are evidenced. See `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md`
+  and `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
+
 - **The authoritative 10/10 release sequence is documented.** See
   `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
   has since advanced through PR #94 at deployed main `f1ddf349`; 8,591 tests,
@@ -42,6 +57,18 @@
   stable metadata-only read-backs found one completed attempt, no retry or
   failure, and the pending queue remained empty. `RES-004` is Passed. The
   system is still not claimed to provide exactly-once delivery.
+  A 2026-07-15 local candidate changes only the processing granularity: it
+  requests batches of 20, pre-validates strictly increasing update ids, keeps
+  every message/callback/hybrid update in causal order and runs strict Inline
+  work in chunks of at most four. While one stateful update is slow, only
+  following Inline work for known different users can read ahead; same/unknown
+  users wait. Offset advancement stops at the first unacknowledged id, while
+  already completed later siblings are safe to replay through the durable
+  lifecycle. Leader renewal now has a bounded deadline/local expiry. A new
+  forward migration lets the current polling leader reclaim a stale-owner
+  processing lease only after a 15-second drain grace, without weakening fences
+  or webhook ownership. Merged reliability tests pass 234/234. CI, pgTAP/schema lint, production
+  migration apply/read-back and a bounded live burst/restart retest remain open.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
@@ -80,11 +107,13 @@
   pass 198/198 and the repository suite passes 2667/2667. Deployment plus a
   forged-marker live smoke across all three renderers remains open.
 - **Mixed-clause AI safety bypass is fixed locally.** A safe warning prefix no
-  longer exempts a sibling transfer, wallet or APK command separated by a
-  semicolon or common English/Russian/Uzbek contrast/sequence boundary. Six
-  adversarial mixed-clause cases and legitimate independently-negated warnings
-  pass; the 31-test focus also passed five consecutive executions. Deployment
-  and provider-output adversarial smoke remain open.
+  longer exempts a sibling transfer, wallet, passport, code or APK command
+  separated by punctuation, RU/UZ/EN contrast/sequence wording or a coordinating
+  conjunction whose following segment contains its own action. Object lists
+  and independently negated safety guidance remain intact, and both safe-first
+  and dangerous-first variants are covered. The complete risk suite passes
+  1,411/1,411, including a bounded long-input regression. Deployment and
+  provider-output adversarial smoke remain open.
 - **AI provider is optional.** Without `OPENAI_API_KEY`, scoring still works but natural-language explanations, screenshot OCR/image understanding and voice STT return `null`. Voice-out/TTS is separately opt-in through `GEMINI_TTS_API_KEY` or `OPENAI_TTS_API_KEY`; without either, the bot sends a short text fallback instead of audio.
 - **Telegram account metadata enrichment is intentionally shallow:** public `getChat` metadata can be shown when available, and Telegram evidence briefs now put visible scam scenarios before generic API limits when local reason codes exist, but Telegram Bot API does not give reliable account age, hidden scam labels, Telegram report counts or spam history to this bot.
 - **Telegram reputation is moderated and app-owned:** `telegram_reputation_targets` can show Ishonch Guard confirmed report counts, but unverified user reports stay hidden from user-facing labels.
@@ -215,6 +244,21 @@
   the reason, limitation and button remain visible. This closes 1/17 Desktop
   cases and 1/51 total client rows. The other 16 Desktop rows plus all 17
   Android and 17 iOS rows remain open.
+  2026-07-15 exploratory Desktop testing added 41 pre-fix screenshots. Local
+  fixes now give job-fee requests job-specific copy, preserve multiline link
+  context, complete passport guidance, treat bare 6-8 digit strings as a
+  possibly secret code or incomplete number, narrow bare-phone recognition,
+  strengthen visible redaction and replace the misleading destination prompt
+  with an explicit request to describe what the other party wants. Stateless
+  previews use a guarded 60/minute policy only when AI, reputation and
+  persistence are disabled; error/rate-limit cards are uncached. Transient
+  network/no-code/5xx `answerInlineQuery` failures are retried once and then
+  surface to the durable lifecycle instead of being acknowledged as delivered.
+  A 429 is delayed according to bounded Telegram `retry_after`, not retried
+  immediately. These statements are
+  local test evidence only. Replay the affected Desktop cases after deployment,
+  then complete Android/iOS RU/UZ/EN rendering, insertion, privacy, timeout and
+  recovery evidence before changing Inline tracker status.
   Keep free-form password privacy under review: quoted, token-shaped and tested
   punctuation/reverse-order secrets are redacted, while an unquoted multiword
   phrase immediately before `password` is intentionally not matched by a broad

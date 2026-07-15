@@ -11,6 +11,10 @@ import {
   type InlineQueryResultArticle,
 } from "@/lib/telegram/api.server";
 import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
+import {
+  inlineDeliveryRetryMsFromSeconds,
+  TelegramInlineAnswerDeliveryError,
+} from "@/lib/telegram/inline-answer-delivery-error";
 import type { InlineQueryCtx } from "@/lib/telegram/router";
 import {
   collectResultReasonCodesForPresentation,
@@ -20,6 +24,7 @@ import { classifyVictimIntent, type VictimIntentKind } from "@/lib/telegram/vict
 
 const MAX_INLINE_QUERY_LENGTH = 256;
 const MAX_INLINE_DESCRIPTION_LENGTH = 120;
+const SUCCESS_INLINE_CACHE_SECONDS = 10;
 const DEFAULT_BOT_USERNAME = "scamguard_bot";
 const INLINE_PLAIN_TEXT = new WeakMap<InlineQueryResultArticle, string>();
 
@@ -87,6 +92,39 @@ type HumanInlineIntent =
 
 type InlineSmallTalkIntent = "thanks" | "identity";
 
+const AMBIGUOUS_NUMERIC_COPY: Readonly<
+  Record<Lang, { title: string; description: string; message: string }>
+> = {
+  ru: {
+    title: "Код или неполный номер",
+    description:
+      "Не вставляйте настоящий код. Если это номер — укажите его полностью, а просьбу опишите словами.",
+    message:
+      "Короткая цифровая строка может быть секретным кодом или неполным номером. Не публикуйте настоящий SMS-код, OTP или PIN. Если это телефон, укажите полный номер; отдельно словами опишите, что вас попросили сделать.",
+  },
+  uz: {
+    title: "Kod yoki to'liq bo'lmagan raqam",
+    description:
+      "Haqiqiy kodni kiritmang. Bu raqam bo'lsa, to'liq yozing va so'rovni so'z bilan tushuntiring.",
+    message:
+      "Qisqa raqamlar maxfiy kod yoki to'liq bo'lmagan telefon bo'lishi mumkin. Haqiqiy SMS-kod, OTP yoki PINni oshkor qilmang. Bu telefon bo'lsa, to'liq raqamni yozing; nima qilish so'ralganini alohida so'z bilan tushuntiring.",
+  },
+  en: {
+    title: "Code or incomplete number",
+    description:
+      "Do not paste a real code. If this is a phone number, enter it in full and describe the request in words.",
+    message:
+      "A short digit string may be a secret code or an incomplete phone number. Do not publish a real SMS code, OTP, or PIN. If it is a phone number, enter the full number and separately describe in words what you were asked to do.",
+  },
+};
+
+type HumanInlineCopy = {
+  title: string;
+  description: string;
+  /** Longer text used after the user inserts the result into the chat. */
+  message?: string;
+};
+
 const INLINE_SMALL_TALK_COPY: Readonly<
   Record<Lang, Readonly<Record<InlineSmallTalkIntent, { title: string; description: string }>>>
 > = {
@@ -127,6 +165,7 @@ const INLINE_SMALL_TALK_COPY: Readonly<
 };
 
 const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
+  "link_request",
   "unknown_call",
   "bank_call",
   "operator_call",
@@ -331,7 +370,7 @@ const PREVIEW_COPY: Record<
     phoneWeakDescription: string;
     telegramTitle: string;
     telegramDescription: string;
-    humanIntents: Record<HumanInlineIntent, { title: string; description: string }>;
+    humanIntents: Record<HumanInlineIntent, HumanInlineCopy>;
     unknownTitle: string;
     unknownDescription: string;
   }
@@ -342,10 +381,10 @@ const PREVIEW_COPY: Record<
       "Есть подтверждённые жалобы Ishonch Guard. Не отправляйте код, карту или деньги.",
     phoneNoReportsTitle: "Номер: жалоб не найдено",
     phoneNoReportsDescription:
-      "Это не гарантия безопасности. Добавьте, что вас просят: код, карту, перевод, APK или QR.",
+      "Жалоб нет — это не гарантия. В этом же запросе опишите просьбу; не вставляйте настоящий код, PIN, CVV или фото.",
     phoneWeakTitle: "Номер выглядит неполным",
     phoneWeakDescription:
-      "Проверьте полный номер или добавьте текст просьбы: код, карта, перевод, APK или QR.",
+      "Укажите полный номер и словами опишите просьбу в этом же запросе. Не вставляйте код, PIN, CVV или фото документа.",
     telegramTitle: "Telegram: нужен контекст",
     telegramDescription:
       "Username сам не доказывает риск. Добавьте текст просьбы, ссылку на пост или скрин.",
@@ -353,7 +392,9 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Ссылка: сначала проверим",
         description:
-          "Пока не открывайте и ничего не вводите. Если не добавили саму ссылку или полный текст — добавьте их в запрос.",
+          "Вы упомянули ссылку, но адреса здесь нет. Не открывайте её; добавьте URL или полный текст в этот же запрос.",
+        message:
+          "Вы упомянули ссылку, но её адреса в запросе нет. Пока не открывайте её и ничего не вводите. Добавьте сам URL или полный текст сообщения в этот же запрос — без паролей и кодов.",
       },
       code_request: {
         title: "Код: никому не называйте",
@@ -473,7 +514,9 @@ const PREVIEW_COPY: Record<
       personal_data: {
         title: "Документы: не отправляйте фото",
         description:
-          "Паспорт, ПИНФЛ/ИНН, селфи и адрес не отправляем незнакомым. Пришлите текст просьбы.",
+          "Не отправляйте паспорт, ПИНФЛ/ИНН, селфи или адрес. В этот же запрос добавьте только текст просьбы — без данных.",
+        message:
+          "Не отправляйте фото паспорта, ПИНФЛ/ИНН, селфи, адрес или другие персональные данные. Проверьте просьбу через официальный канал. Сюда добавьте только её текст или ссылку — без самих документов и секретов.",
       },
       delivery_payment: {
         title: "Доставка: проверьте ссылку",
@@ -503,7 +546,9 @@ const PREVIEW_COPY: Record<
       job_offer: {
         title: "Работа: не платите взнос",
         description:
-          "За вакансию, обучение, форму или проверку не платят заранее. Пришлите условия целиком.",
+          "Платить за вакансию или обязательное обучение до договора опасно. Добавьте условия и ссылку — без оплаты и документов.",
+        message:
+          "Не оплачивайте обучение, форму, проверку или доступ к вакансии до договора и независимой проверки работодателя. Добавьте сюда условия, название компании и ссылку на вакансию — без оплаты и документов.",
       },
       investment_offer: {
         title: "Инвестиции/крипта: осторожно",
@@ -558,7 +603,9 @@ const PREVIEW_COPY: Record<
       reply_safety: {
         title: "Ответ: не раскрывайте данные",
         description:
-          "Можно отвечать только нейтрально. Не отправляйте коды, карту, деньги или документы; пришлите просьбу целиком.",
+          "Сюда добавляйте только текст просьбы. Не вставляйте настоящий SMS-код, PIN, CVV, данные карты или фото документов.",
+        message:
+          "Можно ответить нейтрально, не раскрывая данные. В этот запрос добавьте только текст чужой просьбы; настоящий SMS-код, PIN, CVV, данные карты, пароль или фото документов не вставляйте.",
       },
       safety_question: {
         title: "Безопасно ли: проверим по фактам",
@@ -581,10 +628,10 @@ const PREVIEW_COPY: Record<
       "Ishonch Guardda tasdiqlangan shikoyatlar bor. Kod, karta yoki pul yubormang.",
     phoneNoReportsTitle: "Raqam: shikoyat topilmadi",
     phoneNoReportsDescription:
-      "Bu xavfsizlik kafolati emas. Nima so'ralganini qo'shing: kod, karta, pul, APK yoki QR.",
+      "Shikoyat yo'q — bu kafolat emas. Shu so'rovda iltimosni yozing; haqiqiy kod, PIN, CVV yoki hujjat rasmini kiritmang.",
     phoneWeakTitle: "Raqam to'liq emas",
     phoneWeakDescription:
-      "To'liq raqamni yoki so'rov matnini yuboring: kod, karta, pul, APK yoki QR.",
+      "To'liq raqamni va iltimosni shu so'rovda yozing. Haqiqiy kod, PIN, CVV yoki hujjat rasmini kiritmang.",
     telegramTitle: "Telegram: kontekst kerak",
     telegramDescription:
       "Username o'zi xavfni isbotlamaydi. So'rov matni, post havolasi yoki skrin yuboring.",
@@ -592,7 +639,9 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Havola: avval tekshiramiz",
         description:
-          "Hozircha ochmang va hech narsa kiritmang. Havola yoki to'liq matn hali bo'lmasa, uni so'rovga qo'shing.",
+          "Havola aytilgan, lekin manzil yo'q. Uni ochmang; URL yoki to'liq matnni shu so'rovga qo'shing.",
+        message:
+          "Siz havolani aytdingiz, lekin uning manzili so'rovda yo'q. Uni ochmang va hech narsa kiritmang. URL yoki to'liq xabarni shu so'rovga qo'shing — parol va kodlarsiz.",
       },
       code_request: {
         title: "Kod: hech kimga aytmang",
@@ -711,7 +760,9 @@ const PREVIEW_COPY: Record<
       personal_data: {
         title: "Hujjatlar: rasm yubormang",
         description:
-          "Pasport, PINFL/STIR, selfi yoki manzilni notanishlarga yubormang. So'rov matnini yuboring.",
+          "Pasport, PINFL/STIR, selfi yoki manzilni yubormang. Shu so'rovga faqat iltimos matnini qo'shing — ma'lumotsiz.",
+        message:
+          "Pasport rasmi, PINFL/STIR, selfi, manzil yoki boshqa shaxsiy ma'lumotlarni yubormang. So'rovni rasmiy kanal orqali tekshiring. Bu yerga faqat matn yoki havolani, hujjat va sirlarsiz qo'shing.",
       },
       delivery_payment: {
         title: "Yetkazib berish: havolani tekshiring",
@@ -740,7 +791,9 @@ const PREVIEW_COPY: Record<
       job_offer: {
         title: "Ish: oldindan to'lov qilmang",
         description:
-          "Vakansiya, o'qish, forma yoki tekshiruv uchun avval pul to'lamang. Shartlarni to'liq yuboring.",
+          "Shartnomasiz ish yoki majburiy o'qish uchun to'lash xavfli. Shartlar va havolani, to'lovsiz qo'shing.",
+        message:
+          "Shartnoma va ish beruvchini mustaqil tekshirmasdan o'qish, forma, tekshiruv yoki vakansiyaga kirish uchun to'lamang. Bu yerga shartlar, kompaniya nomi va havolani — pul va hujjatlarsiz qo'shing.",
       },
       investment_offer: {
         title: "Invest/kripto: ehtiyot bo'ling",
@@ -794,7 +847,9 @@ const PREVIEW_COPY: Record<
       reply_safety: {
         title: "Javob: ma'lumot bermang",
         description:
-          "Faqat neytral javob bering. Kod, karta, pul yoki hujjat yubormang; so'rovni to'liq yuboring.",
+          "Bu yerga faqat iltimos matnini yozing. Haqiqiy SMS-kod, PIN, CVV, karta ma'lumoti yoki hujjat rasmini kiritmang.",
+        message:
+          "Ma'lumot bermasdan neytral javob berish mumkin. Shu so'rovga faqat begona iltimos matnini qo'shing; haqiqiy SMS-kod, PIN, CVV, karta, parol yoki hujjat rasmini kiritmang.",
       },
       safety_question: {
         title: "Xavfsizmi: faktlar bo'yicha tekshiramiz",
@@ -817,10 +872,10 @@ const PREVIEW_COPY: Record<
       "Ishonch Guard has confirmed reports. Do not send a code, card data or money.",
     phoneNoReportsTitle: "Number: no reports found",
     phoneNoReportsDescription:
-      "This is not a safety guarantee. Add what they ask for: code, card, transfer, APK or QR.",
+      "No reports is not a guarantee. Describe the request here; do not paste a real code, PIN, CVV or document photo.",
     phoneWeakTitle: "Number looks incomplete",
     phoneWeakDescription:
-      "Send the full number or add the request text: code, card, transfer, APK or QR.",
+      "Add the full number and describe the request here. Do not paste a real code, PIN, CVV or document photo.",
     telegramTitle: "Telegram: context needed",
     telegramDescription:
       "A username alone cannot prove risk. Add the request text, post link or screenshot.",
@@ -828,7 +883,9 @@ const PREVIEW_COPY: Record<
       link_request: {
         title: "Link: check it first",
         description:
-          "Do not open it or enter anything yet. If the link or full text is missing, add it to the query.",
+          "You mentioned a link, but its address is missing. Do not open it; add the URL or full text to this query.",
+        message:
+          "You mentioned a link, but its address is missing from the query. Do not open it or enter anything. Add the URL or full message to this same query — without passwords or codes.",
       },
       code_request: {
         title: "Code: do not share it with anyone",
@@ -948,7 +1005,9 @@ const PREVIEW_COPY: Record<
       personal_data: {
         title: "Documents: do not send photos",
         description:
-          "Do not send passport, tax ID, selfie or address to strangers. Send the request text.",
+          "Do not send a passport, tax ID, selfie or address. Add only the request text here — without personal data.",
+        message:
+          "Do not send passport photos, tax ID, selfies, address or other personal data. Verify the request through an official channel. Add only its text or link here — without documents or secrets.",
       },
       delivery_payment: {
         title: "Delivery: check the link",
@@ -978,7 +1037,9 @@ const PREVIEW_COPY: Record<
       job_offer: {
         title: "Job: do not pay a fee",
         description:
-          "Do not prepay for a job, training, uniform or verification. Send the full terms.",
+          "Paying for a job or mandatory training before a contract is risky. Add the terms and link — without paying or sending ID.",
+        message:
+          "Do not pay for training, uniform, verification or access to a vacancy before a contract and independent employer check. Add the terms, company name and vacancy link here — without payment or documents.",
       },
       investment_offer: {
         title: "Invest/crypto: be careful",
@@ -1033,7 +1094,9 @@ const PREVIEW_COPY: Record<
       reply_safety: {
         title: "Reply: do not reveal data",
         description:
-          "Only reply neutrally. Do not send codes, card data, money or documents; send the full request.",
+          "Add only the request text here. Do not paste a real SMS code, PIN, CVV, card details or document photo.",
+        message:
+          "You may reply neutrally without revealing data. Add only the other person's request text here; never paste a real SMS code, PIN, CVV, card details, password or document photo.",
       },
       safety_question: {
         title: "Is it safe: check with facts",
@@ -1118,7 +1181,7 @@ function inlineSafeAction(result: RunCheckResult, lang: Lang, copy: Copy): strin
 function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   const copy = COPY[lang];
   const level = copy.levels[result.level];
-  if (result.level === "high_risk") {
+  if (result.level === "high_risk" || result.level === "suspicious") {
     return [
       level.title,
       `${copy.stepLabel}: ${inlineSafeAction(result, lang, copy)}`,
@@ -1149,7 +1212,7 @@ function formatInlinePreviewDescription(result: RunCheckResult, lang: Lang): str
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   const summary = `${level.description}. ${topReason(result, lang, copy)}`;
-  return result.level === "high_risk"
+  return result.level === "high_risk" || result.level === "suspicious"
     ? `${inlineSafeAction(result, lang, copy)} ${summary}`
     : summary;
 }
@@ -1157,7 +1220,7 @@ function formatInlinePreviewDescription(result: RunCheckResult, lang: Lang): str
 function formatHumanInlineMessage(
   result: RunCheckResult,
   lang: Lang,
-  intentCopy: { title: string; description: string },
+  intentCopy: HumanInlineCopy,
 ): string {
   const copy = COPY[lang];
   const level = copy.levels[result.level];
@@ -1168,11 +1231,11 @@ function formatHumanInlineMessage(
     copy.checkedBy,
     "",
     `${copy.displayLabel}: ${safeInlineDisplay(result.display, result.type)}`,
-    "",
-    intentCopy.description,
-    "",
-    "@scamguard_bot",
   ];
+  if (result.level !== "unknown") {
+    lines.push(`${copy.reasonLabel}: ${topReason(result, lang, copy)}`);
+  }
+  lines.push("", intentCopy.message ?? intentCopy.description, "", "@scamguard_bot");
   return lines.join("\n");
 }
 
@@ -1231,7 +1294,109 @@ function hasCodeRequestIntent(normalized: string): boolean {
     ) ||
     /(?:code|sms|otp|push|pin|password).{0,80}(?:tell|say|share|send|read out|enter|should i|can i)/iu.test(
       normalized,
+    ) ||
+    /(?:назовите|скажите|сообщите|продиктуйте|отправьте|перешлите|скиньте|введите).{0,60}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+      normalized,
+    ) ||
+    /(?:ayting|bering|yuboring|jo['’]?nating|kiriting).{0,60}(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes)/iu.test(
+      normalized,
+    ) ||
+    /(?:tell|say|share|send|read out|enter|provide).{0,60}(?:code|sms|otp|push|pin|password)/iu.test(
+      normalized,
     )
+  );
+}
+
+function hasTransferRequestIntent(normalized: string): boolean {
+  return (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:перевести|перевод|оплатить|заплатить|пополни|безопасн.{0,20}сч[её]т)/iu.test(
+      normalized,
+    ) ||
+    /(?:перевести|перевод|переведите|оплатить|оплатите|заплатить|заплатите).{0,80}(?:деньг|сум|карт|номер|сч[её]т)/iu.test(
+      normalized,
+    ) ||
+    /(?:pul|to['’]?lov|o['’]?tkaz|hisob).{0,80}(?:yubor|qil|ber|to['’]?la)/iu.test(normalized) ||
+    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:transfer|pay|payment|send money|safe account)/iu.test(
+      normalized,
+    ) ||
+    /(?:transfer|send|pay).{0,60}(?:money|funds|fee|account)/iu.test(normalized)
+  );
+}
+
+function hasCardRequestIntent(normalized: string): boolean {
+  return (
+    !hasTransferRequestIntent(normalized) &&
+    (/(?:просят|просит|попросил|попросили|спрашива|спросил|спросили|требует|требуют|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит|пин|pin)/iu.test(
+      normalized,
+    ) ||
+      /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
+        normalized,
+      ) ||
+      /(?:введите|пришлите|отправьте|назовите|сообщите|покажите).{0,60}(?:данн.{0,20})?(?:карт|cvv|cvc|срок|реквизит|пин|pin)/iu.test(
+        normalized,
+      ) ||
+      /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit|so['’]?ra)/iu.test(
+        normalized,
+      ) ||
+      /(?:ayt|ber|yubor|kirit|so['’]?ra).{0,60}(?:karta|cvv|cvc|pin)/iu.test(normalized) ||
+      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(
+        normalized,
+      ) ||
+      /(?:send|share|enter|provide|give).{0,60}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized))
+  );
+}
+
+function hasAppRequestIntent(normalized: string): boolean {
+  return (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:установ|скач|постав|прилож|apk|anydesk|teamviewer|rustdesk|доступ|экран)/iu.test(
+      normalized,
+    ) ||
+    /(?:установ|скач|постав).{0,80}(?:прилож|apk|защит|банк|anydesk|teamviewer|rustdesk|доступ)/iu.test(
+      normalized,
+    ) ||
+    /(?:ilova|apk|anydesk|teamviewer|rustdesk|ekran|ruxsat).{0,80}(?:o['’]?rnat|yukla|ber|och)/iu.test(
+      normalized,
+    ) ||
+    /(?:o['’]?rnat|yukla|och).{0,60}(?:ilova|apk|anydesk|teamviewer|rustdesk)/iu.test(normalized) ||
+    /(?:install|download|set up).{0,80}(?:app|apk|anydesk|teamviewer|rustdesk|remote|screen)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasPersonalDataRequestIntent(normalized: string): boolean {
+  return (
+    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес|пропис)/iu.test(
+      normalized,
+    ) ||
+    /(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес).{0,80}(?:фото|сфот|отправ|назв)/iu.test(
+      normalized,
+    ) ||
+    /(?:пришлите|отправьте|загрузите|покажите|назовите).{0,80}(?:фото\s+)?(?:паспорт|пинфл|инн|стир|селфи|документ|адрес)/iu.test(
+      normalized,
+    ) ||
+    /(?:pasport|pinfl|stir|selfi|hujjat|manzil).{0,80}(?:rasm|yubor|ayt|ber|so['’]?ra)/iu.test(
+      normalized,
+    ) ||
+    /(?:yubor|jo['’]?nat|ber|ko['’]?rsat).{0,60}(?:pasport|pinfl|stir|selfi|hujjat|manzil)/iu.test(
+      normalized,
+    ) ||
+    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:passport|tax id|selfie|document|address)/iu.test(
+      normalized,
+    ) ||
+    /(?:send|upload|provide|share|show).{0,60}(?:passport|tax id|selfie|document|address)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasPriorityInlineDangerIntent(normalized: string): boolean {
+  return (
+    hasCodeRequestIntent(normalized) ||
+    hasCardRequestIntent(normalized) ||
+    hasTransferRequestIntent(normalized) ||
+    hasPersonalDataRequestIntent(normalized) ||
+    hasAppRequestIntent(normalized)
   );
 }
 
@@ -1501,6 +1666,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
+  const hasPriorityDanger = hasPriorityInlineDangerIntent(normalized);
 
   if (
     /(?:как|можно|надо|нужно|что).{0,80}(?:вернуть|оспорить|заморозить).{0,80}(?:деньг|перевод|плат[её]ж).{0,100}(?:мошен|обман|скам)|(?:деньг|перевод|плат[её]ж).{0,80}(?:вернуть|оспорить|заморозить).{0,100}(?:мошен|обман|скам)/iu.test(
@@ -1548,9 +1714,17 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:пишет|написал|написала|шл[её]т|прислал|прислала|отправил|отправила|кинул|скинул).{0,120}(?:ссылк|линк|url|сайт|кнопк)|(?:sent|sends|message).{0,100}(?:link|url|site|button)/iu.test(
+    !hasPriorityDanger &&
+    (/(?:пишет|написал|написала|шл[её]т|прислал|прислала|отправил|отправила|кинул|скинул).{0,120}(?:ссылк|линк|url|сайт|кнопк)|(?:sent|sends|message).{0,100}(?:link|url|site|button)/iu.test(
       normalized,
-    )
+    ) ||
+      /(?:спрашивает|спросил|спросила|просит|попросил|попросила).{0,100}(?:ссылк|линк|url|сайт|кнопк)/iu.test(
+        normalized,
+      ) ||
+      /(?:havola|link|url).{0,80}(?:so['’]?ra|so['’]?rayap|yubor)/iu.test(normalized) ||
+      /(?:ask|asks|asked|request|requests|requested).{0,80}(?:link|url|site|button)/iu.test(
+        normalized,
+      ))
   ) {
     return "link_request";
   }
@@ -1750,20 +1924,6 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:можно|стоит|надо|нужно|безопасно ли).{0,80}(?:отвечать|ответить|написать|писать|переписываться|говорить|разговаривать)/iu.test(
-      normalized,
-    ) ||
-    /(?:что|как).{0,50}(?:ответить|сказать|написать)/iu.test(normalized) ||
-    /(?:javob|yoz|gaplash).{0,100}(?:bersam|beraymi|bo'ladimi|mumkinmi|kerakmi)/iu.test(
-      normalized,
-    ) ||
-    /(?:can|should).{0,60}(?:reply|answer|text|message|talk)/iu.test(normalized) ||
-    /(?:what|how).{0,50}(?:reply|answer|say|write)/iu.test(normalized)
-  ) {
-    return "reply_safety";
-  }
-
-  if (
     /(?:пишет|написал|звонит|аккаунт|профиль|одноклассник|друг|знаком|родствен|близк).{0,140}(?:не уверен|не уверена|сомневаюсь|это он|это она|его ли|её ли|ее ли|взлом|подмен|фейк|не похож)/iu.test(
       normalized,
     ) ||
@@ -1843,6 +2003,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
+    !hasPriorityDanger &&
     !hasConcreteUrl &&
     (/(?:просят|просит|сказали|говорят|нужно|надо|предлагают|скинули|прислали|дали).{0,80}(?:перейти|зайти|открыть|нажать|кликнуть|посмотреть)?.{0,40}(?:ссылк|линк|link|url|кнопк|сайт)/iu.test(
       normalized,
@@ -1883,36 +2044,11 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "confirm_request";
   }
 
-  if (
-    !/(?:перевести|перевод|оплатить|заплатить|пополни|безопасн.{0,20}сч[её]т|transfer|payment|send\s+money|pul|to['’]?lov|o['’]?tkaz)/iu.test(
-      normalized,
-    ) &&
-    (/(?:просят|просит|попросил|попросили|спрашива|спросил|спросили|требует|требуют|нужно|надо|сказали).{0,80}(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит|пин|pin)/iu.test(
-      normalized,
-    ) ||
-      /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
-        normalized,
-      ) ||
-      /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit)/iu.test(normalized) ||
-      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(
-        normalized,
-      ))
-  ) {
+  if (hasCardRequestIntent(normalized)) {
     return "card_request";
   }
 
-  if (
-    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:установить|скачать|поставить|прилож|apk|anydesk|teamviewer|rustdesk|доступ|экран)/iu.test(
-      normalized,
-    ) ||
-    /(?:установить|скачать|поставить).{0,80}(?:прилож|apk|защит|банк|доступ)/iu.test(normalized) ||
-    /(?:ilova|apk|anydesk|teamviewer|rustdesk|ekran|ruxsat).{0,80}(?:o['’]?rnat|yukla|ber|och)/iu.test(
-      normalized,
-    ) ||
-    /(?:install|download|set up).{0,80}(?:app|apk|anydesk|teamviewer|rustdesk|remote|screen)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasAppRequestIntent(normalized)) {
     return "app_request";
   }
 
@@ -1944,18 +2080,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "bank_call";
   }
 
-  if (
-    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес|пропис)/iu.test(
-      normalized,
-    ) ||
-    /(?:паспорт|(?:^|[^a-zа-яё])(?:пинфл|инн|стир)(?:$|[^a-zа-яё])|селфи|документ|адрес).{0,80}(?:фото|сфот|отправ|назв)/iu.test(
-      normalized,
-    ) ||
-    /(?:pasport|pinfl|stir|selfi|hujjat|manzil).{0,80}(?:rasm|yubor|ayt|ber)/iu.test(normalized) ||
-    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:passport|tax id|selfie|document|address)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasPersonalDataRequestIntent(normalized)) {
     return "personal_data";
   }
 
@@ -2022,23 +2147,6 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:работ|ваканс|подработ|заработ|л[её]гк.{0,20}доход|удаленн.{0,20}работ|стажиров).{0,120}(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат|карта)/iu.test(
-      normalized,
-    ) ||
-    /(?:взнос|обуч|форма|провер|предоплат|комисс|депозит|оплат).{0,120}(?:работ|ваканс|подработ|заработ|доход|стажиров)/iu.test(
-      normalized,
-    ) ||
-    /(?:ish|vakans|daromad|oylik|masofaviy).{0,120}(?:to['’]?lov|o['’]?qish|forma|tekshir|garov|depozit|karta)/iu.test(
-      normalized,
-    ) ||
-    /(?:job|work|vacancy|income|remote).{0,120}(?:fee|training|uniform|verification|deposit|prepay|card)/iu.test(
-      normalized,
-    )
-  ) {
-    return "job_offer";
-  }
-
-  if (
     /(?:инвест|крипт|ton|usdt|wallet|бирж|трейд|доход|прибыл|процент|x2|икс).{0,140}(?:гарант|влож|депозит|пополни|перевед|платформ|сигнал|доход|быстр)/iu.test(
       normalized,
     ) ||
@@ -2055,23 +2163,34 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "investment_offer";
   }
 
+  if (
+    !hasPriorityDanger &&
+    (/(?:можно|стоит|надо|нужно|безопасно ли).{0,80}(?:отвечать|ответить|написать|писать|переписываться|говорить|разговаривать)/iu.test(
+      normalized,
+    ) ||
+      /(?:что|как).{0,50}(?:ответить|сказать|написать)/iu.test(normalized) ||
+      /(?:мне|сюда|вам|боту)?.{0,30}(?:ничего|что).{0,30}(?:не\s+)?(?:присылать|отправлять|вставлять|писать)/iu.test(
+        normalized,
+      ) ||
+      /(?:javob|yoz|gaplash).{0,100}(?:bersam|beraymi|bo'ladimi|mumkinmi|kerakmi)/iu.test(
+        normalized,
+      ) ||
+      /(?:bu\s+yerga|sizga)?.{0,30}(?:hech\s+narsa|nima).{0,30}(?:yubormaymi|yuboray|yozay|kiritay)/iu.test(
+        normalized,
+      ) ||
+      /(?:can|should).{0,60}(?:reply|answer|text|message|talk)/iu.test(normalized) ||
+      /(?:what|how).{0,50}(?:reply|answer|say|write)/iu.test(normalized) ||
+      /(?:should\s+i\s+send\s+nothing|what\s+should\s+i\s+send\s+here)/iu.test(normalized))
+  ) {
+    return "reply_safety";
+  }
+
   const sharedVictimIntent = classifySharedVictimInlineIntent(normalized);
   if (sharedVictimIntent) {
     return sharedVictimIntent;
   }
 
-  if (
-    /(?:просят|просит|нужно|надо|сказали).{0,80}(?:перевести|перевод|оплатить|заплатить|пополни|безопасн.{0,20}сч[её]т)/iu.test(
-      normalized,
-    ) ||
-    /(?:перевести|перевод|оплатить|заплатить).{0,80}(?:деньг|сум|карт|номер|сч[её]т)/iu.test(
-      normalized,
-    ) ||
-    /(?:pul|to['’]?lov|o['’]?tkaz|hisob).{0,80}(?:yubor|qil|ber|to['’]?la)/iu.test(normalized) ||
-    /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:transfer|pay|payment|send money|safe account)/iu.test(
-      normalized,
-    )
-  ) {
+  if (hasTransferRequestIntent(normalized)) {
     return "transfer_request";
   }
 
@@ -2144,6 +2263,16 @@ function passportPreview(
   };
 }
 
+function classifyHumanInlineIntentForResult(result: RunCheckResult): HumanInlineIntent | null {
+  const reasons = collectResultReasonCodesForPresentation(result);
+  if (reasons.includes("requests_personal_data")) return "personal_data";
+  const intent = classifyHumanInlineIntent(result.display);
+  if ((result.type === "url" || result.type === "apk") && intent === "link_request") {
+    return null;
+  }
+  return intent;
+}
+
 function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArticle {
   const passport = passportArticle(result, lang);
   if (passport) return passport;
@@ -2151,7 +2280,7 @@ function resultArticle(result: RunCheckResult, lang: Lang): InlineQueryResultArt
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   const preview = PREVIEW_COPY[lang];
-  const humanIntent = classifyHumanInlineIntent(result.display);
+  const humanIntent = classifyHumanInlineIntentForResult(result);
   if (result.level === "unknown") {
     if (humanIntent) {
       const intentCopy = preview.humanIntents[humanIntent];
@@ -2197,9 +2326,15 @@ function shouldUsePreflightInlineIntent(
   text: string,
   intent: HumanInlineIntent | null,
 ): intent is HumanInlineIntent {
-  return Boolean(
-    intent && PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) && !hasConcreteArtifact(text),
-  );
+  if (!intent || !PREFLIGHT_HUMAN_INLINE_INTENTS.has(intent) || hasConcreteArtifact(text)) {
+    return false;
+  }
+  if (intent === "link_request") {
+    if (hasPriorityInlineDangerIntent(text.toLowerCase().replace(/\s+/g, " ").trim())) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function humanIntentArticle(
@@ -2276,6 +2411,22 @@ function smallTalkArticle(intent: InlineSmallTalkIntent, lang: Lang): InlineQuer
   );
 }
 
+function isAmbiguousShortNumericQuery(text: string): boolean {
+  const compact = text.replace(/[\s()-]/gu, "");
+  return /^\d{6,8}$/u.test(compact);
+}
+
+function ambiguousNumericArticle(lang: Lang): InlineQueryResultArticle {
+  const copy = AMBIGUOUS_NUMERIC_COPY[lang];
+  return buildArticle(
+    "ambiguous-numeric",
+    copy.title,
+    copy.description,
+    `${copy.title}\n\n${copy.message}\n\n@scamguard_bot`,
+    lang,
+  );
+}
+
 function helpArticle(lang: Lang): InlineQueryResultArticle {
   const copy = COPY[lang];
   return buildArticle("help", copy.helpTitle, copy.helpDescription, copy.helpMessage, lang);
@@ -2315,23 +2466,72 @@ function isEntityParseFailure(
   return errorCode === 400 && /parse|entit(?:y|ies)/iu.test(description ?? "");
 }
 
-async function answerOne(inlineQueryId: string, result: InlineQueryResultArticle): Promise<void> {
-  const response = await answerInlineQuery({
+function isImmediateRetryableInlineAnswerFailure(errorCode: number | undefined): boolean {
+  return errorCode === undefined || errorCode >= 500;
+}
+
+function isDeferredInlineAnswerFailure(errorCode: number | undefined): boolean {
+  return errorCode === 429;
+}
+
+function throwInlineAnswerDeliveryError(response: {
+  errorCode?: number;
+  retryAfterSec?: number;
+}): never {
+  console.error("telegram inline answer transient", response.errorCode ?? "network");
+  throw new TelegramInlineAnswerDeliveryError(
+    isDeferredInlineAnswerFailure(response.errorCode)
+      ? inlineDeliveryRetryMsFromSeconds(response.retryAfterSec)
+      : undefined,
+  );
+}
+
+async function answerOne(
+  inlineQueryId: string,
+  result: InlineQueryResultArticle,
+  cacheTime = SUCCESS_INLINE_CACHE_SECONDS,
+): Promise<void> {
+  const options = {
     inlineQueryId,
     results: [result],
-    cacheTime: 2,
+    cacheTime,
     isPersonal: true,
-  });
+  };
+  const response = await answerInlineQuery(options);
   if (response.ok) return;
 
   if (isEntityParseFailure(response.errorCode, response.description)) {
     const retry = await answerInlineQuery({
-      inlineQueryId,
+      ...options,
       results: [withoutInlineParseMode(result)],
-      cacheTime: 2,
-      isPersonal: true,
     });
     if (retry.ok) return;
+    if (
+      isDeferredInlineAnswerFailure(retry.errorCode) ||
+      isImmediateRetryableInlineAnswerFailure(retry.errorCode)
+    ) {
+      throwInlineAnswerDeliveryError(retry);
+    }
+    console.error("telegram inline answer failed", retry.errorCode ?? "unknown");
+    return;
+  }
+
+  // Telegram explicitly asked us to wait. Retrying the same request now would
+  // only extend the flood control window; let the durable polling lifecycle
+  // replay it after the bounded delay instead.
+  if (isDeferredInlineAnswerFailure(response.errorCode)) {
+    throwInlineAnswerDeliveryError(response);
+  }
+
+  if (isImmediateRetryableInlineAnswerFailure(response.errorCode)) {
+    const retry = await answerInlineQuery(options);
+    if (retry.ok) return;
+    if (
+      isDeferredInlineAnswerFailure(retry.errorCode) ||
+      isImmediateRetryableInlineAnswerFailure(retry.errorCode)
+    ) {
+      throwInlineAnswerDeliveryError(retry);
+    }
     console.error("telegram inline answer failed", retry.errorCode ?? "unknown");
     return;
   }
@@ -2361,6 +2561,11 @@ export async function handleInlineQuery(
     return;
   }
 
+  if (isAmbiguousShortNumericQuery(trimmed)) {
+    await answerOne(inlineQueryId, ambiguousNumericArticle(lang));
+    return;
+  }
+
   const smallTalkIntent = classifyInlineSmallTalk(trimmed);
   if (smallTalkIntent) {
     await answerOne(inlineQueryId, smallTalkArticle(smallTalkIntent, lang));
@@ -2379,8 +2584,9 @@ export async function handleInlineQuery(
     return;
   }
 
+  let result: RunCheckResult;
   try {
-    const result = await runCheck({
+    result = await runCheck({
       input: trimmed,
       lang,
       rateLimitKey: `tg:inline:${ctx.userId}`,
@@ -2388,8 +2594,8 @@ export async function handleInlineQuery(
       skipAi: true,
       skipUrlReputation: true,
       persist: false,
+      rateLimitProfile: "telegram_inline_preview",
     });
-    await answerOne(inlineQueryId, resultArticle(result, lang));
   } catch (error) {
     const fallbackIntent = classifyHumanInlineIntent(trimmed);
     if (isRateLimitedError(error) && shouldUsePreflightInlineIntent(trimmed, fallbackIntent)) {
@@ -2405,6 +2611,9 @@ export async function handleInlineQuery(
           rateLimitDescription(lang, error.retryAfter),
         )
       : staticArticle("error", lang, copy.errorTitle, copy.errorDescription);
-    await answerOne(inlineQueryId, article);
+    await answerOne(inlineQueryId, article, 0);
+    return;
   }
+
+  await answerOne(inlineQueryId, resultArticle(result, lang));
 }

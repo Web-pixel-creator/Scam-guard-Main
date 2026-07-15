@@ -22,6 +22,15 @@ export function looksLikePaymentInput(raw: string): boolean {
   return PAYMENT_ACTION_RE.test(v) && (PAYMENT_CONTEXT_RE.test(v) || PAYMENT_AMOUNT_RE.test(v));
 }
 
+function looksLikeStandalonePhone(raw: string): boolean {
+  const compact = raw.replace(/\s/g, "");
+  if (!PHONE_RE.test(compact) || /[a-zа-я]/iu.test(raw)) return false;
+  const digits = raw.replace(/\D/g, "");
+  if (raw.trimStart().startsWith("+")) return digits.length >= 8 && digits.length <= 15;
+  if (digits.startsWith("00")) return digits.length >= 10 && digits.length <= 17;
+  return digits.length === 9 || (digits.length === 12 && digits.startsWith("998"));
+}
+
 export function detectInputType(raw: string): InputType {
   const v = raw.trim();
   if (!v) return "unknown";
@@ -30,16 +39,18 @@ export function detectInputType(raw: string): InputType {
   if (looksLikePaymentInput(v)) return "payment";
   if (URL_RE.test(v)) return "url";
   // Pure phone (only digits/+/()-/space, no letters/spaces of text)
-  if (PHONE_RE.test(v.replace(/\s/g, "")) && !/[a-zа-я]/i.test(v)) return "phone";
+  if (looksLikeStandalonePhone(v)) return "phone";
   // Telegram username (short)
   if (TG_USERNAME_RE.test(v) && v.length < 40 && !v.includes(" ")) return "telegram";
   return "text";
 }
 
-/** Normalize Uzbekistan phone numbers to +998XXXXXXXXX where possible. */
+/** Normalize explicit international dialing and supported Uzbekistan local numbers. */
 export function normalizePhone(raw: string): string {
   let d = raw.replace(/\D/g, "");
-  if (d.startsWith("00")) d = d.slice(2);
+  const hasInternationalDialingPrefix = d.startsWith("00");
+  if (hasInternationalDialingPrefix) d = d.slice(2);
+  if (hasInternationalDialingPrefix) return "+" + d;
   if (d.startsWith("998")) return "+" + d;
   if (d.length === 9) return "+998" + d;
   if (d.length === 12 && d.startsWith("998")) return "+" + d;
@@ -82,7 +93,14 @@ export function normalize(input: string, type: InputType): string {
 export function maskForDisplay(value: string, type: InputType): string {
   if (type === "phone") {
     const d = value.replace(/\D/g, "");
-    if (d.length >= 7) return "+" + d.slice(0, 3) + " " + d.slice(3, 5) + " ••• " + d.slice(-2);
+    if (d.length >= 7 && d.length <= 8) {
+      const internationalPrefix = value.trimStart().startsWith("+") ? "+" : "";
+      return `${internationalPrefix}${d.slice(0, 1)} ••••• ${d.slice(-2)}`;
+    }
+    if (d.length >= 7) {
+      const internationalPrefix = value.trimStart().startsWith("+") ? "+" : "";
+      return internationalPrefix + d.slice(0, 3) + " " + d.slice(3, 5) + " ••• " + d.slice(-2);
+    }
     return value;
   }
   if (type === "telegram") {
@@ -99,7 +117,9 @@ export function maskForDisplay(value: string, type: InputType): string {
     }
   }
   // text: redact phones/cards/OTP
-  return redactText(value).slice(0, 240) + (value.length > 240 ? "…" : "");
+  const redacted = redactText(value);
+  const codePoints = Array.from(redacted);
+  return codePoints.slice(0, 256).join("") + (codePoints.length > 256 ? "…" : "");
 }
 
 const CARD_DIGIT_RE = /\b(?:\d[ -]?){13,19}\b/g;

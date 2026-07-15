@@ -68,18 +68,35 @@ AI never decides the score. It only explains the deterministic verdict or perfor
 - The secret header is checked before body parsing.
 - Invalid bodies after a valid token return 200 so Telegram stops retrying.
 - Telegram update delivery has an explicit webhook compatibility mode and a
-  durable polling mode. Polling elects one Postgres-fenced leader, calls
-  `getUpdates(limit=1)`, leases one metadata-only `update_id`, completes work,
-  then advances the offset. Completion-before-offset restart is recovered by
-  the DB `completed` state without redispatch.
+  durable polling mode. Polling elects one Postgres-fenced leader and calls
+  `getUpdates` in batches of 20 by default (the Bot API wrapper clamps an
+  explicit limit to `1..100`). Before any lease or handler side effect, the
+  complete batch must contain safe-integer, strictly increasing `update_id`
+  values at or above the requested offset.
+- Stateful message, callback, hybrid and unsupported-shape updates never reorder
+  relative to one another. Strict-Inline-only work runs in chunks of at most
+  four. While one stateful update is in flight, the poller may read ahead only
+  through the following Inline window and only for known different users; an
+  Inline update for the same or unknown user waits so session language/order is
+  preserved. Each chunk acquires metadata-only lifecycle leases just in time.
+  The local offset advances only through the contiguous acknowledged frontier.
+  If a later Inline sibling completed after an earlier sibling failed, replay
+  observes its DB `completed` state and skips redispatch without jumping the
+  failed frontier.
 - The lifecycle table and private leader table store operational metadata only,
   never Telegram payload/user content. Session I/O and outbound Telegram effects
   require the current processing fence; polling work also requires the current
-  leader fence. Failure keeps the update retryable.
+  leader fence. Leader renewal has a bounded deadline and a conservative local
+  expiry, so an uncertain old process stops new long polls. The current polling
+  leader can reclaim an active processing lease left by a superseded leader only
+  after a 15-second outbound-effect drain grace; reclaim increments the
+  processing fence and attempt count, while current owners and webhook leases
+  remain protected. Failure keeps the update retryable.
 - Bot session state is stored in Supabase `telegram_sessions`, not memory.
-  Same-user work remains serialized inside each process, while the polling
-  leader provides global ordering before session load. Fenced load/save RPCs
-  and monotonic `last_update_id` writes provide defense in depth.
+  Same-user work remains serialized inside each process for webhook and every
+  stateful update. A polling-scoped execution option bypasses that serializer
+  only for strict Inline-only updates, whose handler is stateless. Fenced
+  load/save RPCs and monotonic `last_update_id` writes provide defense in depth.
 - Images are downloaded in memory, capped at 6 MB, analyzed/OCR'd, and discarded. Local PNG/JPEG QR decode has a stricter 4 MiB/4-megapixel boundary and runs in one isolated worker with a four-job backlog, 900 ms deadline and bounded scan work, so untrusted pixel processing does not block the Node request/event-loop thread. Telegram image scoring uses structured evidence so benign delivery SMS and restaurant/menu QR screenshots do not become high-risk unless a real dangerous request is visible.
 - Short Telegram voice notes, native audio attachments and audio documents are
   downloaded in memory, capped at 60 seconds / 2 MB before transcription,

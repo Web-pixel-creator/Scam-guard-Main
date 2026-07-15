@@ -115,7 +115,7 @@ const COPY: Record<
     contextMatters:
       "Сам номер не доказывает мошенничество. Важнее, просили ли SMS-код, карту, перевод, APK, QR-вход или удалённый доступ.",
     phonePrompt:
-      "Напишите, что попросили: SMS-код, данные карты, перевод, APK, QR-вход или удалённый доступ.",
+      "В @scamguard_bot опишите словами, что вас попросили сделать. Не присылайте сами SMS-коды, PIN, CVV, данные карты или фото документов.",
     telegramVisibleFallback:
       "Можно оценить только публично видимые признаки и текст, который вы прислали.",
     telegramLimitFallback:
@@ -151,7 +151,7 @@ const COPY: Record<
     contextMatters:
       "Raqamning o'zi firibgarlikni isbotlamaydi. SMS-kod, karta, pul o'tkazma, APK, QR-login yoki masofaviy kirish so'ralganmi — shu muhim.",
     phonePrompt:
-      "Nima so'ralganini yozing: SMS-kod, karta ma'lumoti, pul o'tkazma, APK, QR-login yoki masofaviy kirish.",
+      "Nima qilish so'ralganini @scamguard_bot ga so'z bilan yozing. SMS-kodning o'zini, PIN, CVV, karta ma'lumotlari yoki hujjat fotosini yubormang.",
     telegramVisibleFallback:
       "Faqat ommaga ko'rinadigan belgilar va siz yuborgan matnni baholash mumkin.",
     telegramLimitFallback:
@@ -187,7 +187,7 @@ const COPY: Record<
     contextMatters:
       "The number alone does not prove a scam. What matters is whether they ask for an SMS code, card, transfer, APK, QR login, or remote access.",
     phonePrompt:
-      "Tell me what they asked for: SMS code, card details, transfer, APK, QR login, or remote access.",
+      "In @scamguard_bot, describe in words what they asked you to do. Do not send actual SMS codes, PINs, CVVs, card details, or document photos.",
     telegramVisibleFallback: "Only public profile clues and the text you send can be assessed.",
     telegramLimitFallback:
       "The Bot API cannot see account age, hidden SCAM labels, Telegram reports, or private chat history.",

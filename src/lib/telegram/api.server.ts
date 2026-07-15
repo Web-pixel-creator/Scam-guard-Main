@@ -95,15 +95,24 @@ export interface AnswerInlineQueryOptions {
 
 export type AnswerInlineQueryResult =
   | { ok: true }
-  | { ok: false; errorCode?: number; description?: string };
+  | { ok: false; errorCode?: number; description?: string; retryAfterSec?: number };
 
 /** Telegram OCR_Pipeline upper bound on downloaded files: 6 MB (R5.5). */
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const BOT_API_TIMEOUT_MS = 8_000;
+const INLINE_QUERY_TIMEOUT_MS = 2_500;
 const FILE_DOWNLOAD_TIMEOUT_MS = 12_000;
 
 const API_BASE = "https://api.telegram.org/bot";
 const FILE_BASE = "https://api.telegram.org/file/bot";
+
+interface BotApiEnvelope {
+  ok: boolean;
+  result?: unknown;
+  description?: string;
+  error_code?: number;
+  parameters?: { retry_after?: number };
+}
 
 /**
  * POST a JSON body to a Bot API method and return the parsed envelope.
@@ -115,7 +124,7 @@ async function callBotApi(
   method: string,
   body: Record<string, unknown>,
   timeoutMs = BOT_API_TIMEOUT_MS,
-): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+): Promise<BotApiEnvelope | null> {
   if (!(await outboundEffectAllowed(method))) return null;
   const token = getTelegramBotToken();
   if (!token) {
@@ -145,10 +154,7 @@ async function callBotApi(
   }
 }
 
-async function callBotApiForm(
-  method: string,
-  form: FormData,
-): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+async function callBotApiForm(method: string, form: FormData): Promise<BotApiEnvelope | null> {
   if (!(await outboundEffectAllowed(method))) return null;
   const token = getTelegramBotToken();
   if (!token) {
@@ -197,16 +203,9 @@ async function fetchWithTimeout(
   }
 }
 
-async function readBotApiEnvelope(
-  res: Response,
-): Promise<{ ok: boolean; result?: unknown; description?: string; error_code?: number } | null> {
+async function readBotApiEnvelope(res: Response): Promise<BotApiEnvelope | null> {
   try {
-    return (await res.json()) as {
-      ok: boolean;
-      result?: unknown;
-      description?: string;
-      error_code?: number;
-    };
+    return (await res.json()) as BotApiEnvelope;
   } catch {
     return null;
   }
@@ -320,12 +319,16 @@ export async function answerInlineQuery(
   if (opts.isPersonal !== undefined) body.is_personal = opts.isPersonal;
   if (opts.nextOffset !== undefined) body.next_offset = opts.nextOffset;
 
-  const res = await callBotApi("answerInlineQuery", body);
+  const res = await callBotApi("answerInlineQuery", body, INLINE_QUERY_TIMEOUT_MS);
   if (res?.ok === true) return { ok: true };
 
   const failure: Extract<AnswerInlineQueryResult, { ok: false }> = { ok: false };
   if (typeof res?.error_code === "number") failure.errorCode = res.error_code;
   if (typeof res?.description === "string") failure.description = res.description;
+  const retryAfterSec = res?.parameters?.retry_after;
+  if (Number.isSafeInteger(retryAfterSec) && (retryAfterSec ?? 0) > 0) {
+    failure.retryAfterSec = retryAfterSec;
+  }
   return failure;
 }
 
@@ -430,7 +433,11 @@ export async function getUpdates(options: {
   limit?: number;
 }): Promise<unknown[] | null> {
   const timeout = Math.min(30, Math.max(0, Math.trunc(options.timeout ?? 25)));
-  const body: Record<string, unknown> = { timeout, limit: 1 };
+  const requestedLimit = options.limit ?? 20;
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(100, Math.max(1, Math.trunc(requestedLimit)))
+    : 20;
+  const body: Record<string, unknown> = { timeout, limit };
   if (options.offset !== undefined) body.offset = options.offset;
   const res = await callBotApi("getUpdates", body, (timeout + 10) * 1_000);
   return res?.ok === true && Array.isArray(res.result) ? res.result : null;
