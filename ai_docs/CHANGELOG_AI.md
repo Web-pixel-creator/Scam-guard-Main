@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-15 - Second Desktop Inline context remediation deployed
+
+- PR #108 passed application lint/type/test/build, coverage, Supabase migration,
+  schema/pgTAP, CodeQL, Gitleaks and container/SBOM checks, then merged as
+  `da4c0a259a228d864432a77ccb1b3291468c52cf`.
+- Railway deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` reached `SUCCESS`
+  from that exact merge revision. The active image digest is
+  `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
+- A bounded read-only production monitor passed home/health `200`, missing
+  webhook secret `401`, the expected polling-mode webhook `503`, Telegram
+  `getMe`, an empty pending queue and protected polling-leader health `200`.
+  AI and monitor alerts were explicitly disabled, so no paid model call or
+  Telegram notification occurred.
+- Deployment and runtime health are now proven. The owner-supplied screenshots
+  remain pre-fix observations, so Desktop post-fix replay and the full Android/
+  iOS matrix remain required before `INL-001` or `INL-002` can pass;
+  `BOT-004` remains In Progress pending its broader real-client dialogue gate.
+
 ## 2026-07-15 - Second Desktop Inline context remediation is locally green
 
 - Archived 30 additional owner-supplied Telegram Desktop screenshots as ignored
