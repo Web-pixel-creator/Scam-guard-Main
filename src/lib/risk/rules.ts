@@ -1,4 +1,5 @@
 import type { InputType } from "./detect";
+import { uzbekLatinMatchingVariant } from "./uz-cyrillic-translit";
 import type { Database } from "@/integrations/supabase/types";
 
 export type RiskLevel = Database["public"]["Enums"]["risk_level"];
@@ -459,7 +460,7 @@ const ADVANCE_FEE_CONTEXT_RE =
 const ADVANCE_FEE_PAYMENT_RE =
   /(налог|комисси[яю]|сбор|пошлин|залог|предоплат|аванс|страхов|обучени|провер|регистрац|оформлен|бронь|оплат|to['’]?lov|komissiya|soliq|garov|avans|sug['’]?urta|registration|fee|tax|deposit|prepay|processing)/i;
 const ADVANCE_FEE_ACTION_RE =
-  /(оплат(и|ите)|внес(и|ите)|перевед(и|ите)|заплат(и|ите)|отправь(те)?|пришл(и|ите)|to['’]?lang|o['’]?tkazing|yuboring|pay|transfer|send)/i;
+  /(оплат(и|ите)|внес(и|ите)|перевед(и|ите)|заплат(и|ите)|отправь(те)?|пришл(и|ите)|to['’]?la(?:ng|sh(?:im)?)|o['’]?tkazing|yuboring|pay|transfer|send)/i;
 
 function shouldFlagAdvanceFeePrizeInheritance(text: string): boolean {
   return (
@@ -472,7 +473,7 @@ function shouldFlagAdvanceFeePrizeInheritance(text: string): boolean {
 const SOFT_CARD_CVV_ASK_RE =
   /(назов(и|ите)(?![а-яёa-z])|скаж(и|ите)(?![а-яёa-z])|продиктуй(те)?(?![а-яёa-z])|сообщ(и|ите)(?![а-яёa-z])|укажите(?![а-яёa-z])|введ(и|ите)(?![а-яёa-z])|скинь(те)?(?![а-яёa-z])|пришл(и|ите)(?![а-яёa-z])|отправь(те)?(?![а-яёa-z])|просят|просит|требуют|требует|попросил(?:и|а)?|просил(?:и|а)?|(?<![\p{L}\p{N}_])(?:ayt(?:ing|ishni)?|kirit(?:ing|ishni)?|yubor(?:ing|ishni)?|so['’]?ra(?:di|shdi|shyapti|yapti))(?![\p{L}\p{N}_])|\b(?:send|enter|tell|forward|reveal|share|show|give|provide|submit|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?|want(?:ed|s|ing)?)\b)/iu;
 const SOFT_CARD_CVV_OBJECT_RE =
-  /(cvv|cvc|код безопасности|xavfsizlik kodi|security code|код.{0,20}(на обороте|с обратной стороны)|оборот.{0,20}карт|back of (the )?card|((три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali).{0,30}(карт|card|karta|оборот|back))|((карт|card|karta|оборот|back).{0,30}(три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali)))/i;
+  /(cvv|cvc|код безопасности|xavfsizlik kodi|security code|код.{0,20}(на обороте|с обратной стороны)|оборот.{0,20}карт|back of (the )?card|((три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali).{0,30}(карт|card|karta|оборот|orqa|back))|((карт|card|karta|оборот|orqa|back).{0,30}(три|3|уч|uch).{0,14}(цифр|рақам|raqam|xonali)))/i;
 
 function shouldFlagSoftCardCvvRequest(text: string): boolean {
   const clauses = splitRiskClauses(text);
@@ -632,11 +633,11 @@ function shouldFlagPersonalDataRequest(text: string): boolean {
 }
 
 const CARD_DATA_ASK_RE =
-  /(?:отправь|пришли|скажи|назови|сообщи|передай|покажи|продиктуй|предоставь|укажи|просят|просит|требуют|требует|\b(?:send|tell|give|share|show|provide|submit|read\s+out|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?)\b|(?<![\p{L}\p{N}_])(?:yubor(?:ing)?|ayt(?:ing)?|ko['’]?rsat(?:ing)?|so['’]?ra(?:yapti)?|talab)(?![\p{L}\p{N}_]))/iu;
+  /(?:отправь|пришли|скажи|назови|сообщи|передай|покажи|продиктуй|предоставь|укажи|просят|просит|требуют|требует|\b(?:send|tell|give|share|show|provide|submit|read\s+out|ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?)\b|(?<![\p{L}\p{N}_])(?:yubor(?:ing)?|ayt(?:ing)?|ko['’]?rsat(?:ing)?|so['’]?ra(?:di|shdi|shyapti|shmoqda|yapti)?|talab)(?![\p{L}\p{N}_]))/iu;
 const CARD_DATA_OBJECT_RE =
-  /(?:данн(?:ые|ых)?\s+карт|номер.{0,20}карт|реквизит(?:ы|ов)?\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|(?:last|final)\s+(?:four|4)\s+digits.{0,24}(?:bank\s+)?card|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rekvizit|rasm))/iu;
+  /(?:данн(?:ые|ых)?\s+карт|номер.{0,20}карт|реквизит(?:ы|ов)?\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|(?:last|final)\s+(?:four|4)\s+digits.{0,24}(?:bank\s+)?card|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning|ngiz(?:ning|ni)?|si(?:ning|ni)?|m(?:ning|ni)?)?\s*(?:raqam|ma['’]?lumot|rekvizit|rasm))/iu;
 const CARD_DATA_SAFETY_RE =
-  /(?:(?:не\s+(?:отправля|сообща|говори|передава|показыва)|do\s+not|don['’]?t|never|not\s+to|yubormang|aytmang|bermang).{0,45}(?:данн(?:ые|ых)?\s+карт|номер\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rasm))|(?:karta(?:ning)?\s+(?:raqam|ma['’]?lumot|rasm)).{0,45}(?:yubormang|aytmang|bermang))/iu;
+  /(?:(?:не\s+(?:отправля|сообща|говори|передава|показыва)|do\s+not|don['’]?t|never|not\s+to|yubormang|aytmang|bermang).{0,45}(?:данн(?:ые|ых)?\s+карт|номер\s+карт|фото\s+(?:банковской\s+)?карт|card\s+(?:number|details|data)|photo\s+of\s+(?:the\s+|your\s+)?card|karta(?:ning|ngiz(?:ning|ni)?|si(?:ning|ni)?|m(?:ning|ni)?)?\s*(?:raqam|ma['’]?lumot|rasm))|(?:karta(?:ning|ngiz(?:ning|ni)?|si(?:ning|ni)?|m(?:ning|ni)?)?\s*(?:raqam|ma['’]?lumot|rasm)).{0,45}(?:yubormang|aytmang|bermang))/iu;
 const CARD_DATA_NEUTRAL_RE =
   /(?:\b(?:ask(?:ed|s|ing)?|inquir(?:ed|es|ing))\s+about\b.{0,30}\bcard\s+(?:details|data|number)\b|card\s+(?:details|data)\s+(?:security|policy|validation))/iu;
 
@@ -868,6 +869,17 @@ const USER_NEXT_STEP_QUESTION_RE =
   /(?:(?:что|как)\s+(?:мне\s+)?(?:теперь\s+)?(?:делать|поступить).{0,30}(?:прямо\s+сейчас|сейчас)|what\s+should\s+i\s+do.{0,30}(?:right\s+now|now)|hozir.{0,30}(?:nima\s+qil|qanday\s+yo['’]?l\s+tut))/iu;
 
 export function evaluateText(text: string): ReasonCode[] {
+  const codes = evaluateTextScript(text);
+  // Uzbek Cyrillic input must reach the same Uzbek Latin rule patterns
+  // («Хавфсиз ҳисобга…» → `xavfsiz hisob`). The variant is additive and
+  // classifier-only; each pass keeps its own negation/safety guards because
+  // transliteration preserves protective wording (aytmang stays aytmang).
+  const variant = uzbekLatinMatchingVariant(text);
+  if (!variant) return codes;
+  return [...new Set([...codes, ...evaluateTextScript(variant)])];
+}
+
+function evaluateTextScript(text: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
   const isStandaloneCodeSafetyWarning =
     GENERIC_CODE_SAFETY_RE.test(text) &&

@@ -53,3 +53,4 @@ package-lock.json
 *.sw?
 supabase/.temp/
 supabase/.branches/
+output/elderly-qa/
