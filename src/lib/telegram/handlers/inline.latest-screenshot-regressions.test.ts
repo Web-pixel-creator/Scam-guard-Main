@@ -362,4 +362,83 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
     expect(serialized).not.toContain(secret);
     expect(allVisibleText(article)).toMatch(/(?:парол|password|код|code|seed|recovery|сид-фраз)/iu);
   });
+
+  it("routes Uzbek Cyrillic completed-code wording to urgent aftercare", async () => {
+    const article = await runInline(
+      "Мен Телеграм тасдиқлаш кодини бегонага аллақачон юбордим, энди нима қилишим керак?",
+      { sessionLang: "ru", languageCode: "ru" },
+    );
+
+    expect(article.title).toBe("Kod yuborilgan: tez harakat qiling");
+    expect(allVisibleText(article)).toMatch(/(?:blok|parol|tez|darhol)/iu);
+    expect(allVisibleText(article)).not.toMatch(/telegram: havola orqali kirmang/iu);
+  });
+
+  it("routes Uzbek Cyrillic family emergencies to callback guidance", async () => {
+    const article = await runInline(
+      "Ўғлингиз аварияга учради, ҳозир пул ўтказмасангиз ёрдам кеч бўлади",
+      { sessionLang: "ru", languageCode: "ru" },
+    );
+
+    expect(article.title).toBe("Yaqin odam xavfda: qayta qo'ng'iroq qiling");
+    expect(allVisibleText(article)).toMatch(/(?:qo'ng'iroq|oilaviy kod|pul o'tkazmang)/iu);
+  });
+
+  it("keeps a multiline safe-account transfer above generic bank-contact guidance", async () => {
+    const article = await runInline(
+      [
+        "Bank nomidan qo‘ng‘iroq qilishdi.",
+        "Hisobim buzilgan deyishdi.",
+        "Pulni «xavfsiz hisob»ga darhol o‘tkazishni talab qilishmoqda.",
+      ].join("\n"),
+    );
+
+    expect(article.title).toBe("«Xavfsiz hisob»: pul o'tkazmang");
+    expect(allVisibleText(article)).toMatch(/(?:pul o'tkazmang|xavfsiz hisob)/iu);
+  });
+
+  it("warns specifically about a requested recovery phrase even when no phrase was pasted", async () => {
+    const article = await runInline(
+      "Wallet support asks me to reveal my secret seed pharse for verification",
+      { sessionLang: "ru", languageCode: "ru" },
+    );
+
+    expect(article.title).toBe("Recovery phrase: never share it");
+    expect(allVisibleText(article)).toMatch(
+      /(?:seed|recovery).{0,40}(?:never|do not).{0,30}(?:share|send)/iu,
+    );
+    expect(article.title).not.toMatch(/(?:code|transfer)/iu);
+  });
+
+  it.each([
+    {
+      query:
+        "Работодатель обещает удалённую работу, но сначала просит оплатить оформление документов",
+      title: "Работа: не платите взнос",
+    },
+    {
+      query:
+        "Сбор на лечение заканчивается через час, срочно переведите деньги на личную карту, иначе ребёнок останется без помощи",
+      title: "Сбор помощи: сначала проверьте фонд",
+    },
+    {
+      query: "My online boyfriend says he is stranded and urgently needs money for a ticket",
+      title: "Relationship: do not send money",
+    },
+  ])("preserves the concrete live-QA topic for: $query", async ({ query, title }) => {
+    const article = await runInline(query);
+
+    expect(article.title).toBe(title);
+  });
+
+  it("treats a bank-provided SMS number as contact guidance, not a code request", async () => {
+    const article = await runInline(
+      "This message says it is from my bank and asks me to call the number in the SMS",
+      { sessionLang: "ru", languageCode: "ru" },
+    );
+
+    expect(article.title).toMatch(/(?:bank|number|call)/iu);
+    expect(allVisibleText(article)).toMatch(/(?:official|app|card|website)/iu);
+    expect(article.title).not.toMatch(/code/iu);
+  });
 });
