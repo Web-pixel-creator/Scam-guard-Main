@@ -7,6 +7,7 @@ import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/r
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
 import type { RiskLevel } from "@/lib/risk/rules";
 import type { SensitiveSecretClass } from "@/lib/risk/sensitive-text";
+import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import {
   answerInlineQuery,
@@ -56,6 +57,7 @@ function applyConfiguredBotMention(value: string, username: string): string {
 type HumanInlineIntent =
   | "link_request"
   | "code_request"
+  | "recovery_phrase_request"
   | "sent_code"
   | "sent_money"
   | "confirm_request"
@@ -192,6 +194,7 @@ const INLINE_SMALL_TALK_COPY: Readonly<
 
 const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "link_request",
+  "recovery_phrase_request",
   "unknown_call",
   "bank_call",
   "operator_call",
@@ -438,6 +441,11 @@ const PREVIEW_COPY: Record<
         title: "Код: никому не называйте",
         description:
           "Не сообщайте SMS-код или PIN. Push-коды, OTP и пароли тоже не диктуйте; добавьте только текст просьбы или скрин.",
+      },
+      recovery_phrase_request: {
+        title: "Сид-фраза: никому не отправляйте",
+        description:
+          "Поддержка и проверка кошелька не требуют seed/recovery phrase. Не вводите и не отправляйте слова; если уже раскрыли их, создайте новый кошелёк в официальном приложении.",
       },
       sent_code: {
         title: "Код уже отправлен: действуйте срочно",
@@ -734,6 +742,11 @@ const PREVIEW_COPY: Record<
         description:
           "SMS-kod yoki PIN-ni aytmang. Push-kod, OTP va parolni ham aytmang; faqat so'rov matni yoki skrinni qo'shing.",
       },
+      recovery_phrase_request: {
+        title: "Tiklash iborasi: hech kimga yubormang",
+        description:
+          "Hamyon yordami yoki tekshiruv seed/tiklash iborasini so'ramaydi. So'zlarni kiritmang va yubormang; oshkor qilgan bo'lsangiz, rasmiy ilovada yangi hamyon yarating.",
+      },
       sent_code: {
         title: "Kod yuborilgan: tez harakat qiling",
         description:
@@ -1026,6 +1039,11 @@ const PREVIEW_COPY: Record<
         title: "Code: do not share it with anyone",
         description:
           "Do not share your SMS code or PIN. Do not read out push codes, OTPs or passwords; add only the request text or screenshot.",
+      },
+      recovery_phrase_request: {
+        title: "Recovery phrase: never share it",
+        description:
+          "Wallet support or verification does not need your seed/recovery phrase. Do not enter or send its words; if exposed, create a new wallet in the official app.",
       },
       sent_code: {
         title: "Code already sent: act now",
@@ -1473,6 +1491,7 @@ function nextActionHumanInlineCopy(
   intent: HumanInlineIntent,
   base: HumanInlineCopy,
 ): HumanInlineCopy {
+  const isRecoveryPhraseContext = intent === "recovery_phrase_request";
   const isCodeContext = [
     "code_request",
     "gov_service",
@@ -1501,13 +1520,15 @@ function nextActionHumanInlineCopy(
   ].includes(intent);
 
   if (lang === "uz") {
-    const description = isCodeContext
-      ? "SMS-kodni aytmang. Suhbatni tugating va tashkilotga o'zingiz topgan rasmiy raqam yoki ilova orqali murojaat qiling."
-      : isLinkContext
-        ? "Havolani ochmang va qayta kirmang. Xabarni saqlang; manzilni ochmasdan tekshiring."
-        : isPaymentContext
-          ? "Pul yubormang. Yozishmani saqlang va taklifni mustaqil rasmiy manba orqali tekshiring."
-          : "Aloqani vaqtincha to'xtating, hech narsa yubormang yoki to'lamang va so'rovni rasmiy kanal orqali tekshiring.";
+    const description = isRecoveryPhraseContext
+      ? "Tiklash iborasini yubormang. Agar uni oshkor qilgan bo'lsangiz, rasmiy ilovada yangi hamyon yarating va mablag'ni xavfsiz ko'chiring."
+      : isCodeContext
+        ? "SMS-kodni aytmang. Suhbatni tugating va tashkilotga o'zingiz topgan rasmiy raqam yoki ilova orqali murojaat qiling."
+        : isLinkContext
+          ? "Havolani ochmang va qayta kirmang. Xabarni saqlang; manzilni ochmasdan tekshiring."
+          : isPaymentContext
+            ? "Pul yubormang. Yozishmani saqlang va taklifni mustaqil rasmiy manba orqali tekshiring."
+            : "Aloqani vaqtincha to'xtating, hech narsa yubormang yoki to'lamang va so'rovni rasmiy kanal orqali tekshiring.";
     return {
       title: `${base.title} — hozir nima qilish kerak`,
       description: `${description} ${base.description}`,
@@ -1515,26 +1536,30 @@ function nextActionHumanInlineCopy(
     };
   }
   if (lang === "en") {
-    const description = isCodeContext
-      ? "Do not share the SMS code. End the chat or call and contact the organization through an official number or app you find yourself."
-      : isLinkContext
-        ? "Do not open the link or sign in again. Save the message and check the address without visiting it."
-        : isPaymentContext
-          ? "Do not send money. Save the conversation and verify the offer through an independent official source."
-          : "Pause contact, send or pay nothing, and verify the request through an official channel you find yourself.";
+    const description = isRecoveryPhraseContext
+      ? "Do not share the recovery phrase. If it was exposed, create a new wallet in the official app and move the assets safely."
+      : isCodeContext
+        ? "Do not share the SMS code. End the chat or call and contact the organization through an official number or app you find yourself."
+        : isLinkContext
+          ? "Do not open the link or sign in again. Save the message and check the address without visiting it."
+          : isPaymentContext
+            ? "Do not send money. Save the conversation and verify the offer through an independent official source."
+            : "Pause contact, send or pay nothing, and verify the request through an official channel you find yourself.";
     return {
       title: `${base.title} — what to do now`,
       description: `${description} ${base.description}`,
       message: `${description} ${base.message ?? base.description}`,
     };
   }
-  const description = isCodeContext
-    ? "Не сообщайте SMS-код. Завершите чат или звонок и свяжитесь с организацией по официальному номеру или через приложение, найденные самостоятельно."
-    : isLinkContext
-      ? "Не открывайте ссылку и не входите заново. Сохраните сообщение и проверьте адрес без перехода на сайт."
-      : isPaymentContext
-        ? "Не переводите деньги. Сохраните переписку и независимо проверьте предложение через официальный источник."
-        : "Приостановите контакт, ничего не отправляйте и не оплачивайте; проверьте просьбу через официальный канал, найденный самостоятельно.";
+  const description = isRecoveryPhraseContext
+    ? "Не отправляйте сид-фразу. Если уже раскрыли её, создайте новый кошелёк в официальном приложении и безопасно перенесите активы."
+    : isCodeContext
+      ? "Не сообщайте SMS-код. Завершите чат или звонок и свяжитесь с организацией по официальному номеру или через приложение, найденные самостоятельно."
+      : isLinkContext
+        ? "Не открывайте ссылку и не входите заново. Сохраните сообщение и проверьте адрес без перехода на сайт."
+        : isPaymentContext
+          ? "Не переводите деньги. Сохраните переписку и независимо проверьте предложение через официальный источник."
+          : "Приостановите контакт, ничего не отправляйте и не оплачивайте; проверьте просьбу через официальный канал, найденный самостоятельно.";
   return {
     title: `${base.title} — что делать сейчас`,
     description: `${description} ${base.description}`,
@@ -1890,6 +1915,15 @@ function hasSentCodeIntent(normalized: string): boolean {
       normalized,
     )
   );
+}
+
+function hasRecoveryPhraseRequestIntent(normalized: string): boolean {
+  const label =
+    /(?:seed[\s-]*(?:phrase|phase|pharse|prhase|phras)|recovery[\s-]+(?:phrase|phase|pharse)|mnemonic(?:[\s-]+(?:phrase|phase))?|сид[\s-]*фраз|мнемоническ.{0,20}фраз|tiklash\s+(?:iborasi|so['’]?zlari))/iu;
+  const action =
+    /(?:прос|треб|отправ|сообщ|назва|покаж|раскры|переда|so['’]?ra|talab|yubor|jo['’]?nat|ayt|ber|ko['’]?rsat|ask|want|need|send|share|reveal|provide|verify)/iu;
+  if (!label.test(normalized)) return false;
+  return action.test(normalized);
 }
 
 function hasCodeRequestIntent(normalized: string): boolean {
@@ -2392,7 +2426,7 @@ function hasRelativeDistressInlineIntent(normalized: string): boolean {
 
 function hasJobOfferInlineIntent(normalized: string): boolean {
   return (
-    /(?:работ|ваканси|трудоустройств).{0,160}(?:просят|требуют|нужно|надо|обязательн).{0,80}(?:оплат|заплат|взнос|обучен|курс|форм|проверк)/iu.test(
+    /(?:работ|ваканси|трудоустройств).{0,160}(?:просит|просят|требует|требуют|нужно|надо|обязательн).{0,80}(?:оплат|заплат|взнос|обучен|курс|форм|проверк)/iu.test(
       normalized,
     ) ||
     /(?:оплат|заплат|взнос|предоплат).{0,100}(?:обучен|курс|ваканси|работ|трудоустройств)/iu.test(
@@ -2496,7 +2530,7 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
   }
 
   if (
-    /(?:банк|bank).{0,180}(?:номер|sms|смс|сообщени|chat|xabar|raqam|message).{0,120}(?:звон|позвон|call|qo['’]?ng['’]?iroq)|(?:call|звон|позвон|qo['’]?ng['’]?iroq).{0,120}(?:банк|bank).{0,160}(?:номер|sms|смс|сообщени|xabar|raqam|message)/iu.test(
+    /(?:банк|bank).{0,180}(?:(?:номер|sms|смс|сообщени|chat|xabar|raqam|message).{0,120}(?:звон|позвон|call|qo['’]?ng['’]?iroq)|(?:звон|позвон|call|qo['’]?ng['’]?iroq).{0,120}(?:номер|sms|смс|сообщени|chat|xabar|raqam|message))|(?:call|звон|позвон|qo['’]?ng['’]?iroq).{0,120}(?:банк|bank).{0,160}(?:номер|sms|смс|сообщени|xabar|raqam|message)/iu.test(
       normalized,
     )
   ) {
@@ -2577,7 +2611,7 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
   }
 
   if (
-    /(?:фонд|благотвор|пожертв|сбор.{0,30}помощ|jamg['’]?arma|xayriya|ehson|charity|donation|fund).{0,180}(?:дав|тороп|треб|личн.{0,24}карт|перев|деньг|bosim|shaxsiy.{0,24}karta|o['’]?tkaz|pul|pressure|personal.{0,24}card|transfer|money)/iu.test(
+    /(?:фонд|благотвор|пожертв|сбор.{0,30}(?:помощ|лечен|реб[её]н)|jamg['’]?arma|xayriya|ehson|charity|donation|fund).{0,180}(?:сроч|дав|тороп|треб|личн.{0,24}карт|перев|деньг|bosim|shaxsiy.{0,24}karta|o['’]?tkaz|pul|pressure|personal.{0,24}card|transfer|money)/iu.test(
       normalized,
     )
   ) {
@@ -2609,7 +2643,7 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
   }
 
   if (
-    /(?:нов.{0,24}знаком|отношен|роман|жених|невест|парень|девушк).{0,160}(?:деньг|перев|билет|виз|лечен)|(?:yangi.{0,24}tanish|munosabat|sevgi).{0,160}(?:pul|o['’]?tkaz|chipta|viza|davol)|(?:new.{0,30}(?:romantic\s+)?contact|dating|relationship|romance).{0,160}(?:money|transfer|ticket|visa|treatment)/iu.test(
+    /(?:нов.{0,24}знаком|отношен|роман|жених|невест|парень|девушк).{0,160}(?:деньг|перев|билет|виз|лечен)|(?:yangi.{0,24}tanish|munosabat|sevgi).{0,160}(?:pul|o['’]?tkaz|chipta|viza|davol)|(?:new.{0,30}(?:romantic\s+)?contact|dating|relationship|romance|online\s+(?:boyfriend|girlfriend|partner)|boyfriend|girlfriend|fianc(?:e|é)e?|romantic\s+partner).{0,160}(?:money|transfer|ticket|visa|treatment|pay)/iu.test(
       normalized,
     )
   ) {
@@ -2654,7 +2688,8 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
 }
 
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
-  const normalized = normalizeIntentTextForMatching(text);
+  const normalizedBase = normalizeIntentTextForMatching(text);
+  const normalized = uzbekLatinMatchingVariant(normalizedBase) ?? normalizedBase;
   const hasConcreteUrl =
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
   const hasPriorityDanger = hasPriorityInlineDangerIntent(normalized);
@@ -2670,6 +2705,23 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
 
   if (hasOfficialLegalInlineIntent(normalized)) {
     return "official_impersonation";
+  }
+
+  if (hasRecoveryPhraseRequestIntent(normalized)) {
+    return "recovery_phrase_request";
+  }
+
+  // Completed incidents must stay above ordinary Telegram, bank and code
+  // topics. This also applies to the gated Uzbek-Cyrillic transliteration.
+  if (hasSentCodeIntent(normalized) && !hasInstalledAppAccessIntent(normalized)) {
+    return "sent_code";
+  }
+
+  // A request to move money to a "safe account" is more urgent and specific
+  // than the surrounding instruction to call or contact a bank. Preserve that
+  // transfer warning before the broad bank-contact helper below.
+  if (classifySpecificHumanInlineIntent(normalized) === "safe_account_transfer") {
+    return "safe_account_transfer";
   }
 
   // Preserve the concrete bank-contact task even when a later line mentions an
@@ -3337,8 +3389,6 @@ function classifyHumanInlineIntentForResult(
   result: RunCheckResult,
   originalQuery: string,
 ): HumanInlineIntent | null {
-  const reasons = collectResultReasonCodesForPresentation(result);
-  if (reasons.includes("requests_personal_data")) return "personal_data";
   const originalIntent = classifyHumanInlineIntent(originalQuery);
   if (
     originalIntent &&
@@ -3346,6 +3396,9 @@ function classifyHumanInlineIntentForResult(
   ) {
     return originalIntent;
   }
+
+  const reasons = collectResultReasonCodesForPresentation(result);
+  if (reasons.includes("requests_personal_data")) return "personal_data";
 
   const intent = classifyHumanInlineIntent(result.display);
   if ((result.type === "url" || result.type === "apk") && intent === "link_request") {
