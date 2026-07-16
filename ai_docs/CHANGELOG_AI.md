@@ -2,7 +2,7 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-15 - Third Desktop Inline visible follow-up remediation is locally green
+## 2026-07-15 - Third Desktop Inline visible follow-up remediation deployed
 
 - Archived seven additional owner-supplied Telegram Desktop screenshots as
   ignored local pre-fix evidence under
@@ -26,13 +26,21 @@ Newest first. This tracks documentation/memory files, not every code commit.
   exact expected title rather than accepting any follow-up title. All new
   tests prohibit network, paid AI/reputation calls and database mutations.
 - Local verification on lockfile-pinned dependencies passes 10,172/10,172
-  tests, TypeScript, lint with zero errors, the production build and `npm
-  audit` with zero known vulnerabilities. Coverage passes at 84.87%
+  tests, TypeScript, lint with zero errors and the production build.
+- `npm audit` reports zero known vulnerabilities. Coverage passes at 84.87%
   statements, 79.06% branches, 90.91% functions and 86.92% lines.
-- This is local implementation evidence only. The seven screenshots are
-  pre-fix observations; deployment and replay of the same cases on real
-  Telegram clients remain required. `INL-001`/`INL-002` stay outside Passed
-  and `BOT-004` stays In Progress.
+- PR #110 passed application, coverage, Supabase migration/schema/pgTAP,
+  CodeQL, Gitleaks and container/SBOM checks, then merged as
+  `581e71536e729253b73012baf5086241caf68e13`. Railway deployment
+  `f5915159-ccaa-46bc-9e42-be8c521010be` reached `SUCCESS` with image
+  `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
+- A bounded read-only production monitor passed home/health `200`, missing
+  webhook secret `401`, expected polling-mode webhook `503`, Telegram `getMe`,
+  pending updates `0` and polling-leader health `200`. AI and alerts were
+  disabled, so it sent no Telegram message and made no paid model call.
+- The seven screenshots are still pre-fix observations. Replay of the same
+  cases on Telegram Desktop and the Android/iOS matrices remain required.
+  `INL-001`/`INL-002` stay outside Passed and `BOT-004` stays In Progress.
 
 ## 2026-07-15 - Second Desktop Inline context remediation deployed
 

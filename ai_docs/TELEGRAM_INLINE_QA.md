@@ -104,10 +104,17 @@ mutation; 36 focused localized contracts assert that the second title differs
 from the first and that the inserted message preserves the new line.
 
 These checks are offline: network fetch is forbidden and Inline continues with
-AI, reputation and persistence disabled. This third batch is still pre-fix
-client evidence. Deployment plus replay of the same seven cases is required;
-Android/iOS and the wider RU/UZ/EN matrix remain open, so `INL-001`, `INL-002`
-and `BOT-004` do not change status.
+AI, reputation and persistence disabled. The remediation is now deployed: PR
+#110 passed application, coverage, Supabase migration/schema/pgTAP, CodeQL,
+Gitleaks and container/SBOM checks, merged as
+`581e71536e729253b73012baf5086241caf68e13`, and exact Railway deployment
+`f5915159-ccaa-46bc-9e42-be8c521010be` reached `SUCCESS` with image
+`sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
+The bounded no-AI/no-alert monitor passed home/health, webhook policy,
+Telegram `getMe`, pending updates `0` and polling-leader health. The third
+batch is still pre-fix client evidence. Replay of the same seven cases is
+required; Android/iOS and the wider RU/UZ/EN matrix remain open, so `INL-001`,
+`INL-002` and `BOT-004` do not change status.
 
 Lockfile-pinned local verification passes 10,172/10,172 tests, TypeScript,
 lint with zero errors (the same eight Fast Refresh warnings), production build
@@ -177,10 +184,10 @@ chat unless the case is explicitly about report/appeal moderator delivery.
   production uses polling; an intentionally disabled webhook returning 503 is
   expected there.
 - The 2026-07-15 remediation replay must target production containing merge
-  `da4c0a259a228d864432a77ccb1b3291468c52cf` or a verified descendant. Railway
-  deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` is the active PR #108
+  `581e71536e729253b73012baf5086241caf68e13` or a verified descendant. Railway
+  deployment `f5915159-ccaa-46bc-9e42-be8c521010be` is the active PR #110
   evidence, with image
-  `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
+  `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
   Supabase migration history is current, linked dry-run reports no pending
   migration, and remote schema lint is clean. Do not retest against an older
   build and label the result post-fix.
@@ -344,3 +351,5 @@ sharing outside local QA. Do not upload raw private screenshots to the repo.
 | 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU    | Fail (pre-fix)  | `private/telegram-inline-qa/2026-07-14/desktop/01-high-ru-preview.png`; `02-high-ru-inserted.png`                 | Result rendered and inserted correctly, but the preview omitted the safe action and the inserted card placed it below evidence. Fixed on main `95a7a82`; see the passing retest below.                                          |
 | 2026-07-14 | Owner  | Telegram Desktop                 | INLINE-HIGH-RU    | Pass (post-fix) | `private/telegram-inline-qa/2026-07-14/desktop/03-high-ru-preview-postfix.png`; `04-high-ru-inserted-postfix.png` | Preview begins with the full reason-specific safe action. The inserted card puts the safe action immediately after the title, before evidence; reason, limitation, attribution and button are visible and no secret is exposed. |
 | 2026-07-15 | Owner  | Telegram Desktop                 | Exploratory batch | Fail (pre-fix)  | `private/telegram-inline-qa/2026-07-15/desktop/user-batch-01/`                                                    | 41 screenshots reproduce the grouped defects documented in `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md`. They are input to remediation, not post-fix or release evidence.                                                       |
+| 2026-07-15 | Owner  | Telegram Desktop                 | Exploratory batch | Fail (pre-fix)  | `private/telegram-inline-qa/2026-07-15/desktop/user-batch-02/`                                                    | 30 screenshots cover multiline requests, visible follow-ups and guidance quality before PR #110. They are regression inputs only; the same cases still require a post-fix replay.                                               |
+| 2026-07-15 | Owner  | Telegram Desktop                 | Exploratory batch | Fail (pre-fix)  | `private/telegram-inline-qa/2026-07-15/desktop/user-batch-03/`                                                    | 7 screenshots show six ignored visible follow-ups plus one working passport control before PR #110. Deployment evidence does not replace a post-fix Desktop, Android or iOS replay.                                             |
