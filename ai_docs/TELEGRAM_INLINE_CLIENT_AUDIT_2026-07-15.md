@@ -1,7 +1,7 @@
 # Telegram Inline Client Audit — 2026-07-15
 
-Status: two screenshot-driven remediations are deployed; the third visible
-follow-up remediation is locally verified and awaits deployment/replay.
+Status: all three screenshot-driven remediations are deployed; real-client
+replay remains open.
 
 ## Outcome
 
@@ -13,9 +13,9 @@ the reproduced job, passport, link, numeric, phone/privacy, rate-limit and
 delivery paths.
 
 This audit does **not** mark the Telegram client gate Passed. All screenshots
-were captured before the current fixes. PR #108 passed all application,
-database and security jobs, merged as `da4c0a259a228d864432a77ccb1b3291468c52cf`,
-and Railway deployment `a1c6eab5-a8da-4341-a7ff-387212cd3784` of that exact
+were captured before the current fixes. PR #110 passed all application,
+database and security jobs, merged as `581e71536e729253b73012baf5086241caf68e13`,
+and Railway deployment `f5915159-ccaa-46bc-9e42-be8c521010be` of that exact
 revision reached `SUCCESS` and passed the bounded no-AI/no-alert monitor.
 Remote migration history remains current; linked dry-run reports no pending
 migration and remote schema lint is clean. Direct live catalog grant/trigger
@@ -42,13 +42,14 @@ answer for each supported follow-up family. Compromising-photo wording now gets
 action-first blackmail aftercare instead of the generic “send more context”
 card.
 
-The branch adds 36 localized visible-follow-up contracts, exact-title checks
-across the 1,152-row generated context corpus, a regression against the
+The deployed release adds 36 localized visible-follow-up contracts, exact-title
+checks across the 1,152-row generated context corpus, a regression against the
 `дал`/`дальше` substring collision and a mismatch control so an unrelated
-phone-number question cannot relabel a code warning. All are offline and keep
+phone-number question cannot relabel a code warning. The automated cases keep
 `skipAi=true`, `skipUrlReputation=true`, `persist=false`, zero external fetch
 and zero database mutation. These seven screenshots remain pre-fix evidence,
-not client acceptance.
+not client acceptance. PR #110 deployed the remediation, but only a post-fix
+client replay can close the visual acceptance rows.
 
 ## Batch 2 addendum
 
@@ -93,8 +94,8 @@ These screenshots are pre-fix observations, not acceptance evidence.
 | SIM/operator                       | `e443dc79…`, `4330f389…`, `4a190eea…`                                                                  | Follow-up context needed a clearer independent callback action.                                                                          | Specific SIM/operator copy remains action-first and preserves the added question/context.                                                                                                                                                                                                                           | Preview/card name the SIM/eSIM risk and direct the user to the operator's independently found official number.                                    |
 | Family emergency impersonation     | `5b3019f0…`, `0d3c56b6…`, `3d7eb061…`                                                                  | The first result was useful, but the follow-up needed to remain tied to identity verification rather than generic transfer advice.       | Human-intent priority and inserted copy preserve callback/code-word verification.                                                                                                                                                                                                                                   | Added “how do I know?” context keeps the saved-number callback/family code-word action.                                                           |
 | Investment/romance/unknown         | `bbe39e48…`, `ba82561d…`, `3fa4480c…`, `7debf72d…`, `00e86256…`, `a12d6a0b…`, `f34b60a7…`, `a4720e0d…` | Initial previews were mostly useful; second-line context had to keep the correct intent instead of collapsing to a generic reply.        | Result-aware intent routing and stronger preflight priorities preserve investment, romance and unknown-contact semantics.                                                                                                                                                                                           | Each second query produces its own matching preview/card and avoids invented identity or safety claims.                                           |
-| Visibly unchanged follow-up        | Batch 3 `01`-`04`, `06`                                                                                | The query-scoped id changed, but the preview copy did not visibly answer trust, scam, bank-number, fake-link or next-action questions.    | RU/UZ/EN follow-up families now produce a distinct visible title and answer without discarding the concrete first-line safety intent; incompatible families fall back to the safer concrete card.                                                                                                                     | Replaying each pair visibly changes the preview and inserted card while keeping the same concrete safety family and no invented verification.     |
-| Photo blackmail                    | Batch 3 `07`                                                                                            | “They have compromising photos of me” stayed on a generic safety card and omitted immediate blackmail aftercare.                         | Shared victim/Inline routing recognizes compromising-photo wording and gives action-first no-pay, preserve-evidence, trusted-person, block/report and official-police guidance in RU/UZ/EN.                                                                                                                          | Desktop/Android/iOS preview and insertion show specific blackmail guidance without echoing private material or claiming the threat is verified.   |
+| Visibly unchanged follow-up        | Batch 3 `01`-`04`, `06`                                                                                | The query-scoped id changed, but the preview copy did not visibly answer trust, scam, bank-number, fake-link or next-action questions.   | RU/UZ/EN follow-up families now produce a distinct visible title and answer without discarding the concrete first-line safety intent; incompatible families fall back to the safer concrete card.                                                                                                                   | Replaying each pair visibly changes the preview and inserted card while keeping the same concrete safety family and no invented verification.     |
+| Photo blackmail                    | Batch 3 `07`                                                                                           | “They have compromising photos of me” stayed on a generic safety card and omitted immediate blackmail aftercare.                         | Shared victim/Inline routing recognizes compromising-photo wording and gives action-first no-pay, preserve-evidence, trusted-person, block/report and official-police guidance in RU/UZ/EN.                                                                                                                         | Desktop/Android/iOS preview and insertion show specific blackmail guidance without echoing private material or claiming the threat is verified.   |
 | Safe-prefix/danger-tail bypass     | Corpus regression; the client batch motivated multiline/compound replay.                               | A neutral or safe phrase could previously suppress a dangerous sibling clause in some long/compound forms.                               | Clause-local RU/UZ/EN parsing covers punctuation, contrast/sequence and conjunction segments with their own action while preserving object lists and true negations.                                                                                                                                                | Safe-first and danger-first live samples both show the dangerous action; safety-only controls remain neutral.                                     |
 | Missing/stale second result        | Owner observation plus second-query screenshots; failure branch is automated.                          | A transient `answerInlineQuery` failure could be logged and then acknowledged, so the user saw no result and the update could not retry. | Network/no-code/5xx gets one bounded immediate retry; 429 instead carries bounded `retry_after` to polling. Exhaustion keeps the lifecycle retryable. Strict Inline work may run four-wide, and different-user Inline can read ahead during one slow stateful update without crossing the acknowledgement frontier. | Two ordinary distinct queries render in order. Do not force a production outage: timeout/429/5xx exhaustion remains automated evidence.           |
 
@@ -118,11 +119,14 @@ The abbreviated ids above map to exact paths in the manifest below.
 
 ## Evidence limits
 
-- The 41 Batch 1, 30 Batch 2 and seven Batch 3 screenshots prove pre-fix client behavior only.
-  They do not prove the current branch renders correctly in any Telegram
-  client.
+- The 41 Batch 1, 30 Batch 2 and seven Batch 3 screenshots prove pre-fix client
+  behavior only. They do not prove the current production release renders
+  correctly in any Telegram client.
 - Local handler/API tests do not render Telegram Desktop, Android or iOS and do
   not prove Bot API acceptance of a real `inline_query_id`.
+- PR #110 proves the reviewed code and exact Railway image are deployed and
+  healthy. It does not prove that Telegram Desktop, Android or iOS refreshed,
+  rendered or inserted the changed second result.
 - PR #106 provides application/coverage CI, CodeQL, Gitleaks, container/SBOM
   and clean-database migration/schema/35-pgTAP evidence. Historical deployment
   `39cf9f6d` of the exact merge revision reached `SUCCESS`; linked production
@@ -228,6 +232,18 @@ Batch 3 total: seven files. Combined local pre-fix evidence: 78 files.
 
 ## Production release evidence
 
+- PR #110 merged as `581e71536e729253b73012baf5086241caf68e13` after
+  application lint/type/test/build, coverage, Supabase migration/schema/pgTAP,
+  CodeQL, Gitleaks and container High/Critical plus SBOM jobs all passed.
+- Railway deployment `f5915159-ccaa-46bc-9e42-be8c521010be` reached `SUCCESS`
+  from that exact merge revision. Image digest:
+  `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
+- The post-PR #110 bounded monitor passed home/health `200`, missing webhook
+  secret `401`, expected polling-mode webhook `503`, Telegram `getMe`, delivery
+  `mode=polling` with pending updates `0`, and protected polling leader `200`.
+  AI and alerts were disabled; the check made no paid model call and sent no
+  Telegram message.
+
 - PR #108 merged as `da4c0a259a228d864432a77ccb1b3291468c52cf` after
   application lint/type/test/build, coverage, Supabase migration/schema/pgTAP,
   CodeQL, Gitleaks and container High/Critical plus SBOM jobs all passed.
@@ -271,9 +287,9 @@ any pre-fix screenshot into a pass.
 
 1. [x] Record the release commit, successful application/Supabase CI run,
        historical deployment identity and migration-history/no-pending/schema-lint
-       evidence. Active production contains exact merge `da4c0a2`, deployment
-       `a1c6eab5-a8da-4341-a7ff-387212cd3784` and image
-       `sha256:9cc2da03c7e57eb29f53fadb332596a48e154ff9be372620349943eeae1155e9`.
+       evidence. Active production contains exact merge `581e715`, deployment
+       `f5915159-ccaa-46bc-9e42-be8c521010be` and image
+       `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
 2. [x] Confirm `/healthz`, authenticated polling-leader health and Telegram delivery
        state are green with zero unexpected pending updates.
 3. [ ] On Telegram Desktop, replay the job-fee preview, insert it, open the bot and
