@@ -50,6 +50,12 @@ export interface SendMessageOptions {
   disablePreview?: boolean;
 }
 
+export interface SendMessageResult {
+  ok: boolean;
+  /** Telegram message_id, present only after a successful sendMessage response. */
+  messageId?: number;
+}
+
 export interface SendAudioFileOptions {
   chatId: number;
   audio: Uint8Array;
@@ -229,7 +235,7 @@ function isTelegramChatFullInfo(value: unknown): value is TelegramChatFullInfo {
  * `reply_markup.inline_keyboard`. Возвращает `{ ok }`; при отсутствии токена
  * или сетевой/не-ok ошибке — `{ ok: false }` (R13.4).
  */
-export async function sendMessage(opts: SendMessageOptions): Promise<{ ok: boolean }> {
+export async function sendMessage(opts: SendMessageOptions): Promise<SendMessageResult> {
   const body: Record<string, unknown> = {
     chat_id: opts.chatId,
     text: opts.text,
@@ -242,11 +248,21 @@ export async function sendMessage(opts: SendMessageOptions): Promise<{ ok: boole
   if (opts.disablePreview) body.disable_web_page_preview = true;
 
   const res = await callBotApi("sendMessage", body);
-  return { ok: res?.ok === true };
+  if (res?.ok !== true) return { ok: false };
+  const result = res.result;
+  const messageId =
+    result &&
+    typeof result === "object" &&
+    typeof (result as Record<string, unknown>).message_id === "number" &&
+    Number.isSafeInteger((result as Record<string, unknown>).message_id) &&
+    ((result as Record<string, unknown>).message_id as number) > 0
+      ? ((result as Record<string, unknown>).message_id as number)
+      : undefined;
+  return messageId === undefined ? { ok: true } : { ok: true, messageId };
 }
 
 /** Send an audio file generated in memory. Used by opt-in Voice-out/TTS. */
-export async function sendAudioFile(opts: SendAudioFileOptions): Promise<{ ok: boolean }> {
+export async function sendAudioFile(opts: SendAudioFileOptions): Promise<SendMessageResult> {
   const form = new FormData();
   const audioBytes = new Uint8Array(opts.audio.byteLength);
   audioBytes.set(opts.audio);
@@ -262,7 +278,17 @@ export async function sendAudioFile(opts: SendAudioFileOptions): Promise<{ ok: b
   }
 
   const res = await callBotApiForm("sendAudio", form);
-  return { ok: res?.ok === true };
+  if (res?.ok !== true) return { ok: false };
+  const result = res.result;
+  const messageId =
+    result &&
+    typeof result === "object" &&
+    typeof (result as Record<string, unknown>).message_id === "number" &&
+    Number.isSafeInteger((result as Record<string, unknown>).message_id) &&
+    ((result as Record<string, unknown>).message_id as number) > 0
+      ? ((result as Record<string, unknown>).message_id as number)
+      : undefined;
+  return messageId === undefined ? { ok: true } : { ok: true, messageId };
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   type ConversationDraftSnapshot,
   type ReportDraft,
 } from "@/lib/telegram/session.server";
+import { rememberReplyCheckContext } from "@/lib/telegram/reply-check-context";
 import {
   appendConversationMessage,
   buildConversationCollectKeyboard,
@@ -87,20 +88,31 @@ export async function handleConversationAnalyze(ctx: HandlerCtx): Promise<void> 
     return;
   }
 
+  const lastCheck = buildConversationLastCheckSnapshot(draft);
   const nextData = {
     ...removeConversationDraft(ctx.session.scenarioData),
-    lastCheck: buildConversationLastCheckSnapshot(draft),
+    lastCheck,
   };
   await saveSession(ctx.userId, {
     scenario: "none",
     scenarioStep: 0,
     scenarioData: scopedData(ctx, nextData),
   });
-  await sendMessage({
+  const delivery = await sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(buildConversationResultText(draft, ctx.session.lang)),
     keyboard: buildConversationResultKeyboard(ctx.session.lang),
   });
+  if (delivery?.messageId !== undefined) {
+    await saveSession(ctx.userId, {
+      scenario: "none",
+      scenarioStep: 0,
+      scenarioData: scopedData(
+        ctx,
+        rememberReplyCheckContext(nextData, delivery.messageId, lastCheck),
+      ),
+    });
+  }
 }
 
 export async function handleConversationScenarioStep(text: string, ctx: HandlerCtx): Promise<void> {

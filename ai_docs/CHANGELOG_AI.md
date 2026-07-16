@@ -2,6 +2,49 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-16 - Direct and Inline multilingual context hardening locally green
+
+- Preserved concrete RU/UZ/EN scenario topics and action-first guidance across
+  Direct chat, Inline preview and inserted results for bank/police impersonation,
+  SIM swap, remote access, tax, parcel, loan, charity, romance/extortion, fake
+  support, QR login, investment/channel and related human cases.
+- Added classifier-only Unicode/invisible/confusable normalization, full
+  multiline precedence, per-message Direct language selection without session
+  mutation, bounded Reply context and non-echoing OTP/PIN/CVV/password/recovery
+  guidance.
+- Closed the elderly-QA handoff: Uzbek Cyrillic family distress and completed
+  Telegram takeover now reach specific victim recovery; short already-paid,
+  already-installed, uninstall and confidence replies use a chat-scoped
+  enum-only 20-minute context instead of a cold check. Explicit questions such
+  as «это номер банка? +998…» now check the embedded phone as a phone passport.
+- Added a 1,080-case adversarial human corpus exercised through Direct and
+  Inline (2,161 focused assertions) and retained the 1,175-case Inline context
+  robustness oracle. No external network, paid model or Telegram session write
+  is permitted by these suites.
+- Local verification passes the focused 2,161/2,161 oracle, Telegram
+  10,743/10,743, full project 12,593/12,593, TypeScript, lint with zero errors,
+  production build and `npm audit` with zero known vulnerabilities.
+- Production, commit, push and deployment were intentionally not touched; the
+  dirty branch still requires provenance review and owner approval before any
+  publication step.
+
+## 2026-07-16 - Elderly-realism QA corpus and Uzbek Cyrillic coverage
+
+- Added `src/lib/telegram/__qa__/`: a 100-case observational corpus of
+  realistic elderly RU/UZ messages (typos, Uzbek Cyrillic, Latin with Russian
+  loanwords, code-switching, STT-style transcripts, fragments, multi-turn,
+  Inline) driven through the real dispatch/inline pipeline with faked
+  Telegram/Supabase. Reports land in `output/elderly-qa/`.
+- Added `src/lib/risk/uz-cyrillic-translit.ts`: `evaluateText` now also
+  evaluates an Uzbek Cyrillic→Latin matching variant so Cyrillic-script Uzbek
+  reaches the existing Latin rule patterns. Closed Latin morphology gaps:
+  so'rashyapti ask forms, kartangizni possessives, to'lashim kerak, orqa.
+- Gratitude with blessings and who-are-you/is-it-free openers now get warm
+  identity/acknowledgement replies instead of the generic verdict card
+  (`check-followup.ts`).
+- The victim-intent gaps originally recorded here were closed later on
+  2026-07-16 and are now strict elderly-QA regressions.
+
 ## 2026-07-15 - Third Desktop Inline visible follow-up remediation deployed
 
 - Archived seven additional owner-supplied Telegram Desktop screenshots as

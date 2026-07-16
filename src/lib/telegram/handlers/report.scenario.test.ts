@@ -137,6 +137,7 @@ const h = vi.hoisted(() => ({
       retryAfterSec: number;
     },
   },
+  nextMessageId: { current: undefined as number | undefined },
 }));
 
 // Session store — capture the persisted patches, never hit Supabase.
@@ -161,7 +162,9 @@ vi.mock("@/lib/telegram/session.server", () => ({
 vi.mock("@/lib/telegram/api.server", () => ({
   sendMessage: (opts: { chatId: number; text: string; keyboard?: unknown }) => {
     h.sendCalls.push({ chatId: opts.chatId, text: opts.text, keyboard: opts.keyboard });
-    return Promise.resolve({ ok: true });
+    const messageId = h.nextMessageId.current;
+    if (messageId !== undefined) h.nextMessageId.current = messageId + 1;
+    return Promise.resolve(messageId === undefined ? { ok: true } : { ok: true, messageId });
   },
   escapeMarkdownV2: (s: string) => s,
   getFile: (fileId: string) => {
@@ -294,6 +297,24 @@ function sentKeyboardData(index = h.sendCalls.length - 1): string[] {
   return keyboard?.flatMap((row) => row.map((button) => button.callback_data ?? "")) ?? [];
 }
 
+function bindReportCallback(
+  ctx: HandlerCtx,
+  messageId: number,
+  action: "report_skip" | "report_no_value" | "report_retry",
+  scenario: "report_value" | "report_scamType" | "report_city" | "report_amount",
+): void {
+  ctx.messageId = messageId;
+  ctx.session.scenarioData = {
+    ...ctx.session.scenarioData,
+    reportCallbackBinding: {
+      messageId,
+      action,
+      scenario,
+      at: new Date(0).toISOString(),
+    },
+  };
+}
+
 beforeEach(() => {
   h.saveCalls.length = 0;
   h.resetCalls.length = 0;
@@ -309,6 +330,7 @@ beforeEach(() => {
   h.downloadCalls.length = 0;
   h.mediaAdmissionCalls.length = 0;
   h.mediaAdmissionResult.current = { ok: true, remaining: 9, retryAfterSec: 0 };
+  h.nextMessageId.current = undefined;
 });
 
 afterEach(() => {
@@ -487,6 +509,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     await startReport(ctx);
     applyPatch(ctx, h.saveCalls[0].patch);
 
+    bindReportCallback(ctx, 301, REPORT_NO_VALUE_CALLBACK, "report_value");
     await handleReportNoValue(ctx);
     applyPatch(ctx, h.saveCalls[h.saveCalls.length - 1].patch);
     await runStep(ctx, "Пытались украсть аккаунт, просили прислать код из Telegram");
@@ -517,6 +540,7 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
     });
 
     expect(REPORT_SKIP_CALLBACK).toBe("report_skip");
+    bindReportCallback(ctx, 302, REPORT_SKIP_CALLBACK, "report_scamType");
     await handleReportSkip(ctx);
 
     // Advances to the city step without recording a scamType.
@@ -526,6 +550,180 @@ describe("/report — successful submit delegates to Report_Pipeline (R6.4, R9.1
       scenarioStep: 3,
       scenarioData: { target: expectedTarget("@x"), description: "достаточно длинное описание" },
     });
+  });
+});
+
+describe("/report — callback prompt integrity", () => {
+  it("binds the current no-value button to the exact prompt and accepts that callback", async () => {
+    h.nextMessageId.current = 700;
+    const ctx = makeCtx({ scenario: "none" });
+
+    await startReport(ctx);
+
+    expect(h.saveCalls).toHaveLength(2);
+    const boundPatch = h.saveCalls[1].patch;
+    expect(boundPatch.scenarioData?.reportCallbackBinding).toMatchObject({
+      messageId: 700,
+      action: REPORT_NO_VALUE_CALLBACK,
+      scenario: "report_value",
+    });
+
+    applyPatch(ctx, boundPatch);
+    ctx.messageId = 700;
+    await handleReportNoValue(ctx);
+
+    expect(h.saveCalls[h.saveCalls.length - 1].patch).toMatchObject({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { noValue: true },
+    });
+    expect(sentTexts()).not.toContain(bt("report_callback_expired", "ru"));
+  });
+
+  it("replaces the binding when an optional-step Skip prompt is delivered", async () => {
+    h.nextMessageId.current = 710;
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { target: expectedTarget("@x") },
+    });
+
+    await handleScenarioStep("A sufficiently detailed report description", ctx);
+
+    expect(h.saveCalls).toHaveLength(2);
+    expect(h.saveCalls[1].patch).toMatchObject({
+      scenario: "report_scamType",
+      scenarioStep: 2,
+      scenarioData: {
+        reportCallbackBinding: {
+          messageId: 710,
+          action: REPORT_SKIP_CALLBACK,
+          scenario: "report_scamType",
+        },
+      },
+    });
+  });
+
+  it("binds Retry only to the newly delivered failure prompt", async () => {
+    h.nextMessageId.current = 720;
+    h.submitImpl.current = async () => ({ ok: false, error: "temporary" });
+    const ctx = makeCtx({
+      scenario: "report_amount",
+      scenarioStep: 4,
+      scenarioData: {
+        target: expectedTarget("@x"),
+        description: "A sufficiently detailed report description",
+      },
+    });
+
+    await handleScenarioStep("-", ctx);
+
+    expect(h.submitCalls).toHaveLength(1);
+    expect(h.saveCalls).toHaveLength(2);
+    expect(h.saveCalls[1].patch).toMatchObject({
+      scenario: "report_amount",
+      scenarioStep: 4,
+      scenarioData: {
+        reportCallbackBinding: {
+          messageId: 720,
+          action: REPORT_RETRY_CALLBACK,
+          scenario: "report_amount",
+        },
+      },
+    });
+  });
+
+  it("rejects an old Skip button after the flow has advanced to a newer prompt", async () => {
+    const ctx = makeCtx({
+      scenario: "report_city",
+      scenarioStep: 3,
+      scenarioData: {
+        target: expectedTarget("@x"),
+        description: "long enough description",
+        reportCallbackBinding: {
+          messageId: 802,
+          action: REPORT_SKIP_CALLBACK,
+          scenario: "report_city",
+          at: new Date(0).toISOString(),
+        },
+      },
+    });
+    ctx.messageId = 801;
+
+    await handleReportSkip(ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(h.submitCalls).toHaveLength(0);
+    expect(sentTexts()).toEqual([bt("report_callback_expired", "ru")]);
+  });
+
+  it("rejects an old No value button after a newer report was started", async () => {
+    const ctx = makeCtx({
+      scenario: "report_value",
+      scenarioStep: 0,
+      scenarioData: {
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 902,
+          action: REPORT_NO_VALUE_CALLBACK,
+          scenario: "report_value",
+          at: new Date(0).toISOString(),
+        },
+      },
+    });
+    ctx.messageId = 901;
+
+    await handleReportNoValue(ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(h.submitCalls).toHaveLength(0);
+    expect(sentTexts()).toEqual([bt("report_callback_expired", "ru")]);
+  });
+
+  it("rejects an old Retry button while a new report flow is active", async () => {
+    const ctx = makeCtx({
+      scenario: "report_value",
+      scenarioStep: 0,
+      scenarioData: {
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 1_002,
+          action: REPORT_NO_VALUE_CALLBACK,
+          scenario: "report_value",
+          at: new Date(0).toISOString(),
+        },
+      },
+    });
+    ctx.messageId = 1_001;
+
+    await handleReportRetry(ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(h.submitCalls).toHaveLength(0);
+    expect(sentTexts()).toEqual([bt("report_callback_expired", "ru")]);
+  });
+
+  it("fails closed when Telegram does not provide the callback message id", async () => {
+    const ctx = makeCtx({
+      scenario: "report_scamType",
+      scenarioStep: 2,
+      scenarioData: {
+        target: expectedTarget("@x"),
+        description: "long enough description",
+        reportCallbackBinding: {
+          messageId: 1_100,
+          action: REPORT_SKIP_CALLBACK,
+          scenario: "report_scamType",
+          at: new Date(0).toISOString(),
+        },
+      },
+    });
+
+    await handleReportSkip(ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(h.submitCalls).toHaveLength(0);
+    expect(sentTexts()).toEqual([bt("report_callback_expired", "ru")]);
   });
 });
 
@@ -702,6 +900,7 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
     });
 
     expect(REPORT_RETRY_CALLBACK).toBe("report_retry");
+    bindReportCallback(ctx, 303, REPORT_RETRY_CALLBACK, "report_amount");
     await handleReportRetry(ctx);
 
     expect(h.submitCalls).toHaveLength(1);

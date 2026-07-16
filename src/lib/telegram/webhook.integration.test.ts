@@ -45,7 +45,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 const h = vi.hoisted(() => ({
   // Bot API capture
-  sendCalls: [] as { chatId: number; text: string; keyboard?: unknown }[],
+  sendCalls: [] as { chatId: number; text: string; keyboard?: unknown; messageId: number }[],
   chatActionCalls: [] as number[],
   answerCalls: [] as string[],
   inlineAnswerCalls: [] as Array<{ inlineQueryId: string; results: unknown[] }>,
@@ -54,6 +54,7 @@ const h = vi.hoisted(() => ({
   sendShouldThrow: false,
   sendNeverResolves: false,
   sendResultOk: true,
+  nextMessageId: 1_000,
 
   // Image analysis core stub
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
@@ -85,10 +86,11 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
   return {
     ...actual,
     sendMessage: vi.fn(async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
-      h.sendCalls.push(opts);
+      const messageId = h.nextMessageId++;
+      h.sendCalls.push({ ...opts, messageId });
       if (h.sendShouldThrow) throw new Error("sendMessage boom (simulated handler error)");
       if (h.sendNeverResolves) return new Promise(() => {});
-      return { ok: h.sendResultOk };
+      return h.sendResultOk ? { ok: true, messageId } : { ok: false };
     }),
     sendChatAction: vi.fn(async (chatId: number) => {
       h.chatActionCalls.push(chatId);
@@ -396,13 +398,14 @@ function callbackUpdate(opts: {
   chatId: number;
   data: string;
   id?: string;
+  messageId?: number;
 }): unknown {
   return {
     update_id: nextSyntheticUpdateId(),
     callback_query: {
       id: opts.id ?? `cb-${opts.userId}`,
       from: { id: opts.userId },
-      message: { chat: { id: opts.chatId } },
+      message: { chat: { id: opts.chatId }, message_id: opts.messageId ?? 1 },
       data: opts.data,
     },
   };
@@ -479,6 +482,7 @@ beforeEach(() => {
   h.sendShouldThrow = false;
   h.sendNeverResolves = false;
   h.sendResultOk = true;
+  h.nextMessageId = 1_000;
   h.ocrText = null;
   h.imageEvidence = null;
   h.voiceTranscript = "caller asks for SMS code";
@@ -1242,6 +1246,52 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     );
     expect(h.sendCalls).toHaveLength(1);
     expect(callbackData(h.sendCalls[0].keyboard)).toContain(REPORT_NO_VALUE_CALLBACK);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            scenario_data: expect.objectContaining({
+              reportCallbackBinding: expect.objectContaining({
+                messageId: 1_000,
+                action: REPORT_NO_VALUE_CALLBACK,
+                scenario: "report_value",
+              }),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("binds the /report command prompt through the same canonical entry point", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1107, chatId: 5107, text: "/report" })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain(REPORT_NO_VALUE_CALLBACK);
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: 1107,
+            scenario: "report_value",
+            scenario_step: 0,
+            scenario_data: expect.objectContaining({
+              chatScope: { chatId: 5107, chatType: "private" },
+              reportCallbackBinding: expect.objectContaining({
+                messageId: 1_000,
+                action: REPORT_NO_VALUE_CALLBACK,
+                scenario: "report_value",
+              }),
+            }),
+          }),
+        }),
+      ]),
+    );
   });
 
   it("acknowledges report skip callbacks before advancing the report scenario", async () => {
@@ -1254,6 +1304,12 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
         target: { type: "telegram", hash: "hash:4", display: "[redacted]", incidentOnly: false },
         description: "long enough",
         chatScope: { chatId: 5103, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 1,
+          action: "report_skip",
+          scenario: "report_scamType",
+          at: new Date(0).toISOString(),
+        },
       },
       updated_at: new Date(0).toISOString(),
     };
@@ -1283,6 +1339,45 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls).toHaveLength(1);
   });
 
+  it("fails closed when an old report button targets a newer report prompt", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1104,
+      lang: "uz",
+      scenario: "report_city",
+      scenario_step: 3,
+      scenario_data: {
+        target: { type: "telegram", hash: "hash:4", display: "[redacted]", incidentOnly: false },
+        description: "long enough",
+        chatScope: { chatId: 5104, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 22,
+          action: "report_skip",
+          scenario: "report_city",
+          at: new Date(0).toISOString(),
+        },
+      },
+      updated_at: new Date(0).toISOString(),
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1104,
+          chatId: 5104,
+          data: "report_skip",
+          id: "cb-old-report-skip",
+          messageId: 21,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-old-report-skip"]);
+    expect(h.upserts).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("eski bosqichiga");
+  });
+
   it("acknowledges the report no-value callback and advances to description", async () => {
     h.sessionRow = {
       telegram_user_id: 1105,
@@ -1291,6 +1386,12 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       scenario_step: 0,
       scenario_data: {
         chatScope: { chatId: 5105, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 1,
+          action: REPORT_NO_VALUE_CALLBACK,
+          scenario: "report_value",
+          at: new Date(0).toISOString(),
+        },
       },
       updated_at: new Date(0).toISOString(),
     };
@@ -1334,6 +1435,12 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
         target: { type: "phone", hash: "hash:13", display: "[redacted]", incidentOnly: false },
         chatScope: { chatId: 5106, chatType: "private" },
         description: "Достаточно длинное описание",
+        reportCallbackBinding: {
+          messageId: 1,
+          action: REPORT_RETRY_CALLBACK,
+          scenario: "report_amount",
+          at: new Date(0).toISOString(),
+        },
       },
       updated_at: new Date(0).toISOString(),
     };
@@ -2111,11 +2218,19 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       webhookRequest(photoUpdate({ userId: 1014, chatId: 5014 })),
     );
     expect(first.status).toBe(200);
+    const resultMessageId = h.sendCalls[0].messageId;
     loadLatestSessionUpsert(1014);
 
     h.sendCalls.length = 0;
     const why = await handleTelegramWebhook(
-      webhookRequest(callbackUpdate({ userId: 1014, chatId: 5014, data: CB.why })),
+      webhookRequest(
+        callbackUpdate({
+          userId: 1014,
+          chatId: 5014,
+          data: CB.why,
+          messageId: resultMessageId,
+        }),
+      ),
     );
 
     expect(why.status).toBe(200);
@@ -2150,6 +2265,67 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain("QR");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
     expect(h.inserts.some((entry) => entry.table === "checks")).toBe(false);
+  });
+
+  it("binds Why/Simple buttons to result A after result B and fails closed for an unknown id", async () => {
+    const userId = 1015;
+    const chatId = 5015;
+    h.imageEvidence = {
+      text: "Уважаемые гости! Меню и информационный QR ресторана.",
+      visualCategory: "restaurant_menu_qr",
+      confidence: "high",
+      qr: { present: true, visibleUrl: "https://chenson.uz/menu", purpose: "menu" },
+      riskHints: [],
+      summary: "Похоже на ресторанное меню.",
+    };
+
+    await handleTelegramWebhook(webhookRequest(photoUpdate({ userId, chatId })));
+    const resultAMessageId = h.sendCalls[0].messageId;
+    loadLatestSessionUpsert(userId);
+
+    h.sendCalls.length = 0;
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({
+          userId,
+          chatId,
+          text: "https://paypa1.uz.evil.example/login",
+        }),
+      ),
+    );
+    const resultBMessageId = h.sendCalls[0].messageId;
+    loadLatestSessionUpsert(userId);
+
+    h.sendCalls.length = 0;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId, data: CB.why, messageId: resultAMessageId })),
+    );
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("сам QR не является скамом");
+    expect(h.sendCalls[0].text).not.toContain("доменное окончание");
+
+    h.sendCalls.length = 0;
+    await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId,
+          chatId,
+          data: CB.explainSimple,
+          messageId: resultBMessageId,
+        }),
+      ),
+    );
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toMatch(/домен|ссылк/u);
+    expect(h.sendCalls[0].text).not.toContain("информационный QR");
+
+    h.sendCalls.length = 0;
+    await handleTelegramWebhook(
+      webhookRequest(callbackUpdate({ userId, chatId, data: CB.why, messageId: 999_999 })),
+    );
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("связать это действие");
+    expect(h.sendCalls[0].text).not.toContain("доменное окончание");
   });
 
   it("answers a bank-number follow-up from the last phone check without re-checking it", async () => {

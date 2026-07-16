@@ -10,7 +10,7 @@ type VictimExpectedRoute = {
 
 type HandlerReplyExpectedRoute = {
   kind: "handler_reply";
-  route: "orphan_followup" | "confirmation_followup";
+  route: "orphan_followup" | "confirmation_followup" | "sensitive_secret";
   replyIncludes: string;
 };
 
@@ -1650,7 +1650,11 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     area: "direct scam payload",
     text: "Salom, bu kodni kiriting please: 1234",
     lang: "uz",
-    expected: { kind: "risk_pipeline" },
+    expected: {
+      kind: "handler_reply",
+      route: "sensitive_secret",
+      replyIncludes: "Kod yashirildi",
+    },
   },
   {
     area: "post-check confidence",

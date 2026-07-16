@@ -15,14 +15,9 @@
 // These exact strings are re-used from `CB` (format.ts) so the formatter's
 // buttons, the /start language buttons (task 8.2) and this handler agree.
 //
-// ── Decoupling (parallel tasks 8.2/8.3/8.4 + wiring in 9.1) ─────────────────
-// This module owns ONLY these handlers. It does NOT import the sibling handler
-// modules (commands.ts / check.ts / report.ts) and does NOT call `setHandlers`
-// — composition happens later in task 9.1. To start the /report scenario from
-// the «Report» button it talks to the session store directly (sets
-// `scenario="report_value"`, the same initial state report.ts drives), rather
-// than calling report.ts. The actual step-by-step handling lives in report.ts
-// and is wired in 9.1.
+// The «Report» callback delegates to report.ts's canonical entry point so every
+// entry path persists the same exact prompt/callback binding. Handler registry
+// composition remains in task 9.1's index.ts.
 //
 // answerCallbackQuery note: the router's `Handlers.handleCallback(data, ctx)`
 // does not thread the `callback_query.id` through (`decideRoute` keeps only
@@ -75,7 +70,7 @@ import {
   canonicalMetaIntentId,
   enforceTelegramReplyContract,
 } from "@/lib/telegram/intent-contract";
-import { reportValueKeyboard } from "@/lib/telegram/report-flow";
+import { startReport } from "@/lib/telegram/handlers/report";
 import {
   buildImageTriageFollowUpKeyboard,
   buildImageTriageKeyboard,
@@ -99,10 +94,17 @@ import {
   classifyLastCheckFollowUp,
 } from "@/lib/telegram/check-followup";
 import {
+  buildReplyContextExpiredText,
+  rememberReplyCheckContext,
+  resolveReplyCheckContext,
+  resolveReplyGuardianContext,
+} from "@/lib/telegram/reply-check-context";
+import {
   buildGuardianAngelKeyboard,
   buildGuardianAngelNoContextText,
   buildGuardianAngelText,
   parseGuardianAngelCallback,
+  type GuardianAngelSnapshot,
 } from "@/lib/telegram/guardian-angel";
 import {
   buildGuardianVoiceOutText,
@@ -128,6 +130,22 @@ import {
 const LANG_PREFIX = "lang:";
 const SUPPORTED_LANGS: readonly Lang[] = ["ru", "uz", "en"];
 type LiveCallResponseKey = "live_call_hangup" | "live_call_what_to_say" | "live_call_tell_family";
+
+async function rememberDeliveredGuardianResult(
+  ctx: HandlerCtx,
+  messageId: number | undefined,
+  snapshot: LastCheckSnapshot | null,
+  guardian: GuardianAngelSnapshot | null,
+): Promise<void> {
+  if (messageId === undefined || !snapshot || !guardian) return;
+  await saveSession(ctx.userId, {
+    scenarioData: withSessionChatScope(
+      rememberReplyCheckContext(ctx.session.scenarioData, messageId, snapshot, undefined, guardian),
+      ctx.chatId,
+      ctx.chatType,
+    ),
+  });
+}
 
 /** Parse a "lang:<code>" callback into a supported `Lang`, or `null`. */
 function parseLangCallback(data: string): Lang | null {
@@ -398,15 +416,23 @@ export async function handleCallback(
 
   if (voiceOutAction !== null) {
     if (voiceOutAction === VOICE_OUT_CB.guardian) {
-      const guardian = ctx.session.scenarioData.guardian;
-      await sendVoiceOutResponse({
+      const guardian =
+        ctx.messageId === undefined
+          ? null
+          : resolveReplyGuardianContext(ctx.session.scenarioData, ctx.messageId);
+      const snapshot =
+        ctx.messageId === undefined
+          ? null
+          : resolveReplyCheckContext(ctx.session.scenarioData, ctx.messageId);
+      const delivery = await sendVoiceOutResponse({
         chatId: ctx.chatId,
         userId: ctx.userId,
         lang,
-        text: buildGuardianVoiceOutText(guardian, lang),
+        text: buildGuardianVoiceOutText(guardian ?? undefined, lang),
         keyboard: guardian ? buildGuardianAngelKeyboard(lang, guardian) : undefined,
         callbackQueryId,
       });
+      await rememberDeliveredGuardianResult(ctx, delivery.messageId, snapshot, guardian);
       return;
     }
 
@@ -444,8 +470,15 @@ export async function handleCallback(
 
   const guardianAction = parseGuardianAngelCallback(data);
   if (guardianAction !== null) {
-    const guardian = ctx.session.scenarioData.guardian;
-    await sendMessage({
+    const guardian =
+      ctx.messageId === undefined
+        ? null
+        : resolveReplyGuardianContext(ctx.session.scenarioData, ctx.messageId);
+    const snapshot =
+      ctx.messageId === undefined
+        ? null
+        : resolveReplyCheckContext(ctx.session.scenarioData, ctx.messageId);
+    const delivery = await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(
         guardian
@@ -454,6 +487,7 @@ export async function handleCallback(
       ),
       keyboard: guardian ? buildGuardianAngelKeyboard(lang, guardian) : undefined,
     });
+    await rememberDeliveredGuardianResult(ctx, delivery.messageId, snapshot, guardian);
     return;
   }
 
@@ -475,18 +509,7 @@ export async function handleCallback(
 
   // 2) «Сообщить» (Report) — begin the /report scenario via the session store.
   if (data === CB.report) {
-    // Mirror report.ts `startReport`: initial state + fresh draft (R15.2). The
-    // step-by-step flow in report.ts is wired in task 9.1.
-    await saveSession(ctx.userId, {
-      scenario: "report_value",
-      scenarioStep: 0,
-      scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
-    });
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: escapeMarkdownV2(bt("report_ask_value", lang)),
-      keyboard: reportValueKeyboard(lang),
-    });
+    await startReport(ctx);
     return;
   }
 
@@ -576,26 +599,39 @@ export async function handleCallback(
   const imageTriageKind = parseImageTriageCallback(data);
   if (imageTriageKind !== null) {
     const snapshot = imageTriageSnapshot(imageTriageKind);
+    let nextScenarioData = ctx.session.scenarioData;
     if (snapshot) {
       const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+      nextScenarioData = withSessionChatScope(
+        {
+          ...previousScenarioData,
+          lastCheck: snapshot,
+        },
+        ctx.chatId,
+        ctx.chatType,
+      );
+      await saveSession(ctx.userId, {
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: nextScenarioData,
+      });
+    }
+    const delivery = await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
+      keyboard: buildImageTriageFollowUpKeyboard(lang),
+    });
+    if (snapshot && delivery?.messageId !== undefined) {
       await saveSession(ctx.userId, {
         scenario: "none",
         scenarioStep: 0,
         scenarioData: withSessionChatScope(
-          {
-            ...previousScenarioData,
-            lastCheck: snapshot,
-          },
+          rememberReplyCheckContext(nextScenarioData, delivery.messageId, snapshot),
           ctx.chatId,
           ctx.chatType,
         ),
       });
     }
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: escapeMarkdownV2(buildImageTriageText(imageTriageKind, lang)),
-      keyboard: buildImageTriageFollowUpKeyboard(lang),
-    });
     return;
   }
 
@@ -617,8 +653,13 @@ export async function handleCallback(
   }
 
   if (data === CB.why) {
-    const action = classifyLastCheckFollowUp("Почему так?", ctx.session.scenarioData);
-    const snapshot = ctx.session.scenarioData.lastCheck;
+    const snapshot =
+      ctx.messageId === undefined
+        ? null
+        : resolveReplyCheckContext(ctx.session.scenarioData, ctx.messageId);
+    const action = snapshot
+      ? classifyLastCheckFollowUp("Почему так?", { lastCheck: snapshot })
+      : null;
     if (action === "explain" && snapshot) {
       await sendMessage({
         chatId: ctx.chatId,
@@ -627,18 +668,24 @@ export async function handleCallback(
       return;
     }
 
-    await sendI18n(ctx.chatId, "why_explanation", lang);
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(buildReplyContextExpiredText(lang)),
+    });
     return;
   }
 
   if (data === CB.explainSimple) {
-    const snapshot = ctx.session.scenarioData.lastCheck;
+    const snapshot =
+      ctx.messageId === undefined
+        ? null
+        : resolveReplyCheckContext(ctx.session.scenarioData, ctx.messageId);
     await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(
         snapshot
           ? buildLastCheckFollowUpText("simple_explain", snapshot, lang)
-          : bt("why_explanation", lang),
+          : buildReplyContextExpiredText(lang),
       ),
     });
     return;

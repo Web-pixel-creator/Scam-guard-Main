@@ -2,6 +2,36 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-083 - Direct and Inline preserve one specific human-scenario contract
+
+Direct chat and stateless Inline may use different transports and persistence
+boundaries, but once deterministic rules prove a narrow human scam scenario
+they must preserve the same topic and immediate safe action. Generic transfer,
+stranger or preflight wording cannot erase stronger bank/police impersonation,
+SIM swap, remote-access, parcel, tax, loan, charity, romance/extortion, support
+or QR-login evidence. Completed-incident aftercare remains stronger than an
+ordinary suspicion route; explicit official portal/app document submission is
+the safe control.
+
+Language is resolved from each current RU/UZ/EN message with the stored profile
+used only as fallback. That reply-local choice must not mutate session language,
+and Inline must not create session state. Intent matching may use NFKC,
+invisible-format removal and conservative confusable repair only on a separate
+classifier view; original text remains subject to sink sanitization. OTP, PIN,
+CVV, password and recovery values are never repeated in visible guidance.
+
+Direct chat may retain one recent victim-guidance intent for 20 minutes so a
+short «already sent/installed» reply receives containment instead of a cold
+check. The snapshot is chat-scoped and enum-only (`kind`, optional
+`askedContext`/`scenario`, timestamp); it never contains raw text, amount,
+recipient, phone, URL, file or credential. A concrete artifact and a negated
+completion always bypass this context. Inline remains fully stateless.
+
+The release gate is deterministic and offline: the 1,080-case adversarial
+matrix must pass both Direct and Inline semantic oracles, the 1,175-case Inline
+context suite must preserve preview/insertion behavior, and full project gates
+must pass without paid AI, production Telegram calls or deployment.
+
 ## D-082 - Polling batches preserve stateful order and a contiguous ack frontier
 
 The single DB-fenced polling leader requests 20 updates per `getUpdates` call

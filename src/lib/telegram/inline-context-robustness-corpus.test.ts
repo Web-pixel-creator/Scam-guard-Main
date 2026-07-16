@@ -160,22 +160,22 @@ function regexEscape(value: string): string {
 
 const EXPECTED_FOLLOW_UP_TITLES: Record<
   Lang,
-  { bankChatNumber: string; scamConfirmation: string; nextAction: string }
+  { bankChatNumber: string; scamConfirmationSuffix: string; nextActionSuffix: string }
 > = {
   ru: {
     bankChatNumber: "По номеру из чата не звоните",
-    scamConfirmation: "Похоже на схему обмана, но это не доказательство",
-    nextAction: "Что делать сейчас",
+    scamConfirmationSuffix: "похоже на схему обмана",
+    nextActionSuffix: "что делать сейчас",
   },
   uz: {
     bankChatNumber: "Chatdagi raqamga qo'ng'iroq qilmang",
-    scamConfirmation: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
-    nextAction: "Hozir nima qilish kerak",
+    scamConfirmationSuffix: "firib belgilariga o'xshaydi",
+    nextActionSuffix: "hozir nima qilish kerak",
   },
   en: {
     bankChatNumber: "Do not call the number from the chat",
-    scamConfirmation: "It resembles a scam pattern, but is not proof",
-    nextAction: "What to do now",
+    scamConfirmationSuffix: "it resembles a scam pattern",
+    nextActionSuffix: "what to do now",
   },
 };
 
@@ -186,7 +186,15 @@ const CORE_AS_LAST_LINE_MUTATIONS = new Set([
   "crlf",
   "blank-line",
   "neutral-generic-danger",
+  "generic-before-after",
+  "full-dialogue",
 ]);
+
+const EXPECTED_NEXT_ACTION_TEXT: Record<Lang, string> = {
+  ru: "Приостановите контакт",
+  uz: "Aloqani vaqtincha to'xtating",
+  en: "Pause contact",
+};
 
 function expectedVisibleTitle(testCase: InlineContextRobustnessCase): string {
   const followUps = EXPECTED_FOLLOW_UP_TITLES[testCase.lang];
@@ -194,12 +202,19 @@ function expectedVisibleTitle(testCase: InlineContextRobustnessCase): string {
     return followUps.bankChatNumber;
   }
   if (testCase.seed === "next_step" && CORE_AS_LAST_LINE_MUTATIONS.has(testCase.mutation)) {
-    return followUps.nextAction;
+    return `${testCase.title} — ${followUps.nextActionSuffix}`;
   }
-  if (testCase.mutation === "generic-after" && testCase.lang !== "uz") {
-    return followUps.scamConfirmation;
+  if (testCase.mutation === "generic-after") {
+    return `${testCase.title} — ${followUps.scamConfirmationSuffix}`;
   }
   return testCase.title;
+}
+
+function expectedVisibleAction(testCase: InlineContextRobustnessCase): string {
+  if (testCase.seed === "next_step" && CORE_AS_LAST_LINE_MUTATIONS.has(testCase.mutation)) {
+    return EXPECTED_NEXT_ACTION_TEXT[testCase.lang];
+  }
+  return testCase.action;
 }
 
 async function runInline(
@@ -313,7 +328,7 @@ describe("Inline 1,152-case context robustness corpus", () => {
       expectScopedSemanticId(article, testCase.semanticId);
       expectWellFormedArticle(article);
       expect(article.title).toBe(expectedVisibleTitle(testCase));
-      expect(article.description).toContain(testCase.action);
+      expect(article.description).toContain(expectedVisibleAction(testCase));
       expect(normalizeVisible(plainMessage)).toContain(normalizeVisible(testCase.preserve));
       expect(visible).not.toMatch(
         /\b(?:intent[_ -]?id|reason[_ -]?code|classifier|routing\s+table|deterministic)\b/iu,

@@ -37,6 +37,7 @@ describe("sanitizeSensitiveTextForSink", () => {
     ["code", "CVV: #825", "825"],
     ["code", "CVV = #825", "825"],
     ["code", "CVV [825]", "825"],
+    ["code", "Salom, bu kodni kiriting please: 1234", "1234"],
     ["code", "CVC/917", "917"],
     ["code", "the caller asks for 614 (CVV)", "614"],
     ["code", "the caller asks for 614 [CVV]", "614"],
@@ -48,6 +49,11 @@ describe("sanitizeSensitiveTextForSink", () => {
     [
       "recovery_phrase",
       "seed phrase: apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    ],
+    [
+      "recovery_phrase",
+      "seed phase apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
       "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
     ],
     [

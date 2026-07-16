@@ -23,6 +23,8 @@ import {
   downloadFileAsDataUrl,
   answerInlineQuery,
   getUpdates,
+  sendAudioFile,
+  sendMessage,
   setWebhook,
 } from "./api.server";
 
@@ -165,6 +167,67 @@ describe("getUpdates", () => {
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body).limit).toBe(expected);
+  });
+});
+
+describe("sendMessage", () => {
+  it("returns the Telegram message_id needed to bind a genuine Reply", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: { message_id: 321 } }), { status: 200 }),
+    );
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: true,
+      messageId: 321,
+    });
+  });
+
+  it.each([0, -1, 4.2, "321", null])(
+    "ignores a malformed Telegram message_id without failing delivery: %s",
+    async (messageId) => {
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, result: { message_id: messageId } }), {
+          status: 200,
+        }),
+      );
+
+      await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({ ok: true });
+    },
+  );
+
+  it("keeps a non-ok Bot API envelope fail-closed", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: false, description: "rejected" }), { status: 200 }),
+    );
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({ ok: false });
+  });
+});
+
+describe("sendAudioFile", () => {
+  const audioOptions = {
+    chatId: 42,
+    audio: new Uint8Array([1, 2, 3]),
+    filename: "tip.mp3",
+    mimeType: "audio/mpeg",
+  };
+
+  it("returns the Telegram message_id so callback context can follow the audio card", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: { message_id: 654 } }), { status: 200 }),
+    );
+
+    await expect(sendAudioFile(audioOptions)).resolves.toEqual({ ok: true, messageId: 654 });
+  });
+
+  it("ignores a malformed audio message_id without failing delivery", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: { message_id: "654" } }), {
+        status: 200,
+      }),
+    );
+
+    await expect(sendAudioFile(audioOptions)).resolves.toEqual({ ok: true });
   });
 });
 

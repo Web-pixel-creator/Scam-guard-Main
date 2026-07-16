@@ -37,6 +37,7 @@ import {
   getFile,
   downloadFileAsDataUrl,
   type InlineKeyboard,
+  type SendMessageResult,
 } from "@/lib/telegram/api.server";
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import {
@@ -66,9 +67,14 @@ import {
   REPORT_NO_VALUE_CALLBACK,
   REPORT_RETRY_CALLBACK,
   REPORT_SKIP_CALLBACK,
+  matchesReportCallbackBinding,
   reportRetryKeyboard,
   reportSkipKeyboard,
   reportValueKeyboard,
+  withReportCallbackBinding,
+  withoutReportCallbackBinding,
+  type ReportCallbackAction,
+  type ReportCallbackScenario,
 } from "@/lib/telegram/report-flow";
 import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
 
@@ -93,12 +99,59 @@ async function sendText(
   key: BotStringKey,
   lang: Lang,
   keyboard?: InlineKeyboard,
-): Promise<void> {
-  await sendMessage({
+): Promise<SendMessageResult> {
+  return sendMessage({
     chatId: ctx.chatId,
     text: escapeMarkdownV2(bt(key, lang)),
     keyboard,
   });
+}
+
+async function rememberReportPrompt(
+  ctx: HandlerCtx,
+  delivery: SendMessageResult,
+  action: ReportCallbackAction,
+  scenario: ReportCallbackScenario,
+  scenarioStep: number,
+  scenarioData: ReportDraft,
+): Promise<void> {
+  if (delivery.messageId === undefined) return;
+  await saveSession(ctx.userId, {
+    scenario,
+    scenarioStep,
+    scenarioData: withReportCallbackBinding(
+      withoutReportCallbackBinding(scenarioData),
+      delivery.messageId,
+      action,
+      scenario,
+    ),
+  });
+}
+
+async function sendBoundReportPrompt(
+  ctx: HandlerCtx,
+  key: BotStringKey,
+  lang: Lang,
+  keyboard: InlineKeyboard,
+  action: ReportCallbackAction,
+  scenario: ReportCallbackScenario,
+  scenarioStep: number,
+  scenarioData: ReportDraft,
+): Promise<void> {
+  const delivery = await sendText(ctx, key, lang, keyboard);
+  await rememberReportPrompt(ctx, delivery, action, scenario, scenarioStep, scenarioData);
+}
+
+async function requireCurrentReportCallback(
+  ctx: HandlerCtx,
+  action: ReportCallbackAction,
+  scenario: ReportCallbackScenario,
+): Promise<boolean> {
+  if (matchesReportCallbackBinding(ctx.session.scenarioData, ctx.messageId, action, scenario)) {
+    return true;
+  }
+  await sendText(ctx, "report_callback_expired", ctx.session.lang);
+  return false;
 }
 
 /** A textual skip: "-", "—" or an empty/whitespace-only message. */
@@ -107,7 +160,7 @@ function redactOptionalReportText(value: string): string {
 }
 
 async function sanitizeDraftForStorage(draft: ReportDraft): Promise<ReportDraft> {
-  const clean: ReportDraft = { ...draft };
+  const clean: ReportDraft = withoutReportCallbackBinding(draft);
 
   if (!clean.target && clean.value && !clean.noValue) {
     clean.target = await prepareReportIdentifier(clean.value);
@@ -410,24 +463,60 @@ function buildReportImageDescription(evidence: ImageIntelligenceResult, lang: La
 // Step prompts
 // ---------------------------------------------------------------------------
 
-async function askValue(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_value", lang, reportValueKeyboard(lang));
+async function askValue(ctx: HandlerCtx, lang: Lang, draft: ReportDraft): Promise<void> {
+  await sendBoundReportPrompt(
+    ctx,
+    "report_ask_value",
+    lang,
+    reportValueKeyboard(lang),
+    REPORT_NO_VALUE_CALLBACK,
+    "report_value",
+    0,
+    draft,
+  );
 }
 
 async function askDescription(ctx: HandlerCtx, lang: Lang): Promise<void> {
   await sendText(ctx, "report_ask_description", lang);
 }
 
-async function askScamType(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_scam_type", lang, reportSkipKeyboard(lang));
+async function askScamType(ctx: HandlerCtx, lang: Lang, draft: ReportDraft): Promise<void> {
+  await sendBoundReportPrompt(
+    ctx,
+    "report_ask_scam_type",
+    lang,
+    reportSkipKeyboard(lang),
+    REPORT_SKIP_CALLBACK,
+    "report_scamType",
+    2,
+    draft,
+  );
 }
 
-async function askCity(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_city", lang, reportSkipKeyboard(lang));
+async function askCity(ctx: HandlerCtx, lang: Lang, draft: ReportDraft): Promise<void> {
+  await sendBoundReportPrompt(
+    ctx,
+    "report_ask_city",
+    lang,
+    reportSkipKeyboard(lang),
+    REPORT_SKIP_CALLBACK,
+    "report_city",
+    3,
+    draft,
+  );
 }
 
-async function askAmount(ctx: HandlerCtx, lang: Lang): Promise<void> {
-  await sendText(ctx, "report_ask_amount", lang, reportSkipKeyboard(lang));
+async function askAmount(ctx: HandlerCtx, lang: Lang, draft: ReportDraft): Promise<void> {
+  await sendBoundReportPrompt(
+    ctx,
+    "report_ask_amount",
+    lang,
+    reportSkipKeyboard(lang),
+    REPORT_SKIP_CALLBACK,
+    "report_amount",
+    4,
+    draft,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -442,12 +531,13 @@ async function askAmount(ctx: HandlerCtx, lang: Lang): Promise<void> {
  */
 export async function startReport(ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
+  const draft = withSessionChatScope({}, ctx.chatId, ctx.chatType);
   await saveSession(ctx.userId, {
     scenario: "report_value",
     scenarioStep: 0,
-    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
+    scenarioData: draft,
   });
-  await askValue(ctx, lang);
+  await askValue(ctx, lang, draft);
 }
 
 // ---------------------------------------------------------------------------
@@ -460,7 +550,7 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
 
   if (value.length === 0) {
     // Empty value — re-ask (no state change).
-    await askValue(ctx, lang);
+    await askValue(ctx, lang, ctx.session.scenarioData);
     return;
   }
   if (value.length > VALUE_MAX) {
@@ -473,7 +563,16 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
     return;
   }
   if (!looksLikeReportIdentifier(value)) {
-    await sendText(ctx, "report_value_invalid", lang, reportValueKeyboard(lang));
+    await sendBoundReportPrompt(
+      ctx,
+      "report_value_invalid",
+      lang,
+      reportValueKeyboard(lang),
+      REPORT_NO_VALUE_CALLBACK,
+      "report_value",
+      0,
+      ctx.session.scenarioData,
+    );
     return;
   }
 
@@ -489,7 +588,10 @@ async function stepValue(text: string, ctx: HandlerCtx): Promise<void> {
 
 async function advanceWithoutIdentifier(ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
-  const draft: ReportDraft = { ...ctx.session.scenarioData, noValue: true };
+  const draft: ReportDraft = {
+    ...withoutReportCallbackBinding(ctx.session.scenarioData),
+    noValue: true,
+  };
   delete draft.value;
   delete draft.target;
   await saveSession(ctx.userId, {
@@ -522,7 +624,7 @@ async function stepDescription(text: string, ctx: HandlerCtx): Promise<void> {
     scenarioStep: 2,
     scenarioData: draft,
   });
-  await askScamType(ctx, lang);
+  await askScamType(ctx, lang, draft);
 }
 
 export async function handleScenarioImage(
@@ -583,7 +685,7 @@ export async function handleScenarioImage(
       chatId: ctx.chatId,
       text: escapeMarkdownV2(bt("report_image_added", lang, { summary: description })),
     });
-    await askScamType({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang);
+    await askScamType({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang, draft);
   } catch (e) {
     if (isRateLimitedError(e)) {
       await sendMessage({
@@ -609,7 +711,7 @@ async function stepScamType(text: string, ctx: HandlerCtx): Promise<void> {
     scenarioStep: 3,
     scenarioData: draft,
   });
-  await askCity({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang);
+  await askCity({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang, draft);
 }
 
 async function stepCity(text: string, ctx: HandlerCtx): Promise<void> {
@@ -624,7 +726,7 @@ async function stepCity(text: string, ctx: HandlerCtx): Promise<void> {
     scenarioStep: 4,
     scenarioData: draft,
   });
-  await askAmount({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang);
+  await askAmount({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang, draft);
 }
 
 async function stepAmount(text: string, ctx: HandlerCtx): Promise<void> {
@@ -659,6 +761,10 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
     });
   }
 
+  async function rememberRetryPrompt(delivery: SendMessageResult): Promise<void> {
+    await rememberReportPrompt(ctx, delivery, REPORT_RETRY_CALLBACK, "report_amount", 4, safeDraft);
+  }
+
   try {
     const result = await submitPreparedReportCore(
       {
@@ -674,11 +780,12 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
 
     if (!result.ok && result.error === "rate_limited") {
       await keepDraftForRetry();
-      await sendMessage({
+      const delivery = await sendMessage({
         chatId: ctx.chatId,
         text: escapeMarkdownV2(bt("rate_limited", lang, { seconds: result.retryAfterSec ?? 60 })),
         keyboard: reportRetryKeyboard(lang),
       });
+      await rememberRetryPrompt(delivery);
       return;
     }
 
@@ -689,13 +796,15 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
     } else {
       // R6.8 — pipeline reported failure: friendly retry message.
       await keepDraftForRetry();
-      await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
+      const delivery = await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
+      await rememberRetryPrompt(delivery);
     }
   } catch {
     // R6.8 — never crash; log without Sensitive_Data (R19.2).
     console.error("telegram submitReport failed", "handler_exception");
     await keepDraftForRetry();
-    await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
+    const delivery = await sendText(ctx, "report_error", lang, reportRetryKeyboard(lang));
+    await rememberRetryPrompt(delivery);
   }
 }
 
@@ -738,7 +847,18 @@ export async function handleScenarioStep(text: string, ctx: HandlerCtx): Promise
  * (task 8.5 / 9.1) when `callback_data === REPORT_SKIP_CALLBACK`.
  */
 export async function handleReportSkip(ctx: HandlerCtx): Promise<void> {
-  switch (ctx.session.scenario) {
+  const scenario = ctx.session.scenario;
+  if (
+    scenario !== "report_scamType" &&
+    scenario !== "report_city" &&
+    scenario !== "report_amount"
+  ) {
+    await sendText(ctx, "report_callback_expired", ctx.session.lang);
+    return;
+  }
+  if (!(await requireCurrentReportCallback(ctx, REPORT_SKIP_CALLBACK, scenario))) return;
+
+  switch (scenario) {
     case "report_scamType":
       await stepScamType("-", ctx);
       break;
@@ -748,18 +868,31 @@ export async function handleReportSkip(ctx: HandlerCtx): Promise<void> {
     case "report_amount":
       await stepAmount("-", ctx);
       break;
-    default:
-      // Skip pressed outside an optional step — ignore.
-      break;
   }
 }
 
 export async function handleReportNoValue(ctx: HandlerCtx): Promise<void> {
-  if (ctx.session.scenario !== "report_value") return;
+  if (
+    ctx.session.scenario !== "report_value" ||
+    !(await requireCurrentReportCallback(ctx, REPORT_NO_VALUE_CALLBACK, "report_value"))
+  ) {
+    if (ctx.session.scenario !== "report_value") {
+      await sendText(ctx, "report_callback_expired", ctx.session.lang);
+    }
+    return;
+  }
   await advanceWithoutIdentifier(ctx);
 }
 
 export async function handleReportRetry(ctx: HandlerCtx): Promise<void> {
-  if (!ctx.session.scenario.startsWith("report_")) return;
+  if (
+    ctx.session.scenario !== "report_amount" ||
+    !(await requireCurrentReportCallback(ctx, REPORT_RETRY_CALLBACK, "report_amount"))
+  ) {
+    if (ctx.session.scenario !== "report_amount") {
+      await sendText(ctx, "report_callback_expired", ctx.session.lang);
+    }
+    return;
+  }
   await finalizeReport(ctx, { ...ctx.session.scenarioData });
 }

@@ -343,6 +343,18 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 
 ## Near-term product tasks
 
+- [x] ~~**Uzbek Cyrillic victim-intent coverage (2026-07-16 elderly QA
+      handoff).**~~ Done: `classifyVictimIntent` now reuses the gated
+      Uzbek-Cyrillic matching variant after the original text misses; `nabira`/
+      `nevara` family forms keep identity-verification guidance, and completed
+      Telegram takeover wording gets recovery/session-closure copy. Strict
+      assertions cover `uz-cyr-relative-01` and `uz-cyr-victim-tg-01`.
+- [x] ~~**Multi-turn victim confirmations (same QA run).**~~ Done: Direct
+      stores a 20-minute enum-only victim intent snapshot and routes short
+      already-paid, already-installed, uninstall and confidence replies without
+      a cold check. No raw text, amount, recipient, number, URL or credential is
+      retained. Strict assertions cover `ru-relative-01`, `ru-apk-01` and
+      `ru-invest-01`; a concrete new artifact still starts a fresh check.
 - [x] ~~Emergency keyboard profile pass. Audit every `/panic`, `/call` and
       Guardian Angel keyboard so each scenario shows the right next actions:
       bank callback for financial cases, help/evidence/trusted-person actions

@@ -9,6 +9,7 @@
 //
 // Validates: Requirements 4.2, 4.3, 4.5
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
 import type { HandlerCtx } from "@/lib/telegram/router";
 import type { Session } from "@/lib/telegram/session.server";
 
@@ -21,6 +22,7 @@ const h = vi.hoisted(() => ({
   editCalls: [] as { chatId: number; messageId: number; text: string; keyboard?: unknown }[],
   answerCalls: [] as string[],
   saveCalls: [] as { userId: number; patch: unknown }[],
+  audioCalls: [] as unknown[],
   // Mutable editMessageText result — swap per test.
   editResult: { current: { ok: true } as { ok: boolean } },
 }));
@@ -31,7 +33,10 @@ vi.mock("@/lib/telegram/api.server", () => ({
     h.sendCalls.push({ chatId: opts.chatId, text: opts.text, keyboard: opts.keyboard });
     return Promise.resolve({ ok: true });
   },
-  sendAudioFile: () => Promise.resolve({ ok: true }),
+  sendAudioFile: (opts: unknown) => {
+    h.audioCalls.push(opts);
+    return Promise.resolve({ ok: true });
+  },
   editMessageText: (opts: {
     chatId: number;
     messageId: number;
@@ -116,6 +121,7 @@ beforeEach(() => {
   h.editCalls.length = 0;
   h.answerCalls.length = 0;
   h.saveCalls.length = 0;
+  h.audioCalls.length = 0;
   h.editResult.current = { ok: true };
 });
 
@@ -419,6 +425,13 @@ describe("Guardian Angel callbacks", () => {
   ] as const;
 
   function makeGuardianCtx(): HandlerCtx {
+    const at = new Date().toISOString();
+    const guardian: GuardianAngelSnapshot = {
+      level: "high_risk",
+      type: "url",
+      reasons: ["asks_for_sms_code", "impersonates_bank"],
+      at,
+    };
     return makeCtx({
       session: {
         telegramUserId: USER_ID,
@@ -426,12 +439,20 @@ describe("Guardian Angel callbacks", () => {
         scenario: "none",
         scenarioStep: 0,
         scenarioData: {
-          guardian: {
-            level: "high_risk",
-            type: "url",
-            reasons: ["asks_for_sms_code", "impersonates_bank"],
-            at: new Date().toISOString(),
-          },
+          guardian,
+          replyCheckContexts: [
+            {
+              messageId: MESSAGE_ID,
+              snapshot: {
+                level: "high_risk",
+                type: "url",
+                context: "generic",
+                reasons: [...guardian.reasons],
+                at,
+              },
+              guardian,
+            },
+          ],
         },
         updatedAt: new Date(0).toISOString(),
       } as Session,
@@ -439,23 +460,7 @@ describe("Guardian Angel callbacks", () => {
   }
 
   it("answers the next-step callback from stored safe high-risk context", async () => {
-    const ctx = makeCtx({
-      session: {
-        telegramUserId: USER_ID,
-        lang: "ru",
-        scenario: "none",
-        scenarioStep: 0,
-        scenarioData: {
-          guardian: {
-            level: "high_risk",
-            type: "url",
-            reasons: ["asks_for_sms_code", "impersonates_bank"],
-            at: new Date().toISOString(),
-          },
-        },
-        updatedAt: new Date(0).toISOString(),
-      } as Session,
-    });
+    const ctx = makeGuardianCtx();
 
     await handleCallback("guardian:next", ctx);
 
@@ -482,6 +487,45 @@ describe("Guardian Angel callbacks", () => {
       );
     },
   );
+
+  it("uses Guardian A from the clicked message even when current session Guardian is B", async () => {
+    const ctx = makeGuardianCtx();
+    ctx.session.scenarioData.guardian = {
+      level: "high_risk",
+      type: "payment",
+      reasons: ["investment_fast_profit_pitch"],
+      at: new Date().toISOString(),
+    };
+
+    await handleCallback("guardian:safe_call", ctx);
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("банк");
+    expect(h.sendCalls[0].text).not.toContain("крипт");
+  });
+
+  it("never falls back to the current Guardian when the clicked message has no binding", async () => {
+    const ctx = makeGuardianCtx();
+    ctx.session.scenarioData.replyCheckContexts = [];
+
+    await handleCallback("guardian:next", ctx);
+
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("не вижу активной опасной проверки");
+    expect(h.sendCalls[0].keyboard).toBeUndefined();
+  });
+
+  it("acknowledges a stale Guardian voice callback without invoking audio generation", async () => {
+    const ctx = makeGuardianCtx();
+    ctx.session.scenarioData.replyCheckContexts = [];
+
+    await handleCallback("voiceout:guardian", ctx, "guardian-voice-stale");
+
+    expect(h.answerCalls).toEqual(["guardian-voice-stale"]);
+    expect(h.audioCalls).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("нет безопасного контекста");
+  });
 
   it("does not pretend to remember a high-risk context when none is stored", async () => {
     await handleCallback("guardian:next", makeCtx());

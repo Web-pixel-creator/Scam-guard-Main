@@ -25,12 +25,19 @@
 // Server-only: pulls in `session.server.ts` (service-role Supabase) at runtime.
 // Never import this module into the client bundle.
 import { z } from "zod";
+import { getTelegramBotUsername } from "@/lib/config.server";
 import { classifyMetaIntent, type MetaIntent } from "@/lib/meta-intent";
 import { classifyLastCheckFollowUp } from "@/lib/telegram/check-followup";
+import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
+import {
+  resolveReplyCheckContext,
+  resolveReplyGuardianContext,
+} from "@/lib/telegram/reply-check-context";
 import {
   isSessionStateScopedToChat,
   loadSession as loadSessionImpl,
   resetScenario as resetScenarioImpl,
+  type LastCheckSnapshot,
   type Session,
 } from "@/lib/telegram/session.server";
 import {
@@ -122,6 +129,20 @@ const chatSchema = z
   })
   .passthrough();
 
+// Only retain the metadata required to bind a Telegram Reply to a bot result.
+// Quoted text/captions are intentionally stripped so credentials or evidence
+// from the replied-to message never enter routing/session state.
+const repliedMessageSchema = z.object({
+  message_id: z.number(),
+  from: z
+    .object({
+      id: z.number(),
+      is_bot: z.boolean().optional(),
+      username: z.string().optional(),
+    })
+    .optional(),
+});
+
 const messageSchema = z.object({
   message_id: z.number(),
   from: z
@@ -161,6 +182,7 @@ const messageSchema = z.object({
     .passthrough()
     .optional(),
   forward_origin: forwardOriginSchema.optional(), // public forward source is presentation-only context
+  reply_to_message: repliedMessageSchema.optional(),
 });
 
 const inlineQuerySchema = z
@@ -295,6 +317,14 @@ export interface HandlerCtx {
   displayName?: string;
   /** Message ID of the message containing inline keyboard (from callback_query). */
   messageId?: number;
+  /** Telegram message selected with Reply, if present. */
+  replyToMessageId?: number;
+  /** True only when the selected message is proven to be this bot's output. */
+  replyToOwnBotMessage?: boolean;
+  /** Exact bounded check snapshot shown in the selected bot message. */
+  replyCheckSnapshot?: LastCheckSnapshot;
+  /** Exact bounded Guardian context shown in the selected bot message. */
+  replyGuardianSnapshot?: GuardianAngelSnapshot;
 }
 
 /** Context for Telegram inline mode. Inline queries have a user, but no chat. */
@@ -828,6 +858,33 @@ export async function dispatchUpdate(
   const ctx: HandlerCtx = { chatId, userId, chatType, session };
   if (displayName) ctx.displayName = displayName;
 
+  const repliedMessage = update.message?.reply_to_message;
+  if (repliedMessage) {
+    ctx.replyToMessageId = repliedMessage.message_id;
+    const replyCheckSnapshot = resolveReplyCheckContext(
+      session.scenarioData,
+      repliedMessage.message_id,
+    );
+    const replyGuardianSnapshot = resolveReplyGuardianContext(
+      session.scenarioData,
+      repliedMessage.message_id,
+    );
+    if (replyCheckSnapshot) {
+      ctx.replyToOwnBotMessage = true;
+      ctx.replyCheckSnapshot = replyCheckSnapshot;
+      if (replyGuardianSnapshot) ctx.replyGuardianSnapshot = replyGuardianSnapshot;
+    } else {
+      const replyAuthor = repliedMessage.from;
+      const configuredUsername = getTelegramBotUsername().toLowerCase();
+      if (
+        replyAuthor?.is_bot === true &&
+        replyAuthor.username?.toLowerCase() === configuredUsername
+      ) {
+        ctx.replyToOwnBotMessage = true;
+      }
+    }
+  }
+
   // Populate messageId from callback_query.message.message_id when available.
   if (update.callback_query?.message?.message_id != null) {
     ctx.messageId = update.callback_query.message.message_id;
@@ -857,7 +914,10 @@ export async function dispatchUpdate(
       const intent = classifyMetaIntent(action.content, {
         isForwarded: update.message?.forward_origin != null,
       });
-      const recentFollowUp = classifyLastCheckFollowUp(action.content, session.scenarioData);
+      const followUpData = ctx.replyCheckSnapshot
+        ? { lastCheck: ctx.replyCheckSnapshot }
+        : session.scenarioData;
+      const recentFollowUp = classifyLastCheckFollowUp(action.content, followUpData);
       const needsRecentProvenance =
         recentFollowUp && (!intent || intent === "explain_risk" || intent === "how_do_you_check");
       if (needsRecentProvenance) {

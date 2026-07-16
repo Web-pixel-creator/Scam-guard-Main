@@ -49,6 +49,34 @@ outranks a concrete OTP, PIN, CVV, password, APK, payment or screen-sharing
 request. External fetch, Telegram delivery and persistence are denied in this
 automated suite.
 
+Intent matching uses a classifier-only normalized view that removes invisible
+format controls, applies Unicode compatibility normalization and repairs only
+conservative mixed-script confusables. The original text remains the source for
+privacy filtering and must never be replaced in replies, persistence or logs.
+Direct checks resolve RU/UZ/EN from each current message and use the stored
+profile language only as a fallback; this per-turn reply choice does not mutate
+the durable session language. Inline applies the same text-language resolver
+without creating a Telegram session.
+
+When a narrow human scenario is proven, both Direct and Inline must preserve
+that topic in the title, explanation and first safe action. Completed-incident
+aftercare remains above ordinary suspicion, while an explicitly official
+portal/app handoff remains a safe control. Broad preflight scoring cannot erase
+a more specific scenario such as SIM swap, police/bank impersonation, parcel,
+charity, romance, loan advance fee, fake support, QR login or tax payment.
+Capability questions may bypass preflight only when they are exact, single-line
+questions with no concrete danger clause.
+
+Real OTP, PIN, CVV, password and recovery/seed material is sink-sanitized before
+any visible Telegram response. Direct guidance may explain the secret class and
+the immediate containment step, but it must not echo the supplied value. Reply
+context is bounded to recent message ids and sanitized/coarse check metadata.
+Short Direct admissions after victim guidance may additionally use a 20-minute
+enum-only `{ kind, askedContext?, scenario?, at }` snapshot; it contains no raw
+text, amount, recipient, number, URL, file or credential, is chat-scoped, and a
+new concrete artifact always bypasses it. Inline follow-ups remain query-local
+and stateless.
+
 Adding an intent requires updating its typed source list; contract cardinality
 tests then require a matching canonical entry. New user artifacts always bypass
 follow-up helpers and enter a fresh risk check. A confidence/methodology phrase

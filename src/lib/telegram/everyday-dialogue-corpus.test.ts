@@ -114,7 +114,7 @@ const CATEGORY_ALLOWED_FIRST_OUTCOMES = {
   },
   mixed_clause_trap: {
     families: ["victim", "risk"],
-    victim: ["code_request", "file_received"],
+    victim: ["code_request", "file_received", "apk_request"],
     riskMustIncludeOneOf: [
       "asks_for_sms_code",
       "asks_for_card_cvv",

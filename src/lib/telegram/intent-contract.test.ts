@@ -99,6 +99,12 @@ describe("canonical Telegram intent/action contract", () => {
         expect(getTelegramIntentContract("input.risk_check").action).toBe("run.risk_check");
         continue;
       }
+      if (row.expected.route === "sensitive_secret") {
+        expect(getTelegramIntentContract(canonicalVictimIntentId("code_request")).action).toBe(
+          "reply.victim_guidance",
+        );
+        continue;
+      }
 
       const action =
         classifyOrphanCheckFollowUp(row.text) ?? classifyAcknowledgementFollowUp(row.text);
