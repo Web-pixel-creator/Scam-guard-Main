@@ -43,6 +43,7 @@ import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { detectInputType } from "@/lib/risk/detect";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
@@ -70,6 +71,7 @@ import {
   buildGuardianAngelSnapshot,
   buildGuardianAngelText,
   classifyGuardianAngelFollowUp,
+  type GuardianAngelSnapshot,
 } from "@/lib/telegram/guardian-angel";
 import {
   buildDecodedQrOnlyImageEvidence,
@@ -93,9 +95,11 @@ import {
 } from "@/lib/telegram/forward-context";
 import { buildImageTriageKeyboard } from "@/lib/telegram/image-fallback";
 import {
+  buildVictimFollowUpContext,
   buildVictimIntentKeyboard,
   buildVictimIntentText,
   classifyVictimIntent,
+  classifyVictimContextualFollowUp,
   type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
 import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
@@ -114,6 +118,15 @@ import {
   type CanonicalVictimIntentId,
 } from "@/lib/telegram/intent-contract";
 import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
+import {
+  buildSensitiveSecretGuidance,
+  detectTelegramSensitiveSecret,
+} from "@/lib/telegram/sensitive-secret-input";
+import {
+  buildReplyContextExpiredText,
+  rememberReplyCheckContext,
+} from "@/lib/telegram/reply-check-context";
+import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-language";
 
 /** Канал бота — только для аналитики/логов, не влияет на scoring (design.md). */
 const CHANNEL = "telegram" as const;
@@ -128,6 +141,9 @@ const MAX_VOICE_DURATION_SEC = 60;
 const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
+const EMBEDDED_PHONE_CANDIDATE_RE = /\+?\d[\d\s().-]{6,18}\d/gu;
+const PHONE_IDENTITY_QUESTION_RE =
+  /(?:(?:это|этот|this|bu|shu).{0,35}(?:номер|телефон|number|phone|raqam).{0,45}(?:банк|bank|официальн|rasmiy)|(?:банк|bank).{0,45}(?:номер|телефон|number|phone|raqam)|(?:какому|какой|which|qaysi).{0,35}(?:банк|bank).{0,35}(?:принадлеж|номер|raqam))/iu;
 
 function contractReplyText(
   intentId: CanonicalFollowUpIntentId | CanonicalVictimIntentId,
@@ -141,7 +157,10 @@ function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean 
 }
 
 function shouldVictimIntentOverridePanic(match: VictimIntentMatch): boolean {
-  return match.kind === "friend_money";
+  // A narrow scenario requires several topic-specific signals. Preserve it
+  // before generic live-call/panic and orphan follow-up helpers can turn a
+  // complete request into a different topic.
+  return match.scenario !== undefined || match.kind === "friend_money";
 }
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
@@ -529,6 +548,47 @@ async function replyText(chatId: number, plain: string, keyboard?: InlineKeyboar
   await sendMessage({ chatId, text: escapeMarkdownV2(plain), keyboard });
 }
 
+function extractQuestionedPhoneNumber(text: string): string | null {
+  if (!PHONE_IDENTITY_QUESTION_RE.test(text)) return null;
+  EMBEDDED_PHONE_CANDIDATE_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = EMBEDDED_PHONE_CANDIDATE_RE.exec(text)) !== null) {
+    const candidate = match[0].trim();
+    if (detectInputType(candidate) === "phone") return candidate;
+  }
+  return null;
+}
+
+async function sendVictimIntentGuidance(
+  ctx: HandlerCtx,
+  match: VictimIntentMatch,
+  lang: HandlerCtx["session"]["lang"],
+): Promise<void> {
+  const delivery = await sendMessage({
+    chatId: ctx.chatId,
+    text: contractReplyText(
+      canonicalVictimIntentId(match.kind),
+      buildVictimIntentText(match, lang),
+    ),
+    keyboard: buildVictimIntentKeyboard(lang, match),
+  });
+  if (!delivery?.ok) return;
+
+  const nextContext = buildVictimFollowUpContext(match);
+  const { lastVictimIntent: _previous, ...previousScenarioData } = ctx.session.scenarioData;
+  if (!nextContext && !_previous) return;
+  await saveSession(ctx.userId, {
+    scenarioData: withSessionChatScope(
+      {
+        ...previousScenarioData,
+        ...(nextContext ? { lastVictimIntent: nextContext } : {}),
+      },
+      ctx.chatId,
+      ctx.chatType,
+    ),
+  });
+}
+
 function buildVoiceFallbackKeyboard(lang: HandlerCtx["session"]["lang"]): InlineKeyboard {
   return [
     [
@@ -808,11 +868,35 @@ async function maybeAutoNotifyTrustedContact(
 /** Отправить отформатированный результат проверки (текст + inline-кнопки). */
 async function restoreSessionAfterUndeliveredResult(ctx: HandlerCtx): Promise<void> {
   await saveSession(ctx.userId, {
-    lang: ctx.session.lang,
     scenario: ctx.session.scenario,
     scenarioStep: ctx.session.scenarioStep,
     scenarioData: ctx.session.scenarioData,
   });
+}
+
+async function rememberDeliveredCheckResult(
+  ctx: HandlerCtx,
+  scenarioData: HandlerCtx["session"]["scenarioData"],
+  lastCheck: ReturnType<typeof buildLastCheckSnapshot>,
+  messageId: number | undefined,
+  guardian?: GuardianAngelSnapshot,
+): Promise<HandlerCtx["session"]["scenarioData"]> {
+  if (messageId === undefined) return scenarioData;
+  const nextScenarioData = withSessionChatScope(
+    rememberReplyCheckContext(scenarioData, messageId, lastCheck, undefined, guardian),
+    ctx.chatId,
+    ctx.chatType,
+  );
+  const saved = await saveSession(ctx.userId, {
+    scenario: "none",
+    scenarioStep: 0,
+    scenarioData: nextScenarioData,
+  });
+  if (saved?.ok === false) {
+    console.error("telegram reply context storage failed");
+    return scenarioData;
+  }
+  return nextScenarioData;
 }
 
 async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise<void> {
@@ -821,19 +905,19 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   const guardian = buildGuardianAngelSnapshot(result);
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
 
+  const nextScenarioData = withSessionChatScope(
+    {
+      ...previousScenarioData,
+      lastCheck,
+      ...(guardian ? { guardian } : {}),
+    },
+    ctx.chatId,
+    ctx.chatType,
+  );
   const saved = await saveSession(ctx.userId, {
-    lang: ctx.session.lang,
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withSessionChatScope(
-      {
-        ...previousScenarioData,
-        lastCheck,
-        ...(guardian ? { guardian } : {}),
-      },
-      ctx.chatId,
-      ctx.chatType,
-    ),
+    scenarioData: nextScenarioData,
   });
   if (saved?.ok === false) return;
 
@@ -848,6 +932,14 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
     return;
   }
 
+  let deliveredScenarioData = await rememberDeliveredCheckResult(
+    ctx,
+    nextScenarioData,
+    lastCheck,
+    resultDelivery?.messageId,
+    guardian ?? undefined,
+  );
+
   if (guardian && shouldAutoSendGuardianIntro(result)) {
     const guardianDelivery = await sendMessage({
       chatId: ctx.chatId,
@@ -858,6 +950,13 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
       console.error("telegram guardian intro delivery failed");
       return;
     }
+    deliveredScenarioData = await rememberDeliveredCheckResult(
+      ctx,
+      deliveredScenarioData,
+      lastCheck,
+      guardianDelivery?.messageId,
+      guardian,
+    );
   }
 
   await maybeAutoNotifyTrustedContact(ctx, guardian);
@@ -885,18 +984,19 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   if (reply === "suppress") return;
 
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const lastCheck = buildImageUnreadableSnapshot();
+  const nextScenarioData = withSessionChatScope(
+    {
+      ...previousScenarioData,
+      lastCheck,
+    },
+    ctx.chatId,
+    ctx.chatType,
+  );
   const saved = await saveSession(ctx.userId, {
-    lang: ctx.session.lang,
     scenario: "none",
     scenarioStep: 0,
-    scenarioData: withSessionChatScope(
-      {
-        ...previousScenarioData,
-        lastCheck: buildImageUnreadableSnapshot(),
-      },
-      ctx.chatId,
-      ctx.chatType,
-    ),
+    scenarioData: nextScenarioData,
   });
   if (saved?.ok === false) return;
 
@@ -910,7 +1010,9 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   if (delivery?.ok === false) {
     console.error("telegram image fallback delivery failed");
     await restoreSessionAfterUndeliveredResult(ctx);
+    return;
   }
+  await rememberDeliveredCheckResult(ctx, nextScenarioData, lastCheck, delivery?.messageId);
 }
 
 /**
@@ -997,8 +1099,14 @@ export async function handleCheck(
   source?: TelegramForwardSourceContext,
 ): Promise<void> {
   const startedAt = Date.now();
-  const lang = ctx.session.lang;
   const trimmed = content.trim();
+  const lang = resolveTelegramTextLanguage(trimmed, ctx.session.lang);
+  if (lang !== ctx.session.lang) {
+    // Message language is an effective per-turn override. Clone the context so
+    // every nested formatter/check sees it without mutating the caller's
+    // loaded session or adding a write for reply-only intents.
+    ctx = { ...ctx, session: { ...ctx.session, lang } };
+  }
 
   if (trimmed.length === 0) {
     await replyText(ctx.chatId, bt("unsupported_input", lang));
@@ -1010,16 +1118,27 @@ export async function handleCheck(
     return;
   }
 
-  const victimIntent = source ? null : classifyVictimIntent(trimmed);
-  if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
+  // Never send a pasted credential through the normal checker, AI, storage or
+  // enrichment pipeline. Detection also sees common invisible/bidi controls
+  // and a single visual Cyrillic/Latin confusable in the secret label.
+  const sensitiveSecret = detectTelegramSensitiveSecret(trimmed);
+  if (sensitiveSecret) {
+    const guidance = buildSensitiveSecretGuidance(sensitiveSecret.classes, lang);
     await sendMessage({
       chatId: ctx.chatId,
-      text: contractReplyText(
-        canonicalVictimIntentId(victimIntent.kind),
-        buildVictimIntentText(victimIntent, lang),
-      ),
-      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
+      text: escapeMarkdownV2(`${guidance.title}\n\n${guidance.description}`),
     });
+    return;
+  }
+
+  const directVictimIntent = source ? null : classifyVictimIntent(trimmed);
+  const contextualVictimIntent =
+    source || directVictimIntent
+      ? null
+      : classifyVictimContextualFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
+  const victimIntent = directVictimIntent ?? contextualVictimIntent;
+  if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
+    await sendVictimIntentGuidance(ctx, victimIntent, lang);
     return;
   }
 
@@ -1034,14 +1153,7 @@ export async function handleCheck(
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&
     shouldVictimIntentOverrideFollowUps(victimIntent)
   ) {
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: contractReplyText(
-        canonicalVictimIntentId(victimIntent.kind),
-        buildVictimIntentText(victimIntent, lang),
-      ),
-      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
-    });
+    await sendVictimIntentGuidance(ctx, victimIntent, lang);
     return;
   }
 
@@ -1052,26 +1164,50 @@ export async function handleCheck(
     victimIntent?.kind === "personal_data_request" ||
     victimIntent?.kind === "personal_data_already_shared"
   ) {
+    await sendVictimIntentGuidance(ctx, victimIntent, lang);
+    return;
+  }
+
+  const orphanReplyFollowUp =
+    ctx.replyToOwnBotMessage && !ctx.replyCheckSnapshot && ctx.session.scenarioData.lastCheck
+      ? classifyOrphanCheckFollowUp(trimmed)
+      : null;
+  if (orphanReplyFollowUp !== null) {
     await sendMessage({
       chatId: ctx.chatId,
       text: contractReplyText(
-        canonicalVictimIntentId(victimIntent.kind),
-        buildVictimIntentText(victimIntent, lang),
+        canonicalFollowUpIntentId(orphanReplyFollowUp),
+        buildReplyContextExpiredText(lang),
       ),
-      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
     });
     return;
   }
 
-  const guardianFollowUp = classifyGuardianAngelFollowUp(trimmed, ctx.session.scenarioData);
-  if (guardianFollowUp !== null && ctx.session.scenarioData.guardian) {
-    await sendMessage({
+  const guardianScenarioData = ctx.replyGuardianSnapshot
+    ? { guardian: ctx.replyGuardianSnapshot }
+    : ctx.replyCheckSnapshot
+      ? undefined
+      : ctx.session.scenarioData;
+  const guardianFollowUp = guardianScenarioData
+    ? classifyGuardianAngelFollowUp(trimmed, guardianScenarioData)
+    : null;
+  const guardianSnapshot = guardianScenarioData?.guardian;
+  if (guardianFollowUp !== null && guardianSnapshot) {
+    const delivery = await sendMessage({
       chatId: ctx.chatId,
-      text: escapeMarkdownV2(
-        buildGuardianAngelText(guardianFollowUp, ctx.session.scenarioData.guardian, lang),
-      ),
-      keyboard: buildGuardianAngelKeyboard(lang, ctx.session.scenarioData.guardian),
+      text: escapeMarkdownV2(buildGuardianAngelText(guardianFollowUp, guardianSnapshot, lang)),
+      keyboard: buildGuardianAngelKeyboard(lang, guardianSnapshot),
     });
+    const guardianLastCheck = ctx.replyCheckSnapshot ?? ctx.session.scenarioData.lastCheck;
+    if (guardianLastCheck) {
+      await rememberDeliveredCheckResult(
+        ctx,
+        ctx.session.scenarioData,
+        guardianLastCheck,
+        delivery?.messageId,
+        guardianSnapshot,
+      );
+    }
     return;
   }
 
@@ -1080,18 +1216,17 @@ export async function handleCheck(
   // compares timestamps and returns null when panic context is newer, so run it
   // before the emergency classifier to prevent an old two-hour panic context
   // from stealing a newer check follow-up.
-  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, ctx.session.scenarioData);
-  if (lastCheckFollowUp !== null && ctx.session.scenarioData.lastCheck) {
+  const lastCheckScenarioData = ctx.replyCheckSnapshot
+    ? { lastCheck: ctx.replyCheckSnapshot }
+    : ctx.session.scenarioData;
+  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, lastCheckScenarioData);
+  const lastCheckSnapshot = lastCheckScenarioData.lastCheck;
+  if (lastCheckFollowUp !== null && lastCheckSnapshot) {
     await sendMessage({
       chatId: ctx.chatId,
       text: contractReplyText(
         canonicalFollowUpIntentId(lastCheckFollowUp),
-        buildLastCheckFollowUpText(
-          lastCheckFollowUp,
-          ctx.session.scenarioData.lastCheck,
-          lang,
-          trimmed,
-        ),
+        buildLastCheckFollowUpText(lastCheckFollowUp, lastCheckSnapshot, lang, trimmed),
       ),
     });
     return;
@@ -1149,14 +1284,7 @@ export async function handleCheck(
   }
 
   if (victimIntent !== null) {
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: contractReplyText(
-        canonicalVictimIntentId(victimIntent.kind),
-        buildVictimIntentText(victimIntent, lang),
-      ),
-      keyboard: buildVictimIntentKeyboard(lang, victimIntent),
-    });
+    await sendVictimIntentGuidance(ctx, victimIntent, lang);
     return;
   }
 
@@ -1175,8 +1303,9 @@ export async function handleCheck(
           hasEvidence: publicPostEvidence !== null,
         });
 
-        const checkInput = publicPostEvidence?.checkInput ?? trimmed;
-        const checkType = publicPostEvidence ? "text" : undefined;
+        const questionedPhone = publicPostEvidence ? null : extractQuestionedPhoneNumber(trimmed);
+        const checkInput = publicPostEvidence?.checkInput ?? questionedPhone ?? trimmed;
+        const checkType = publicPostEvidence ? "text" : questionedPhone ? "phone" : undefined;
         const cacheKey = buildCheckResultCacheKey({
           userId: ctx.userId,
           lang,
@@ -1224,10 +1353,10 @@ export async function handleCheck(
             const enrichmentStartedAt = Date.now();
             const enrichedMetadata = publicPostEvidence
               ? postResult
-              : await enrichTelegramPublicMetadata(trimmed, postResult, lang);
+              : await enrichTelegramPublicMetadata(checkInput, postResult, lang);
             const enriched = publicPostEvidence
               ? enrichedMetadata
-              : await enrichTelegramReputation(trimmed, enrichedMetadata, lang);
+              : await enrichTelegramReputation(checkInput, enrichedMetadata, lang);
             rememberCheckResult(cacheKey, enriched);
             logTelegramTiming("check.enrichment", enrichmentStartedAt, {
               publicPostEvidence: publicPostEvidence !== null,

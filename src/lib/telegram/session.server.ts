@@ -10,7 +10,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Lang } from "@/lib/i18n";
 import type { InputType } from "@/lib/risk/detect";
 import type { GuardianAngelSnapshot } from "@/lib/telegram/guardian-angel";
+import type { ReplyCheckContext } from "@/lib/telegram/reply-check-context";
+import type { ReportCallbackBinding } from "@/lib/telegram/report-flow";
 import type { RiskLevel } from "@/lib/risk/rules";
+import type { VictimFollowUpContext } from "@/lib/telegram/victim-intent";
 import {
   currentTelegramSessionLanguage,
   currentTelegramUpdateId,
@@ -57,6 +60,11 @@ export interface ReportDraft {
   city?: string;
   amountLostUzs?: number;
   /**
+   * Exact Telegram prompt that owns the currently visible report action.
+   * Prevents an old Skip / No value / Retry button from mutating a newer flow.
+   */
+  reportCallbackBinding?: ReportCallbackBinding;
+  /**
    * Chat boundary for state that can influence a later bot response. This
    * prevents private context from being reused in group chats by the same user.
    */
@@ -78,6 +86,18 @@ export interface ReportDraft {
    * phone numbers, URLs, card data, codes or image bytes.
    */
   lastCheck?: LastCheckSnapshot;
+  /**
+   * Bounded mapping from Telegram messages sent by this bot to the exact
+   * non-sensitive check snapshot shown in that message. This lets a genuine
+   * Telegram Reply stay attached to result A even after result B is sent.
+   */
+  replyCheckContexts?: ReplyCheckContext[];
+  /**
+   * Recent coarse victim-guidance intent for short admissions such as “I
+   * already sent it”. Stores enum-only kind/context/scenario plus timestamp;
+   * never raw text, amount, recipient, phone, URL, code, file or credential.
+   */
+  lastVictimIntent?: VictimFollowUpContext;
   /**
    * Guardian Angel v1 context for post-high-risk guidance.
    * Stores only summary metadata: no raw input, OCR text, URLs, phone numbers,
@@ -297,7 +317,14 @@ function normalizeChatType(chatType?: SessionChatType): SessionChatType {
 function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
   if (!data) return false;
   return Boolean(
-    data.lastPanicId ?? data.lastPanicAt ?? data.lastCheck ?? data.guardian ?? data.conversation,
+    data.lastPanicId ??
+    data.lastPanicAt ??
+    data.lastCheck ??
+    data.replyCheckContexts?.length ??
+    data.lastVictimIntent ??
+    data.reportCallbackBinding ??
+    data.guardian ??
+    data.conversation,
   );
 }
 

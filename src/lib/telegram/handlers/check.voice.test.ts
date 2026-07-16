@@ -293,7 +293,7 @@ describe("handleVoice", () => {
     expect(hoisted.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         chatId: 100,
-        text: expect.stringContaining("Код никому не называйте"),
+        text: expect.stringContaining("Do not tell anyone the code"),
       }),
     );
   });

@@ -193,15 +193,15 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "ru" as const,
     first: "Меня приглашают в канал для заработка",
     tail,
-    title: "Похоже на схему обмана, но это не доказательство",
+    title: "Канал заработка: осторожно — похоже на схему обмана",
     action: "Не платите заранее",
   })),
   ...["А если номер взял из чата?", "Можно звонить по номеру из SMS?"].map((tail) => ({
     lang: "ru" as const,
     first: "Как мне связаться с банком?",
     tail,
-    title: "По номеру из чата не звоните",
-    action: "Не используйте номер из чата",
+    title: tail.includes("SMS") ? "По номеру из SMS не звоните" : "По номеру из чата не звоните",
+    action: tail.includes("SMS") ? "Не используйте номер из SMS" : "Не используйте номер из чата",
   })),
   ...["Как узнать, что ссылка подставная?", "Как проверить, что ссылка фейковая?"].map((tail) => ({
     lang: "ru" as const,
@@ -214,14 +214,14 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "ru" as const,
     first: "Предлагают работу, но просят оплатить обучение",
     tail,
-    title: "Почему это выглядит рискованно",
+    title: "Работа: не платите взнос — почему это рискованно",
     action: "Платить за вакансию",
   })),
   ...["Что теперь делать?", "Что мне делать дальше?"].map((tail) => ({
     lang: "ru" as const,
     first: "Пришел код и просят его сказать",
     tail,
-    title: "Что делать сейчас",
+    title: "Код: никому не называйте — что делать сейчас",
     action: "SMS",
   })),
   ...["Unga ishonmaslik kerakmi?", "Ishonsam bo'ladimi?"].map((tail) => ({
@@ -235,7 +235,7 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "uz" as const,
     first: "Meni daromad kanaliga taklif qilishyapti",
     tail,
-    title: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
+    title: "Daromad kanali: ehtiyot bo'ling — firib belgilariga o'xshaydi",
     action: "Oldindan to'lamang",
   })),
   ...["Chatdagi raqamga qo'ng'iroq qilsam bo'ladimi?", "Raqamni SMSdan oldim, nima qilay?"].map(
@@ -243,7 +243,9 @@ const VISIBLE_FOLLOW_UP_CASES = [
       lang: "uz" as const,
       first: "Bank bilan qanday bog'lansam bo'ladi?",
       tail,
-      title: "Chatdagi raqamga qo'ng'iroq qilmang",
+      title: tail.includes("SMS")
+        ? "SMSdagi raqamga qo'ng'iroq qilmang"
+        : "Chatdagi raqamga qo'ng'iroq qilmang",
       action: "foydalanmang",
     }),
   ),
@@ -260,14 +262,14 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "uz" as const,
     first: "Ish taklif qilishdi, lekin o'qish uchun pul so'rashyapti",
     tail,
-    title: "Nega bu shubhali",
+    title: "Ish: oldindan to'lov qilmang — nega bu shubhali",
     action: "to'lash xavfli",
   })),
   ...["Endi nima qilay?", "Keyin nima qilishim kerak?"].map((tail) => ({
     lang: "uz" as const,
     first: "SMS kod keldi va uni aytishimni so'rashyapti",
     tail,
-    title: "Hozir nima qilish kerak",
+    title: "Kod: hech kimga aytmang — hozir nima qilish kerak",
     action: "SMS",
   })),
   ...["Should I not trust them?", "Can I trust this person?"].map((tail) => ({
@@ -281,7 +283,7 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "en" as const,
     first: "They invite me to an earning channel",
     tail,
-    title: "It resembles a scam pattern, but is not proof",
+    title: "Earning channel: be careful — it resembles a scam pattern",
     action: "Do not prepay",
   })),
   ...["Can I call the number from the chat?", "The phone number came in an SMS, is it safe?"].map(
@@ -289,8 +291,12 @@ const VISIBLE_FOLLOW_UP_CASES = [
       lang: "en" as const,
       first: "How do I contact the bank?",
       tail,
-      title: "Do not call the number from the chat",
-      action: "Do not use a number from a chat",
+      title: tail.includes("SMS")
+        ? "Do not call the number from the SMS"
+        : "Do not call the number from the chat",
+      action: tail.includes("SMS")
+        ? "Do not use a number from an SMS"
+        : "Do not use a number from a chat",
     }),
   ),
   ...["How do I know whether the link is fake?", "How can I check if this is a phishing URL?"].map(
@@ -306,14 +312,14 @@ const VISIBLE_FOLLOW_UP_CASES = [
     lang: "en" as const,
     first: "They offer a job but ask me to pay for training",
     tail,
-    title: "Why this looks risky",
+    title: "Job: do not pay a fee — why this looks risky",
     action: "before a contract is risky",
   })),
   ...["What should I do next?", "What do I do now?"].map((tail) => ({
     lang: "en" as const,
     first: "An SMS code arrived and they ask me to tell it",
     tail,
-    title: "What to do now",
+    title: "Code: do not share it with anyone — what to do now",
     action: "SMS",
   })),
 ] as const;
@@ -364,21 +370,21 @@ describe("Inline screenshot context recovery", () => {
       lang: "ru" as const,
       first: "Меня приглашают в канал для заработка",
       tail: "Получается, меня разводят?",
-      title: "Похоже на схему обмана, но это не доказательство",
+      title: "Канал заработка: осторожно — похоже на схему обмана",
       action: "Не платите заранее",
     },
     {
       lang: "uz" as const,
       first: "Meni daromad uchun kanalga taklif qilishyapti",
       tail: "Bu firibgarlikmi?",
-      title: "Firib belgilariga o'xshaydi, lekin bu isbot emas",
+      title: "Daromad kanali: ehtiyot bo'ling — firib belgilariga o'xshaydi",
       action: "Oldindan to'lamang",
     },
     {
       lang: "en" as const,
       first: "They invite me to an earning channel",
       tail: "Is this a scam?",
-      title: "It resembles a scam pattern, but is not proof",
+      title: "Earning channel: be careful — it resembles a scam pattern",
       action: "Do not prepay",
     },
   ])(
@@ -488,10 +494,10 @@ describe("Inline screenshot context recovery", () => {
     const generic = await runInline("ru", first);
     const article = await runInline("ru", `${first}\n${tail}`);
 
-    expectSemanticFreshId(article, "link-request");
+    expectSemanticFreshId(article, "tax-payment");
     expect(article.id).not.toBe(generic.id);
-    expect(article.title).toBe("Ссылка: сначала проверим");
-    expect(article.description).toContain("Не открывайте");
+    expect(article.title).toBe("Налог по ссылке: не оплачивайте");
+    expect(article.description).toContain("Не платите налог");
     expectLatestTail(article, tail);
   });
 

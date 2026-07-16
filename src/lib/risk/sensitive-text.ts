@@ -29,6 +29,11 @@ const CODE_RE = new RegExp(
   `(${WORD_START}${CODE_LABEL}${WORD_END})(${CODE_ADJACENCY_SEPARATOR})(\\d(?:[\\d\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]{0,38}\\d)?)`,
   "giu",
 );
+const CODE_ACTION = String.raw`(?:enter|type|send|share|tell|dictate|kiriting|ayting|yuboring|jo['’]?nating|введ(?:и|ите)|назов(?:и|ите)|сообщ(?:и|ите)|отправ(?:ь|ьте)|продиктуй(?:те)?)`;
+const ACTION_SEPARATED_CODE_RE = new RegExp(
+  `(${WORD_START}(?:${CODE_LABEL}|kod(?:ni|ini))${WORD_END})([^\\r\\n\\d]{0,48}${CODE_ACTION}[^\\r\\n\\d]{0,24})(\\d{4,8}${WORD_END})`,
+  "giu",
+);
 const VALUE_FIRST_GROUPED_CODE_RE = new RegExp(
   `(${WORD_START}\\d{1,4}(?:[\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]+\\d{1,4}){1,7})(${CODE_ADJACENCY_SEPARATOR})(${CODE_LABEL}${WORD_END})`,
   "giu",
@@ -42,7 +47,7 @@ const VALUE_FIRST_PASSWORD_RE = new RegExp(
   "giu",
 );
 
-const RECOVERY_LABEL = String.raw`(?:seed[\s-]*(?:phrase|fraza(?:si)?)|recovery[\s-]+phrase|mnemonic(?:[\s-]+phrase)?|сид[\s-]*фраз(?:а|ы|у|е|ой)?|мнемоническ(?:ая|ую|ой)\s+фраз(?:а|у|ы|е|ой)|tiklash\s+(?:iborasi|so['’]?zlari))`;
+const RECOVERY_LABEL = String.raw`(?:seed[\s-]*(?:phrase|phase|pharse|prhase|phras|fraza(?:si)?)|recovery[\s-]+(?:phrase|phase|pharse)|mnemonic(?:[\s-]+(?:phrase|phase))?|сид[\s-]*фраз(?:а|ы|у|е|ой)?|мнемоническ(?:ая|ую|ой)\s+фраз(?:а|у|ы|е|ой)|tiklash\s+(?:iborasi|so['’]?zlari))`;
 const RECOVERY_RE = new RegExp(
   `(${WORD_START}${RECOVERY_LABEL}${WORD_END})(${VALUE_SEPARATOR})([^\\r\\n]{1,400})`,
   "giu",
@@ -232,6 +237,17 @@ export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSaniti
       if (digits.length < min || digits.length > max) return match;
       classes.add("code");
       return `${label}${separator}${HIDDEN_VALUE}`;
+    },
+  );
+
+  // Human instructions can place an action between the label and value:
+  // "kodni kiriting please: 1234". Keep the action visible for context while
+  // preventing the actual code from crossing a Telegram/AI/storage sink.
+  value = value.replace(
+    ACTION_SEPARATED_CODE_RE,
+    (_match: string, label: string, instruction: string) => {
+      classes.add("code");
+      return `${label}${instruction}${HIDDEN_VALUE}`;
     },
   );
 

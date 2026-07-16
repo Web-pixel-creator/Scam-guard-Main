@@ -233,10 +233,64 @@ instead of receiving misleading phone or Telegram-profile instructions.
   requests precedence over broad scam concern and stale check follow-ups. The
   phrase may describe scammers generically; it does not need to claim that the
   current user was already asked for the document.
+- Narrow matches carry typed `VictimScenario` metadata so Direct and Inline can
+  preserve the concrete RU/UZ/EN topic and action for bank/police impersonation,
+  SIM swap, remote access, vote links, tax, investment, romance, extortion,
+  parcel, loan, charity, QR login, fake support and related families instead of
+  collapsing to a generic transfer/stranger reply.
 - Completed disclosure to an untrusted recipient uses the distinct
   `personal_data_already_shared` aftercare route; an explicitly official
   portal/app upload remains benign. Completed family payments require an
   adversarial recipient or shared SMS/OTP context before aftercare is selected.
+- `classifyVictimIntent` reuses `uzbekLatinMatchingVariant` only after the
+  original text misses, so Uzbek Cyrillic family distress and completed
+  Telegram takeover reach the same rules while pure Russian stays unchanged.
+- `buildVictimFollowUpContext` and `classifyVictimContextualFollowUp` retain a
+  validated 20-minute enum-only intent snapshot for short already-paid,
+  installed/uninstall and confidence replies. Any concrete artifact or negated
+  completion bypasses the snapshot.
+
+**`src/lib/telegram/intent-text-normalization.ts`**
+
+- `normalizeIntentTextForMatching(text)` builds a classifier-only NFKC,
+  invisible-format-stripped and conservatively confusable-repaired view. The
+  original value remains authoritative for display, persistence and secret
+  sanitization.
+
+**`src/lib/telegram/inline-query-language.ts`**
+
+- `resolveTelegramTextLanguage(text, fallback)` chooses RU/UZ/EN for the current
+  message, including narrow Uzbek Cyrillic and transliterated evidence, while
+  retaining the supplied language only as a fallback.
+- `resolveInlineQueryLanguage(text, fallback)` applies the same resolver to
+  stateless Inline queries.
+
+**`src/lib/telegram/reply-check-context.ts`**
+
+- `rememberReplyCheckContext`, `resolveReplyCheckContext` and
+  `resolveReplyGuardianContext` keep reply-to-bot follow-ups bound to one of at
+  most eight recent message ids for 20 minutes using sanitized/coarse result
+  metadata only.
+
+**`src/lib/telegram/sensitive-secret-input.ts`**
+
+- `detectTelegramSensitiveSecret(original)` and
+  `buildSensitiveSecretGuidance(...)` classify already-supplied OTP/PIN/CVV,
+  password and recovery material after sink sanitization and render containment
+  guidance without echoing the value.
+
+**`src/lib/telegram/adversarial-human-scenario-corpus.ts`**
+
+- `ADVERSARIAL_HUMAN_SCENARIO_CORPUS` expands 30 human scam families across
+  RU/UZ/EN and 12 typo/confusable/zero-width/multiline/artifact mutations into
+  1,080 offline cases. The companion oracle exercises both Direct and Inline
+  routing without network, paid AI or Telegram session writes.
+
+**`src/lib/telegram/inline-context-robustness-corpus.ts`**
+
+- `INLINE_CONTEXT_ROBUSTNESS_CORPUS` keeps 1,152 generated multiline/follow-up
+  cases plus 23 safe/privacy/boundary controls, asserting topic-preserving
+  preview and inserted-result behavior.
 
 **`src/lib/telegram/dialogue-corpus.ts`**
 
@@ -542,15 +596,15 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
 - `src/lib/telegram/router.ts`: parses updates and routes commands/content, including direct `/call` and `/trainer`; handles `inline_query` before chat-target extraction and passes `from.language_code` as the first-contact session hint; resets active/contextual session state when stored `scenario_data.chatScope` does not match the current chat; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes voice notes, short Telegram `audio` attachments and audio documents such as `.ogg`/`.m4a` through the same capped STT path while keeping non-audio documents unsupported; routes Telegram video thumbnails to the image pipeline with a `video_thumbnail` media marker when no stronger caption/link/button evidence exists; routes uncaptained images in `report_desc` to transient report screenshot evidence; attaches sanitized public forward channel/group source context to check/image actions.
 - `src/lib/telegram/handlers/*`: `/start`, `/call`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
-- `src/lib/telegram/session.server.ts`: Supabase-backed state. Durable update executions use `load_telegram_session_fenced` and `save_telegram_session_fenced`; stale update/leader fences fail closed. The monotonic sequenced RPC remains defense in depth and a legacy fallback.
+- `src/lib/telegram/session.server.ts`: Supabase-backed state. Durable update executions use `load_telegram_session_fenced` and `save_telegram_session_fenced`; stale update/leader fences fail closed. The monotonic sequenced RPC remains defense in depth and a legacy fallback. `lastVictimIntent` is chat-scoped enum-only routing metadata with a 20-minute consumer window; it never stores raw text, amount, recipient or artifact.
 - `src/lib/telegram/family-shield.server.ts`: service-role-only Family Shield helper. It creates HMAC-hashed one-use invite links, rejects duplicate active links, expires stale pending invites, sends redacted trusted-contact alerts with opt-out, provides the privacy-first family codeword guide, and revokes relationships from either guardian or trusted-contact side. The guide never asks users to send or store the actual codeword.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls. `getUpdates` defaults to 20 records and clamps requested limits to `1..100`. `answerInlineQuery` has a 2.5-second transport deadline and returns typed failure data (`errorCode`, `description`, optional `retryAfterSec`) for delivery policy. The module also provides in-memory `sendAudio` for opt-in Voice-out and `setWebhook` registration pinned to the shared one-connection containment policy.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText` now returns compact panic first cards, `buildDetailedPanicScenarioText` keeps the full checklist for `panicctx:full`, plus panic keyboard builders, live-call callback parser and Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. First panic cards keep the urgent action first and short human guidance cues without repeating "I am nearby" in every message; follow-up answers are guided for stressed/elderly users, keep safe-callback boundaries and use scenario-specific ready phrases/contact destinations for financial, APK, Telegram takeover, live-call, romance, sextortion/photo-video blackmail, publication threats, minor-safety, AI voice-clone, fake job/easy-money, delivery/top-up, crypto/TON/wallet and government grant/benefit cases. Minor-safety and publication-threat trusted-person flows have distinct copy instead of sharing the generic blackmail branch. The panic menu is paginated through page 3 (`panic:more2` / `panic:back2`) for scenarios `12..15`.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check and orphan helper follow-up questions before `runCheck` (regressed for live phrases like "Точно?", "Что еще посоветуешь?" and "дай номер банка"), sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check, recent-victim and orphan helper follow-up questions before `runCheck` (including already-paid/installed/uninstall replies), resolves each direct text/voice turn's RU/UZ/EN from the current content without changing the stored profile language, preserves narrow `VictimScenario` topics over generic panic/transfer copy, extracts a standalone phone only from an explicit bank-number identity question, and returns sink-sanitized secret guidance before a value can be echoed. It sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring.
 - `src/lib/telegram/media-admission.server.ts`: `claimTelegramImageDownloadBudget(userId)` claims the shared media bucket before any Bot API file metadata or body download; ordinary image and report-screenshot paths use the same boundary.
 - `src/lib/telegram/handlers/report.ts`: owns the `/report` state machine, claims media admission before `getFile`, stores only prepared target hashes/masked displays plus redacted draft text, and accepts screenshots only on the description step. Report screenshots are downloaded/analyzed in memory through structured image evidence, converted to a short redacted summary, and never stored as raw images, data URLs, decoded QR payloads or full OCR text.
-- `src/lib/telegram/handlers/inline.ts`: answers Telegram inline-mode queries with one compact `InlineQueryResultArticle`; empty queries show usage help, non-empty queries are capped at 256 Unicode code points and call `runCheck(skipAi:true, skipUrlReputation:true, persist:false)`. Exact RU/UZ/EN greeting, acknowledgement and bot-identity phrases return concise localized small-talk cards before the checker, while anchored matching prevents a later danger clause from being swallowed. `safeInlineDisplay` masks human-preflight and upstream displays again before insertion and fails closed for malformed URLs. Low-signal phone/Telegram results reuse the shared Risk Passport summary; high-risk preview descriptions and inserted messages start with the top reason-bound `filterAdvice` action before source/evidence text. `answerOne` logs only a generic failure/code. Entity-parse rejection gets one plaintext retry; network/no-code and 5xx delivery failures get one immediate retry. A 429 is not retried immediately: its bounded 1-60-second `retry_after` is carried by a sanitized typed error through lifecycle release to the polling delay. Concurrent failures use the longest already-required delay. Permanent Bot API rejection is drained rather than blocking the polling frontier on an expired query. Copy/buttons use validated `TELEGRAM_BOT_USERNAME` with a safe fallback.
+- `src/lib/telegram/handlers/inline.ts`: answers Telegram inline-mode queries with one compact `InlineQueryResultArticle`; empty queries show usage help, non-empty queries are capped at 256 Unicode code points and call `runCheck(skipAi:true, skipUrlReputation:true, persist:false)`. Full multiline text is normalized and classified as one query; later context can refine tax, QR, bank, code and other scenarios, while the query-scoped result id, preview and inserted result preserve the selected topic and put a concrete safe action first. Exact single-line RU/UZ/EN greeting, acknowledgement, identity and capability phrases may return localized small-talk cards before preflight only when no danger clause is present. `safeInlineDisplay` masks human-preflight and upstream displays again before insertion and fails closed for malformed URLs. Low-signal phone/Telegram results reuse the shared Risk Passport summary; `sim_swap` and other specific local scenarios cannot be erased by generic preflight scoring. `answerOne` logs only a generic failure/code. Entity-parse rejection gets one plaintext retry; network/no-code and 5xx delivery failures get one immediate retry. A 429 is not retried immediately: its bounded 1-60-second `retry_after` is carried by a sanitized typed error through lifecycle release to the polling delay. Concurrent failures use the longest already-required delay. Permanent Bot API rejection is drained rather than blocking the polling frontier on an expired query. Copy/buttons use validated `TELEGRAM_BOT_USERNAME` with a safe fallback.
 - `src/lib/telegram/forward-context.ts`: sanitizes visible public Telegram forward source metadata and builds RU/UZ/EN reply-only source briefs with scheme/goal/safe-step copy when deterministic reason codes reveal a concrete tactic. It never changes scoring input and never persists source metadata.
 - `src/lib/telegram/image-fallback.ts`: builds `imgtriage:*` callback data, the full unreadable-image category keyboard, compact post-category follow-up keyboards and hook/risk/safe-step copy; it is presentation-only and does not run scoring or persistence.
 - `src/lib/telegram/moderation-notifier.server.ts`: sends optional private Telegram moderator alerts for new reports, reputation appeals and high-signal research items when `TELEGRAM_MODERATION_CHAT_ID` is explicitly configured. It formats only redacted targets, public scheme metadata, high-level fields and admin links; raw descriptions, screenshots, OCR, codes, card data, full phone numbers, full URLs, raw posts and user ids are never included. `buildHighSignalResearchModerationNotice()` selects active high/critical research-feed or moderated-aggregate scheme trends; `notifyHighSignalResearchModeration()` sends that review packet through the same private chat.

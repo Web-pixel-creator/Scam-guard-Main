@@ -419,7 +419,7 @@ describe("handleInlineQuery", () => {
       id: string;
       input_message_content: { message_text: string; parse_mode?: string };
     };
-    expectScopedArticleId(first.id, "check-high_risk");
+    expectScopedArticleId(first.id, "check-high_risk-code-request");
     expect(retry.id).toBe(first.id);
     expect(first.input_message_content.message_text).toContain("\\");
     expect(retry.input_message_content.parse_mode).toBeUndefined();
@@ -528,6 +528,7 @@ describe("handleInlineQuery", () => {
   it.each([
     {
       lang: "ru" as const,
+      query: "назовите SMS-код",
       title: "Высокий риск",
       stepLabel: "Безопасный шаг",
       step: "Не сообщайте SMS-код или PIN.",
@@ -536,6 +537,7 @@ describe("handleInlineQuery", () => {
     },
     {
       lang: "uz" as const,
+      query: "SMS-kodni ayting",
       title: "Yuqori xavf",
       stepLabel: "Xavfsiz qadam",
       step: "SMS-kod yoki PIN-ni aytmang.",
@@ -544,6 +546,7 @@ describe("handleInlineQuery", () => {
     },
     {
       lang: "en" as const,
+      query: "send the SMS code",
       title: "High risk",
       stepLabel: "Safe step",
       step: "Do not share your SMS code or PIN.",
@@ -552,7 +555,7 @@ describe("handleInlineQuery", () => {
     },
   ])(
     "leads with the full safe action in $lang high-risk preview and inserted message",
-    async ({ lang, title, stepLabel, step, checkedBy, reasonLabel }) => {
+    async ({ lang, query, title, stepLabel, step, checkedBy, reasonLabel }) => {
       hoisted.nextResult = {
         type: "text",
         display: "SMS code request",
@@ -566,7 +569,7 @@ describe("handleInlineQuery", () => {
       };
 
       await handleInlineQuery(
-        "send the SMS code",
+        query,
         { userId: 42, session: { ...session, lang } },
         `iq-high-${lang}`,
       );
@@ -1098,7 +1101,7 @@ describe("handleInlineQuery", () => {
     {
       text: "Просят перейти по ссылке и перевести деньги на карту",
       expectedId: "check-unknown-transfer-request",
-      expectedRunChecks: 1,
+      expectedRunChecks: 0,
     },
     {
       text: "Перейдите по ссылке и пришлите фото паспорта",
@@ -1143,26 +1146,31 @@ describe("handleInlineQuery", () => {
     {
       text: "Что мне отправить, если просят данные карты?",
       expectedId: "check-unknown-card-request",
+      expectedRunChecks: 1,
     },
     {
       text: "Что мне написать, если просят перевести деньги?",
       expectedId: "check-unknown-transfer-request",
+      expectedRunChecks: 0,
     },
     {
       text: "Что мне прислать, если просят фото паспорта?",
       expectedId: "check-unknown-personal-data",
+      expectedRunChecks: 1,
     },
     {
       text: "Bu yerga nima yozay, karta CVV sini so'rashyapti?",
       expectedId: "check-unknown-card-request",
+      expectedRunChecks: 1,
     },
     {
       text: "What should I reply if they ask for a passport photo?",
       expectedId: "check-unknown-personal-data",
+      expectedRunChecks: 1,
     },
   ])(
     "does not let reply-safety wording hide the dangerous request: $text",
-    async ({ text, expectedId }) => {
+    async ({ text, expectedId, expectedRunChecks }) => {
       hoisted.nextResult = {
         type: "text",
         display: text,
@@ -1177,7 +1185,7 @@ describe("handleInlineQuery", () => {
 
       await handleInlineQuery(text, { userId: 42, session }, `iq-reply-priority-${expectedId}`);
 
-      expect(hoisted.runCheckCalls).toHaveLength(1);
+      expect(hoisted.runCheckCalls).toHaveLength(expectedRunChecks);
       const article = hoisted.answerCalls[0].results[0] as { id: string };
       expectScopedArticleId(article.id, expectedId);
       expect(scopedArticleSemanticId(article.id)).not.toBe("check-unknown-reply-safety");
@@ -1367,7 +1375,7 @@ describe("handleInlineQuery", () => {
     {
       text: "menga soliqdan qongiroq qilishdi va OneID kodini sorashdi",
       id: "check-unknown-gov-service",
-      title: "OneID/госуслуги: не вводите код",
+      title: "OneID/davlat xizmati: kod kiritmang",
     },
     {
       text: "оператор просит код для замены SIM карты",
@@ -1632,12 +1640,12 @@ describe("handleInlineQuery", () => {
     {
       text: "I got a code should I tell him?",
       id: "check-unknown-code-request",
-      title: "Код: никому не называйте",
+      title: "Code: do not share it with anyone",
     },
     {
       text: "men kodni yubordim endi nima qilay",
       id: "check-unknown-sent-code",
-      title: "Код уже отправлен: действуйте срочно",
+      title: "Kod yuborilgan: tez harakat qiling",
     },
     {
       text: "что мне делать дальше?",
@@ -1682,7 +1690,7 @@ describe("handleInlineQuery", () => {
     {
       text: "someone is calling me",
       id: "check-unknown-unknown-call",
-      title: "Неизвестный звонок: лучше перезвонить",
+      title: "Unknown call: call back safely",
     },
     {
       text: "мне звонит фейковый майор",

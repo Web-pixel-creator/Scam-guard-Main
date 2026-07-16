@@ -15,9 +15,8 @@
 //   /safety    → basic safety rules + scope reminder       (R3.2, R3.3)
 //   /emergency → numbered emergency checklist              (R20.1, R20.2, R20.5)
 //
-// Command-initiated scenarios (started here via SESSION STATE only — the actual
-// content/step processing lives in sibling tasks 8.3 `check` / 8.4 `report`,
-// which this module deliberately does NOT import to keep parallel work safe):
+// Command-initiated scenarios. `/report` delegates to report.ts's canonical
+// entry point so its prompt and callback binding cannot drift from button entry:
 //   /check        → set scenario "await_check", prompt for content   (R4.1, R4.8, R15.2)
 //   /conversation → set scenario "conversation_check", collect short text chain
 //   /report       → set scenario "report_value", prompt for value    (R6.1, R15.2)
@@ -51,7 +50,7 @@ import { bt } from "@/lib/telegram/bot-i18n";
 import { loadSession, saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import type { HandlerCtx, ParsedCommand } from "@/lib/telegram/router";
 import type { Lang } from "@/lib/i18n";
-import { reportValueKeyboard } from "@/lib/telegram/report-flow";
+import { startReport } from "@/lib/telegram/handlers/report";
 import { getPublicAppUrl } from "@/lib/config.server";
 import { startConversationCheck } from "@/lib/telegram/handlers/conversation";
 import {
@@ -106,16 +105,7 @@ async function startCheckScenario(ctx: HandlerCtx): Promise<void> {
  * answer to the value step (R15.3).
  */
 async function startReportScenario(ctx: HandlerCtx): Promise<void> {
-  await saveSession(ctx.userId, {
-    scenario: "report_value",
-    scenarioStep: 0,
-    scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
-  });
-  await sendMessage({
-    chatId: ctx.chatId,
-    text: escapeMarkdownV2(bt("report_ask_value", ctx.session.lang)),
-    keyboard: reportValueKeyboard(ctx.session.lang),
-  });
+  await startReport(ctx);
 }
 
 /**

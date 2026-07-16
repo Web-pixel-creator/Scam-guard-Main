@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildVictimIntentText, classifyVictimIntent } from "@/lib/telegram/victim-intent";
+import {
+  buildVictimFollowUpContext,
+  buildVictimIntentText,
+  classifyVictimContextualFollowUp,
+  classifyVictimIntent,
+} from "@/lib/telegram/victim-intent";
 
 describe("classifyVictimIntent", () => {
   it.each([
@@ -428,7 +433,7 @@ describe("classifyVictimIntent — concrete schemes survive conversational wrapp
     "Men hozir uydaman. IIB xodimi meni jinoyat ishida gumon qilib, hujjatlarni talab qilyapti",
     "Please help me: a police investigator says I am a suspect in a criminal case and demands documents",
   ])("keeps a reported authority accusation on legal-impersonation guidance: %s", (text) => {
-    expect(classifyVictimIntent(text)).toEqual({ kind: "legal_impersonation" });
+    expect(classifyVictimIntent(text)).toMatchObject({ kind: "legal_impersonation" });
   });
 
   it.each([
@@ -439,6 +444,7 @@ describe("classifyVictimIntent — concrete schemes survive conversational wrapp
     expect(classifyVictimIntent(text)).toEqual({
       kind: "operator_call",
       askedContext: "call",
+      scenario: "sim_swap",
     });
   });
 
@@ -450,6 +456,7 @@ describe("classifyVictimIntent — concrete schemes survive conversational wrapp
     expect(classifyVictimIntent(text)).toEqual({
       kind: "investment_offer",
       askedContext: "transfer",
+      scenario: "investment_offer",
     });
   });
 
@@ -523,7 +530,10 @@ describe("classifyVictimIntent — bounded everyday incident wording", () => {
 
   it("uses post-incident document aftercare instead of prevention copy", () => {
     const match = classifyVictimIntent("Men notanish odamga pasport rasmini yubordim.");
-    expect(match).toEqual({ kind: "personal_data_already_shared" });
+    expect(match).toEqual({
+      kind: "personal_data_already_shared",
+      scenario: "passport_already_shared",
+    });
     const text = buildVictimIntentText(match!, "uz");
     expect(text).toContain("Hujjatlar allaqachon yuborilgan");
     expect(text).toContain("Bank va hujjatni bergan idoraga");
@@ -637,6 +647,97 @@ describe("classifyVictimIntent — bounded everyday incident wording", () => {
     "Я отправил паспорт через официальное приложение банка.",
   ])("does not invent scam aftercare for an explicitly benign completed action: %s", (text) => {
     expect(classifyVictimIntent(text)).toBeNull();
+  });
+});
+
+describe("classifyVictimIntent — elderly QA handoff regressions", () => {
+  it("reuses the gated Uzbek Cyrillic matching variant for a relative emergency", () => {
+    expect(
+      classifyVictimIntent(
+        "Набирам авариага тушди деб пул сўрашяпти телефонда йиғлаяпти овози ўхшайди",
+      ),
+    ).toEqual({ kind: "friend_money", askedContext: "transfer" });
+  });
+
+  it("routes an already-compromised Uzbek Cyrillic Telegram account to recovery copy", () => {
+    const match = classifyVictimIntent(
+      "Телеграмимга кириб олишди аккаунтим ўғирланди ҳамма контактларимга ёзишяпти",
+    );
+    expect(match).toEqual({
+      kind: "telegram_takeover",
+      askedContext: "link_qr",
+      scenario: "telegram_account_taken_over",
+    });
+    const text = buildVictimIntentText(match!, "uz");
+    expect(text).toContain("Sozlamalar → Qurilmalar");
+    expect(text).toContain("notanish seanslarni tugating");
+    expect(text).not.toContain("urinishiga o'xshaydi");
+  });
+
+  it("keeps pure Russian text out of the Uzbek transliteration fallback", () => {
+    expect(classifyVictimIntent("Я набираю номер из своей телефонной книги")).toBeNull();
+  });
+
+  it("turns a short transfer admission into bank-first aftercare only with recent context", () => {
+    const at = new Date("2026-07-16T12:00:00.000Z");
+    const context = buildVictimFollowUpContext(
+      { kind: "investment_offer", askedContext: "transfer", scenario: "investment_offer" },
+      at,
+    );
+    const now = new Date(at.getTime() + 60_000);
+
+    expect(classifyVictimContextualFollowUp("я им уже 500000 отправил", context, now)).toEqual({
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "money_already_sent",
+    });
+    expect(classifyVictimContextualFollowUp("я ещё не переводила деньги", context, now)).toBeNull();
+    expect(
+      classifyVictimContextualFollowUp("They already transferred a million", context, now),
+    ).toBeNull();
+    expect(
+      classifyVictimContextualFollowUp(
+        "я им уже 500000 отправил, номер +998 90 123 45 67",
+        context,
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      classifyVictimContextualFollowUp(
+        "я им уже 500000 отправил",
+        context,
+        new Date(at.getTime() + 21 * 60_000),
+      ),
+    ).toBeNull();
+  });
+
+  it("keeps confirmation and uninstall replies attached to recent victim guidance", () => {
+    const now = new Date("2026-07-16T12:01:00.000Z");
+    const investment = buildVictimFollowUpContext(
+      { kind: "investment_offer", askedContext: "transfer", scenario: "investment_offer" },
+      new Date("2026-07-16T12:00:00.000Z"),
+    );
+    const apk = buildVictimFollowUpContext(
+      { kind: "apk_request", askedContext: "apk" },
+      new Date("2026-07-16T12:00:00.000Z"),
+    );
+
+    expect(classifyVictimContextualFollowUp("точно?", investment, now)).toEqual({
+      kind: "investment_offer",
+      askedContext: "transfer",
+      scenario: "investment_offer",
+    });
+    expect(classifyVictimContextualFollowUp("я уже установила", apk, now)).toEqual({
+      kind: "apk_request",
+      askedContext: "apk",
+      scenario: "apk_already_installed",
+    });
+    expect(classifyVictimContextualFollowUp("как удалить", apk, now)).toEqual({
+      kind: "apk_request",
+      askedContext: "apk",
+      scenario: "apk_already_installed",
+    });
+    expect(classifyVictimContextualFollowUp("They already installed it", apk, now)).toBeNull();
   });
 });
 

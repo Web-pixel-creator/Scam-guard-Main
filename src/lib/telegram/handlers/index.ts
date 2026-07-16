@@ -25,7 +25,6 @@
 // Server-only: transitively pulls in `*.server.ts` modules (Bot API + service
 // -role core). Never import into the client bundle.
 import { setHandlers, type Handlers, type HandlerCtx } from "@/lib/telegram/router";
-import type { Scenario } from "@/lib/telegram/session.server";
 import { resetScenario } from "@/lib/telegram/session.server";
 import { answerCallbackQuery } from "@/lib/telegram/api.server";
 
@@ -53,11 +52,6 @@ import {
   handleMetaIntent,
   handleOutOfScope,
 } from "@/lib/telegram/handlers/misc";
-
-/** True for any multi-step `/report` scenario state (`report_*`). */
-function isReportScenario(scenario: Scenario): boolean {
-  return scenario.startsWith("report_");
-}
 
 /**
  * Dispatch a scenario step to the right module. The router routes any message
@@ -111,21 +105,21 @@ async function handleCallback(
   ctx: HandlerCtx,
   callbackQueryId?: string,
 ): Promise<void> {
-  if (data === REPORT_SKIP_CALLBACK && isReportScenario(ctx.session.scenario)) {
+  if (data === REPORT_SKIP_CALLBACK) {
     if (callbackQueryId !== undefined) {
       await answerCallbackQuery(callbackQueryId);
     }
     await handleReportSkip(ctx);
     return;
   }
-  if (data === REPORT_NO_VALUE_CALLBACK && ctx.session.scenario === "report_value") {
+  if (data === REPORT_NO_VALUE_CALLBACK) {
     if (callbackQueryId !== undefined) {
       await answerCallbackQuery(callbackQueryId);
     }
     await handleReportNoValue(ctx);
     return;
   }
-  if (data === REPORT_RETRY_CALLBACK && isReportScenario(ctx.session.scenario)) {
+  if (data === REPORT_RETRY_CALLBACK) {
     if (callbackQueryId !== undefined) {
       await answerCallbackQuery(callbackQueryId);
     }

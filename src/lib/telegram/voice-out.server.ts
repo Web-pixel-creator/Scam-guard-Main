@@ -669,9 +669,12 @@ export async function sendVoiceOutResponse(args: {
   keyboard?: InlineKeyboard;
   callbackQueryId?: string;
   prerecorded?: VoiceOutPrerecordedRef;
-}): Promise<void> {
+}): Promise<{ messageId?: number }> {
   if (!args.text) {
-    await sendMessage({
+    if (args.callbackQueryId !== undefined) {
+      await answerCallbackQuery(args.callbackQueryId);
+    }
+    const delivery = await sendMessage({
       chatId: args.chatId,
       text: escapeMarkdownV2(
         textByLang(args.lang, {
@@ -681,7 +684,7 @@ export async function sendVoiceOutResponse(args: {
         }),
       ),
     });
-    return;
+    return delivery.messageId === undefined ? {} : { messageId: delivery.messageId };
   }
 
   const duplicateKey = voiceOutRequestKey(args.chatId, args.userId, args.text);
@@ -689,7 +692,7 @@ export async function sendVoiceOutResponse(args: {
     if (args.callbackQueryId !== undefined) {
       await answerCallbackQuery(args.callbackQueryId, buildVoiceOutDuplicateText(args.lang));
     }
-    return;
+    return {};
   }
 
   if (args.callbackQueryId !== undefined) {
@@ -711,7 +714,7 @@ export async function sendVoiceOutResponse(args: {
       caption: escapeMarkdownV2(buildVoiceOutCaption(args.lang, args.text)),
       keyboard: args.keyboard,
     });
-    if (sent.ok) return;
+    if (sent.ok) return sent.messageId === undefined ? {} : { messageId: sent.messageId };
   }
 
   releaseVoiceOutRequest(duplicateKey);
@@ -720,7 +723,7 @@ export async function sendVoiceOutResponse(args: {
     ? { ok: false, reason: "provider_error" }
     : result;
 
-  await sendMessage({
+  const fallbackDelivery = await sendMessage({
     chatId: args.chatId,
     text: escapeMarkdownV2(buildVoiceOutFallbackText(args.lang, fallbackResult)),
     keyboard:
@@ -728,4 +731,5 @@ export async function sendVoiceOutResponse(args: {
         ? withoutProviderOnlyVoiceOutButtons(args.keyboard)
         : args.keyboard,
   });
+  return fallbackDelivery.messageId === undefined ? {} : { messageId: fallbackDelivery.messageId };
 }

@@ -6,7 +6,9 @@ import {
 } from "@/lib/telegram/check-context-buttons";
 import { CB } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
+import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
+import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 
 export const ALL_VICTIM_INTENTS = [
   "emotional_help",
@@ -67,10 +69,45 @@ export const ALL_VICTIM_INTENTS = [
 
 export type VictimIntentKind = (typeof ALL_VICTIM_INTENTS)[number];
 
+export const ALL_VICTIM_SCENARIOS = [
+  "apk_already_installed",
+  "bank_contact_from_message",
+  "charity_pressure",
+  "fake_support",
+  "fake_tax_payment",
+  "investment_offer",
+  "loan_advance_fee",
+  "marketplace_delivery",
+  "money_already_sent",
+  "parcel_fee",
+  "passport_already_shared",
+  "photo_extortion",
+  "police_impersonation",
+  "qr_login",
+  "remote_access",
+  "romance_money",
+  "sim_swap",
+  "telegram_account_taken_over",
+  "telegram_channel_invite",
+  "unknown_stranger_request",
+  "vote_link",
+] as const;
+
+export type VictimScenario = (typeof ALL_VICTIM_SCENARIOS)[number];
+
 export interface VictimIntentMatch {
   kind: VictimIntentKind;
   askedContext?: AskedContextKind;
+  /** Narrow, evidence-backed presentation topic; canonical intent/side effects stay unchanged. */
+  scenario?: VictimScenario;
 }
+
+/** Coarse, privacy-safe context for a short reply to recent victim guidance. */
+export interface VictimFollowUpContext extends VictimIntentMatch {
+  at: string;
+}
+
+export const VICTIM_FOLLOW_UP_CONTEXT_WINDOW_MS = 20 * 60 * 1_000;
 
 const EXPLICIT_URL_RE = /(?:https?:\/\/|www\.|t\.me\/|telegram\.me\/)/iu;
 const DOMAIN_LIKE_RE = /\b[a-z0-9-]+\.[a-z]{2,}\b/giu;
@@ -98,7 +135,7 @@ const UNKNOWN_CALL_RE =
 // generic request rules below: a completed incident needs aftercare, while a
 // request targeting a named relative needs identity verification guidance.
 const FAMILY_CONTEXT_RE =
-  /(?:^|[^\p{L}])(?:мам\p{L}*|пап\p{L}*|бабуш\p{L}*|дедуш\p{L}*|брат\p{L}*|сестр\p{L}*|сын\p{L}*|доч\p{L}*|родствен\p{L}*|близк\p{L}*|друг(?:|а|у|ом|е|и|ов|ья|ьям|ьями)|подруг\p{L}*|семейн\p{L}*|onam\p{L}*|otam\p{L}*|buvim\p{L}*|bobom\p{L}*|akam\p{L}*|ukam\p{L}*|opam\p{L}*|singlim\p{L}*|o['’]?g['’]?lim\p{L}*|qizim\p{L}*|qarindosh\p{L}*|yaqin\p{L}*|do['’]?stim\p{L}*|oilaviy|mother|father|mom|dad|grandmother|grandfather|grandma|grandpa|brother|sister|son|daughter|relative|friend|family)(?=$|[^\p{L}])/iu;
+  /(?:^|[^\p{L}])(?:мам\p{L}*|пап\p{L}*|бабуш\p{L}*|дедуш\p{L}*|внук\p{L}*|внуч\p{L}*|брат\p{L}*|сестр\p{L}*|сын\p{L}*|доч\p{L}*|родствен\p{L}*|близк\p{L}*|друг(?:|а|у|ом|е|и|ов|ья|ьям|ьями)|подруг\p{L}*|семейн\p{L}*|onam\p{L}*|otam\p{L}*|buvim\p{L}*|bobom\p{L}*|nabir\p{L}*|nevar\p{L}*|akam\p{L}*|ukam\p{L}*|opam\p{L}*|singlim\p{L}*|o['’]?g['’]?lim\p{L}*|qizim\p{L}*|qarindosh\p{L}*|yaqin\p{L}*|do['’]?stim\p{L}*|oilaviy|mother|father|mom|dad|grandmother|grandfather|grandma|grandpa|brother|sister|son|daughter|relative|friend|family)(?=$|[^\p{L}])/iu;
 const COMPLETED_FAMILY_ACTION_RE =
   /(?:уже|успел[аи]?|already|ulgurdi|bo['’]?ldi|перевел[аи]?|перевёл[аи]?|отправил[аи]?|отдал[аи]?|оплатил[аи]?|снял[аи]?|назвал[аи]?|сообщил[аи]?|продиктовал[аи]?|o['’]?tkaz(?:di|ib)|yubor(?:di|ib)|berib|to['’]?la(?:di|b)|aytib|yechib|sent|gave|paid|transferred|withdrew|handed|told|shared)/iu;
 const FAMILY_SENSITIVE_VALUE_RE =
@@ -159,14 +196,9 @@ function withoutQrCodeLabel(text: string): string {
 
 function normalizeVictimText(text: string): string {
   return (
-    text
-      .normalize("NFKC")
-      .replace(/[’‘`]/g, "'")
+    normalizeIntentTextForMatching(text)
       .replace(/ё/g, "е")
       .replace(/Ё/g, "Е")
-      .toLocaleLowerCase("ru")
-      .trim()
-      .replace(/\s+/g, " ")
       // Emotional letter stretching («памагитееее») — collapse 3+ repeats of a
       // letter to two. Digits are excluded so phone/amount payloads survive.
       .replace(/([^\d\s])\1{2,}/g, "$1$1")
@@ -533,17 +565,445 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
 export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = normalizeVictimText(text);
   if (!normalized) return null;
+  const combined = classifyVictimIntentWithTranslit(normalized);
+
+  // In a multiline request, Telegram users commonly put the actual scenario
+  // on one line and add only a trust/next-step question, pressure detail, URL
+  // or username on the other lines. Those wrapper lines must not steal the
+  // primary scenario (for example by turning photo blackmail into a generic
+  // family-emergency answer). Preserve the sole concrete line intent only when
+  // every remaining line is clearly contextual rather than a second scenario.
+  const lines = text
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length > 1) {
+    const matches = lines.map((line) => ({
+      line: normalizeVictimText(line),
+      match: classifyVictimIntentWithTranslit(normalizeVictimText(line)),
+    }));
+    const concrete = matches.filter(({ match }) => match && isConcreteLineIntent(match.kind));
+    if (
+      concrete.length === 1 &&
+      matches.every(
+        ({ line, match }) =>
+          match === concrete[0]!.match || (!match && isContextOnlyVictimLine(line)),
+      )
+    ) {
+      return concrete[0]!.match;
+    }
+  }
+
+  return combined;
+}
+
+function classifyVictimIntentWithTranslit(normalized: string): VictimIntentMatch | null {
   // Do not reinterpret an explicitly completed official SIM service as
   // Russian Latin-keyboard input after the direct classifier correctly
   // keeps it neutral.
   if (SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized)) return null;
   const direct = classifyNormalizedVictimIntent(normalized);
   if (direct) return direct;
+  // The risk rules already use this gated Uzbek Cyrillic matching variant.
+  // Reuse it here only after the original text matched nothing; the user's
+  // original text remains authoritative for display, persistence and logs.
+  const uzbekLatin = uzbekLatinMatchingVariant(normalized);
+  if (uzbekLatin !== null) {
+    const uzbekMatch = classifyNormalizedVictimIntent(uzbekLatin);
+    if (uzbekMatch) return uzbekMatch;
+  }
   // Latin-keyboard fallback: «menya obmanuli» → «меня обманули». Runs only
   // when the original text matched nothing, so native Uzbek Latin phrases
   // (understood directly by the patterns) are unaffected.
   const translit = transliterateRuLatin(normalized);
   return translit === null ? null : classifyNormalizedVictimIntent(translit);
+}
+
+const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
+  "apple_security",
+  "apk_request",
+  "earning_channel",
+  "file_received",
+  "friend_money",
+  "investment_offer",
+  "job_offer",
+  "romance_money",
+  "transfer_request",
+  "travel_migration_prepayment",
+]);
+
+const CONTEXTUAL_TRANSFER_KINDS = new Set<VictimIntentKind>([
+  "earning_channel",
+  "friend_money",
+  "investment_offer",
+  "job_offer",
+  "romance_money",
+  "transfer_request",
+  "travel_migration_prepayment",
+]);
+
+const CONTEXTUAL_APK_KINDS = new Set<VictimIntentKind>([
+  "apple_security",
+  "apk_request",
+  "file_received",
+]);
+const ASKED_CONTEXT_KINDS = new Set<AskedContextKind>([
+  "code",
+  "card",
+  "transfer",
+  "apk",
+  "link_qr",
+  "call",
+]);
+
+const SHORT_CONTEXT_CONFIRMATION_RE =
+  /^(?:точно|вы\s+уверены|ты\s+уверен|правда|really|are\s+you\s+sure|is\s+that\s+right|rostmi|aniqmi|ishonchingiz\s+komilmi)[?!.\s]*$/iu;
+const SHORT_MONEY_ALREADY_SENT_RE =
+  /^(?=.{1,140}$)(?=.*(?:^|[^\p{L}])(?:я|мне|i|me|men|menga)(?=$|[^\p{L}]))(?=.*(?:перев[её]л|отправил|заплатил|sent|transferred|paid|yubordim|o['’]?tkazdim|to['’]?ladim))(?=.*(?:\d|деньг|миллион|тысяч|сум|money|million|thousand|sum|pul|ming|so['’]?m)).*$/iu;
+const SHORT_APK_ALREADY_INSTALLED_RE =
+  /^(?=.{1,100}$)(?=.*(?:^|[^\p{L}])(?:я|i|men)(?=$|[^\p{L}]))(?=.*(?:уже\s+установил|already\s+installed|installed\s+it|o['’]?rnat(?:dim|ib\s+bo['’]?ldim))).*$/iu;
+const SHORT_APK_REMOVAL_RE =
+  /^(?:как\s+(?:его\s+|это\s+)?удалить|как\s+удалить\s+(?:приложение|apk)|how\s+do\s+i\s+(?:remove|uninstall)\s+(?:it|the\s+app)|how\s+to\s+(?:remove|uninstall)\s+(?:it|the\s+app)|qanday\s+(?:uni\s+)?o['’]?chiraman|ilovani\s+qanday\s+o['’]?chiraman)[?!.\s]*$/iu;
+const NEGATED_COMPLETION_RE =
+  /(?:не\s+(?:перев[её]л|отправил|заплатил|установил)|did\s*not\s+(?:send|transfer|pay|install)|didn['’]?t\s+(?:send|transfer|pay|install)|(?:yubor|o['’]?tkaz|to['’]?la|o['’]?rnat)madim)/iu;
+
+function activeVictimFollowUpContext(value: unknown, now: Date): VictimFollowUpContext | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.kind !== "string" ||
+    !ALL_VICTIM_INTENTS.includes(candidate.kind as VictimIntentKind) ||
+    !CONTEXTUAL_VICTIM_KINDS.has(candidate.kind as VictimIntentKind) ||
+    typeof candidate.at !== "string" ||
+    !Number.isFinite(Date.parse(candidate.at))
+  ) {
+    return null;
+  }
+  const ageMs = now.getTime() - Date.parse(candidate.at);
+  if (ageMs < 0 || ageMs > VICTIM_FOLLOW_UP_CONTEXT_WINDOW_MS) return null;
+
+  const match: VictimFollowUpContext = {
+    kind: candidate.kind as VictimIntentKind,
+    at: candidate.at,
+  };
+  if (
+    typeof candidate.askedContext === "string" &&
+    ASKED_CONTEXT_KINDS.has(candidate.askedContext as AskedContextKind)
+  ) {
+    match.askedContext = candidate.askedContext as AskedContextKind;
+  }
+  if (
+    typeof candidate.scenario === "string" &&
+    ALL_VICTIM_SCENARIOS.includes(candidate.scenario as VictimScenario)
+  ) {
+    match.scenario = candidate.scenario as VictimScenario;
+  }
+  return match;
+}
+
+export function buildVictimFollowUpContext(
+  match: VictimIntentMatch,
+  now = new Date(),
+): VictimFollowUpContext | null {
+  if (!CONTEXTUAL_VICTIM_KINDS.has(match.kind)) return null;
+  return { ...match, at: now.toISOString() };
+}
+
+/**
+ * Interpret only short, artifact-free replies against recent coarse victim
+ * guidance. A new link/phone/file always stays a fresh check.
+ */
+export function classifyVictimContextualFollowUp(
+  text: string,
+  value: unknown,
+  now = new Date(),
+): VictimIntentMatch | null {
+  const context = activeVictimFollowUpContext(value, now);
+  if (!context) return null;
+  const normalized = normalizeVictimText(text);
+  if (
+    !normalized ||
+    EXPLICIT_URL_RE.test(normalized) ||
+    PHONE_RE.test(normalized) ||
+    TELEGRAM_HANDLE_RE.test(normalized) ||
+    FILE_NAME_LIKE_RE.test(normalized) ||
+    NEGATED_COMPLETION_RE.test(normalized)
+  ) {
+    return null;
+  }
+
+  if (CONTEXTUAL_TRANSFER_KINDS.has(context.kind) && SHORT_MONEY_ALREADY_SENT_RE.test(normalized)) {
+    return {
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "money_already_sent",
+    };
+  }
+
+  if (
+    CONTEXTUAL_APK_KINDS.has(context.kind) &&
+    (SHORT_APK_ALREADY_INSTALLED_RE.test(normalized) || SHORT_APK_REMOVAL_RE.test(normalized))
+  ) {
+    return { kind: "apk_request", askedContext: "apk", scenario: "apk_already_installed" };
+  }
+
+  if (SHORT_CONTEXT_CONFIRMATION_RE.test(normalized)) {
+    return {
+      kind: context.kind,
+      ...(context.askedContext ? { askedContext: context.askedContext } : {}),
+      ...(context.scenario ? { scenario: context.scenario } : {}),
+    };
+  }
+
+  return null;
+}
+
+const NON_CONCRETE_LINE_INTENTS = new Set<VictimIntentKind>([
+  "acknowledgement",
+  "advice_question",
+  "emotional_help",
+  "general_scam_concern",
+  "privacy_question",
+  "telegram_message",
+  "trust_or_greeting",
+  "unknown_call",
+]);
+
+function isConcreteLineIntent(kind: VictimIntentKind): boolean {
+  return !NON_CONCRETE_LINE_INTENTS.has(kind);
+}
+
+function isContextOnlyVictimLine(normalized: string): boolean {
+  if (!normalized) return true;
+  if (/^(?:https?:\/\/|www\.)\S+$/iu.test(normalized)) return true;
+  if (/^@[a-z][a-z0-9_]{3,31}$/iu.test(normalized)) return true;
+  return (
+    /^(?:bunga\s+)?ishonish\s+mumkinmi|^(?:can\s+i|should\s+i)\s+trust|^(?:можно\s+ли\s+)?(?:ему|ей|им|этому)\s+доверять/iu.test(
+      normalized,
+    ) ||
+    /(?:что\s+(?:мне\s+)?делать|what\s+(?:should|do)\s+i\s+do|nima\s+qilish(?:im|\s+kerak))/iu.test(
+      normalized,
+    ) ||
+    /(?:не\s+спеш|not\s+in\s+a\s+hurry|shoshmayapman)/iu.test(normalized) ||
+    /(?:тороп|pressur|shoshir).{0,100}(?:близк|семь|family|relative|yaqin)/iu.test(normalized)
+  );
+}
+
+function hasAllScenarioSignals(normalized: string, signals: readonly RegExp[]): boolean {
+  return signals.every((signal) => signal.test(normalized));
+}
+
+function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMatch | null {
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:полици|police|polits|poits|iib|iiv)/iu,
+      /(?:уголовн|criminal\s+case|jinoiy\s+ish)/iu,
+      /(?:деньг|money|pul|треб|demand|talab)/iu,
+    ])
+  ) {
+    return { kind: "legal_impersonation", scenario: "police_impersonation" };
+  }
+  return null;
+}
+
+function classifyHighConfidenceEverydayScenario(normalized: string): VictimIntentMatch | null {
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:anydesk|andesk|teamviewer|rustdesk)/iu,
+      /(?:установ|install|o['’]?rnat|прилож|app|ilova)/iu,
+      /(?:экран|screen|ekran|показ|share|ko['’]?rsat)/iu,
+    ])
+  ) {
+    return { kind: "apk_request", askedContext: "apk", scenario: "remote_access" };
+  }
+
+  if (
+    !COMPLETED_LINK_OR_QR_ACTION_RE.test(normalized) &&
+    hasAllScenarioSignals(normalized, [
+      /(?:\bqr\b|куар)/iu,
+      /telegram/iu,
+      /(?:скан|scan|kirish|kira|sign\s*in|log\s*in|вход)/iu,
+    ])
+  ) {
+    return { kind: "link_request", askedContext: "link_qr", scenario: "qr_login" };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:покупател|buyer|buer|xaridor|xaidor)/iu,
+      /(?:курьер|куьер|courier|couier|kuryer|kuyer)/iu,
+      /(?:ссыл|link|havola)/iu,
+      /(?:карт|card|karta)/iu,
+    ])
+  ) {
+    return {
+      kind: "card_request",
+      askedContext: "card",
+      scenario: "marketplace_delivery",
+    };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:фонд|charity|jamg['’]?arma)/iu,
+      /(?:личн\p{L}*\s+карт|personal\s+card|shaxsiy\s+karta)/iu,
+      /(?:перев|transfer|o['’]?tkaz|pul)/iu,
+    ])
+  ) {
+    return {
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "charity_pressure",
+    };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:romantic|roantic|знаком|tanish)/iu,
+      /(?:ticket|билет|chipta|visa|виза|viza)/iu,
+      /(?:money|ден|pul|pay|плат)/iu,
+    ])
+  ) {
+    return { kind: "romance_money", askedContext: "transfer", scenario: "romance_money" };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:passport|pasport|paport|паспорт|документ|hujjat)/iu,
+      /(?:already|alredy|sent|shared|от(?:п)?равил|отправил|yubordim|jo['’]?natdim)/iu,
+      /(?:stranger|stanger|незнаком|notanish|noanish|begona)/iu,
+    ])
+  ) {
+    return { kind: "personal_data_already_shared", scenario: "passport_already_shared" };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:soliq|налог|tax)/iu,
+      /(?:to['’]?la|оплат|pay)/iu,
+      /(?:havola|ссылк|link)/iu,
+    ])
+  ) {
+    return {
+      kind: "official_impersonation",
+      askedContext: "transfer",
+      scenario: "fake_tax_payment",
+    };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:bank|банк)/iu,
+      /(?:smsdagi\s+raqam|номер\p{L}*\s+из\s+sms|number\s+from\s+an?\s+sms)/iu,
+      /(?:qo['’]?ng['’]?iroq|звон|call)/iu,
+    ])
+  ) {
+    return { kind: "bank_contact_question", scenario: "bank_contact_from_message" };
+  }
+
+  if (
+    /(?:vote|голос|ovoz).{0,120}(?:channel|chanel|chnnel|канал|kanal).{0,120}(?:link|ссыл|havola)|(?:channel|chanel|chnnel|канал|kanal).{0,120}(?:vote|голос|ovoz).{0,120}(?:link|ссыл|havola)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "telegram_takeover", askedContext: "link_qr", scenario: "vote_link" };
+  }
+
+  if (
+    /(?:tez|fast|быстр\p{L}*).{0,50}(?:daromad|daomad|earning|заработ\p{L}*).{0,80}(?:kanal|channel|канал)|(?:kanal|channel|канал).{0,80}(?:tez|fast|быстр\p{L}*).{0,50}(?:daromad|daomad|earning|заработ\p{L}*)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "earning_channel", askedContext: "link_qr" };
+  }
+
+  if (
+    /(?:kredit|krdit|kreit|loan|credit|кредит).{0,140}(?:oldindan|advance|upfront|заранее).{0,100}(?:komiss|commission|fee|комисс)|(?:oldindan|advance|upfront|заранее).{0,100}(?:komiss|commission|fee|комисс).{0,140}(?:kredit|krdit|kreit|loan|credit|кредит)/iu.test(
+      normalized,
+    )
+  ) {
+    return {
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "loan_advance_fee",
+    };
+  }
+
+  if (
+    /(?:courier|parcel|customs|курьер|посыл|тамож|kuryer|posilka|boj).{0,160}(?:fee|pay|payment|оплат|сбор|to['’]?la|to['’]?lov)|(?:fee|pay|payment|оплат|сбор|to['’]?la|to['’]?lov).{0,160}(?:courier|parcel|customs|курьер|посыл|тамож|kuryer|posilka|boj)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "transfer_request", askedContext: "transfer", scenario: "parcel_fee" };
+  }
+
+  if (
+    /(?:fake|false|soxta|фальшив|поддельн).{0,80}(?:support|suport|поддержк|yordam\s+xizmati).{0,120}(?:(?:disable|turn\s+off|отключ|o['’]?chir).{0,80}(?:protection|security|защит|himoya)|(?:protection|security|защит|himoya).{0,80}(?:disable|turn\s+off|отключ|o['’]?chir))/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "support_impersonation", scenario: "fake_support" };
+  }
+
+  if (
+    /(?:telegram).{0,80}(?:channel|канал|kanal).{0,120}(?:suspicious|сомнитель|шубҳали|shubhali|invite|invites|вступ|зов|qo['’]?shil|chaqir)|(?:suspicious|сомнитель|шубҳали|shubhali).{0,100}(?:telegram).{0,80}(?:channel|канал|kanal)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "unknown_contact", scenario: "telegram_channel_invite" };
+  }
+
+  if (
+    hasAllScenarioSignals(normalized, [
+      /(?:stranger|stanger|unknown|незнаком|notanish|noanish|begona)/iu,
+      /(?:instructions|инструкц|ko['’]?rsatma)/iu,
+      /(?:follow|выполн|сдела|bajar|прос|ask|so['’]?ra)/iu,
+    ])
+  ) {
+    return { kind: "unknown_contact", scenario: "unknown_stranger_request" };
+  }
+
+  if (
+    /(?:fake|soxta|ложн|лже).{0,60}(?:bank|банк).{0,100}(?:employee|emloyee|agent|xodim|сотрудник).{0,140}(?:urgent|zudlik|сроч|demand|talab|треб).{0,100}(?:transaction|operatsiya|операци)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "bank_call", askedContext: "call" };
+  }
+
+  if (
+    /(?:son|сын|дочь|daughter|o['’]?g['’]?lim|qizim).{0,100}(?:accident|авари|avariya).{0,120}(?:urgent|сроч|zudlik).{0,100}(?:transfer|перевод|pul|o['’]?tkaz)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "friend_money", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:romantic|dating|relationship|tanishim|знаком).{0,120}(?:ticket|visa|билет|виза|chipta|viza).{0,100}(?:money|pay|ден|pul)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "romance_money", askedContext: "transfer", scenario: "romance_money" };
+  }
+
+  if (
+    /(?:men).{0,40}(?:paport|paaport|pasort|pasport|hujjat).{0,80}(?:rasm|nusxa).{0,100}(?:notanish|begona).{0,80}(?:yubordim|jo['’]?natdim)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "personal_data_already_shared", scenario: "passport_already_shared" };
+  }
+
+  if (
+    /(?:smsdagi|sms\s+(?:message|xabar)|смс).{0,80}(?:raqam|number|номер).{0,100}(?:qo['’]?ng['’]?iroq|call|звон).{0,100}(?:taklif|tell|предлаг)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "bank_contact_question", scenario: "bank_contact_from_message" };
+  }
+
+  return null;
 }
 
 function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch | null {
@@ -592,6 +1052,9 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   // Authority contact/accusation signals must run before generic unknown-call
   // and broad official-message routes, which would otherwise discard the
   // named РУВД/ОВД/МВД (or IIB/police) context.
+  const policeImpersonation = classifyPoliceImpersonationScenario(normalized);
+  if (policeImpersonation) return policeImpersonation;
+
   if (
     isAuthorityLegalIncident(normalized) ||
     QUOTED_RU_LEGAL_AUTHORITY_CLAIM_RE.test(normalized) ||
@@ -603,6 +1066,21 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 
   if (AUTHORITY_CONTACT_RE.test(normalized)) {
     return { kind: "authority_impersonation", askedContext: "call" };
+  }
+
+  // Explicitly completed Telegram takeover needs recovery guidance, not the
+  // preventative fake-login copy. The Uzbek-Cyrillic fallback above turns
+  // «Телеграмимга кириб олишди, аккаунтим ўғирланди» into this same form.
+  if (
+    /(?:telegram(?:im)?ga|telegram|телеграм).{0,100}(?:kirib\s+olishdi|buzib\s+kirishdi|o['’]?g['’]?irlandi|og['’]?irlandi|взломал|угнал|украл|получил\p{L}*\s+доступ)|(?:kirib\s+olishdi|buzib\s+kirishdi|o['’]?g['’]?irlandi|og['’]?irlandi|взломал|угнал|украл|получил\p{L}*\s+доступ).{0,100}(?:telegram|телеграм)/iu.test(
+      normalized,
+    )
+  ) {
+    return {
+      kind: "telegram_takeover",
+      askedContext: "link_qr",
+      scenario: "telegram_account_taken_over",
+    };
   }
 
   // Post-action account loss is an incident, not a generic question about a
@@ -644,15 +1122,38 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   // require multiple topic-specific signals, so neutral mentions of an
   // authority, a SIM, an investment wallet, or a job remain unaffected.
   if (isOperatorSimSecretRequest(normalized)) {
-    return { kind: "operator_call", askedContext: "call" };
+    return { kind: "operator_call", askedContext: "call", scenario: "sim_swap" };
   }
 
   if (isHighConfidenceInvestmentOffer(normalized)) {
-    return { kind: "investment_offer", askedContext: "transfer" };
+    return {
+      kind: "investment_offer",
+      askedContext: "transfer",
+      scenario: "investment_offer",
+    };
   }
 
   if (isJobEntryFeeIntent(normalized)) {
     return { kind: "job_offer" };
+  }
+
+  const everydayScenario = classifyHighConfidenceEverydayScenario(normalized);
+  if (everydayScenario) return everydayScenario;
+
+  if (
+    /(?:politsiyadanman|iibdanman|prokuraturadanman).{0,140}(?:jinoiy\s+ish|qo['’]?rqit|tahdid|pul\s+talab)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "legal_impersonation" };
+  }
+
+  if (
+    /(?:soliq|налог|tax).{0,140}(?:to['’]?la|оплат|pay).{0,100}(?:havola|ссылк|link)|(?:havola|ссылк|link).{0,100}(?:soliq|налог|tax).{0,100}(?:to['’]?la|оплат|pay)/iu.test(
+      normalized,
+    )
+  ) {
+    return { kind: "official_impersonation", askedContext: "transfer" };
   }
 
   const newsIntent = classifyNewsVictimIntent(normalized);
@@ -700,7 +1201,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     /(?:опублику|вылож[иау]|разошл|распростран|солью|сольют|слить|скинут?\s+всем|отправ(?:ит|ят|лю)\s+(?:всем|друзьям|родным|близким|контактам)|tarqat|e['’]?lon\s+qil|таркат)[\s\S]{0,80}(?:фото|видео|переписк|интим|голы|скрин|rasm|surat|видео|расм|сурат)|(?:фото|видео|переписк|интим|rasm|surat|расм|сурат)[\s\S]{0,80}(?:опублику|вылож|разошл|распростран|солью|сольют|всем\s+контакт|друзьям|родным|tarqat|e['’]?lon|таркат)/iu.test(
       normalized,
     ) ||
-    /(?:шантаж|вымога|sextortion|blackmail|shantaj|tovlamachi)/iu.test(normalized) ||
+    /(?:шантаж|шатаж|вымога|sextortion|blackmail|blckmail|shantaj|tovlamachi)/iu.test(normalized) ||
     /(?:compromising\s+(?:photos?|videos?|materials?|images?)|(?:компромат|компрометирующ|kompromat).{0,100}(?:фото|видео|переписк|материал|rasm|surat|photo|video|image)|(?:фото|видео|переписк|rasm|surat|photo|video|image).{0,100}(?:компромат|компрометирующ|kompromat|compromising))/iu.test(
       normalized,
     ) ||
@@ -708,7 +1209,11 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
       normalized,
     )
   ) {
-    return { kind: "blackmail_threat", askedContext: "transfer" };
+    return {
+      kind: "blackmail_threat",
+      askedContext: "transfer",
+      scenario: "photo_extortion",
+    };
   }
 
   // Already-deceived aftermath: past-tense RU/UZ "I was scammed / money is
@@ -956,7 +1461,10 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:карт[ауые]|cvv|cvc|pin|пин|номер\s+карты|реквизит|card|karta|plastik)/iu.test(normalized)
+    /(?:карт[ауые]|cvv|cvc|pin|пин|номер\s+карты|реквизит|card|karta|plastik)/iu.test(normalized) &&
+    !/(?:перев(?:ести|од).{0,50}(?:на\s+)?карт|(?:на\s+)?карт\p{L}{0,8}.{0,50}перев|kartaga.{0,60}(?:pul|o['’]?tkaz)|(?:pul|o['’]?tkaz).{0,60}kartaga|transfer.{0,50}(?:to\s+)?(?:a\s+)?card)/iu.test(
+      normalized,
+    )
   ) {
     return { kind: "card_request", askedContext: "card" };
   }
@@ -1163,7 +1671,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     /(?:деньг|перевед|помоги|билет|виза|лечение|инвест|крипт|депозит).{0,140}(?:люблю|скучаю|дорог|родн|знаком|отношен|невест|жених|девушк|парен|интернет)/iu.test(
       normalized,
     ) ||
-    /(?:sevgi|sog['’]?indim|aziz|tanish|munosabat).{0,140}(?:pul|yordam|chipta|viza|davolanish|invest|kripto)/iu.test(
+    /(?:sevgi|sog['’]?indim|aziz|(?<!\p{L})tanish(?!\p{L})|munosabat).{0,140}(?:pul|yordam|chipta|viza|davolanish|invest|kripto)/iu.test(
       normalized,
     ) ||
     /(?:love|miss|dear|dating|relationship|girl|boyfriend|girlfriend).{0,140}(?:money|transfer|ticket|visa|treatment|invest|crypto|deposit)/iu.test(
@@ -1432,7 +1940,63 @@ export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch):
   ];
 }
 
+const VICTIM_SCENARIO_TEXT: Partial<Record<VictimScenario, Record<Lang, string>>> = {
+  remote_access: {
+    ru: "AnyDesk, TeamViewer и показ экрана дают собеседнику доступ к тому, что происходит на телефоне. Банк не просит ставить такие приложения.\n\nНе устанавливайте программу и не включайте демонстрацию экрана. Если уже дали доступ — отключите интернет, удалите разрешения приложения и свяжитесь с банком по официальному номеру.",
+    uz: "AnyDesk, TeamViewer yoki ekran ko'rsatish suhbatdoshga telefondagi amallarni ko'rish va boshqarish imkonini beradi. Bank bunday ilovani o'rnatishni so'ramaydi.\n\nIlovani o'rnatmang va ekran ulashmang. Kirish bergan bo'lsangiz — internetni uzing, ilova ruxsatlarini olib tashlang va bankka rasmiy raqam orqali qo'ng'iroq qiling.",
+    en: "AnyDesk, TeamViewer, or screen sharing can let the other person see and control activity on your phone. A bank will not ask you to install it.\n\nDo not install the app or share your screen. If access was already granted, disconnect the internet, remove the app's permissions, and contact the bank using its official number.",
+  },
+  parcel_fee: {
+    ru: "Срочный таможенный сбор за посылку по просьбе «курьера» — частая схема с поддельной оплатой.\n\nНе платите по присланной ссылке. Проверьте номер отправления сами на официальном сайте службы доставки или позвоните ей по номеру с сайта.",
+    uz: "«Kuryer» so'ragan posilka uchun shoshilinch boj to'lovi ko'pincha soxta to'lov sxemasi bo'ladi.\n\nYuborilgan havola orqali to'lamang. Jo'natma raqamini yetkazib berish xizmatining rasmiy saytida o'zingiz tekshiring yoki saytdagi raqamga qo'ng'iroq qiling.",
+    en: "An urgent customs fee for a parcel requested by a “courier” is a common fake-payment pattern.\n\nDo not pay through the supplied link. Check the tracking number yourself on the delivery company's official site or call the number listed there.",
+  },
+  marketplace_delivery: {
+    ru: "Ссылка «курьера» от покупателя с просьбой ввести данные карты — типичная подмена доставки на маркетплейсе.\n\nНе вводите номер карты, срок, CVV или SMS-код. Оформляйте доставку и получение денег только внутри официального приложения или сайта площадки.",
+    uz: "Xaridor yuborgan «kuryer» havolasida karta ma'lumotini kiritish — marketpleysdagi soxta yetkazib berish sxemasiga xos.\n\nKarta ma'lumotini yubormang: raqam, amal muddati, CVV yoki SMS-kod kiritmang. Yetkazib berish va pul olishni faqat platformaning rasmiy ilovasi yoki saytida rasmiylashtiring.",
+    en: "A buyer's “courier” link asking for card details is a typical fake marketplace-delivery flow.\n\nDo not enter the card number, expiry date, CVV, or SMS code. Arrange delivery and payment only inside the marketplace's official app or site.",
+  },
+  loan_advance_fee: {
+    ru: "Комиссия заранее за одобрение кредита — сильный признак схемы с предоплатой. Настоящее решение по кредиту проверяется у самого банка или МФО.\n\nНе переводите комиссию и не подтверждайте операцию кодом. Свяжитесь с кредитором только через его официальное приложение, сайт или номер.",
+    uz: "Kreditni tasdiqlash uchun oldindan komissiya so'rash — oldindan to'lov sxemasining kuchli belgisi. Haqiqiy kredit qarori bank yoki MMTning o'zida tekshiriladi.\n\nKomissiya o'tkazmang va operatsiyani kod bilan tasdiqlamang. Kredit tashkilotiga faqat rasmiy ilova, sayt yoki raqam orqali murojaat qiling.",
+    en: "An advance commission to approve a loan is a strong sign of an upfront-fee scheme. A real lending decision is verified with the bank or lender itself.\n\nDo not transfer the commission or confirm an operation with a code. Contact the lender only through its official app, site, or number.",
+  },
+  charity_pressure: {
+    ru: "Неизвестный фонд, давление и перевод на личную карту — небезопасный способ сбора пожертвований.\n\nПока не переводите деньги. Проверьте регистрацию фонда и реквизиты через его официальный сайт; надёжный фонд не запрещает такую проверку и не торопит.",
+    uz: "Notanish jamg'arma, bosim va shaxsiy kartaga o'tkazma — xayriya yig'ishning xavfsiz usuli emas.\n\nHozircha pul o'tkazmang. Jamg'arma ro'yxatdan o'tganini va rekvizitlarini rasmiy sayt orqali tekshiring; ishonchli jamg'arma tekshiruvga qarshi bo'lmaydi va shoshirmaydi.",
+    en: "An unknown charity using pressure and a transfer to a personal card is not a safe donation route.\n\nDo not transfer money yet. Verify the charity's registration and payment details through its official site; a legitimate charity will allow that check and will not rush you.",
+  },
+  qr_login: {
+    ru: "QR для входа в Telegram может авторизовать чужое устройство в вашем аккаунте.\n\nНе сканируйте QR, который прислал или показывает другой человек. Если уже сканировали — откройте Telegram → Устройства, завершите незнакомый сеанс и включите двухэтапную защиту.",
+    uz: "Telegramga kirish QR-kodi begona qurilmani akkauntingizga ulashi mumkin.\n\nBoshqa odam yuborgan yoki ko'rsatgan QRni skanerlamang. Skanerlagan bo'lsangiz — Telegram → Qurilmalar bo'limida begona seansni tugating va ikki bosqichli himoyani yoqing.",
+    en: "A Telegram login QR can authorize someone else's device in your account.\n\nDo not scan a QR sent or shown by another person. If you already scanned it, open Telegram → Devices, end the unknown session, and enable two-step verification.",
+  },
+  money_already_sent: {
+    ru: "Если деньги уже отправлены, действуйте сейчас: позвоните в банк по номеру из приложения или с карты и попросите заморозить перевод либо операцию.\n\nСохраните чек, номер получателя и переписку, но больше ничего не переводите и не сообщайте коды. После банка обратитесь в милицию по номеру 102.",
+    uz: "Pul allaqachon yuborilgan bo'lsa, hozir harakat qiling: ilova yoki kartadagi rasmiy raqam orqali bankka qo'ng'iroq qilib, o'tkazma yoki operatsiyani muzlatishni so'rang.\n\nChek, oluvchi raqami va yozishmani saqlang, ammo boshqa pul yubormang va kod aytmang. Bankdan keyin 102 orqali militsiyaga murojaat qiling.",
+    en: "If the money has already been sent, act now: call the bank using the number in its app or on the card and ask it to freeze the transfer or operation.\n\nSave the receipt, recipient details, and chat, but send nothing else and share no codes. After contacting the bank, report the incident to police at 102.",
+  },
+  apk_already_installed: {
+    ru: "Если приложение или APK уже установлены по просьбе из чата или звонка, включите авиарежим и пока не открывайте банк, почту и SMS.\n\nНа другом безопасном устройстве позвоните в банк по официальному номеру. Затем вместе с близким или специалистом отключите у приложения специальные возможности/права администратора и удалите его. Если удалить не получается — не вводите пароли и обратитесь в сервис.",
+    uz: "Chat yoki qo'ng'iroqdagi so'rov bilan ilova/APK o'rnatilgan bo'lsa, aviarejimni yoqing va hozircha bank, pochta hamda SMSni ochmang.\n\nBoshqa xavfsiz qurilmadan bankka rasmiy raqam orqali qo'ng'iroq qiling. Keyin yaqin inson yoki mutaxassis bilan ilovaning maxsus imkoniyatlar/administrator ruxsatlarini o'chirib, uni olib tashlang. O'chmasa, parol kiritmang va servisga murojaat qiling.",
+    en: "If an app or APK was already installed because of a chat or caller, enable airplane mode and do not open banking, email, or SMS yet.\n\nCall the bank from another safe device using its official number. Then, with a trusted person or technician, remove the app's accessibility/device-admin permissions and uninstall it. If removal fails, enter no passwords and get in-person technical help.",
+  },
+  telegram_account_taken_over: {
+    ru: "Если в Telegram уже вошёл посторонний, откройте Telegram сами: Настройки → Устройства и завершите все незнакомые сеансы. Затем включите двухэтапную защиту и защитите привязанные номер и почту.\n\nНикому не отправляйте новый код входа. Предупредите контакты, что от вашего имени могут просить деньги или коды, и пожалуйтесь на чужие сообщения/профили.",
+    uz: "Telegramga begona odam allaqachon kirgan bo'lsa, Telegramni o'zingiz oching: Sozlamalar → Qurilmalar va barcha notanish seanslarni tugating. Keyin ikki bosqichli himoyani yoqing, bog'langan raqam va pochtani himoyalang.\n\nYangi kirish kodini hech kimga yubormang. Kontaktlarni sizning nomingizdan pul yoki kod so'ralishi mumkinligi haqida ogohlantiring va begona xabar/profillardan shikoyat qiling.",
+    en: "If someone is already inside your Telegram account, open Telegram yourself: Settings → Devices and end every unknown session. Then enable two-step verification and secure the linked phone number and email.\n\nDo not send anyone a new login code. Warn contacts that messages asking for money or codes may be sent in your name, and report the intruder's messages/accounts.",
+  },
+  telegram_channel_invite: {
+    ru: "Приглашение в сомнительный Telegram-канал само по себе ещё не доказывает обман, но риск начинается с кнопок, внешних ссылок, оплаты или просьбы войти в аккаунт.\n\nНе нажимайте кнопки и ничего не оплачивайте. Пришлите @username, ссылку или скрин условий — проверю конкретные признаки канала.",
+    uz: "Shubhali Telegram kanaliga taklifning o'zi hali firibgarlikni isbotlamaydi, ammo tugma, tashqi havola, to'lov yoki akkauntga kirish so'rovi xavf tug'diradi.\n\nTugmalarni bosmang va hech narsa to'lamang. Kanalning @username'i, havolasi yoki shartlar skrinini yuboring — aniq belgilarni tekshiraman.",
+    en: "An invitation to a suspicious Telegram channel is not proof by itself, but buttons, external links, payments, or account-login requests create risk.\n\nDo not press buttons or pay anything. Send the channel @username, link, or a screenshot of its terms and I will check the specific signals.",
+  },
+};
+
 export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): string {
+  const scenarioText = match.scenario ? VICTIM_SCENARIO_TEXT[match.scenario]?.[lang] : undefined;
+  if (scenarioText) return scenarioText;
+
   const byKind: Record<VictimIntentKind, Record<Lang, string>> = {
     emotional_help: {
       ru: "Я рядом. Сначала остановимся и разберёмся спокойно.\n\nЧто происходит прямо сейчас: вам звонят, прислали ссылку/файл, просят код, карту или перевод? Нажмите подходящую кнопку ниже или напишите одной фразой.",

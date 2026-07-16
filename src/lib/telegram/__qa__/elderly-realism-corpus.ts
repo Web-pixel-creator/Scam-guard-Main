@@ -206,9 +206,7 @@ export const ELDERLY_DIRECT_CORPUS: readonly ElderlyQaRow[] = [
     clientLang: "ru",
     expectLang: "ru",
     expectation: "danger",
-    turns: [
-      "просят номер карты и срок действия и три цифры сзади чтобы вернуть ошибочный перевод",
-    ],
+    turns: ["просят номер карты и срок действия и три цифры сзади чтобы вернуть ошибочный перевод"],
   },
   {
     id: "uz-cyr-card-data-01",
@@ -604,11 +602,7 @@ export const ELDERLY_DIRECT_CORPUS: readonly ElderlyQaRow[] = [
     clientLang: "ru",
     expectLang: "ru",
     expectation: "neutral",
-    turns: [
-      "это номер банка? +998712000000",
-      "перепроверь ещё раз",
-      "почему ты так решил",
-    ],
+    turns: ["это номер банка? +998712000000", "перепроверь ещё раз", "почему ты так решил"],
   },
   {
     id: "uz-cyr-neutral-1344-01",
@@ -1014,7 +1008,8 @@ export const ELDERLY_INLINE_CORPUS: readonly ElderlyInlineQaRow[] = [
     clientLang: "ru",
     expectLang: "ru",
     expectation: "danger",
-    query: "переслали сообщение\nваша карта заблокирована\nперейдите по ссылке bit.ly/3xk и подтвердите данные",
+    query:
+      "переслали сообщение\nваша карта заблокирована\nперейдите по ссылке bit.ly/3xk и подтвердите данные",
   },
   {
     id: "inl-gratitude-01",

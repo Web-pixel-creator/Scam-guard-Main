@@ -343,25 +343,18 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 
 ## Near-term product tasks
 
-- [ ] **Uzbek Cyrillic victim-intent coverage (handoff from the 2026-07-16
-      elderly QA run).** The rules layer already evaluates an Uzbek
-      Cyrillic→Latin matching variant (`src/lib/risk/uz-cyrillic-translit.ts`),
-      but `classifyVictimIntent` does not. Two verified gaps: (1) add the same
-      transliteration fallback to the victim classifier chain — Latin
-      «Nabiram avariaga tushdi deb pul so'rashyapti» classifies as
-      `transfer_request` while its Cyrillic form «Набирам авариага тушди деб
-      пул сўрашяпти» returns null; (2) add account-takeover-aftermath stems —
-      «Telegramimga kirib olishdi akkauntim o'g'irlandi» is null even in
-      Latin. Regression rows live in
-      `src/lib/telegram/__qa__/elderly-realism-corpus.ts`
-      (`uz-cyr-relative-01`, `uz-cyr-victim-tg-01`); rerun
-      `npx vitest run src/lib/telegram/__qa__/` and read
-      `output/elderly-qa/direct-report.json` to verify.
-- [ ] **Multi-turn victim confirmations (same QA run).** Short admissions
-      after a danger reply («я уже перевела 2 миллиона», «я уже установила»,
-      «я им уже 500000 отправил») still fall to the generic verdict card;
-      they should reach the victim/SOS path. Corpus rows `ru-relative-01`,
-      `ru-apk-01`, `ru-invest-01` (turns 2-3) reproduce it.
+- [x] ~~**Uzbek Cyrillic victim-intent coverage (2026-07-16 elderly QA
+      handoff).**~~ Done: `classifyVictimIntent` now reuses the gated
+      Uzbek-Cyrillic matching variant after the original text misses; `nabira`/
+      `nevara` family forms keep identity-verification guidance, and completed
+      Telegram takeover wording gets recovery/session-closure copy. Strict
+      assertions cover `uz-cyr-relative-01` and `uz-cyr-victim-tg-01`.
+- [x] ~~**Multi-turn victim confirmations (same QA run).**~~ Done: Direct
+      stores a 20-minute enum-only victim intent snapshot and routes short
+      already-paid, already-installed, uninstall and confidence replies without
+      a cold check. No raw text, amount, recipient, number, URL or credential is
+      retained. Strict assertions cover `ru-relative-01`, `ru-apk-01` and
+      `ru-invest-01`; a concrete new artifact still starts a fresh check.
 - [x] ~~Emergency keyboard profile pass. Audit every `/panic`, `/call` and
       Guardian Angel keyboard so each scenario shows the right next actions:
       bank callback for financial cases, help/evidence/trusted-person actions

@@ -104,12 +104,15 @@ scenario_data, updated_at, last_update_id, last_update_at`.
 
 RLS: no public access. Service-role only. Used so bot state survives process restarts and multi-instance deploys.
 
-`scenario_data` is also used for Emergency Copilot and Guardian Angel context:
-`lastPanicId`, `lastPanicAt`, `lastCheck` summary metadata and `guardian`
-high-risk summary metadata may be stored. Guardian Angel stores only risk
-level, input type, reason codes and timestamp. Raw URLs, phone numbers, OTPs,
-card data, screenshots, OCR text, files and user evidence must not be stored
-there by panic, follow-up or guardian flows.
+`scenario_data` is also used for Emergency Copilot, Guardian Angel and bounded
+Direct victim follow-up context: `lastPanicId`, `lastPanicAt`, `lastCheck`
+summary metadata, `guardian` high-risk summary metadata and
+`lastVictimIntent = { kind, askedContext?, scenario?, at }` may be stored.
+Guardian Angel stores only risk level, input type, reason codes and timestamp;
+the victim snapshot stores enum-only routing metadata for at most 20 minutes.
+Raw text, amounts, recipients, URLs, phone numbers, OTPs, card data, screenshots,
+OCR text, files and user evidence must not be stored there by panic, follow-up,
+victim or guardian flows.
 State that can affect a later bot reply also carries
 `scenario_data.chatScope = { chatId, chatType }`. The Telegram router treats
 active/contextual rows without a matching chat scope as stale and resets them,

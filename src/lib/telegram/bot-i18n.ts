@@ -242,6 +242,11 @@ export const bot_dict: BotDict = {
     uz: "Bu maydon ixtiyoriy. O‘tkazib yuborish uchun «-» yuboring yoki «O‘tkazib yuborish» tugmasini bosing.",
     en: "This field is optional. To skip, send “-” or tap “Skip”.",
   },
+  report_callback_expired: {
+    ru: "Эта кнопка относится к старому шагу жалобы и больше не действует. Используйте кнопку в последнем сообщении бота или начните заново через /report.",
+    uz: "Bu tugma shikoyatning eski bosqichiga tegishli va endi ishlamaydi. Botning eng so'nggi xabaridagi tugmadan foydalaning yoki /report orqali qayta boshlang.",
+    en: "This button belongs to an older report step and no longer works. Use the button in the bot's latest message or restart with /report.",
+  },
 
   // ── /report validation messages (R6.5, R6.6) ──────────────────────────────
   report_value_too_long: {

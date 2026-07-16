@@ -5,9 +5,10 @@
 // → real formatting. Only the transport boundaries are faked: Telegram API,
 // Supabase and session storage. No network access is possible.
 //
-// This is an observational harness: every turn's reply is recorded into a
-// JSON report for human review. In-test assertions cover only universal
-// invariants (a reply exists, no network calls).
+// This is primarily an observational harness: every turn's reply is recorded
+// into a JSON report for human review. A small set of previously verified P0
+// handoff gaps also has strict semantic assertions so they cannot silently
+// return to a generic verdict.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -20,9 +21,10 @@ const h = vi.hoisted(() => ({
   runChecks: [] as Array<{ type: string; level: string; score: number; reasons: string[] }>,
   dbMutations: [] as Array<{ table: string; operation: string }>,
   fetchAttempts: 0,
-  imageMeta: { filePath: "photos/qa.png", fileSize: 4096 } as
-    | { filePath: string; fileSize: number }
-    | null,
+  imageMeta: { filePath: "photos/qa.png", fileSize: 4096 } as {
+    filePath: string;
+    fileSize: number;
+  } | null,
   imageDataUrl: null as string | null,
 }));
 
@@ -257,6 +259,43 @@ function drainTurn(turn: number, input: string): TurnRecord {
   return record;
 }
 
+function visibleTurnText(turn: TurnRecord): string {
+  return turn.messages.map((message) => message.text).join("\n");
+}
+
+function assertHandoffRegression(rowId: string, turnNo: number, turn: TurnRecord): void {
+  const visible = visibleTurnText(turn);
+  if (rowId === "uz-cyr-relative-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("shaxsini tasdiqlang");
+  }
+  if (rowId === "uz-cyr-victim-tg-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Sozlamalar → Qurilmalar");
+    expect(visible).toContain("notanish seanslarni tugating");
+  }
+  if ((rowId === "ru-relative-01" && turnNo === 2) || (rowId === "ru-invest-01" && turnNo === 3)) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("деньги уже отправлены");
+    expect(visible).toContain("заморозить перевод");
+  }
+  if (rowId === "ru-invest-01" && turnNo === 2) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Инвестиции/крипта");
+    expect(visible).not.toContain("не вижу, к какой именно проверке");
+  }
+  if (rowId === "ru-apk-01" && (turnNo === 2 || turnNo === 3)) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("авиарежим");
+    expect(visible).toContain("удалите его");
+  }
+  if (rowId === "ru-neutral-phone-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(1);
+    expect(turn.runChecks[0]).toMatchObject({ type: "phone" });
+    expect(visible).toContain("Паспорт номера");
+  }
+}
+
 describe("elderly-realism QA — direct chat", () => {
   beforeAll(() => {
     process.env.SUPABASE_URL = "https://offline-elderly-qa.invalid";
@@ -318,6 +357,7 @@ describe("elderly-realism QA — direct chat", () => {
         turnRecord.messages.length,
         `${row.id} turn ${turnNo + 1} produced no reply`,
       ).toBeGreaterThan(0);
+      assertHandoffRegression(row.id, turnNo + 1, turnRecord);
     }
 
     report.push(record);
