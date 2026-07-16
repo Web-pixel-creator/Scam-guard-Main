@@ -2,6 +2,26 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-16 - Elderly-realism QA corpus and Uzbek Cyrillic coverage
+
+- Added `src/lib/telegram/__qa__/`: a 100-case observational corpus of
+  realistic elderly RU/UZ messages (typos, Uzbek Cyrillic, Latin with Russian
+  loanwords, code-switching, STT-style transcripts, fragments, multi-turn,
+  Inline) driven through the real dispatch/inline pipeline with faked
+  Telegram/Supabase. Reports land in `output/elderly-qa/`.
+- Added `src/lib/risk/uz-cyrillic-translit.ts`: `evaluateText` now also
+  evaluates an Uzbek Cyrillic→Latin matching variant so Cyrillic-script Uzbek
+  reaches the existing Latin rule patterns. Closed Latin morphology gaps:
+  so'rashyapti ask forms, kartangizni possessives, to'lashim kerak, orqa.
+- Gratitude with blessings and who-are-you/is-it-free openers now get warm
+  identity/acknowledgement replies instead of the generic verdict card
+  (`check-followup.ts`).
+- Known remaining gaps (victim-intent layer): Uzbek Cyrillic victim phrases
+  need the same translit fallback («Набирам авариага тушди…» classifies as
+  `transfer_request` in Latin but null in Cyrillic), and account-takeover
+  aftermath needs new stems («Telegramimga kirib olishdi akkauntim
+  o'g'irlandi» is null even in Latin).
+
 ## 2026-07-15 - Third Desktop Inline visible follow-up remediation deployed
 
 - Archived seven additional owner-supplied Telegram Desktop screenshots as
