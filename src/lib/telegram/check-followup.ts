@@ -45,7 +45,33 @@ const CONFIRMATION_REQUEST_RE =
 const ACKNOWLEDGEMENT_RE =
   /^(?:(?:я\s+)?(?:понял[а]?|понятно|сделаю|сделал[а]?|готов[ао]?|готово)|хорошо(?:[,\s]+(?:сделаю|понял[а]?|спасибо|благодарю))?|ок(?:ей)?|спасибо(?:\s+за\s+помощь)?(?:[,\s]+(?:понял[а]?|понятно))?|благодарю|рахмат|rahmat(?:[,\s]+(?:tushundim|tushunarli))?|yordam(?:ingiz)?\s+uchun\s+rahmat|tushunarli(?:[,\s]+rahmat)?|yaxshi|qilaman|qildim|ok|okay(?:[,\s]+(?:thank\s+you|thanks?))?|thanks?(?:\s+for\s+(?:(?:your|the)\s+)?help)?(?:[,\s]+(?:got\s+it|understood))?|thank\s+you)[\s.!?]*$/i;
 const IDENTITY_RE =
-  /^(?:(?:а\s+)?(?:вы|ты)\s+кто|кто\s+(?:вы|ты)|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz|sen\s+kimsan|nima\s+qila\s+olasan)[\s?!.,]*$/i;
+  /^(?:(?:а\s+)?(?:вы|ты)\s+кто(?:\s+так(?:ой|ая|ие))?|кто\s+(?:вы|ты)(?:\s+так(?:ой|ая|ие))?|что\s+ты\s+умеешь|что\s+вы\s+умеете|как\s+ты\s+работаешь|who\s+are\s+you|what\s+can\s+you\s+do|how\s+do\s+you\s+work|siz\s+kimsiz(?:\s+botmisiz(?:\s+odammisiz)?)?|sen\s+kimsan|nima\s+qila\s+olasan|(?:это\s+)?(?:бесплатно|платно)(?:\s+ли)?|сколько\s+(?:это\s+)?стоит|is\s+(?:it|this)\s+free|how\s+much\s+does\s+(?:it|this)\s+cost|(?:bu\s+)?(?:bepulmi|pullikmi)|qancha\s+turadi)(?:[\s?!.,]+(?:это\s+)?(?:бесплатно|платно)(?:\s+ли)?)?[\s?!.,]*$/i;
+// Elderly users wrap plain gratitude in blessings and endearments («спасибо
+// дорогой, дай бог здоровья», «рахмат катта рахмат»). The anchored
+// ACKNOWLEDGEMENT_RE cannot enumerate those combinations, so a message that
+// consists only of gratitude/blessing vocabulary with at least one core
+// thank-you word counts as an acknowledgement — a verdict card here reads as
+// cold and confusing.
+const GRATITUDE_CORE_RE =
+  /^(?:спасибо|спасибочки|благодарю|благодарствую|рахмат|раҳмат|rahmat|raxmat|thanks?|thank)$/iu;
+const GRATITUDE_EXTRA_RE =
+  /^(?:большое|огромное|вам|тебе|вас|вы|очень|дорог(?:ой|ая|ие)|милы[йе]|милая|сынок|дочка|брат|ака|опа|дай|бог|храни|здоровья|счастья|удачи|катта|katta|sizga|сизга|яхши|yaxshi|god|bless|you|so|much|a|lot|dear|very)$/iu;
+
+function isPureGratitudePhrase(text: string): boolean {
+  const tokens = text
+    .normalize("NFKC")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}'’]+/u)
+    .filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 8) return false;
+  let coreCount = 0;
+  for (const token of tokens) {
+    if (GRATITUDE_CORE_RE.test(token)) coreCount += 1;
+    else if (!GRATITUDE_EXTRA_RE.test(token)) return false;
+  }
+  return coreCount > 0;
+}
+
 const EXTENDED_CONFIDENCE_RE =
   /(?:ты|вы)\s+(?:действительно\s+|реально\s+|точно\s+)?(?:в\s+этом\s+)?уверен[аы]?|(?:are\s+you|you(?:'re|\s+are))\s+(?:really\s+|absolutely\s+)?sure(?:\s+about\s+(?:it|that|this))?|siz\s+(?:bunga\s+)?(?:aniq\s+)?ishonasizmi/i;
 const METHODOLOGY_RE =
@@ -462,6 +488,10 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   )
     return "confidence";
   if (CONFIRMATION_REQUEST_RE.test(trimmed)) return "confirmation_request";
+  // Pure gratitude without a recent check still deserves a warm reply, not a
+  // "not enough data" verdict card. Generic acks ("ок", "понял") stay out:
+  // without context they are too ambiguous to answer as an acknowledgement.
+  if (isPureGratitudePhrase(trimmed)) return "acknowledgement";
   return null;
 }
 
@@ -471,7 +501,10 @@ export function classifyAcknowledgementFollowUp(text: string): "acknowledgement"
   const trimmed = stripConversationWrappers(original);
   if (!trimmed) return null;
   if (classifyGoldenFollowUpPhrase(trimmed) === "acknowledgement") return "acknowledgement";
-  return ACKNOWLEDGEMENT_RE.test(trimmed) ? "acknowledgement" : null;
+  if (ACKNOWLEDGEMENT_RE.test(trimmed) || isPureGratitudePhrase(trimmed)) {
+    return "acknowledgement";
+  }
+  return null;
 }
 
 function levelText(level: RiskLevel, lang: Lang): string {
@@ -1137,12 +1170,12 @@ function confirmationRequestText(snapshot: LastCheckSnapshot | null, lang: Lang)
 
 function identityText(lang: Lang): string {
   if (lang === "uz") {
-    return "Men Ishonch Guardman. Men chatlaringizni o'zim o'qimayman — faqat shu yerga yuborgan narsangizni tekshiraman.\n\nRaqam, havola, username, skrinshot, ovozli xabar yoki shubhali matnni yuboring. Men xavf darajasi va bitta xavfsiz qadam bilan javob beraman.\n\nAgar hozir qo'ng'iroq qilishayotgan bo'lsa yoki kod yuborgan/pul o'tkazgan bo'lsangiz, /panic ni bosing.";
+    return "Men Ishonch Guardman — firibgarlardan himoya qiluvchi bepul yordamchi. Men chatlaringizni o'zim o'qimayman — faqat shu yerga yuborgan narsangizni tekshiraman.\n\nRaqam, havola, username, skrinshot, ovozli xabar yoki shubhali matnni yuboring. Men xavf darajasi va bitta xavfsiz qadam bilan javob beraman.\n\nAgar hozir qo'ng'iroq qilishayotgan bo'lsa yoki kod yuborgan/pul o'tkazgan bo'lsangiz, /panic ni bosing.";
   }
   if (lang === "en") {
-    return "I am Ishonch Guard. I do not read your chats on my own — I only check what you send here.\n\nSend a number, link, username, screenshot, voice message, or suspicious text. I will reply with a risk level and one safe next step.\n\nIf someone is calling right now, or you already sent a code or money, use /panic.";
+    return "I am Ishonch Guard, a free anti-scam assistant. I do not read your chats on my own — I only check what you send here.\n\nSend a number, link, username, screenshot, voice message, or suspicious text. I will reply with a risk level and one safe next step.\n\nIf someone is calling right now, or you already sent a code or money, use /panic.";
   }
-  return "Я Ishonch Guard. Я не читаю ваши чаты сам — проверяю только то, что вы присылаете сюда.\n\nПришлите номер, ссылку, username, скриншот, голосовое или текст подозрительного сообщения. Я отвечу уровнем риска и одним безопасным шагом.\n\nЕсли вам звонят прямо сейчас или вы уже сообщили код/перевели деньги — нажмите /panic.";
+  return "Я Ishonch Guard — бесплатный помощник против мошенников. Я не читаю ваши чаты сам — проверяю только то, что вы присылаете сюда.\n\nПришлите номер, ссылку, username, скриншот, голосовое или текст подозрительного сообщения. Я отвечу уровнем риска и одним безопасным шагом.\n\nЕсли вам звонят прямо сейчас или вы уже сообщили код/перевели деньги — нажмите /panic.";
 }
 
 export function buildLastCheckFollowUpText(
