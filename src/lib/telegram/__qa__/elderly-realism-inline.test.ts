@@ -8,7 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   answers: [] as Array<{
@@ -141,6 +141,67 @@ function buttonLabels(article: InlineQueryResultArticle): string[] {
   return labels;
 }
 
+function assertInlineRegression(rowId: string, article: InlineQueryResultArticle): void {
+  const message = markdownV2ToPlainText(article.input_message_content.message_text);
+  const title = article.title;
+
+  if (rowId === "inl-ru-code-01") {
+    expect(title).toContain("Код: никому не называйте");
+  }
+  if (rowId === "inl-ru-safe-account-01") {
+    expect(title).toBe("«Безопасный счёт»: не переводите");
+  }
+  if (rowId === "inl-uz-lat-safe-account-01") {
+    expect(title).toBe("«Xavfsiz hisob»: pul o'tkazmang");
+    expect(title).not.toContain("Yaqin odam");
+  }
+  if (rowId === "inl-ru-apk-01") {
+    expect(title).toBe("Файл/вирус: не открывайте");
+    expect(title).not.toContain("Карта");
+  }
+  if (rowId === "inl-uz-lat-job-01") {
+    expect(title).toBe("Ish: oldindan to'lov qilmang");
+    expect(message).not.toContain("Kontekst kerak");
+  }
+  if (rowId === "inl-invest-bot-01") {
+    expect(title).toBe("Инвестиции/крипта: осторожно");
+  }
+  if (rowId === "inl-ru-victim-01") {
+    expect(title).toContain("Код уже отправлен");
+    expect(message).toContain("Заблокируйте карту/доступ");
+  }
+  if (rowId === "inl-uz-lat-victim-01") {
+    expect(title).toContain("Kod yuborilgan");
+    expect(message).toContain("Bank orqali kartani/kirishni bloklang");
+  }
+  if (rowId === "inl-secret-otp-01") {
+    expect(title).toContain("Код скрыт");
+    expect(message).not.toContain("482913");
+  }
+  if (rowId === "inl-secret-card-01") {
+    expect(title).toContain("Карта");
+    expect(message).not.toContain("8600 1234 5678 9012");
+  }
+  if (rowId === "inl-mismatch-uz-on-ru-01") {
+    expect(title).toContain("Kod: hech kimga aytmang");
+  }
+  if (rowId === "inl-mismatch-ru-on-uz-01") {
+    expect(title).toContain("Код: никому не называйте");
+  }
+  if (rowId === "inl-mismatch-en-01") {
+    expect(title).toContain("Code: do not share it");
+  }
+  if (rowId === "inl-typo-url-01") {
+    expect(title).toContain("Высокий риск");
+    expect(message).toContain("Подражает известному бренду");
+  }
+  if (rowId === "inl-multiline-01") {
+    expect(title).toContain("Высокий риск");
+    expect(message).toContain("ваша карта заблокирована");
+    expect(message).toContain("подтвердите данные");
+  }
+}
+
 describe("elderly-realism QA — inline", () => {
   let sequence = 0;
 
@@ -157,6 +218,11 @@ describe("elderly-realism QA — inline", () => {
   beforeEach(() => {
     h.answers.length = 0;
     h.dbMutations.length = 0;
+    h.fetchAttempts = 0;
+  });
+
+  afterEach(() => {
+    expect(h.fetchAttempts, "inline QA must not attempt network access").toBe(0);
   });
 
   afterAll(() => {
@@ -190,6 +256,7 @@ describe("elderly-realism QA — inline", () => {
     const answer = h.answers[0];
     expect(answer.results, row.id).toHaveLength(1);
     const article = answer.results[0] as InlineQueryResultArticle;
+    assertInlineRegression(row.id, article);
 
     report.push({
       id: row.id,

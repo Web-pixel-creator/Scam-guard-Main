@@ -1899,10 +1899,10 @@ function compactInlineDescription(value: string): string {
 
 function hasSentCodeIntent(normalized: string): boolean {
   return (
-    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L})).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L})).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
       normalized,
     ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L}))/iu.test(
+    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L}))/iu.test(
       normalized,
     ) ||
     /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|pin|parol).{0,60}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
@@ -2435,6 +2435,9 @@ function hasJobOfferInlineIntent(normalized: string): boolean {
     /(?:ish|vakansiya).{0,160}(?:so['’]?ra|kerak|majburiy).{0,80}(?:pul|to['’]?lov|o['’]?qish|kurs|forma|tekshir)/iu.test(
       normalized,
     ) ||
+    /(?:ish(?:ga)?|vakansiya).{0,160}(?:avval|oldindan).{0,100}(?:komiss|to['’]?lov|pul).{0,60}(?:to['’]?la|yubor|o['’]?tkaz)/iu.test(
+      normalized,
+    ) ||
     /(?:job|work|vacancy|employment).{0,160}(?:ask|require|must|mandatory).{0,80}(?:pay|fee|training|course|uniform|check)/iu.test(
       normalized,
     )
@@ -2443,6 +2446,9 @@ function hasJobOfferInlineIntent(normalized: string): boolean {
 
 function hasInvestmentOfferInlineIntent(normalized: string): boolean {
   return (
+    /(?:инвест|крипт|invest|crypto|kripto|ton|usdt).{0,180}\d+\s*(?:%|процент|foiz|percent).{0,40}(?:в\s+день|ежеднев|kuniga|per\s+day|daily)/iu.test(
+      normalized,
+    ) ||
     /(?:инвест|крипт|ton|usdt|wallet|бирж|трейд|доход|прибыл|процент|x2|икс).{0,160}(?:гарант|влож|депозит|пополни|перевед|платформ|сигнал|доход|быстр)/iu.test(
       normalized,
     ) ||
@@ -2450,6 +2456,17 @@ function hasInvestmentOfferInlineIntent(normalized: string): boolean {
       normalized,
     ) ||
     /(?:invest|crypto|ton|usdt|wallet|exchange|trading|profit|return).{0,160}(?:guarantee|guaranteed|deposit|platform|signal|fast|percent|income)/iu.test(
+      normalized,
+    )
+  );
+}
+
+function hasSafeAccountTransferInlineIntent(normalized: string): boolean {
+  return (
+    /(?:без[оа]пасн.{0,24}сч[её]т|bez[oa]pasn.{0,24}(?:schyot|schot|schet|hisob)|xavfsiz.{0,24}hisob|safe.{0,12}account)/iu.test(
+      normalized,
+    ) &&
+    /(?:перев|деньг|сч[её]т|pul|o['’]?tkaz|schyot|schot|schet|hisob|transfer|money|account)/iu.test(
       normalized,
     )
   );
@@ -2521,6 +2538,12 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
     return "gov_service";
   }
 
+  // Keep this before the broad relative-emergency matcher. Transliterated
+  // o‘tkaz wording can otherwise contain short relative-like fragments.
+  if (hasSafeAccountTransferInlineIntent(normalized)) {
+    return "safe_account_transfer";
+  }
+
   if (
     /(?:мама|папа|сын|дочь|брат|сестр|родствен|близк).{0,150}(?:авар|больниц|полици|сроч|деньг|перевод)|(?:(?<!\p{L})(?:ona|ota|qiz|aka|uka|opa)(?!\p{L})|o['’]?g['’]?(?:il|l)|singil|qarindosh|yaqin).{0,150}(?:avariya|kasalxona|politsiya|zudlik|pul|o['’]?tkaz)|(?:mom|dad|son|daughter|brother|sister|relative|family).{0,150}(?:accident|hospital|police|urgent|money|transfer)/iu.test(
       normalized,
@@ -2590,13 +2613,6 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
     )
   ) {
     return "blackmail_threat";
-  }
-
-  if (
-    /(?:безопасн.{0,24}сч[её]т|xavfsiz.{0,24}hisob|safe.{0,12}account)/iu.test(normalized) &&
-    /(?:перев|деньг|сч[её]т|pul|o['’]?tkaz|hisob|transfer|money|account)/iu.test(normalized)
-  ) {
-    return "safe_account_transfer";
   }
 
   if (
@@ -2724,6 +2740,17 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "safe_account_transfer";
   }
 
+  // A named earning channel is the more specific topic even when its copy
+  // promises "tez foyda". Reserve investment for offers that are not already
+  // framed as a channel/group/chat.
+  if (hasEarningChannelInlineIntent(normalized)) {
+    return "earning_channel";
+  }
+
+  if (hasInvestmentOfferInlineIntent(normalized)) {
+    return "investment_offer";
+  }
+
   // Preserve the concrete bank-contact task even when a later line mentions an
   // SMS or phone number. Otherwise generic code/phone classifiers can swallow
   // the follow-up and the user never sees the warning about chat-provided numbers.
@@ -2818,11 +2845,15 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return specificIntent;
   }
 
+  const newsIntent = classifyNewsHumanInlineIntent(normalized);
+  if (hasAppRequestIntent(normalized)) {
+    return newsIntent ?? "app_request";
+  }
+
   if (hasCardRequestIntent(normalized)) {
     return "card_request";
   }
 
-  const newsIntent = classifyNewsHumanInlineIntent(normalized);
   if (newsIntent) {
     return newsIntent;
   }
@@ -2963,12 +2994,12 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "code_request";
   }
 
-  if (hasCardRequestIntent(normalized)) {
-    return "card_request";
-  }
-
   if (hasAppRequestIntent(normalized)) {
     return "app_request";
+  }
+
+  if (hasCardRequestIntent(normalized)) {
+    return "card_request";
   }
 
   if (hasPersonalDataRequestIntent(normalized)) {
@@ -3167,12 +3198,12 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "confirm_request";
   }
 
-  if (hasCardRequestIntent(normalized)) {
-    return "card_request";
-  }
-
   if (hasAppRequestIntent(normalized)) {
     return "app_request";
+  }
+
+  if (hasCardRequestIntent(normalized)) {
+    return "card_request";
   }
 
   if (
@@ -3412,13 +3443,13 @@ function resultArticle(
   lang: Lang,
   originalQuery: string,
 ): InlineQueryResultArticle {
+  const humanIntent = classifyHumanInlineIntentForResult(result, originalQuery);
   const passport = passportArticle(result, lang);
-  if (passport) return passport;
+  if (passport && !isHighPrioritySharedInlineIntent(humanIntent)) return passport;
 
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   const preview = PREVIEW_COPY[lang];
-  const humanIntent = classifyHumanInlineIntentForResult(result, originalQuery);
   if (result.level === "unknown") {
     if (humanIntent) {
       const intentCopy = followUpAwareHumanInlineCopy(originalQuery, lang, humanIntent);

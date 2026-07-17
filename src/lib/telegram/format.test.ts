@@ -498,6 +498,23 @@ describe("formatCheckResult — calm unknown contexts", () => {
     );
   });
 
+  it("does not ask for a neutral URL again after its address was already checked", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        type: "url",
+        display: "youtube.com/…",
+        level: "unknown",
+        reasons: [],
+        explanation: null,
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(bt("brief_unknown_url", "ru")));
+    expect(text).toContain(escapeMarkdownV2(bt("prompt_more_context_url", "ru")));
+    expect(text).not.toContain(escapeMarkdownV2(bt("prompt_more_context", "ru")));
+  });
+
   it("adds quick requested-action buttons for inconclusive phone checks", () => {
     const { keyboard } = formatCheckResult(
       baseResult({

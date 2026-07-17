@@ -17,7 +17,7 @@ const SEED_PHRASE_ONLY_RE = /^seed\s+phrase\s*:?\s+(?:[a-z]+\s+){2,}[a-z]+[.!?]?
 const SHORT_SECRET_ONLY_RE =
   /^(?:(?:sms|otp|pin)(?:[-\s]*(?:code|kod))?|cvv|password|parol)(?:\s*[:=]?\s*[a-z0-9_-]+)?[.!?]?$/iu;
 const SHORT_UZBEK_QUERY_RE =
-  /^(?:(?:rahmat|raxmat|рахмат|раҳмат)|(?:(?:sms|otp|pin|kod|havola|link|pul|parol)\s+)?(?:beraymi|aytaymi|yuboraymi|ochaymi|to['’]?laymi|ishonaymi|qilaymi|kiraymi))[?!.]*$/iu;
+  /^(?:(?:(?:katta|катта)\s+)?(?:rahmat|raxmat|рахмат|раҳмат)(?:\s+(?:(?:katta|катта)\s+)?(?:rahmat|raxmat|рахмат|раҳмат))*|(?:(?:sms|otp|pin|kod|havola|link|pul|parol)\s+)?(?:beraymi|aytaymi|yuboraymi|ochaymi|to['’]?laymi|ishonaymi|qilaymi|kiraymi))[?!.]*$/iu;
 const SHORT_ENGLISH_QUERY_RE =
   /^(?:tell|share|send|open|pay|call|trust|verify)\s+(?:the\s+)?(?:otp|sms(?:\s+code)?|code|link|him|her|them|it)[?!.]*$/iu;
 
@@ -29,13 +29,17 @@ const UZ_SIGNALS = new Set([
   "aldov",
   "almashtirish",
   "ayting",
+  "aytmadim",
   "aytishni",
   "aytishimni",
+  "avval",
   "bajarishni",
   "bekor",
   "berib",
   "bering",
+  "bezopasniy",
   "bilan",
+  "bankdan",
   "boj",
   "bosim",
   "chaqiryapti",
@@ -43,6 +47,7 @@ const UZ_SIGNALS = new Set([
   "daromad",
   "davlat",
   "degan",
+  "deb",
   "depozit",
   "ekranimni",
   "firib",
@@ -54,6 +59,7 @@ const UZ_SIGNALS = new Set([
   "himoyasini",
   "hisobga",
   "ish",
+  "ishga",
   "ishonchli",
   "jamg'arma",
   "jo'nating",
@@ -94,6 +100,7 @@ const UZ_SIGNALS = new Set([
   "odam",
   "odamga",
   "oldindan",
+  "olamiz",
   "operatsiyasini",
   "orqali",
   "ovoz",
@@ -105,9 +112,11 @@ const UZ_SIGNALS = new Set([
   "pulni",
   "qayta",
   "qilish",
+  "qilishdi",
   "qilishni",
   "qilishimni",
   "qilmaslikni",
+  "qildimmi",
   "qiling",
   "qilib",
   "qilyapti",
@@ -120,6 +129,7 @@ const UZ_SIGNALS = new Set([
   "shaxsiy",
   "shaxsni",
   "shoshirib",
+  "schyotga",
   "shubhali",
   "skanerlashni",
   "soliq",
@@ -138,6 +148,8 @@ const UZ_SIGNALS = new Set([
   "to'lashga",
   "to'lashni",
   "to'lov",
+  "to'g'ri",
+  "to'lang",
   "uchradi",
   "uchun",
   "ular",
@@ -158,6 +170,9 @@ const UZ_SIGNALS = new Set([
   "yuborishni",
   "yuborilgan",
   "yuboryapman",
+  "deyishyapti",
+  "kuniga",
+  "o'tkazing",
   "zudlik",
 ]);
 

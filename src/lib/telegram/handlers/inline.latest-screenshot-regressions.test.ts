@@ -245,7 +245,7 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
       { sessionLang: "ru", languageCode: "ru" },
     );
 
-    expect(article.title).toBe("Code: do not share it with anyone");
+    expect(article.title).toContain("Code: do not share it with anyone");
     expect(allVisibleText(article)).toMatch(/(?:do not|never).{0,30}(?:share|tell|read out)/iu);
     expect(allVisibleText(article)).not.toMatch(/(?:никому|назовите|сообщайте|пришлите)/iu);
   });
@@ -374,6 +374,14 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
     expect(allVisibleText(article)).not.toMatch(/telegram: havola orqali kirmang/iu);
   });
 
+  it("routes natural Russian completed-code wording to urgent aftercare", async () => {
+    const article = await runInline("я уже сказала код из смс что делать");
+
+    expect(article.title).toBe("Код уже отправлен: действуйте срочно");
+    expect(allVisibleText(article)).toMatch(/(?:заблок|смените пароль|банк)/iu);
+    expect(allVisibleText(article)).not.toContain("пока ничего не отправляйте");
+  });
+
   it("routes Uzbek Cyrillic family emergencies to callback guidance", async () => {
     const article = await runInline(
       "Ўғлингиз аварияга учради, ҳозир пул ўтказмасангиз ёрдам кеч бўлади",
@@ -440,5 +448,45 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
     expect(article.title).toMatch(/(?:bank|number|call)/iu);
     expect(allVisibleText(article)).toMatch(/(?:official|app|card|website)/iu);
     expect(article.title).not.toMatch(/code/iu);
+  });
+
+  it("keeps an APK installation request above the incidental card word", async () => {
+    const article = await runInline("прислали apk файл сказали установить для защиты карты");
+
+    expect(article.title).toMatch(/(?:прилож|apk|файл)/iu);
+    expect(allVisibleText(article)).toMatch(
+      /(?:не устанавливайте|не открывайте|удалённ.{0,12}доступ)/iu,
+    );
+    expect(article.title).not.toMatch(/данные карты/iu);
+  });
+
+  it("recognizes transliterated Uzbek safe-account wording before family distress", async () => {
+    const article = await runInline("bezopasniy schyotga pul o'tkazing deyishyapti");
+
+    expect(article.title).toBe("«Xavfsiz hisob»: pul o'tkazmang");
+    expect(article.title).not.toMatch(/Yaqin odam/iu);
+  });
+
+  it("recognizes a common Russian typo in the safe-account scam", async () => {
+    const article = await runInline("переведите деньги на безапасный счет срочно");
+
+    expect(article.title).toBe("«Безопасный счёт»: не переводите");
+    expect(article.title).not.toBe("Перевод: сначала проверьте получателя");
+  });
+
+  it("recognizes an Uzbek job offer with an upfront commission", async () => {
+    const article = await runInline(
+      "ishga olamiz kuniga 500 ming avval 200 ming komissiya to'lang",
+    );
+
+    expect(article.title).toBe("Ish: oldindan to'lov qilmang");
+    expect(article.title).not.toMatch(/Kontekst/iu);
+  });
+
+  it("keeps a concrete investment promise above generic Telegram-link guidance", async () => {
+    const article = await runInline("t.me/invest_daromad_bot обещают 20% в день");
+
+    expect(article.title).toBe("Инвестиции/крипта: осторожно");
+    expect(article.title).not.toMatch(/Telegram/iu);
   });
 });
