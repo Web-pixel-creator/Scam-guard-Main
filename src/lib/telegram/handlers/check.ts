@@ -148,7 +148,7 @@ const EMBEDDED_VERIFIED_SHORT_CODE_RE = /(?<!\d)(?:1344|1340|1296|1290|1257)(?!\
 const EMBEDDED_CHECK_URL_RE =
   /\bhttps?:\/\/[^\s<>()]+|\b(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/giu;
 const PHONE_IDENTITY_QUESTION_RE =
-  /(?:(?:это|этот|this|bu|shu).{0,35}(?:номер|телефон|number|phone|raqam|рақам).{0,45}(?:банк|bank|официальн|rasmiy)|(?:банк|bank).{0,45}(?:номер|телефон|number|phone|raqam|рақам)|(?:какому|какой|which|qaysi|қайси).{0,35}(?:банк|bank).{0,35}(?:принадлеж|номер|raqam|рақам|ники))/iu;
+  /(?:(?:это|этот|this|bu|shu).{0,35}(?:номер|телефон|number|phone|raqam|рақам).{0,45}(?:банк|bank|официальн|rasmiy)|(?:банк|bank).{0,45}(?:номер|телефон|number|phone|raqam|рақам)|(?:какому|какой|which|qaysi|қайси).{0,35}(?:банк|bank).{0,35}(?:принадлеж|номер|raqam|рақам|ники)|(?:ишонч|ishonch)\s+(?:телефон(?:и)?|raqam(?:i)?|рақам(?:и)?).{0,30}(?:ми|mi|\?))/iu;
 
 function contractReplyText(
   intentId: CanonicalFollowUpIntentId | CanonicalVictimIntentId,
@@ -1198,9 +1198,13 @@ export async function handleCheck(
     return;
   }
 
+  const questionedPhone = extractQuestionedPhoneNumber(trimmed);
+
   const victimGuidanceFollowUp = source
     ? null
-    : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
+    : questionedPhone
+      ? null
+      : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
   if (victimGuidanceFollowUp !== null) {
     await sendMessage({
       chatId: ctx.chatId,
@@ -1213,7 +1217,10 @@ export async function handleCheck(
     return;
   }
 
-  const directVictimIntent = source ? null : classifyVictimIntent(trimmed);
+  // A concrete number question must reach the verified-contact checker. The
+  // generic bank-contact intent is useful when no number was supplied, but it
+  // must not swallow short-code questions such as «Ишонч телефони 1344ми».
+  const directVictimIntent = source || questionedPhone ? null : classifyVictimIntent(trimmed);
   const contextualVictimIntent =
     source || directVictimIntent
       ? null
@@ -1224,6 +1231,8 @@ export async function handleCheck(
     return;
   }
 
+  // Completed-incident rescue still outranks a number lookup: if the same
+  // message says money/code was already sent, route to urgent aftercare.
   const textPanicId = classifyTextPanicIntent(trimmed, source);
   if (textPanicId !== null) {
     await sendPanicRoute(ctx, textPanicId, trimmed);
@@ -1256,7 +1265,10 @@ export async function handleCheck(
   }
 
   const orphanReplyFollowUp =
-    ctx.replyToOwnBotMessage && !ctx.replyCheckSnapshot && ctx.session.scenarioData.lastCheck
+    !questionedPhone &&
+    ctx.replyToOwnBotMessage &&
+    !ctx.replyCheckSnapshot &&
+    ctx.session.scenarioData.lastCheck
       ? classifyOrphanCheckFollowUp(trimmed)
       : null;
   if (orphanReplyFollowUp !== null) {
@@ -1276,7 +1288,9 @@ export async function handleCheck(
       ? undefined
       : ctx.session.scenarioData;
   const guardianFollowUp = guardianScenarioData
-    ? classifyGuardianAngelFollowUp(trimmed, guardianScenarioData)
+    ? questionedPhone
+      ? null
+      : classifyGuardianAngelFollowUp(trimmed, guardianScenarioData)
     : null;
   const guardianSnapshot = guardianScenarioData?.guardian;
   if (guardianFollowUp !== null && guardianSnapshot) {
@@ -1306,8 +1320,10 @@ export async function handleCheck(
   const lastCheckScenarioData = ctx.replyCheckSnapshot
     ? { lastCheck: ctx.replyCheckSnapshot }
     : ctx.session.scenarioData;
-  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, lastCheckScenarioData);
-  const lastCheckSnapshot = lastCheckScenarioData.lastCheck;
+  const lastCheckFollowUp = questionedPhone
+    ? null
+    : classifyLastCheckFollowUp(trimmed, lastCheckScenarioData);
+  const lastCheckSnapshot = questionedPhone ? undefined : lastCheckScenarioData.lastCheck;
   if (lastCheckFollowUp !== null && lastCheckSnapshot) {
     await sendMessage({
       chatId: ctx.chatId,
@@ -1319,7 +1335,9 @@ export async function handleCheck(
     return;
   }
 
-  const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
+  const emergencyFollowUp = questionedPhone
+    ? null
+    : classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
     const liveCallContext =
       emergencyFollowUp.panicId === 6
@@ -1345,6 +1363,7 @@ export async function handleCheck(
 
   const emergencyAcknowledgement = classifyAcknowledgementFollowUp(trimmed);
   if (
+    !questionedPhone &&
     emergencyAcknowledgement !== null &&
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {})
   ) {
@@ -1358,7 +1377,7 @@ export async function handleCheck(
     return;
   }
 
-  const orphanFollowUp = classifyOrphanCheckFollowUp(trimmed);
+  const orphanFollowUp = questionedPhone ? null : classifyOrphanCheckFollowUp(trimmed);
   if (orphanFollowUp !== null) {
     await sendMessage({
       chatId: ctx.chatId,
@@ -1390,11 +1409,11 @@ export async function handleCheck(
           hasEvidence: publicPostEvidence !== null,
         });
 
-        const questionedPhone = publicPostEvidence ? null : extractQuestionedPhoneNumber(trimmed);
-        const checkInput = publicPostEvidence?.checkInput ?? questionedPhone ?? trimmed;
+        const pipelineQuestionedPhone = publicPostEvidence ? null : questionedPhone;
+        const checkInput = publicPostEvidence?.checkInput ?? pipelineQuestionedPhone ?? trimmed;
         const checkType = publicPostEvidence
           ? "text"
-          : questionedPhone && detectInputType(questionedPhone) === "phone"
+          : pipelineQuestionedPhone && detectInputType(pipelineQuestionedPhone) === "phone"
             ? "phone"
             : undefined;
         const cacheKey = buildCheckResultCacheKey({

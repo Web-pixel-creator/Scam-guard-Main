@@ -20,7 +20,7 @@ const UZ_SPECIFIC_LETTER_RE = /[ўқғҳ]/iu;
  * boundaries keep Russian words such as «дебет» from matching.
  */
 const UZ_CYRILLIC_MORPHOLOGY_RE =
-  /(?:япти|дейиш|моқда|тугма|кодни(?![\p{L}])|(?<![\p{L}])деб(?![\p{L}]))/iu;
+  /(?:япти|дейиш|моқда|тугма|кодни(?![\p{L}])|(?<![\p{L}])деб(?![\p{L}])|(?<![\p{L}])ишонч(?![\p{L}]))/iu;
 
 const CYRILLIC_RE = /[Ѐ-ӿ]/u;
 

@@ -3,7 +3,7 @@ import type { LastCheckSnapshot, Session } from "@/lib/telegram/session.server";
 
 const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
-  runCheckCalls: [] as Array<{ input: string; type?: string }>,
+  runCheckCalls: [] as Array<{ input: string; type?: string; lang?: string }>,
   saveSessionCalls: [] as Array<{ userId: number; patch: unknown }>,
   saveSessionResult: { ok: true } as { ok: true } | { ok: false; reason: "storage" | "stale" },
   familyNotifyCalls: [] as Array<{
@@ -17,7 +17,7 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
-  runCheck: (params: { input: string; type?: string }) => {
+  runCheck: (params: { input: string; type?: string; lang?: string }) => {
     hoisted.runCheckCalls.push(params);
     return Promise.resolve({
       type: params.type ?? "url",
@@ -515,6 +515,18 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.runCheckCalls).toHaveLength(1);
     expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "1344" });
     expect(hoisted.runCheckCalls[0].type).toBeUndefined();
+    expect(hoisted.sentMessages.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("extracts a verified short code and auto-detects Uzbek from a short trust-phone question", async () => {
+    await handleCheck("Ишонч телефони 1344ми", {
+      chatId: 100,
+      userId: 43,
+      session: sessionWith(),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "1344", lang: "uz" });
     expect(hoisted.sentMessages.length).toBeGreaterThanOrEqual(1);
   });
 
