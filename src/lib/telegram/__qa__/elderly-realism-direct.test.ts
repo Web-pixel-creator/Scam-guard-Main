@@ -12,7 +12,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Session } from "@/lib/telegram/session.server";
 
@@ -265,6 +265,72 @@ function visibleTurnText(turn: TurnRecord): string {
 
 function assertHandoffRegression(rowId: string, turnNo: number, turn: TurnRecord): void {
   const visible = visibleTurnText(turn);
+  if (rowId === "ru-bank-code-01" && turnNo === 3) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Я ничего не сообщаю и сам перезвоню");
+  }
+  if (rowId === "voice-bank-code-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Данные карты");
+    expect(visible).toContain("SMS\\-коды");
+    expect(visible).not.toContain("Я уже отправил SMS-код");
+  }
+  if ((rowId === "ru-card-data-01" || rowId === "uz-cyr-card-data-01") && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toMatch(/(?:Данные карты|Karta ma'lumotlari)/u);
+    expect(visible).toContain("CVV");
+  }
+  if (rowId === "voice-relative-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("наличные курьеру");
+    expect(visible).toContain("сохранённому номеру");
+    expect(visible).toContain("кодовое слово");
+  }
+  if (rowId === "ru-meta-scam-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Я — Ishonch Guard");
+    expect(visible).not.toContain("Да, я Ishonch Guard");
+  }
+  if (rowId === "uz-cyr-neutral-1344-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(1);
+    expect(visible).toContain("NBU");
+    expect(visible).toContain("1344");
+  }
+  if (rowId === "ru-pension-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("перерасчёт пенсии");
+    expect(visible).toContain("субсидия");
+  }
+  if ((rowId === "uz-cyr-subsidy-01" || rowId === "uz-cyr-pension-01") && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Pensiya jamg'armasi");
+    expect(visible).toContain("subsidiya");
+  }
+  if (rowId === "uz-lat-job-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("ishga kirish");
+    expect(visible).toContain("Kompaniya");
+    expect(visible).not.toContain("viza");
+  }
+  if (rowId === "en-plain-code-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Do not tell anyone the code");
+    expect(visible).toContain("official channel");
+  }
+  if (rowId === "ru-neutral-grandson-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(1);
+    expect(visible).toContain("Ссылка уже получена");
+    expect(visible).not.toContain("Пришлите ссылку");
+  }
+  if (rowId === "mismatch-uz-on-ru-01" && turnNo === 1) {
+    expect(visible).toContain("Hozircha pul o'tkazmang");
+  }
+  if (rowId === "mismatch-ru-on-uz-01" && turnNo === 1) {
+    expect(visible).toContain("Похоже на попытку");
+  }
+  if (rowId === "mismatch-uz-lat-on-en-01" && turnNo === 1) {
+    expect(visible).toContain("Kodni hech kimga aytmang");
+  }
   if (rowId === "uz-cyr-relative-01" && turnNo === 1) {
     expect(turn.runChecks).toHaveLength(0);
     expect(visible).toContain("shaxsini tasdiqlang");
@@ -316,6 +382,11 @@ describe("elderly-realism QA — direct chat", () => {
     h.sent.length = 0;
     h.runChecks.length = 0;
     h.dbMutations.length = 0;
+    h.fetchAttempts = 0;
+  });
+
+  afterEach(() => {
+    expect(h.fetchAttempts, "direct QA must not attempt network access").toBe(0);
   });
 
   afterAll(() => {

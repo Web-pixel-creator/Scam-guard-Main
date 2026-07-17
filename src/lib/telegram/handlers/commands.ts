@@ -268,6 +268,14 @@ export async function handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promis
   switch (cmd.command) {
     case "/start": {
       if (await acceptFamilyStartLink(cmd, ctx)) return;
+      // `/start` is an explicit fresh entry point. Clear every previous panic,
+      // check, guardian and victim-follow-up context so an old incident cannot
+      // answer questions asked after the new welcome screen.
+      await saveSession(ctx.userId, {
+        scenario: "none",
+        scenarioStep: 0,
+        scenarioData: withSessionChatScope({}, ctx.chatId, ctx.chatType),
+      });
       // Greeting + quick-action menu (R1.1, R1.5). Text is already escaped.
       const { text, keyboard } = formatWelcome(lang);
       await sendMessage({ chatId: ctx.chatId, text, keyboard });

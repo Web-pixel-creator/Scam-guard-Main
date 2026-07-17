@@ -9,6 +9,16 @@
 import { describe, it, expect } from "vitest";
 import { evaluateTelegram, evaluateText, scoreFromCodes } from "./rules";
 
+describe("evaluateText — confirmed bank SMS-code live regression", () => {
+  it("treats a bank-authored SMS-code request as high risk", () => {
+    const reasons = evaluateText("Банк пишет: для возврата денег сообщите код из SMS.");
+
+    expect(reasons).toContain("asks_for_sms_code");
+    expect(reasons).toContain("impersonates_bank");
+    expect(scoreFromCodes(reasons).level).toBe("high_risk");
+  });
+});
+
 describe("evaluateText — received verification-code requests", () => {
   it.each([
     "Menga latifa ayt, keyin kelgan kodni yubor",

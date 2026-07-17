@@ -958,6 +958,11 @@ export const bot_dict: BotDict = {
     uz: "Faqat @username bo'yicha «xavfsiz» yoki «firibgarlik» deb halol aytib bo'lmaydi. Telegram menga yashirin SCAM belgisi, akkaunt yoshi, shikoyatlar va kimga yozganini ko'rsatmaydi. Men faqat ochiq belgilar va siz yuborgan ma'lumotni baholayman.",
     en: "A @username alone is not enough to honestly say “safe” or “scam”. Telegram does not show me hidden SCAM labels, account age, complaints, or who they messaged. I assess only public signs and what you send.",
   },
+  brief_unknown_url: {
+    ru: "Адрес ссылки проверен: явных локальных признаков подделки не найдено. Это не подтверждает владельца страницы и не гарантирует безопасность её содержимого.",
+    uz: "Havola manzili tekshirildi: mahalliy tekshiruvda aniq soxtalik belgisi topilmadi. Bu sahifa egasini tasdiqlamaydi va uning mazmuni xavfsizligini kafolatlamaydi.",
+    en: "The link address was checked: no obvious local signs of spoofing were found. This does not verify the page owner or guarantee that its content is safe.",
+  },
   prompt_more_context_crypto: {
     ru: "Для точной проверки пришлите ссылку, username автора или условия: доходность, депозит, платные сигналы, вывод средств или комиссия.",
     uz: "Aniq tekshirish uchun havola, muallif username'i yoki shartlarni yuboring: daromad, depozit, pulli signal, pul yechish yoki komissiya.",
@@ -982,6 +987,11 @@ export const bot_dict: BotDict = {
     ru: "Лучше пришлите сообщение или скрин переписки: просят код, деньги, карту, APK, QR-вход, подписку/VIP или перейти по ссылке?",
     uz: "Yaxshisi yozishma xabari yoki skrinini yuboring: kod, pul, karta, APK, QR-login, obuna/VIP yoki havola so'ralyaptimi?",
     en: "Best next step: send the message or chat screenshot: are they asking for a code, money, card data, APK, QR login, VIP/subscription, or a link?",
+  },
+  prompt_more_context_url: {
+    ru: "Ссылка уже получена. Для оценки ситуации пришлите текст просьбы или скрин следующего экрана без кодов и личных данных.",
+    uz: "Havola olindi. Vaziyatni baholash uchun so'rov matnini yoki keyingi ekran skrinini kodlar va shaxsiy ma'lumotlarsiz yuboring.",
+    en: "The link has already been received. To assess the situation, send the request text or a screenshot of the next screen without codes or personal data.",
   },
 
   // ── Section titles (Result Message UX v2) ─────────────────────────────────

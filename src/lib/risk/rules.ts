@@ -228,6 +228,10 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
     re: /\b(bank security|security department of (the )?bank|bank support|bank employee|bank officer)\b/i,
   },
   {
+    code: "impersonates_bank",
+    re: /(?:банк|bank).{0,140}(?:сообщите|назовите|пришлите|отправьте|переведите|tell|send|share|transfer|ayting|yuboring|o['’]?tkazing).{0,80}(?:код|sms|смс|otp|парол|password|карт|card|деньг|money|pul)/iu,
+  },
+  {
     code: "uses_urgency",
     re: /(срочно|немедленно|прямо сейчас|tezda|darhol|hozir(?:ning\s+o['’]?zida|.{0,30}(?:ayt(?:ing)?|yubor(?:ing)?|jo['’]?nat(?:ing)?|kirit(?:ing)?|to['’]?la(?:ng)?|o['’]?tkaz(?:ing)?|qil(?:ing)?)(?![\p{L}\p{N}_]))|urgent|immediately|right now)/iu,
   },

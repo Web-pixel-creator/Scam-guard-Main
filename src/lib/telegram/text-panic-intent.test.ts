@@ -23,8 +23,11 @@ describe("pure Telegram text panic intent", () => {
 
   it.each([
     "Я не отправил код.",
+    "Я уже почти сказала код, но решила сначала спросить.",
+    "Я чуть не назвал код из SMS.",
     "Men kodni yubormadim.",
     "I did not send the verification code.",
+    "I almost shared the SMS code but stopped.",
     "Men pul o'tkazmayman.",
   ])("keeps a negated action outside panic: %s", (text) => {
     expect(isNegatedVoiceDoneIntent(text)).toBe(true);

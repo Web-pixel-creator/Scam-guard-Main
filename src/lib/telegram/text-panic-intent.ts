@@ -22,6 +22,8 @@ const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
+const ABORTED_VOICE_DONE_INTENT_RE =
+  /(?:(?:почти|чуть\s+не|едва\s+не).{0,60}(?:сказал|назвал|сообщил|отправил|передал|продиктовал|дал|перевел|перевёл|установил)|(?:almost|nearly).{0,60}(?:shared|sent|gave|told|said|read|dictated|transferred|paid|installed)|(?:shared|sent|gave|told|said|read|dictated).{0,60}but\s+(?:stopped|did\s+not\s+finish))/;
 
 export function isNegatedVoiceDoneIntent(transcript: string): boolean {
   const text = normalizeVoiceIntentText(transcript);
@@ -30,7 +32,8 @@ export function isNegatedVoiceDoneIntent(transcript: string): boolean {
     NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
-    EN_NEGATED_VOICE_DONE_INTENT_RE.test(text)
+    EN_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
+    ABORTED_VOICE_DONE_INTENT_RE.test(text)
   );
 }
 

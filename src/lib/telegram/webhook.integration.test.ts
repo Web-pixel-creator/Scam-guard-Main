@@ -772,6 +772,44 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     );
   });
 
+  it("clears stale panic and follow-up state when /start opens a fresh menu", async () => {
+    h.sessionRow = {
+      telegram_user_id: 1101,
+      lang: "ru",
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: {
+        lastPanicId: 6,
+        lastPanicAt: new Date().toISOString(),
+        lastLiveCallContext: "government",
+        lastVictimIntent: {
+          kind: "code_request",
+          askedContext: "code",
+          at: new Date().toISOString(),
+        },
+      },
+      updated_at: new Date().toISOString(),
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: 1101, chatId: 5101, text: "/start" })),
+    );
+
+    expect(response.status).toBe(200);
+    const saved = [...h.upserts].reverse().find((entry) => entry.table === "telegram_sessions")
+      ?.payload as
+      | { scenario?: string; scenario_step?: number; scenario_data?: unknown }
+      | undefined;
+    expect(saved).toMatchObject({
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: { chatScope: { chatId: 5101, chatType: "private" } },
+    });
+    expect(JSON.stringify(saved?.scenario_data)).not.toMatch(
+      /lastPanic|lastLiveCallContext|lastVictimIntent|lastCheck|guardian/u,
+    );
+  });
+
   it("sends /menu with the same quick-action main menu as /start", async () => {
     const update = textUpdate({ userId: 1105, chatId: 5105, text: "/menu" });
 

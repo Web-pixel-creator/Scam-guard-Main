@@ -43,7 +43,7 @@ import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
-import { detectInputType } from "@/lib/risk/detect";
+import { detectInputType, maskForDisplay, normalize } from "@/lib/risk/detect";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
@@ -96,8 +96,10 @@ import {
 import { buildImageTriageKeyboard } from "@/lib/telegram/image-fallback";
 import {
   buildVictimFollowUpContext,
+  buildVictimGuidanceFollowUpText,
   buildVictimIntentKeyboard,
   buildVictimIntentText,
+  classifyVictimGuidanceFollowUp,
   classifyVictimIntent,
   classifyVictimContextualFollowUp,
   type VictimIntentMatch,
@@ -142,8 +144,11 @@ const VOICE_STT_DAILY_LIMIT = 5;
 const VOICE_STT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 const EMBEDDED_PHONE_CANDIDATE_RE = /\+?\d[\d\s().-]{6,18}\d/gu;
+const EMBEDDED_VERIFIED_SHORT_CODE_RE = /(?<!\d)(?:1344|1340|1296|1290|1257)(?!\d)/gu;
+const EMBEDDED_CHECK_URL_RE =
+  /\bhttps?:\/\/[^\s<>()]+|\b(?:t\.me|telegram\.me)\/\+[a-zA-Z0-9_-]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/giu;
 const PHONE_IDENTITY_QUESTION_RE =
-  /(?:(?:это|этот|this|bu|shu).{0,35}(?:номер|телефон|number|phone|raqam).{0,45}(?:банк|bank|официальн|rasmiy)|(?:банк|bank).{0,45}(?:номер|телефон|number|phone|raqam)|(?:какому|какой|which|qaysi).{0,35}(?:банк|bank).{0,35}(?:принадлеж|номер|raqam))/iu;
+  /(?:(?:это|этот|this|bu|shu).{0,35}(?:номер|телефон|number|phone|raqam|рақам).{0,45}(?:банк|bank|официальн|rasmiy)|(?:банк|bank).{0,45}(?:номер|телефон|number|phone|raqam|рақам)|(?:какому|какой|which|qaysi|қайси).{0,35}(?:банк|bank).{0,35}(?:принадлеж|номер|raqam|рақам|ники)|(?:ишонч|ishonch)\s+(?:телефон(?:и)?|raqam(?:i)?|рақам(?:и)?).{0,30}(?:ми|mi|\?))/iu;
 
 function contractReplyText(
   intentId: CanonicalFollowUpIntentId | CanonicalVictimIntentId,
@@ -153,14 +158,30 @@ function contractReplyText(
 }
 
 function shouldVictimIntentOverrideFollowUps(match: VictimIntentMatch): boolean {
-  return match.askedContext !== undefined;
+  // In an active emergency flow, a request for the bank number belongs to the
+  // emergency contact action: it includes the explicit incoming-number warning
+  // and the verified callback script. Other concrete victim topics still win.
+  return match.askedContext !== undefined && match.kind !== "bank_contact_question";
+}
+
+function shouldVictimIntentOverrideGenericHelpers(match: VictimIntentMatch, text: string): boolean {
+  if (match.kind === "pension_benefit") return true;
+  if (match.kind !== "code_request") return false;
+
+  return /(?:sms|смс|otp|push|пуш).{0,60}(?:код|code|kod|цифр|digits)|(?:код|code|kod|цифр|digits).{0,60}(?:sms|смс|otp|push|пуш)/iu.test(
+    text,
+  );
 }
 
 function shouldVictimIntentOverridePanic(match: VictimIntentMatch): boolean {
   // A narrow scenario requires several topic-specific signals. Preserve it
   // before generic live-call/panic and orphan follow-up helpers can turn a
   // complete request into a different topic.
-  return match.scenario !== undefined || match.kind === "friend_money";
+  return (
+    match.scenario !== undefined ||
+    match.kind === "friend_money" ||
+    match.kind === "relative_already_paid"
+  );
 }
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const VOICE_TRANSCRIPT_PREVIEW_CHARS = 180;
@@ -550,6 +571,9 @@ async function replyText(chatId: number, plain: string, keyboard?: InlineKeyboar
 
 function extractQuestionedPhoneNumber(text: string): string | null {
   if (!PHONE_IDENTITY_QUESTION_RE.test(text)) return null;
+  EMBEDDED_VERIFIED_SHORT_CODE_RE.lastIndex = 0;
+  const shortCode = EMBEDDED_VERIFIED_SHORT_CODE_RE.exec(text)?.[0];
+  if (shortCode) return shortCode;
   EMBEDDED_PHONE_CANDIDATE_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = EMBEDDED_PHONE_CANDIDATE_RE.exec(text)) !== null) {
@@ -557,6 +581,41 @@ function extractQuestionedPhoneNumber(text: string): string | null {
     if (detectInputType(candidate) === "phone") return candidate;
   }
   return null;
+}
+
+function presentSingleEmbeddedUrlResult(
+  result: RunCheckResult,
+  checkedInput: string,
+): RunCheckResult {
+  if (
+    result.type !== "text" ||
+    (result.level !== "unknown" && result.level !== "safe") ||
+    result.verifiedContact
+  ) {
+    return result;
+  }
+
+  const urls = [...checkedInput.matchAll(EMBEDDED_CHECK_URL_RE)]
+    .map(([value]) => value.replace(/[.,!?;:)\]}>'"`]+$/gu, ""))
+    .filter(Boolean);
+  if (new Set(urls).size !== 1) return result;
+
+  const [url] = [...new Set(urls)];
+  if (
+    !url ||
+    /^(?:https?:\/\/)?(?:t\.me|telegram\.me)\//iu.test(url) ||
+    /\.apk(?:\?|$)/iu.test(url)
+  ) {
+    return result;
+  }
+
+  const type = "url" as const;
+  const normalizedUrl = normalize(url, type);
+  return {
+    ...result,
+    type,
+    display: maskForDisplay(normalizedUrl, type),
+  };
 }
 
 async function sendVictimIntentGuidance(
@@ -575,8 +634,16 @@ async function sendVictimIntentGuidance(
   if (!delivery?.ok) return;
 
   const nextContext = buildVictimFollowUpContext(match);
-  const { lastVictimIntent: _previous, ...previousScenarioData } = ctx.session.scenarioData;
-  if (!nextContext && !_previous) return;
+  const {
+    guardian: _previousGuardian,
+    lastCheck: _previousCheck,
+    lastLiveCallContext: _previousLiveCallContext,
+    lastPanicAt: _previousPanicAt,
+    lastPanicId: _previousPanicId,
+    lastVictimIntent: _previousVictimIntent,
+    ...previousScenarioData
+  } = ctx.session.scenarioData;
+  if (!nextContext && !_previousVictimIntent) return;
   await saveSession(ctx.userId, {
     scenarioData: withSessionChatScope(
       {
@@ -1131,7 +1198,29 @@ export async function handleCheck(
     return;
   }
 
-  const directVictimIntent = source ? null : classifyVictimIntent(trimmed);
+  const questionedPhone = extractQuestionedPhoneNumber(trimmed);
+
+  const victimGuidanceFollowUp = source
+    ? null
+    : questionedPhone
+      ? null
+      : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
+  if (victimGuidanceFollowUp !== null) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: contractReplyText(
+        canonicalVictimIntentId(victimGuidanceFollowUp.context.kind),
+        buildVictimGuidanceFollowUpText(victimGuidanceFollowUp, lang),
+      ),
+      keyboard: buildVictimIntentKeyboard(lang, victimGuidanceFollowUp.context),
+    });
+    return;
+  }
+
+  // A concrete number question must reach the verified-contact checker. The
+  // generic bank-contact intent is useful when no number was supplied, but it
+  // must not swallow short-code questions such as «Ишонч телефони 1344ми».
+  const directVictimIntent = source || questionedPhone ? null : classifyVictimIntent(trimmed);
   const contextualVictimIntent =
     source || directVictimIntent
       ? null
@@ -1142,6 +1231,8 @@ export async function handleCheck(
     return;
   }
 
+  // Completed-incident rescue still outranks a number lookup: if the same
+  // message says money/code was already sent, route to urgent aftercare.
   const textPanicId = classifyTextPanicIntent(trimmed, source);
   if (textPanicId !== null) {
     await sendPanicRoute(ctx, textPanicId, trimmed);
@@ -1153,6 +1244,11 @@ export async function handleCheck(
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&
     shouldVictimIntentOverrideFollowUps(victimIntent)
   ) {
+    await sendVictimIntentGuidance(ctx, victimIntent, lang);
+    return;
+  }
+
+  if (victimIntent !== null && shouldVictimIntentOverrideGenericHelpers(victimIntent, trimmed)) {
     await sendVictimIntentGuidance(ctx, victimIntent, lang);
     return;
   }
@@ -1169,7 +1265,10 @@ export async function handleCheck(
   }
 
   const orphanReplyFollowUp =
-    ctx.replyToOwnBotMessage && !ctx.replyCheckSnapshot && ctx.session.scenarioData.lastCheck
+    !questionedPhone &&
+    ctx.replyToOwnBotMessage &&
+    !ctx.replyCheckSnapshot &&
+    ctx.session.scenarioData.lastCheck
       ? classifyOrphanCheckFollowUp(trimmed)
       : null;
   if (orphanReplyFollowUp !== null) {
@@ -1189,7 +1288,9 @@ export async function handleCheck(
       ? undefined
       : ctx.session.scenarioData;
   const guardianFollowUp = guardianScenarioData
-    ? classifyGuardianAngelFollowUp(trimmed, guardianScenarioData)
+    ? questionedPhone
+      ? null
+      : classifyGuardianAngelFollowUp(trimmed, guardianScenarioData)
     : null;
   const guardianSnapshot = guardianScenarioData?.guardian;
   if (guardianFollowUp !== null && guardianSnapshot) {
@@ -1219,8 +1320,10 @@ export async function handleCheck(
   const lastCheckScenarioData = ctx.replyCheckSnapshot
     ? { lastCheck: ctx.replyCheckSnapshot }
     : ctx.session.scenarioData;
-  const lastCheckFollowUp = classifyLastCheckFollowUp(trimmed, lastCheckScenarioData);
-  const lastCheckSnapshot = lastCheckScenarioData.lastCheck;
+  const lastCheckFollowUp = questionedPhone
+    ? null
+    : classifyLastCheckFollowUp(trimmed, lastCheckScenarioData);
+  const lastCheckSnapshot = questionedPhone ? undefined : lastCheckScenarioData.lastCheck;
   if (lastCheckFollowUp !== null && lastCheckSnapshot) {
     await sendMessage({
       chatId: ctx.chatId,
@@ -1232,7 +1335,9 @@ export async function handleCheck(
     return;
   }
 
-  const emergencyFollowUp = classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
+  const emergencyFollowUp = questionedPhone
+    ? null
+    : classifyEmergencyFollowUp(trimmed, ctx.session.scenarioData);
   if (emergencyFollowUp !== null) {
     const liveCallContext =
       emergencyFollowUp.panicId === 6
@@ -1258,6 +1363,7 @@ export async function handleCheck(
 
   const emergencyAcknowledgement = classifyAcknowledgementFollowUp(trimmed);
   if (
+    !questionedPhone &&
     emergencyAcknowledgement !== null &&
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {})
   ) {
@@ -1271,7 +1377,7 @@ export async function handleCheck(
     return;
   }
 
-  const orphanFollowUp = classifyOrphanCheckFollowUp(trimmed);
+  const orphanFollowUp = questionedPhone ? null : classifyOrphanCheckFollowUp(trimmed);
   if (orphanFollowUp !== null) {
     await sendMessage({
       chatId: ctx.chatId,
@@ -1303,9 +1409,13 @@ export async function handleCheck(
           hasEvidence: publicPostEvidence !== null,
         });
 
-        const questionedPhone = publicPostEvidence ? null : extractQuestionedPhoneNumber(trimmed);
-        const checkInput = publicPostEvidence?.checkInput ?? questionedPhone ?? trimmed;
-        const checkType = publicPostEvidence ? "text" : questionedPhone ? "phone" : undefined;
+        const pipelineQuestionedPhone = publicPostEvidence ? null : questionedPhone;
+        const checkInput = publicPostEvidence?.checkInput ?? pipelineQuestionedPhone ?? trimmed;
+        const checkType = publicPostEvidence
+          ? "text"
+          : pipelineQuestionedPhone && detectInputType(pipelineQuestionedPhone) === "phone"
+            ? "phone"
+            : undefined;
         const cacheKey = buildCheckResultCacheKey({
           userId: ctx.userId,
           lang,
@@ -1316,7 +1426,14 @@ export async function handleCheck(
         const cached = getCachedCheckResult(cacheKey);
         if (cached) {
           suppressDeferredCheckStatus = true;
-          await sendCheckResult(ctx, enrichForwardSourceContext(cached, source, lang));
+          await sendCheckResult(
+            ctx,
+            enrichForwardSourceContext(
+              presentSingleEmbeddedUrlResult(cached, checkInput),
+              source,
+              lang,
+            ),
+          );
           logTelegramTiming("check.total", startedAt, {
             type: cached.type,
             level: cached.level,
@@ -1369,7 +1486,14 @@ export async function handleCheck(
         }
 
         const enriched = await withTypingIndicator(ctx.chatId, () => checkWork);
-        await sendCheckResult(ctx, enrichForwardSourceContext(enriched, source, lang));
+        await sendCheckResult(
+          ctx,
+          enrichForwardSourceContext(
+            presentSingleEmbeddedUrlResult(enriched, checkInput),
+            source,
+            lang,
+          ),
+        );
         logTelegramTiming("check.total", startedAt, {
           type: enriched.type,
           level: enriched.level,

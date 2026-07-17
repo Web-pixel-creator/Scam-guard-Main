@@ -115,7 +115,7 @@ const THIN_SEPARATOR = escapeMarkdownV2("┈┈┈┈┈┈┈┈┈┈┈┈┈
 /** Telegram message character limit. */
 const TELEGRAM_MAX_CHARS = 4096;
 
-type NeutralContext = "crypto" | "qr_menu" | "delivery" | "phone" | "telegram_profile";
+type NeutralContext = "crypto" | "qr_menu" | "delivery" | "phone" | "telegram_profile" | "url";
 
 const NEUTRAL_CONTEXT_BRIEF_KEY: Record<NeutralContext, BotStringKey> = {
   crypto: "brief_unknown_crypto",
@@ -123,6 +123,7 @@ const NEUTRAL_CONTEXT_BRIEF_KEY: Record<NeutralContext, BotStringKey> = {
   delivery: "brief_unknown_delivery",
   phone: "brief_unknown_phone",
   telegram_profile: "brief_unknown_telegram_profile",
+  url: "brief_unknown_url",
 };
 
 const NEUTRAL_CONTEXT_PROMPT_KEY: Record<NeutralContext, BotStringKey> = {
@@ -131,6 +132,7 @@ const NEUTRAL_CONTEXT_PROMPT_KEY: Record<NeutralContext, BotStringKey> = {
   delivery: "prompt_more_context_delivery",
   phone: "prompt_more_context_phone",
   telegram_profile: "prompt_more_context_telegram_profile",
+  url: "prompt_more_context_url",
 };
 
 const CRYPTO_CONTEXT_RE =
@@ -164,6 +166,7 @@ function detectNeutralContext(result: RunCheckResult): NeutralContext | null {
   ) {
     return "phone";
   }
+  if (result.type === "url") return "url";
   if (result.type === "telegram" || isTelegramProfileScreenshotBrief(result.explanation)) {
     return "telegram_profile";
   }
@@ -482,7 +485,9 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
           ? { maxLines: 3, maxChars: 190 }
           : { maxLines: 4, maxChars: 230 };
 
-  if (
+  if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
+    content = truncateExplanation(bt("hosted_platform_explanation", lang), truncateOptions);
+  } else if (
     neutralContext &&
     !(neutralContext === "telegram_profile" && result.explanation !== null) &&
     !(neutralContext === "qr_menu" && hasDecodedQrBrief)
@@ -492,8 +497,6 @@ function renderBrief(result: RunCheckResult, lang: Lang): string {
         ? (renderPhonePassportBrief(result, lang) ??
           bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang))
         : bt(NEUTRAL_CONTEXT_BRIEF_KEY[neutralContext], lang);
-  } else if (result.explanation === null && result.reasons.includes("hosted_app_platform")) {
-    content = truncateExplanation(bt("hosted_platform_explanation", lang), truncateOptions);
   } else if (result.explanation !== null) {
     content = truncateExplanation(result.explanation, truncateOptions);
   } else {

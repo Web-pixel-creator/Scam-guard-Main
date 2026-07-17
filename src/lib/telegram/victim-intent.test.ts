@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildVictimFollowUpContext,
+  buildVictimGuidanceFollowUpText,
   buildVictimIntentText,
+  classifyVictimGuidanceFollowUp,
   classifyVictimContextualFollowUp,
   classifyVictimIntent,
 } from "@/lib/telegram/victim-intent";
@@ -268,6 +270,116 @@ describe("classifyVictimIntent", () => {
   });
 });
 
+describe("classifyVictimIntent — confirmed direct-bot live regressions", () => {
+  it.each([
+    [
+      "Сотрудник полиции требует срочно перевести деньги на «безопасный счёт», иначе заведёт дело.",
+      { kind: "legal_impersonation", askedContext: "transfer", scenario: "police_impersonation" },
+    ],
+    [
+      "Незнакомец угрожает разослать мои личные фотографии, если я не переведу деньги.",
+      { kind: "blackmail_threat", askedContext: "transfer", scenario: "photo_extortion" },
+    ],
+    [
+      "Kredit olishdan oldin sug‘urta va rasmiylashtirish uchun oldindan pul to‘lashimni so‘rashmoqda.",
+      { kind: "transfer_request", askedContext: "transfer", scenario: "loan_advance_fee" },
+    ],
+    [
+      "Сбор на лечение просит срочно перевести деньги на личную карту.",
+      { kind: "transfer_request", askedContext: "transfer", scenario: "charity_pressure" },
+    ],
+    [
+      "My online boyfriend says he is stranded and urgently needs money for a flight ticket.",
+      { kind: "romance_money", askedContext: "transfer", scenario: "romance_money" },
+    ],
+    [
+      "Telegram qo‘llab-quvvatlash xodimi akkauntni tekshirish uchun parolimni yuborishimni so‘radi.",
+      { kind: "support_impersonation", scenario: "fake_support" },
+    ],
+    [
+      "I was invited to a Telegram earning channel that promises guaranteed daily income after a deposit.",
+      { kind: "earning_channel", askedContext: "link_qr" },
+    ],
+    [
+      "Банк требует перевести все деньги на «безопасный счёт», чтобы защитить их от кражи.",
+      { kind: "transfer_request", askedContext: "transfer", scenario: "safe_account_transfer" },
+    ],
+  ] as const)("keeps the concrete live topic for %s", (text, expected) => {
+    expect(classifyVictimIntent(text)).toEqual(expected);
+  });
+
+  it.each([
+    [
+      "Сотрудник полиции требует срочно перевести деньги на «безопасный счёт», иначе заведёт дело.",
+      "ru",
+      "Полиция не требует",
+    ],
+    [
+      "Незнакомец угрожает разослать мои личные фотографии, если я не переведу деньги.",
+      "ru",
+      "личных фотографий",
+    ],
+    [
+      "Kredit olishdan oldin sug‘urta va rasmiylashtirish uchun oldindan pul to‘lashimni so‘rashmoqda.",
+      "uz",
+      "oldindan to'lov",
+    ],
+    [
+      "Telegram qo‘llab-quvvatlash xodimi akkauntni tekshirish uchun parolimni yuborishimni so‘radi.",
+      "uz",
+      "parol",
+    ],
+    [
+      "Банк требует перевести все деньги на «безопасный счёт», чтобы защитить их от кражи.",
+      "ru",
+      "«Безопасный счёт»",
+    ],
+  ] as const)("builds topic-specific copy for %s", (text, lang, expectedText) => {
+    const match = classifyVictimIntent(text);
+    expect(match).not.toBeNull();
+    expect(buildVictimIntentText(match!, lang)).toContain(expectedText);
+  });
+
+  it("keeps short why/next/trusted-person questions on recent code guidance", () => {
+    const at = new Date("2026-07-17T12:00:00.000Z");
+    const context = buildVictimFollowUpContext({ kind: "code_request", askedContext: "code" }, at);
+    const now = new Date(at.getTime() + 60_000);
+
+    const why = classifyVictimGuidanceFollowUp("Почему это опасно?", context, now);
+    const next = classifyVictimGuidanceFollowUp("Что делать дальше?", context, now);
+    const trusted = classifyVictimGuidanceFollowUp("Можно показать это сыну?", context, now);
+    const reply = classifyVictimGuidanceFollowUp("что мне им сказать", context, now);
+    const verify = classifyVictimGuidanceFollowUp(
+      "а если это правда банк как проверить",
+      context,
+      now,
+    );
+    const simple = classifyVictimGuidanceFollowUp("объясни простыми словами", context, now);
+    const uzNext = classifyVictimGuidanceFollowUp("нима қилай", context, now);
+    const pressure = classifyVictimGuidanceFollowUp(
+      "они сказали что срочно надо иначе деньги прападут",
+      context,
+      now,
+    );
+
+    expect(why).toMatchObject({ action: "why", context: { kind: "code_request" } });
+    expect(next).toMatchObject({ action: "next_steps", context: { kind: "code_request" } });
+    expect(trusted).toMatchObject({ action: "trusted_person", context: { kind: "code_request" } });
+    expect(reply).toMatchObject({ action: "reply_script", context: { kind: "code_request" } });
+    expect(verify).toMatchObject({ action: "verify_official", context: { kind: "code_request" } });
+    expect(simple).toMatchObject({ action: "explain_simple", context: { kind: "code_request" } });
+    expect(uzNext).toMatchObject({ action: "next_steps", context: { kind: "code_request" } });
+    expect(pressure).toMatchObject({ action: "pressure", context: { kind: "code_request" } });
+    expect(buildVictimGuidanceFollowUpText(why!, "ru")).toContain("SMS-код");
+    expect(buildVictimGuidanceFollowUpText(next!, "ru")).toContain("Код");
+    expect(buildVictimGuidanceFollowUpText(trusted!, "ru")).toContain("близкому человеку");
+    expect(buildVictimGuidanceFollowUpText(reply!, "ru")).toContain("сам перезвоню");
+    expect(buildVictimGuidanceFollowUpText(verify!, "ru")).toContain("обратной стороны карты");
+    expect(buildVictimGuidanceFollowUpText(simple!, "ru")).toContain("Простыми словами");
+    expect(buildVictimGuidanceFollowUpText(pressure!, "ru")).toContain("давление");
+  });
+});
+
 describe("classifyVictimIntent — job-entry fee priority", () => {
   it.each([
     "Меня просят оплатить обучение на работу как новичку",
@@ -452,6 +564,7 @@ describe("classifyVictimIntent — concrete schemes survive conversational wrapp
     "Я сейчас дома. Предлагают вложить деньги в TON wallet с гарантированным доходом. Что делать?",
     "Bu xavfsizmi? TON walletga pul qo'yib, kafolatlangan daromad olishni taklif qilishyapti",
     "I am not in a hurry. They offer a TON wallet investment with guaranteed income",
+    "проверь t.me/invest_daromad_bot обещают 20 процентов в день гарантированно",
   ])("keeps a guaranteed-return wallet offer on investment guidance: %s", (text) => {
     expect(classifyVictimIntent(text)).toEqual({
       kind: "investment_offer",
@@ -651,6 +764,148 @@ describe("classifyVictimIntent — bounded everyday incident wording", () => {
 });
 
 describe("classifyVictimIntent — elderly QA handoff regressions", () => {
+  it.each([
+    "просят номер карты и срок действия и три цифры сзади чтобы вернуть ошибочный перевод",
+    "Карта рақамини ва орқасидаги уч рақамни сўрашяпти пул қайтарамиз дейишяпти",
+  ])("keeps requested card credentials above an incidental transfer story: %s", (text) => {
+    const match = classifyVictimIntent(text);
+
+    expect(match).toEqual({ kind: "card_request", askedContext: "card" });
+    expect(buildVictimIntentText(match!, "ru")).toMatch(/(?:данные карты|cvv|pin)/iu);
+  });
+
+  it("keeps explicit photo blackmail above an unrelated family-contact detail", () => {
+    expect(
+      classifyVictimIntent(
+        "Шантажируют моими фото и требуют заплатить\nМожно ли этому доверять?\nОни торопят меня прямо сейчас и запрещают звонить близким",
+      ),
+    ).toEqual({
+      kind: "blackmail_threat",
+      askedContext: "transfer",
+      scenario: "photo_extortion",
+    });
+  });
+
+  it("treats a cash courier demand about a detained relative as an active family scam", () => {
+    const match = classifyVictimIntent(
+      "мне сказали что мой сын попал в полицию и нужно заплатить штраф пятьсот долларов наличными курьеру который сейчас приедет",
+    );
+
+    expect(match).toEqual({ kind: "friend_money", askedContext: "transfer" });
+    expect(buildVictimIntentText(match!, "ru")).toMatch(
+      /(?:перезвон|сохран[её]нн|кодовое слово)/iu,
+    );
+    expect(buildVictimIntentText(match!, "ru")).toMatch(/(?:наличн|курьер)/iu);
+  });
+
+  it("introduces Ishonch Guard without affirming a scam accusation", () => {
+    const match = classifyVictimIntent("а вы не мошенники сами? откуда мне знать");
+
+    expect(match).toEqual({ kind: "trust_or_greeting" });
+    expect(buildVictimIntentText(match!, "ru")).toContain("Я — Ishonch Guard");
+    expect(buildVictimIntentText(match!, "ru")).not.toMatch(/^Да,/u);
+  });
+
+  it("keeps a plain English bank SMS-code request above a generic scam question", () => {
+    expect(
+      classifyVictimIntent(
+        "someone called saying they are from my bank and asked for the sms code is it a scam",
+      ),
+    ).toEqual({ kind: "code_request", askedContext: "code" });
+  });
+
+  it.each([
+    "пришло смс что пенсию пересчитают и надо подтвердить карту по ссылке",
+    "менга телеграмдан ёзишяпти сиз субсидия ютиб олдингиз картангизни рақамини юборинг дейишяпти",
+    "Пенсия учун карта рақамини сўрашяпти ижтимоий ҳимояданмиз дейишяпти",
+  ])("preserves the pension/subsidy topic above generic card guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "pension_benefit",
+      askedContext: "call",
+    });
+  });
+
+  it("does not read Uzbek turib as a travel/tour signal in a local job offer", () => {
+    expect(
+      classifyVictimIntent(
+        "ishga taklif qilishyapti kuniga 500 ming so'm uydan turib deyishyapti faqat avval komissiya 200 ming to'lash kerak ekan",
+      ),
+    ).toEqual({ kind: "job_offer" });
+  });
+
+  it("keeps a domain embedded in natural text on the real risk pipeline", () => {
+    expect(
+      classifyVictimIntent("внук прислал ссылку youtube.com/watch?v=abc123 это безопасно открыть"),
+    ).toBeNull();
+  });
+
+  it("keeps an SMS-code request above a surrounding card-block story", () => {
+    expect(
+      classifyVictimIntent(
+        "здраствуйте мне пазванили из банка сказали что карта заблакирована и нужно прадиктовать код из смс скажите это правда",
+      ),
+    ).toEqual({ kind: "code_request", askedContext: "code" });
+  });
+
+  it("routes an advance-fee lottery to prize guidance, not completed-payment SOS", () => {
+    const match = classifyVictimIntent(
+      "мне сказали я выиграла 2 миллиона сум надо оплатить камисию 50 тысяч и пришлют деньги",
+    );
+    expect(match).toEqual({
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "prize_fee",
+    });
+    expect(buildVictimIntentText(match!, "ru")).toContain("сначала требуют комиссию");
+  });
+
+  it("recognizes a standalone bank-verification question", () => {
+    expect(classifyVictimIntent("а если это правда банк как проверить")).toEqual({
+      kind: "bank_contact_question",
+      askedContext: "call",
+    });
+  });
+
+  it.each([
+    [
+      "перевела деньги вчера на этот счет а теперь трубку не берут",
+      {
+        kind: "transfer_request",
+        askedContext: "transfer",
+        scenario: "money_already_sent",
+      },
+    ],
+    [
+      "муж перевел 5 миллионов сум мошенникам вчера вечером что делать куда звонить",
+      {
+        kind: "relative_already_paid",
+        askedContext: "transfer",
+      },
+    ],
+    [
+      "установила приложение которое прислали теперь смс приходят странные",
+      {
+        kind: "apk_request",
+        askedContext: "apk",
+        scenario: "apk_already_installed",
+      },
+    ],
+  ] as const)("routes a completed elderly incident to aftercare: %s", (text, expected) => {
+    const match = classifyVictimIntent(text);
+    expect(match).toEqual(expected);
+    expect(buildVictimIntentText(match!, "ru")).toMatch(/(?:заморозить перевод|авиарежим)/iu);
+  });
+
+  it.each([
+    "Я перевела деньги вчера своему сыну за продукты, всё в порядке",
+    "Муж перевёл деньги за коммунальные услуги",
+    "Установила приложение банка из официального магазина",
+  ])("does not invent aftercare for a benign completed action: %s", (text) => {
+    const match = classifyVictimIntent(text);
+    expect(match?.scenario).not.toBe("money_already_sent");
+    expect(match?.scenario).not.toBe("apk_already_installed");
+  });
+
   it("reuses the gated Uzbek Cyrillic matching variant for a relative emergency", () => {
     expect(
       classifyVictimIntent(
