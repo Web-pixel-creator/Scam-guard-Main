@@ -1958,7 +1958,7 @@ function hasCodeRequestIntent(normalized: string): boolean {
     /(?:ayting|bering|yuboring|jo['’]?nating|kiriting).{0,60}(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes)/iu.test(
       normalized,
     ) ||
-    /(?:tell|say|share|send|read out|enter|provide).{0,60}(?:code|sms|otp|push|pin|password)/iu.test(
+    /(?:tell|say|share|send|enter|provide|read\s+(?:out|(?:to\s+)?me)).{0,60}(?:code|sms|otp|push|pin|password)/iu.test(
       normalized,
     )
   );

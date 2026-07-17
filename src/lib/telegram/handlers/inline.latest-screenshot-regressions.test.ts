@@ -250,6 +250,17 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
     expect(allVisibleText(article)).not.toMatch(/(?:никому|назовите|сообщайте|пришлите)/iu);
   });
 
+  it("prioritizes a natural English request to read an SMS code over a bank transfer", async () => {
+    const article = await runInline("Read me the SMS code to cancel the bank transfer", {
+      sessionLang: "ru",
+      languageCode: "ru",
+    });
+
+    expect(article.title).toContain("Code: do not share it with anyone");
+    expect(allVisibleText(article)).toMatch(/(?:do not|never).{0,30}(?:share|tell|read out)/iu);
+    expect(article.title).not.toContain("Transfer: reason needed");
+  });
+
   it("keeps the trust question and detailed third line in a multiline OTP scenario", async () => {
     const detail =
       "Здравствуйте, я из компании GoldenHouse, вы выиграли квартиру, подтвердите код на телефоне";
