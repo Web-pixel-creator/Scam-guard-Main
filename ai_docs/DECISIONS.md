@@ -2,6 +2,18 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-084 - Approved redesign wraps the production data and security boundaries
+
+The warm-white editorial redesign is a presentation layer shared by `/` and
+`/admin`. The homepage hero must use the existing `CheckInput`, OCR, result and
+report paths, and all established educational, privacy, directory, trend,
+emergency and community content remains present. The admin redesign must retain
+real Supabase authentication, role checks, queries and moderation mutations;
+visual review must never introduce a local auth bypass. The exact striped
+background and reduced-motion-safe floating-points CTAs are part of the shared
+system. Railway deployment is allowed only after explicit user approval and
+local build, lint and responsive verification.
+
 ## D-083 - Direct and Inline preserve one specific human-scenario contract
 
 Direct chat and stateless Inline may use different transports and persistence

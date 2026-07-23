@@ -66,7 +66,7 @@ export function StatsStrip() {
       aria-label={
         { ru: "Статистика сервиса", uz: "Xizmat statistikasi", en: "Service stats" }[lang]
       }
-      className="relative"
+      className="approved-proof relative"
     >
       {/* Header strip */}
       <div className="flex items-center justify-between mb-3 px-1">

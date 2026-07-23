@@ -114,7 +114,7 @@ export function HomeImpactCounters() {
   return (
     <section
       aria-labelledby="impact-counters-title"
-      className="rounded-[8px] border border-[#E2E0D8] bg-[#FAFAF8] p-5 sm:p-7 md:p-8"
+      className="approved-impact rounded-[8px] border border-[#E2E0D8] bg-[#FAFAF8] p-5 sm:p-7 md:p-8"
     >
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
         <div>

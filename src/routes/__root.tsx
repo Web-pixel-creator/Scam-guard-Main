@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Load display fonts once; CSS variables in styles.css reference these families.
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
       },
       // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
       ...(supabaseUrl
@@ -147,19 +147,21 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isEmbedCheck = pathname === "/embed/check";
+  const isAdmin = pathname === "/admin";
+  const isHomepage = pathname === "/";
   return (
     <QueryClientProvider client={queryClient}>
       <LangProvider>
         <AuthProvider>
           <LangSync />
           <div className={isEmbedCheck ? "min-h-screen" : "min-h-screen flex flex-col"}>
-            {!isEmbedCheck && <Header />}
+            {!isEmbedCheck && !isAdmin && <Header />}
             <main className="flex-1">
               <Outlet />
             </main>
-            {!isEmbedCheck && <Footer />}
+            {!isEmbedCheck && !isAdmin && !isHomepage && <Footer />}
           </div>
-          {!isEmbedCheck && <A11yPanel />}
+          {!isEmbedCheck && !isAdmin && <A11yPanel />}
         </AuthProvider>
       </LangProvider>
     </QueryClientProvider>

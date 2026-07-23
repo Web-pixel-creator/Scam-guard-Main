@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-23 - Approved homepage and admin redesign integrated for Railway
+
+- Integrated the approved warm-white editorial direction into the real
+  TanStack/Supabase application instead of publishing the standalone mockup.
+- Added a production-connected three-line homepage hero and shared responsive
+  header, spacing, radii, typography, striped background and floating-points
+  CTA system.
+- Preserved the complete homepage content and existing check/OCR/report,
+  official-directory, trends, privacy, emergency and community flows.
+- Restyled the authenticated admin dashboard while preserving real auth, role
+  checks, report moderation, appeals and entity disclosures; the local review
+  adds no authorization bypass.
+- Recorded the new UI files and the presentation-only security boundary in the
+  file, function and decision maps.
+
 ## 2026-07-16 - Direct and Inline multilingual context hardening locally green
 
 - Preserved concrete RU/UZ/EN scenario topics and action-first guidance across

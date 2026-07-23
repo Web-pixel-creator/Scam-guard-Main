@@ -10,7 +10,7 @@ export function HomeTrustSurface() {
   return (
     <section
       aria-labelledby="trust-surface-title"
-      className="relative overflow-hidden rounded-[8px] border border-[#D9E8DA] bg-[#F0FDF4] p-5 sm:p-7 md:p-8"
+      className="approved-official relative overflow-hidden rounded-[8px] border border-[#D9E8DA] bg-[#F0FDF4] p-5 sm:p-7 md:p-8"
     >
       <div className="absolute left-0 top-0 h-full w-1 bg-[#16A34A]" aria-hidden="true" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">

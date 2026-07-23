@@ -2,6 +2,17 @@
 
 Signatures and intent only. See file paths for source.
 
+## Approved UI integration
+
+- `ApprovedHomeHero({ lang, result, formRef, onResult, onReset, onScrollToForm })`
+  composes the approved three-line hero around the existing production
+  `CheckInput` and `RiskResultCard`. It does not fork risk evaluation, OCR,
+  reporting or persistence logic.
+- `Layout` keeps the public route map and language selector intact while
+  applying one shared responsive header/footer and floating-points CTA system.
+- `AdminPage` keeps the existing authenticated queries and mutation handlers;
+  its redesign changes presentation and disclosure motion only.
+
 ## Server functions
 
 | Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                                                                                              |

@@ -21,8 +21,7 @@ import {
   ImageOff,
   UserX,
 } from "lucide-react";
-import { CheckInput } from "@/components/CheckInput";
-import { RiskResultCard, type CheckResult } from "@/components/RiskResultCard";
+import type { CheckResult } from "@/components/RiskResultCard";
 import { FancyShell } from "@/components/FancyButton";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
@@ -31,6 +30,7 @@ import { HomeTrustSurface } from "@/components/HomeTrustSurface";
 import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
 import { HomeImpactCounters } from "@/components/HomeImpactCounters";
 import { QuickReportForm } from "@/components/QuickReportForm";
+import { ApprovedHomeHero } from "@/components/ApprovedHomeHero";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -148,165 +148,16 @@ function Index() {
   };
 
   return (
-    <div className="overflow-hidden home-stripes-bg">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 space-y-16 md:space-y-28 lg:space-y-32 pt-3 md:pt-4">
-        {/* HERO v2 — minimal centered editorial with vertical gradient rule */}
-        <section className="relative isolate pt-1 md:pt-2">
-          <div
-            className={`relative max-w-5xl mx-auto overflow-hidden transition-[max-height,opacity,margin,padding] duration-700 ease-out ${
-              homeResult
-                ? "max-h-0 opacity-0 pt-0 pb-0 -mt-2 pointer-events-none"
-                : "max-h-[900px] opacity-100 pt-4 md:pt-6 pb-10 md:pb-12"
-            }`}
-            aria-hidden={homeResult ? true : undefined}
-          >
-            {/* Subtle dot-grid backdrop behind the title */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-8 h-[280px] md:h-[340px] opacity-[0.3] [mask-image:radial-gradient(55%_55%_at_50%_40%,#000_0%,transparent_75%)]"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 1px 1px, rgba(11,11,15,0.18) 1px, transparent 0)",
-                backgroundSize: "22px 22px",
-              }}
-            />
-
-            <div className="relative text-center px-0">
-              {/* Compact pain badge — single visual signal, no separate quote block */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FCA5A5]/60 bg-[#FEF2F2] text-[12px] font-semibold tracking-[0.16em] uppercase text-[#991B1B] mb-5 animate-fade-in-up font-mono">
-                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-                {
-                  {
-                    ru: "Звонят мошенники? Проверьте за 3 секунды",
-                    uz: "Firibgar qo'ng'iroq qilyaptimi? 3 soniyada tekshiring",
-                    en: "Scam call? Check it in 3 seconds",
-                  }[lang]
-                }
-              </div>
-
-              <h1 className="font-display font-extrabold tracking-[-0.025em] leading-[1.05] text-[36px] sm:text-5xl md:text-6xl lg:text-[68px] animate-fade-in-up text-foreground max-w-3xl mx-auto text-center">
-                {
-                  {
-                    ru: (
-                      <>
-                        Проверьте до того,
-                        <br />
-                        <span className="relative inline-block">
-                          <span className="font-serif-italic font-normal text-[#C2410C]">
-                            как обманут
-                          </span>
-                          <span className="text-foreground">.</span>
-                        </span>
-                      </>
-                    ),
-                    uz: (
-                      <>
-                        Aldanmasdan oldin
-                        <br />
-                        <span className="relative inline-block">
-                          <span className="font-serif-italic font-normal text-[#C2410C]">
-                            tekshiring
-                          </span>
-                          <span className="text-foreground">.</span>
-                        </span>
-                      </>
-                    ),
-                    en: (
-                      <>
-                        Check it before
-                        <br />
-                        <span className="relative inline-block">
-                          <span className="font-serif-italic font-normal text-[#C2410C]">
-                            you get scammed
-                          </span>
-                          <span className="text-foreground">.</span>
-                        </span>
-                      </>
-                    ),
-                  }[lang]
-                }
-              </h1>
-
-              {/* One-line subtitle — unified orange brand accent */}
-              <p className="mt-5 md:mt-6 text-[16px] md:text-[18px] text-[#3F3F46] max-w-xl mx-auto leading-[1.5] text-center animate-fade-in-up">
-                {
-                  {
-                    ru: (
-                      <>
-                        Номер, ссылка или сообщение —{" "}
-                        <span className="text-[#C2410C] font-semibold whitespace-nowrap">
-                          бесплатно, без регистрации
-                        </span>
-                      </>
-                    ),
-                    uz: (
-                      <>
-                        Raqam, havola yoki xabar —{" "}
-                        <span className="text-[#C2410C] font-semibold whitespace-nowrap">
-                          bepul, ro'yxatdan o'tmasdan
-                        </span>
-                      </>
-                    ),
-                    en: (
-                      <>
-                        Number, link or message —{" "}
-                        <span className="text-[#C2410C] font-semibold whitespace-nowrap">
-                          free, no signup
-                        </span>
-                      </>
-                    ),
-                  }[lang]
-                }
-              </p>
-
-              {/* One-action CTA — scrolls straight to the form */}
-              <div className="mt-7 md:mt-8 flex justify-center animate-fade-in-up">
-                <button type="button" onClick={scrollToForm} className="fancy-btn min-w-[240px]">
-                  <FancyShell showArrow={false}>
-                    {{ ru: "Проверить сейчас", uz: "Hozir tekshirish", en: "Check now" }[lang]}
-                    <ArrowDown className="h-4 w-4" strokeWidth={2} />
-                  </FancyShell>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Bloom band with animated Unicorn background that stretches with content */}
-          <div
-            id="check-form"
-            ref={formRef}
-            className={`scroll-mt-24 w-full max-w-[1200px] mx-auto mb-6 animate-fade-in-up transition-[margin] duration-700 ease-out ${homeResult ? "mt-2" : "mt-5 md:mt-6"}`}
-          >
-            <div className="relative isolate rounded-[28px] overflow-hidden min-h-[340px] md:min-h-[400px] border border-[#EAD9C4] bg-[#FDF6EE]">
-              {/* Calm warm wash — static, low-noise: lets the input breathe */}
-              <div
-                aria-hidden
-                className="absolute inset-0 z-0 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(120% 80% at 50% -10%, rgba(251,146,60,0.16) 0%, rgba(251,146,60,0) 58%)",
-                }}
-              />
-              <div className="relative z-20 flex items-center justify-center px-4 md:px-10 py-10 md:py-14 min-h-[340px] md:min-h-[400px]">
-                <div className="w-full max-w-3xl cta-glow rounded-[8px]">
-                  <CheckInput hideInlineResult onResult={setHomeResult} />
-                </div>
-              </div>
-            </div>
-
-            {homeResult && (
-              <div className="mt-6 w-full max-w-3xl mx-auto animate-fade-in-up">
-                <div className="mb-3 flex justify-end">
-                  <button type="button" onClick={() => setHomeResult(null)} className="apex-pill">
-                    {{ ru: "Сбросить", uz: "Tozalash", en: "Reset" }[lang]}
-                  </button>
-                </div>
-                <RiskResultCard result={homeResult} />
-              </div>
-            )}
-          </div>
-        </section>
-
+    <div className="approved-home overflow-hidden home-stripes-bg">
+      <div className="approved-home-container max-w-[1400px] mx-auto px-4 sm:px-6 space-y-16 md:space-y-28 lg:space-y-32 pt-3 md:pt-4">
+        <ApprovedHomeHero
+          lang={lang}
+          result={homeResult}
+          formRef={formRef}
+          onResult={setHomeResult}
+          onReset={() => setHomeResult(null)}
+          onScrollToForm={scrollToForm}
+        />
         {/* SOCIAL PROOF — live counters plus verified official-contact coverage */}
         <StatsStrip />
 

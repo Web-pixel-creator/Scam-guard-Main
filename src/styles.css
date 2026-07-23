@@ -1,5 +1,6 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
+@import "./approved-design.css";
 
 @source "../src";
 
@@ -7,8 +8,8 @@
 
 @theme inline {
   --breakpoint-xs: 420px;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --radius-sm: 12px;

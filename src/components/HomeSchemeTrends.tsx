@@ -16,7 +16,7 @@ export function HomeSchemeTrends() {
   return (
     <section
       aria-labelledby="home-scheme-trends-title"
-      className="rounded-[8px] border border-[#E2E0D8] bg-white p-5 sm:p-7 md:p-8"
+      className="approved-signals rounded-[8px] border border-[#E2E0D8] bg-white p-5 sm:p-7 md:p-8"
     >
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div>
