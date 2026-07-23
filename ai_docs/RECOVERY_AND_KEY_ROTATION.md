@@ -14,6 +14,10 @@ command without a separately approved maintenance window.
 - Proposed launch target: RPO <= 24 hours with managed daily backups and RTO <=
   4 hours. PITR should replace this with the explicitly purchased recovery
   window before higher-volume launch.
+- Current pilot plan: Supabase Free. It has no managed scheduled backups or
+  PITR, so the proposed launch RPO is not guaranteed while the project remains
+  on Free. Until an upgrade, create an encrypted logical export at least weekly
+  and immediately before every approved risky schema or Auth change.
 - Supabase documents managed daily backups for paid projects and optional PITR:
   <https://supabase.com/docs/guides/platform/backups>.
 
@@ -21,8 +25,9 @@ command without a separately approved maintenance window.
 
 1. In Supabase Dashboard, record plan, backup type, earliest/latest restore
    point and retention. Record metadata only; never attach a backup to the repo.
-2. Confirm a backup newer than the chosen RPO exists before every risky schema
-   or Auth change.
+2. On Free, confirm a successful encrypted logical export exists before every
+   risky schema or Auth change. If no approved encrypted offsite destination is
+   available, record the recovery gate as open and do not claim the target RPO.
 3. When a portable logical export is required, use an authorized operator shell
    and `supabase db dump`/`pg_dump`; store the encrypted output outside GitHub,
    Codex logs and the workspace. Do not pass a database password on the command

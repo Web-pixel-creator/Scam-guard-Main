@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck, ArrowLeft, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import {
+  SIGNUP_PASSWORD_MIN_LENGTH,
+  SIGNUP_PASSWORD_PATTERN,
+  SIGNUP_PASSWORD_REQUIREMENTS,
+} from "@/lib/auth-password-policy";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Вход — Ishonch Guard" }] }),
@@ -129,7 +134,9 @@ function LoginPage() {
               type="password"
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               required
-              minLength={6}
+              minLength={mode === "signin" ? 6 : SIGNUP_PASSWORD_MIN_LENGTH}
+              pattern={mode === "signup" ? SIGNUP_PASSWORD_PATTERN : undefined}
+              title={mode === "signup" ? SIGNUP_PASSWORD_REQUIREMENTS : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="apex-field"
