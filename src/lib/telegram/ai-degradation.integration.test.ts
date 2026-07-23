@@ -484,7 +484,7 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     process.env.OPENAI_FALLBACK_MODEL = "fallback-model";
 
     const fetchMock = vi.fn(async (url: string) => {
-      if (url.startsWith("https://primary.example")) {
+      if (new URL(url).origin === "https://primary.example") {
         return {
           ok: false,
           status: 429,

@@ -6,6 +6,7 @@
 //
 // Security: this script uses synthetic Telegram ids only, never prints secrets,
 // and removes its own telegram_sessions / telegram_webhook_updates rows.
+import { randomInt } from "node:crypto";
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -75,11 +76,11 @@ function untypedSupabase(): SupabaseClient {
 }
 
 function nextUpdateId(): number {
-  return 1_782_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 1_782_000_000 + randomInt(1_000_000);
 }
 
 function syntheticTelegramIds(): { userId: number; privateChatId: number; groupChatId: number } {
-  const suffix = Math.floor(Math.random() * 1_000_000);
+  const suffix = randomInt(1_000_000);
   const userId = 8_880_000_000_000 + suffix;
   return {
     userId,

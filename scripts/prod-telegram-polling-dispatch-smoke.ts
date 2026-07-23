@@ -7,6 +7,7 @@
 // This intentionally does not acquire the singleton polling leader or inject a
 // fake update into getUpdates. Synthetic payloads stay in this process, while
 // real handler replies are allowed only to TELEGRAM_QA_CHAT_ID and are deleted.
+import { randomInt } from "node:crypto";
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -86,17 +87,17 @@ function randomLetters(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   let value = "";
   for (let index = 0; index < length; index += 1) {
-    value += alphabet[Math.floor(Math.random() * alphabet.length)];
+    value += alphabet[randomInt(alphabet.length)];
   }
   return value;
 }
 
 function syntheticTelegramUserId(offset: number): number {
-  return 8_889_000_000_000 + Math.floor(Math.random() * 1_000_000) + offset;
+  return 8_889_000_000_000 + randomInt(1_000_000) + offset;
 }
 
 function nextUpdateId(): number {
-  return 1_789_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 1_789_000_000 + randomInt(1_000_000);
 }
 
 function textUpdate(options: {

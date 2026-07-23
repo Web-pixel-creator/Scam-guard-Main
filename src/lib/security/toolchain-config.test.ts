@@ -19,9 +19,13 @@ describe("toolchain security boundaries", () => {
     expect(manifest.overrides?.["@babel/core"]).toBe("7.29.7");
     expect(manifest.overrides?.vite).toBe("7.3.6");
     expect(manifest.overrides?.esbuild).toBe("0.28.1");
-    expect(manifest.overrides?.["js-yaml"]).toBe("4.2.0");
+    expect(manifest.overrides?.["js-yaml"]).toBe("4.3.0");
+    expect(manifest.overrides?.postcss).toBe("8.5.22");
     expect(manifest.overrides?.["minimatch@3.1.5"]).toEqual({
-      "brace-expansion": "1.1.13",
+      "brace-expansion": "1.1.16",
+    });
+    expect(manifest.overrides?.["minimatch@10.2.5"]).toEqual({
+      "brace-expansion": "5.0.7",
     });
   });
 
@@ -31,10 +35,16 @@ describe("toolchain security boundaries", () => {
     expect(bunLock).toContain("vite@7.3.6");
     expect(bunLock).toContain("esbuild@0.28.1");
     expect(bunLock).toContain("@babel/core@7.29.7");
-    expect(bunLock).toContain("js-yaml@4.2.0");
+    expect(bunLock).toContain("js-yaml@4.3.0");
+    expect(bunLock).toContain("postcss@8.5.22");
+    expect(bunLock).toContain("brace-expansion@1.1.16");
+    expect(bunLock).toContain("brace-expansion@5.0.7");
     expect(bunLock).not.toMatch(/vite@7\.3\.[0-4](?:\D|$)/);
     expect(bunLock).not.toContain("esbuild@0.27.");
-    expect(bunLock).not.toContain("brace-expansion@1.1.12");
+    expect(bunLock).not.toContain("js-yaml@4.2.0");
+    expect(bunLock).not.toMatch(/postcss@8\.5\.(?:[0-9]|1[01])(?:\D|$)/);
+    expect(bunLock).not.toMatch(/brace-expansion@1\.1\.(?:1[0-5])(?:\D|$)/);
+    expect(bunLock).not.toContain("brace-expansion@5.0.6");
   });
 
   it.each(["ci.yml", "security.yml"])("pins every action in %s to a commit SHA", (name) => {

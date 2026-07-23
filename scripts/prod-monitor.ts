@@ -9,6 +9,7 @@
 //
 // Security: this script never prints bot tokens, webhook secrets, alert chat ids,
 // Supabase keys or user content.
+import { randomInt } from "node:crypto";
 import process from "node:process";
 import {
   shouldFailMonitor,
@@ -156,7 +157,7 @@ async function checkWebhookSecretFlow(config: MonitorConfig): Promise<MonitorChe
 
   const webhookUrl = `${config.publicUrl}${WEBHOOK_PATH}`;
   const baseUpdate = () => ({
-    update_id: 1_782_000_000 + Math.floor(Math.random() * 1_000_000),
+    update_id: 1_782_000_000 + randomInt(1_000_000),
   });
 
   const missingSecret = await postWebhook(

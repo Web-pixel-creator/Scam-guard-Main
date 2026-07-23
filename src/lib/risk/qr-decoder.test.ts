@@ -89,13 +89,14 @@ describe("QR decoder", () => {
   }, 10_000);
 
   it("keeps the per-process QR worker backlog bounded", async () => {
-    const dataUrl = await qrPngDataUrl("https://example.com/bounded-queue");
+    const boundedQueueUrl = "https://example.com/bounded-queue";
+    const dataUrl = await qrPngDataUrl(boundedQueueUrl);
     const results = await Promise.all(
       Array.from({ length: 5 }, () => decodeQrFromDataUrl(dataUrl)),
     );
 
     expect(
-      results.filter((result) => result.urls.includes("https://example.com/bounded-queue")),
+      results.filter((result) => result.urls.some((url) => url === boundedQueueUrl)),
     ).toHaveLength(4);
     expect(results.filter((result) => result.values.length === 0)).toHaveLength(1);
   });

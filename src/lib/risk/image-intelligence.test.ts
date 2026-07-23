@@ -567,6 +567,14 @@ describe("image intelligence evidence builder", () => {
       values: [String.raw`WIFI:T:WPA;S:VictimHome;P:secret\;password;;`],
       urls: [],
     });
+    const repeatedWifiPassword = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: ["WIFI:P:;S:VictimHome;P:first-secret;P:second-secret;;"],
+      urls: [],
+    });
+    const unterminatedEscapedWifi = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
+      values: [String.raw`WIFI:S:VictimHome;P:secret\;password`],
+      urls: [],
+    });
     const localizedPassword = mergeDecodedQrEvidence(fallbackImageIntelligence("QR"), {
       values: ["Пароль: секретная-фраза"],
       urls: [],
@@ -587,6 +595,13 @@ describe("image intelligence evidence builder", () => {
     expect(buildImageCheckInput(separatedOtp)).not.toContain("1 2 3 4 5 6");
     expect(buildImageCheckInput(escapedWifi)).toContain("P:[hidden]");
     expect(buildImageCheckInput(escapedWifi)).not.toContain(String.raw`secret\;password`);
+    expect(buildImageCheckInput(repeatedWifiPassword).match(/P:\[hidden\]/g)).toHaveLength(2);
+    expect(buildImageCheckInput(repeatedWifiPassword)).not.toContain("first-secret");
+    expect(buildImageCheckInput(repeatedWifiPassword)).not.toContain("second-secret");
+    expect(buildImageCheckInput(unterminatedEscapedWifi)).toContain("P:[hidden]");
+    expect(buildImageCheckInput(unterminatedEscapedWifi)).not.toContain(
+      String.raw`secret\;password`,
+    );
     expect(buildImageCheckInput(localizedPassword)).toContain("Пароль: [hidden]");
     expect(buildImageCheckInput(localizedPassword)).not.toContain("секретная-фраза");
   });

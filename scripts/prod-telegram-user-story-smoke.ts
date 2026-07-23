@@ -6,6 +6,7 @@
 //
 // Security: uses synthetic Telegram users only, never prints secrets/chat ids,
 // posts only to TELEGRAM_QA_CHAT_ID, and removes its own checks / sessions / webhook dedup rows.
+import { randomInt } from "node:crypto";
 import process from "node:process";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -108,7 +109,7 @@ function randomLetters(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   let value = "";
   for (let i = 0; i < length; i += 1) {
-    value += alphabet[Math.floor(Math.random() * alphabet.length)];
+    value += alphabet[randomInt(alphabet.length)];
   }
   return value;
 }
@@ -116,17 +117,17 @@ function randomLetters(length: number): string {
 function randomDigits(length: number): string {
   let value = "";
   for (let i = 0; i < length; i += 1) {
-    value += Math.floor(Math.random() * 10);
+    value += randomInt(10);
   }
   return value;
 }
 
 function nextUpdateId(): number {
-  return 1_784_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 1_784_000_000 + randomInt(1_000_000);
 }
 
 function syntheticTelegramUserId(offset: number): number {
-  return 8_884_000_000_000 + Math.floor(Math.random() * 1_000_000) + offset;
+  return 8_884_000_000_000 + randomInt(1_000_000) + offset;
 }
 
 async function postWebhook(

@@ -65,7 +65,7 @@ function getFirstContentLine(text: string): string {
  */
 function startsWithUppercase(line: string): boolean {
   // Strip leading non-letter characters (emoji, symbols, spaces, quotes, etc.)
-  const stripped = line.replace(/^[^a-zA-Zа-яА-ЯёЁa-zA-ZA-Z\u0400-\u04FF]+/, "");
+  const stripped = line.replace(/^[^\p{L}]+/u, "");
   if (stripped.length === 0) return false;
   const firstChar = stripped[0];
   return firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase();

@@ -45,17 +45,13 @@ describe("admin role lifecycle reconciliation migration", () => {
   });
 
   it("keeps privileged helpers unavailable to client and service roles", () => {
-    for (const signature of [
-      "private.reconcile_admin_role(uuid)",
-      "private.handle_admin_allowlist_role_change()",
-      "public.handle_new_user_role()",
-      "public.handle_confirmed_admin_allowlist_role()",
+    for (const revokePattern of [
+      /REVOKE ALL ON FUNCTION private\.reconcile_admin_role\(uuid\)[\s\S]*?FROM PUBLIC, anon, authenticated, service_role/,
+      /REVOKE ALL ON FUNCTION private\.handle_admin_allowlist_role_change\(\)[\s\S]*?FROM PUBLIC, anon, authenticated, service_role/,
+      /REVOKE ALL ON FUNCTION public\.handle_new_user_role\(\)[\s\S]*?FROM PUBLIC, anon, authenticated, service_role/,
+      /REVOKE ALL ON FUNCTION public\.handle_confirmed_admin_allowlist_role\(\)[\s\S]*?FROM PUBLIC, anon, authenticated, service_role/,
     ]) {
-      expect(migrationSql).toMatch(
-        new RegExp(
-          `REVOKE ALL ON FUNCTION ${signature.replace(/[().]/g, "\\$&")}[\\s\\S]*?FROM PUBLIC, anon, authenticated, service_role`,
-        ),
-      );
+      expect(migrationSql).toMatch(revokePattern);
     }
   });
 

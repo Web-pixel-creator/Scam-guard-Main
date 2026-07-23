@@ -9,6 +9,7 @@
 // sends only to TELEGRAM_QA_CHAT_ID, deletes direct Bot API test audio,
 // and removes its own webhook/session DB rows. The app-generated voice-out
 // audio may remain in the QA chat as live playback evidence.
+import { randomInt } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -109,17 +110,17 @@ function randomLetters(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   let value = "";
   for (let i = 0; i < length; i += 1) {
-    value += alphabet[Math.floor(Math.random() * alphabet.length)];
+    value += alphabet[randomInt(alphabet.length)];
   }
   return value;
 }
 
 function nextUpdateId(): number {
-  return 1_784_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 1_784_000_000 + randomInt(1_000_000);
 }
 
 function syntheticTelegramUserId(): number {
-  return 8_884_000_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 8_884_000_000_000 + randomInt(1_000_000);
 }
 
 function untypedSupabase(): SupabaseClient {

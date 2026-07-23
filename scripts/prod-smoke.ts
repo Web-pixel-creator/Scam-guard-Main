@@ -7,6 +7,7 @@
 //
 // Security: this script never prints bot tokens, webhook secrets, Supabase
 // service-role keys, API keys, Telegram user ids or chat ids.
+import { randomInt } from "node:crypto";
 import process from "node:process";
 import {
   expectedAuthenticatedWebhookStatus,
@@ -279,7 +280,7 @@ async function checkLiveTelegram(publicUrl: string, webhookSecret: string): Prom
 }
 
 function nextUpdateId(): number {
-  return 1_781_000_000 + Math.floor(Math.random() * 1_000_000);
+  return 1_781_000_000 + randomInt(1_000_000);
 }
 
 async function main(): Promise<void> {

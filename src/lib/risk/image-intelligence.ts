@@ -542,7 +542,6 @@ function decodedQrInputLines(evidence: ImageIntelligenceResult): string[] {
   return decodedQrValues(evidence).map((value) => `Decoded QR URL/value: ${value}`);
 }
 
-const WIFI_PASSWORD_FIELD_RE = /(^|;)P:(?:\\.|[^;])+(?=;|$)/i;
 const LABELED_PASSWORD_RE =
   /((?<![\p{L}\p{N}_])(?:password|passcode|passwd|pwd|parol|пароль)\s*[:=]\s*)[^;\r\n]+/giu;
 const LABELED_OTP_RE =
@@ -556,6 +555,58 @@ const SENSITIVE_QUERY_VALUE_RE =
 const LABELED_RECOVERY_PHRASE_RE =
   /((?<![\p{L}\p{N}_])(?:(?:seed|recovery|backup|mnemonic)\s*(?:phrase|words?)?|сид[-\s]?фраза|фраза\s+восстановления|резервные\s+слова|tiklash\s+(?:iborasi|so['’]?zlari)|maxfiy\s+ibora)\s*[:=]\s*)([^;\r\n]+)/giu;
 const RECOVERY_PHRASE_LENGTHS = new Set([12, 15, 18, 21, 24]);
+
+function findWifiPasswordField(
+  value: string,
+  fromIndex = 0,
+): { end: number; start: number } | null {
+  for (let markerIndex = fromIndex; markerIndex + 2 <= value.length; markerIndex += 1) {
+    const marker = value[markerIndex];
+    if (
+      (marker !== "P" && marker !== "p") ||
+      value[markerIndex + 1] !== ":" ||
+      (markerIndex > 0 && value[markerIndex - 1] !== ";")
+    ) {
+      continue;
+    }
+
+    const passwordStart = markerIndex + 2;
+    let emptyField = false;
+    for (let index = passwordStart; index < value.length; index += 1) {
+      if (value[index] === "\\") {
+        index += 1;
+        continue;
+      }
+      if (value[index] === ";") {
+        if (index > passwordStart) return { start: markerIndex, end: index };
+        emptyField = true;
+        break;
+      }
+    }
+
+    if (passwordStart < value.length && !emptyField) {
+      return { start: markerIndex, end: value.length };
+    }
+  }
+
+  return null;
+}
+
+function redactWifiPasswordFields(value: string): string {
+  let cursor = 0;
+  let redacted = "";
+
+  for (
+    let range = findWifiPasswordField(value);
+    range;
+    range = findWifiPasswordField(value, cursor)
+  ) {
+    redacted += `${value.slice(cursor, range.start)}P:[hidden]`;
+    cursor = range.end;
+  }
+
+  return cursor === 0 ? value : redacted + value.slice(cursor);
+}
 
 function redactLabeledRecoveryPhrase(value: string): string {
   return value.replace(
@@ -577,7 +628,7 @@ function redactLabeledRecoveryPhrase(value: string): string {
 }
 
 function decodedQrContainsSecret(value: string): boolean {
-  if (WIFI_PASSWORD_FIELD_RE.test(value)) return true;
+  if (findWifiPasswordField(value)) return true;
   if (
     LABELED_PASSWORD_MARKER_RE.test(value) ||
     LABELED_OTP_MARKER_RE.test(value) ||
@@ -596,9 +647,7 @@ function shouldAddDecodedSecretHint(value: string): boolean {
 }
 
 function redactDecodedQrValue(value: string): string {
-  return redactLabeledRecoveryPhrase(value)
-    .trim()
-    .replace(WIFI_PASSWORD_FIELD_RE, "$1P:[hidden]")
+  return redactWifiPasswordFields(redactLabeledRecoveryPhrase(value).trim())
     .replace(LABELED_PASSWORD_RE, "$1[hidden]")
     .replace(LABELED_OTP_RE, "$1[hidden]")
     .replace(/((?:tg|telegram):\/\/login\?token=)[^&\s]+/i, "$1[hidden]")
