@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Globe, Menu, ShieldCheck, X } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { FancyShell } from "./FancyButton";
 import { useLang } from "@/lib/lang-context";
@@ -28,44 +28,108 @@ function BackButton() {
 }
 
 export function Header() {
-  const { lang } = useLang();
+  const { lang, setLang } = useLang();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHomepage = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  const homepageNav = {
+    ru: ["Как работает", "Схемы", "Официальные номера", "Помощь"],
+    uz: ["Qanday ishlaydi", "Sxemalar", "Rasmiy raqamlar", "Yordam"],
+    en: ["How it works", "Trends", "Official numbers", "Help"],
+  }[lang];
 
   return (
     <header className="site-header">
       <div className="site-header-inner">
         <div className="site-brand-row">
           <BackButton />
-          <Link to="/" className="brand" onClick={closeMenu}>
-            <span className="brand-mark">
-              <ShieldCheck strokeWidth={2.25} />
-            </span>
-            <span>{t("brand", lang)}</span>
-          </Link>
+          {isHomepage ? (
+            <a href="#top" className="brand" onClick={closeMenu}>
+              <span className="brand-mark">
+                <ShieldCheck strokeWidth={2.25} />
+              </span>
+              <span>{t("brand", lang)}</span>
+            </a>
+          ) : (
+            <Link to="/" className="brand" onClick={closeMenu}>
+              <span className="brand-mark">
+                <ShieldCheck strokeWidth={2.25} />
+              </span>
+              <span>{t("brand", lang)}</span>
+            </Link>
+          )}
         </div>
         <nav className={`main-nav${menuOpen ? " is-open" : ""}`} aria-label="Main navigation">
-          <Link to="/check" onClick={closeMenu}>
-            {t("nav_check", lang)}
-          </Link>
-          <Link to="/scam-trends" onClick={closeMenu}>
-            {{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}
-          </Link>
-          <Link to="/official-numbers" onClick={closeMenu}>
-            {{ ru: "Официальные номера", uz: "Rasmiy raqamlar", en: "Official numbers" }[lang]}
-          </Link>
-          <Link to="/emergency" onClick={closeMenu}>
-            {t("nav_emergency", lang)}
-          </Link>
-          <Link to="/report" onClick={closeMenu}>
-            {t("nav_report", lang)}
-          </Link>
+          {isHomepage ? (
+            <>
+              <a href="#how" onClick={closeMenu}>
+                {homepageNav[0]}
+              </a>
+              <a href="#signals" onClick={closeMenu}>
+                {homepageNav[1]}
+              </a>
+              <a href="#official" onClick={closeMenu}>
+                {homepageNav[2]}
+              </a>
+              <a href="#help" onClick={closeMenu}>
+                {homepageNav[3]}
+              </a>
+            </>
+          ) : (
+            <>
+              <Link to="/check" onClick={closeMenu}>
+                {t("nav_check", lang)}
+              </Link>
+              <Link to="/scam-trends" onClick={closeMenu}>
+                {{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}
+              </Link>
+              <Link to="/official-numbers" onClick={closeMenu}>
+                {{ ru: "Официальные номера", uz: "Rasmiy raqamlar", en: "Official numbers" }[lang]}
+              </Link>
+              <Link to="/emergency" onClick={closeMenu}>
+                {t("nav_emergency", lang)}
+              </Link>
+              <Link to="/report" onClick={closeMenu}>
+                {t("nav_report", lang)}
+              </Link>
+            </>
+          )}
         </nav>
         <div className="header-actions">
-          <LanguageSwitcher />
-          <Link to="/check" className="fancy-btn header-cta" onClick={closeMenu}>
-            <FancyShell showArrow={false}>{t("nav_check", lang)}</FancyShell>
-          </Link>
+          {isHomepage ? (
+            <>
+              <button
+                type="button"
+                className="language-button"
+                aria-label={
+                  { ru: "Переключить язык", uz: "Tilni almashtirish", en: "Switch language" }[lang]
+                }
+                onClick={() => setLang(lang === "ru" ? "uz" : lang === "uz" ? "en" : "ru")}
+              >
+                <Globe aria-hidden="true" />
+                {lang.toUpperCase()}
+                <ChevronDown aria-hidden="true" />
+              </button>
+              <a href="#checker" className="header-cta animated-orange-cta" onClick={closeMenu}>
+                <span className="points_wrapper" aria-hidden="true">
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <i className="point" key={index} />
+                  ))}
+                </span>
+                <span className="animated-cta-inner">
+                  {{ ru: "Проверить", uz: "Tekshirish", en: "Check" }[lang]}
+                </span>
+              </a>
+            </>
+          ) : (
+            <>
+              <LanguageSwitcher />
+              <Link to="/check" className="fancy-btn header-cta" onClick={closeMenu}>
+                <FancyShell showArrow={false}>{t("nav_check", lang)}</FancyShell>
+              </Link>
+            </>
+          )}
           <button
             type="button"
             className="menu-button"

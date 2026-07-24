@@ -3,9 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { submitReport } from "@/lib/report.functions";
 import { buildQuickReportSubmitData } from "@/lib/quick-report-payload";
 import { useLang } from "@/lib/lang-context";
-import { Send, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Send, CheckCircle2 } from "lucide-react";
 
-export function QuickReportForm() {
+export function QuickReportForm({ variant = "default" }: { variant?: "default" | "signal" }) {
   const { lang } = useLang();
   const submit = useServerFn(submitReport);
   const id = useId();
@@ -87,6 +87,58 @@ export function QuickReportForm() {
     } finally {
       setSending(false);
     }
+  }
+
+  if (done && variant === "signal") {
+    return (
+      <div className="report-success" role="status" aria-live="polite">
+        <CheckCircle2 aria-hidden="true" />
+        <div>
+          <strong>Спасибо — сигнал принят</strong>
+          <span>Публичная метка появится только после ручной модерации.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "signal") {
+    return (
+      <form onSubmit={onSubmit} noValidate>
+        <label>
+          <span className="sr-only">Опишите подозрительную ситуацию</span>
+          <textarea
+            required
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Например: позвонили из «банка» и попросили установить APK…"
+            rows={4}
+            minLength={5}
+            maxLength={5000}
+            aria-invalid={!!error}
+          />
+        </label>
+        {error && (
+          <p className="signal-report-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={sending || description.trim().length < 5}
+          className="animated-orange-cta"
+        >
+          <span className="points_wrapper" aria-hidden="true">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <i className="point" key={index} />
+            ))}
+          </span>
+          <span className="animated-cta-inner">
+            {sending ? "Отправляем…" : "Сообщить о случае"}
+            {!sending && <ArrowRight aria-hidden="true" />}
+          </span>
+        </button>
+      </form>
+    );
   }
 
   if (done) {

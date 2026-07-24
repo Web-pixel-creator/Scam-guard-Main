@@ -49,15 +49,16 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `start.ts`            | TanStack Start setup: request error middleware and server-function middleware.                                                                                |
 | `router.tsx`          | TanStack Router + Query client.                                                                                                                               |
 | `routeTree.gen.ts`    | Auto-generated route tree.                                                                                                                                    |
-| `styles.css`          | Tailwind v4, brand tokens, accessibility modes and the approved editorial design import.                                                                      |
-| `approved-design.css` | Shared warm-white editorial design, exact striped background, responsive rules and reduced-motion-safe interaction polish for `/` and `/admin`.               |
+| `styles.css`          | Tailwind v4, brand tokens, accessibility modes and imports for the approved production/editorial surfaces.                                                    |
+| `approved-design.css` | Compatibility styling for the existing translated production routes and shared chrome.                                                                        |
+| `signal-exact.css`    | Exact approved homepage/admin visual system: production stripe, editorial grids, responsive rules, reduced-motion CTAs and smooth disclosure states.          |
 
 ## `src/routes/`
 
 | File                   | URL                 | Notes                                                                                                                                                                          |
 | ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `__root.tsx`           | app shell           | Providers, responsive Header/Footer, SEO meta, language sync and route-specific chrome boundaries for the homepage, embed and admin.                                           |
-| `index.tsx`            | `/`                 | Main experience and complete landing content, led by the production-connected approved hero/checker. Large file.                                                               |
+| `index.tsx`            | `/`                 | Chooses the exact approved Russian homepage while preserving the established translated UZ/EN production landing experience.                                                   |
 | `check.tsx`            | `/check`            | Dedicated check page.                                                                                                                                                          |
 | `embed.tsx`            | `/embed`            | Partner-facing iframe snippet generator and live preview.                                                                                                                      |
 | `embed.check.tsx`      | `/embed/check`      | No-chrome iframe runtime for compact partner-site checks, including compact Risk Passport summaries and privacy-safe origin usage telemetry for shallow phone/Telegram checks. |
@@ -72,14 +73,17 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 
 ## Approved public UI components
 
-| File                                    | Purpose                                                                                                                        |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `src/components/ApprovedHomeHero.tsx`   | Approved three-line homepage hero wired to the real `CheckInput`, OCR/result state, report flow and Telegram bot link.         |
-| `src/components/Layout.tsx`             | Shared responsive site header and footer using the approved typography, spacing, navigation and floating-points CTA treatment. |
-| `src/components/StatsStrip.tsx`         | Live aggregate proof strip with approved section styling hook.                                                                 |
-| `src/components/HomeImpactCounters.tsx` | Privacy-safe aggregate impact counters with approved section styling hook.                                                     |
-| `src/components/HomeTrustSurface.tsx`   | Verified official-contact directory surface with approved section styling hook.                                                |
-| `src/components/HomeSchemeTrends.tsx`   | Static/aggregate scheme-trend surface with approved section styling hook.                                                      |
+| File                                         | Purpose                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/ApprovedRussianHomepage.jsx` | Exact approved Russian homepage composition with live check/OCR/report paths, live aggregates, all established education/emergency/privacy content and real route links. |
+| `src/components/ApprovedHomeHero.tsx`        | Approved three-line homepage hero wired to the real `CheckInput`, OCR/result state, report flow and Telegram bot link.                                                   |
+| `src/components/Layout.tsx`                  | Shared responsive site header and footer using the approved typography, spacing, navigation and floating-points CTA treatment.                                           |
+| `src/components/CheckInput.tsx`              | Shared production checker; the `signal` presentation variant powers the exact hero without forking the server-side risk/OCR path.                                        |
+| `src/components/QuickReportForm.tsx`         | Shared report flow; the `signal` variant renders the exact community panel while retaining real submission and validation.                                               |
+| `src/components/StatsStrip.tsx`              | Live aggregate proof strip with approved section styling hook.                                                                                                           |
+| `src/components/HomeImpactCounters.tsx`      | Privacy-safe aggregate impact counters with approved section styling hook.                                                                                               |
+| `src/components/HomeTrustSurface.tsx`        | Verified official-contact directory surface with approved section styling hook.                                                                                          |
+| `src/components/HomeSchemeTrends.tsx`        | Static/aggregate scheme-trend surface with approved section styling hook.                                                                                                |
 
 ## `src/lib/`
 

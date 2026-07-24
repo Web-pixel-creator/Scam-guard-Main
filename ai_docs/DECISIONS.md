@@ -14,6 +14,11 @@ background and reduced-motion-safe floating-points CTAs are part of the shared
 system. Railway deployment is allowed only after explicit user approval and
 local build, lint and responsive verification.
 
+The localhost design review may show the last manually compared Railway
+aggregate baseline only when the local stats source returns an all-zero result.
+This substitution is explicitly hostname-gated to localhost. Any deployed host
+uses the real aggregate response, including a legitimate all-zero state.
+
 ## D-083 - Direct and Inline preserve one specific human-scenario contract
 
 Direct chat and stateless Inline may use different transports and persistence

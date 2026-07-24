@@ -10,6 +10,19 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import {
+  ArrowRight as SignalArrowRight,
+  ChatText,
+  CheckCircle as SignalCheckCircle,
+  FileArrowUp,
+  ImageSquare,
+  LinkSimple,
+  PaperPlaneTilt,
+  Phone,
+  Sparkle as SignalSparkle,
+  UploadSimple,
+  WarningCircle,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
@@ -18,12 +31,22 @@ import { safeCheckErrorMessage, safeClientErrorReason } from "@/lib/client-error
 import { useServerFn } from "@tanstack/react-start";
 import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
+import { ADVICE, REASON_LABELS } from "@/lib/risk/rules";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MIN_INPUT_CHARS = 3;
 const MAX_INPUT_CHARS = 2000;
 
 type Status = "idle" | "loading" | "success" | "error";
+
+const SIGNAL_CHECK_TYPES = [
+  { id: "message", label: "Сообщение", icon: ChatText },
+  { id: "phone", label: "Номер", icon: Phone },
+  { id: "telegram", label: "Telegram", icon: PaperPlaneTilt },
+  { id: "link", label: "Ссылка", icon: LinkSimple },
+  { id: "image", label: "Скриншот", icon: ImageSquare },
+  { id: "apk", label: "APK", icon: FileArrowUp },
+] as const;
 
 function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
   return (
@@ -58,10 +81,12 @@ export function CheckInput({
   defaultValue = "",
   hideInlineResult = false,
   onResult,
+  variant = "default",
 }: {
   defaultValue?: string;
   hideInlineResult?: boolean;
   onResult?: (r: CheckResult | null) => void;
+  variant?: "default" | "signal";
 }) {
   const { lang } = useLang();
   const navigate = useNavigate();
@@ -76,6 +101,9 @@ export function CheckInput({
   const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const [signalKind, setSignalKind] =
+    useState<(typeof SIGNAL_CHECK_TYPES)[number]["id"]>("message");
+  const [signalEdited, setSignalEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const checkFn = useServerFn(checkInput);
   const ocrFn = useServerFn(ocrExtract);
@@ -181,6 +209,217 @@ export function CheckInput({
 
   const canSubmit = (!!value.trim() || ocrPreviewOpen) && !loading && !validationMsg;
   const charCount = value.trim().length;
+
+  if (variant === "signal") {
+    const showDemoResult =
+      !signalEdited && !result && !metaResponse && !error && !!defaultValue.trim();
+    const visualLevel = result?.level ?? "high_risk";
+    const signalResultClass = {
+      safe: "signal-result-safe",
+      unknown: "signal-result-neutral",
+      suspicious: "signal-result-warn",
+      high_risk: "signal-result-danger",
+    }[visualLevel];
+    const levelLabel = result
+      ? {
+          safe: "Низкий риск",
+          unknown: "Недостаточно данных",
+          suspicious: "Подозрительно",
+          high_risk: "Высокий риск",
+        }[result.level]
+      : "Высокий риск";
+    const mappedReasons = result
+      ? result.reasons.slice(0, 2).map((reason) => REASON_LABELS[reason][lang])
+      : [];
+    const resultReasons =
+      mappedReasons.length > 0
+        ? mappedReasons
+        : result
+          ? [
+              {
+                ru: "Явных опасных признаков не найдено",
+                uz: "Aniq xavf belgilari topilmadi",
+                en: "No clear danger signals found",
+              }[lang],
+            ]
+          : ["Просят сообщить код из SMS", "Создают давление и срочность"];
+    const nextAction = result
+      ? ADVICE[result.level][lang][0]
+      : "Положите трубку и перезвоните по официальному номеру банка.";
+
+    return (
+      <>
+        <div className="type-tabs" role="tablist" aria-label="Тип проверки">
+          {SIGNAL_CHECK_TYPES.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                className={signalKind === item.id ? "type-tab is-active" : "type-tab"}
+                type="button"
+                role="tab"
+                aria-selected={signalKind === item.id}
+                onClick={() => {
+                  setSignalKind(item.id);
+                  if (item.id === "image") fileInputRef.current?.click();
+                }}
+              >
+                <Icon />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="check-field">
+          <span className="sr-only">Введите данные для проверки</span>
+          <textarea
+            value={value}
+            onChange={(event) => {
+              const next = event.target.value;
+              setValue(next);
+              setSignalEdited(true);
+              setError(null);
+              setResult(null);
+              setMetaResponse(null);
+              onResult?.(null);
+            }}
+            onBlur={() => setTouched(true)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") void run();
+            }}
+            placeholder="Вставьте номер, ссылку или текст сообщения"
+            rows={5}
+            maxLength={MAX_INPUT_CHARS}
+            aria-invalid={!!validationMsg}
+          />
+          <span className="field-counter">
+            {charCount} / {MAX_INPUT_CHARS}
+          </span>
+        </label>
+
+        {ocrPreviewOpen && (
+          <div className="signal-ocr-preview">
+            <div>
+              <strong>{imageName || "Скриншот"}</strong>
+              <span>Текст распознан — проверьте его перед анализом.</span>
+            </div>
+            <textarea
+              value={ocrText}
+              onChange={(event) => setOcrText(event.target.value)}
+              rows={3}
+              aria-label="Текст со скриншота"
+            />
+            <button type="button" onClick={clearImage}>
+              Удалить скриншот
+            </button>
+          </div>
+        )}
+
+        <div className="checker-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(event) => void onPickFile(event.target.files?.[0])}
+          />
+          <button
+            className="upload-button"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={ocrLoading}
+          >
+            <UploadSimple />
+            {ocrLoading ? "Читаем скриншот…" : "Прикрепить скриншот"}
+          </button>
+          <button
+            className="check-button animated-orange-cta"
+            type="button"
+            onClick={() => void run()}
+            disabled={!canSubmit || ocrLoading}
+          >
+            <span className="points_wrapper" aria-hidden="true">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <i className="point" key={index} />
+              ))}
+            </span>
+            <span className="animated-cta-inner">
+              {loading ? "Анализируем…" : "Проверить риск"}
+              {!loading && <SignalArrowRight weight="bold" />}
+            </span>
+          </button>
+        </div>
+
+        <div
+          className={`result-panel ${
+            loading || ocrLoading
+              ? "result-loading"
+              : result || showDemoResult
+                ? `result-result ${signalResultClass}`
+                : error
+                  ? "result-error"
+                  : "result-idle"
+          }`}
+          aria-live="polite"
+        >
+          {loading || ocrLoading ? (
+            <div className="loading-state">
+              <span className="loading-ring" />
+              <div>
+                <strong>{ocrLoading ? "Читаем скриншот" : "Проверяем сигналы риска"}</strong>
+                <small>Ссылки, давление, просьбы о кодах и переводе</small>
+              </div>
+            </div>
+          ) : result || showDemoResult ? (
+            <>
+              <div className="result-summary">
+                <span className="risk-icon">
+                  {visualLevel === "safe" ? (
+                    <SignalCheckCircle weight="fill" />
+                  ) : (
+                    <WarningCircle weight="fill" />
+                  )}
+                </span>
+                <div>
+                  <span className="result-label">Результат проверки</span>
+                  <strong>{levelLabel}</strong>
+                </div>
+                <span className="risk-score">{result?.score ?? 88} / 100</span>
+              </div>
+              <div className="reason-list">
+                {resultReasons.map((reason) => (
+                  <span key={reason}>{reason}</span>
+                ))}
+              </div>
+              <div className="safe-action">
+                <SignalCheckCircle weight="fill" />
+                <div>
+                  <small>Что сделать прямо сейчас</small>
+                  <strong>{nextAction}</strong>
+                </div>
+              </div>
+            </>
+          ) : error ? (
+            <div className="idle-state signal-error-state">
+              <WarningCircle weight="fill" />
+              {error}
+            </div>
+          ) : metaResponse ? (
+            <div className="idle-state">
+              <SignalSparkle />
+              {metaResponse}
+            </div>
+          ) : (
+            <div className="idle-state">
+              <SignalSparkle />
+              Результат появится здесь и будет объяснён простыми словами.
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="w-full">

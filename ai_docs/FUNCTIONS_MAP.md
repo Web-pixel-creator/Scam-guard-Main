@@ -4,14 +4,22 @@ Signatures and intent only. See file paths for source.
 
 ## Approved UI integration
 
+- `ApprovedRussianHomepage()` composes the exact approved Russian landing page
+  and reads `getPublicStats()` plus the verified-contact directory for factual
+  counters. An all-zero local preview uses the last Railway-reviewed aggregate
+  baseline only on localhost; deployed hosts never substitute that baseline.
+- `CheckInput({ variant: "signal" })` and
+  `QuickReportForm({ variant: "signal" })` reuse the production server
+  functions inside the exact checker and community-report presentation.
 - `ApprovedHomeHero({ lang, result, formRef, onResult, onReset, onScrollToForm })`
-  composes the approved three-line hero around the existing production
-  `CheckInput` and `RiskResultCard`. It does not fork risk evaluation, OCR,
-  reporting or persistence logic.
+  remains the translated UZ/EN-compatible production hero. It does not fork
+  risk evaluation, OCR, reporting or persistence logic.
 - `Layout` keeps the public route map and language selector intact while
   applying one shared responsive header/footer and floating-points CTA system.
 - `AdminPage` keeps the existing authenticated queries and mutation handlers;
-  its redesign changes presentation and disclosure motion only.
+  its redesign changes presentation and disclosure motion only. Report-card
+  hover never moves layout, and entity rows reserve a smooth disclosure region
+  while their real detail query resolves.
 
 ## Server functions
 

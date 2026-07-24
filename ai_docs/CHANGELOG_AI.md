@@ -9,11 +9,19 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added a production-connected three-line homepage hero and shared responsive
   header, spacing, radii, typography, striped background and floating-points
   CTA system.
+- Moved the full approved Russian composition into
+  `ApprovedRussianHomepage`, while keeping UZ/EN on the established translated
+  production surface.
 - Preserved the complete homepage content and existing check/OCR/report,
   official-directory, trends, privacy, emergency and community flows.
 - Restyled the authenticated admin dashboard while preserving real auth, role
   checks, report moderation, appeals and entity disclosures; the local review
   adds no authorization bypass.
+- Removed positional hover movement from admin report cards and made FAQ/entity
+  disclosures animate through bounded height, opacity and transform states.
+- Verified both approved surfaces without horizontal overflow at 320, 375,
+  390, 768, 1024, 1280, 1440 and 1920 pixels; the authenticated React admin
+  route continues to redirect anonymous sessions to `/login`.
 - Recorded the new UI files and the presentation-only security boundary in the
   file, function and decision maps.
 

@@ -43,7 +43,10 @@
     "admin-role:preflight": "vite-node scripts/admin-role-preflight.ts"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
     "@hookform/resolvers": "^5.2.2",
+    "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",

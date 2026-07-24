@@ -31,6 +31,7 @@ import { HomeSchemeTrends } from "@/components/HomeSchemeTrends";
 import { HomeImpactCounters } from "@/components/HomeImpactCounters";
 import { QuickReportForm } from "@/components/QuickReportForm";
 import { ApprovedHomeHero } from "@/components/ApprovedHomeHero";
+import { ApprovedRussianHomepage } from "@/components/ApprovedRussianHomepage";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -146,6 +147,10 @@ function Index() {
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
+
+  if (lang === "ru") {
+    return <ApprovedRussianHomepage />;
+  }
 
   return (
     <div className="approved-home overflow-hidden home-stripes-bg">

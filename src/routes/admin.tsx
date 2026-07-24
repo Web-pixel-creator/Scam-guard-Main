@@ -10,11 +10,13 @@ import {
   X,
   LogOut,
   RefreshCcw,
-  ArrowLeft,
   ChevronDown,
   FileText,
   ListFilter,
   Inbox,
+  ChartNoAxesCombined,
+  LockKeyhole,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -201,55 +203,44 @@ function AdminPage() {
             <Link to="/">На главную</Link>
           </div>
         </header>
-        {/* Header */}
-        <div className="admin-hero">
-          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-            <span className="apex-mono">Админка</span>
-            <span className="apex-status" data-state="success">
-              <span className="apex-status-dot" />
-              Вы вошли
+        <section className="admin-hero">
+          <div className="admin-hero-copy">
+            <span className="section-index">Внутренняя система / Модерация</span>
+            <h1>
+              Проверяйте сигналы.
+              <br />
+              <span>Защищайте людей.</span>
+            </h1>
+            <p>
+              Единая очередь жалоб, апелляций и риск-целей — без передачи личных данных в рабочие
+              чаты.
+            </p>
+          </div>
+          <div className="admin-shift-card">
+            <span>
+              <ShieldCheck aria-hidden="true" /> Смена активна
             </span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
-            <div className="min-w-0">
-              <p className="label-md mb-3">Внутренняя система / Модерация</p>
-              <h1 className="apex-h1">
-                Проверяйте сигналы. <span>Защищайте людей.</span>
-              </h1>
-              <p className="admin-hero-lead">
-                Единая очередь жалоб, апелляций и риск-целей — без передачи личных данных в рабочие
-                чаты.
-              </p>
+            <strong>Рабочая сессия</strong>
+            <small>{user.email} · роль администратора подтверждена</small>
+            <div className="admin-shift-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  qc.invalidateQueries({ queryKey: ["admin-reports"] });
+                  qc.invalidateQueries({ queryKey: ["admin-entities"] });
+                  qc.invalidateQueries({ queryKey: ["admin-appeals"] });
+                  qc.invalidateQueries({ queryKey: ["admin-stats"] });
+                }}
+              >
+                <RefreshCcw aria-hidden="true" /> Обновить данные
+              </button>
+              <button type="button" onClick={() => signOut().then(() => nav({ to: "/login" }))}>
+                <LogOut aria-hidden="true" /> Выйти
+              </button>
             </div>
-            <div className="admin-shift-card">
-              <span>
-                <ShieldCheck aria-hidden="true" /> Смена активна
-              </span>
-              <strong>{user.email}</strong>
-              <small>Данные доступны только после проверки роли</small>
-              <div className="admin-shift-actions">
-                <button
-                  onClick={() => {
-                    qc.invalidateQueries({ queryKey: ["admin-reports"] });
-                    qc.invalidateQueries({ queryKey: ["admin-entities"] });
-                    qc.invalidateQueries({ queryKey: ["admin-appeals"] });
-                    qc.invalidateQueries({ queryKey: ["admin-stats"] });
-                  }}
-                  className="apex-btn-outline inline-flex items-center gap-2"
-                >
-                  <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" /> Обновить
-                </button>
-                <button
-                  onClick={() => signOut().then(() => nav({ to: "/login" }))}
-                  className="apex-btn-outline inline-flex items-center gap-2"
-                >
-                  <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Выйти
-                </button>
-              </div>
-            </div>
+            <em>Последнее обновление — только что</em>
           </div>
-        </div>
+        </section>
 
         {/* Stats — hairline grid */}
         <div className="admin-metrics">
@@ -262,113 +253,98 @@ function AdminPage() {
 
         {/* Operator guide */}
         <section className="admin-guide premium-surface">
-          <div className="admin-guide-grid">
-            <div>
-              <p className="label-md mb-2">Как работать</p>
-              <h2 className="apex-h2 text-[28px] sm:text-[34px]">Операторский режим</h2>
-              <p className="mt-3 text-[14px] leading-[1.7] text-[#52525B] max-w-2xl">
-                Telegram-чат нужен только как быстрый сигнал для модератора. Решение, история цели и
-                повторные жалобы проверяются здесь, в админке.
-              </p>
-            </div>
-            <div className="border-t border-[#E2E0D8] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-              <p className="apex-mono mb-2">Что в чате</p>
-              <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
-                В группу уходит только маска цели и безопасная сводка. Коды, карты, скриншоты и
-                полные контакты туда не пересылаются.
-              </p>
-            </div>
-            <div className="border-t border-[#E2E0D8] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-              <p className="apex-mono mb-2">Как решать</p>
-              <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
-                Смотрите, что просили сделать, сколько сигналов пришло на цель, есть ли похожие
-                записи и не выглядит ли жалоба как ложное обвинение.
-              </p>
-            </div>
-            <div className="border-t border-[#E2E0D8] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-              <p className="apex-mono mb-2">Приватность</p>
-              <p className="text-[13.5px] leading-[1.7] text-[#52525B]">
-                Коды, карты и полные контакты не публикуются. Работайте с чувствительными данными
-                только внутри защищённой системы.
-              </p>
-            </div>
+          <div>
+            <span className="section-index">Как работать</span>
+            <h2>
+              Операторский
+              <br />
+              режим
+            </h2>
+            <p>
+              Telegram сообщает о новом сигнале. Решение, история цели и повторные жалобы
+              проверяются только здесь.
+            </p>
           </div>
+          <article>
+            <span>01 / Что в чате</span>
+            <ShieldAlert aria-hidden="true" />
+            <strong>Только безопасная сводка</strong>
+            <p>Коды, карты, скриншоты и полные контакты не пересылаются.</p>
+          </article>
+          <article>
+            <span>02 / Как решать</span>
+            <ChartNoAxesCombined aria-hidden="true" />
+            <strong>Контекст важнее счётчика</strong>
+            <p>Проверяйте опасную просьбу, повторы и похожие записи.</p>
+          </article>
+          <article>
+            <span>03 / Приватность</span>
+            <LockKeyhole aria-hidden="true" />
+            <strong>Личные данные остаются здесь</strong>
+            <p>Работайте с чувствительными данными только внутри защищённой системы.</p>
+          </article>
         </section>
 
         {/* Reports */}
         <section className="admin-queue premium-surface" id="admin-queue">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
+          <div className="admin-section-head">
             <div>
-              <p className="label-md mb-2">01 — Жалобы</p>
-              <h2 className="apex-h2">Входящие жалобы</h2>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
+              <span className="section-index">01 / Жалобы</span>
+              <h2>Входящие жалобы</h2>
+              <p>
                 Подтверждайте риск только по понятному описанию опасной просьбы. Мало контекста —
                 отклоните: жалоба останется в истории, а повторные сигналы поднимут приоритет.
-                Публичная метка появляется только после ручного подтверждения.
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:items-end">
-              <div className="flex flex-wrap gap-1.5">
-                {FILTERS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatus(s)}
-                    aria-pressed={status === s}
-                    className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
-                      status === s
-                        ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
-                        : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
-                    }`}
-                  >
-                    {labelStatus(s)}
-                  </button>
-                ))}
-              </div>
-              <div className="inline-flex w-full overflow-hidden rounded-[4px] border border-[#E2E0D8] bg-white sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => setReportSort("priority")}
-                  aria-pressed={reportSort === "priority"}
-                  className={`inline-flex flex-1 items-center justify-center gap-1.5 px-3 py-2 apex-mono transition-colors sm:flex-none ${
-                    reportSort === "priority"
-                      ? "bg-[#0B0B0F] apex-on-dark text-white"
-                      : "text-[#52525B] hover:bg-[#FCFBF7] hover:text-[#18181B]"
-                  }`}
-                >
-                  <ListFilter className="h-3.5 w-3.5" aria-hidden="true" /> Сначала срочное
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReportSort("newest")}
-                  aria-pressed={reportSort === "newest"}
-                  className={`inline-flex flex-1 items-center justify-center gap-1.5 border-l border-[#E2E0D8] px-3 py-2 apex-mono transition-colors sm:flex-none ${
-                    reportSort === "newest"
-                      ? "bg-[#0B0B0F] apex-on-dark text-white"
-                      : "text-[#52525B] hover:bg-[#FCFBF7] hover:text-[#18181B]"
-                  }`}
-                >
-                  <ArrowDownUp className="h-3.5 w-3.5" aria-hidden="true" /> Сначала новые
-                </button>
-              </div>
+            <div className="admin-queue-summary">
+              <span>
+                <strong>{reportQueueSummary.total}</strong>в фильтре
+              </span>
+              <span className="danger">
+                <strong>{reportQueueSummary.reviewNext}</strong>смотреть первым
+              </span>
+              <span>
+                <strong>{reportQueueSummary.needsContext}</strong>нужен контекст
+              </span>
+              <span>
+                <strong>{reportQueueSummary.repeatedTargets}</strong>повторные цели
+              </span>
             </div>
           </div>
 
-          {!reports.isLoading && reportQueueSummary.total > 0 && (
-            <div className="mb-5 grid grid-cols-2 gap-[1px] border border-[#E2E0D8] bg-[#E2E0D8] lg:grid-cols-4">
-              <QueueMetric label="Всего в фильтре" value={reportQueueSummary.total} />
-              <QueueMetric
-                label="Смотреть первым"
-                value={reportQueueSummary.reviewNext}
-                tone="danger"
-              />
-              <QueueMetric
-                label="Нужен контекст"
-                value={reportQueueSummary.needsContext}
-                tone="warn"
-              />
-              <QueueMetric label="Повторы" value={reportQueueSummary.repeatedTargets} tone="warn" />
+          <div className="admin-controls">
+            <div className="admin-filter-group">
+              {FILTERS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  aria-pressed={status === s}
+                  className={status === s ? "is-active" : ""}
+                >
+                  {labelStatus(s)}
+                </button>
+              ))}
             </div>
-          )}
+            <div className="admin-sort-group">
+              <button
+                type="button"
+                onClick={() => setReportSort("priority")}
+                aria-pressed={reportSort === "priority"}
+                className={reportSort === "priority" ? "is-active" : ""}
+              >
+                <ListFilter aria-hidden="true" /> Сначала срочное
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportSort("newest")}
+                aria-pressed={reportSort === "newest"}
+                className={reportSort === "newest" ? "is-active" : ""}
+              >
+                <ArrowDownUp aria-hidden="true" /> Сначала новые
+              </button>
+            </div>
+          </div>
 
           {reports.isLoading && (
             <p className="apex-mono inline-flex items-center gap-2 text-[#52525B]">
@@ -387,78 +363,73 @@ function AdminPage() {
               const priority = operatorQueuePriority(r);
               return (
                 <article key={r.id} className="admin-report-card">
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
-                          {r.entity_type}
-                        </span>
-                        <code className="text-[13px] font-mono text-[#18181B] break-all">
-                          {r.redacted_value}
-                        </code>
-                        <StatusBadge status={r.status} />
-                        <QueuePriorityBadge priority={priority} />
-                        <span className="ml-auto">
-                          <RiskChip level={r.target_risk_level} />
-                        </span>
+                  <div className="report-id">
+                    <span>{r.id.slice(0, 8)}</span>
+                    <small>{r.entity_type}</small>
+                  </div>
+                  <div className="report-main">
+                    <div className="report-badges">
+                      <code>{r.redacted_value}</code>
+                      <StatusBadge status={r.status} />
+                      <RiskChip level={r.target_risk_level} />
+                      <QueuePriorityBadge priority={priority} />
+                    </div>
+                    <h3>{r.description}</h3>
+                    <div className="report-reasons">
+                      {reportReasonCodes(r)
+                        .slice(0, 3)
+                        .map((code) => (
+                          <span key={code}>{reasonLabel(code)}</span>
+                        ))}
+                    </div>
+                    <p>
+                      {[
+                        r.scam_type,
+                        r.city,
+                        reportSignalLabel(reportSignalCount(r)),
+                        formatDateTime(
+                          r.target_last_report_at ?? r.target_last_seen_at ?? r.created_at,
+                        ),
+                        `ущерб ${formatLoss(r.amount_lost_uzs)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    {reportSignalCount(r) > 1 && (
+                      <div className="repeat-note">
+                        По этой цели уже есть повторные сигналы. Проверьте контекст перед публичной
+                        меткой.
                       </div>
-                      <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
-                        {r.description}
-                      </p>
-                      <ReportReasonSummary report={r} compact />
-                      <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
-                        {[
-                          r.scam_type,
-                          r.city,
-                          reportSignalLabel(reportSignalCount(r)),
-                          formatDateTime(
-                            r.target_last_report_at ?? r.target_last_seen_at ?? r.created_at,
-                          ),
-                          `ущерб ${formatLoss(r.amount_lost_uzs)}`,
-                        ]
-                          .filter(Boolean)
-                          .join("  ·  ")}
-                      </p>
-                      {reportSignalCount(r) > 1 && (
-                        <p className="mt-3 rounded-[4px] border border-[#FDBA74]/60 bg-[#FFF7ED] px-3 py-2 text-[13px] leading-relaxed text-[#7C2D12]">
-                          По этой цели уже есть повторные сигналы. Перед публичной меткой проверьте
-                          контекст в описании и похожие записи в базе.
-                        </p>
-                      )}
-                    </div>
-                    <div className="lg:w-[220px] shrink-0 flex flex-col gap-2">
-                      {r.status === "new" && (
-                        <>
-                          <button
-                            type="button"
-                            disabled={moderate.isPending}
-                            onClick={() =>
-                              moderate.mutate({ reportId: r.id, decision: "confirmed" })
-                            }
-                            className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#DC2626] text-white apex-on-dark apex-mono hover:bg-[#B91C1C] transition-colors disabled:opacity-50"
-                          >
-                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
-                          </button>
-                          <button
-                            type="button"
-                            disabled={moderate.isPending}
-                            onClick={() =>
-                              moderate.mutate({ reportId: r.id, decision: "rejected" })
-                            }
-                            className="apex-btn-outline inline-flex w-full items-center justify-center gap-1.5"
-                          >
-                            <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedReportId(r.id)}
-                        className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-[#71717A] hover:text-[#18181B] transition-colors"
-                      >
-                        <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Открыть детали
-                      </button>
-                    </div>
+                    )}
+                  </div>
+                  <div className="report-priority">
+                    {r.status === "new" && (
+                      <>
+                        <button
+                          type="button"
+                          className="report-confirm"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
+                        >
+                          <Check aria-hidden="true" /> Подтвердить риск
+                        </button>
+                        <button
+                          type="button"
+                          className="report-reject"
+                          disabled={moderate.isPending}
+                          onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
+                        >
+                          <X aria-hidden="true" /> Отклонить
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className="report-open"
+                      onClick={() => setSelectedReportId(r.id)}
+                    >
+                      <FileText aria-hidden="true" /> Открыть детали
+                    </button>
                   </div>
                 </article>
               );
@@ -480,26 +451,23 @@ function AdminPage() {
 
         {/* Reputation Appeals */}
         <section className="admin-panel admin-appeals premium-surface">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
+          <div className="admin-panel-head">
             <div>
-              <p className="label-md mb-2">02 — Апелляции</p>
-              <h2 className="apex-h2">Исправление репутации</h2>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-[#52525B] max-w-2xl">
+              <span className="section-index">02 / Апелляции</span>
+              <h2>Исправление репутации</h2>
+              <p>
                 Если апелляция обоснована, снимайте публичную метку. Жалобы остаются в истории
                 модерации, но сущность перестаёт отображаться как подтверждённая.
               </p>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="admin-filter-group">
               {APPEAL_FILTERS.map((s) => (
                 <button
                   key={s}
+                  type="button"
                   onClick={() => setAppealStatus(s)}
                   aria-pressed={appealStatus === s}
-                  className={`px-3 py-1.5 rounded-[4px] border apex-mono transition-colors ${
-                    appealStatus === s
-                      ? "bg-[#0B0B0F] apex-on-dark border-[#0B0B0F]"
-                      : "border-[#E2E0D8] bg-white text-[#52525B] hover:border-[#D4D1C6] hover:text-[#18181B]"
-                  }`}
+                  className={appealStatus === s ? "is-active" : ""}
                 >
                   {labelStatus(s)}
                 </button>
@@ -522,67 +490,55 @@ function AdminPage() {
           <div className="appeal-list">
             {appeals.data?.map((a) => (
               <article key={a.id}>
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <span className="apex-mono inline-flex items-center px-2 py-0.5 rounded-[3px] border border-[#E2E0D8] bg-white">
-                        {a.target_type}
-                      </span>
-                      <code className="text-[13px] font-mono text-[#18181B] break-all">
-                        {a.target_display}
-                      </code>
-                      <StatusBadge status={a.status} />
-                    </div>
-                    <p className="text-[15px] leading-[1.55] text-[#18181B] whitespace-pre-wrap prose-pretty">
-                      {a.reason}
-                    </p>
-                    {a.resolution && (
-                      <p className="mt-3 rounded-[4px] border border-[#E2E0D8] bg-[#FCFBF7] px-3 py-2 text-[13px] leading-relaxed text-[#52525B]">
-                        Решение: {a.resolution}
-                      </p>
-                    )}
-                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#71717A]">
-                      {[
-                        a.contact_display ? `контакт: ${a.contact_display}` : null,
-                        new Date(a.created_at).toLocaleString(),
-                      ]
-                        .filter(Boolean)
-                        .join("  ·  ")}
-                    </p>
-                  </div>
-                  {(a.status === "new" || a.status === "reviewing") && (
-                    <div className="flex flex-wrap gap-2 shrink-0">
-                      <button
-                        type="button"
-                        disabled={resolveAppeal.isPending}
-                        onClick={() =>
-                          resolveAppeal.mutate({
-                            appealId: a.id,
-                            decision: "remove_reputation",
-                            note: "Public reputation removed after appeal review.",
-                          })
-                        }
-                        className="apex-btn-outline inline-flex items-center gap-1.5"
-                      >
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" /> Снять метку
-                      </button>
-                      <button
-                        type="button"
-                        disabled={resolveAppeal.isPending}
-                        onClick={() =>
-                          resolveAppeal.mutate({
-                            appealId: a.id,
-                            decision: "keep_reputation",
-                            note: "Appeal rejected after moderator review.",
-                          })
-                        }
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#0B0B0F] apex-on-dark apex-mono hover:bg-[#27272A] transition-colors disabled:opacity-50"
-                      >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" /> Оставить
-                      </button>
-                    </div>
-                  )}
+                <div className="appeal-meta">
+                  <span>
+                    {a.id.slice(0, 8)} · {a.target_type}
+                  </span>
+                  <strong>{a.target_display}</strong>
+                  <em>{labelStatus(a.status)}</em>
                 </div>
+                <p>{a.reason}</p>
+                {a.resolution && (
+                  <small className="appeal-resolution">Решение: {a.resolution}</small>
+                )}
+                <small>
+                  {[
+                    a.contact_display ? `контакт: ${a.contact_display}` : null,
+                    new Date(a.created_at).toLocaleString(),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </small>
+                {(a.status === "new" || a.status === "reviewing") && (
+                  <div className="appeal-actions">
+                    <button
+                      type="button"
+                      disabled={resolveAppeal.isPending}
+                      onClick={() =>
+                        resolveAppeal.mutate({
+                          appealId: a.id,
+                          decision: "remove_reputation",
+                          note: "Public reputation removed after appeal review.",
+                        })
+                      }
+                    >
+                      <Check aria-hidden="true" /> Снять метку
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resolveAppeal.isPending}
+                      onClick={() =>
+                        resolveAppeal.mutate({
+                          appealId: a.id,
+                          decision: "keep_reputation",
+                          note: "Appeal rejected after moderator review.",
+                        })
+                      }
+                    >
+                      <X aria-hidden="true" /> Оставить
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -590,20 +546,30 @@ function AdminPage() {
 
         {/* Entities */}
         <section className="admin-panel admin-database premium-surface" id="admin-data">
-          <div className="mb-6 pb-5 sm:pb-6 border-b border-[#E2E0D8]">
-            <p className="label-md mb-2">03 — База</p>
-            <h2 className="apex-h2">База сущностей</h2>
+          <div className="admin-panel-head">
+            <div>
+              <span className="section-index">03 / База</span>
+              <h2>База сущностей</h2>
+              <p>
+                Все риск-цели из старой админки: тип, маска, число жалоб, риск, статус и последняя
+                активность.
+              </p>
+            </div>
+            <Link to="/official-numbers">Открыть публичную базу</Link>
           </div>
           <div className="admin-table-wrap">
-            <table className="w-full text-[13px] min-w-[640px]">
+            <table>
               <thead>
-                <tr className="apex-mono text-left text-[#71717A] border-b border-[#E2E0D8]">
-                  <th className="py-3 px-2 sm:px-3">Тип</th>
-                  <th className="py-3 px-2 sm:px-3">Маска</th>
-                  <th className="py-3 px-2 sm:px-3">Жалоб</th>
-                  <th className="py-3 px-2 sm:px-3">Риск</th>
-                  <th className="py-3 px-2 sm:px-3">Статус</th>
-                  <th className="py-3 px-2 sm:px-3">Последняя</th>
+                <tr>
+                  <th>Тип</th>
+                  <th>Маска</th>
+                  <th>Жалоб</th>
+                  <th>Риск</th>
+                  <th>Статус</th>
+                  <th>Последняя</th>
+                  <th>
+                    <span className="sr-only">Детали</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -621,14 +587,11 @@ function AdminPage() {
           </div>
         </section>
 
-        <p className="apex-mono">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-[#71717A] hover:text-[#18181B] transition-colors"
-          >
-            <ArrowLeft className="h-3 w-3" aria-hidden="true" /> На главную сайта
-          </Link>
-        </p>
+        <footer className="admin-footer">
+          <span>ISHONCH GUARD · ADMIN</span>
+          <p>Защищённая система модерации. Данные доступны только администраторам.</p>
+          <Link to="/">На главную сайта</Link>
+        </footer>
       </main>
     </div>
   );
@@ -834,16 +797,19 @@ function EntityRow({
   return (
     <>
       <tr className="entity-data-row" onClick={() => setExpanded(!expanded)}>
-        <td className="py-3 px-2 sm:px-3 apex-mono uppercase">{entity.entity_type}</td>
-        <td className="py-3 px-2 sm:px-3 font-mono text-[#18181B] break-all">
-          {entity.display_mask}
+        <td>
+          <b>{entity.entity_type}</b>
         </td>
-        <td className="py-3 px-2 sm:px-3 tabular-nums">{entity.report_count}</td>
-        <td className="py-3 px-2 sm:px-3">
+        <td>
+          <code>{entity.display_mask}</code>
+        </td>
+        <td>{entity.report_count}</td>
+        <td>
           <RiskChip level={entity.risk_level} />
         </td>
-        <td className="py-3 px-2 sm:px-3 apex-mono">{labelStatus(entity.moderation_status)}</td>
-        <td className="py-3 px-2 sm:px-3 apex-mono text-[#A1A1AA]">
+        <td>{labelStatus(entity.moderation_status)}</td>
+        <td>{new Date(entity.last_seen_at).toLocaleString()}</td>
+        <td>
           <button
             type="button"
             aria-expanded={expanded}
@@ -853,13 +819,12 @@ function EntityRow({
               setExpanded(!expanded);
             }}
           >
-            <span>{new Date(entity.last_seen_at).toLocaleString()}</span>
             <ChevronDown aria-hidden="true" />
           </button>
         </td>
       </tr>
       <tr className={`entity-expanded${expanded ? " is-open" : ""}`} aria-hidden={!expanded}>
-        <td colSpan={6}>
+        <td colSpan={7}>
           <div className="entity-expand-motion">
             <div className="entity-expand-inner">
               <div className="entity-expand-content">
@@ -889,37 +854,11 @@ function EntityRow({
 
 function Stat({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
   return (
-    <div
-      className={`bg-white/90 backdrop-blur-[4px] p-5 sm:p-6 flex flex-col gap-2 ${highlight ? "ring-1 ring-inset ring-[#F97316]/30" : ""}`}
-    >
-      <p className="apex-mono text-[#71717A]">{label}</p>
-      <p className="font-display text-[28px] sm:text-[32px] font-extrabold tracking-tight tabular-nums text-[#18181B] leading-none">
-        {value ?? "—"}
-      </p>
-    </div>
-  );
-}
-
-function QueueMetric({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "warn" | "danger";
-}) {
-  const valueClass =
-    tone === "danger" ? "text-[#991B1B]" : tone === "warn" ? "text-[#9A3412]" : "text-[#18181B]";
-  return (
-    <div className="bg-white/90 p-4">
-      <p className="apex-mono text-[#71717A]">{label}</p>
-      <p
-        className={`mt-2 font-display text-[24px] font-extrabold leading-none tabular-nums ${valueClass}`}
-      >
-        {value}
-      </p>
-    </div>
+    <article className={highlight ? "is-accent" : ""}>
+      <span>{label}</span>
+      <strong>{value ?? "—"}</strong>
+      <small>{highlight ? "Требуют внимания оператора" : "После ручной проверки"}</small>
+    </article>
   );
 }
 

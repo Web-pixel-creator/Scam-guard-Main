@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "./approved-design.css";
+@import "./signal-exact.css";
 
 @source "../src";
 
