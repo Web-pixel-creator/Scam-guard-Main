@@ -14,8 +14,6 @@ import {
   ArrowRight as SignalArrowRight,
   ChatText,
   CheckCircle as SignalCheckCircle,
-  FileArrowUp,
-  ImageSquare,
   LinkSimple,
   PaperPlaneTilt,
   Phone,
@@ -39,13 +37,11 @@ const MAX_INPUT_CHARS = 2000;
 
 type Status = "idle" | "loading" | "success" | "error";
 
-const SIGNAL_CHECK_TYPES = [
+const SIGNAL_INPUT_HINTS = [
   { id: "message", label: "Сообщение", icon: ChatText },
-  { id: "phone", label: "Номер", icon: Phone },
+  { id: "phone", label: "Телефон", icon: Phone },
   { id: "telegram", label: "Telegram", icon: PaperPlaneTilt },
   { id: "link", label: "Ссылка", icon: LinkSimple },
-  { id: "image", label: "Скриншот", icon: ImageSquare },
-  { id: "apk", label: "APK", icon: FileArrowUp },
 ] as const;
 
 function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
@@ -101,8 +97,6 @@ export function CheckInput({
   const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
-  const [signalKind, setSignalKind] =
-    useState<(typeof SIGNAL_CHECK_TYPES)[number]["id"]>("message");
   const [signalEdited, setSignalEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const checkFn = useServerFn(checkInput);
@@ -249,26 +243,25 @@ export function CheckInput({
 
     return (
       <>
-        <div className="type-tabs" role="tablist" aria-label="Тип проверки">
-          {SIGNAL_CHECK_TYPES.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                className={signalKind === item.id ? "type-tab is-active" : "type-tab"}
-                type="button"
-                role="tab"
-                aria-selected={signalKind === item.id}
-                onClick={() => {
-                  setSignalKind(item.id);
-                  if (item.id === "image") fileInputRef.current?.click();
-                }}
-              >
-                <Icon />
-                {item.label}
-              </button>
-            );
-          })}
+        <div className="smart-input-guide" aria-label="Что можно проверить">
+          <div>
+            <SignalSparkle weight="fill" aria-hidden="true" />
+            <span>
+              <strong>Один умный ввод</strong>
+              Тип данных распознается автоматически
+            </span>
+          </div>
+          <ul>
+            {SIGNAL_INPUT_HINTS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.id}>
+                  <Icon aria-hidden="true" />
+                  {item.label}
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
         <label className="check-field">
@@ -373,6 +366,15 @@ export function CheckInput({
             </div>
           ) : result || showDemoResult ? (
             <>
+              {showDemoResult && (
+                <div className="demo-result-note">
+                  <SignalSparkle weight="fill" aria-hidden="true" />
+                  <span>
+                    <strong>Демо-пример</strong>
+                    Замените текст выше своим и нажмите «Проверить риск».
+                  </span>
+                </div>
+              )}
               <div className="result-summary">
                 <span className="risk-icon">
                   {visualLevel === "safe" ? (
@@ -382,7 +384,9 @@ export function CheckInput({
                   )}
                 </span>
                 <div>
-                  <span className="result-label">Результат проверки</span>
+                  <span className="result-label">
+                    {showDemoResult ? "Пример результата" : "Результат проверки"}
+                  </span>
                   <strong>{levelLabel}</strong>
                 </div>
                 <span className="risk-score">{result?.score ?? 88} / 100</span>

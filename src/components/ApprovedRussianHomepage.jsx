@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckInput } from "@/components/CheckInput";
@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   Bank,
   ChatText,
-  ChartLineUp,
   CheckCircle,
   EyeSlash,
   Globe,
@@ -26,8 +25,6 @@ import {
   PhoneCall,
   Plus,
   ShieldCheck,
-  ShieldWarning,
-  TrendUp,
   UserMinus,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -144,7 +141,6 @@ function AnimatedCTA({ as: Tag = "button", className = "", children, ...props })
 
 export function ApprovedRussianHomepage() {
   const [faqOpen, setFaqOpen] = useState(0);
-  const [isLocalPreview, setIsLocalPreview] = useState(false);
   const statsFn = useServerFn(getPublicStats);
   const { data: publicStats, isLoading: statsLoading } = useQuery({
     queryKey: ["check-stats"],
@@ -160,20 +156,6 @@ export function ApprovedRussianHomepage() {
   const bankLinesCount = verifiedContacts.filter(
     (contact) => contact.orgType === "bank" && contact.contactType !== "telegram",
   ).length;
-  const hasLiveStats =
-    !!publicStats &&
-    (publicStats.total > 0 ||
-      publicStats.dangerous > 0 ||
-      publicStats.confirmed_entities > 0 ||
-      publicStats.reported_loss_uzs > 0);
-  const localPreviewStats = {
-    total: 235,
-    today: 0,
-    dangerous: 121,
-    high_risk: 88,
-    confirmed_entities: 0,
-    reported_loss_uzs: 0,
-  };
   const emptyStats = {
     total: 0,
     today: 0,
@@ -182,30 +164,13 @@ export function ApprovedRussianHomepage() {
     confirmed_entities: 0,
     reported_loss_uzs: 0,
   };
-  const stats = hasLiveStats
-    ? publicStats
-    : isLocalPreview
-      ? localPreviewStats
-      : (publicStats ?? emptyStats);
+  const stats = publicStats ?? emptyStats;
   const formatCount = (value) => new Intl.NumberFormat("ru-RU").format(value);
-  const formatStat = (value) => (statsLoading && !isLocalPreview ? "—" : formatCount(value));
-  const reportedLoss =
-    !statsLoading && stats.reported_loss_uzs > 0
-      ? `${new Intl.NumberFormat("ru-RU", {
-          notation: "compact",
-          maximumFractionDigits: 1,
-        }).format(stats.reported_loss_uzs)} UZS`
-      : "Нет суммы";
+  const formatStat = (value) => (statsLoading ? "…" : formatCount(value));
 
   const scrollToCheck = () => {
     document.querySelector("#checker")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
-
-  useEffect(() => {
-    setIsLocalPreview(
-      window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost",
-    );
-  }, []);
 
   return (
     <main className="site-shell">
@@ -238,12 +203,20 @@ export function ApprovedRussianHomepage() {
               <PaperPlaneTilt weight="fill" /> Открыть Telegram-бот
             </a>
           </div>
+          <a className="urgent-inline" href="/emergency">
+            <WarningCircle weight="fill" aria-hidden="true" />
+            <span>
+              <strong>Уже отправили код или деньги?</strong>
+              Перейти к срочным действиям
+            </span>
+            <ArrowRight aria-hidden="true" />
+          </a>
           <div className="trust-points" aria-label="Преимущества">
             <span>
               <LockKey /> Без регистрации
             </span>
             <span>
-              <ShieldCheck /> Данные не храним
+              <ShieldCheck /> Исходные данные не публикуем
             </span>
             <span>
               <Globe /> RU · UZ · EN
@@ -268,11 +241,11 @@ export function ApprovedRussianHomepage() {
       <section className="proof-strip" aria-label="Статистика сервиса">
         <div>
           <strong>{formatStat(stats.total)}</strong>
-          <span>проверки всего</span>
+          <span>всего проверок</span>
         </div>
         <div>
           <strong>{formatStat(stats.dangerous)}</strong>
-          <span>предупреждение о риске</span>
+          <span>предупреждений о риске</span>
         </div>
         <div>
           <strong>{formatCount(verifiedContactsCount)}</strong>
@@ -288,65 +261,13 @@ export function ApprovedRussianHomepage() {
         </div>
       </section>
 
-      <section
-        className="impact-section content-section"
-        id="impact"
-        aria-labelledby="impact-title"
-      >
-        <div className="section-heading split-heading">
-          <div>
-            <span className="section-index">01 / Честная польза</span>
-            <h2 id="impact-title">
-              Цифры, которым
-              <br />
-              не нужно верить на слово.
-            </h2>
-          </div>
-          <p>
-            Показываем реальную активность сервиса. Потери учитываем только после подтверждения
-            жалобы модератором — никаких придуманных «спасённых миллионов».
-          </p>
-        </div>
-        <div className="impact-grid">
-          <article className="impact-card featured">
-            <ChartLineUp />
-            <span>Проверок всего</span>
-            <strong>{formatStat(stats.total)}</strong>
-            <small>{formatStat(stats.today)} проверки сегодня</small>
-          </article>
-          <article className="impact-card">
-            <ShieldWarning />
-            <span>Предупреждений</span>
-            <strong>{formatStat(stats.dangerous)}</strong>
-            <small>{formatStat(stats.high_risk)} высокого риска</small>
-          </article>
-          <article className="impact-card">
-            <TrendUp />
-            <span>Подтверждённые потери</span>
-            <strong>{reportedLoss}</strong>
-            <small>Покажем после первых данных</small>
-          </article>
-          <article className="impact-card">
-            <ShieldCheck />
-            <span>Проверено вручную</span>
-            <strong>{formatStat(stats.confirmed_entities)}</strong>
-            <small>Только после модерации</small>
-          </article>
-        </div>
-        <p className="fine-print">
-          <LockKey /> Мы не публикуем номера, аккаунты или имена людей в статистике. Эти цифры не
-          являются гарантией возврата средств.
-        </p>
-      </section>
-
       <section className="how-section content-section" id="how">
         <div className="section-heading split-heading">
           <div>
-            <span className="section-index">02 / Как работает</span>
+            <span className="section-index">01 / Как работает</span>
             <h2>
               Три шага.
-              <br />
-              Один безопасный ответ.
+              <br className="title-break" /> Один безопасный ответ.
             </h2>
           </div>
           <p>
@@ -418,10 +339,9 @@ export function ApprovedRussianHomepage() {
         aria-labelledby="checks-title"
       >
         <div className="section-heading">
-          <span className="section-index">03 / Что мы проверяем</span>
+          <span className="section-index">02 / Что мы проверяем</span>
           <h2 id="checks-title">
-            Если что-то подозрительное —<br />
-            пришлите нам.
+            Если что-то подозрительное —<br className="title-break" /> пришлите нам.
           </h2>
           <p>Четыре самые частые ситуации в Узбекистане и то, что сервис проверяет за секунды.</p>
         </div>
@@ -454,9 +374,9 @@ export function ApprovedRussianHomepage() {
       >
         <div className="section-heading split-heading">
           <div>
-            <span className="section-index">04 / Реальные примеры</span>
+            <span className="section-index">03 / Реальные примеры</span>
             <h2 id="comparison-title">
-              Как выглядит обман —<br />и как пишет настоящий сервис.
+              Как выглядит обман —<br className="title-break" /> и как пишет настоящий сервис.
             </h2>
           </div>
           <p>
@@ -508,11 +428,10 @@ export function ApprovedRussianHomepage() {
       <section className="signals-section content-section" id="signals">
         <div className="signals-header">
           <div>
-            <span className="section-index">05 / Карта схем</span>
+            <span className="section-index">04 / Карта схем</span>
             <h2>
               Что используют
-              <br />
-              мошенники сейчас
+              <br className="title-break" /> мошенники сейчас
             </h2>
             <p>Показываем повторяющиеся тактики: крючок, цель и безопасный следующий шаг.</p>
           </div>
@@ -568,11 +487,10 @@ export function ApprovedRussianHomepage() {
           <span className="official-icon">
             <Bank weight="fill" />
           </span>
-          <span className="section-index light-index">06 / Проверенный справочник</span>
+          <span className="section-index light-index">05 / Проверенный справочник</span>
           <h2>
             Перезвоните сами.
-            <br />
-            По номеру из справочника.
+            <br className="title-break" /> По номеру из справочника.
           </h2>
           <p>Контакты банков, платёжных систем, операторов и государственных служб Узбекистана.</p>
         </div>
@@ -607,11 +525,10 @@ export function ApprovedRussianHomepage() {
       <section className="faq-section content-section" id="faq" aria-labelledby="faq-title">
         <div className="section-heading split-heading">
           <div>
-            <span className="section-index">07 / Частые вопросы</span>
+            <span className="section-index">06 / Частые вопросы</span>
             <h2 id="faq-title">
               А что если
-              <br />
-              уже случилось?
+              <br className="title-break" /> уже случилось?
             </h2>
           </div>
           <p>
@@ -623,9 +540,11 @@ export function ApprovedRussianHomepage() {
           {faqItems.map((item, index) => (
             <article key={item.q} className={faqOpen === index ? "faq-item is-open" : "faq-item"}>
               <button
+                id={`faq-question-${index}`}
                 type="button"
                 className="faq-question"
                 aria-expanded={faqOpen === index}
+                aria-controls={`faq-answer-${index}`}
                 onClick={() => setFaqOpen(faqOpen === index ? -1 : index)}
               >
                 <span>0{index + 1}</span>
@@ -634,7 +553,13 @@ export function ApprovedRussianHomepage() {
                   <Plus />
                 </span>
               </button>
-              <div className="faq-answer">
+              <div
+                id={`faq-answer-${index}`}
+                className="faq-answer"
+                role="region"
+                aria-labelledby={`faq-question-${index}`}
+                aria-hidden={faqOpen !== index}
+              >
                 <div>
                   <small>Что делать</small>
                   <p>{item.a}</p>
@@ -650,9 +575,11 @@ export function ApprovedRussianHomepage() {
           <span className="privacy-icon">
             <LockKey weight="fill" />
           </span>
-          <span className="section-index light-index">08 / Приватность</span>
-          <h2>Мы не храним ваши номера, коды и пароли.</h2>
-          <p>Проверка работает без регистрации. Чувствительные данные удаляются ещё до анализа.</p>
+          <span className="section-index light-index">07 / Приватность</span>
+          <h2>Ваши данные не становятся публичными.</h2>
+          <p>
+            Проверка работает без регистрации. Контакты маскируются, а коды и пароли не сохраняются.
+          </p>
           <a href="/privacy">
             Полная политика приватности <ArrowRight />
           </a>
@@ -682,7 +609,7 @@ export function ApprovedRussianHomepage() {
           <div className="support-icon">
             <Megaphone weight="fill" />
           </div>
-          <span className="section-index">09 / Сообщество</span>
+          <span className="section-index">08 / Сообщество</span>
           <h2>Ваша жалоба защищает других.</h2>
           <p>
             Опишите новую схему без личных данных. После модерации её признаки помогут предупреждать
@@ -725,8 +652,7 @@ export function ApprovedRussianHomepage() {
           </a>
           <h2>
             Проверяйте до того,
-            <br />
-            как поверить.
+            <br className="title-break" /> как поверить.
           </h2>
           <AnimatedCTA as="a" className="footer-check" href="#checker">
             Проверить риск <ArrowUpRight />
@@ -736,7 +662,7 @@ export function ApprovedRussianHomepage() {
           <p>
             Бесплатный антискам-помощник для Узбекистана.
             <br />
-            Без сохранения · за секунды · RU / UZ / EN
+            Без регистрации · с маскированием данных · RU / UZ / EN
           </p>
           <nav>
             <a href="/privacy">Приватность</a>

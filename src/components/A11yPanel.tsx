@@ -96,23 +96,23 @@ export function A11yPanel() {
   const pct = Math.round(scale * 100);
 
   return (
-    <div className="fixed z-50 right-3 sm:right-auto sm:left-4 bottom-3 sm:bottom-4 print:hidden">
+    <div className="a11y-panel-root fixed z-50 left-3 bottom-3 sm:left-4 sm:bottom-4 print:hidden">
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label={L.open}
           aria-expanded={false}
-          className="grid place-items-center h-12 w-12 rounded-full bg-[#0B0B0F] text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)] hover:bg-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
+          className="a11y-launcher grid place-items-center h-12 w-12 rounded-full bg-[#0B0B0F] text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)] hover:bg-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
         >
-          <Accessibility className="h-5 w-5" strokeWidth={2} />
+          <Accessibility className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
         </button>
       )}
       {open && (
         <div
           role="region"
           aria-label={L.title}
-          className="w-[280px] rounded-[10px] border border-[#E2E0D8] bg-white shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)] p-4"
+          className="a11y-panel-card w-[280px] rounded-[10px] border border-[#E2E0D8] bg-white shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)] p-4"
         >
           <div className="flex items-center justify-between mb-3">
             <p className="apex-mono text-[#18181B]">{L.title}</p>

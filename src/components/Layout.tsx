@@ -40,7 +40,7 @@ export function Header() {
   }[lang];
 
   return (
-    <header className="site-header">
+    <header className={`site-header${isHomepage ? " is-home" : " is-subpage"}`}>
       <div className="site-header-inner">
         <div className="site-brand-row">
           <BackButton />

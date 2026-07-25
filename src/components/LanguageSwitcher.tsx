@@ -18,7 +18,7 @@ export function LanguageSwitcher() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 h-9 rounded-full border border-[#E2E0D8] bg-white/70 backdrop-blur-sm px-3.5 text-[#18181B] hover:bg-white hover:border-[#FDBA74] hover:text-[#C2410C] hover:shadow-[0_4px_14px_-6px_rgba(249,115,22,0.45)] transition-all duration-200"
+          className="header-language gap-2 h-9 rounded-full border border-[#E2E0D8] bg-white/70 backdrop-blur-sm px-3.5 text-[#18181B] hover:bg-white hover:border-[#FDBA74] hover:text-[#C2410C] hover:shadow-[0_4px_14px_-6px_rgba(249,115,22,0.45)] transition-all duration-200"
         >
           <Globe className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
           <span className="hidden sm:inline font-medium">{current.label}</span>

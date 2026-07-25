@@ -17,6 +17,8 @@ import {
   ChartNoAxesCombined,
   LockKeyhole,
   ShieldAlert,
+  Search,
+  TestTube2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -73,6 +75,11 @@ type AdminReport = {
   target_check_has_ai_explanation?: boolean | null;
   target_check_created_at?: string | null;
 };
+type AppealDecision = {
+  appealId: string;
+  target: string;
+  decision: "remove_reputation" | "keep_reputation";
+};
 
 function AdminPage() {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -81,6 +88,10 @@ function AdminPage() {
   const [appealStatus, setAppealStatus] = useState<AppealFilterKey>("new");
   const [reportSort, setReportSort] = useState<OperatorQueueSortMode>("priority");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [reportSearch, setReportSearch] = useState("");
+  const [hideTestReports, setHideTestReports] = useState(true);
+  const [pendingAppeal, setPendingAppeal] = useState<AppealDecision | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date());
   const qc = useQueryClient();
 
   const listReportsFn = useServerFn(listReports);
@@ -115,11 +126,33 @@ function AdminPage() {
     queryFn: () => listAppealsFn({ data: { status: appealStatus } }),
   });
   const reportRows = useMemo(() => (reports.data ?? []) as AdminReport[], [reports.data]);
-  const sortedReports = useMemo(
-    () => sortOperatorQueueReports(reportRows, reportSort),
-    [reportRows, reportSort],
+  const hiddenTestCount = useMemo(
+    () => reportRows.filter((report) => isTestReport(report)).length,
+    [reportRows],
   );
-  const reportQueueSummary = useMemo(() => operatorQueueSummary(reportRows), [reportRows]);
+  const visibleReportRows = useMemo(() => {
+    const query = reportSearch.trim().toLocaleLowerCase("ru-RU");
+    return reportRows.filter((report) => {
+      if (hideTestReports && isTestReport(report)) return false;
+      if (!query) return true;
+      return [
+        report.id,
+        report.redacted_value,
+        report.description,
+        report.scam_type,
+        report.city,
+        report.entity_type,
+      ].some((value) => value?.toLocaleLowerCase("ru-RU").includes(query));
+    });
+  }, [hideTestReports, reportRows, reportSearch]);
+  const sortedReports = useMemo(
+    () => sortOperatorQueueReports(visibleReportRows, reportSort),
+    [visibleReportRows, reportSort],
+  );
+  const reportQueueSummary = useMemo(
+    () => operatorQueueSummary(visibleReportRows),
+    [visibleReportRows],
+  );
   const selectedReport = reportRows.find((r) => r.id === selectedReportId) ?? null;
 
   useEffect(() => {
@@ -145,11 +178,22 @@ function AdminPage() {
       note?: string;
     }) => resolveAppealFn({ data: v }),
     onSuccess: () => {
+      setPendingAppeal(null);
       qc.invalidateQueries({ queryKey: ["admin-appeals"] });
       qc.invalidateQueries({ queryKey: ["admin-entities"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
   });
+
+  async function refreshAdminData() {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["admin-reports"] }),
+      qc.invalidateQueries({ queryKey: ["admin-entities"] }),
+      qc.invalidateQueries({ queryKey: ["admin-appeals"] }),
+      qc.invalidateQueries({ queryKey: ["admin-stats"] }),
+    ]);
+    setLastRefreshedAt(new Date());
+  }
 
   if (loading) {
     return (
@@ -157,7 +201,7 @@ function AdminPage() {
         <div className="apex-card apex-frame apex-stripes text-center">
           <span className="apex-mono inline-flex items-center gap-2 text-[#52525B]">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            ЗАГРУЗКА…
+            ПРОВЕРКА ДОСТУПА…
           </span>
         </div>
       </div>
@@ -207,38 +251,36 @@ function AdminPage() {
           <div className="admin-hero-copy">
             <span className="section-index">Внутренняя система / Модерация</span>
             <h1>
-              Проверяйте сигналы.
+              Очередь модерации.
               <br />
-              <span>Защищайте людей.</span>
+              <span>Решения — здесь.</span>
             </h1>
             <p>
-              Единая очередь жалоб, апелляций и риск-целей — без передачи личных данных в рабочие
-              чаты.
+              Сначала срочные сигналы, затем апелляции и база целей. Личные данные остаются внутри
+              защищённой системы.
             </p>
           </div>
           <div className="admin-shift-card">
             <span>
-              <ShieldCheck aria-hidden="true" /> Смена активна
+              <ShieldCheck aria-hidden="true" /> Доступ подтверждён
             </span>
-            <strong>Рабочая сессия</strong>
-            <small>{user.email} · роль администратора подтверждена</small>
+            <strong>Смена активна</strong>
+            <small>{user.email}</small>
             <div className="admin-shift-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  qc.invalidateQueries({ queryKey: ["admin-reports"] });
-                  qc.invalidateQueries({ queryKey: ["admin-entities"] });
-                  qc.invalidateQueries({ queryKey: ["admin-appeals"] });
-                  qc.invalidateQueries({ queryKey: ["admin-stats"] });
-                }}
-              >
+              <button type="button" onClick={() => void refreshAdminData()}>
                 <RefreshCcw aria-hidden="true" /> Обновить данные
               </button>
               <button type="button" onClick={() => signOut().then(() => nav({ to: "/login" }))}>
                 <LogOut aria-hidden="true" /> Выйти
               </button>
             </div>
-            <em>Последнее обновление — только что</em>
+            <em>
+              Обновлено в{" "}
+              {lastRefreshedAt.toLocaleTimeString("ru-RU", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </em>
           </div>
         </section>
 
@@ -250,40 +292,6 @@ function AdminPage() {
           <Stat label="Всего проверок" value={stats.data?.checks_total} />
           <Stat label="Апелляции" value={stats.data?.appeals_new} />
         </div>
-
-        {/* Operator guide */}
-        <section className="admin-guide premium-surface">
-          <div>
-            <span className="section-index">Как работать</span>
-            <h2>
-              Операторский
-              <br />
-              режим
-            </h2>
-            <p>
-              Telegram сообщает о новом сигнале. Решение, история цели и повторные жалобы
-              проверяются только здесь.
-            </p>
-          </div>
-          <article>
-            <span>01 / Что в чате</span>
-            <ShieldAlert aria-hidden="true" />
-            <strong>Только безопасная сводка</strong>
-            <p>Коды, карты, скриншоты и полные контакты не пересылаются.</p>
-          </article>
-          <article>
-            <span>02 / Как решать</span>
-            <ChartNoAxesCombined aria-hidden="true" />
-            <strong>Контекст важнее счётчика</strong>
-            <p>Проверяйте опасную просьбу, повторы и похожие записи.</p>
-          </article>
-          <article>
-            <span>03 / Приватность</span>
-            <LockKeyhole aria-hidden="true" />
-            <strong>Личные данные остаются здесь</strong>
-            <p>Работайте с чувствительными данными только внутри защищённой системы.</p>
-          </article>
-        </section>
 
         {/* Reports */}
         <section className="admin-queue premium-surface" id="admin-queue">
@@ -312,6 +320,29 @@ function AdminPage() {
             </div>
           </div>
 
+          <div className="admin-search-row">
+            <label className="admin-search">
+              <Search aria-hidden="true" />
+              <span className="sr-only">Поиск по жалобам</span>
+              <input
+                type="search"
+                value={reportSearch}
+                onChange={(event) => setReportSearch(event.target.value)}
+                placeholder="Найти по ID, маске, описанию или городу"
+              />
+            </label>
+            <button
+              type="button"
+              className="admin-test-toggle"
+              aria-pressed={hideTestReports}
+              onClick={() => setHideTestReports((value) => !value)}
+            >
+              <TestTube2 aria-hidden="true" />
+              {hideTestReports ? "Тестовые скрыты" : "Тестовые показаны"}
+              {hiddenTestCount > 0 && <span>{hiddenTestCount}</span>}
+            </button>
+          </div>
+
           <div className="admin-controls">
             <div className="admin-filter-group">
               {FILTERS.map((s) => (
@@ -326,14 +357,14 @@ function AdminPage() {
                 </button>
               ))}
             </div>
-            <div className="admin-sort-group">
+            <div className="admin-sort-group" role="group" aria-label="Сортировка жалоб">
               <button
                 type="button"
                 onClick={() => setReportSort("priority")}
                 aria-pressed={reportSort === "priority"}
                 className={reportSort === "priority" ? "is-active" : ""}
               >
-                <ListFilter aria-hidden="true" /> Сначала срочное
+                <ListFilter aria-hidden="true" /> По срочности
               </button>
               <button
                 type="button"
@@ -341,7 +372,7 @@ function AdminPage() {
                 aria-pressed={reportSort === "newest"}
                 className={reportSort === "newest" ? "is-active" : ""}
               >
-                <ArrowDownUp aria-hidden="true" /> Сначала новые
+                <ArrowDownUp aria-hidden="true" /> По новизне
               </button>
             </div>
           </div>
@@ -351,10 +382,12 @@ function AdminPage() {
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> ЗАГРУЗКА…
             </p>
           )}
-          {reports.data?.length === 0 && (
+          {!reports.isLoading && sortedReports.length === 0 && (
             <div className="flex flex-col items-center gap-1.5 py-12 text-center">
               <Inbox className="h-6 w-6 text-[#D4D1C6]" aria-hidden="true" />
-              <p className="text-[14px] text-[#52525B]">Новых жалоб нет</p>
+              <p className="text-[14px] text-[#52525B]">
+                {reportSearch ? "По этому запросу ничего не найдено" : "В этом фильтре жалоб нет"}
+              </p>
             </div>
           )}
 
@@ -365,11 +398,16 @@ function AdminPage() {
                 <article key={r.id} className="admin-report-card">
                   <div className="report-id">
                     <span>{r.id.slice(0, 8)}</span>
-                    <small>{r.entity_type}</small>
+                    <small>{labelEntityType(r.entity_type)}</small>
                   </div>
                   <div className="report-main">
                     <div className="report-badges">
                       <code>{r.redacted_value}</code>
+                      {!hideTestReports && isTestReport(r) && (
+                        <span className="test-report-badge">
+                          <TestTube2 aria-hidden="true" /> Тест
+                        </span>
+                      )}
                       <StatusBadge status={r.status} />
                       <RiskChip level={r.target_risk_level} />
                       <QueuePriorityBadge priority={priority} />
@@ -403,32 +441,13 @@ function AdminPage() {
                     )}
                   </div>
                   <div className="report-priority">
-                    {r.status === "new" && (
-                      <>
-                        <button
-                          type="button"
-                          className="report-confirm"
-                          disabled={moderate.isPending}
-                          onClick={() => moderate.mutate({ reportId: r.id, decision: "confirmed" })}
-                        >
-                          <Check aria-hidden="true" /> Подтвердить риск
-                        </button>
-                        <button
-                          type="button"
-                          className="report-reject"
-                          disabled={moderate.isPending}
-                          onClick={() => moderate.mutate({ reportId: r.id, decision: "rejected" })}
-                        >
-                          <X aria-hidden="true" /> Отклонить
-                        </button>
-                      </>
-                    )}
                     <button
                       type="button"
-                      className="report-open"
+                      className={r.status === "new" ? "report-open is-primary" : "report-open"}
                       onClick={() => setSelectedReportId(r.id)}
                     >
-                      <FileText aria-hidden="true" /> Открыть детали
+                      <FileText aria-hidden="true" />
+                      {r.status === "new" ? "Проверить и решить" : "Открыть детали"}
                     </button>
                   </div>
                 </article>
@@ -448,6 +467,40 @@ function AdminPage() {
             onReject={() => moderate.mutate({ reportId: selectedReport.id, decision: "rejected" })}
           />
         )}
+
+        {/* Operator guide */}
+        <section className="admin-guide premium-surface">
+          <div>
+            <span className="section-index">Подсказка оператору</span>
+            <h2>
+              Решение по
+              <br />
+              контексту
+            </h2>
+            <p>
+              Счётчик помогает выбрать порядок, но публичная метка появляется только после ручной
+              проверки.
+            </p>
+          </div>
+          <article>
+            <span>01 / Что в чате</span>
+            <ShieldAlert aria-hidden="true" />
+            <strong>Только безопасная сводка</strong>
+            <p>Коды, карты, скриншоты и полные контакты не пересылаются.</p>
+          </article>
+          <article>
+            <span>02 / Как решать</span>
+            <ChartNoAxesCombined aria-hidden="true" />
+            <strong>Контекст важнее счётчика</strong>
+            <p>Проверяйте опасную просьбу, повторы и похожие записи.</p>
+          </article>
+          <article>
+            <span>03 / Приватность</span>
+            <LockKeyhole aria-hidden="true" />
+            <strong>Личные данные остаются здесь</strong>
+            <p>Работайте с чувствительными данными только внутри защищённой системы.</p>
+          </article>
+        </section>
 
         {/* Reputation Appeals */}
         <section className="admin-panel admin-appeals premium-surface">
@@ -515,10 +568,10 @@ function AdminPage() {
                       type="button"
                       disabled={resolveAppeal.isPending}
                       onClick={() =>
-                        resolveAppeal.mutate({
+                        setPendingAppeal({
                           appealId: a.id,
                           decision: "remove_reputation",
-                          note: "Public reputation removed after appeal review.",
+                          target: a.target_display,
                         })
                       }
                     >
@@ -528,10 +581,10 @@ function AdminPage() {
                       type="button"
                       disabled={resolveAppeal.isPending}
                       onClick={() =>
-                        resolveAppeal.mutate({
+                        setPendingAppeal({
                           appealId: a.id,
                           decision: "keep_reputation",
-                          note: "Appeal rejected after moderator review.",
+                          target: a.target_display,
                         })
                       }
                     >
@@ -592,7 +645,92 @@ function AdminPage() {
           <p>Защищённая система модерации. Данные доступны только администраторам.</p>
           <Link to="/">На главную сайта</Link>
         </footer>
+
+        {pendingAppeal && (
+          <DecisionConfirmDialog
+            title={
+              pendingAppeal.decision === "remove_reputation"
+                ? "Снять публичную метку?"
+                : "Оставить публичную метку?"
+            }
+            description={
+              pendingAppeal.decision === "remove_reputation"
+                ? `Цель ${pendingAppeal.target} перестанет отображаться как подтверждённая. История жалоб сохранится.`
+                : `Репутация цели ${pendingAppeal.target} останется без изменений.`
+            }
+            confirmLabel={
+              pendingAppeal.decision === "remove_reputation" ? "Снять метку" : "Оставить метку"
+            }
+            tone={pendingAppeal.decision === "remove_reputation" ? "neutral" : "danger"}
+            isPending={resolveAppeal.isPending}
+            onClose={() => setPendingAppeal(null)}
+            onConfirm={() =>
+              resolveAppeal.mutate({
+                appealId: pendingAppeal.appealId,
+                decision: pendingAppeal.decision,
+                note:
+                  pendingAppeal.decision === "remove_reputation"
+                    ? "Публичная метка снята после проверки апелляции."
+                    : "Апелляция отклонена после ручной проверки.",
+              })
+            }
+          />
+        )}
       </main>
+    </div>
+  );
+}
+
+function DecisionConfirmDialog({
+  title,
+  description,
+  confirmLabel,
+  tone,
+  isPending,
+  onClose,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  tone: "neutral" | "danger";
+  isPending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className="admin-confirm-backdrop"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="admin-confirm-title"
+      aria-describedby="admin-confirm-description"
+    >
+      <div className="admin-confirm-card">
+        <span className={tone === "danger" ? "is-danger" : ""}>
+          {tone === "danger" ? (
+            <ShieldAlert aria-hidden="true" />
+          ) : (
+            <ShieldCheck aria-hidden="true" />
+          )}
+        </span>
+        <h2 id="admin-confirm-title">{title}</h2>
+        <p id="admin-confirm-description">{description}</p>
+        <div>
+          <button type="button" onClick={onClose} disabled={isPending}>
+            Отмена
+          </button>
+          <button
+            type="button"
+            className={tone === "danger" ? "is-danger" : "is-primary"}
+            onClick={onConfirm}
+            disabled={isPending}
+          >
+            {isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -612,15 +750,29 @@ function ReportDetailDialog({
 }) {
   const signalCount = reportSignalCount(report);
   const canModerate = report.status === "new";
+  const [pendingDecision, setPendingDecision] = useState<"confirmed" | "rejected" | null>(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0B0F]/55 px-3 py-5 sm:px-5"
+      className="admin-report-backdrop fixed inset-0 z-50 flex items-center justify-center bg-[#0B0B0F]/55 px-3 py-5 sm:px-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-detail-title"
     >
-      <div className="apex-card apex-frame apex-stripes max-h-[92vh] w-full max-w-5xl overflow-y-auto bg-[#FCFBF7] p-5 shadow-2xl sm:p-7">
+      <div className="admin-report-dialog apex-card apex-frame apex-stripes max-h-[92vh] w-full max-w-5xl overflow-y-auto bg-[#FCFBF7] p-5 shadow-2xl sm:p-7">
         <div className="mb-6 flex items-start justify-between gap-4 border-b border-[#E2E0D8] pb-5">
           <div className="min-w-0">
             <p className="label-md mb-2">Жалоба · ручная проверка</p>
@@ -635,7 +787,8 @@ function ReportDetailDialog({
           <button
             type="button"
             onClick={onClose}
-            className="apex-btn-outline inline-flex h-10 w-10 shrink-0 items-center justify-center p-0"
+            className="admin-report-dialog-close apex-btn-outline inline-flex h-10 w-10 shrink-0 items-center justify-center p-0"
+            autoFocus
             aria-label="Закрыть детали"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -649,7 +802,7 @@ function ReportDetailDialog({
               <div className="border border-[#E2E0D8] bg-white p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <span className="apex-mono inline-flex items-center rounded-[3px] border border-[#E2E0D8] bg-white px-2 py-0.5">
-                    {report.entity_type}
+                    {labelEntityType(report.entity_type)}
                   </span>
                   <code className="break-all font-mono text-[13px] text-[#18181B]">
                     {report.redacted_value}
@@ -668,7 +821,7 @@ function ReportDetailDialog({
                 <ReportFact label="Тип схемы" value={report.scam_type ?? "не указан"} />
                 <ReportFact label="Город / регион" value={report.city ?? "не указан"} />
                 <ReportFact label="Ущерб" value={formatLoss(report.amount_lost_uzs)} />
-                <ReportFact label="Язык" value={report.language ?? "не указан"} />
+                <ReportFact label="Язык" value={labelLanguage(report.language)} />
                 <ReportFact label="Когда поступило" value={formatDateTime(report.created_at)} />
                 <ReportFact
                   label="Последний сигнал"
@@ -726,7 +879,7 @@ function ReportDetailDialog({
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={onConfirm}
+                    onClick={() => setPendingDecision("confirmed")}
                     className="inline-flex items-center justify-center gap-1.5 rounded-[4px] bg-[#DC2626] px-3 py-2 apex-mono text-white apex-on-dark transition-colors hover:bg-[#B91C1C] disabled:opacity-50"
                   >
                     <Check className="h-3.5 w-3.5" aria-hidden="true" /> Подтвердить риск
@@ -734,7 +887,7 @@ function ReportDetailDialog({
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={onReject}
+                    onClick={() => setPendingDecision("rejected")}
                     className="apex-btn-outline inline-flex items-center justify-center gap-1.5"
                   >
                     <X className="h-3.5 w-3.5" aria-hidden="true" /> Отклонить публичную метку
@@ -767,6 +920,25 @@ function ReportDetailDialog({
           </aside>
         </div>
       </div>
+      {pendingDecision && (
+        <DecisionConfirmDialog
+          title={
+            pendingDecision === "confirmed"
+              ? "Подтвердить высокий риск?"
+              : "Отклонить публичную метку?"
+          }
+          description={
+            pendingDecision === "confirmed"
+              ? "Цель получит публичную метку высокого риска. Перед подтверждением ещё раз проверьте опасную просьбу и контекст."
+              : "Жалоба останется в истории, но публичная метка по этой записи не появится."
+          }
+          confirmLabel={pendingDecision === "confirmed" ? "Подтвердить риск" : "Отклонить метку"}
+          tone={pendingDecision === "confirmed" ? "danger" : "neutral"}
+          isPending={isPending}
+          onClose={() => setPendingDecision(null)}
+          onConfirm={pendingDecision === "confirmed" ? onConfirm : onReject}
+        />
+      )}
     </div>
   );
 }
@@ -796,9 +968,9 @@ function EntityRow({
 
   return (
     <>
-      <tr className="entity-data-row" onClick={() => setExpanded(!expanded)}>
+      <tr className="entity-data-row" onClick={() => setExpanded((value) => !value)}>
         <td>
-          <b>{entity.entity_type}</b>
+          <b>{labelEntityType(entity.entity_type)}</b>
         </td>
         <td>
           <code>{entity.display_mask}</code>
@@ -813,10 +985,10 @@ function EntityRow({
           <button
             type="button"
             aria-expanded={expanded}
-            aria-label={`Показать причины риска для ${entity.display_mask}`}
+            aria-label={`${expanded ? "Скрыть" : "Показать"} причины риска для ${entity.display_mask}`}
             onClick={(event) => {
               event.stopPropagation();
-              setExpanded(!expanded);
+              setExpanded((value) => !value);
             }}
           >
             <ChevronDown aria-hidden="true" />
@@ -869,7 +1041,7 @@ function QueuePriorityBadge({ priority }: { priority: OperatorQueuePriority }) {
   > = {
     review_next: {
       label: "Смотреть первым",
-      title: "Высокий риск, сильный score или повторные сигналы по цели.",
+      title: "Высокий риск, высокая оценка или повторные сигналы по цели.",
       className: "border-[#FCA5A5]/60 bg-[#FEF2F2] text-[#991B1B]",
     },
     needs_context: {
@@ -916,7 +1088,7 @@ function ReportReasonSummary({
             {hasSummary
               ? `${labelRiskLevel(report.target_check_risk_level)}${
                   typeof report.target_check_risk_score === "number"
-                    ? ` · score ${report.target_check_risk_score}`
+                    ? ` · оценка ${report.target_check_risk_score}`
                     : ""
                 }`
               : "Нет сохранённой проверки для этой цели."}
@@ -946,7 +1118,9 @@ function ReportReasonSummary({
 
       {hasSummary && (
         <p className="mt-3 apex-mono text-[#A1A1AA]">
-          {report.target_check_has_ai_explanation ? "rules + AI explanation" : "rules only"}
+          {report.target_check_has_ai_explanation
+            ? "Правила + пояснение помощника"
+            : "Только проверяемые правила"}
         </p>
       )}
     </div>
@@ -984,6 +1158,50 @@ function hasReportCheckSummary(report: AdminReport) {
     typeof report.target_check_risk_score === "number" ||
     reportRawReasonCodes(report).length > 0 ||
     Boolean(report.target_check_created_at)
+  );
+}
+
+function isTestReport(report: AdminReport) {
+  const haystack = [
+    report.id,
+    report.redacted_value,
+    report.description,
+    report.scam_type,
+    report.city,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return /(?:\blive\s+qa\b|\bqa(?:[\s_-]+(?:test|browser|wip|smoke))?\b|\bcodex\b|\bsmoke\b|\.invalid\b)/i.test(
+    haystack,
+  );
+}
+
+function labelEntityType(value?: string | null) {
+  if (!value) return "Не указан";
+  return (
+    (
+      {
+        phone: "Телефон",
+        telegram: "Telegram",
+        url: "Ссылка",
+        link: "Ссылка",
+        email: "Email",
+        apk: "APK-файл",
+      } as Record<string, string>
+    )[value.toLowerCase()] ?? value
+  );
+}
+
+function labelLanguage(value?: string | null) {
+  if (!value) return "Не указан";
+  return (
+    (
+      {
+        ru: "Русский",
+        uz: "O‘zbekcha",
+        en: "English",
+      } as Record<string, string>
+    )[value.toLowerCase()] ?? value
   );
 }
 
@@ -1057,7 +1275,7 @@ function RiskChip({ level }: { level?: string | null }) {
   };
   return (
     <span
-      className={`apex-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[999px] border ${s.bg} ${s.text} ${s.border}`}
+      className={`admin-risk-chip apex-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[999px] border ${s.bg} ${s.text} ${s.border}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden="true" />
       {labelRiskLevel(level)}
@@ -1133,9 +1351,9 @@ function labelRiskLevel(value?: string | null) {
   return (
     (
       {
-        safe: "без явного риска",
+        safe: "низкий риск",
         low: "низкий",
-        unknown: "недостаточно данных",
+        unknown: "нет оценки",
         suspicious: "осторожность",
         high_risk: "высокий риск",
       } as Record<string, string>
