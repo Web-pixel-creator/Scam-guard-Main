@@ -10,10 +10,19 @@ const hoisted = vi.hoisted(() => ({
     guardianTelegramUserId: number;
     lang: string;
     guardianDisplayName?: string;
+    mode?: "manual" | "automatic";
   }>,
   familyNotifyResult: { ok: false, reason: "not_linked" } as
     | { ok: true; trustedChatId: number }
-    | { ok: false; reason: "not_linked" | "cooldown" | "send_failed" | "storage_unavailable" },
+    | {
+        ok: false;
+        reason:
+          | "not_linked"
+          | "auto_alerts_disabled"
+          | "cooldown"
+          | "send_failed"
+          | "storage_unavailable";
+      },
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
@@ -62,6 +71,7 @@ vi.mock("@/lib/telegram/family-shield.server", () => ({
     guardianTelegramUserId: number;
     lang: string;
     guardianDisplayName?: string;
+    mode?: "manual" | "automatic";
   }) => {
     hoisted.familyNotifyCalls.push(args);
     return Promise.resolve(hoisted.familyNotifyResult);
@@ -1023,6 +1033,7 @@ describe("handleCheck follow-up routing", () => {
         lang: "ru",
         guardianDisplayName: "Akmal",
         cooldownMs: 30 * 60 * 1000,
+        mode: "automatic",
       },
     ]);
     expect(JSON.stringify(hoisted.familyNotifyCalls[0])).not.toContain("kapitalbank.uz.evil.com");

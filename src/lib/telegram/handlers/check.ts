@@ -926,9 +926,17 @@ async function maybeAutoNotifyTrustedContact(
     lang: ctx.session.lang,
     guardianDisplayName: ctx.displayName,
     cooldownMs: PROACTIVE_TRUSTED_NOTIFY_COOLDOWN_MS,
+    mode: "automatic",
   });
 
-  if (result.ok || result.reason === "not_linked" || result.reason === "cooldown") return;
+  if (
+    result.ok ||
+    result.reason === "not_linked" ||
+    result.reason === "auto_alerts_disabled" ||
+    result.reason === "cooldown"
+  ) {
+    return;
+  }
   console.error("family shield proactive notify failed", result.reason);
 }
 

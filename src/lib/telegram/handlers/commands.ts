@@ -58,6 +58,7 @@ import {
   buildFamilyAlreadyLinkedKeyboard,
   buildFamilyInviteKeyboard,
   buildFamilySetupKeyboard,
+  buildTrustedConsentKeyboard,
   createFamilyInvite,
   parseFamilyStartArg,
 } from "@/lib/telegram/family-shield.server";
@@ -230,11 +231,16 @@ async function acceptFamilyStartLink(cmd: ParsedCommand, ctx: HandlerCtx): Promi
   });
 
   if (accepted.ok) {
-    await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(bt("family_accept_ok", lang)) });
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(bt("family_accept_ok", lang)),
+      keyboard: buildTrustedConsentKeyboard(lang, accepted.familyId),
+    });
     const guardianSession = await loadSession(accepted.guardianTelegramUserId);
     await sendMessage({
       chatId: accepted.guardianTelegramUserId,
       text: escapeMarkdownV2(bt("family_guardian_linked", guardianSession.lang)),
+      keyboard: buildFamilyAlreadyLinkedKeyboard(guardianSession.lang),
     });
     return true;
   }

@@ -121,10 +121,12 @@ import {
   buildFamilySetupKeyboard,
   createFamilyInvite,
   FAMILY_CB,
+  familyIdFromCallback,
   notifyTrustedContact,
   parseFamilyCallback,
   revokeFamilyShield,
   revokeFamilyShieldForTrusted,
+  setFamilyAutoAlertsConsent,
 } from "@/lib/telegram/family-shield.server";
 
 const LANG_PREFIX = "lang:";
@@ -301,6 +303,39 @@ async function sendTrustedNotificationOrSetup(ctx: HandlerCtx): Promise<void> {
   await sendI18n(ctx.chatId, key, lang);
 }
 
+async function updateFamilyAutoConsent(
+  ctx: HandlerCtx,
+  args:
+    | { role: "guardian"; enabled: boolean }
+    | { role: "trusted"; enabled: boolean; familyId: string | null },
+): Promise<void> {
+  const lang = ctx.session.lang;
+  const result = await setFamilyAutoAlertsConsent({
+    role: args.role,
+    telegramUserId: ctx.userId,
+    enabled: args.enabled,
+    familyId: args.role === "trusted" ? (args.familyId ?? undefined) : undefined,
+  });
+
+  if (!result.ok) {
+    await sendI18n(
+      ctx.chatId,
+      result.reason === "storage_unavailable" ? "family_storage_error" : "family_auto_not_linked",
+      lang,
+    );
+    return;
+  }
+
+  const key = !args.enabled
+    ? "family_auto_off"
+    : result.automaticActive
+      ? "family_auto_on"
+      : args.role === "guardian"
+        ? "family_auto_guardian_waiting"
+        : "family_auto_trusted_waiting";
+  await sendI18n(ctx.chatId, key, lang);
+}
+
 async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<boolean> {
   const action = parseFamilyCallback(data);
   if (action === null) return false;
@@ -336,6 +371,30 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
     return true;
   }
 
+  if (action === FAMILY_CB.guardianAutoEnable || action === FAMILY_CB.guardianAutoDisable) {
+    await updateFamilyAutoConsent(ctx, {
+      role: "guardian",
+      enabled: action === FAMILY_CB.guardianAutoEnable,
+    });
+    return true;
+  }
+
+  const trustedAutoEnableFamilyId = familyIdFromCallback(action, FAMILY_CB.trustedAutoEnable);
+  const trustedAutoDisableFamilyId = familyIdFromCallback(action, FAMILY_CB.trustedAutoDisable);
+  if (
+    action === FAMILY_CB.trustedAutoEnable ||
+    action === FAMILY_CB.trustedAutoDisable ||
+    trustedAutoEnableFamilyId ||
+    trustedAutoDisableFamilyId
+  ) {
+    await updateFamilyAutoConsent(ctx, {
+      role: "trusted",
+      enabled: action === FAMILY_CB.trustedAutoEnable || trustedAutoEnableFamilyId !== null,
+      familyId: trustedAutoEnableFamilyId ?? trustedAutoDisableFamilyId,
+    });
+    return true;
+  }
+
   if (action === FAMILY_CB.revoke) {
     const revoked = await revokeFamilyShield(ctx.userId);
     if (revoked.ok) {
@@ -348,8 +407,12 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
     return true;
   }
 
-  if (action === FAMILY_CB.trustedOptOut) {
-    const revoked = await revokeFamilyShieldForTrusted(ctx.userId);
+  const trustedOptOutFamilyId = familyIdFromCallback(action, FAMILY_CB.trustedOptOut);
+  if (action === FAMILY_CB.trustedOptOut || trustedOptOutFamilyId) {
+    const revoked = await revokeFamilyShieldForTrusted(
+      ctx.userId,
+      trustedOptOutFamilyId ?? undefined,
+    );
     if (revoked.ok) {
       await sendI18n(ctx.chatId, "family_trusted_opt_out_ok", lang);
     } else if (revoked.reason === "not_linked") {

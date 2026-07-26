@@ -767,6 +767,26 @@ export const bot_dict: BotDict = {
     uz: "🗑 O'chirish",
     en: "🗑 Disable",
   },
+  family_btn_guardian_auto_enable: {
+    ru: "🔔 Разрешить авто-сигналы",
+    uz: "🔔 Avto-signallarga ruxsat",
+    en: "🔔 Allow automatic alerts",
+  },
+  family_btn_guardian_auto_disable: {
+    ru: "☝️ Оставить только кнопку",
+    uz: "☝️ Faqat tugma orqali",
+    en: "☝️ Keep one-tap only",
+  },
+  family_btn_trusted_auto_enable: {
+    ru: "🔔 Разрешить авто-сигналы",
+    uz: "🔔 Avto-signallarga ruxsat",
+    en: "🔔 Allow automatic alerts",
+  },
+  family_btn_trusted_auto_disable: {
+    ru: "☝️ Только по кнопке",
+    uz: "☝️ Faqat tugma orqali",
+    en: "☝️ One-tap alerts only",
+  },
   family_btn_trusted_stop_alerts: {
     ru: "Отключить эти сигналы",
     uz: "Bu signallarni o'chirish",
@@ -778,9 +798,9 @@ export const bot_dict: BotDict = {
     en: "✅ I will help now",
   },
   family_menu_text: {
-    ru: "👪 Семейный щит\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПосле этого появится кнопка «Позвать близкого». Я не передаю ему ваши коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
-    uz: "👪 Oila qalqoni\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nShundan keyin «Yaqinni chaqirish» tugmasi ishlaydi. Men unga kodlar, havolalar, raqamlar yoki skrinshotlaringizni yubormayman.\n\nAlohida «Ovozni tekshirish» tugmasini bosib, ovozli va video qo'ng'iroqlarni botga sir yubormasdan tekshirish bo'yicha oilaviy qoida kelishib oling.",
-    en: "👪 Family Shield\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nAfter that, “Notify trusted person” becomes available. I do not send them your codes, links, numbers, or screenshots.\n\nYou can also tap “Verify voice safely” and agree with your family how to verify voice and video calls without sending the secret to the bot.",
+    ru: "👪 Семейный щит\n\nЭто кнопка помощи близкому человеку: если вы растерялись, получили высокий риск или вас торопят по телефону, я помогу позвать доверенного человека.\n\nКак подключить:\n1. Нажмите «Создать приглашение».\n2. Отправьте его родственнику или другу.\n3. Он откроет бота и нажмёт Start.\n\nПо умолчанию работает только кнопка «Позвать близкого». Автоматические сигналы выключены и включатся только после отдельного согласия вас обоих. Любой из вас сможет снова их выключить.\n\nЯ не передаю близкому текст проверки, коды, ссылки, номера или скриншоты.\n\nОтдельно можно нажать «Как проверить голос» и договориться с семьёй, как проверять голосовые и видео-звонки без отправки секрета в бот.",
+    uz: "👪 Oila qalqoni\n\nBu ishonchli insonni chaqirish tugmasi: agar shoshilib qolsangiz, yuqori xavf chiqsa yoki telefon orqali bosim bo'lsa, men yaqin insoningizni chaqirishga yordam beraman.\n\nQanday ulash:\n1. «Taklif yaratish»ni bosing.\n2. Uni qarindosh yoki do'stingizga yuboring.\n3. U botni ochib Start bosadi.\n\nOdatiy holatda faqat «Yaqinni chaqirish» tugmasi ishlaydi. Avtomatik signallar o'chirilgan va faqat ikkalangiz alohida rozilik berganingizdan keyin yoqiladi. Istalgan taraf ularni yana o'chira oladi.\n\nMen yaqin insoningizga tekshiruv matni, kodlar, havolalar, raqamlar yoki skrinshotlarni yubormayman.\n\nAlohida «Ovozni tekshirish» tugmasini bosib, ovozli va video qo'ng'iroqlarni botga sir yubormasdan tekshirish bo'yicha oilaviy qoida kelishib oling.",
+    en: "👪 Family Shield\n\nThis is a help button for someone you trust: if you feel lost, get a high-risk result, or someone is pressuring you on a call, I can help notify your trusted person.\n\nHow to connect:\n1. Tap “Create invite”.\n2. Send it to a relative or friend.\n3. They open the bot and tap Start.\n\nOnly the “Notify trusted person” button works by default. Automatic alerts are off and activate only after both of you consent separately. Either person can turn them off again.\n\nI do not send your trusted person the checked text, codes, links, numbers, or screenshots.\n\nYou can also tap “Verify voice safely” and agree with your family how to verify voice and video calls without sending the secret to the bot.",
   },
   family_codeword_guide: {
     ru: "🔐 Семейное кодовое слово\n\nЭто защита от звонков и голосовых, где мошенник звучит как близкий человек.\n\nКак договориться:\n1. Выберите короткую фразу, которую нельзя угадать из соцсетей.\n2. Обсудите её лично или по уже сохранённому номеру.\n3. Не пишите кодовое слово в бот, чат, заметки или SMS.\n4. Если звонят с просьбой о деньгах, коде или срочном переводе — завершите разговор, перезвоните по сохранённому номеру и спросите кодовое слово или личный вопрос.\n\nЕсли человек злится, торопит или запрещает перезванивать — это красный флаг. Деньги и коды не отправляем, пока личность не подтверждена другим каналом.",
@@ -803,14 +823,14 @@ export const bot_dict: BotDict = {
     en: "Family Shield can be set up only in a private chat with the bot, so the invite is not exposed in a group. Open the bot privately and tap /family.",
   },
   family_accept_ok: {
-    ru: "✅ Готово. Вы стали доверенным контактом Ishonch Guard.\n\nЕсли близкий человек попросит срочную помощь, я пришлю короткий сигнал без его личных данных, кодов, ссылок и скриншотов.",
-    uz: "✅ Tayyor. Siz Ishonch Guard ishonchli kontakti bo'ldingiz.\n\nYaqin insoningiz shoshilinch yordam so'rasa, men shaxsiy ma'lumotlar, kodlar, havolalar va skrinshotlarsiz qisqa signal yuboraman.",
-    en: "✅ Done. You are now an Ishonch Guard trusted contact.\n\nIf your trusted person asks for urgent help, I will send a short alert without personal data, codes, links, or screenshots.",
+    ru: "✅ Готово. Вы стали доверенным контактом Ishonch Guard.\n\nСейчас включены только сигналы по кнопке близкого. Автоматические сигналы о результате высокого риска выключены. Разрешите их ниже только если согласны; они заработают, когда близкий тоже даст согласие.\n\nЯ не пришлю текст проверки, личные данные, коды, ссылки, номера или скриншоты.",
+    uz: "✅ Tayyor. Siz Ishonch Guard ishonchli kontakti bo'ldingiz.\n\nHozir faqat yaqin inson tugmani bosganda signal keladi. Yuqori xavf natijasi haqidagi avtomatik signallar o'chirilgan. Faqat rozi bo'lsangiz quyida ruxsat bering; yaqin inson ham rozilik bergandan keyin ular ishlaydi.\n\nMen tekshiruv matni, shaxsiy ma'lumotlar, kodlar, havolalar, raqamlar yoki skrinshotlarni yubormayman.",
+    en: "✅ Done. You are now an Ishonch Guard trusted contact.\n\nOnly alerts requested with your trusted person's button are enabled now. Automatic high-risk alerts are off. Allow them below only if you consent; they activate after your trusted person also consents.\n\nI will not send checked text, personal data, codes, links, numbers, or screenshots.",
   },
   family_guardian_linked: {
-    ru: "✅ Близкий подключён. Теперь в срочной ситуации вы сможете позвать его одной кнопкой.",
-    uz: "✅ Yaqin inson ulandi. Endi shoshilinch holatda uni bitta tugma bilan chaqira olasiz.",
-    en: "✅ Trusted person linked. In an emergency, you can now notify them with one tap.",
+    ru: "✅ Близкий подключён. Теперь в срочной ситуации вы сможете позвать его одной кнопкой.\n\nАвтоматические сигналы пока выключены. Они включатся только после отдельного согласия вас и близкого.",
+    uz: "✅ Yaqin inson ulandi. Endi shoshilinch holatda uni bitta tugma bilan chaqira olasiz.\n\nAvtomatik signallar hozircha o'chirilgan. Ular faqat siz va yaqin inson alohida rozilik berganingizdan keyin yoqiladi.",
+    en: "✅ Trusted person linked. In an emergency, you can now notify them with one tap.\n\nAutomatic alerts are still off. They activate only after you and your trusted person consent separately.",
   },
   family_accept_invalid: {
     ru: "Ссылка приглашения недействительна или уже использована. Попросите создать новое приглашение через /family.",
@@ -851,6 +871,31 @@ export const bot_dict: BotDict = {
     ru: "Не удалось отправить сигнал близкому. Позвоните ему вручную и скажите: «Мне нужна помощь. Побудь со мной 5 минут, пока я перезвоню в банк по официальному номеру».",
     uz: "Yaqiningizga signal yuborib bo'lmadi. Unga o'zingiz qo'ng'iroq qiling va ayting: «Menga yordam kerak. Bankka rasmiy raqam orqali qo'ng'iroq qilgunimcha 5 daqiqa yonimda bo'ling».",
     en: "I could not send the alert. Call them yourself and say: “I need help. Stay with me for 5 minutes while I call the bank back using an official number.”",
+  },
+  family_auto_guardian_waiting: {
+    ru: "Ваше согласие сохранено. Автоматические сигналы пока не включены: близкий тоже должен отдельно разрешить их. Кнопка «Позвать близкого» уже работает.",
+    uz: "Sizning roziligingiz saqlandi. Avtomatik signallar hali yoqilmadi: yaqin inson ham ularga alohida ruxsat berishi kerak. «Yaqinni chaqirish» tugmasi ishlayapti.",
+    en: "Your consent is saved. Automatic alerts are not active yet: your trusted person must also allow them separately. The one-tap notify button already works.",
+  },
+  family_auto_trusted_waiting: {
+    ru: "Ваше согласие сохранено. Автоматические сигналы пока не включены: близкий человек тоже должен отдельно разрешить их. Сигналы по его кнопке уже работают.",
+    uz: "Sizning roziligingiz saqlandi. Avtomatik signallar hali yoqilmadi: yaqin inson ham ularga alohida ruxsat berishi kerak. Uning tugmasi orqali signallar ishlayapti.",
+    en: "Your consent is saved. Automatic alerts are not active yet: your trusted person must also allow them separately. Their one-tap alerts already work.",
+  },
+  family_auto_on: {
+    ru: "🔔 Автоматические сигналы включены по согласию вас обоих. При результате высокого риска близкому придёт только короткая просьба помочь — без текста проверки, кодов, ссылок, номеров и скриншотов.",
+    uz: "🔔 Avtomatik signallar ikkalangizning roziligingiz bilan yoqildi. Yuqori xavf natijasida yaqin insonga faqat qisqa yordam so'rovi boradi — tekshiruv matni, kodlar, havolalar, raqamlar va skrinshotlarsiz.",
+    en: "🔔 Automatic alerts are on with consent from both of you. A high-risk result sends only a short request for help — never checked text, codes, links, numbers, or screenshots.",
+  },
+  family_auto_off: {
+    ru: "Автоматические сигналы выключены. Кнопка «Позвать близкого» продолжает работать. Включить авто-сигналы снова можно только с отдельного согласия вас обоих.",
+    uz: "Avtomatik signallar o'chirildi. «Yaqinni chaqirish» tugmasi ishlashda davom etadi. Avto-signallarni qayta yoqish uchun ikkalangiz yana alohida rozilik berishingiz kerak.",
+    en: "Automatic alerts are off. The one-tap notify button still works. Turning automatic alerts on again requires separate consent from both of you.",
+  },
+  family_auto_not_linked: {
+    ru: "Не удалось изменить авто-сигналы: эта связь с близким уже отключена или не найдена. Откройте /family, чтобы проверить подключение.",
+    uz: "Avto-signallarni o'zgartirib bo'lmadi: yaqin inson bilan aloqa o'chirilgan yoki topilmadi. Ulanishni tekshirish uchun /family ni oching.",
+    en: "Automatic alert settings could not be changed because this trusted link is disabled or no longer exists. Open /family to check the connection.",
   },
   family_revoke_ok: {
     ru: "Готово. Семейный щит отключён для этого контакта.",

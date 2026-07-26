@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -7,11 +7,13 @@ import type { Lang } from "@/lib/i18n";
 import { hashIdentifierCandidates, type IdentifierHash } from "@/lib/risk/hash";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
+import { currentTelegramUpdateId } from "@/lib/telegram/update-execution.server";
 
 const TABLE = "telegram_family_shield";
 const INVITE_PREFIX = "family_";
 const NOTIFICATION_COOLDOWN_MS = 2 * 60 * 1000;
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
+const FAMILY_ID_PATTERN = /^[A-Za-z0-9-]{1,40}$/;
 
 export const FAMILY_CB = {
   menu: "family:menu",
@@ -19,13 +21,25 @@ export const FAMILY_CB = {
   notify: "family:notify",
   codewordGuide: "family:codeword",
   revoke: "family:revoke",
+  guardianAutoEnable: "family:guardian_auto_on",
+  guardianAutoDisable: "family:guardian_auto_off",
   trustedAck: "family:trusted_ack",
   trustedOptOut: "family:trusted_opt_out",
+  trustedAutoEnable: "family:trusted_auto_on",
+  trustedAutoDisable: "family:trusted_auto_off",
 } as const;
 
-export type FamilyCallback = (typeof FAMILY_CB)[keyof typeof FAMILY_CB];
+type StaticFamilyCallback = (typeof FAMILY_CB)[keyof typeof FAMILY_CB];
+type ScopedFamilyCallback =
+  | `${typeof FAMILY_CB.trustedOptOut}:${string}`
+  | `${typeof FAMILY_CB.trustedAutoEnable}:${string}`
+  | `${typeof FAMILY_CB.trustedAutoDisable}:${string}`;
+
+export type FamilyCallback = StaticFamilyCallback | ScopedFamilyCallback;
 
 type FamilyStatus = "pending" | "active" | "revoked";
+export type FamilyNotificationMode = "manual" | "automatic";
+export type FamilyConsentRole = "guardian" | "trusted";
 
 interface FamilyRow {
   id: string;
@@ -39,6 +53,8 @@ interface FamilyRow {
   accepted_at: string | null;
   revoked_at: string | null;
   last_notified_at: string | null;
+  guardian_auto_alerts_enabled: boolean;
+  trusted_auto_alerts_enabled: boolean;
   updated_at: string;
 }
 
@@ -47,7 +63,7 @@ export type FamilyInviteResult =
   | { ok: false; reason: "already_linked" | "storage_unavailable" | "hash_unavailable" };
 
 export type FamilyAcceptResult =
-  | { ok: true; guardianTelegramUserId: number }
+  | { ok: true; guardianTelegramUserId: number; familyId: string }
   | {
       ok: false;
       reason: "expired" | "invalid" | "self_link" | "storage_unavailable" | "hash_unavailable";
@@ -55,14 +71,43 @@ export type FamilyAcceptResult =
 
 export type FamilyNotifyResult =
   | { ok: true; trustedChatId: number }
-  | { ok: false; reason: "not_linked" | "cooldown" | "send_failed" | "storage_unavailable" };
+  | {
+      ok: false;
+      reason:
+        | "not_linked"
+        | "auto_alerts_disabled"
+        | "cooldown"
+        | "send_failed"
+        | "storage_unavailable";
+    };
 
 export type FamilyRevokeResult =
   | { ok: true }
   | { ok: false; reason: "not_linked" | "storage_unavailable" };
 
+export type FamilyConsentResult =
+  | { ok: true; automaticActive: boolean }
+  | { ok: false; reason: "not_linked" | "storage_unavailable" };
+
+interface NotificationClaimRow {
+  decision:
+    | "claimed"
+    | "not_linked"
+    | "auto_alerts_disabled"
+    | "duplicate"
+    | "cooldown"
+    | "unavailable";
+  claim_id: string | null;
+  family_id: string | null;
+  trusted_chat_id: number | null;
+}
+
+function familyClient(): SupabaseClient {
+  return supabaseAdmin as unknown as SupabaseClient;
+}
+
 function familyTable() {
-  return (supabaseAdmin as unknown as SupabaseClient).from(TABLE);
+  return familyClient().from(TABLE);
 }
 
 function randomInviteToken(): string {
@@ -122,9 +167,26 @@ export function parseFamilyStartArg(arg: string): string | null {
 }
 
 export function parseFamilyCallback(data: string): FamilyCallback | null {
-  return Object.values(FAMILY_CB).includes(data as FamilyCallback)
-    ? (data as FamilyCallback)
-    : null;
+  if (Object.values(FAMILY_CB).includes(data as StaticFamilyCallback)) {
+    return data as StaticFamilyCallback;
+  }
+
+  for (const prefix of [
+    FAMILY_CB.trustedOptOut,
+    FAMILY_CB.trustedAutoEnable,
+    FAMILY_CB.trustedAutoDisable,
+  ]) {
+    const familyId = familyIdFromCallback(data, prefix);
+    if (familyId) return data as ScopedFamilyCallback;
+  }
+
+  return null;
+}
+
+export function familyIdFromCallback(data: string, prefix: string): string | null {
+  if (!data.startsWith(`${prefix}:`)) return null;
+  const familyId = data.slice(prefix.length + 1);
+  return FAMILY_ID_PATTERN.test(familyId) ? familyId : null;
 }
 
 async function revokePendingInvites(guardianTelegramUserId: number): Promise<boolean> {
@@ -224,6 +286,8 @@ export async function acceptFamilyInvite(args: {
       .update({
         trusted_telegram_user_id: args.trustedTelegramUserId,
         trusted_chat_id: args.trustedChatId,
+        guardian_auto_alerts_enabled: false,
+        trusted_auto_alerts_enabled: false,
         status: "active",
         accepted_at: now,
         updated_at: now,
@@ -235,7 +299,11 @@ export async function acceptFamilyInvite(args: {
       return { ok: false, reason: "storage_unavailable" };
     }
 
-    return { ok: true, guardianTelegramUserId: row.guardian_telegram_user_id };
+    return {
+      ok: true,
+      guardianTelegramUserId: row.guardian_telegram_user_id,
+      familyId: row.id,
+    };
   } catch {
     console.error("family shield invite accept threw", "storage_exception");
     return { ok: false, reason: "storage_unavailable" };
@@ -253,12 +321,6 @@ async function getActiveFamilyRow(guardianTelegramUserId: number): Promise<Famil
     return null;
   }
   return (data as FamilyRow | null) ?? null;
-}
-
-function isCoolingDown(lastNotifiedAt: string | null, nowMs: number, cooldownMs: number): boolean {
-  if (!lastNotifiedAt) return false;
-  const lastMs = Date.parse(lastNotifiedAt);
-  return Number.isFinite(lastMs) && nowMs - lastMs < cooldownMs;
 }
 
 function safeGuardianLabel(label?: string): string | null {
@@ -321,37 +383,170 @@ export function buildFamilyCodewordGuideText(lang: Lang): string {
   return bt("family_codeword_guide", lang);
 }
 
+function buildNotificationIdempotencyKey(
+  mode: FamilyNotificationMode,
+  provided?: string,
+): string | null {
+  let source: string;
+  if (provided !== undefined) {
+    const normalized = provided.trim();
+    if (!normalized || normalized.length > 512) return null;
+    source = `provided:${normalized}`;
+  } else {
+    const updateId = currentTelegramUpdateId();
+    source =
+      updateId !== null
+        ? `telegram-update:${updateId}:${mode}`
+        : `family-request:${randomBytes(18).toString("base64url")}:${mode}`;
+  }
+
+  return `family-notification:${createHash("sha256").update(source).digest("hex")}`;
+}
+
+async function claimFamilyNotification(args: {
+  guardianTelegramUserId: number;
+  mode: FamilyNotificationMode;
+  idempotencyKey: string;
+  cooldownMs: number;
+}): Promise<{ row: NotificationClaimRow | null; storageError: boolean }> {
+  const cooldownSeconds = Math.max(1, Math.min(86_400, Math.ceil(args.cooldownMs / 1000)));
+  const { data, error } = await familyClient().rpc("claim_telegram_family_notification", {
+    p_guardian_telegram_user_id: args.guardianTelegramUserId,
+    p_mode: args.mode,
+    p_idempotency_key: args.idempotencyKey,
+    p_cooldown_seconds: cooldownSeconds,
+  });
+  if (error) {
+    console.error("family shield notification claim failed", "storage_error");
+    return { row: null, storageError: true };
+  }
+
+  const raw = Array.isArray(data) ? data[0] : data;
+  return {
+    row: raw && typeof raw === "object" ? (raw as NotificationClaimRow) : null,
+    storageError: false,
+  };
+}
+
+async function completeFamilyNotificationClaim(claimId: string, delivered: boolean): Promise<void> {
+  try {
+    const { data, error } = await familyClient().rpc("complete_telegram_family_notification", {
+      p_claim_id: claimId,
+      p_delivered: delivered,
+    });
+    if (error || data !== true) {
+      console.error("family shield notification completion failed", "storage_error");
+    }
+  } catch {
+    // Delivery has already succeeded or failed at this point. The claim and
+    // cooldown were committed before the network call, so never turn a
+    // best-effort outcome write into a second delivery attempt.
+    console.error("family shield notification completion threw", "storage_exception");
+  }
+}
+
+export async function setFamilyAutoAlertsConsent(args: {
+  role: FamilyConsentRole;
+  telegramUserId: number;
+  enabled: boolean;
+  familyId?: string;
+}): Promise<FamilyConsentResult> {
+  try {
+    const now = new Date().toISOString();
+    const column =
+      args.role === "guardian" ? "guardian_auto_alerts_enabled" : "trusted_auto_alerts_enabled";
+    let query = familyTable()
+      .update({ [column]: args.enabled, updated_at: now })
+      .eq("status", "active");
+
+    if (args.role === "guardian") {
+      query = query.eq("guardian_telegram_user_id", args.telegramUserId);
+    } else {
+      if (!args.familyId || !FAMILY_ID_PATTERN.test(args.familyId)) {
+        return { ok: false, reason: "not_linked" };
+      }
+      query = query.eq("id", args.familyId).eq("trusted_telegram_user_id", args.telegramUserId);
+    }
+
+    const { data, error } = await query.select(
+      "guardian_auto_alerts_enabled,trusted_auto_alerts_enabled",
+    );
+    if (error) {
+      console.error("family shield consent update failed", "storage_error");
+      return { ok: false, reason: "storage_unavailable" };
+    }
+
+    const row = Array.isArray(data)
+      ? (data[0] as
+          | {
+              guardian_auto_alerts_enabled?: boolean;
+              trusted_auto_alerts_enabled?: boolean;
+            }
+          | undefined)
+      : undefined;
+    if (!row) return { ok: false, reason: "not_linked" };
+
+    return {
+      ok: true,
+      automaticActive:
+        row.guardian_auto_alerts_enabled === true && row.trusted_auto_alerts_enabled === true,
+    };
+  } catch {
+    console.error("family shield consent update threw", "storage_exception");
+    return { ok: false, reason: "storage_unavailable" };
+  }
+}
+
 export async function notifyTrustedContact(args: {
   guardianTelegramUserId: number;
   lang: Lang;
   guardianDisplayName?: string;
   cooldownMs?: number;
+  mode?: FamilyNotificationMode;
+  idempotencyKey?: string;
 }): Promise<FamilyNotifyResult> {
   try {
-    const row = await getActiveFamilyRow(args.guardianTelegramUserId);
-    if (!row || row.trusted_chat_id === null) return { ok: false, reason: "not_linked" };
+    const mode = args.mode ?? "manual";
+    const idempotencyKey = buildNotificationIdempotencyKey(mode, args.idempotencyKey);
+    if (!idempotencyKey) return { ok: false, reason: "storage_unavailable" };
 
-    const nowMs = Date.now();
-    if (isCoolingDown(row.last_notified_at, nowMs, args.cooldownMs ?? NOTIFICATION_COOLDOWN_MS)) {
+    const claim = await claimFamilyNotification({
+      guardianTelegramUserId: args.guardianTelegramUserId,
+      mode,
+      idempotencyKey,
+      cooldownMs: args.cooldownMs ?? NOTIFICATION_COOLDOWN_MS,
+    });
+    if (claim.storageError || !claim.row) {
+      return { ok: false, reason: "storage_unavailable" };
+    }
+    if (claim.row.decision === "not_linked") return { ok: false, reason: "not_linked" };
+    if (claim.row.decision === "auto_alerts_disabled") {
+      return { ok: false, reason: "auto_alerts_disabled" };
+    }
+    if (claim.row.decision === "duplicate" || claim.row.decision === "cooldown") {
       return { ok: false, reason: "cooldown" };
+    }
+    if (
+      claim.row.decision !== "claimed" ||
+      !claim.row.claim_id ||
+      !claim.row.family_id ||
+      claim.row.trusted_chat_id === null
+    ) {
+      return { ok: false, reason: "storage_unavailable" };
     }
 
     const sent = await sendMessage({
-      chatId: row.trusted_chat_id,
+      chatId: claim.row.trusted_chat_id,
       text: escapeMarkdownV2(buildTrustedAlertText(args.lang, args.guardianDisplayName)),
-      keyboard: buildTrustedAlertKeyboard(args.lang),
+      keyboard: buildTrustedAlertKeyboard(args.lang, claim.row.family_id),
     });
-    if (!sent.ok) return { ok: false, reason: "send_failed" };
-
-    const now = new Date(nowMs).toISOString();
-    const { error } = await familyTable()
-      .update({ last_notified_at: now, updated_at: now })
-      .eq("id", row.id);
-    if (error) {
-      console.error("family shield notification timestamp failed", "storage_error");
+    if (!sent.ok) {
+      await completeFamilyNotificationClaim(claim.row.claim_id, false);
+      return { ok: false, reason: "send_failed" };
     }
 
-    return { ok: true, trustedChatId: row.trusted_chat_id };
+    await completeFamilyNotificationClaim(claim.row.claim_id, true);
+    return { ok: true, trustedChatId: claim.row.trusted_chat_id };
   } catch {
     console.error("family shield notify threw", "delivery_exception");
     return { ok: false, reason: "storage_unavailable" };
@@ -360,14 +555,19 @@ export async function notifyTrustedContact(args: {
 
 export async function revokeFamilyShieldForTrusted(
   trustedTelegramUserId: number,
+  familyId?: string,
 ): Promise<FamilyRevokeResult> {
   try {
     const now = new Date().toISOString();
-    const { data, error } = await familyTable()
+    let query = familyTable()
       .update({ status: "revoked", revoked_at: now, updated_at: now })
       .eq("trusted_telegram_user_id", trustedTelegramUserId)
-      .eq("status", "active")
-      .select("id");
+      .eq("status", "active");
+    if (familyId !== undefined) {
+      if (!FAMILY_ID_PATTERN.test(familyId)) return { ok: false, reason: "not_linked" };
+      query = query.eq("id", familyId);
+    }
+    const { data, error } = await query.select("id");
     if (error) {
       console.error("family shield trusted revoke failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
@@ -414,15 +614,55 @@ export function buildFamilyInviteKeyboard(inviteUrl: string, lang: Lang): Inline
 export function buildFamilyAlreadyLinkedKeyboard(lang: Lang): InlineKeyboard {
   return [
     [{ text: bt("family_btn_notify", lang), callback_data: FAMILY_CB.notify }],
+    [
+      {
+        text: bt("family_btn_guardian_auto_enable", lang),
+        callback_data: FAMILY_CB.guardianAutoEnable,
+      },
+    ],
+    [
+      {
+        text: bt("family_btn_guardian_auto_disable", lang),
+        callback_data: FAMILY_CB.guardianAutoDisable,
+      },
+    ],
     [{ text: bt("family_btn_codeword", lang), callback_data: FAMILY_CB.codewordGuide }],
     [{ text: bt("family_btn_revoke", lang), callback_data: FAMILY_CB.revoke }],
   ];
 }
 
-export function buildTrustedAlertKeyboard(lang: Lang): InlineKeyboard {
+export function buildTrustedConsentKeyboard(lang: Lang, familyId: string): InlineKeyboard {
+  return [
+    [
+      {
+        text: bt("family_btn_trusted_auto_enable", lang),
+        callback_data: `${FAMILY_CB.trustedAutoEnable}:${familyId}`,
+      },
+    ],
+    [
+      {
+        text: bt("family_btn_trusted_auto_disable", lang),
+        callback_data: `${FAMILY_CB.trustedAutoDisable}:${familyId}`,
+      },
+    ],
+    [
+      {
+        text: bt("family_btn_trusted_stop_alerts", lang),
+        callback_data: `${FAMILY_CB.trustedOptOut}:${familyId}`,
+      },
+    ],
+  ];
+}
+
+export function buildTrustedAlertKeyboard(lang: Lang, familyId: string): InlineKeyboard {
   return [
     [{ text: bt("family_btn_trusted_ack", lang), callback_data: FAMILY_CB.trustedAck }],
-    [{ text: bt("family_btn_trusted_stop_alerts", lang), callback_data: FAMILY_CB.trustedOptOut }],
+    [
+      {
+        text: bt("family_btn_trusted_stop_alerts", lang),
+        callback_data: `${FAMILY_CB.trustedOptOut}:${familyId}`,
+      },
+    ],
   ];
 }
 
