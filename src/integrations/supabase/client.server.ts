@@ -3,6 +3,7 @@
 // Use this for admin operations in server functions and server routes only.
 // For user-authenticated queries (with RLS), use the auth middleware instead.
 import { createClient } from "@supabase/supabase-js";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import type { Database } from "./types";
 
 function createSupabaseAdminClient() {
@@ -30,12 +31,19 @@ function createSupabaseAdminClient() {
 
 let _supabaseAdmin: ReturnType<typeof createSupabaseAdminClient> | undefined;
 
+const getSupabaseAdminClient = createServerOnlyFn(() => {
+  _supabaseAdmin ??= createSupabaseAdminClient();
+  return _supabaseAdmin;
+});
+
 // Server-side Supabase client with service role - bypasses RLS
 // SECURITY: Only use this for trusted server-side operations, never expose to client code
 // Import like: import { supabaseAdmin } from "@/integrations/supabase/client.server";
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createSupabaseAdminClient>, {
-  get(_, prop, receiver) {
-    if (!_supabaseAdmin) _supabaseAdmin = createSupabaseAdminClient();
-    return Reflect.get(_supabaseAdmin, prop, receiver);
+export const supabaseAdmin = /* @__PURE__ */ new Proxy(
+  {} as ReturnType<typeof createSupabaseAdminClient>,
+  {
+    get(_, prop, receiver) {
+      return Reflect.get(getSupabaseAdminClient(), prop, receiver);
+    },
   },
-});
+);

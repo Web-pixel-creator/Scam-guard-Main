@@ -9,6 +9,23 @@ describe("toolchain security boundaries", () => {
     expect(config).not.toMatch(/host:\s*["'](?:::|0\.0\.0\.0)["']/);
   });
 
+  it("keeps the service-role client behind a tree-shakeable server-only boundary", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/integrations/supabase/client.server.ts"),
+      "utf8",
+    );
+    const configSource = readFileSync(resolve(process.cwd(), "src/lib/config.server.ts"), "utf8");
+
+    expect(clientSource).toMatch(
+      /createServerOnlyFn\(\(\) => \{[\s\S]*createSupabaseAdminClient\(\)/u,
+    );
+    expect(clientSource).toMatch(/\/\* @__PURE__ \*\/ new Proxy/u);
+    expect(clientSource).toMatch(
+      /return Reflect\.get\(getSupabaseAdminClient\(\), prop, receiver\)/u,
+    );
+    expect(configSource).not.toMatch(/from\s+["']node:process["']/u);
+  });
+
   it("declares patched toolchain versions and overrides", () => {
     const manifest = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
       devDependencies?: Record<string, string>;
