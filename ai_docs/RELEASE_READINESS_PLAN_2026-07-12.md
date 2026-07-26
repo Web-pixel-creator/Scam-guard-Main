@@ -163,6 +163,13 @@ invariants and measure RPO/RTO. Roll Railway back to the last known-good image,
 run smoke, then return to the RC. Rotate provider, Telegram, Railway and
 Supabase credentials one class at a time.
 
+Current operational update (2026-07-26): the encrypted logical snapshot passed
+a disposable local schema/data reconstruction, count-only invariants, schema
+lint and pgTAP 53/53. A transaction-ready v2 archive was generated, independently
+restored and copied off-machine. This is local inspection evidence only; the
+isolated hosted-service restore with measured RPO/RTO and Railway
+rollback/return remain required.
+
 The versioned dual-read/new-write overlap is implemented locally, but production
 pepper rotation remains blocked until the additive migration and version-aware
 application are deployed and drilled in that order. The previous pepper must

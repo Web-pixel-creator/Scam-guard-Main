@@ -15,8 +15,16 @@ Newest first. This tracks documentation/memory files, not every code commit.
   decrypt-and-hash round trips.
 - Detected that the local OneDrive folder was not connected to the authenticated
   cloud account, uploaded the five encrypted recovery items through signed-in
-  OneDrive web, and confirmed all five names and sizes by cloud readback. A
-  second PFX location, isolated restore and rollback evidence remain open.
+  OneDrive web, and confirmed all five names and sizes by cloud readback.
+- Verified every original SQL entry against the manifest, completed a
+  disposable local schema/data restore with count-only invariants, schema lint,
+  pgTAP 53/53 and the 12,780/12,780 application gate.
+- Detected the cross-schema cycle in the legacy split dumps, generated and
+  independently restored a transaction-ready v2 package with unified
+  `schema.sql` and `data.sql`, CMS-encrypted it, and confirmed the two v2 files
+  plus `README-RECOVERY-V2.txt` by signed-in OneDrive web readback.
+- A second PFX location, hosted isolated-service restore/RPO/RTO and Railway
+  rollback evidence remain open.
 - Marked old commits, test totals and tracker counts in dated audit/release
   plans as historical to prevent future reviewers from treating them as the
   current project state.

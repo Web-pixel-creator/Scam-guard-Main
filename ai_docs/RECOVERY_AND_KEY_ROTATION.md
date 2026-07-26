@@ -45,11 +45,35 @@ command without a separately approved maintenance window.
   and
   `6a92db70355c568e1c5f57f03075048a06663af531b60985918bd3d1511c8a39`.
   No plaintext database dump was written there.
+- Every one of the original nine SQL entries matched the byte length and
+  SHA-256 recorded in `manifest.json`. The four separately generated schema
+  files contain a real cross-schema dependency cycle, so they must not be
+  treated as an operator-friendly one-pass restore.
+- A disposable local Supabase CLI `2.104.0` / Postgres `17.6.1.127` cluster
+  reconstructed the schema, then generated and independently restored a
+  dependency-ordered `schema.sql` and consolidated `data.sql`. The resulting
+  preferred local archive is
+  `C:\Users\user\Documents\Ishonch Guard Backups\ishonch-guard-production-20260726-1139-restore-ready-v2.efs.zip`.
+  It contains exactly `roles.sql`, `schema.sql`, `data.sql` and
+  `manifest.json`; its SHA-256 is
+  `35889f4a8a90c216a4e94f00a761c27f9934b057755e3abd7af8ca3617b1b8ea`.
+- The v2 archive and v2 metadata were separately CMS-encrypted. Their encrypted
+  SHA-256 values are
+  `4154e81d5011cfe05d367e2194377627eb14f75bb744db1aa4d36c87e8fae20c`
+  and
+  `384b0b66149e8b509b1e529614b2b6705884549b9b37f7a4f7c2c09c6fcd9134`.
+  In-memory decrypt-and-hash round trips reproduced source SHA-256 values
+  `35889f4a8a90c216a4e94f00a761c27f9934b057755e3abd7af8ca3617b1b8ea`
+  and
+  `570e45c2a4db772ea82ddfd81cdbce47ea4d2c4b83348d66ba6762b3ef3603c4`.
 - The local Windows OneDrive folder was not connected to the authenticated
   cloud account, so no sync claim was made. The five files were uploaded
   through signed-in OneDrive web instead. Web readback confirmed exactly two
   PFX files, two `.p7m` files and `README-RECOVERY.txt` with the expected names
-  and displayed sizes. The off-machine OneDrive copy is therefore confirmed.
+  and displayed sizes. After the local restore drill, signed-in web upload and
+  readback also confirmed the two v2 `.p7m` files and
+  `README-RECOVERY-V2.txt`; all eight expected cloud items are present. The
+  off-machine OneDrive copy is therefore confirmed.
   Copy the PFX files to a separate protected device or vault and keep their
   password elsewhere so one cloud-account failure cannot remove both data and
   its only recovery keys.
@@ -59,6 +83,13 @@ command without a separately approved maintenance window.
 - Hash-pepper overlap is active as `v2` plus the required `legacy` read slot.
   The bounded synthetic write/read/cleanup drill passed. Retirement of the
   legacy secret remains forbidden until the documented zero-dependency gate.
+- Local restore inspection passed: roles restore, clean transactional schema
+  restore, clean transactional data restore, schema lint and pgTAP 53/53.
+  Count-only invariants were Auth users 2, admin allowlist 2, user roles 4,
+  checks 235, reports 8, entities 7, appeals 2, Family Shield rows 7,
+  reputation targets 9 and Telegram sessions 4. The application gate then
+  passed 12,780/12,780 tests, TypeScript, production build and `npm audit`;
+  lint had 0 errors and 8 established Fast Refresh warnings.
 
 ## Backup verification
 
@@ -78,9 +109,11 @@ command without a separately approved maintenance window.
    date for each export.
 
 For the 2026-07-26 portable package, follow
-`C:\Users\user\OneDrive\Ishonch Guard Recovery\README-RECOVERY.txt`. It restores
-the CMS content only; the database must still be loaded into an isolated
-non-production project and pass the drill below.
+`C:\Users\user\OneDrive\Ishonch Guard Recovery\README-RECOVERY-V2.txt`.
+Prefer the restore-ready v2 package. The legacy archive is retained for audit
+but its split schema files require reconstruction. Decrypting either CMS
+package is not a database restore: the SQL must still be loaded into an
+isolated non-production project and pass the drill below.
 
 ## Non-production restore drill
 
@@ -99,6 +132,18 @@ non-production project and pass the drill below.
 6. Destroy the staging copy only after the evidence record contains the backup
    timestamp, restore duration, migration head, invariant counts and cleanup
    owner. The destructive cleanup itself requires operator approval.
+
+### Local inspection evidence (2026-07-26)
+
+The disposable local database reconstruction and count-only inspection passed.
+It proves that the encrypted logical snapshot can reconstruct its schema and
+data and that repository database tests still pass against the recovered
+schema. It does not close the hosted-staging gate: Auth, Storage, RLS through
+the service API, admin/report/appeal flows and application Telegram smokes must
+still run in an isolated Supabase project with outbound integrations disabled.
+The local database reconstruction/load took approximately 11 seconds after the
+local Supabase database was ready; this is diagnostic timing, not a hosted RTO
+measurement.
 
 ## Application rollback drill
 

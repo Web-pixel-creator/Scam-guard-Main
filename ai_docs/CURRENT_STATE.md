@@ -12,7 +12,8 @@ here.
 - Repository worktree was clean before this documentation reconciliation.
 - Checked-out branch:
   `agent/backend-mfa-security-integration-20260726`.
-- `HEAD`, local `main` and `origin/main` all resolve to
+- The working branch currently includes docs reconciliation commit `46c6266`;
+  local `main` and `origin/main` remain
   `6a13419dc256f0a08dae3032999cc36d665662b1`.
 - Railway production deployment
   `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8` is `SUCCESS` for that commit,
@@ -20,9 +21,9 @@ here.
   `sha256:9c1acb729188b485e5546d5ab576989c73c3f22a9ef6252519f5dbf674f6987f`.
 - Production `/` and `/healthz` returned `200` during the 2026-07-26
   read-only check.
-- The last full local application gate before this docs-only reconciliation
-  passed 160 test files and 12,780/12,780 tests, TypeScript, production build
-  and `npm audit`; lint had 0 errors and 8 established Fast Refresh warnings.
+- The 2026-07-26 restore-drill gate passed 160 test files and
+  12,780/12,780 tests, TypeScript, production build and `npm audit`; lint had
+  0 errors and 8 established Fast Refresh warnings.
 
 ## Closed in the current release
 
@@ -58,16 +59,36 @@ here.
 - The local Windows OneDrive folder was not connected to the signed-in cloud
   account, so the five recovery files were uploaded through the authenticated
   OneDrive web interface instead of assuming local sync.
-- Signed-in OneDrive web readback confirmed exactly five cloud items with the
-  expected names and displayed sizes: two password-protected PFX files, two
-  CMS-encrypted `.p7m` files and `README-RECOVERY.txt`.
+- The first signed-in OneDrive web readback confirmed five original recovery
+  items. After the restore drill, a preferred restore-ready v2 archive,
+  encrypted v2 metadata and `README-RECOVERY-V2.txt` were added. Final cloud
+  readback confirmed all eight expected names and displayed sizes.
+- The original 10-entry archive passed every manifest byte-length and SHA-256
+  check. Its four separately generated schema files have cross-schema
+  dependencies, so a naive one-pass empty-database restore is not valid.
+- A disposable local Supabase/Postgres cluster reconstructed those schemas,
+  generated a dependency-ordered `schema.sql`, generated a consolidated
+  `data.sql`, and then restored both into a second clean database in single
+  transactions. Roles restore, schema lint and pgTAP 53/53 passed.
+- Count-only restored invariants matched the snapshot: Auth users 2,
+  admin allowlist 2, user roles 4, checks 235, reports 8, entities 7,
+  appeals 2, Family Shield rows 7, reputation targets 9 and Telegram
+  sessions 4. No row identifiers or secret values were printed.
+- The preferred EFS-protected local archive is
+  `ishonch-guard-production-20260726-1139-restore-ready-v2.efs.zip`, with
+  SHA-256
+  `35889f4a8a90c216a4e94f00a761c27f9934b057755e3abd7af8ca3617b1b8ea`.
+  Its CMS copy and metadata both passed in-memory decrypt-and-hash round trips
+  before the cloud upload.
 
 ## Open operational and release gates
 
 1. Place the PFX files in a second protected device or vault independent of the
    OneDrive account while keeping their password separate.
-2. Perform an isolated non-production database restore and record count-only
-   invariants plus measured RPO/RTO.
+2. The local inspection restore is complete. Perform the remaining isolated
+   hosted/staging restore with Auth/Storage/application services enabled but
+   outbound integrations disabled, then record service smokes and measured
+   RPO/RTO.
 3. Perform the approved Railway rollback/return drill against schema-compatible
    immutable artifacts.
 4. Rehearse the authorized MFA factor-reset recovery path using the second

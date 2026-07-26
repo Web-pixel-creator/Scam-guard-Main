@@ -11,7 +11,8 @@ describe the checkpoint at which each paragraph was written.
 The immediate queue is:
 
 1. put the PFX files in a second protected location independent of OneDrive;
-2. isolated restore plus Railway rollback/return evidence;
+2. local restore inspection is complete; run the remaining isolated hosted
+   restore/service smokes and measured RPO/RTO, then Railway rollback/return;
 3. MFA factor-reset recovery rehearsal;
 4. HTTP compression;
 5. polling failover/provider-failure evidence and Railway billing alerts;
