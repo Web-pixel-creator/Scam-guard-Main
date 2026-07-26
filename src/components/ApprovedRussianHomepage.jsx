@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckInput } from "@/components/CheckInput";
 import { QuickReportForm } from "@/components/QuickReportForm";
 import { getPublicStats } from "@/lib/check.functions";
+import { getPublicEmergencyContacts } from "@/lib/risk/public-emergency-contacts";
 import { getActiveVerifiedContacts } from "@/lib/risk/verified-contacts";
 import {
   ArrowDown,
@@ -49,7 +50,7 @@ const checkSurfaces = [
     icon: LinkSimple,
     title: "Ссылки и сайты",
     example: "«Оплатите доставку — иначе посылку вернут»",
-    answer: "Ищем поддельные домены, оплаты и опасные APK-файлы.",
+    answer: "Ищем признаки поддельных доменов, оплат и просьб установить APK.",
   },
   {
     icon: ChatText,
@@ -118,11 +119,7 @@ const faqItems = [
   },
 ];
 
-const emergencyContacts = [
-  { number: "102", title: "Полиция · Cyber Police", note: "Заявление о мошенничестве" },
-  { number: "1252", title: "Антифрод-линия ЦБ", note: "Блокировка карт и счетов" },
-  { number: "1173", title: "Горячая линия Uzcard", note: "Споры по платежам" },
-];
+const emergencyContacts = getPublicEmergencyContacts("ru");
 
 const ctaParticles = Array.from({ length: 10 });
 
@@ -623,10 +620,13 @@ export function ApprovedRussianHomepage() {
           </div>
           <span className="section-index danger-index">Срочно / Каждая минута важна</span>
           <h2>Уже отправили код или деньги?</h2>
-          <p>Не ждите результата проверки. Сразу блокируйте карту и фиксируйте обращение.</p>
+          <p>
+            Не ждите результата проверки. Заблокируйте карту через приложение или официальный номер
+            своего банка, затем зафиксируйте обращение.
+          </p>
           <div className="emergency-contacts">
             {emergencyContacts.map((contact) => (
-              <a key={contact.number} href={`tel:${contact.number}`}>
+              <a key={contact.dial} href={`tel:${contact.dial}`}>
                 <span>
                   <strong>{contact.number}</strong>
                   <b>{contact.title}</b>

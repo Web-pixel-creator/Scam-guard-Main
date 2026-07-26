@@ -95,6 +95,24 @@ export function Header() {
               </Link>
             </>
           )}
+          <div
+            className="mobile-language-switcher"
+            aria-label={{ ru: "Выбор языка", uz: "Tilni tanlash", en: "Choose language" }[lang]}
+          >
+            {(["ru", "uz", "en"] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={lang === code}
+                onClick={() => {
+                  setLang(code);
+                  closeMenu();
+                }}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </nav>
         <div className="header-actions">
           {isHomepage ? (

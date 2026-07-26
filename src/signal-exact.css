@@ -1697,6 +1697,9 @@ svg {
 .main-nav a:hover {
   color: var(--ink);
 }
+.mobile-language-switcher {
+  display: none;
+}
 .header-actions {
   display: flex;
   align-items: center;
@@ -3639,6 +3642,27 @@ summary:focus-visible {
   }
   .main-nav a:last-child {
     border-bottom: 0;
+  }
+  .mobile-language-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px 8px 4px;
+  }
+  .mobile-language-switcher button {
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .mobile-language-switcher button[aria-pressed="true"] {
+    border-color: var(--orange);
+    background: #fff3e9;
+    color: var(--orange-dark);
   }
   .language-button,
   .header-cta {

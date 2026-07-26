@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { Type, Contrast, ChevronUp, ChevronDown, X, Accessibility } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 
-// Font scale steps applied to <html> as `--a11y-font-scale`.
-const SCALES = [1, 1.15, 1.3, 1.5] as const;
+// Keep the in-app scale within the smallest supported mobile layout.
+// Larger magnification remains available through the browser/OS zoom.
+const SCALES = [1, 1.1, 1.2] as const;
 type Scale = (typeof SCALES)[number];
 
 const STORAGE_SCALE = "ig_a11y_font_scale";
@@ -96,7 +97,10 @@ export function A11yPanel() {
   const pct = Math.round(scale * 100);
 
   return (
-    <div className="a11y-panel-root fixed z-50 left-3 bottom-3 sm:left-4 sm:bottom-4 print:hidden">
+    <div
+      className="a11y-panel-root fixed z-50 left-3 bottom-3 sm:left-4 sm:bottom-4 print:hidden"
+      style={{ zoom: 1 / scale }}
+    >
       {!open && (
         <button
           type="button"

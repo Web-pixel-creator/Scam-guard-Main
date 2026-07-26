@@ -638,9 +638,21 @@
 
 /* === Accessibility: user-controlled font scale (A−/A+) === */
 /* The scale is set on <html> via style="--a11y-font-scale: 1.3".
-   We multiply the root font-size so rem-based UI scales together. */
+   `zoom` is intentional here: the approved surfaces contain fixed-pixel
+   typography, so changing only the root rem size left most visible copy
+   unchanged. Zoom scales text and reflows the available layout width. */
 html {
-  font-size: calc(16px * var(--a11y-font-scale, 1));
+  font-size: 16px;
+}
+
+body {
+  zoom: var(--a11y-font-scale, 1);
+}
+
+@supports not (zoom: 1) {
+  html {
+    font-size: calc(16px * var(--a11y-font-scale, 1));
+  }
 }
 
 /* === Accessibility: high contrast mode ===

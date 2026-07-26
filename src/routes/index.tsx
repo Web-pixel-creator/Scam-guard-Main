@@ -32,6 +32,7 @@ import { HomeImpactCounters } from "@/components/HomeImpactCounters";
 import { QuickReportForm } from "@/components/QuickReportForm";
 import { ApprovedHomeHero } from "@/components/ApprovedHomeHero";
 import { ApprovedRussianHomepage } from "@/components/ApprovedRussianHomepage";
+import { getPublicEmergencyContacts } from "@/lib/risk/public-emergency-contacts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -94,7 +95,7 @@ export const Route = createFileRoute("/")({
                   name: "Перевёл деньги «на безопасный счёт» — можно вернуть?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Немедленно — звонок в банк с просьбой о возврате/споре операции, и заявление в Cyber Police (102). Шанс есть только в первые часы.",
+                    text: "Немедленно позвоните в свой банк, попросите остановить или оспорить операцию и подайте заявление в полицию по номеру 102. Обращайтесь, даже если прошло больше времени.",
                   },
                 },
                 {
@@ -117,6 +118,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { lang } = useLang();
+  const emergencyContacts = getPublicEmergencyContacts(lang);
   const router = useRouter();
   const [homeResult, setHomeResult] = useState<CheckResult | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
@@ -336,9 +338,9 @@ function Index() {
                   en: "“Pay the delivery fee via this link or your parcel is returned.”",
                 },
                 check: {
-                  ru: "Поддельные сайты, фальшивые оплаты и опасные приложения (APK) — отличаем от настоящих.",
-                  uz: "Soxta saytlar, qalbaki to'lovlar va xavfli ilovalar (APK) — haqiqiylaridan ajratamiz.",
-                  en: "Fake sites, bogus payment pages and dangerous apps (APK) — told apart from the real ones.",
+                  ru: "Ищем признаки поддельных сайтов, фальшивых оплат и просьб установить APK.",
+                  uz: "Soxta saytlar, qalbaki to'lovlar va APK o'rnatish so'rovlaridagi xavf belgilarini topamiz.",
+                  en: "We look for warning signs in fake sites, bogus payment pages, and requests to install APKs.",
                 },
               },
               {
@@ -1232,9 +1234,9 @@ function Index() {
                   en: "“The transfer left 10 minutes ago — is it gone for good?”",
                 },
                 ans: {
-                  ru: "Немедленно — звонок в банк с просьбой о возврате/споре операции, и заявление в Cyber Police (102). Шанс есть только в первые часы.",
-                  uz: "Zudlik bilan — bankka qo'ng'iroq qilib amaliyotni qaytarish/bahslashishni so'rang va Cyber Police'ga (102) ariza bering. Imkoniyat faqat dastlabki soatlarda.",
-                  en: "Immediately call the bank to request a refund/dispute, and file a report with Cyber Police (102). The window is just a few hours.",
+                  ru: "Немедленно позвоните в свой банк, попросите остановить или оспорить операцию и подайте заявление в полицию по номеру 102. Обращайтесь, даже если прошло больше времени.",
+                  uz: "Darhol o'z bankingizga qo'ng'iroq qilib, operatsiyani to'xtatish yoki nizolashni so'rang va 102 orqali politsiyaga ariza bering. Ko'proq vaqt o'tgan bo'lsa ham murojaat qiling.",
+                  en: "Call your bank immediately, ask it to stop or dispute the transaction, and report the fraud to police on 102. Contact them even if more time has passed.",
                 },
               },
               {
@@ -1580,50 +1582,10 @@ function Index() {
             }
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-            {[
-              {
-                num: "102",
-                label: {
-                  ru: "Полиция · Cyber Police",
-                  uz: "Politsiya · Cyber Police",
-                  en: "Police · Cyber Police",
-                },
-                desc: {
-                  ru: "Заявление о мошенничестве",
-                  uz: "Firibgarlik haqida ariza",
-                  en: "File a fraud report",
-                },
-              },
-              {
-                num: "1252",
-                label: {
-                  ru: "Антифрод-линия ЦБ",
-                  uz: "MB antifirib liniyasi",
-                  en: "Central Bank anti-fraud",
-                },
-                desc: {
-                  ru: "Блокировка карт и счетов",
-                  uz: "Karta va hisoblarni bloklash",
-                  en: "Block cards and accounts",
-                },
-              },
-              {
-                num: "1173",
-                label: {
-                  ru: "Горячая линия Узкарт",
-                  uz: "UzCard ishonch telefoni",
-                  en: "UzCard hotline",
-                },
-                desc: {
-                  ru: "Споры по платежам",
-                  uz: "To'lovlar bo'yicha bahslar",
-                  en: "Payment disputes",
-                },
-              },
-            ].map((c) => (
+            {emergencyContacts.map((contact) => (
               <a
-                key={c.num}
-                href={`tel:${c.num}`}
+                key={contact.dial}
+                href={`tel:${contact.dial}`}
                 className="group flex items-center gap-4 rounded-[6px] border border-[#E2E0D8] bg-white p-4 md:p-5 min-h-[72px] hover:border-[#F97316] hover:shadow-[0_8px_24px_-12px_rgba(249,115,22,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-all"
               >
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[4px] bg-[#FEF2F2] border border-[#FCA5A5]/60 text-[#DC2626]">
@@ -1631,13 +1593,13 @@ function Index() {
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block font-display font-extrabold text-[26px] md:text-[28px] tracking-tight text-[#0B0B0F] leading-none tabular-nums">
-                    {c.num}
+                    {contact.number}
                   </span>
                   <span className="block mt-1 text-[13.5px] font-semibold text-[#18181B] truncate">
-                    {c.label[lang]}
+                    {contact.title}
                   </span>
                   <span className="block text-[12.5px] text-[#52525B] truncate">
-                    {c.desc[lang]}
+                    {contact.note}
                   </span>
                 </span>
                 <ArrowRight
