@@ -135,6 +135,7 @@ describe("Family Shield v1", () => {
     expect(token).toBeTruthy();
     expect(hoisted.inserts[0]).toMatchObject({
       guardian_telegram_user_id: 1001,
+      invite_code_hash_version: "legacy",
       status: "pending",
     });
     expect(hoisted.inserts[0].invite_code_hash).not.toContain(token);
@@ -203,6 +204,31 @@ describe("Family Shield v1", () => {
     });
 
     expect(accepted).toEqual({ ok: false, reason: "self_link" });
+  });
+
+  it("accepts a pending legacy invite after a new active pepper is enabled", async () => {
+    const invite = await createFamilyInvite(1010);
+    expect(invite.ok).toBe(true);
+    if (!invite.ok) return;
+
+    const token = parseFamilyStartArg(invite.inviteUrl.split("start=")[1] ?? "");
+    expect(token).toBeTruthy();
+    expect(hoisted.rows[0]).toMatchObject({ invite_code_hash_version: "legacy" });
+
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "family-shield-active-v2-pepper");
+
+    const accepted = await acceptFamilyInvite({
+      token: token!,
+      trustedTelegramUserId: 2010,
+      trustedChatId: 3010,
+    });
+
+    expect(accepted).toEqual({ ok: true, guardianTelegramUserId: 1010 });
+    expect(hoisted.rows[0]).toMatchObject({
+      invite_code_hash_version: "legacy",
+      status: "active",
+    });
   });
 
   it("sends a redacted trusted-contact alert and rate-limits repeats", async () => {

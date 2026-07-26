@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { sanitizePartner } from "@/lib/embed-widget";
 import type { Lang } from "@/lib/i18n";
 import type { RunCheckResult } from "@/lib/risk/check-core";
+import { logServerError } from "@/lib/safe-server-log.server";
 
 export const embedTelemetryContextSchema = z
   .object({
@@ -72,12 +73,12 @@ export async function recordEmbedOriginEvent({
   try {
     const { error } = await supabaseAdmin.from("embed_origin_events").insert(row);
     if (error) {
-      console.error("Unable to record embed origin event", error);
+      logServerError("embed_origin.insert_failed", error);
       return false;
     }
     return true;
   } catch (error) {
-    console.error("Unable to record embed origin event", error);
+    logServerError("embed_origin.insert_failed", error);
     return false;
   }
 }

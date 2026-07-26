@@ -668,12 +668,24 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.
 - [ ] Execute the isolated backup/restore and Railway rollback/return drills in
       `RECOVERY_AND_KEY_ROTATION.md`; capture RPO/RTO and count-only invariants.
-- [ ] Enable and read back Supabase leaked-password protection plus the approved
-      password/MFA policy. This is a Dashboard/Management-API setting and is not
-      proven by `supabase/config.toml` or migrations.
-- [ ] Design versioned `HASH_PEPPER_SECRET` dual-read/new-write support before
-      attempting pepper rotation; direct replacement would orphan deterministic
-      identifier hashes.
+- [ ] Close the remaining Supabase Auth gate. The 2026-07-24 read-only audit
+      verified email confirmation, secure password changes, current-password
+      checks, minimum length 12, strongest character policy, TOTP availability
+      and the AAL1 session limit. Leaked-password protection remains unavailable
+      on Free and CAPTCHA is off. Local `/admin-mfa` enrollment,
+      challenge/verify, refreshed-session handling and the default-off server
+      AAL2 gate are implemented and tested. Keep
+      `REQUIRE_ADMIN_MFA_AAL2` off until the UI is deployed first, two approved
+      owners enroll, and the factor-reset recovery drill is completed.
+- [x] Implement and locally test additive hash-version metadata plus bounded
+      active/previous pepper reads. Known legacy targets keep their canonical
+      hash, new targets use the active version, and incomplete/ambiguous
+      configuration fails closed.
+- [ ] Apply and drill the hash-pepper overlap procedure in
+      `RECOVERY_AND_KEY_ROTATION.md` only after backup and release approval.
+      Direct replacement remains forbidden, and the previous pepper must not be
+      revoked until a privacy-reviewed retirement report proves zero required
+      legacy dependencies.
 - [ ] Start `CANARY_72H.md` only after the admin-role migration, exact final RC
       and real-client release evidence are complete. Require at least 144
       successful eligible half-hour monitor runs and repeat bounded smokes at

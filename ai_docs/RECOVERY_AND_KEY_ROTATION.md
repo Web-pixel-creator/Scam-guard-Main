@@ -80,10 +80,49 @@ command without a separately approved maintenance window.
 | `TELEGRAM_BOT_TOKEN`            | Rotate in BotFather, update every Railway/GitHub consumer, restart polling without dropping updates, then verify the old token is rejected.              | `getMe`, pending queue, leader health, approved QA chat dispatch and cleanup.                                        |
 | Supabase service/secret key     | Use the Supabase Dashboard rotation workflow and overlap keys only when the platform supports it; update Railway and operator tooling before revocation. | App/RLS/security/admin smokes and no service key in client bundle/logs.                                              |
 | Supabase publishable key        | Rotate through the Dashboard, update server and `VITE_*` build variables, rebuild the client, then revoke the old key.                                   | Login, public check/report/appeal and RLS-deny checks.                                                               |
-| `HASH_PEPPER_SECRET`            | **Not safely rotatable today.** A direct replacement changes every deterministic identifier hash.                                                        | First implement versioned pepper ids, dual-read/new-write and a privacy-reviewed backfill; only then drill rotation. |
+| Hash pepper                     | Direct replacement remains forbidden. The local code and additive migration support one active and one previous version; deploy them first, then introduce a new active slot while retaining the old secret as `legacy`. | Focused/full tests, count-only version checks, known-legacy lookup, new-target write, pending Family Shield invite, report/appeal/admin continuity and rollback compatibility. |
 
 Every rotation record contains only secret name, owners, timestamps, consumer
 list, validation run ids and revocation confirmation. It never contains values.
+
+## Hash-pepper overlap procedure
+
+This is a bounded overlap design, not permission to rotate production. The old
+pepper cannot be revoked merely because a new active value exists: historical
+rows cannot be re-hashed without the normalized identifier. Keep the previous
+slot until retention or a separately reviewed online-promotion procedure proves
+that no required rows depend on it.
+
+1. Verify a recoverable backup/export and record the current migration head,
+   immutable application artifact and count-only row totals. Do not include
+   hashes or identifiers in the evidence.
+2. Apply `20260724190000_hash_pepper_versioning_v1.sql` while the application
+   still uses only `HASH_PEPPER_SECRET`. It labels existing hashes `legacy` and
+   never rewrites a hash.
+3. Deploy the version-aware application with only `HASH_PEPPER_SECRET` still
+   configured. Run the full local/release gate and bounded production smokes.
+   This step proves schema/application compatibility before any secret changes.
+4. In a separately approved maintenance window, add a new, independently
+   generated `HASH_PEPPER_ACTIVE_SECRET` and a bounded version id such as `v2`.
+   Keep the existing `HASH_PEPPER_SECRET`; it becomes the single previous
+   `legacy` read slot. Never expose either value in commands, logs or evidence.
+5. Verify count-only invariants and bounded synthetic cases:
+   - a known legacy entity/report/appeal remains visible and is not duplicated;
+   - a new synthetic identifier is written with the active version;
+   - a pending legacy Family Shield invite can still be accepted;
+   - moderation updates preserve the stored hash version;
+   - shared rate limiting and health checks remain fail-closed.
+6. If any invariant fails, restore the version-aware application configuration
+   to legacy-only and investigate. Do not replace the database or rewrite
+   hashes ad hoc.
+7. Do not remove the legacy secret until a separate privacy review and
+   retirement report prove zero required legacy dependencies. The current code
+   intentionally preserves an established legacy canonical hash to prevent
+   split histories; therefore this retirement gate is still open.
+
+For a later explicit previous slot, remove `HASH_PEPPER_SECRET` before setting
+`HASH_PEPPER_PREVIOUS_VERSION` and `HASH_PEPPER_PREVIOUS_SECRET`. Supplying both
+legacy and explicit previous configuration is ambiguous and fails closed.
 
 ## Supabase Auth hardening gate
 
@@ -102,11 +141,51 @@ Supabase documents password-strength and leaked-password settings here:
 need to replace weak passwords after the policy is strengthened, so capture the
 user-support plan before enabling the gate.
 
+Read-only Dashboard audit on 2026-07-24 (no settings were changed):
+
+- the project is on Free and the Backups page explicitly reports that scheduled
+  project backups are not included;
+- Site URL is the production Railway HTTPS origin and the only redirect URL is
+  the exact `/admin` path;
+- email confirmation, secure email change, secure password change, current
+  password requirement, minimum length 12 and the strongest character policy
+  are enabled;
+- leaked-password protection is disabled/unavailable on Free, CAPTCHA is
+  disabled and user signups are enabled;
+- TOTP is enabled and the 15-minute AAL1-session limit is on. The local
+  application now has `/admin-mfa` enrollment and challenge/verify UI, refreshes
+  the session to AAL2, and prevents protected admin queries before the
+  authoritative policy check completes. A server-side AAL2 gate protects every
+  admin action when `REQUIRE_ADMIN_MFA_AAL2=true`.
+- The flag must remain unset/false until this exact build is deployed, an
+  approved admin and a second recovery owner are enrolled, and the recovery
+  drill below succeeds. The release gate therefore remains open; local code is
+  not production evidence.
+
+Safe enablement order:
+
+1. deploy the enrollment/challenge UI while `REQUIRE_ADMIN_MFA_AAL2` is still
+   unset/false; do not combine first deployment and enforcement;
+2. enroll one approved admin from `Admin -> MFA / security`, verify AAL2, then
+   enroll and independently verify a second recovery owner;
+3. from a fresh AAL1 session, prove the policy routes to `/admin-mfa`, the
+   refreshed token carries `aal2`, and no protected admin query runs before
+   that transition;
+4. rehearse loss of the first authenticator. The second owner must verify the
+   operator through the approved out-of-band process and use the authorized
+   Supabase Auth factor-reset procedure. Ishonch Guard does not create recovery
+   codes and nobody may request the QR secret or TOTP code;
+5. set `REQUIRE_ADMIN_MFA_AAL2=true` only in a separate approved window, then
+   verify all read and mutation admin actions with both owners;
+6. if the UI cannot complete a challenge, remove/disable the flag as the bounded
+   rollback. Invalid explicit flag values intentionally fail closed.
+
 ## Evidence required to close the release gates
 
 - one successful isolated restore and application rollback/return drill;
 - measured RPO/RTO and named owners;
 - one rotation drill for AI, Telegram webhook and one Supabase key class;
-- a design and tested migration path for versioned hash-pepper rotation;
+- an applied and drilled versioned hash-pepper overlap path plus a separately
+  approved retirement strategy for the previous pepper;
 - count-only evidence that leaked-password protection and Auth policy are on;
 - no credential values or production user data in evidence artifacts.

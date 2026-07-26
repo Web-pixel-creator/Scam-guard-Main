@@ -18,6 +18,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // itself be hoisted to be initialised before the mock runs.
 const hoisted = vi.hoisted(() => ({
   insertCalls: [] as Array<Record<string, unknown>>,
+  entityHashQueries: [] as string[],
+  entityRowsByHash: new Map<
+    string,
+    { report_count: number; moderation_status: string; risk_level: string }
+  >(),
   entityRow: null as null | {
     report_count: number;
     moderation_status: string;
@@ -40,8 +45,14 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         : {
             // entities lookup: .select(...).eq(...).maybeSingle()
             select: () => ({
-              eq: () => ({
-                maybeSingle: () => Promise.resolve({ data: hoisted.entityRow, error: null }),
+              eq: (_column: string, hash: string) => ({
+                maybeSingle: () => {
+                  hoisted.entityHashQueries.push(hash);
+                  return Promise.resolve({
+                    data: hoisted.entityRowsByHash.get(hash) ?? hoisted.entityRow,
+                    error: null,
+                  });
+                },
               }),
             }),
           },
@@ -56,6 +67,7 @@ vi.mock("./rate-limit", () => ({
 }));
 
 import { analyzeImageCore, ocrExtractCore, runCheck } from "./check-core";
+import { hashIdentifierCandidates } from "./hash";
 import {
   buildImageCheckInput,
   fallbackImageIntelligence,
@@ -72,6 +84,8 @@ const LANGS = ["ru", "uz", "en"] as const;
 
 beforeEach(() => {
   hoisted.insertCalls.length = 0;
+  hoisted.entityHashQueries.length = 0;
+  hoisted.entityRowsByHash.clear();
   hoisted.entityRow = null;
   // Deterministic, non-empty AI response so the skipAi:false path yields a
   // string explanation (and never performs a real network request).
@@ -410,6 +424,55 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.reasons).toContain("known_reported");
     expect(result.reasons).not.toContain("asks_to_install_apk");
     expect(result.level).toBe("high_risk");
+  });
+
+  it("keeps checks on the established previous hash until a controlled backfill", async () => {
+    vi.stubEnv("HASH_PEPPER_SECRET", "old-check-core-test-pepper");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "new-check-core-test-pepper");
+    const normalized = "+998901234567";
+    const [active, previous] = await hashIdentifierCandidates(normalized);
+    expect(active?.version).toBe("v2");
+    expect(previous?.version).toBe("legacy");
+    if (!active || !previous) throw new Error("expected active and previous test hashes");
+
+    hoisted.entityRowsByHash.set(previous.hash, {
+      report_count: 4,
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+    });
+
+    const result = await runCheck({
+      input: normalized,
+      type: "phone",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.knownReports).toBe(4);
+    expect(result.reasons).toContain("known_reported");
+    expect(hoisted.entityHashQueries).toEqual([active.hash, previous.hash]);
+    expect(hoisted.insertCalls.at(-1)).toMatchObject({
+      input_hash: previous.hash,
+      input_hash_version: "legacy",
+    });
+
+    const newNormalized = "+998901234568";
+    const [newActive] = await hashIdentifierCandidates(newNormalized);
+    await runCheck({
+      input: newNormalized,
+      type: "phone",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+    expect(hoisted.insertCalls.at(-1)).toMatchObject({
+      input_hash: newActive?.hash,
+      input_hash_version: "v2",
+    });
   });
 
   it("localizes verified official contact metadata", async () => {

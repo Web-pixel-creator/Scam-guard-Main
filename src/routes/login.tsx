@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck, ArrowLeft, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminAuthPolicy } from "@/lib/admin-auth.functions";
+import { adminSessionDestination } from "@/lib/admin-mfa-flow";
 import { useAuth } from "@/lib/auth-context";
 import {
   SIGNUP_PASSWORD_MIN_LENGTH,
@@ -16,6 +19,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const nav = useNavigate();
+  const getPolicy = useServerFn(getAdminAuthPolicy);
   const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -27,7 +31,7 @@ function LoginPage() {
   function friendlyAuthError(e: unknown): string {
     const message = e instanceof Error ? e.message : "Ошибка";
     if (/invalid login credentials/i.test(message)) {
-      return "Email или пароль не подошли. Если аккаунт ещё не создавали, нажмите «Зарегистрироваться». Email должен быть заранее добавлен в allowlist админов.";
+      return "Email или пароль не подошли. Проверьте данные или обратитесь к администратору проекта.";
     }
     if (/email not confirmed/i.test(message)) {
       return "Email ещё не подтверждён. Проверьте письмо от Supabase и повторите вход.";
@@ -36,8 +40,27 @@ function LoginPage() {
   }
 
   useEffect(() => {
-    if (user) nav({ to: "/admin" });
-  }, [user, nav]);
+    if (!user) return;
+    let cancelled = false;
+
+    void getPolicy({ data: undefined as never })
+      .then((policy) => {
+        if (!cancelled) {
+          void nav({ to: adminSessionDestination(policy), replace: true });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setErr(
+            "Вход выполнен, но не удалось проверить политику защиты администратора. Обновите страницу или обратитесь ко второму владельцу проекта.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getPolicy, nav, user]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,7 +79,7 @@ function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        nav({ to: "/admin" });
+        setMsg("Пароль принят. Проверяем роль и уровень защиты сессии…");
       }
     } catch (e: unknown) {
       setErr(friendlyAuthError(e));
@@ -106,8 +129,8 @@ function LoginPage() {
           )}
         </h1>
         <p className="apex-lead mb-7 sm:mb-8">
-          Вход только для аккаунтов с ролью администратора. Email администратора заранее добавляется
-          в allowlist.
+          Вход только для приглашённых администраторов. Email должен быть заранее добавлен в список
+          доступа.
         </p>
 
         <form onSubmit={submit} className="space-y-5">
@@ -180,7 +203,9 @@ function LoginPage() {
           }}
           className="mt-5 w-full apex-mono text-[#52525B] hover:text-[#18181B] transition-colors"
         >
-          {mode === "signin" ? "Нет аккаунта? Зарегистрироваться" : "Уже есть аккаунт? Войти"}
+          {mode === "signin"
+            ? "Получили приглашение? Создать учётную запись"
+            : "Учётная запись уже создана? Войти"}
         </button>
 
         <div className="mt-7 sm:mt-8 pt-5 border-t border-[#E2E0D8] flex items-center justify-center">

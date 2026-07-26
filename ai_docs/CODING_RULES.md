@@ -4,7 +4,10 @@
 
 1. Never store or log raw OTP/SMS codes, full card numbers, PINs, passwords, passport data or raw screenshot images.
 2. Run `redactText` before persisting free-form user text, including report descriptions and OCR output.
-3. Hash sensitive identifiers with `hashIdentifier` and store only `entity_hash` / `input_hash` plus masked display strings.
+3. Hash sensitive identifiers with the version-aware helpers in
+   `src/lib/risk/hash.ts`; persist the hash version beside business hashes and
+   store only hashes plus masked display strings. Active-only `hashIdentifier`
+   is reserved for ephemeral keys such as shared rate limiting.
 4. `client.server.ts` and anything `*.server.ts` must never be imported into client/browser code.
 5. Public-facing data must respect RLS. Do not add public SELECT policies to `checks`, `reports`, `telegram_sessions` or unconfirmed `entities`.
 6. Entities become publicly visible only after `moderation_status='confirmed'`.

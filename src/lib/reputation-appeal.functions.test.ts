@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
-  existingRows: [] as Array<{ id: string }>,
+  existingRows: [] as Array<{
+    id: string;
+    target_hash?: string;
+    target_hash_version?: string;
+  }>,
+  entityRowsByHash: new Map<string, { entity_hash: string; entity_hash_version?: string }>(),
+  telegramRowsByHash: new Map<string, { target_hash: string; target_hash_version?: string }>(),
+  hashCandidateOverrides: new Map<string, Array<{ hash: string; version: string }>>(),
   inserts: [] as Array<Record<string, unknown>>,
   hashInputs: [] as string[],
   moderationNotices: [] as Array<Record<string, unknown>>,
@@ -32,30 +39,70 @@ vi.mock("@tanstack/react-start/server", () => ({
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from: (table: string) => {
-      if (table !== "reputation_appeals") {
-        throw new Error(`unexpected table: ${table}`);
-      }
-      return {
-        select: () => ({
-          eq: () => ({
-            in: () => ({
-              limit: async () => ({ data: hoisted.existingRows, error: null }),
+      if (table === "entities") {
+        return {
+          select: () => ({
+            eq: (_column: string, value: string) => ({
+              maybeSingle: async () => ({
+                data: hoisted.entityRowsByHash.get(value) ?? null,
+                error: null,
+              }),
             }),
           }),
-        }),
-        insert: async (row: Record<string, unknown>) => {
-          hoisted.inserts.push(row);
-          return { data: null, error: null };
-        },
-      };
+        };
+      }
+      if (table === "telegram_reputation_targets") {
+        return {
+          select: () => ({
+            eq: (_column: string, value: string) => ({
+              maybeSingle: async () => ({
+                data: hoisted.telegramRowsByHash.get(value) ?? null,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "reputation_appeals") {
+        return {
+          select: () => ({
+            eq: (_column: string, value: string) => ({
+              in: () => ({
+                limit: async () => ({
+                  data: hoisted.existingRows.filter(
+                    (row) => row.target_hash === undefined || row.target_hash === value,
+                  ),
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+          insert: async (row: Record<string, unknown>) => {
+            hoisted.inserts.push(row);
+            return { data: null, error: null };
+          },
+        };
+      }
+      throw new Error(`unexpected table: ${table}`);
     },
   },
 }));
 
 vi.mock("@/lib/risk/hash", () => ({
-  hashIdentifier: async (value: string) => {
+  hashIdentifierCandidates: async (value: string) => {
     hoisted.hashInputs.push(value);
-    return `hash:${value}`;
+    return (
+      hoisted.hashCandidateOverrides.get(value) ?? [{ hash: `hash:${value}`, version: "legacy" }]
+    );
+  },
+  hashIdentifierVersioned: async (value: string) => {
+    hoisted.hashInputs.push(value);
+    return (
+      hoisted.hashCandidateOverrides.get(value)?.[0] ?? {
+        hash: `hash:${value}`,
+        version: "legacy",
+      }
+    );
   },
 }));
 
@@ -74,6 +121,9 @@ import { submitReputationAppealCore } from "./reputation-appeal.functions";
 
 beforeEach(() => {
   hoisted.existingRows.length = 0;
+  hoisted.entityRowsByHash.clear();
+  hoisted.telegramRowsByHash.clear();
+  hoisted.hashCandidateOverrides.clear();
   hoisted.inserts.length = 0;
   hoisted.hashInputs.length = 0;
   hoisted.moderationNotices.length = 0;
@@ -101,7 +151,9 @@ describe("submitReputationAppealCore", () => {
     expect(row).toMatchObject({
       target_type: "phone",
       target_hash: "hash:+998901234567",
+      target_hash_version: "legacy",
       contact_hash: "hash:appeal-contact:owner@example.com",
+      contact_hash_version: "legacy",
     });
     expect(String(row.target_display)).not.toContain("1234567");
     expect(String(row.reason)).not.toContain("123456");
@@ -249,6 +301,36 @@ describe("submitReputationAppealCore", () => {
     expect(hoisted.inserts[0]).toMatchObject({
       target_type: "telegram",
       target_hash: "hash:@FakeSupportBot",
+      target_hash_version: "legacy",
     });
+  });
+
+  it("reuses an established legacy target after a versioned pepper is enabled", async () => {
+    const target = "@FakeSupportBot";
+    hoisted.hashCandidateOverrides.set(target, [
+      { hash: "active-v2-hash", version: "v2" },
+      { hash: "legacy-hash", version: "legacy" },
+    ]);
+    hoisted.entityRowsByHash.set("legacy-hash", {
+      entity_hash: "legacy-hash",
+      entity_hash_version: "legacy",
+    });
+
+    await expect(
+      submitReputationAppealCore(
+        {
+          target,
+          reason: "This established account needs a corrected reputation review.",
+          lang: "en",
+        },
+        "appeal:test:legacy-canonical",
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(hoisted.inserts[0]).toMatchObject({
+      target_hash: "legacy-hash",
+      target_hash_version: "legacy",
+    });
+    expect(hoisted.inserts[0]).not.toHaveProperty("target_hash", "active-v2-hash");
   });
 });

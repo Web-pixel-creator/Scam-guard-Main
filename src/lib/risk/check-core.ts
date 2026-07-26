@@ -18,6 +18,7 @@
 // OpenAI-compatible gateway (OpenAI, OpenRouter, Together, a local server, …).
 import type { Lang } from "@/lib/i18n";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { logServerError } from "@/lib/safe-server-log.server";
 import { detectInputType, normalize, maskForDisplay, redactText, type InputType } from "./detect";
 import {
   evaluatePhone,
@@ -29,7 +30,7 @@ import {
   type ReasonCode,
   type RiskLevel,
 } from "./rules";
-import { hashIdentifier } from "./hash";
+import { hashIdentifierCandidates, hashIdentifierVersioned, type IdentifierHash } from "./hash";
 import { checkSharedRateLimit } from "./shared-rate-limit.server";
 import { findVerifiedContact, type VerifiedContact } from "./verified-contacts";
 import { matchBrandInUrl, matchBrandInText, type BrandEvidence } from "./brand-matcher";
@@ -223,6 +224,46 @@ function normalizeUrlForReputation(raw: string): string | null {
   return normalizeUrlForReputationProvider(cleanEmbeddedUrl(raw.trim()));
 }
 
+type EntityReputationRow = {
+  entity_hash: string;
+  entity_hash_version: string;
+  moderation_status: string;
+  report_count: number;
+  risk_level: RiskLevel;
+};
+
+function entityReputationRank(row: EntityReputationRow): number {
+  return (
+    (row.moderation_status === "confirmed" ? 1_000_000 : 0) +
+    (row.risk_level === "high_risk" ? 100_000 : row.risk_level === "suspicious" ? 10_000 : 0) +
+    Math.max(0, Number(row.report_count) || 0)
+  );
+}
+
+async function findBestEntityReputation(normalized: string): Promise<EntityReputationRow | null> {
+  const candidates = await hashIdentifierCandidates(normalized);
+  const rows: EntityReputationRow[] = [];
+
+  for (const candidate of candidates) {
+    const { data, error } = await supabaseAdmin
+      .from("entities")
+      .select("entity_hash, entity_hash_version, report_count, risk_level, moderation_status")
+      .eq("entity_hash", candidate.hash)
+      .maybeSingle();
+    if (!error && data) {
+      rows.push({
+        ...data,
+        entity_hash: data.entity_hash ?? candidate.hash,
+        entity_hash_version: data.entity_hash_version ?? candidate.version,
+      } as EntityReputationRow);
+    }
+  }
+
+  return (
+    rows.sort((left, right) => entityReputationRank(right) - entityReputationRank(left))[0] ?? null
+  );
+}
+
 /**
  * Единый конвейер проверки (rules-first):
  *   rate-limit(rateLimitKey) → detectInputType → normalize →
@@ -357,18 +398,20 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   } catch (e) {
     // Graceful degradation: log and continue without brand_impersonation.
     // Existing rules (weird_domain, hosted_app_platform, etc.) still provide protection.
-    console.error("brand detection failed", e instanceof Error ? e.message : "unknown");
+    logServerError("risk.brand_detection_failed", e);
   }
 
   let knownReports = 0;
   let phoneReputation: PhoneReputationSummary | null = null;
+  let canonicalEntityHash: IdentifierHash | null = null;
   if (["phone", "telegram", "url", "apk"].includes(detected)) {
-    const hash = await hashIdentifier(normalized);
-    const { data: ent } = await supabaseAdmin
-      .from("entities")
-      .select("report_count, risk_level, moderation_status")
-      .eq("entity_hash", hash)
-      .maybeSingle();
+    const ent = await findBestEntityReputation(normalized);
+    if (ent) {
+      canonicalEntityHash = {
+        hash: ent.entity_hash,
+        version: ent.entity_hash_version,
+      };
+    }
     if (ent && ent.moderation_status === "confirmed") {
       knownReports = ent.report_count;
       if (detected === "phone") {
@@ -422,7 +465,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
       }
     } catch (e) {
       // If formatter fails, keep the existing explanation (or null)
-      console.error("brand formatter failed", e instanceof Error ? e.message : "unknown");
+      logServerError("risk.brand_formatter_failed", e);
     }
   }
 
@@ -463,12 +506,14 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
 
   // ── Persist to checks (with the FINAL level the user sees) ───────────────
   if (persist !== false) {
-    const inputHash = await hashIdentifier(normalized || safeInput);
+    const inputHash =
+      canonicalEntityHash ?? (await hashIdentifierVersioned(normalized || safeInput));
     try {
       await supabaseAdmin.from("checks").insert({
         input_type: detected,
         redacted_input: display,
-        input_hash: inputHash,
+        input_hash: inputHash.hash,
+        input_hash_version: inputHash.version,
         risk_level: finalLevel,
         risk_score: score,
         reason_codes: reasonList,
@@ -476,7 +521,7 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
         language: lang,
       });
     } catch (e) {
-      console.error("log check failed", e);
+      logServerError("risk.check_persist_failed", e);
     }
   }
 
@@ -716,7 +761,7 @@ async function transcribeAudioWithGemini(
     }
     return extractGeminiText(await res.json());
   } catch (e) {
-    console.error(`AI voice transcription failed: ${e instanceof Error ? e.message : "unknown"}`);
+    logServerError("ai.voice_transcription_gemini_failed", e);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -755,7 +800,7 @@ async function transcribeAudioWithOpenAiCompatible(
     const data = (await res.json()) as { text?: unknown };
     return typeof data.text === "string" ? data.text.trim() : null;
   } catch (e) {
-    console.error(`AI voice transcription failed: ${e instanceof Error ? e.message : "unknown"}`);
+    logServerError("ai.voice_transcription_openai_failed", e);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -895,10 +940,9 @@ async function callChatCompletionOnce(
     return { kind: "success", text: txt?.trim() ?? null };
   } catch (e) {
     const transient = !isAbortError(e);
+    logServerError("ai.chat_completion_failed", e);
     console.error(
-      `AI ${label} failed (attempt ${attempt}/${maxAttempts}, transient=${transient}): ${
-        e instanceof Error ? e.message : "unknown"
-      }`,
+      `AI ${label} retry state (attempt ${attempt}/${maxAttempts}, transient=${transient})`,
     );
     return { kind: "failure", transient };
   } finally {

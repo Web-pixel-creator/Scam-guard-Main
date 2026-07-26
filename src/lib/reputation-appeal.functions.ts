@@ -9,8 +9,13 @@ import {
   redactText,
   type InputType,
 } from "@/lib/risk/detect";
-import { hashIdentifier } from "@/lib/risk/hash";
+import {
+  hashIdentifierCandidates,
+  hashIdentifierVersioned,
+  type IdentifierHash,
+} from "@/lib/risk/hash";
 import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
+import { logServerError } from "@/lib/safe-server-log.server";
 import { notifyModeration } from "@/lib/telegram/moderation-notifier.server";
 
 const appealSchema = z.object({
@@ -34,6 +39,67 @@ const APPEAL_RATE_LIMIT = 3;
 const APPEAL_RATE_WINDOW_MS = 10 * 60 * 1000;
 const APPEAL_TARGET_TYPES = new Set<InputType>(["phone", "telegram", "url", "apk"]);
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+
+function establishedHashReadOrder(candidates: IdentifierHash[]): IdentifierHash[] {
+  return candidates.length > 1 ? [...candidates.slice(1), candidates[0]!] : candidates;
+}
+
+async function findStoredTargetHash(
+  targetType: InputType,
+  candidates: IdentifierHash[],
+): Promise<IdentifierHash | null> {
+  for (const candidate of establishedHashReadOrder(candidates)) {
+    const { data, error } = await supabaseAdmin
+      .from("entities")
+      .select("entity_hash,entity_hash_version")
+      .eq("entity_hash", candidate.hash)
+      .maybeSingle();
+    if (!error && data) {
+      return {
+        hash: data.entity_hash ?? candidate.hash,
+        version: data.entity_hash_version ?? candidate.version,
+      };
+    }
+  }
+
+  if (targetType !== "telegram") return null;
+  for (const candidate of establishedHashReadOrder(candidates)) {
+    const { data, error } = await supabaseAdmin
+      .from("telegram_reputation_targets")
+      .select("target_hash,target_hash_version")
+      .eq("target_hash", candidate.hash)
+      .maybeSingle();
+    if (!error && data) {
+      return {
+        hash: data.target_hash ?? candidate.hash,
+        version: data.target_hash_version ?? candidate.version,
+      };
+    }
+  }
+  return null;
+}
+
+async function findOpenAppealHash(
+  candidates: IdentifierHash[],
+): Promise<(IdentifierHash & { id: string }) | null> {
+  for (const candidate of establishedHashReadOrder(candidates)) {
+    const { data, error } = await supabaseAdmin
+      .from("reputation_appeals")
+      .select("id,target_hash,target_hash_version")
+      .eq("target_hash", candidate.hash)
+      .in("status", ["new", "reviewing"])
+      .limit(1);
+    const row = data?.[0];
+    if (!error && row) {
+      return {
+        id: row.id,
+        hash: row.target_hash ?? candidate.hash,
+        version: row.target_hash_version ?? candidate.version,
+      };
+    }
+  }
+  return null;
+}
 
 function maskEmail(email: string): string {
   const [local, domain] = email.toLowerCase().split("@");
@@ -96,38 +162,37 @@ export async function submitReputationAppealCore(
   }
 
   const normalizedTarget = normalize(appeal.target, targetType);
-  const targetHash = await hashIdentifier(normalizedTarget);
+  const targetHashes = await hashIdentifierCandidates(normalizedTarget);
+  const activeTargetHash = targetHashes[0];
+  if (!activeTargetHash) return { ok: false, error: "submit_failed" };
   const targetDisplay = maskForDisplay(normalizedTarget, targetType);
   const reason = redactAppealText(appeal.reason.trim());
   const contact = appeal.contact?.trim();
   const contactHash = contact
-    ? await hashIdentifier(`appeal-contact:${normalizeContact(contact)}`)
+    ? await hashIdentifierVersioned(`appeal-contact:${normalizeContact(contact)}`)
     : null;
   const contactDisplay = contact ? maskContact(contact) : null;
 
-  const { data: existing, error: existingError } = await supabaseAdmin
-    .from("reputation_appeals")
-    .select("id")
-    .eq("target_hash", targetHash)
-    .in("status", ["new", "reviewing"])
-    .limit(1);
-
-  if (existingError) {
-    console.error("appeal dedupe lookup failed", existingError.message);
-  }
-  const duplicate = Boolean(existing && existing.length > 0);
+  const [storedTargetHash, existingAppeal] = await Promise.all([
+    findStoredTargetHash(targetType, targetHashes),
+    findOpenAppealHash(targetHashes),
+  ]);
+  const canonicalTargetHash = existingAppeal ?? storedTargetHash ?? activeTargetHash;
+  const duplicate = existingAppeal !== null;
 
   const { error } = await supabaseAdmin.from("reputation_appeals").insert({
     target_type: targetType,
-    target_hash: targetHash,
+    target_hash: canonicalTargetHash.hash,
+    target_hash_version: canonicalTargetHash.version,
     target_display: targetDisplay,
     reason,
-    contact_hash: contactHash,
+    contact_hash: contactHash?.hash ?? null,
+    contact_hash_version: contactHash?.version ?? null,
     contact_display: contactDisplay,
   });
 
   if (error) {
-    console.error("submit reputation appeal failed", error.message);
+    logServerError("reputation_appeal.insert_failed", error);
     return { ok: false, error: "submit_failed" };
   }
   void notifyModeration({

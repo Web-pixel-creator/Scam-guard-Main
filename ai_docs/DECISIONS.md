@@ -2,6 +2,22 @@
 
 Architecture and product decisions. Newest entries can be appended; keep them short.
 
+## D-085 - Public checking is one auto-detecting flow; admin decisions are deliberate
+
+The homepage must not present visual tabs that do not change validation or the
+server request. Phone, Telegram, URL and message values share one labelled
+auto-detecting input; screenshot OCR is the separate supported upload action,
+and APK is not advertised as a direct upload until that capability exists.
+Prefilled verdicts are explicitly demos. Privacy copy describes masking,
+non-publication and non-storage of secrets rather than claiming that no
+information is ever retained.
+
+The authenticated admin route is task-first: queue and real status appear
+before educational guidance. Explicit QA/smoke records may be hidden locally in
+the current view but are never deleted. Report moderation and appeal outcomes
+require a second confirmation step. These UI controls do not weaken auth,
+server validation, audit history or existing mutation boundaries.
+
 ## D-084 - Approved redesign wraps the production data and security boundaries
 
 The warm-white editorial redesign is a presentation layer shared by `/` and
@@ -14,10 +30,9 @@ background and reduced-motion-safe floating-points CTAs are part of the shared
 system. Railway deployment is allowed only after explicit user approval and
 local build, lint and responsive verification.
 
-The localhost design review may show the last manually compared Railway
-aggregate baseline only when the local stats source returns an all-zero result.
-This substitution is explicitly hostname-gated to localhost. Any deployed host
-uses the real aggregate response, including a legitimate all-zero state.
+Localhost and deployed hosts both show the real aggregate response. Loading
+states are explicit and an all-zero response remains an honest all-zero state;
+the UI must not substitute a remembered production baseline.
 
 ## D-083 - Direct and Inline preserve one specific human-scenario contract
 

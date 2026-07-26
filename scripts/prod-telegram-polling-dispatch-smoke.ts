@@ -13,7 +13,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { detectInputType, normalize } from "@/lib/risk/detect";
-import { hashIdentifier } from "@/lib/risk/hash";
+import { hashIdentifier, isHashPepperConfigured } from "@/lib/risk/hash";
 import { installTelegramHandlers } from "@/lib/telegram/handlers";
 import { createTelegramQaFetchGuard } from "@/lib/telegram/qa-fetch-guard.server";
 import { dispatchUpdate, telegramUpdateSchema } from "@/lib/telegram/router";
@@ -299,7 +299,7 @@ async function main(): Promise<void> {
   }
   requiredEnv("SUPABASE_URL");
   requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-  requiredEnv("HASH_PEPPER_SECRET");
+  if (!isHashPepperConfigured()) fail("hash pepper configuration is missing or invalid");
   const publicUrl = parsePublicUrl();
   const webhookSecret = requiredEnv("TELEGRAM_WEBHOOK_SECRET");
   const botToken = requiredEnv("TELEGRAM_BOT_TOKEN");

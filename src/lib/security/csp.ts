@@ -1,5 +1,7 @@
 export const UNICORN_STUDIO_SCRIPT_SRC =
   "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js";
+export const UNICORN_STUDIO_SCRIPT_INTEGRITY =
+  "sha384-Xg8DtdOWbiPrB2CcbZPF1rDwqrUpJcomkAg9OblxsedMf+s4gGou6PjcM9FKTfCs";
 
 const SCRIPT_SRC_DIRECTIVE_RE = /(^|;\s*)script-src\s+([^;]+)/;
 const EMBED_DEV_FRAME_ANCESTORS = ["http://localhost:*", "http://127.0.0.1:*"] as const;
@@ -12,11 +14,11 @@ export const DEFAULT_CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   `script-src 'self' ${UNICORN_STUDIO_SCRIPT_SRC}`,
   "script-src-attr 'none'",
-  "style-src 'self' https://fonts.googleapis.com",
-  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src 'self'",
+  "style-src-elem 'self'",
   "style-src-attr 'unsafe-inline'",
   "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com data:",
+  "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
@@ -39,11 +41,11 @@ const EMBED_CHECK_BASE_CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
   "script-src-attr 'none'",
-  "style-src 'self' https://fonts.googleapis.com",
-  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src 'self'",
+  "style-src-elem 'self'",
   "style-src-attr 'unsafe-inline'",
   "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com data:",
+  "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com",
   "object-src 'none'",
   "base-uri 'self'",

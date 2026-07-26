@@ -25,6 +25,21 @@ export function getServerConfig() {
   };
 }
 
+/**
+ * Whether admin server actions require a Supabase Auth `aal2` access token.
+ *
+ * This stays disabled when unset so the enforcement code can be deployed
+ * before the admin enrollment/challenge UI. An invalid explicit value throws
+ * instead of silently weakening a configuration that was meant to be enabled.
+ */
+export function getRequireAdminMfaAal2(): boolean {
+  const value = process.env.REQUIRE_ADMIN_MFA_AAL2?.trim().toLowerCase();
+  if (!value) return false;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error('Invalid REQUIRE_ADMIN_MFA_AAL2: expected "true" or "false"');
+}
+
 // --- Telegram bot secrets (server-only) ---
 //
 // Read per-request inside handlers (CODING_RULES §6), so module-scope reads are

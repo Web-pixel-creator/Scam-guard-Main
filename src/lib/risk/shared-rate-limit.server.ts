@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { hashIdentifier } from "./hash";
+import { hashIdentifier, isHashPepperConfigured } from "./hash";
 import { checkRateLimit, type RateLimitResult } from "./rate-limit";
 
 export type SharedRateLimitScope = "check" | "report" | "telegram_public_post" | "appeal";
@@ -21,7 +21,7 @@ function sharedRateLimitEnabled(): boolean {
   return Boolean(
     process.env.SUPABASE_URL?.trim() &&
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() &&
-    process.env.HASH_PEPPER_SECRET?.trim(),
+    isHashPepperConfigured(),
   );
 }
 
@@ -108,7 +108,7 @@ function parseClaimRow(data: unknown): ClaimRateLimitRow | null {
  *
  * Raw keys can contain IPs or Telegram user ids, but only
  * HMAC("rate-limit:<scope>:<raw key>") is persisted. Local/test environments
- * without Supabase or HASH_PEPPER_SECRET use the bounded in-memory behavior.
+ * without Supabase or a valid hash-pepper configuration use bounded in-memory behavior.
  * Production/Railway fails closed when configuration, hashing or the shared RPC
  * is unavailable; it never silently multiplies a deployment-wide quota into
  * one fresh allowance per process.

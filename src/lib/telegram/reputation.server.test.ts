@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   upserts: [] as Array<Record<string, unknown>>,
   inserts: [] as Array<Record<string, unknown>>,
   updates: [] as Array<Record<string, unknown>>,
+  rowsByHash: new Map<string, Record<string, unknown>>(),
   existingRow: null as null | Record<string, unknown>,
   reputationRow: null as null | Record<string, unknown>,
   confirmedCount: 0 as number | null,
@@ -34,9 +35,9 @@ vi.mock("@/integrations/supabase/client.server", () => ({
             },
           }),
           select: () => ({
-            eq: () => ({
+            eq: (_column: string, hash: string) => ({
               maybeSingle: async () => ({
-                data: hoisted.existingRow ?? hoisted.reputationRow,
+                data: hoisted.rowsByHash.get(hash) ?? hoisted.existingRow ?? hoisted.reputationRow,
                 error: null,
               }),
             }),
@@ -71,9 +72,11 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 import {
   buildTelegramReputationBrief,
   enrichTelegramReputation,
+  getTelegramReputationForInput,
   registerTelegramReportCandidate,
   syncTelegramReputationAfterModeration,
 } from "./reputation.server";
+import { hashIdentifierCandidates } from "@/lib/risk/hash";
 
 function baseResult(overrides: Partial<RunCheckResult> = {}): RunCheckResult {
   return {
@@ -91,10 +94,12 @@ function baseResult(overrides: Partial<RunCheckResult> = {}): RunCheckResult {
 }
 
 beforeEach(() => {
+  vi.unstubAllEnvs();
   vi.stubEnv("HASH_PEPPER_SECRET", "stable-test-pepper");
   hoisted.upserts.length = 0;
   hoisted.inserts.length = 0;
   hoisted.updates.length = 0;
+  hoisted.rowsByHash.clear();
   hoisted.existingRow = null;
   hoisted.reputationRow = null;
   hoisted.confirmedCount = 0;
@@ -189,6 +194,36 @@ describe("telegram reputation", () => {
       source_type: "system_observed",
     });
     expect(JSON.stringify(hoisted.inserts[0])).not.toContain("fake_support");
+  });
+
+  it("keeps confirmed legacy reputation visible after the active pepper changes", async () => {
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "telegram-reputation-active-v2-pepper");
+    const [active, previous] = await hashIdentifierCandidates("@fake_support");
+    expect(active?.version).toBe("v2");
+    expect(previous?.version).toBe("legacy");
+    if (!previous) throw new Error("expected previous Telegram reputation hash");
+
+    hoisted.rowsByHash.set(previous.hash, {
+      target_hash: previous.hash,
+      target_hash_version: previous.version,
+      target_type: "public_username",
+      display_hint: "@faвЂўвЂўвЂўrt",
+      source_type: "moderated_report",
+      confidence: "high",
+      risk_level: "high_risk",
+      moderation_status: "confirmed",
+      unverified_report_count: 0,
+      moderated_report_count: 2,
+      first_seen_at: new Date(0).toISOString(),
+      last_seen_at: new Date(0).toISOString(),
+    });
+
+    await expect(getTelegramReputationForInput("@fake_support")).resolves.toMatchObject({
+      target_hash: previous.hash,
+      target_hash_version: "legacy",
+      moderation_status: "confirmed",
+    });
   });
 
   it("stores user-submitted Telegram reports as unverified candidates", async () => {

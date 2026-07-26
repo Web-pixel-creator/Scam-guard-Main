@@ -57,6 +57,7 @@ import {
 import type { Lang } from "@/lib/i18n";
 import { redactText } from "@/lib/risk/detect";
 import { analyzeImageCore, type RateLimitedError } from "@/lib/risk/check-core";
+import { logServerError } from "@/lib/safe-server-log.server";
 import {
   hasUsableImageEvidence,
   type ImageIntelligenceResult,
@@ -182,10 +183,7 @@ async function sanitizeDraftOrReset(
   try {
     return await sanitizeDraftForStorage(draft);
   } catch (e) {
-    console.error(
-      "telegram report draft preparation failed",
-      e instanceof Error ? e.message : "unknown",
-    );
+    logServerError("telegram_report.draft_preparation_failed", e);
     await sendText(ctx, "report_error", lang);
     await resetScenario(ctx.userId);
     return null;
@@ -217,10 +215,7 @@ async function prepareFinalDraft(
     }
     return { draft: { ...clean, target }, target };
   } catch (e) {
-    console.error(
-      "telegram report target preparation failed",
-      e instanceof Error ? e.message : "unknown",
-    );
+    logServerError("telegram_report.target_preparation_failed", e);
     await sendText(ctx, "report_error", lang);
     await resetScenario(ctx.userId);
     return null;

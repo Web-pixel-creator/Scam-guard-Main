@@ -43,6 +43,7 @@
     "admin-role:preflight": "vite-node scripts/admin-role-preflight.ts"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@hookform/resolvers": "^5.2.2",

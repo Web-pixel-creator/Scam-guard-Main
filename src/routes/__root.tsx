@@ -15,6 +15,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Header, Footer } from "@/components/Layout";
 import { A11yPanel } from "@/components/A11yPanel";
 import { useEffect } from "react";
+import { safeClientErrorReason } from "@/lib/client-error";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
 
@@ -41,7 +42,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  console.error("route render failed", safeClientErrorReason(error));
   const router = useRouter();
 
   return (
@@ -102,14 +103,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         type: "image/svg+xml",
         href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 10l18 7v13c0 12-7.5 21.5-18 24-10.5-2.5-18-12-18-24V17l18-7z' fill='%2314b8a6'/%3E%3Cpath d='M24 32l5 5 12-14' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
       },
-      // Preconnect to font CDNs so the display font lands before LCP
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      // Load display fonts once; CSS variables in styles.css reference these families.
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap",
-      },
       // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
       ...(supabaseUrl
         ? [
@@ -147,7 +140,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isEmbedCheck = pathname === "/embed/check";
-  const isAdmin = pathname === "/admin";
+  const isAdmin = pathname === "/admin" || pathname === "/admin-mfa";
   const isHomepage = pathname === "/";
   return (
     <QueryClientProvider client={queryClient}>

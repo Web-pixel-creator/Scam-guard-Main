@@ -54,8 +54,9 @@ runtime, which the Nitro node-server already honours. Config-as-code lives in
 Backup/restore, application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
 `ai_docs/RECOVERY_AND_KEY_ROTATION.md`; never test a restore by overwriting the
-production project and never rotate `HASH_PEPPER_SECRET` until versioned
-dual-read migration support exists.
+production project and never replace a hash pepper directly. Apply the additive
+version metadata migration and version-aware application before using the
+approved bounded-overlap procedure.
 
 The public-release canary follows `ai_docs/CANARY_72H.md`. It starts only after
 the exact RC deployment and every required migration are fixed; any code,
@@ -68,7 +69,8 @@ schema, secret or runtime-config change restarts the 72-hour clock.
    same names listed under **Environment variables** below. At minimum:
    `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
-   `VITE_SUPABASE_PROJECT_ID`, `HASH_PEPPER_SECRET`, `TELEGRAM_BOT_TOKEN`,
+   `VITE_SUPABASE_PROJECT_ID`, a valid hash-pepper configuration,
+   `TELEGRAM_BOT_TOKEN`,
    `TELEGRAM_WEBHOOK_SECRET`, and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`
    / `OPENAI_BASE_URL` / `OPENAI_TRANSCRIBE_MODEL` /
    `GEMINI_TTS_API_KEY` / `OPENAI_TTS_API_KEY` /
@@ -95,12 +97,23 @@ Public (in `.env`, prefixed `VITE_`, safe for browser):
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (server reads these too)
 
+Server-only runtime controls:
+
+- `REQUIRE_ADMIN_MFA_AAL2` — leave unset/`false` until admin TOTP enrollment,
+  challenge/verify, refreshed-session handling and operator recovery are tested.
+  When explicitly `true`, every admin server action requires the Supabase JWT
+  `aal` claim to be `aal2`. Deploy `/admin-mfa` first with this flag off, enroll
+  two approved owners and complete the recovery drill before enabling it in a
+  separate window. Unsupported explicit values fail closed.
+
 Server-only **secrets** (set in the host/orchestrator environment, NOT in a
 committed `.env`, never shipped to client):
 
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role client (`client.server.ts`). Bypasses RLS.
-- `HASH_PEPPER_SECRET` — HMAC pepper for identifier hashes. Required in
-  production; without it, identifier checks/reports fail closed.
+- Hash pepper — `HASH_PEPPER_SECRET` is the legacy/initial HMAC pepper. A
+  version-aware overlap additionally uses `HASH_PEPPER_ACTIVE_VERSION` and
+  `HASH_PEPPER_ACTIVE_SECRET`; see `RECOVERY_AND_KEY_ROTATION.md`. Incomplete or
+  ambiguous configuration fails closed.
 - `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible). If
   absent, AI explanation/OCR degrade to `null` gracefully and scoring continues
   by rules.
@@ -261,8 +274,8 @@ under the documented retention windows. After changing retention SQL, verify the
 job still exists and then run `prod:security-smoke`.
 
 Shared public rate limits are stored in `rate_limit_buckets` through the
-service-role-only `claim_rate_limit()` RPC. `HASH_PEPPER_SECRET` is required in
-production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
+service-role-only `claim_rate_limit()` RPC. A valid hash-pepper configuration
+is required in production so raw IPs, Telegram ids and other rate-limit keys are HMAC-hashed
 before persistence. Production and Railway fail closed to rate-limited responses
 if shared configuration, hashing, RPC transport or response validation fails;
 there is no process-local production allowance. If Supabase or the pepper is
@@ -422,7 +435,8 @@ them in a `.env` committed to the repo, and **never** prefix them with `VITE_`
   `OPENAI_BASE_URL`.
 - Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (service-role,
   server-only).
-- `HASH_PEPPER_SECRET` — required for HMAC identifier hashing.
+- A valid legacy or versioned hash-pepper configuration — required for HMAC
+  identifier hashing.
 
 These are read **per request inside handlers** (`config.server.ts`). The
 webhook fails closed: if `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is
@@ -716,7 +730,9 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       when the published release artifact has a stable digest/registry owner.
 - [ ] Build succeeds (`npm run build`) and `npm run start` boots on `$PORT`.
 - [ ] Liveness probe responds: `GET /healthz` → `200 ok` (used by `railway.toml`).
-- [ ] Server-only secrets set in the host environment (Supabase service role + `HASH_PEPPER_SECRET` + optional AI key), not in `VITE_*`.
+- [ ] Server-only secrets set in the host environment (Supabase service role +
+      one valid legacy/versioned hash-pepper configuration + optional AI key),
+      not in `VITE_*`.
 - [ ] Before applying the exact admin-role reconciliation migration, run
       `npm run admin-role:preflight` in the production environment and require
       `staleAdminRoleCount=0` and `missingAdminRoleCount=0`; retain counts only.

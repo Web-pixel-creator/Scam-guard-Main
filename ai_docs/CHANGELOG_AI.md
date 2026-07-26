@@ -2,6 +2,23 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-24 - Local UI/UX clarity pass
+
+- Simplified the Russian homepage checker to one auto-detecting input instead
+  of non-functional type tabs; screenshot OCR remains a separate real action.
+- Marked the prefilled verdict as a demo, added an above-the-fold emergency
+  path and replaced absolute privacy promises with the actual masking and
+  non-publication boundary.
+- Removed the duplicated large impact-counter section while preserving the
+  compact live proof strip and all educational, directory, trends, privacy,
+  report and emergency content.
+- Made the admin route task-first: compact authenticated session header,
+  queue before the operator guide, report search, default hiding of explicit
+  QA/smoke records, clamped long cards and confirmation before moderation or
+  appeal decisions.
+- Fixed FAQ relationships, the accessibility launcher contrast and admin
+  terminology. The pass is local-only and has not been deployed.
+
 ## 2026-07-23 - Approved homepage and admin redesign integrated for Railway
 
 - Integrated the approved warm-white editorial direction into the real

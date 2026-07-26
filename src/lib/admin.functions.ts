@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { assertAdminMfaAal2 } from "@/lib/admin-mfa.server";
 import { isIncidentOnlyReportProjection } from "@/lib/report-boundary";
 import { syncTelegramReputationAfterModeration } from "@/lib/telegram/reputation.server";
 
@@ -162,7 +163,7 @@ const resolveReputationAppealInputSchema = z.object({
 
 type ResolveReputationAppealInput = z.infer<typeof resolveReputationAppealInputSchema>;
 
-async function assertAdmin(userId: string) {
+async function assertAdmin(userId: string, claims: unknown) {
   const { data } = await supabaseAdmin
     .from("user_roles")
     .select("role")
@@ -170,6 +171,7 @@ async function assertAdmin(userId: string) {
     .eq("role", "admin")
     .maybeSingle();
   if (!data) throw new Error("Forbidden: admin only");
+  assertAdminMfaAal2(claims);
 }
 
 async function insertAdminAction(payload: AdminActionInsert): Promise<void> {
@@ -199,7 +201,7 @@ export const listReports = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     let q = supabaseAdmin
       .from("reports")
       .select("*")
@@ -253,7 +255,7 @@ export const listEntities = createServerFn({ method: "POST" })
     z.object({ status: z.enum(["new", "confirmed", "rejected", "all"]).default("all") }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     let q = supabaseAdmin
       .from("entities")
       .select("*")
@@ -269,7 +271,7 @@ export const listReputationAppeals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ status: reputationAppealStatusSchema }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     let q = supabaseAdmin
       .from("reputation_appeals")
       .select("*")
@@ -285,14 +287,14 @@ export const moderateReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => moderateReportInputSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     return moderateReportCore(data, context.userId);
   });
 
 export async function moderateReportCore(data: ModerateReportInput, adminUserId: string) {
   const { data: rep, error } = await supabaseAdmin
     .from("reports")
-    .select("entity_hash, entity_type, redacted_value")
+    .select("entity_hash, entity_hash_version, entity_type, redacted_value")
     .eq("id", data.reportId)
     .maybeSingle();
   if (error || !rep) throw new Error("Report not found");
@@ -342,6 +344,7 @@ export async function moderateReportCore(data: ModerateReportInput, adminUserId:
       const { error: insertEntityError } = await supabaseAdmin.from("entities").insert({
         entity_type: rep.entity_type,
         entity_hash: rep.entity_hash,
+        entity_hash_version: rep.entity_hash_version ?? "legacy",
         display_mask: rep.redacted_value,
         moderation_status: targetStatus,
         risk_level: targetRiskLevel,
@@ -353,6 +356,7 @@ export async function moderateReportCore(data: ModerateReportInput, adminUserId:
     if (rep.entity_type === "telegram") {
       await syncTelegramReputationAfterModeration({
         entityHash: rep.entity_hash,
+        hashVersion: rep.entity_hash_version ?? "legacy",
         displayHint: rep.redacted_value,
         riskLevel: targetRiskLevel,
       });
@@ -365,7 +369,7 @@ export const resolveReputationAppeal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => resolveReputationAppealInputSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     return resolveReputationAppealCore(data, context.userId);
   });
 
@@ -375,7 +379,7 @@ export async function resolveReputationAppealCore(
 ) {
   const { data: appeal, error } = await supabaseAdmin
     .from("reputation_appeals")
-    .select("target_hash, target_type, target_display")
+    .select("target_hash, target_hash_version, target_type, target_display")
     .eq("id", data.appealId)
     .maybeSingle();
   if (error || !appeal) throw new Error("Appeal not found");
@@ -428,7 +432,7 @@ export async function resolveReputationAppealCore(
 export const adminStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     const [reportsNew, reportsConfirmed, entitiesConfirmed, checksTotal, appealsNew] =
       await Promise.all([
         supabaseAdmin
@@ -463,7 +467,7 @@ export const getEntityCheck = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ entityHash: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertAdmin(context.userId, context.claims);
     const { data: row, error } = await supabaseAdmin
       .from("checks")
       .select("risk_level, risk_score, reason_codes, ai_explanation, created_at")

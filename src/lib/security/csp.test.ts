@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +8,7 @@ import {
   DEFAULT_CONTENT_SECURITY_POLICY,
   EMBED_CHECK_CONTENT_SECURITY_POLICY,
   parseEmbedFrameAncestorAllowlist,
+  UNICORN_STUDIO_SCRIPT_INTEGRITY,
   UNICORN_STUDIO_SCRIPT_SRC,
 } from "./csp";
 
@@ -19,6 +22,17 @@ function directive(policy: string, name: string): string {
 }
 
 describe("content security policy", () => {
+  it("binds the pinned Unicorn script to its verified SRI hash", () => {
+    const componentSource = readFileSync(
+      resolve(process.cwd(), "src/components/UnicornBackground.tsx"),
+      "utf8",
+    );
+
+    expect(componentSource).toContain("s.integrity = UNICORN_STUDIO_SCRIPT_INTEGRITY");
+    expect(componentSource).toContain('s.crossOrigin = "anonymous"');
+    expect(componentSource).toContain('s.referrerPolicy = "no-referrer"');
+  });
+
   it("does not allow inline scripts on the main site", () => {
     const scriptSrc = directive(DEFAULT_CONTENT_SECURITY_POLICY, "script-src");
     const styleSrc = directive(DEFAULT_CONTENT_SECURITY_POLICY, "style-src");
@@ -34,6 +48,9 @@ describe("content security policy", () => {
     expect(DEFAULT_CONTENT_SECURITY_POLICY).toContain("script-src-attr 'none'");
     expect(DEFAULT_CONTENT_SECURITY_POLICY).toContain("object-src 'none'");
     expect(DEFAULT_CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
+    expect(DEFAULT_CONTENT_SECURITY_POLICY).not.toContain("fonts.googleapis.com");
+    expect(DEFAULT_CONTENT_SECURITY_POLICY).not.toContain("fonts.gstatic.com");
+    expect(UNICORN_STUDIO_SCRIPT_INTEGRITY).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
   });
 
   it("keeps the embeddable widget frameable only for self/dev by default", () => {
@@ -52,6 +69,8 @@ describe("content security policy", () => {
     expect(frameAncestors).not.toContain("https:");
     expect(frameAncestors).toContain("http://localhost:*");
     expect(EMBED_CHECK_CONTENT_SECURITY_POLICY).toContain("object-src 'none'");
+    expect(EMBED_CHECK_CONTENT_SECURITY_POLICY).not.toContain("fonts.googleapis.com");
+    expect(EMBED_CHECK_CONTENT_SECURITY_POLICY).not.toContain("fonts.gstatic.com");
   });
 
   it("builds embed frame-ancestors from explicit HTTPS partner origins", () => {

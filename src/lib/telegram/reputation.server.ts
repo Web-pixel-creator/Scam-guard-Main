@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalize, maskForDisplay } from "@/lib/risk/detect";
-import { hashIdentifier } from "@/lib/risk/hash";
+import { hashIdentifierCandidates, type IdentifierHash } from "@/lib/risk/hash";
 import type { RiskLevel } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { extractTelegramPublicTarget, type TelegramPublicTarget } from "./public-metadata.server";
@@ -17,6 +17,7 @@ export type TelegramReputationConfidence = "low" | "medium" | "high";
 
 type TelegramReputationRow = {
   target_hash: string;
+  target_hash_version?: string;
   target_type: string;
   display_hint: string;
   source_type: TelegramReputationSource;
@@ -31,6 +32,7 @@ type TelegramReputationRow = {
 
 type TelegramReportSyncInput = {
   entityHash: string;
+  hashVersion?: string;
   displayHint: string;
   riskLevel: RiskLevel;
 };
@@ -123,26 +125,38 @@ function confidenceLabel(confidence: TelegramReputationConfidence, lang: Lang): 
   return labels[confidence][lang];
 }
 
-async function hashTarget(normalized: string): Promise<string> {
-  return hashIdentifier(normalized);
+function establishedHashReadOrder(candidates: IdentifierHash[]): IdentifierHash[] {
+  return candidates.length > 1 ? [...candidates.slice(1), candidates[0]!] : candidates;
 }
 
-async function getExistingReputation(targetHash: string): Promise<{
+type ExistingTelegramReputation = {
+  target_hash: string;
+  target_hash_version: string;
   moderation_status: TelegramReputationRow["moderation_status"];
   source_type: TelegramReputationSource;
   unverified_report_count: number;
-} | null> {
-  const { data, error } = await supabaseAdmin
-    .from("telegram_reputation_targets")
-    .select("moderation_status,source_type,unverified_report_count")
-    .eq("target_hash", targetHash)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as {
-    moderation_status: TelegramReputationRow["moderation_status"];
-    source_type: TelegramReputationSource;
-    unverified_report_count: number;
-  };
+};
+
+async function getExistingReputation(
+  candidates: IdentifierHash[],
+): Promise<ExistingTelegramReputation | null> {
+  for (const candidate of establishedHashReadOrder(candidates)) {
+    const { data, error } = await supabaseAdmin
+      .from("telegram_reputation_targets")
+      .select(
+        "target_hash,target_hash_version,moderation_status,source_type,unverified_report_count",
+      )
+      .eq("target_hash", candidate.hash)
+      .maybeSingle();
+    if (!error && data) {
+      return {
+        ...(data as ExistingTelegramReputation),
+        target_hash: data.target_hash ?? candidate.hash,
+        target_hash_version: data.target_hash_version ?? candidate.version,
+      };
+    }
+  }
+  return null;
 }
 
 export async function observeTelegramReputationTarget(input: string): Promise<void> {
@@ -152,9 +166,11 @@ export async function observeTelegramReputationTarget(input: string): Promise<vo
   if (!normalized || !targetType) return;
 
   try {
-    const targetHash = await hashTarget(normalized);
+    const targetHashes = await hashIdentifierCandidates(normalized);
+    const activeHash = targetHashes[0];
+    if (!activeHash) return;
     const now = new Date().toISOString();
-    const existing = await getExistingReputation(targetHash);
+    const existing = await getExistingReputation(targetHashes);
     if (existing) {
       await supabaseAdmin
         .from("telegram_reputation_targets")
@@ -162,12 +178,13 @@ export async function observeTelegramReputationTarget(input: string): Promise<vo
           last_seen_at: now,
           updated_at: now,
         })
-        .eq("target_hash", targetHash);
+        .eq("target_hash", existing.target_hash);
       return;
     }
 
     await supabaseAdmin.from("telegram_reputation_targets").insert({
-      target_hash: targetHash,
+      target_hash: activeHash.hash,
+      target_hash_version: activeHash.version,
       target_type: targetType,
       display_hint: displayHintFromTarget(target, normalized),
       source_type: "system_observed",
@@ -186,11 +203,13 @@ export async function observeTelegramReputationTarget(input: string): Promise<vo
 
 export async function registerTelegramReportCandidate(args: {
   entityHash: string;
+  hashVersion?: string;
   displayHint: string;
 }): Promise<void> {
   try {
     const now = new Date().toISOString();
-    const existing = await getExistingReputation(args.entityHash);
+    const candidate = { hash: args.entityHash, version: args.hashVersion ?? "legacy" };
+    const existing = await getExistingReputation([candidate]);
     if (existing) {
       await supabaseAdmin
         .from("telegram_reputation_targets")
@@ -199,12 +218,13 @@ export async function registerTelegramReportCandidate(args: {
           last_seen_at: now,
           updated_at: now,
         })
-        .eq("target_hash", args.entityHash);
+        .eq("target_hash", existing.target_hash);
       return;
     }
 
     await supabaseAdmin.from("telegram_reputation_targets").insert({
       target_hash: args.entityHash,
+      target_hash_version: candidate.version,
       target_type: "public_username",
       display_hint: args.displayHint,
       source_type: "user_submitted_unverified",
@@ -261,6 +281,7 @@ export async function syncTelegramReputationAfterModeration(
     upsertResult = await supabaseAdmin.from("telegram_reputation_targets").upsert(
       {
         target_hash: args.entityHash,
+        target_hash_version: args.hashVersion ?? "legacy",
         target_type: "public_username",
         display_hint: args.displayHint,
         source_type: hasModeratedReports ? "moderated_report" : "user_submitted_unverified",
@@ -293,16 +314,32 @@ export async function getTelegramReputationForInput(
   if (!normalized) return null;
 
   try {
-    const targetHash = await hashTarget(normalized);
-    const { data, error } = await supabaseAdmin
-      .from("telegram_reputation_targets")
-      .select(
-        "target_hash,target_type,display_hint,source_type,confidence,risk_level,moderation_status,unverified_report_count,moderated_report_count,first_seen_at,last_seen_at",
-      )
-      .eq("target_hash", targetHash)
-      .maybeSingle();
-    if (error || !data) return null;
-    return data as TelegramReputationRow;
+    const targetHashes = await hashIdentifierCandidates(normalized);
+    const rows: TelegramReputationRow[] = [];
+    for (const candidate of targetHashes) {
+      const { data, error } = await supabaseAdmin
+        .from("telegram_reputation_targets")
+        .select(
+          "target_hash,target_hash_version,target_type,display_hint,source_type,confidence,risk_level,moderation_status,unverified_report_count,moderated_report_count,first_seen_at,last_seen_at",
+        )
+        .eq("target_hash", candidate.hash)
+        .maybeSingle();
+      if (!error && data) {
+        rows.push({
+          ...(data as TelegramReputationRow),
+          target_hash: data.target_hash ?? candidate.hash,
+          target_hash_version: data.target_hash_version ?? candidate.version,
+        });
+      }
+    }
+    return (
+      rows.sort(
+        (left, right) =>
+          Number(right.moderation_status === "confirmed") -
+            Number(left.moderation_status === "confirmed") ||
+          right.moderated_report_count - left.moderated_report_count,
+      )[0] ?? null
+    );
   } catch {
     console.error("telegram reputation lookup failed", "storage_exception");
     return null;

@@ -5,6 +5,7 @@ import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "./me
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizePublicStatsRow, type PublicStats } from "@/lib/trust/impact-stats";
 import { publicRateLimitKey } from "@/lib/request-ip.server";
+import { logServerError } from "@/lib/safe-server-log.server";
 import { MAX_IMAGE_DATA_URL_LENGTH, parseAllowedImageDataUrl } from "./risk/media-data-url";
 import { checkSharedRateLimit } from "./risk/shared-rate-limit.server";
 import {
@@ -134,7 +135,7 @@ async function loadPublicStatsUncached(): Promise<PublicStats> {
         .gt("amount_lost_uzs", 0),
     ]);
 
-  if (rpcResult.error) console.error("Unable to load public stats RPC", rpcResult.error);
+  if (rpcResult.error) logServerError("public_stats.rpc_failed", rpcResult.error);
 
   const row = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
   const highRisk = highRiskResult.error ? undefined : (highRiskResult.count ?? 0);

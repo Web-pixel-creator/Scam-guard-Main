@@ -29,6 +29,7 @@ export type Database = {
           created_at: string;
           id: string;
           input_hash: string;
+          input_hash_version: string;
           input_type: Database["public"]["Enums"]["input_type"];
           language: string;
           reason_codes: string[];
@@ -41,6 +42,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           input_hash: string;
+          input_hash_version?: string;
           input_type: Database["public"]["Enums"]["input_type"];
           language?: string;
           reason_codes?: string[];
@@ -53,6 +55,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           input_hash?: string;
+          input_hash_version?: string;
           input_type?: Database["public"]["Enums"]["input_type"];
           language?: string;
           reason_codes?: string[];
@@ -106,6 +109,7 @@ export type Database = {
           created_at: string;
           display_mask: string;
           entity_hash: string;
+          entity_hash_version: string;
           entity_type: Database["public"]["Enums"]["input_type"];
           id: string;
           last_seen_at: string;
@@ -117,6 +121,7 @@ export type Database = {
           created_at?: string;
           display_mask: string;
           entity_hash: string;
+          entity_hash_version?: string;
           entity_type: Database["public"]["Enums"]["input_type"];
           id?: string;
           last_seen_at?: string;
@@ -128,6 +133,7 @@ export type Database = {
           created_at?: string;
           display_mask?: string;
           entity_hash?: string;
+          entity_hash_version?: string;
           entity_type?: Database["public"]["Enums"]["input_type"];
           id?: string;
           last_seen_at?: string;
@@ -151,6 +157,7 @@ export type Database = {
           risk_level: Database["public"]["Enums"]["risk_level"];
           source_type: string;
           target_hash: string;
+          target_hash_version: string;
           target_type: string;
           unverified_report_count: number;
           updated_at: string;
@@ -168,6 +175,7 @@ export type Database = {
           risk_level?: Database["public"]["Enums"]["risk_level"];
           source_type?: string;
           target_hash: string;
+          target_hash_version?: string;
           target_type: string;
           unverified_report_count?: number;
           updated_at?: string;
@@ -185,6 +193,7 @@ export type Database = {
           risk_level?: Database["public"]["Enums"]["risk_level"];
           source_type?: string;
           target_hash?: string;
+          target_hash_version?: string;
           target_type?: string;
           unverified_report_count?: number;
           updated_at?: string;
@@ -198,6 +207,7 @@ export type Database = {
           created_at: string;
           description: string;
           entity_hash: string;
+          entity_hash_version: string;
           entity_type: Database["public"]["Enums"]["input_type"];
           id: string;
           language: string;
@@ -212,6 +222,7 @@ export type Database = {
           created_at?: string;
           description: string;
           entity_hash: string;
+          entity_hash_version?: string;
           entity_type: Database["public"]["Enums"]["input_type"];
           id?: string;
           language?: string;
@@ -226,6 +237,7 @@ export type Database = {
           created_at?: string;
           description?: string;
           entity_hash?: string;
+          entity_hash_version?: string;
           entity_type?: Database["public"]["Enums"]["input_type"];
           id?: string;
           language?: string;
@@ -240,6 +252,7 @@ export type Database = {
         Row: {
           contact_display: string | null;
           contact_hash: string | null;
+          contact_hash_version: string | null;
           created_at: string;
           id: string;
           reason: string;
@@ -247,12 +260,14 @@ export type Database = {
           status: string;
           target_display: string;
           target_hash: string;
+          target_hash_version: string;
           target_type: Database["public"]["Enums"]["input_type"];
           updated_at: string;
         };
         Insert: {
           contact_display?: string | null;
           contact_hash?: string | null;
+          contact_hash_version?: string | null;
           created_at?: string;
           id?: string;
           reason: string;
@@ -260,12 +275,14 @@ export type Database = {
           status?: string;
           target_display: string;
           target_hash: string;
+          target_hash_version?: string;
           target_type: Database["public"]["Enums"]["input_type"];
           updated_at?: string;
         };
         Update: {
           contact_display?: string | null;
           contact_hash?: string | null;
+          contact_hash_version?: string | null;
           created_at?: string;
           id?: string;
           reason?: string;
@@ -273,6 +290,7 @@ export type Database = {
           status?: string;
           target_display?: string;
           target_hash?: string;
+          target_hash_version?: string;
           target_type?: Database["public"]["Enums"]["input_type"];
           updated_at?: string;
         };

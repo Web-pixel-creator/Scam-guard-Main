@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { logServerError } from "./lib/safe-server-log.server";
 import { getEmbedAllowedFrameAncestors } from "./lib/config.server";
 import { getTelegramUpdateDeliveryMode, getTelegramWebhookSecret } from "./lib/config.server";
 import {
@@ -114,7 +115,10 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
     return response;
   }
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  logServerError(
+    "server.ssr_unhandled_response",
+    consumeLastCapturedError() ?? new Error("h3_swallowed_ssr_error"),
+  );
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -167,7 +171,7 @@ export default {
       response = await handler.fetch(request, { context: { nonce: cspNonce } }, ctx);
       response = await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
-      console.error(error);
+      logServerError("server.request_failed", error);
       response = new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },

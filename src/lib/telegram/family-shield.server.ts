@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getTelegramBotUsername } from "@/lib/config.server";
 import type { Lang } from "@/lib/i18n";
-import { hashIdentifier } from "@/lib/risk/hash";
+import { hashIdentifierCandidates, type IdentifierHash } from "@/lib/risk/hash";
 import { escapeMarkdownV2, sendMessage, type InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 
@@ -33,6 +33,7 @@ interface FamilyRow {
   trusted_telegram_user_id: number | null;
   trusted_chat_id: number | null;
   invite_code_hash: string;
+  invite_code_hash_version?: string;
   status: FamilyStatus;
   created_at: string;
   accepted_at: string | null;
@@ -72,13 +73,32 @@ function inviteHashInput(token: string): string {
   return `${INVITE_PREFIX}${token}`;
 }
 
-async function hashInviteToken(token: string): Promise<string | null> {
+async function hashInviteTokenCandidates(token: string): Promise<IdentifierHash[] | null> {
   try {
-    return await hashIdentifier(inviteHashInput(token));
+    return await hashIdentifierCandidates(inviteHashInput(token));
   } catch {
     console.error("family shield invite hash failed", "crypto_exception");
     return null;
   }
+}
+
+function establishedHashReadOrder(candidates: IdentifierHash[]): IdentifierHash[] {
+  return candidates.length > 1 ? [...candidates.slice(1), candidates[0]!] : candidates;
+}
+
+async function findPendingFamilyInvite(
+  candidates: IdentifierHash[],
+): Promise<{ row: FamilyRow | null; storageError: boolean }> {
+  for (const candidate of establishedHashReadOrder(candidates)) {
+    const { data, error } = await familyTable()
+      .select("*")
+      .eq("invite_code_hash", candidate.hash)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (error) return { row: null, storageError: true };
+    if (data) return { row: data as FamilyRow, storageError: false };
+  }
+  return { row: null, storageError: false };
 }
 
 function buildInviteUrl(token: string): string {
@@ -143,8 +163,9 @@ export async function createFamilyInvite(
   guardianTelegramUserId: number,
 ): Promise<FamilyInviteResult> {
   const token = randomInviteToken();
-  const inviteCodeHash = await hashInviteToken(token);
-  if (!inviteCodeHash) return { ok: false, reason: "hash_unavailable" };
+  const inviteCodeHashes = await hashInviteTokenCandidates(token);
+  const activeInviteCodeHash = inviteCodeHashes?.[0];
+  if (!activeInviteCodeHash) return { ok: false, reason: "hash_unavailable" };
 
   try {
     const active = await getActiveFamilyRow(guardianTelegramUserId);
@@ -156,7 +177,8 @@ export async function createFamilyInvite(
     const now = new Date().toISOString();
     const { error } = await familyTable().insert({
       guardian_telegram_user_id: guardianTelegramUserId,
-      invite_code_hash: inviteCodeHash,
+      invite_code_hash: activeInviteCodeHash.hash,
+      invite_code_hash_version: activeInviteCodeHash.version,
       status: "pending",
       updated_at: now,
     });
@@ -176,22 +198,18 @@ export async function acceptFamilyInvite(args: {
   trustedTelegramUserId: number;
   trustedChatId: number;
 }): Promise<FamilyAcceptResult> {
-  const inviteCodeHash = await hashInviteToken(args.token);
-  if (!inviteCodeHash) return { ok: false, reason: "hash_unavailable" };
+  const inviteCodeHashes = await hashInviteTokenCandidates(args.token);
+  if (!inviteCodeHashes?.length) return { ok: false, reason: "hash_unavailable" };
 
   try {
-    const { data, error } = await familyTable()
-      .select("*")
-      .eq("invite_code_hash", inviteCodeHash)
-      .eq("status", "pending")
-      .maybeSingle();
-    if (error) {
+    const lookup = await findPendingFamilyInvite(inviteCodeHashes);
+    if (lookup.storageError) {
       console.error("family shield invite lookup failed", "storage_error");
       return { ok: false, reason: "storage_unavailable" };
     }
-    if (!data) return { ok: false, reason: "invalid" };
+    if (!lookup.row) return { ok: false, reason: "invalid" };
 
-    const row = data as FamilyRow;
+    const row = lookup.row;
     if (isInviteExpired(row.created_at)) {
       await revokeFamilyRow(row.id);
       return { ok: false, reason: "expired" };

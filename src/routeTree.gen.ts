@@ -19,6 +19,7 @@ import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as EmbedRouteImport } from './routes/embed'
 import { Route as CheckRouteImport } from './routes/check'
 import { Route as AppealRouteImport } from './routes/appeal'
+import { Route as AdminMfaRouteImport } from './routes/admin-mfa'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmbedCheckRouteImport } from './routes/embed_.check'
@@ -73,6 +74,11 @@ const AppealRoute = AppealRouteImport.update({
   path: '/appeal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminMfaRoute = AdminMfaRouteImport.update({
+  id: '/admin-mfa',
+  path: '/admin-mfa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -92,6 +98,7 @@ const EmbedCheckRoute = EmbedCheckRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-mfa': typeof AdminMfaRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/embed': typeof EmbedRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-mfa': typeof AdminMfaRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/embed': typeof EmbedRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-mfa': typeof AdminMfaRoute
   '/appeal': typeof AppealRoute
   '/check': typeof CheckRoute
   '/embed': typeof EmbedRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-mfa'
     | '/appeal'
     | '/check'
     | '/embed'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-mfa'
     | '/appeal'
     | '/check'
     | '/embed'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-mfa'
     | '/appeal'
     | '/check'
     | '/embed'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminMfaRoute: typeof AdminMfaRoute
   AppealRoute: typeof AppealRoute
   CheckRoute: typeof CheckRoute
   EmbedRoute: typeof EmbedRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppealRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-mfa': {
+      id: '/admin-mfa'
+      path: '/admin-mfa'
+      fullPath: '/admin-mfa'
+      preLoaderRoute: typeof AdminMfaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminMfaRoute: AdminMfaRoute,
   AppealRoute: AppealRoute,
   CheckRoute: CheckRoute,
   EmbedRoute: EmbedRoute,

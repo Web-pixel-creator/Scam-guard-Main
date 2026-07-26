@@ -7,6 +7,7 @@ const ADMIN_ID = "22222222-2222-4222-8222-222222222222";
 const hoisted = vi.hoisted(() => ({
   reportRow: null as null | {
     entity_hash: string;
+    entity_hash_version?: string;
     entity_type: string;
     redacted_value: string;
   },
@@ -21,6 +22,7 @@ const hoisted = vi.hoisted(() => ({
   reputationUpdates: [] as Array<Record<string, unknown>>,
   appealRow: null as null | {
     target_hash: string;
+    target_hash_version?: string;
     target_type: string;
     target_display: string;
   },
@@ -163,6 +165,7 @@ import {
 beforeEach(() => {
   hoisted.reportRow = {
     entity_hash: "hash-target",
+    entity_hash_version: "legacy",
     entity_type: "telegram",
     redacted_value: "@fake_support",
   };
@@ -177,6 +180,7 @@ beforeEach(() => {
   hoisted.reputationUpdates.length = 0;
   hoisted.appealRow = {
     target_hash: "hash-target",
+    target_hash_version: "legacy",
     target_type: "telegram",
     target_display: "@fa***rt",
   };
@@ -323,6 +327,7 @@ describe("moderateReportCore reputation boundary", () => {
       {
         entity_type: "telegram",
         entity_hash: "hash-target",
+        entity_hash_version: "legacy",
         display_mask: "@fake_support",
         moderation_status: "confirmed",
         risk_level: "high_risk",
@@ -332,6 +337,7 @@ describe("moderateReportCore reputation boundary", () => {
     expect(hoisted.entityUpdates).toHaveLength(0);
     expect(hoisted.reputationUpserts[0]).toMatchObject({
       target_hash: "hash-target",
+      target_hash_version: "legacy",
       display_hint: "@fake_support",
       source_type: "moderated_report",
       confidence: "medium",

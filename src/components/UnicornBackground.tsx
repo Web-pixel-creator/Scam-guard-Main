@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { UNICORN_STUDIO_SCRIPT_SRC } from "@/lib/security/csp";
+import { UNICORN_STUDIO_SCRIPT_INTEGRITY, UNICORN_STUDIO_SCRIPT_SRC } from "@/lib/security/csp";
 
 declare global {
   interface Window {
@@ -67,6 +67,9 @@ export function UnicornBackground({ projectId, className, fallbackStyle }: Props
     if (!s) {
       s = document.createElement("script");
       s.src = UNICORN_STUDIO_SCRIPT_SRC;
+      s.integrity = UNICORN_STUDIO_SCRIPT_INTEGRITY;
+      s.crossOrigin = "anonymous";
+      s.referrerPolicy = "no-referrer";
       s.async = true;
       s.onload = init;
       document.head.appendChild(s);

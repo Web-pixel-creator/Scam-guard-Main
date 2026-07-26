@@ -51,7 +51,7 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `routeTree.gen.ts`    | Auto-generated route tree.                                                                                                                                    |
 | `styles.css`          | Tailwind v4, brand tokens, accessibility modes and imports for the approved production/editorial surfaces.                                                    |
 | `approved-design.css` | Compatibility styling for the existing translated production routes and shared chrome.                                                                        |
-| `signal-exact.css`    | Exact approved homepage/admin visual system: production stripe, editorial grids, responsive rules, reduced-motion CTAs and smooth disclosure states.          |
+| `signal-exact.css`    | Approved homepage/admin visual system: exact production stripe, editorial grids, responsive rules, reduced-motion CTAs, task-first admin controls and smooth disclosure/confirmation states. |
 
 ## `src/routes/`
 
@@ -68,17 +68,17 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `scam-trends.tsx`      | `/scam-trends`      | Public non-personal map/index of current scam tactics, privacy-safe category buckets, hooks, goals, safe steps and reason-code coverage.                                       |
 | `privacy.tsx`          | `/privacy`          | Privacy notice.                                                                                                                                                                |
 | `appeal.tsx`           | `/appeal`           | Privacy-safe reputation correction/removal request page for phone, Telegram, URL and APK targets.                                                                              |
-| `login.tsx`            | `/login`            | Supabase email auth.                                                                                                                                                           |
-| `admin.tsx`            | `/admin`            | Authenticated moderation dashboard with the approved shared visual system; real report, appeal, entity and moderation actions are preserved.                                   |
+| `login.tsx`            | `/login`            | Supabase email auth with invitation/list-of-access language instead of internal allowlist jargon.                                                                              |
+| `admin.tsx`            | `/admin`            | Authenticated moderation dashboard with compact session status, queue search/test filtering, deliberate decision confirmations and preserved report, appeal and entity mutations. |
 
 ## Approved public UI components
 
 | File                                         | Purpose                                                                                                                                                                  |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/components/ApprovedRussianHomepage.jsx` | Exact approved Russian homepage composition with live check/OCR/report paths, live aggregates, all established education/emergency/privacy content and real route links. |
+| `src/components/ApprovedRussianHomepage.jsx` | Approved Russian homepage composition with one clear prevention flow, above-fold emergency recovery, live check/OCR/report paths, factual aggregates and established education/privacy routes. |
 | `src/components/ApprovedHomeHero.tsx`        | Approved three-line homepage hero wired to the real `CheckInput`, OCR/result state, report flow and Telegram bot link.                                                   |
 | `src/components/Layout.tsx`                  | Shared responsive site header and footer using the approved typography, spacing, navigation and floating-points CTA treatment.                                           |
-| `src/components/CheckInput.tsx`              | Shared production checker; the `signal` presentation variant powers the exact hero without forking the server-side risk/OCR path.                                        |
+| `src/components/CheckInput.tsx`              | Shared production checker; the `signal` variant uses one auto-detecting input, explicit demo labelling and real screenshot OCR without forking server-side risk evaluation. |
 | `src/components/QuickReportForm.tsx`         | Shared report flow; the `signal` variant renders the exact community panel while retaining real submission and validation.                                               |
 | `src/components/StatsStrip.tsx`              | Live aggregate proof strip with approved section styling hook.                                                                                                           |
 | `src/components/HomeImpactCounters.tsx`      | Privacy-safe aggregate impact counters with approved section styling hook.                                                                                               |

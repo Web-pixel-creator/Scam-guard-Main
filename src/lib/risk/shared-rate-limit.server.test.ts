@@ -25,6 +25,12 @@ vi.mock("./hash", () => ({
     if (hoisted.hashError) throw new Error("hash unavailable");
     return "a".repeat(64);
   },
+  isHashPepperConfigured: () =>
+    Boolean(
+      process.env.HASH_PEPPER_SECRET?.trim() ||
+      (process.env.HASH_PEPPER_ACTIVE_VERSION?.trim() &&
+        process.env.HASH_PEPPER_ACTIVE_SECRET?.trim()),
+    ),
 }));
 
 import { checkSharedRateLimit } from "./shared-rate-limit.server";
@@ -35,6 +41,10 @@ const originalEnv = {
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   HASH_PEPPER_SECRET: process.env.HASH_PEPPER_SECRET,
+  HASH_PEPPER_ACTIVE_VERSION: process.env.HASH_PEPPER_ACTIVE_VERSION,
+  HASH_PEPPER_ACTIVE_SECRET: process.env.HASH_PEPPER_ACTIVE_SECRET,
+  HASH_PEPPER_PREVIOUS_VERSION: process.env.HASH_PEPPER_PREVIOUS_VERSION,
+  HASH_PEPPER_PREVIOUS_SECRET: process.env.HASH_PEPPER_PREVIOUS_SECRET,
 };
 
 function restoreEnv(): void {

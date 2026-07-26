@@ -159,9 +159,12 @@ invariants and measure RPO/RTO. Roll Railway back to the last known-good image,
 run smoke, then return to the RC. Rotate provider, Telegram, Railway and
 Supabase credentials one class at a time.
 
-`HASH_PEPPER_SECRET` must not be rotated until versioned dual-read/new-write is
-implemented and backfill/retirement is proven. Exit requires redacted drill
-timestamps, operator, backup identifier, measurements and rollback evidence.
+The versioned dual-read/new-write overlap is implemented locally, but production
+pepper rotation remains blocked until the additive migration and version-aware
+application are deployed and drilled in that order. The previous pepper must
+not be revoked until retention or a privacy-reviewed promotion process proves
+zero required legacy dependencies. Exit requires redacted drill timestamps,
+operator, backup identifier, measurements and rollback evidence.
 
 ### 6. Supply-chain provenance — P2
 

@@ -7,6 +7,8 @@ const hoisted = vi.hoisted(() => ({
   reputationUpserts: [] as Array<Record<string, unknown>>,
   moderationNotices: [] as Array<Record<string, unknown>>,
   existingReportIds: [] as Array<string>,
+  existingReportsByHash: new Map<string, Record<string, unknown>>(),
+  reportHashQueries: [] as string[],
   existingEntity: null as null | { id: string; report_count: number },
 }));
 
@@ -39,13 +41,16 @@ vi.mock("@/integrations/supabase/client.server", () => ({
             return { data: null, error: null };
           },
           select: () => ({
-            eq: () => ({
+            eq: (_column: string, hash: string) => ({
               gte: () => ({
-                limit: () =>
-                  Promise.resolve({
-                    data: hoisted.existingReportIds.map((id) => ({ id })),
+                limit: () => {
+                  hoisted.reportHashQueries.push(hash);
+                  const row = hoisted.existingReportsByHash.get(hash);
+                  return Promise.resolve({
+                    data: row ? [row] : hoisted.existingReportIds.map((id) => ({ id })),
                     error: null,
-                  }),
+                  });
+                },
               }),
             }),
           }),
@@ -112,6 +117,7 @@ import {
   submitReport,
   submitReportCore,
 } from "./report.functions";
+import { hashIdentifierCandidates } from "./risk/hash";
 
 const maxDigitRun = (s: string): number =>
   Math.max(0, ...(s.match(/\d+/g) ?? []).map((run) => run.length));
@@ -123,10 +129,44 @@ beforeEach(() => {
   hoisted.reputationUpserts.length = 0;
   hoisted.moderationNotices.length = 0;
   hoisted.existingReportIds.length = 0;
+  hoisted.existingReportsByHash.clear();
+  hoisted.reportHashQueries.length = 0;
   hoisted.existingEntity = null;
 });
 
 describe("submitReport privacy", () => {
+  it("deduplicates against the previous pepper and preserves the established canonical hash", async () => {
+    vi.stubEnv("HASH_PEPPER_SECRET", "old-report-test-pepper");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "new-report-test-pepper");
+    const normalized = "@fakebank_support";
+    const [active, previous] = await hashIdentifierCandidates(normalized);
+    if (!active || !previous) throw new Error("expected active and previous report hashes");
+    hoisted.existingReportsByHash.set(previous.hash, {
+      id: "legacy-report",
+      entity_hash: previous.hash,
+      entity_hash_version: previous.version,
+    });
+
+    const result = await submitReportCore(
+      {
+        value: normalized,
+        description: "Operator asked for an SMS code.",
+        lang: "en",
+      },
+      "report:test:pepper-rotation",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(hoisted.reportHashQueries).toContain(previous.hash);
+    expect(hoisted.reportRows[0]).toMatchObject({
+      entity_hash: previous.hash,
+      entity_hash_version: "legacy",
+      status: "duplicate",
+    });
+    expect(hoisted.reportRows[0]?.entity_hash).not.toBe(active.hash);
+  });
+
   it("redacts sensitive data from the report description before persistence", async () => {
     const result = await submitReport({
       data: {
