@@ -5,6 +5,10 @@ deployed MVP to a defensible 10/10 public release. It complements the formula-
 driven `FEATURE_USER_STORY_TRACKER.xlsx`; it does not replace evidence recorded
 there.
 
+> Status reconciliation (2026-07-26): commit ids, test totals and tracker counts
+> below are historical evidence from the dated plan. Use `CURRENT_STATE.md` for
+> the deployed baseline and the remaining operational queue.
+
 ## Current decision
 
 **Public release: NO-GO until the remaining P0/P1 live gates and the 72-hour

@@ -2,6 +2,25 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-26 - Current-state and recovery reconciliation
+
+- Added `CURRENT_STATE.md` as the short operational source of truth for the
+  deployed `6a13419` baseline and remaining release gates.
+- Reconciled the completed two-owner Admin MFA rollout and production
+  hash-pepper `v2` overlap in `OPEN_TASKS.md`.
+- Recorded that the existing AES-256 EFS archive is locally verified but still
+  tied to the current Windows profile, then exported its password-protected PFX.
+- Added a separate Document Encryption recovery certificate, CMS-encrypted the
+  database archive and metadata, and verified both through in-memory
+  decrypt-and-hash round trips.
+- Detected that the local OneDrive folder was not connected to the authenticated
+  cloud account, uploaded the five encrypted recovery items through signed-in
+  OneDrive web, and confirmed all five names and sizes by cloud readback. A
+  second PFX location, isolated restore and rollback evidence remain open.
+- Marked old commits, test totals and tracker counts in dated audit/release
+  plans as historical to prevent future reviewers from treating them as the
+  current project state.
+
 ## 2026-07-24 - Local UI/UX clarity pass
 
 - Simplified the Russian homepage checker to one auto-detecting input instead

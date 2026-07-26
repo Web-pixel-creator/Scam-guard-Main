@@ -21,6 +21,45 @@ command without a separately approved maintenance window.
 - Supabase documents managed daily backups for paid projects and optional PITR:
   <https://supabase.com/docs/guides/platform/backups>.
 
+### Current evidence (2026-07-26)
+
+- An encrypted logical archive exists at
+  `C:\Users\user\Documents\Ishonch Guard Backups\ishonch-guard-production-20260726-1139.efs.zip`.
+  Its recorded SHA-256 is
+  `1b0e925008dfc3817d2497de5110d3b102b8bec93c4da6c56db8e93d5b9bcfce`,
+  it contains 10 inventoried entries and its ZIP central directory was opened.
+- Windows reports EFS AES-256 and one decrypting owner certificate with a
+  private key. No recovery certificate is configured.
+- The EFS private key was exported to the password-protected
+  `ishonch-guard-efs-recovery-20260726.pfx`; its SHA-256 is
+  `34a531f13d7f7f99b8deb71bd96424e1f0ab027834e44c2a3f8169fb4f576944`.
+- A separate Document Encryption certificate with thumbprint
+  `84263BAD3EC5730E4111797C3B8C23EDFDC0F699` was exported to the
+  password-protected
+  `ishonch-guard-portable-backup-recovery-20260726.pfx`; its SHA-256 is
+  `0c2db18b2ba86cd0ba36a70568b201cfed406a54fd637d82f2f90a388e0aa98d`.
+- The archive and metadata were CMS-encrypted into `.p7m` files under
+  `C:\Users\user\OneDrive\Ishonch Guard Recovery`. In-memory decryption
+  reproduced source SHA-256 values
+  `1b0e925008dfc3817d2497de5110d3b102b8bec93c4da6c56db8e93d5b9bcfce`
+  and
+  `6a92db70355c568e1c5f57f03075048a06663af531b60985918bd3d1511c8a39`.
+  No plaintext database dump was written there.
+- The local Windows OneDrive folder was not connected to the authenticated
+  cloud account, so no sync claim was made. The five files were uploaded
+  through signed-in OneDrive web instead. Web readback confirmed exactly two
+  PFX files, two `.p7m` files and `README-RECOVERY.txt` with the expected names
+  and displayed sizes. The off-machine OneDrive copy is therefore confirmed.
+  Copy the PFX files to a separate protected device or vault and keep their
+  password elsewhere so one cloud-account failure cannot remove both data and
+  its only recovery keys.
+- The production migration head recorded with the archive is
+  `20260726090000`. The current Railway artifact is commit `6a13419d`,
+  deployment `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8`.
+- Hash-pepper overlap is active as `v2` plus the required `legacy` read slot.
+  The bounded synthetic write/read/cleanup drill passed. Retirement of the
+  legacy secret remains forbidden until the documented zero-dependency gate.
+
 ## Backup verification
 
 1. In Supabase Dashboard, record plan, backup type, earliest/latest restore
@@ -37,6 +76,11 @@ command without a separately approved maintenance window.
    in Supabase Storage.
 5. Retain an owner, creation time, expiry, encryption/key owner and restore-test
    date for each export.
+
+For the 2026-07-26 portable package, follow
+`C:\Users\user\OneDrive\Ishonch Guard Recovery\README-RECOVERY.txt`. It restores
+the CMS content only; the database must still be loaded into an isolated
+non-production project and pass the drill below.
 
 ## Non-production restore drill
 

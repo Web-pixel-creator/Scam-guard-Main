@@ -1,5 +1,23 @@
 # Open Tasks
 
+## Current checkpoint (2026-07-26)
+
+Use `CURRENT_STATE.md` before the historical evidence below. The deployed
+baseline is commit `6a13419dc256f0a08dae3032999cc36d665662b1`, Railway
+deployment `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8`, and the last full local gate
+passed 12,780/12,780 tests. Old commit ids, test totals and tracker counts below
+describe the checkpoint at which each paragraph was written.
+
+The immediate queue is:
+
+1. put the PFX files in a second protected location independent of OneDrive;
+2. isolated restore plus Railway rollback/return evidence;
+3. MFA factor-reset recovery rehearsal;
+4. HTTP compression;
+5. polling failover/provider-failure evidence and Railway billing alerts;
+6. final live-client/accessibility matrices, legal/privacy approval and a fresh
+   72-hour canary.
+
 ## Fragile / risky spots
 
 - **2026-07-15 Inline/Desktop QA remediation is deployed; migration/deployment/health
@@ -665,35 +683,37 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       downloaded.
 - [x] ~~Add phone reputation appeal/removal flow and moderation guidelines before broader public launch.~~ Done as Reputation Appeals v1: `/appeal`, privacy-safe `reputation_appeals`, admin review actions and audit logging.
 - [x] ~~Automated production operational verification on Railway.~~ Passed on 2026-06-12: `npm run prod:smoke`, `npm run prod:family-smoke` and `npm run prod:security-smoke`.
-- [ ] Confirm billing/AI quota and real Telegram `/start` UX manually. Gemini `gemini-3.5-flash` returned `200` in the 2026-06-14 production probe; keep billing/credits on watch because reliable AI explanations/OCR still depend on provider quota or an `OPENAI_FALLBACK_*` provider.
+- [ ] Confirm billing/AI quota and the final real Telegram `/start` UX manually.
+      Railway currently reports `plan=pro`, one replica and
+      `sleepApplication=false`, but payment-method expiry and spend alerts still
+      need owner-visible evidence. Do not spend paid AI quota merely to close
+      documentation; deterministic scoring remains the fallback.
 - [ ] Execute the isolated backup/restore and Railway rollback/return drills in
       `RECOVERY_AND_KEY_ROTATION.md`; capture RPO/RTO and count-only invariants.
-- [ ] Close the remaining Supabase Auth gate. The 2026-07-24 read-only audit
-      verified email confirmation, secure password changes, current-password
-      checks, minimum length 12, strongest character policy, TOTP availability
-      and the AAL1 session limit. Leaked-password protection remains unavailable
-      on Free and CAPTCHA is off. Local `/admin-mfa` enrollment,
-      challenge/verify, refreshed-session handling and the default-off server
-      AAL2 gate are implemented and tested. Keep
-      `REQUIRE_ADMIN_MFA_AAL2` off until the UI is deployed first, two approved
-      owners enroll, and the factor-reset recovery drill is completed.
+- [x] ~~Deploy the staged Supabase Admin MFA gate and enroll two owners.~~ Two
+      independently controlled owner accounts have verified TOTP factors;
+      `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login passed.
+      Leaked-password protection remains unavailable on Supabase Free.
+- [ ] Rehearse loss of the first authenticator through the approved second-owner
+      factor-reset path. Do not request or record QR secrets or TOTP values.
 - [x] Implement and locally test additive hash-version metadata plus bounded
       active/previous pepper reads. Known legacy targets keep their canonical
       hash, new targets use the active version, and incomplete/ambiguous
       configuration fails closed.
-- [ ] Apply and drill the hash-pepper overlap procedure in
-      `RECOVERY_AND_KEY_ROTATION.md` only after backup and release approval.
-      Direct replacement remains forbidden, and the previous pepper must not be
-      revoked until a privacy-reviewed retirement report proves zero required
-      legacy dependencies.
+- [x] ~~Apply and drill the hash-pepper overlap procedure.~~ Production uses
+      active version `v2`; bounded synthetic write/read/cleanup passed and
+      historical legacy counts remained stable.
+- [ ] Keep `HASH_PEPPER_SECRET` as the required legacy read slot until a
+      privacy-reviewed retirement report proves zero required dependencies.
+      Direct replacement remains forbidden.
 - [ ] Start `CANARY_72H.md` only after the admin-role migration, exact final RC
       and real-client release evidence are complete. Require at least 144
       successful eligible half-hour monitor runs and repeat bounded smokes at
       the entry/exit points.
-- [ ] Record Railway plan, payment method, spend/usage alert and workload sleep
-      policy through the Dashboard. CLI evidence currently proves `plan=pro`,
-      `sleepApplication=false`, one replica and successful deployments, but not
-      payment-method expiry or account-level spending alerts.
+- [ ] Record Railway payment method, expiry owner and spend/usage alerts through
+      the Dashboard. CLI evidence proves `plan=pro`,
+      `sleepApplication=false`, one replica and a successful current deployment,
+      but not payment-method expiry or account-level spending alerts.
 
 ## Research feed
 
