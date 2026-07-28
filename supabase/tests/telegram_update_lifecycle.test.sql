@@ -1,4 +1,11 @@
 BEGIN;
+
+-- Keep the lifecycle assertions deterministic when they run against a restored
+-- snapshot that already contains the production polling-leader fence. This
+-- delete is part of the test transaction and is restored by the ROLLBACK below.
+DELETE FROM private.telegram_update_leaders
+WHERE name = 'telegram_updates';
+
 SELECT plan(35);
 
 SELECT ok(
