@@ -1,20 +1,21 @@
 # Open Tasks
 
-## Current checkpoint (2026-07-26)
+## Current checkpoint (2026-07-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The deployed
-baseline is commit `6a13419dc256f0a08dae3032999cc36d665662b1`, Railway
-deployment `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8`, and the last full local gate
-passed 12,780/12,780 tests. Old commit ids, test totals and tracker counts below
-describe the checkpoint at which each paragraph was written.
+baseline is commit `f3cfb4250628f92a543f4a3f4e4164d314162f9a`, Railway
+deployment `18b5f7f4-731f-495b-b3e6-d3114c320d83`, and its full gate passed
+12,780/12,780 tests. The current uncommitted compression candidate passes
+12,796/12,796. Old commit ids, test totals and tracker counts below describe the
+checkpoint at which each paragraph was written.
 
 The immediate queue is:
 
 1. put the PFX files in a second protected location independent of OneDrive;
-2. local restore inspection is complete; run the remaining isolated hosted
-   restore/service smokes and measured RPO/RTO, then Railway rollback/return;
+2. hosted restore/service/MFA smokes are complete; retain or explicitly approve
+   deletion of staging, then separately approve Railway rollback/return;
 3. MFA factor-reset recovery rehearsal;
-4. HTTP compression;
+4. review and release the locally green HTTP-compression candidate;
 5. polling failover/provider-failure evidence and Railway billing alerts;
 6. final live-client/accessibility matrices, legal/privacy approval and a fresh
    72-hour canary.
@@ -689,8 +690,15 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       `sleepApplication=false`, but payment-method expiry and spend alerts still
       need owner-visible evidence. Do not spend paid AI quota merely to close
       documentation; deterministic scoring remains the fallback.
-- [ ] Execute the isolated backup/restore and Railway rollback/return drills in
-      `RECOVERY_AND_KEY_ROTATION.md`; capture RPO/RTO and count-only invariants.
+- [x] ~~Execute the isolated hosted backup/restore service drill in
+      `RECOVERY_AND_KEY_ROTATION.md`.~~ The v2 archive was restored into isolated
+      Free/nano staging with outbound integrations disabled. Catalog/RLS,
+      migration history, schema lint, pgTAP 53/53, service paths, synthetic MFA
+      AAL1/AAL2 and exact cleanup/count invariants passed. See
+      `HOSTED_STAGING_RESTORE_DRILL_2026-07-28.md`.
+- [ ] Execute the separately approved Railway rollback/return drill and record
+      the measured rollback/return time. Staging deletion remains a separate
+      destructive action requiring explicit approval.
 - [x] ~~Deploy the staged Supabase Admin MFA gate and enroll two owners.~~ Two
       independently controlled owner accounts have verified TOTP factors;
       `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login passed.

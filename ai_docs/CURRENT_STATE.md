@@ -1,6 +1,6 @@
 # Current State
 
-Last reconciled: 2026-07-26
+Last reconciled: 2026-07-28
 
 This is the short operational source of truth. Dated audit and release-plan
 documents preserve the evidence available when they were written; their old
@@ -9,21 +9,25 @@ here.
 
 ## Deployed baseline
 
-- Repository worktree was clean before this documentation reconciliation.
-- Checked-out branch:
-  `agent/backend-mfa-security-integration-20260726`.
-- The working branch currently includes docs reconciliation commit `46c6266`;
-  local `main` and `origin/main` remain
-  `6a13419dc256f0a08dae3032999cc36d665662b1`.
+- Checked-out branch: `main`.
+- Local `main` and `origin/main` are
+  `f3cfb4250628f92a543f4a3f4e4164d314162f9a`.
 - Railway production deployment
-  `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8` is `SUCCESS` for that commit,
+  `18b5f7f4-731f-495b-b3e6-d3114c320d83` is `SUCCESS` for that commit,
   image digest
-  `sha256:9c1acb729188b485e5546d5ab576989c73c3f22a9ef6252519f5dbf674f6987f`.
-- Production `/` and `/healthz` returned `200` during the 2026-07-26
-  read-only check.
-- The 2026-07-26 restore-drill gate passed 160 test files and
-  12,780/12,780 tests, TypeScript, production build and `npm audit`; lint had
-  0 errors and 8 established Fast Refresh warnings.
+  `sha256:c772759a48979c4d329e887696cc8dfb7e8bbbeaea103a40661933096e166832`.
+- Production `/healthz`, `/`, `/login`, `/report`, `/appeal` and `/admin`
+  returned `200` during the 2026-07-28 verification.
+- The safe production smoke passed with polling leader health `200`, an empty
+  Telegram pending queue and AI explicitly skipped. No message or synthetic
+  Telegram update was delivered.
+- The exact deployed commit passed 160 test files and 12,780/12,780 tests,
+  TypeScript, production build and `npm audit`; lint had 0 errors and 8
+  established Fast Refresh warnings.
+- The worktree currently contains an uncommitted HTTP-compression candidate.
+  Its local gate passes 161 test files and 12,796/12,796 tests, TypeScript,
+  production build, lint with the same 8 warnings and `npm audit` with zero
+  vulnerabilities. It is not part of the deployed baseline.
 
 ## Closed in the current release
 
@@ -80,21 +84,30 @@ here.
   `35889f4a8a90c216a4e94f00a761c27f9934b057755e3abd7af8ca3617b1b8ea`.
   Its CMS copy and metadata both passed in-memory decrypt-and-hash round trips
   before the cloud upload.
+- The v2 archive was restored into isolated Free/nano Supabase staging project
+  `gwwcooupkmhihaigympb` with outbound integrations disabled.
+- Hosted catalog/RLS checks, schema lint, pgTAP 53/53, exact migration-history
+  reconciliation, service-role paths and a synthetic TOTP AAL1/AAL2 flow all
+  passed. Every synthetic row/factor/user was removed and the ten count-only
+  invariants returned to `2, 2, 4, 235, 8, 7, 2, 7, 9, 4`.
+- Staging is deliberately retained. Its deletion is a separate destructive
+  action and still requires explicit operator approval.
 
 ## Open operational and release gates
 
 1. Place the PFX files in a second protected device or vault independent of the
    OneDrive account while keeping their password separate.
-2. The local inspection restore is complete. Perform the remaining isolated
-   hosted/staging restore with Auth/Storage/application services enabled but
-   outbound integrations disabled, then record service smokes and measured
-   RPO/RTO.
-3. Perform the approved Railway rollback/return drill against schema-compatible
+2. Decide when to delete the completed hosted-restore staging project. Do not
+   infer deletion approval from permission to continue other work.
+3. Perform the separately approved Railway rollback/return drill against schema-compatible
    immutable artifacts.
 4. Rehearse the authorized MFA factor-reset recovery path using the second
    owner; do not collect QR secrets or TOTP codes.
-5. Add and verify HTTP compression. On 2026-07-26 production returned no
-   `Content-Encoding` for `/` even when the request advertised `gzip, br`.
+5. Review and release the local HTTP-compression candidate. Production still
+   returns no `Content-Encoding` for `/`; locally, streaming Brotli reduced the
+   homepage from 62,182 to 14,327 bytes and Nitro precompression reduced the
+   main CSS from 258,860 to 40,402 bytes, with gzip fallback and exact decoded
+   round trips.
 6. Capture the non-destructive multi-instance polling failover/re-election and
    Telegram provider-failure recovery evidence.
 7. Record Railway payment-method expiry/spend alerts and the response owner.

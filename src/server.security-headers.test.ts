@@ -1,3 +1,4 @@
+import { brotliDecompressSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import server from "./server";
@@ -20,8 +21,8 @@ function cspDirective(policy: string, name: string): string {
   );
 }
 
-async function fetchPath(pathname: string): Promise<Response> {
-  return server.fetch(new Request(`https://ishonch.example${pathname}`), {}, {});
+async function fetchPath(pathname: string, init?: RequestInit): Promise<Response> {
+  return server.fetch(new Request(`https://ishonch.example${pathname}`, init), {}, {});
 }
 
 describe("server security headers", () => {
@@ -56,6 +57,21 @@ describe("server security headers", () => {
     expect(cspDirective(csp, "frame-ancestors")).toBe("frame-ancestors 'none'");
     expect(scriptSrc).toMatch(/'nonce-[A-Za-z0-9_-]+'/);
     expect(scriptSrc).not.toContain("'unsafe-inline'");
+  });
+
+  it("compresses negotiated HTML without dropping its per-request CSP", async () => {
+    const response = await fetchPath("/", {
+      headers: { "accept-encoding": "br, gzip" },
+    });
+    const csp = response.headers.get("content-security-policy") ?? "";
+    const compressed = Buffer.from(await response.arrayBuffer());
+
+    expect(response.headers.get("content-encoding")).toBe("br");
+    expect(response.headers.get("vary")).toContain("Accept-Encoding");
+    expect(cspDirective(csp, "script-src")).toMatch(/'nonce-[A-Za-z0-9_-]+'/);
+    expect(brotliDecompressSync(compressed).toString("utf8")).toBe(
+      "<!doctype html><html><body>ok</body></html>",
+    );
   });
 
   it("removes X-Frame-Options and uses the explicit embed frame ancestor allowlist", async () => {

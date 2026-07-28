@@ -2,6 +2,27 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-28 - Hosted recovery closure and local HTTP compression
+
+- Restored the portable v2 archive into isolated Free/nano Supabase staging
+  with outbound integrations disabled.
+- Verified catalog/RLS, exact migration history, schema lint, pgTAP 53/53,
+  service-role workflows, synthetic TOTP AAL1/AAL2 and complete cleanup back to
+  the ten restored count invariants.
+- Fast-forwarded and deployed the verified documentation/staging-smoke baseline
+  as `f3cfb42`; Railway deployment
+  `18b5f7f4-731f-495b-b3e6-d3114c320d83` passed health and the safe no-AI,
+  no-message production smoke.
+- Added a local, not-yet-deployed HTTP-compression candidate: streaming
+  Brotli/gzip for eligible dynamic GET responses plus Nitro-generated Brotli
+  and gzip variants for public assets.
+- Local measurement reduced homepage HTML from 62,182 to 14,327 bytes and the
+  main CSS from 258,860 to 40,402 bytes with Brotli. Gzip fallback, decoded
+  round trips, CSP preservation and an uncompressed two-byte healthcheck passed.
+- The candidate passes 161 test files and 12,796/12,796 tests, TypeScript,
+  production build, lint with the established eight warnings and `npm audit`
+  with zero vulnerabilities. It has not been committed, pushed or deployed.
+
 ## 2026-07-26 - Current-state and recovery reconciliation
 
 - Added `CURRENT_STATE.md` as the short operational source of truth for the

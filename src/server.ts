@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { compressHttpResponse } from "./lib/http-compression.server";
 import { logServerError } from "./lib/safe-server-log.server";
 import { getEmbedAllowedFrameAncestors } from "./lib/config.server";
 import { getTelegramUpdateDeliveryMode, getTelegramWebhookSecret } from "./lib/config.server";
@@ -177,6 +178,9 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
-    return withSecurityHeaders(response, new URL(request.url).pathname, cspNonce);
+    return compressHttpResponse(
+      request,
+      withSecurityHeaders(response, new URL(request.url).pathname, cspNonce),
+    );
   },
 };

@@ -53,6 +53,11 @@ export default defineConfig(({ command }) => ({
     command === "build"
       ? nitro({
           preset: nitroPreset,
+          compressPublicAssets: {
+            brotli: true,
+            gzip: true,
+            zstd: false,
+          },
           output: {
             dir: "dist",
             serverDir: "dist/server",
