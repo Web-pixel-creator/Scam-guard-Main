@@ -10,24 +10,28 @@ here.
 ## Deployed baseline
 
 - Checked-out branch: `main`.
-- Local `main` and `origin/main` are
-  `f3cfb4250628f92a543f4a3f4e4164d314162f9a`.
+- The application release commit is
+  `5c08a2359a933ba50cb744b667073fe62742d965`; documentation-only
+  reconciliation may be layered on top without changing the runtime.
 - Railway production deployment
-  `18b5f7f4-731f-495b-b3e6-d3114c320d83` is `SUCCESS` for that commit,
-  image digest
-  `sha256:c772759a48979c4d329e887696cc8dfb7e8bbbeaea103a40661933096e166832`.
+  `00cd6dcb-19bd-4fd5-b063-e96bcd216b32` first established `SUCCESS` for that
+  application commit, with image digest
+  `sha256:1d3c487de2b5ac64e538488f077118a21ed17a95e1ed5476bb11dc6aa9f87b65`.
 - Production `/healthz`, `/`, `/login`, `/report`, `/appeal` and `/admin`
   returned `200` during the 2026-07-28 verification.
+- Production negotiates streaming Brotli/gzip for eligible dynamic `GET`
+  responses and serves precompressed public assets. The release smoke measured
+  homepage Brotli at 14,160 bytes for 62,216 decoded bytes and main CSS Brotli
+  at 40,302 bytes for 258,542 decoded bytes. Gzip fallback, explicit identity,
+  quality weights, CSP preservation and exact CSS round trip passed.
+- The webhook without its secret returned `401`; no Telegram message, synthetic
+  update or AI request was sent during the compression release smoke.
 - The safe production smoke passed with polling leader health `200`, an empty
   Telegram pending queue and AI explicitly skipped. No message or synthetic
   Telegram update was delivered.
-- The exact deployed commit passed 160 test files and 12,780/12,780 tests,
+- The exact deployed commit passed 161 test files and 12,796/12,796 tests,
   TypeScript, production build and `npm audit`; lint had 0 errors and 8
   established Fast Refresh warnings.
-- The worktree currently contains an uncommitted HTTP-compression candidate.
-  Its local gate passes 161 test files and 12,796/12,796 tests, TypeScript,
-  production build, lint with the same 8 warnings and `npm audit` with zero
-  vulnerabilities. It is not part of the deployed baseline.
 
 ## Closed in the current release
 
@@ -99,21 +103,16 @@ here.
    OneDrive account while keeping their password separate.
 2. Decide when to delete the completed hosted-restore staging project. Do not
    infer deletion approval from permission to continue other work.
-3. Perform the separately approved Railway rollback/return drill against schema-compatible
-   immutable artifacts.
+3. Perform the separately approved Railway rollback/return drill against
+   schema-compatible immutable artifacts.
 4. Rehearse the authorized MFA factor-reset recovery path using the second
    owner; do not collect QR secrets or TOTP codes.
-5. Review and release the local HTTP-compression candidate. Production still
-   returns no `Content-Encoding` for `/`; locally, streaming Brotli reduced the
-   homepage from 62,182 to 14,327 bytes and Nitro precompression reduced the
-   main CSS from 258,860 to 40,402 bytes, with gzip fallback and exact decoded
-   round trips.
-6. Capture the non-destructive multi-instance polling failover/re-election and
+5. Capture the non-destructive multi-instance polling failover/re-election and
    Telegram provider-failure recovery evidence.
-7. Record Railway payment-method expiry/spend alerts and the response owner.
+6. Record Railway payment-method expiry/spend alerts and the response owner.
    Railway currently reports `plan=pro`, one replica and
    `sleepApplication=false`.
-8. Complete the final real-client Direct/Inline RU/UZ/EN matrix, the complete
+7. Complete the final real-client Direct/Inline RU/UZ/EN matrix, the complete
    accessibility scale/zoom/reduced-motion matrix, legal/privacy approval and a
    fresh fixed-RC 72-hour canary.
 

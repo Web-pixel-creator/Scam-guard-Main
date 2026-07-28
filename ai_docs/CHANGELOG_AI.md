@@ -13,15 +13,18 @@ Newest first. This tracks documentation/memory files, not every code commit.
   as `f3cfb42`; Railway deployment
   `18b5f7f4-731f-495b-b3e6-d3114c320d83` passed health and the safe no-AI,
   no-message production smoke.
-- Added a local, not-yet-deployed HTTP-compression candidate: streaming
-  Brotli/gzip for eligible dynamic GET responses plus Nitro-generated Brotli
-  and gzip variants for public assets.
-- Local measurement reduced homepage HTML from 62,182 to 14,327 bytes and the
-  main CSS from 258,860 to 40,402 bytes with Brotli. Gzip fallback, decoded
-  round trips, CSP preservation and an uncompressed two-byte healthcheck passed.
-- The candidate passes 161 test files and 12,796/12,796 tests, TypeScript,
+- Added and deployed streaming Brotli/gzip for eligible dynamic GET responses
+  plus Nitro-generated Brotli and gzip variants for public assets as `5c08a23`;
+  Railway deployment `00cd6dcb-19bd-4fd5-b063-e96bcd216b32` succeeded.
+- Production measurement reduced homepage HTML from 62,216 decoded bytes to
+  14,160 bytes with Brotli and the main CSS from 258,542 to 40,302 bytes.
+  Gzip fallback, explicit identity, quality weights, CSP preservation and an
+  exact CSS round trip passed.
+- The release passes 161 test files and 12,796/12,796 tests, TypeScript,
   production build, lint with the established eight warnings and `npm audit`
-  with zero vulnerabilities. It has not been committed, pushed or deployed.
+  with zero vulnerabilities. Safe production smoke returned `200` for public
+  routes and `401` for a webhook request without its secret; it sent no Telegram
+  messages or AI requests.
 
 ## 2026-07-26 - Current-state and recovery reconciliation
 

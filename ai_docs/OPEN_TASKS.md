@@ -3,11 +3,14 @@
 ## Current checkpoint (2026-07-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The deployed
-baseline is commit `f3cfb4250628f92a543f4a3f4e4164d314162f9a`, Railway
-deployment `18b5f7f4-731f-495b-b3e6-d3114c320d83`, and its full gate passed
-12,780/12,780 tests. The current uncommitted compression candidate passes
-12,796/12,796. Old commit ids, test totals and tracker counts below describe the
-checkpoint at which each paragraph was written.
+application baseline is commit `5c08a2359a933ba50cb744b667073fe62742d965`;
+Railway deployment `00cd6dcb-19bd-4fd5-b063-e96bcd216b32` first established
+`SUCCESS` for it, and its full gate passed 12,796/12,796 tests. Streaming
+dynamic Brotli/gzip and precompressed public assets are deployed and passed the
+production negotiation/round-trip smoke. Documentation-only commits may be
+layered on top without changing that runtime baseline. Old commit ids, test
+totals and tracker counts below describe the checkpoint at which each paragraph
+was written.
 
 The immediate queue is:
 
@@ -15,9 +18,8 @@ The immediate queue is:
 2. hosted restore/service/MFA smokes are complete; retain or explicitly approve
    deletion of staging, then separately approve Railway rollback/return;
 3. MFA factor-reset recovery rehearsal;
-4. review and release the locally green HTTP-compression candidate;
-5. polling failover/provider-failure evidence and Railway billing alerts;
-6. final live-client/accessibility matrices, legal/privacy approval and a fresh
+4. polling failover/provider-failure evidence and Railway billing alerts;
+5. final live-client/accessibility matrices, legal/privacy approval and a fresh
    72-hour canary.
 
 ## Fragile / risky spots
