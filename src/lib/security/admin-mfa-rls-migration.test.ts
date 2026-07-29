@@ -25,6 +25,14 @@ function policyDefinition(name: string, table: string): string {
 }
 
 describe("admin MFA AAL2 RLS migration", () => {
+  it("bounds production DDL waits before changing the helper or policies", () => {
+    expect(migration).toContain("SET lock_timeout = '5s'");
+    expect(migration).toContain("SET statement_timeout = '60s'");
+    const firstDdl = migration.indexOf("CREATE OR REPLACE FUNCTION private.is_admin_aal2");
+    expect(migration.indexOf("SET lock_timeout")).toBeLessThan(firstDdl);
+    expect(migration.indexOf("SET statement_timeout")).toBeLessThan(firstDdl);
+  });
+
   it("defines a fail-closed current-session admin AAL2 predicate", () => {
     expect(migration).toMatch(
       /CREATE OR REPLACE FUNCTION private\.is_admin_aal2\(\)[\s\S]*?SECURITY INVOKER[\s\S]*?SET search_path = ''/iu,

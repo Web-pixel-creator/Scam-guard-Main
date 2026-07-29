@@ -13,6 +13,10 @@
 -- body cannot resolve another private-schema function without that broader
 -- schema grant.
 
+-- Bound production DDL waits without relying on client-side PGOPTIONS.
+SET lock_timeout = '5s';
+SET statement_timeout = '60s';
+
 CREATE OR REPLACE FUNCTION private.is_admin_aal2()
 RETURNS boolean
 LANGUAGE sql
