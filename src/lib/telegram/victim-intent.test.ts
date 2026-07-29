@@ -304,6 +304,14 @@ describe("classifyVictimIntent — confirmed direct-bot live regressions", () =>
       "Банк требует перевести все деньги на «безопасный счёт», чтобы защитить их от кражи.",
       { kind: "transfer_request", askedContext: "transfer", scenario: "safe_account_transfer" },
     ],
+    [
+      "звонили сказали из центрабанка что мои деньги в опасности и надо перевести их на безапасный счет пока не украли",
+      { kind: "transfer_request", askedContext: "transfer", scenario: "safe_account_transfer" },
+    ],
+    [
+      "мне пишут в телеграме что надо срочно продиктовать код иначе карту заберут",
+      { kind: "code_request", askedContext: "code" },
+    ],
   ] as const)("keeps the concrete live topic for %s", (text, expected) => {
     expect(classifyVictimIntent(text)).toEqual(expected);
   });
@@ -333,6 +341,11 @@ describe("classifyVictimIntent — confirmed direct-bot live regressions", () =>
       "Банк требует перевести все деньги на «безопасный счёт», чтобы защитить их от кражи.",
       "ru",
       "«Безопасный счёт»",
+    ],
+    [
+      "звонили сказали из центрабанка что мои деньги в опасности и надо перевести их на безапасный счет пока не украли",
+      "ru",
+      "выдуманная схема",
     ],
   ] as const)("builds topic-specific copy for %s", (text, lang, expectedText) => {
     const match = classifyVictimIntent(text);
@@ -972,6 +985,10 @@ describe("classifyVictimIntent — elderly QA handoff regressions", () => {
       { kind: "investment_offer", askedContext: "transfer", scenario: "investment_offer" },
       new Date("2026-07-16T12:00:00.000Z"),
     );
+    const code = buildVictimFollowUpContext(
+      { kind: "code_request", askedContext: "code" },
+      new Date("2026-07-16T12:00:00.000Z"),
+    );
     const apk = buildVictimFollowUpContext(
       { kind: "apk_request", askedContext: "apk" },
       new Date("2026-07-16T12:00:00.000Z"),
@@ -981,6 +998,10 @@ describe("classifyVictimIntent — elderly QA handoff regressions", () => {
       kind: "investment_offer",
       askedContext: "transfer",
       scenario: "investment_offer",
+    });
+    expect(classifyVictimContextualFollowUp("rostdan firibgarlarmi", code, now)).toEqual({
+      kind: "code_request",
+      askedContext: "code",
     });
     expect(classifyVictimContextualFollowUp("я уже установила", apk, now)).toEqual({
       kind: "apk_request",

@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import {
   constants as zlibConstants,
@@ -10,6 +11,11 @@ import {
 
 export type SupportedContentEncoding = "br" | "gzip";
 
+type ContentEncodingNegotiation = {
+  encoding: SupportedContentEncoding | null;
+  identityAcceptable: boolean;
+};
+
 const MINIMUM_KNOWN_BODY_BYTES = 1_024;
 const BROTLI_OPTIONS: BrotliOptions = {
   params: {
@@ -20,9 +26,9 @@ const GZIP_OPTIONS: ZlibOptions = { level: 6 };
 
 function parseQuality(value: string | undefined): number {
   if (value === undefined) return 1;
-  const quality = Number.parseFloat(value);
-  if (!Number.isFinite(quality)) return 0;
-  return Math.min(1, Math.max(0, quality));
+  const normalized = value.trim();
+  if (!/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(normalized)) return 0;
+  return Number(normalized);
 }
 
 function acceptedEncodingQualities(header: string): Map<string, number> {
@@ -32,19 +38,20 @@ function acceptedEncodingQualities(header: string): Map<string, number> {
     const name = rawName?.trim();
     if (!name) continue;
     const qualityParameter = rawParameters
-      .map((parameter) => parameter.trim())
-      .find((parameter) => parameter.startsWith("q="));
-    qualities.set(name, parseQuality(qualityParameter?.slice(2)));
+      .map((parameter) => /^q\s*=\s*(.*)$/.exec(parameter.trim()))
+      .find((match) => match !== null);
+    qualities.set(name, parseQuality(qualityParameter?.[1]));
   }
   return qualities;
 }
 
-export function selectContentEncoding(
-  acceptEncoding: string | null,
-): SupportedContentEncoding | null {
-  if (!acceptEncoding?.trim()) return null;
+function negotiateContentEncoding(acceptEncoding: string | null): ContentEncodingNegotiation {
+  if (!acceptEncoding?.trim()) {
+    return { encoding: null, identityAcceptable: true };
+  }
 
   const qualities = acceptedEncodingQualities(acceptEncoding);
+  const hasWildcard = qualities.has("*");
   const wildcardQuality = qualities.get("*") ?? 0;
   const candidates = [
     { encoding: "br" as const, quality: qualities.get("br") ?? wildcardQuality },
@@ -53,12 +60,29 @@ export function selectContentEncoding(
 
   candidates.sort((left, right) => right.quality - left.quality);
   const best = candidates[0];
-  if (!best) return null;
+  const explicitIdentityQuality = qualities.get("identity");
+  const identityAcceptable =
+    explicitIdentityQuality !== undefined
+      ? explicitIdentityQuality > 0
+      : !(hasWildcard && wildcardQuality === 0);
+
+  if (!best) {
+    return { encoding: null, identityAcceptable };
+  }
 
   // Identity remains an allowed fallback when omitted, but it only expresses a
   // relative preference when the client assigns it an explicit quality.
-  const identityQuality = qualities.get("identity") ?? 0;
-  return best.quality >= identityQuality ? best.encoding : null;
+  const identityQuality = explicitIdentityQuality ?? 0;
+  return {
+    encoding: best.quality >= identityQuality ? best.encoding : null,
+    identityAcceptable,
+  };
+}
+
+export function selectContentEncoding(
+  acceptEncoding: string | null,
+): SupportedContentEncoding | null {
+  return negotiateContentEncoding(acceptEncoding).encoding;
 }
 
 function isCompressibleContentType(contentType: string | null): boolean {
@@ -122,6 +146,47 @@ function weakenStrongEtag(headers: Headers): void {
   }
 }
 
+function createCompressedBody(
+  request: Request,
+  responseBody: ReadableStream<Uint8Array>,
+  encoding: SupportedContentEncoding,
+): ReadableStream<Uint8Array> {
+  const source = Readable.fromWeb(responseBody as unknown as NodeReadableStream);
+  const compressor =
+    encoding === "br" ? createBrotliCompress(BROTLI_OPTIONS) : createGzip(GZIP_OPTIONS);
+  const body = Readable.toWeb(compressor) as ReadableStream<Uint8Array>;
+
+  // `pipeline` propagates an upstream failure to the response body and tears
+  // the source down when the consumer cancels. The request signal additionally
+  // covers a client disconnect even if the runtime does not cancel the body.
+  // The rejection is observed here; consumers still receive the same stream
+  // error through `body`.
+  void pipeline(source, compressor, { signal: request.signal }).catch(() => undefined);
+
+  return body;
+}
+
+function notAcceptableResponse(headers: Headers): Response {
+  for (const name of [
+    "Accept-Ranges",
+    "Content-Encoding",
+    "Content-Length",
+    "Content-MD5",
+    "Content-Range",
+    "Content-Type",
+    "Digest",
+    "ETag",
+    "Last-Modified",
+  ]) {
+    headers.delete(name);
+  }
+  return new Response(null, {
+    status: 406,
+    statusText: "Not Acceptable",
+    headers,
+  });
+}
+
 /**
  * Compress eligible GET responses while preserving streaming and security
  * headers. Server actions, ranges, already encoded bodies and `no-transform`
@@ -129,11 +194,16 @@ function weakenStrongEtag(headers: Headers): void {
  */
 export function compressHttpResponse(request: Request, response: Response): Response {
   if (!canCompressResponse(request, response)) return response;
+  const responseBody = response.body;
+  if (responseBody === null) return response;
 
   const headers = new Headers(response.headers);
   appendVary(headers, "Accept-Encoding");
-  const encoding = selectContentEncoding(request.headers.get("accept-encoding"));
+  const { encoding, identityAcceptable } = negotiateContentEncoding(
+    request.headers.get("accept-encoding"),
+  );
   if (!encoding) {
+    if (!identityAcceptable) return notAcceptableResponse(headers);
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -141,10 +211,7 @@ export function compressHttpResponse(request: Request, response: Response): Resp
     });
   }
 
-  const source = Readable.fromWeb(response.body as unknown as NodeReadableStream);
-  const compressor =
-    encoding === "br" ? createBrotliCompress(BROTLI_OPTIONS) : createGzip(GZIP_OPTIONS);
-  const body = Readable.toWeb(source.pipe(compressor)) as ReadableStream<Uint8Array>;
+  const body = createCompressedBody(request, responseBody, encoding);
 
   headers.set("Content-Encoding", encoding);
   headers.delete("Content-Length");

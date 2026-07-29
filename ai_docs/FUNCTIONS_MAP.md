@@ -18,26 +18,47 @@ Signatures and intent only. See file paths for source.
   risk evaluation, OCR, reporting or persistence logic.
 - `Layout` keeps the public route map and language selector intact while
   applying one shared responsive header/footer and floating-points CTA system.
-- `AdminPage` keeps the existing authenticated queries and mutation handlers;
-  it adds client-side report search, non-destructive QA/smoke hiding, compact
-  session status and explicit decision confirmations. Report-card hover never
-  moves layout, and entity rows reserve a smooth disclosure region while their
-  real detail query resolves.
+- `AdminPage` keeps the existing role-plus-AAL2 queries and mutation handlers;
+  an eligible AAL1 session routes through `/admin-mfa` before protected work.
+  The page adds client-side report search, non-destructive QA/smoke hiding,
+  compact session status and explicit decision confirmations. Report-card hover
+  never moves layout, and entity rows reserve a smooth disclosure region while
+  their real detail query resolves.
 
 ## Server functions
 
-| Function                                                                                             | File                                     | Auth   | Purpose                                                                                                                                                                                                              |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                    |
-| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
-| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
-| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
-| `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public | Creates a privacy-safe appeal/removal request for reputation targets; can trigger an opt-in private moderation alert.                                                                                                |
-| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`             | admin  | Lists reports by status, including retained `duplicate` evidence rows.                                                                                                                                               |
-| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`             | admin  | Lists moderated/known entities.                                                                                                                                                                                      |
-| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`             | admin  | Confirms/rejects a report and syncs entity reputation/counts from confirmed reports unless the report is situation-only.                                                                                             |
-| `listReputationAppeals({ status })` / `resolveReputationAppeal(...)`                                 | `src/lib/admin.functions.ts`             | admin  | Reviews appeal/removal requests and can hide public reputation with audit logging.                                                                                                                                   |
-| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin  | Dashboard counts.                                                                                                                                                                                                    |
+| Function                                                                                             | File                                     | Auth         | Purpose                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public       | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                    |
+| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public       | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
+| `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public       | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
+| `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public       | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
+| `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public       | Creates a privacy-safe appeal/removal request for reputation targets; can trigger an opt-in private moderation alert.                                                                                                |
+| `listReports({ status })`                                                                            | `src/lib/admin.functions.ts`             | admin + AAL2 | Lists reports by status, including retained `duplicate` evidence rows.                                                                                                                                               |
+| `listEntities({ status })`                                                                           | `src/lib/admin.functions.ts`             | admin + AAL2 | Lists moderated/known entities.                                                                                                                                                                                      |
+| `moderateReport({ reportId, decision, riskLevel })`                                                  | `src/lib/admin.functions.ts`             | admin + AAL2 | Confirms/rejects a report and syncs entity reputation/counts from confirmed reports unless the report is situation-only.                                                                                             |
+| `listReputationAppeals({ status })` / `resolveReputationAppeal(...)`                                 | `src/lib/admin.functions.ts`             | admin + AAL2 | Reviews appeal/removal requests and can hide public reputation with audit logging.                                                                                                                                   |
+| `adminStats()`                                                                                       | `src/lib/admin.functions.ts`             | admin + AAL2 | Dashboard counts.                                                                                                                                                                                                    |
+
+**`src/lib/admin-mfa.server.ts`**
+
+- `assertAdminMfaAal2(claims)` requires a verified `aal2` claim whenever the
+  configured gate is enabled. On the local branch, production/Railway must set
+  `REQUIRE_ADMIN_MFA_AAL2` explicitly; missing/empty/invalid values fail closed.
+
+## HTTP response pipeline
+
+**`src/lib/http-compression.server.ts`**
+
+- `selectContentEncoding(acceptEncoding)` applies strict `q` parsing for the
+  dynamic wrapper.
+- `compressHttpResponse(request, response)` preserves streaming and
+  `Vary: Accept-Encoding`, returns `406` if every supported encoding including
+  identity is forbidden, and uses an abort-aware Node `pipeline` so upstream
+  failure, consumer cancellation and request abort tear down the stream.
+- This local hardening is not deployed. Nitro's earlier precompressed-static
+  handler bypasses this wrapper and still has an open general `q`-weight
+  negotiation limitation.
 
 ## Risk engine
 
@@ -260,6 +281,11 @@ instead of receiving misleading phone or Telegram-profile instructions.
   SIM swap, remote access, vote links, tax, investment, romance, extortion,
   parcel, loan, charity, QR login, fake support and related families instead of
   collapsing to a generic transfer/stranger reply.
+- Bank/card plus code-disclosure wording takes precedence over a broad Telegram
+  surface match, so a code-theft request delivered in Telegram does not become
+  a Telegram-account-login answer. The common Russian typo
+  `безапасный счет` maps to the safe-account transfer scheme and explicit
+  no-transfer guidance.
 - Completed disclosure to an untrusted recipient uses the distinct
   `personal_data_already_shared` aftercare route; an explicitly official
   portal/app upload remains benign. Completed family payments require an
@@ -269,8 +295,11 @@ instead of receiving misleading phone or Telegram-profile instructions.
   Telegram takeover reach the same rules while pure Russian stays unchanged.
 - `buildVictimFollowUpContext` and `classifyVictimContextualFollowUp` retain a
   validated 20-minute enum-only intent snapshot for short already-paid,
-  installed/uninstall and confidence replies. Any concrete artifact or negated
-  completion bypasses the snapshot.
+  installed/uninstall and confidence replies. Uzbek
+  `rostdan firibgarlarmi` now uses that bank/code snapshot, and `handleCheck`
+  preserves its emergency context so the following `endi nima qilay` remains in
+  the bank-flow next step. Any concrete artifact or negated completion bypasses
+  the snapshot.
 
 **`src/lib/telegram/intent-text-normalization.ts`**
 
@@ -307,6 +336,10 @@ instead of receiving misleading phone or Telegram-profile instructions.
   RU/UZ/EN and 12 typo/confusable/zero-width/multiline/artifact mutations into
   1,080 offline cases. The companion oracle exercises both Direct and Inline
   routing without network, paid AI or Telegram session writes.
+- The three 2026-07-29 exact semantic regressions are also locked in focused
+  victim/elderly handler tests. Targeted 468/468, Telegram 10,872/10,872 and
+  adversarial 2,161/2,161 pass locally. The combined local repository gate also
+  passes 12,853/12,853; real-client acceptance remains separate.
 
 **`src/lib/telegram/inline-context-robustness-corpus.ts`**
 
@@ -496,6 +529,9 @@ instead of receiving misleading phone or Telegram-profile instructions.
   de-duplicates repeated taps for the same user/text so retries do not burn
   provider quota; first/repeated button taps answer the callback with a short
   "preparing" or "already preparing/sent" hint instead of staying silent.
+- Asset validation, transport smoke and provider transcript replay are
+  implementation evidence only. They do not close the human listen-through of
+  all prerecorded RU/UZ/EN files or real-client RU/UZ Voice-in/STT acceptance.
 
 ## Website embed widget
 
@@ -619,7 +655,14 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `src/lib/telegram/router.ts`: parses updates and routes commands/content, including direct `/call` and `/trainer`; handles `inline_query` before chat-target extraction and passes `from.language_code` as the first-contact session hint; resets active/contextual session state when stored `scenario_data.chatScope` does not match the current chat; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes voice notes, short Telegram `audio` attachments and audio documents such as `.ogg`/`.m4a` through the same capped STT path while keeping non-audio documents unsupported; routes Telegram video thumbnails to the image pipeline with a `video_thumbnail` media marker when no stronger caption/link/button evidence exists; routes uncaptained images in `report_desc` to transient report screenshot evidence; attaches sanitized public forward channel/group source context to check/image actions.
 - `src/lib/telegram/handlers/*`: `/start`, `/call`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
 - `src/lib/telegram/session.server.ts`: Supabase-backed state. Durable update executions use `load_telegram_session_fenced` and `save_telegram_session_fenced`; stale update/leader fences fail closed. The monotonic sequenced RPC remains defense in depth and a legacy fallback. `lastVictimIntent` is chat-scoped enum-only routing metadata with a 20-minute consumer window; it never stores raw text, amount, recipient or artifact.
-- `src/lib/telegram/family-shield.server.ts`: service-role-only Family Shield helper. It creates HMAC-hashed one-use invite links, rejects duplicate active links, expires stale pending invites, sends redacted trusted-contact alerts with opt-out, provides the privacy-first family codeword guide, and revokes relationships from either guardian or trusted-contact side. The guide never asks users to send or store the actual codeword.
+- `src/lib/telegram/family-shield.server.ts`: service-role-only Family Shield
+  helper. It creates HMAC-hashed one-use invite links, rejects duplicate active
+  links, expires stale pending invites, uses metadata-only expiring notification
+  claims, sends redacted trusted-contact alerts with opt-out, provides the
+  privacy-first family codeword guide and revokes relationships from either
+  side. Migration `20260729105030`, verified in isolated staging and still
+  pending for production, adds expired claims to scheduled retention. The guide
+  never asks users to send or store the actual codeword.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls. `getUpdates` defaults to 20 records and clamps requested limits to `1..100`. `answerInlineQuery` has a 2.5-second transport deadline and returns typed failure data (`errorCode`, `description`, optional `retryAfterSec`) for delivery policy. The module also provides in-memory `sendAudio` for opt-in Voice-out and `setWebhook` registration pinned to the shared one-connection containment policy.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText` now returns compact panic first cards, `buildDetailedPanicScenarioText` keeps the full checklist for `panicctx:full`, plus panic keyboard builders, live-call callback parser and Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. First panic cards keep the urgent action first and short human guidance cues without repeating "I am nearby" in every message; follow-up answers are guided for stressed/elderly users, keep safe-callback boundaries and use scenario-specific ready phrases/contact destinations for financial, APK, Telegram takeover, live-call, romance, sextortion/photo-video blackmail, publication threats, minor-safety, AI voice-clone, fake job/easy-money, delivery/top-up, crypto/TON/wallet and government grant/benefit cases. Minor-safety and publication-threat trusted-person flows have distinct copy instead of sharing the generic blackmail branch. The panic menu is paginated through page 3 (`panic:more2` / `panic:back2`) for scenarios `12..15`.
@@ -649,10 +692,23 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `requireSupabaseAuth` (`src/integrations/supabase/auth-middleware.ts`) validates Bearer tokens.
 - `attachSupabaseAuth` (`src/integrations/supabase/auth-attacher.ts`) attaches the session token client-side.
 - `supabase` / `supabaseAdmin`: browser RLS client vs server service-role client.
+- Migration `20260729131000`, applied and pgTAP-verified in isolated staging but
+  pending for production, adds `private.is_admin_aal2()`: direct authenticated
+  admin PostgREST reads/updates require the current `admin` role and JWT `aal2`.
+  Public confirmed-row reads remain public; `supabaseAdmin` retains its
+  server-only service-role RLS bypass.
 
 ## DB functions
 
-`private.has_role(uuid, app_role)`, legacy service-role-only `has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only `get_check_stats()`, `claim_rate_limit(text,text,int,int)`, `save_telegram_session_sequenced(bigint,bigint,jsonb)`, fenced Telegram leader/update/session lifecycle RPCs, `private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.
+`private.has_role(uuid, app_role)`, pending
+`private.is_admin_aal2()`, legacy service-role-only
+`has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only
+`get_check_stats()`, `claim_rate_limit(text,text,int,int)`,
+`save_telegram_session_sequenced(bigint,bigint,jsonb)`, fenced Telegram
+leader/update/session lifecycle RPCs,
+`private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.
+Migration `20260729105030` makes the prune result include
+`telegram_family_notification_claims_deleted`.
 
 ## Operational scripts
 
@@ -705,6 +761,19 @@ instead of receiving misleading phone or Telegram-profile instructions.
   `reputation_appeals`, `telegram_webhook_updates`, `rate_limit_buckets` and
   `embed_origin_events`, or execute maintenance/stat/rate-limit RPCs, while
   service-role can count required tables and execute stats/rate-limit claims.
+- `scripts/hosted-staging-mfa-smoke.ts`: creates a private synthetic `checks`
+  fixture and uses one real user client to prove AAL1 cannot read it, enrolls and
+  verifies staging-only TOTP, then proves the same client at AAL2 can read
+  exactly that row. `finally` removes and reads back the fixture, factor, user,
+  allowlist and roles. The revised smoke passed against retained isolated
+  staging with exact cleanup and restored baseline counts.
+- `scripts/supabase-linked-command.ts`: parses only `status`, `migration-list`
+  and `db-push-dry-run`. List/dry-run hard-block a production or unknown link
+  and require the linked project, `HOSTED_STAGING_PROJECT_REF`, both Supabase
+  URLs, Vite project id and explicit manual confirmation to equal the approved
+  staging ref. The one-time repair and mutating push recipes were retired after
+  staging closeout. It invokes fixed CLI argument arrays with `shell:false` and
+  passes only an allowlisted system/proxy/Supabase-CLI child environment.
 - `scripts/telegram-inline-client-matrix.ts`: validates and prints the exact
   no-network 17-case-per-client Inline acceptance pack and can emit one case or
   JSON for evidence tooling.

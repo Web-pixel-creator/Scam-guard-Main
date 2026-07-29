@@ -326,7 +326,27 @@ function assertHandoffRegression(rowId: string, turnNo: number, turn: TurnRecord
     expect(visible).toContain("Hozircha pul o'tkazmang");
   }
   if (rowId === "mismatch-ru-on-uz-01" && turnNo === 1) {
-    expect(visible).toContain("Похоже на попытку");
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Код никому не называйте");
+    expect(visible).toContain("вход в банк");
+    expect(visible).not.toContain("увести Telegram");
+  }
+  if (rowId === "uz-lat-bank-code-01" && turnNo === 2) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Kodni hech kimga aytmang");
+    expect(visible).toContain("bank");
+    expect(visible).not.toContain("sizdan aynan nima so'rashyapti");
+  }
+  if (rowId === "uz-lat-bank-code-01" && turnNo === 3) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("Keyingi xavfsiz qadam: bankka");
+    expect(visible).toContain("SMS\\-kod/karta");
+  }
+  if (rowId === "ru-safe-account-01" && turnNo === 1) {
+    expect(turn.runChecks).toHaveLength(0);
+    expect(visible).toContain("«Безопасный счёт»");
+    expect(visible).toContain("выдуманная схема");
+    expect(visible).toContain("Не переводите деньги");
   }
   if (rowId === "mismatch-uz-lat-on-en-01" && turnNo === 1) {
     expect(visible).toContain("Kodni hech kimga aytmang");

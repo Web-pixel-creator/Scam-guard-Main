@@ -8,19 +8,19 @@ There is no public standalone REST API yet. The web app uses TanStack Start serv
 It does not mean direct browser writes to Supabase tables: sensitive writes to
 `checks` and `reports` are service-role-only behind these handlers.
 
-| RPC                       | Auth   | Input                                                                                                | Returns                                                                                               |
-| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `checkInput`              | public | `{ input: 1-2000, type?, lang, embed? }`                                                             | risk result or `{ metaIntent, response }` for questions to the bot                                    |
-| `ocrExtract`              | public | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
-| `getPublicStats`          | public | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
-| `submitReport`            | public | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
-| `listReports`             | admin  | `{ status }`                                                                                         | report rows (<= 200)                                                                                  |
-| `listEntities`            | admin  | `{ status }`                                                                                         | entity rows (<= 200)                                                                                  |
-| `moderateReport`          | admin  | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                                              |
-| `submitReputationAppeal`  | public | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                                    |
-| `listReputationAppeals`   | admin  | `{ status }`                                                                                         | appeal rows                                                                                           |
-| `resolveReputationAppeal` | admin  | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                                              |
-| `adminStats`              | admin  | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }`                   |
+| RPC                       | Auth         | Input                                                                                                | Returns                                                                                               |
+| ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `checkInput`              | public       | `{ input: 1-2000, type?, lang, embed? }`                                                             | risk result or `{ metaIntent, response }` for questions to the bot                                    |
+| `ocrExtract`              | public       | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
+| `getPublicStats`          | public       | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
+| `submitReport`            | public       | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
+| `listReports`             | admin + AAL2 | `{ status }`                                                                                         | report rows (<= 200)                                                                                  |
+| `listEntities`            | admin + AAL2 | `{ status }`                                                                                         | entity rows (<= 200)                                                                                  |
+| `moderateReport`          | admin + AAL2 | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                                              |
+| `submitReputationAppeal`  | public       | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                                    |
+| `listReputationAppeals`   | admin + AAL2 | `{ status }`                                                                                         | appeal rows                                                                                           |
+| `resolveReputationAppeal` | admin + AAL2 | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                                              |
+| `adminStats`              | admin + AAL2 | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }`                   |
 
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
@@ -31,6 +31,19 @@ Production/Railway shared-rate-limit configuration, HMAC or RPC failures also
 fail closed to the same rate-limited behavior; they never grant a new
 per-process allowance. Only non-production local/test runtimes use the bounded
 in-memory fallback.
+
+## HTTP response transport
+
+Eligible dynamic GET responses negotiate Brotli/gzip and preserve
+`Vary: Accept-Encoding`. On the local 2026-07-29 branch, strict quality parsing
+returns an empty `406 Not Acceptable` when `br`, `gzip` and identity are all
+forbidden. The Node stream pipeline propagates upstream errors, downstream
+cancellation and request abort rather than leaving a consumer pending.
+
+That dynamic hardening is not deployed. Nitro serves precompressed static
+assets before the application wrapper and its current handler does not implement
+general `q`-weighted negotiation correctly. Static `q` handling remains an open
+runtime/upstream limitation; do not describe all HTTP compression as closed.
 
 ## Telegram update delivery
 
@@ -93,6 +106,12 @@ in-memory fallback.
   explicit official-directory and moderated-report metadata. Bare domains and
   other concrete new artifacts bypass helpers. A trusted-person phrase has no
   notification side effect, and recheck requires resubmitting the artifact.
+- Narrow victim context also outranks broad lookalike routes. On the local
+  2026-07-29 branch, a Telegram-delivered bank/card code-theft request remains a
+  code request, Uzbek `rostdan firibgarlarmi` retains recent bank/code context
+  through `endi nima qilay`, and the typo `безапасный счет` reaches explicit
+  no-transfer safe-account guidance. These are locally tested, not deployed
+  real-client evidence.
 - `/report` can submit a situation-only incident when the user has no concrete
   target. `incidentOnly=true` stores the redacted incident for
   moderation/research but does not upsert or bump public `entities`. Telegram
@@ -181,7 +200,17 @@ in-memory fallback.
 - Telegram public username/link checks may call Bot API `getChat` after scoring to add a short metadata limitation/summary to the reply. Private invite/internal links skip lookup and receive an explicit limitation brief. This is presentation-only: score, level and reason codes remain deterministic.
 - Telegram reputation labels come only from the app-owned `telegram_reputation_targets` source layer. Unverified user reports are not shown to users. Confirmed moderated reports may add a short source/confidence brief, explicitly distinguished from hidden Telegram SCAM labels or Telegram-internal report history.
 - Admin report moderation treats Telegram aggregate synchronization as a required integrity step. Confirmed/unverified count errors, invalid exact counts and aggregate upsert failures reject with a typed stage error instead of becoming zero/success. The report/entity updates may already be committed, so callers must surface a retryable partial-failure state; logs contain only the stage, not a target hash or database message.
-- Family Shield uses `/family`, `family_*` deep links and `family:*` callbacks. Invite links are generated from HMAC-hashed tokens, pending invites expire after 24 hours, active-link duplicate creation is handled as a user-facing state, and trusted-contact alerts include no raw scam evidence. `family:codeword` is a teaching-only callback: it tells families how to agree on a voice-clone verification phrase offline and never asks the user to send or store the actual codeword. The trusted contact can opt out from future alerts from the alert itself.
+- Family Shield uses `/family`, `family_*` deep links and `family:*` callbacks.
+  Invite links are generated from HMAC-hashed tokens, pending invites expire
+  after 24 hours, active-link duplicate creation is handled as a user-facing
+  state, and trusted-contact alerts include no raw scam evidence. Notification
+  idempotency claims are metadata-only and carry `expires_at`; migration
+  `20260729105030` adds them to scheduled daily retention instead of relying
+  only on opportunistic cleanup. It is verified in isolated staging but is not
+  deployed to production. `family:codeword` is a teaching-only callback:
+  it tells families how to agree on a voice-clone verification phrase offline
+  and never asks the user to send or store the actual codeword. The trusted
+  contact can opt out from future alerts from the alert itself.
 - Plain questions to the bot are routed through `src/lib/meta-intent.ts` before
   risk scoring. Strict RU/UZ/EN capability frames answer questions such as
   whether the bot can inspect a link, screenshot or QR, but any concrete
@@ -214,7 +243,22 @@ in-memory fallback.
 
 ## Auth flow
 
-Browser session token (Supabase) is attached by `attachSupabaseAuth` on every server-function call. Admin functions validate it server-side (`requireSupabaseAuth`) and check the `admin` role in `user_roles`.
+Browser session token (Supabase) is attached by `attachSupabaseAuth` on every
+server-function call. Admin functions validate it server-side
+(`requireSupabaseAuth`), check the `admin` role in `user_roles` and require JWT
+`aal2` when the production flag is enabled. Production/Railway now requires an
+explicit `REQUIRE_ADMIN_MFA_AAL2` value in the local branch; missing, empty or
+invalid configuration fails closed.
+
+Migration `20260729131000` applies the same role-plus-AAL2 requirement
+to direct authenticated RLS/PostgREST SELECT on `checks`, `reports`, `entities`,
+`admin_actions` and `telegram_reputation_targets`, and to direct UPDATE on
+`reports` and `entities`. Public confirmed-row policies remain independent and
+service role retains its normal server-only RLS bypass. Isolated staging
+catalog checks and transaction-isolated pgTAP pass 23/23. Guarded official
+migration history matches local and the same-client HTTP/PostgREST smoke proved
+AAL1 denial plus AAL2 success with exact cleanup. The migration is not in
+production.
 Allowlisted admin signup is gated on Supabase email confirmation: a new account
 gets at most the baseline `user` role until `auth.users.email_confirmed_at` is
 set, then the database trigger may add `admin` if the email is still in
@@ -248,7 +292,11 @@ the baseline `user` role remains.
   public-post fetches, the voice STT daily budget and the opt-in Voice-out/TTS
   daily budget. Voice budgets use distinct key prefixes under the existing
   `check` scope so no raw Telegram id is persisted.
-- `private.prune_app_retention()` is service-role/private maintenance SQL for retention cleanup. It is not exposed as a public API.
+- `private.prune_app_retention()` is service-role/private maintenance SQL for
+  retention cleanup. It is not exposed as a public API. Migration
+  `20260729105030` includes expired Family notification claims and returns their
+  deleted count; isolated staging pgTAP passes 10/10, while production remains
+  unchanged.
 - `embed_origin_events` is service-role-only, RLS-protected `/embed/check`
   origin telemetry. Retention pruning deletes rows older than 180 days.
 

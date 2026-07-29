@@ -74,6 +74,20 @@ describe("server security headers", () => {
     );
   });
 
+  it("keeps security headers on a 406 when every available encoding is forbidden", async () => {
+    const response = await fetchPath("/", {
+      headers: {
+        "accept-encoding": "br;q=0, gzip;q=0, identity;q=0",
+      },
+    });
+
+    expect(response.status).toBe(406);
+    expect(response.body).toBeNull();
+    expect(response.headers.get("vary")).toContain("Accept-Encoding");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
+  });
+
   it("removes X-Frame-Options and uses the explicit embed frame ancestor allowlist", async () => {
     process.env.EMBED_ALLOWED_FRAME_ANCESTORS =
       "https://partner.example/path http://evil.example https://bank.example:8443";

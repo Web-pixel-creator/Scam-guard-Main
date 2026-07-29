@@ -1,13 +1,16 @@
 # Hosted Staging Restore Drill
 
-Status: v2 restored into isolated staging; database, hosted service, MFA and
-local application verification complete. Staging is retained pending separate
-operator approval for deletion.
+Status: v2 functional restore/service verification passed in isolated staging.
+Direct same-client AAL1/AAL2 PostgREST proof also passed after the 2026-07-29
+hardening migration. Complete RPO/RTO evidence is not closed. Staging is
+retained pending separate operator approval for deletion.
 
-This runbook closes the remaining hosted-service restore gate without changing
-production. Creating the external Supabase project, restoring data and deleting
-the staging project each require an explicit operator approval. No Railway
-deployment or real Telegram QA is part of this drill.
+This runbook records the functional hosted-service restore result without
+changing production. It does not convert incomplete schema timing/error
+evidence into an RTO measurement or a Free-plan snapshot into an RPO SLA.
+Creating the external Supabase project, restoring data and deleting the staging
+project each require explicit operator approval. No Railway deployment or real
+Telegram QA is part of this drill.
 
 ## Verified starting point
 
@@ -149,13 +152,14 @@ publishable key and service-role key:
 SUPABASE_URL="<staging-url>"
 SUPABASE_PUBLISHABLE_KEY="<staging-publishable-key>"
 SUPABASE_SERVICE_ROLE_KEY="<staging-service-role-key>"
+HOSTED_STAGING_PROJECT_REF="gwwcooupkmhihaigympb"
 VITE_SUPABASE_PROJECT_ID="<staging-project-ref>"
 VITE_SUPABASE_URL="<staging-url>"
 VITE_SUPABASE_PUBLISHABLE_KEY="<staging-publishable-key>"
 
 TELEGRAM_UPDATE_DELIVERY_MODE="disabled"
 TELEGRAM_BOT_USERNAME="staging_disabled"
-REQUIRE_ADMIN_MFA_AAL2="false"
+REQUIRE_ADMIN_MFA_AAL2="true"
 PUBLIC_APP_URL="http://127.0.0.1:3100"
 
 URLHAUS_ENABLED="false"
@@ -179,6 +183,12 @@ Generate two new staging-only random peppers in memory. Use one as
 legacy `HASH_PEPPER_SECRET`. This proves version-aware synthetic writes without
 making production hashes searchable. Historical hash-match lookup is explicitly
 outside this drill.
+
+The staging ref and both Supabase URLs must agree with
+`HOSTED_STAGING_PROJECT_REF`. Linked migration commands use only the repository
+guard wrapper. It hard-blocks the known production ref and requires an explicit
+`--confirm-project-ref=gwwcooupkmhihaigympb`; raw linked list/push commands are
+not an approved operator path.
 
 The code boundary was inspected before execution:
 
@@ -272,9 +282,14 @@ Record only pass/fail, duration, migration head and counts.
 
 1. Confirm the expected app schemas, tables, views, functions, triggers, grants
    and RLS policies exist.
-2. Confirm migration head `20260726090000`; apply only reviewed repository
-   migrations newer than that head, if any.
-3. Run schema lint and pgTAP. Expected current result: `53/53`.
+2. The restored snapshot head was `20260726090000`. Only the reviewed
+   `20260729105030` and `20260729131000` migrations were then applied through
+   explicit staging SQL Editor transactions. The guarded official repair later
+   recorded exactly those two versions; the post-repair list matches local
+   history and guarded `db push --dry-run` reports no pending migration.
+3. Run schema lint and every pgTAP file. The original hosted result was 53/53;
+   the later Family-retention pgTAP passed 10/10 and the admin-AAL2 pgTAP passed
+   in the same restored staging database.
 4. Compare count-only invariants:
 
    | Invariant          | Expected |
@@ -315,6 +330,12 @@ Hosted database verification on 2026-07-28:
 - final count invariants remained exactly
   `2, 2, 4, 235, 8, 7, 2, 7, 9, 4`.
 
+These are historical results for migration head `20260726090000`. The two
+2026-07-29 migrations were later applied and pgTAP-verified in the retained
+staging database. Their guarded official migration-history repair is now
+complete. Keep the historical counts above unchanged and record the later
+function/policy/pgTAP and same-client HTTP evidence separately.
+
 The database password existed only in the operator clipboard and process
 environment. The successful verifier cleared both and did not return the
 credential to the clipboard.
@@ -330,7 +351,10 @@ credential to the clipboard.
 8. Create one synthetic confirmed `example.invalid` Auth user through the Admin
    API without sending email. Add temporary allowlist eligibility, verify admin
    projection, enroll and verify a new staging-only TOTP factor, obtain AAL2 and
-   exercise one read-only protected admin action.
+   exercise one read-only protected admin action. Before TOTP, use that same
+   ordinary user client to prove the private fixture is absent/denied through
+   PostgREST; after TOTP, prove the same client reads exactly the fixture. A
+   service-role read is not evidence for this boundary.
 9. Remove the synthetic factor, user, allowlist row, role and related audit
    rows; verify all are absent.
 10. Re-run count-only invariants. They must return to the restored baseline.
@@ -356,12 +380,61 @@ Hosted service verification on 2026-07-28:
 - dedicated `staging:mfa-smoke` created one confirmed
   `example.invalid` Auth user through the Admin API without email delivery;
 - temporary allowlist eligibility projected both `user` and `admin` roles;
-- the protected admin gate rejected the AAL1 token, staging-only TOTP
-  verification upgraded the session to AAL2, and a read-only admin count passed;
+- the application-level protected admin gate rejected the AAL1 token and
+  staging-only TOTP verification upgraded the session to AAL2. The final
+  read-only database count used service role, so this historical run did not
+  prove direct user-client PostgREST denial/allow behavior;
 - the factor, session, Auth user, allowlist row and cascaded roles were removed;
   Auth users, allowlist and role counts returned to `2`, `2` and `4`;
 - staging API keys and TOTP material were held only in process memory. Secret
   values were not printed or written to the repository.
+
+## 2026-07-29 hardening validation
+
+The operator approved continuing against the retained isolated staging project
+`gwwcooupkmhihaigympb`. Production, Railway, Telegram delivery and paid AI
+providers were not touched.
+
+- Applied `20260729105030_family_notification_claim_retention.sql` first and
+  `20260729131000_admin_mfa_aal2_rls.sql` second through Dashboard SQL Editor.
+  Each exact file ran in its own explicit transaction with a 5-second lock
+  timeout and 60-second statement timeout.
+- Source SHA-256 values were
+  `0720b1885fc25f1feef815b0157399b7dbb5c320608691561fbb9358b5859741`
+  for retention and
+  `4ece19feeeb38a9f01c48608fafe2e76a28756b48a0009131061754b97083ff7`
+  for the final admin-AAL2 migration.
+- Hosted retention pgTAP passed 10/10. Hosted admin-AAL2 pgTAP initially exposed
+  two pre-release test/runtime defects: a nested `private.has_role()` lookup
+  failed because later hardening intentionally closes `private` schema usage,
+  and five data-modifying CTE assertions were not top-level. The helper now
+  reads `public.user_roles` directly under RLS, no schema grant was broadened,
+  the CTEs are top-level, and the final exact pgTAP file passed 23/23, including
+  denial for an AAL2 authenticated user without the admin role.
+- The final catalog postflight passed 12/12: retention body/result key,
+  SECURITY DEFINER/search path, AAL2 inline role/JWT predicate,
+  SECURITY INVOKER/stability/empty search path, all seven protected policies,
+  both UPDATE `WITH CHECK` clauses, function ACLs, five RLS-enabled tables,
+  closed `private` schema usage and zero remaining test fixtures.
+- Dashboard SQL Editor did not update
+  `supabase_migrations.schema_migrations`. The fixed staging-only guard verified
+  the linked/env/manual project refs, the exact applied-version acknowledgement
+  and LF-normalized SHA-256 for both regular files before invoking official
+  `supabase migration repair`. It recorded only `20260729105030` and
+  `20260729131000` as applied; no manual history insert was used.
+- The post-repair migration list fully matched local history. Guarded
+  `db push --dry-run` returned `Remote database is up to date`, so no ordinary
+  `db push` ran.
+- This restored staging project currently has no `cron.job` relation. The
+  retention function is verified, but the production cron schedule is not
+  staging-parity evidence.
+- The revised real HTTP/PostgREST smoke passed with the same ordinary user
+  client before and after TOTP: the protected direct read was denied/hidden at
+  AAL1 and returned exactly one fixture at AAL2. The synthetic factor, Auth
+  user, allowlist row, projected roles and protected fixture were deleted;
+  final Auth/allowlist/role counts returned to `2, 2, 4`. Staging API keys and
+  generated MFA material were held only in process memory and were not printed
+  or written to the repository.
 
 ## Application gates
 
@@ -400,9 +473,11 @@ Executed results:
 unauthorized` before body dispatch because Telegram secrets were absent;
 - runtime logs contained no polling start, no `api.telegram.org` access and no
   fatal or uncaught error;
-- the separate staging MFA smoke already proved the hosted AAL1 denial and
-  AAL2 read-only admin path. The local browser check deliberately did not
-  recreate another Auth user;
+- the historical staging MFA smoke proved application AAL1 denial and TOTP/AAL2
+  upgrade, but not the direct PostgREST boundary. After migration
+  `20260729131000`, the revised hosted smoke proved that boundary with the same
+  client at AAL1 and AAL2 and completed exact cleanup. The local browser check
+  deliberately did not recreate another Auth user;
 - no live Telegram, paid AI, reputation-provider or moderation-delivery smoke
   was run.
 
@@ -422,9 +497,12 @@ The evidence record must contain:
 - synthetic cleanup verification;
 - operator responsible for eventual project deletion.
 
-Success closes only the hosted restore/service-smoke gate. Railway
-rollback/return and the production MFA factor-reset recovery rehearsal remain
-separate approved operations.
+The 2026-07-28 evidence is sufficient for functional hosted restore/service
+validation, but it does not contain a complete schema error log, complete
+per-phase timing, an RPO basis or measured RTO. A future fresh restore must
+retain those fields before the DR timing gate is closed. Railway rollback/return,
+and the production MFA factor-reset recovery rehearsal remain separate approved
+operations.
 
 The staging project was deliberately retained after verification. Its eventual
 deletion remains the project operator's responsibility and requires a separate

@@ -3,10 +3,9 @@ import { getRequireAdminMfaAal2 } from "@/lib/config.server";
 /**
  * Enforces the current Supabase Auth assurance level for admin server actions.
  *
- * The environment gate is intentionally disabled when unset so adding this
- * server-side foundation cannot lock out the existing admin flow before the
- * enrollment/challenge UI is ready. Once explicitly enabled, anything other
- * than a verified `aal2` JWT fails closed.
+ * Local development and tests keep the gate disabled when unset. Production
+ * and Railway require an explicit rollout value, and an enabled gate accepts
+ * only a verified `aal2` JWT.
  */
 export function assertAdminMfaAal2(claims: unknown): void {
   if (!getRequireAdminMfaAal2()) return;

@@ -1,28 +1,76 @@
 # Open Tasks
 
-## Current checkpoint (2026-07-28)
+## Current checkpoint (2026-07-29)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The deployed
-application baseline is commit `5c08a2359a933ba50cb744b667073fe62742d965`;
-Railway deployment `00cd6dcb-19bd-4fd5-b063-e96bcd216b32` first established
-`SUCCESS` for it, and its full gate passed 12,796/12,796 tests. Streaming
-dynamic Brotli/gzip and precompressed public assets are deployed and passed the
-production negotiation/round-trip smoke. Documentation-only commits may be
-layered on top without changing that runtime baseline. Old commit ids, test
-totals and tracker counts below describe the checkpoint at which each paragraph
-was written.
+application baseline is commit `bff76eb28877a188ca78b7e1509ec4874bb0be23`;
+Railway deployment `22204af1-97d4-4f52-84d9-7a07511e401e` reports `SUCCESS`.
+Its established full gate passed 12,796/12,796 tests. Streaming dynamic
+Brotli/gzip and precompressed public assets are deployed and passed the normal
+production negotiation/round-trip smoke, but the deployed stream error/cancel
+path and Nitro static `q`-weight handling are not fully closed. Old commit ids,
+test totals and tracker counts below describe the checkpoint at which each
+paragraph was written.
 
 The immediate queue is:
 
-1. put the PFX files in a second protected location independent of OneDrive;
-2. hosted restore/service/MFA smokes are complete; retain or explicitly approve
-   deletion of staging, then separately approve Railway rollback/return;
-3. MFA factor-reset recovery rehearsal;
-4. polling failover/provider-failure evidence and Railway billing alerts;
-5. final live-client/accessibility matrices, legal/privacy approval and a fresh
-   72-hour canary.
+1. review and preserve the complete dirty-worktree diff, especially the two
+   untracked migration sources already registered in staging; production remains
+   `bff76eb` until separate commit/integration/deployment approval;
+2. keep the Nitro static precompressed `q`-weight limitation open pending an
+   upstream Nitro fix or an explicitly reviewed edge/static-serving layer;
+3. put the PFX files in a second protected location independent of OneDrive;
+4. retain or explicitly approve deletion of staging, then separately approve
+   Railway rollback/return and the MFA factor-reset recovery rehearsal;
+5. capture polling failover/provider-failure evidence and Railway billing
+   alerts;
+6. finish real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
+   real RU/UZ Voice-in/STT, accessibility, legal/privacy and a fresh 72-hour
+   canary.
 
 ## Fragile / risky spots
+
+- **2026-07-29 security-regression hardening is not in production.** Migration
+  `20260729131000_admin_mfa_aal2_rls.sql` makes AAL2 part of protected
+  authenticated RLS SELECT/UPDATE policies, and the revised hosted smoke uses
+  the same user client at AAL1 and AAL2. Production/Railway also fails closed
+  when `REQUIRE_ADMIN_MFA_AAL2` is missing. Migration
+  `20260729105030_family_notification_claim_retention.sql` adds expired Family
+  claims to scheduled retention. Both migrations are present in isolated
+  staging; hosted pgTAP passes 10/10 and 23/23, the final catalog postflight is
+  12/12, and rollback left zero fixtures. Guarded official repair recorded
+  exactly `20260729105030` and `20260729131000`; the second migration list fully
+  matches local history and guarded `db push --dry-run` reports the remote
+  database up to date. The revised same-client smoke passed: protected direct
+  read denied at AAL1, allowed exactly once at AAL2, then exact synthetic
+  cleanup restored the baseline. The restored staging project still lacks
+  `cron.job`, and production remains unchanged.
+- **HTTP compression failure handling is fixed locally, not deployed.** The
+  dynamic pipeline now propagates upstream errors, downstream cancellation and
+  request abort, and returns `406` when `br`, `gzip` and identity are all
+  forbidden. Focused checks pass 27/27. Nitro's earlier static asset handler
+  still does not implement correct general `q`-weight negotiation; do not call
+  HTTP compression fully closed until that boundary is upgraded or replaced.
+- **Three exact Telegram semantics were outside the green corpus and are fixed
+  locally.** A Telegram-delivered bank/card code request no longer becomes an
+  account-takeover answer; Uzbek `rostdan firibgarlarmi` preserves recent
+  bank/code context through `endi nima qilay`; and Russian
+  `безапасный счет` reaches explicit no-transfer guidance. Targeted 468/468,
+  Telegram 10,872/10,872 and adversarial 2,161/2,161 pass without network/API
+  use. The full local repository gate also passes 12,853/12,853; real-client
+  proof remains open.
+- **Local secret/linked-project operation is hardened on this workstation.**
+  `.env` ACL now permits only the owner, `SYSTEM` and Administrators. Ignored
+  files are not inherently access-controlled. Guarded package commands refuse
+  the production Supabase link and require five staging project-ref signals to
+  agree before a linked list or no-change dry-run. One-time repair and ordinary
+  push recipes were retired after closeout; the child CLI environment excludes
+  application service-role, Telegram, AI and Vite variables. Raw linked mutation
+  examples must not be restored to operator docs.
+- **The final clean-database gate is closed locally.** A fresh local Supabase
+  database applied all 33 migrations from scratch, schema lint found no errors
+  and all four pgTAP files passed 86/86. This is local evidence, not production
+  deployment proof.
 
 - **2026-07-15 Inline/Desktop QA remediation is deployed; migration/deployment/health
   preconditions are verified; real-client acceptance remains open.** Forty-one Telegram Desktop screenshots under
@@ -108,7 +156,14 @@ The immediate queue is:
   passed. A one-minute local in-memory soak passed 600/600
   with no duplicate effect or loss. Direct live catalog-grant read-back and the
   bounded approved-QA burst/restart drill remain open.
-- **Retention cleanup is scheduled.** Supabase/Postgres Cron job `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily at 20:17 UTC and deletes only rows eligible under the documented windows.
+- **Retention cleanup is scheduled.** Supabase/Postgres Cron job
+  `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily
+  at 20:17 UTC. The deployed function covers the established windows; local
+  migration `20260729105030` additionally guarantees deletion of expired
+  `private.telegram_family_notification_claims` even when no later claim occurs.
+  The migration is applied in isolated staging and pgTAP passes 10/10. That
+  restored project lacks the `cron.job` catalog, so schedule parity remains an
+  explicit staging gap and production has not changed.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
   fetches use Supabase `rate_limit_buckets` with HMAC-hashed keys across Node
@@ -692,19 +747,35 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       `sleepApplication=false`, but payment-method expiry and spend alerts still
       need owner-visible evidence. Do not spend paid AI quota merely to close
       documentation; deterministic scoring remains the fallback.
-- [x] ~~Execute the isolated hosted backup/restore service drill in
+- [x] ~~Execute the isolated hosted backup/restore functional service drill in
       `RECOVERY_AND_KEY_ROTATION.md`.~~ The v2 archive was restored into isolated
       Free/nano staging with outbound integrations disabled. Catalog/RLS,
-      migration history, schema lint, pgTAP 53/53, service paths, synthetic MFA
-      AAL1/AAL2 and exact cleanup/count invariants passed. See
-      `HOSTED_STAGING_RESTORE_DRILL_2026-07-28.md`.
+      migration history, schema lint, pgTAP 53/53, service paths, synthetic TOTP
+      and exact cleanup/count invariants passed. The original MFA smoke did not
+      prove direct AAL1/AAL2 PostgREST behavior, and the first schema phase did
+      not retain complete error/timing evidence.
+- [x] ~~Repeat hosted MFA after `20260729131000` using the revised
+      same-user-client AAL1-deny/AAL2-allow probe.~~ Passed in retained isolated
+      staging: the protected direct read was denied at AAL1 and returned exactly
+      one fixture after TOTP/AAL2 on the same user client; factor, Auth user,
+      allowlist, roles and fixture cleanup restored the baseline.
+- [ ] Separately capture a future full restore's start/end, per-phase
+      timing/error classification, measured recovery duration, RPO basis and
+      named owner. See `HOSTED_STAGING_RESTORE_DRILL_2026-07-28.md`.
 - [ ] Execute the separately approved Railway rollback/return drill and record
       the measured rollback/return time. Staging deletion remains a separate
       destructive action requiring explicit approval.
-- [x] ~~Deploy the staged Supabase Admin MFA gate and enroll two owners.~~ Two
-      independently controlled owner accounts have verified TOTP factors;
-      `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login passed.
-      Leaked-password protection remains unavailable on Supabase Free.
+- [x] ~~Deploy the application-level Supabase Admin MFA gate and enroll two
+      owners.~~ Two independently controlled owner accounts have verified TOTP
+      factors; `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login
+      passed. Leaked-password protection remains unavailable on Supabase Free.
+- [x] ~~Complete the official staging migration-history repair and revised
+      same-user-client HTTP/PostgREST AAL1-deny/AAL2-allow smoke for
+      `20260729131000`.~~ The fixed guarded repair recorded exactly
+      `20260729105030` and `20260729131000`; post-repair history matches and
+      guarded dry-run reports no pending migration. The same-client smoke and
+      exact cleanup passed. Production application remains a separate,
+      explicitly approved step.
 - [ ] Rehearse loss of the first authenticator through the approved second-owner
       factor-reset path. Do not request or record QR secrets or TOTP values.
 - [x] Implement and locally test additive hash-version metadata plus bounded
@@ -758,5 +829,12 @@ Completed research-feed themes now covered by deterministic rules:
 ## Compliance / legal
 
 - [ ] Review UZ personal-data law for `redacted_value`, `description`, `amount_lost_uzs`, `city`.
-- [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and future screenshots.~~ Implemented as `private.prune_app_retention()` cleanup windows and scheduled through Supabase/Postgres Cron on 2026-06-14.
+- [x] ~~Define retention windows for `checks`, `reports`, Telegram sessions and
+      future screenshots.~~ Implemented as `private.prune_app_retention()`
+      cleanup windows and scheduled through Supabase/Postgres Cron on
+      2026-06-14. The later Family notification-claim table exposed a missing
+      inactive cleanup path; migration `20260729105030` closes it and is applied
+      in isolated staging with pgTAP 10/10. Guarded official staging history
+      repair is complete; schedule-parity evidence and any production
+      application remain open.
 - [ ] Legal/compliance review of moderation guidelines and appeal decisions before high-volume public launch.

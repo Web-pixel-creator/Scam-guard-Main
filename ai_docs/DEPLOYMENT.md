@@ -45,6 +45,14 @@ docker run --rm -p 3000:3000 --env-file .env.production scam-guard
 Provide the server-only secrets (below) at runtime via `--env-file` or your
 platform's secret manager — never bake them into the image.
 
+Eligible dynamic GET responses pass through the application Brotli/gzip
+wrapper. The local 2026-07-29 hardening propagates stream error/cancel/abort and
+returns `406` for a complete encoding refusal, but it is not deployed. Nitro's
+earlier precompressed-static handler runs before that wrapper and still does not
+implement correct general `q`-weight negotiation. Keep this limitation open
+until Nitro is upgraded or an explicitly reviewed edge/static-serving layer
+owns negotiation.
+
 ## Railway (first deploy target)
 
 Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
@@ -99,12 +107,21 @@ Public (in `.env`, prefixed `VITE_`, safe for browser):
 
 Server-only runtime controls:
 
-- `REQUIRE_ADMIN_MFA_AAL2` — leave unset/`false` until admin TOTP enrollment,
-  challenge/verify, refreshed-session handling and operator recovery are tested.
-  When explicitly `true`, every admin server action requires the Supabase JWT
-  `aal` claim to be `aal2`. Deploy `/admin-mfa` first with this flag off, enroll
-  two approved owners and complete the recovery drill before enabling it in a
-  separate window. Unsupported explicit values fail closed.
+- `REQUIRE_ADMIN_MFA_AAL2`: production and Railway must set an explicit `true`
+  or `false`; missing, empty and invalid values fail closed. Local development
+  and tests may omit it and default to `false`. When `true`, every admin server
+  action requires the Supabase JWT `aal` claim to be `aal2`. Explicit `false`
+  is retained only as a bounded enrollment or emergency-recovery state: deploy
+  `/admin-mfa`, enroll two approved owners and complete the recovery drill
+  before enabling `true` in a separate window. Migration `20260729131000`
+  independently requires AAL2 at the protected direct RLS/PostgREST boundary.
+  It passes isolated-staging catalog/pgTAP verification, guarded official
+  history repair and the same-client HTTP user-client smoke, but is not
+  deployed to production.
+- `HOSTED_STAGING_PROJECT_REF`: operator-shell guard input for the approved
+  staging project. It must agree with the linked ref and all staging URL/id
+  variables before a guarded Supabase recipe can execute; it is not an
+  application feature flag and must never be used to authorize production.
 
 Server-only **secrets** (set in the host/orchestrator environment, NOT in a
 committed `.env`, never shipped to client):
@@ -240,19 +257,47 @@ flag.
 Env is read **per request inside handlers** (`config.server.ts`), never at
 module top level — this keeps the secret reads correct across runtimes.
 
+Git ignore is not local access control. Any workstation `.env` containing
+server secrets must be readable only by the operator, `SYSTEM` and
+Administrators. The 2026-07-29 Windows ACL was narrowed to that set. Never
+record secret values in release evidence.
+
 ## Database migrations
 
-SQL migrations live in `supabase/migrations/`. Apply them to your Supabase
-project via the Supabase CLI (`supabase db push`) or the dashboard SQL editor.
-The latest consolidated migration defines the full current schema.
+SQL migrations live in `supabase/migrations/`. The latest consolidated
+migration defines the full current schema. Do not run raw
+`supabase ... --linked` recipes from this repository: its existing local link
+may point at production.
 
-Recommended CLI flow:
+The guarded staging flow is:
 
-```bash
-supabase migration list --linked
-supabase db push --linked --include-all --dry-run
-supabase db push --linked --include-all --yes
+```powershell
+npm run supabase:linked:status
+npm run supabase:staging:migration-list -- --confirm-project-ref=gwwcooupkmhihaigympb
+npm run supabase:staging:db-push:dry-run -- --confirm-project-ref=gwwcooupkmhihaigympb
 ```
+
+List and dry-run hard-block the known production ref and every unknown ref. They
+run only when the linked ref,
+`HOSTED_STAGING_PROJECT_REF`, both Supabase URLs,
+`VITE_SUPABASE_PROJECT_ID` and manual confirmation all equal the approved
+staging ref. `SUPABASE_CLI_BINARY_OVERRIDE` is rejected before CLI lookup, and
+the child process receives only a minimal system/proxy/Supabase-CLI environment
+allowlist. This wrapper no longer exposes a migration-repair or ordinary
+`db push` recipe.
+
+Recorded staging closeout on 2026-07-29: the first guarded list showed exactly
+`20260729105030` and `20260729131000` missing remotely. A one-time fixed repair,
+which required exact applied-version acknowledgement and LF-normalized SHA-256
+matches for both reviewed regular migration files, marked only those versions
+applied. The second list fully matched; guarded
+`db push --dry-run` returned `Remote database is up to date`. No ordinary
+`db push` was executed. The one-time repair and mutating push package recipes
+were retired after this closeout.
+
+Passing the guard does not itself authorize an external change. Production
+migration work requires a separately approved maintenance window and its own
+reviewed target controls; this wrapper intentionally never targets production.
 
 After DB/RLS migrations, run:
 
@@ -272,6 +317,10 @@ Retention cleanup runs through Supabase/Postgres Cron job
 executes `select private.prune_app_retention();` and deletes only rows eligible
 under the documented retention windows. After changing retention SQL, verify the
 job still exists and then run `prod:security-smoke`.
+Migration `20260729105030`, applied and pgTAP-verified in isolated staging but
+still pending for production, adds expired metadata-only Family notification
+claims to the same function; the cron schedule does not need to be recreated.
+Re-verify the production cron entry before deployment.
 
 Shared public rate limits are stored in `rate_limit_buckets` through the
 service-role-only `claim_rate_limit()` RPC. A valid hash-pepper configuration
@@ -400,9 +449,16 @@ Telegram chat-scoped session hardening stores its boundary inside existing
 migration. After deploy, any old active/contextual session row without a
 matching `chatScope` is reset on the user's next update.
 
-```bash
-supabase db push --linked --include-all --yes
+```powershell
+npm run supabase:linked:status
+npm run supabase:staging:migration-list -- --confirm-project-ref=gwwcooupkmhihaigympb
+npm run supabase:staging:db-push:dry-run -- --confirm-project-ref=gwwcooupkmhihaigympb
 ```
+
+These read-only/no-change recipes are staging-only and do not authorize or
+apply a production migration. Any future database mutation requires a separate
+reviewed manifest, target confirmation and maintenance approval; the repository
+wrapper intentionally offers no generic apply command.
 
 After migrations that change table/function shapes, regenerate
 `src/integrations/supabase/types.ts` when the project workflow needs fresh DB
@@ -548,6 +604,14 @@ proves the table exists.
 ```bash
 railway run npm run prod:security-smoke
 ```
+
+After applying `20260729131000` in isolated staging, also run
+`npm run staging:mfa-smoke`. It creates one private fixture and uses the same
+ordinary user client to require denial/zero visibility at AAL1 and exactly one
+row at AAL2, then removes and reads back every synthetic object. A service-role
+read is not AAL2 evidence. On 2026-07-29 the revised smoke passed against the
+retained isolated staging project: AAL1 denial, AAL2 exact-one success and
+factor/Auth/allowlist/role/fixture cleanup all passed.
 
 To include live HTTP security-header checks for the public app, pass the public
 URL. This verifies `/healthz` keeps `X-Frame-Options: DENY` and
@@ -733,18 +797,33 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
 - [ ] Server-only secrets set in the host environment (Supabase service role +
       one valid legacy/versioned hash-pepper configuration + optional AI key),
       not in `VITE_*`.
+- [ ] `REQUIRE_ADMIN_MFA_AAL2` is explicitly `true` or an approved bounded
+      recovery `false`; it is never missing in production/Railway.
 - [ ] Before applying the exact admin-role reconciliation migration, run
       `npm run admin-role:preflight` in the production environment and require
       `staleAdminRoleCount=0` and `missingAdminRoleCount=0`; retain counts only.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with
       admin email(s), and Supabase email confirmation kept enabled so
       allowlisted admins receive `admin` only after verifying mailbox ownership.
+- [x] In isolated staging,
+      `20260729131000_admin_mfa_aal2_rls.sql` is applied, official migration
+      history matches, and the same-client MFA smoke proves protected
+      PostgREST AAL1 denial plus AAL2 success with exact cleanup.
+- [ ] Apply `20260729131000_admin_mfa_aal2_rls.sql` to production only in its
+      separately approved migration/deployment window.
+- [x] In isolated staging,
+      `20260729105030_family_notification_claim_retention.sql` is applied and
+      pgTAP/count-only cleanup evidence proves expired claims are pruned while
+      future claims and active relationships remain.
+- [ ] Apply `20260729105030_family_notification_claim_retention.sql` to
+      production only in its separately approved migration/deployment window.
 - [ ] Public impact counter migration applied so report/loss totals count only
       `reports.status='confirmed'`.
 - [ ] `TRUST_PROXY_IP_HEADERS` is unset/false, or the edge proxy has been
       verified to overwrite spoofed forwarding headers and
       `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` is set before enabling it.
-- [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`).
+- [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`) and do
+      not substitute service-role reads for authenticated AAL2 evidence.
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.
 - [ ] `telegram_sessions` migrations applied, including
       `20260711010000_telegram_session_update_sequence.sql` and its
