@@ -76,6 +76,22 @@ function decodeJwtClaims(accessToken: string): Record<string, unknown> {
   }
 }
 
+type ProtectedReadResult = {
+  count: number | null;
+  error: { code?: string } | null;
+};
+
+function assertAal1ProtectedReadDenied(result: ProtectedReadResult): void {
+  if (result.error) {
+    assert(
+      result.error.code === "42501",
+      `AAL1 protected read failed unexpectedly: ${result.error.code ?? "unknown"}`,
+    );
+    return;
+  }
+  assert(result.count === 0, "AAL1 user client could read the protected fixture");
+}
+
 function decodeBase32(value: string): Buffer {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   let bits = "";
@@ -143,6 +159,8 @@ async function main(): Promise<void> {
   const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`.toLowerCase();
   const email = `restore-drill-${suffix}@example.invalid`;
   const password = `${randomBytes(24).toString("base64url")}Aa7!`;
+  const protectedCheckId = randomUUID();
+  const protectedCheckHash = randomBytes(32).toString("hex");
   let userId: string | null = null;
   let factorId: string | null = null;
   let userClient: SupabaseClient | null = null;
@@ -173,6 +191,20 @@ async function main(): Promise<void> {
     assert(roleNames.has("user") && roleNames.has("admin"), "allowlist admin projection failed");
     console.log("OK confirmed allowlist projected user and admin roles");
 
+    const { error: fixtureError } = await adminClient().from("checks").insert({
+      id: protectedCheckId,
+      input_type: "text",
+      redacted_input: "[hosted staging MFA smoke fixture]",
+      input_hash: protectedCheckHash,
+      risk_level: "unknown",
+      risk_score: 0,
+      reason_codes: [],
+      language: "en",
+    });
+    if (fixtureError) {
+      fail(`protected fixture creation failed: ${fixtureError.code ?? "unknown"}`);
+    }
+
     userClient = createClient(APPROVED_ORIGIN, publishableKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -195,6 +227,12 @@ async function main(): Promise<void> {
       aal1Denied = true;
     }
     assert(aal1Denied, "protected admin gate did not reject AAL1");
+
+    const aal1ProtectedRead = await userClient
+      .from("checks")
+      .select("id", { count: "exact", head: true })
+      .eq("id", protectedCheckId);
+    assertAal1ProtectedReadDenied(aal1ProtectedRead);
 
     const { data: enrollment, error: enrollmentError } = await userClient.auth.mfa.enroll({
       factorType: "totp",
@@ -232,14 +270,15 @@ async function main(): Promise<void> {
     assert(policy.requireMfaAal2, "admin MFA policy is not enabled");
     assert(policy.currentAal === "aal2", "admin policy did not observe AAL2");
 
-    const { count: reportCount, error: reportCountError } = await adminClient()
-      .from("reports")
-      .select("id", { count: "exact", head: true });
-    if (reportCountError) {
-      fail(`protected read-only admin count failed: ${reportCountError.code ?? "unknown"}`);
+    const aal2ProtectedRead = await userClient
+      .from("checks")
+      .select("id", { count: "exact", head: true })
+      .eq("id", protectedCheckId);
+    if (aal2ProtectedRead.error) {
+      fail(`AAL2 user-client protected read failed: ${aal2ProtectedRead.error.code ?? "unknown"}`);
     }
-    assert(reportCount === 8, "protected read-only admin count changed");
-    console.log("OK TOTP verified, AAL1 denied, AAL2 admin read allowed");
+    assert(aal2ProtectedRead.count === 1, "AAL2 user client could not read the protected fixture");
+    console.log("OK TOTP verified, AAL1 user-client read denied, AAL2 user-client read allowed");
   } catch (error) {
     primaryError = error;
   } finally {
@@ -251,6 +290,14 @@ async function main(): Promise<void> {
     }
     if (userClient) {
       await userClient.auth.signOut();
+    }
+
+    const { error: fixtureDeleteError } = await adminClient()
+      .from("checks")
+      .delete()
+      .eq("id", protectedCheckId);
+    if (fixtureDeleteError) {
+      cleanupErrors.push(`protected-fixture:${fixtureDeleteError.code ?? "unknown"}`);
     }
 
     const { error: allowlistDeleteError } = await adminClient()
@@ -266,7 +313,7 @@ async function main(): Promise<void> {
       if (userDeleteError) cleanupErrors.push(`user:${userDeleteError.code ?? "unknown"}`);
     }
 
-    const [{ count: remainingAllowlist }, { count: remainingRoles }] = await Promise.all([
+    const [remainingAllowlist, remainingRoles, remainingProtectedChecks] = await Promise.all([
       adminClient()
         .from("admin_allowlist")
         .select("email", { count: "exact", head: true })
@@ -277,9 +324,29 @@ async function main(): Promise<void> {
             .select("role", { count: "exact", head: true })
             .eq("user_id", userId)
         : Promise.resolve({ count: 0, error: null }),
+      adminClient()
+        .from("checks")
+        .select("id", { count: "exact", head: true })
+        .eq("id", protectedCheckId),
     ]);
-    if ((remainingAllowlist ?? 0) !== 0) cleanupErrors.push("allowlist:remaining");
-    if ((remainingRoles ?? 0) !== 0) cleanupErrors.push("roles:remaining");
+
+    if (remainingAllowlist.error) {
+      cleanupErrors.push(`allowlist:verify:${remainingAllowlist.error.code ?? "unknown"}`);
+    } else if ((remainingAllowlist.count ?? 0) !== 0) {
+      cleanupErrors.push("allowlist:remaining");
+    }
+    if (remainingRoles.error) {
+      cleanupErrors.push(`roles:verify:${remainingRoles.error.code ?? "unknown"}`);
+    } else if ((remainingRoles.count ?? 0) !== 0) {
+      cleanupErrors.push("roles:remaining");
+    }
+    if (remainingProtectedChecks.error) {
+      cleanupErrors.push(
+        `protected-fixture:verify:${remainingProtectedChecks.error.code ?? "unknown"}`,
+      );
+    } else if ((remainingProtectedChecks.count ?? 0) !== 0) {
+      cleanupErrors.push("protected-fixture:remaining");
+    }
 
     if (cleanupErrors.length > 0) {
       fail(`synthetic MFA cleanup failed: ${cleanupErrors.join(",")}`);

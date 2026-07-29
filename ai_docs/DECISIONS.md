@@ -1,6 +1,58 @@
 # Decisions
 
-Architecture and product decisions. Newest entries can be appended; keep them short.
+Architecture and product decisions. Prepend newest entries; keep them short and
+use a new unique id.
+
+## D-090 - Functional recovery and automated voice checks do not close human or SLA gates
+
+A successful logical restore, catalog/RLS checks and synthetic service flows
+prove functional recoverability. They do not prove an RPO SLA or measured RTO
+without snapshot-frequency basis, complete start/end and per-phase timing,
+retained error classification and a named owner. Supabase Free therefore keeps
+the target RPO explicitly unguaranteed.
+
+Likewise, OGG validation, transport smoke and provider transcript replay do not
+replace human listen-through of every prerecorded RU/UZ/EN asset or real-client
+RU/UZ Voice-in/STT acceptance. These evidence classes remain separate release
+gates.
+
+## D-089 - Local secrets and linked database mutations require two independent controls
+
+Git ignore prevents accidental tracking but is not filesystem access control.
+Workstation secret files must be owner/admin-only. A raw `supabase ... --linked`
+mutation is not an approved operator path: the repository wrapper hard-blocks
+the known production ref and requires the linked ref, all staging environment
+refs and an explicit manual staging-ref confirmation to agree before a fixed
+list or no-change dry-run executes. The one-time repair and generic mutating
+push recipes were retired after staging closeout, and the child CLI receives
+only a minimized system/proxy/Supabase-CLI environment. This local guard does
+not authorize a staging or production change.
+
+## D-088 - Family alert claims expire through scheduled retention
+
+`expires_at` plus opportunistic cleanup is insufficient for an inactive Family
+Shield relationship. Metadata-only notification claims must be deleted by the
+existing scheduled `private.prune_app_retention()` job when
+`expires_at <= as_of`. Active relationships and future claims remain intact;
+the maintenance function stays service-role/private only.
+
+## D-087 - Dynamic response compression propagates failure and honors refusal
+
+The dynamic Brotli/gzip wrapper must propagate upstream errors, downstream
+cancellation and request abort through one stream pipeline. Strict
+`Accept-Encoding` parsing must preserve `Vary` and return `406` when the client
+forbids Brotli, gzip and identity. Nitro's earlier static asset handler bypasses
+this wrapper, so its incomplete general `q`-weight negotiation remains an
+explicit upstream/static-serving limitation rather than a falsely closed gate.
+
+## D-086 - Admin authorization requires AAL2 at both application and RLS boundaries
+
+An `admin` role alone is not sufficient for protected access. Admin server
+functions require an AAL2 Supabase session, and direct authenticated
+PostgREST/RLS policies must require the same role-plus-`aal2` predicate.
+Confirmed public rows keep their ordinary public policy and service role keeps
+its server-only RLS bypass. Production/Railway must explicitly configure the
+application flag; missing or invalid configuration fails closed.
 
 ## D-085 - Public checking is one auto-detecting flow; admin decisions are deliberate
 
@@ -58,6 +110,12 @@ check. The snapshot is chat-scoped and enum-only (`kind`, optional
 `askedContext`/`scenario`, timestamp); it never contains raw text, amount,
 recipient, phone, URL, file or credential. A concrete artifact and a negated
 completion always bypass this context. Inline remains fully stateless.
+
+A Telegram surface word cannot erase stronger bank/card code-theft evidence.
+Uzbek confirmation and next-step turns must retain recent enum-only bank/code
+plus emergency context. A safe-account request, including the common Russian
+`безапасный счет` typo, must say directly not to transfer money and must not
+collapse to generic call advice.
 
 The release gate is deterministic and offline: the 1,080-case adversarial
 matrix must pass both Direct and Inline semantic oracles, the 1,175-case Inline
@@ -141,6 +199,9 @@ never counts as a separate dialogue.
 Emergency text classification is a shared pure module used by both the real
 handler and corpus generation, so active calls and first-person already-done
 events cannot be documented with a different reply family than production.
+Voice asset validation and provider-sanitized replay follow the same evidence
+boundary: neither closes real RU/UZ/EN client STT behavior or the required human
+listen-through of prerecorded Voice-out.
 
 ## D-079 - CI security gates scan the release shape, not only source tests
 

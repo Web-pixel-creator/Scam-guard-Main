@@ -622,6 +622,7 @@ async function sendVictimIntentGuidance(
   ctx: HandlerCtx,
   match: VictimIntentMatch,
   lang: HandlerCtx["session"]["lang"],
+  preserveEmergencyContext = false,
 ): Promise<void> {
   const delivery = await sendMessage({
     chatId: ctx.chatId,
@@ -644,10 +645,20 @@ async function sendVictimIntentGuidance(
     ...previousScenarioData
   } = ctx.session.scenarioData;
   if (!nextContext && !_previousVictimIntent) return;
+  const previousEmergencyContext = preserveEmergencyContext
+    ? {
+        ...(_previousLiveCallContext === undefined
+          ? {}
+          : { lastLiveCallContext: _previousLiveCallContext }),
+        ...(_previousPanicAt === undefined ? {} : { lastPanicAt: _previousPanicAt }),
+        ...(_previousPanicId === undefined ? {} : { lastPanicId: _previousPanicId }),
+      }
+    : {};
   await saveSession(ctx.userId, {
     scenarioData: withSessionChatScope(
       {
         ...previousScenarioData,
+        ...previousEmergencyContext,
         ...(nextContext ? { lastVictimIntent: nextContext } : {}),
       },
       ctx.chatId,
@@ -859,10 +870,15 @@ async function sendPanicRoute(
   ctx: HandlerCtx,
   panicId: PanicScenarioId,
   triggerText?: string,
+  victimMatch?: VictimIntentMatch,
 ): Promise<void> {
   const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
   const liveCallContext = panicId === 6 ? classifyLiveCallContext(triggerText) : undefined;
-  const nextScenarioData = withPanicContextData(previousScenarioData, panicId);
+  const victimContext = victimMatch ? buildVictimFollowUpContext(victimMatch) : null;
+  const nextScenarioData = {
+    ...withPanicContextData(previousScenarioData, panicId),
+    ...(victimContext ? { lastVictimIntent: victimContext } : {}),
+  };
   if (liveCallContext !== undefined) {
     nextScenarioData.lastLiveCallContext = liveCallContext;
   }
@@ -1213,7 +1229,10 @@ export async function handleCheck(
     : questionedPhone
       ? null
       : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
-  if (victimGuidanceFollowUp !== null) {
+  const deferVictimNextStepsToEmergency =
+    victimGuidanceFollowUp?.action === "next_steps" &&
+    hasRecentEmergencyContext(ctx.session.scenarioData);
+  if (victimGuidanceFollowUp !== null && !deferVictimNextStepsToEmergency) {
     await sendMessage({
       chatId: ctx.chatId,
       text: contractReplyText(
@@ -1230,10 +1249,16 @@ export async function handleCheck(
   // must not swallow short-code questions such as «Ишонч телефони 1344ми».
   const directVictimIntent = source || questionedPhone ? null : classifyVictimIntent(trimmed);
   const contextualVictimIntent =
-    source || directVictimIntent
+    source || questionedPhone
       ? null
       : classifyVictimContextualFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
-  const victimIntent = directVictimIntent ?? contextualVictimIntent;
+  // A narrow confirmation such as Uzbek «rostdan firibgarlarmi» belongs to
+  // recent enum-only guidance. It may also look like a standalone generic scam
+  // concern, so let only the proven contextual match override that broad route.
+  const victimIntent =
+    directVictimIntent?.kind === "general_scam_concern" && contextualVictimIntent
+      ? contextualVictimIntent
+      : (directVictimIntent ?? contextualVictimIntent);
   if (victimIntent !== null && shouldVictimIntentOverridePanic(victimIntent)) {
     await sendVictimIntentGuidance(ctx, victimIntent, lang);
     return;
@@ -1243,7 +1268,12 @@ export async function handleCheck(
   // message says money/code was already sent, route to urgent aftercare.
   const textPanicId = classifyTextPanicIntent(trimmed, source);
   if (textPanicId !== null) {
-    await sendPanicRoute(ctx, textPanicId, trimmed);
+    await sendPanicRoute(
+      ctx,
+      textPanicId,
+      trimmed,
+      victimIntent?.kind === "code_request" ? victimIntent : undefined,
+    );
     return;
   }
 
@@ -1252,7 +1282,12 @@ export async function handleCheck(
     hasRecentEmergencyContext(ctx.session.scenarioData ?? {}) &&
     shouldVictimIntentOverrideFollowUps(victimIntent)
   ) {
-    await sendVictimIntentGuidance(ctx, victimIntent, lang);
+    await sendVictimIntentGuidance(
+      ctx,
+      victimIntent,
+      lang,
+      victimIntent === contextualVictimIntent,
+    );
     return;
   }
 

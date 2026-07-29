@@ -26,13 +26,20 @@ export function getServerConfig() {
 /**
  * Whether admin server actions require a Supabase Auth `aal2` access token.
  *
- * This stays disabled when unset so the enforcement code can be deployed
- * before the admin enrollment/challenge UI. An invalid explicit value throws
- * instead of silently weakening a configuration that was meant to be enabled.
+ * Local development and tests stay disabled when unset. Production and Railway
+ * require an explicit value so losing the rollout flag cannot silently weaken
+ * an enabled deployment. Unsupported explicit values always fail closed.
  */
 export function getRequireAdminMfaAal2(): boolean {
   const value = process.env.REQUIRE_ADMIN_MFA_AAL2?.trim().toLowerCase();
-  if (!value) return false;
+  if (!value) {
+    const isProtectedRuntime =
+      process.env.NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT?.trim());
+    if (isProtectedRuntime) {
+      throw new Error("REQUIRE_ADMIN_MFA_AAL2 is required in production or Railway");
+    }
+    return false;
+  }
   if (value === "true") return true;
   if (value === "false") return false;
   throw new Error('Invalid REQUIRE_ADMIN_MFA_AAL2: expected "true" or "false"');

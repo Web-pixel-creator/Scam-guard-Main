@@ -2,13 +2,76 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-07-28 - Hosted recovery closure and local HTTP compression
+## 2026-07-29 - Local security-regression hardening and evidence correction
+
+- Kept production unchanged at `bff76eb`; source/application changes below
+  remain local on `agent/security-regression-hardening-20260729`, while the
+  isolated staging-only database evidence is recorded separately. The local
+  application gate passes 165 files / 12,853 tests, TypeScript, production
+  build with non-secret placeholders, `npm audit` with zero findings and lint
+  with zero errors plus eight established warnings. A fresh local Supabase
+  database applied all 33 migrations from scratch, schema lint reported no
+  errors and all four pgTAP files passed 86/86. The disposable cluster was
+  stopped without backup and left no local Supabase container or project volume.
+  Deployment remains open.
+- Added migration `20260729131000_admin_mfa_aal2_rls.sql`: protected
+  direct authenticated reads/updates require an admin AAL2 JWT. The revised
+  staging MFA smoke uses the same real user client for AAL1 denial and AAL2
+  success instead of a service-role read. Isolated staging exposed a nested
+  private-helper permission defect and invalid nested write CTEs before release;
+  both were fixed without granting `private` schema usage. Final hosted pgTAP
+  passes 23/23, including AAL2 non-admin denial, and catalog postflight passes.
+  The revised hosted same-client smoke then proved protected direct read denial
+  at AAL1 and exactly one visible fixture at AAL2, followed by exact factor,
+  Auth user, allowlist, role and fixture cleanup.
+- Production/Railway now requires an explicit `REQUIRE_ADMIN_MFA_AAL2` value;
+  missing, empty or invalid configuration fails closed. Explicit `false`
+  remains a bounded rollout/recovery state, while dev/test may omit the flag.
+- Hardened dynamic HTTP compression with strict quality parsing, `406` when all
+  encodings including identity are forbidden, and an abort-aware pipeline for
+  upstream error, downstream cancellation and request abort. Focused checks
+  pass 27/27. Nitro's earlier static asset handler still has an open general
+  `q`-weight limitation.
+- Fixed three exact Telegram semantic tails: bank/card code theft delivered in
+  Telegram, Uzbek bank/code confirmation followed by next steps, and the common
+  Russian `безапасный счет` typo. Targeted 468/468, Telegram 10,872/10,872 and
+  adversarial 2,161/2,161 pass locally without network/API use.
+- Added migration
+  `20260729105030_family_notification_claim_retention.sql` so the existing daily
+  maintenance function deletes expired metadata-only Family claims even when
+  no later claim occurs. Its focused contract passes 15/15 and isolated-staging
+  pgTAP passes 10/10.
+- Applied both migrations through the isolated staging SQL Editor with explicit
+  transactions and lock/statement timeouts. All twelve final catalog checks
+  passed and rollback left zero synthetic fixture rows. SQL Editor intentionally
+  left both migration-history rows absent. The fixed guarded CLI repair later
+  recorded exactly `20260729105030` and `20260729131000`; a second migration
+  list fully matched local history and guarded `db push --dry-run` reported the
+  remote database up to date, so no ordinary push ran. The restored staging
+  project lacks `cron.job`, so schedule parity is recorded as a gap rather than
+  claimed.
+- Restricted the local `.env` ACL to the owner, `SYSTEM` and Administrators and
+  added a fixed-recipe Supabase wrapper that hard-blocks the production link and
+  requires all staging refs plus explicit manual confirmation to agree. The
+  one-time repair pinned the two applied versions and their SHA-256, required a
+  second acknowledgement and rejected duplicate/symlinked files or a binary
+  override. After closeout, repair and ordinary push recipes were retired; only
+  status/list/dry-run remain, and the child CLI receives no application
+  service-role, Telegram, AI or Vite environment variables.
+- Corrected the evidence model: the 2026-07-28 hosted run is functional restore
+  evidence, not a measured RPO/RTO; prerecorded asset/transport checks do not
+  close human Voice-out or real RU/UZ Voice-in acceptance.
+
+## 2026-07-28 - Hosted functional restore drill and production HTTP-compression baseline
 
 - Restored the portable v2 archive into isolated Free/nano Supabase staging
   with outbound integrations disabled.
 - Verified catalog/RLS, exact migration history, schema lint, pgTAP 53/53,
-  service-role workflows, synthetic TOTP AAL1/AAL2 and complete cleanup back to
-  the ten restored count invariants.
+  service-role workflows, synthetic TOTP upgrade and complete cleanup back to
+  the ten restored count invariants. The original final database read used
+  service role; it did not prove direct AAL1/AAL2 PostgREST policy behavior.
+  The schema phase also lacked complete stderr/per-phase timing, so this was not
+  RPO/RTO closure.
 - Fast-forwarded and deployed the verified documentation/staging-smoke baseline
   as `f3cfb42`; Railway deployment
   `18b5f7f4-731f-495b-b3e6-d3114c320d83` passed health and the safe no-AI,
@@ -16,10 +79,12 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Added and deployed streaming Brotli/gzip for eligible dynamic GET responses
   plus Nitro-generated Brotli and gzip variants for public assets as `5c08a23`;
   Railway deployment `00cd6dcb-19bd-4fd5-b063-e96bcd216b32` succeeded.
-- Production measurement reduced homepage HTML from 62,216 decoded bytes to
+- Production normal-path measurement reduced homepage HTML from 62,216 decoded bytes to
   14,160 bytes with Brotli and the main CSS from 258,542 to 40,302 bytes.
   Gzip fallback, explicit identity, quality weights, CSP preservation and an
-  exact CSS round trip passed.
+  exact CSS round trip passed. This did not test upstream stream failure,
+  downstream cancellation, full refusal/`406` or general Nitro static
+  `q`-weight negotiation; the 2026-07-29 entry supersedes that broader reading.
 - The release passes 161 test files and 12,796/12,796 tests, TypeScript,
   production build, lint with the established eight warnings and `npm audit`
   with zero vulnerabilities. Safe production smoke returned `200` for public
@@ -30,8 +95,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 
 - Added `CURRENT_STATE.md` as the short operational source of truth for the
   deployed `6a13419` baseline and remaining release gates.
-- Reconciled the completed two-owner Admin MFA rollout and production
-  hash-pepper `v2` overlap in `OPEN_TASKS.md`.
+- Reconciled the two-owner Admin MFA UI/enrollment/server-function rollout and
+  production hash-pepper `v2` overlap in `OPEN_TASKS.md`. The later 2026-07-29
+  audit found and locally fixed the separate direct PostgREST/RLS AAL2 gap.
 - Recorded that the existing AES-256 EFS archive is locally verified but still
   tied to the current Windows profile, then exported its password-protected PFX.
 - Added a separate Document Encryption recovery certificate, CMS-encrypted the

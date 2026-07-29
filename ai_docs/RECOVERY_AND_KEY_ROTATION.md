@@ -18,6 +18,9 @@ command without a separately approved maintenance window.
   PITR, so the proposed launch RPO is not guaranteed while the project remains
   on Free. Until an upgrade, create an encrypted logical export at least weekly
   and immediately before every approved risky schema or Auth change.
+- Remaining on Free is an explicit pilot risk acceptance, not evidence that the
+  proposed RPO is met. A logical snapshot proves one recoverable point only; it
+  does not establish an ongoing backup SLA.
 - Supabase documents managed daily backups for paid projects and optional PITR:
   <https://supabase.com/docs/guides/platform/backups>.
 
@@ -108,6 +111,40 @@ command without a separately approved maintenance window.
 5. Retain an owner, creation time, expiry, encryption/key owner and restore-test
    date for each export.
 
+## Local operator workstation and linked-project guard
+
+Git ignore prevents accidental tracking but does not restrict another local
+account. Secret-bearing `.env` files must grant access only to the operator,
+`SYSTEM` and Administrators. The 2026-07-29 workstation ACL was narrowed to
+that set; never record secret values as evidence.
+
+Do not run raw `supabase ... --linked` list, dry-run or mutation commands from
+this repository. The live fixed package recipes are inspection-only:
+
+```powershell
+npm run supabase:linked:status
+npm run supabase:staging:migration-list -- --confirm-project-ref=gwwcooupkmhihaigympb
+npm run supabase:staging:db-push:dry-run -- --confirm-project-ref=gwwcooupkmhihaigympb
+```
+
+The list and dry-run execute only when the linked ref,
+`HOSTED_STAGING_PROJECT_REF`, `SUPABASE_URL`, `VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PROJECT_ID` and explicit confirmation all equal the approved
+staging project. `SUPABASE_CLI_BINARY_OVERRIDE` is rejected, and the child CLI
+receives only a minimal system/proxy/Supabase-CLI environment allowlist. The
+known production ref and every unknown ref are hard blocked. No live package
+recipe performs repair or push. This technical guard does not grant approval to
+apply a migration; external changes still require a separately reviewed
+manifest and authorized staging/production window.
+
+The 2026-07-29 staging closeout used the earlier one-time guarded sequence. The
+initial list showed only `20260729105030` and `20260729131000` missing remotely;
+fixed repair required exact version acknowledgement and normalized migration
+hashes, then marked only those versions applied; the second list fully matched and
+guarded dry-run reported the remote database up to date. No ordinary
+`db push` was executed. The subsequent same-client AAL1/AAL2 smoke also passed
+and restored every synthetic baseline.
+
 For the 2026-07-26 portable package, follow
 `C:\Users\user\OneDrive\Ishonch Guard Recovery\README-RECOVERY-V2.txt`.
 Prefer the restore-ready v2 package. The legacy archive is retained for audit
@@ -128,7 +165,9 @@ isolated non-production project and pass the drill below.
    appeals, checks, Telegram sessions/lifecycle rows and retention jobs. Do not
    export identifiers or matched secret values.
 5. Run app/RLS/admin/report/appeal/Telegram smokes against the isolated project;
-   disable all real outbound integrations.
+   disable all real outbound integrations. MFA evidence must use one ordinary
+   user client to show protected PostgREST denial at AAL1 and success at AAL2;
+   a service-role read is not a substitute.
 6. Destroy the staging copy only after the evidence record contains the backup
    timestamp, restore duration, migration head, invariant counts and cleanup
    owner. The destructive cleanup itself requires operator approval.
@@ -144,6 +183,25 @@ still run in an isolated Supabase project with outbound integrations disabled.
 The local database reconstruction/load took approximately 11 seconds after the
 local Supabase database was ready; this is diagnostic timing, not a hosted RTO
 measurement.
+
+### Hosted functional evidence (2026-07-28)
+
+The v2 archive was restored into isolated Free/nano project
+`gwwcooupkmhihaigympb` with outbound integrations disabled. Catalog/RLS,
+migration reconciliation, schema lint, pgTAP 53/53, bounded service paths,
+synthetic TOTP and cleanup/count invariants passed. Staging is retained pending
+separate deletion approval.
+
+This closes the functional hosted restore/service check only. The first schema
+client crossed its evidence timeout and its complete stderr/per-phase duration
+was not retained. The run therefore does not provide a complete measured RTO or
+an RPO basis. The original MFA smoke proved the application AAL1 gate and TOTP
+upgrade, but its final database read used service role; it did not prove direct
+PostgREST policy behavior. Migration `20260729131000` is now applied in isolated
+staging and its database pgTAP passes. The guarded official history repair,
+post-repair migration list and no-change dry-run completed, and the revised
+same-user-client AAL1/AAL2 HTTP/PostgREST smoke closed that boundary with exact
+synthetic cleanup.
 
 ## Application rollback drill
 
@@ -162,13 +220,13 @@ measurement.
 
 ## Key rotation matrix
 
-| Secret                          | Safe rotation order                                                                                                                                      | Required verification                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY` / fallback key | Create new provider key, update Railway/GitHub consumers, verify primary/fallback, then revoke old key.                                                  | AI monitor 200 plus deterministic no-key/429/5xx fallback tests.                                                     |
-| `TELEGRAM_WEBHOOK_SECRET`       | Generate a new high-entropy value, update Railway and GitHub monitor in one window, restart, then remove the old value.                                  | Missing secret 401, valid secret expected 503 in polling, leader 200, monitor green.                                 |
-| `TELEGRAM_BOT_TOKEN`            | Rotate in BotFather, update every Railway/GitHub consumer, restart polling without dropping updates, then verify the old token is rejected.              | `getMe`, pending queue, leader health, approved QA chat dispatch and cleanup.                                        |
-| Supabase service/secret key     | Use the Supabase Dashboard rotation workflow and overlap keys only when the platform supports it; update Railway and operator tooling before revocation. | App/RLS/security/admin smokes and no service key in client bundle/logs.                                              |
-| Supabase publishable key        | Rotate through the Dashboard, update server and `VITE_*` build variables, rebuild the client, then revoke the old key.                                   | Login, public check/report/appeal and RLS-deny checks.                                                               |
+| Secret                          | Safe rotation order                                                                                                                                                                                                      | Required verification                                                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OPENAI_API_KEY` / fallback key | Create new provider key, update Railway/GitHub consumers, verify primary/fallback, then revoke old key.                                                                                                                  | AI monitor 200 plus deterministic no-key/429/5xx fallback tests.                                                                                                               |
+| `TELEGRAM_WEBHOOK_SECRET`       | Generate a new high-entropy value, update Railway and GitHub monitor in one window, restart, then remove the old value.                                                                                                  | Missing secret 401, valid secret expected 503 in polling, leader 200, monitor green.                                                                                           |
+| `TELEGRAM_BOT_TOKEN`            | Rotate in BotFather, update every Railway/GitHub consumer, restart polling without dropping updates, then verify the old token is rejected.                                                                              | `getMe`, pending queue, leader health, approved QA chat dispatch and cleanup.                                                                                                  |
+| Supabase service/secret key     | Use the Supabase Dashboard rotation workflow and overlap keys only when the platform supports it; update Railway and operator tooling before revocation.                                                                 | App/RLS/security/admin smokes and no service key in client bundle/logs.                                                                                                        |
+| Supabase publishable key        | Rotate through the Dashboard, update server and `VITE_*` build variables, rebuild the client, then revoke the old key.                                                                                                   | Login, public check/report/appeal and RLS-deny checks.                                                                                                                         |
 | Hash pepper                     | Direct replacement remains forbidden. The local code and additive migration support one active and one previous version; deploy them first, then introduce a new active slot while retaining the old secret as `legacy`. | Focused/full tests, count-only version checks, known-legacy lookup, new-target write, pending Family Shield invite, report/appeal/admin continuity and rollback compatibility. |
 
 Every rotation record contains only secret name, owners, timestamps, consumer
@@ -241,40 +299,60 @@ Read-only Dashboard audit on 2026-07-24 (no settings were changed):
   are enabled;
 - leaked-password protection is disabled/unavailable on Free, CAPTCHA is
   disabled and user signups are enabled;
-- TOTP is enabled and the 15-minute AAL1-session limit is on. The local
-  application now has `/admin-mfa` enrollment and challenge/verify UI, refreshes
-  the session to AAL2, and prevents protected admin queries before the
-  authoritative policy check completes. A server-side AAL2 gate protects every
-  admin action when `REQUIRE_ADMIN_MFA_AAL2=true`.
-- The flag must remain unset/false until this exact build is deployed, an
-  approved admin and a second recovery owner are enrolled, and the recovery
-  drill below succeeds. The release gate therefore remains open; local code is
-  not production evidence.
+- TOTP is enabled and the 15-minute AAL1-session limit is on. Production has
+  `/admin-mfa` enrollment/challenge UI, refreshes the session to AAL2 and
+  protects every admin server function with
+  `REQUIRE_ADMIN_MFA_AAL2=true`. Two independently controlled owners are
+  enrolled.
+- The 2026-07-29 audit found that deployed direct authenticated PostgREST admin
+  policies still checked role without AAL2. Migration
+  `20260729131000_admin_mfa_aal2_rls.sql` adds
+  `private.is_admin_aal2()` to protected admin RLS SELECT/UPDATE policies while
+  preserving public confirmed-row reads and service-role bypass. The migration
+  is applied in isolated staging, its pgTAP passes there, guarded official
+  migration history now matches local, and the revised real-user-client
+  HTTP/PostgREST AAL1-deny/AAL2-allow smoke passed with exact cleanup.
+  Production is unchanged.
+- On the local branch production/Railway must set
+  `REQUIRE_ADMIN_MFA_AAL2=true|false` explicitly. Missing, empty or invalid
+  configuration fails closed. Explicit `false` is retained only as a bounded
+  enrollment/recovery rollback state; dev/test may omit the flag.
 
 Safe enablement order:
 
-1. deploy the enrollment/challenge UI while `REQUIRE_ADMIN_MFA_AAL2` is still
-   unset/false; do not combine first deployment and enforcement;
+1. deploy the enrollment/challenge UI with explicit
+   `REQUIRE_ADMIN_MFA_AAL2=false`; do not combine first deployment and
+   enforcement, and never rely on an unset production value;
 2. enroll one approved admin from `Admin -> MFA / security`, verify AAL2, then
    enroll and independently verify a second recovery owner;
 3. from a fresh AAL1 session, prove the policy routes to `/admin-mfa`, the
-   refreshed token carries `aal2`, and no protected admin query runs before
-   that transition;
+   refreshed token carries `aal2`, and no protected server-function query runs
+   before that transition;
 4. rehearse loss of the first authenticator. The second owner must verify the
    operator through the approved out-of-band process and use the authorized
    Supabase Auth factor-reset procedure. Ishonch Guard does not create recovery
    codes and nobody may request the QR secret or TOTP code;
-5. set `REQUIRE_ADMIN_MFA_AAL2=true` only in a separate approved window, then
+5. confirm the reviewed AAL2 RLS migration is already recorded in isolated
+   staging and retain the completed same-client proof of protected direct
+   PostgREST denial at AAL1 and success at AAL2; a service-role query is not
+   evidence for this boundary. Any future migration version requires a separate
+   reviewed apply process;
+6. set `REQUIRE_ADMIN_MFA_AAL2=true` only in a separate approved window, then
    verify all read and mutation admin actions with both owners;
-6. if the UI cannot complete a challenge, remove/disable the flag as the bounded
-   rollback. Invalid explicit flag values intentionally fail closed.
+7. if the UI cannot complete a challenge, set explicit
+   `REQUIRE_ADMIN_MFA_AAL2=false` only as the bounded rollback. Missing and
+   invalid production values intentionally fail closed.
 
 ## Evidence required to close the release gates
 
-- one successful isolated restore and application rollback/return drill;
-- measured RPO/RTO and named owners;
+- one successful isolated functional restore is recorded; a separately
+  approved application rollback/return drill remains open;
+- complete future restore start/end and per-phase timing/error evidence,
+  measured recovery duration, explicit RPO basis and named owners;
 - one rotation drill for AI, Telegram webhook and one Supabase key class;
 - an applied and drilled versioned hash-pepper overlap path plus a separately
   approved retirement strategy for the previous pepper;
-- count-only evidence that leaked-password protection and Auth policy are on;
+- count-only evidence that required Auth policies are on. While the pilot stays
+  on Supabase Free, record leaked-password protection as an explicitly accepted
+  unavailable control rather than falsely marking it enabled;
 - no credential values or production user data in evidence artifacts.

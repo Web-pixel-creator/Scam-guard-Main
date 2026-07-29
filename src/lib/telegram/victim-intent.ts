@@ -295,6 +295,18 @@ function isExplicitCodeRequest(text: string): boolean {
   );
 }
 
+function isBankOrCardCodeDisclosureRequest(text: string): boolean {
+  return (
+    hasVictimRequestFrame(text) &&
+    hasAskVerb(text) &&
+    /(?:банк|bank|карт|card|karta)/iu.test(text) &&
+    /(?:код|code|kod|цифр|digits)/iu.test(text) &&
+    /(?:продикт|назва|сказа|сообщ|переда|отправ|дикт|tell|say|share|send|dictat|ayt|yubor|jo['’]?nat)/iu.test(
+      text,
+    )
+  );
+}
+
 function isPensionOrSubsidyRequest(text: string): boolean {
   return (
     /(?:пенси\p{L}*|нафақа|нафака|субсиди\p{L}*|ижтимоий\s+ҳимоя|ижтимоий\s+химоя|nafaqa|subsidiya|ijtimoiy\s+himoya|pension|benefit)/iu.test(
@@ -751,7 +763,7 @@ const ASKED_CONTEXT_KINDS = new Set<AskedContextKind>([
 ]);
 
 const SHORT_CONTEXT_CONFIRMATION_RE =
-  /^(?:точно|вы\s+уверены|ты\s+уверен|правда|really|are\s+you\s+sure|is\s+that\s+right|rostmi|aniqmi|ishonchingiz\s+komilmi)[?!.\s]*$/iu;
+  /^(?:точно|вы\s+уверены|ты\s+уверен|правда|really|are\s+you\s+sure|is\s+that\s+right|rostmi|rostdan\s+firibgar(?:lar)?mi|aniqmi|ishonchingiz\s+komilmi)[?!.\s]*$/iu;
 const SHORT_CONTEXT_WHY_RE =
   /^(?:почему(?:\s+это|\s+так)?\s+(?:опасно|рискованно)|why\s+is\s+(?:this|it)\s+(?:dangerous|risky)|nega\s+(?:bu\s+)?(?:xavfli|xatarli))[?!.\s]*$/iu;
 const SHORT_CONTEXT_NEXT_STEPS_RE =
@@ -1006,7 +1018,7 @@ function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMa
     hasAllScenarioSignals(normalized, [
       /(?:полици|police|polits|poits|iib|iiv)/iu,
       /(?:уголовн|завед\p{L}*\s+дел|возбуд\p{L}*\s+дел|criminal\s+case|open\p{L}*\s+(?:a\s+)?case|jinoiy\s+ish)/iu,
-      /(?:деньг|money|pul|перев|transfer|o['’]?tkaz|безопасн\p{L}*\s+сч[её]т|safe\s+account|xavfsiz\s+hisob|треб|demand|talab)/iu,
+      /(?:деньг|money|pul|перев|transfer|o['’]?tkaz|без[оа]пасн\p{L}*\s+сч[её]т|safe\s+account|xavfsiz\s+hisob|треб|demand|talab)/iu,
     ])
   ) {
     return {
@@ -1193,7 +1205,7 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
   if (
     hasAllScenarioSignals(normalized, [
       /(?:bank|банк)/iu,
-      /(?:безопасн\p{L}*\s+сч[её]т|safe\s+account|xavfsiz\s+hisob)/iu,
+      /(?:без[оа]пасн\p{L}*\s+сч[её]т|safe\s+account|xavfsiz\s+hisob)/iu,
       /(?:перев|transfer|o['’]?tkaz|деньг|money|pul)/iu,
     ])
   ) {
@@ -1467,6 +1479,13 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     )
   ) {
     return { kind: "official_impersonation", askedContext: "transfer" };
+  }
+
+  // A Telegram message can carry a bank/card code-theft request without being
+  // a Telegram-login takeover. Keep the requested secret above the broad
+  // Telegram-news matcher only when bank/card and disclosure signals coexist.
+  if (isBankOrCardCodeDisclosureRequest(normalized)) {
+    return { kind: "code_request", askedContext: "code" };
   }
 
   const newsIntent = classifyNewsVictimIntent(normalized);

@@ -28,6 +28,7 @@ describe("HTTP content encoding negotiation", () => {
     expect(selectContentEncoding("br;q=0, gzip;q=0")).toBeNull();
     expect(selectContentEncoding("br;q=0.3, identity;q=0.8")).toBeNull();
     expect(selectContentEncoding("identity")).toBeNull();
+    expect(selectContentEncoding("br;q=0.8junk, gzip;q=0.4")).toBe("gzip");
   });
 
   it("supports wildcard negotiation without overriding explicit exclusions", () => {
@@ -78,6 +79,132 @@ describe("HTTP response compression", () => {
 
     expect(response.headers.get("content-encoding")).toBeNull();
     expect(response.headers.get("vary")).toBe("Accept-Encoding");
+  });
+
+  it.each(["br;q=0, gzip;q=0, identity;q=0", "deflate;q=1, identity;q=0", "identity;q=0, *;q=0"])(
+    "returns 406 when no available representation is acceptable: %s",
+    (acceptEncoding) => {
+      const request = new Request("https://ishonch.example/", {
+        headers: { "accept-encoding": acceptEncoding },
+      });
+      const response = textResponse({
+        "content-length": String(Buffer.byteLength(LARGE_TEXT)),
+        "content-security-policy": "default-src 'self'",
+        etag: '"representation-tag"',
+      });
+
+      const result = compressHttpResponse(request, response);
+
+      expect(result.status).toBe(406);
+      expect(result.statusText).toBe("Not Acceptable");
+      expect(result.body).toBeNull();
+      expect(result.headers.get("vary")).toBe("Accept-Encoding");
+      expect(result.headers.get("content-security-policy")).toBe("default-src 'self'");
+      expect(result.headers.get("content-type")).toBeNull();
+      expect(result.headers.get("content-length")).toBeNull();
+      expect(result.headers.get("etag")).toBeNull();
+    },
+  );
+
+  it("keeps identity available by default when only supported codings are excluded", () => {
+    const request = new Request("https://ishonch.example/", {
+      headers: { "accept-encoding": "br;q=0, gzip;q=0" },
+    });
+
+    const result = compressHttpResponse(request, textResponse());
+
+    expect(result.status).toBe(200);
+    expect(result.headers.get("content-encoding")).toBeNull();
+  });
+
+  it("propagates an upstream body failure to the compressed response consumer", async () => {
+    const upstreamError = new Error("synthetic upstream failure");
+    let sourceController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const sourceBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        sourceController = controller;
+        controller.enqueue(new TextEncoder().encode(LARGE_TEXT));
+      },
+    });
+    const request = new Request("https://ishonch.example/", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    const result = compressHttpResponse(
+      request,
+      new Response(sourceBody, { headers: { "content-type": "text/plain" } }),
+    );
+    const reader = result.body?.getReader();
+
+    expect(reader).toBeDefined();
+    await expect(reader?.read()).resolves.toMatchObject({ done: false });
+    sourceController?.error(upstreamError);
+    await expect(reader?.read()).rejects.toThrow("synthetic upstream failure");
+  });
+
+  it("cancels the upstream body when the compressed response consumer cancels", async () => {
+    let observeCancellation: ((reason: unknown) => void) | undefined;
+    const cancellationObserved = new Promise<unknown>((resolve) => {
+      observeCancellation = resolve;
+    });
+    const sourceBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(LARGE_TEXT));
+      },
+      cancel(reason) {
+        observeCancellation?.(reason);
+      },
+    });
+    const request = new Request("https://ishonch.example/", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    const result = compressHttpResponse(
+      request,
+      new Response(sourceBody, { headers: { "content-type": "text/plain" } }),
+    );
+    const reader = result.body?.getReader();
+    const cancellationReason = new Error("consumer stopped reading");
+
+    expect(reader).toBeDefined();
+    await expect(reader?.read()).resolves.toMatchObject({ done: false });
+    await reader?.cancel(cancellationReason);
+    await expect(cancellationObserved).resolves.toBe(cancellationReason);
+  });
+
+  it("aborts compression and its upstream body when the request is aborted", async () => {
+    let observeCancellation: ((reason: unknown) => void) | undefined;
+    const cancellationObserved = new Promise<unknown>((resolve) => {
+      observeCancellation = resolve;
+    });
+    const sourceBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(LARGE_TEXT));
+      },
+      cancel(reason) {
+        observeCancellation?.(reason);
+      },
+    });
+    const requestAbort = new AbortController();
+    const request = new Request("https://ishonch.example/", {
+      headers: { "accept-encoding": "gzip" },
+      signal: requestAbort.signal,
+    });
+    const result = compressHttpResponse(
+      request,
+      new Response(sourceBody, { headers: { "content-type": "text/plain" } }),
+    );
+    const reader = result.body?.getReader();
+
+    expect(reader).toBeDefined();
+    await expect(reader?.read()).resolves.toMatchObject({ done: false });
+    requestAbort.abort();
+    await expect(reader?.read()).rejects.toMatchObject({
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
+    await expect(cancellationObserved).resolves.toMatchObject({
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
   });
 
   it.each([
