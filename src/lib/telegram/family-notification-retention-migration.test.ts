@@ -16,6 +16,16 @@ const scheduleMigration = readFileSync(
 ).replace(/\r\n?/gu, "\n");
 
 describe("Family Shield notification claim retention migration", () => {
+  it("bounds production DDL waits before replacing the retention function", () => {
+    expect(retentionMigration).toContain("SET lock_timeout = '5s'");
+    expect(retentionMigration).toContain("SET statement_timeout = '60s'");
+    const firstDdl = retentionMigration.indexOf(
+      "CREATE OR REPLACE FUNCTION private.prune_app_retention",
+    );
+    expect(retentionMigration.indexOf("SET lock_timeout")).toBeLessThan(firstDdl);
+    expect(retentionMigration.indexOf("SET statement_timeout")).toBeLessThan(firstDdl);
+  });
+
   it("adds expired claims to the existing scheduled retention path", () => {
     expect(retentionMigration).toMatch(
       /DELETE FROM private\.telegram_family_notification_claims\s+WHERE expires_at <= as_of/i,

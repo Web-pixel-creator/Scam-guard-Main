@@ -5,6 +5,10 @@
 -- claims in the existing daily retention function so expiry is guaranteed by
 -- the already-scheduled ishonch_prune_app_retention_daily cron job.
 
+-- Bound production DDL waits without relying on client-side PGOPTIONS.
+SET lock_timeout = '5s';
+SET statement_timeout = '60s';
+
 CREATE OR REPLACE FUNCTION private.prune_app_retention(as_of TIMESTAMPTZ DEFAULT now())
 RETURNS JSONB
 LANGUAGE plpgsql
