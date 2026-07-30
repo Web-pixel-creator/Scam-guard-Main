@@ -5,38 +5,41 @@ This document is the operator gate for:
 1. `20260729105030_family_notification_claim_retention.sql`
 2. `20260729131000_admin_mfa_aal2_rls.sql`
 
-It records a read-only preflight. It does **not** authorize or record a
-production migration, Railway deployment, Telegram QA run, paid AI call, or
-backup restore.
+Production inspection in this document is read-only. It records a disposable
+local restore drill, but it does **not** authorize or record a production
+migration, hosted backup restore, Railway deployment, Telegram QA run, or paid
+AI call.
 
 ## Current verdict
 
 **NO-GO for applying the migrations now.**
 
-The migration SQL and the live production baseline are internally consistent.
+The approved migration SQL, live production baseline, fresh encrypted export,
+clean restore drill, and exact-two-pending dry-run are internally consistent.
 The remaining blockers are operational:
 
-- a new encrypted logical export must be created immediately before the
-  production schema/Auth change; the verified 2026-07-26 restore-ready v2
-  archive is a valuable disaster-recovery point, but it is not a fresh
-  pre-change backup;
-- a production maintenance window, migration operator, rollback owner, and
-  explicit apply/deploy approval have not been recorded;
-- the production connection currently reports `lock_timeout = 0` and
-  `statement_timeout = 2min`. Supabase CLI 2.104.0 did not propagate a
-  process-local `PGOPTIONS` override in a read-only probe. The local candidate
-  now adds reviewed `SET lock_timeout = '5s'` and
-  `SET statement_timeout = '60s'` statements to both still-unapplied migration
-  files. The 60-second value applies per SQL statement, not to the whole
-  migration or `db push`. Both settings are connection-local; a fresh connection
-  still reports production defaults. It has passed every local
-  database/repository gate recorded below, but before GO it must still be
-  recorded in an approved remote commit. Never rely on `PGOPTIONS` for this
-  window, and require the exact-two-pending gate so these session settings never
-  carry into an unrelated migration;
-- both independently controlled MFA owners must confirm availability during
-  the window. Count-only evidence proves two verified owners exist, not that
-  both people are presently reachable.
+- a production maintenance window, named migration operator, independent
+  rollback owner, and explicit apply/deploy approval have not been recorded;
+- the human owners of the two distinct eligible admin accounts with verified
+  TOTP must confirm they independently control them and are available during
+  the window. Count-only evidence proves two distinct account/factor owners
+  exist, not that two independent people are presently reachable;
+- the Document Encryption recovery key has not been confirmed in a protected
+  location independent from both this workstation and the OneDrive backup
+  account, with its password held separately;
+- application writes were not frozen for the snapshot, and an explicit
+  acceptance of the possible loss interval after that snapshot has not been
+  recorded.
+
+The production connection reports `lock_timeout = 0` and
+`statement_timeout = 2min`. Supabase CLI 2.104.0 did not propagate a
+process-local `PGOPTIONS` override in a read-only probe. Both approved
+still-unapplied migration files therefore set reviewed connection-local
+`lock_timeout = '5s'` and `statement_timeout = '60s'` values before DDL. The
+60-second value applies per SQL statement, not to the whole migration or
+`db push`. A fresh connection still reports the production defaults. Never
+rely on `PGOPTIONS` for this window, and retain the exact-two-pending gate so
+these session settings cannot carry into an unrelated migration.
 
 Supabase currently recommends regular CLI exports and off-site copies for Free
 projects:
@@ -49,9 +52,10 @@ not the Dashboard SQL Editor:
 
 | Item                                           | Expected value                                                     |
 | ---------------------------------------------- | ------------------------------------------------------------------ |
-| Base release commit on `origin/main`           | `fbdeaec350f13477e98eddbc184ca28dd1556620`                         |
-| Base Git tree                                  | `5f14a621abd7d247c372552ff8c51f58d028d6ba`                         |
-| Timeout-only follow-up commit                  | Must be recorded in window evidence after approval                 |
+| Approved merge commit on `origin/main`         | `d053e3502986343003d92e2e15eb25d560840de3`                         |
+| Approved Git tree                              | `b30d10d898cf471f10d681828c2af841a1319aee`                         |
+| Timeout-only parent commit                     | `69ffc8716b0615a1e33a2ab7c363bed1aa4b711d`                         |
+| Review/merge                                   | GitHub PR `#116`; merge and post-merge CI/security gates passed    |
 | Migration order                                | `20260729105030` then `20260729131000`                             |
 | LF-normalized SHA-256, retention with timeouts | `383dd0b468e04e2d9f4488ad7bf3b9641bdb5684321d512a5f7cc30656b99e2b` |
 | LF-normalized SHA-256, MFA/RLS with timeouts   | `68bc65b20a5e45bc4591f2435a4348a8f679bc76d4894c1442a9af9c24e8ca87` |
@@ -62,11 +66,14 @@ If either migration file changes, both hashes and all database/repository test
 evidence become stale. Re-run the full release gate and update this document
 before applying anything.
 
-## Timeout-only candidate validation
+## Approved release validation
 
-The timeout-only candidate is local on
-`agent/production-migration-timeouts-20260729` and is not committed, pushed,
-merged, deployed, or applied to hosted Supabase.
+The timeout-only candidate was committed as `69ffc8716b0615a1e33a2ab7c363bed1aa4b711d`
+and merged through GitHub PR `#116` as
+`d053e3502986343003d92e2e15eb25d560840de3`. The merge tree
+`b30d10d898cf471f10d681828c2af841a1319aee` is the reviewed tree. Merge and
+post-merge CI/security gates passed. This source release has not been deployed
+to Railway, and neither target migration has been applied to production.
 
 Validation completed after adding the two session settings and two regression
 assertions:
@@ -93,10 +100,13 @@ immutable-input table above.
 
 ## Read-only production evidence
 
-Evidence was collected at approximately `2026-07-29T18:12Z`. The database query
-ran inside `BEGIN TRANSACTION READ ONLY ... ROLLBACK`. A temporary isolated
-Supabase work directory was deleted afterward. The repository's existing link
-still points to staging `gwwcooupkmhihaigympb`.
+Evidence was collected at approximately `2026-07-29T18:55Z`. The database query
+ran inside `BEGIN TRANSACTION READ ONLY ... ROLLBACK`. It was executed from a
+clean isolated worktree at the approved merge commit. Only that worktree was
+linked to production; the original repository link still points to staging
+`gwwcooupkmhihaigympb`. After evidence collection, the ignored
+`supabase/.temp` link metadata was removed from the isolated worktree so it is
+no longer linked to production.
 
 | Check                             | Observed                                                                       | Required                                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
@@ -116,9 +126,9 @@ still points to staging `gwwcooupkmhihaigympb`.
 | Cron history, last 48h            | 2 succeeded, 0 failed                                                          | No unexplained recent failure                                                            |
 | Last cron success                 | `2026-07-28T20:17:00.297387Z`                                                  | Informational                                                                            |
 | Family notification claims        | total `0`, expired `0`                                                         | Count-only baseline                                                                      |
-| Admin roles                       | `2`                                                                            | At least two approved owners                                                             |
-| Admins with verified TOTP         | `2`                                                                            | Exactly the two approved owners                                                          |
-| Verified TOTP owners/factors      | `2` / `2`                                                                      | Count-only baseline                                                                      |
+| Admin roles                       | `2`                                                                            | Expected account-level role baseline                                                     |
+| Admins with verified TOTP         | `2`                                                                            | Expected account-level factor baseline; human control is verified separately             |
+| Verified TOTP owners/factors      | `2` / `2`                                                                      | Count-only; does not prove two independent humans                                        |
 | Admin entitlement drift           | stale `0`, missing `0`                                                         | Both zero                                                                                |
 | Transactions older than 5 minutes | `0`                                                                            | Zero immediately before DDL                                                              |
 
@@ -137,6 +147,94 @@ The separate production `admin-role:preflight` returned:
 No email address, user id, factor id, token, key, password, or database row was
 stored in this evidence.
 
+## Fresh encrypted backup and restore evidence
+
+A fresh logical export started at `2026-07-29T18:57:31Z` and completed at
+`2026-07-29T19:03:11Z`. It was written outside the repository to an
+EFS-encrypted working directory. The export used Supabase CLI `2.104.0` and
+explicitly covered the `public`, `private`, `auth`, and `storage` schemas.
+
+| Export file  | Bytes    | SHA-256                                                            |
+| ------------ | -------- | ------------------------------------------------------------------ |
+| `roles.sql`  | `297`    | `25873cec56a2cc6514e204f420231777f85c03da818caa7090cdcdfa89776ecd` |
+| `schema.sql` | `176022` | `2e56d6dec729492786e4c5be17301e312d307d081954b28452f1a869ef0576b8` |
+| `data.sql`   | `165290` | `4d64849753d62c4f0041f934e1a85bad07bf4d70f7f605ba40c7b6fb630f1608` |
+
+The restore-ready archive contains exactly those three files plus
+`manifest.json`:
+
+| Artifact                                                                  |   Bytes | SHA-256                                                            |
+| ------------------------------------------------------------------------- | ------: | ------------------------------------------------------------------ |
+| `ishonch-guard-production-20260729-185731-restore-ready-v3.efs.zip`       | `70878` | `870d7f6b1b40f273ef925e7b9c801f40996da89987e8e52f7e232995a4c7ff10` |
+| `manifest.json` inside the archive                                        |  `5462` | `d9bb476bd567a84bcf3e85460c7a3f1a25b3bf575fd103b3d850e089289a96ee` |
+| `ishonch-guard-production-20260729-185731-restore-ready-v3.metadata.json` |  `2504` | `4abeb5b83835e87ca5e8d79bde0a62ae9319b1ec6b35a064d8257936c5fac386` |
+
+Required dump markers were confirmed for Auth users, TOTP factors, admin
+allowlist, user roles, Family notification claims, and storage objects. The
+snapshot recorded these count-only invariants:
+
+- migration history `31`, head `20260726090000`;
+- Auth users `2`; MFA factors `2`; verified TOTP factors `2`;
+- admin allowlist `2`; user roles `4`; admin roles `2`;
+- checks `235`; reports `8` (`new` `5`, `rejected` `3`); entities `7`;
+- reputation appeals `2`; Family Shield rows `7`; Telegram reputation targets
+  `9`; Telegram sessions `4`; webhook updates `0`;
+- Family notification claims `0`; storage buckets/objects `0 / 0`.
+
+The archive and metadata were separately CMS-encrypted for portable recovery
+using the Document Encryption certificate:
+
+| Portable ciphertext                                                           |   Bytes | SHA-256                                                            |
+| ----------------------------------------------------------------------------- | ------: | ------------------------------------------------------------------ |
+| `ishonch-guard-production-20260729-185731-restore-ready-v3.efs.zip.p7m`       | `71437` | `087943f6e9c0ebb22be0ca2fd4285259072665371ebba6bb608407ba3be11da5` |
+| `ishonch-guard-production-20260729-185731-restore-ready-v3.metadata.json.p7m` |  `3064` | `c22208c2abf4830e52a7a2a0570099199d862de7f4d0a68cb091ce82464555f5` |
+
+In-memory CMS decrypt-and-hash matched the plaintext archive and metadata
+hashes. Both ciphertexts were then uploaded through the signed-in OneDrive web
+session, downloaded back through that web session, and hashed locally. Each
+downloaded ciphertext exactly matched the corresponding SHA-256 above. No
+plaintext dump was uploaded.
+
+The archive-internal manifest predates CMS wrapping, so it conservatively
+retains `inMemoryDecryptHashVerified=false` and
+`offsiteCopyConfirmed=false`. The external immutable metadata records the
+completed in-memory check but was generated before cloud upload, so it still
+retains `offsiteCopyConfirmed=false`. This later runbook evidence records both
+completed checks without rewriting and re-encrypting the already verified
+package. The metadata also correctly retains
+`independentRecoveryKeyCopyConfirmed=false`, `writesFrozen=false`, and
+`possibleLossWindowAccepted=false`.
+
+A clean restore drill used a disposable PostgreSQL `17.6` database created from
+`template0`. Roles were restored as `postgres`; schema and data were restored
+as `supabase_admin` in single transactions, with
+`session_replication_role=replica` for data. Restore timings were `194 ms`,
+`374 ms`, and `189 ms`. Every count-only invariant above matched. Both target
+migrations were then applied only to this disposable database in `181 ms` and
+`116 ms`. All four pgTAP suites passed `86/86`; the Supabase CLI `2.104.0`
+schema-lint contract returned zero error/fatal issues and seven `warning extra`
+findings below the enforced `--level error --fail-on error` threshold. The
+disposable containers were removed. This drill did not modify hosted production
+or staging.
+
+The export records migration count/head but intentionally does not embed
+Supabase migration history. Any recovery must validate the restored catalog
+before a separately reviewed history reconstruction; ordinary
+`migration repair` is not implied.
+
+## Pending-migration and no-apply evidence
+
+While the clean isolated worktree was linked to production:
+
+- `supabase migration list --linked` reported the production head
+  `20260726090000` and exactly two local-only versions:
+  `20260729105030` and `20260729131000`;
+- `supabase db push --linked --dry-run` listed exactly the corresponding two
+  migration files and nothing else;
+- the two LF-normalized migration hashes matched the immutable inputs above;
+- no non-dry-run `db push`, Dashboard SQL apply, migration-history repair,
+  Railway deployment, Telegram Bot API operation, or paid AI call was executed.
+
 ## Railway and application baseline
 
 Railway automatic deployment from `main` is disabled. A manual deployment is
@@ -153,9 +251,9 @@ Current active production:
 | `/healthz`    | HTTP `200`, body `ok`                                                     |
 | `/`           | HTTP `200`                                                                |
 
-The merged release commit `fbdeaec` is not the active Railway deployment. Its
-earlier deployment is removed. Do not claim that the new application release is
-live until a separately approved manual deployment succeeds.
+The approved merge commit `d053e35` is not the active Railway deployment. Do
+not claim that the new application release is live until a separately approved
+manual deployment succeeds.
 
 The database migrations are backward-compatible with the currently active
 application at the reviewed interfaces:
@@ -174,39 +272,54 @@ All boxes are mandatory.
 
 - [ ] Explicit production database maintenance window approved.
 - [ ] Named migration operator and independent rollback owner available.
-- [ ] Both MFA owners confirm they can authenticate and recover access.
-- [ ] New encrypted logical export completed immediately before the window.
-- [ ] Export inventory contains roles, dependency-ordered schema, data, and
+- [ ] Two independent human owners confirm they can authenticate and recover
+      the two eligible admin accounts.
+- [ ] Explicit final database-apply approval recorded; any later Railway
+      deployment requires its own separate approval.
+- [x] New encrypted logical export completed for this preflight. Repeat it if
+      the approved apply window is not continuous with this evidence.
+- [x] Export inventory contains roles, dependency-ordered schema, data, and
       manifest; migration head, sizes, hashes, owner, retention, and timestamps
       are recorded.
-- [ ] Export/manifest explicitly covers the required `auth` data, including
+- [x] Export/manifest explicitly covers the required `auth` data, including
       Auth users and MFA factors, plus `public.admin_allowlist` and
       `public.user_roles`; their count-only baselines are recorded.
-- [ ] In-memory decrypt-and-hash verification passes.
-- [ ] Off-machine upload/readback passes, and the downloaded ciphertext hash
+- [x] In-memory decrypt-and-hash verification passes.
+- [x] Off-machine upload/readback passes, and the downloaded ciphertext hash
       exactly matches the encrypted artifact uploaded by the operator.
 - [ ] Recovery key exists independently from the workstation and backup cloud;
       its password is stored separately.
-- [ ] Clean restore of the new export passes, including schema lint, pgTAP, and
+- [x] Clean restore of the new export passes, including schema lint, pgTAP, and
       count-only invariants.
 - [ ] Any writes after the snapshot are frozen or their possible loss interval
       is explicitly accepted.
-- [ ] The approved timeout-only follow-up commit/tree is recorded in the window
+- [x] The approved timeout-only follow-up commit/tree is recorded in the window
       evidence and both migration hashes match this runbook.
-- [ ] Production migration history still has exactly 31 versions, head
+- [x] Production migration history still has exactly 31 versions, head
       `20260726090000`, and neither target version.
-- [ ] Production cron still has exactly one active expected job and no new
+- [x] Production cron still has exactly one active expected job and no new
       unexplained failure.
-- [ ] Admin entitlement drift remains zero and two verified TOTP owners remain.
-- [ ] No long transaction or conflicting DDL lock is present.
-- [ ] Root and `/healthz` remain HTTP 200 immediately before the window.
-- [ ] `supabase db push --dry-run` from an isolated clean release worktree lists
+- [x] Admin entitlement drift is zero and two distinct account records have
+      verified TOTP.
+- [x] No transaction older than five minutes was present at evidence time.
+- [x] Root and `/healthz` returned HTTP 200 at evidence time.
+- [x] `supabase db push --dry-run` from an isolated clean release worktree lists
       exactly the two target migrations and nothing else.
-- [ ] Lock/statement timeout handling is resolved and recorded.
-- [ ] Forward compensation is prepared and reviewed; no `CASCADE` and no
-      migration-history repair is part of ordinary rollback.
+- [x] Lock/statement timeout handling is resolved and recorded.
+- [x] Forward compensation is prepared and independently reviewed; no `CASCADE`
+      and no migration-history repair is part of ordinary rollback.
+- [ ] Immediately before an approved apply, confirm the snapshot is still fresh
+      for the accepted loss interval or create and re-verify a new export.
+- [ ] Immediately before an approved apply, repeat migration history, cron,
+      admin/TOTP drift, long-transaction, root/health, exact-two-pending dry-run,
+      and migration-hash checks.
+- [ ] Immediately before an approved apply, explicitly verify that no
+      conflicting DDL lock is present.
 
 Any failed or ambiguous box is **NO-GO**.
+
+Every dynamic `[x]` item must be repeated immediately before an approved apply.
+The checks above are evidence, not permission to reuse stale state.
 
 ## Approved-shape apply procedure
 
@@ -214,8 +327,9 @@ This section is a recipe for a future separately approved window. It has not
 been executed.
 
 1. Freeze the release inputs and create an isolated clean worktree/clone at the
-   approved timeout-only follow-up commit recorded in the window evidence. Do
-   not switch, reset, clean, or rebase the current working tree.
+   approved merge commit `d053e3502986343003d92e2e15eb25d560840de3`
+   recorded in the window evidence. Do not switch, reset, clean, or rebase the
+   current working tree.
 2. Pin the tested Supabase CLI version for the window. Do not upgrade the CLI
    during the operation.
 3. Link only the isolated release worktree to production and independently
@@ -233,9 +347,9 @@ been executed.
 7. Prefer a window immediately after a successful
    `ishonch_prune_app_retention_daily` run, not immediately before it. That
    maximizes the time available to compensate the retention definition before
-   the next scheduled deletion. Reconfirm the fresh backup, two MFA owners, no
-   long transaction, and the
-   rollback owner.
+   the next scheduled deletion. Reconfirm backup freshness, write-freeze or
+   accepted loss interval, two independently reachable MFA humans, no long
+   transaction or conflicting DDL lock, and the rollback owner.
 8. After an explicit final apply approval, run one canonical
    `supabase db push --linked` from that isolated clean release worktree.
    Do not apply through SQL Editor and then repair history. Do not pass the
@@ -252,7 +366,8 @@ been executed.
      Never guess that a migration committed or rolled back.
 10. Complete every database postflight before manually deploying Railway.
 11. After a separate deployment approval, manually deploy the exact approved
-    timeout-only follow-up commit. Automatic deploy is intentionally disabled.
+    merge commit `d053e3502986343003d92e2e15eb25d560840de3`. Automatic
+    deploy is intentionally disabled.
 
 Do not run `prod:smoke`, `monitor:prod`, Telegram production smokes, or paid AI
 checks as part of this database preflight. Several of those paths write
