@@ -2,6 +2,27 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-29 - Production migration preflight evidence refresh
+
+- Updated the production migration runbook to the approved PR `#116` merge
+  `d053e35` and tree `b30d10d8`; merge and post-merge CI/security gates passed,
+  while Railway remains on the verified rollback deployment.
+- Recorded a fresh EFS/CMS-encrypted production logical export covering
+  `public`, `private`, `auth`, and `storage`, including count-only Auth/MFA and
+  admin baselines. In-memory decrypt/hash, signed-in OneDrive upload, download
+  readback, and ciphertext SHA-256 comparison passed for archive and metadata.
+- Recorded the disposable PostgreSQL 17.6 restore drill: every count invariant
+  matched, both target migrations applied only to the disposable database,
+  pgTAP passed 86/86, and schema lint had zero error/fatal findings.
+- Recorded the production read-only baseline and exact-two-pending CLI dry-run.
+  The isolated worktree's ignored production link metadata was removed after
+  collection. No production migration, migration repair, Railway deployment,
+  Telegram Bot API operation, or paid AI call was performed.
+- Kept the production verdict at NO-GO until a maintenance window, named
+  migration/rollback operators, both reachable MFA owners, an independent
+  recovery-key copy, and write-freeze or explicit loss-window acceptance are
+  confirmed.
+
 ## 2026-07-29 - Local security-regression hardening and evidence correction
 
 - Kept production unchanged at `bff76eb`; source/application changes below
