@@ -24,9 +24,6 @@ The remaining blockers are operational:
   TOTP must confirm they independently control them and are available during
   the window. Count-only evidence proves two distinct account/factor owners
   exist, not that two independent people are presently reachable;
-- the Document Encryption recovery key has not been confirmed in a protected
-  location independent from both this workstation and the OneDrive backup
-  account, with its password held separately;
 - application writes were not frozen for the snapshot, and an explicit
   acceptance of the possible loss interval after that snapshot has not been
   recorded.
@@ -205,6 +202,32 @@ package. The metadata also correctly retains
 `independentRecoveryKeyCopyConfirmed=false`, `writesFrozen=false`, and
 `possibleLossWindowAccepted=false`.
 
+## Independent recovery-key copy evidence
+
+On `2026-07-31`, the two password-protected recovery key containers were
+uploaded through a signed-in Google Drive web session to the private folder
+`Ishonch Guard Recovery Keys`. This location is independent from both the
+workstation and the OneDrive account that stores the encrypted production
+backup. No sharing change was made.
+
+| Recovery key container                                |  Bytes | Local SHA-256                                                      | Google Drive evidence                          |
+| ----------------------------------------------------- | -----: | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `ishonch-guard-efs-recovery-20260726.pfx`             | `2566` | `34a531f13d7f7f99b8deb71bd96424e1f0ab027834e44c2a3f8169fb4f576944` | Upload visible; download/readback hash matched |
+| `ishonch-guard-portable-backup-recovery-20260726.pfx` | `3438` | `0c2db18b2ba86cd0ba36a70568b201cfed406a54fd637d82f2f90a388e0aa98d` | Upload visible; download/readback hash matched |
+
+Both local PFX files rejected an empty password with a cryptographic error.
+The password was not uploaded, displayed, or recorded in this evidence. The
+first Google Drive download of the EFS PFX was `2566` bytes and matched its
+local SHA-256 exactly. The embedded browser initially timed out while
+downloading the portable backup PFX. The operator then downloaded it manually;
+the resulting file was `3438` bytes and matched its local SHA-256 exactly.
+
+The operator explicitly confirmed on `2026-07-31` that the recoverable PFX
+password is held separately from Google Drive, OneDrive, the repository, and
+chat. The password itself was not requested or recorded. This closes the
+mandatory recovery-key GO gate. Do not store the password in this repository,
+runbook, chat, or either backup cloud account.
+
 A clean restore drill used a disposable PostgreSQL `17.6` database created from
 `template0`. Roles were restored as `postgres`; schema and data were restored
 as `supabase_admin` in single transactions, with
@@ -287,8 +310,10 @@ All boxes are mandatory.
 - [x] In-memory decrypt-and-hash verification passes.
 - [x] Off-machine upload/readback passes, and the downloaded ciphertext hash
       exactly matches the encrypted artifact uploaded by the operator.
-- [ ] Recovery key exists independently from the workstation and backup cloud;
-      its password is stored separately.
+- [x] Both recovery PFX files exist independently from the workstation and
+      OneDrive backup cloud in private Google Drive storage; both cloud
+      readback hashes match, and separate recoverable password custody is
+      explicitly confirmed.
 - [x] Clean restore of the new export passes, including schema lint, pgTAP, and
       count-only invariants.
 - [ ] Any writes after the snapshot are frozen or their possible loss interval

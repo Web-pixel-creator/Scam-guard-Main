@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-07-31 - Independent Google Drive recovery-key evidence
+
+- Recorded both password-protected recovery PFX files in a private Google Drive
+  folder independent from the workstation and OneDrive backup account. No
+  sharing change or password upload was performed.
+- Rechecked both local PFX sizes and SHA-256 values and confirmed that both
+  reject an empty password. The downloaded Google Drive copy of the EFS PFX
+  matched its local `2566`-byte SHA-256 exactly.
+- Closed the recovery-key GO gate after the manually downloaded portable PFX
+  matched its local `3438`-byte SHA-256 exactly and the operator explicitly
+  confirmed recoverable password custody outside both backup clouds, the
+  workstation repository, and chat.
+- Production remains NO-GO. No database migration, Railway deployment,
+  Telegram operation, paid AI call, or production runtime change was made.
+
 ## 2026-07-29 - Production migration preflight evidence refresh
 
 - Updated the production migration runbook to the approved PR `#116` merge
