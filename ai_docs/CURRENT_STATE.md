@@ -9,44 +9,52 @@ here.
 
 ## Deployed baseline
 
-- Repository upstream baseline: `origin/main` at
-  `d9f16f1c9ec7407be546b21cf8af50f1d3cdb5bc`; the primary worktree is clean
-  but checked out on the earlier merged source branch at `69ffc87`.
-- The application release commit is
-  `bff76eb28877a188ca78b7e1509ec4874bb0be23`.
+- Repository upstream and production application baseline: `origin/main` at
+  `9e901b1673832e4e78d61500280f061ba39e245c`.
 - Current Railway production deployment
-  `5b2663c8-faed-40ab-8b1d-cc2462641c0f` reports `SUCCESS`, with image digest
-  `sha256:1d3c487de2b5ac64e538488f077118a21ed17a95e1ed5476bb11dc6aa9f87b65`.
-- Production `/healthz`, `/`, `/login`, `/admin` and `/admin-mfa` returned `200`
-  after the 2026-08-02 local-date database window; an existing AAL2 admin
-  session loaded protected data. The prior 2026-07-29 route re-verification of
-  `/report`, `/appeal`, `/privacy` and `/emergency` also returned `200`.
+  `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reports `SUCCESS`, with image digest
+  `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`
+  and one running instance.
+- Production `/healthz`, `/`, `/login`, `/admin`, `/admin-mfa`, `/report`,
+  `/appeal`, `/privacy` and `/emergency` returned `200` after the application
+  release; `/healthz` returned body `ok`. An existing AAL2 admin session loaded
+  protected data and showed the established aggregate check count of `235`.
 - Supabase production migration history is `33` versions with head
   `20260729131000`. Both `20260729105030` and `20260729131000` are applied; a
   subsequent linked dry-run reported `Remote database is up to date`.
-- Production negotiates streaming Brotli/gzip for eligible dynamic `GET`
+- Production source negotiates streaming Brotli/gzip for eligible dynamic `GET`
   responses and serves precompressed public assets. The release smoke measured
   homepage Brotli at 14,158 bytes for 62,216 decoded bytes and main CSS Brotli
   at 40,302 bytes for 258,542 decoded bytes. Gzip fallback, explicit identity,
   ordinary quality weights, CSP preservation and exact CSS round trip passed.
-  This is normal-response evidence only: the deployed dynamic stream still has
-  the error/cancellation defect described below, and Nitro's static asset
-  handler does not correctly honor all `q`-weighted `Accept-Encoding` forms.
-- The webhook without its secret returned `401`; no Telegram message, synthetic
-  update or AI request was sent during the compression release smoke.
-- The safe production smoke passed with polling leader health `200`, an empty
-  Telegram pending queue and AI explicitly skipped. No message or synthetic
-  Telegram update was delivered.
-- The exact deployed commit passed 161 test files and 12,796/12,796 tests,
-  TypeScript, production build and `npm audit`; lint had 0 errors and 8
-  established Fast Refresh warnings.
+  The abort/error/cancellation hardening is now deployed in source, but its
+  forced-failure path still has only local deterministic evidence. Nitro's
+  static asset handler does not correctly honor all `q`-weighted
+  `Accept-Encoding` forms.
+- The webhook without its secret returned `401`; the authenticated webhook
+  boundary returned the expected `503` in polling mode, polling-leader health
+  returned `200`, Telegram pending updates were `0`, and no synthetic Telegram
+  update or message was delivered.
+- The release monitor unintentionally made exactly one provider health request
+  because an inherited Railway environment key was not removed by the local
+  PowerShell override. It returned `200` for `gemini-3.5-flash`, contained no
+  user content, may be billable, and was not repeated. Do not describe this
+  release as zero-AI-call verification.
+- The application candidate passed 165 test files and 12,853/12,853 tests,
+  TypeScript, production build, `npm audit` with zero findings, and lint with 0
+  errors plus 8 established Fast Refresh warnings. PR #119 then passed all
+  seven reported GitHub CI/security checks before merge.
+- Railway did not auto-deploy PR #119. Read-only Dashboard inspection confirmed
+  that the repository is connected but production has no branch binding; the
+  UI offers `Connect Environment to Branch`. The successful release was one
+  explicitly approved manual source redeploy. No Railway setting was changed.
 
 ## Closed in the current release
 
 - The historical 227 Direct-topic failures are not the current baseline. The
-  deployed corpus is green, but the 2026-07-29 audit found three exact semantic
-  tails that were not represented by that oracle; their fixes are currently
-  local-only.
+  corpus is green, and the three exact semantic tails found by the 2026-07-29
+  audit are included in the deployed source. Final real-client proof remains
+  open.
 - The approved UI release is integrated with the backend/security work.
 - Public emergency contacts use the centralized verified registry, and the
   mobile accessibility fixes from `74663ce` are deployed.
@@ -66,14 +74,14 @@ here.
   `HASH_PEPPER_SECRET` remains required for historical `legacy` rows and must
   not be removed.
 
-## Database hardening applied; local application changes await release
+## Database hardening and application release
 
-Repository `origin/main` includes merged security/Telegram hardening newer than
-production application commit `bff76eb`; that newer application/source code is
-not deployed. The two database migrations below were first proven in isolated
-staging on 2026-07-29, including official history reconciliation, and were then
-applied once to production from approved merge `d053e35` during the separately
-authorized 2026-08-02 local-date maintenance window:
+The two database migrations below were first proven in isolated staging on
+2026-07-29, including official history reconciliation, and were then applied
+once to production from approved merge `d053e35` during the separately
+authorized 2026-08-02 local-date maintenance window. The compatible
+application/security/Telegram source was subsequently released from approved
+`main` commit `9e901b1` in its own production action:
 
 - migration `20260729131000_admin_mfa_aal2_rls.sql` adds
   `private.is_admin_aal2()` and requires an AAL2 admin JWT for protected
@@ -94,12 +102,13 @@ authorized 2026-08-02 local-date maintenance window:
 - production/Railway now requires an explicit `REQUIRE_ADMIN_MFA_AAL2` value.
   Missing, empty or invalid configuration fails closed; dev/test may still omit
   it;
-- dynamic HTTP compression now uses an abort-aware stream pipeline, propagates
+- dynamic HTTP compression uses an abort-aware stream pipeline, propagates
   upstream failure/downstream cancellation and returns `406` when every
   supported encoding including identity is forbidden. Focused checks pass
   27/27. Nitro static precompression still has an open `q`-weight negotiation
-  limitation;
-- the three audited Telegram cases are fixed locally: bank/card code theft in a
+  limitation. The hardening is deployed in source; production forced-failure
+  evidence remains open;
+- the three audited Telegram cases are deployed in source: bank/card code theft in a
   Telegram message stays a code request, Uzbek `rostdan firibgarlarmi` preserves
   bank/code context through `endi nima qilay`, and the common typo
   `безапасный счет` reaches explicit no-transfer guidance. Targeted checks pass
@@ -130,14 +139,13 @@ authorized 2026-08-02 local-date maintenance window:
   a separately reviewed update to CLI `2.110.0` or newer contains the Windows
   compatibility fallback.
 
-The merged application candidate passed 165 Vitest files and 12,853/12,853
+The released application candidate passed 165 Vitest files and 12,853/12,853
 tests, TypeScript, production build with non-secret placeholders, `npm audit`
 with zero findings and lint with zero errors plus the eight established Fast
 Refresh warnings. A fresh local Supabase database applied all 33 migrations
 from scratch; schema lint reported no errors and all four pgTAP files passed
-86/86. The newer application/source release has not been deployed. The
-database-only production window is documented separately and must not be
-presented as an app release. The disposable local cluster was then stopped with
+86/86. The database-only production window remains documented separately and
+must not be presented as the later app release. The disposable local cluster was then stopped with
 `--no-backup`; no local Supabase containers or project volumes remain. Do not
 promote local or staging application totals to deployed evidence.
 
@@ -212,6 +220,11 @@ promote local or staging application totals to deployed evidence.
   commit/image as deployment `5b2663c8-faed-40ab-8b1d-cc2462641c0f`; health,
   AAL2 admin read, polling-leader recovery and more than ten minutes of monitor
   samples passed. No Telegram QA, paid AI/API call or new app release occurred.
+- A separately approved application release later deployed `main` commit
+  `9e901b1` as Railway deployment `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7`.
+  Public-route, AAL2-admin, polling and log postflight passed. The migration
+  head stayed `20260729131000`; the release made no Supabase mutation. See
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 - The hosted restore is functional recovery evidence, not a closed RPO/RTO
   measurement. The first schema phase crossed its evidence timeout and did not
   retain complete stderr or full per-phase timing.
@@ -220,10 +233,10 @@ promote local or staging application totals to deployed evidence.
 
 ## Open operational and release gates
 
-1. Review this documentation-only diff before commit/integration. The two
-   production migrations are already preserved in merged commit `d053e35`; do
-   not conflate that completed database apply with newer application code on
-   `origin/main` or authorize its deployment implicitly.
+1. Decide whether production should remain explicit-manual deploy or be
+   connected to `main`. The current missing branch binding explains why PR #119
+   did not auto-deploy. Do not change this runtime setting without separate
+   approval and a documented rollback expectation.
 2. Record a complete future hosted restore with retained per-phase error
    classification, start/end timing, measured recovery duration and named
    owner. Supabase Free still provides no guaranteed managed RPO.

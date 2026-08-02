@@ -35,13 +35,15 @@ in-memory fallback.
 ## HTTP response transport
 
 Eligible dynamic GET responses negotiate Brotli/gzip and preserve
-`Vary: Accept-Encoding`. On the local 2026-07-29 branch, strict quality parsing
+`Vary: Accept-Encoding`. Strict quality parsing
 returns an empty `406 Not Acceptable` when `br`, `gzip` and identity are all
 forbidden. The Node stream pipeline propagates upstream errors, downstream
 cancellation and request abort rather than leaving a consumer pending.
 
-That dynamic hardening is not deployed. Nitro serves precompressed static
-assets before the application wrapper and its current handler does not implement
+That dynamic hardening is deployed in production source. Its forced
+error/cancellation paths retain local deterministic evidence only; they were not
+manufactured against production. Nitro serves precompressed static assets
+before the application wrapper and its current handler does not implement
 general `q`-weighted negotiation correctly. Static `q` handling remains an open
 runtime/upstream limitation; do not describe all HTTP compression as closed.
 
@@ -106,12 +108,12 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   explicit official-directory and moderated-report metadata. Bare domains and
   other concrete new artifacts bypass helpers. A trusted-person phrase has no
   notification side effect, and recheck requires resubmitting the artifact.
-- Narrow victim context also outranks broad lookalike routes. On the local
-  2026-07-29 branch, a Telegram-delivered bank/card code-theft request remains a
+- Narrow victim context also outranks broad lookalike routes. A
+  Telegram-delivered bank/card code-theft request remains a
   code request, Uzbek `rostdan firibgarlarmi` retains recent bank/code context
   through `endi nima qilay`, and the typo `безапасный счет` reaches explicit
-  no-transfer safe-account guidance. These are locally tested, not deployed
-  real-client evidence.
+  no-transfer safe-account guidance. These fixes are deployed in source and
+  locally tested, but final real-client evidence remains open.
 - `/report` can submit a situation-only incident when the user has no concrete
   target. `incidentOnly=true` stores the redacted incident for
   moderation/research but does not upsert or bump public `entities`. Telegram

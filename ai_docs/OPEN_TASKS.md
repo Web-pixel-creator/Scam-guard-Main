@@ -3,22 +3,23 @@
 ## Current checkpoint (2026-08-02)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The deployed
-application baseline is commit `bff76eb28877a188ca78b7e1509ec4874bb0be23`;
-Railway deployment `5b2663c8-faed-40ab-8b1d-cc2462641c0f` reports `SUCCESS`.
+application baseline is commit `9e901b1673832e4e78d61500280f061ba39e245c`;
+Railway deployment `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reports `SUCCESS`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-Its established full gate passed 12,796/12,796 tests. Streaming dynamic
+Its established full gate passed 12,853/12,853 tests. Streaming dynamic
 Brotli/gzip and precompressed public assets are deployed and passed the normal
-production negotiation/round-trip smoke, but the deployed stream error/cancel
-path and Nitro static `q`-weight handling are not fully closed. Old commit ids,
+production negotiation/round-trip smoke. The error/cancel hardening is deployed
+in source but still lacks a production forced-failure proof, and Nitro static
+`q`-weight handling is not fully closed. Old commit ids,
 test totals and tracker counts below describe the checkpoint at which each
 paragraph was written.
 
 The immediate queue is:
 
-1. review this documentation-only diff; the migrations are already preserved
-   in merged commit `d053e35` and applied to production, but the newer
-   application code on `origin/main` still requires separate release approval;
+1. review this documentation-only release-evidence diff, then decide whether
+   production should remain manual-deploy or be connected to `main`; do not
+   change the Railway branch binding without separate approval;
 2. keep the Nitro static precompressed `q`-weight limitation open pending an
    upstream Nitro fix or an explicitly reviewed edge/static-serving layer;
 3. retain or explicitly approve deletion of staging, then separately approve
@@ -31,8 +32,8 @@ The immediate queue is:
 
 ## Fragile / risky spots
 
-- **The 2026-07-29 database hardening is production-applied; related app changes
-  remain a separate release.** Migration
+- **The 2026-07-29 database hardening and compatible app changes are
+  production-released.** Migration
   `20260729131000_admin_mfa_aal2_rls.sql` makes AAL2 part of protected
   authenticated RLS SELECT/UPDATE policies, and the revised hosted smoke uses
   the same user client at AAL1 and AAL2. Production/Railway also fails closed
@@ -48,14 +49,14 @@ The immediate queue is:
   cleanup restored the baseline. The restored staging project still lacks
   `cron.job`, but production postflight confirmed the live cron, both helpers,
   all seven protected policies and unchanged count-only invariants.
-- **HTTP compression failure handling is fixed locally, not deployed.** The
+- **HTTP compression failure handling is deployed in source; live fault proof remains open.** The
   dynamic pipeline now propagates upstream errors, downstream cancellation and
   request abort, and returns `406` when `br`, `gzip` and identity are all
   forbidden. Focused checks pass 27/27. Nitro's earlier static asset handler
   still does not implement correct general `q`-weight negotiation; do not call
   HTTP compression fully closed until that boundary is upgraded or replaced.
-- **Three exact Telegram semantics were outside the green corpus and are fixed
-  locally.** A Telegram-delivered bank/card code request no longer becomes an
+- **Three exact Telegram semantics outside the green corpus are deployed in
+  source.** A Telegram-delivered bank/card code request no longer becomes an
   account-takeover answer; Uzbek `rostdan firibgarlarmi` preserves recent
   bank/code context through `endi nima qilay`; and Russian
   `безапасный счет` reaches explicit no-transfer guidance. Targeted 468/468,
@@ -780,8 +781,8 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       `20260729131000`.~~ The fixed guarded repair recorded exactly
       `20260729105030` and `20260729131000`; post-repair history matches and
       guarded dry-run reports no pending migration. The same-client smoke and
-      exact cleanup passed. Production application remains a separate,
-      explicitly approved step.
+      exact cleanup passed. The later separately approved application release
+      is recorded in `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 - [ ] Rehearse loss of the first authenticator through the approved second-owner
       factor-reset path. Do not request or record QR secrets or TOTP values.
 - [x] Implement and locally test additive hash-version metadata plus bounded

@@ -127,3 +127,12 @@ one active polling leader, zero active update leases, zero long transactions,
 and unchanged `checks = 235` with the original watermark. The complete window
 verdict is **SUCCESS; no database compensation was required**. The Railway
 rollback used to resume the exact application image is already recorded above.
+
+## Subsequent application release
+
+This document's commit, image and deployment remain the immutable evidence for
+the database window. A later, separately approved application action deployed
+`main` commit `9e901b1673832e4e78d61500280f061ba39e245c` as Railway deployment
+`12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` without a Supabase mutation. Its release
+and postflight evidence is recorded in
+`PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.

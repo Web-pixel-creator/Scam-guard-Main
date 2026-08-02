@@ -2,6 +2,30 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-02 - Approved application release completed
+
+- Merged PR #119 as `9e901b1` after all seven reported GitHub CI/security
+  checks passed, then used one explicitly approved manual Railway source
+  redeploy because the merge did not start a deployment.
+- Railway deployment `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reached `SUCCESS`
+  with image digest
+  `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`.
+  Nine public routes, AAL2 admin access, polling boundaries, Telegram queue
+  state and more than ten minutes of health/log observation passed. No
+  synthetic Telegram update or message was sent and Supabase remained at 33
+  migrations with head `20260729131000`.
+- Recorded one unintended AI-provider health request caused by an inherited
+  Railway key that the local PowerShell override did not remove. It returned
+  `200` for `gemini-3.5-flash`, may be billable, contained no user content and
+  was not repeated; the release is not described as zero-API verification.
+- Read-only Railway inspection confirmed the repository is connected but
+  production has no source-branch binding. The Dashboard offers
+  `Connect Environment to Branch`, so merges do not currently auto-deploy. No
+  Railway setting was changed; connecting `main` remains a separate decision.
+- Added the sanitized evidence record
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md` and reconciled current-state,
+  deployment, recovery, API/function and historical migration documentation.
+
 ## 2026-08-02 - Production database maintenance completed
 
 - Applied only `20260729105030` and `20260729131000` to Supabase production

@@ -88,9 +88,11 @@ command without a separately approved maintenance window.
   `20260726090000`; its Railway identifiers are historical snapshot metadata.
 - Current production migration history is `33` versions with head
   `20260729131000`. Railway deployment
-  `5b2663c8-faed-40ab-8b1d-cc2462641c0f` runs application commit
-  `bff76eb28877a188ca78b7e1509ec4874bb0be23` with verified image digest
-  `sha256:1d3c487de2b5ac64e538488f077118a21ed17a95e1ed5476bb11dc6aa9f87b65`.
+  `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` runs application commit
+  `9e901b1673832e4e78d61500280f061ba39e245c` with verified image digest
+  `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`.
+  Its sanitized postflight is in
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 - The 2026-08-01 UTC pre-apply freeze produced a fresh EFS/CMS-encrypted
   restore-ready logical export. Local decrypt/hash verification passed; the
   ciphertext archive SHA-256 is
