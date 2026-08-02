@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 function migration(name: string): string {
-  return readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8");
+  return readFileSync(
+    new URL(`../../supabase/migrations/${name}`, import.meta.url),
+    "utf8",
+  ).replace(/\r\n/g, "\n");
 }
 
 const retentionSql = migration("20260612165300_shared_rate_limits_v1.sql");
