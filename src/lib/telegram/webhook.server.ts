@@ -39,6 +39,7 @@ import { sendMessage } from "@/lib/telegram/api.server";
 import { langFromTelegramCode } from "@/lib/telegram/session.server";
 import { executeTelegramUpdate } from "@/lib/telegram/update-dispatch.server";
 import { inlineDeliveryRetryAfterMs } from "@/lib/telegram/inline-answer-delivery-error";
+import { directDeliveryRetryAfterMs } from "@/lib/telegram/direct-result-delivery-error";
 import { installTelegramOutboundEffectFence } from "@/lib/telegram/outbound-effect-fence.server";
 import {
   beginTelegramUpdate,
@@ -123,18 +124,25 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   const lease = processingDecision.lease;
   const dispatchPromise = executeAndCompleteTelegramUpdate(update, lease);
   const outcome = await waitForDispatch(dispatchPromise, DISPATCH_ACK_TIMEOUT_MS);
-  if (outcome === "completed") {
+  if (outcome.kind === "completed") {
     rememberCompletedUpdate(update.update_id);
     return new Response("ok", { status: 200 });
   }
-  if (outcome === "timeout") {
+  if (outcome.kind === "timeout") {
     console.error("telegram webhook: dispatch still running after ack timeout");
   } else {
-    // R12.5 / R19.1 / R19.2 — log WITHOUT Sensitive_Data, still answer 200 so
-    // Telegram does not retry indefinitely.
+    // R12.5 / R19.1 / R19.2 — log WITHOUT Sensitive_Data and keep only
+    // explicitly retryable work in Telegram's delivery lifecycle.
     console.error("telegram webhook: dispatch failed", "handler_exception");
   }
-  return new Response("retry", { status: 503, headers: { "retry-after": "1" } });
+  const retryAfterSec =
+    outcome.kind === "failed" && outcome.retryAfterMs !== null
+      ? Math.max(1, Math.ceil(outcome.retryAfterMs / 1_000))
+      : 1;
+  return new Response("retry", {
+    status: 503,
+    headers: { "retry-after": String(retryAfterSec) },
+  });
 }
 
 export async function executeAndCompleteTelegramUpdate(
@@ -169,7 +177,9 @@ export async function executeAndCompleteTelegramUpdate(
     await markTelegramUpdateFailure(lease, "dispatch");
     // Polling needs the sanitized retry delay from Inline flood control. Other
     // dispatch errors retain the established boolean failure contract.
-    if (inlineDeliveryRetryAfterMs(error) !== null) throw error;
+    if (inlineDeliveryRetryAfterMs(error) !== null || directDeliveryRetryAfterMs(error) !== null) {
+      throw error;
+    }
     return false;
   }
 
@@ -211,16 +221,25 @@ async function notifySessionWriteFailure(update: TelegramUpdate): Promise<void> 
 async function waitForDispatch(
   promise: Promise<boolean>,
   timeoutMs: number,
-): Promise<"completed" | "failed" | "timeout"> {
+): Promise<
+  { kind: "completed" } | { kind: "failed"; retryAfterMs: number | null } | { kind: "timeout" }
+> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise.then(
-        (completed): "completed" | "failed" => (completed ? "completed" : "failed"),
-        (): "failed" => "failed",
+        (completed) =>
+          completed
+            ? ({ kind: "completed" } as const)
+            : ({ kind: "failed", retryAfterMs: null } as const),
+        (error) => ({
+          kind: "failed" as const,
+          retryAfterMs:
+            directDeliveryRetryAfterMs(error) ?? inlineDeliveryRetryAfterMs(error) ?? null,
+        }),
       ),
-      new Promise<"timeout">((resolve) => {
-        timer = setTimeout(() => resolve("timeout"), timeoutMs);
+      new Promise<{ kind: "timeout" }>((resolve) => {
+        timer = setTimeout(() => resolve({ kind: "timeout" }), timeoutMs);
       }),
     ]);
   } finally {

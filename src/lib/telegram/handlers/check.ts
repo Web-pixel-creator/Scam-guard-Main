@@ -41,6 +41,11 @@ import {
 } from "@/lib/telegram/api.server";
 import { CB, formatCheckResult } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
+import {
+  directDeliveryRetryMsFromSeconds,
+  directDeliveryRetryAfterMs,
+  TelegramDirectResultDeliveryError,
+} from "@/lib/telegram/direct-result-delivery-error";
 import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { detectInputType, maskForDisplay, normalize } from "@/lib/risk/detect";
@@ -965,6 +970,47 @@ async function restoreSessionAfterUndeliveredResult(ctx: HandlerCtx): Promise<vo
   });
 }
 
+async function claimSessionBeforePrimaryResult(ctx: HandlerCtx): Promise<boolean> {
+  // This context-neutral write is the per-user sequence and current-lease gate.
+  // It never mutates scenario/check context (the session layer may persist the
+  // already-resolved language), so a stale update cannot send a result and a
+  // later definitive delivery failure has no phantom lastCheck to roll back.
+  // The same update id remains replayable because the SQL guard uses >=.
+  const claimed = await saveSession(ctx.userId, {});
+  return claimed?.ok !== false;
+}
+
+async function persistPrimaryResultContext(
+  ctx: HandlerCtx,
+  scenarioData: HandlerCtx["session"]["scenarioData"],
+  lastCheck: ReturnType<typeof buildLastCheckSnapshot>,
+  messageId: number | undefined,
+  guardian?: GuardianAngelSnapshot,
+): Promise<{ ok: true; scenarioData: HandlerCtx["session"]["scenarioData"] } | { ok: false }> {
+  const persistedScenarioData =
+    messageId === undefined
+      ? scenarioData
+      : withSessionChatScope(
+          rememberReplyCheckContext(scenarioData, messageId, lastCheck, undefined, guardian),
+          ctx.chatId,
+          ctx.chatType,
+        );
+  const saved = await saveSession(
+    ctx.userId,
+    {
+      scenario: "none",
+      scenarioStep: 0,
+      scenarioData: persistedScenarioData,
+    },
+    { failureVisibility: "operator_only" },
+  );
+  if (saved?.ok === false) {
+    console.error("telegram primary result context storage failed");
+    return { ok: false };
+  }
+  return { ok: true, scenarioData: persistedScenarioData };
+}
+
 async function rememberDeliveredCheckResult(
   ctx: HandlerCtx,
   scenarioData: HandlerCtx["session"]["scenarioData"],
@@ -978,11 +1024,15 @@ async function rememberDeliveredCheckResult(
     ctx.chatId,
     ctx.chatType,
   );
-  const saved = await saveSession(ctx.userId, {
-    scenario: "none",
-    scenarioStep: 0,
-    scenarioData: nextScenarioData,
-  });
+  const saved = await saveSession(
+    ctx.userId,
+    {
+      scenario: "none",
+      scenarioStep: 0,
+      scenarioData: nextScenarioData,
+    },
+    { failureVisibility: "operator_only" },
+  );
   if (saved?.ok === false) {
     console.error("telegram reply context storage failed");
     return scenarioData;
@@ -1005,31 +1055,56 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
     ctx.chatId,
     ctx.chatType,
   );
-  const saved = await saveSession(ctx.userId, {
-    scenario: "none",
-    scenarioStep: 0,
-    scenarioData: nextScenarioData,
-  });
-  if (saved?.ok === false) return;
+  if (!(await claimSessionBeforePrimaryResult(ctx))) return;
 
   const resultDelivery = await sendMessage({
     chatId: ctx.chatId,
     text: formatted.text,
     keyboard: formatted.keyboard,
   });
+  // Optional access keeps older isolated handler fakes (which returned void)
+  // backward-compatible; the real API always returns the discriminated result.
   if (resultDelivery?.ok === false) {
-    console.error("telegram check result delivery failed");
-    await restoreSessionAfterUndeliveredResult(ctx);
+    if (resultDelivery.certainty === "ambiguous") {
+      // Telegram may have accepted the primary card before the response was
+      // lost. Persist lastCheck context only now, acknowledge this update and
+      // suppress all secondary effects; replaying could duplicate the result.
+      console.error("telegram check result delivery ambiguous");
+      await persistPrimaryResultContext(
+        ctx,
+        nextScenarioData,
+        lastCheck,
+        undefined,
+        guardian ?? undefined,
+      );
+      return;
+    }
+
+    if (resultDelivery.retryable) {
+      console.error(
+        "telegram check result delivery transient",
+        resultDelivery.errorCode ?? "config_or_fence",
+      );
+      throw new TelegramDirectResultDeliveryError(
+        directDeliveryRetryMsFromSeconds(resultDelivery.retryAfterSec),
+      );
+    }
+
+    // A validated permanent Bot API rejection definitely produced no primary
+    // message, but retrying forever would poison the webhook/polling frontier.
+    console.error("telegram check result delivery terminal", resultDelivery.errorCode ?? "unknown");
     return;
   }
 
-  let deliveredScenarioData = await rememberDeliveredCheckResult(
+  const primaryContext = await persistPrimaryResultContext(
     ctx,
     nextScenarioData,
     lastCheck,
     resultDelivery?.messageId,
     guardian ?? undefined,
   );
+  if (!primaryContext.ok) return;
+  let deliveredScenarioData = primaryContext.scenarioData;
 
   if (guardian && shouldAutoSendGuardianIntro(result)) {
     const guardianDelivery = await sendMessage({
@@ -1164,6 +1239,7 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
   try {
     await work();
   } catch (e) {
+    if (directDeliveryRetryAfterMs(e) !== null) throw e;
     if (isRateLimitedError(e)) {
       const key =
         e.message === "voice_stt_rate_limited" ? "voice_stt_limit_reached" : "rate_limited";

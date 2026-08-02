@@ -5,9 +5,10 @@
 // config read, CODING_RULES §6), never at module scope.
 //
 // Failure policy (R13.4, R10.3, R17.x): network errors, missing token and
-// non-ok Bot API responses degrade gracefully — `sendMessage`/`setWebhook`
-// return `{ ok: false }`, `getFile`/`downloadFileAsDataUrl` return `null`, and
-// the void helpers swallow errors. Nothing throws out of this module.
+// non-ok Bot API responses degrade gracefully. `sendMessage` also preserves
+// whether Telegram definitely rejected/prevented the effect or the transport
+// outcome is ambiguous, so callers never blindly replay a possibly delivered
+// message. Nothing throws out of this module.
 import { getTelegramBotToken } from "@/lib/config.server";
 import { TELEGRAM_WEBHOOK_MAX_CONNECTIONS } from "@/lib/telegram/webhook-delivery-policy";
 import { telegramOutboundEffectAllowed } from "@/lib/telegram/outbound-effect-guard";
@@ -50,9 +51,26 @@ export interface SendMessageOptions {
   disablePreview?: boolean;
 }
 
-export interface SendMessageResult {
+export type SendMessageResult =
+  | {
+      ok: true;
+      /** Telegram message_id, present only after a successful sendMessage response. */
+      messageId?: number;
+    }
+  | {
+      ok: false;
+      messageId?: undefined;
+      /** `definitive` means no message effect occurred; `ambiguous` may have delivered. */
+      certainty: "definitive" | "ambiguous";
+      /** Only definitive transient/config/fence failures are safe to replay. */
+      retryable: boolean;
+      /** Sanitized numeric metadata only; Bot API descriptions are never exposed. */
+      errorCode?: number;
+      retryAfterSec?: number;
+    };
+
+interface SendAudioFileResult {
   ok: boolean;
-  /** Telegram message_id, present only after a successful sendMessage response. */
   messageId?: number;
 }
 
@@ -120,23 +138,32 @@ interface BotApiEnvelope {
   parameters?: { retry_after?: number };
 }
 
+type BotApiCallOutcome =
+  | { kind: "response"; envelope: BotApiEnvelope | null; httpStatus: number }
+  | { kind: "not_sent" }
+  | { kind: "ambiguous" };
+
 /**
- * POST a JSON body to a Bot API method and return the parsed envelope.
- * Reads the token per-request; returns `null` when the token is missing, the
- * network call throws, or Telegram answers with a non-ok HTTP status. Never
- * throws (R13.4).
+ * POST a JSON body to a Bot API method and preserve effect certainty. Reads
+ * the token per-request and never throws (R13.4).
  */
-async function callBotApi(
+async function callBotApiDetailed(
   method: string,
   body: Record<string, unknown>,
   timeoutMs = BOT_API_TIMEOUT_MS,
-): Promise<BotApiEnvelope | null> {
-  if (!(await outboundEffectAllowed(method))) return null;
+): Promise<BotApiCallOutcome> {
+  try {
+    if (!(await outboundEffectAllowed(method))) return { kind: "not_sent" };
+  } catch {
+    // The fence/config check failed before fetch, so no Telegram effect occurred.
+    console.error(`telegram ${method} skipped`, "outbound_guard_exception");
+    return { kind: "not_sent" };
+  }
   const token = getTelegramBotToken();
   if (!token) {
     // R17.4 — not configured: fail closed, do not throw, do not log the value.
     console.error(`telegram ${method} skipped: bot token not configured`);
-    return null;
+    return { kind: "not_sent" };
   }
   try {
     const res = await fetchWithTimeout(
@@ -151,13 +178,23 @@ async function callBotApi(
     const envelope = await readBotApiEnvelope(res);
     if (!res.ok) {
       console.error(`telegram ${method} non-ok`, res.status);
-      return envelope;
     }
-    return envelope;
+    return { kind: "response", envelope, httpStatus: res.status };
   } catch {
     console.error(`telegram ${method} threw`, "network_exception");
-    return null;
+    // Once fetch starts, a rejection/abort cannot prove whether Telegram
+    // accepted the request before the response was lost.
+    return { kind: "ambiguous" };
   }
+}
+
+async function callBotApi(
+  method: string,
+  body: Record<string, unknown>,
+  timeoutMs = BOT_API_TIMEOUT_MS,
+): Promise<BotApiEnvelope | null> {
+  const outcome = await callBotApiDetailed(method, body, timeoutMs);
+  return outcome.kind === "response" ? outcome.envelope : null;
 }
 
 async function callBotApiForm(method: string, form: FormData): Promise<BotApiEnvelope | null> {
@@ -247,8 +284,50 @@ export async function sendMessage(opts: SendMessageOptions): Promise<SendMessage
   }
   if (opts.disablePreview) body.disable_web_page_preview = true;
 
-  const res = await callBotApi("sendMessage", body);
-  if (res?.ok !== true) return { ok: false };
+  const call = await callBotApiDetailed("sendMessage", body);
+  if (call.kind === "not_sent") {
+    return { ok: false, certainty: "definitive", retryable: true };
+  }
+  if (call.kind === "ambiguous") {
+    return { ok: false, certainty: "ambiguous", retryable: false };
+  }
+
+  const res = call.envelope;
+  // A malformed/contradictory response cannot prove whether Telegram applied
+  // the request. A validated `ok:false` envelope is the only post-fetch proof
+  // that no message effect occurred.
+  if (res?.ok !== true) {
+    if (res?.ok !== false) {
+      return { ok: false, certainty: "ambiguous", retryable: false };
+    }
+    const envelopeCode =
+      Number.isSafeInteger(res.error_code) && (res.error_code ?? 0) > 0
+        ? (res.error_code as number)
+        : undefined;
+    const httpCode = call.httpStatus >= 400 ? call.httpStatus : undefined;
+    const errorCode = envelopeCode ?? httpCode;
+    const retryAfterSec =
+      Number.isSafeInteger(res.parameters?.retry_after) && (res.parameters?.retry_after ?? 0) > 0
+        ? res.parameters?.retry_after
+        : undefined;
+    const retryable =
+      errorCode === 401 ||
+      errorCode === 408 ||
+      errorCode === 425 ||
+      errorCode === 429 ||
+      (errorCode !== undefined && errorCode >= 500);
+    return {
+      ok: false,
+      certainty: "definitive",
+      retryable,
+      ...(errorCode === undefined ? {} : { errorCode }),
+      ...(retryAfterSec === undefined ? {} : { retryAfterSec }),
+    };
+  }
+  if (call.httpStatus < 200 || call.httpStatus >= 300) {
+    return { ok: false, certainty: "ambiguous", retryable: false };
+  }
+
   const result = res.result;
   const messageId =
     result &&
@@ -262,7 +341,7 @@ export async function sendMessage(opts: SendMessageOptions): Promise<SendMessage
 }
 
 /** Send an audio file generated in memory. Used by opt-in Voice-out/TTS. */
-export async function sendAudioFile(opts: SendAudioFileOptions): Promise<SendMessageResult> {
+export async function sendAudioFile(opts: SendAudioFileOptions): Promise<SendAudioFileResult> {
   const form = new FormData();
   const audioBytes = new Uint8Array(opts.audio.byteLength);
   audioBytes.set(opts.audio);

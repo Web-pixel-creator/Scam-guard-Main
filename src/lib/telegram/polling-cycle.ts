@@ -1,5 +1,6 @@
 import { telegramUpdateSchema, type TelegramUpdate } from "@/lib/telegram/router";
 import { inlineDeliveryRetryAfterMs } from "@/lib/telegram/inline-answer-delivery-error";
+import { directDeliveryRetryAfterMs } from "@/lib/telegram/direct-result-delivery-error";
 import type {
   BeginTelegramUpdateResult,
   TelegramUpdateLeaderLease,
@@ -362,7 +363,8 @@ async function processClaimedUpdate(
     console.error("telegram polling update failed", "exception");
     return {
       acknowledged: false,
-      retryAfterMs: inlineDeliveryRetryAfterMs(error) ?? POLL_RETRY_MS,
+      retryAfterMs:
+        directDeliveryRetryAfterMs(error) ?? inlineDeliveryRetryAfterMs(error) ?? POLL_RETRY_MS,
     };
   }
 }

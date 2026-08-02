@@ -111,7 +111,7 @@ describe("handleCheck speed helpers", () => {
 
     expect(hoisted.runCheck).toHaveBeenCalledTimes(1);
     expect(hoisted.sentMessages).toHaveLength(2);
-    expect(hoisted.saveSession).toHaveBeenCalledTimes(2);
+    expect(hoisted.saveSession).toHaveBeenCalledTimes(4);
   });
 
   it("does not share cached check results between users", async () => {
@@ -154,7 +154,7 @@ describe("handleCheck speed helpers", () => {
     await Promise.all([first, second]);
 
     expect(hoisted.sentMessages).toHaveLength(2);
-    expect(hoisted.saveSession).toHaveBeenCalledTimes(2);
+    expect(hoisted.saveSession).toHaveBeenCalledTimes(4);
   });
 
   it("sends a visible processing status when a check takes noticeable time", async () => {

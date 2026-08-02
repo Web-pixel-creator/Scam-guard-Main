@@ -69,7 +69,10 @@ import {
   resetScenario,
   TelegramSessionLoadError,
 } from "./session.server";
-import { runWithTelegramUpdateExecution } from "./update-execution.server";
+import {
+  rememberTelegramSessionLanguage,
+  runWithTelegramUpdateExecution,
+} from "./update-execution.server";
 
 const fencedLease = {
   updateId: 200,
@@ -251,7 +254,11 @@ describe("saveSession", () => {
       saveSession(42, { scenario: "report_desc", scenarioStep: 1 }),
     );
 
-    expect(execution).toEqual({ value: { ok: true }, sessionStorageFailed: false });
+    expect(execution).toEqual({
+      value: { ok: true },
+      sessionStorageFailed: false,
+      sessionFailureWarningRequired: false,
+    });
     expect(mockState.calls.rpc).toEqual([
       [
         "save_telegram_session_sequenced",
@@ -289,6 +296,40 @@ describe("saveSession", () => {
     ]);
   });
 
+  it("uses a language-only fenced claim without mutating scenario context", async () => {
+    mockState.rpcResult = {
+      data: [{ lease_valid: true, applied: true, current_update_id: 200 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(
+      200,
+      async () => {
+        rememberTelegramSessionLanguage("uz");
+        return saveSession(42, {});
+      },
+      { lease: fencedLease },
+    );
+
+    expect(execution).toEqual({
+      value: { ok: true },
+      sessionStorageFailed: false,
+      sessionFailureWarningRequired: false,
+    });
+    expect(mockState.calls.rpc[0]).toEqual([
+      "save_telegram_session_fenced",
+      {
+        p_telegram_user_id: 42,
+        p_update_id: 200,
+        p_patch: { lang: "uz" },
+        p_lease_token: fencedLease.leaseToken,
+        p_processing_fence: 3,
+        p_leader_token: null,
+        p_leader_fence: null,
+      },
+    ]);
+  });
+
   it("rejects a stale update without marking storage unavailable", async () => {
     mockState.rpcResult = {
       data: [{ applied: false, current_update_id: 102 }],
@@ -302,6 +343,7 @@ describe("saveSession", () => {
     expect(execution).toEqual({
       value: { ok: false, reason: "stale" },
       sessionStorageFailed: false,
+      sessionFailureWarningRequired: false,
     });
   });
 
@@ -318,6 +360,7 @@ describe("saveSession", () => {
     expect(execution).toEqual({
       value: { ok: false, reason: "storage" },
       sessionStorageFailed: true,
+      sessionFailureWarningRequired: true,
     });
     expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
   });
@@ -335,10 +378,53 @@ describe("saveSession", () => {
     );
 
     expect(execution).toEqual({
-      value: { ok: false, reason: "storage" },
-      sessionStorageFailed: true,
+      value: { ok: false, reason: "stale" },
+      sessionStorageFailed: false,
+      sessionFailureWarningRequired: false,
     });
     expect(mockState.calls.rpc[0]?.[0]).toBe("save_telegram_session_fenced");
+  });
+
+  it("keeps an operator-only post-delivery write failure out of the user warning path", async () => {
+    mockState.rpcResult = {
+      data: null,
+      error: { message: "SECRET database detail" },
+    };
+
+    const execution = await runWithTelegramUpdateExecution(
+      200,
+      () =>
+        saveSession(
+          42,
+          { scenarioData: { lastCheck: undefined } },
+          { failureVisibility: "operator_only" },
+        ),
+      { lease: fencedLease },
+    );
+
+    expect(execution).toEqual({
+      value: { ok: false, reason: "storage" },
+      sessionStorageFailed: true,
+      sessionFailureWarningRequired: false,
+    });
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
+  });
+
+  it("treats a malformed fenced result as storage failure", async () => {
+    mockState.rpcResult = {
+      data: [{ applied: true, current_update_id: 200 }],
+      error: null,
+    };
+
+    const execution = await runWithTelegramUpdateExecution(200, () => saveSession(42, {}), {
+      lease: fencedLease,
+    });
+
+    expect(execution).toEqual({
+      value: { ok: false, reason: "storage" },
+      sessionStorageFailed: true,
+      sessionFailureWarningRequired: true,
+    });
   });
 });
 

@@ -6,7 +6,7 @@ BEGIN;
 DELETE FROM private.telegram_update_leaders
 WHERE name = 'telegram_updates';
 
-SELECT plan(35);
+SELECT plan(41);
 
 SELECT ok(
   (SELECT acquired FROM public.acquire_telegram_update_leader(
@@ -193,6 +193,45 @@ SELECT ok(
   )),
   'session writes accept only the current update and leader fences'
 );
+
+UPDATE public.telegram_sessions
+SET scenario_data = '{"lastCheck":{"context":"old"}}'::jsonb
+WHERE telegram_user_id = 700002;
+
+SELECT ok(
+  (SELECT applied FROM public.save_telegram_session_fenced(
+    700002,
+    900002,
+    '00000000-0000-4000-8000-000000000022'::uuid,
+    2,
+    '{"lang":"uz"}'::jsonb,
+    '00000000-0000-4000-8000-000000000001'::uuid,
+    1
+  )),
+  'a context-neutral claim is accepted by the current fences'
+);
+SELECT is(
+  (SELECT scenario_data FROM public.telegram_sessions WHERE telegram_user_id = 700002),
+  '{"lastCheck":{"context":"old"}}'::jsonb,
+  'a context-neutral claim preserves the existing scenario data'
+);
+SELECT ok(
+  (SELECT applied FROM public.save_telegram_session_fenced(
+    700002,
+    900002,
+    '00000000-0000-4000-8000-000000000022'::uuid,
+    2,
+    '{"scenario":"none","scenario_step":0,"scenario_data":{"lastCheck":{"context":"new"}}}'::jsonb,
+    '00000000-0000-4000-8000-000000000001'::uuid,
+    1
+  )),
+  'a context commit with the same update id is accepted after the claim'
+);
+SELECT is(
+  (SELECT scenario_data FROM public.telegram_sessions WHERE telegram_user_id = 700002),
+  '{"lastCheck":{"context":"new"}}'::jsonb,
+  'the equal-id context commit stores the delivered result context'
+);
 SELECT ok(
   (SELECT active FROM public.telegram_update_leader_status()),
   'leader health reports an active polling leader'
@@ -227,6 +266,23 @@ SELECT ok(
     1
   ),
   'the old worker is fenced as soon as its polling leader is superseded'
+);
+SELECT ok(
+  NOT (SELECT lease_valid FROM public.save_telegram_session_fenced(
+    700002,
+    900002,
+    '00000000-0000-4000-8000-000000000022'::uuid,
+    2,
+    '{"scenario_data":{"lastCheck":{"context":"stale"}}}'::jsonb,
+    '00000000-0000-4000-8000-000000000001'::uuid,
+    1
+  )),
+  'a superseded worker cannot commit session context'
+);
+SELECT is(
+  (SELECT scenario_data FROM public.telegram_sessions WHERE telegram_user_id = 700002),
+  '{"lastCheck":{"context":"new"}}'::jsonb,
+  'a rejected stale-fence commit leaves scenario data unchanged'
 );
 SELECT is(
   (SELECT decision FROM public.begin_telegram_update(

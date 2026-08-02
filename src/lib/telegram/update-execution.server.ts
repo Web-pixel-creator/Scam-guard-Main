@@ -4,6 +4,7 @@ import type { TelegramUpdateLease } from "@/lib/telegram/update-lifecycle.server
 interface TelegramUpdateExecutionState {
   updateId: number;
   sessionStorageFailed: boolean;
+  sessionFailureWarningRequired: boolean;
   sessionLanguage?: "ru" | "uz" | "en";
   lease?: TelegramUpdateLease;
 }
@@ -11,7 +12,10 @@ interface TelegramUpdateExecutionState {
 export interface TelegramUpdateExecutionResult<T> {
   value: T;
   sessionStorageFailed: boolean;
+  sessionFailureWarningRequired: boolean;
 }
+
+export type TelegramSessionFailureVisibility = "user" | "operator_only";
 
 const executionStorage = new AsyncLocalStorage<TelegramUpdateExecutionState>();
 
@@ -23,9 +27,13 @@ export function currentTelegramUpdateLease(): TelegramUpdateLease | null {
   return executionStorage.getStore()?.lease ?? null;
 }
 
-export function markTelegramSessionStorageFailure(): void {
+export function markTelegramSessionStorageFailure(
+  visibility: TelegramSessionFailureVisibility = "user",
+): void {
   const state = executionStorage.getStore();
-  if (state) state.sessionStorageFailed = true;
+  if (!state) return;
+  state.sessionStorageFailed = true;
+  if (visibility === "user") state.sessionFailureWarningRequired = true;
 }
 
 export function rememberTelegramSessionLanguage(lang: "ru" | "uz" | "en"): void {
@@ -45,11 +53,13 @@ export async function runWithTelegramUpdateExecution<T>(
   const state: TelegramUpdateExecutionState = {
     updateId,
     sessionStorageFailed: false,
+    sessionFailureWarningRequired: false,
     lease: options?.lease,
   };
 
   return executionStorage.run(state, async () => ({
     value: await work(),
     sessionStorageFailed: state.sessionStorageFailed,
+    sessionFailureWarningRequired: state.sessionFailureWarningRequired,
   }));
 }

@@ -112,6 +112,20 @@ describe("executeTelegramUpdate", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
+  it("keeps a post-delivery operator-only storage failure silent for the user", async () => {
+    __resetTelegramUserUpdateQueuesForTests();
+    const notify = vi.fn(async () => undefined);
+
+    await executeTelegramUpdate(messageUpdate(104, 42), {
+      dispatch: async () => {
+        markTelegramSessionStorageFailure("operator_only");
+      },
+      onSessionWriteFailure: notify,
+    });
+
+    expect(notify).not.toHaveBeenCalled();
+  });
+
   it("allows explicit concurrency only for strict inline-only updates", async () => {
     __resetTelegramUserUpdateQueuesForTests();
     await expect(

@@ -920,8 +920,9 @@ describe("handleCheck follow-up routing", () => {
     );
 
     expect(hoisted.runCheckCalls).toHaveLength(1);
-    expect(hoisted.saveSessionCalls).toHaveLength(1);
-    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).not.toContain('"lastPanicId"');
+    expect(hoisted.saveSessionCalls).toHaveLength(2);
+    expect(hoisted.saveSessionCalls[0].patch).toEqual({});
+    expect(JSON.stringify(hoisted.saveSessionCalls.at(-1)?.patch)).not.toContain('"lastPanicId"');
   });
 
   it("keeps quoted third-party already-happened text on the normal risk pipeline", async () => {
@@ -932,8 +933,9 @@ describe("handleCheck follow-up routing", () => {
     });
 
     expect(hoisted.runCheckCalls).toHaveLength(1);
-    expect(hoisted.saveSessionCalls).toHaveLength(1);
-    expect(JSON.stringify(hoisted.saveSessionCalls[0].patch)).not.toContain('"lastPanicId"');
+    expect(hoisted.saveSessionCalls).toHaveLength(2);
+    expect(hoisted.saveSessionCalls[0].patch).toEqual({});
+    expect(JSON.stringify(hoisted.saveSessionCalls.at(-1)?.patch)).not.toContain('"lastPanicId"');
   });
 
   it("still sends a real artifact to the risk pipeline", async () => {
@@ -989,8 +991,9 @@ describe("handleCheck follow-up routing", () => {
     expect(callbacks).toContain("guardian:next");
     expect(callbacks).toContain("family:notify");
 
-    expect(hoisted.saveSessionCalls).toHaveLength(1);
-    const saved = JSON.stringify(hoisted.saveSessionCalls[0].patch);
+    expect(hoisted.saveSessionCalls).toHaveLength(2);
+    expect(hoisted.saveSessionCalls[0].patch).toEqual({});
+    const saved = JSON.stringify(hoisted.saveSessionCalls.at(-1)?.patch);
     expect(saved).toContain('"guardian"');
     expect(saved).toContain('"high_risk"');
     expect(saved).not.toContain("kapitalbank.uz.evil.com");

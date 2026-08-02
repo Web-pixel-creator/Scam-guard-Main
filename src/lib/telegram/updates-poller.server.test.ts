@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TelegramUpdate } from "./router";
 import { TelegramInlineAnswerDeliveryError } from "./inline-answer-delivery-error";
+import { TelegramDirectResultDeliveryError } from "./direct-result-delivery-error";
 import type {
   BeginTelegramUpdateResult,
   TelegramUpdateLeaderLease,
@@ -665,6 +666,35 @@ describe("single-leader Telegram polling crash contract", () => {
     expect(begin).toHaveBeenCalledTimes(1);
     expect(errorSpy).toHaveBeenCalledWith("telegram polling update failed", "exception");
     expect(errorSpy.mock.calls.flat().join(" ")).not.toContain("query-12");
+  });
+
+  it("keeps a Direct frontier at its offset for retry_after, then advances after success", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const begin = acquiredBegin();
+    let attempts = 0;
+    const execute = vi.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) throw new TelegramDirectResultDeliveryError(17_000);
+      return true;
+    });
+    const cycleDeps = deps({
+      fetchUpdates: vi.fn(async () => [messageUpdate(12)]),
+      begin,
+      execute,
+    });
+
+    await expect(runTelegramPollingCycle(12, leader, cycleDeps)).resolves.toEqual({
+      offset: 12,
+      retryAfterMs: 17_000,
+    });
+    await expect(runTelegramPollingCycle(12, leader, cycleDeps)).resolves.toEqual({
+      offset: 13,
+      retryAfterMs: 0,
+    });
+
+    expect(begin).toHaveBeenCalledTimes(2);
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalledWith("telegram polling update failed", "exception");
   });
 
   it("uses the longest retry delay from every failed Inline in an already-started chunk", async () => {

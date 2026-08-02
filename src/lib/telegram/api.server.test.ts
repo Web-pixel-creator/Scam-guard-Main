@@ -200,7 +200,132 @@ describe("sendMessage", () => {
       new Response(JSON.stringify({ ok: false, description: "rejected" }), { status: 200 }),
     );
 
-    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({ ok: false });
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: false,
+      certainty: "definitive",
+      retryable: false,
+    });
+  });
+
+  it("preserves a definitive 429 and its bounded-retry input", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: false,
+          error_code: 429,
+          description: "Too Many Requests: retry later",
+          parameters: { retry_after: 17 },
+        }),
+        { status: 429 },
+      ),
+    );
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: false,
+      certainty: "definitive",
+      retryable: true,
+      errorCode: 429,
+      retryAfterSec: 17,
+    });
+  });
+
+  it.each([401, 500, 503])(
+    "keeps an explicit Bot API %s rejection definitive and recoverable",
+    async (errorCode) => {
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ ok: false, error_code: errorCode }), {
+          status: errorCode,
+        }),
+      );
+
+      await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+        ok: false,
+        certainty: "definitive",
+        retryable: true,
+        errorCode,
+      });
+    },
+  );
+
+  it.each([400, 403, 404])(
+    "keeps an explicit Bot API %s rejection definitive but terminal",
+    async (errorCode) => {
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ ok: false, error_code: errorCode }), {
+          status: errorCode,
+        }),
+      );
+
+      await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+        ok: false,
+        certainty: "definitive",
+        retryable: false,
+        errorCode,
+      });
+    },
+  );
+
+  it("treats a rejected transport as ambiguous without leaking its error", async () => {
+    fetchMock.mockRejectedValue(
+      new Error(`request failed for https://api.telegram.org/bot${TOKEN}/sendMessage?secret=LEAK`),
+    );
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: false,
+      certainty: "ambiguous",
+      retryable: false,
+    });
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("network_exception");
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain("LEAK");
+  });
+
+  it("treats a timed-out send after fetch starts as ambiguous", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+
+    try {
+      const pending = sendMessage({ chatId: 42, text: "safe" });
+      await vi.advanceTimersByTimeAsync(8_000);
+      await expect(pending).resolves.toEqual({
+        ok: false,
+        certainty: "ambiguous",
+        retryable: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([200, 500])("treats an unparseable HTTP %s response as ambiguous", async (status) => {
+    fetchMock.mockResolvedValue(new Response("not-json", { status }));
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: false,
+      certainty: "ambiguous",
+      retryable: false,
+    });
+  });
+
+  it("keeps a missing token definitive and retryable without starting fetch", async () => {
+    vi.mocked(getTelegramBotToken).mockReturnValue(undefined);
+
+    await expect(sendMessage({ chatId: 42, text: "safe" })).resolves.toEqual({
+      ok: false,
+      certainty: "definitive",
+      retryable: true,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

@@ -46,7 +46,11 @@ describe("Telegram outbound effect fencing", () => {
       { lease },
     );
 
-    expect(result.value).toEqual({ ok: false });
+    expect(result.value).toEqual({
+      ok: false,
+      certainty: "definitive",
+      retryable: true,
+    });
     expect(fetch).not.toHaveBeenCalled();
     expect(h.checks).toEqual([lease]);
     expect(console.error).toHaveBeenCalledWith(
