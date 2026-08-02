@@ -11,6 +11,12 @@ Supabase CLI, database postflight passed, and the exact pre-window Railway
 application image was restored by rollback. No new application build or source
 deployment was performed.
 
+All timestamps below are UTC unless they include another offset. In
+Asia/Tashkent, the Railway freeze and database apply occurred on 2026-08-01;
+the post-resume observation crossed midnight and ended on 2026-08-02. The file
+date identifies the UTC apply date and must not be read as saying the whole
+operation occurred on one local calendar date.
+
 ## Immutable inputs
 
 | Item                           | Verified value                                                            |
@@ -46,6 +52,9 @@ deployment was performed.
   displayed the expected names and sizes. The in-app browser did not expose a
   completed download event, so no offsite byte-hash readback claim is made.
   The owner approved the database apply after this limitation was disclosed.
+- The fresh archive passed local decrypt-and-hash verification but was not
+  restored into a clean database. The earlier v2 hosted restore drill concerns
+  a different archive and is not restore proof for this fresh pre-apply backup.
 
 ## Apply
 
@@ -59,6 +68,11 @@ The final read-only gate at `2026-08-01T18:42:12.630145Z` confirmed:
 - the retention cron remained active at `17 20 * * *` with no recent failure;
 - a final freeze snapshot at `18:43:26.732089Z` still matched the original
   frozen row count and watermark.
+
+The `2 / 2 / 2` values are count-only database evidence. This execution record
+does not retain independent action-time proof of both human owners' presence,
+their individual role bindings, or factor-reset recoverability. Those human
+and recovery checks remain separate operational evidence boundaries.
 
 After separate owner approval, one canonical command was run from the clean
 worktree:
@@ -111,8 +125,13 @@ The destructive retention function was not invoked as a test.
 - The final database snapshot at `2026-08-01T18:54:07.231958Z` showed exactly
   one active polling leader, zero active update leases, zero long transactions,
   and unchanged `checks = 235` with the same watermark.
-- No synthetic Telegram message, paid AI/API call, code commit, Git push, or
-  new application release was made during this window.
+- The migration procedure itself sent no synthetic Telegram QA/user message,
+  initiated no paid AI/API request, created no code commit or Git push, and made
+  no new application release. The global scheduled Production Monitor continued
+  independently. Its freeze-period run made one provider health request and
+  sent one sanitized operator Telegram alert when the intentionally stopped
+  application endpoints returned `404`; those automated effects are excluded
+  from neither cost accounting nor the historical record.
 
 ## Observation-period verdict
 
@@ -127,6 +146,8 @@ one active polling leader, zero active update leases, zero long transactions,
 and unchanged `checks = 235` with the original watermark. The complete window
 verdict is **SUCCESS; no database compensation was required**. The Railway
 rollback used to resume the exact application image is already recorded above.
+In Asia/Tashkent this observation interval ran from `23:56:17` on 2026-08-01
+through `00:04:03` on 2026-08-02.
 
 ## Subsequent application release
 
@@ -136,3 +157,5 @@ the database window. A later, separately approved application action deployed
 `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` without a Supabase mutation. Its release
 and postflight evidence is recorded in
 `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
+Documentation-only PR #120 subsequently advanced `origin/main` to `b226bdd`;
+it did not change the deployed application source.

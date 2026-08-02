@@ -69,6 +69,13 @@ future eligible changes can then deploy automatically. See
 `ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-02.md` for the current release
 identity and evidence.
 
+The current running deployment is healthy, but the later 2026-08-02 read-only
+recheck found `us-west2` in the service manifest and a Railway Dashboard warning
+that this invalid region blocks deployments. Do not start another deployment
+until an owner separately approves a valid replacement region and a rollback
+check. Fixing the region must not silently add a branch binding; they are two
+independent runtime decisions.
+
 Backup/restore, application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
 `ai_docs/RECOVERY_AND_KEY_ROTATION.md`; never test a restore by overwriting the
@@ -371,10 +378,12 @@ more than responsiveness for a specific production incident.
 
 ## Production monitor / alerting
 
-For recurring checks, use the lightweight production monitor. It checks the
-public homepage, `/healthz`, Telegram webhook auth, Bot API `getMe`, Telegram
-`getWebhookInfo` (`url`, pending updates and recent errors), and the configured
-AI provider. It exits non-zero on hard failures and does not print secrets.
+For recurring checks, use the lightweight production monitor. By default it
+checks the public homepage, `/healthz`, Telegram webhook auth, Bot API `getMe`
+and Telegram `getWebhookInfo` (`url`, pending updates and recent errors). The
+AI provider probe is disabled by default because `/chat/completions` may be
+billable. The monitor exits non-zero on hard failures and does not print
+secrets.
 
 ```bash
 railway run npm run monitor:prod -- https://your-app.example.com
@@ -394,6 +403,12 @@ Useful environment variables:
   only for an intentionally limited local/operator run that is allowed to emit
   warning-only skips.
 - `MONITOR_FAIL_ON_WARN=true` - make warnings fail the command.
+- `MONITOR_CHECK_AI=true` - explicitly opt in to one AI provider
+  `/chat/completions` probe. When unset/false, the check returns an OK
+  `disabled by policy` result without a network request. When true, a missing
+  key, timeout, network error, `429`, `5xx` or any other non-success response is
+  a hard failure. Use `--ai-only` only together with this flag for a bounded
+  provider-only probe.
 
 Optional Telegram alerting:
 
@@ -404,28 +419,58 @@ railway run npm run monitor:prod -- https://your-app.example.com
 
 `MONITOR_ALERT_CHAT_ID` enables alerts. The script uses `TELEGRAM_BOT_TOKEN` by
 default for delivery, or `MONITOR_ALERT_BOT_TOKEN` if you want a separate
-operations bot. Set `MONITOR_ALERT_ON_WARN=true` if provider quota warnings
-should also send alerts. Alert messages include only check names and sanitized
-details; they do not include tokens, webhook secrets, chat ids, user content or
-Supabase keys.
+operations bot. Set `MONITOR_ALERT_ON_WARN=true` if non-fatal optional warnings
+should also send alerts. An explicitly enabled AI probe never degrades to a
+warning: failure makes its process/job red. Alert messages include only check
+names and sanitized details; they do not include tokens, webhook secrets, chat
+ids, user content or Supabase keys.
+
+Cost and canary boundary as of the 2026-08-02 audit: the committed 30-minute
+schedule has an AI provider key and its monitor path attempts one provider health
+request on every run. The five-day audit found 60 scheduled runs; 56/56
+inspected logs explicitly showed provider results. This is recurring provider
+usage, not a zero-cost health check. In addition, provider 429/5xx/network
+conditions are warnings, while the current schedule does not fail or alert on
+warnings. Reconcile that policy before using these runs as fixed-RC canary
+evidence. During the database freeze, the hard-failure alert path sent one
+sanitized operator Telegram alert because the intentionally removed app returned
+`404`; it was not a user/QA message.
+
+The local post-audit fix changes that contract: the scheduled workflow sets
+`MONITOR_CHECK_AI=false`, passes no `OPENAI_*` secrets to its baseline job, and
+uses fail/alert-on-warning for the remaining baseline checks. A separate
+`workflow_dispatch` boolean input, `check_ai_provider`, defaults to false. Only
+the exact boolean `true` starts an independent `--ai-only` job and exposes
+`OPENAI_*` secrets to its final consumer step. That job is GitHub-status-only,
+receives no Telegram credentials and treats missing key/429/5xx/network failure
+as hard failure. Manual runs have a run-specific concurrency group, so they
+cannot cancel the scheduled canary observation. This correction is local until
+reviewed and merged into the default branch. One successful scheduled read-back
+must then explicitly show the disabled/no-request result before the policy is
+operational evidence; a Railway application deployment alone does not publish a
+GitHub workflow. The historical 60 scheduled attempts plus one manual request
+remain part of cost accounting.
 
 Operator triage steps live in `ai_docs/ON_CALL_RUNBOOK.md`. Keep that runbook
 up to date when monitor checks, alert routing or production recovery commands
 change.
 
-The repository also includes `.github/workflows/prod-monitor.yml`, which runs
-the monitor on a 30-minute GitHub Actions schedule. That workflow commits
-`MONITOR_REQUIRE_SECRET_CHECKS=true`: a missing Telegram bot token or webhook
-secret is a hard failure, not a skipped green check. It always checks the public
-app and `/healthz`; secret-backed checks use these GitHub repository secrets:
+This local worktree also includes `.github/workflows/prod-monitor.yml`, which is
+intended to run the cost-free baseline monitor on a 30-minute GitHub Actions
+schedule after merge and read-back. That
+workflow commits `MONITOR_REQUIRE_SECRET_CHECKS=true`: a missing Telegram bot
+token or webhook secret is a hard failure, not a skipped green check. It always
+checks the public app and `/healthz`; secret-backed baseline checks use these
+GitHub repository secrets:
 
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_WEBHOOK_SECRET`
-- `OPENAI_API_KEY`
-- optional `OPENAI_BASE_URL`
-- optional `OPENAI_MODEL`
 - optional `MONITOR_ALERT_CHAT_ID`
 - optional `MONITOR_ALERT_BOT_TOKEN`
+
+The scheduled baseline receives no `OPENAI_*` secret. The separate manual
+AI-provider job receives `OPENAI_API_KEY` plus optional `OPENAI_BASE_URL` and
+`OPENAI_MODEL` only when the operator submits `check_ai_provider=true`.
 
 Before release, prove this policy in a controlled Actions environment: one run
 with all required secrets present, one intentionally missing-secret run that
@@ -588,11 +633,21 @@ only for explicit report/appeal flows.
 
 After every Railway deploy or important env change, run the smoke script from a
 shell that has the production variables available. It checks the public app,
-`/healthz`, Telegram webhook auth, Telegram pending errors and the configured AI
-provider. It never prints secret values.
+`/healthz`, Telegram webhook auth and Telegram pending errors. It never prints
+secret values. The default command does not call the AI provider even when
+`railway run` injects `OPENAI_API_KEY`:
 
 ```bash
 railway run npm run prod:smoke -- https://your-app.example.com
+```
+
+Only after a separate one-request budget approval, add `--check-ai`. This is an
+explicit CLI opt-in, so an inherited environment key alone cannot spend quota.
+An enabled missing key, non-2xx response, timeout or network error fails the
+smoke instead of being reported as green degradation:
+
+```bash
+railway run npm run prod:smoke -- https://your-app.example.com --check-ai
 ```
 
 After Family Shield migrations or related bot secret changes, also run the
@@ -633,7 +688,8 @@ uses an explicit `frame-ancestors` policy without broad `https:`.
 railway run npm run prod:security-smoke -- https://your-app.example.com
 ```
 
-If the AI check fails with `status=429` on a Gemini/OpenAI-compatible endpoint,
+If an explicitly enabled AI check fails with `status=429` on a
+Gemini/OpenAI-compatible endpoint,
 the app should still degrade to rules-only scoring, but production AI
 explanations/OCR will be unreliable until the provider quota is restored. Treat
 that as an operational issue: enable billing/credits for the provider, reduce
@@ -871,7 +927,8 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       via `scripts/register-telegram-webhook.ts` with `max_connections=1`.
 - [ ] Verified no secrets in logs or client bundle; `/start` returns a reply.
 - [ ] Production smoke passes (`npm run prod:smoke -- <public-url>`; optionally
-      `--live-telegram` after user approval).
+      `--live-telegram` after user approval). Do not add `--check-ai` without a
+      separately approved one-request provider budget.
 - [ ] In polling mode, `prod:telegram-polling-dispatch-smoke` passes and cleanup
       read-back finds no synthetic checks or sessions.
 - [ ] Family Shield smoke passes after its migration or related env changes

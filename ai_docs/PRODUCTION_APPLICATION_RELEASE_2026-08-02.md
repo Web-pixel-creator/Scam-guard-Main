@@ -12,11 +12,17 @@ reports, or user identifiers.
 CI/security checks had passed before merge. The owner explicitly approved both
 the merge and a production deployment of the resulting `main` revision.
 
-Railway did not start a deployment after the merge. Read-only inspection later
-confirmed why: the GitHub repository is connected to the service, but the
-production environment is not connected to a source branch; the Dashboard
-offers `Connect Environment to Branch`. Therefore production merges do not
-currently auto-deploy.
+After this application deployment, documentation-only PR #120 was merged as
+`b226bdd`. It also passed all seven reported GitHub CI/security checks. The
+current repository tip is therefore `b226bdd`, while the deployed application
+source remains `9e901b1`; the intervening diff contains documentation only.
+
+Railway did not start a deployment after the PR #119 merge, and the later PR
+#120 documentation merge also did not deploy. Read-only inspection confirmed
+why: the GitHub repository is connected to the service, but the production
+environment is not connected to a source branch; the Dashboard offers `Connect
+Environment to Branch`. Therefore production merges do not currently
+auto-deploy.
 
 After the explicit deployment approval, one manual source redeploy was started
 with Railway's official CLI. No branch binding or Railway setting was changed.
@@ -26,6 +32,7 @@ with Railway's official CLI. No branch binding or Railway setting was changed.
 | Item               | Verified value                                                            |
 | ------------------ | ------------------------------------------------------------------------- |
 | GitHub PR          | `#119`                                                                    |
+| Repository tip     | `b226bdd` (documentation-only PR #120; not deployed application source)   |
 | Source commit      | `9e901b1673832e4e78d61500280f061ba39e245c`                                |
 | Railway deployment | `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7`                                    |
 | Created            | `2026-08-02T06:45:27.495Z`                                                |
@@ -66,6 +73,10 @@ No synthetic Telegram update or message was sent. No Supabase schema or data
 mutation was made during this application release. Production remains at `33`
 migrations with head `20260729131000`.
 
+Current GitHub CI at repository tip `b226bdd` passed 165 files and
+12,855/12,855 tests. The earlier 12,853 local candidate count is a historical
+local run, not the current `main` CI total.
+
 ## Observation and logs
 
 The final postflight completed more than ten minutes after deployment creation.
@@ -79,8 +90,12 @@ The intended release check was to avoid AI-provider usage. A local PowerShell
 environment override did not remove the inherited provider key from the
 Railway-run monitor, so the monitor made exactly one provider health request.
 It returned HTTP `200` for model `gemini-3.5-flash` and may be billable. The
-request contained no user content and was not repeated. Consequently this
-release must **not** be described as zero-API or zero-AI-call verification.
+request contained no user content and was not repeated by that manual release
+check. This does not mean provider probing stopped: the separately configured
+30-minute Production Monitor continued to attempt its own provider health call.
+The five-day audit found 60 scheduled runs in total, plus this manual release
+request. Consequently this release interval must **not** be described as
+zero-API or zero-AI-call verification.
 
 ## Remaining operational boundary
 
@@ -89,6 +104,13 @@ connected to the production environment. Connecting `main` would make future
 eligible changes capable of deploying automatically and is a separate runtime
 configuration decision requiring owner approval. Until that decision is made,
 documentation and release procedures must not promise automatic deployment.
+
+A later read-only Railway recheck found `us-west2` in the current service
+manifest and a Dashboard warning that this invalid region blocks deployments.
+The deployment recorded above remains running and healthy, but a subsequent
+deploy must not be attempted until an owner separately approves a valid region
+replacement and rollback verification. No region or branch-binding setting was
+changed during the recheck.
 
 The fixed-RC 72-hour canary, final real-client Direct/Inline RU/UZ/EN matrix,
 complete accessibility review, legal/privacy approval, Railway billing-alert

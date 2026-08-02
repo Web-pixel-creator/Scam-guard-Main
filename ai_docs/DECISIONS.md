@@ -3,6 +3,62 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-092 - Direct primary results retry only after a definitive no-effect outcome
+
+**Status: local/unreleased on 2026-08-02.** This decision is not production
+behavior until its patch is reviewed, merged and deployed.
+
+`sendMessage` separates three outcomes. A validated transient Bot API rejection
+or a pre-fetch config/fence failure is definitive and safe to retry; Direct
+first performs a context-neutral sequenced/fenced session claim, then releases
+the durable update with a sanitized 1-60 second delay if the send is rejected.
+The claim may preserve the resolved language but never writes `lastCheck` or
+scenario context. A validated permanent rejection is drained without rollback
+so an unreachable chat cannot poison the webhook/polling frontier or leave
+phantom unseen context.
+
+A timeout, network rejection or malformed post-fetch response is ambiguous:
+Telegram may already have accepted the primary card. It is therefore
+acknowledged without replay, keeps the saved check context and suppresses
+Guardian/trusted-contact effects. Webhook returns `503` plus bounded
+`Retry-After` only for the known retryable control error; polling holds the
+contiguous frontier for the same delay.
+
+Successful or ambiguous delivery performs a second session write with the same
+`update_id`; the SQL `>=` guard permits this context commit. If that post-send
+commit fails or becomes stale, the primary result is not replayed and secondary
+effects stop. The failure remains in operator logs but does not ask the user to
+repeat a possibly completed action.
+
+This is an at-least-once containment policy, not an exactly-once outbox. A
+process crash after Telegram accepts a message but before durable completion can
+still lead to a duplicate after lease recovery.
+
+## D-091 - Recurring monitoring is cost-free; provider probes require explicit bounded opt-in
+
+**Status: local/unreleased on 2026-08-02.** The historical GitHub schedule still
+attempts provider checks until this workflow change is reviewed and merged.
+One successful scheduled read-back must then show the disabled/no-request path
+before this decision becomes operational or canary evidence.
+
+The half-hour production monitor is a baseline availability/delivery check, not
+a recurring billable AI transaction. It explicitly sets
+`MONITOR_CHECK_AI=false`, receives no `OPENAI_*` secrets and records the
+disabled provider check as OK without invoking the request dependency. Baseline
+warnings fail and alert so they cannot become green canary observations.
+
+Provider reachability is an independent false-by-default manual workflow job.
+Only the exact boolean input `check_ai_provider=true` enables one `--ai-only`
+request; missing key, any non-2xx response, timeout or network failure is fatal.
+The job uses GitHub status for alerting and receives no Telegram credential.
+Manual runs use a separate concurrency identity and cannot cancel scheduled
+observations. The broader `prod:smoke` similarly needs the explicit
+`--check-ai` CLI flag, so inherited Railway keys cannot trigger spend.
+
+Only scheduled no-AI baseline runs count toward the 144-observation canary.
+Manual probes are separately approved/budgeted evidence, and a change to
+monitor code, workflow or eligibility policy restarts the canary.
+
 ## D-090 - Functional recovery and automated voice checks do not close human or SLA gates
 
 A successful logical restore, catalog/RLS checks and synthetic service flows

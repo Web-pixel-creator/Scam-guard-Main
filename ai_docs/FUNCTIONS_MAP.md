@@ -339,8 +339,9 @@ instead of receiving misleading phone or Telegram-profile instructions.
   routing without network, paid AI or Telegram session writes.
 - The three 2026-07-29 exact semantic regressions are also locked in focused
   victim/elderly handler tests. Targeted 468/468, Telegram 10,872/10,872 and
-  adversarial 2,161/2,161 pass locally. The combined local repository gate also
-  passes 12,853/12,853; real-client acceptance remains separate.
+  adversarial 2,161/2,161 pass locally. The 2026-07-29 combined local gate
+  recorded 12,853 tests; current `main` GitHub CI at `b226bdd` passed
+  12,855/12,855. Real-client acceptance remains separate.
 
 **`src/lib/telegram/inline-context-robustness-corpus.ts`**
 
@@ -626,7 +627,15 @@ instead of receiving misleading phone or Telegram-profile instructions.
 
 ## Telegram
 
-- `src/lib/telegram/webhook.server.ts`: compatibility webhook handler with fail-closed secret validation, capped body parsing and durable update lifecycle; returns 200 only after confirmed completion and 503 on handler/lease/completion uncertainty.
+The Direct primary-result delivery behavior described below is local and
+unreleased on 2026-08-02. It is not part of `origin/main` or the Railway
+deployment until separately reviewed, merged and deployed.
+
+- `src/lib/telegram/webhook.server.ts`: compatibility webhook handler with
+  fail-closed secret validation, capped body parsing and durable update
+  lifecycle; returns 200 only after confirmed completion and 503 on
+  handler/lease/completion uncertainty. A known Inline or local Direct delivery
+  control also supplies the sanitized bounded `Retry-After` value.
 - `src/lib/telegram/update-lifecycle.server.ts`: strict service-role RPC boundary for polling leader leases, update processing/completion leases, failure release and current-fence checks. Migration `20260715040836_telegram_polling_stale_leader_reclaim.sql` records leader acquisition time and lets the current polling leader reacquire a processing row whose polling owner is no longer current after a 15-second outbound-effect drain grace, bumping the processing fence/attempt count without permitting takeover of a current owner or webhook lease.
 - `src/lib/telegram/updates-poller.server.ts`: singleton polling supervisor; requests 20 updates per long poll and enables the polling-scoped stateless-Inline dispatch option. Leader renewal is bounded to five seconds and guarded by a conservative local absolute expiry before/after long poll, claim and execution. It carries only the contiguous acknowledged offset returned by the cycle and safely skips completion-before-offset redelivery.
 - `src/lib/telegram/polling-cycle.ts`: dependency-injected batch core. It validates
@@ -637,7 +646,8 @@ instead of receiving misleading phone or Telegram-profile instructions.
   same-user/unknown-user work waits and the next stateful boundary is never
   crossed. Offset advances through the contiguous acknowledged frontier; later
   completed siblings are left for durable replay deduplication when an earlier
-  item fails.
+  item fails. The local Direct P0 keeps that frontier at a definitively
+  retryable primary-result failure and honors its sanitized bounded delay.
   Production supplies handler installation and network/database dependencies;
   isolated tests and the soak reuse the same offset/claim/execute state machine
   without importing the application handler graph.
@@ -649,13 +659,13 @@ instead of receiving misleading phone or Telegram-profile instructions.
   event-loop, queue, latency, retry, loss and duplicate-effect metrics.
 - `src/lib/telegram/outbound-effect-fence.server.ts`: installs the AsyncLocalStorage-to-DB fence used before Telegram Bot API network effects.
 - `src/lib/telegram/outbound-effect-guard.ts`: browser-safe guard indirection that keeps Node/DB modules out of shared API bundles.
-- `src/lib/telegram/update-execution.server.ts`: `runWithTelegramUpdateExecution(updateId, work)` exposes request-local update id, loaded language and session-storage-failure state through `AsyncLocalStorage`; `currentTelegramUpdateId()`, `rememberTelegramSessionLanguage()`, `currentTelegramSessionLanguage()` and `markTelegramSessionStorageFailure()` are the narrow helpers.
+- `src/lib/telegram/update-execution.server.ts`: `runWithTelegramUpdateExecution(updateId, work)` exposes request-local update id, loaded language and session-storage-failure state through `AsyncLocalStorage`; it distinguishes any technical storage failure from the monotonic user-warning requirement so a post-delivery operator-only failure cannot ask the user to repeat a possibly completed action. `currentTelegramUpdateId()`, `rememberTelegramSessionLanguage()`, `currentTelegramSessionLanguage()` and `markTelegramSessionStorageFailure()` are the narrow helpers.
 - `src/lib/telegram/update-serialization.server.ts`: `serializeTelegramUserUpdate(userId, work)` orders updates for one user inside an instance while leaving different users concurrent; it retains ownership until work settles because timing out a `Promise.race` cannot cancel old JavaScript side effects.
 - `src/lib/telegram/update-dispatch.server.ts`: `telegramUpdateUserId(update)` extracts the user from message/callback/inline updates; `executeTelegramUpdate(update, deps)` combines serialization, request-local state and the post-dispatch failure notifier.
 - `src/server.ts`: binds `POST /api/telegram/webhook` and `/healthz` before SSR.
 - `src/lib/telegram/router.ts`: parses updates and routes commands/content, including direct `/call` and `/trainer`; handles `inline_query` before chat-target extraction and passes `from.language_code` as the first-contact session hint; resets active/contextual session state when stored `scenario_data.chatScope` does not match the current chat; forwards `callback_query.id` so inline-button spinners are acknowledged; analyzes media captions before unsupported-media fallback; routes safe meta-questions before `handleCheck`; routes voice notes, short Telegram `audio` attachments and audio documents such as `.ogg`/`.m4a` through the same capped STT path while keeping non-audio documents unsupported; routes Telegram video thumbnails to the image pipeline with a `video_thumbnail` media marker when no stronger caption/link/button evidence exists; routes uncaptained images in `report_desc` to transient report screenshot evidence; attaches sanitized public forward channel/group source context to check/image actions.
 - `src/lib/telegram/handlers/*`: `/start`, `/call`, `/check`, `/report`, safety/help, images, contacts, out-of-scope handling.
-- `src/lib/telegram/session.server.ts`: Supabase-backed state. Durable update executions use `load_telegram_session_fenced` and `save_telegram_session_fenced`; stale update/leader fences fail closed. The monotonic sequenced RPC remains defense in depth and a legacy fallback. `lastVictimIntent` is chat-scoped enum-only routing metadata with a 20-minute consumer window; it never stores raw text, amount, recipient or artifact.
+- `src/lib/telegram/session.server.ts`: Supabase-backed state. Durable update executions use `load_telegram_session_fenced` and `save_telegram_session_fenced`; stale update/leader fences fail closed and an explicit `lease_valid:false` is classified as stale rather than a database outage. Save callers may mark a post-delivery failure operator-only. The monotonic sequenced RPC remains defense in depth and a legacy fallback. `lastVictimIntent` is chat-scoped enum-only routing metadata with a 20-minute consumer window; it never stores raw text, amount, recipient or artifact.
 - `src/lib/telegram/family-shield.server.ts`: service-role-only Family Shield
   helper. It creates HMAC-hashed one-use invite links, rejects duplicate active
   links, expires stale pending invites, uses metadata-only expiring notification
@@ -664,10 +674,23 @@ instead of receiving misleading phone or Telegram-profile instructions.
   side. Migration `20260729105030`, verified in isolated staging and applied in
   production, adds expired claims to scheduled retention. The guide
   never asks users to send or store the actual codeword.
-- `src/lib/telegram/api.server.ts`: Telegram Bot API calls. `getUpdates` defaults to 20 records and clamps requested limits to `1..100`. `answerInlineQuery` has a 2.5-second transport deadline and returns typed failure data (`errorCode`, `description`, optional `retryAfterSec`) for delivery policy. The module also provides in-memory `sendAudio` for opt-in Voice-out and `setWebhook` registration pinned to the shared one-connection containment policy.
+- `src/lib/telegram/api.server.ts`: Telegram Bot API calls. `getUpdates`
+  defaults to 20 records and clamps requested limits to `1..100`.
+  `answerInlineQuery` has a 2.5-second transport deadline and returns typed
+  failure data (`errorCode`, `description`, optional `retryAfterSec`) for its
+  delivery policy. The local Direct P0 makes `sendMessage` return a sanitized
+  discriminated result: definitive versus ambiguous effect certainty, safe
+  replay eligibility and optional numeric `errorCode`/`retryAfterSec`. The
+  module also provides in-memory `sendAudio` for opt-in Voice-out and
+  `setWebhook` registration pinned to the shared one-connection containment
+  policy.
+- `src/lib/telegram/direct-result-delivery-error.ts`: local/unreleased control
+  error used only for a definitively undelivered, retryable Direct primary
+  result. It clamps delays to 1-60 seconds and carries no chat id, message,
+  Bot API description or token.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText` now returns compact panic first cards, `buildDetailedPanicScenarioText` keeps the full checklist for `panicctx:full`, plus panic keyboard builders, live-call callback parser and Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. First panic cards keep the urgent action first and short human guidance cues without repeating "I am nearby" in every message; follow-up answers are guided for stressed/elderly users, keep safe-callback boundaries and use scenario-specific ready phrases/contact destinations for financial, APK, Telegram takeover, live-call, romance, sextortion/photo-video blackmail, publication threats, minor-safety, AI voice-clone, fake job/easy-money, delivery/top-up, crypto/TON/wallet and government grant/benefit cases. Minor-safety and publication-threat trusted-person flows have distinct copy instead of sharing the generic blackmail branch. The panic menu is paginated through page 3 (`panic:more2` / `panic:back2`) for scenarios `12..15`.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check, recent-victim and orphan helper follow-up questions before `runCheck` (including already-paid/installed/uninstall replies), resolves each direct text/voice turn's RU/UZ/EN from the current content without changing the stored profile language, preserves narrow `VictimScenario` topics over generic panic/transfer copy, extracts a standalone phone only from an explicit bank-number identity question, and returns sink-sanitized secret guidance before a value can be echoed. It sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check, recent-victim and orphan helper follow-up questions before `runCheck` (including already-paid/installed/uninstall replies), resolves each direct text/voice turn's RU/UZ/EN from the current content without changing the stored profile language, preserves narrow `VictimScenario` topics over generic panic/transfer copy, extracts a standalone phone only from an explicit bank-number identity question, and returns sink-sanitized secret guidance before a value can be echoed. It sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring. The local Direct P0 performs a context-neutral sequenced/fenced claim before the primary result, commits `lastCheck` only after successful or ambiguous delivery, retries only a safe transient/config/fence outcome, and suppresses Guardian/trusted-contact effects unless both primary delivery and its context commit are confirmed.
 - `src/lib/telegram/media-admission.server.ts`: `claimTelegramImageDownloadBudget(userId)` claims the shared media bucket before any Bot API file metadata or body download; ordinary image and report-screenshot paths use the same boundary.
 - `src/lib/telegram/handlers/report.ts`: owns the `/report` state machine, claims media admission before `getFile`, stores only prepared target hashes/masked displays plus redacted draft text, and accepts screenshots only on the description step. Report screenshots are downloaded/analyzed in memory through structured image evidence, converted to a short redacted summary, and never stored as raw images, data URLs, decoded QR payloads or full OCR text.
 - `src/lib/telegram/handlers/inline.ts`: answers Telegram inline-mode queries with one compact `InlineQueryResultArticle`; empty queries show usage help, non-empty queries are capped at 256 Unicode code points and call `runCheck(skipAi:true, skipUrlReputation:true, persist:false)`. Full multiline text is normalized and classified as one query; later context can refine tax, QR, bank, code and other scenarios, while the query-scoped result id, preview and inserted result preserve the selected topic and put a concrete safe action first. Exact single-line RU/UZ/EN greeting, acknowledgement, identity and capability phrases may return localized small-talk cards before preflight only when no danger clause is present. `safeInlineDisplay` masks human-preflight and upstream displays again before insertion and fails closed for malformed URLs. Low-signal phone/Telegram results reuse the shared Risk Passport summary; `sim_swap` and other specific local scenarios cannot be erased by generic preflight scoring. `answerOne` logs only a generic failure/code. Entity-parse rejection gets one plaintext retry; network/no-code and 5xx delivery failures get one immediate retry. A 429 is not retried immediately: its bounded 1-60-second `retry_after` is carried by a sanitized typed error through lifecycle release to the polling delay. Concurrent failures use the longest already-required delay. Permanent Bot API rejection is drained rather than blocking the polling frontier on an expired query. Copy/buttons use validated `TELEGRAM_BOT_USERNAME` with a safe fallback.
@@ -718,12 +741,15 @@ Migration `20260729105030` makes the prune result include
 
 - `scripts/prod-smoke.ts`: one-shot production smoke test. Checks the public
   app, `/healthz`, Telegram webhook secret behavior, delivery-mode-specific
-  update state, polling leader and the configured OpenAI-compatible AI provider.
+  update state and polling leader. The OpenAI-compatible provider is no-request
+  by default and is checked only with explicit `--check-ai`.
   `--live-telegram` is available only in webhook mode; polling mode points to
   the dedicated dispatch harness instead of treating a disabled webhook as a
   failed bot.
 - `scripts/prod-monitor.ts`: delivery-mode-aware production monitor for the app,
-  Telegram webhook/polling state, authenticated polling-leader health and AI provider. It can
+  Telegram webhook/polling state and authenticated polling-leader health. AI is
+  no-request by default; explicit `MONITOR_CHECK_AI=true` enables one probe and
+  `--ai-only` isolates it from baseline checks. The monitor can
   send sanitized Telegram alerts to an operator chat without printing token,
   secret or chat id values.
 - `scripts/switch-telegram-to-polling.ts`: fail-closed cutover; requires an
@@ -745,6 +771,9 @@ Migration `20260729105030` makes the prune result include
   missing secret into `fail` when that check is required, otherwise `warn`;
   `shouldFailMonitor()` makes every failed check fatal independently of the
   optional fail-on-warning policy.
+- `scripts/prod-monitor-ai.ts`: `checkAiProvider()` never invokes its request
+  dependency when disabled, returns a hard failure when an enabled probe lacks
+  a key, and treats every enabled non-2xx/timeout/network outcome as failure.
 - `scripts/moderation-alert-smoke.ts`: one-shot smoke test for the optional
   private moderation chat. It requires `TELEGRAM_BOT_TOKEN` and
   `TELEGRAM_MODERATION_CHAT_ID`, sends a clearly marked non-user test alert and

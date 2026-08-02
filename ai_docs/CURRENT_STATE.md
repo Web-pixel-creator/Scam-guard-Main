@@ -9,8 +9,12 @@ here.
 
 ## Deployed baseline
 
-- Repository upstream and production application baseline: `origin/main` at
-  `9e901b1673832e4e78d61500280f061ba39e245c`.
+- Repository tip and deployed application source are intentionally different.
+  `origin/main` is `b226bdd` (the documentation-only PR #120 merge), while the
+  Railway application still runs source commit
+  `9e901b1673832e4e78d61500280f061ba39e245c` from PR #119. The diff from the
+  deployed source to the repository tip contains documentation only; do not
+  report `b226bdd` as the deployed application commit.
 - Current Railway production deployment
   `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reports `SUCCESS`, with image digest
   `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`
@@ -35,19 +39,66 @@ here.
   boundary returned the expected `503` in polling mode, polling-leader health
   returned `200`, Telegram pending updates were `0`, and no synthetic Telegram
   update or message was delivered.
-- The release monitor unintentionally made exactly one provider health request
-  because an inherited Railway environment key was not removed by the local
-  PowerShell override. It returned `200` for `gemini-3.5-flash`, contained no
-  user content, may be billable, and was not repeated. Do not describe this
-  release as zero-AI-call verification.
-- The application candidate passed 165 test files and 12,853/12,853 tests,
-  TypeScript, production build, `npm audit` with zero findings, and lint with 0
-  errors plus 8 established Fast Refresh warnings. PR #119 then passed all
-  seven reported GitHub CI/security checks before merge.
+- A local, unreleased Direct P0 patch now distinguishes definitive retryable,
+  definitive permanent and ambiguous primary `sendMessage` failures. A
+  context-neutral sequenced/fenced claim runs before send without writing
+  `lastCheck`; context is committed only after successful or ambiguous delivery.
+  A definitive retryable failure returns a sanitized bounded delay through
+  webhook `503`/`Retry-After` or the polling frontier without rollback.
+  Ambiguous outcomes are not replayed because Telegram may already have
+  accepted the card; secondary Guardian/trusted-contact effects are suppressed.
+  Permanent rejections are drained without phantom context, and a post-send
+  context failure is operator-only. Focused Direct/session tests pass 475/475,
+  the broader delivery/lifecycle set passes 247/247 and lifecycle pgTAP passes
+  41/41 locally. This behavior is not in
+  `origin/main` or the Railway deployment until separately reviewed, merged and
+  deployed; exactly-once delivery is still not claimed.
+- The manual release postflight unintentionally made one provider health
+  request because an inherited Railway environment key was not removed by the
+  local PowerShell override. It returned `200` for `gemini-3.5-flash`, contained
+  no user content and may be billable. Separately, the configured scheduled
+  Production Monitor ran 60 times in the 2026-07-29 through 2026-08-02
+  Asia/Tashkent audit interval (59 successful workflow runs and one failed
+  workflow run). Its configured path attempts one provider health request per
+  run; 56/56 inspected run logs explicitly contained a provider result. Budget
+  accounting must therefore include the 60 scheduled attempts plus the one
+  manual release request. Do not describe the interval or release verification
+  as zero-AI-call.
+- A local, unreleased post-audit patch now makes the half-hour baseline
+  cost-safe: it sets `MONITOR_CHECK_AI=false`, exposes no `OPENAI_*` secret to
+  scheduled runs, and makes warnings fail and alert. A false-by-default manual
+  boolean starts an independent `--ai-only` job; enabled missing-key,
+  `429`/`5xx` and network failures are hard failures. The manual job receives no
+  Telegram credentials, and manual workflow runs cannot cancel scheduled
+  observations. The general `prod:smoke` is also no-AI by default even when a
+  Railway environment injects the key; only `--check-ai` opts in. Focused
+  policy/AI tests pass locally. This is not the current
+  production/GitHub schedule until the patch is reviewed and merged, and the
+  historical `60 + 1` provider-call accounting above remains unchanged.
+- Current GitHub CI for repository tip `b226bdd` passed 165 test files and
+  12,855/12,855 tests, TypeScript, production build, schema lint and pgTAP, plus
+  the other reported CI/security gates. The earlier 12,853 local candidate total
+  is historical and is not the current `main` CI total. PR #119 and the
+  documentation-only PR #120 each passed all seven reported GitHub CI/security
+  checks before merge.
+- The combined local release-gate candidate based on `b226bdd` now passes 167
+  Vitest files / 12,890 tests, repository coverage thresholds, TypeScript,
+  production build, actionlint and ESLint with zero errors. A clean disposable
+  Supabase applied all 33 migrations, schema lint passed and pgTAP passed 92/92.
+  The release container built and returned `200 ok` from `/healthz`; Bun audit
+  and the fixable High/Critical Trivy gate found zero vulnerabilities, and the
+  current patch passed a redacted Gitleaks scan. This evidence applies only to
+  the uncommitted local Direct/monitor/documentation candidate; it is not
+  `origin/main`, CI or production evidence.
 - Railway did not auto-deploy PR #119. Read-only Dashboard inspection confirmed
   that the repository is connected but production has no branch binding; the
   UI offers `Connect Environment to Branch`. The successful release was one
   explicitly approved manual source redeploy. No Railway setting was changed.
+- A later read-only Railway recheck showed the service manifest configured for
+  `us-west2`, while the Dashboard reports that region as invalid and blocking
+  new deployments. The current deployment remains running and healthy; the
+  invalid region is a blocker for the _next_ deployment, not evidence that the
+  current deployment failed. No region or branch-binding setting was changed.
 
 ## Closed in the current release
 
@@ -79,7 +130,9 @@ here.
 The two database migrations below were first proven in isolated staging on
 2026-07-29, including official history reconciliation, and were then applied
 once to production from approved merge `d053e35` during the separately
-authorized 2026-08-02 local-date maintenance window. The compatible
+authorized maintenance operation. The freeze and migration apply occurred on
+2026-08-01 in Asia/Tashkent; post-resume observation crossed midnight into
+2026-08-02 local time. The compatible
 application/security/Telegram source was subsequently released from approved
 `main` commit `9e901b1` in its own production action:
 
@@ -139,15 +192,19 @@ application/security/Telegram source was subsequently released from approved
   a separately reviewed update to CLI `2.110.0` or newer contains the Windows
   compatibility fallback.
 
-The released application candidate passed 165 Vitest files and 12,853/12,853
-tests, TypeScript, production build with non-secret placeholders, `npm audit`
-with zero findings and lint with zero errors plus the eight established Fast
-Refresh warnings. A fresh local Supabase database applied all 33 migrations
-from scratch; schema lint reported no errors and all four pgTAP files passed
-86/86. The database-only production window remains documented separately and
-must not be presented as the later app release. The disposable local cluster was then stopped with
-`--no-backup`; no local Supabase containers or project volumes remain. Do not
-promote local or staging application totals to deployed evidence.
+The released application candidate passed its recorded local gate, TypeScript,
+production build with non-secret placeholders, `npm audit` with zero findings
+and lint with zero errors plus the eight established Fast Refresh warnings.
+Current GitHub CI at repository tip `b226bdd` subsequently passed 165 Vitest
+files and 12,855/12,855 tests. A fresh local Supabase database applied all 33
+migrations from scratch; schema lint reported no errors and all four pgTAP
+files passed 86/86. The database-only production window remains documented
+separately and must not be presented as the later app release. That disposable
+cluster was stopped with `--no-backup` at the time. A later 2026-08-02
+two-phase Direct validation created a fresh local test stack, passed 92/92
+pgTAP, then stopped it without `--no-backup`; no local Supabase container is
+running, while the disposable test volume remains. Do not promote local or
+staging application totals to deployed evidence.
 
 ## Recovery progress
 
@@ -214,12 +271,18 @@ promote local or staging application totals to deployed evidence.
   local decrypt/hash verification and its ciphertext files were uploaded to
   private OneDrive. OneDrive displayed the expected names and sizes, but the
   browser did not expose a completed download event, so cloud byte-hash
-  readback is not claimed.
+  readback is not claimed. That fresh pre-apply archive was not restored into a
+  clean database; the earlier v2 hosted restore is separate evidence and does
+  not prove restorability of this specific fresh archive.
 - The production apply and read-only postflight passed without data-count or
   watermark drift. Railway rollback restored the exact pre-window app
   commit/image as deployment `5b2663c8-faed-40ab-8b1d-cc2462641c0f`; health,
   AAL2 admin read, polling-leader recovery and more than ten minutes of monitor
-  samples passed. No Telegram QA, paid AI/API call or new app release occurred.
+  samples passed. The migration procedure itself sent no Telegram QA/user
+  message and initiated no AI request or new app release. However, the global
+  scheduled monitor continued independently: its run during the freeze made a
+  provider health request and sent one sanitized operator Telegram alert when
+  the intentionally stopped app endpoints returned `404`.
 - A separately approved application release later deployed `main` commit
   `9e901b1` as Railway deployment `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7`.
   Public-route, AAL2-admin, polling and log postflight passed. The migration
@@ -233,29 +296,42 @@ promote local or staging application totals to deployed evidence.
 
 ## Open operational and release gates
 
-1. Decide whether production should remain explicit-manual deploy or be
+1. Resolve the Railway `us-west2` region blocker under separate approval before
+   attempting another deployment, then verify health and rollback behavior. The
+   currently running deployment is not evidence that a future deployment can
+   start with the invalid region setting.
+2. Decide whether production should remain explicit-manual deploy or be
    connected to `main`. The current missing branch binding explains why PR #119
-   did not auto-deploy. Do not change this runtime setting without separate
-   approval and a documented rollback expectation.
-2. Record a complete future hosted restore with retained per-phase error
+   and the later documentation-only PR #120 did not auto-deploy. Do not change
+   this runtime setting without separate approval and a documented rollback
+   expectation.
+3. Review and merge the local scheduled-monitor policy correction before a
+   fixed-RC canary. After merge, verify one baseline Actions run reports the AI
+   check disabled without a provider request. Any monitor/workflow policy
+   change invalidates or restarts a canary, so none of the historical runs
+   count toward the future fixed-RC window.
+4. Record a complete future hosted restore with retained per-phase error
    classification, start/end timing, measured recovery duration and named
    owner. Supabase Free still provides no guaranteed managed RPO.
-3. Decide when to delete the retained hosted-restore staging project. Do not
+5. Decide when to delete the retained hosted-restore staging project. Do not
    infer deletion approval from permission to continue other work.
-4. Complete the separately approved bidirectional Railway rollback/return drill
+6. Complete the separately approved bidirectional Railway rollback/return drill
    with measured timing. The maintenance window proved exact-image resume only,
    not a previous-release/current-release round trip.
-5. Rehearse the authorized MFA factor-reset recovery path using the second
-   owner; do not collect QR secrets or TOTP codes.
-6. Capture the non-destructive multi-instance polling failover/re-election and
+7. Rehearse the authorized MFA factor-reset recovery path using the second
+   owner; do not collect QR secrets or TOTP codes. The production preflight
+   recorded count-only `2 / 2 / 2` eligibility/role/verified-TOTP aggregates,
+   but the maintenance record does not retain independent action-time evidence
+   of both human owners' presence or factor recoverability.
+8. Capture the non-destructive multi-instance polling failover/re-election and
    Telegram provider-failure recovery evidence.
-7. Record Railway payment-method expiry/spend alerts and the response owner.
+9. Record Railway payment-method expiry/spend alerts and the response owner.
    Railway currently reports `plan=pro`, one replica and
    `sleepApplication=false`.
-8. Complete the final real-client Direct/Inline RU/UZ/EN matrix, human
-   listen-through of all prerecorded Voice-out assets, real RU/UZ provider STT
-   examples, the complete accessibility scale/zoom/reduced-motion matrix,
-   legal/privacy approval and a fresh fixed-RC 72-hour canary.
+10. Complete the final real-client Direct/Inline RU/UZ/EN matrix, human
+    listen-through of all prerecorded Voice-out assets, real RU/UZ provider STT
+    examples, the complete accessibility scale/zoom/reduced-motion matrix,
+    legal/privacy approval and a fresh fixed-RC 72-hour canary.
 
 Supabase Free remains an intentional pilot choice, but it provides no managed
 scheduled backups or PITR. The target recovery point is therefore not guaranteed

@@ -1,15 +1,18 @@
 # Production maintenance window record — 2026-08-02
 
-This document is the sanitized, local-date record of the completed production
-database maintenance window. It supersedes the prepared operator recipe that
-previously occupied this path. Exact execution evidence is in
+This document is the sanitized record of the completed production database
+maintenance window. Its filename preserves the planned local-date window that
+previously occupied this path; it is not an assertion that every action occurred
+on 2026-08-02 locally. Exact execution evidence is in
 `ai_docs/PRODUCTION_MIGRATION_APPLY_2026-08-01.md`.
 
 ## Status
 
-**COMPLETED / SUCCESS.** On `2026-08-01` UTC (`2026-08-02` in
-Asia/Tashkent), the following two migrations were applied once to Supabase
-production project `semaarjjdmbjwzgvbenu`:
+**COMPLETED / SUCCESS.** The Railway freeze and the migration apply occurred on
+`2026-08-01` both in UTC and Asia/Tashkent. Post-resume observation crossed
+midnight and completed on `2026-08-02` in Asia/Tashkent. The following two
+migrations were applied once to Supabase production project
+`semaarjjdmbjwzgvbenu`:
 
 1. `20260729105030_family_notification_claim_retention.sql`
 2. `20260729131000_admin_mfa_aal2_rls.sql`
@@ -48,6 +51,9 @@ deletion, or any future production mutation.
   expose a completed download event; therefore no cloud byte-hash readback is
   claimed. The owner explicitly accepted that disclosed limitation before the
   database apply.
+- This fresh pre-apply archive was not restored into a clean database. The
+  earlier hosted v2 restore drill used a different archive and does not prove
+  restorability of this specific backup.
 - No plaintext database export was uploaded to cloud storage or committed to
   Git.
 
@@ -78,6 +84,10 @@ Read-only postflight confirmed:
 - no conflicting lock or long transaction existed.
 
 The destructive retention function was not invoked as a test.
+The pre-apply `2 / 2 / 2` eligible-admin/admin-role/verified-TOTP values were
+count-only database evidence. The record does not independently preserve
+action-time proof of both human owners' presence, individual role bindings, or
+factor-reset recoverability.
 
 ## Application resume and observation
 
@@ -93,8 +103,12 @@ resume, not a new source release.
 - Nine consecutive monitor samples plus final health/database checks covered
   more than ten minutes from deployment creation. Railway stayed `SUCCESS`,
   health stayed `200`, and no warning/error log lines appeared.
-- No synthetic Telegram message, paid AI/API call, code commit, Git push, or
-  new application release was made.
+- The maintenance procedure itself sent no Telegram QA/user message, initiated
+  no paid AI/API request, created no code commit or Git push, and made no new
+  application release. Independently, the global scheduled Production Monitor
+  continued running: its freeze-period run made a provider health request and
+  sent one sanitized operator Telegram alert when the intentionally stopped app
+  endpoints returned `404`.
 
 ## Superseded freeze method and future safety rule
 
@@ -125,5 +139,10 @@ backup, and action-time approval.
   destructive-action approval.
 - A future complete restore drill still needs retained per-phase timing/error
   evidence and a measured hosted RTO/RPO basis.
+- The current Railway deployment is healthy, but a later read-only recheck found
+  the service manifest set to invalid region `us-west2`; the Dashboard says it
+  blocks new deployments. Region replacement and rollback verification require
+  separate approval before any later deploy. Production also remains manually
+  deployed because no source branch is bound.
 - Real Direct/Inline RU/UZ/EN client acceptance, accessibility, legal/privacy
   review, Railway billing alerts, and the fixed-RC 72-hour canary remain open.

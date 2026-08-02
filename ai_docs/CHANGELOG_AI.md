@@ -2,6 +2,99 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-02 - Local release-gate candidate fully verified
+
+- Verified the combined Direct-delivery, cost-safe-monitor and documentation
+  candidate from clean branch `agent/release-gate-hardening-20260802`, based on
+  `origin/main` commit `b226bdd`. The candidate is still uncommitted,
+  unmerged and undeployed.
+- Full Vitest passed 167 files / 12,890 tests. Coverage passed the repository
+  floors at 85.82% statements, 80.52% branches, 91.33% functions and 87.75%
+  lines. TypeScript, production build, actionlint and full ESLint passed with
+  zero errors and the existing eight Fast Refresh warnings.
+- Corrected a flaky brand-matcher property oracle exposed by the final repeat:
+  an official domain must not implicate its owning brand, but an unrelated
+  brand name in a subdomain may still be detected. Added the deterministic
+  `iiv.humocard.uz` cross-brand boundary; runtime matcher behavior was unchanged.
+- A clean disposable local Supabase applied all 33 migrations; schema lint
+  reported no errors and all four pgTAP files passed 92/92. The local stack was
+  stopped after verification without `--no-backup`; no local Supabase container
+  remains running, while its disposable test volume is retained.
+- The release container built successfully and returned `200 ok` from
+  `/healthz`. Bun audit found no dependency vulnerabilities, Trivy found zero
+  fixable High/Critical OS or library vulnerabilities, and the current patch
+  passed a redacted Gitleaks scan. Full-history Gitleaks remains a CI gate
+  because the Linux scanner container cannot follow a Windows worktree gitdir.
+- No Telegram, AI-provider, Railway or Supabase-cloud request was made. The
+  only network traffic was free dependency/container/vulnerability metadata.
+
+## 2026-08-02 - Direct primary-result delivery hardened locally
+
+- Made `sendMessage` return a sanitized discriminated result that separates a
+  definitive no-effect rejection from an ambiguous post-fetch outcome and
+  carries only bounded numeric retry metadata.
+- Before sending a primary result, Direct now performs a context-neutral
+  sequenced/fenced session claim. It does not write `lastCheck` or scenario
+  context; the delivered/possibly delivered context is committed only after
+  the send. The existing equal-`update_id` SQL guard accepts that second phase.
+- For a definitive retryable primary-card failure, Direct releases the durable
+  update for retry without a rollback. Webhook delivery returns `503` with
+  bounded `Retry-After`; polling keeps the contiguous frontier at the failed
+  update and honors the same delay.
+- Ambiguous transport outcomes are acknowledged without replay because
+  Telegram may already have accepted the primary card; follow-on Guardian or
+  trusted-contact effects are suppressed. Definitive permanent rejections are
+  drained without creating unseen context. A post-send context-write failure is
+  operator-visible but does not replay the primary card or emit a misleading
+  user warning.
+- Focused Direct/session tests pass 475/475, the broader delivery/lifecycle set
+  passes 247/247, and the real local lifecycle pgTAP contract passes 41/41.
+  This change is not merged or deployed and does not create an exactly-once
+  guarantee; the existing at-least-once crash boundary remains.
+
+## 2026-08-02 - Recurring monitor made cost-safe locally
+
+- Added an explicit `MONITOR_CHECK_AI` gate. Its default/false path returns an
+  OK policy result without invoking the provider request dependency; an enabled
+  probe fails hard for missing credentials, every non-2xx response, timeout or
+  network failure.
+- Made the broader `prod:smoke` no-AI by default even when `railway run`
+  injects an API key. Only an explicit `--check-ai` flag enables one fail-hard
+  provider request, preventing the inherited-key incident from recurring.
+- Removed `OPENAI_*` secrets from the half-hour scheduled baseline and enabled
+  fail/alert-on-warning for remaining checks. A false-by-default boolean manual
+  input starts an independent `--ai-only` job whose provider secrets exist only
+  in the final consumer step; it receives no Telegram credentials.
+- Separated manual/scheduled concurrency so a manual provider probe cannot
+  cancel a scheduled canary observation. Updated the 72-hour canary contract:
+  only cost-free scheduled baseline runs count toward 144 observations, manual
+  probes are budgeted evidence, and monitor/workflow changes restart the window.
+- This change is local and tested, not merged or deployed. Historical accounting
+  remains 60 scheduled provider attempts plus one manual release request.
+
+## 2026-08-02 - Five-day release evidence reconciled
+
+- Distinguished current repository tip `b226bdd` (merged documentation-only PR
+  #120) from deployed application source `9e901b1` (PR #119). Current `main` CI
+  passed 165 files / 12,855 tests and all seven reported gates for PR #120.
+- Corrected the maintenance chronology: freeze and apply occurred on 2026-08-01
+  in Asia/Tashkent; post-resume observation crossed midnight into 2026-08-02.
+- Preserved the fresh pre-apply backup boundary: local decrypt/hash and OneDrive
+  names/displayed sizes passed, but there is no cloud byte-hash readback or
+  clean-database restore proof for that exact archive. Count-only `2 / 2 / 2`
+  admin/role/verified-TOTP evidence is not independent action-time proof of both
+  human owners' presence or factor recoverability.
+- Disclosed recurring monitor effects. The audit interval contained 60 scheduled
+  runs (59 successful workflow runs and one failed run); the configured path
+  attempted a provider health call per run, with provider results explicitly
+  present in all 56 inspected logs. The freeze-period run also sent one
+  sanitized operator Telegram alert. The maintenance procedure itself sent no
+  QA/user message and initiated no AI request.
+- Recorded the current Railway operational boundary: production still has no
+  branch binding and deploys manually, while `us-west2` is now reported as an
+  invalid region that blocks the next deployment. The running deployment remains
+  healthy; no Railway setting was changed during the audit.
+
 ## 2026-08-02 - Approved application release completed
 
 - Merged PR #119 as `9e901b1` after all seven reported GitHub CI/security
@@ -17,7 +110,9 @@ Newest first. This tracks documentation/memory files, not every code commit.
 - Recorded one unintended AI-provider health request caused by an inherited
   Railway key that the local PowerShell override did not remove. It returned
   `200` for `gemini-3.5-flash`, may be billable, contained no user content and
-  was not repeated; the release is not described as zero-API verification.
+  was not repeated by that manual release check. The separately scheduled
+  monitor continued recurring provider probes; the interval is not described as
+  zero-API verification.
 - Read-only Railway inspection confirmed the repository is connected but
   production has no source-branch binding. The Dashboard offers
   `Connect Environment to Branch`, so merges do not currently auto-deploy. No
@@ -38,8 +133,11 @@ Newest first. This tracks documentation/memory files, not every code commit.
   destructive retention function was not invoked as a test.
 - Restored the exact pre-window Railway commit/image by rollback as deployment
   `5b2663c8-faed-40ab-8b1d-cc2462641c0f`. Health, AAL2 admin reads, polling
-  leader recovery and more than ten minutes of monitoring passed with no
-  Telegram test message, paid AI/API call, Git commit/push or new app release.
+  leader recovery and more than ten minutes of monitoring passed. The procedure
+  sent no Telegram QA/user message, initiated no AI request, and made no Git
+  commit/push or new app release. The independently scheduled monitor did make
+  a provider health request and sent one sanitized operator alert during the
+  intentional freeze.
 - Superseded the prepared `railway scale` freeze recipe. Validation showed that
   scaling could create a new deployment from newer source, so those commands
   must not be reconstructed or reused. Future freeze/resume work requires
