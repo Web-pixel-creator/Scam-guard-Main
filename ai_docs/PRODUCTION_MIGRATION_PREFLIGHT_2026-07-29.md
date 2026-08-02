@@ -1,16 +1,21 @@
 # Production Migration Preflight — 2026-07-29
 
-This document is the operator gate for:
+This document preserves the historical operator gate for:
 
 1. `20260729105030_family_notification_claim_retention.sql`
 2. `20260729131000_admin_mfa_aal2_rls.sql`
 
-Production inspection in this document is read-only. It records a disposable
-local restore drill, but it does **not** authorize or record a production
-migration, hosted backup restore, Railway deployment, Telegram QA run, or paid
-AI call.
+Production inspection in this document was read-only. It records the evidence
+and compensation design available before the production apply; its pre-window
+verdict and unchecked boxes are historical, not the current production state.
 
-## Current verdict
+The two migrations were subsequently applied successfully on `2026-08-01` UTC
+(`2026-08-02` Asia/Tashkent). The completed window record is
+`ai_docs/PRODUCTION_MAINTENANCE_WINDOW_2026-08-02.md`; exact apply and postflight
+evidence is in `ai_docs/PRODUCTION_MIGRATION_APPLY_2026-08-01.md`. This preflight
+remains the canonical historical baseline and compensation analysis only.
+
+## Historical verdict at preflight time
 
 **NO-GO for applying the migrations now.**
 

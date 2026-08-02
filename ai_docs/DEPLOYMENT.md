@@ -116,8 +116,9 @@ Server-only runtime controls:
   before enabling `true` in a separate window. Migration `20260729131000`
   independently requires AAL2 at the protected direct RLS/PostgREST boundary.
   It passes isolated-staging catalog/pgTAP verification, guarded official
-  history repair and the same-client HTTP user-client smoke, but is not
-  deployed to production.
+  history repair and the same-client HTTP user-client smoke, and was applied to
+  production on `2026-08-01` UTC. Production read-only postflight confirmed all
+  seven protected policies and an authorized AAL2 admin read.
 - `HOSTED_STAGING_PROJECT_REF`: operator-shell guard input for the approved
   staging project. It must agree with the linked ref and all staging URL/id
   variables before a guarded Supabase recipe can execute; it is not an
@@ -317,10 +318,10 @@ Retention cleanup runs through Supabase/Postgres Cron job
 executes `select private.prune_app_retention();` and deletes only rows eligible
 under the documented retention windows. After changing retention SQL, verify the
 job still exists and then run `prod:security-smoke`.
-Migration `20260729105030`, applied and pgTAP-verified in isolated staging but
-still pending for production, adds expired metadata-only Family notification
-claims to the same function; the cron schedule does not need to be recreated.
-Re-verify the production cron entry before deployment.
+Migration `20260729105030`, pgTAP-verified in isolated staging and later applied
+to production, adds expired metadata-only Family notification
+claims to the same function; the cron schedule did not need to be recreated.
+The production postflight confirmed the existing cron entry after apply.
 
 Shared public rate limits are stored in `rate_limit_buckets` through the
 service-role-only `claim_rate_limit()` RPC. A valid hash-pepper configuration
@@ -809,14 +810,16 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       `20260729131000_admin_mfa_aal2_rls.sql` is applied, official migration
       history matches, and the same-client MFA smoke proves protected
       PostgREST AAL1 denial plus AAL2 success with exact cleanup.
-- [ ] Apply `20260729131000_admin_mfa_aal2_rls.sql` to production only in its
-      separately approved migration/deployment window.
+- [x] ~~Apply `20260729131000_admin_mfa_aal2_rls.sql` to production only in its
+      separately approved migration/deployment window.~~ Applied once on
+      `2026-08-01` UTC; postflight and AAL2 admin read passed.
 - [x] In isolated staging,
       `20260729105030_family_notification_claim_retention.sql` is applied and
       pgTAP/count-only cleanup evidence proves expired claims are pruned while
       future claims and active relationships remain.
-- [ ] Apply `20260729105030_family_notification_claim_retention.sql` to
-      production only in its separately approved migration/deployment window.
+- [x] ~~Apply `20260729105030_family_notification_claim_retention.sql` to
+      production only in its separately approved migration/deployment window.~~
+      Applied once on `2026-08-01` UTC; function/ACL/cron postflight passed.
 - [ ] Public impact counter migration applied so report/loss totals count only
       `reports.status='confirmed'`.
 - [ ] `TRUST_PROXY_IP_HEADERS` is unset/false, or the edge proxy has been

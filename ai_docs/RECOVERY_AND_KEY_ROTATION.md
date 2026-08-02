@@ -77,12 +77,29 @@ command without a separately approved maintenance window.
   readback also confirmed the two v2 `.p7m` files and
   `README-RECOVERY-V2.txt`; all eight expected cloud items are present. The
   off-machine OneDrive copy is therefore confirmed.
-  Copy the PFX files to a separate protected device or vault and keep their
-  password elsewhere so one cloud-account failure cannot remove both data and
-  its only recovery keys.
-- The production migration head recorded with the archive is
-  `20260726090000`. The current Railway artifact is commit `6a13419d`,
-  deployment `199d6e63-3c8a-4cc1-bf61-8b86ec267ba8`.
+- Both password-protected PFX recovery files were separately uploaded to a
+  private Google Drive account independent of the workstation and OneDrive.
+  Manually downloaded copies matched the local byte lengths and SHA-256 values,
+  both rejected an empty password, and the operator confirmed recoverable
+  password custody outside both backup clouds and chat. This closes the
+  independent recovery-key-copy gate. A hardware device or dedicated vault
+  remains optional defense in depth, not a blocker for the current free pilot.
+- The production migration head recorded with the 2026-07-26 archive is
+  `20260726090000`; its Railway identifiers are historical snapshot metadata.
+- Current production migration history is `33` versions with head
+  `20260729131000`. Railway deployment
+  `5b2663c8-faed-40ab-8b1d-cc2462641c0f` runs application commit
+  `bff76eb28877a188ca78b7e1509ec4874bb0be23` with verified image digest
+  `sha256:1d3c487de2b5ac64e538488f077118a21ed17a95e1ed5476bb11dc6aa9f87b65`.
+- The 2026-08-01 UTC pre-apply freeze produced a fresh EFS/CMS-encrypted
+  restore-ready logical export. Local decrypt/hash verification passed; the
+  ciphertext archive SHA-256 is
+  `cbc9e96dfe9a5ed6c73e20b63eec31f5be9d8a2b7445777cafdae089096fbbfd`
+  and encrypted metadata SHA-256 is
+  `64e2e8143df21a8d29a2916dd28d58b4125d21761c8b7c349be34f13d58c5ccb`.
+  Private OneDrive showed both expected ciphertext names and sizes, but the
+  browser did not expose a completed download event; no cloud byte-hash
+  readback claim is made.
 - Hash-pepper overlap is active as `v2` plus the required `legacy` read slot.
   The bounded synthetic write/read/cleanup drill passed. Retirement of the
   legacy secret remains forbidden until the documented zero-dependency gate.
@@ -217,6 +234,19 @@ synthetic cleanup.
    directions and elapsed recovery time.
 5. Telegram rollback from polling to webhook follows the fenced procedure in
    `DEPLOYMENT.md`; never use `drop_pending_updates=true`.
+
+The 2026-08-01 UTC maintenance window proved one bounded recovery direction:
+after removing the exact active deployment for the write freeze, Railway
+rollback restored the same verified commit/image, health and AAL2 admin reads
+passed, the polling leader returned, and monitoring stayed green for more than
+ten minutes. It did not execute a previous-release-to-current-release
+round-trip or retain a complete two-direction elapsed-time measurement, so the
+full drill above remains open.
+
+Do not use `railway scale` as the freeze/resume mechanism. Validation showed it
+could create a deployment from newer source rather than preserve the immutable
+image. Any future procedure requires fresh Railway behavior verification and
+separate action-time approval.
 
 ## Key rotation matrix
 

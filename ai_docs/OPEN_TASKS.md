@@ -1,10 +1,12 @@
 # Open Tasks
 
-## Current checkpoint (2026-07-29)
+## Current checkpoint (2026-08-02)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The deployed
 application baseline is commit `bff76eb28877a188ca78b7e1509ec4874bb0be23`;
-Railway deployment `22204af1-97d4-4f52-84d9-7a07511e401e` reports `SUCCESS`.
+Railway deployment `5b2663c8-faed-40ab-8b1d-cc2462641c0f` reports `SUCCESS`.
+Supabase production has `33` migrations with head `20260729131000`; both
+2026-07-29 hardening migrations are applied and postflight-verified.
 Its established full gate passed 12,796/12,796 tests. Streaming dynamic
 Brotli/gzip and precompressed public assets are deployed and passed the normal
 production negotiation/round-trip smoke, but the deployed stream error/cancel
@@ -14,23 +16,23 @@ paragraph was written.
 
 The immediate queue is:
 
-1. review and preserve the complete dirty-worktree diff, especially the two
-   untracked migration sources already registered in staging; production remains
-   `bff76eb` until separate commit/integration/deployment approval;
+1. review this documentation-only diff; the migrations are already preserved
+   in merged commit `d053e35` and applied to production, but the newer
+   application code on `origin/main` still requires separate release approval;
 2. keep the Nitro static precompressed `q`-weight limitation open pending an
    upstream Nitro fix or an explicitly reviewed edge/static-serving layer;
-3. put the PFX files in a second protected location independent of OneDrive;
-4. retain or explicitly approve deletion of staging, then separately approve
+3. retain or explicitly approve deletion of staging, then separately approve
    Railway rollback/return and the MFA factor-reset recovery rehearsal;
-5. capture polling failover/provider-failure evidence and Railway billing
+4. capture polling failover/provider-failure evidence and Railway billing
    alerts;
-6. finish real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
+5. finish real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
    real RU/UZ Voice-in/STT, accessibility, legal/privacy and a fresh 72-hour
    canary.
 
 ## Fragile / risky spots
 
-- **2026-07-29 security-regression hardening is not in production.** Migration
+- **The 2026-07-29 database hardening is production-applied; related app changes
+  remain a separate release.** Migration
   `20260729131000_admin_mfa_aal2_rls.sql` makes AAL2 part of protected
   authenticated RLS SELECT/UPDATE policies, and the revised hosted smoke uses
   the same user client at AAL1 and AAL2. Production/Railway also fails closed
@@ -44,7 +46,8 @@ The immediate queue is:
   database up to date. The revised same-client smoke passed: protected direct
   read denied at AAL1, allowed exactly once at AAL2, then exact synthetic
   cleanup restored the baseline. The restored staging project still lacks
-  `cron.job`, and production remains unchanged.
+  `cron.job`, but production postflight confirmed the live cron, both helpers,
+  all seven protected policies and unchanged count-only invariants.
 - **HTTP compression failure handling is fixed locally, not deployed.** The
   dynamic pipeline now propagates upstream errors, downstream cancellation and
   request abort, and returns `406` when `br`, `gzip` and identity are all
@@ -158,12 +161,12 @@ The immediate queue is:
   bounded approved-QA burst/restart drill remain open.
 - **Retention cleanup is scheduled.** Supabase/Postgres Cron job
   `ishonch_prune_app_retention_daily` runs `private.prune_app_retention()` daily
-  at 20:17 UTC. The deployed function covers the established windows; local
-  migration `20260729105030` additionally guarantees deletion of expired
-  `private.telegram_family_notification_claims` even when no later claim occurs.
-  The migration is applied in isolated staging and pgTAP passes 10/10. That
-  restored project lacks the `cron.job` catalog, so schedule parity remains an
-  explicit staging gap and production has not changed.
+  at 20:17 UTC. Production migration `20260729105030` additionally guarantees
+  deletion of expired `private.telegram_family_notification_claims` even when
+  no later claim occurs.
+  The migration passed isolated-staging pgTAP 10/10 and is now applied in
+  production. The restored project lacks the `cron.job` catalog, so staging
+  schedule parity was not claimed; production postflight confirmed the live job.
 - **Shared rate-limit degraded mode is deployed and production-verified.** Public checks, reports,
   appeals, Telegram check/OCR/image/voice-out paths and public Telegram post
   fetches use Supabase `rate_limit_buckets` with HMAC-hashed keys across Node
@@ -763,8 +766,11 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       timing/error classification, measured recovery duration, RPO basis and
       named owner. See `HOSTED_STAGING_RESTORE_DRILL_2026-07-28.md`.
 - [ ] Execute the separately approved Railway rollback/return drill and record
-      the measured rollback/return time. Staging deletion remains a separate
-      destructive action requiring explicit approval.
+      the measured bidirectional rollback/return time. The production database
+      window proved restoration of the same exact pre-freeze image and more than
+      ten minutes of healthy observation, not a previous/current release round
+      trip. Staging deletion remains a separate destructive action requiring
+      explicit approval.
 - [x] ~~Deploy the application-level Supabase Admin MFA gate and enroll two
       owners.~~ Two independently controlled owner accounts have verified TOTP
       factors; `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login
@@ -834,7 +840,7 @@ Completed research-feed themes now covered by deterministic rules:
       cleanup windows and scheduled through Supabase/Postgres Cron on
       2026-06-14. The later Family notification-claim table exposed a missing
       inactive cleanup path; migration `20260729105030` closes it and is applied
-      in isolated staging with pgTAP 10/10. Guarded official staging history
-      repair is complete; schedule-parity evidence and any production
-      application remain open.
+      in isolated staging with pgTAP 10/10 and in production with read-only
+      function/ACL/cron postflight. Guarded official staging history repair is
+      complete.
 - [ ] Legal/compliance review of moderation guidelines and appeal decisions before high-volume public launch.

@@ -1,6 +1,6 @@
 # Current State
 
-Last reconciled: 2026-07-29
+Last reconciled: 2026-08-02
 
 This is the short operational source of truth. Dated audit and release-plan
 documents preserve the evidence available when they were written; their old
@@ -9,15 +9,21 @@ here.
 
 ## Deployed baseline
 
-- Checked-out branch: `agent/security-regression-hardening-20260729`.
+- Repository upstream baseline: `origin/main` at
+  `d9f16f1c9ec7407be546b21cf8af50f1d3cdb5bc`; the primary worktree is clean
+  but checked out on the earlier merged source branch at `69ffc87`.
 - The application release commit is
   `bff76eb28877a188ca78b7e1509ec4874bb0be23`.
 - Current Railway production deployment
-  `22204af1-97d4-4f52-84d9-7a07511e401e` reports `SUCCESS`, with image digest
+  `5b2663c8-faed-40ab-8b1d-cc2462641c0f` reports `SUCCESS`, with image digest
   `sha256:1d3c487de2b5ac64e538488f077118a21ed17a95e1ed5476bb11dc6aa9f87b65`.
-- Production `/healthz`, `/`, `/login`, `/report`, `/appeal`, `/admin`,
-  `/privacy` and `/emergency` returned `200` during the 2026-07-29
-  re-verification.
+- Production `/healthz`, `/`, `/login`, `/admin` and `/admin-mfa` returned `200`
+  after the 2026-08-02 local-date database window; an existing AAL2 admin
+  session loaded protected data. The prior 2026-07-29 route re-verification of
+  `/report`, `/appeal`, `/privacy` and `/emergency` also returned `200`.
+- Supabase production migration history is `33` versions with head
+  `20260729131000`. Both `20260729105030` and `20260729131000` are applied; a
+  subsequent linked dry-run reported `Remote database is up to date`.
 - Production negotiates streaming Brotli/gzip for eligible dynamic `GET`
   responses and serves precompressed public assets. The release smoke measured
   homepage Brotli at 14,158 bytes for 62,216 decoded bytes and main CSS Brotli
@@ -45,28 +51,29 @@ here.
 - Public emergency contacts use the centralized verified registry, and the
   mobile accessibility fixes from `74663ce` are deployed.
 - Family Shield defaults to consent-aware behavior and uses idempotent alert
-  claims; migration `20260726090000` is applied. Guaranteed scheduled pruning
-  for inactive expired claims is not deployed yet.
+  claims. Migration `20260729105030` is applied in production, so inactive
+  expired claims are included in the existing scheduled retention function.
 - The Supabase service client is outside the browser dependency graph and the
   client-bundle guard is present.
 - Two independent approved admin owners are enrolled in TOTP MFA.
   `REQUIRE_ADMIN_MFA_AAL2=true` is deployed and a fresh AAL2 login succeeded.
-  The deployed server functions enforce AAL2, but the deployed RLS policies do
-  not yet require AAL2 for direct authenticated PostgREST access.
+  Migration `20260729131000` is applied in production: all seven protected
+  admin policies require `private.is_admin_aal2()`, including both UPDATE
+  `WITH CHECK` clauses. Public confirmed-row policies and service-role behavior
+  remain intact.
 - Hash-pepper versioning is applied. New synthetic writes were verified as
   `v2`, legacy reads remained valid and the synthetic row was deleted.
   `HASH_PEPPER_SECRET` remains required for historical `legacy` rows and must
   not be removed.
 
-## Local hardening and staging evidence awaiting the release gate
+## Database hardening applied; local application changes await release
 
-Branch `agent/security-regression-hardening-20260729` is based on production
-commit `bff76eb`. These changes are not in production. The two database
-migrations below were applied through the isolated staging SQL Editor on
-2026-07-29. Because SQL Editor does not update Supabase migration history, the
-guarded official repair later recorded exactly those two reviewed versions.
-The post-repair migration list fully matches local history and the guarded
-`db push --dry-run` reports `Remote database is up to date`:
+Repository `origin/main` includes merged security/Telegram hardening newer than
+production application commit `bff76eb`; that newer application/source code is
+not deployed. The two database migrations below were first proven in isolated
+staging on 2026-07-29, including official history reconciliation, and were then
+applied once to production from approved merge `d053e35` during the separately
+authorized 2026-08-02 local-date maintenance window:
 
 - migration `20260729131000_admin_mfa_aal2_rls.sql` adds
   `private.is_admin_aal2()` and requires an AAL2 admin JWT for protected
@@ -81,7 +88,9 @@ The post-repair migration list fully matches local history and the guarded
   passed with the same ordinary user client: the protected direct read was
   denied at AAL1, TOTP upgraded the session to AAL2, and the same read then
   returned exactly one fixture. The factor, synthetic Auth user, allowlist,
-  roles and fixture were removed and the baseline counts were restored;
+  roles and fixture were removed and the baseline counts were restored.
+  Production postflight later confirmed the helper privileges and all seven
+  protected AAL2 policies;
 - production/Railway now requires an explicit `REQUIRE_ADMIN_MFA_AAL2` value.
   Missing, empty or invalid configuration fails closed; dev/test may still omit
   it;
@@ -100,7 +109,8 @@ The post-repair migration list fully matches local history and the guarded
   expired Family notification claims to the existing daily retention function.
   Its focused contract passes 15/15 and hosted transaction-isolated pgTAP
   passes 10/10. The restored staging project does not currently expose
-  `cron.job`, so the production schedule itself was not re-verified there;
+  `cron.job`, so schedule parity was never claimed from staging. Production
+  postflight confirmed the existing `17 20 * * *` cron and updated function;
 - the local `.env` ACL is restricted to the owner, `SYSTEM` and Administrators.
   New guarded Supabase package commands hard-block a production link and require
   the linked ref, staging env refs and an explicit staging ref confirmation to
@@ -120,14 +130,16 @@ The post-repair migration list fully matches local history and the guarded
   a separately reviewed update to CLI `2.110.0` or newer contains the Windows
   compatibility fallback.
 
-The local branch now passes 165 Vitest files and 12,853/12,853 tests, TypeScript,
-production build with non-secret placeholders, `npm audit` with zero findings
-and lint with zero errors plus the eight established Fast Refresh warnings. A
-fresh local Supabase database applied all 33 migrations from scratch; schema
-lint reported no errors and all four pgTAP files passed 86/86. Production
-deployment has not run for this set. The disposable local cluster was then
-stopped with `--no-backup`; no local Supabase containers or project volumes
-remain. Do not promote local or staging totals to deployed evidence.
+The merged application candidate passed 165 Vitest files and 12,853/12,853
+tests, TypeScript, production build with non-secret placeholders, `npm audit`
+with zero findings and lint with zero errors plus the eight established Fast
+Refresh warnings. A fresh local Supabase database applied all 33 migrations
+from scratch; schema lint reported no errors and all four pgTAP files passed
+86/86. The newer application/source release has not been deployed. The
+database-only production window is documented separately and must not be
+presented as an app release. The disposable local cluster was then stopped with
+`--no-backup`; no local Supabase containers or project volumes remain. Do not
+promote local or staging application totals to deployed evidence.
 
 ## Recovery progress
 
@@ -137,6 +149,11 @@ remain. Do not promote local or staging totals to deployed evidence.
 - A separate 10-year Document Encryption certificate was created for portable
   CMS recovery and exported to the password-protected
   `ishonch-guard-portable-backup-recovery-20260726.pfx`.
+- Both password-protected PFX files are also stored in a private Google Drive
+  account independent of the workstation and OneDrive backup. Manually
+  downloaded copies matched the local byte lengths and SHA-256 values, both
+  rejected an empty password, and the operator confirmed separate recoverable
+  password custody. No password or private key material is in the repository.
 - The database archive and its metadata were CMS-encrypted as `.p7m` files in
   `C:\Users\user\OneDrive\Ishonch Guard Recovery`.
 - Both `.p7m` files passed in-memory decrypt-and-SHA-256 round trips. No
@@ -184,6 +201,17 @@ remain. Do not promote local or staging totals to deployed evidence.
   restored Auth/allowlist/role counts to `2, 2, 4` with no synthetic fixture
   remaining. The restored staging database still lacks `cron.job`, so the
   scheduled job is an explicit staging-parity gap rather than claimed evidence.
+- Before the production apply, Railway reached zero instances and two stable
+  read-only snapshots matched. A fresh EFS/CMS-encrypted logical backup passed
+  local decrypt/hash verification and its ciphertext files were uploaded to
+  private OneDrive. OneDrive displayed the expected names and sizes, but the
+  browser did not expose a completed download event, so cloud byte-hash
+  readback is not claimed.
+- The production apply and read-only postflight passed without data-count or
+  watermark drift. Railway rollback restored the exact pre-window app
+  commit/image as deployment `5b2663c8-faed-40ab-8b1d-cc2462641c0f`; health,
+  AAL2 admin read, polling-leader recovery and more than ten minutes of monitor
+  samples passed. No Telegram QA, paid AI/API call or new app release occurred.
 - The hosted restore is functional recovery evidence, not a closed RPO/RTO
   measurement. The first schema phase crossed its evidence timeout and did not
   retain complete stderr or full per-phase timing.
@@ -192,28 +220,26 @@ remain. Do not promote local or staging totals to deployed evidence.
 
 ## Open operational and release gates
 
-1. Review and preserve the complete dirty-worktree diff before any commit or
-   integration. In particular, both migrations already registered in staging
-   are still untracked local files and must be preserved in a verified commit
-   and remote branch or an independent archive before staging deletion or any
-   production work. Production remains unchanged until separate approvals.
-2. Place the PFX files in a second protected device or vault independent of the
-   OneDrive account while keeping their password separate.
-3. Record a complete future hosted restore with retained per-phase error
+1. Review this documentation-only diff before commit/integration. The two
+   production migrations are already preserved in merged commit `d053e35`; do
+   not conflate that completed database apply with newer application code on
+   `origin/main` or authorize its deployment implicitly.
+2. Record a complete future hosted restore with retained per-phase error
    classification, start/end timing, measured recovery duration and named
    owner. Supabase Free still provides no guaranteed managed RPO.
-4. Decide when to delete the retained hosted-restore staging project. Do not
+3. Decide when to delete the retained hosted-restore staging project. Do not
    infer deletion approval from permission to continue other work.
-5. Perform the separately approved Railway rollback/return drill against
-   schema-compatible immutable artifacts.
-6. Rehearse the authorized MFA factor-reset recovery path using the second
+4. Complete the separately approved bidirectional Railway rollback/return drill
+   with measured timing. The maintenance window proved exact-image resume only,
+   not a previous-release/current-release round trip.
+5. Rehearse the authorized MFA factor-reset recovery path using the second
    owner; do not collect QR secrets or TOTP codes.
-7. Capture the non-destructive multi-instance polling failover/re-election and
+6. Capture the non-destructive multi-instance polling failover/re-election and
    Telegram provider-failure recovery evidence.
-8. Record Railway payment-method expiry/spend alerts and the response owner.
+7. Record Railway payment-method expiry/spend alerts and the response owner.
    Railway currently reports `plan=pro`, one replica and
    `sleepApplication=false`.
-9. Complete the final real-client Direct/Inline RU/UZ/EN matrix, human
+8. Complete the final real-client Direct/Inline RU/UZ/EN matrix, human
    listen-through of all prerecorded Voice-out assets, real RU/UZ provider STT
    examples, the complete accessibility scale/zoom/reduced-motion matrix,
    legal/privacy approval and a fresh fixed-RC 72-hour canary.
