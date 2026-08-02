@@ -283,6 +283,11 @@ The approved merge commit `d053e35` is not the active Railway deployment. Do
 not claim that the new application release is live until a separately approved
 manual deployment succeeds.
 
+That boundary was later satisfied under separate approval on `2026-08-02`.
+Current application identity and postflight evidence are in
+`PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`; the table above remains the
+historical preflight baseline.
+
 The database migrations are backward-compatible with the currently active
 application at the reviewed interfaces:
 

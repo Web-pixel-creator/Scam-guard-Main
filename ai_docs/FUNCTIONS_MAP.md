@@ -43,7 +43,7 @@ Signatures and intent only. See file paths for source.
 **`src/lib/admin-mfa.server.ts`**
 
 - `assertAdminMfaAal2(claims)` requires a verified `aal2` claim whenever the
-  configured gate is enabled. On the local branch, production/Railway must set
+  configured gate is enabled. Production/Railway sets
   `REQUIRE_ADMIN_MFA_AAL2` explicitly; missing/empty/invalid values fail closed.
 
 ## HTTP response pipeline
@@ -56,7 +56,8 @@ Signatures and intent only. See file paths for source.
   `Vary: Accept-Encoding`, returns `406` if every supported encoding including
   identity is forbidden, and uses an abort-aware Node `pipeline` so upstream
   failure, consumer cancellation and request abort tear down the stream.
-- This local hardening is not deployed. Nitro's earlier precompressed-static
+- This hardening is deployed in production source; forced stream-failure and
+  cancellation evidence remains local. Nitro's earlier precompressed-static
   handler bypasses this wrapper and still has an open general `q`-weight
   negotiation limitation.
 

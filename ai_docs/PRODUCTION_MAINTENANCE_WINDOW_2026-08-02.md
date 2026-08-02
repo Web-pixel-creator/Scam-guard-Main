@@ -117,8 +117,10 @@ backup, and action-time approval.
 
 ## Remaining boundaries
 
-- The application source changes outside the exact restored commit remain a
-  separate release candidate and require their own local gate and approval.
+- The application source changes outside the exact restored commit were a
+  separate release candidate at the end of this database window. They were
+  later released under separate approval; see
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 - The retained staging Supabase project must not be deleted without separate
   destructive-action approval.
 - A future complete restore drill still needs retained per-phase timing/error

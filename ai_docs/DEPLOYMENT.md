@@ -46,9 +46,10 @@ Provide the server-only secrets (below) at runtime via `--env-file` or your
 platform's secret manager — never bake them into the image.
 
 Eligible dynamic GET responses pass through the application Brotli/gzip
-wrapper. The local 2026-07-29 hardening propagates stream error/cancel/abort and
-returns `406` for a complete encoding refusal, but it is not deployed. Nitro's
-earlier precompressed-static handler runs before that wrapper and still does not
+wrapper. The 2026-07-29 hardening propagates stream error/cancel/abort and
+returns `406` for a complete encoding refusal. It is deployed in production
+source, while forced stream-failure proof remains local. Nitro's earlier
+precompressed-static handler runs before that wrapper and still does not
 implement correct general `q`-weight negotiation. Keep this limitation open
 until Nitro is upgraded or an explicitly reviewed edge/static-serving layer
 owns negotiation.
@@ -58,6 +59,15 @@ owns negotiation.
 Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
+
+As of the read-only `2026-08-02` inspection, the GitHub repository is connected
+to the Railway service but the production environment has no source-branch
+binding; the Dashboard offers `Connect Environment to Branch`. Merges therefore
+do not currently auto-deploy. Keep explicit manual deployment as the documented
+behavior until an owner separately approves connecting `main` and accepts that
+future eligible changes can then deploy automatically. See
+`ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-02.md` for the current release
+identity and evidence.
 
 Backup/restore, application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
