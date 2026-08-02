@@ -2,6 +2,60 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-02 - Production database maintenance completed
+
+- Applied only `20260729105030` and `20260729131000` to Supabase production
+  after an approved Railway write freeze, stable read-only snapshots, a fresh
+  encrypted logical export, an exact-two dry-run and separate final approval.
+- Production migration history is now `33` versions with head
+  `20260729131000`; the postflight confirmed the Family-claim retention change,
+  all seven role-plus-AAL2 policies, unchanged aggregate data, closed private
+  schema privileges and no conflicting lock or long transaction. The
+  destructive retention function was not invoked as a test.
+- Restored the exact pre-window Railway commit/image by rollback as deployment
+  `5b2663c8-faed-40ab-8b1d-cc2462641c0f`. Health, AAL2 admin reads, polling
+  leader recovery and more than ten minutes of monitoring passed with no
+  Telegram test message, paid AI/API call, Git commit/push or new app release.
+- Superseded the prepared `railway scale` freeze recipe. Validation showed that
+  scaling could create a new deployment from newer source, so those commands
+  must not be reconstructed or reused. Future freeze/resume work requires
+  fresh Railway behavior verification, immutable identifiers, backup and
+  action-time approval.
+- Recorded the full sanitized evidence in
+  `PRODUCTION_MIGRATION_APPLY_2026-08-01.md` and converted the dated maintenance
+  runbook into a completed historical record.
+
+## 2026-08-01 - Maintenance window safely rescheduled
+
+- The proposed `2026-08-01 01:30–03:00` Asia/Tashkent window expired without a
+  Railway freeze, database apply, deployment, Telegram QA or paid AI call. At
+  the next operator request, local time was already `10:20`; the hard-stop rule
+  correctly kept production unchanged.
+- Rescheduled the prepared no-go runbook to the next post-retention interval:
+  `2026-08-02 01:30–03:00` Asia/Tashkent, after the expected `20:17 UTC` cron.
+  This is a proposed window, not authorization; both human owners, fresh
+  read-only state, a new encrypted backup and separate action-time approvals
+  remain mandatory.
+
+## 2026-07-31 - Production database maintenance-window preparation
+
+- Prepared a no-go operator runbook for the proposed `2026-08-01 01:30–03:00`
+  Asia/Tashkent database window. Preparation does not authorize a Railway
+  pause, Supabase apply, application deployment, Telegram QA, or paid AI call.
+- Selected Railway's documented zero-replica scaling as the bounded application
+  write freeze. The sequence preserves the existing deployment image, drains
+  Telegram leases for at least 125 seconds, and requires two identical
+  read-only database snapshots before a fresh encrypted export.
+- Added explicit two-human MFA presence, cron, backup/readback, exact-two
+  dry-run, relation-lock, final-approval, postflight, resume, timeout and abort
+  gates. Production remains unchanged and **NO-GO**.
+- Corrected the write-freeze control after live read-only Railway inspection:
+  the Dashboard replica field has `min=1`, so it cannot implement zero replicas.
+  Pinned and hash-verified the official standalone Railway CLI `4.65.0`, proved
+  its read-only status output against the immutable production baseline, and
+  recorded exact explicit-id `eu-west=0` / `eu-west=1` commands. Neither command
+  was run; production stayed unchanged.
+
 ## 2026-07-31 - Independent Google Drive recovery-key evidence
 
 - Recorded both password-protected recovery PFX files in a private Google Drive

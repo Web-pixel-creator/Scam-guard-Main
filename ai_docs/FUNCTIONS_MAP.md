@@ -660,8 +660,8 @@ instead of receiving misleading phone or Telegram-profile instructions.
   links, expires stale pending invites, uses metadata-only expiring notification
   claims, sends redacted trusted-contact alerts with opt-out, provides the
   privacy-first family codeword guide and revokes relationships from either
-  side. Migration `20260729105030`, verified in isolated staging and still
-  pending for production, adds expired claims to scheduled retention. The guide
+  side. Migration `20260729105030`, verified in isolated staging and applied in
+  production, adds expired claims to scheduled retention. The guide
   never asks users to send or store the actual codeword.
 - `src/lib/telegram/api.server.ts`: Telegram Bot API calls. `getUpdates` defaults to 20 records and clamps requested limits to `1..100`. `answerInlineQuery` has a 2.5-second transport deadline and returns typed failure data (`errorCode`, `description`, optional `retryAfterSec`) for delivery policy. The module also provides in-memory `sendAudio` for opt-in Voice-out and `setWebhook` registration pinned to the shared one-connection containment policy.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
@@ -692,18 +692,17 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - `requireSupabaseAuth` (`src/integrations/supabase/auth-middleware.ts`) validates Bearer tokens.
 - `attachSupabaseAuth` (`src/integrations/supabase/auth-attacher.ts`) attaches the session token client-side.
 - `supabase` / `supabaseAdmin`: browser RLS client vs server service-role client.
-- Migration `20260729131000`, applied and pgTAP-verified in isolated staging but
-  pending for production, adds `private.is_admin_aal2()`: direct authenticated
+- Migration `20260729131000`, applied in production after isolated staging and
+  pgTAP verification, adds `private.is_admin_aal2()`: direct authenticated
   admin PostgREST reads/updates require the current `admin` role and JWT `aal2`.
   Public confirmed-row reads remain public; `supabaseAdmin` retains its
   server-only service-role RLS bypass.
 
 ## DB functions
 
-`private.has_role(uuid, app_role)`, pending
-`private.is_admin_aal2()`, legacy service-role-only
-`has_role(uuid, app_role)`, `handle_new_user_role()`, service-role-only
-`get_check_stats()`, `claim_rate_limit(text,text,int,int)`,
+`private.has_role(uuid, app_role)`, `private.is_admin_aal2()`, legacy
+service-role-only `has_role(uuid, app_role)`, `handle_new_user_role()`,
+service-role-only `get_check_stats()`, `claim_rate_limit(text,text,int,int)`,
 `save_telegram_session_sequenced(bigint,bigint,jsonb)`, fenced Telegram
 leader/update/session lifecycle RPCs,
 `private.prune_app_retention(timestamptz)`, `prune_telegram_sessions()`.

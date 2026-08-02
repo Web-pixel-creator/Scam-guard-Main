@@ -19,9 +19,9 @@ RLS/grants: public direct inserts are revoked. Writes go through server function
 using the service-role client after validation, redaction and hashing. Public
 cannot select; admins read through AAL2-protected admin server functions.
 Migration `20260729131000` also requires an authenticated admin JWT at `aal2`
-for direct RLS/PostgREST SELECT. It is verified in isolated staging but is not
-deployed to production. Rows older than 90 days are eligible for retention
-cleanup. Stores redacted/hashed data only;
+for direct RLS/PostgREST SELECT. It was staging-verified and applied to
+production on `2026-08-01` UTC. Rows older than 90 days are eligible for
+retention cleanup. Stores redacted/hashed data only;
 decoded QR Wi-Fi/password/OTP/recovery/authenticator secrets are removed before
 the check input is constructed or inserted.
 
@@ -37,7 +37,7 @@ private keys before reports, entity candidates or moderation notifications.
 Anonymous by default; admins moderate through AAL2-protected admin server
 functions. Migration `20260729131000` requires AAL2 for direct authenticated
 admin SELECT and for both `USING` and `WITH CHECK` on UPDATE; isolated staging
-pgTAP passes, while production remains unchanged.
+pgTAP and production read-only postflight both passed.
 Terminal reports (`confirmed`, `rejected`, `duplicate`) older
 than 365 days and stale open reports (`new`, `reviewing`) older than 180 days
 are eligible for retention cleanup.
@@ -60,8 +60,8 @@ Aggregated suspicious identifiers: `id, entity_type, entity_hash, display_mask, 
 
 RLS: public can select only `moderation_status='confirmed'`. Migration
 `20260729131000` requires AAL2 for direct authenticated admin SELECT/UPDATE;
-service role retains its normal RLS bypass. Isolated staging verifies the
-policy behavior; production does not yet contain this migration. This prevents
+service role retains its normal RLS bypass. Isolated staging verified the
+policy behavior and production postflight confirmed it after apply. This prevents
 unmoderated public accusations without removing the confirmed-row public
 policy.
 
@@ -86,7 +86,7 @@ metadata, created_at, updated_at`.
 RLS/grants: public can read only confirmed rows from official or moderated-report
 sources with at least one moderated report. Migration `20260729131000`
 requires AAL2 for the broader direct authenticated admin read; service role
-writes and retains its RLS bypass. It is staging-verified and production-pending.
+writes and retains its RLS bypass. It is staging-verified and production-applied.
 Raw Telegram usernames, invite tokens, public titles and public descriptions
 are not stored. New checks may update only observation timestamps;
 user-submitted unverified reports do not affect public risk or user-facing scam
@@ -226,14 +226,14 @@ table stores no message body, checked identifier, Telegram evidence, OTP, card
 data or raw user text. The claim RPC may delete expired rows opportunistically.
 Migration `20260729105030` also deletes every row with `expires_at <= as_of`
 through the existing daily retention function, so an inactive family does not
-retain an expired claim indefinitely. Isolated staging pgTAP passes 10/10;
-production remains unchanged.
+retain an expired claim indefinitely. Isolated staging pgTAP passed 10/10, and
+production postflight confirmed the updated function and unchanged cron.
 
 ### `admin_actions`
 
 Redacted admin audit records. Direct authenticated admin reads become
 role-plus-AAL2 under migration `20260729131000`; it is verified in isolated
-staging but not deployed. Public/anonymous access remains denied and service
+staging and applied in production. Public/anonymous access remains denied and service
 role retains its normal RLS bypass.
 
 ### `user_roles`
@@ -260,8 +260,8 @@ stale and zero missing roles. The command emits aggregate counts only.
 
 - `private.has_role(_user_id uuid, _role app_role) -> boolean` is the private
   role helper.
-- Migration `20260729131000`, applied and pgTAP-verified in isolated staging but
-  pending for production, adds `private.is_admin_aal2() -> boolean`, a
+- Migration `20260729131000`, applied in production after isolated staging and
+  pgTAP verification, adds `private.is_admin_aal2() -> boolean`, a
   `SECURITY INVOKER` predicate that requires both the current `admin` role and
   JWT `aal='aal2'`. Protected authenticated admin policies use it; service role
   remains a separate server-only RLS-bypass boundary.
@@ -290,7 +290,7 @@ reported_loss_uzs)` is service-role-only and called through the web server
 - `private.prune_app_retention(as_of timestamptz default now()) -> jsonb`
   deletes rows eligible under the retention windows and returns per-table
   counts. Migration `20260729105030`, applied and pgTAP-verified in isolated
-  staging, adds
+  staging and later applied in production, adds
   `telegram_family_notification_claims_deleted` to that result.
 - `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.
 
@@ -302,7 +302,8 @@ runs `select private.prune_app_retention();` and deletes only rows eligible
 under the windows below. Migration `20260729105030` updates the called function;
 the existing schedule does not need to be recreated. The migration and its
 pgTAP passed 10/10 in isolated staging; that restored project lacks `cron.job`,
-so schedule parity remains open.
+so schedule parity was not claimed from staging. Production postflight
+confirmed the existing job at `17 20 * * *` and the updated function.
 
 - `checks`: 90 days.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
