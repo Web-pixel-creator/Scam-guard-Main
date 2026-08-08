@@ -47,6 +47,74 @@ const CYRILLIC_TO_LATIN: Readonly<Record<string, string>> = Object.freeze(
   ),
 );
 
+// Rejoin only a small allow-list of security terms when every letter was
+// separated with whitespace ("п р и ш л и т е к о д"). A generic single-letter
+// join would corrupt initials, names and ordinary prose, so additions here
+// require a concrete detector use-case and negative tests.
+const SPACED_SECURITY_TERMS = [
+  "продиктуйте",
+  "переведите",
+  "отправьте",
+  "сообщите",
+  "пришлите",
+  "назовите",
+  "безопасный",
+  "срочно",
+  "счет",
+  "код",
+  "смс",
+  "из",
+  "yuboring",
+  "otkazing",
+  "xavfsiz",
+  "hisob",
+  "ayting",
+  "urgent",
+  "transfer",
+  "account",
+  "code",
+  "send",
+  "tell",
+  "safe",
+  "sms",
+] as const;
+
+function escapeRegexLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const SPACED_SECURITY_TERM_PATTERNS = SPACED_SECURITY_TERMS.map(
+  (term) =>
+    [
+      new RegExp(
+        `(?<![\\p{L}\\p{N}_])${Array.from(term)
+          .map(escapeRegexLiteral)
+          .join("\\s+")}(?![\\p{L}\\p{N}_])`,
+        "giu",
+      ),
+      term,
+    ] as const,
+);
+
+const BOUNDED_ZERO_LEET_REPAIRS = [
+  [/(?<![\p{L}\p{N}_])к0д(?![\p{L}\p{N}_])/giu, "код"],
+  [/(?<![\p{L}\p{N}_])срочн0(?![\p{L}\p{N}_])/giu, "срочно"],
+  [/(?<![\p{L}\p{N}_])п0р0ль(?![\p{L}\p{N}_])/giu, "пароль"],
+  [/(?<![\p{L}\p{N}_])c0de(?![\p{L}\p{N}_])/giu, "code"],
+  [/(?<![\p{L}\p{N}_])0tp(?![\p{L}\p{N}_])/giu, "otp"],
+] as const;
+
+function repairBoundedSecurityObfuscation(text: string): string {
+  let repaired = text;
+  for (const [pattern, replacement] of SPACED_SECURITY_TERM_PATTERNS) {
+    repaired = repaired.replace(pattern, replacement);
+  }
+  for (const [pattern, replacement] of BOUNDED_ZERO_LEET_REPAIRS) {
+    repaired = repaired.replace(pattern, replacement);
+  }
+  return repaired;
+}
+
 function repairIsolatedConfusable(token: string): string {
   const characters = Array.from(token);
   let latinCount = 0;
@@ -70,12 +138,12 @@ function repairIsolatedConfusable(token: string): string {
 }
 
 export function normalizeIntentTextForMatching(text: string): string {
-  return text
+  const normalized = text
     .normalize("NFKC")
     .replace(INVISIBLE_FORMAT_RE, "")
     .replace(APOSTROPHE_RE, "'")
     .replace(TOKEN_RE, repairIsolatedConfusable)
-    .toLowerCase()
-    .replace(/\s+/gu, " ")
-    .trim();
+    .toLowerCase();
+
+  return repairBoundedSecurityObfuscation(normalized).replace(/\s+/gu, " ").trim();
 }

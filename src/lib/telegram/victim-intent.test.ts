@@ -5,8 +5,10 @@ import {
   buildVictimIntentText,
   classifyVictimGuidanceFollowUp,
   classifyVictimContextualFollowUp,
+  classifyVictimContextualPanicIntent,
   classifyVictimIntent,
 } from "@/lib/telegram/victim-intent";
+import { classifyTextPanicIntent } from "@/lib/telegram/text-panic-intent";
 
 describe("classifyVictimIntent", () => {
   it.each([
@@ -1038,4 +1040,40 @@ describe("classifyVictimIntent — physical access context stays clause-local", 
   ])("keeps a genuine physical-code message on the neutral path: %s", (text) => {
     expect(classifyVictimIntent(text)).toBeNull();
   });
+});
+
+describe("classifyVictimContextualPanicIntent", () => {
+  const at = new Date("2026-08-08T08:00:00.000Z");
+  const now = new Date(at.getTime() + 60_000);
+  const codeContext = buildVictimFollowUpContext(
+    { kind: "code_request", askedContext: "code" },
+    at,
+  );
+  const transferContext = buildVictimFollowUpContext(
+    { kind: "transfer_request", askedContext: "transfer" },
+    at,
+  );
+
+  it.each([
+    "ну я им всё сказала и что теперь",
+    "ularga hammasini aytvordim endi nima qilay",
+    "I told them everything, what now?",
+  ])("uses recent code context for an otherwise ambiguous admission: %s", (text) => {
+    expect(classifyVictimContextualPanicIntent(text, codeContext, now)).toBe(1);
+  });
+
+  it("does not invent a code emergency without the matching recent context", () => {
+    const text = "ну я им всё сказала и что теперь";
+
+    expect(classifyVictimContextualPanicIntent(text, undefined, now)).toBeNull();
+    expect(classifyVictimContextualPanicIntent(text, transferContext, now)).toBeNull();
+    expect(classifyTextPanicIntent(text)).toBeNull();
+  });
+
+  it.each(["я им ничего не сказала", "ularga hech narsa aytmadim", "I told them nothing"])(
+    "keeps a negated contextual reply outside aftercare: %s",
+    (text) => {
+      expect(classifyVictimContextualPanicIntent(text, codeContext, now)).toBeNull();
+    },
+  );
 });

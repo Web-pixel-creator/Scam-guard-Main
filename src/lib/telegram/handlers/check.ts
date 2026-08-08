@@ -107,6 +107,7 @@ import {
   classifyVictimGuidanceFollowUp,
   classifyVictimIntent,
   classifyVictimContextualFollowUp,
+  classifyVictimContextualPanicIntent,
   type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
 import { notifyTrustedContact } from "@/lib/telegram/family-shield.server";
@@ -1342,7 +1343,11 @@ export async function handleCheck(
 
   // Completed-incident rescue still outranks a number lookup: if the same
   // message says money/code was already sent, route to urgent aftercare.
-  const textPanicId = classifyTextPanicIntent(trimmed, source);
+  const textPanicId =
+    classifyTextPanicIntent(trimmed, source) ??
+    (source
+      ? null
+      : classifyVictimContextualPanicIntent(trimmed, ctx.session.scenarioData.lastVictimIntent));
   if (textPanicId !== null) {
     await sendPanicRoute(
       ctx,

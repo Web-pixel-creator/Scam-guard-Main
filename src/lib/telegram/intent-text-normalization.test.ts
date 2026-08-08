@@ -45,4 +45,21 @@ describe("normalizeIntentTextForMatching", () => {
     expect(normalizeIntentTextForMatching(original)).toBe('password: "password"');
     expect(original).toBe('Password: "pаssword"');
   });
+
+  it.each([
+    ["п р и ш л и т е к о д и з с м с", "пришлите код из смс"],
+    ["s e n d s m s c o d e", "send sms code"],
+    ["Пришлите к0д из смс срочн0", "пришлите код из смс срочно"],
+    ["Введите п0р0ль или 0TP", "введите пароль или otp"],
+  ])("repairs bounded security-term obfuscation in %s", (input, expected) => {
+    expect(normalizeIntentTextForMatching(input)).toBe(expected);
+  });
+
+  it.each([
+    ["А Б В Г Д", "а б в г д"],
+    ["Модель XR0, квартира 10", "модель xr0, квартира 10"],
+    ["Версия code0 и пароль2", "версия code0 и пароль2"],
+  ])("does not rewrite unrelated initials, model names, or numbers in %s", (input, expected) => {
+    expect(normalizeIntentTextForMatching(input)).toBe(expected);
+  });
 });

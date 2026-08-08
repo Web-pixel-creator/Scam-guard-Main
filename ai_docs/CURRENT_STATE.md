@@ -9,13 +9,14 @@ here.
 
 ## Deployed baseline
 
-- Repository tip and deployed application source are PR #121 merge
-  `c5fa51de8f570fd2258722b1194bd7430319d242`. Its release tree is
-  `79c8a35adfc9dcf492ca2951ec5c75ae2274574c`, exactly matching the fully
-  verified PR head `bfbc777`.
+- GitHub `main` and the deployed source envelope are PR #122 merge
+  `3c70d3a85f8468606642b33914f5c77fadb3d919` (tree
+  `37e027d9e3a4185546dd70d08e396b9fc6e4eef7`). PR #122 changed public
+  documentation only; the deployed application/runtime code remains the fully
+  verified PR #121 merge `c5fa51de8f570fd2258722b1194bd7430319d242`.
 - Current Railway production deployment
-  `4d00a730-d8e2-462f-b820-e3cecbfb0994` reports `SUCCESS`, with image digest
-  `sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`
+  `bed5b2be-64f0-46a3-810d-dffde92bdece` reports `SUCCESS`, with image digest
+  `sha256:264a459739b2c3bb664912631671de9672fcc22b50a22bcafe7d49c5010944bc`
   and one running instance in US West.
 - Production `/healthz`, `/`, `/login`, `/admin`, `/admin-mfa`, `/report`,
   `/appeal`, `/privacy` and `/emergency` returned `200` after the application
@@ -73,8 +74,9 @@ here.
   fixed-RC runs through `2026-08-08T14:23:57Z` passed with sampled logs stating
   `disabled by policy` and `no request sent`. Historical `60 + 1` provider-call
   accounting for the earlier interval remains unchanged.
-- Current GitHub CI/Security Gates for merge `c5fa51d` passed after merge. Fresh
-  local release verification passed 167 Vitest files / 12,890 tests,
+- Current GitHub CI run `31268740371` and Security Gates run `31268740359` for
+  merge `3c70d3a` passed after merge. The underlying application release
+  verification passed 167 Vitest files / 12,890 tests,
   repository coverage thresholds, TypeScript,
   production build, actionlint and ESLint with zero errors. A clean disposable
   Supabase applied all 33 migrations, schema lint passed and pgTAP passed 92/92.
@@ -86,13 +88,26 @@ here.
   The PR #121 merge did not auto-deploy because production had no branch binding
   and auto deploy was disabled, so the exact merge tree was deployed once from
   a clean detached worktree. Production is now bound to `main`, Auto Deploy is
-  enabled and Wait for CI is enabled. Saving the settings caused no extra
-  deployment; the first future `main` change remains the end-to-end binding
-  proof and must not be manufactured during the fixed-RC observation window.
+  enabled and Wait for CI is enabled. PR #122 then provided the first real
+  end-to-end binding proof: after green CI, Railway automatically deployed exact
+  merge `3c70d3a` as successful deployment `bed5b2be-64f0-46a3-810d-dffde92bdece`.
 - The fixed-RC operational observation has 11/11 successful scheduled baseline
   runs as of `2026-08-08T14:23:57Z`. Final 72-hour closure still requires at
   least 144 eligible runs plus the remaining real-client, accessibility and
   legal/privacy evidence. See `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
+
+## Local verified candidate (not deployed)
+
+- Branch `agent/p0-action-state-language-hardening-20260808` fixes verified
+  completed-action RU/UZ wording and bounded spaced-letter / `0`-leet bypasses.
+  Ambiguous “I told them everything” wording requires a recent code context;
+  quotes, third-party actions, physical access codes and negations remain
+  negative controls.
+- Local focused tests passed 812/812, Telegram+risk passed 12,407/12,407 and the
+  full repository passed 12,927/12,927. TypeScript and production build passed;
+  ESLint reported zero errors and the existing eight warnings. No external
+  service or paid AI request was made. This candidate is unmerged and absent
+  from production.
 
 ## Closed in the current release
 

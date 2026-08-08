@@ -83,4 +83,32 @@ describe("pure Telegram text panic intent", () => {
   it("normalizes Unicode apostrophes and Uzbek Cyrillic letters deterministically", () => {
     expect(normalizeVoiceIntentText("  ҚЎҒИРЎҚ  O‘RNATDIM  ")).toBe("кугирук o'rnatdim");
   });
+
+  it.each([
+    "код уже продиктовала им",
+    "я им назвала цифры из смс",
+    "они уже знают мой код",
+    "сказала им шесть цифр которые пришли",
+    "raqamlarni aytvordim",
+    "sms kodni aytvordim",
+  ])("routes a colloquial completed code disclosure to aftercare: %s", (text) => {
+    expect(classifyTextPanicIntent(text)).toBe(1);
+  });
+
+  it.each(["pulni otkazvordim", "pulni o'tkazvordim"])(
+    "routes a colloquial completed transfer to aftercare: %s",
+    (text) => {
+      expect(classifyTextPanicIntent(text)).toBe(3);
+    },
+  );
+
+  it.each([
+    "Код уже продиктовала мама.",
+    "Он сказал: «они уже знают мой код».",
+    "Они знают мой код домофона.",
+    "Raqamlarni aytvormadim.",
+    "Pulni otkazvormadim.",
+  ])("does not turn third-party, physical-access, or negated text into aftercare: %s", (text) => {
+    expect(classifyTextPanicIntent(text)).toBeNull();
+  });
 });

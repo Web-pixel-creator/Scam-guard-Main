@@ -2,6 +2,29 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-08 - P0 action-state and bounded obfuscation hardening verified locally
+
+- Reproduced the reported Direct gaps on current `main`: colloquial Russian
+  completed-code admissions, Uzbek `aytvordim` / `otkazvordim`, a prevention
+  misroute after six digits were already disclosed, and spaced-letter / `0`
+  leet bypasses.
+- Added aftercare routing for explicit completed actions while keeping quoted,
+  third-party, physical-access-code and negated wording outside panic. The
+  otherwise ambiguous “I told them everything” form is accepted only against a
+  recent code-guidance context.
+- Extended the shared classifier-only normalizer with an allow-list of spaced
+  security terms and bounded `0`-leet repairs. Phone numbers, ordinary model
+  names, initials and code-safety warnings have negative controls; original
+  user text is still never replaced in replies or persistence.
+- Local gates passed: focused 812/812, Telegram+risk 12,407/12,407 and full
+  repository 12,927/12,927; TypeScript and production build passed; ESLint had
+  zero errors and the existing eight Fast Refresh warnings. No Telegram, AI,
+  Railway or Supabase request was made. Dependency audit was not rerun locally
+  because this checkout uses `bun.lock` and Bun is unavailable on the host;
+  dependencies were unchanged.
+- Work remains unmerged and undeployed on
+  `agent/p0-action-state-language-hardening-20260808` pending review.
+
 ## 2026-08-08 - Public documentation made current and auditable
 
 - Replaced the stale README snapshot that still described 215+ tests and a

@@ -1,5 +1,6 @@
 import type { Lang } from "@/lib/i18n";
 import type { InlineKeyboard } from "@/lib/telegram/api.server";
+import type { PanicScenarioId } from "@/lib/telegram/emergency";
 import {
   buildAskedContextKeyboardRows,
   type AskedContextKind,
@@ -786,6 +787,8 @@ const SHORT_APK_REMOVAL_RE =
   /^(?:как\s+(?:его\s+|это\s+)?удалить|как\s+удалить\s+(?:приложение|apk)|how\s+do\s+i\s+(?:remove|uninstall)\s+(?:it|the\s+app)|how\s+to\s+(?:remove|uninstall)\s+(?:it|the\s+app)|qanday\s+(?:uni\s+)?o['’]?chiraman|ilovani\s+qanday\s+o['’]?chiraman)[?!.\s]*$/iu;
 const NEGATED_COMPLETION_RE =
   /(?:не\s+(?:перев[её]л|отправил|заплатил|установил)|did\s*not\s+(?:send|transfer|pay|install)|didn['’]?t\s+(?:send|transfer|pay|install)|(?:yubor|o['’]?tkaz|to['’]?la|o['’]?rnat)madim)/iu;
+const SHORT_CONTEXT_CODE_ALREADY_SHARED_RE =
+  /^(?=.{1,160}$)(?:(?:ну\s+)?(?:я\s+)?(?:им|ему|ей)\s+(?:уже\s+)?(?:все|всё)\s+(?:сказал[аи]?|сообщил[аи]?|назвал[аи]?|продиктовал[аи]?)(?:\s+и\s+что\s+теперь)?|(?:ну\s+)?(?:я\s+)?(?:им|ему|ей)\s+(?:уже\s+)?(?:сказал[аи]?|сообщил[аи]?|назвал[аи]?|продиктовал[аи]?)\s+(?:все|всё)(?:\s+и\s+что\s+теперь)?|(?:men\s+)?(?:ularga|unga)\s+(?:hammasini|barchasini)\s+ayt(?:ib)?vordim(?:\s+endi\s+nima\s+qilay)?|i\s+(?:already\s+)?told\s+them\s+everything(?:[,;:]?\s+(?:and\s+)?what\s+(?:do\s+i\s+do\s+)?now)?)[?!.,\s]*$/iu;
 
 function activeVictimFollowUpContext(value: unknown, now: Date): VictimFollowUpContext | null {
   if (!value || typeof value !== "object") return null;
@@ -876,6 +879,35 @@ export function classifyVictimContextualFollowUp(
   }
 
   return null;
+}
+
+/**
+ * Resolve an otherwise ambiguous short admission only against a recent,
+ * bounded victim context. "I told them everything" is unsafe to interpret as
+ * an emergency in isolation, but it is a completed-code event immediately
+ * after code guidance.
+ */
+export function classifyVictimContextualPanicIntent(
+  text: string,
+  value: unknown,
+  now = new Date(),
+): PanicScenarioId | null {
+  const context = activeVictimFollowUpContext(value, now);
+  if (!context || context.askedContext !== "code") return null;
+
+  const normalized = normalizeVictimText(text);
+  if (
+    !normalized ||
+    EXPLICIT_URL_RE.test(normalized) ||
+    PHONE_RE.test(normalized) ||
+    TELEGRAM_HANDLE_RE.test(normalized) ||
+    FILE_NAME_LIKE_RE.test(normalized) ||
+    NEGATED_COMPLETION_RE.test(normalized)
+  ) {
+    return null;
+  }
+
+  return SHORT_CONTEXT_CODE_ALREADY_SHARED_RE.test(normalized) ? 1 : null;
 }
 
 /**
