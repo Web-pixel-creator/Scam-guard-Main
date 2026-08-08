@@ -1,62 +1,45 @@
 # Open Tasks
 
-## Current checkpoint (2026-08-02)
+## Current checkpoint (2026-08-08)
 
-Use `CURRENT_STATE.md` before the historical evidence below. Repository tip
-`origin/main` is documentation-only PR #120 merge `b226bdd`; the deployed
-application source remains PR #119 commit
-`9e901b1673832e4e78d61500280f061ba39e245c`. Railway deployment
-`12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reports `SUCCESS`.
+Use `CURRENT_STATE.md` before the historical evidence below. Repository tip and
+deployed application source are PR #121 merge
+`c5fa51de8f570fd2258722b1194bd7430319d242`. Railway deployment
+`4d00a730-d8e2-462f-b820-e3cecbfb0994` reports `SUCCESS` with image
+`sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-Current `main` GitHub CI passed 165 files / 12,855/12,855 tests. Streaming dynamic
-Brotli/gzip and precompressed public assets are deployed and passed the normal
-production negotiation/round-trip smoke. The error/cancel hardening is deployed
-in source but still lacks a production forced-failure proof, and Nitro static
-`q`-weight handling is not fully closed. Old commit ids,
-test totals and tracker counts below describe the checkpoint at which each
-paragraph was written.
+The exact release tree passed 167 files / 12,890 tests and the post-merge CI and
+Security Gates. The deployed scheduled monitor is no-AI by policy; one manual
+baseline and eleven eligible scheduled observations passed without a provider
+request. Production is bound to `main`, Auto Deploy and Wait for CI are enabled,
+and saving those settings caused no extra deployment. Old commit ids, test
+totals and tracker counts below describe the checkpoint at which each paragraph
+was written.
 
 The immediate queue is:
 
-1. under separate approval, replace the currently invalid Railway `us-west2`
-   service region before attempting another deployment; the running deployment
-   is healthy, but the Dashboard says the current region blocks new deploys;
-2. decide whether production should remain manual-deploy or be connected to
-   `main`; no branch is currently bound, so neither PR #119 nor the later
-   documentation-only PR #120 auto-deployed. Do not change the binding without
-   separate approval;
-3. review and merge the local Direct primary-result delivery P0, then deploy it
-   only after the Railway region blocker and the ordinary release gate are
-   closed. The patch classifies definitive retryable/permanent and ambiguous
-   `sendMessage` outcomes, uses a context-neutral pre-send fenced claim plus a
-   post-send context commit, carries bounded `Retry-After` through
-   webhook/polling and suppresses secondary effects after an uncertain primary
-   result or failed context commit. The former rollback double-failure/phantom
-   `lastCheck` risk is closed locally. It is not current production behavior
-   and does not make delivery exactly-once;
-4. review and merge the local scheduled-monitor cost/policy correction before
-   starting the fixed-RC canary. It disables scheduled AI requests, removes
-   `OPENAI_*` secrets from the baseline job, makes warnings fail/alert, and
-   isolates an exact-boolean manual AI opt-in in a separate fail-hard job. The
-   general production smoke likewise requires explicit `--check-ai`; an
-   inherited key alone cannot make the request. It remains local/unreleased
-   until merge and one scheduled read-back proves the disabled no-request path.
-   The historical five-day total remains 60 scheduled attempts plus one manual
-   provider request; those runs are not eligible for the future canary;
-5. keep the Nitro static precompressed `q`-weight limitation open pending an
-   upstream Nitro fix or an explicitly reviewed edge/static-serving layer;
-6. retain or explicitly approve deletion of staging, then separately approve
-   Railway rollback/return and the MFA factor-reset recovery rehearsal;
-7. capture polling failover/provider-failure evidence and Railway billing
-   alerts;
-8. finish real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
-   real RU/UZ Voice-in/STT, accessibility, legal/privacy and a fresh 72-hour
-   canary.
+1. continue the fixed-RC operational observations to at least 144 eligible
+   scheduled successes; record hour-24/hour-48/hour-72 state and do not call the
+   formal canary closed until the real-client, accessibility and legal/privacy
+   entry evidence is complete;
+2. capture non-destructive multi-instance polling handoff/re-election and
+   definitive Telegram-provider failure-recovery evidence;
+3. complete real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through
+   and bounded real RU/UZ Voice-in/STT evidence;
+4. complete accessibility scale/zoom/reduced-motion and legal/privacy
+   acceptance;
+5. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+   the separately approved Railway rollback/return and MFA factor-reset drills;
+6. retain staging until a separate destructive deletion approval is given;
+7. record Railway payment-method expiry/spend alerts and a response owner;
+8. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
+   the OCR fallback two-phase correction as explicit follow-up engineering.
 
 ## Fragile / risky spots
 
-- **Direct primary-result delivery hardening is local/unreleased.** The patch
+- **Direct primary-result delivery hardening is deployed, but exactly-once is
+  not claimed.** The release
   distinguishes a definite no-effect Bot API rejection from an ambiguous
   post-fetch outcome. A context-neutral pre-send claim gates stale work without
   writing `lastCheck`; only successful or ambiguous delivery gets a second
@@ -65,9 +48,11 @@ The immediate queue is:
   or secondary Guardian/trusted-contact effects, and a permanent rejection is
   drained without phantom context. A failed post-send commit is operator-only
   and suppresses secondary effects. Full Vitest passes 12,890/12,890 and pgTAP
-  passes 92/92 locally. It is absent from `origin/main` and Railway production,
-  and the at-least-once crash boundary remains. Durable analysis idempotency and
-  the separate OCR-fallback pre-save/rollback path remain follow-up P2 work.
+  passes 92/92. It is present in merge `c5fa51d` and Railway deployment
+  `4d00a730-d8e2-462f-b820-e3cecbfb0994`, but the at-least-once crash boundary
+  remains because Telegram exposes no idempotency key and the app has no durable
+  outbound outbox. Durable analysis reuse and the separate OCR-fallback
+  pre-save/rollback path remain follow-up P2 work.
 - **The 2026-07-29 database hardening and compatible app changes are
   production-released.** Migration
   `20260729131000_admin_mfa_aal2_rls.sql` makes AAL2 part of protected
@@ -694,17 +679,18 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Add production monitor script for app/webhook/Telegram/AI failures.~~ Done as `npm run monitor:prod` with optional sanitized Telegram alerts.
 - [x] ~~Attach the production monitor to a real scheduler for public checks.~~ Done as `.github/workflows/prod-monitor.yml` every 30 minutes.
 - [x] ~~Add production GitHub secrets for deeper monitor checks.~~ Done for
-      Telegram baseline checks and optional provider checks. The local
-      2026-08-02 hardening removes `OPENAI_*` from scheduled baseline consumers;
-      those secrets are available only to a separately requested AI-only job.
+      Telegram baseline checks and optional provider checks. The deployed
+      hardening removes `OPENAI_*` from scheduled baseline consumers; those
+      secrets are available only to a separately requested AI-only job.
 - [x] ~~Make the recurring monitor cost-safe and align its canary policy.~~
-      Fixed locally on 2026-08-02: `MONITOR_CHECK_AI=false` produces an OK
+      Deployed in PR #121: `MONITOR_CHECK_AI=false` produces an OK
       no-request result, the scheduled job receives no `OPENAI_*` secret,
       warnings fail/alert, exact-boolean manual opt-in is an independent job,
       `prod:smoke` requires `--check-ai`, and enabled provider
       missing-key/non-2xx/network outcomes fail hard.
-      Focused tests pass; merge and one no-provider-call Actions read-back are
-      still required before this can be treated as deployed evidence.
+      Manual baseline `31242484006` and eleven eligible scheduled observations
+      passed; sampled logs explicitly report `disabled by policy` and
+      `no request sent`.
 - [x] ~~Make required scheduled monitor checks fail hard when a Telegram secret
       is absent.~~ Fixed locally on 2026-07-11: the committed schedule sets
       `MONITOR_REQUIRE_SECRET_CHECKS=true`, and policy tests prove a required
@@ -802,8 +788,9 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       monitor runs. With the configured key, their code path attempted a
       provider health request on every run; 56/56 inspected logs explicitly
       showed a provider result. Historical accounting remains open. The
-      recurring-cost defect is fixed locally, but requires merge plus one
-      scheduled no-provider-call read-back before operational closure.
+      recurring-cost defect is now deployed; historical accounting remains
+      unchanged, while the current scheduled baseline is cost-free by policy
+      and has passed its first eleven eligible read-backs.
 - [x] ~~Execute the isolated hosted backup/restore functional service drill in
       `RECOVERY_AND_KEY_ROTATION.md`.~~ The v2 archive was restored into isolated
       Free/nano staging with outbound integrations disabled. Catalog/RLS,
@@ -857,18 +844,19 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] Keep `HASH_PEPPER_SECRET` as the required legacy read slot until a
       privacy-reviewed retirement report proves zero required dependencies.
       Direct replacement remains forbidden.
-- [ ] Start `CANARY_72H.md` only after the admin-role migration, exact final RC
-      and real-client release evidence are complete. Require at least 144
-      successful eligible half-hour monitor runs and repeat bounded smokes at
-      the entry/exit points. Only scheduled baseline runs with
-      `MONITOR_CHECK_AI=false` count. Separately approved manual provider probes
-      are fail-hard, recorded with budget/call count, and never replace a
-      baseline observation. Merge and verify the local monitor correction
-      before freezing the RC; any monitor/workflow change restarts the window.
-- [ ] Resolve the current Railway `us-west2` region error before any new deploy.
-      The existing deployment remains healthy, but the Dashboard explicitly
-      reports that the invalid region blocks deployments. Keep branch binding
-      and region repair as separately approved runtime changes.
+- [ ] Continue the fixed-RC operational observation documented in
+      `CANARY_72H.md`. Eleven eligible scheduled runs are green as of
+      `2026-08-08T14:23:57Z`; require at least 144 successful eligible runs and
+      repeat bounded smokes at the entry/exit points. Only scheduled baseline
+      runs with `MONITOR_CHECK_AI=false` count. Formal closure also requires the
+      remaining real-client, accessibility and legal/privacy entry evidence;
+      any production/deploy/config/monitor change restarts the window.
+- [x] ~~Resolve the Railway region and source-binding blockers.~~ Plan/payment
+      activation made US West usable; exact merge `c5fa51d` deployed
+      successfully. Production is now bound to `main`, Auto Deploy and Wait for
+      CI are enabled, and saving the settings caused no extra deployment. The
+      first future `main` change remains the end-to-end GitHub App permission
+      proof; do not manufacture one during the fixed-RC observation window.
 - [ ] Record Railway payment method, expiry owner and spend/usage alerts through
       the Dashboard. CLI evidence proves `plan=pro`,
       `sleepApplication=false`, one replica and a successful current deployment,
