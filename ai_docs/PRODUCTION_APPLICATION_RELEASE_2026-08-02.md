@@ -1,5 +1,9 @@
 # Production application release evidence — 2026-08-02
 
+> **Immutable historical release evidence.** A newer application release was
+> recorded on 2026-08-08 in `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
+> Use `CURRENT_STATE.md` for the current deployed baseline.
+
 Sanitized record of the separately approved application release that followed
 the completed Supabase maintenance window. This document contains no
 credentials, private email addresses, TOTP material, Telegram payloads, raw

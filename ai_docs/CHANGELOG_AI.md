@@ -2,6 +2,48 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-08 - Public documentation made current and auditable
+
+- Replaced the stale README snapshot that still described 215+ tests and a
+  webhook-only Telegram runtime. The public entry point now names the exact PR
+  #121 release, 12,890-test gate, polling production mode and remaining
+  acceptance boundaries without claiming enterprise readiness.
+- Reconciled `AI_INDEX.md` and `AGENTS.md` so reviewers read `CURRENT_STATE.md`
+  and `OPEN_TASKS.md` before dated plans or arbitrary local worktrees.
+- Added `DOCUMENTATION_POLICY.md` with source-of-truth precedence, historical
+  evidence rules, local-worktree hygiene and an explicit warning that a docs
+  merge can still trigger Railway auto deploy.
+- Marked the June execution plan, July readiness plan, August 2 release record,
+  product overview and roadmap with their correct current-versus-historical
+  scope. No source code, deployment, database or runtime setting changed.
+
+## 2026-08-08 - PR #121 merged and released with cost-safe monitoring
+
+- Merged PR #121 as
+  `c5fa51de8f570fd2258722b1194bd7430319d242`; its tree exactly matches the
+  fully verified PR head tree. Post-merge CI run `31242142841` and Security
+  Gates run `31242142834` passed.
+- Railway did not receive the merge webhook because production had no branch
+  binding and Auto Deploy was disabled. The exact clean merge tree was deployed
+  once through Railway CLI as deployment
+  `4d00a730-d8e2-462f-b820-e3cecbfb0994`, image
+  `sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`.
+- Public health/routes, polling boundaries, pending updates and fresh logs were
+  green. No live Telegram synthetic update or user message was sent, and the
+  smoke explicitly disabled AI by policy without a provider request.
+- Bound Railway production to `main`, enabled Auto Deploy and enabled Wait for
+  CI. Saving the settings caused no new deployment. A future real `main` change,
+  not a manufactured canary-time commit, remains the end-to-end permission
+  proof.
+- Manual no-AI monitor run `31242484006` passed with its AI job skipped. Eleven
+  of eleven eligible scheduled fixed-RC observations passed through
+  `2026-08-08T14:23:57Z`; sampled logs report `disabled by policy` and
+  `no request sent`.
+- Formal canary closure is still open: require at least 144 eligible runs,
+  hour-24/hour-48/hour-72 records and the remaining real-client,
+  accessibility and legal/privacy acceptance. See
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md` and `CANARY_72H.md`.
+
 ## 2026-08-02 - Local release-gate candidate fully verified
 
 - Verified the combined Direct-delivery, cost-safe-monitor and documentation

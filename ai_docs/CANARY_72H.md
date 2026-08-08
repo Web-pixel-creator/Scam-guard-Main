@@ -4,15 +4,31 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
+## Current RC observation status (2026-08-08)
+
+- RC: `c5fa51de8f570fd2258722b1194bd7430319d242`.
+- Railway deployment: `4d00a730-d8e2-462f-b820-e3cecbfb0994`; image
+  `sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`.
+- Manual no-AI baseline run `31242484006` passed; its separate AI job was
+  skipped.
+- Eleven of eleven scheduled fixed-RC observations passed from run `31244357114` at
+  `2026-08-08T06:37:56Z` through snapshot run `31261844650` at
+  `2026-08-08T14:23:57Z`. The sampled log reports
+  `MONITOR_CHECK_AI=false`, `disabled by policy` and `no request sent`.
+- This is valid provisional operational evidence, not a closed formal canary.
+  Final admission/closure still requires the remaining real-client,
+  accessibility and legal/privacy evidence, at least 144 eligible runs and the
+  hour-24/hour-48/hour-72 observations. A production, deploy, config or monitor
+  change restarts the count.
+
 ## Entry criteria
 
 - CI and Security Gates pass on the RC commit.
 - Railway reports the same commit as `SUCCESS`, `/healthz` is 200 and the
   release-container digest is recorded.
-- The local D-091 monitor/workflow correction has been reviewed and merged,
-  and one successful scheduled read-back explicitly reports the provider check
-  disabled with no request. Until then this document is a future contract, not
-  evidence that the current GitHub schedule is cost-free.
+- The D-091 monitor/workflow correction is merged in PR #121. A manual baseline
+  and scheduled read-backs explicitly report the provider check disabled with
+  no request.
 - Supabase migration history matches the RC; the admin-role reconciliation
   migration is applied and its count-only preflight/read-back is green.
 - one manual baseline `Production Monitor` run with

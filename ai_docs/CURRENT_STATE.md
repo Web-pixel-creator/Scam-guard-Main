@@ -1,6 +1,6 @@
 # Current State
 
-Last reconciled: 2026-08-02
+Last reconciled: 2026-08-08
 
 This is the short operational source of truth. Dated audit and release-plan
 documents preserve the evidence available when they were written; their old
@@ -9,16 +9,14 @@ here.
 
 ## Deployed baseline
 
-- Repository tip and deployed application source are intentionally different.
-  `origin/main` is `b226bdd` (the documentation-only PR #120 merge), while the
-  Railway application still runs source commit
-  `9e901b1673832e4e78d61500280f061ba39e245c` from PR #119. The diff from the
-  deployed source to the repository tip contains documentation only; do not
-  report `b226bdd` as the deployed application commit.
+- Repository tip and deployed application source are PR #121 merge
+  `c5fa51de8f570fd2258722b1194bd7430319d242`. Its release tree is
+  `79c8a35adfc9dcf492ca2951ec5c75ae2274574c`, exactly matching the fully
+  verified PR head `bfbc777`.
 - Current Railway production deployment
-  `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` reports `SUCCESS`, with image digest
-  `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`
-  and one running instance.
+  `4d00a730-d8e2-462f-b820-e3cecbfb0994` reports `SUCCESS`, with image digest
+  `sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`
+  and one running instance in US West.
 - Production `/healthz`, `/`, `/login`, `/admin`, `/admin-mfa`, `/report`,
   `/appeal`, `/privacy` and `/emergency` returned `200` after the application
   release; `/healthz` returned body `ok`. An existing AAL2 admin session loaded
@@ -39,7 +37,7 @@ here.
   boundary returned the expected `503` in polling mode, polling-leader health
   returned `200`, Telegram pending updates were `0`, and no synthetic Telegram
   update or message was delivered.
-- A local, unreleased Direct P0 patch now distinguishes definitive retryable,
+- The deployed Direct P0 behavior distinguishes definitive retryable,
   definitive permanent and ambiguous primary `sendMessage` failures. A
   context-neutral sequenced/fenced claim runs before send without writing
   `lastCheck`; context is committed only after successful or ambiguous delivery.
@@ -48,11 +46,10 @@ here.
   Ambiguous outcomes are not replayed because Telegram may already have
   accepted the card; secondary Guardian/trusted-contact effects are suppressed.
   Permanent rejections are drained without phantom context, and a post-send
-  context failure is operator-only. Focused Direct/session tests pass 475/475,
-  the broader delivery/lifecycle set passes 247/247 and lifecycle pgTAP passes
-  41/41 locally. This behavior is not in
-  `origin/main` or the Railway deployment until separately reviewed, merged and
-  deployed; exactly-once delivery is still not claimed.
+  context failure is operator-only. Focused Direct/session tests passed
+  475/475, the broader delivery/lifecycle set passed 247/247 and lifecycle
+  pgTAP passed 41/41. Exactly-once delivery is still not claimed because
+  Telegram exposes no idempotency key and there is no durable outbound outbox.
 - The manual release postflight unintentionally made one provider health
   request because an inherited Railway environment key was not removed by the
   local PowerShell override. It returned `200` for `gemini-3.5-flash`, contained
@@ -64,41 +61,38 @@ here.
   accounting must therefore include the 60 scheduled attempts plus the one
   manual release request. Do not describe the interval or release verification
   as zero-AI-call.
-- A local, unreleased post-audit patch now makes the half-hour baseline
-  cost-safe: it sets `MONITOR_CHECK_AI=false`, exposes no `OPENAI_*` secret to
+- The deployed half-hour baseline is cost-safe: it sets
+  `MONITOR_CHECK_AI=false`, exposes no `OPENAI_*` secret to
   scheduled runs, and makes warnings fail and alert. A false-by-default manual
   boolean starts an independent `--ai-only` job; enabled missing-key,
   `429`/`5xx` and network failures are hard failures. The manual job receives no
   Telegram credentials, and manual workflow runs cannot cancel scheduled
   observations. The general `prod:smoke` is also no-AI by default even when a
-  Railway environment injects the key; only `--check-ai` opts in. Focused
-  policy/AI tests pass locally. This is not the current
-  production/GitHub schedule until the patch is reviewed and merged, and the
-  historical `60 + 1` provider-call accounting above remains unchanged.
-- Current GitHub CI for repository tip `b226bdd` passed 165 test files and
-  12,855/12,855 tests, TypeScript, production build, schema lint and pgTAP, plus
-  the other reported CI/security gates. The earlier 12,853 local candidate total
-  is historical and is not the current `main` CI total. PR #119 and the
-  documentation-only PR #120 each passed all seven reported GitHub CI/security
-  checks before merge.
-- The combined local release-gate candidate based on `b226bdd` now passes 167
-  Vitest files / 12,890 tests, repository coverage thresholds, TypeScript,
+  Railway environment injects the key; only `--check-ai` opts in. Manual
+  baseline run `31242484006` passed with its AI job skipped. Eleven scheduled
+  fixed-RC runs through `2026-08-08T14:23:57Z` passed with sampled logs stating
+  `disabled by policy` and `no request sent`. Historical `60 + 1` provider-call
+  accounting for the earlier interval remains unchanged.
+- Current GitHub CI/Security Gates for merge `c5fa51d` passed after merge. Fresh
+  local release verification passed 167 Vitest files / 12,890 tests,
+  repository coverage thresholds, TypeScript,
   production build, actionlint and ESLint with zero errors. A clean disposable
   Supabase applied all 33 migrations, schema lint passed and pgTAP passed 92/92.
   The release container built and returned `200 ok` from `/healthz`; Bun audit
   and the fixable High/Critical Trivy gate found zero vulnerabilities, and the
-  current patch passed a redacted Gitleaks scan. This evidence applies only to
-  the uncommitted local Direct/monitor/documentation candidate; it is not
-  `origin/main`, CI or production evidence.
-- Railway did not auto-deploy PR #119. Read-only Dashboard inspection confirmed
-  that the repository is connected but production has no branch binding; the
-  UI offers `Connect Environment to Branch`. The successful release was one
-  explicitly approved manual source redeploy. No Railway setting was changed.
-- A later read-only Railway recheck showed the service manifest configured for
-  `us-west2`, while the Dashboard reports that region as invalid and blocking
-  new deployments. The current deployment remains running and healthy; the
-  invalid region is a blocker for the _next_ deployment, not evidence that the
-  current deployment failed. No region or branch-binding setting was changed.
+  patch passed a redacted Gitleaks scan. PR #121 and the post-merge `main` runs
+  passed all reported CI/security gates.
+- Railway plan/payment activation made the configured US West region usable.
+  The PR #121 merge did not auto-deploy because production had no branch binding
+  and auto deploy was disabled, so the exact merge tree was deployed once from
+  a clean detached worktree. Production is now bound to `main`, Auto Deploy is
+  enabled and Wait for CI is enabled. Saving the settings caused no extra
+  deployment; the first future `main` change remains the end-to-end binding
+  proof and must not be manufactured during the fixed-RC observation window.
+- The fixed-RC operational observation has 11/11 successful scheduled baseline
+  runs as of `2026-08-08T14:23:57Z`. Final 72-hour closure still requires at
+  least 144 eligible runs plus the remaining real-client, accessibility and
+  legal/privacy evidence. See `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
 
 ## Closed in the current release
 
@@ -192,19 +186,17 @@ application/security/Telegram source was subsequently released from approved
   a separately reviewed update to CLI `2.110.0` or newer contains the Windows
   compatibility fallback.
 
-The released application candidate passed its recorded local gate, TypeScript,
-production build with non-secret placeholders, `npm audit` with zero findings
-and lint with zero errors plus the eight established Fast Refresh warnings.
-Current GitHub CI at repository tip `b226bdd` subsequently passed 165 Vitest
-files and 12,855/12,855 tests. A fresh local Supabase database applied all 33
-migrations from scratch; schema lint reported no errors and all four pgTAP
-files passed 86/86. The database-only production window remains documented
-separately and must not be presented as the later app release. That disposable
-cluster was stopped with `--no-backup` at the time. A later 2026-08-02
-two-phase Direct validation created a fresh local test stack, passed 92/92
-pgTAP, then stopped it without `--no-backup`; no local Supabase container is
-running, while the disposable test volume remains. Do not promote local or
-staging application totals to deployed evidence.
+The final PR #121 application candidate passed 167 Vitest files and
+12,890/12,890 tests, coverage floors, TypeScript, production build with
+non-secret placeholders and lint with zero errors plus the eight established
+Fast Refresh warnings. GitHub CI and Security Gates passed again on merge
+`c5fa51d`. A fresh local Supabase database applied all 33 migrations from
+scratch; schema lint reported no errors and all four pgTAP files passed 92/92.
+The database-only production window remains documented separately and must not
+be presented as the later app release. No local Supabase container is running;
+the disposable validation volume remains. Local clean-database evidence and
+production deployment evidence remain distinct even though the verified PR
+tree exactly matches the deployed release tree.
 
 ## Recovery progress
 
@@ -288,6 +280,10 @@ staging application totals to deployed evidence.
   Public-route, AAL2-admin, polling and log postflight passed. The migration
   head stayed `20260729131000`; the release made no Supabase mutation. See
   `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
+- PR #121 later superseded that application image without changing the database.
+  Exact merge `c5fa51d` is Railway deployment
+  `4d00a730-d8e2-462f-b820-e3cecbfb0994`; see
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
 - The hosted restore is functional recovery evidence, not a closed RPO/RTO
   measurement. The first schema phase crossed its evidence timeout and did not
   retain complete stderr or full per-phase timing.
@@ -296,20 +292,15 @@ staging application totals to deployed evidence.
 
 ## Open operational and release gates
 
-1. Resolve the Railway `us-west2` region blocker under separate approval before
-   attempting another deployment, then verify health and rollback behavior. The
-   currently running deployment is not evidence that a future deployment can
-   start with the invalid region setting.
-2. Decide whether production should remain explicit-manual deploy or be
-   connected to `main`. The current missing branch binding explains why PR #119
-   and the later documentation-only PR #120 did not auto-deploy. Do not change
-   this runtime setting without separate approval and a documented rollback
-   expectation.
-3. Review and merge the local scheduled-monitor policy correction before a
-   fixed-RC canary. After merge, verify one baseline Actions run reports the AI
-   check disabled without a provider request. Any monitor/workflow policy
-   change invalidates or restarts a canary, so none of the historical runs
-   count toward the future fixed-RC window.
+1. Continue fixed-RC operational observation without changing production. Eleven
+   eligible scheduled runs are green; formal closure needs at least 144 plus
+   hour-24/hour-48/hour-72 records and the remaining release-scope acceptance
+   evidence.
+2. Capture non-destructive multi-instance polling handoff/re-election and
+   definitive Telegram-provider failure-recovery evidence.
+3. Complete real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
+   bounded real RU/UZ Voice-in/STT, accessibility scale/zoom/reduced-motion and
+   legal/privacy acceptance.
 4. Record a complete future hosted restore with retained per-phase error
    classification, start/end timing, measured recovery duration and named
    owner. Supabase Free still provides no guaranteed managed RPO.
@@ -323,15 +314,15 @@ staging application totals to deployed evidence.
    recorded count-only `2 / 2 / 2` eligibility/role/verified-TOTP aggregates,
    but the maintenance record does not retain independent action-time evidence
    of both human owners' presence or factor recoverability.
-8. Capture the non-destructive multi-instance polling failover/re-election and
-   Telegram provider-failure recovery evidence.
-9. Record Railway payment-method expiry/spend alerts and the response owner.
+8. Record Railway payment-method expiry/spend alerts and the response owner.
    Railway currently reports `plan=pro`, one replica and
    `sleepApplication=false`.
-10. Complete the final real-client Direct/Inline RU/UZ/EN matrix, human
-    listen-through of all prerecorded Voice-out assets, real RU/UZ provider STT
-    examples, the complete accessibility scale/zoom/reduced-motion matrix,
-    legal/privacy approval and a fresh fixed-RC 72-hour canary.
+9. Keep the Nitro static precompressed `q`-weight limitation, durable outbound
+   outbox/journal and OCR fallback two-phase correction as explicit follow-up
+   engineering work.
+10. Treat the first future `main` change as the end-to-end proof of Railway Auto
+    Deploy plus Wait for CI. Do not manufacture a production commit during the
+    fixed-RC observation window merely to test the binding.
 
 Supabase Free remains an intentional pilot choice, but it provides no managed
 scheduled backups or PITR. The target recovery point is therefore not guaranteed

@@ -1,5 +1,10 @@
 # Project Overview
 
+> Product-context document, not an operational status report. Market entries
+> and competitor figures are research snapshots. For the verified release,
+> deployed commit and open acceptance gates, use `CURRENT_STATE.md` and
+> `OPEN_TASKS.md`.
+
 ## Name
 
 **Ishonch Guard** ("ishonch" = trust). Anti-scam assistant for Uzbekistan.
