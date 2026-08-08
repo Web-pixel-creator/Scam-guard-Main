@@ -661,6 +661,28 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
   });
 
+  it("routes an ambiguous completed disclosure through recent code context", async () => {
+    await handleCheck("ну я им всё сказала и что теперь", {
+      chatId: 100,
+      userId: 42,
+      chatType: "private",
+      session: sessionWithData({
+        lastVictimIntent: {
+          kind: "code_request",
+          askedContext: "code",
+          at: new Date().toISOString(),
+        },
+        chatScope: { chatId: 100, chatType: "private" },
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("ПОЗВОНИТЕ В БАНК");
+    expect(hoisted.sentMessages[0].text).toContain("ЗАБЛОКИРУЙТЕ КАРТУ");
+    expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+  });
+
   it("routes a short already-paid reply through recent victim context without a cold check", async () => {
     await handleCheck("я уже перевела 2 миллиона", {
       chatId: 100,

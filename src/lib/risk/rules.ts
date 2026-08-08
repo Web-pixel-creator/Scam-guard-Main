@@ -1,6 +1,7 @@
 import type { InputType } from "./detect";
 import { uzbekLatinMatchingVariant } from "./uz-cyrillic-translit";
 import type { Database } from "@/integrations/supabase/types";
+import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
 
 export type RiskLevel = Database["public"]["Enums"]["risk_level"];
 
@@ -873,12 +874,13 @@ const USER_NEXT_STEP_QUESTION_RE =
   /(?:(?:что|как)\s+(?:мне\s+)?(?:теперь\s+)?(?:делать|поступить).{0,30}(?:прямо\s+сейчас|сейчас)|what\s+should\s+i\s+do.{0,30}(?:right\s+now|now)|hozir.{0,30}(?:nima\s+qil|qanday\s+yo['’]?l\s+tut))/iu;
 
 export function evaluateText(text: string): ReasonCode[] {
-  const codes = evaluateTextScript(text);
+  const normalized = normalizeIntentTextForMatching(text);
+  const codes = evaluateTextScript(normalized);
   // Uzbek Cyrillic input must reach the same Uzbek Latin rule patterns
   // («Хавфсиз ҳисобга…» → `xavfsiz hisob`). The variant is additive and
   // classifier-only; each pass keeps its own negation/safety guards because
   // transliteration preserves protective wording (aytmang stays aytmang).
-  const variant = uzbekLatinMatchingVariant(text);
+  const variant = uzbekLatinMatchingVariant(normalized);
   if (!variant) return codes;
   return [...new Set([...codes, ...evaluateTextScript(variant)])];
 }

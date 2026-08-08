@@ -1,10 +1,9 @@
 import type { LiveCallContext, PanicScenarioId } from "@/lib/telegram/emergency";
 import type { TelegramForwardSourceContext } from "@/lib/telegram/forward-context";
+import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 export function normalizeVoiceIntentText(text: string): string {
-  return text
-    .normalize("NFKC")
-    .toLowerCase()
+  return normalizeIntentTextForMatching(text)
     .replace(/ё/g, "е")
     .replace(/[ўӯ]/g, "у")
     .replace(/қ/g, "к")
@@ -17,7 +16,7 @@ export function normalizeVoiceIntentText(text: string): string {
 const NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
 const UZ_NEGATED_VOICE_DONE_INTENT_RE =
-  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|ochmadim|och\s+madim|o'tkazmadim|o'tkaz\s+madim|otkazmadim|otkaz\s+madim|to'lamadim|to'la\s+madim|tolamadim|tola\s+madim|tasdiqlamadim|tasdiqla\s+madim|ruxsat\s+bermadim|ruxsat\s+ber\s+madim|skaner\s+qilmadim|scan\s+qilmadim|yubormayman|yubarmayman|jo'natmayman|jonatmayman|aytmayman|bermayman|kiritmayman|o'rnatmayman|ornatmayman|yuklamayman|ochmayman|o'tkazmayman|otkazmayman|to'lamayman|tolamayman|tasdiqlamayman|ruxsat\s+bermayman|skaner\s+qilmayman|scan\s+qilmayman)(?=\s|[.!?,;:]|$)/;
+  /(?:^|\s)(?:yubormadim|yubarmadim|yub[oa]r\s+madim|yubor(?:ib)?vormadim|jo'natmadim|jo'nat\s+madim|jonatmadim|jonat\s+madim|aytmadim|ayt\s+madim|ayt(?:ib)?vormadim|bermadim|ber\s+madim|kiritmadim|kirit\s+madim|o'rnatmadim|o'rnat\s+madim|ornatmadim|ornat\s+madim|yuklamadim|yukla\s+madim|ochmadim|och\s+madim|o'tkazmadim|o'tkaz\s+madim|otkazmadim|otkaz\s+madim|o['’]?tkaz(?:ib)?vormadim|to'lamadim|to'la\s+madim|tolamadim|tola\s+madim|tasdiqlamadim|tasdiqla\s+madim|ruxsat\s+bermadim|ruxsat\s+ber\s+madim|skaner\s+qilmadim|scan\s+qilmadim|yubormayman|yubarmayman|jo'natmayman|jonatmayman|aytmayman|bermayman|kiritmayman|o'rnatmayman|ornatmayman|yuklamayman|ochmayman|o'tkazmayman|otkazmayman|to'lamayman|tolamayman|tasdiqlamayman|ruxsat\s+bermayman|skaner\s+qilmayman|scan\s+qilmayman)(?=\s|[.!?,;:]|$)/;
 const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
@@ -46,6 +45,15 @@ function isRequestedActionVoiceText(text: string): boolean {
   return UZ_REQUESTED_ACTION_VOICE_RE.test(text) && !UZ_EXPLICIT_DONE_VOICE_RE.test(text);
 }
 
+const PHYSICAL_ACCESS_CODE_RE =
+  /(?:(?:домофон|двер|подъезд|ворот|door|entrance|gate|eshik|darvoza).{0,40}(?:код|code|kod)|(?:код|code|kod).{0,40}(?:домофон|двер|подъезд|ворот|door|entrance|gate|eshik|darvoza))/iu;
+const RU_COMPLETED_CODE_STATE_RE =
+  /(?:(?:^|\s)(?:я|мы)\s+(?:им|ему|ей|туда)\s+(?:уже\s+)?(?:назвал[аи]?|сказал[аи]?|сообщил[аи]?|продиктовал[аи]?|отправил[аи]?).{0,70}(?:смс|sms|otp|код|цифр[аы]?)|^(?:уже\s+)?(?:назвал[аи]?|сказал[аи]?|сообщил[аи]?|продиктовал[аи]?|отправил[аи]?)\s+(?:им|ему|ей|туда).{0,70}(?:смс|sms|otp|код|цифр[аы]?)|^(?:смс|sms|otp|код|цифр[аы]?).{0,45}(?:уже\s+)?(?:назвал[аи]?|сказал[аи]?|сообщил[аи]?|продиктовал[аи]?|отправил[аи]?)\s+(?:им|ему|ей|туда)(?:[.!?,;:]|\s|$)|^(?:они|он|она)\s+(?:уже\s+)?(?:знают|знает|получил[аи]?).{0,45}(?:мой|наш)\s+(?:смс\s+|sms\s+|otp\s+)?код)/iu;
+const UZ_COLLOQUIAL_CODE_DONE_RE =
+  /(?:(?:sms|otp|kod(?:ni)?|raqam(?:lar)?ni).{0,60}(?:ayt|yubor|jo['’]?nat)(?:ib)?vordim|(?:ayt|yubor|jo['’]?nat)(?:ib)?vordim.{0,60}(?:sms|otp|kod|raqam))/iu;
+const UZ_COLLOQUIAL_TRANSFER_DONE_RE =
+  /(?:(?:pul(?:ni)?|sum|so['’]?m|karta).{0,60}(?:o['’]?tkaz|yubor)(?:ib)?vordim|(?:o['’]?tkaz|yubor)(?:ib)?vordim.{0,60}(?:pul|sum|so['’]?m|karta))/iu;
+
 export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | null {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return null;
@@ -65,6 +73,17 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
       return 6;
     }
     return null;
+  }
+
+  if (
+    !PHYSICAL_ACCESS_CODE_RE.test(text) &&
+    (RU_COMPLETED_CODE_STATE_RE.test(text) || UZ_COLLOQUIAL_CODE_DONE_RE.test(text))
+  ) {
+    return 1;
+  }
+
+  if (UZ_COLLOQUIAL_TRANSFER_DONE_RE.test(text)) {
+    return 3;
   }
 
   if (
@@ -298,9 +317,12 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
 
 const QUOTED_OR_THIRD_PARTY_DONE_INTENT_PREFIX_RE =
   /(?:переслал|переслали|перешл|forward|forwarded|цитат|quote|скрин|screenshot|сообщени[ея]|message|xabar|он|она|они|мошенник|человек|клиент|пользователь|пострадавш|родственник|мама|папа|друг|they|he|she|someone|scammer|caller|user|client|victim|u\s+kishi).{0,80}(?:напис|пишет|сказ|говорит|сообщ|прислал|said|told|sent|wrote|yozdi|aytdi)/;
+const QUOTED_DONE_MESSAGE_RE =
+  /^(?:он|она|они|мама|папа|друг|мошенник|человек|клиент|пользователь|родственник|he|she|they|someone|scammer|caller|user|client|u\s+kishi|ular).{0,80}(?:сказ|напис|сообщ|говорит|said|told|wrote|yozdi|aytdi)\s*[:«"']/iu;
 
 function isQuotedOrThirdPartyDoneIntent(text: string): boolean {
   const normalized = normalizeVoiceIntentText(text);
+  if (QUOTED_DONE_MESSAGE_RE.test(normalized)) return true;
   if (
     /^(?:u\s+kishi|ular|scammer|caller|user|client|victim).{0,80}(?:yozdi|aytdi|said|told).{0,80}(?:men|biz|i|we)\s+/iu.test(
       normalized,
@@ -393,7 +415,10 @@ function classifyGatedTextPanicIntent(text: string): PanicScenarioId | null {
     return panicId;
   }
   return TEXT_PANIC_DONE_INTENT_RE.test(normalized) ||
-    TEXT_PANIC_DONE_INTENT_BARE_RE.test(normalized)
+    TEXT_PANIC_DONE_INTENT_BARE_RE.test(normalized) ||
+    RU_COMPLETED_CODE_STATE_RE.test(normalized) ||
+    UZ_COLLOQUIAL_CODE_DONE_RE.test(normalized) ||
+    UZ_COLLOQUIAL_TRANSFER_DONE_RE.test(normalized)
     ? panicId
     : null;
 }
