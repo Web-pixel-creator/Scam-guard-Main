@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-08 - Public documentation made current and auditable
+
+- Replaced the stale README snapshot that still described 215+ tests and a
+  webhook-only Telegram runtime. The public entry point now names the exact PR
+  #121 release, 12,890-test gate, polling production mode and remaining
+  acceptance boundaries without claiming enterprise readiness.
+- Reconciled `AI_INDEX.md` and `AGENTS.md` so reviewers read `CURRENT_STATE.md`
+  and `OPEN_TASKS.md` before dated plans or arbitrary local worktrees.
+- Added `DOCUMENTATION_POLICY.md` with source-of-truth precedence, historical
+  evidence rules, local-worktree hygiene and an explicit warning that a docs
+  merge can still trigger Railway auto deploy.
+- Marked the June execution plan, July readiness plan, August 2 release record,
+  product overview and roadmap with their correct current-versus-historical
+  scope. No source code, deployment, database or runtime setting changed.
+
 ## 2026-08-08 - PR #121 merged and released with cost-safe monitoring
 
 - Merged PR #121 as

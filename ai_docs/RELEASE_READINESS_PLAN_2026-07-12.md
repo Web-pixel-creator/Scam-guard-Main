@@ -1,7 +1,11 @@
 # Release Readiness Plan — 2026-07-12
 
-This is the current source of truth for taking Ishonch Guard from a strong,
-deployed MVP to a defensible 10/10 public release. It complements the formula-
+> **Historical readiness snapshot.** Do not use this file as the current
+> project verdict. Use `CURRENT_STATE.md`, `OPEN_TASKS.md` and the latest dated
+> production release record.
+
+This file preserves the 2026-07-12 plan for taking Ishonch Guard from a strong,
+deployed MVP to a defensible public release. It complements the formula-
 driven `FEATURE_USER_STORY_TRACKER.xlsx`; it does not replace evidence recorded
 there.
 

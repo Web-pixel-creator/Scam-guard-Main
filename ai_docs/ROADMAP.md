@@ -1,8 +1,15 @@
 # Product Roadmap
 
-Last updated: 2026-07-05.
+Product-direction snapshot: 2026-07-05.
 
-This roadmap is the canonical implementation order for turning Ishonch Guard from a useful Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally separates honest, shippable user value from features that require paid providers, moderation, or legal review.
+> This file preserves product direction and shipped-stage history. It is not the
+> current release status or execution queue. Use `CURRENT_STATE.md` for the
+> verified baseline and `OPEN_TASKS.md` for the next implementation order.
+
+This roadmap describes the direction for turning Ishonch Guard from a useful
+Telegram bot into a trusted anti-scam assistant for Uzbekistan. It intentionally
+separates honest, shippable user value from features that require paid
+providers, moderation, or legal review.
 
 ## Principles
 
@@ -16,7 +23,8 @@ This roadmap is the canonical implementation order for turning Ishonch Guard fro
 
 Status: in progress.
 
-- Keep this file as the single roadmap.
+- Keep this file as product direction; keep current execution in
+  `OPEN_TASKS.md`.
 - Keep feature specs in `.kiro/specs/*` aligned with implementation state.
 - Keep `OPEN_TASKS.md` only for current risks, blockers and near-term work.
 
