@@ -17,6 +17,7 @@ import {
   type MonitorCheck,
   type MonitorSeverity,
 } from "./prod-monitor-policy";
+import { checkAiProvider } from "./prod-monitor-ai";
 import { hasSafeTelegramWebhookConcurrency } from "@/lib/telegram/webhook-delivery-policy";
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
@@ -37,6 +38,8 @@ interface MonitorConfig {
   alertChatId: string | null;
   alertBotToken: string | null;
   telegramDeliveryMode: "webhook" | "polling";
+  checkAiProvider: boolean;
+  aiOnly: boolean;
 }
 
 function env(name: string): string | null {
@@ -66,6 +69,7 @@ function boolEnv(name: string, fallback = false): boolean {
 
 function parseConfig(): MonitorConfig {
   const args = process.argv.slice(2);
+  const aiOnly = args.includes("--ai-only");
   const publicUrlRaw = args.find((arg) => !arg.startsWith("--")) ?? env("PUBLIC_APP_URL");
   if (!publicUrlRaw) {
     throw new Error("missing public URL. Pass it as the first argument or set PUBLIC_APP_URL");
@@ -86,6 +90,10 @@ function parseConfig(): MonitorConfig {
   if (deliveryMode !== "webhook" && deliveryMode !== "polling") {
     throw new Error("TELEGRAM_UPDATE_DELIVERY_MODE must be webhook or polling");
   }
+  const checkAiProvider = boolEnv("MONITOR_CHECK_AI");
+  if (aiOnly && !checkAiProvider) {
+    throw new Error("--ai-only requires MONITOR_CHECK_AI=true");
+  }
   return {
     publicUrl: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
     timeoutMs: numberEnv("MONITOR_TIMEOUT_MS", DEFAULT_TIMEOUT_MS),
@@ -103,6 +111,8 @@ function parseConfig(): MonitorConfig {
       ? (env("MONITOR_ALERT_BOT_TOKEN") ?? env("TELEGRAM_BOT_TOKEN"))
       : null,
     telegramDeliveryMode: deliveryMode,
+    checkAiProvider,
+    aiOnly,
   };
 }
 
@@ -326,42 +336,6 @@ async function telegramApi(
   return (await res.json()) as { ok?: boolean; result?: unknown; description?: string };
 }
 
-async function checkAiProvider(config: MonitorConfig): Promise<MonitorCheck> {
-  const apiKey = env("OPENAI_API_KEY");
-  if (!apiKey) return result("ai provider", "warn", "skipped: OPENAI_API_KEY is not set");
-
-  const baseUrl = (env("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/+$/, "");
-  const model = env("OPENAI_MODEL") ?? "gpt-4o-mini";
-  try {
-    const res = await fetchWithTimeout(
-      `${baseUrl}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: "Reply with one short word." },
-            { role: "user", content: "ping" },
-          ],
-        }),
-      },
-      config.timeoutMs,
-      "ai provider",
-    );
-    if (!res.ok) {
-      const severity: Severity = res.status === 429 || res.status >= 500 ? "warn" : "fail";
-      return result("ai provider", severity, `model=${model}, status=${res.status}`);
-    }
-    return result("ai provider", "ok", `model=${model}, status=${res.status}`);
-  } catch (error) {
-    return result("ai provider", "warn", safeError(error));
-  }
-}
-
 function safeError(error: unknown): string {
   return error instanceof Error ? error.message : "unknown error";
 }
@@ -429,11 +403,25 @@ async function main(): Promise<void> {
   console.log("Secret values are read from env and are not printed.");
 
   const checks: MonitorCheck[] = [];
-  checks.push(await checkStatus("home", config.publicUrl, 200, config.timeoutMs));
-  checks.push(await checkStatus("healthz", `${config.publicUrl}/healthz`, 200, config.timeoutMs));
-  checks.push(...(await checkWebhookSecretFlow(config)));
-  checks.push(...(await checkTelegramBot(config)));
-  checks.push(await checkAiProvider(config));
+  if (!config.aiOnly) {
+    checks.push(await checkStatus("home", config.publicUrl, 200, config.timeoutMs));
+    checks.push(await checkStatus("healthz", `${config.publicUrl}/healthz`, 200, config.timeoutMs));
+    checks.push(...(await checkWebhookSecretFlow(config)));
+    checks.push(...(await checkTelegramBot(config)));
+  }
+  checks.push(
+    await checkAiProvider(
+      {
+        enabled: config.checkAiProvider,
+        apiKey: env("OPENAI_API_KEY"),
+        baseUrl: env("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
+        model: env("OPENAI_MODEL") ?? "gpt-4o-mini",
+        timeoutMs: config.timeoutMs,
+        optInLabel: "MONITOR_CHECK_AI=true",
+      },
+      fetchWithTimeout,
+    ),
+  );
 
   for (const check of checks) printCheck(check);
 

@@ -1,7 +1,7 @@
 // Property-based tests for Brand Matcher (URL detection).
 //
 // Feature: brand-impersonation-detector, Property 1: Brand alias in non-official domain triggers detection
-// Feature: brand-impersonation-detector, Property 2: Official domain or subdomain never triggers detection
+// Feature: brand-impersonation-detector, Property 2: Official domains never implicate their owner
 // Feature: brand-impersonation-detector, Property 3: Official domain as substring without suffix triggers detection
 // Feature: brand-impersonation-detector, Property 7: Word boundary detection prevents substring false matches
 // Feature: brand-impersonation-detector, Property 6: News domain whitelist suppresses detection
@@ -150,36 +150,42 @@ describe("Feature: brand-impersonation-detector, Property 1: Brand alias in non-
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PROPERTY 2: Official domain or subdomain never triggers detection
+// PROPERTY 2: Official domain or subdomain never implicates its owning brand
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Feature: brand-impersonation-detector, Property 2: Official domain or subdomain never triggers detection
-describe("Feature: brand-impersonation-detector, Property 2: Official domain or subdomain never triggers detection", () => {
-  it("for any brand and official domain, exact match or subdomain thereof, matchBrandInUrl returns detected=false", () => {
-    const officialHostname: fc.Arbitrary<string> = brandAndOfficialDomain.chain(
-      ({ brand, officialDomain }) =>
+// Feature: brand-impersonation-detector, Property 2: Official domains never implicate their owner
+describe("Feature: brand-impersonation-detector, Property 2: Official domains never implicate their owner", () => {
+  it("never flags the owning brand for its exact official domain or a subdomain", () => {
+    const officialHostname: fc.Arbitrary<{ brand: BrandEntry; hostname: string }> =
+      brandAndOfficialDomain.chain(({ brand, officialDomain }) =>
         fc
           .record({
             useSubdomain: fc.boolean(),
             subdomain: alphaLabel,
           })
           .map(({ useSubdomain, subdomain }) => {
-            if (useSubdomain) {
-              return `${subdomain}.${officialDomain}`;
-            }
-            return officialDomain;
+            const hostname = useSubdomain ? `${subdomain}.${officialDomain}` : officialDomain;
+            return { brand, hostname };
           }),
-    );
+      );
 
     fc.assert(
-      fc.property(officialHostname, (hostname) => {
+      fc.property(officialHostname, ({ brand, hostname }) => {
         const normalized = normalizeDomain(hostname);
         const result = matchBrandInUrl(normalized, hostname);
 
-        expect(result.detected).toBe(false);
+        expect(result.evidence.map((item) => item.brandId)).not.toContain(brand.id);
       }),
       { numRuns: 100 },
     );
+  });
+
+  it("still detects another brand used as a subdomain label", () => {
+    const hostname = "iiv.humocard.uz";
+    const result = matchBrandInUrl(normalizeDomain(hostname), hostname);
+
+    expect(result.evidence.map((item) => item.brandId)).toContain("mvd");
+    expect(result.evidence.map((item) => item.brandId)).not.toContain("humo");
   });
 
   // **Validates: Requirements 2.4, 2.6, 6.1**

@@ -63,7 +63,7 @@ export async function executeTelegramUpdate(
       },
       { lease },
     );
-    if (result.sessionStorageFailed) await deps.onSessionWriteFailure(update);
+    if (result.sessionFailureWarningRequired) await deps.onSessionWriteFailure(update);
     if (dispatchFailed) throw dispatchError;
   };
 

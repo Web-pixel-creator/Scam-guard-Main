@@ -4,11 +4,13 @@
 //   PUBLIC_APP_URL=https://your-app.example.com npm run prod:smoke
 //   npm run prod:smoke -- https://your-app.example.com
 //   railway run npx vite-node scripts/prod-smoke.ts https://your-app.example.com --live-telegram
+//   # Add --check-ai only for one explicitly approved provider request.
 //
 // Security: this script never prints bot tokens, webhook secrets, Supabase
 // service-role keys, API keys, Telegram user ids or chat ids.
 import { randomInt } from "node:crypto";
 import process from "node:process";
+import { checkAiProvider as runAiProviderCheck } from "./prod-monitor-ai";
 import {
   expectedAuthenticatedWebhookStatus,
   parseTelegramDeliveryMode,
@@ -18,6 +20,7 @@ import {
 
 const WEBHOOK_PATH = "/api/telegram/webhook";
 const STALE_TELEGRAM_ERROR_MS = 15 * 60 * 1000;
+const AI_PROVIDER_TIMEOUT_MS = 8_000;
 const DEFAULT_HIGH_RISK_TEXT =
   "Служба безопасности банка просит срочно назвать SMS-код для отмены операции";
 
@@ -30,10 +33,12 @@ interface SmokeResult {
 function parseArgs(): {
   publicUrl: string;
   liveTelegram: boolean;
+  checkAiProvider: boolean;
   deliveryMode: TelegramDeliveryMode;
 } {
   const args = process.argv.slice(2);
   const liveTelegram = args.includes("--live-telegram");
+  const checkAiProvider = args.includes("--check-ai");
   const publicUrl = args.find((arg) => !arg.startsWith("--")) ?? process.env.PUBLIC_APP_URL;
 
   if (!publicUrl) {
@@ -57,6 +62,7 @@ function parseArgs(): {
   return {
     publicUrl: `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`,
     liveTelegram,
+    checkAiProvider,
     deliveryMode: parseTelegramDeliveryMode(process.env.TELEGRAM_UPDATE_DELIVERY_MODE),
   };
 }
@@ -186,41 +192,40 @@ async function checkPollingLeader(publicUrl: string, webhookSecret: string): Pro
   );
 }
 
-async function checkAiProvider(): Promise<SmokeResult> {
-  const apiKey = getOptionalEnv("OPENAI_API_KEY");
-  if (!apiKey) {
-    return { name: "ai provider", ok: true, detail: "skipped (OPENAI_API_KEY is not set)" };
-  }
-
-  const baseUrl = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+async function checkAiProvider(enabled: boolean): Promise<SmokeResult> {
+  const check = await runAiProviderCheck(
+    {
+      enabled,
+      apiKey: getOptionalEnv("OPENAI_API_KEY"),
+      baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      timeoutMs: AI_PROVIDER_TIMEOUT_MS,
+      optInLabel: "--check-ai",
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: "Reply with one short word." },
-        { role: "user", content: "ping" },
-      ],
-    }),
-  });
+    fetchWithTimeout,
+  );
 
-  if (!res.ok) {
-    const degraded = res.status === 429 || res.status >= 500;
-    return {
-      name: "ai provider",
-      ok: degraded,
-      detail: `model=${model}, status=${res.status}${degraded ? " (degraded; scoring still works)" : ""}`,
-    };
+  return { name: check.name, ok: check.severity === "ok", detail: check.detail };
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+  label: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`${label} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const hasChoice = Boolean(data.choices?.[0]?.message?.content);
-  return { name: "ai provider", ok: hasChoice, detail: `model=${model}, status=${res.status}` };
 }
 
 async function latestTelegramUserId(): Promise<number | null> {
@@ -284,7 +289,7 @@ function nextUpdateId(): number {
 }
 
 async function main(): Promise<void> {
-  const { publicUrl, liveTelegram, deliveryMode } = parseArgs();
+  const { publicUrl, liveTelegram, checkAiProvider: shouldCheckAi, deliveryMode } = parseArgs();
   const botToken = getRequiredEnv("TELEGRAM_BOT_TOKEN");
   const webhookSecret = getRequiredEnv("TELEGRAM_WEBHOOK_SECRET");
 
@@ -297,7 +302,7 @@ async function main(): Promise<void> {
   if (deliveryMode === "polling") {
     results.push(await checkPollingLeader(publicUrl, webhookSecret));
   }
-  results.push(await checkAiProvider());
+  results.push(await checkAiProvider(shouldCheckAi));
   if (liveTelegram) {
     if (deliveryMode === "webhook") {
       results.push(await checkLiveTelegram(publicUrl, webhookSecret));

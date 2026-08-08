@@ -91,6 +91,8 @@ command without a separately approved maintenance window.
   `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` runs application commit
   `9e901b1673832e4e78d61500280f061ba39e245c` with verified image digest
   `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`.
+  Repository tip `origin/main` is later documentation-only PR #120 merge
+  `b226bdd`; it is not the deployed application source.
   Its sanitized postflight is in
   `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 - The 2026-08-01 UTC pre-apply freeze produced a fresh EFS/CMS-encrypted
@@ -101,7 +103,9 @@ command without a separately approved maintenance window.
   `64e2e8143df21a8d29a2916dd28d58b4125d21761c8b7c349be34f13d58c5ccb`.
   Private OneDrive showed both expected ciphertext names and sizes, but the
   browser did not expose a completed download event; no cloud byte-hash
-  readback claim is made.
+  readback claim is made. This fresh archive also has no clean-database restore
+  proof. The earlier hosted v2 restore used a different archive and must not be
+  cited as proof that this specific pre-apply backup restores successfully.
 - Hash-pepper overlap is active as `v2` plus the required `legacy` read slot.
   The bounded synthetic write/read/cleanup drill passed. Retirement of the
   legacy secret remains forbidden until the documented zero-dependency gate.

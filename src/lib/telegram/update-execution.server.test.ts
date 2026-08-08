@@ -25,9 +25,34 @@ describe("Telegram update execution context", () => {
       return "done";
     });
 
-    expect(result).toEqual({ value: "done", sessionStorageFailed: true });
+    expect(result).toEqual({
+      value: "done",
+      sessionStorageFailed: true,
+      sessionFailureWarningRequired: true,
+    });
     expect(currentTelegramUpdateId()).toBeNull();
     expect(currentTelegramSessionLanguage()).toBeNull();
+  });
+
+  it("keeps user-warning visibility monotonic across operator-only failures", async () => {
+    const operatorOnly = await runWithTelegramUpdateExecution(102, async () => {
+      markTelegramSessionStorageFailure("operator_only");
+    });
+    expect(operatorOnly).toEqual({
+      value: undefined,
+      sessionStorageFailed: true,
+      sessionFailureWarningRequired: false,
+    });
+
+    const userThenOperator = await runWithTelegramUpdateExecution(103, async () => {
+      markTelegramSessionStorageFailure();
+      markTelegramSessionStorageFailure("operator_only");
+    });
+    expect(userThenOperator).toEqual({
+      value: undefined,
+      sessionStorageFailed: true,
+      sessionFailureWarningRequired: true,
+    });
   });
 });
 

@@ -21,6 +21,7 @@ import {
   markTelegramSessionStorageFailure,
   rememberTelegramSessionLanguage,
 } from "@/lib/telegram/update-execution.server";
+import type { TelegramSessionFailureVisibility } from "@/lib/telegram/update-execution.server";
 
 export type SessionChatType = "private" | "group" | "supergroup" | "channel";
 
@@ -443,6 +444,7 @@ export class TelegramSessionLoadError extends Error {
 export async function saveSession(
   telegramUserId: number,
   patch: Partial<Omit<Session, "telegramUserId">>,
+  options?: { failureVisibility?: TelegramSessionFailureVisibility },
 ): Promise<{ ok: true } | { ok: false; reason: "storage" | "stale" }> {
   // Map camelCase patch → snake_case columns; `updated_at` всегда ставит сервер.
   const row: Record<string, unknown> = {
@@ -482,19 +484,22 @@ export async function saveSession(
       });
 
       if (error) {
-        markTelegramSessionStorageFailure();
+        markTelegramSessionStorageFailure(options?.failureVisibility);
         console.error("telegram saveSession failed", "sequenced_rpc");
         return { ok: false, reason: "storage" };
       }
 
       const result = Array.isArray(data) ? data[0] : data;
-      if (
-        !result ||
-        typeof result !== "object" ||
-        typeof result.applied !== "boolean" ||
-        (lease && result.lease_valid !== true)
-      ) {
-        markTelegramSessionStorageFailure();
+      if (!result || typeof result !== "object" || typeof result.applied !== "boolean") {
+        markTelegramSessionStorageFailure(options?.failureVisibility);
+        console.error("telegram saveSession failed", "invalid_rpc_result");
+        return { ok: false, reason: "storage" };
+      }
+      if (lease && result.lease_valid === false) {
+        return { ok: false, reason: "stale" };
+      }
+      if (lease && result.lease_valid !== true) {
+        markTelegramSessionStorageFailure(options?.failureVisibility);
         console.error("telegram saveSession failed", "invalid_rpc_result");
         return { ok: false, reason: "storage" };
       }
@@ -503,13 +508,13 @@ export async function saveSession(
 
     const { error } = await sessions().upsert(row, { onConflict: "telegram_user_id" });
     if (error) {
-      markTelegramSessionStorageFailure();
+      markTelegramSessionStorageFailure(options?.failureVisibility);
       console.error("telegram saveSession failed", "legacy_upsert");
       return { ok: false, reason: "storage" };
     }
     return { ok: true };
   } catch (e) {
-    markTelegramSessionStorageFailure();
+    markTelegramSessionStorageFailure(options?.failureVisibility);
     console.error("telegram saveSession threw", e instanceof Error ? "exception" : "unknown");
     return { ok: false, reason: "storage" };
   }

@@ -16,6 +16,14 @@ Current production target:
 - Railway service: `Scam-guard-Main`
 - Monitor command: `railway run npm run monitor:prod -- https://scam-guard-main-production.up.railway.app`
 
+**Transition status (2026-08-02):** the cost-safe monitor policy described
+below is local and unreleased. The current `origin/main` scheduled workflow
+still has the historical provider-calling behavior recorded in
+`CURRENT_STATE.md`. Until the patch is reviewed and merged, do not describe a
+scheduled run as no-AI or count it toward the fixed-RC canary. After merge,
+require one successful scheduled read-back that explicitly reports the provider
+check disabled with no request before using the replacement procedure.
+
 ## Alert Meaning
 
 The monitor checks:
@@ -29,10 +37,21 @@ The monitor checks:
   the expected URL/concurrency, while polling mode has an empty webhook URL and
   authenticated polling-leader health 200;
 - Telegram has no pending backlog or fresh delivery error;
-- configured AI provider responds.
+- after the local D-091 patch is merged and read back, the recurring baseline
+  explicitly reports the AI provider check as disabled by policy and sends no
+  provider request.
 
 By default, Telegram alerts are sent only for failed checks. Warnings become
 alerts only if `MONITOR_ALERT_ON_WARN=true`.
+
+Under the replacement D-091 policy, AI-provider reachability is a separate,
+explicitly budgeted manual check. After the patch is merged, select
+`check_ai_provider=true` in the GitHub `Production Monitor` workflow only after
+an owner approves one provider call. Its independent `--ai-only` job uses
+GitHub job status as the alert channel and intentionally receives no Telegram
+credentials. Missing key, `429`, `5xx`, other non-success response, timeout or
+network failure is a hard failure, never a warning. The default manual action
+and every scheduled run leave this boolean false only after that merge.
 
 Private moderation alerts are separate from production monitor alerts. If
 `TELEGRAM_MODERATION_CHAT_ID` is configured, new user reports and reputation
@@ -75,6 +94,9 @@ fails, confirm the bot was added to the private chat and that Railway has
    cd C:\Scam-guard\repo
    railway run npm run monitor:prod -- https://scam-guard-main-production.up.railway.app
    ```
+
+   This default command performs no AI-provider request. Do not inherit
+   `MONITOR_CHECK_AI=true` from a shell profile.
 
 2. Check the latest Railway deployment:
 
@@ -172,6 +194,10 @@ Severity: degraded, not usually down.
 The rules engine still works without AI. Natural-language explanations,
 structured image analysis, OCR-like image understanding and voice STT can
 degrade.
+
+After D-091 is merged and its scheduled read-back passes, this alert can come
+only from an explicitly enabled bounded probe; it is not part of the recurring
+baseline and does not consume one of the 144 scheduled canary observations.
 
 Actions:
 

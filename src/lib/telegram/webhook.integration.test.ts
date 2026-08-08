@@ -53,8 +53,16 @@ const h = vi.hoisted(() => ({
   downloadCalls: [] as string[],
   sendShouldThrow: false,
   sendNeverResolves: false,
-  sendResultOk: true,
+  sendWithoutMessageId: false,
+  sendFailure: null as null | {
+    ok: false;
+    certainty: "definitive" | "ambiguous";
+    retryable: boolean;
+    errorCode?: number;
+    retryAfterSec?: number;
+  },
   nextMessageId: 1_000,
+  timeline: [] as string[],
 
   // Image analysis core stub
   ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
@@ -75,6 +83,7 @@ const h = vi.hoisted(() => ({
     data: [{ applied: true, current_update_id: 0 }] as unknown,
     error: null as unknown,
   },
+  sessionRpcResults: [] as Array<{ data: unknown; error: unknown }>,
   entityRow: null as unknown, // entities lookup result (null = no confirmed entity)
   sessionRow: null as unknown, // telegram_sessions row (null = default ru session)
   sessionSelectError: null as unknown,
@@ -87,10 +96,12 @@ vi.mock("@/lib/telegram/api.server", async (importActual) => {
     ...actual,
     sendMessage: vi.fn(async (opts: { chatId: number; text: string; keyboard?: unknown }) => {
       const messageId = h.nextMessageId++;
+      h.timeline.push("send");
       h.sendCalls.push({ ...opts, messageId });
       if (h.sendShouldThrow) throw new Error("sendMessage boom (simulated handler error)");
       if (h.sendNeverResolves) return new Promise(() => {});
-      return h.sendResultOk ? { ok: true, messageId } : { ok: false };
+      if (h.sendWithoutMessageId) return { ok: true };
+      return h.sendFailure ?? { ok: true, messageId };
     }),
     sendChatAction: vi.fn(async (chatId: number) => {
       h.chatActionCalls.push(chatId);
@@ -169,24 +180,39 @@ vi.mock("@/integrations/supabase/client.server", () => {
             : { data: { lease_valid: true, session: h.sessionRow }, error: null };
         }
         if (name === "save_telegram_session_sequenced" || name === "save_telegram_session_fenced") {
-          h.upserts.push({
-            table: "telegram_sessions",
-            payload: {
-              telegram_user_id: args.p_telegram_user_id,
-              ...(args.p_patch as Record<string, unknown>),
-              last_update_id: args.p_update_id,
-            },
-          });
-          if (name === "save_telegram_session_fenced" && Array.isArray(h.sessionRpcResult.data)) {
-            return {
-              ...h.sessionRpcResult,
-              data: h.sessionRpcResult.data.map((row) => ({
-                ...(row as Record<string, unknown>),
-                lease_valid: true,
-              })),
-            };
+          const patch = args.p_patch as Record<string, unknown>;
+          h.timeline.push("scenario_data" in patch ? "session:context" : "session:claim");
+          const configured = h.sessionRpcResults.shift() ?? h.sessionRpcResult;
+          const addDefaultLeaseValidity = (row: unknown): unknown => {
+            if (!row || typeof row !== "object" || "lease_valid" in row) return row;
+            return { ...(row as Record<string, unknown>), lease_valid: true };
+          };
+          const result =
+            name === "save_telegram_session_fenced" && !configured.error
+              ? {
+                  ...configured,
+                  data: Array.isArray(configured.data)
+                    ? configured.data.map(addDefaultLeaseValidity)
+                    : addDefaultLeaseValidity(configured.data),
+                }
+              : configured;
+          const resultRow = Array.isArray(result.data) ? result.data[0] : result.data;
+          if (
+            !result.error &&
+            resultRow &&
+            typeof resultRow === "object" &&
+            resultRow.applied === true
+          ) {
+            h.upserts.push({
+              table: "telegram_sessions",
+              payload: {
+                telegram_user_id: args.p_telegram_user_id,
+                ...patch,
+                last_update_id: args.p_update_id,
+              },
+            });
           }
-          return h.sessionRpcResult;
+          return result;
         }
         return { data: null, error: null };
       },
@@ -475,13 +501,16 @@ beforeEach(() => {
   h.inserts.length = 0;
   h.upserts.length = 0;
   h.rpcs.length = 0;
+  h.timeline.length = 0;
   h.sessionRpcResult = {
     data: [{ applied: true, current_update_id: 0 }],
     error: null,
   };
+  h.sessionRpcResults.length = 0;
   h.sendShouldThrow = false;
   h.sendNeverResolves = false;
-  h.sendResultOk = true;
+  h.sendWithoutMessageId = false;
+  h.sendFailure = null;
   h.nextMessageId = 1_000;
   h.ocrText = null;
   h.imageEvidence = null;
@@ -610,27 +639,150 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
     expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("SECRET");
   });
 
-  it("rolls back unseen check context and skips guardian side effects when delivery fails", async () => {
-    h.sendResultOk = false;
+  it("retries a definitive transient result failure without persisting unseen context", async () => {
+    h.sendFailure = {
+      ok: false,
+      certainty: "definitive",
+      retryable: true,
+      errorCode: 429,
+      retryAfterSec: 17,
+    };
     const update = textUpdate({ userId: 1193, chatId: 5193, text: HIGH_RISK_TEXT });
+
+    const first = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(first.status).toBe(503);
+    expect(first.headers.get("retry-after")).toBe("17");
+    expect(h.sendCalls).toHaveLength(1);
+    const sessionWrites = h.rpcs.filter((call) => call.name === "save_telegram_session_fenced");
+    expect(sessionWrites).toHaveLength(1);
+    expect(sessionWrites[0].args.p_patch).toEqual({ lang: "ru" });
+    expect(h.timeline).toEqual(["session:claim", "send"]);
+    expect(
+      h.upserts.some(
+        (entry) =>
+          entry.table === "telegram_sessions" &&
+          JSON.stringify(entry.payload).includes('"lastCheck"'),
+      ),
+    ).toBe(false);
+    expect(h.rpcs.filter((call) => call.name === "mark_telegram_update_failure")).toHaveLength(1);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(0);
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("generic_error");
+
+    const checksAfterFailure = h.inserts.filter((entry) => entry.table === "checks").length;
+    const providerCallsAfterFailure = vi.mocked(fetch).mock.calls.length;
+    h.sendFailure = null;
+
+    const retry = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(retry.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(3); // failed primary, delivered primary, Guardian intro
+    expect(h.inserts.filter((entry) => entry.table === "checks")).toHaveLength(checksAfterFailure);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(providerCallsAfterFailure);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(1);
+
+    const duplicate = await handleTelegramWebhook(webhookRequest(update));
+    expect(duplicate.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(3);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(1);
+  });
+
+  it("commits context after an ambiguous result outcome without secondary effects", async () => {
+    h.sendFailure = {
+      ok: false,
+      certainty: "ambiguous",
+      retryable: false,
+    };
+    const update = textUpdate({ userId: 1194, chatId: 5194, text: HIGH_RISK_TEXT });
+
+    const first = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(first.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    const sessionWrites = h.rpcs.filter((call) => call.name === "save_telegram_session_fenced");
+    expect(sessionWrites).toHaveLength(2);
+    expect(sessionWrites[0].args.p_patch).toEqual({ lang: "ru" });
+    expect(sessionWrites[1].args.p_patch).toMatchObject({
+      scenario: "none",
+      scenario_step: 0,
+      scenario_data: expect.objectContaining({ lastCheck: expect.any(Object) }),
+    });
+    expect(h.timeline).toEqual(["session:claim", "send", "session:context"]);
+    expect(h.rpcs.filter((call) => call.name === "mark_telegram_update_failure")).toHaveLength(0);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(1);
+
+    h.sendFailure = null;
+    const duplicate = await handleTelegramWebhook(webhookRequest(update));
+    expect(duplicate.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("acknowledges a definitive permanent rejection without persisting unseen context", async () => {
+    h.sendFailure = {
+      ok: false,
+      certainty: "definitive",
+      retryable: false,
+      errorCode: 403,
+    };
+    const update = textUpdate({ userId: 1195, chatId: 5195, text: HIGH_RISK_TEXT });
 
     const response = await handleTelegramWebhook(webhookRequest(update));
 
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     const sessionWrites = h.rpcs.filter((call) => call.name === "save_telegram_session_fenced");
+    expect(sessionWrites).toHaveLength(1);
+    expect(sessionWrites[0].args.p_patch).toEqual({ lang: "ru" });
+    expect(h.timeline).toEqual(["session:claim", "send"]);
+    expect(h.rpcs.filter((call) => call.name === "mark_telegram_update_failure")).toHaveLength(0);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(1);
+  });
+
+  it("does not replay or add secondary effects when the post-send context commit fails", async () => {
+    h.sessionRpcResults.push(
+      { data: [{ applied: true, current_update_id: 0 }], error: null },
+      { data: null, error: { message: "private phase-two detail" } },
+    );
+    const update = textUpdate({ userId: 1196, chatId: 5196, text: HIGH_RISK_TEXT });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.timeline).toEqual(["session:claim", "send", "session:context"]);
+    expect(h.rpcs.filter((call) => call.name === "save_telegram_session_fenced")).toHaveLength(2);
+    expect(h.rpcs.filter((call) => call.name === "mark_telegram_update_failure")).toHaveLength(0);
+    expect(h.rpcs.filter((call) => call.name === "complete_telegram_update")).toHaveLength(1);
+    expect(
+      h.upserts.some(
+        (entry) =>
+          entry.table === "telegram_sessions" &&
+          JSON.stringify(entry.payload).includes('"lastCheck"'),
+      ),
+    ).toBe(false);
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain(
+      "private phase-two detail",
+    );
+
+    const duplicate = await handleTelegramWebhook(webhookRequest(update));
+    expect(duplicate.status).toBe(200);
+    expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("persists base lastCheck context when a successful response has no message id", async () => {
+    h.sendWithoutMessageId = true;
+    const update = textUpdate({ userId: 1197, chatId: 5197, text: HIGH_RISK_TEXT });
+
+    const response = await handleTelegramWebhook(webhookRequest(update));
+
+    expect(response.status).toBe(200);
+    const sessionWrites = h.rpcs.filter((call) => call.name === "save_telegram_session_fenced");
     expect(sessionWrites).toHaveLength(2);
-    expect(sessionWrites[0].args.p_patch).toMatchObject({
-      scenario: "none",
-      scenario_step: 0,
+    expect(sessionWrites[0].args.p_patch).toEqual({ lang: "ru" });
+    expect(sessionWrites[1].args.p_patch).toMatchObject({
       scenario_data: expect.objectContaining({ lastCheck: expect.any(Object) }),
     });
-    expect(sessionWrites[1].args.p_patch).toMatchObject({
-      lang: "ru",
-      scenario: "none",
-      scenario_step: 0,
-      scenario_data: {},
-    });
+    expect(h.timeline).toEqual(["session:claim", "send", "session:context", "send"]);
   });
 
   it("suppresses a stale check result without emitting a false storage warning", async () => {

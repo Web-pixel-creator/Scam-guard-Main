@@ -23,7 +23,7 @@ describe("production monitor required-check policy", () => {
     expect(shouldFailMonitor([skipped], false)).toBe(false);
   });
 
-  it("commits fail-hard secret checks in the scheduled workflow", () => {
+  it("commits a fail-hard, cost-safe scheduled baseline", () => {
     const workflow = readFileSync(
       new URL("../../../.github/workflows/prod-monitor.yml", import.meta.url),
       "utf8",
@@ -31,6 +31,9 @@ describe("production monitor required-check policy", () => {
 
     expect(workflow).toMatch(/^\s+MONITOR_REQUIRE_SECRET_CHECKS:\s*["']?true["']?\s*$/mu);
     expect(workflow).toMatch(/^\s+TELEGRAM_UPDATE_DELIVERY_MODE:\s*["']?polling["']?\s*$/mu);
+    expect(workflow).toMatch(/^\s+MONITOR_CHECK_AI:\s*["']?false["']?\s*$/mu);
+    expect(workflow).toMatch(/^\s+MONITOR_FAIL_ON_WARN:\s*["']?true["']?\s*$/mu);
+    expect(workflow).toMatch(/^\s+MONITOR_ALERT_ON_WARN:\s*["']?true["']?\s*$/mu);
     expect(workflow).toContain("TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}");
     expect(workflow).toContain("TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}");
   });
@@ -42,9 +45,13 @@ describe("production monitor required-check policy", () => {
     );
     const stepsIndex = workflow.indexOf("\n    steps:");
     const monitorIndex = workflow.indexOf("\n      - name: Run monitor");
+    const aiJobIndex = workflow.indexOf("\n  ai-provider-monitor:");
+    const aiMonitorIndex = workflow.indexOf("\n      - name: Run opt-in AI provider check");
 
     expect(stepsIndex).toBeGreaterThan(0);
     expect(monitorIndex).toBeGreaterThan(stepsIndex);
+    expect(aiJobIndex).toBeGreaterThan(monitorIndex);
+    expect(aiMonitorIndex).toBeGreaterThan(aiJobIndex);
     expect(workflow.slice(0, stepsIndex)).not.toContain("${{ secrets.");
 
     const requiredSecrets = [
@@ -52,16 +59,37 @@ describe("production monitor required-check policy", () => {
       "MONITOR_ALERT_BOT_TOKEN",
       "TELEGRAM_BOT_TOKEN",
       "TELEGRAM_WEBHOOK_SECRET",
-      "OPENAI_API_KEY",
-      "OPENAI_BASE_URL",
-      "OPENAI_MODEL",
     ];
-    const monitorStep = workflow.slice(monitorIndex);
+    const monitorStep = workflow.slice(monitorIndex, aiJobIndex);
     for (const key of requiredSecrets) {
       const expression = `${key}: \${{ secrets.${key} }}`;
       expect(monitorStep).toContain(expression);
-      expect(workflow.split(expression)).toHaveLength(2);
     }
+    expect(monitorStep).not.toContain("OPENAI_");
+
+    const aiJobPrelude = workflow.slice(aiJobIndex, aiMonitorIndex);
+    expect(aiJobPrelude).toContain(
+      "if: ${{ github.event_name == 'workflow_dispatch' && inputs.check_ai_provider == true }}",
+    );
+    expect(aiJobPrelude).not.toContain("${{ secrets.");
+    expect(aiJobPrelude).toMatch(/^\s+MONITOR_LABEL:\s*github-manual-ai-provider\s*$/mu);
+    expect(aiJobPrelude).toMatch(/^\s+MONITOR_CHECK_AI:\s*["']?true["']?\s*$/mu);
+
+    const aiMonitorStep = workflow.slice(aiMonitorIndex);
+    expect(aiMonitorStep).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}");
+    expect(aiMonitorStep).toContain("OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}");
+    expect(aiMonitorStep).toContain("OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}");
+    expect(aiMonitorStep).not.toContain("TELEGRAM_");
+    expect(aiMonitorStep).not.toContain("MONITOR_ALERT_");
+    expect(aiMonitorStep).toContain("--ai-only");
+
+    expect(workflow).toMatch(/^\s+check_ai_provider:\s*$/mu);
+    expect(workflow).toMatch(/^\s+default:\s*false\s*$/mu);
+    expect(workflow).toMatch(/^\s+type:\s*boolean\s*$/mu);
+    expect(workflow).toContain(
+      "group: prod-monitor-${{ github.event_name == 'schedule' && 'scheduled' || github.run_id }}",
+    );
+    expect(workflow).toContain("cancel-in-progress: ${{ github.event_name == 'schedule' }}");
 
     const preConsumerActions = [
       ...workflow.slice(stepsIndex, monitorIndex).matchAll(/^\s+uses:\s+[^@\s]+@([^\s#]+)/gmu),
@@ -75,6 +103,15 @@ describe("production monitor required-check policy", () => {
     expect(workflow).toMatch(/^\s+bun-version:\s*["']1\.3\.14["']\s*$/mu);
     expect(workflow).not.toMatch(/^\s+bun-version:\s*["']?latest["']?\s*$/mu);
     expect(monitorStep.match(/^\s+- name:/gmu)).toHaveLength(1);
+  });
+
+  it("keeps the general production smoke AI check explicitly opt-in", () => {
+    const smoke = readFileSync(new URL("../../../scripts/prod-smoke.ts", import.meta.url), "utf8");
+
+    expect(smoke).toContain('const checkAiProvider = args.includes("--check-ai")');
+    expect(smoke).toContain("enabled,");
+    expect(smoke).toContain('apiKey: getOptionalEnv("OPENAI_API_KEY")');
+    expect(smoke).not.toContain("const degraded =");
   });
 
   it("rejects Telegram webhook concurrency drift above one connection", () => {
