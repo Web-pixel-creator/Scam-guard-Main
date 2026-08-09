@@ -1319,6 +1319,13 @@ describe("handleCheck follow-up routing", () => {
     ["Никому не говорите, это операция МВД", "ru", "Требование никому не говорить"],
     ["Hech kimga aytmang, bu IIB maxsus operatsiyasi", "uz", "Hech kimga aytmaslik"],
     ["Do not tell anyone, this is a police operation", "en", "order to tell no one"],
+    ["Мне сказали скрыть этот перевод от банка", "ru", "скрыть перевод"],
+    ["O'tkazmani bankdan yashirishni aytishdi", "uz", "yashirish talabi"],
+    [
+      "They told me not to tell the bank about this transfer and to keep it secret",
+      "en",
+      "hide a transfer",
+    ],
   ] as const)(
     "answers the P1 scenario locally in %s without running the checker",
     async (text, lang, expected) => {

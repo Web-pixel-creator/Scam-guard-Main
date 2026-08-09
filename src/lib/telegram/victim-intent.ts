@@ -29,6 +29,7 @@ export const ALL_VICTIM_INTENTS = [
   "code_request",
   "card_request",
   "transfer_request",
+  "coercive_secrecy",
   "apk_request",
   "link_request",
   "personal_data_request",
@@ -722,6 +723,7 @@ const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
   "blackmail_threat",
   "card_request",
   "code_request",
+  "coercive_secrecy",
   "earning_channel",
   "task_scam",
   "file_received",
@@ -742,6 +744,7 @@ const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
 ]);
 
 const CONTEXTUAL_TRANSFER_KINDS = new Set<VictimIntentKind>([
+  "coercive_secrecy",
   "earning_channel",
   "task_scam",
   "friend_money",
@@ -1085,6 +1088,26 @@ function isCoerciveOfficialSecrecy(normalized: string): boolean {
   ]);
 }
 
+function isCoerciveTransactionSecrecy(normalized: string): boolean {
+  // Keep explicit safety advice out of the victim route. In particular,
+  // “never hide a transfer from the bank” describes the safe rule rather than
+  // a scammer's instruction.
+  if (
+    /(?:(?:не\s+(?:скрывайте|утаивайте)|никогда\s+не\s+(?:скрывайте|утаивайте)|(?:do\s+not|don['’]?t|never|should\s+not)\s+(?:hide|conceal)|(?:yashirmang|sir\s+saqlamang)).{0,80}(?:перевод|операци|плат[её]ж|банк|transfer|transaction|payment|bank|o['’]?tkaz|to['’]?lov|bank)|(?:o['’]?tkazma|to['’]?lov).{0,60}(?:yashirmang|sir\s+saqlamang))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  const secrecyInstruction =
+    /(?:не\s+(?:говорить|говорите|сообщать|сообщайте|рассказывать|рассказывайте)\s+(?:банку|семье|близким)|скры(?:ть|вать|вайте)\s+(?:этот\s+)?(?:перевод|операци[юя]|плат[её]ж).{0,50}(?:от\s+(?:банка|семьи|близких))?|(?:перевод|операци[юя]|плат[её]ж).{0,60}(?:держ(?:ать|ите)\s+в\s+тайне|скры(?:ть|вать)|никому\s+не\s+(?:говорить|сообщать))|(?:not\s+to|do\s+not|don['’]?t)\s+(?:tell|inform)\s+(?:the\s+)?(?:bank|family).{0,80}(?:transfer|transaction|payment|money)|(?:hide|conceal)\s+(?:this\s+|the\s+)?(?:transfer|transaction|payment).{0,50}(?:from\s+(?:the\s+)?(?:bank|family))|keep\s+(?:this\s+|the\s+)?(?:transfer|transaction|payment).{0,30}secret|(?:bankka|oilaga|yaqinlarga)\s+(?:bu\s+)?(?:o['’]?tkazma|to['’]?lov|pul).{0,45}(?:haqida\s+)?(?:aytma|gapirma)|(?:o['’]?tkazma|to['’]?lov).{0,55}(?:bankdan|oiladan|yaqinlardan)\s+(?:yashir|sir\s+saqla))/iu;
+  const transactionContext =
+    /(?:перевод|операци[яию]|плат[её]ж|деньг|банк|transfer|transaction|payment|money|bank|o['’]?tkaz|to['’]?lov|pul)/iu;
+
+  return secrecyInstruction.test(normalized) && transactionContext.test(normalized);
+}
+
 function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMatch | null {
   if (
     hasAllScenarioSignals(normalized, [
@@ -1109,6 +1132,10 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
 
   if (isCoerciveOfficialSecrecy(normalized)) {
     return { kind: "official_impersonation", askedContext: "call" };
+  }
+
+  if (isCoerciveTransactionSecrecy(normalized)) {
+    return { kind: "coercive_secrecy", askedContext: "transfer" };
   }
 
   if (isTaskRewardDepositTrap(normalized)) {
@@ -2587,6 +2614,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       uz: "Davlat idorasi, IIB, sud, soliq yoki inspektor shaxsiy chatda kod, karta, pasport, naqd pul talab qilmasligi yoki «operatsiya»ni oila va bankdan sir saqlashni buyurmasligi kerak. Hech kimga aytmaslik talabi — rasmiy tergov isboti emas, izolyatsiya usuli.\n\nAloqani tugating. Pul to'lamang va hech narsa bermang; murojaatni 102, rasmiy raqam, sayt yoki shaxsan mustaqil tekshiring.",
       en: "A government body, police, court, tax office, or inspector should not demand codes, card data, documents, cash, or secrecy from family and the bank in a private chat. An order to tell no one is isolation, not proof of an official investigation.\n\nEnd the contact. Do not pay or send anything; verify independently through 102, an official number, website, or in person.",
     },
+    coercive_secrecy: {
+      ru: "Просьба скрыть перевод от банка, семьи или близких — сильный признак давления и изоляции. Настоящая операция не требует обманывать банк или придумывать для него другую причину.\n\nНе переводите деньги и не следуйте готовой версии для банка. Завершите контакт и сами позвоните в банк по номеру с карты или из приложения. Если уже перевели — сохраните чек и сразу попросите банк заморозить или оспорить операцию.",
+      uz: "O'tkazmani bank, oila yoki yaqinlardan yashirish talabi — bosim va izolyatsiyaning kuchli belgisi. Haqiqiy operatsiya bankni aldashni yoki unga boshqa sabab aytishni talab qilmaydi.\n\nPul o'tkazmang va bank uchun tayyorlab berilgan yolg'on izohni aytmang. Aloqani tugating, karta yoki ilovadagi rasmiy raqam orqali bankka o'zingiz qo'ng'iroq qiling. Pul yuborilgan bo'lsa — chekni saqlang va operatsiyani muzlatish yoki e'tiroz qilishni darhol so'rang.",
+      en: "Being told to hide a transfer from the bank, family, or someone you trust is a strong sign of pressure and isolation. A legitimate transaction does not require you to mislead the bank or use a cover story.\n\nDo not transfer money or follow a prepared explanation for the bank. End the contact and call the bank yourself using the number on your card or in its app. If you already paid, save the receipt and immediately ask the bank to freeze or dispute the transaction.",
+    },
     support_impersonation: {
       ru: "Поддержка/служба безопасности в чате — частый сценарий обмана.\n\nНе отправляйте коды, пароли, карту и не устанавливайте приложения. Проверяйте только через официальный сайт, приложение или номер.",
       uz: "Chatdagi qo'llab-quvvatlash/xavfsizlik xizmati — keng tarqalgan firibgarlik yo'li.\n\nKod, parol, karta yubormang va ilova o'rnatmang. Faqat rasmiy sayt, ilova yoki raqam orqali tekshiring.",
@@ -2773,6 +2805,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "card_request":
       return "card";
     case "transfer_request":
+    case "coercive_secrecy":
     case "money_mule":
       return "transfer";
     case "apk_request":

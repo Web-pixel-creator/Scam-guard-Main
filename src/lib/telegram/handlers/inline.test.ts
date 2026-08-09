@@ -1928,6 +1928,21 @@ describe("handleInlineQuery", () => {
       title: "Government/inspector: verify officially",
       topic: "secrecy",
     },
+    {
+      text: "Мне сказали скрыть этот перевод от банка",
+      title: "Скрыть перевод: это давление",
+      topic: "красный флаг",
+    },
+    {
+      text: "O'tkazmani bankdan yashirishni aytishdi",
+      title: "O'tkazmani yashirish: bu bosim",
+      topic: "xavf belgisi",
+    },
+    {
+      text: "They told me to hide this transfer from the bank",
+      title: "Hide the transfer: red flag",
+      topic: "coercive isolation",
+    },
   ])(
     "keeps the P1 topic and language in Inline preview and inserted text: $text",
     async ({ text, title, topic }) => {
