@@ -453,6 +453,23 @@ describe("handleCheck follow-up routing", () => {
     }
   });
 
+  it("answers an Uzbek Latin account-takeover report in Uzbek on a Russian profile", async () => {
+    await handleCheck("Telegramimga begona kirib oldi, akkauntim o'g'irlandi", {
+      chatId: 100,
+      userId: 42,
+      chatType: "private",
+      session: { ...sessionWith(), lang: "ru" },
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Sozlamalar");
+    expect(hoisted.sentMessages[0].text).toContain("barcha notanish seanslarni tugating");
+    for (const { patch } of hoisted.saveSessionCalls) {
+      expect(patch).not.toHaveProperty("lang");
+    }
+  });
+
   it("lets a newer last check win over an older panic context for overlapping follow-ups", async () => {
     const checkAt = new Date();
     const panicAt = new Date(checkAt.getTime() - 60_000);
@@ -1291,4 +1308,30 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.runCheckCalls).toHaveLength(1);
     expect(hoisted.runCheckCalls[0].input).toContain("bank-check.example");
   });
+
+  it.each([
+    ["Ставьте лайки, для вывода пополните баланс", "ru", "Не пополняйте баланс"],
+    ["Layk bosing, pulni yechish uchun balansni to'ldiring", "uz", "Balansni to'ldirmang"],
+    ["Like videos and top up your balance to withdraw your earnings", "en", "Do not top up"],
+    ["На ваше имя оформили рассрочку в Uzum Nasiya", "ru", "официальному номеру"],
+    ["Sizga Uzum Nasiya dan qarz rasmiylashtirildi", "uz", "rasmiy raqam"],
+    ["A buy-now-pay-later loan was opened in your name", "en", "official number"],
+    ["Никому не говорите, это операция МВД", "ru", "Требование никому не говорить"],
+    ["Hech kimga aytmang, bu IIB maxsus operatsiyasi", "uz", "Hech kimga aytmaslik"],
+    ["Do not tell anyone, this is a police operation", "en", "order to tell no one"],
+  ] as const)(
+    "answers the P1 scenario locally in %s without running the checker",
+    async (text, lang, expected) => {
+      await handleCheck(text, {
+        chatId: 100,
+        userId: 42,
+        session: { ...sessionWith(), lang },
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      expect(hoisted.sentMessages).toHaveLength(1);
+      expect(hoisted.sentMessages[0].text).toContain(expected);
+      expect(hoisted.sentMessages[0].text).not.toContain("Недостаточно данных");
+    },
+  );
 });

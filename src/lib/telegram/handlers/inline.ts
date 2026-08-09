@@ -94,6 +94,8 @@ type HumanInlineIntent =
   | "unknown_contact"
   | "identity_uncertain"
   | "earning_channel"
+  | "task_scam"
+  | "identity_loan"
   | "bank_contact"
   | "bank_impersonation"
   | "safe_account_transfer"
@@ -220,6 +222,8 @@ const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "travel_migration_prepayment",
   "romance_money",
   "earning_channel",
+  "task_scam",
+  "identity_loan",
   "prize_fee",
   "unknown_contact",
   "identity_uncertain",
@@ -515,7 +519,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Госорган/инспектор: проверьте официально",
         description:
-          "РУВД, МВД, полиция и инспектор не должны просить код, деньги или документы в чате. Проверяйте по официальному номеру.",
+          "Проверяйте по официальному номеру. МВД и полиция не требуют скрывать «операцию» от семьи или банка: завершите контакт.",
       },
       pension_benefit: {
         title: "Пенсия/выплата: не называйте данные",
@@ -631,6 +635,16 @@ const PREVIEW_COPY: Record<
         title: "Канал заработка: осторожно",
         description:
           "Каналы с быстрым доходом часто ведут к депозиту, крипте, ставкам или «заданию». Не платите заранее.",
+      },
+      task_scam: {
+        title: "Задания/заработок: не пополняйте",
+        description:
+          "Лайки и простые задания с пополнением баланса ради вывода — типичная ловушка. Не платите за вывод.",
+      },
+      identity_loan: {
+        title: "Кредит/рассрочка не ваша: действуйте",
+        description:
+          "Не платите по сообщению. Позвоните кредитору по официальному номеру, оспорьте оформление и сохраните SMS.",
       },
       bank_contact: {
         title: "Связаться с банком: только официальный номер",
@@ -814,7 +828,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Davlat organi/inspektor: rasmiy tekshiring",
         description:
-          "IIB, IIV, soliq yoki sud chatda kod, pul yoki hujjat talab qilmasligi kerak. Faqat rasmiy raqamdan tekshiring.",
+          "Aloqani tugating va rasmiy raqam orqali tekshiring. IIB yoki IIV «operatsiya»ni oila va bankdan sir saqlashni talab qilmaydi.",
       },
       pension_benefit: {
         title: "Pensiya/to'lov: ma'lumot bermang",
@@ -929,6 +943,16 @@ const PREVIEW_COPY: Record<
         title: "Daromad kanali: ehtiyot bo'ling",
         description:
           "Tez daromad kanallari ko'pincha depozit, kripto, stavka yoki «topshiriq»ga olib boradi. Oldindan to'lamang.",
+      },
+      task_scam: {
+        title: "Topshiriq/daromad: balans to'ldirmang",
+        description:
+          "Layk va oddiy topshiriqlardan pul yechish uchun balans to'ldirish — odatiy tuzoq. To'lamang.",
+      },
+      identity_loan: {
+        title: "Kredit/nasiya sizniki emas: harakat qiling",
+        description:
+          "Xabardagi odamga pul to'lamang. Kreditorga rasmiy raqam orqali qo'ng'iroq qiling, qarzni e'tiroz qiling va SMSlarni saqlang.",
       },
       bank_contact: {
         title: "Bank bilan aloqa: faqat rasmiy raqam",
@@ -1113,7 +1137,7 @@ const PREVIEW_COPY: Record<
       official_impersonation: {
         title: "Government/inspector: verify officially",
         description:
-          "Police, tax, court, or an inspector should not demand codes, money, or documents in chat. Call an official number.",
+          "Call an official number. Police do not demand secrecy about an “operation” from family or the bank: end the contact.",
       },
       pension_benefit: {
         title: "Pension/benefit: do not share data",
@@ -1229,6 +1253,16 @@ const PREVIEW_COPY: Record<
         title: "Earning channel: be careful",
         description:
           "Fast-income channels often lead to deposits, crypto, betting or tasks. Do not prepay.",
+      },
+      task_scam: {
+        title: "Tasks/earnings: do not top up",
+        description:
+          "Likes or simple tasks that require a top-up before withdrawal are a common trap. Do not pay to withdraw.",
+      },
+      identity_loan: {
+        title: "Loan/BNPL not yours: act now",
+        description:
+          "Do not pay through the message. Call the lender at its official number, dispute the account, and save the SMS.",
       },
       bank_contact: {
         title: "Contacting the bank: official number only",
@@ -2150,6 +2184,8 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
       return "investment_offer";
     case "earning_channel":
       return "earning_channel";
+    case "task_scam":
+      return "task_scam";
     case "travel_migration_prepayment":
       return "travel_migration_prepayment";
     case "bank_contact_question":
@@ -2161,8 +2197,9 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
     case "blackmail_threat":
       return "blackmail_threat";
     case "violence_threat":
-    case "identity_loan":
       return "general_scam_concern";
+    case "identity_loan":
+      return "identity_loan";
     case "withdrawal_blocked":
       return "investment_offer";
     case "unauthorized_charge":

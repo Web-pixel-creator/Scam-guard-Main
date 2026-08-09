@@ -47,6 +47,8 @@ export type ReasonCode =
   | "crypto_casino_bonus_funnel"
   | "fake_captcha_or_voting"
   | "task_reward_engagement_bait"
+  | "unauthorized_credit_opened"
+  | "coercive_secrecy"
   | "wallet_action_urgency"
   | "ton_referral_earning_scheme"
   | "investment_fast_profit_pitch"
@@ -104,6 +106,8 @@ const WEIGHTS: Record<ReasonCode, number> = {
   crypto_casino_bonus_funnel: 25,
   fake_captcha_or_voting: 30,
   task_reward_engagement_bait: 20,
+  unauthorized_credit_opened: 40,
+  coercive_secrecy: 30,
   wallet_action_urgency: 30,
   ton_referral_earning_scheme: 20,
   investment_fast_profit_pitch: 25,
@@ -171,6 +175,8 @@ export const REASON_TRUST_IMPACT: Record<ReasonCode, ReasonTrustImpact> = {
   crypto_casino_bonus_funnel: "risk",
   fake_captcha_or_voting: "risk",
   task_reward_engagement_bait: "risk",
+  unauthorized_credit_opened: "risk",
+  coercive_secrecy: "risk",
   wallet_action_urgency: "risk",
   ton_referral_earning_scheme: "risk",
   investment_fast_profit_pitch: "risk",
@@ -372,12 +378,53 @@ function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
 }
 
 const TASK_REWARD_CONTEXT_RE =
-  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|ochko|topshiriq|vazifa)/i;
+  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|(?:ставьте|поставьте|ставить|поставить).{0,30}(?:лайк|реакци)|(?:смотрите|посмотрите|просмотр).{0,25}(?:видео|ролик)|(?:пишите|оставьте|размещайте).{0,25}(?:отзыв|комментар)|ochko|topshiriq|vazifa|layk\s+bos|video\s+ko['’]?r|sharh\s+(?:yoz|qoldir)|like\s+(?:videos?|posts?)|watch\s+videos?|post\s+(?:reviews?|comments?))/iu;
 const TASK_REWARD_BENEFIT_RE =
-  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/i;
+  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/iu;
+const TASK_REWARD_PAYMENT_GATE_RE =
+  /(?:пополни|пополнить|пополнение|внести|оплатить|перевести|депозит|баланс|top\s*up|add\s+(?:money|funds)|deposit|pay|balance|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?lov)/iu;
+const TASK_REWARD_WITHDRAWAL_RE =
+  /(?:вывод|вывести|снять|получить\s+(?:деньги|заработок)|withdraw|cash\s*out|release\s+(?:the\s+)?earnings|pulni\s+yech|daromadni\s+ol)/iu;
+const TASK_REWARD_SAFETY_WARNING_RE =
+  /(?:(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang).{0,120}(?:мошен|обман|опасн|scam|fraud|firib|xavf)|(?:мошен|обман|опасн|scam|fraud|firib|xavf).{0,120}(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang))/iu;
 
 function shouldFlagTaskRewardEngagementBait(text: string): boolean {
-  return TASK_REWARD_CONTEXT_RE.test(text) && TASK_REWARD_BENEFIT_RE.test(text);
+  if (TASK_REWARD_SAFETY_WARNING_RE.test(text)) return false;
+  return (
+    TASK_REWARD_CONTEXT_RE.test(text) &&
+    (TASK_REWARD_BENEFIT_RE.test(text) ||
+      (TASK_REWARD_PAYMENT_GATE_RE.test(text) && TASK_REWARD_WITHDRAWAL_RE.test(text)))
+  );
+}
+
+const UNAUTHORIZED_CREDIT_SUBJECT_RE =
+  /(?:на\s+(?:ваше|мо[ёе])\s+имя|на\s+меня|без\s+(?:моего|вашего)\s+(?:ведома|согласия)|sizga|sizning\s+nomingizga|mening\s+nomimga|nomimga|ustimga|in\s+(?:your|my)\s+name|without\s+(?:your|my)\s+(?:knowledge|consent))/iu;
+const UNAUTHORIZED_CREDIT_PRODUCT_RE =
+  /(?:кредит|за[ёе]м|микрозайм|рассрочк|kredit|qarz|mikroqarz|nasiya|bo['’]?lib\s+to['’]?lash|loan|credit|buy[\s-]?now[\s-]?pay[\s-]?later|\bbnpl\b|installment)/iu;
+const UNAUTHORIZED_CREDIT_OPENED_RE =
+  /(?:оформ(?:или|лен[ао]?|лено)|открыли|взяли|повесили|навесили|rasmiylashtir(?:ildi|ilgan|ishibdi)|och(?:ildi|ishibdi)|olishibdi|was\s+(?:opened|taken\s+out|registered)|has\s+been\s+(?:opened|registered)|opened|registered)/iu;
+
+function shouldFlagUnauthorizedCreditOpened(text: string): boolean {
+  return (
+    UNAUTHORIZED_CREDIT_SUBJECT_RE.test(text) &&
+    UNAUTHORIZED_CREDIT_PRODUCT_RE.test(text) &&
+    UNAUTHORIZED_CREDIT_OPENED_RE.test(text)
+  );
+}
+
+const COERCIVE_SECRECY_RE =
+  /(?:никому\s+не\s+(?:говор|расскаж|сообщ)|держите\s+(?:это|операци|расследовани|дело).{0,20}в\s+тайне|hech\s+kimga\s+(?:aytmang|gapirmang)|sir\s+saqla|(?:do\s+not|don['’]?t)\s+tell\s+anyone|keep\s+(?:this|the\s+(?:operation|investigation|case|transaction)).{0,20}secret)/iu;
+const COERCIVE_SECRECY_CONTEXT_RE =
+  /(?:операци[яию]|спецопераци|расследовани|следстви|уголовн.{0,20}дел|мвд|полици|прокуратур|iib|ichki\s+ishlar|politsiya|prokuratura|maxsus\s+operatsiya|tergov|jinoyat\s+ishi|police\s+operation|law[\s-]?enforcement\s+operation|investigation|criminal\s+case)/iu;
+const COERCIVE_SECRECY_SAFETY_WARNING_RE =
+  /(?:(?:полици|мвд|госорган).{0,50}(?:никогда\s+не|не\s+(?:просит|требует|должн)).{0,70}(?:никому\s+не\s+говор|держать.{0,20}в\s+тайне)|(?:iib|iiv|politsiya).{0,50}(?:hech\s+qachon|talab\s+qilmaydi).{0,70}(?:hech\s+kimga\s+ayt|sir\s+saqla)|(?:police|law[\s-]?enforcement).{0,50}(?:never|do(?:es)?\s+not).{0,30}(?:ask|demand|require).{0,70}(?:tell\s+no\s+one|not\s+tell\s+anyone|keep.{0,20}secret))/iu;
+
+function shouldFlagCoerciveSecrecy(text: string): boolean {
+  return (
+    !COERCIVE_SECRECY_SAFETY_WARNING_RE.test(text) &&
+    COERCIVE_SECRECY_RE.test(text) &&
+    COERCIVE_SECRECY_CONTEXT_RE.test(text)
+  );
 }
 
 const WALLET_CONTEXT_RE =
@@ -689,7 +736,7 @@ const GENERIC_CODE_PROGRAMMING_RE =
 const GENERIC_CODE_REQUEST_RE =
   /(?:(?:отправь|пришли|скинь|введи|скажи|назови|прочитай|озвучь|продиктуй|передай|предоставь|укажи|сообщи|просят|просит|требуют|требует).{0,35}(?:этот\s+|тот\s+|сам\s+)?код|(?:попросил(?:и|а)?|просил(?:и|а)?|требовал(?:и|а)?).{0,45}(?:отправить|прислать|назвать|сообщить|продиктовать|передать).{0,25}код|\b(?:read(?:\s+out)?|enter|forward|tell|send|share|give|reveal|provide|submit)\b.{0,45}(?:the\s+|your\s+|this\s+|a\s+)?code|\b(?:ask(?:ed|s|ing)?|request(?:ed|s|ing)?|requir(?:e|ed|es|ing)?|demand(?:ed|s|ing)?|want(?:ed|s|ing)?)\b.{0,45}(?:the\s+|your\s+|this\s+|a\s+|my\s+)?(?:verification\s+)?code|(?:the\s+|my\s+|your\s+)?(?:verification\s+)?code.{0,30}\b(?:was|is|has\s+been)\s+(?:requested|required|wanted|demanded)\b|(?:kodni|kod).{0,35}(?:yubor|ayt|o['’]?qib\s+ber|jo['’]?nat|talab)|(?:yubor|ayt|o['’]?qib\s+ber|jo['’]?nat|talab).{0,35}(?:kodni|kod))/iu;
 const GENERIC_CODE_SAFETY_RE =
-  /(?:(?:не\s+(?:отправля|вводи|говори|называ|передава|показыва)|(?:do\s+not|don['’]?t|never)\s+(?:send|enter|tell|share|give|forward|reveal|provide|submit)).{0,35}(?:код|code|otp)|(?:kodni|kod).{0,30}(?:yubormang|aytmang|kiritmang|jo['’]?natmang))/iu;
+  /(?:(?:не\s+(?:отправля|вводи|говори|называ|передава|показыва)|(?:do\s+not|don['’]?t|never)\s+(?:send|enter|tell|share|give|forward|reveal|provide|submit)).{0,35}(?:код|code|otp)|(?:keep|keeps|keeping).{0,20}(?:code|otp).{0,20}secret|(?:kodni|kod).{0,30}(?:yubormang|aytmang|kiritmang|jo['’]?natmang))/iu;
 
 const ACCOUNT_CODE_CONTEXT_RE =
   /(?:банк|банков|сч[её]т|аккаунт|вход|логин|telegram|телеграм|bank|banking|account|login|sign[\s-]?in|hisob|kirish)/iu;
@@ -919,6 +966,8 @@ function evaluateTextScript(text: string): ReasonCode[] {
   if (shouldFlagCryptoCasinoBonusFunnel(text)) codes.add("crypto_casino_bonus_funnel");
   if (shouldFlagFakeCaptchaOrVoting(text)) codes.add("fake_captcha_or_voting");
   if (shouldFlagTaskRewardEngagementBait(text)) codes.add("task_reward_engagement_bait");
+  if (shouldFlagUnauthorizedCreditOpened(text)) codes.add("unauthorized_credit_opened");
+  if (shouldFlagCoerciveSecrecy(text)) codes.add("coercive_secrecy");
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
   if (shouldFlagTonReferralEarningScheme(text)) codes.add("ton_referral_earning_scheme");
   if (shouldFlagInvestmentFastProfitPitch(text)) codes.add("investment_fast_profit_pitch");
@@ -1278,6 +1327,16 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Вознаграждение за простые действия",
     uz: "Oddiy harakatlar uchun mukofot",
     en: "Reward for simple tasks",
+  },
+  unauthorized_credit_opened: {
+    ru: "Кредит или рассрочка оформлены без согласия",
+    uz: "Kredit yoki nasiya roziliksiz rasmiylashtirilgan",
+    en: "Loan or BNPL account opened without consent",
+  },
+  coercive_secrecy: {
+    ru: "Требуют скрывать «операцию» или расследование",
+    uz: "«Operatsiya» yoki tergovni sir saqlashni talab qilmoqda",
+    en: "Demands secrecy about an “operation” or investigation",
   },
   wallet_action_urgency: {
     ru: "Срочное действие с кошельком или токеном",

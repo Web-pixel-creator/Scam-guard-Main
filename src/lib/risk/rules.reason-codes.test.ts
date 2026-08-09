@@ -445,6 +445,61 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     expect(evaluateText(neutral)).not.toContain("task_reward_engagement_bait");
   });
 
+  it.each([
+    "Ставьте лайки, для вывода пополните баланс",
+    "Layk bosing, pulni yechish uchun balansni to'ldiring",
+    "Like videos and top up your balance to withdraw your earnings",
+  ])("flags a task-scam payment gate in RU/UZ/EN: %s", (text) => {
+    expect(evaluateText(text)).toContain("task_reward_engagement_bait");
+  });
+
+  it.each([
+    "Sizga Uzum Nasiya dan qarz rasmiylashtirildi",
+    "На ваше имя оформили рассрочку в Uzum Nasiya",
+    "A buy-now-pay-later loan was opened in your name",
+  ])("flags credit or BNPL opened without consent: %s", (text) => {
+    expect(evaluateText(text)).toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "Никому не говорите, это операция МВД",
+    "Hech kimga aytmang, bu IIB maxsus operatsiyasi",
+    "Do not tell anyone, this is a police operation",
+  ])("flags coercive secrecy tied to a claimed official operation: %s", (text) => {
+    expect(evaluateText(text)).toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "Никому не сообщайте OTP-код — это правило безопасности",
+    "OTP kodini hech kimga aytmang — bu xavfsizlik qoidasi",
+    "Keep your OTP secret and contact the bank through its official number",
+  ])("does not turn protective secret-safety advice into coercion: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("coercive_secrecy");
+    expect(evaluateText(text)).not.toContain("asks_for_otp");
+  });
+
+  it("does not treat a self-authorized BNPL purchase as identity theft", () => {
+    expect(evaluateText("Uzum Nasiya orqali o'zim telefonni bo'lib to'lashga oldim")).not.toContain(
+      "unauthorized_credit_opened",
+    );
+  });
+
+  it.each([
+    "Не пополняйте баланс для вывода после заданий — это мошенничество",
+    "Balansni to'ldirmang: topshiriqdan keyin pul yechish uchun to'lov — firibgarlik",
+    "Do not top up after tasks to withdraw earnings — this is a scam",
+  ])("does not flag protective task-scam warnings as engagement bait: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("task_reward_engagement_bait");
+  });
+
+  it.each([
+    "Полиция никогда не просит никому не говорить об операции",
+    "IIB hech qachon operatsiyani sir saqlashni talab qilmaydi",
+    "Police never ask you to keep an operation secret",
+  ])("does not flag protective official-secrecy warnings as coercion: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("coercive_secrecy");
+  });
+
   it("flags wallet or DeFi urgency, but not ordinary wallet feature news alone", () => {
     const rhea =
       "After a security incident, Rhea Lending has reopened. Users have a 24-hour grace period to settle open positions before the liquidation bot is reactivated. Manage your positions in HOT Wallet Earn tab.";
