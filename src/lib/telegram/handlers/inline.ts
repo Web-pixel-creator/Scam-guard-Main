@@ -63,6 +63,7 @@ type HumanInlineIntent =
   | "confirm_request"
   | "card_request"
   | "transfer_request"
+  | "coercive_secrecy"
   | "app_request"
   | "unknown_call"
   | "bank_call"
@@ -238,6 +239,7 @@ const PREFLIGHT_HUMAN_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "delivery_payment",
   "sim_swap",
   "transfer_request",
+  "coercive_secrecy",
   "general_scam_concern",
   "voting_link",
   "next_step",
@@ -475,6 +477,11 @@ const PREVIEW_COPY: Record<
         title: "Перевод: нужна причина",
         description:
           "Не переводите незнакомцам или на «безопасный счёт». Если не указано кому, куда и зачем — добавьте причину перевода.",
+      },
+      coercive_secrecy: {
+        title: "Скрыть перевод: это давление",
+        description:
+          "Требование скрыть перевод от банка или близких — красный флаг. Не переводите и сами позвоните в банк по официальному номеру.",
       },
       app_request: {
         title: "Приложение: не устанавливайте",
@@ -785,6 +792,11 @@ const PREVIEW_COPY: Record<
         description:
           "Notanish odamga yoki «xavfsiz hisob»ga pul o'tkazmang. Kimga, qayerga va nega so'ralgani yo'q bo'lsa, sababni qo'shing.",
       },
+      coercive_secrecy: {
+        title: "O'tkazmani yashirish: bu bosim",
+        description:
+          "O'tkazmani bank yoki yaqinlardan yashirish talabi — xavf belgisi. Pul yubormang va bankka rasmiy raqam orqali o'zingiz qo'ng'iroq qiling.",
+      },
       app_request: {
         title: "Ilova: o'rnatmang",
         description:
@@ -1093,6 +1105,11 @@ const PREVIEW_COPY: Record<
         title: "Transfer: reason needed",
         description:
           "Do not transfer to strangers or a “safe account”. If who, where or why is missing, add the reason for the transfer.",
+      },
+      coercive_secrecy: {
+        title: "Hide the transfer: red flag",
+        description:
+          "Being told to hide a transfer from the bank or family is coercive isolation. Do not pay; call the bank yourself using an official number.",
       },
       app_request: {
         title: "App: do not install it",
@@ -1541,6 +1558,7 @@ function nextActionHumanInlineCopy(
   ].includes(intent);
   const isPaymentContext = [
     "transfer_request",
+    "coercive_secrecy",
     "job_offer",
     "investment_offer",
     "prize_fee",
@@ -2161,6 +2179,8 @@ function mapVictimIntentToHumanInlineIntent(kind: VictimIntentKind): HumanInline
       return "card_request";
     case "transfer_request":
       return "transfer_request";
+    case "coercive_secrecy":
+      return "coercive_secrecy";
     case "apk_request":
       return "app_request";
     case "personal_data_request":
@@ -2361,6 +2381,7 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
 const HIGH_PRIORITY_SHARED_INLINE_INTENTS = new Set<HumanInlineIntent>([
   "personal_data_aftercare",
   "official_impersonation",
+  "coercive_secrecy",
   "relative_distress",
   "job_offer",
   "investment_offer",
@@ -2810,6 +2831,13 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
       normalized,
     )
   ) {
+    return sharedVictimIntent;
+  }
+
+  // A demand to hide a transfer from the bank or family is already concrete
+  // evidence. Keep it above the broad transfer helper, which would otherwise
+  // ask for a reason even though the coercive context is present.
+  if (sharedVictimIntent === "coercive_secrecy") {
     return sharedVictimIntent;
   }
 

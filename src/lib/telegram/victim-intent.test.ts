@@ -589,15 +589,32 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
   });
 
   it.each([
+    "Мне сказали скрыть этот перевод от банка и ничего не говорить семье",
+    "Не говорите банку об этом переводе, держите его в тайне",
+    "O'tkazmani bankdan va oiladan yashirishni aytishdi",
+    "They told me not to tell the bank about this transfer and to keep it secret",
+    "They told me to hide this transfer from the bank",
+  ])("routes transaction secrecy to coercion-specific guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "coercive_secrecy",
+      askedContext: "transfer",
+    });
+  });
+
+  it.each([
     "Никому не сообщайте OTP-код — это правило безопасности",
     "OTP kodini hech kimga aytmang — bu xavfsizlik qoidasi",
     "Keep your OTP secret and contact the bank through its official number",
     "Uzum Nasiya orqali o'zim telefonni bo'lib to'lashga oldim",
     "Не пополняйте баланс для вывода после заданий — это мошенничество",
     "Police never ask you to keep an operation secret",
+    "Не скрывайте перевод от банка — это важное правило безопасности",
+    "O'tkazmani bankdan yashirmang, rasmiy raqamga qo'ng'iroq qiling",
+    "Never hide a transfer from the bank; call its official number",
   ])("keeps protective or self-authorized wording out of the new routes: %s", (text) => {
     const kind = classifyVictimIntent(text)?.kind;
     expect(kind).not.toBe("official_impersonation");
+    expect(kind).not.toBe("coercive_secrecy");
     expect(kind).not.toBe("identity_loan");
     expect(kind).not.toBe("task_scam");
   });
@@ -608,6 +625,19 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
     ["en", "Earnings for likes", "Do not top up"],
   ] as const)("uses concrete task-scam rescue copy in %s", (lang, topic, action) => {
     const text = buildVictimIntentText({ kind: "task_scam", askedContext: "transfer" }, lang);
+    expect(text).toContain(topic);
+    expect(text).toContain(action);
+  });
+
+  it.each([
+    ["ru", "скрыть перевод", "Не переводите деньги"],
+    ["uz", "yashirish talabi", "Pul o'tkazmang"],
+    ["en", "hide a transfer", "Do not transfer money"],
+  ] as const)("uses coercion-specific transaction copy in %s", (lang, topic, action) => {
+    const text = buildVictimIntentText(
+      { kind: "coercive_secrecy", askedContext: "transfer" },
+      lang,
+    );
     expect(text).toContain(topic);
     expect(text).toContain(action);
   });

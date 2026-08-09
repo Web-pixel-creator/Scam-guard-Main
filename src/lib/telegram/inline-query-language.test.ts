@@ -21,6 +21,7 @@ describe("resolveInlineQueryLanguage", () => {
     ["ishga olamiz kuniga 500 ming avval 200 ming komissiya to'lang", "ru", "uz"],
     ["Telegramimga begona kirib oldi, akkauntim o'g'irlandi", "ru", "uz"],
     ["Telegramimga kirib olishdi akkauntim o'g'irlandi", "ru", "uz"],
+    ["O'tkazmani bankdan yashirishni aytishdi", "ru", "uz"],
   ] as const)("detects %s", (text, fallback, expected) => {
     expect(resolveInlineQueryLanguage(text, fallback)).toBe(expected);
   });
