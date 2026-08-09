@@ -86,6 +86,8 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   crypto_casino_bonus_funnel: "avoid_casino_deposit",
   fake_captcha_or_voting: "avoid_giveaway_trap",
   task_reward_engagement_bait: "avoid_reward_chain",
+  unauthorized_credit_opened: "verify_official_channel",
+  coercive_secrecy: "end_pressure_call",
   wallet_action_urgency: "avoid_wallet_action",
   ton_referral_earning_scheme: "avoid_reward_chain",
   investment_fast_profit_pitch: "verify_investment",

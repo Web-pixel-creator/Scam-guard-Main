@@ -1881,4 +1881,79 @@ describe("handleInlineQuery", () => {
       expect(article.input_message_content.message_text).not.toContain("Одного значения мало");
     },
   );
+
+  it.each([
+    {
+      text: "Ставьте лайки, для вывода пополните баланс",
+      title: "Задания/заработок: не пополняйте",
+      topic: "Лайки",
+    },
+    {
+      text: "Layk bosing, pulni yechish uchun balansni to'ldiring",
+      title: "Topshiriq/daromad: balans to'ldirmang",
+      topic: "Layk",
+    },
+    {
+      text: "Like videos and top up your balance to withdraw your earnings",
+      title: "Tasks/earnings: do not top up",
+      topic: "Likes",
+    },
+    {
+      text: "На ваше имя оформили рассрочку в Uzum Nasiya",
+      title: "Кредит/рассрочка не ваша: действуйте",
+      topic: "официальному номеру",
+    },
+    {
+      text: "Sizga Uzum Nasiya dan qarz rasmiylashtirildi",
+      title: "Kredit/nasiya sizniki emas: harakat qiling",
+      topic: "rasmiy raqam",
+    },
+    {
+      text: "A buy-now-pay-later loan was opened in your name",
+      title: "Loan/BNPL not yours: act now",
+      topic: "official number",
+    },
+    {
+      text: "Никому не говорите, это операция МВД",
+      title: "Госорган/инспектор: проверьте официально",
+      topic: "скрывать",
+    },
+    {
+      text: "Hech kimga aytmang, bu IIB maxsus operatsiyasi",
+      title: "Davlat organi/inspektor: rasmiy tekshiring",
+      topic: "sir saqlashni",
+    },
+    {
+      text: "Do not tell anyone, this is a police operation",
+      title: "Government/inspector: verify officially",
+      topic: "secrecy",
+    },
+  ])(
+    "keeps the P1 topic and language in Inline preview and inserted text: $text",
+    async ({ text, title, topic }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "suspicious",
+        score: 40,
+        reasons: ["task_reward_engagement_bait"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(text, { userId: 42, session }, `iq-p1-${title}`);
+
+      const article = hoisted.answerCalls[0].results[0] as {
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expect(article.title).toBe(title);
+      expect(article.description).toContain(topic);
+      expect(article.input_message_content.message_text).toContain(title);
+      expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
+    },
+  );
 });

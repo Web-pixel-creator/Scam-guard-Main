@@ -554,6 +554,65 @@ describe("classifyVictimIntent — job-entry fee priority", () => {
   );
 });
 
+describe("classifyVictimIntent — task scams, BNPL identity theft and coercive secrecy", () => {
+  it.each([
+    "Ставьте лайки, для вывода пополните баланс",
+    "Layk bosing, pulni yechish uchun balansni to'ldiring",
+    "Like videos and top up your balance to withdraw your earnings",
+  ])("routes task-scam payment gates to deterministic earning guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "task_scam",
+      askedContext: "transfer",
+    });
+  });
+
+  it.each([
+    "Sizga Uzum Nasiya dan qarz rasmiylashtirildi",
+    "На ваше имя оформили рассрочку в Uzum Nasiya",
+    "A buy-now-pay-later loan was opened in your name",
+  ])("routes unauthorized credit and BNPL notices to identity-loan rescue: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "identity_loan",
+      askedContext: "transfer",
+    });
+  });
+
+  it.each([
+    "Никому не говорите, это операция МВД",
+    "Hech kimga aytmang, bu IIB maxsus operatsiyasi",
+    "Do not tell anyone, this is a police operation",
+  ])("routes official-operation secrecy to official impersonation guidance: %s", (text) => {
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "official_impersonation",
+      askedContext: "call",
+    });
+  });
+
+  it.each([
+    "Никому не сообщайте OTP-код — это правило безопасности",
+    "OTP kodini hech kimga aytmang — bu xavfsizlik qoidasi",
+    "Keep your OTP secret and contact the bank through its official number",
+    "Uzum Nasiya orqali o'zim telefonni bo'lib to'lashga oldim",
+    "Не пополняйте баланс для вывода после заданий — это мошенничество",
+    "Police never ask you to keep an operation secret",
+  ])("keeps protective or self-authorized wording out of the new routes: %s", (text) => {
+    const kind = classifyVictimIntent(text)?.kind;
+    expect(kind).not.toBe("official_impersonation");
+    expect(kind).not.toBe("identity_loan");
+    expect(kind).not.toBe("task_scam");
+  });
+
+  it.each([
+    ["ru", "Заработок за лайки", "Не пополняйте баланс"],
+    ["uz", "Layk", "Balansni to'ldirmang"],
+    ["en", "Earnings for likes", "Do not top up"],
+  ] as const)("uses concrete task-scam rescue copy in %s", (lang, topic, action) => {
+    const text = buildVictimIntentText({ kind: "task_scam", askedContext: "transfer" }, lang);
+    expect(text).toContain(topic);
+    expect(text).toContain(action);
+  });
+});
+
 describe("classifyVictimIntent — concrete schemes survive conversational wrappers", () => {
   it.each([
     "Это безопасно или меня обманывают?\nЧеловек из РУВД пишет, что я подозреваемый по уголовному делу, и требует документы",

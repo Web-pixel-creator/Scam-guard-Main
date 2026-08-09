@@ -50,6 +50,7 @@ export const ALL_VICTIM_INTENTS = [
   "romance_money",
   "job_offer",
   "earning_channel",
+  "task_scam",
   "investment_offer",
   "travel_migration_prepayment",
   "legal_impersonation",
@@ -722,6 +723,7 @@ const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
   "card_request",
   "code_request",
   "earning_channel",
+  "task_scam",
   "file_received",
   "friend_money",
   "gov_service_login",
@@ -741,6 +743,7 @@ const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
 
 const CONTEXTUAL_TRANSFER_KINDS = new Set<VictimIntentKind>([
   "earning_channel",
+  "task_scam",
   "friend_money",
   "investment_offer",
   "job_offer",
@@ -1045,6 +1048,43 @@ function hasAllScenarioSignals(normalized: string, signals: readonly RegExp[]): 
   return signals.every((signal) => signal.test(normalized));
 }
 
+function isTaskRewardDepositTrap(normalized: string): boolean {
+  if (
+    /(?:(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang).{0,120}(?:мошен|обман|опасн|scam|fraud|firib|xavf)|(?:мошен|обман|опасн|scam|fraud|firib|xavf).{0,120}(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+  return hasAllScenarioSignals(normalized, [
+    /(?:лайк|реакци|просмотр|видео|отзыв|комментар|задани|layk|video|sharh|topshiriq|vazifa|like|review|comment|task)/iu,
+    /(?:пополни|пополнить|внести|оплатить|депозит|баланс|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?lov|top\s*up|add\s+(?:money|funds)|deposit|pay|balance)/iu,
+    /(?:вывод|вывести|снять|заработ|pulni\s+yech|daromadni\s+ol|withdraw|cash\s*out|earnings?)/iu,
+  ]);
+}
+
+function isUnauthorizedCreditOpened(normalized: string): boolean {
+  return hasAllScenarioSignals(normalized, [
+    /(?:на\s+(?:ваше|мо[ёе])\s+имя|на\s+меня|без\s+(?:моего|вашего)\s+(?:ведома|согласия)|sizga|sizning\s+nomingizga|mening\s+nomimga|nomimga|ustimga|in\s+(?:your|my)\s+name|without\s+(?:your|my)\s+(?:knowledge|consent))/iu,
+    /(?:кредит|за[ёе]м|микрозайм|рассрочк|kredit|qarz|mikroqarz|nasiya|bo['’]?lib\s+to['’]?lash|loan|credit|buy[\s-]?now[\s-]?pay[\s-]?later|\bbnpl\b|installment)/iu,
+    /(?:оформ(?:или|лен[ао]?|лено)|открыли|взяли|повесили|навесили|rasmiylashtir(?:ildi|ilgan|ishibdi)|och(?:ildi|ishibdi)|olishibdi|was\s+(?:opened|taken\s+out|registered)|has\s+been\s+(?:opened|registered)|opened|registered)/iu,
+  ]);
+}
+
+function isCoerciveOfficialSecrecy(normalized: string): boolean {
+  if (
+    /(?:(?:полици|мвд|госорган).{0,50}(?:никогда\s+не|не\s+(?:просит|требует|должн)).{0,70}(?:никому\s+не\s+говор|держать.{0,20}в\s+тайне)|(?:iib|iiv|politsiya).{0,50}(?:hech\s+qachon|talab\s+qilmaydi).{0,70}(?:hech\s+kimga\s+ayt|sir\s+saqla)|(?:police|law[\s-]?enforcement).{0,50}(?:never|do(?:es)?\s+not).{0,30}(?:ask|demand|require).{0,70}(?:tell\s+no\s+one|not\s+tell\s+anyone|keep.{0,20}secret))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+  return hasAllScenarioSignals(normalized, [
+    /(?:никому\s+не\s+(?:говор|расскаж|сообщ)|держите\s+(?:это|операци|расследовани|дело).{0,20}в\s+тайне|hech\s+kimga\s+(?:aytmang|gapirmang)|sir\s+saqla|(?:do\s+not|don['’]?t)\s+tell\s+anyone|keep\s+(?:this|the\s+(?:operation|investigation|case|transaction)).{0,20}secret)/iu,
+    /(?:операци[яию]|спецопераци|расследовани|следстви|уголовн.{0,20}дел|мвд|полици|прокуратур|iib|ichki\s+ishlar|politsiya|prokuratura|maxsus\s+operatsiya|tergov|jinoyat\s+ishi|police\s+operation|law[\s-]?enforcement\s+operation|investigation|criminal\s+case)/iu,
+  ]);
+}
+
 function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMatch | null {
   if (
     hasAllScenarioSignals(normalized, [
@@ -1063,6 +1103,18 @@ function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMa
 }
 
 function classifyHighConfidenceEverydayScenario(normalized: string): VictimIntentMatch | null {
+  if (isUnauthorizedCreditOpened(normalized)) {
+    return { kind: "identity_loan", askedContext: "transfer" };
+  }
+
+  if (isCoerciveOfficialSecrecy(normalized)) {
+    return { kind: "official_impersonation", askedContext: "call" };
+  }
+
+  if (isTaskRewardDepositTrap(normalized)) {
+    return { kind: "task_scam", askedContext: "transfer" };
+  }
+
   if (
     !/(?:вывести|вывод|withdraw|chiqar|yechib|qaytar)/iu.test(normalized) &&
     (hasAllScenarioSignals(normalized, [
@@ -1621,6 +1673,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 
   // Loan/credit fraudulently opened in the victim's name.
   if (
+    isUnauthorizedCreditOpened(normalized) ||
     /(?:на\s+меня|на\s+мо[ёе]\s+имя|без\s+моего\s+ведома|ustimga|nomimga|mening\s+nomimga)[\s\S]{0,60}(?:оформ|взяли|повесили|навесили|открыли|набрали|rasmiylashtir|olishibdi|ochishibdi)|(?:оформили|взяли|повесили|навесили|открыли|набрали)[\s\S]{0,40}(?:кредит|за[ёе]м|займ|микрозайм|ссуд)|(?:кредит|за[ёе]м|займ|микрозайм|ссуд|kredit|qarz|mikroqarz)[\s\S]{0,60}(?:на\s+мо[ёе]\s+имя|на\s+меня|без\s+моего\s+ведома|ustimga|nomimga|rasmiylashtirishibdi|rasmiylashtirilgan|olishibdi)/iu.test(
       normalized,
     )
@@ -2530,9 +2583,9 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "If they call and stay silent, it is safer to hang up immediately.\n\nDo not say “yes”, do not continue, and do not call back an unknown number. Block it and warn relatives if calls repeat.",
     },
     official_impersonation: {
-      ru: "Госорган, МИБ/БПИ, суд, налоговая или инспектор не должны требовать код, карту, паспорт или наличные в личном чате.\n\nНе платите «штраф» по ссылке и не передавайте документы. Проверьте через официальный номер, сайт или личное обращение.",
-      uz: "Davlat idorasi, MIB/BPI, sud, soliq yoki inspektor shaxsiy chatda kod, karta, pasport yoki naqd pul talab qilmasligi kerak.\n\nHavola orqali «jarima» to'lamang va hujjat bermang. Rasmiy raqam, sayt yoki shaxsan murojaat orqali tekshiring.",
-      en: "A government body, enforcement office, court, tax office, or inspector should not demand a code, card, passport, or cash in a private chat.\n\nDo not pay a “fine” by link or send documents. Verify through an official number, site, or in person.",
+      ru: "Госорган, МВД, суд, налоговая или инспектор не должны требовать код, карту, паспорт, наличные или скрывать «операцию» от семьи и банка в личном чате. Требование никому не говорить — приём изоляции, а не доказательство официального расследования.\n\nЗавершите контакт. Не платите и ничего не передавайте; проверьте обращение сами через 102, официальный номер, сайт или личное обращение.",
+      uz: "Davlat idorasi, IIB, sud, soliq yoki inspektor shaxsiy chatda kod, karta, pasport, naqd pul talab qilmasligi yoki «operatsiya»ni oila va bankdan sir saqlashni buyurmasligi kerak. Hech kimga aytmaslik talabi — rasmiy tergov isboti emas, izolyatsiya usuli.\n\nAloqani tugating. Pul to'lamang va hech narsa bermang; murojaatni 102, rasmiy raqam, sayt yoki shaxsan mustaqil tekshiring.",
+      en: "A government body, police, court, tax office, or inspector should not demand codes, card data, documents, cash, or secrecy from family and the bank in a private chat. An order to tell no one is isolation, not proof of an official investigation.\n\nEnd the contact. Do not pay or send anything; verify independently through 102, an official number, website, or in person.",
     },
     support_impersonation: {
       ru: "Поддержка/служба безопасности в чате — частый сценарий обмана.\n\nНе отправляйте коды, пароли, карту и не устанавливайте приложения. Проверяйте только через официальный сайт, приложение или номер.",
@@ -2568,6 +2621,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Канал или бот с быстрым заработком — риск. Часто сначала просят нажать кнопку, перейти по ссылке, ввести код, карту или оплатить «доступ».\n\nПока не переходите и ничего не вводите. Пришлите ссылку, username или скрин условий.",
       uz: "Tez daromad va'da qiladigan kanal yoki bot — xavf. Ko'pincha avval tugmani bosish, havolaga o'tish, kod/karta kiritish yoki «kirish» uchun to'lashni so'rashadi.\n\nHozircha o'tmang va hech narsa kiritmang. Havola, username yoki shartlar skrinini yuboring.",
       en: "A channel or bot promising fast income is risky. It often starts with pressing a button, opening a link, entering a code/card, or paying for “access”.\n\nDo not open it or enter anything yet. Send the link, username, or screenshot of the terms.",
+    },
+    task_scam: {
+      ru: "Заработок за лайки, просмотры или простые задания с требованием пополнить баланс для вывода — типичная ловушка: цифры на экране не означают, что деньги реально ваши.\n\nНе пополняйте баланс и не платите «комиссию» за вывод. Сохраните скрины заданий, кабинета и переписки; если уже платили картой — звоните в банк по официальному номеру.",
+      uz: "Layk, ko'rish yoki oddiy topshiriqlar uchun daromad va pulni yechishdan oldin balans to'ldirish talabi — odatiy tuzoq: ekrandagi raqamlar haqiqiy pul ekanini bildirmaydi.\n\nBalansni to'ldirmang va pul yechish uchun «komissiya» to'lamang. Topshiriqlar, kabinet va yozishma skrinlarini saqlang; karta bilan to'lagan bo'lsangiz, bankka rasmiy raqam orqali qo'ng'iroq qiling.",
+      en: "Earnings for likes, views, or simple tasks that require a balance top-up before withdrawal are a common trap: an on-screen balance does not mean the money is real.\n\nDo not top up or pay a withdrawal “fee”. Save screenshots of the tasks, account, and chat; if you already paid by card, call your bank using its official number.",
     },
     investment_offer: {
       ru: "Инвестиции/крипта через Telegram-канал или личного «наставника» часто ведут к депозиту, платным сигналам или комиссии за вывод.\n\nПока не пополняйте баланс и не подключайте кошелёк. Пришлите ссылку, username автора или условия.",
@@ -2724,6 +2782,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "link_received":
     case "telegram_takeover":
     case "earning_channel":
+    case "task_scam":
       return "link_qr";
     case "bank_call":
     case "operator_call":
