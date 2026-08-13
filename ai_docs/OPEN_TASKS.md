@@ -1,39 +1,42 @@
 # Open Tasks
 
-## Current checkpoint (2026-08-08)
+## Current checkpoint (2026-08-13)
 
 Use `CURRENT_STATE.md` before the historical evidence below. Repository tip and
-deployed application source are PR #121 merge
-`c5fa51de8f570fd2258722b1194bd7430319d242`. Railway deployment
-`4d00a730-d8e2-462f-b820-e3cecbfb0994` reports `SUCCESS` with image
-`sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`.
+deployed application source are PR #125 merge
+`1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`. Railway deployment
+`17f20728-fea9-4320-987b-b15bdc67231a` reports `SUCCESS` with image
+`sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-The exact release tree passed 167 files / 12,890 tests and the post-merge CI and
-Security Gates. The deployed scheduled monitor is no-AI by policy; one manual
-baseline and eleven eligible scheduled observations passed without a provider
-request. Production is bound to `main`, Auto Deploy and Wait for CI are enabled,
-and saving those settings caused no extra deployment. Old commit ids, test
-totals and tracker counts below describe the checkpoint at which each paragraph
-was written.
+PR #125 CI passed 168 files / 13,003 tests, TypeScript, lint, build, coverage,
+migration/schema and Security Gates. A post-canary focused offline recheck
+passed 36 files / 10,518 tests without Telegram, AI, database or other network
+requests. Production is bound to `main`; Auto Deploy plus Wait for CI was first
+proved by PR #122 and repeated by PR #123-125. Old commit ids, test totals and
+tracker counts below describe the checkpoint at which each paragraph was
+written.
 
 The immediate queue is:
 
-1. continue the fixed-RC operational observations to at least 144 eligible
-   scheduled successes; record hour-24/hour-48/hour-72 state and do not call the
-   formal canary closed until the real-client, accessibility and legal/privacy
-   entry evidence is complete;
-2. capture non-destructive multi-instance polling handoff/re-election and
+1. review the fully green isolated post-canary candidate and obtain separate
+   approval before any commit, push, merge or deployment;
+2. continue exact-RC operational observations to at least 144 eligible
+   scheduled successes. The first 72-hour wall-clock checkpoint was 65 success
+   plus one isolated missing-secret-boundary timeout: operational status is
+   `GO`, while formal closure remains `OPEN` pending a disposition of run
+   `31352427714` under the unchanged failure/restart rules;
+3. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
-3. complete real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through
-   and bounded real RU/UZ Voice-in/STT evidence;
-4. complete accessibility scale/zoom/reduced-motion and legal/privacy
+4. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
+   human Voice-out listen-through and bounded real RU/UZ Voice-in/STT evidence;
+5. complete accessibility scale/zoom/reduced-motion and legal/privacy
    acceptance;
-5. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+6. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
    the separately approved Railway rollback/return and MFA factor-reset drills;
-6. retain staging until a separate destructive deletion approval is given;
-7. record Railway payment-method expiry/spend alerts and a response owner;
-8. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
+7. retain staging until a separate destructive deletion approval is given;
+8. record Railway payment-method expiry/spend alerts and a response owner;
+9. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
    the OCR fallback two-phase correction as explicit follow-up engineering.
 
 ## Fragile / risky spots
@@ -120,15 +123,14 @@ The immediate queue is:
   `TELEGRAM_INLINE_CLIENT_AUDIT_2026-07-15.md` and
   `TELEGRAM_INLINE_POLLING_BURST_QA_2026-07-15.md`.
 
-- **The authoritative 10/10 release sequence is documented.** See
+- **Historical 2026-07-12 release-tracker snapshot.** See
   `RELEASE_READINESS_PLAN_2026-07-12.md` and the formula-driven workbook. PR #84
   has since advanced through PR #94 at deployed main `f1ddf349`; 8,591 tests,
   coverage thresholds, CodeQL, Gitleaks,
-  Trivy, CycloneDX, Supabase CI, production smokes and monitor are green. Current
-  gate counts are 16 Passed, 13 In Progress, 17 Blocked and 5 Deferred. The
-  release remains NO-GO until real Telegram/Inline clients, finding-specific
-  direct-catalog/live read-backs and remaining operational drills,
-  legal/privacy approval and the fixed-RC 72-hour canary are complete.
+  Trivy, CycloneDX, Supabase CI, production smokes and monitor were green at
+  that checkpoint. Its counts of 16 Passed, 13 In Progress, 17 Blocked and 5
+  Deferred are historical; use the checkpoint and immediate queue at the top of
+  this file for the current gate status.
 
 - **2026-07-12 security revalidation fixes are deployed, live closure evidence
   remains open.** The independent repository pass produced 15 findings
@@ -688,9 +690,10 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       warnings fail/alert, exact-boolean manual opt-in is an independent job,
       `prod:smoke` requires `--check-ai`, and enabled provider
       missing-key/non-2xx/network outcomes fail hard.
-      Manual baseline `31242484006` and eleven eligible scheduled observations
-      passed; sampled logs explicitly report `disabled by policy` and
-      `no request sent`.
+      Historical manual baseline `31242484006` and its first eleven eligible
+      scheduled observations passed; sampled logs explicitly reported
+      `disabled by policy` and `no request sent`. Current observation counts are
+      recorded at the top of this file and in `CANARY_72H.md`.
 - [x] ~~Make required scheduled monitor checks fail hard when a Telegram secret
       is absent.~~ Fixed locally on 2026-07-11: the committed schedule sets
       `MONITOR_REQUIRE_SECRET_CHECKS=true`, and policy tests prove a required
@@ -789,8 +792,8 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       provider health request on every run; 56/56 inspected logs explicitly
       showed a provider result. Historical accounting remains open. The
       recurring-cost defect is now deployed; historical accounting remains
-      unchanged, while the current scheduled baseline is cost-free by policy
-      and has passed its first eleven eligible read-backs.
+      unchanged, while the current scheduled baseline is cost-free by policy.
+      See `CANARY_72H.md` for the current exact-RC read-back count.
 - [x] ~~Execute the isolated hosted backup/restore functional service drill in
       `RECOVERY_AND_KEY_ROTATION.md`.~~ The v2 archive was restored into isolated
       Free/nano staging with outbound integrations disabled. Catalog/RLS,
@@ -845,18 +848,19 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       privacy-reviewed retirement report proves zero required dependencies.
       Direct replacement remains forbidden.
 - [ ] Continue the fixed-RC operational observation documented in
-      `CANARY_72H.md`. Eleven eligible scheduled runs are green as of
-      `2026-08-08T14:23:57Z`; require at least 144 successful eligible runs and
-      repeat bounded smokes at the entry/exit points. Only scheduled baseline
+      `CANARY_72H.md`. The first 72-hour checkpoint contained 65 successful
+      eligible runs and one isolated missing-secret-boundary timeout; 17/17
+      later scheduled runs were green through `2026-08-13T09:38:19Z`. Require
+      at least 144 successful eligible runs and explicitly resolve failed run
+      `31352427714` under the unchanged restart rule. Only scheduled baseline
       runs with `MONITOR_CHECK_AI=false` count. Formal closure also requires the
-      remaining real-client, accessibility and legal/privacy entry evidence;
-      any production/deploy/config/monitor change restarts the window.
+      remaining real-client, accessibility and legal/privacy evidence; any
+      production/deploy/config/monitor change restarts the window.
 - [x] ~~Resolve the Railway region and source-binding blockers.~~ Plan/payment
-      activation made US West usable; exact merge `c5fa51d` deployed
-      successfully. Production is now bound to `main`, Auto Deploy and Wait for
-      CI are enabled, and saving the settings caused no extra deployment. The
-      first future `main` change remains the end-to-end GitHub App permission
-      proof; do not manufacture one during the fixed-RC observation window.
+      activation made US West usable. Production is bound to `main`, Auto Deploy
+      and Wait for CI are enabled. PR #122 first proved the complete path, and
+      PR #123-125 repeated it; current exact merge `1576e21` deployed
+      successfully as `17f20728-fea9-4320-987b-b15bdc67231a`.
 - [ ] Record Railway payment method, expiry owner and spend/usage alerts through
       the Dashboard. CLI evidence proves `plan=pro`,
       `sleepApplication=false`, one replica and a successful current deployment,

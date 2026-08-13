@@ -1,6 +1,6 @@
 # Current State
 
-Last reconciled: 2026-08-08
+Last reconciled: 2026-08-13
 
 This is the short operational source of truth. Dated audit and release-plan
 documents preserve the evidence available when they were written; their old
@@ -9,15 +9,16 @@ here.
 
 ## Deployed baseline
 
-- GitHub `main` and the deployed source envelope are PR #122 merge
-  `3c70d3a85f8468606642b33914f5c77fadb3d919` (tree
-  `37e027d9e3a4185546dd70d08e396b9fc6e4eef7`). PR #122 changed public
-  documentation only; the deployed application/runtime code remains the fully
-  verified PR #121 merge `c5fa51de8f570fd2258722b1194bd7430319d242`.
+- GitHub `main` and the deployed application source are PR #125 merge
+  `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c` (tree
+  `00bf1cc659c885e9b9c9b432d62dc0cbd396fc12`). It includes PR #123
+  completed-action/obfuscation hardening, PR #124 task-scam, BNPL and coercive
+  secrecy hardening, and PR #125 Direct/Inline transfer-secrecy follow-up.
 - Current Railway production deployment
-  `bed5b2be-64f0-46a3-810d-dffde92bdece` reports `SUCCESS`, with image digest
-  `sha256:264a459739b2c3bb664912631671de9672fcc22b50a22bcafe7d49c5010944bc`
-  and one running instance in US West.
+  `17f20728-fea9-4320-987b-b15bdc67231a` reports `SUCCESS`, with image digest
+  `sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`
+  and one running instance in US West. A 2026-08-13 read-back confirmed that
+  the active deployment and `origin/main` still use the exact same commit.
 - Production `/healthz`, `/`, `/login`, `/admin`, `/admin-mfa`, `/report`,
   `/appeal`, `/privacy` and `/emergency` returned `200` after the application
   release; `/healthz` returned body `ok`. An existing AAL2 admin session loaded
@@ -74,40 +75,68 @@ here.
   fixed-RC runs through `2026-08-08T14:23:57Z` passed with sampled logs stating
   `disabled by policy` and `no request sent`. Historical `60 + 1` provider-call
   accounting for the earlier interval remains unchanged.
-- Current GitHub CI run `31268740371` and Security Gates run `31268740359` for
-  merge `3c70d3a` passed after merge. The underlying application release
-  verification passed 167 Vitest files / 12,890 tests,
-  repository coverage thresholds, TypeScript,
-  production build, actionlint and ESLint with zero errors. A clean disposable
-  Supabase applied all 33 migrations, schema lint passed and pgTAP passed 92/92.
-  The release container built and returned `200 ok` from `/healthz`; Bun audit
-  and the fixable High/Critical Trivy gate found zero vulnerabilities, and the
-  patch passed a redacted Gitleaks scan. PR #121 and the post-merge `main` runs
-  passed all reported CI/security gates.
+- PR #125 CI passed 168 Vitest files / 13,003 tests, repository coverage
+  thresholds, TypeScript, production build and ESLint with zero errors plus the
+  eight established Fast Refresh warnings. Its migration/schema job and all
+  Security Gates also passed. All seven reported CI/security checks were green
+  for each of PR #123, PR #124 and PR #125. The earlier PR #121 clean-database,
+  pgTAP, container, audit and secret-scan evidence remains the database/release
+  foundation because PR #123-125 changed no migrations or dependencies.
 - Railway plan/payment activation made the configured US West region usable.
-  The PR #121 merge did not auto-deploy because production had no branch binding
-  and auto deploy was disabled, so the exact merge tree was deployed once from
-  a clean detached worktree. Production is now bound to `main`, Auto Deploy is
-  enabled and Wait for CI is enabled. PR #122 then provided the first real
-  end-to-end binding proof: after green CI, Railway automatically deployed exact
-  merge `3c70d3a` as successful deployment `bed5b2be-64f0-46a3-810d-dffde92bdece`.
-- The fixed-RC operational observation has 11/11 successful scheduled baseline
-  runs as of `2026-08-08T14:23:57Z`. Final 72-hour closure still requires at
-  least 144 eligible runs plus the remaining real-client, accessibility and
-  legal/privacy evidence. See `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
+  Production is bound to `main`, Auto Deploy is enabled and Wait for CI is
+  enabled. PR #122 first proved that binding end to end; PR #123, PR #124 and
+  PR #125 then repeated the green-CI automatic-deployment path. The current
+  deployment was created directly from the PR #125 merge.
+- The exact 72-hour wall-clock observation for `1576e21` contained 66 scheduled
+  Production Monitor runs: 65 succeeded and one timed out after eight seconds
+  while checking that a webhook without its secret is rejected. The same failed
+  run passed home, health, authenticated polling webhook, Telegram status,
+  zero-pending and polling-leader checks; adjacent and all final-24-hour runs
+  recovered without a deploy. This supports an operational checkpoint `GO` for
+  the current release/transport, with no sustained outage or repeated
+  silent-update confirmed. Formal `CANARY_72H` closure remains `OPEN`: the
+  unchanged contract requires at least 144 eligible successes and a documented
+  disposition of the failed security-boundary observation. Full device,
+  accessibility and legal/privacy acceptance is also still open. See
+  `CANARY_72H.md`.
 
-## Local verified candidate (not deployed)
+## Merged and deployed Telegram hardening
 
-- Branch `agent/p0-action-state-language-hardening-20260808` fixes verified
-  completed-action RU/UZ wording and bounded spaced-letter / `0`-leet bypasses.
-  Ambiguous “I told them everything” wording requires a recent code context;
-  quotes, third-party actions, physical access codes and negations remain
-  negative controls.
-- Local focused tests passed 812/812, Telegram+risk passed 12,407/12,407 and the
-  full repository passed 12,927/12,927. TypeScript and production build passed;
-  ESLint reported zero errors and the existing eight warnings. No external
-  service or paid AI request was made. This candidate is unmerged and absent
-  from production.
+- PR #123 added completed-action RU/UZ/EN routing plus bounded spaced-letter
+  and `0`-leet normalization. Ambiguous “I told them everything” wording
+  requires recent code context; quotes, third-party actions, physical access
+  codes and negations remain negative controls.
+- PR #124 added deterministic task-scam, unauthorized BNPL/credit and
+  official-operation/coercive-secrecy handling in Direct and Inline. PR #125
+  preserved the transfer-secrecy topic in the real-client Direct and Inline
+  follow-up variants that remained too generic after PR #124.
+- A post-canary offline recheck on exact `1576e21` passed 36 focused files and
+  10,518/10,518 tests, including the 2,161/2,161 adversarial corpus, 3,805
+  Inline-handler cases, 1,008 human-router cases and 105/105 meaningful Inline
+  mass results. The test harness blocked unmocked network calls; it made no
+  Telegram, AI or database request.
+
+## Local post-canary candidate (not merged or deployed)
+
+- Isolated branch `agent/post-canary-reconciliation-20260813` is based exactly
+  on deployed `1576e21`. It does not modify production, Supabase or the
+  protected dirty worktree. No real Telegram message, AI/TTS request, database
+  operation, commit, push or deployment was performed while building it.
+- The candidate closes additional completed-action RU/UZ/EN variants, bounded
+  confusable/leet normalization false positives, task-scam/BNPL/coercive
+  secrecy variants and report-callback expiry/cross-chat binding.
+- Secret handling now covers typed and Voice routes, mixed-script multi-secret
+  input, spaced/typo labels, formatted/value-first alphanumeric codes,
+  private keys and canonical recovery lists. Inline secret cards contain no
+  user-derived context; Voice secrets are neither cached nor shared raw.
+- Focused final reconciliation passed 3,683/3,683 tests and a separate security
+  review passed 1,783/1,783 with no reproducible P0/P1 blocker. The final full
+  gate passed 174 files / 13,482 tests, TypeScript, production build and ESLint
+  with zero errors plus the eight established Fast Refresh warnings. Changed
+  code passes Prettier and `git diff --check`. Coverage passed at 86.25%
+  statements, 81.06% branches, 91.56% functions and 88.10% lines.
+  Dependencies did not change, so dependency audit/database/container gates
+  were not repeated. This section must not be presented as a released baseline.
 
 ## Closed in the current release
 
@@ -201,7 +230,7 @@ application/security/Telegram source was subsequently released from approved
   a separately reviewed update to CLI `2.110.0` or newer contains the Windows
   compatibility fallback.
 
-The final PR #121 application candidate passed 167 Vitest files and
+The historical PR #121 application candidate passed 167 Vitest files and
 12,890/12,890 tests, coverage floors, TypeScript, production build with
 non-secret placeholders and lint with zero errors plus the eight established
 Fast Refresh warnings. GitHub CI and Security Gates passed again on merge
@@ -299,6 +328,11 @@ tree exactly matches the deployed release tree.
   Exact merge `c5fa51d` is Railway deployment
   `4d00a730-d8e2-462f-b820-e3cecbfb0994`; see
   `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
+- PR #125 now supersedes that application image without changing the database.
+  Exact merge `1576e21` is Railway deployment
+  `17f20728-fea9-4320-987b-b15bdc67231a`; PR #123-125 contain the subsequent
+  deterministic Telegram language, completed-action, task-scam, BNPL and
+  coercive-secrecy hardening.
 - The hosted restore is functional recovery evidence, not a closed RPO/RTO
   measurement. The first schema phase crossed its evidence timeout and did not
   retain complete stderr or full per-phase timing.
@@ -307,10 +341,13 @@ tree exactly matches the deployed release tree.
 
 ## Open operational and release gates
 
-1. Continue fixed-RC operational observation without changing production. Eleven
-   eligible scheduled runs are green; formal closure needs at least 144 plus
-   hour-24/hour-48/hour-72 records and the remaining release-scope acceptance
-   evidence.
+1. Continue exact-RC operational observation without changing production. The
+   first 72-hour wall-clock checkpoint recorded 65 successful scheduled runs
+   and one isolated missing-secret-boundary timeout. Operational status is
+   `GO`, but formal closure remains `OPEN` until the unchanged 144-success gate
+   is met and run `31352427714` receives an explicit failure/restart-rule
+   disposition. The remaining release-scope acceptance evidence is independent
+   and still required.
 2. Capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence.
 3. Complete real-client Direct/Inline RU/UZ/EN, human Voice-out listen-through,
@@ -335,9 +372,9 @@ tree exactly matches the deployed release tree.
 9. Keep the Nitro static precompressed `q`-weight limitation, durable outbound
    outbox/journal and OCR fallback two-phase correction as explicit follow-up
    engineering work.
-10. Treat the first future `main` change as the end-to-end proof of Railway Auto
-    Deploy plus Wait for CI. Do not manufacture a production commit during the
-    fixed-RC observation window merely to test the binding.
+
+Railway Auto Deploy plus Wait for CI is no longer an open gate: PR #122 proved
+it first, and PR #123-125 repeated the same path successfully.
 
 Supabase Free remains an intentional pilot choice, but it provides no managed
 scheduled backups or PITR. The target recovery point is therefore not guaranteed

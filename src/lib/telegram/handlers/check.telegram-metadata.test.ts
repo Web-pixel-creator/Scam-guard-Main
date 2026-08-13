@@ -44,26 +44,41 @@ vi.mock("@/lib/telegram/api.server", () => ({
   escapeMarkdownV2: (s: string) => s,
 }));
 
-vi.mock("@/lib/telegram/public-post.server", () => ({
-  buildTelegramPublicPostCheckEvidence: (input: string) =>
-    input.includes("t.me/TonZnatok/123")
-      ? Promise.resolve({
-          target: { username: "TonZnatok", postId: "123" },
-          text: "Розыгрыш NFT: пройти капчу и проголосовать",
-          links: ["https://voting.blockchain-life.com"],
-          checkInput:
-            "Telegram public post: https://t.me/TonZnatok/123\n\nPublic post text:\nРозыгрыш NFT: пройти капчу и проголосовать\n\nVisible post links:\nhttps://voting.blockchain-life.com",
-        })
-      : Promise.resolve(null),
-  enrichTelegramPublicPostResult: (result: { explanation: string | null }, evidence: unknown) =>
-    evidence
-      ? {
-          ...result,
-          explanation:
-            "Источник: публичный Telegram-пост @TonZnatok/123. Я проверил только видимый текст/ссылки.",
-        }
-      : result,
-}));
+vi.mock("@/lib/telegram/public-post.server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/telegram/public-post.server")>();
+  return {
+    ...actual,
+    buildTelegramPublicPostCheckEvidence: (input: string) => {
+      if (input.includes("t.me/SecretEvidence/77")) {
+        return Promise.resolve(
+          actual.parseTelegramPublicPostHtml(
+            '<div class="tgme_widget_message_wrap"><div data-post="SecretEvidence/77"><div class="tgme_widget_message_text js-message_text">Keep this text. pаsswоrd: AlphaSecret42</div></div></div>',
+            { username: "SecretEvidence", postId: "77" },
+          ),
+        );
+      }
+      return input.includes("t.me/TonZnatok/123")
+        ? Promise.resolve({
+            target: { username: "TonZnatok", postId: "123" },
+            text: "Розыгрыш NFT: пройти капчу и проголосовать",
+            links: ["https://voting.blockchain-life.com"],
+            buttons: [],
+            previews: [],
+            checkInput:
+              "Telegram public post: https://t.me/TonZnatok/123\n\nPublic post text:\nРозыгрыш NFT: пройти капчу и проголосовать\n\nVisible post links:\nhttps://voting.blockchain-life.com",
+          })
+        : Promise.resolve(null);
+    },
+    enrichTelegramPublicPostResult: (result: { explanation: string | null }, evidence: unknown) =>
+      evidence
+        ? {
+            ...result,
+            explanation:
+              "Источник: публичный Telegram-пост @TonZnatok/123. Я проверил только видимый текст/ссылки.",
+          }
+        : result,
+  };
+});
 
 vi.mock("@/lib/telegram/reputation.server", () => ({
   enrichTelegramReputation: (_input: string, result: unknown) => {
@@ -126,5 +141,21 @@ describe("handleCheck telegram metadata enrichment", () => {
     expect(hoisted.reputationCalls).toBe(0);
     expect(hoisted.sentMessages).toHaveLength(1);
     expect(hoisted.sentMessages[0].text).toContain("публичный Telegram-пост");
+  });
+
+  it("keeps a mixed-script public-post password out of runCheck and the reply", async () => {
+    const password = "AlphaSecret42";
+
+    await handleCheck("https://t.me/SecretEvidence/77", {
+      chatId: 100,
+      userId: 42,
+      session,
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(1);
+    expect(hoisted.runCheckCalls[0]).toMatchObject({ type: "text" });
+    expect(hoisted.runCheckCalls[0].input).toContain("Keep this text. pаsswоrd: ••••");
+    expect(JSON.stringify(hoisted.runCheckCalls)).not.toContain(password);
+    expect(JSON.stringify(hoisted.sentMessages)).not.toContain(password);
   });
 });

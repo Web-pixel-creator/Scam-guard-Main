@@ -1943,6 +1943,21 @@ describe("handleInlineQuery", () => {
       title: "Hide the transfer: red flag",
       topic: "coercive isolation",
     },
+    {
+      text: "Vazifalarni bajardim, ish haqini olish uchun komissiya to'lashni so'rashyapti",
+      title: "Topshiriq/daromad: balans to'ldirmang",
+      topic: "topshiriq",
+    },
+    {
+      text: "Пришёл кредит, которого я не брал",
+      title: "Кредит/рассрочка не ваша: действуйте",
+      topic: "официальному номеру",
+    },
+    {
+      text: "Tell the bank the payment is for family",
+      title: "Hide the transfer: red flag",
+      topic: "coercive isolation",
+    },
   ])(
     "keeps the P1 topic and language in Inline preview and inserted text: $text",
     async ({ text, title, topic }) => {

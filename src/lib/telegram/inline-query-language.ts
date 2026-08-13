@@ -8,6 +8,7 @@ const UZBEK_CYRILLIC_PHRASE_RE =
 const RU_CYRILLIC_RE = /[а-яё]/giu;
 const LATIN_CHARACTER_RE = /\p{Script=Latin}/gu;
 const LATIN_TOKEN_RE = /[a-z]+(?:'[a-z]+)*/giu;
+const LANGUAGE_TOKEN_RE = /[\p{L}\p{M}\p{N}_'-]+/gu;
 
 // Keep identifiers and secret-shaped fragments on the explicitly selected
 // language. They do not contain enough natural-language context to infer one.
@@ -20,6 +21,8 @@ const SHORT_UZBEK_QUERY_RE =
   /^(?:(?:(?:katta|катта)\s+)?(?:rahmat|raxmat|рахмат|раҳмат)(?:\s+(?:(?:katta|катта)\s+)?(?:rahmat|raxmat|рахмат|раҳмат))*|(?:(?:sms|otp|pin|kod|havola|link|pul|parol)\s+)?(?:beraymi|aytaymi|yuboraymi|ochaymi|to['’]?laymi|ishonaymi|qilaymi|kiraymi))[?!.]*$/iu;
 const SHORT_ENGLISH_QUERY_RE =
   /^(?:tell|share|send|open|pay|call|trust|verify)\s+(?:the\s+)?(?:otp|sms(?:\s+code)?|code|link|him|her|them|it)[?!.]*$/iu;
+const UZ_COMPLETED_ACTION_PHRASE_RE =
+  /(?<![\p{L}\p{N}_'-])(?:raqamni\s+tashlab\s+yubordim|pulni\s+jo['’]?natvordim)(?![\p{L}\p{N}_'-])/iu;
 
 // Loanwords shared by Uzbek and English (bank, SMS, code, Telegram, channel,
 // etc.) are deliberately absent. Ordinary sentences still contain several
@@ -331,11 +334,17 @@ function hasPredominantlyRussianCyrillic(text: string): boolean {
   const cyrillicCount = text.match(RU_CYRILLIC_RE)?.length ?? 0;
   if (cyrillicCount === 0) return false;
   const latinCount = text.match(LATIN_CHARACTER_RE)?.length ?? 0;
+  const hasSubstantialCyrillicOnlyToken = (text.match(LANGUAGE_TOKEN_RE) ?? []).some((token) => {
+    const tokenCyrillicCount = token.match(RU_CYRILLIC_RE)?.length ?? 0;
+    const tokenLatinCount = token.match(LATIN_CHARACTER_RE)?.length ?? 0;
+    return tokenCyrillicCount >= 2 && tokenLatinCount === 0;
+  });
 
-  // A single Cyrillic lookalike in an otherwise Latin sentence is an evasion
-  // attempt, not evidence that the whole request is Russian. A one-letter
-  // genuinely Cyrillic query still resolves to Russian because latinCount=0.
-  return cyrillicCount >= 2 || cyrillicCount > latinCount;
+  // One or several Cyrillic lookalikes inside an otherwise Latin token are not
+  // evidence that the whole request is Russian. A genuinely Cyrillic token,
+  // including a one-letter query, remains sufficient evidence; a Cyrillic-
+  // dominant mixed sentence also remains Russian.
+  return hasSubstantialCyrillicOnlyToken || cyrillicCount > latinCount;
 }
 
 /**
@@ -353,6 +362,7 @@ export function resolveTelegramTextLanguage(text: string, fallback: Lang): Lang 
 
   if (SHORT_UZBEK_QUERY_RE.test(normalized)) return "uz";
   if (SHORT_ENGLISH_QUERY_RE.test(normalized)) return "en";
+  if (UZ_COMPLETED_ACTION_PHRASE_RE.test(normalized)) return "uz";
 
   if (
     isArtifactOnly(normalized) ||

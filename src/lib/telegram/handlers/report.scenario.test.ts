@@ -241,6 +241,7 @@ import {
   REPORT_RETRY_CALLBACK,
   REPORT_SKIP_CALLBACK,
 } from "./report";
+import { REPORT_CALLBACK_BINDING_TTL_MS } from "../report-flow";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -248,6 +249,7 @@ import {
 
 const USER_ID = 777;
 const CHAT_ID = 555;
+const REPORT_CALLBACK_TEST_NOW = new Date("2026-08-13T08:00:00.000Z");
 
 function makeCtx(session: Partial<Session> = {}): HandlerCtx {
   return {
@@ -310,12 +312,14 @@ function bindReportCallback(
       messageId,
       action,
       scenario,
-      at: new Date(0).toISOString(),
+      at: REPORT_CALLBACK_TEST_NOW.toISOString(),
     },
   };
 }
 
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(REPORT_CALLBACK_TEST_NOW);
   h.saveCalls.length = 0;
   h.resetCalls.length = 0;
   h.sendCalls.length = 0;
@@ -335,6 +339,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 // ===========================================================================
@@ -718,6 +723,34 @@ describe("/report — callback prompt integrity", () => {
         },
       },
     });
+
+    await handleReportSkip(ctx);
+
+    expect(h.saveCalls).toHaveLength(0);
+    expect(h.submitCalls).toHaveLength(0);
+    expect(sentTexts()).toEqual([bt("report_callback_expired", "ru")]);
+  });
+
+  it("rejects an expired callback even when message, action, and report step still match", async () => {
+    const messageId = 1_200;
+    const ctx = makeCtx({
+      scenario: "report_city",
+      scenarioStep: 3,
+      scenarioData: {
+        target: expectedTarget("@x"),
+        description: "long enough description",
+        chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportCallbackBinding: {
+          messageId,
+          action: REPORT_SKIP_CALLBACK,
+          scenario: "report_city",
+          at: new Date(
+            REPORT_CALLBACK_TEST_NOW.getTime() - REPORT_CALLBACK_BINDING_TTL_MS - 1,
+          ).toISOString(),
+        },
+      },
+    });
+    ctx.messageId = messageId;
 
     await handleReportSkip(ctx);
 

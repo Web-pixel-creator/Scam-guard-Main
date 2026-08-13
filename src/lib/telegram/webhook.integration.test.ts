@@ -277,7 +277,11 @@ import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./w
 import { __resetTelegramUserUpdateQueuesForTests } from "./update-serialization.server";
 import { CB, RISK_EMOJI } from "./format";
 import { imageTriageCallback } from "./image-fallback";
-import { REPORT_NO_VALUE_CALLBACK, REPORT_RETRY_CALLBACK } from "./report-flow";
+import {
+  REPORT_CALLBACK_BINDING_TTL_MS,
+  REPORT_NO_VALUE_CALLBACK,
+  REPORT_RETRY_CALLBACK,
+} from "./report-flow";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -286,6 +290,7 @@ const WEBHOOK_URL = "https://app.example/api/telegram/webhook";
 const SECRET_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 const SECRET = "test-webhook-secret";
 const TOKEN = "test-bot-token";
+const REPORT_CALLBACK_TEST_NOW = new Date("2026-08-13T08:00:00.000Z");
 
 const ORIG_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const ORIG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -293,6 +298,11 @@ let syntheticUpdateId = 10_000;
 
 function nextSyntheticUpdateId(): number {
   return syntheticUpdateId++;
+}
+
+function useReportCallbackTestClock(): void {
+  vi.useFakeTimers();
+  vi.setSystemTime(REPORT_CALLBACK_TEST_NOW);
 }
 
 /** Build a synthetic webhook Request. `header === null` → header absent. */
@@ -1485,6 +1495,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
   });
 
   it("acknowledges report skip callbacks before advancing the report scenario", async () => {
+    useReportCallbackTestClock();
     h.sessionRow = {
       telegram_user_id: 1103,
       lang: "ru",
@@ -1498,7 +1509,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
           messageId: 1,
           action: "report_skip",
           scenario: "report_scamType",
-          at: new Date(0).toISOString(),
+          at: REPORT_CALLBACK_TEST_NOW.toISOString(),
         },
       },
       updated_at: new Date(0).toISOString(),
@@ -1568,7 +1579,50 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(h.sendCalls[0].text).toContain("eski bosqichiga");
   });
 
+  it("acknowledges an exact but expired report callback without mutating the draft", async () => {
+    useReportCallbackTestClock();
+    h.sessionRow = {
+      telegram_user_id: 1108,
+      lang: "ru",
+      scenario: "report_city",
+      scenario_step: 3,
+      scenario_data: {
+        target: { type: "telegram", hash: "hash:4", display: "[redacted]", incidentOnly: false },
+        description: "long enough",
+        chatScope: { chatId: 5108, chatType: "private" },
+        reportCallbackBinding: {
+          messageId: 1,
+          action: "report_skip",
+          scenario: "report_city",
+          at: new Date(
+            REPORT_CALLBACK_TEST_NOW.getTime() - REPORT_CALLBACK_BINDING_TTL_MS - 1,
+          ).toISOString(),
+        },
+      },
+      updated_at: REPORT_CALLBACK_TEST_NOW.toISOString(),
+    };
+
+    const response = await handleTelegramWebhook(
+      webhookRequest(
+        callbackUpdate({
+          userId: 1108,
+          chatId: 5108,
+          data: "report_skip",
+          id: "cb-report-expired",
+          messageId: 1,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.answerCalls).toEqual(["cb-report-expired"]);
+    expect(h.upserts).toHaveLength(0);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(h.sendCalls[0].text).toContain("старому шагу жалобы");
+  });
+
   it("acknowledges the report no-value callback and advances to description", async () => {
+    useReportCallbackTestClock();
     h.sessionRow = {
       telegram_user_id: 1105,
       lang: "ru",
@@ -1580,7 +1634,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
           messageId: 1,
           action: REPORT_NO_VALUE_CALLBACK,
           scenario: "report_value",
-          at: new Date(0).toISOString(),
+          at: REPORT_CALLBACK_TEST_NOW.toISOString(),
         },
       },
       updated_at: new Date(0).toISOString(),
@@ -1616,6 +1670,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
   });
 
   it("acknowledges the report retry callback and clears the draft after success", async () => {
+    useReportCallbackTestClock();
     h.sessionRow = {
       telegram_user_id: 1106,
       lang: "ru",
@@ -1629,7 +1684,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
           messageId: 1,
           action: REPORT_RETRY_CALLBACK,
           scenario: "report_amount",
-          at: new Date(0).toISOString(),
+          at: REPORT_CALLBACK_TEST_NOW.toISOString(),
         },
       },
       updated_at: new Date(0).toISOString(),

@@ -25,7 +25,9 @@ import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-norma
 import {
   buildSensitiveSecretGuidance,
   detectTelegramSensitiveSecret,
+  hasPastedSensitiveSecretValue,
 } from "@/lib/telegram/sensitive-secret-input";
+import { classifyTextPanicIntent } from "@/lib/telegram/text-panic-intent";
 import {
   collectResultReasonCodesForPresentation,
   presentInlineReason,
@@ -1950,6 +1952,29 @@ function compactInlineDescription(value: string): string {
 }
 
 function hasSentCodeIntent(normalized: string): boolean {
+  if (
+    /(?:(?:kod|sms).{0,50}haqida|haqida.{0,50}(?:kod|sms)|dasturlash\s+kodi|kod\s+xavfsizligi)/iu.test(
+      normalized,
+    ) ||
+    /^(?:я|мы)\s+(?:им|ему|ей|туда)\s+(?:уже\s+)?скинул[аи]?.{0,60}(?:код\s+(?:проект|на\s+github)|цифр[аы]?\s+отч[её]т|sms[-\s]*инструкц)/iu.test(
+      normalized,
+    ) ||
+    /^(?:я|мы)\s+(?:сообщил[аи]?\s+(?:банк|банку|полици|милици|поддержк|служб|друг|знаком).{0,80}(?:о|про|как)\s+(?:проблем|случа|сб[ое]й|ошиб|работ)|сказал[аи]?(?:,?\s+что|\s+не)).{0,80}(?:одноразов.{0,20})?(?:парол|код|otp)/iu.test(
+      normalized,
+    ) ||
+    /^(?:i|we)\s+(?:said\s+(?:(?:that\s+)?(?:a\s+)?one[-\s]+time\s+(?:password|code).{0,24}(?:safer|security)|not\s+to\s+(?:share|send|give|tell).{0,24}(?:one[-\s]+time\s+(?:password|code)|otp)|(?:i\s+)?never\s+(?:shared|sent|gave|told).{0,24}(?:one[-\s]+time\s+(?:password|code)|otp))|told\s+(?:my\s+)?(?:son|daughter|friend|colleague).{0,80}(?:one[-\s]+time\s+(?:password|code)|otp).{0,40}(?:works?|security))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+  if (
+    /^(?:i|we)\s+(?:told|explained\s+to)\s+(?:my|our)\s+(?:son|daughter|child|parent|mother|father|friend|colleague).{0,80}(?:how|about).{0,40}(?:one[-\s]+time\s+password|otp|code).{0,40}(?:work|security)/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
   return (
     /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L})).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
       normalized,
@@ -2768,6 +2793,23 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     /https?:\/\/|www\.|t\.me\/|telegram\.me\/|\b[a-z0-9-]+\.[a-z]{2,}\b/iu.test(normalized);
   const hasPriorityDanger = hasPriorityInlineDangerIntent(normalized);
   const sharedVictimIntent = classifySharedVictimInlineIntent(text);
+  const benignPlannedPayment =
+    /(?:wired|sent|paid|gone|reached|arrived).{0,80}(?:rent|landlord|as\s+planned|invoice|utilities|tuition)/iu.test(
+      normalized,
+    );
+  const benignNonScamTransfer =
+    benignPlannedPayment ||
+    /^(?:я|мы)\s+(?:уже\s+)?скинул[аи]?.{0,50}(?:карт[уаы]?\s+(?:проезд|маршрут)|перевод\s+(?:стать|текст|документ)|баланс\s+отч[её]т|сумм[уы]?\s+расч[её]т|деньги\s+за\s+(?:обед|ужин|покупк|такси|аренд))/iu.test(
+      normalized,
+    );
+  // Reuse the Direct route's pure, guarded completed-action classifier so
+  // negation, quotations, third-party reports and physical door codes cannot
+  // drift between Direct and Inline. This module is a leaf consumer of the
+  // classifier, so the dependency does not form a cycle.
+  const completedPanicId = classifyTextPanicIntent(text);
+
+  if (completedPanicId === 1) return "sent_code";
+  if (completedPanicId === 3) return "sent_money";
 
   if (
     /(?:как|можно|надо|нужно|что).{0,80}(?:вернуть|оспорить|заморозить).{0,80}(?:деньг|перевод|плат[её]ж).{0,100}(?:мошен|обман|скам)|(?:деньг|перевод|плат[её]ж).{0,80}(?:вернуть|оспорить|заморозить).{0,100}(?:мошен|обман|скам)/iu.test(
@@ -2842,6 +2884,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
+    !benignNonScamTransfer &&
     /(?:я|мы|мама|папа|бабушк|дедушк|уже|только\s+что).{0,80}(?:перев[её]л|перевела|отправил|отправила|оплатил|оплатила|заплатил|заплатила|скинул|скинула|кинул|кинула).{0,80}(?:деньг|сум|перевод|на\s+карту|на\s+сч[её]т|плат[её]ж|оплат)|(?:money|transfer|payment).{0,80}(?:already|sent|paid)|(?:pul|sum|to['’]?lov).{0,80}(?:yubord|o['’]?tkazd|to['’]?lad)/iu.test(
       normalized,
     )
@@ -3674,22 +3717,12 @@ function ambiguousNumericArticle(lang: Lang): InlineQueryResultArticle {
 function sensitiveSecretArticle(
   classes: readonly SensitiveSecretClass[],
   lang: Lang,
-  sanitizedContext: string,
 ): InlineQueryResultArticle {
   const guidance = buildSensitiveSecretGuidance(classes, lang);
-  const safeContext = maskForDisplay(sanitizedContext, "text")
-    .replace(/(?<!\d)\d{4,12}(?!\d)/gu, "••••")
-    .trim();
-  const contextLabel =
-    lang === "uz" ? "Xavfsizlangan matn" : lang === "en" ? "Sanitized text" : "Текст без секрета";
-  const message = [
-    guidance.title,
-    safeContext ? `${contextLabel}: ${safeContext}` : "",
-    guidance.description,
-    "@scamguard_bot",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  // Never include user-derived text in a secret result. Detection evaluates
+  // several confusable-normalized candidates; no single candidate is a proof
+  // that every independently obfuscated secret in the original was redacted.
+  const message = [guidance.title, guidance.description, "@scamguard_bot"].join("\n\n");
   const id = classes.some((value) => value === "recovery_phrase" || value === "private_key")
     ? "private-recovery-secret"
     : classes.includes("password")
@@ -3866,8 +3899,13 @@ export async function handleInlineQuery(
   }
 
   const sensitive = detectTelegramSensitiveSecret(trimmed);
-  if (sensitive) {
-    await answer(sensitiveSecretArticle(sensitive.classes, lang, sensitive.value));
+  const completedPanicId = classifyTextPanicIntent(trimmed);
+  // A natural completed-action report can contain the word "password"
+  // without containing a password value. Prefer proven aftercare only in that
+  // case; any actually redacted value remains on the private secret card.
+  const hasPastedSecret = hasPastedSensitiveSecretValue(trimmed);
+  if (sensitive && (completedPanicId === null || hasPastedSecret)) {
+    await answer(sensitiveSecretArticle(sensitive.classes, lang));
     return;
   }
 

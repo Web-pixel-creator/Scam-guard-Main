@@ -390,7 +390,7 @@ describe("Inline 1,152-case context robustness corpus", () => {
       secret: "614",
       preserved: "A stranger asks me to send",
     },
-  ])("$id masks a real credential while preserving the dangerous request", async (testCase) => {
+  ])("$id masks a real credential without echoing user-derived context", async (testCase) => {
     const { article } = await runInline(testCase.lang, testCase.query);
     const visible = [
       article.title,
@@ -399,8 +399,12 @@ describe("Inline 1,152-case context robustness corpus", () => {
     ].join("\n");
 
     expectWellFormedArticle(article);
+    expect(article.id).toMatch(/^private-/u);
     expect(visible).not.toContain(testCase.secret);
-    expect(normalizeVisible(visible)).toContain(normalizeVisible(testCase.preserved));
+    // A sanitizer can detect different independently-obfuscated secrets in
+    // different normalized candidates. Therefore a private Inline card must
+    // be fully static instead of replaying even a supposedly safe fragment.
+    expect(normalizeVisible(visible)).not.toContain(normalizeVisible(testCase.preserved));
   });
 
   it("keeps scoped IDs deterministic for the same query and distinct after a new tail", async () => {

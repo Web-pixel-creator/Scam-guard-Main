@@ -1,5 +1,12 @@
 # Production application release - 2026-08-08
 
+> Historical PR #121 release record. The current baseline is PR #125 merge
+> `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`, Railway deployment
+> `17f20728-fea9-4320-987b-b15bdc67231a`. PR #122 first proved the configured
+> `main` Auto Deploy + Wait for CI path, and PR #123-125 repeated it. Keep the
+> identifiers and outcomes below unchanged as evidence for their own snapshot;
+> use `CURRENT_STATE.md`, `OPEN_TASKS.md` and `CANARY_72H.md` for current status.
+
 This is the sanitized immutable record for the PR #121 application release.
 It contains no credentials, Telegram user/chat identifiers, production row
 payloads or secret values.

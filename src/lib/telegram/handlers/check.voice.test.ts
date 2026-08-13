@@ -248,6 +248,167 @@ describe("handleVoice", () => {
     expect(joined).not.toContain("123456");
   });
 
+  it.each([
+    {
+      id: "ru-password",
+      lang: "ru",
+      transcript: "пароль: CorrectHorse42",
+      secrets: ["CorrectHorse42"],
+      safePreview: "Чувствительные данные скрыты",
+    },
+    {
+      id: "ru-code",
+      lang: "ru",
+      transcript: "СМС-код: AB12CD",
+      secrets: ["AB12CD"],
+      safePreview: "Чувствительные данные скрыты",
+    },
+    {
+      id: "ru-recovery",
+      lang: "ru",
+      transcript:
+        "сид-фраза: apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+      secrets: [
+        "apple",
+        "bicycle",
+        "candle",
+        "dragon",
+        "eagle",
+        "forest",
+        "garden",
+        "harbor",
+        "island",
+        "jungle",
+        "kitten",
+        "lemon",
+      ],
+      safePreview: "Чувствительные данные скрыты",
+    },
+    {
+      id: "uz-password",
+      lang: "uz",
+      transcript: "parol: UzbekSecret42",
+      secrets: ["UzbekSecret42"],
+      safePreview: "Maxfiy ma'lumotlar yashirildi",
+    },
+    {
+      id: "uz-code",
+      lang: "uz",
+      transcript: "SMS kod: UZ12AB",
+      secrets: ["UZ12AB"],
+      safePreview: "Maxfiy ma'lumotlar yashirildi",
+    },
+    {
+      id: "uz-recovery",
+      lang: "uz",
+      transcript:
+        "tiklash iborasi: anchor blossom copper dolphin ember feather galaxy hazel ivory jasmine kernel lotus",
+      secrets: [
+        "anchor",
+        "blossom",
+        "copper",
+        "dolphin",
+        "ember",
+        "feather",
+        "galaxy",
+        "hazel",
+        "ivory",
+        "jasmine",
+        "kernel",
+        "lotus",
+      ],
+      safePreview: "Maxfiy ma'lumotlar yashirildi",
+    },
+    {
+      id: "en-password",
+      lang: "en",
+      transcript: "password: EnglishSecret42",
+      secrets: ["EnglishSecret42"],
+      safePreview: "Sensitive data is hidden",
+    },
+    {
+      id: "en-code",
+      lang: "en",
+      transcript: "verification code: EN12CD",
+      secrets: ["EN12CD"],
+      safePreview: "Sensitive data is hidden",
+    },
+    {
+      id: "en-recovery",
+      lang: "en",
+      transcript:
+        "recovery phrase: maple nectar olive pebble quartz river silver timber umber velvet willow xenon",
+      secrets: [
+        "maple",
+        "nectar",
+        "olive",
+        "pebble",
+        "quartz",
+        "river",
+        "silver",
+        "timber",
+        "umber",
+        "velvet",
+        "willow",
+        "xenon",
+      ],
+      safePreview: "Sensitive data is hidden",
+    },
+  ] as const)(
+    "keeps a $lang $id voice secret out of every Telegram/check/storage sink",
+    async ({ id, lang, transcript, secrets, safePreview }) => {
+      hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+
+      await handleVoice("voice-file-id", ctx(lang), {
+        fileSize: 1024,
+        duration: 8,
+        mimeType: "audio/ogg",
+        fileUniqueId: `voice-secret-${id}`,
+      });
+
+      expect(hoisted.transcribeVoiceCore).toHaveBeenCalledOnce();
+      expect(hoisted.runCheck).not.toHaveBeenCalled();
+      expect(hoisted.saveSession).not.toHaveBeenCalled();
+
+      const sentMessages = hoisted.sendMessage.mock.calls.map(([message]) => message);
+      const sentTexts = sentMessages.map((message) => String(message.text));
+      expect(sentTexts.join("\n")).toContain(safePreview);
+      for (const sentText of sentTexts) {
+        expect(sentText).not.toContain(transcript);
+        for (const secret of secrets) expect(sentText).not.toContain(secret);
+      }
+
+      expect(
+        sentMessages.some((message) =>
+          JSON.stringify(message.keyboard ?? []).includes("voice_correct"),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("does not retain a secret-bearing voice transcript in the 24-hour replay cache", async () => {
+    const transcript = "password: NeverCacheThis42";
+    hoisted.transcribeVoiceCore.mockResolvedValue({ text: transcript });
+    const meta = {
+      fileSize: 1024,
+      duration: 8,
+      mimeType: "audio/ogg",
+      fileUniqueId: "voice-secret-cache-boundary",
+    };
+
+    await handleVoice("voice-file-id", ctx("en"), meta);
+    await handleVoice("voice-file-id-again", ctx("en"), meta);
+
+    expect(hoisted.getFile).toHaveBeenCalledTimes(2);
+    expect(hoisted.downloadFileAsDataUrl).toHaveBeenCalledTimes(2);
+    expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(2);
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).not.toHaveBeenCalled();
+    for (const [message] of hoisted.sendMessage.mock.calls) {
+      expect(String(message.text)).not.toContain("NeverCacheThis42");
+    }
+  });
+
   it("keeps delivery card-only voice transcripts in the suspicious lane", async () => {
     const transcript =
       "Ссылку скинул, если вдруг там только по карте, то не проблема, я тебе переведу за дорогу сразу же. Вот, потому что, по-моему, доставка они там только по карте.";
@@ -670,6 +831,39 @@ describe("handleVoice", () => {
     expect(hoisted.checkSharedRateLimit).toHaveBeenCalledTimes(1);
     expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1);
     expect(hoisted.runCheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares only a non-secret summary when concurrent voice requests resolve to a password", async () => {
+    let resolveTranscript!: (value: { text: string }) => void;
+    hoisted.transcribeVoiceCore.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTranscript = resolve;
+        }),
+    );
+    const meta = {
+      fileSize: 1024,
+      duration: 8,
+      fileUniqueId: "same-inflight-secret-voice",
+    };
+
+    const first = handleVoice("voice-file-id", ctx("en"), meta);
+    await vi.waitFor(() => expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1));
+    const second = handleVoice("voice-file-id-again", ctx("en"), meta);
+
+    resolveTranscript({ text: "password: ConcurrentSecret42" });
+    await Promise.all([first, second]);
+
+    expect(hoisted.getFile).toHaveBeenCalledTimes(1);
+    expect(hoisted.downloadFileAsDataUrl).toHaveBeenCalledTimes(1);
+    expect(hoisted.transcribeVoiceCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.runCheck).not.toHaveBeenCalled();
+    expect(hoisted.saveSession).not.toHaveBeenCalled();
+    const sentTexts = hoisted.sendMessage.mock.calls.map(([message]) => String(message.text));
+    expect(sentTexts.filter((text) => text.includes("Sensitive data is hidden"))).toHaveLength(2);
+    for (const sentText of sentTexts) {
+      expect(sentText).not.toContain("ConcurrentSecret42");
+    }
   });
 
   it("logs voice timings without exposing transcript content", async () => {

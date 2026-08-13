@@ -67,15 +67,32 @@ charity, romance, loan advance fee, fake support, QR login or tax payment.
 Capability questions may bypass preflight only when they are exact, single-line
 questions with no concrete danger clause.
 
-Real OTP, PIN, CVV, password and recovery/seed material is sink-sanitized before
-any visible Telegram response. Direct guidance may explain the secret class and
-the immediate containment step, but it must not echo the supplied value. Reply
-context is bounded to recent message ids and sanitized/coarse check metadata.
+Real OTP, PIN, CVV, password, private-key and recovery/seed material is
+sink-sanitized before any visible Telegram response. This includes bounded
+confusable/spaced/typo labels, formatted or value-first alphanumeric codes and
+canonical 12/15/18/21/24-word recovery lists. Direct and Voice guidance may
+explain only the secret class and the immediate containment step; Voice does
+not cache or share a raw secret transcript. Inline secret results are fully
+static and never include user-derived context, even a supposedly sanitized
+copy. Reply context is bounded to recent message ids and sanitized/coarse check
+metadata.
 Short Direct admissions after victim guidance may additionally use a 20-minute
 enum-only `{ kind, askedContext?, scenario?, at }` snapshot; it contains no raw
 text, amount, recipient, number, URL, file or credential, is chat-scoped, and a
 new concrete artifact always bypasses it. Inline follow-ups remain query-local
 and stateless.
+
+Completed-action aftercare is selected only for an explicit first-party action
+or state. Negation, an aborted action, a quoted/educational example, a
+third-party action, a physical access code and an ordinary planned payment are
+negative controls. An actual pasted secret stays on the private secret path;
+mentioning a secret class in a sentence such as "I read out the one-time
+password" may still reach urgent aftercare when no value is present.
+
+Report callback actions are bound to the exact chat-scoped prompt message,
+action and scenario for 20 minutes. Missing, malformed, future or expired
+timestamps, cross-chat state and mismatched message/action/scenario fail
+closed without submitting or mutating a report.
 
 Adding an intent requires updating its typed source list; contract cardinality
 tests then require a matching canonical entry. New user artifacts always bypass

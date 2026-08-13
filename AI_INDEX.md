@@ -16,10 +16,11 @@ moderation.
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
-- Verified production source: PR #121 merge
-  `c5fa51de8f570fd2258722b1194bd7430319d242`.
-- Verified 2026-08-08 release gate: 167 Vitest files and 12,890/12,890 tests,
-  plus TypeScript, lint, build, coverage, migrations, pgTAP and security gates.
+- Verified production source: PR #125 merge
+  `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
+- Verified PR #125 CI gate: 168 Vitest files and 13,003/13,003 tests, plus
+  TypeScript, lint, build, coverage, migrations/schema and security gates. A
+  2026-08-13 focused offline recheck passed 10,518/10,518 safety tests.
 - Runtime: Nitro `node-server` on Railway. Current Telegram production delivery
   uses durable Postgres-fenced polling; webhook remains a supported
   compatibility/fail-closed boundary.
@@ -27,7 +28,10 @@ moderation.
   risk verdict still works without AI; Inline does not invoke paid AI.
 - Formal release acceptance remains open. Never convert internal regression
   totals into claims of real-world accuracy or enterprise readiness.
-- Last documentation reconciliation: 2026-08-08.
+- Operational 72-hour checkpoint: `GO`; formal canary closure remains `OPEN`
+  under the unchanged 144-success and failure/restart rules. Full device,
+  accessibility and legal/privacy acceptance remains open.
+- Last documentation reconciliation: 2026-08-13.
 
 ## Documentation authority
 
@@ -66,8 +70,8 @@ See `ai_docs/DOCUMENTATION_POLICY.md` for the full freshness and archival rules.
 | `ai_docs/DEPLOYMENT.md`                                | Railway, Docker, webhook/polling and environment procedures.                  |
 | `ai_docs/ON_CALL_RUNBOOK.md`                           | Monitor alert triage and recovery.                                            |
 | `ai_docs/RECOVERY_AND_KEY_ROTATION.md`                 | Backup/restore, rollback and secret rotation.                                 |
-| `ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-08.md` | Immutable PR #121 release evidence and its remaining boundaries.              |
-| `ai_docs/CANARY_72H.md`                                | Fixed-RC canary contract and recorded observations.                           |
+| `ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-08.md` | Historical immutable PR #121 release evidence.                                |
+| `ai_docs/CANARY_72H.md`                                | Canary contract, current checkpoint and formal closure boundary.              |
 | `ai_docs/TELEGRAM_INTENT_CONTRACT.md`                  | Bot intent/action ids, side effects and dialogue contracts.                   |
 | `ai_docs/CODING_RULES.md`                              | Code, i18n, privacy and security rules.                                       |
 | `ai_docs/DECISIONS.md`                                 | Architecture and product decisions.                                           |

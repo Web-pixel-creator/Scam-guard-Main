@@ -49,6 +49,7 @@ import {
 import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { detectInputType, maskForDisplay, normalize } from "@/lib/risk/detect";
+import { sanitizeSensitiveTextForSink, type SensitiveSecretClass } from "@/lib/risk/sensitive-text";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
   buildEmergencyFollowUpKeyboard,
@@ -129,6 +130,7 @@ import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission
 import {
   buildSensitiveSecretGuidance,
   detectTelegramSensitiveSecret,
+  hasPastedSensitiveSecretValue,
 } from "@/lib/telegram/sensitive-secret-input";
 import {
   buildReplyContextExpiredText,
@@ -277,6 +279,11 @@ type VoiceMeta = {
 };
 type VoiceTranscriptWorkResult =
   | { kind: "ok"; text: string }
+  | {
+      kind: "sensitive_secret";
+      classes: readonly SensitiveSecretClass[];
+      transcriptChars: number;
+    }
   | { kind: "failed" }
   | { kind: "too_large" };
 type CheckResultCacheEntry = {
@@ -709,8 +716,8 @@ function estimateBase64DataUrlBytes(dataUrl: string): number {
 }
 
 function sanitizeVoiceTranscriptPreview(text: string): string {
-  const sanitized = text
-    .normalize("NFKC")
+  const sanitized = sanitizeSensitiveTextForSink(text)
+    .value.normalize("NFKC")
     .replace(/https?:\/\/\S+|www\.\S+/gi, "ссылка скрыта")
     .replace(/@[A-Za-z0-9_]{3,}/g, "аккаунт скрыт")
     .replace(/\b(?:\d[\s-]?){4,}\b/g, "номер скрыт")
@@ -804,10 +811,29 @@ function withVoiceHookExplanation(
   };
 }
 
+function buildVoiceSensitiveTranscriptNote(lang: HandlerCtx["session"]["lang"]): string {
+  if (lang === "uz") {
+    return "🎧 Ovozli xabarni tanidim. Maxfiy ma'lumotlar yashirildi.";
+  }
+  if (lang === "en") {
+    return "🎧 I recognized the voice note. Sensitive data is hidden.";
+  }
+  return "🎧 Я распознал голосовое сообщение. Чувствительные данные скрыты.";
+}
+
 function buildVoiceTranscriptNote(
   transcript: string,
   lang: HandlerCtx["session"]["lang"],
 ): string | null {
+  // A transcript can contain a real credential even when its visible shape is
+  // not numeric (passwords, alphanumeric verification codes, recovery words,
+  // private keys). In that case no user-derived substring belongs in the
+  // Telegram preview: use a fully static acknowledgement and keep the normal
+  // correction button so STT mistakes can still be fixed.
+  if (detectTelegramSensitiveSecret(transcript)) {
+    return buildVoiceSensitiveTranscriptNote(lang);
+  }
+
   const preview = sanitizeVoiceTranscriptPreview(transcript);
   if (!preview) return null;
 
@@ -828,7 +854,36 @@ async function sendVoiceTranscriptNote(ctx: HandlerCtx, transcript: string): Pro
   });
 }
 
+async function sendVoiceSensitiveTranscriptNote(ctx: HandlerCtx): Promise<void> {
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(buildVoiceSensitiveTranscriptNote(ctx.session.lang)),
+    keyboard: [
+      [{ text: bt("voice_correct_button", ctx.session.lang), callback_data: CB.voiceCorrect }],
+    ],
+  });
+}
+
+async function sendVoiceSensitiveSecretGuidance(
+  ctx: HandlerCtx,
+  classes: readonly SensitiveSecretClass[],
+): Promise<void> {
+  const guidance = buildSensitiveSecretGuidance(classes, ctx.session.lang);
+  await sendMessage({
+    chatId: ctx.chatId,
+    text: escapeMarkdownV2(`${guidance.title}\n\n${guidance.description}`),
+  });
+}
+
 async function sendVoiceMetadataFallbackNote(ctx: HandlerCtx, text: string): Promise<void> {
+  if (detectTelegramSensitiveSecret(text)) {
+    await replyText(
+      ctx.chatId,
+      buildVoiceSensitiveTranscriptNote(ctx.session.lang),
+      buildVoiceUncertainKeyboard(ctx.session.lang),
+    );
+    return;
+  }
   const preview = sanitizeVoiceTranscriptPreview(text);
   if (!preview) return;
   await replyText(
@@ -1286,10 +1341,20 @@ export async function handleCheck(
     return;
   }
 
-  // Never send a pasted credential through the normal checker, AI, storage or
-  // enrichment pipeline. Detection also sees common invisible/bidi controls
-  // and a single visual Cyrillic/Latin confusable in the secret label.
+  // Prove completed aftercare before the secret preflight. A natural report
+  // such as "I read out the one-time password" names a secret class but does
+  // not paste its value; it must reach the urgent rescue route. When an actual
+  // credential value is present, sensitiveSecret remains authoritative and
+  // the raw input never reaches the panic session, checker, AI, or storage.
   const sensitiveSecret = detectTelegramSensitiveSecret(trimmed);
+  const completedPanicId = source ? null : classifyTextPanicIntent(trimmed);
+  if (
+    (completedPanicId === 1 || completedPanicId === 3) &&
+    !hasPastedSensitiveSecretValue(trimmed)
+  ) {
+    await sendPanicRoute(ctx, completedPanicId);
+    return;
+  }
   if (sensitiveSecret) {
     const guidance = buildSensitiveSecretGuidance(sensitiveSecret.classes, lang);
     await sendMessage({
@@ -1344,6 +1409,7 @@ export async function handleCheck(
   // Completed-incident rescue still outranks a number lookup: if the same
   // message says money/code was already sent, route to urgent aftercare.
   const textPanicId =
+    completedPanicId ??
     classifyTextPanicIntent(trimmed, source) ??
     (source
       ? null
@@ -1788,6 +1854,19 @@ async function handleResolvedVoiceTranscript(
   } else {
     await sendVoiceTranscriptNote(ctx, transcriptText);
   }
+  const sensitiveSecret = detectTelegramSensitiveSecret(transcriptText);
+  if (sensitiveSecret) {
+    await sendVoiceSensitiveSecretGuidance(ctx, sensitiveSecret.classes);
+    logTelegramTiming("voice.total", startedAt, {
+      cached: source === "cached",
+      inFlight: source === "in_flight",
+      metadataFallback,
+      sensitiveSecret: true,
+      transcriptChars: transcriptText.length,
+      durationSec: meta?.duration ?? null,
+    });
+    return;
+  }
   if (isLowSignalVoiceTranscript(transcriptText)) {
     await replyText(
       ctx.chatId,
@@ -1932,6 +2011,18 @@ export async function handleVoice(
         });
         return;
       }
+      if (shared.kind === "sensitive_secret") {
+        await sendVoiceSensitiveTranscriptNote(ctx);
+        await sendVoiceSensitiveSecretGuidance(ctx, shared.classes);
+        logTelegramTiming("voice.total", startedAt, {
+          cached: false,
+          inFlight: true,
+          sensitiveSecret: true,
+          transcriptChars: shared.transcriptChars,
+          durationSec: meta?.duration ?? null,
+        });
+        return;
+      }
       await handleResolvedVoiceTranscript(ctx, shared.text, startedAt, meta, "in_flight");
       return;
     }
@@ -1993,6 +2084,16 @@ export async function handleVoice(
         durationSec: meta?.duration ?? null,
       });
       if (!transcript.text) return { kind: "failed" };
+      const sensitiveSecret = detectTelegramSensitiveSecret(transcript.text);
+      if (sensitiveSecret) {
+        // Do not resolve the shared in-flight promise with the raw credential:
+        // callers need only the non-secret class summary and character count.
+        return {
+          kind: "sensitive_secret" as const,
+          classes: sensitiveSecret.classes,
+          transcriptChars: transcript.text.length,
+        };
+      }
       rememberVoiceTranscript(ctx.userId, meta?.fileUniqueId, transcript.text);
       return { kind: "ok", text: transcript.text };
     })();
@@ -2002,6 +2103,10 @@ export async function handleVoice(
       ctx.chatId,
       async () => {
         const transcriptOutcome = await transcriptWork;
+        if (transcriptOutcome.kind === "sensitive_secret") {
+          await sendVoiceSensitiveTranscriptNote(ctx);
+          return transcriptOutcome;
+        }
         if (transcriptOutcome.kind !== "ok") return transcriptOutcome;
 
         const transcriptText = transcriptOutcome.text;
@@ -2064,6 +2169,16 @@ export async function handleVoice(
       logTelegramTiming("voice.total", startedAt, {
         cached: false,
         routedToPanic: outcome.panicId,
+        transcriptChars: outcome.transcriptChars,
+        durationSec: meta?.duration ?? null,
+      });
+      return;
+    }
+    if (outcome.kind === "sensitive_secret") {
+      await sendVoiceSensitiveSecretGuidance(ctx, outcome.classes);
+      logTelegramTiming("voice.total", startedAt, {
+        cached: false,
+        sensitiveSecret: true,
         transcriptChars: outcome.transcriptChars,
         durationSec: meta?.duration ?? null,
       });
