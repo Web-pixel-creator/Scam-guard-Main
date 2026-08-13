@@ -9,16 +9,16 @@ here.
 
 ## Deployed baseline
 
-- GitHub `main` and the deployed application source are PR #125 merge
-  `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c` (tree
-  `00bf1cc659c885e9b9c9b432d62dc0cbd396fc12`). It includes PR #123
-  completed-action/obfuscation hardening, PR #124 task-scam, BNPL and coercive
-  secrecy hardening, and PR #125 Direct/Inline transfer-secrecy follow-up.
+- GitHub `main` and the deployed application source are PR #126 merge
+  `8a76a5ec6994fd208cccde731bab2d5c70b6d232` (tree
+  `62903a6c844d4d7284f2e2bdc93ba47361cbe538`). It includes PR #123-125
+  action-state, task-scam, BNPL and transfer-secrecy hardening plus PR #126
+  post-canary multilingual routing and secret-sink reconciliation.
 - Current Railway production deployment
-  `17f20728-fea9-4320-987b-b15bdc67231a` reports `SUCCESS`, with image digest
-  `sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`
-  and one running instance in US West. A 2026-08-13 read-back confirmed that
-  the active deployment and `origin/main` still use the exact same commit.
+  `895a82f3-6e59-4b91-8ec7-513330e4f7cb` reports `SUCCESS`, with image digest
+  `sha256:6bc60d2089cc4c61e2c2b7ca6f6af1239cc1d84c5b1dcd4d7f96679f4c1f1f27`
+  and one running instance in US West. A 2026-08-13 post-deploy read-back
+  confirmed that the active deployment and `origin/main` use the same commit.
 - Production `/healthz`, `/`, `/login`, `/admin`, `/admin-mfa`, `/report`,
   `/appeal`, `/privacy` and `/emergency` returned `200` after the application
   release; `/healthz` returned body `ok`. An existing AAL2 admin session loaded
@@ -84,21 +84,23 @@ here.
   foundation because PR #123-125 changed no migrations or dependencies.
 - Railway plan/payment activation made the configured US West region usable.
   Production is bound to `main`, Auto Deploy is enabled and Wait for CI is
-  enabled. PR #122 first proved that binding end to end; PR #123, PR #124 and
-  PR #125 then repeated the green-CI automatic-deployment path. The current
-  deployment was created directly from the PR #125 merge.
-- The exact 72-hour wall-clock observation for `1576e21` contained 66 scheduled
+  enabled. PR #122 first proved that binding end to end; PR #123-126 then
+  repeated the green-CI automatic-deployment path. The current deployment was
+  created directly from the PR #126 merge after both merge-commit workflows
+  passed.
+- The historical 72-hour wall-clock observation for `1576e21` contained 66 scheduled
   Production Monitor runs: 65 succeeded and one timed out after eight seconds
   while checking that a webhook without its secret is rejected. The same failed
   run passed home, health, authenticated polling webhook, Telegram status,
   zero-pending and polling-leader checks; adjacent and all final-24-hour runs
   recovered without a deploy. This supports an operational checkpoint `GO` for
-  the current release/transport, with no sustained outage or repeated
+  that prior release/transport, with no sustained outage or repeated
   silent-update confirmed. Formal `CANARY_72H` closure remains `OPEN`: the
   unchanged contract requires at least 144 eligible successes and a documented
   disposition of the failed security-boundary observation. Full device,
   accessibility and legal/privacy acceptance is also still open. See
-  `CANARY_72H.md`.
+  `CANARY_72H.md`. Deployment of PR #126 restarted the observation clock; its
+  formal current-RC canary remains `OPEN`.
 
 ## Merged and deployed Telegram hardening
 
@@ -116,12 +118,13 @@ here.
   mass results. The test harness blocked unmocked network calls; it made no
   Telegram, AI or database request.
 
-## Local post-canary candidate (not merged or deployed)
+## Deployed post-canary hardening (PR #126)
 
-- Isolated branch `agent/post-canary-reconciliation-20260813` is based exactly
-  on deployed `1576e21`. It does not modify production, Supabase or the
-  protected dirty worktree. No real Telegram message, AI/TTS request, database
-  operation, commit, push or deployment was performed while building it.
+- PR #126 was built on the isolated branch
+  `agent/post-canary-reconciliation-20260813` from exact `1576e21`, then merged
+  as `8a76a5e` after all PR and merge-commit CI/security gates passed. Building
+  and validating the candidate used no real Telegram message, AI/TTS request or
+  database operation and did not touch the protected dirty worktree.
 - The candidate closes additional completed-action RU/UZ/EN variants, bounded
   confusable/leet normalization false positives, task-scam/BNPL/coercive
   secrecy variants and report-callback expiry/cross-chat binding.
@@ -135,8 +138,11 @@ here.
   with zero errors plus the eight established Fast Refresh warnings. Changed
   code passes Prettier and `git diff --check`. Coverage passed at 86.25%
   statements, 81.06% branches, 91.56% functions and 88.10% lines.
-  Dependencies did not change, so dependency audit/database/container gates
-  were not repeated. This section must not be presented as a released baseline.
+  Dependencies did not change. GitHub nevertheless repeated migrations/schema,
+  CodeQL, Gitleaks and container/SBOM gates successfully on both the PR head and
+  merge commit. Post-deploy no-AI smoke passed home, health, webhook boundaries,
+  Telegram pending `0`/no last error and polling-leader health without sending a
+  Telegram message or provider request.
 
 ## Closed in the current release
 
@@ -328,11 +334,11 @@ tree exactly matches the deployed release tree.
   Exact merge `c5fa51d` is Railway deployment
   `4d00a730-d8e2-462f-b820-e3cecbfb0994`; see
   `PRODUCTION_APPLICATION_RELEASE_2026-08-08.md`.
-- PR #125 now supersedes that application image without changing the database.
-  Exact merge `1576e21` is Railway deployment
-  `17f20728-fea9-4320-987b-b15bdc67231a`; PR #123-125 contain the subsequent
-  deterministic Telegram language, completed-action, task-scam, BNPL and
-  coercive-secrecy hardening.
+- PR #126 now supersedes that application image without changing the database.
+  Exact merge `8a76a5e` is Railway deployment
+  `895a82f3-6e59-4b91-8ec7-513330e4f7cb`; PR #123-126 contain the subsequent
+  deterministic Telegram language, completed-action, task-scam, BNPL,
+  coercive-secrecy and secret-sink hardening.
 - The hosted restore is functional recovery evidence, not a closed RPO/RTO
   measurement. The first schema phase crossed its evidence timeout and did not
   retain complete stderr or full per-phase timing.
@@ -341,12 +347,11 @@ tree exactly matches the deployed release tree.
 
 ## Open operational and release gates
 
-1. Continue exact-RC operational observation without changing production. The
-   first 72-hour wall-clock checkpoint recorded 65 successful scheduled runs
-   and one isolated missing-secret-boundary timeout. Operational status is
-   `GO`, but formal closure remains `OPEN` until the unchanged 144-success gate
-   is met and run `31352427714` receives an explicit failure/restart-rule
-   disposition. The remaining release-scope acceptance evidence is independent
+1. Start a new exact-RC observation for `8a76a5e` without changing production.
+   PR #126 restarted the canary clock. The earlier `1576e21` checkpoint remains
+   historical operational `GO`, while formal closure for the current RC is
+   `OPEN` until the unchanged entry, 144-success and failure/restart rules are
+   satisfied. The remaining release-scope acceptance evidence is independent
    and still required.
 2. Capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence.
@@ -374,7 +379,7 @@ tree exactly matches the deployed release tree.
    engineering work.
 
 Railway Auto Deploy plus Wait for CI is no longer an open gate: PR #122 proved
-it first, and PR #123-125 repeated the same path successfully.
+it first, and PR #123-126 repeated the same path successfully.
 
 Supabase Free remains an intentional pilot choice, but it provides no managed
 scheduled backups or PITR. The target recovery point is therefore not guaranteed

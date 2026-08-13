@@ -16,11 +16,11 @@ moderation.
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
-- Verified production source: PR #125 merge
-  `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
-- Verified PR #125 CI gate: 168 Vitest files and 13,003/13,003 tests, plus
-  TypeScript, lint, build, coverage, migrations/schema and security gates. A
-  2026-08-13 focused offline recheck passed 10,518/10,518 safety tests.
+- Verified production source: PR #126 merge
+  `8a76a5ec6994fd208cccde731bab2d5c70b6d232`.
+- Verified PR #126 gate: 174 Vitest files and 13,482/13,482 tests, plus
+  TypeScript, lint, build, coverage, migrations/schema and security gates.
+  Railway deployment `895a82f3-6e59-4b91-8ec7-513330e4f7cb` is healthy.
 - Runtime: Nitro `node-server` on Railway. Current Telegram production delivery
   uses durable Postgres-fenced polling; webhook remains a supported
   compatibility/fail-closed boundary.
@@ -28,9 +28,10 @@ moderation.
   risk verdict still works without AI; Inline does not invoke paid AI.
 - Formal release acceptance remains open. Never convert internal regression
   totals into claims of real-world accuracy or enterprise readiness.
-- Operational 72-hour checkpoint: `GO`; formal canary closure remains `OPEN`
-  under the unchanged 144-success and failure/restart rules. Full device,
-  accessibility and legal/privacy acceptance remains open.
+- The previous `1576e21` RC reached an operational 72-hour checkpoint `GO`,
+  but PR #126 restarted the observation clock. Formal canary closure for the
+  current RC is `OPEN`; full device, accessibility and legal/privacy acceptance
+  also remains open.
 - Last documentation reconciliation: 2026-08-13.
 
 ## Documentation authority

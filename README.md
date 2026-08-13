@@ -27,13 +27,13 @@ Ishonch Guard — **production-deployed safety MVP и кандидат для к
 
 | Параметр              | Подтверждённое состояние                                                                     |
 | --------------------- | -------------------------------------------------------------------------------------------- |
-| Production source     | PR №125, commit `1576e21`                                                                    |
-| Railway deployment    | `SUCCESS`, `/healthz` возвращает `200 ok`                                                    |
-| Автоматические тесты  | 168 Vitest-файлов, 13 003/13 003 в CI; focused safety recheck 10 518/10 518                  |
+| Production source     | PR №126, commit `8a76a5e`                                                                    |
+| Railway deployment    | `895a82f3-6e59-4b91-8ec7-513330e4f7cb` — `SUCCESS`, `/healthz` возвращает `200 ok`           |
+| Автоматические тесты  | 174 Vitest-файла, 13 482/13 482; полный CI и coverage прошли                                 |
 | CI/security           | TypeScript, lint, build, coverage, migrations, pgTAP, CodeQL, Gitleaks, Trivy и SBOM прошли  |
 | Telegram transport    | Durable single-leader polling в production; webhook остаётся совместимым fail-closed режимом |
 | AI в плановом monitor | Отключён политикой; scheduled monitor не получает AI-ключи и не делает provider-запросы      |
-| Формальная приёмка    | Operational canary GO; формальный canary/device/a11y/legal gate ещё не закрыт                |
+| Формальная приёмка    | Предыдущий RC получил operational canary GO; окно текущего RC перезапущено и формально OPEN  |
 
 Текущие идентификаторы, границы доказательств и оставшиеся проверки записаны в
 [`CURRENT_STATE.md`](ai_docs/CURRENT_STATE.md) и

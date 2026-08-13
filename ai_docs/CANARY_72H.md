@@ -6,10 +6,17 @@ or production-secret change restarts the 72-hour clock.
 
 ## Current RC observation status (2026-08-13)
 
-- RC: `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
-- Railway deployment: `17f20728-fea9-4320-987b-b15bdc67231a`; image
-  `sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`.
-- The wall-clock observation from deployment at `2026-08-09T12:12:05Z`
+- Current RC: `8a76a5ec6994fd208cccde731bab2d5c70b6d232`.
+- Railway deployment: `895a82f3-6e59-4b91-8ec7-513330e4f7cb`; image
+  `sha256:6bc60d2089cc4c61e2c2b7ca6f6af1239cc1d84c5b1dcd4d7f96679f4c1f1f27`.
+- PR #126 deployed at `2026-08-13T12:30:01Z` and restarted the observation
+  clock. CI and Security Gates passed on the merge commit; deployment,
+  `/healthz`, no-AI smoke, webhook boundaries, polling leader, pending `0` and
+  no Telegram last error are green. The remaining required entry smokes and
+  first eligible scheduled observation have not yet been recorded, so formal
+  current-RC closure is `OPEN` and no 72-hour verdict is claimed for `8a76a5e`.
+- The historical wall-clock observation for the prior `1576e21` RC from
+  deployment at `2026-08-09T12:12:05Z`
   through the third checkpoint at `2026-08-12T12:36:30Z` contained 66 eligible
   scheduled monitor runs: 65 passed and one failed after an eight-second
   timeout in the missing-webhook-secret check.
@@ -18,12 +25,12 @@ or production-secret change restarts the 72-hour clock.
   pending `0`, polling leader and no-AI policy checks passed. The adjacent runs
   and all 19 scheduled runs in the final 24 hours passed without a deploy or
   configuration change.
-- Operational 72-hour checkpoint: `GO`. No sustained outage or repeated
+- Historical operational 72-hour checkpoint for `1576e21`: `GO`. No sustained outage or repeated
   silent-update/lost-response pattern was confirmed. Formal `CANARY_72H`
   closure remains `OPEN` under the unchanged 144-success and failure/restart
   rules. The full device, voice, accessibility and legal/privacy acceptance
   matrix also remains open.
-- Seventeen of seventeen scheduled observations after the third checkpoint
+- Seventeen of seventeen scheduled observations for `1576e21` after the third checkpoint
   passed through run `31687504428` at `2026-08-13T09:38:19Z`; production and
   `main` still used the same RC. One post-canary optional AI explanation logged
   a quota `429`, and one later Telegram polling request logged a transient
@@ -124,7 +131,19 @@ Record only:
 Do not attach tokens, chat ids, database URLs, user messages, screenshots or
 row-level production exports.
 
-### Recorded checkpoint evidence for `1576e21`
+### Current baseline evidence for `8a76a5e`
+
+- Merge-commit CI and Security Gates: passed.
+- Railway deployment: `SUCCESS`; exact commit and image digest match this file.
+- Post-deploy `/` and `/healthz`: `200`.
+- No-AI/no-live-message smoke: passed; webhook security boundaries correct,
+  mode `polling`, pending updates `0`, last error absent, polling leader healthy,
+  provider request disabled by policy.
+- Runtime startup logs: two info messages, no warning or error.
+- Eligible scheduled observations recorded for this RC at reconciliation time:
+  `0`; formal canary status: `OPEN`.
+
+### Historical checkpoint evidence for `1576e21`
 
 - First eligible run in the fixed-RC window: `31313623902`.
 - Last eligible run before the 72-hour checkpoint: `31592922999`.

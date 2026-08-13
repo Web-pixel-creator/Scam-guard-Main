@@ -2,6 +2,18 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-13 - PR #126 merged and deployed
+
+- Merged PR #126 as `8a76a5ec6994fd208cccde731bab2d5c70b6d232`
+  after all PR-head and merge-commit CI/security gates passed.
+- Railway deployment `895a82f3-6e59-4b91-8ec7-513330e4f7cb` reached `SUCCESS`
+  with image digest
+  `sha256:6bc60d2089cc4c61e2c2b7ca6f6af1239cc1d84c5b1dcd4d7f96679f4c1f1f27`.
+- Post-deploy home and `/healthz` returned 200. The no-AI/no-live-message smoke
+  passed webhook boundaries, Telegram polling status with pending `0` and no
+  last error, and polling-leader health. Runtime startup logs contained no
+  warning or error. PR #126 restarts the formal canary observation clock.
+
 ## 2026-08-13 - Post-canary Telegram/privacy candidate reconciled locally
 
 - Built an isolated candidate on exact deployed `1576e21`; the protected dirty

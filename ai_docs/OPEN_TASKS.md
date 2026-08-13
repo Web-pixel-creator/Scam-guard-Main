@@ -3,40 +3,38 @@
 ## Current checkpoint (2026-08-13)
 
 Use `CURRENT_STATE.md` before the historical evidence below. Repository tip and
-deployed application source are PR #125 merge
-`1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`. Railway deployment
-`17f20728-fea9-4320-987b-b15bdc67231a` reports `SUCCESS` with image
-`sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`.
+deployed application source are PR #126 merge
+`8a76a5ec6994fd208cccde731bab2d5c70b6d232`. Railway deployment
+`895a82f3-6e59-4b91-8ec7-513330e4f7cb` reports `SUCCESS` with image
+`sha256:6bc60d2089cc4c61e2c2b7ca6f6af1239cc1d84c5b1dcd4d7f96679f4c1f1f27`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-PR #125 CI passed 168 files / 13,003 tests, TypeScript, lint, build, coverage,
-migration/schema and Security Gates. A post-canary focused offline recheck
-passed 36 files / 10,518 tests without Telegram, AI, database or other network
-requests. Production is bound to `main`; Auto Deploy plus Wait for CI was first
-proved by PR #122 and repeated by PR #123-125. Old commit ids, test totals and
+PR #126 passed 174 files / 13,482 tests, TypeScript, lint, build, coverage,
+migration/schema and Security Gates. Its post-deploy no-AI smoke passed without
+a Telegram message, AI request or database operation. Production is bound to
+`main`; Auto Deploy plus Wait for CI was first proved by PR #122 and repeated
+by PR #123-126. Old commit ids, test totals and
 tracker counts below describe the checkpoint at which each paragraph was
 written.
 
 The immediate queue is:
 
-1. review the fully green isolated post-canary candidate and obtain separate
-   approval before any commit, push, merge or deployment;
-2. continue exact-RC operational observations to at least 144 eligible
-   scheduled successes. The first 72-hour wall-clock checkpoint was 65 success
-   plus one isolated missing-secret-boundary timeout: operational status is
-   `GO`, while formal closure remains `OPEN` pending a disposition of run
-   `31352427714` under the unchanged failure/restart rules;
-3. capture non-destructive multi-instance polling handoff/re-election and
+1. start the new exact-RC canary for deployed `8a76a5e` and continue to at
+   least 144 eligible scheduled successes. PR #126 restarted the clock; the
+   previous `1576e21` checkpoint remains historical operational `GO`, while
+   formal current-RC closure is `OPEN` under the unchanged entry and
+   failure/restart rules;
+2. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
-4. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
+3. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
    human Voice-out listen-through and bounded real RU/UZ Voice-in/STT evidence;
-5. complete accessibility scale/zoom/reduced-motion and legal/privacy
+4. complete accessibility scale/zoom/reduced-motion and legal/privacy
    acceptance;
-6. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+5. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
    the separately approved Railway rollback/return and MFA factor-reset drills;
-7. retain staging until a separate destructive deletion approval is given;
-8. record Railway payment-method expiry/spend alerts and a response owner;
-9. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
+6. retain staging until a separate destructive deletion approval is given;
+7. record Railway payment-method expiry/spend alerts and a response owner;
+8. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
    the OCR fallback two-phase correction as explicit follow-up engineering.
 
 ## Fragile / risky spots
@@ -859,8 +857,8 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [x] ~~Resolve the Railway region and source-binding blockers.~~ Plan/payment
       activation made US West usable. Production is bound to `main`, Auto Deploy
       and Wait for CI are enabled. PR #122 first proved the complete path, and
-      PR #123-125 repeated it; current exact merge `1576e21` deployed
-      successfully as `17f20728-fea9-4320-987b-b15bdc67231a`.
+      PR #123-126 repeated it; current exact merge `8a76a5e` deployed
+      successfully as `895a82f3-6e59-4b91-8ec7-513330e4f7cb`.
 - [ ] Record Railway payment method, expiry owner and spend/usage alerts through
       the Dashboard. CLI evidence proves `plan=pro`,
       `sleepApplication=false`, one replica and a successful current deployment,
