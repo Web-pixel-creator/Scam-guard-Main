@@ -4,22 +4,31 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
-## Current RC observation status (2026-08-08)
+## Current RC observation status (2026-08-13)
 
-- RC: `c5fa51de8f570fd2258722b1194bd7430319d242`.
-- Railway deployment: `4d00a730-d8e2-462f-b820-e3cecbfb0994`; image
-  `sha256:a133607af78d17f9efa46404512fc161faadc29c4e24f1260de3e00a2be3668f`.
-- Manual no-AI baseline run `31242484006` passed; its separate AI job was
-  skipped.
-- Eleven of eleven scheduled fixed-RC observations passed from run `31244357114` at
-  `2026-08-08T06:37:56Z` through snapshot run `31261844650` at
-  `2026-08-08T14:23:57Z`. The sampled log reports
-  `MONITOR_CHECK_AI=false`, `disabled by policy` and `no request sent`.
-- This is valid provisional operational evidence, not a closed formal canary.
-  Final admission/closure still requires the remaining real-client,
-  accessibility and legal/privacy evidence, at least 144 eligible runs and the
-  hour-24/hour-48/hour-72 observations. A production, deploy, config or monitor
-  change restarts the count.
+- RC: `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
+- Railway deployment: `17f20728-fea9-4320-987b-b15bdc67231a`; image
+  `sha256:f22841c6114471af6e983aa042f1ab391a974683e45be687f7b64d7d74f92ec6`.
+- The wall-clock observation from deployment at `2026-08-09T12:12:05Z`
+  through the third checkpoint at `2026-08-12T12:36:30Z` contained 66 eligible
+  scheduled monitor runs: 65 passed and one failed after an eight-second
+  timeout in the missing-webhook-secret check.
+- Run `31352427714` is the only failure. In the same run, home, `/healthz`, the
+  authenticated polling-mode webhook boundary, Telegram `getMe`, empty webhook,
+  pending `0`, polling leader and no-AI policy checks passed. The adjacent runs
+  and all 19 scheduled runs in the final 24 hours passed without a deploy or
+  configuration change.
+- Operational 72-hour checkpoint: `GO`. No sustained outage or repeated
+  silent-update/lost-response pattern was confirmed. Formal `CANARY_72H`
+  closure remains `OPEN` under the unchanged 144-success and failure/restart
+  rules. The full device, voice, accessibility and legal/privacy acceptance
+  matrix also remains open.
+- Seventeen of seventeen scheduled observations after the third checkpoint
+  passed through run `31687504428` at `2026-08-13T09:38:19Z`; production and
+  `main` still used the same RC. One post-canary optional AI explanation logged
+  a quota `429`, and one later Telegram polling request logged a transient
+  network exception; a subsequent scheduled monitor was green. These events
+  are follow-up evidence, not proof of a repeated update loss.
 
 ## Entry criteria
 
@@ -36,8 +45,9 @@ or production-secret change restarts the 72-hour clock.
   `prod:security-smoke`, `prod:web-p1-smoke`, polling dialogue dispatch and
   cleanup pass. `prod:smoke` remains no-request even when Railway injects an
   `OPENAI_API_KEY`; only the explicit CLI flag enables its provider probe.
-- Real-client Telegram/Inline evidence required for the chosen release scope is
-  attached without user identifiers or message content.
+- Bounded real-client evidence exists for the PR #124-125 Direct/Inline
+  RU/UZ/EN safety scenarios without user identifiers or secret content. It does
+  not replace the still-open full Desktop/Android/iOS and voice matrix.
 - Railway plan/payment method is active, `sleepApplication=false`, one replica
   is expected, and an owner has checked usage/spend alerts in the Dashboard.
 
@@ -92,6 +102,12 @@ Do not run it merely to make a rules-only release look healthier.
   from a new recorded timestamp. A manual AI probe does not restart the window
   when it changes no production or monitor configuration.
 
+Run `31352427714` is not silently waived: it timed out while observing the
+missing-secret webhook boundary, so the formal gate remains open until an owner
+records whether the unchanged restart rule requires a new counted window. The
+healthy checks within that run and immediate recovery support the narrower
+operational `GO`; they do not rewrite this contract after the fact.
+
 ## Closure evidence
 
 Record only:
@@ -107,3 +123,19 @@ Record only:
 
 Do not attach tokens, chat ids, database URLs, user messages, screenshots or
 row-level production exports.
+
+### Recorded checkpoint evidence for `1576e21`
+
+- First eligible run in the fixed-RC window: `31313623902`.
+- Last eligible run before the 72-hour checkpoint: `31592922999`.
+- Failed run requiring formal disposition: `31352427714`.
+- Scheduled count: `66`; successful: `65`; failed: `1`.
+- Explicitly enabled manual AI probes/provider requests during this window: `0`.
+- Final read-back: `/healthz` `200`, polling leader healthy, Telegram pending
+  updates `0`, `last_error` absent, active deployment/commit unchanged.
+- Runtime logs in the window contained nine transient Telegram polling
+  `network_exception` entries and two nearly simultaneous non-OK `502` entries.
+  Polling recovered automatically and the final read-back was healthy.
+- The operational checkpoint is `GO`; formal closure is intentionally not
+  claimed until the unchanged contract is satisfied or an independently
+  approved new release policy starts a new observation window.

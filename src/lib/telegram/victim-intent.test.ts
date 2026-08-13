@@ -557,8 +557,11 @@ describe("classifyVictimIntent — job-entry fee priority", () => {
 describe("classifyVictimIntent — task scams, BNPL identity theft and coercive secrecy", () => {
   it.each([
     "Ставьте лайки, для вывода пополните баланс",
+    "За лайки начислили зарплату, но для получения требуют оплатить налог",
     "Layk bosing, pulni yechish uchun balansni to'ldiring",
+    "Vazifalarni bajardim, ish haqini olish uchun komissiya to'lashni so'rashyapti",
     "Like videos and top up your balance to withdraw your earnings",
+    "I posted reviews, but they demand a verification fee before cashing out",
   ])("routes task-scam payment gates to deterministic earning guidance: %s", (text) => {
     expect(classifyVictimIntent(text)).toEqual({
       kind: "task_scam",
@@ -568,8 +571,12 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
 
   it.each([
     "Sizga Uzum Nasiya dan qarz rasmiylashtirildi",
+    "Mening nomimga muddatli to'lov ochilibdi, men uni ochmaganman",
     "На ваше имя оформили рассрочку в Uzum Nasiya",
+    "Пришёл кредит, которого я не брал",
     "A buy-now-pay-later loan was opened in your name",
+    "An installment appeared that I did not open",
+    "Klarna says an account was opened using my identity",
   ])("routes unauthorized credit and BNPL notices to identity-loan rescue: %s", (text) => {
     expect(classifyVictimIntent(text)).toEqual({
       kind: "identity_loan",
@@ -592,8 +599,14 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
     "Мне сказали скрыть этот перевод от банка и ничего не говорить семье",
     "Не говорите банку об этом переводе, держите его в тайне",
     "O'tkazmani bankdan va oiladan yashirishni aytishdi",
+    "В банке скажите, что перевод семье, правду не говорите",
+    "В банке скажите, что перевод родственнику",
+    "Bank so'rasa, to'lov oila uchun deb ayting, rostini aytmang",
+    "Bankka to'lov oila uchun deb ayting",
     "They told me not to tell the bank about this transfer and to keep it secret",
     "They told me to hide this transfer from the bank",
+    "Tell the bank the payment is for family and don't tell them the truth",
+    "Tell the bank the payment is for family",
   ])("routes transaction secrecy to coercion-specific guidance: %s", (text) => {
     expect(classifyVictimIntent(text)).toEqual({
       kind: "coercive_secrecy",
@@ -611,12 +624,145 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
     "Не скрывайте перевод от банка — это важное правило безопасности",
     "O'tkazmani bankdan yashirmang, rasmiy raqamga qo'ng'iroq qiling",
     "Never hide a transfer from the bank; call its official number",
+    "Лайки в нашей команде добровольные, зарплату и налог считает бухгалтерия",
+    "Vazifa ishning bir qismi, ish haqi va soliqni buxgalteriya hisoblaydi",
+    "Reviews are part of my salaried job; no verification fee is required",
+    "Я сам взял этот кредит и плачу его по графику",
+    "Muddatli to'lovni o'zim ochdim va jadval bo'yicha to'layapman",
+    "I opened this Klarna installment myself",
+    "Скажите банку правду: перевод не семье",
+    "Bankka rostini ayting: bu to'lov oila uchun emas",
+    "Tell the bank the truth: this payment is not for family",
   ])("keeps protective or self-authorized wording out of the new routes: %s", (text) => {
     const kind = classifyVictimIntent(text)?.kind;
     expect(kind).not.toBe("official_impersonation");
     expect(kind).not.toBe("coercive_secrecy");
     expect(kind).not.toBe("identity_loan");
     expect(kind).not.toBe("task_scam");
+  });
+
+  it.each([
+    "I opened this Klarna installment myself, but this loan I did not open",
+    "Я сам открыл эту рассрочку, но этот кредит я не брал",
+    "Muddatli to'lovni o'zim ochdim, lekin bu kreditni men olmaganman",
+  ])(
+    "keeps an explicit unauthorized-credit clause above an earlier self-authorized clause: %s",
+    (text) => {
+      expect(classifyVictimIntent(text)?.kind).toBe("identity_loan");
+    },
+  );
+
+  it.each([
+    "I opened this Klarna installment myself, and this second loan I did not open.",
+    "Я сам открыл эту рассрочку, а этот второй кредит я не брал.",
+    "Bu muddatli to'lovni o'zim ochdim, va bu ikkinchi kreditni men olmaganman.",
+  ])("keeps a coordinated unauthorized-credit clause risky: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("identity_loan");
+  });
+
+  it.each([
+    "Tell the bank the truth, but the caller told me to say the payment is for family",
+    "Скажите банку правду, но звонивший велел сказать, что перевод родственнику",
+  ])("keeps a caller's cover story above an earlier honest-bank clause: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("coercive_secrecy");
+  });
+
+  it.each([
+    "Never hide a transfer from the bank, and now the caller told me to hide this transfer from the bank.",
+    "Никогда не скрывайте перевод от банка, а теперь звонивший велел скрыть этот перевод от банка.",
+    "Bu o'tkazmani bankdan yashirmang, va endi firibgar o'tkazmani bankdan yashirishni aytdi.",
+  ])("keeps a coordinated caller secrecy instruction risky: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("coercive_secrecy");
+  });
+
+  it.each([
+    "I opened a Klarna installment using my identity",
+    "Klarna verifies customers using my identity document",
+    "I personally opened a Klarna installment. It appeared in my name as expected.",
+    "I opened a loan using my identity. It is in my name.",
+    "Я сама оформила рассрочку. Она появилась на мое имя как и ожидалось.",
+    "Muddatli to'lovni o'zim ochdim. U mening nomimga kutilganidek ochildi.",
+  ])("does not infer identity theft from ordinary first-party identity wording: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).not.toBe("identity_loan");
+  });
+
+  it.each([
+    "An installment appeared on my credit report. I did not open it.",
+    "Klarna says a loan was opened. I did not apply for it.",
+    "Пришёл кредит. Я его не брал.",
+    "Mening kredit hisobotimda muddatli to'lov paydo bo'ldi. Men uni ochmaganman.",
+  ])("carries the credit product into an adjacent first-person denial: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("identity_loan");
+  });
+
+  it.each([
+    "The bank called about a transfer. They told me to say it was for family.",
+    "Банк спросит о переводе. Скажите, что это помощь семье.",
+    "Bank to'lov haqida so'raydi. Oila uchun deb ayting.",
+  ])("carries bank/transfer context into an adjacent cover story: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("coercive_secrecy");
+  });
+
+  it.each([
+    "The article says: I did not open this Klarna loan.",
+    "The article says that I did not open this Klarna loan.",
+    "The guide explains, “I did not open this Klarna loan.”",
+    "Support documentation gives this example: Tell the bank the payment is for family.",
+    "Example: a Klarna installment appeared. I did not open it.",
+    "Hypothetical example: Tell the bank the payment is for family.",
+    "The guide says: this is only an example. Tell the bank the payment is for family.",
+    'The guide says: "Here is an example. A caller may claim it is a bank transfer. Tell the bank the payment is for family."',
+    'The guide warns: "I did not open this Klarna loan."',
+    "Руководство предупреждает: «Я не брал этот кредит. Скажите банку, что перевод родственнику.»",
+    "Qo'llanma ogohlantiradi: “Men bu kreditni olmaganman. Bankka to'lov oila uchun deb ayting.”",
+    "Never tell a customer to tell the bank the payment is for family.",
+  ])("does not treat educational examples as the user's incident: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).not.toBe("identity_loan");
+    expect(classifyVictimIntent(text)?.kind).not.toBe("coercive_secrecy");
+  });
+
+  it.each([
+    ["Klarna policy says: a loan was opened in my name without consent.", "identity_loan"],
+    [
+      "The caller sent a guide saying: tell the bank the payment is for family.",
+      "coercive_secrecy",
+    ],
+    ["Bank policy says: hide this transfer from the bank.", "coercive_secrecy"],
+    [
+      "The scammer wrote documentation: tell the bank the payment is for family.",
+      "coercive_secrecy",
+    ],
+    ["Звонивший прислал инструкцию: скажите банку, что перевод родственнику.", "coercive_secrecy"],
+    ["Firibgar qo'llanma yubordi: bankka to'lov oila uchun deb ayting.", "coercive_secrecy"],
+    [
+      "The guide says: never hide a transfer from the bank. The caller told me to hide this transfer from the bank.",
+      "coercive_secrecy",
+    ],
+    ["The guide says: this is only an example. I did not open this Klarna loan.", "identity_loan"],
+    [
+      "The caller told me not to tell anyone because this is a police operation.",
+      "official_impersonation",
+    ],
+    ["The caller said: don't tell anyone. This is a police operation.", "official_impersonation"],
+    [
+      "Never hide a transfer from the bank, then the caller told me to hide this transfer from the bank.",
+      "coercive_secrecy",
+    ],
+    [
+      'The guide says: "Never hide a transfer from the bank." The caller sent a guide saying: tell the bank the payment is for family.',
+      "coercive_secrecy",
+    ],
+    ['The guide warns: "I did not open this Klarna loan.', "identity_loan"],
+  ] as const)("does not let a document keyword hide an attributed incident: %s", (text, kind) => {
+    expect(classifyVictimIntent(text)?.kind).toBe(kind);
+  });
+
+  it("does not let an earlier safety sentence hide a later coercive instruction", () => {
+    expect(
+      classifyVictimIntent(
+        "Never hide a transfer from the bank. The caller now told me to hide this transfer from the bank.",
+      )?.kind,
+    ).toBe("coercive_secrecy");
   });
 
   it.each([

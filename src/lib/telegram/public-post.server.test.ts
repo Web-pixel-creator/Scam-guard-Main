@@ -233,6 +233,50 @@ describe("telegram public post fetch", () => {
     expect(evidence?.checkInput).toContain("Visible buttons:");
   });
 
+  it("masks a mixed-script password value before constructing public-post evidence", () => {
+    const password = "AlphaSecret42";
+    const label = "pаsswоrd";
+    const evidence = parseTelegramPublicPostHtml(
+      telegramHtml(`
+        <div class="tgme_widget_message_text js-message_text">
+          Keep the surrounding words. ${label}: ${password}. Keep this sentence too.
+        </div>
+      `),
+      { username: "TonZnatok", postId: "123" },
+    );
+
+    expect(evidence?.text).toBe(
+      `Keep the surrounding words. ${label}: ••••. Keep this sentence too.`,
+    );
+    expect(evidence?.checkInput).toContain(`${label}: ••••`);
+    expect(JSON.stringify(evidence)).not.toContain(password);
+  });
+
+  it("masks a mixed-script password value in the fetch-to-evidence path without network", async () => {
+    const password = "AlphaSecret42";
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          telegramHtml(`
+            <div class="tgme_widget_message_text js-message_text">
+              Public warning: pаsswоrd: ${password}
+            </div>
+          `),
+          { status: 200 },
+        ),
+    ) satisfies PublicPostFetcher;
+
+    const evidence = await fetchTelegramPublicPost(
+      { username: "TonZnatok", postId: "123" },
+      fetcher,
+    );
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(evidence?.text).toBe("Public warning: pаsswоrd: ••••");
+    expect(evidence?.checkInput).not.toContain(password);
+    expect(JSON.stringify(evidence)).not.toContain(password);
+  });
+
   it("fetches only the validated Telegram public web URL", async () => {
     const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
       expect(url).toBe("https://t.me/s/TonZnatok/123");

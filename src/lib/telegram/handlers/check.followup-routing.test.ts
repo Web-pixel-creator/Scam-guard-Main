@@ -1187,6 +1187,13 @@ describe("handleCheck follow-up routing", () => {
       "ru",
       "«Безопасный счёт»",
     ],
+    [
+      "За лайки начислили зарплату, но для получения требуют оплатить налог",
+      "ru",
+      "Заработок за лайки",
+    ],
+    ["Mening nomimga muddatli to'lov ochilibdi, men uni ochmaganman", "uz", "rasmiy yo'l"],
+    ["Tell the bank the payment is for family", "en", "cover story"],
   ] as const)(
     "routes a confirmed live direct phrase without a generic check: %s",
     async (text, lang, expected) => {

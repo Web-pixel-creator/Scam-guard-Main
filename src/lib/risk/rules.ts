@@ -219,7 +219,7 @@ const PATTERNS: { code: ReasonCode; re: RegExp }[] = [
   },
   {
     code: "asks_to_install_apk",
-    re: /(установ(и|ите).{0,30}(прилож|apk)|apk.{0,35}(?:скачайте|yuklab|o['’]?rnat)|(?:o['’]?rnat|yukla).{0,35}(?:ilova|apk)|install.{0,30}(app|apk))/i,
+    re: /(установ(и|ите).{0,30}(прилож|apk)|apk.{0,35}(?:скачайте|yuklab|o['’]?rnat)|(?:o['’]?rnat|yukla).{0,35}(?:ilova|apk)|\binstall(?:ed|ing|s)?\b.{0,30}\b(?:app|apk)\b)/i,
   },
   {
     code: "asks_to_transfer_to_safe_account",
@@ -378,13 +378,13 @@ function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
 }
 
 const TASK_REWARD_CONTEXT_RE =
-  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|(?:ставьте|поставьте|ставить|поставить).{0,30}(?:лайк|реакци)|(?:смотрите|посмотрите|просмотр).{0,25}(?:видео|ролик)|(?:пишите|оставьте|размещайте).{0,25}(?:отзыв|комментар)|ochko|topshiriq|vazifa|layk\s+bos|video\s+ko['’]?r|sharh\s+(?:yoz|qoldir)|like\s+(?:videos?|posts?)|watch\s+videos?|post\s+(?:reviews?|comments?))/iu;
+  /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|(?:за\s+(?:лайк|реакци).{0,30}(?:начисл|заплат|выплат|зарплат|деньг|сум)|(?:ставьте|поставьте|ставить|поставить).{0,30}(?:лайк|реакци))|(?:смотрите|посмотрите|просмотр).{0,25}(?:видео|ролик)|(?:пишите|оставьте|размещайте).{0,25}(?:отзыв|комментар)|ochko|topshiriq|vazifa|layk\s+bos|video\s+ko['’]?r|sharh\s+(?:yoz|qoldir)|like\s+(?:videos?|posts?)|watch\s+videos?|(?:post(?:ed|ing)?|write|leave)\s+(?:reviews?|comments?))/iu;
 const TASK_REWARD_BENEFIT_RE =
-  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|получ|reward|earn|yutuq|mukofot|pul)/iu;
+  /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|зарплат|начисл|выплат|reward|earn|yutuq|mukofot|pul)/iu;
 const TASK_REWARD_PAYMENT_GATE_RE =
-  /(?:пополни|пополнить|пополнение|внести|оплатить|перевести|депозит|баланс|top\s*up|add\s+(?:money|funds)|deposit|pay|balance|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?lov)/iu;
+  /(?:пополни|пополнить|пополнение|внести|оплатить|перевести|депозит|баланс|(?:треб\p{L}*|прос\p{L}*|нуж\p{L}*|надо).{0,35}(?:налог|комисс)|top\s*up|add\s+(?:money|funds)|deposit|pay|balance|verification\s+fee|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?la|to['’]?lov|(?:komissiya|soliq).{0,25}(?:kerak|so['’]?ra))/iu;
 const TASK_REWARD_WITHDRAWAL_RE =
-  /(?:вывод|вывести|снять|получить\s+(?:деньги|заработок)|withdraw|cash\s*out|release\s+(?:the\s+)?earnings|pulni\s+yech|daromadni\s+ol)/iu;
+  /(?:вывод|вывести|снять|получить\s+(?:деньги|заработок)|(?:зарплат|заработ).{0,30}(?:получ|выплат|вывест|снять)|(?:получ|выплат).{0,30}(?:зарплат|заработ)|withdraw|cash(?:ing)?\s*out|release\s+(?:the\s+)?earnings|pulni\s+yech|daromadni\s+ol|ish\s+haq(?:i|ini).{0,30}(?:ol|yech|ber))/iu;
 const TASK_REWARD_SAFETY_WARNING_RE =
   /(?:(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang).{0,120}(?:мошен|обман|опасн|scam|fraud|firib|xavf)|(?:мошен|обман|опасн|scam|fraud|firib|xavf).{0,120}(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang))/iu;
 
@@ -398,33 +398,145 @@ function shouldFlagTaskRewardEngagementBait(text: string): boolean {
 }
 
 const UNAUTHORIZED_CREDIT_SUBJECT_RE =
-  /(?:на\s+(?:ваше|мо[ёе])\s+имя|на\s+меня|без\s+(?:моего|вашего)\s+(?:ведома|согласия)|sizga|sizning\s+nomingizga|mening\s+nomimga|nomimga|ustimga|in\s+(?:your|my)\s+name|without\s+(?:your|my)\s+(?:knowledge|consent))/iu;
+  /(?:на\s+(?:ваше|мо[ёе])\s+имя|на\s+меня|без\s+(?:моего|вашего)\s+(?:ведома|согласия)|sizga|sizning\s+nomingizga|mening\s+nomimga|nomimga|ustimga|in\s+(?:your|my)\s+name|without\s+(?:your|my)\s+(?:knowledge|consent)|using\s+my\s+identity|my\s+identity)/iu;
 const UNAUTHORIZED_CREDIT_PRODUCT_RE =
-  /(?:кредит|за[ёе]м|микрозайм|рассрочк|kredit|qarz|mikroqarz|nasiya|bo['’]?lib\s+to['’]?lash|loan|credit|buy[\s-]?now[\s-]?pay[\s-]?later|\bbnpl\b|installment)/iu;
+  /(?:кредит|за[ёе]м|микрозайм|рассрочк|kredit|qarz|mikroqarz|nasiya|muddatli\s+to['’]?lov|bo['’]?lib\s+to['’]?lash|loan|credit|buy[\s-]?now[\s-]?pay[\s-]?later|\bbnpl\b|installment|klarna)/iu;
 const UNAUTHORIZED_CREDIT_OPENED_RE =
-  /(?:оформ(?:или|лен[ао]?|лено)|открыли|взяли|повесили|навесили|rasmiylashtir(?:ildi|ilgan|ishibdi)|och(?:ildi|ishibdi)|olishibdi|was\s+(?:opened|taken\s+out|registered)|has\s+been\s+(?:opened|registered)|opened|registered)/iu;
+  /(?:оформ(?:или|лен[ао]?|лено)|открыли|взяли|повесили|навесили|rasmiylashtir(?:ildi|ilgan|ishibdi)|och(?:ildi|ilibdi|ishibdi)|olishibdi|was\s+(?:opened|taken\s+out|registered)|has\s+been\s+(?:opened|registered)|opened|registered|appeared)/iu;
+const UNAUTHORIZED_CREDIT_DENIAL_RE =
+  /(?:котор(?:ый|ого|ую)\s+(?:я\s+)?не\s+(?:брал[аи]?|оформлял[аи]?|открывал[аи]?|заказывал[аи]?)|(?:^|[^\p{L}])я\s+(?:его|это|такого)?\s*не\s+(?:брал[аи]?|оформлял[аи]?|открывал[аи]?|заказывал[аи]?)|(?:^|[^\p{L}])men\s+(?:uni\s+)?(?:ochmaganman|olmaganman|rasmiylashtirmaganman)|(?:^|[^\p{L}])i\s+(?:did\s+not|didn['’]?t|never)\s+(?:open|take\s+out|register|apply\s+for)|not\s+(?:opened|taken\s+out|registered)\s+by\s+me)/iu;
+const AUTHORIZED_CREDIT_RE =
+  /(?:я\s+сам(?:а)?\s+(?:взял[аи]?|оформил[аи]?|открыл[аи]?).{0,30}(?:кредит|за[ёе]м|рассрочк)|(?:muddatli\s+to['’]?lov|nasiya|kredit|qarz).{0,35}o['’]?zim.{0,25}(?:oldim|ochdim|rasmiylashtirdim)|o['’]?zim.{0,25}(?:muddatli\s+to['’]?lov|nasiya|kredit|qarz).{0,25}(?:oldim|ochdim|rasmiylashtirdim)|i\s+personally\s+(?:opened|took\s+out|registered|applied\s+for).{0,35}(?:klarna|installment|loan|credit|bnpl)|i\s+myself\s+(?:opened|took\s+out|registered|applied\s+for).{0,35}(?:klarna|installment|loan|credit|bnpl)|i\s+(?:opened|took\s+out|registered|applied\s+for).{0,35}(?:klarna|installment|loan|credit|bnpl).{0,20}\bmyself\b)/iu;
 
-function shouldFlagUnauthorizedCreditOpened(text: string): boolean {
+function splitScenarioAssertionClauses(text: string): string[] {
+  return text
+    .split(
+      /[.!?;\n]+|(?:,\s*|\s+)(?:(?:but|however|но|однако|lekin|biroq)|(?:and|then|а|и|затем|va|keyin)(?=\s+(?:(?:(?:now|теперь|endi)\s+)?(?:(?:the\s+)?(?:caller|scammer|fraudster|attacker|stranger|unknown\s+contact)|мошенник|звонивш\p{L}*|незнаком\p{L}*|собеседник|firibgar|qo['’]?ng['’]?iroq\s+qiluvchi|notanish\s+kontakt)(?!\p{L})|(?:i|we|я|мы|men|biz)(?!\p{L})|(?:this|that|the|этот|эта|это|тот|та|bu|shu)\s+(?:(?:second|another|второй|другой|ikkinchi|boshqa)\s+)?(?:loan|credit|installment|bnpl|кредит|за[ёе]м|рассрочк\p{L}*|kredit(?:ni)?|qarz(?:ni)?|nasiya)(?!\p{L}))))\s+/iu,
+    )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+const EXPLICIT_RISK_SOURCE_PREFIX_RE =
+  /^(?:(?:the\s+)?(?:caller|scammer|fraudster|attacker|stranger|unknown\s+contact)\b|(?:i|we)\s+(?:received|got|was\s+sent).{0,60}\b(?:from\s+)?(?:the\s+)?(?:caller|scammer|fraudster|attacker|stranger|unknown\s+contact)\b|(?:мошенник|звонивш\p{L}*|незнаком\p{L}*|собеседник)(?!\p{L})|(?:firibgar|qo['’]?ng['’]?iroq\s+qiluvchi|notanish\s+kontakt)\b)/iu;
+const EDUCATIONAL_EXAMPLE_PREFIX_RE =
+  /^(?:(?:the\s+)?(?:article|documentation|guide|manual)\s+(?:says|states|shows|explains|describes)(?:\s*:|\s+that(?!\p{L})|\s*,?\s*["“‘])|(?:support\s+)?documentation\s+(?:gives|shows|contains)\s+(?:this\s+)?(?:example|hypothetical)\s*:|(?:(?:for\s+)?example|hypothetical\s+example)\s*:|(?:статья|документация|инструкция|руководство)\s+(?:говорит|гласит|показывает|объясняет)\s*:|(?:пример|гипотетический\s+пример)\s*:|(?:maqola|hujjat|qo['’]?llanma)\s+(?:deydi|ko['’]?rsatadi|tushuntiradi)\s*:|(?:misol|faraziy\s+misol)\s*:)/iu;
+const STRONG_EDUCATIONAL_EXAMPLE_PREFIX_RE =
+  /^(?:(?:support\s+)?documentation\s+(?:gives|shows|contains)\s+(?:this\s+)?(?:example|hypothetical)\s*:|(?:(?:for\s+)?example|hypothetical\s+example)\s*:|(?:пример|гипотетический\s+пример)\s*:|(?:misol|faraziy\s+misol)\s*:)/iu;
+const DOCUMENT_ATTRIBUTED_QUOTE_PREFIX_RE =
+  /^\s*(?:(?:the\s+)?(?:article|documentation|guide|manual)|(?:статья|документация|инструкция|руководство)|(?:maqola|hujjat|qo['’]?llanma))\s+\p{L}{2,32}\s*(?::|,)\s*(?<opener>["“„«])/iu;
+const PROTECTIVE_COVER_STORY_INSTRUCTION_RE =
+  /(?:(?:never|do\s+not|don['’]?t|must\s+not|should\s+not)\s+(?:tell|ask|instruct).{0,90}(?:customer|user|person|someone).{0,90}(?:tell|say)|(?:не|никогда\s+не)\s+(?:говорите|просите|инструктируйте).{0,90}(?:клиент|пользовател|человек).{0,90}(?:сказать|говорить)|(?:hech\s+qachon|aslo).{0,45}(?:mijoz|odam).{0,90}(?:deb\s+ayt|aytishni))/iu;
+
+function isNonUserEducationalExample(text: string): boolean {
+  const normalized = text.trim();
   return (
-    UNAUTHORIZED_CREDIT_SUBJECT_RE.test(text) &&
-    UNAUTHORIZED_CREDIT_PRODUCT_RE.test(text) &&
-    UNAUTHORIZED_CREDIT_OPENED_RE.test(text)
+    !EXPLICIT_RISK_SOURCE_PREFIX_RE.test(normalized) &&
+    EDUCATIONAL_EXAMPLE_PREFIX_RE.test(normalized)
   );
 }
 
+function withoutDocumentAttributedQuote(text: string): string {
+  const match = DOCUMENT_ATTRIBUTED_QUOTE_PREFIX_RE.exec(text);
+  const opener = match?.groups?.opener;
+  if (!match || !opener) return text;
+
+  const closer = opener === "«" ? "»" : opener === "„" ? "“" : opener === "“" ? "”" : '"';
+  const closeAt = text.indexOf(closer, match[0].length);
+  return closeAt === -1 ? text : text.slice(closeAt + closer.length).trimStart();
+}
+
+const EXPLICIT_INCIDENT_OWNER_PREFIX_RE = /^(?:i|we|я|мы|men|biz)(?!\p{L})/iu;
+
+function isEducationalContinuation(previous: string, current: string): boolean {
+  const normalizedCurrent = current.trim().replace(/^[\s"'“”‘’([\]-]+/u, "");
+  return (
+    isNonUserEducationalExample(previous) &&
+    !EXPLICIT_RISK_SOURCE_PREFIX_RE.test(normalizedCurrent) &&
+    (!EXPLICIT_INCIDENT_OWNER_PREFIX_RE.test(normalizedCurrent) ||
+      STRONG_EDUCATIONAL_EXAMPLE_PREFIX_RE.test(previous.trim()))
+  );
+}
+
+function shouldFlagUnauthorizedCreditOpened(text: string): boolean {
+  const scenarioText = withoutDocumentAttributedQuote(text);
+  if (!UNAUTHORIZED_CREDIT_PRODUCT_RE.test(scenarioText)) return false;
+  const selfAuthorizedIdentityUse =
+    /(?:^|[^\p{L}])i\s+(?:opened|took\s+out|registered|applied\s+for).{0,50}using\s+my\s+identity/iu;
+  const clauses = splitScenarioAssertionClauses(scenarioText);
+  return clauses.some((clause, index) => {
+    if (
+      isNonUserEducationalExample(clause) ||
+      AUTHORIZED_CREDIT_RE.test(clause) ||
+      selfAuthorizedIdentityUse.test(clause)
+    ) {
+      return false;
+    }
+    const previous = clauses[index - 1] ?? "";
+    const previousIsSelfAuthorized =
+      AUTHORIZED_CREDIT_RE.test(previous) || selfAuthorizedIdentityUse.test(previous);
+    const adjacent = previous && !previousIsSelfAuthorized ? `${previous} ${clause}` : clause;
+    if (isEducationalContinuation(previous, clause)) return false;
+    return (
+      UNAUTHORIZED_CREDIT_PRODUCT_RE.test(adjacent) &&
+      ((UNAUTHORIZED_CREDIT_SUBJECT_RE.test(adjacent) &&
+        UNAUTHORIZED_CREDIT_OPENED_RE.test(adjacent)) ||
+        UNAUTHORIZED_CREDIT_DENIAL_RE.test(adjacent))
+    );
+  });
+}
+
 const COERCIVE_SECRECY_RE =
-  /(?:никому\s+не\s+(?:говор|расскаж|сообщ)|держите\s+(?:это|операци|расследовани|дело).{0,20}в\s+тайне|hech\s+kimga\s+(?:aytmang|gapirmang)|sir\s+saqla|(?:do\s+not|don['’]?t)\s+tell\s+anyone|keep\s+(?:this|the\s+(?:operation|investigation|case|transaction)).{0,20}secret)/iu;
+  /(?:никому\s+не\s+(?:говор|расскаж|сообщ)|держите\s+(?:это|операци|расследовани|дело).{0,20}в\s+тайне|hech\s+kimga\s+(?:aytmang|gapirmang)|sir\s+saqla|(?:not\s+to|do\s+not|don['’]?t)\s+tell\s+anyone|keep\s+(?:this|the\s+(?:operation|investigation|case|transaction)).{0,20}secret)/iu;
 const COERCIVE_SECRECY_CONTEXT_RE =
   /(?:операци[яию]|спецопераци|расследовани|следстви|уголовн.{0,20}дел|мвд|полици|прокуратур|iib|ichki\s+ishlar|politsiya|prokuratura|maxsus\s+operatsiya|tergov|jinoyat\s+ishi|police\s+operation|law[\s-]?enforcement\s+operation|investigation|criminal\s+case)/iu;
 const COERCIVE_SECRECY_SAFETY_WARNING_RE =
-  /(?:(?:полици|мвд|госорган).{0,50}(?:никогда\s+не|не\s+(?:просит|требует|должн)).{0,70}(?:никому\s+не\s+говор|держать.{0,20}в\s+тайне)|(?:iib|iiv|politsiya).{0,50}(?:hech\s+qachon|talab\s+qilmaydi).{0,70}(?:hech\s+kimga\s+ayt|sir\s+saqla)|(?:police|law[\s-]?enforcement).{0,50}(?:never|do(?:es)?\s+not).{0,30}(?:ask|demand|require).{0,70}(?:tell\s+no\s+one|not\s+tell\s+anyone|keep.{0,20}secret))/iu;
+  /(?:(?:полици|мвд|госорган).{0,50}(?:никогда\s+не|не\s+(?:просит|требует|должн)).{0,70}(?:никому\s+не\s+говор|держать.{0,20}в\s+тайне)|(?:iib|iiv|politsiya).{0,50}(?:hech\s+qachon|talab\s+qilmaydi).{0,70}(?:hech\s+kimga\s+ayt|sir\s+saqla)|(?:police|law[\s-]?enforcement).{0,50}(?:never|do(?:es)?\s+not).{0,30}(?:ask|demand|require).{0,70}(?:tell\s+no\s+one|not\s+tell\s+anyone|keep.{0,20}secret)|(?:(?:не\s+(?:скрывайте|утаивайте)|никогда\s+не\s+(?:скрывайте|утаивайте)|(?:do\s+not|don['’]?t|never|should\s+not)\s+(?:hide|conceal)|(?:yashirmang|sir\s+saqlamang)).{0,80}(?:перевод|операци|плат[её]ж|банк|transfer|transaction|payment|bank|o['’]?tkaz|to['’]?lov|bank)|(?:o['’]?tkazma|to['’]?lov).{0,60}(?:yashirmang|sir\s+saqlamang)))/iu;
+const COERCIVE_TRANSACTION_CONTEXT_RE =
+  /(?:перевод|операци[яию]|плат[её]ж|деньг|банк|transfer|transaction|payment|money|bank|o['’]?tkaz|to['’]?lov|pul)/iu;
+const COERCIVE_TRANSACTION_SECRECY_RE =
+  /(?:не\s+(?:говорить|говорите|сообщать|сообщайте|рассказывать|рассказывайте)\s+(?:банку|семье|близким)|скры(?:ть|вать|вайте)\s+(?:этот\s+)?(?:перевод|операци[юя]|плат[её]ж).{0,50}(?:от\s+(?:банка|семьи|близких))?|(?:перевод|операци[юя]|плат[её]ж).{0,60}(?:держ(?:ать|ите)\s+в\s+тайне|скры(?:ть|вать)|никому\s+не\s+(?:говорить|сообщать))|(?:not\s+to|do\s+not|don['’]?t)\s+(?:tell|inform)\s+(?:the\s+)?(?:bank|family).{0,80}(?:transfer|transaction|payment|money)|(?:hide|conceal)\s+(?:this\s+|the\s+)?(?:transfer|transaction|payment).{0,50}(?:from\s+(?:the\s+)?(?:bank|family))|keep\s+(?:this\s+|the\s+)?(?:transfer|transaction|payment).{0,30}secret|(?:bankka|oilaga|yaqinlarga)\s+(?:bu\s+)?(?:o['’]?tkazma|to['’]?lov|pul).{0,45}(?:haqida\s+)?(?:aytma|gapirma)|(?:o['’]?tkazma|to['’]?lov).{0,55}(?:bankdan|oiladan|yaqinlardan)\s+(?:yashir|sir\s+saqla))/iu;
+const COERCIVE_COVER_STORY_BANK_RE = /(?:банк|bank)/iu;
+const COERCIVE_COVER_STORY_TRANSACTION_RE =
+  /(?:перевод|плат[её]ж|деньг|transfer|payment|money|o['’]?tkaz|to['’]?lov|pul)/iu;
+const COERCIVE_COVER_STORY_FAMILY_RE = /(?:семь|родствен|family|relative|oila|qarindosh)/iu;
+const COERCIVE_COVER_STORY_INSTRUCTION_RE =
+  /(?:скаж(?:и|ите)|говор(?:и|ите)|(?:сказали|велел[аи]?|приказали|требуют|просят).{0,35}(?:сказать|говорить)|(?:deb\s+ayt(?:ing)?|ayt(?:ing)?.{0,20}\s+deb)|(?:tell|say)\s+(?:the\s+)?bank|(?:told|asked|instructed)\s+(?:me\s+)?to\s+(?:tell|say))/iu;
+const COERCIVE_COVER_STORY_TRUTH_RE =
+  /(?:правд\p{L}*\s+не\s+(?:говор|расскаж|сообщ)|не\s+(?:говор|расскаж|сообщ).{0,20}правд|rost(?:ini)?\s+(?:aytma|gapirma)|haqiqat\p{L}*\s+(?:aytma|gapirma)|(?:do\s+not|don['’]?t)\s+(?:tell|say).{0,25}(?:the\s+)?truth|hide\s+the\s+truth)/iu;
+const COERCIVE_COVER_STORY_TRUTH_ADVICE_RE =
+  /(?:(?:честно|правду).{0,25}(?:скаж|говор)|(?:скаж|говор).{0,25}(?:честно|правду)|rostini\s+ayt(?:ing)?|haqiqat\p{L}*\s+ayt(?:ing)?|(?:tell|say).{0,25}(?:the\s+truth|honestly|truthfully)|(?:honestly|truthfully).{0,25}(?:tell|say))/iu;
 
 function shouldFlagCoerciveSecrecy(text: string): boolean {
-  return (
-    !COERCIVE_SECRECY_SAFETY_WARNING_RE.test(text) &&
-    COERCIVE_SECRECY_RE.test(text) &&
-    COERCIVE_SECRECY_CONTEXT_RE.test(text)
-  );
+  const clauses = splitScenarioAssertionClauses(withoutDocumentAttributedQuote(text));
+  return clauses.some((clause, index) => {
+    if (
+      isNonUserEducationalExample(clause) ||
+      PROTECTIVE_COVER_STORY_INSTRUCTION_RE.test(clause) ||
+      COERCIVE_SECRECY_SAFETY_WARNING_RE.test(clause) ||
+      (COERCIVE_COVER_STORY_TRUTH_ADVICE_RE.test(clause) &&
+        !COERCIVE_COVER_STORY_TRUTH_RE.test(clause))
+    ) {
+      return false;
+    }
+    const previous = clauses[index - 1] ?? "";
+    const next = clauses[index + 1] ?? "";
+    const adjacent = previous ? `${previous} ${clause}` : clause;
+    if (isEducationalContinuation(previous, clause)) return false;
+    const officialSecrecy =
+      COERCIVE_SECRECY_RE.test(clause) &&
+      (COERCIVE_SECRECY_CONTEXT_RE.test(adjacent) ||
+        (EXPLICIT_RISK_SOURCE_PREFIX_RE.test(clause) && COERCIVE_SECRECY_CONTEXT_RE.test(next)));
+    const transactionSecrecy =
+      COERCIVE_TRANSACTION_SECRECY_RE.test(clause) &&
+      COERCIVE_TRANSACTION_CONTEXT_RE.test(adjacent);
+    const deceptiveCoverStory =
+      COERCIVE_COVER_STORY_BANK_RE.test(adjacent) &&
+      COERCIVE_COVER_STORY_TRANSACTION_RE.test(adjacent) &&
+      COERCIVE_COVER_STORY_FAMILY_RE.test(adjacent) &&
+      COERCIVE_COVER_STORY_INSTRUCTION_RE.test(clause);
+    return officialSecrecy || transactionSecrecy || deceptiveCoverStory;
+  });
 }
 
 const WALLET_CONTEXT_RE =

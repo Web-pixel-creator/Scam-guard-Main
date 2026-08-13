@@ -5,6 +5,8 @@ import type { Lang } from "@/lib/i18n";
 export const REPORT_SKIP_CALLBACK = "report_skip";
 export const REPORT_NO_VALUE_CALLBACK = "report_no_value";
 export const REPORT_RETRY_CALLBACK = "report_retry";
+/** Keep report buttons aligned with the bot's other short-lived conversation context. */
+export const REPORT_CALLBACK_BINDING_TTL_MS = 20 * 60 * 1000;
 
 export type ReportCallbackAction =
   | typeof REPORT_SKIP_CALLBACK
@@ -28,6 +30,14 @@ interface ReportCallbackData {
   reportCallbackBinding?: ReportCallbackBinding;
 }
 
+function parseReportCallbackBindingTime(value: string): number | null {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  // Bindings are written with Date#toISOString. Reject permissive Date.parse
+  // inputs (for example "0" or a date without a time) instead of guessing.
+  return new Date(timestamp).toISOString() === value ? timestamp : null;
+}
+
 /**
  * Attach a report action to the exact Telegram prompt that exposed it.
  * Only enum metadata and a Telegram message id are stored; report evidence is
@@ -38,6 +48,7 @@ export function withReportCallbackBinding<T extends object>(
   messageId: number,
   action: ReportCallbackAction,
   scenario: ReportCallbackScenario,
+  now: Date = new Date(),
 ): T & ReportCallbackData {
   return {
     ...data,
@@ -45,7 +56,7 @@ export function withReportCallbackBinding<T extends object>(
       messageId,
       action,
       scenario,
-      at: new Date().toISOString(),
+      at: now.toISOString(),
     },
   };
 }
@@ -62,18 +73,28 @@ export function matchesReportCallbackBinding(
   messageId: number | undefined,
   action: ReportCallbackAction,
   scenario: ReportCallbackScenario,
+  now: Date = new Date(),
 ): boolean {
   if (messageId === undefined || !Number.isSafeInteger(messageId) || messageId <= 0) return false;
   if (!data || typeof data !== "object") return false;
 
   const binding = (data as ReportCallbackData).reportCallbackBinding;
-  return Boolean(
-    binding &&
-    binding.messageId === messageId &&
-    binding.action === action &&
-    binding.scenario === scenario &&
-    typeof binding.at === "string",
-  );
+  if (
+    !binding ||
+    binding.messageId !== messageId ||
+    binding.action !== action ||
+    binding.scenario !== scenario ||
+    typeof binding.at !== "string"
+  ) {
+    return false;
+  }
+
+  const boundAt = parseReportCallbackBindingTime(binding.at);
+  const nowMs = now.getTime();
+  if (boundAt === null || !Number.isFinite(nowMs)) return false;
+
+  const ageMs = nowMs - boundAt;
+  return ageMs >= 0 && ageMs <= REPORT_CALLBACK_BINDING_TTL_MS;
 }
 
 export function reportValueKeyboard(lang: Lang): InlineKeyboard {

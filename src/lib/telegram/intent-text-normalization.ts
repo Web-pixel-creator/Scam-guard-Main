@@ -87,21 +87,38 @@ const SPACED_SECURITY_TERM_PATTERNS = SPACED_SECURITY_TERMS.map(
   (term) =>
     [
       new RegExp(
-        `(?<![\\p{L}\\p{N}_])${Array.from(term)
+        `(?<![\\p{L}\\p{N}_'-])${Array.from(term)
           .map(escapeRegexLiteral)
-          .join("\\s+")}(?![\\p{L}\\p{N}_])`,
+          .join("\\s+")}(?![\\p{L}\\p{N}_'-])`,
         "giu",
       ),
       term,
     ] as const,
 );
 
+// These exact, standalone danger anchors cover evasions that cannot be safely
+// handled by a general leetspeak or homoglyph pass. Hyphen/apostrophe-aware
+// boundaries deliberately leave model names and identifiers such as
+// "S3ND-C0D3" and "CОDЕ-7" unchanged.
+const BOUNDED_DANGER_ANCHOR_REPAIRS = [
+  [/(?<![\p{L}\p{N}_'-])к\s+0\s+д(?![\p{L}\p{N}_'-])/giu, "код"],
+] as const;
+
+const SPACED_LEET_SEND_CODE_RE = /(?<![\p{L}\p{N}_'-])s3nd\s+c0d3(?![\p{L}\p{N}_'-])/giu;
+const NON_ACTION_LABEL_BEFORE_RE =
+  /(?:model|identifier|reference|source(?:\s+code)?|title)\b(?:(?![.!?\n])[\s\S]){0,32}$/iu;
+const MIXED_CONFUSABLE_CODE_RE = /(?<![\p{L}\p{N}_'-])cоdе(?![\p{L}\p{N}_'-])/giu;
+const EN_SECRET_ACTION_BEFORE_RE =
+  /(?:^|[^\p{L}\p{N}_'-])(?:send|tell|share|provide|enter|give|forward|reveal)\b(?:(?![.!?\n])[\s\S]){0,48}$/iu;
+const SMS_MIXED_CONFUSABLE_CODE_VALUE_RE =
+  /(?<![\p{L}\p{N}_'-])sms\s+cоdе(?=\s*[:=]\s*\d{4,12}(?!\d))/giu;
+
 const BOUNDED_ZERO_LEET_REPAIRS = [
-  [/(?<![\p{L}\p{N}_])к0д(?![\p{L}\p{N}_])/giu, "код"],
-  [/(?<![\p{L}\p{N}_])срочн0(?![\p{L}\p{N}_])/giu, "срочно"],
-  [/(?<![\p{L}\p{N}_])п0р0ль(?![\p{L}\p{N}_])/giu, "пароль"],
-  [/(?<![\p{L}\p{N}_])c0de(?![\p{L}\p{N}_])/giu, "code"],
-  [/(?<![\p{L}\p{N}_])0tp(?![\p{L}\p{N}_])/giu, "otp"],
+  [/(?<![\p{L}\p{N}_'-])к0д(?![\p{L}\p{N}_'-])/giu, "код"],
+  [/(?<![\p{L}\p{N}_'-])срочн0(?![\p{L}\p{N}_'-])/giu, "срочно"],
+  [/(?<![\p{L}\p{N}_'-])п0р0ль(?![\p{L}\p{N}_'-])/giu, "пароль"],
+  [/(?<![\p{L}\p{N}_'-])c0de(?![\p{L}\p{N}_'-])/giu, "code"],
+  [/(?<![\p{L}\p{N}_'-])0tp(?![\p{L}\p{N}_'-])/giu, "otp"],
 ] as const;
 
 function repairBoundedSecurityObfuscation(text: string): string {
@@ -109,6 +126,18 @@ function repairBoundedSecurityObfuscation(text: string): string {
   for (const [pattern, replacement] of SPACED_SECURITY_TERM_PATTERNS) {
     repaired = repaired.replace(pattern, replacement);
   }
+  for (const [pattern, replacement] of BOUNDED_DANGER_ANCHOR_REPAIRS) {
+    repaired = repaired.replace(pattern, replacement);
+  }
+  repaired = repaired.replace(SPACED_LEET_SEND_CODE_RE, (match, offset: number, source: string) => {
+    const boundedPrefix = source.slice(Math.max(0, offset - 48), offset);
+    return NON_ACTION_LABEL_BEFORE_RE.test(boundedPrefix) ? match : "send code";
+  });
+  repaired = repaired.replace(SMS_MIXED_CONFUSABLE_CODE_VALUE_RE, "sms code");
+  repaired = repaired.replace(MIXED_CONFUSABLE_CODE_RE, (match, offset: number, source: string) => {
+    const boundedPrefix = source.slice(Math.max(0, offset - 64), offset);
+    return EN_SECRET_ACTION_BEFORE_RE.test(boundedPrefix) ? "code" : match;
+  });
   for (const [pattern, replacement] of BOUNDED_ZERO_LEET_REPAIRS) {
     repaired = repaired.replace(pattern, replacement);
   }

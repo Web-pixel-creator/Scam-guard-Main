@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-13 - Post-canary Telegram/privacy candidate reconciled locally
+
+- Built an isolated candidate on exact deployed `1576e21`; the protected dirty
+  worktree and production remained untouched.
+- Added guarded Direct/Inline RU/UZ/EN completed-action, task-scam, BNPL,
+  coercive-secrecy, normalization and report-callback TTL coverage.
+- Closed typed, Inline and Voice secret paths for mixed-script labels, multiple
+  secrets, formatted/value-first alphanumeric codes, private keys and bounded
+  recovery lists. Inline secret results and Voice secret previews are static;
+  raw Voice secrets are not cached or shared in-flight.
+- Focused reconciliation passed 3,683/3,683 tests; independent security suites
+  passed 1,783/1,783 with no P0/P1 blocker. The full gate passed 174 files /
+  13,482 tests, TypeScript, production build and ESLint with zero errors plus
+  the eight established Fast Refresh warnings; changed code passed Prettier
+  and `git diff --check`. Coverage passed at 86.25% statements, 81.06%
+  branches, 91.56% functions and 88.10% lines. No network/API, commit, push or
+  deployment occurred.
+
 ## 2026-08-08 - P0 action-state and bounded obfuscation hardening verified locally
 
 - Reproduced the reported Direct gaps on current `main`: colloquial Russian

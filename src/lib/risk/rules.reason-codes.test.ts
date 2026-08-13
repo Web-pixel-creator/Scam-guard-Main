@@ -447,24 +447,37 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
 
   it.each([
     "Ставьте лайки, для вывода пополните баланс",
+    "За лайки начислили зарплату, но для получения требуют оплатить налог",
     "Layk bosing, pulni yechish uchun balansni to'ldiring",
+    "Vazifalarni bajardim, ish haqini olish uchun komissiya to'lashni so'rashyapti",
     "Like videos and top up your balance to withdraw your earnings",
+    "I posted reviews, but they demand a verification fee before cashing out",
   ])("flags a task-scam payment gate in RU/UZ/EN: %s", (text) => {
     expect(evaluateText(text)).toContain("task_reward_engagement_bait");
   });
 
   it.each([
     "Sizga Uzum Nasiya dan qarz rasmiylashtirildi",
+    "Mening nomimga muddatli to'lov ochilibdi, men uni ochmaganman",
     "На ваше имя оформили рассрочку в Uzum Nasiya",
+    "Пришёл кредит, которого я не брал",
     "A buy-now-pay-later loan was opened in your name",
+    "An installment appeared that I did not open",
+    "Klarna says an account was opened using my identity",
   ])("flags credit or BNPL opened without consent: %s", (text) => {
     expect(evaluateText(text)).toContain("unauthorized_credit_opened");
   });
 
   it.each([
     "Никому не говорите, это операция МВД",
+    "В банке скажите, что перевод семье, правду не говорите",
+    "В банке скажите, что перевод родственнику",
     "Hech kimga aytmang, bu IIB maxsus operatsiyasi",
+    "Bank so'rasa, to'lov oila uchun deb ayting, rostini aytmang",
+    "Bankka to'lov oila uchun deb ayting",
     "Do not tell anyone, this is a police operation",
+    "Tell the bank the payment is for family and don't tell them the truth",
+    "Tell the bank the payment is for family",
   ])("flags coercive secrecy tied to a claimed official operation: %s", (text) => {
     expect(evaluateText(text)).toContain("coercive_secrecy");
   });
@@ -478,10 +491,27 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     expect(evaluateText(text)).not.toContain("asks_for_otp");
   });
 
-  it("does not treat a self-authorized BNPL purchase as identity theft", () => {
-    expect(evaluateText("Uzum Nasiya orqali o'zim telefonni bo'lib to'lashga oldim")).not.toContain(
-      "unauthorized_credit_opened",
-    );
+  it.each([
+    "Uzum Nasiya orqali o'zim telefonni bo'lib to'lashga oldim",
+    "Я сам взял этот кредит и плачу его по графику",
+    "Muddatli to'lovni o'zim ochdim va jadval bo'yicha to'layapman",
+    "I opened this Klarna installment myself",
+  ])("does not treat a self-authorized BNPL purchase as identity theft: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "Лайки в нашей команде добровольные, зарплату и налог считает бухгалтерия",
+    "Vazifa ishning bir qismi, ish haqi va soliqni buxgalteriya hisoblaydi",
+    "Reviews are part of my salaried job; no verification fee is required",
+  ])("does not treat ordinary payroll/task context as task-scam: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("task_reward_engagement_bait");
+  });
+
+  it("does not treat installment wording as an APK install request", () => {
+    const reasons = evaluateText("An installment appeared that I did not open");
+    expect(reasons).toContain("unauthorized_credit_opened");
+    expect(reasons).not.toContain("asks_to_install_apk");
   });
 
   it.each([
@@ -498,6 +528,148 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     "Police never ask you to keep an operation secret",
   ])("does not flag protective official-secrecy warnings as coercion: %s", (text) => {
     expect(evaluateText(text)).not.toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "Скажите банку правду: перевод не семье",
+    "Bankka rostini ayting: bu to'lov oila uchun emas",
+    "Tell the bank the truth: this payment is not for family",
+  ])("does not flag honest bank explanations as coercive cover stories: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "I opened this Klarna installment myself, but this loan I did not open",
+    "Я сам открыл эту рассрочку, но этот кредит я не брал",
+    "Muddatli to'lovni o'zim ochdim, lekin bu kreditni men olmaganman",
+  ])("does not let a self-authorized credit clause hide a later unauthorized one: %s", (text) => {
+    expect(evaluateText(text)).toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "I opened this Klarna installment myself, and this second loan I did not open.",
+    "Я сам открыл эту рассрочку, а этот второй кредит я не брал.",
+    "Bu muddatli to'lovni o'zim ochdim, va bu ikkinchi kreditni men olmaganman.",
+  ])("keeps a coordinated unauthorized-credit clause risky: %s", (text) => {
+    expect(evaluateText(text)).toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "Tell the bank the truth, but the caller told me to say the payment is for family",
+    "Скажите банку правду, но звонивший велел сказать, что перевод родственнику",
+  ])("does not let honest-bank advice hide a later caller cover story: %s", (text) => {
+    expect(evaluateText(text)).toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "Never hide a transfer from the bank, and now the caller told me to hide this transfer from the bank.",
+    "Никогда не скрывайте перевод от банка, а теперь звонивший велел скрыть этот перевод от банка.",
+    "Bu o'tkazmani bankdan yashirmang, va endi firibgar o'tkazmani bankdan yashirishni aytdi.",
+  ])("keeps a coordinated caller secrecy instruction risky: %s", (text) => {
+    expect(evaluateText(text)).toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "I opened a Klarna installment using my identity",
+    "Klarna verifies customers using my identity document",
+    "I personally opened a Klarna installment. It appeared in my name as expected.",
+    "I opened a loan using my identity. It is in my name.",
+    "Я сама оформила рассрочку. Она появилась на мое имя как и ожидалось.",
+    "Muddatli to'lovni o'zim ochdim. U mening nomimga kutilganidek ochildi.",
+  ])("does not infer identity theft from ordinary first-party identity wording: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "An installment appeared on my credit report. I did not open it.",
+    "Klarna says a loan was opened. I did not apply for it.",
+    "Пришёл кредит. Я его не брал.",
+    "Mening kredit hisobotimda muddatli to'lov paydo bo'ldi. Men uni ochmaganman.",
+  ])("carries the credit product into an adjacent first-person denial: %s", (text) => {
+    expect(evaluateText(text)).toContain("unauthorized_credit_opened");
+  });
+
+  it.each([
+    "The bank called about a transfer. They told me to say it was for family.",
+    "Банк спросит о переводе. Скажите, что это помощь семье.",
+    "Bank to'lov haqida so'raydi. Oila uchun deb ayting.",
+  ])("carries bank/transfer context into an adjacent cover story: %s", (text) => {
+    expect(evaluateText(text)).toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "The article says: I did not open this Klarna loan.",
+    "The article says that I did not open this Klarna loan.",
+    "The guide explains, “I did not open this Klarna loan.”",
+    "Support documentation gives this example: Tell the bank the payment is for family.",
+    "Example: a Klarna installment appeared. I did not open it.",
+    "Hypothetical example: Tell the bank the payment is for family.",
+    "The guide says: this is only an example. Tell the bank the payment is for family.",
+    'The guide says: "Here is an example. A caller may claim it is a bank transfer. Tell the bank the payment is for family."',
+    'The guide warns: "I did not open this Klarna loan."',
+    "Руководство предупреждает: «Я не брал этот кредит. Скажите банку, что перевод родственнику.»",
+    "Qo'llanma ogohlantiradi: “Men bu kreditni olmaganman. Bankka to'lov oila uchun deb ayting.”",
+    "Never tell a customer to tell the bank the payment is for family.",
+  ])("does not treat educational examples as the user's incident: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("unauthorized_credit_opened");
+    expect(evaluateText(text)).not.toContain("coercive_secrecy");
+  });
+
+  it.each([
+    [
+      "Klarna policy says: a loan was opened in my name without consent.",
+      "unauthorized_credit_opened",
+    ],
+    [
+      "The caller sent a guide saying: tell the bank the payment is for family.",
+      "coercive_secrecy",
+    ],
+    ["Bank policy says: hide this transfer from the bank.", "coercive_secrecy"],
+    [
+      "The scammer wrote documentation: tell the bank the payment is for family.",
+      "coercive_secrecy",
+    ],
+    ["Звонивший прислал инструкцию: скажите банку, что перевод родственнику.", "coercive_secrecy"],
+    ["Firibgar qo'llanma yubordi: bankka to'lov oila uchun deb ayting.", "coercive_secrecy"],
+    [
+      "The guide says: never hide a transfer from the bank. The caller told me to hide this transfer from the bank.",
+      "coercive_secrecy",
+    ],
+    [
+      "The guide says: this is only an example. I did not open this Klarna loan.",
+      "unauthorized_credit_opened",
+    ],
+    [
+      "The caller told me not to tell anyone because this is a police operation.",
+      "coercive_secrecy",
+    ],
+    ["The caller said: don't tell anyone. This is a police operation.", "coercive_secrecy"],
+    [
+      "Never hide a transfer from the bank, then the caller told me to hide this transfer from the bank.",
+      "coercive_secrecy",
+    ],
+    [
+      'The guide says: "Never hide a transfer from the bank." The caller sent a guide saying: tell the bank the payment is for family.',
+      "coercive_secrecy",
+    ],
+    ['The guide warns: "I did not open this Klarna loan.', "unauthorized_credit_opened"],
+  ] as const)("does not let a document keyword hide an attributed incident: %s", (text, reason) => {
+    expect(evaluateText(text)).toContain(reason);
+  });
+
+  it("does not let an earlier safety sentence hide a later coercive instruction", () => {
+    expect(
+      evaluateText(
+        "Never hide a transfer from the bank. The caller now told me to hide this transfer from the bank.",
+      ),
+    ).toContain("coercive_secrecy");
+  });
+
+  it.each([
+    "Спасибо за интерес: поставьте лайк, чтобы получать новости.",
+    "За хорошую статью поставьте лайк и получите обновления.",
+  ])("does not treat ordinary social-media calls to action as task scams: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("task_reward_engagement_bait");
   });
 
   it("flags wallet or DeFi urgency, but not ordinary wallet feature news alone", () => {

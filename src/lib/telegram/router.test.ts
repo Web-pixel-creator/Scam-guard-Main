@@ -68,7 +68,12 @@ function messageUpdate(
 /** A `callback_query` update. */
 function callbackUpdate(
   data: string,
-  opts: { userId?: number; chatId?: number; chatType?: "private" | "group" | "supergroup" } = {},
+  opts: {
+    userId?: number;
+    chatId?: number;
+    chatType?: "private" | "group" | "supergroup";
+    messageId?: number;
+  } = {},
 ): TelegramUpdate {
   const userId = opts.userId ?? 100;
   const chatId = opts.chatId ?? userId;
@@ -77,7 +82,10 @@ function callbackUpdate(
     callback_query: {
       id: "cb1",
       from: { id: userId },
-      message: { chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) } },
+      message: {
+        ...(opts.messageId === undefined ? {} : { message_id: opts.messageId }),
+        chat: { id: chatId, ...(opts.chatType ? { type: opts.chatType } : {}) },
+      },
       data,
     },
   } as unknown as TelegramUpdate;
@@ -1187,6 +1195,48 @@ describe("dispatchUpdate chat-scopes Telegram session state", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleScenarioStep");
     expect(calls[0].arg).toBe("@bad_actor");
+  });
+
+  it("clears report callback state before a colliding message id is used from another chat", async () => {
+    const messageId = 77;
+    const activeSession = makeSession({
+      scenario: "report_city",
+      scenarioStep: 3,
+      scenarioData: withSessionChatScope(
+        {
+          reportCallbackBinding: {
+            messageId,
+            action: "report_skip",
+            scenario: "report_city",
+            at: "2026-08-13T08:00:00.000Z",
+          },
+        },
+        100,
+        "private",
+      ),
+    });
+    const { deps, calls, resetScenario } = makeDeps(activeSession);
+
+    await dispatchUpdate(
+      callbackUpdate("report_skip", {
+        userId: 100,
+        chatId: -100777,
+        chatType: "supergroup",
+        messageId,
+      }),
+      deps,
+    );
+
+    expect(resetScenario).toHaveBeenCalledWith(100);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCallback");
+    expect(calls[0].arg).toBe("report_skip");
+    expect(calls[0].ctx).toMatchObject({
+      chatId: -100777,
+      chatType: "supergroup",
+      messageId,
+      session: { scenario: "none", scenarioStep: 0, scenarioData: {} },
+    });
   });
 });
 

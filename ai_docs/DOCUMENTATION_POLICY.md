@@ -1,6 +1,6 @@
 # Documentation Freshness and Archive Policy
 
-Last reconciled: 2026-08-08.
+Last reconciled: 2026-08-13.
 
 This policy prevents historical audits, local evidence branches and old release
 totals from being mistaken for the current Ishonch Guard baseline.

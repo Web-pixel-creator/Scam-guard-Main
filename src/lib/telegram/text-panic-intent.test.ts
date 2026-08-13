@@ -28,7 +28,13 @@ describe("pure Telegram text panic intent", () => {
     "Men kodni yubormadim.",
     "I did not send the verification code.",
     "I almost shared the SMS code but stopped.",
+    "I did not wire them the money.",
+    "I almost wired them the money.",
+    "Я не скинул им деньги.",
+    "Я почти скинула цифры из сообщения.",
     "Men pul o'tkazmayman.",
+    "Raqamni tashlab yubormadim.",
+    "Pulni jo'natvormadim.",
   ])("keeps a negated action outside panic: %s", (text) => {
     expect(isNegatedVoiceDoneIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
@@ -38,7 +44,11 @@ describe("pure Telegram text panic intent", () => {
     "Мама уже сообщила им код.",
     "Мошенник написал: я уже перевёл деньги.",
     "Scammer wrote: I already sent the money.",
+    "Scammer wrote: The money has already gone to them.",
+    "Scammer wrote: They have my verification code now.",
+    "He wired them the money.",
     "U kishi aytdi: men kodni yubordim.",
+    "U kishi aytdi: pulni jo'natvordim.",
     "They asked me to send a code.",
   ])("does not invent a first-person completed emergency: %s", (text) => {
     expect(classifyTextPanicIntent(text)).toBeNull();
@@ -89,23 +99,69 @@ describe("pure Telegram text panic intent", () => {
     "я им назвала цифры из смс",
     "они уже знают мой код",
     "сказала им шесть цифр которые пришли",
+    "я им скинула цифры из сообщения",
+    "я уже сообщил одноразовый пароль",
     "raqamlarni aytvordim",
+    "raqamni tashlab yubordim",
     "sms kodni aytvordim",
+    "They have my verification code now",
+    "I read out the one-time password",
   ])("routes a colloquial completed code disclosure to aftercare: %s", (text) => {
     expect(classifyTextPanicIntent(text)).toBe(1);
   });
 
-  it.each(["pulni otkazvordim", "pulni o'tkazvordim"])(
-    "routes a colloquial completed transfer to aftercare: %s",
-    (text) => {
-      expect(classifyTextPanicIntent(text)).toBe(3);
-    },
-  );
+  it.each([
+    "pulni otkazvordim",
+    "pulni o'tkazvordim",
+    "pulni jo'natvordim",
+    "я скинул им деньги",
+    "I wired them the money",
+    "The money has already gone to them",
+  ])("routes a colloquial completed transfer to aftercare: %s", (text) => {
+    expect(classifyTextPanicIntent(text)).toBe(3);
+  });
 
   it.each([
     "Код уже продиктовала мама.",
     "Он сказал: «они уже знают мой код».",
     "Они знают мой код домофона.",
+    "They have my apartment door code now.",
+    "They do not have my verification code.",
+    "The money has not gone to them.",
+    "The money has almost gone to them.",
+    "I read about one-time password security.",
+    "I told my son how a one-time password works.",
+    "I said a one-time password is safer.",
+    "I said not to share the one-time password.",
+    "I said I never shared the one-time password.",
+    "Я сообщил банку о проблеме с одноразовым паролем.",
+    "Я сказал, что одноразовый пароль безопаснее.",
+    "Я сообщил другу, как работает одноразовый пароль.",
+    "Я сказал не сообщать одноразовый пароль.",
+    "Я сказал, что никогда не сообщал одноразовый пароль.",
+    "I wired the money to my landlord.",
+    "I wired them the money for rent.",
+    "The money has gone to them as planned for the rent.",
+    "The money has already gone to them as planned for the rent.",
+    "They know my login number but not my password.",
+    "They have my SMS number, which is just my phone number.",
+    "He knows our verification number from the public ticket.",
+    "They know my login code name, not a code.",
+    "Kod haqida aytdim.",
+    "Men dasturlash kodi haqida aytdim.",
+    "SMS haqida aytdim.",
+    "Telefon raqamni tashlab yubordim.",
+    "Kod xavfsizligi haqida jo'natdim.",
+    "Я им скинул код проекта.",
+    "Я им скинул код на GitHub.",
+    "Я им скинул цифры отчёта.",
+    "Я ему скинул SMS-инструкцию.",
+    "Я скинул ему карту проезда.",
+    "Я скинул им перевод статьи.",
+    "Я скинула ей баланс отчёта.",
+    "Я скинул им сумму расчёта.",
+    "Я скинул ему деньги за обед.",
+    "Ular meni hozir shoshirib, yaqinlarimga qo'ng'iroq qilmaslikni aytishyapti",
     "Raqamlarni aytvormadim.",
     "Pulni otkazvormadim.",
   ])("does not turn third-party, physical-access, or negated text into aftercare: %s", (text) => {
