@@ -558,6 +558,7 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
   it.each([
     "Ставьте лайки, для вывода пополните баланс",
     "За лайки начислили зарплату, но для получения требуют оплатить налог",
+    "За лайки обещают зарплату, но просят сначала внести налог",
     "Layk bosing, pulni yechish uchun balansni to'ldiring",
     "Vazifalarni bajardim, ish haqini olish uchun komissiya to'lashni so'rashyapti",
     "Like videos and top up your balance to withdraw your earnings",
@@ -625,6 +626,7 @@ describe("classifyVictimIntent — task scams, BNPL identity theft and coercive 
     "O'tkazmani bankdan yashirmang, rasmiy raqamga qo'ng'iroq qiling",
     "Never hide a transfer from the bank; call its official number",
     "Лайки в нашей команде добровольные, зарплату и налог считает бухгалтерия",
+    "За лайки обещают зарплату, налог рассчитывает бухгалтерия",
     "Vazifa ishning bir qismi, ish haqi va soliqni buxgalteriya hisoblaydi",
     "Reviews are part of my salaried job; no verification fee is required",
     "Я сам взял этот кредит и плачу его по графику",

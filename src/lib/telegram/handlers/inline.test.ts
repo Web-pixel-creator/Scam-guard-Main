@@ -1914,6 +1914,11 @@ describe("handleInlineQuery", () => {
       topic: "official number",
     },
     {
+      text: "A Klarna installment appeared in my name. I did not open it.",
+      title: "Loan/BNPL not yours: act now",
+      topic: "official number",
+    },
+    {
       text: "Никому не говорите, это операция МВД",
       title: "Госорган/инспектор: проверьте официально",
       topic: "скрывать",

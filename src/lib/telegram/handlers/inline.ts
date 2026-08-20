@@ -2092,7 +2092,7 @@ function hasAppRequestIntent(normalized: string): boolean {
       normalized,
     ) ||
     /(?:o['’]?rnat|yukla|och).{0,60}(?:ilova|apk|anydesk|teamviewer|rustdesk)/iu.test(normalized) ||
-    /(?:install|download|set up).{0,80}(?:app|apk|anydesk|teamviewer|rustdesk|remote|screen)/iu.test(
+    /\b(?:install(?:ed|ing|s)?|download(?:ed|ing|s)?|set\s+up)\b.{0,80}\b(?:app|apk|anydesk|teamviewer|rustdesk|remote|screen)\b/iu.test(
       normalized,
     )
   );

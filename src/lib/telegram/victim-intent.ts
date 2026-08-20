@@ -1112,7 +1112,7 @@ function isTaskRewardDepositTrap(normalized: string): boolean {
   return hasAllScenarioSignals(normalized, [
     /(?:лайк|реакци|просмотр|видео|отзыв|комментар|задани|layk|video|sharh|topshiriq|vazifa|like|review|comment|task)/iu,
     /(?:пополни|пополнить|внести|оплатить|депозит|баланс|(?:треб\p{L}*|прос\p{L}*|нуж\p{L}*|надо).{0,35}(?:налог|комисс)|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?la|to['’]?lov|(?:komissiya|soliq).{0,25}(?:kerak|so['’]?ra)|top\s*up|add\s+(?:money|funds)|deposit|pay|balance|verification\s+fee)/iu,
-    /(?:вывод|вывести|снять|заработ|(?:зарплат|заработ).{0,30}(?:получ|выплат|вывест|снять)|(?:получ|выплат).{0,30}(?:зарплат|заработ)|pulni\s+yech|daromadni\s+ol|ish\s+haq(?:i|ini).{0,30}(?:ol|yech|ber)|withdraw|cash(?:ing)?\s*out|earnings?)/iu,
+    /(?:вывод|вывести|снять|заработ|(?:зарплат|заработ).{0,30}(?:получ|выплат|вывест|снять)|(?:получ|выплат|обещ\p{L}*|начисл\p{L}*).{0,30}(?:зарплат|заработ)|pulni\s+yech|daromadni\s+ol|ish\s+haq(?:i|ini).{0,30}(?:ol|yech|ber)|withdraw|cash(?:ing)?\s*out|earnings?)/iu,
   ]);
 }
 
