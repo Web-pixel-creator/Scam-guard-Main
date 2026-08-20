@@ -1192,6 +1192,7 @@ describe("handleCheck follow-up routing", () => {
       "ru",
       "Заработок за лайки",
     ],
+    ["За лайки обещают зарплату, но просят сначала внести налог", "ru", "Заработок за лайки"],
     ["Mening nomimga muddatli to'lov ochilibdi, men uni ochmaganman", "uz", "rasmiy yo'l"],
     ["Tell the bank the payment is for family", "en", "cover story"],
   ] as const)(
