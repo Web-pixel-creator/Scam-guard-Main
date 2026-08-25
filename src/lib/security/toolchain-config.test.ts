@@ -89,6 +89,33 @@ describe("toolchain security boundaries", () => {
     expect(security).toContain("actions/upload-artifact@");
   });
 
+  it("keeps canonical documentation paths out of Railway autodeploys", () => {
+    const railway = readFileSync(resolve(process.cwd(), "railway.toml"), "utf8");
+    const ci = readFileSync(resolve(process.cwd(), ".github", "workflows", "ci.yml"), "utf8");
+    const security = readFileSync(
+      resolve(process.cwd(), ".github", "workflows", "security.yml"),
+      "utf8",
+    );
+    const buildStart = railway.search(/^\[build\]\s*$/mu);
+
+    expect(buildStart).toBeGreaterThanOrEqual(0);
+
+    const afterBuildHeader = railway.slice(buildStart + "[build]".length);
+    const nextSection = afterBuildHeader.search(/^\[[^\]]+\]\s*$/mu);
+    const buildSection =
+      nextSection >= 0 ? afterBuildHeader.slice(0, nextSection) : afterBuildHeader;
+
+    expect(buildSection).toMatch(
+      /^watchPatterns\s*=\s*\["\*\*",\s*"!\/\*\.md",\s*"!\/ai_docs\/\*\*"\]\s*$/mu,
+    );
+    expect(railway).toContain('builder = "DOCKERFILE"');
+    expect(railway).toContain('dockerfilePath = "Dockerfile"');
+    for (const workflow of [ci, security]) {
+      expect(workflow).toMatch(/^\s{2}push:\s*\r?\n\s{4}branches:\s*\r?\n\s{6}- main\s*$/mu);
+      expect(workflow).not.toMatch(/^\s+paths(?:-ignore)?:/mu);
+    }
+  });
+
   it("keeps package managers out of the non-root production image", () => {
     const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
 
