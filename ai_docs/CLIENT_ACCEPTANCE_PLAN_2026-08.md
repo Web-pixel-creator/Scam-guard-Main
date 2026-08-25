@@ -35,25 +35,25 @@ Per row verify: preview renders with the safe action visible; inserted result
 keeps the topic and the first action; no secret echo; no invented verdict on
 low-signal rows; truncation behaves at the documented boundary.
 
-| # | Case IDs | Desktop | Android | iOS |
-| --- | --- | --- | --- | --- |
-| 1 | HIGH-RU | done (2026-07-14) | — | — |
-| 2 | SUSPICIOUS-RU | — | — | — |
-| 3 | LOW-RU | — | — | — |
-| 4 | HIGH-UZ | — | — | — |
-| 5 | SUSPICIOUS-UZ | — | — | — |
-| 6 | LOW-UZ | — | — | — |
-| 7 | HIGH-EN | — | — | — |
-| 8 | SUSPICIOUS-EN | — | — | — |
-| 9 | LOW-EN | — | — | — |
-| 10 | EMPTY | — | — | — |
-| 11 | LENGTH-1 | — | — | — |
-| 12 | LENGTH-255 | — | — | — |
-| 13 | LENGTH-256-UNICODE | — | — | — |
-| 14 | PRIVACY-OTP-PASSWORD | — | — | — |
-| 15 | PRIVACY-RECOVERY | — | — | — |
-| 16 | PRIVACY-MALFORMED-URL | — | — | — |
-| 17 | PRIVACY-QR-LOGIN | — | — | — |
+| #   | Case IDs              | Desktop           | Android | iOS |
+| --- | --------------------- | ----------------- | ------- | --- |
+| 1   | HIGH-RU               | done (2026-07-14) | —       | —   |
+| 2   | SUSPICIOUS-RU         | —                 | —       | —   |
+| 3   | LOW-RU                | —                 | —       | —   |
+| 4   | HIGH-UZ               | —                 | —       | —   |
+| 5   | SUSPICIOUS-UZ         | —                 | —       | —   |
+| 6   | LOW-UZ                | —                 | —       | —   |
+| 7   | HIGH-EN               | —                 | —       | —   |
+| 8   | SUSPICIOUS-EN         | —                 | —       | —   |
+| 9   | LOW-EN                | —                 | —       | —   |
+| 10  | EMPTY                 | —                 | —       | —   |
+| 11  | LENGTH-1              | —                 | —       | —   |
+| 12  | LENGTH-255            | —                 | —       | —   |
+| 13  | LENGTH-256-UNICODE    | —                 | —       | —   |
+| 14  | PRIVACY-OTP-PASSWORD  | —                 | —       | —   |
+| 15  | PRIVACY-RECOVERY      | —                 | —       | —   |
+| 16  | PRIVACY-MALFORMED-URL | —                 | —       | —   |
+| 17  | PRIVACY-QR-LOGIN      | —                 | —       | —   |
 
 ## Direct risk-based scenarios
 
@@ -62,26 +62,26 @@ reason family and the concrete safe action). Inputs marked "corpus" must be
 copied from the referenced file; examples shown here are the verified corpus
 strings.
 
-| ID | Lang | Scenario (input source) | Expected outcome |
-| --- | --- | --- | --- |
-| D-01 | RU | Completed code share — `Я уже отправил код из SMS.` (`text-panic-intent.test.ts`) | aftercare: terminate sessions, 2FA, no blame |
-| D-02 | EN | Completed CVV share — `I already sent my CVV.` (`text-panic-intent.test.ts`) | card aftercare: block, bank official number |
-| D-03 | UZ | Completed transfer — `Men pul o'tkazdim.` (`text-panic-intent.test.ts`) | sent-money aftercare, bank first |
-| D-04 | EN | Remote access granted — `I installed AnyDesk and allowed screen access.` (`text-panic-intent.test.ts`) | uninstall, bank call, device check |
-| D-05 | RU | QR login scanned — `Я отсканировал QR для входа в Telegram.` (`text-panic-intent.test.ts`) | Telegram takeover aftercare |
-| D-06 | RU | Live bank call pressure — `Мне сейчас звонят из банка.` (`text-panic-intent.test.ts`) | live-call SOS: hang up, call official number |
-| D-07 | RU | Wrong-recipient transfer — `я перевела деньги не тому человеку, можно отменить перевод?` (`victim-intent.test.ts`) | accidental transfer: bank recall guidance, not scam panic |
-| D-08 | RU | Mistaken phone top-up — `По ошибке оплатила чужой номер телефона вместо своего. Можно отменить?` (`victim-intent.test.ts`) | accidental top-up route |
-| D-09 | EN | Top-up cancel — `I topped up someone else's phone by mistake—how can I cancel it?` (`victim-intent.test.ts`) | accidental top-up route |
-| D-10 | RU | Money-mule bait — `мне пришли деньги по ошибке и просят вернуть их на другую карту` (`victim-intent.test.ts`) | money-mule warning: do not forward |
-| D-11 | RU | Balance top-up pressure — `я уже пополнил баланс` (`live-phrase-cases.ts`) | scam top-up route, NOT accidental-transfer guard |
-| D-12 | RU | Safe neighbor video control — `сосед прислал обычное mp4 из галереи, мы заранее договаривались` (`victim-intent.test.ts`) | safe/low: no false archive warning |
-| D-13 | UZ | Photo-threat negative control — `Sayohat rasmlarimni oilaviy guruhga tarqatishadi deb aytishdi.` (`victim-intent.test.ts`) | no blackmail verdict without money demand |
+| ID   | Lang     | Scenario (input source)                                                                                                                                        | Expected outcome                                                                                                                                                                     |
+| ---- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D-01 | RU       | Completed code share — `Я уже отправил код из SMS.` (`text-panic-intent.test.ts`)                                                                              | aftercare: terminate sessions, 2FA, no blame                                                                                                                                         |
+| D-02 | EN       | Completed CVV share — `I already sent my CVV.` (`text-panic-intent.test.ts`)                                                                                   | card aftercare: block, bank official number                                                                                                                                          |
+| D-03 | UZ       | Completed transfer — `Men pul o'tkazdim.` (`text-panic-intent.test.ts`)                                                                                        | sent-money aftercare, bank first                                                                                                                                                     |
+| D-04 | EN       | Remote access granted — `I installed AnyDesk and allowed screen access.` (`text-panic-intent.test.ts`)                                                         | uninstall, bank call, device check                                                                                                                                                   |
+| D-05 | RU       | QR login scanned — `Я отсканировал QR для входа в Telegram.` (`text-panic-intent.test.ts`)                                                                     | Telegram takeover aftercare                                                                                                                                                          |
+| D-06 | RU       | Live bank call pressure — `Мне сейчас звонят из банка.` (`text-panic-intent.test.ts`)                                                                          | live-call SOS: hang up, call official number                                                                                                                                         |
+| D-07 | RU       | Wrong-recipient transfer — `я перевела деньги не тому человеку, можно отменить перевод?` (`victim-intent.test.ts`)                                             | accidental transfer: bank recall guidance, not scam panic                                                                                                                            |
+| D-08 | RU       | Mistaken phone top-up — `По ошибке оплатила чужой номер телефона вместо своего. Можно отменить?` (`victim-intent.test.ts`)                                     | accidental top-up route                                                                                                                                                              |
+| D-09 | EN       | Top-up cancel — `I topped up someone else's phone by mistake—how can I cancel it?` (`victim-intent.test.ts`)                                                   | accidental top-up route                                                                                                                                                              |
+| D-10 | RU       | Money-mule bait — `мне пришли деньги по ошибке и просят вернуть их на другую карту` (`victim-intent.test.ts`)                                                  | money-mule warning: do not forward                                                                                                                                                   |
+| D-11 | RU       | Balance top-up pressure — `я уже пополнил баланс` (`live-phrase-cases.ts`)                                                                                     | scam top-up route, NOT accidental-transfer guard                                                                                                                                     |
+| D-12 | RU       | Safe neighbor video control — `сосед прислал обычное mp4 из галереи, мы заранее договаривались` (`victim-intent.test.ts`)                                      | safe/low: no false archive warning                                                                                                                                                   |
+| D-13 | UZ       | Photo-threat negative control — `Sayohat rasmlarimni oilaviy guruhga tarqatishadi deb aytishdi.` (`victim-intent.test.ts`)                                     | no blackmail verdict without money demand                                                                                                                                            |
 | D-14 | RU/UZ/EN | Active OTP request, APK push, task-scam «зарплата → налог», BNPL чужая рассрочка, OneID phishing, known-contact gift link, coercive secrecy, fine APK cashback | corpus: `adversarial-human-scenario-corpus.ts`, `victim-intent.test.ts`, `rules.false-positive-hardening.test.ts` — copy exact inputs; each must reach its named deterministic route |
-| D-15 | RU/UZ/EN | Follow-up `почему?` / `что делать дальше?` / `что им сказать?` after any check above | follow-up keeps the topic, gives next step |
-| D-16 | RU/UZ/EN | Report flow from a check result → moderation → `/appeal` link on the same client | report accepted, appeal page opens logged-out |
-| D-17 | RU/UZ/EN | Voice-in description of a live scam + Voice-out playback | STT understood, voice answer plays, no secret echo |
-| D-18 | RU/UZ/EN | Secret preflight: paste a fake OTP/card/password into a check | static safe response, no echo, no persistence hint |
+| D-15 | RU/UZ/EN | Follow-up `почему?` / `что делать дальше?` / `что им сказать?` after any check above                                                                           | follow-up keeps the topic, gives next step                                                                                                                                           |
+| D-16 | RU/UZ/EN | Report flow from a check result → moderation → `/appeal` link on the same client                                                                               | report accepted, appeal page opens logged-out                                                                                                                                        |
+| D-17 | RU/UZ/EN | Voice-in description of a live scam + Voice-out playback                                                                                                       | STT understood, voice answer plays, no secret echo                                                                                                                                   |
+| D-18 | RU/UZ/EN | Secret preflight: paste a fake OTP/card/password into a check                                                                                                  | static safe response, no echo, no persistence hint                                                                                                                                   |
 
 Platform columns (Desktop/Android/iOS) apply to every D-row exactly like the
 Inline table; keep one tracking table per scenario group in the results file.
