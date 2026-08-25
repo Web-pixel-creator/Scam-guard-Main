@@ -20,6 +20,8 @@ export interface ScamPattern {
   severity: ScamSeverity;
   /** Linked reason codes from the risk engine */
   reasonCodes: ReasonCode[];
+  /** Require every linked reason code before auto-matching this pattern. */
+  matchAllReasonCodes?: boolean;
   /** Human-readable title */
   title: { ru: string; uz: string; en: string };
   /** Short description of how this scam works */

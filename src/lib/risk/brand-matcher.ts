@@ -269,6 +269,7 @@ const HIGH_RISK_CODES: readonly ReasonCode[] = [
   "asks_for_pin",
   "asks_for_sms_code",
   "asks_to_install_apk",
+  "asks_for_money_transfer",
 ];
 
 /**

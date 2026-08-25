@@ -726,6 +726,52 @@ describe("image intelligence evidence builder", () => {
     expect(score.level).toBe("high_risk");
   });
 
+  it.each([
+    "Знакомый пишет: подарок 70 000 сум от банка, открой ссылку и забирай",
+    "Tanishim yubordi: bank 70 000 so'm sovg'a beryapti, havolani ochib olib qol",
+    "Танишим юборди: банк 70 000 сўм совға берармиш, ҳаволани очиб олинг",
+    "A friend says there is a cash gift from the bank; open the link and claim yours",
+  ])("preserves known-contact bank-giveaway evidence from screenshot OCR: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).toContain("giveaway_or_prize_actions");
+    expect(scoreImageEvidence(evidence).reasons).toContain("giveaway_engagement_bait");
+  });
+
+  it("does not turn an explicit giveaway safety warning into image risk evidence", () => {
+    const evidence = fallbackImageIntelligence(
+      "Банк предупреждает: мошенники обещают денежный подарок. Не открывайте ссылку и не забирайте приз.",
+    );
+
+    expect(evidence.riskHints).not.toContain("giveaway_or_prize_actions");
+    expect(scoreImageEvidence(evidence).reasons).not.toContain("giveaway_engagement_bait");
+  });
+
+  it("keeps ROAD24 fine-payment APK OCR tied to APK and malicious-file reasons", () => {
+    const evidence = fallbackImageIntelligence(
+      "100% CASHBACK за оплату штрафов. Скачайте ROAD24.apk и откройте файл.",
+    );
+    const { reasons, score } = scoreImageEvidence(evidence);
+
+    expect(evidence.visualCategory).toBe("apk_prompt");
+    expect(evidence.riskHints).toContain("apk_install");
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(reasons).toContain("malicious_file_bait");
+    expect(score.level).toBe("high_risk");
+
+    const explanation = buildImageUserExplanation(evidence, score.level, "en");
+    expect(explanation).toContain("can steal access");
+    expect(explanation).not.toContain("will steal");
+  });
+
+  it("keeps ordinary native neighbor video screenshots free of file-bait reasons", () => {
+    const evidence = fallbackImageIntelligence(
+      "Сосед прислал обычное видео прямо в чате, смотрю во встроенном плеере.",
+    );
+
+    expect(scoreImageEvidence(evidence).reasons).not.toContain("malicious_file_bait");
+  });
+
   it("surfaces task-reward Telegram campaign screenshots", () => {
     const evidence = fallbackImageIntelligence(
       "Punk City Battle Royale. Reward Pool: 30 000 USD. Campaign participants collect points on the leaderboard to be among winners.",
@@ -923,4 +969,98 @@ describe("image intelligence evidence builder", () => {
     expect(explanation).toContain("не вижу запроса кода");
     expect(explanation).not.toContain("Я проверил видимый текст");
   });
+});
+
+describe("image intelligence — clause-local safety and official fine negatives", () => {
+  it.each([
+    "Банк предупреждает о мошеннических розыгрышах: ничего не открывайте. Но знакомый пишет: подарок 70 000 сум, открой ссылку и забирай.",
+    "A bank warns that scammers promise cash gifts and says do not open links. However, a friend sent a cash gift: open the link and claim yours.",
+    "Bank firibgarlar sovg'a va'da qilishidan ogohlantirdi, havolani ochmang. Lekin tanishim 70 000 so'm sovg'a yubordi: havolani ochib olib qol.",
+  ])("does not let a neighboring safety clause hide screenshot CTA evidence: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).toContain("giveaway_or_prize_actions");
+    expect(scoreImageEvidence(evidence).reasons).toContain("giveaway_engagement_bait");
+  });
+
+  it.each([
+    "Не открывайте чужие ссылки, откройте нашу и забирайте денежный подарок.",
+    "Begona havolani ochmang, bizning havolani ochib sovg'ani olib qoling.",
+    "Do not open other links, open our link and claim your cash gift.",
+  ])("does not let a same-sentence safety preface hide a malicious giveaway CTA: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).toContain("giveaway_or_prize_actions");
+    expect(scoreImageEvidence(evidence).reasons).toContain("giveaway_engagement_bait");
+  });
+
+  it.each([
+    "Я получил подарок на день рождения от семьи.",
+    "Сестра подарила мне телефон на день рождения, подарок уже получил.",
+    "Подарок уже получил. Сестра подарила мне телефон на день рождения.",
+    "I got a birthday gift from my family.",
+    "My sister gave me a phone for my birthday; I already received the gift.",
+    "I already received the gift. My sister gave me a phone for my birthday.",
+    "Men oilamdan tug'ilgan kun sovg'asini oldim.",
+    "Opam tug'ilgan kunimga telefon sovg'a qildi, sovg'ani oldim.",
+    "Sovg'ani oldim. Opam tug'ilgan kunimga telefon sovg'a qildi.",
+  ])("does not turn a completed ordinary personal gift into giveaway bait: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).not.toContain("giveaway_or_prize_actions");
+    expect(evidence.visualCategory).not.toBe("crypto_giveaway_or_nft");
+    expect(scoreImageEvidence(evidence).reasons).not.toContain("giveaway_engagement_bait");
+  });
+
+  it.each([
+    "Официальные итоги розыгрыша опубликованы. Откройте официальный сайт банка, чтобы посмотреть список победителей.",
+    "Official giveaway results are published. Open the official bank website to view the winners.",
+    "Расмий танлов натижалари эълон қилинди. Ғолибларни расмий банк сайтида кўринг.",
+    "Фирибгарлар банк номидан совға ваъда қилмоқда. Ҳаволани очманг ва совринни олманг.",
+  ])("keeps official results and Uzbek Cyrillic protective OCR negative: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).not.toContain("giveaway_or_prize_actions");
+    expect(scoreImageEvidence(evidence).reasons).not.toContain("giveaway_engagement_bait");
+  });
+
+  it.each([
+    "Штраф оплачен в официальном приложении my.gov.uz. Квитанция сохранена.",
+    "Я установил официальное приложение из Google Play и оплатил обычный дорожный штраф.",
+    "Jarimani my.gov.uz rasmiy ilovasida to'ladim. Ilovani Google Play'dan o'rnatganman.",
+    "Жарима расмий давлат иловасида тўланган. Квитанция сақланди.",
+    "I paid the traffic fine in the official government app installed from Google Play; payment was successful.",
+  ])("keeps an ordinary official-app fine screenshot free of APK/payment hints: %s", (text) => {
+    const evidence = fallbackImageIntelligence(text);
+
+    expect(evidence.riskHints).not.toContain("apk_install");
+    expect(evidence.riskHints).not.toContain("payment_request");
+    expect(evidence.riskHints).not.toContain("brand_impersonation");
+  });
+
+  it("still flags a fake fine APK even when it calls itself official", () => {
+    const evidence = fallbackImageIntelligence(
+      "Неизвестный прислал в Telegram официальное приложение ROAD24.apk: 100% кешбэк за оплату штрафа, установите файл.",
+    );
+    const { reasons, score } = scoreImageEvidence(evidence);
+
+    expect(evidence.riskHints).toContain("apk_install");
+    expect(reasons).toContain("asks_to_install_apk");
+    expect(score.level).toBe("high_risk");
+  });
+
+  it.each([
+    "Официальное приложение. Оплатите дорожный штраф на карту, которую прислали в этом чате.",
+    "Rasmiy ilova. Jarimani shu chatda yuborilgan kartaga to'lang.",
+    "Official app. Please pay the traffic fine to the card sent in this chat.",
+    "Штраф начислен. Переведите 500 000 сум через официальное приложение МВД.",
+  ])(
+    "does not trust an active fine-payment request merely because it says official app: %s",
+    (text) => {
+      const evidence = fallbackImageIntelligence(text);
+
+      expect(evidence.riskHints).toContain("payment_request");
+      expect(scoreImageEvidence(evidence).reasons).toContain("payment_before_service");
+    },
+  );
 });

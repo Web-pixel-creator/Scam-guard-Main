@@ -28,6 +28,10 @@ export function findMatchingPatterns(codes: ReasonCode[]): ScamPattern[] {
     const strongCodes = p.reasonCodes.filter((rc) => !WEAK_CONTEXT_CODES.has(rc));
 
     if (strongCodes.length > 0) {
+      if (p.matchAllReasonCodes) {
+        return p.reasonCodes.every((rc) => codeSet.has(rc));
+      }
+
       return strongCodes.some((rc) => codeSet.has(rc));
     }
 

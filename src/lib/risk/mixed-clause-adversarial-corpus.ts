@@ -126,10 +126,10 @@ const RISK_SEEDS: Readonly<
     },
     money_transfer: {
       neutral: "Статус обычного платежа проверен",
-      danger: "он просит перевести деньги на эту карту",
+      danger: "незнакомец просит перевести деньги на чужую карту",
       safety: "не переводите деньги другим незнакомцам",
       safeControl: "Не переводите деньги на чужую карту.",
-      requiredReason: "asks_to_transfer_to_safe_account",
+      requiredReason: "asks_for_money_transfer",
     },
     delivery_fee: {
       neutral: "Я сверил адрес доставки",
@@ -205,10 +205,10 @@ const RISK_SEEDS: Readonly<
     },
     money_transfer: {
       neutral: "Oddiy to'lov holati tekshirildi",
-      danger: "u pulni shu kartaga o'tkazishni so'rayapti",
+      danger: "notanish odam pulni begona kartaga o'tkazishni so'rayapti",
       safety: "notanish odamlarga pul o'tkazmang",
       safeControl: "Begona kartaga pul o'tkazmang.",
-      requiredReason: "asks_to_transfer_to_safe_account",
+      requiredReason: "asks_for_money_transfer",
     },
     delivery_fee: {
       neutral: "Men yetkazib berish manzilini tekshirdim",
@@ -284,10 +284,10 @@ const RISK_SEEDS: Readonly<
     },
     money_transfer: {
       neutral: "The ordinary payment status was checked",
-      danger: "they ask me to transfer money to this card",
+      danger: "a stranger asks me to transfer money to a third-party card",
       safety: "do not transfer money to other strangers",
       safeControl: "Do not transfer money to a stranger's card.",
-      requiredReason: "asks_to_transfer_to_safe_account",
+      requiredReason: "asks_for_money_transfer",
     },
     delivery_fee: {
       neutral: "I verified the delivery address",

@@ -69,9 +69,9 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
       en: "APK install request",
     },
     description: {
-      ru: "Присылают файл или ссылку на 'обновление банка', 'безопасное приложение' или 'антивирус'. APK крадёт SMS и данные карт.",
-      uz: "'Bank yangilanishi', 'xavfsiz ilova' yoki 'antivirus' deb fayl yoki havola yuborishmoqda. APK SMS va karta ma'lumotlarini o'g'irlaydi.",
-      en: "They send a file or link to a 'bank update', 'security app' or 'antivirus'. The APK steals SMS and card data.",
+      ru: "Присылают файл или ссылку на 'обновление банка', 'безопасное приложение' или 'антивирус'. Такой APK может получить доступ к SMS и банковским данным или похитить их.",
+      uz: "'Bank yangilanishi', 'xavfsiz ilova' yoki 'antivirus' deb fayl yoki havola yuborishmoqda. Bunday APK SMS va bank ma'lumotlariga kirishi yoki ularni o'g'irlashi mumkin.",
+      en: "They send a file or link to a 'bank update', 'security app' or 'antivirus'. Such an APK may access or steal SMS and banking data.",
     },
     redFlags: {
       ru: [
@@ -185,7 +185,7 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
     id: "safe-account-transfer",
     severity: "critical",
-    reasonCodes: ["payment_before_service", "asks_to_transfer_to_safe_account"],
+    reasonCodes: ["asks_to_transfer_to_safe_account"],
     title: {
       ru: "Перевод на 'безопасный счёт'",
       uz: "'Xavfsiz hisob'ga o'tkazish",
@@ -241,7 +241,8 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
     id: "fake-loan-scam",
     severity: "high",
-    reasonCodes: ["payment_before_service"],
+    reasonCodes: ["fake_loan_offer", "payment_before_service"],
+    matchAllReasonCodes: true,
     title: {
       ru: "Фейковый кредит / займ",
       uz: "Soxta kredit / qarz",
@@ -297,14 +298,14 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
     severity: "high",
     reasonCodes: ["fake_delivery_payment"],
     title: {
-      ru: "Фейковая доставка / посылка",
-      uz: "Soxta yetkazib berish / pochta",
-      en: "Fake delivery / package scam",
+      ru: "Риск оплаты доставки",
+      uz: "Yetkazib berish to‘lovi xavfi",
+      en: "Delivery-payment risk",
     },
     description: {
-      ru: "Сообщают о 'посылке' или 'выигрыше', просят оплатить доставку или таможню. Никакой посылки нет.",
-      uz: "'Pochta' yoki 'yutuq' haqida xabar berishadi, yetkazib berish yoki bojxona uchun to'lashni so'rashadi. Hech qanday pochta yo'q.",
-      en: "Notify about a 'package' or 'prize', ask to pay delivery or customs. No package exists.",
+      ru: "Запрос оплаты доставки, таможни или перехода по ссылке нужно проверить через официальный сервис, открытый самостоятельно.",
+      uz: "Yetkazib berish, bojxona yoki havola orqali to‘lov so‘rovini o‘zingiz ochgan rasmiy xizmatda tekshiring.",
+      en: "A delivery, customs, or payment-link request should be verified through an official service opened independently.",
     },
     redFlags: {
       ru: [
@@ -353,7 +354,10 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
     id: "prize-winner-scam",
     severity: "high",
-    reasonCodes: ["payment_before_service"],
+    // `advance_fee_prize_inheritance` also covers visas, tours and inheritance.
+    // Until the engine emits a prize-specific reason, keep this educational
+    // pattern in the library without auto-attaching it to unrelated prepayments.
+    reasonCodes: [],
     title: {
       ru: "Розыгрыш / вы выиграли",
       uz: "O'yin / siz yutdingiz",
@@ -534,6 +538,114 @@ export const SCAM_PATTERNS: readonly ScamPattern[] = [
         "'100 free spins for the first deposit, Mini App link below'",
         "'NFT giveaway: complete captcha, react, and vote'",
       ],
+    },
+  },
+  {
+    id: "authority-coerced-dangerous-act",
+    severity: "critical",
+    reasonCodes: ["authority_coerced_dangerous_act"],
+    title: {
+      ru: "Ведомство принуждает к опасному действию",
+      uz: "Idora nomidan xavfli ishga majburlash",
+      en: "Authority coercion into a dangerous act",
+    },
+    description: {
+      ru: "Человек от имени полиции, налоговой или другого ведомства угрожает делом и требует поджечь объект, оставить пакет либо повредить оборудование. Настоящие органы не дают таких поручений в чате или по телефону.",
+      uz: "Kimdir politsiya, soliq yoki boshqa idora nomidan ish ochish bilan qo‘rqitib, o‘t qo‘yish, paket qoldirish yoki uskunani buzishni talab qiladi. Haqiqiy idora bunday topshiriqni chat yoki telefon orqali bermaydi.",
+      en: "Someone claiming police, tax, or another authority threatens prosecution and orders arson, package placement, or equipment damage. Real authorities do not issue such tasks by chat or phone.",
+    },
+    redFlags: {
+      ru: [
+        "Угрожают уголовным делом или арестом",
+        "Требуют физически навредить людям, объекту или оборудованию",
+        "Просят никому не говорить и действовать немедленно",
+      ],
+      uz: [
+        "Jinoiy ish yoki hibs bilan qo‘rqitishadi",
+        "Odamga, joyga yoki uskunaga jismoniy zarar yetkazishni talab qilishadi",
+        "Hech kimga aytmasdan darhol bajarishni buyurishadi",
+      ],
+      en: [
+        "Threatens a criminal case or arrest",
+        "Orders physical harm to people, property, or equipment",
+        "Demands secrecy and immediate action",
+      ],
+    },
+    whatToDo: {
+      ru: [
+        "Не выполняйте требование и отойдите от опасного предмета или места",
+        "Позвоните 102 сами; при непосредственной опасности сообщите окружающим",
+        "Если вы несовершеннолетний — сразу позовите родителя, учителя или другого взрослого",
+      ],
+      uz: [
+        "Talabni bajarmang va xavfli buyum yoki joydan uzoqlashing",
+        "102 ga o‘zingiz qo‘ng‘iroq qiling; darhol xavf bo‘lsa, atrofdagilarni ogohlantiring",
+        "Voyaga yetmagan bo‘lsangiz, ota-ona, o‘qituvchi yoki boshqa kattani darhol chaqiring",
+      ],
+      en: [
+        "Do not comply; move away from the dangerous object or location",
+        "Call 102 yourself and alert people nearby if danger is immediate",
+        "If you are a minor, immediately involve a parent, teacher, or another trusted adult",
+      ],
+    },
+    examples: {
+      ru: ["«Мы из налоговой. Подожги заправку, иначе заведём уголовное дело»"],
+      uz: ["«Soliq idorasidanmiz. Yoqilg‘i shoxobchasiga o‘t qo‘y, aks holda ish ochamiz»"],
+      en: ["'We are from the tax authority. Set fire to the station or face prosecution'"],
+    },
+  },
+  {
+    id: "penalty-points-erasure-scam",
+    severity: "high",
+    reasonCodes: ["fake_penalty_points_erasure"],
+    title: {
+      ru: "«Удаление» штрафных баллов за деньги",
+      uz: "Pulga jarima ballarini «o‘chirish»",
+      en: "Paid traffic-point erasure",
+    },
+    description: {
+      ru: "В соцсетях обещают за перевод обнулить штрафные баллы водителя. Такие предложения нужно считать мошенническими: законный пересмотр возможен только через официальный порядок обжалования.",
+      uz: "Ijtimoiy tarmoqlarda pul o‘tkazish evaziga haydovchining jarima ballarini o‘chirishni va’da qilishadi. Qonuniy qayta ko‘rib chiqish faqat rasmiy shikoyat tartibida bo‘ladi.",
+      en: "Social posts promise to erase a driver’s penalty points for a transfer. Treat such offers as fraud; a lawful review is available only through the official appeal process.",
+    },
+    redFlags: {
+      ru: [
+        "Обещают доступ к базе МВД",
+        "Называют цену за каждый балл",
+        "Просят перевод на личную карту",
+      ],
+      uz: [
+        "IIB bazasiga kirish borligini aytishadi",
+        "Har bir ball uchun narx aytishadi",
+        "Shaxsiy kartaga pul so‘rashadi",
+      ],
+      en: [
+        "Claims access to a police database",
+        "Quotes a price per point",
+        "Requests payment to a personal card",
+      ],
+    },
+    whatToDo: {
+      ru: [
+        "Не переводите деньги",
+        "Проверьте баллы в официальном сервисе",
+        "Обжалуйте постановление только официальным способом",
+      ],
+      uz: [
+        "Pul o‘tkazmang",
+        "Ballarni rasmiy xizmatda tekshiring",
+        "Qarorni faqat rasmiy tartibda shikoyat qiling",
+      ],
+      en: [
+        "Do not transfer money",
+        "Check points through the official service",
+        "Use only the official appeal process",
+      ],
+    },
+    examples: {
+      ru: ["«Обнулим штрафные баллы за 500 000 сум, переведите на карту»"],
+      uz: ["«Jarima ballarini 500 ming so‘mga o‘chiramiz, kartaga o‘tkazing»"],
+      en: ["'We will erase your traffic points for 500,000 soum; pay this card'"],
     },
   },
 ];
