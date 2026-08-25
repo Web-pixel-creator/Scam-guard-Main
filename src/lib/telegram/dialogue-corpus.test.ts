@@ -44,9 +44,9 @@ function scenario(snapshot: LastCheckSnapshot): ReportDraft {
 }
 
 describe("canonical Telegram multi-turn dialogue corpus", () => {
-  it("contains 1,872 unique RU/UZ/EN context rows", () => {
-    expect(TELEGRAM_DIALOGUE_CORPUS).toHaveLength(1872);
-    expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.id)).size).toBe(1872);
+  it("contains 2,016 unique RU/UZ/EN context rows", () => {
+    expect(TELEGRAM_DIALOGUE_CORPUS).toHaveLength(2016);
+    expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.id)).size).toBe(2016);
     expect(new Set(TELEGRAM_DIALOGUE_CORPUS.map((row) => row.lang))).toEqual(
       new Set(["ru", "uz", "en"]),
     );
