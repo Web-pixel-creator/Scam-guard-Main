@@ -19,6 +19,12 @@ or production-secret change restarts the 72-hour clock.
   closure: on or after `2026-08-28T15:07:00Z` via the written 144-success and
   restart rules. Railway watch patterns are active, so docs-only merges do not
   restart this clock.
+- First eligible scheduled observation for this RC:
+  [`32866638702`](https://github.com/Web-pixel-creator/Scam-guard-Main/actions/runs/32866638702)
+  passed at `2026-08-25T15:34:30Z` for exact `9019776`. The follow-up run
+  [`32872040216`](https://github.com/Web-pixel-creator/Scam-guard-Main/actions/runs/32872040216)
+  passed at `2026-08-25T16:27:10Z` on docs tip `8092956` with the runtime
+  unchanged; docs-only merges keep this window intact.
 
 ## Closed window #1 (2026-08-20, PR #128)
 
