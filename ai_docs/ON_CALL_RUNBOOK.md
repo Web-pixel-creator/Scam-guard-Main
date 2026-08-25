@@ -14,15 +14,20 @@ Current production target:
 
 - Public app: `https://scam-guard-main-production.up.railway.app`
 - Railway service: `Scam-guard-Main`
+- GitHub source: PR #129 merge
+  `901977645d3a8eb7a6498ac6aba90748daaa648e`
+- Railway deployment: `59077b99-b155-4f6d-88db-e6769aa4a394` (`SUCCESS`, US
+  West, `main` Auto Deploy + Wait for CI)
+- Supabase: 33 migrations, head `20260729131000`; AAL2 RLS and Family
+  notification-claim retention migrations are applied
 - Monitor command: `railway run npm run monitor:prod -- https://scam-guard-main-production.up.railway.app`
 
-**Transition status (2026-08-02):** the cost-safe monitor policy described
-below is local and unreleased. The current `origin/main` scheduled workflow
-still has the historical provider-calling behavior recorded in
-`CURRENT_STATE.md`. Until the patch is reviewed and merged, do not describe a
-scheduled run as no-AI or count it toward the fixed-RC canary. After merge,
-require one successful scheduled read-back that explicitly reports the provider
-check disabled with no request before using the replacement procedure.
+**Current status (2026-08-20):** D-091 is deployed. Every scheduled baseline
+sets `MONITOR_CHECK_AI=false`, receives no `OPENAI_*` secret and reports the AI
+provider disabled by policy without sending a request. AI reachability is a
+separate false-by-default manual job and runs only when an operator explicitly
+submits `check_ai_provider=true` after approving one provider call. Historical
+pre-D-091 provider attempts remain part of cost accounting.
 
 ## Alert Meaning
 
@@ -37,21 +42,20 @@ The monitor checks:
   the expected URL/concurrency, while polling mode has an empty webhook URL and
   authenticated polling-leader health 200;
 - Telegram has no pending backlog or fresh delivery error;
-- after the local D-091 patch is merged and read back, the recurring baseline
-  explicitly reports the AI provider check as disabled by policy and sends no
-  provider request.
+- the recurring baseline explicitly reports the AI provider check as disabled
+  by policy and sends no provider request.
 
 By default, Telegram alerts are sent only for failed checks. Warnings become
 alerts only if `MONITOR_ALERT_ON_WARN=true`.
 
-Under the replacement D-091 policy, AI-provider reachability is a separate,
-explicitly budgeted manual check. After the patch is merged, select
+Under the deployed D-091 policy, AI-provider reachability is a separate,
+explicitly budgeted manual check. Select
 `check_ai_provider=true` in the GitHub `Production Monitor` workflow only after
 an owner approves one provider call. Its independent `--ai-only` job uses
 GitHub job status as the alert channel and intentionally receives no Telegram
 credentials. Missing key, `429`, `5xx`, other non-success response, timeout or
 network failure is a hard failure, never a warning. The default manual action
-and every scheduled run leave this boolean false only after that merge.
+and every scheduled run leave this boolean false.
 
 Private moderation alerts are separate from production monitor alerts. If
 `TELEGRAM_MODERATION_CHAT_ID` is configured, new user reports and reputation
@@ -133,19 +137,29 @@ Actions:
 
 ### Webhook Rejects Valid Secret
 
-Likely causes: `TELEGRAM_WEBHOOK_SECRET` mismatch between Railway and Telegram
-registration, stale webhook registration, wrong public URL.
+First read the delivery mode from the monitor. In current polling production,
+an authenticated webhook response of `503` is expected and healthy; do not
+re-register a webhook. A valid-secret rejection is actionable as a webhook
+delivery failure only in an explicitly approved webhook-mode environment.
+
+Likely webhook-mode causes: `TELEGRAM_WEBHOOK_SECRET` mismatch between Railway
+and Telegram registration, stale registration or wrong public URL.
 
 Actions:
 
-1. Confirm Railway has `TELEGRAM_WEBHOOK_SECRET`.
-2. Re-register the webhook from a shell with Railway variables:
+1. Confirm the monitor's delivery mode. In polling mode, check the polling
+   leader, pending count and recent `getUpdates` errors instead of changing
+   Telegram configuration.
+2. In approved webhook mode, confirm Railway has
+   `TELEGRAM_WEBHOOK_SECRET`.
+3. Only under the approved webhook-mode recovery plan, re-register from a shell
+   with Railway variables:
 
    ```powershell
    railway run npx vite-node scripts/register-telegram-webhook.ts https://scam-guard-main-production.up.railway.app
    ```
 
-3. Re-run `monitor:prod`.
+4. Re-run `monitor:prod` and verify the intended mode exactly.
 
 ### Webhook Accepts Missing Secret
 
@@ -158,9 +172,12 @@ Actions:
 
 1. Inspect recent changes around `src/server.ts` and
    `src/lib/telegram/webhook.server.ts`.
-2. Rotate `TELEGRAM_WEBHOOK_SECRET`.
-3. Re-register the webhook.
-4. Re-run `prod:security-smoke` and `monitor:prod`.
+2. Follow the approved incident secret-rotation procedure; do not improvise a
+   new value in chat or logs.
+3. Re-register only if the intended delivery mode is webhook. Polling mode must
+   keep the webhook URL empty.
+4. Re-run `prod:security-smoke` and `monitor:prod`, confirming missing-secret
+   `401` and the intended delivery mode.
 
 ### Telegram `getMe` Fails
 
@@ -171,21 +188,28 @@ Actions:
 
 1. Confirm `TELEGRAM_BOT_TOKEN` exists in Railway and GitHub Secrets.
 2. If token was leaked or revoked, create a fresh token in BotFather, update
-   Railway/GitHub Secrets, then re-register the webhook.
-3. Re-run `prod:smoke` and `monitor:prod`.
+   Railway/GitHub Secrets under the approved rotation procedure. Restore the
+   configured polling leader; register a webhook only if webhook mode was
+   separately approved.
+3. Re-run `prod:smoke` and `monitor:prod`, then verify pending `0`, no fresh
+   Telegram error and the intended delivery mode.
 
-### Telegram Webhook Pending Updates or Fresh Error
+### Telegram Pending Updates or Fresh Error
 
-Likely causes: app unreachable, Telegram cannot reach the webhook URL, handler
-throws repeatedly, webhook URL mismatch.
+Likely causes depend on the reported mode. Polling production may have lost its
+leader, encountered repeated `getUpdates` failures or become fenced; webhook
+mode may have an unreachable URL or repeatedly failing handler.
 
 Actions:
 
 1. Inspect `railway logs --latest --lines 200`.
 2. Re-run `monitor:prod`.
-3. If the webhook URL is wrong, re-register it.
-4. If the handler is throwing, use the latest deploy logs and CI to isolate the
-   route/handler failure.
+3. In polling mode, verify the webhook URL remains empty and inspect polling
+   leader/lease/fence health. Do not register a webhook as a shortcut.
+4. In approved webhook mode only, correct a wrong URL through the approved
+   registration procedure.
+5. If the handler or polling loop is throwing, use the latest deploy logs and
+   CI to isolate the failure without changing delivery mode first.
 
 ### AI Provider Fails or Returns `429`
 
@@ -195,9 +219,9 @@ The rules engine still works without AI. Natural-language explanations,
 structured image analysis, OCR-like image understanding and voice STT can
 degrade.
 
-After D-091 is merged and its scheduled read-back passes, this alert can come
-only from an explicitly enabled bounded probe; it is not part of the recurring
-baseline and does not consume one of the 144 scheduled canary observations.
+This alert can come only from an explicitly enabled bounded probe; it is not
+part of the recurring baseline and does not consume one of the 144 scheduled
+canary observations.
 
 Actions:
 

@@ -2,6 +2,51 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-25 - PR #129 production, canary #1 closure and docs-only reconciliation
+
+- PR #129 (semantic / human-simulation hardening) merged as
+  `901977645d3a8eb7a6498ac6aba90748daaa648e` and deployed through Railway Auto
+  Deploy + Wait for CI as `59077b99-b155-4f6d-88db-e6769aa4a394`, image
+  `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
+  Its 179-file / 15,327-test merge gate and Security Gates passed. Railway
+  watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) shipped in the same merge
+  and are confirmed active in the deployed manifest.
+- The PR #128 canary window closed `2026-08-25` with verdict `GO`: 185/185
+  eligible scheduled runs, zero non-success eligible runs, unchanged
+  deployment and restart-rule review, final production/security/web-P1 smokes
+  passed, polling-dialogue smoke recorded as skipped without owner approval.
+  Closure evidence is in `CANARY_72H.md`.
+- PR #129 opened canary window #2 at `2026-08-25T15:07:00Z`; formal status
+  `OPEN`, target verdict on or after `2026-08-28T15:07:00Z`.
+- Prepared this docs-only reconciliation on a fresh worktree/branch from
+  `main` `9019776`: CURRENT_STATE, OPEN_TASKS, CANARY_72H, AI_INDEX, README,
+  DEPLOYMENT, ON_CALL_RUNBOOK and LATEST_PROJECT_STATUS updated to the PR #129
+  production identity; dated release record
+  `PRODUCTION_APPLICATION_RELEASE_2026-08-25.md` added. The merge must prove
+  the Railway deployment id stays `59077b99`. The superseded docs PR #127 is
+  to be closed with a pointer instead of being merged.
+
+## 2026-08-20 - PR #128 production truth and local documentation candidate
+
+- PR #126 merge `8a76a5ec6994fd208cccde731bab2d5c70b6d232` ran as
+  Railway deployment `895a82f3-6e59-4b91-8ec7-513330e4f7cb`. Its fixed-RC
+  window accumulated 226 successful scheduled monitor executions; it is now a
+  superseded historical runtime, not the current production identity.
+- PR #128 merged as
+  `58557765ad28d58bfc279ffda35a298b817ded7f` and deployed through Railway Auto
+  Deploy + Wait for CI as `11e41786-8633-4ee7-bd67-4b71fb768a6c`, image
+  `sha256:d3a4183dd5a98d8844fafcbe053c777616501c45f2ee879d4522a3bd6fa1f4fc`.
+  Its 174-file / 13,486-test merge gate and Security Gates passed; the bounded
+  task-scam salary/tax and unauthorized-BNPL correction is production truth.
+  The new fixed-RC canary is early and remains open.
+- Built an isolated local documentation/no-deploy candidate on
+  `agent/docs-reconciliation-20260820`. It reconciles maintained status and
+  historical evidence and proposes Railway Watch Paths with a focused config
+  contract. The candidate is uncommitted, unmerged and undeployed; its Watch
+  Paths are not active production behavior. Production PR #128 and its canary
+  are unchanged. No commit, push, deployment, database action or production
+  request was performed by this documentation pass.
+
 ## 2026-08-13 - Post-canary Telegram/privacy candidate reconciled locally
 
 - Built an isolated candidate on exact deployed `1576e21`; the protected dirty

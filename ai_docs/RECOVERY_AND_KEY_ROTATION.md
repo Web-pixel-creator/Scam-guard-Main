@@ -6,6 +6,9 @@ command without a separately approved maintenance window.
 
 ## Current recovery contract
 
+- Commit, Railway deployment and image identifiers in dated evidence sections
+  are historical snapshots. Use `CURRENT_STATE.md` as the sole source for the
+  current application baseline.
 - Application rollback unit: one immutable Git commit and its Railway
   deployment/image digest.
 - Database change unit: forward-only files in `supabase/migrations/`; repair a
@@ -16,8 +19,9 @@ command without a separately approved maintenance window.
   window before higher-volume launch.
 - Current pilot plan: Supabase Free. It has no managed scheduled backups or
   PITR, so the proposed launch RPO is not guaranteed while the project remains
-  on Free. Until an upgrade, create an encrypted logical export at least weekly
-  and immediately before every approved risky schema or Auth change.
+  on Free. Until an upgrade, create an encrypted logical export at least daily,
+  alert on failure, verify an offsite read-back, and also export immediately
+  before every approved risky schema or Auth change.
 - Remaining on Free is an explicit pilot risk acceptance, not evidence that the
   proposed RPO is met. A logical snapshot proves one recoverable point only; it
   does not establish an ongoing backup SLA.
@@ -86,15 +90,20 @@ command without a separately approved maintenance window.
   remains optional defense in depth, not a blocker for the current free pilot.
 - The production migration head recorded with the 2026-07-26 archive is
   `20260726090000`; its Railway identifiers are historical snapshot metadata.
-- Current production migration history is `33` versions with head
-  `20260729131000`. Railway deployment
+- At the 2026-08-02 application-release snapshot, production migration history
+  was `33` versions with head `20260729131000`. Railway deployment
   `12c9b9c2-d7de-4fb5-9817-9ae47c3b8cb7` runs application commit
   `9e901b1673832e4e78d61500280f061ba39e245c` with verified image digest
   `sha256:44b69a4a996393d39220702b07214fb622017aa83698051139d10ab2bdd8b41a`.
-  Repository tip `origin/main` is later documentation-only PR #120 merge
+  At that snapshot, repository tip `origin/main` was later documentation-only PR #120 merge
   `b226bdd`; it is not the deployed application source.
   Its sanitized postflight is in
   `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
+- Those 33 versions already include the 2026-08-01 production application of
+  `20260729105030_family_notification_claim_retention.sql` and
+  `20260729131000_admin_mfa_aal2_rls.sql`. The exact current application
+  baseline remains in `CURRENT_STATE.md`; the older Railway identifiers above
+  must not be presented as current.
 - The 2026-08-01 UTC pre-apply freeze produced a fresh EFS/CMS-encrypted
   restore-ready logical export. Local decrypt/hash verification passed; the
   ciphertext archive SHA-256 is
@@ -220,11 +229,12 @@ client crossed its evidence timeout and its complete stderr/per-phase duration
 was not retained. The run therefore does not provide a complete measured RTO or
 an RPO basis. The original MFA smoke proved the application AAL1 gate and TOTP
 upgrade, but its final database read used service role; it did not prove direct
-PostgREST policy behavior. Migration `20260729131000` is now applied in isolated
-staging and its database pgTAP passes. The guarded official history repair,
-post-repair migration list and no-change dry-run completed, and the revised
-same-user-client AAL1/AAL2 HTTP/PostgREST smoke closed that boundary with exact
-synthetic cleanup.
+PostgREST policy behavior. Migration `20260729131000` is applied in isolated
+staging, where its database pgTAP passes, and in production, where the
+2026-08-01 postflight confirmed the migration head and all seven protected
+policies. The guarded official history repair, post-repair migration list and
+no-change dry-run completed, and the revised same-user-client AAL1/AAL2
+HTTP/PostgREST smoke closed the staging boundary with exact synthetic cleanup.
 
 ## Application rollback drill
 
@@ -348,13 +358,15 @@ Read-only Dashboard audit on 2026-07-24 (no settings were changed):
   is applied in isolated staging, its pgTAP passes there, guarded official
   migration history now matches local, and the revised real-user-client
   HTTP/PostgREST AAL1-deny/AAL2-allow smoke passed with exact cleanup.
-  Production is unchanged.
-- On the local branch production/Railway must set
+  Production subsequently applied the migration and postflight confirmed all
+  seven protected AAL2 policies, including both UPDATE `WITH CHECK` clauses.
+- Production/Railway must set
   `REQUIRE_ADMIN_MFA_AAL2=true|false` explicitly. Missing, empty or invalid
   configuration fails closed. Explicit `false` is retained only as a bounded
   enrollment/recovery rollback state; dev/test may omit the flag.
 
-Safe enablement order:
+Historical safe enablement order, completed for production and retained as the
+future rollout/recovery template:
 
 1. deploy the enrollment/challenge UI with explicit
    `REQUIRE_ADMIN_MFA_AAL2=false`; do not combine first deployment and

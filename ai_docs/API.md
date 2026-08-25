@@ -208,8 +208,9 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   state, and trusted-contact alerts include no raw scam evidence. Notification
   idempotency claims are metadata-only and carry `expires_at`; migration
   `20260729105030` adds them to scheduled daily retention instead of relying
-  only on opportunistic cleanup. It is verified in isolated staging but is not
-  deployed to production. `family:codeword` is a teaching-only callback:
+  only on opportunistic cleanup. It was applied to production on 2026-08-01;
+  postflight confirmed the updated function and existing daily cron schedule.
+  `family:codeword` is a teaching-only callback:
   it tells families how to agree on a voice-clone verification phrase offline
   and never asks the user to send or store the actual codeword. The trusted
   contact can opt out from future alerts from the alert itself.
@@ -248,9 +249,9 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
 Browser session token (Supabase) is attached by `attachSupabaseAuth` on every
 server-function call. Admin functions validate it server-side
 (`requireSupabaseAuth`), check the `admin` role in `user_roles` and require JWT
-`aal2` when the production flag is enabled. Production/Railway now requires an
-explicit `REQUIRE_ADMIN_MFA_AAL2` value in the local branch; missing, empty or
-invalid configuration fails closed.
+`aal2` when the production flag is enabled. Production/Railway requires an
+explicit `REQUIRE_ADMIN_MFA_AAL2` value; missing, empty or invalid
+configuration fails closed, and the deployed value is `true`.
 
 Migration `20260729131000` applies the same role-plus-AAL2 requirement
 to direct authenticated RLS/PostgREST SELECT on `checks`, `reports`, `entities`,
@@ -259,8 +260,9 @@ to direct authenticated RLS/PostgREST SELECT on `checks`, `reports`, `entities`,
 service role retains its normal server-only RLS bypass. Isolated staging
 catalog checks and transaction-isolated pgTAP pass 23/23. Guarded official
 migration history matches local and the same-client HTTP/PostgREST smoke proved
-AAL1 denial plus AAL2 success with exact cleanup. The migration is not in
-production.
+AAL1 denial plus AAL2 success with exact cleanup. It was applied to production
+on 2026-08-01; postflight confirmed migration head `20260729131000`, all seven
+protected AAL2 policies and an authorized AAL2 admin read.
 Allowlisted admin signup is gated on Supabase email confirmation: a new account
 gets at most the baseline `user` role until `auth.users.email_confirmed_at` is
 set, then the database trigger may add `admin` if the email is still in
@@ -297,8 +299,9 @@ the baseline `user` role remains.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for
   retention cleanup. It is not exposed as a public API. Migration
   `20260729105030` includes expired Family notification claims and returns their
-  deleted count; isolated staging pgTAP passes 10/10, while production remains
-  unchanged.
+  deleted count; isolated staging pgTAP passes 10/10. It was applied to
+  production on 2026-08-01, where postflight confirmed the updated function,
+  ACL and existing daily cron schedule.
 - `embed_origin_events` is service-role-only, RLS-protected `/embed/check`
   origin telemetry. Retention pruning deletes rows older than 180 days.
 

@@ -4,7 +4,83 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
-## Current RC observation status (2026-08-13)
+## Current RC observation status (2026-08-25, window #2)
+
+- Current RC: PR #129 merge `901977645d3a8eb7a6498ac6aba90748daaa648e` (tree
+  `b68beea635e3d2a37e0fe15049c00eb20725813e`).
+- Railway deployment: `59077b99-b155-4f6d-88db-e6769aa4a394`; image
+  `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
+- PR #129 CI and Security Gates passed with 179 Vitest files and
+  15,327/15,327 tests. The post-deploy production smoke passed: home and
+  `/healthz` 200, webhook 401/503 boundaries, delivery `mode=polling`,
+  `pending=0`, `last_error=none`, polling leader 200, optional AI provider
+  probe `429 quota_exhausted` (degraded; deterministic scoring unaffected).
+- Window opened `2026-08-25T15:07:00Z`. Formal status: `OPEN`. Target
+  closure: on or after `2026-08-28T15:07:00Z` via the written 144-success and
+  restart rules. Railway watch patterns are active, so docs-only merges do not
+  restart this clock.
+
+## Closed window #1 (2026-08-20, PR #128)
+
+- RC: `58557765ad28d58bfc279ffda35a298b817ded7f` (tree
+  `94efdb4a753d296c93a183b754313b5949eb41bf`).
+- Railway deployment: `11e41786-8633-4ee7-bd67-4b71fb768a6c`; image
+  `sha256:d3a4183dd5a98d8844fafcbe053c777616501c45f2ee879d4522a3bd6fa1f4fc`.
+- PR #128 CI and Security Gates passed with 174 Vitest files and
+  13,486/13,486 tests. Deployment, `/healthz`, the no-AI smoke, webhook
+  boundaries, polling leader, pending `0` and absence of a Telegram last error
+  were green without a Telegram message or provider request.
+- The first two eligible scheduled observations, runs `32340016736` and
+  `32344631404`, passed.
+
+### Formal closure (2026-08-25): CLOSED, verdict GO
+
+- Scheduled observation window `2026-08-20T06:32:24Z` → `2026-08-25T14:36:28Z`:
+  185/185 eligible runs recorded through `2026-08-25T11:52:01Z`, and the 60
+  most recent scheduled runs through `2026-08-25T14:36:28Z` (run
+  `32860557803`) all passed; zero non-success eligible runs in the window.
+- Restart-rule review: `main` HEAD unchanged (`58557765`), the active Railway
+  deployment is still `11e41786-8633-4ee7-bd67-4b71fb768a6c`, and no new
+  migrations, workflow or runtime-config changes were merged since the RC
+  deploy. The logged `getUpdates` provider events (last
+  `2026-08-25T03:11:08Z`) recovered and produced no lost-response signal.
+- Final bounded checks (2026-08-25, no user content sent): the production
+  smoke passed (home and `/healthz` 200; webhook 401 without secret and the
+  expected polling-mode 503 with secret; delivery `mode=polling`,
+  `pending=0`, `last_error=none`; polling leader 200). The optional AI
+  provider health probe returned `429 quota_exhausted` (degraded; the
+  deterministic scoring core is unaffected). The security smoke passed
+  (anon deny-by-default on tables and RPC, service-role paths, admin
+  allowlist boundaries). The web P1 smoke passed with a synthetic report and
+  appeal accepted, moderated, audited and cleaned up (marker
+  `QA-P1-WEB-20260825144913`).
+- Polling-dialogue smoke: skipped — it requires a real Telegram message and no
+  explicit owner approval was granted for this window; it stays an open P1
+  acceptance item, not a canary failure.
+- Verdict: `CANARY_72H` **CLOSED** for RC `58557765` / deployment `11e41786`
+  with operational verdict **GO**. Device, voice, accessibility and
+  legal/privacy acceptance remain open as separate P1 items. Any code, schema
+  or secret change (including the PR #129 merge) starts a new window.
+
+### Historical PR #126 runtime observation
+
+- RC `8a76a5ec6994fd208cccde731bab2d5c70b6d232` ran as Railway deployment
+  `895a82f3-6e59-4b91-8ec7-513330e4f7cb`, image
+  `sha256:6bc60d2089cc4c61e2c2b7ca6f6af1239cc1d84c5b1dcd4d7f96679f4c1f1f27`.
+- From the first recorded eligible run at `2026-08-13T12:52:46Z` through the
+  final pre-PR-#128 run at `2026-08-20T05:53:48Z`, 226 scheduled monitor runs
+  completed successfully.
+- Scheduled run `32041888647` failed during GitHub job setup because codeload
+  returned `429` while downloading the pinned `setup-bun` action. Checkout,
+  Bun setup and the monitor itself never ran, so this invocation is noneligible
+  and is not evidence of a production, security-boundary or lost-update
+  failure. Adjacent scheduled observations passed.
+- The PR #126 runtime observation exceeded the 144-success threshold without a
+  confirmed sustained outage or repeated silent-update/lost-response pattern.
+  Its full device, voice, accessibility and legal/privacy acceptance remained
+  open, and PR #128 subsequently started a new runtime window.
+
+### Historical PR #125 runtime observation
 
 - RC: `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
 - Railway deployment: `17f20728-fea9-4320-987b-b15bdc67231a`; image
@@ -18,7 +94,7 @@ or production-secret change restarts the 72-hour clock.
   pending `0`, polling leader and no-AI policy checks passed. The adjacent runs
   and all 19 scheduled runs in the final 24 hours passed without a deploy or
   configuration change.
-- Operational 72-hour checkpoint: `GO`. No sustained outage or repeated
+- Historical operational 72-hour checkpoint: `GO`. No sustained outage or repeated
   silent-update/lost-response pattern was confirmed. Formal `CANARY_72H`
   closure remains `OPEN` under the unchanged 144-success and failure/restart
   rules. The full device, voice, accessibility and legal/privacy acceptance
@@ -45,11 +121,13 @@ or production-secret change restarts the 72-hour clock.
   `prod:security-smoke`, `prod:web-p1-smoke`, polling dialogue dispatch and
   cleanup pass. `prod:smoke` remains no-request even when Railway injects an
   `OPENAI_API_KEY`; only the explicit CLI flag enables its provider probe.
-- Bounded real-client evidence exists for the PR #124-125 Direct/Inline
+- Bounded real-client evidence exists for the PR #124-128 Direct/Inline
   RU/UZ/EN safety scenarios without user identifiers or secret content. It does
-  not replace the still-open full Desktop/Android/iOS and voice matrix.
-- Railway plan/payment method is active, `sleepApplication=false`, one replica
-  is expected, and an owner has checked usage/spend alerts in the Dashboard.
+  not replace the still-open full Desktop/Android/iOS and voice matrix; formal
+  Inline client progress remains 1/51.
+- Railway plan/payment method is active, `sleepApplication=false` and one
+  replica is expected. Formal evidence for payment-method expiry, account-level
+  spend alerts and a named response owner remains open in `OPEN_TASKS.md`.
 
 ## Observation window
 
@@ -102,11 +180,12 @@ Do not run it merely to make a rules-only release look healthier.
   from a new recorded timestamp. A manual AI probe does not restart the window
   when it changes no production or monitor configuration.
 
-Run `31352427714` is not silently waived: it timed out while observing the
+Historical run `31352427714` is not silently waived: it timed out while observing the
 missing-secret webhook boundary, so the formal gate remains open until an owner
 records whether the unchanged restart rule requires a new counted window. The
 healthy checks within that run and immediate recovery support the narrower
-operational `GO`; they do not rewrite this contract after the fact.
+operational `GO` for that earlier RC; they do not rewrite this contract after
+the fact.
 
 ## Closure evidence
 
@@ -124,7 +203,26 @@ Record only:
 Do not attach tokens, chat ids, database URLs, user messages, screenshots or
 row-level production exports.
 
-### Recorded checkpoint evidence for `1576e21`
+### Closed window #1 baseline evidence for `58557765`
+
+- PR #128 merge-commit CI and Security Gates: passed, 174 files / 13,486 tests.
+- Railway deployment: `SUCCESS`; exact commit, tree and image digest match this
+  file.
+- Post-deploy `/healthz` and no-AI/no-live-message smoke: passed.
+- First scheduled observations: runs `32340016736` and `32344631404`, both
+  successful; explicitly enabled AI probes/provider requests: `0`.
+- Final formal canary status for this window: `CLOSED`, verdict `GO`
+  (see "Formal closure (2026-08-25)" above).
+
+### Historical observation evidence for `8a76a5e`
+
+- Successful eligible scheduled observations: `226`.
+- Noneligible GitHub setup failure: run `32041888647`; codeload `429` while
+  downloading `setup-bun`, monitor not executed.
+- No sustained outage or repeated silent-update/lost-response pattern was
+  confirmed before PR #128 restarted the observation window.
+
+### Historical checkpoint evidence for `1576e21`
 
 - First eligible run in the fixed-RC window: `31313623902`.
 - Last eligible run before the 72-hour checkpoint: `31592922999`.
