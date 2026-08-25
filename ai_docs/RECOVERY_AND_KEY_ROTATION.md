@@ -128,6 +128,11 @@ command without a separately approved maintenance window.
 
 ## Backup verification
 
+0. Since 2026-08-25 the automated loop in `BACKUP_AUTOMATION.md` runs a daily
+   encrypted logical export with in-CI read-back verification and a weekly
+   isolated restore drill (`Supabase Encrypted Backup` and
+   `Backup Restore Drill` workflows). The checks below still apply to manual
+   exports and to the pre-risky-change export requirement.
 1. In Supabase Dashboard, record plan, backup type, earliest/latest restore
    point and retention. Record metadata only; never attach a backup to the repo.
 2. On Free, confirm a successful encrypted logical export exists before every

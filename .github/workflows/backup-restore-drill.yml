@@ -1,0 +1,112 @@
+name: Backup Restore Drill
+
+# Weekly non-production restore drill: download the latest encrypted backup
+# artifact, restore it into an isolated throwaway PostgreSQL container and
+# verify count-only invariants. No identifiers, no production credentials and
+# no outbound integrations are involved. The drill proves decryptability and
+# restorability; it never touches the production database.
+
+on:
+  schedule:
+    - cron: "0 5 * * 6"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: backup-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  restore-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find latest successful backup run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow 'Supabase Encrypted Backup' --status success --limit 1 --json databaseId --jq 'first | .databaseId')"
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No successful Supabase Encrypted Backup run found. The drill cannot run before the first successful backup."
+            exit 1
+          fi
+          echo "BACKUP_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+
+      - name: Download latest backup artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: supabase-backup-${{ env.BACKUP_RUN_ID }}
+          run-id: ${{ env.BACKUP_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Decrypt and verify checksum
+        env:
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_ENCRYPTION_PASSPHRASE" ]; then
+            echo "::error::BACKUP_ENCRYPTION_PASSPHRASE is not set."
+            exit 1
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+            -in backup.sql.enc -out backup.sql -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+          echo "$(cat backup.sql.sha256)  backup.sql" | sha256sum -c -
+
+      - name: Start isolated PostgreSQL matching the dump version
+        run: |
+          DUMPED_MAJOR="$(grep -m1 'Dumped from database version' backup.sql | grep -oE '[0-9]+' | head -n 1)"
+          if [ -z "$DUMPED_MAJOR" ]; then
+            echo "::error::Could not read the dumped-from PostgreSQL major version from the dump header."
+            exit 1
+          fi
+          echo "Restoring into postgres:${DUMPED_MAJOR}"
+          docker run -d --name drill-pg \
+            -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=restore_drill \
+            -p 5432:5432 "postgres:${DUMPED_MAJOR}"
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -U postgres; then break; fi
+            sleep 2
+          done
+          pg_isready -h 127.0.0.1 -U postgres
+
+      - name: Pre-create extension schemas referenced by the dump
+        env:
+          PGPASSWORD: drill
+        run: |
+          grep -oE 'WITH SCHEMA [a-zA-Z_]+' backup.sql | awk '{print $3}' | sort -u |
+            while read -r schema; do
+              echo "Pre-creating schema: $schema"
+              psql -h 127.0.0.1 -U postgres -d restore_drill -v ON_ERROR_STOP=1 \
+                -c "CREATE SCHEMA IF NOT EXISTS $schema"
+            done
+
+      - name: Restore dump
+        env:
+          PGPASSWORD: drill
+        run: |
+          psql -h 127.0.0.1 -U postgres -d restore_drill \
+            -v ON_ERROR_STOP=1 -f backup.sql > restore.log
+          echo "restore-log-lines: $(wc -l < restore.log)"
+
+      - name: Count-only invariants
+        env:
+          PGPASSWORD: drill
+        run: |
+          q() { psql -h 127.0.0.1 -U postgres -d restore_drill -tAc "$1"; }
+          {
+            echo "## Restore drill invariants (count-only)"
+            echo "- auth.users: $(q 'SELECT count(*) FROM auth.users')"
+            echo "- public.checks: $(q 'SELECT count(*) FROM public.checks')"
+            echo "- public.reports: $(q 'SELECT count(*) FROM public.reports')"
+            echo "- public.entities: $(q 'SELECT count(*) FROM public.entities')"
+            echo "- public.user_roles: $(q 'SELECT count(*) FROM public.user_roles')"
+            echo "- public.admin_allowlist: $(q 'SELECT count(*) FROM public.admin_allowlist')"
+            echo "- public.reputation_appeals: $(q 'SELECT count(*) FROM public.reputation_appeals')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup plaintext artifacts
+        if: always()
+        run: |
+          rm -f backup.sql backup.sql.enc restore.log read-back.sql
+          docker rm -f drill-pg || true
