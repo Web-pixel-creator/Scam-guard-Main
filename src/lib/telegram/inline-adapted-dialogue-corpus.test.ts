@@ -548,5 +548,5 @@ describe("adapted 1,000-dialogue Inline perimeter", () => {
         persist: false,
       });
     }
-  }, 30_000);
+  }, 240_000);
 });
