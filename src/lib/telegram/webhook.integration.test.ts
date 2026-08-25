@@ -1243,7 +1243,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain("Похоже, звонок рискованный");
-    expect(h.sendCalls[0].text).toContain("Я сам перезвоню");
+    expect(h.sendCalls[0].text).toContain("Я перезвоню");
     expect(callbackData(h.sendCalls[0].keyboard)).toEqual([
       "livecall:hangup",
       "livecall:what_to_say",
@@ -1898,7 +1898,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
     expect(response.status).toBe(200);
     expect(h.sendCalls).toHaveLength(1);
     expect(h.sendCalls[0].text).toContain("Готовая фраза");
-    expect(h.sendCalls[0].text).toContain("Я сам перезвоню");
+    expect(h.sendCalls[0].text).toContain("Я перезвоню");
     expect(h.sendCalls[0].text).not.toContain("Недостаточно данных");
   });
 
@@ -2359,6 +2359,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     const persisted = JSON.stringify(h.inserts);
     expect(persisted).toContain("asks_to_install_apk");
     expect(persisted).toContain("threatens_legal_action");
+    expect(persisted).toContain("weird_domain");
     expect(persisted).not.toContain("data:image");
   });
 

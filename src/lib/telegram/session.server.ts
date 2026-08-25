@@ -14,6 +14,7 @@ import type { ReplyCheckContext } from "@/lib/telegram/reply-check-context";
 import type { ReportCallbackBinding } from "@/lib/telegram/report-flow";
 import type { RiskLevel } from "@/lib/risk/rules";
 import type { VictimFollowUpContext } from "@/lib/telegram/victim-intent";
+import type { SensitiveSecretFollowUpContext } from "@/lib/telegram/sensitive-secret-input";
 import {
   currentTelegramSessionLanguage,
   currentTelegramUpdateId,
@@ -99,6 +100,12 @@ export interface ReportDraft {
    * never raw text, amount, recipient, phone, URL, code, file or credential.
    */
   lastVictimIntent?: VictimFollowUpContext;
+  /**
+   * Recent private-warning context for short follow-up questions. Contains
+   * only bounded secret-class enums, response language and a timestamp; never
+   * a password, code, access token, seed/private key value, or the source message.
+   */
+  lastSensitiveSecret?: SensitiveSecretFollowUpContext;
   /**
    * Guardian Angel v1 context for post-high-risk guidance.
    * Stores only summary metadata: no raw input, OCR text, URLs, phone numbers,
@@ -323,6 +330,7 @@ function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
     data.lastCheck ??
     data.replyCheckContexts?.length ??
     data.lastVictimIntent ??
+    data.lastSensitiveSecret ??
     data.reportCallbackBinding ??
     data.guardian ??
     data.conversation,

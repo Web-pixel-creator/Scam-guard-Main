@@ -21,7 +21,10 @@ export type ProtectiveActionId =
   | "protect_secrets"
   | "protect_card_details"
   | "avoid_link_or_apk"
+  | "avoid_requested_transfer"
   | "avoid_transfer"
+  | "avoid_dangerous_act"
+  | "seek_physical_safety"
   | "end_pressure_call"
   | "verify_official_channel"
   | "secure_telegram_account"
@@ -51,6 +54,7 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   asks_for_pin: "protect_secrets",
   asks_to_install_apk: "avoid_link_or_apk",
   asks_to_share_screen: "avoid_link_or_apk",
+  asks_for_money_transfer: "avoid_requested_transfer",
   asks_to_transfer_to_safe_account: "avoid_transfer",
   impersonates_bank: "verify_official_channel",
   impersonates_operator: "verify_official_channel",
@@ -102,6 +106,9 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   brand_impersonation: "verify_official_channel",
   telegram_account_takeover_phishing: "secure_telegram_account",
   dropper_recruitment: "protect_identity_access",
+  authority_coerced_dangerous_act: "avoid_dangerous_act",
+  fake_penalty_points_erasure: "avoid_requested_transfer",
+  threatens_physical_violence: "seek_physical_safety",
 };
 
 interface AdviceCategory {
@@ -139,11 +146,40 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Money transfer reasons → don't send money
   {
+    id: "avoid_requested_transfer",
+    advice: {
+      ru: "Не переводите деньги по просьбе из сообщения, пока не проверите получателя и причину платежа независимо",
+      uz: "Xabardagi so'rov bo'yicha pul o'tkazmang — oluvchi va to'lov sababini mustaqil tekshiring",
+      en: "Do not transfer money because of a message request until you independently verify the recipient and payment reason",
+    },
+  },
+  // Literal "safe account" and other transfer-scheme reasons.
+  {
     id: "avoid_transfer",
     advice: {
       ru: "Не переводите деньги на «безопасный счёт»",
       uz: "«Xavfsiz hisob»ga pul o'tkazmang",
       en: "Do not transfer money to a 'safe account'",
+    },
+  },
+  // Coercion to burn, damage, carry, or leave an object is a physical-safety
+  // emergency, not merely a pressured phone call.
+  {
+    id: "avoid_dangerous_act",
+    advice: {
+      ru: "Не выполняйте опасное задание: отойдите в безопасное место и позвоните 102",
+      uz: "Xavfli topshiriqni bajarmang: xavfsiz joyga uzoqlashing va 102 ga qo'ng'iroq qiling",
+      en: "Do not carry out the dangerous task: move somewhere safe and call 102",
+    },
+  },
+  // A direct threat to come to the victim or use violence needs emergency
+  // guidance, not the generic pressure-call action.
+  {
+    id: "seek_physical_safety",
+    advice: {
+      ru: "Перейдите в безопасное место, не соглашайтесь на встречу и позвоните 102",
+      uz: "Xavfsiz joyga o'ting, uchrashuvga rozi bo'lmang va 102 ga qo'ng'iroq qiling",
+      en: "Move somewhere safe, do not agree to meet, and call 102",
     },
   },
   // Pressure/urgency reasons → hang up calmly
@@ -284,6 +320,8 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
 ];
 
 const ADVICE_PRIORITY = [
+  "seek_physical_safety",
+  "avoid_dangerous_act",
   "stop_reported_contact",
   "avoid_qr",
   "secure_telegram_account",
@@ -300,6 +338,7 @@ const ADVICE_PRIORITY = [
   "protect_card_details",
   "protect_personal_data",
   "avoid_link_or_apk",
+  "avoid_requested_transfer",
   "avoid_transfer",
   "verify_official_channel",
   "end_pressure_call",

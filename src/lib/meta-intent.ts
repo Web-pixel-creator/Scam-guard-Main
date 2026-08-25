@@ -376,6 +376,7 @@ const META_RISK_OVERRIDE_REASONS = new Set<ReasonCode>([
   "asks_for_pin",
   "asks_to_install_apk",
   "asks_to_share_screen",
+  "asks_for_money_transfer",
   "asks_to_transfer_to_safe_account",
   "threatens_legal_action",
   "asks_not_to_hang_up",
@@ -400,6 +401,9 @@ const META_RISK_OVERRIDE_REASONS = new Set<ReasonCode>([
   "advance_fee_prize_inheritance",
   "telegram_account_takeover_phishing",
   "dropper_recruitment",
+  "authority_coerced_dangerous_act",
+  "fake_penalty_points_erasure",
+  "threatens_physical_violence",
 ]);
 
 const META_DIRECT_ACTION_WORDING_PATTERNS: readonly RegExp[] = [
@@ -412,6 +416,33 @@ const META_DIRECT_ACTION_WORDING_PATTERNS: readonly RegExp[] = [
   /(?:o['’]?rnating|yuklab\s+oling).{0,50}(?:apk|ilova|dastur|fayl|havola)/iu,
   /(?:yuboring|ayting).{0,45}(?:kod|parol|cvv|cvc|pin|pul|karta)/iu,
 ];
+
+// A methodology question can contain words such as "bank", "police" and
+// "Telegram" in a purely educational sense. Only a concrete first-person
+// contact report is a live-risk override here. Each pattern is clause-bounded
+// so an earlier educational sentence cannot accidentally supply the subject or
+// action for an unrelated sentence.
+const META_LIVE_AUTHORITY_CONTACT_PATTERNS: readonly RegExp[] = [
+  // RU: first-person marker first, with authority and contact verb in either
+  // order afterwards ("мне в Telegram написал банк", "мне звонит полиция").
+  /(?<!\p{L})(?:мне|нам)(?!\p{L})(?!\s+(?:кажется|интересно|известно))(?=[^?!.]{0,140}(?:банк|банковск\p{L}*|полици\p{L}*|милици\p{L}*|мвд|рувд|прокуратур\p{L}*|следовател\p{L}*))(?=[^?!.]{0,140}(?:звон\p{L}*|позвон\p{L}*|пиш\p{L}*|напис\p{L}*|сообщени\p{L}*|связ\p{L}*|прислал\p{L}*|отправил\p{L}*))/iu,
+  // RU: authority first ("полиция звонит мне", "банк мне написал").
+  /(?:банк|банковск\p{L}*|полици\p{L}*|милици\p{L}*|мвд|рувд|прокуратур\p{L}*|следовател\p{L}*)[^?!.]{0,120}(?:(?<!\p{L})(?:мне|нам|меня)(?!\p{L})[^?!.]{0,70}(?:звон\p{L}*|позвон\p{L}*|пиш\p{L}*|напис\p{L}*|сообщени\p{L}*|связ\p{L}*|прислал\p{L}*|отправил\p{L}*)|(?:звон\p{L}*|позвон\p{L}*|пиш\p{L}*|напис\p{L}*|сообщени\p{L}*|связ\p{L}*|прислал\p{L}*|отправил\p{L}*)[^?!.]{0,70}(?<!\p{L})(?:мне|нам|меня)(?!\p{L}))/iu,
+  // UZ Latin/Cyrillic: first-person marker first.
+  /(?<!\p{L})(?:menga|bizga|meni|менга|бизга|мени)(?!\p{L})(?=[^?!.]{0,140}(?:bank|politsiya|militsiya|iib|iiv|soliq|prokuratur|банк|полици\p{L}*|милици\p{L}*|ииб|иив|солиқ|солик|прокуратур\p{L}*))(?=[^?!.]{0,140}(?:yoz\p{L}*|xabar\p{L}*|bog['’]?lan\p{L}*|qo['’]?ng['’]?iroq\p{L}*|qong['’]?iroq\p{L}*|telefon\p{L}*|ёз\p{L}*|хабар\p{L}*|боғлан\p{L}*|боглан\p{L}*|қўнғироқ\p{L}*|кунгирок\p{L}*|телефон\p{L}*))/iu,
+  // UZ Latin/Cyrillic: authority first.
+  /(?:bank|politsiya|militsiya|iib|iiv|soliq|prokuratur|банк|полици\p{L}*|милици\p{L}*|ииб|иив|солиқ|солик|прокуратур\p{L}*)[^?!.]{0,120}(?:(?<!\p{L})(?:menga|bizga|meni|менга|бизга|мени)(?!\p{L})[^?!.]{0,70}(?:yoz\p{L}*|xabar\p{L}*|bog['’]?lan\p{L}*|qo['’]?ng['’]?iroq\p{L}*|qong['’]?iroq\p{L}*|telefon\p{L}*|ёз\p{L}*|хабар\p{L}*|боғлан\p{L}*|боглан\p{L}*|қўнғироқ\p{L}*|кунгирок\p{L}*|телефон\p{L}*)|(?:yoz\p{L}*|xabar\p{L}*|bog['’]?lan\p{L}*|qo['’]?ng['’]?iroq\p{L}*|qong['’]?iroq\p{L}*|telefon\p{L}*|ёз\p{L}*|хабар\p{L}*|боғлан\p{L}*|боглан\p{L}*|қўнғироқ\p{L}*|кунгирок\p{L}*|телефон\p{L}*)[^?!.]{0,70}(?<!\p{L})(?:menga|bizga|meni|менга|бизга|мени)(?!\p{L}))/iu,
+  // EN: authority first ("my bank messaged me", "the police are calling me").
+  /\b(?:(?:my|the)\s+)?(?:bank|banking\s+team|police|law[\s-]?enforcement|prosecutor(?:'s)?\s+office)\b[^?!.]{0,100}(?:wrote|writing|messag\p{L}*|contact\p{L}*|call\p{L}*|text\p{L}*|sent)[^?!.]{0,60}\b(?:me|us)\b/iu,
+  // EN: received-call wording ("I received a call from the bank").
+  /\b(?:i|we)\s+(?:got|received|answered)[^?!.]{0,45}(?:call|message|text)[^?!.]{0,70}(?:from|claiming\s+to\s+be)[^?!.]{0,35}(?:bank|police|law[\s-]?enforcement|prosecutor)/iu,
+];
+
+// Quoted or explicitly referenced wording can be the object of an educational
+// methodology question. This must stay narrow: merely appending “safe account”
+// to a generic meta phrase is still treated as fresh scam content.
+const META_EDUCATIONAL_SCAM_WORDING_RE =
+  /(?:фраз\p{L}*.{0,45}безопасн\p{L}*\s+сч[её]т|message.{0,35}(?:mentions?|containing|about).{0,35}safe\s+account|xavfsiz\s+hisob.{0,35}haqidagi\s+xabar)/iu;
 
 const PRIORITY_META_INTENTS = new Set<MetaIntent>([
   "why_failed",
@@ -432,6 +463,8 @@ function classifyPatternIntent(
 
 function hasDeterministicRiskOverride(text: string): boolean {
   return (
+    META_LIVE_AUTHORITY_CONTACT_PATTERNS.some((pattern) => pattern.test(text)) ||
+    (hasScamWordingPattern(text) && !META_EDUCATIONAL_SCAM_WORDING_RE.test(text)) ||
     META_DIRECT_ACTION_WORDING_PATTERNS.some((pattern) => pattern.test(text)) ||
     evaluateText(text).some((reason) => META_RISK_OVERRIDE_REASONS.has(reason))
   );
@@ -490,12 +523,10 @@ export function classifyMetaIntent(
   // an account's spam history?"). A concrete scam-context signal still wins,
   // so appending a phone, SMS code, payment demand, etc. cannot be hidden in a
   // methodology question.
-  if (!hasBroadScamContext) {
-    const priorityIntent = classifyPatternIntent(conversationalText, (intent) =>
-      PRIORITY_META_INTENTS.has(intent),
-    );
-    if (priorityIntent) return priorityIntent;
-  }
+  const priorityIntent = classifyPatternIntent(conversationalText, (intent) =>
+    PRIORITY_META_INTENTS.has(intent),
+  );
+  if (priorityIntent) return priorityIntent;
 
   // A strict capability question without a concrete value is safe to answer
   // even when the object is described as a bank/payment/APK link.  Broad topic

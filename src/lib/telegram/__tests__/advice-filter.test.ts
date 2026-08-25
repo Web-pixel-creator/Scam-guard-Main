@@ -56,6 +56,30 @@ describe("filterAdvice", () => {
         }
       }
     });
+
+    it("prioritizes physical safety for authority-coerced dangerous acts", () => {
+      expect(filterAdvice("high_risk", ["authority_coerced_dangerous_act"], "ru")).toEqual([
+        expect.stringMatching(/не выполняйте.*опасн.*102/iu),
+      ]);
+      expect(filterAdvice("high_risk", ["authority_coerced_dangerous_act"], "uz")).toEqual([
+        expect.stringMatching(/xavfli topshiriqni bajarmang.*102/iu),
+      ]);
+      expect(filterAdvice("high_risk", ["authority_coerced_dangerous_act"], "en")).toEqual([
+        expect.stringMatching(/do not carry out.*dangerous task.*102/iu),
+      ]);
+    });
+
+    it("routes direct violence threats to safe-place and 102 guidance", () => {
+      expect(filterAdvice("high_risk", ["threatens_physical_violence"], "ru")).toEqual([
+        expect.stringMatching(/безопасн.*102/iu),
+      ]);
+      expect(filterAdvice("high_risk", ["threatens_physical_violence"], "uz")).toEqual([
+        expect.stringMatching(/xavfsiz.*102/iu),
+      ]);
+      expect(filterAdvice("high_risk", ["threatens_physical_violence"], "en")).toEqual([
+        expect.stringMatching(/somewhere safe.*102/iu),
+      ]);
+    });
   });
 
   describe("unknown with no reasons", () => {
@@ -134,6 +158,41 @@ describe("filterAdvice", () => {
         }
       },
     );
+  });
+
+  describe("generic transfer requests", () => {
+    it.each([
+      {
+        lang: "ru",
+        expected: /не переводите.*проверите.*получателя/iu,
+        forbidden: /безопасн.*сч[её]т/iu,
+      },
+      {
+        lang: "uz",
+        expected: /pul o'tkazmang.*oluvchi.*mustaqil/iu,
+        forbidden: /xavfsiz hisob/iu,
+      },
+      {
+        lang: "en",
+        expected: /do not transfer.*independently verify.*recipient/iu,
+        forbidden: /safe account/iu,
+      },
+    ] as const)(
+      "keeps $lang advice at the requested-transfer stage without inventing a safe account",
+      ({ lang, expected, forbidden }) => {
+        const result = filterAdvice("high_risk", ["asks_for_money_transfer"], lang);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatch(expected);
+        expect(result[0]).not.toMatch(forbidden);
+      },
+    );
+
+    it("keeps literal safe-account requests on the dedicated wording", () => {
+      expect(filterAdvice("high_risk", ["asks_to_transfer_to_safe_account"], "en")).toEqual([
+        expect.stringMatching(/safe account/iu),
+      ]);
+    });
   });
 
   describe("max 3 limit", () => {

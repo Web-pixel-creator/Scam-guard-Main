@@ -62,6 +62,11 @@ export const FOLLOW_UP_PHRASE_SEEDS: Readonly<
     uz: "Keyin nima qilay?",
     en: "What should I do next?",
   },
+  reply_script: {
+    ru: "Что мне им сказать?",
+    uz: "Ularga nima deyay?",
+    en: "What should I say to them?",
+  },
   contacts: {
     ru: "Дай официальный номер банка",
     uz: "Bank raqamini bering",

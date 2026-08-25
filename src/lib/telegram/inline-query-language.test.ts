@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ADVERSARIAL_HUMAN_SCENARIO_CORPUS } from "@/lib/telegram/adversarial-human-scenario-corpus";
+import { EVERYDAY_DIALOGUE_CORPUS } from "@/lib/telegram/everyday-dialogue-corpus";
 import { resolveInlineQueryLanguage } from "@/lib/telegram/inline-query-language";
 
 describe("resolveInlineQueryLanguage", () => {
@@ -22,6 +23,11 @@ describe("resolveInlineQueryLanguage", () => {
     ["Telegramimga begona kirib oldi, akkauntim o'g'irlandi", "ru", "uz"],
     ["Telegramimga kirib olishdi akkauntim o'g'irlandi", "ru", "uz"],
     ["O'tkazmani bankdan yashirishni aytishdi", "ru", "uz"],
+    ["Salom", "en", "uz"],
+    ["Assalomu alaykum", "en", "uz"],
+    ["Hello", "ru", "en"],
+    ["Good afternoon", "uz", "en"],
+    ["Ertaga qizim bilan kafeda soat beshda uchrashaman", "en", "uz"],
   ] as const)("detects %s", (text, fallback, expected) => {
     expect(resolveInlineQueryLanguage(text, fallback)).toBe(expected);
   });
@@ -31,6 +37,8 @@ describe("resolveInlineQueryLanguage", () => {
     ["@lucky_promo_qa", "en"],
     ["seed phrase: apple bicycle candle", "ru"],
     ["SMS code", "ru"],
+    ["Hi", "uz"],
+    ["tekshirib", "en"],
   ] as const)("keeps %s on the saved language when evidence is weak", (text, fallback) => {
     expect(resolveInlineQueryLanguage(text, fallback)).toBe(fallback);
   });
@@ -48,6 +56,24 @@ describe("resolveInlineQueryLanguage", () => {
       const actual = resolveInlineQueryLanguage(scenario.query, fallbackByLanguage[scenario.lang]);
       return actual === scenario.lang ? [] : [`${scenario.id}: ${actual}`];
     });
+
+    expect(misses).toEqual([]);
+  });
+
+  it("uses the declared language for every everyday-dialogue turn across both wrong profiles", () => {
+    const languages = ["ru", "uz", "en"] as const;
+    const misses = EVERYDAY_DIALOGUE_CORPUS.flatMap((dialogue) =>
+      languages
+        .filter((fallback) => fallback !== dialogue.lang)
+        .flatMap((fallback) =>
+          [dialogue.first.utterance, dialogue.followUp.utterance].flatMap((utterance) => {
+            const actual = resolveInlineQueryLanguage(utterance, fallback);
+            return actual === dialogue.lang
+              ? []
+              : [`${dialogue.id} [${fallback}] ${JSON.stringify(utterance)} -> ${actual}`];
+          }),
+        ),
+    );
 
     expect(misses).toEqual([]);
   });

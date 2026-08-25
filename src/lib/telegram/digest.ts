@@ -49,7 +49,7 @@ const DIGEST_INTRO: Record<Lang, string> = {
   ru: [
     "📰 Схемы недели",
     "",
-    "Правило 5 секунд: если после рекламы, QR, подарка или звонка просят код, карту, seed-фразу или Telegram-вход — остановитесь и пришлите это мне.",
+    "Правило 5 секунд: если после рекламы, QR, подарка или звонка просят код, карту, seed-фразу или Telegram-вход — не выполняйте просьбу и пришлите её мне.",
   ].join("\n"),
   uz: [
     "📰 Haftalik sxemalar",
@@ -59,7 +59,7 @@ const DIGEST_INTRO: Record<Lang, string> = {
   en: [
     "📰 Weekly Scam Patterns",
     "",
-    "5-second rule: if an ad, QR, gift, or call asks for a code, card, seed phrase, or Telegram login — stop and send it to me.",
+    "5-second rule: if an ad, QR, gift, or call asks for a code, card, seed phrase, or Telegram login — do not comply; send the request to me.",
   ].join("\n"),
 };
 

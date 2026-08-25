@@ -4,11 +4,51 @@ import {
   classifyLiveCallContext,
   classifyTextPanicIntent,
   classifyVoicePanicIntent,
+  isAccidentalOutgoingTransferIntent,
   isNegatedVoiceDoneIntent,
   normalizeVoiceIntentText,
 } from "@/lib/telegram/text-panic-intent";
 
 describe("pure Telegram text panic intent", () => {
+  it.each([
+    "деньги не тому человеку перевела, можно вернуть?",
+    "не туда деньги отправил по ошибке",
+    "перевёл деньги на чужую карту случайно",
+    "Платёж уже исполнился, я ошибся получателем. Как начать возврат через свой банк?",
+    "Я сам первёл оплату на чужую карту, перепутав адресата. Можно отозвать операцию?",
+    "мен пулни адашиб бошқа одамга юбордим",
+    "пулни бошқа одамга хато юбордим",
+    "To'lov o'tib bo'ldi, noto'g'ri hisobga jo'natganman. Bankimda bekor qilishni qanday boshlayman?",
+    "The payment already settled to the wrong account. How do I start a bank dispute?",
+    "I transerred the payment to an unrelated recipient by mistake. Can my bank recall it?",
+    "По ошибке пополнил чужой номер телефона. Можно отменить?",
+    "Оплатила чужой телефон по ошибке — что теперь нажать, чтобы отменить?",
+    "I topped up someone else's phone by mistake—how can I cancel it?",
+    "Boshqa telefon raqamiga xato to'ladim — bekor qilish mumkinmi?",
+    "Adashib boshqa odamning telefon raqamiga to'lov qildim.",
+  ])("keeps an ordinary outgoing recipient mistake out of scam panic: %s", (text) => {
+    expect(isAccidentalOutgoingTransferIntent(text)).toBe(true);
+    expect(classifyTextPanicIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "мне пришли деньги по ошибке и просят вернуть на другую карту",
+    "menga pul xato tushdi, boshqa kartaga qaytar deyapti",
+    "я уже пополнил баланс",
+    "Men pul o'tkazdim.",
+  ])("does not hide an incoming return request behind the outgoing-mistake guard: %s", (text) => {
+    expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+  });
+
+  it.each([
+    "Я сделал запланированный перевод знакомому поставщику по официальному счёту; получатель и сумма подтверждены.",
+    "Rejalashtirilgan to'lovni tanish yetkazib beruvchiga rasmiy hisob bo'yicha yubordim; oluvchi va summa to'g'ri.",
+    "Режалаштирилган тўловни таниш етказиб берувчига расмий ҳисоб бўйича юбордим; олувчи ва сумма тўғри.",
+    "I made the planned transfer to a known supplier against its official invoice; the recipient and amount are confirmed.",
+  ])("does not turn a confirmed routine transfer into completed-scam panic: %s", (text) => {
+    expect(classifyTextPanicIntent(text)).toBeNull();
+  });
+
   it.each([
     ["Я уже отправил код из SMS.", 1],
     ["I installed AnyDesk and allowed screen access.", 2],
@@ -27,6 +67,7 @@ describe("pure Telegram text panic intent", () => {
     "Я чуть не назвал код из SMS.",
     "Men kodni yubormadim.",
     "I did not send the verification code.",
+    "I shared no codes.",
     "I almost shared the SMS code but stopped.",
     "I did not wire them the money.",
     "I almost wired them the money.",

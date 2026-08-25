@@ -8,7 +8,9 @@ import {
 import { CB } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
+import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-language";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
+import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 
 export const ALL_VICTIM_INTENTS = [
@@ -38,6 +40,7 @@ export const ALL_VICTIM_INTENTS = [
   "pension_benefit",
   "phone_borrowing",
   "money_mule",
+  "accidental_transfer_outgoing",
   "open_budget",
   "medical_code",
   "child_game_bonus",
@@ -46,6 +49,7 @@ export const ALL_VICTIM_INTENTS = [
   "friend_money",
   "support_impersonation",
   "authority_impersonation",
+  "authority_physical_coercion",
   "gov_service_login",
   "romance_contact",
   "romance_money",
@@ -74,20 +78,29 @@ export type VictimIntentKind = (typeof ALL_VICTIM_INTENTS)[number];
 
 export const ALL_VICTIM_SCENARIOS = [
   "apk_already_installed",
+  "authority_physical_coercion",
   "bank_contact_from_message",
+  "fake_boss_request",
   "charity_pressure",
   "fake_support",
   "fake_tax_payment",
+  "fake_fine_cashback_app",
   "investment_offer",
   "loan_advance_fee",
+  "game_escrow_fee",
   "marketplace_delivery",
+  "known_contact_prize_link",
   "money_already_sent",
   "parcel_fee",
   "passport_already_shared",
   "photo_extortion",
+  "neighbor_video_malware",
   "police_impersonation",
+  "penalty_points_cancellation",
   "prize_fee",
   "qr_login",
+  "recovery_fee",
+  "rental_deposit",
   "remote_access",
   "romance_money",
   "safe_account_transfer",
@@ -181,7 +194,9 @@ const COMPLETED_APP_INSTALL_HARM_RE =
 const ACTIVE_FAMILY_REQUEST_RE =
   /(?:просит|просят|просил[аи]?|попросил|просьб|сбор|занять|одолж|попал.{0,20}бед|(?:нужно|надо|требу(?:ет|ют)).{0,80}(?:заплат|передат|отдат|привез)|голос.{0,40}помощ|so['’]?ra|iltimos|aytish|yig['’]?ish|muammoga\s+tush|ovoz.{0,40}yordam|asks?|asking|request|borrow|collection|in\s+trouble|voice.{0,40}(?:help|money))/iu;
 const FAMILY_REQUEST_VALUE_RE =
-  /(?:деньг|денег|перевод|оплат|заплат|штраф|налич|курьер|доллар|рубл|помощ|бед|сбор|pul|qarz|o['’]?tkaz|to['’]?lov|to['’]?la|yordam|muammo|yig['’]?ish|money|transfer|pay|cash|fine|courier|help|trouble|collection)/iu;
+  /(?:деньг|денег|перевод|оплат|заплат|штраф|налич|курьер|доллар|рубл|бед|сбор|pul|qarz|o['’]?tkaz|to['’]?lov|to['’]?la|muammo|yig['’]?ish|money|transfer|pay|cash|fine|courier|trouble|collection)/iu;
+const FAMILY_IMPERSONATION_HELP_RE =
+  /(?:голос|ovoz|voice).{0,60}(?:помощ|yordam|help)|(?:помощ|yordam|help).{0,60}(?:голос|ovoz|voice)/iu;
 const COMPLETED_PERSONAL_DATA_RE =
   /(?:(?:я|i|men).{0,80}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim).{0,120}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi))|(?:я|i|men).{0,80}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi)).{0,120}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim))/iu;
 const COMPLETED_PASSWORD_ENTRY_RE =
@@ -220,7 +235,7 @@ const INVESTMENT_PROMISE_RE =
 const INVESTMENT_SOLICIT_RE =
   /(?:предлага|приглаша|совету|обеща|влож|внести|пополни|taklif|va['’]?da|pul\s+qo['’]?y|depozit|offer|invite|promise|deposit)/iu;
 const SAFE_PHYSICAL_ACCESS_CODE_RE =
-  /(?:(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza).{0,50}(?:code|код|kod)|(?:code|код|kod).{0,50}(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza))/iu;
+  /(?:(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza).{0,50}(?<!\p{L})(?:code|код|kod(?:i(?:ni)?)?)(?!\p{L})|(?<!\p{L})(?:code|код|kod(?:i(?:ni)?)?)(?!\p{L}).{0,50}(?:door|entrance|gate|подъезд|домофон|двер|ворот|eshik|darvoza))/iu;
 
 function withoutQrCodeLabel(text: string): string {
   return text
@@ -499,7 +514,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   if (
     FAMILY_CONTEXT_RE.test(text) &&
     ACTIVE_FAMILY_REQUEST_RE.test(text) &&
-    FAMILY_REQUEST_VALUE_RE.test(text)
+    (FAMILY_REQUEST_VALUE_RE.test(text) || FAMILY_IMPERSONATION_HELP_RE.test(text))
   ) {
     return { kind: "friend_money", askedContext: "transfer" };
   }
@@ -579,7 +594,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:водоканал|сувсоз|suvsoz|счетчик|счётчик|умн.{0,20}датчик|газ|электр|свет|коммунал|нулев.{0,20}баланс|utility).{0,180}(?:паспорт|пинфл|код|sms|смс|ссылк|оплат|звон|данн|адрес|долг|установ|провер)?/iu.test(
+    /(?:водоканал|сувсоз|suvsoz|счетчик|счётчик|умн.{0,20}датчик|(?<!\p{L})газ(?!\p{L})|электроэнерг|электроснаб|электросет|электричеств|(?<!\p{L})свет(?!\p{L})|коммунал|нулев.{0,20}баланс|(?<!\p{L})utility(?!\p{L})).{0,180}(?:паспорт|пинфл|код|sms|смс|ссылк|оплат|звон|данн|адрес|долг|установ|провер)?/iu.test(
       text,
     )
   ) {
@@ -611,7 +626,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:деньг|сум|перевод).{0,120}(?:по\s+ошибк|ошибочн|случайн|вернуть|обратно|друг.{0,20}счет|друг.{0,20}счёт)|(?:снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|вернуть.{0,80}(?:по\s+ошибк|ошибочн|случайн|чуж)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
+    /(?:(?:по\s+ошибк|ошибочн|случайн|чуж\p{L}*).{0,100}(?:приш\p{L}*|поступ\p{L}*|зачисл\p{L}*|получ\p{L}*|перевод|деньг)|(?:приш\p{L}*|поступ\p{L}*|зачисл\p{L}*|получ\p{L}*).{0,100}(?:по\s+ошибк|ошибочн|случайн|чуж\p{L}*)).{0,160}(?:вернуть|обратно|пересл|друг.{0,20}счет|друг.{0,20}счёт)|(?:снять|обнал|банкомат|atm).{0,140}(?:деньг|перевод|карт|счет|счёт)|(?:за\s+дозу|терроризм|оружи|назначени.{0,20}платеж)/iu.test(
       text,
     )
   ) {
@@ -685,6 +700,22 @@ function classifyVictimIntentWithTranslit(normalized: string): VictimIntentMatch
   // Russian Latin-keyboard input after the direct classifier correctly
   // keeps it neutral.
   if (SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized)) return null;
+  if (
+    isExplicitCompletedPersonalGift(normalized) ||
+    isExplicitSelfFoundOfficialStoreApp(normalized) ||
+    isNeutralEmergencyNumberFact(normalized)
+  ) {
+    return null;
+  }
+  // A file name with an Uzbek case suffix (for example ROAD24.apkni) can look
+  // like a web domain to the generic artifact detector. Preserve this strict
+  // multi-signal scam route before the URL/handle early exit.
+  if (isFakeFineCashbackApp(normalized)) {
+    return { kind: "apk_request", askedContext: "apk", scenario: "fake_fine_cashback_app" };
+  }
+  if (isKnownContactPrizeLink(normalized)) {
+    return { kind: "identity_uncertain", scenario: "known_contact_prize_link" };
+  }
   // A concrete artifact normally belongs to the real checker. Preserve only
   // the deliberately strict investment route here: it requires an investment
   // vehicle, a promised return and solicitation, so a neutral URL such as a
@@ -709,6 +740,12 @@ function classifyVictimIntentWithTranslit(normalized: string): VictimIntentMatch
     const uzbekMatch = classifyNormalizedVictimIntent(uzbekLatin);
     if (uzbekMatch) return uzbekMatch;
   }
+  // Do not reinterpret a complete Uzbek-Latin sentence as Russian typed on a
+  // Latin keyboard. This matters for neutral wording such as a relative asking
+  // for ordinary household help: `yordam` would otherwise become `ердам` and
+  // look like a misspelled Russian emergency plea. Ambiguous short fragments
+  // still retain the Russian-transliteration fallback.
+  if (resolveTelegramTextLanguage(normalized, "en") === "uz") return null;
   // Latin-keyboard fallback: «menya obmanuli» → «меня обманули». Runs only
   // when the original text matched nothing, so native Uzbek Latin phrases
   // (understood directly by the patterns) are unaffected.
@@ -717,6 +754,8 @@ function classifyVictimIntentWithTranslit(normalized: string): VictimIntentMatch
 }
 
 const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
+  "account_hacked_other",
+  "accidental_transfer_outgoing",
   "apple_security",
   "apk_request",
   "bank_call",
@@ -724,26 +763,36 @@ const CONTEXTUAL_VICTIM_KINDS = new Set<VictimIntentKind>([
   "card_request",
   "code_request",
   "coercive_secrecy",
+  "authority_physical_coercion",
   "earning_channel",
   "task_scam",
   "file_received",
   "friend_money",
+  "identity_uncertain",
+  "identity_loan",
   "gov_service_login",
   "investment_offer",
   "job_offer",
   "legal_impersonation",
   "official_impersonation",
   "operator_call",
+  "money_mule",
   "personal_data_request",
+  "personal_data_already_shared",
+  "relative_already_paid",
   "romance_money",
   "support_impersonation",
   "telegram_takeover",
   "transfer_request",
+  "unauthorized_charge",
+  "violence_threat",
+  "withdrawal_blocked",
   "travel_migration_prepayment",
   "utility_impersonation",
 ]);
 
 const CONTEXTUAL_TRANSFER_KINDS = new Set<VictimIntentKind>([
+  "accidental_transfer_outgoing",
   "coercive_secrecy",
   "earning_channel",
   "task_scam",
@@ -772,13 +821,15 @@ const ASKED_CONTEXT_KINDS = new Set<AskedContextKind>([
 const SHORT_CONTEXT_CONFIRMATION_RE =
   /^(?:точно|вы\s+уверены|ты\s+уверен|правда|really|are\s+you\s+sure|is\s+that\s+right|rostmi|rostdan\s+firibgar(?:lar)?mi|aniqmi|ishonchingiz\s+komilmi)[?!.\s]*$/iu;
 const SHORT_CONTEXT_WHY_RE =
-  /^(?:почему(?:\s+это|\s+так)?\s+(?:опасно|рискованно)|why\s+is\s+(?:this|it)\s+(?:dangerous|risky)|nega\s+(?:bu\s+)?(?:xavfli|xatarli))[?!.\s]*$/iu;
+  /^(?:(?:а\s+)?п(?:о|а)чему(?:\s+(?:это|так))?(?:\s+(?:опасно|рискованно))?|why(?:\s+is\s+(?:this|it)\s+(?:dangerous|risky))?|nega(?:\s+bu)?(?:\s+(?:xavfli|xatarli))?|nima\s+uchun)[?!.\s]*$/iu;
 const SHORT_CONTEXT_NEXT_STEPS_RE =
-  /^(?:что(?:\s+мне)?\s+делать\s+дальше|что\s+дальше|what\s+(?:should|do)\s+i\s+do\s+next|what\s+next|(?:(?:endi|keyin)\s+)?nima\s+qil(?:ay|ishim\s+kerak|aman)|(?:(?:энди|кейин)\s+)?нима\s+қил(?:ай|ишим\s+керак|аман))[?!.\s]*$/iu;
+  /^(?:что(?:\s+мне)?\s+делать\s+дальше|что\s+дальше|(?:(?:ну|ок(?:ей)?)\s*(?:,|и)?\s*)?что\s+теперь|what\s+(?:should|do)\s+i\s+do\s+next|what\s+next|(?:ok(?:ay)?\s*,?\s*(?:and\s+)?)?now\s+what|ok(?:ay)?\s*,?\s*(?:and\s+)?now|endi[-\s]*chi|(?:(?:endi|keyin)\s+)?nima\s+qil(?:ay|ishim\s+kerak|aman)|(?:(?:энди|кейин)\s+)?нима\s+қил(?:ай|ишим\s+керак|аман))[?!.\s]*$/iu;
 const SHORT_CONTEXT_TRUSTED_PERSON_RE =
   /^(?:можно\s+(?:ли\s+)?(?:показать|отправить|переслать)\s+(?:это\s+)?(?:сыну|дочери|дочке|близкому|родным|семье|другу|подруге)|can\s+i\s+(?:show|send|forward)\s+(?:this|it)\s+to\s+(?:my\s+)?(?:son|daughter|family|friend|trusted\s+person)|(?:buni\s+)?(?:o['’]?g['’]?limga|qizimga|yaqinimga|oilamga|do['’]?stimga)\s+(?:ko['’]?rsatsam|yuborsam)\s+bo['’]?ladimi)[?!.\s]*$/iu;
 const SHORT_CONTEXT_REPLY_SCRIPT_RE =
-  /^(?:что(?:\s+мне)?\s+(?:им|ему|ей)\s+(?:сказать|ответить)|что\s+(?:сказать|ответить)|what\s+(?:should|do)\s+i\s+(?:say|reply|answer)|(?:ularga|unga)\s+nima\s+(?:dey|ayt)(?:in|ay|sam)|nima\s+(?:dey|ayt)(?:in|ay|sam))[?!.\s]*$/iu;
+  /^(?:что(?:\s+мне)?\s+(?:им|ему|ей)\s+(?:сказать|ответить)|что\s+(?:сказать|ответить)|what\s+(?:should|do)\s+i\s+(?:say|reply|answer)(?:\s+to\s+them)?|(?:(?:ularga|unga)\s+)?nima\s+(?:(?:deb\s+)?javob\s+ber(?:ay|sam|ishim\s+kerak)|(?:dey|ayt|yoz)(?:in|ay|sam))|(?:(?:уларга|унга)\s+)?нима\s+(?:(?:деб\s+)?жавоб\s+бер(?:ай|сам|ишим\s+керак)|(?:дей|айт|ёз)(?:ин|ай|сам)))[?!.\s]*$/iu;
+const BOUNDED_RU_LATIN_CONTEXT_FOLLOW_UP_RE =
+  /^(?:p[oa]chemu|chto\s+(?:mne\s+)?delat\s+dalshe|chto\s+(?:mne\s+)?im\s+(?:skazat|otvetit)|nu\s+i\s+chto\s+teper)[?!.,\s]*$/iu;
 const SHORT_CONTEXT_VERIFY_OFFICIAL_RE =
   /^(?:(?:а\s+)?если\s+это\s+(?:правда\s+)?банк,?\s+как\s+проверить|как\s+проверить,?\s+что\s+это\s+(?:правда\s+)?банк|how\s+(?:do|can)\s+i\s+(?:check|verify)\s+(?:that\s+)?it(?:'s|\s+is)\s+(?:really\s+)?(?:the\s+)?bank|bu\s+haqiqiy\s+bank\s+ekanini\s+qanday\s+tekshir(?:aman|sa\s+bo['’]?ladi))[?!.\s]*$/iu;
 const SHORT_CONTEXT_EXPLAIN_SIMPLE_RE =
@@ -939,7 +990,7 @@ export function classifyVictimGuidanceFollowUp(
     return null;
   }
 
-  const action: VictimGuidanceFollowUpAction | null = SHORT_CONTEXT_WHY_RE.test(normalized)
+  let action: VictimGuidanceFollowUpAction | null = SHORT_CONTEXT_WHY_RE.test(normalized)
     ? "why"
     : SHORT_CONTEXT_NEXT_STEPS_RE.test(normalized)
       ? "next_steps"
@@ -954,10 +1005,191 @@ export function classifyVictimGuidanceFollowUp(
               : SHORT_CONTEXT_PRESSURE_RE.test(normalized)
                 ? "pressure"
                 : null;
+  if (!action && BOUNDED_RU_LATIN_CONTEXT_FOLLOW_UP_RE.test(normalized)) {
+    action = /^p[oa]chemu/iu.test(normalized)
+      ? "why"
+      : /(?:skazat|otvetit)/iu.test(normalized)
+        ? "reply_script"
+        : "next_steps";
+  }
   if (!action) return null;
 
   const { at: _at, ...context } = active;
   return { action, context };
+}
+
+function buildContextualReplyScript(context: VictimIntentMatch, lang: Lang): string {
+  if (context.kind === "authority_physical_coercion") {
+    return {
+      ru: "Лучше не продолжать разговор. Если нужно закончить одной фразой: «Я не буду выполнять это требование. Я прекращаю контакт и звоню 102». Затем отойдите в безопасное место и позвоните 102; несовершеннолетнему нужно сразу позвать взрослого.",
+      uz: "Suhbatni davom ettirmagan ma'qul. Bitta jumla bilan tugatish kerak bo'lsa: «Bu talabni bajarmayman. Aloqani tugatib, 102 ga qo'ng'iroq qilaman». Keyin xavfsiz joyga uzoqlashing va 102 ga qo'ng'iroq qiling; voyaga yetmagan bo'lsangiz, darhol kattani chaqiring.",
+      en: "It is safer not to continue. If you need one closing sentence, say: “I will not carry out this demand. I am ending contact and calling 102.” Then move somewhere safe and call 102; a minor should tell a trusted adult immediately.",
+    }[lang];
+  }
+
+  if (context.kind === "blackmail_threat" || context.kind === "violence_threat") {
+    return {
+      ru: "Лучше ничего не отвечать и не торговаться. Сохраните угрозы, профиль и время сообщений, затем заблокируйте контакт. При угрозе физической безопасности уйдите в безопасное место и звоните 102.",
+      uz: "Javob bermang va savdolashmang. Tahdid, profil va xabar vaqtini saqlang, keyin kontaktni bloklang. Jismoniy xavf bo'lsa, xavfsiz joyga o'tib 102 ga qo'ng'iroq qiling.",
+      en: "It is safer not to reply or negotiate. Save the threats, profile, and message times, then block the contact. If there is a physical safety threat, move somewhere safe and call 102.",
+    }[lang];
+  }
+
+  if (
+    context.scenario === "neighbor_video_malware" ||
+    context.scenario === "known_contact_prize_link" ||
+    context.kind === "identity_uncertain" ||
+    context.kind === "friend_money"
+  ) {
+    return {
+      ru: "В этом чате не отвечайте по существу. Позвоните человеку по сохранённому номеру и спросите: «Ты сам отправил это сообщение?» Не пересылайте ему код, пароль или данные карты.",
+      uz: "Shu chatning o'zida javob bermang. Odamga saqlangan raqam orqali qo'ng'iroq qilib: «Bu xabarni o'zing yubordingmi?» deb so'rang. Kod, parol yoki karta ma'lumotini yubormang.",
+      en: "Do not resolve it in the same chat. Call the person using a saved number and ask, “Did you send this message yourself?” Do not forward a code, password, or card data.",
+    }[lang];
+  }
+
+  if (
+    context.kind === "romance_money" ||
+    context.kind === "job_offer" ||
+    context.kind === "earning_channel" ||
+    context.kind === "task_scam" ||
+    context.scenario === "penalty_points_cancellation"
+  ) {
+    return {
+      ru: "Скажите: «Я не перевожу деньги и не отправляю документы до независимой проверки». После этого поставьте разговор на паузу; не объясняйте и не спорьте под давлением.",
+      uz: "Ayting: «Mustaqil tekshiruvsiz pul o'tkazmayman va hujjat yubormayman». Keyin suhbatni to'xtating; bosim ostida izoh bermang va bahslashmang.",
+      en: "Say: “I will not send money or documents until I verify this independently.” Then pause the conversation; do not explain or argue under pressure.",
+    }[lang];
+  }
+
+  if (context.kind === "accidental_transfer_outgoing") {
+    return {
+      ru: "Не договаривайтесь о возврате в переписке и не делайте второй перевод. Напишите только: «Вопрос уже передан моему банку; решаю его через официальный сервис». Дальше следуйте инструкции банка.",
+      uz: "Chatda qaytarish haqida kelishmang va ikkinchi o'tkazma qilmang. Faqat: «Bankimga murojaat qildim, masalani rasmiy xizmat orqali hal qilaman», deb yozing. Keyin bank ko'rsatmasiga amal qiling.",
+      en: "Do not arrange a return in chat or make a second transfer. Say only: “I have contacted my bank and will handle this through the official service.” Then follow the bank's instructions.",
+    }[lang];
+  }
+
+  return {
+    ru: "Скажите одну фразу: «Я ничего не сообщаю и сам перезвоню по официальному номеру». Затем завершите звонок и не отвечайте на давление.\n\nНе называйте код, данные карты или пароль и не переводите деньги.",
+    uz: "Bitta jumla ayting: «Hech narsa aytmayman, rasmiy raqamga o'zim qayta qo'ng'iroq qilaman». Keyin suhbatni tugating va bosimga javob bermang.\n\nKod, karta ma'lumoti yoki parolni aytmang, pul o'tkazmang.",
+    en: "Say one sentence: “I will not share anything; I will call back using the official number.” Then end the conversation and do not respond to pressure.\n\nDo not share codes, card data, or passwords, and do not transfer money.",
+  }[lang];
+}
+
+function buildContextualWhyText(context: VictimIntentMatch, lang: Lang): string {
+  if (context.kind === "authority_physical_coercion") {
+    return {
+      ru: "Опасность в самом требовании: неизвестный человек под видом госоргана пытается заставить вас совершить опасное или незаконное действие. Угроза уголовным делом не подтверждает его полномочия — это способ подчинить и изолировать вас. Не выполняйте просьбу; уйдите в безопасное место и звоните 102.",
+      uz: "Xavf talabning o'zida: noma'lum odam davlat idorasi nomidan sizni xavfli yoki noqonuniy ishga majburlayapti. Jinoyat ishi bilan tahdid qilish uning vakolatini tasdiqlamaydi — bu bo'ysundirish va ajratib qo'yish usuli. Talabni bajarmang; xavfsiz joyga o'tib, 102 ga qo'ng'iroq qiling.",
+      en: "The demand itself is dangerous: an unknown person is using an authority's name to make you carry out a dangerous or illegal act. A threat of a criminal case is not proof of authority; it is a way to control and isolate you. Do not comply; move somewhere safe and call 102.",
+    }[lang];
+  }
+
+  if (context.kind === "violence_threat" || context.kind === "blackmail_threat") {
+    return {
+      ru: "Угрозу нельзя считать безопасной только потому, что она пришла из чата. Платёж или уступка не гарантируют, что угрозы прекратятся, и могут вызвать новые требования. Поэтому приоритет — безопасное место, близкий человек, сохранение доказательств без риска и звонок 102.",
+      uz: "Tahdid chatdan kelgani uchun uni xavfsiz deb bo'lmaydi. Pul yoki yon berish tahdid tugashini kafolatlamaydi va yangi talablarni keltirib chiqarishi mumkin. Shuning uchun xavfsiz joy, ishonchli inson, xavfsiz saqlangan dalillar va 102 birinchi o'rinda turadi.",
+      en: "A threat is not harmless just because it came through a chat. Paying or complying does not guarantee it will stop and may trigger further demands. Prioritize a safe place, a trusted person, evidence saved without risk, and a call to 102.",
+    }[lang];
+  }
+
+  if (context.scenario === "neighbor_video_malware") {
+    return {
+      ru: "Даже знакомый аккаунт могли взломать. APK, файл с двойным расширением или требование установить плеер может дать злоумышленнику доступ к SMS и устройству. Поэтому личность отправителя проверяют отдельным звонком, а вложение не открывают.",
+      uz: "Tanish akkaunt ham buzilgan bo'lishi mumkin. APK, ikki kengaytmali fayl yoki player o'rnatish talabi firibgarga SMS va qurilmaga kirish berishi mumkin. Shuning uchun yuboruvchi alohida qo'ng'iroq bilan tekshiriladi, fayl esa ochilmaydi.",
+      en: "A familiar account can still be compromised. An APK, double-extension file, or demand to install a player can expose SMS and the device. Verify the sender in a separate call and do not open the attachment.",
+    }[lang];
+  }
+
+  if (context.scenario === "known_contact_prize_link") {
+    return {
+      ru: "Имя знакомого не подтверждает ссылку: его аккаунт могли взломать. Такая страница может украсть сеанс Telegram, банковский код или данные карты. Поэтому знакомого проверяют по сохранённому номеру, а акцию находят самостоятельно в официальном приложении или на сайте банка.",
+      uz: "Tanish ism havolani tasdiqlamaydi: uning akkaunti buzilgan bo'lishi mumkin. Bunday sahifa Telegram seansi, bank kodi yoki karta ma'lumotini o'g'irlashi mumkin. Tanishni saqlangan raqam orqali tekshiring, aksiyani esa bankning rasmiy ilovasi yoki saytidan o'zingiz toping.",
+      en: "A familiar name does not validate the link; the account may be compromised. The page could steal a Telegram session, banking code, or card data. Verify the person through a saved number and find the promotion independently in the bank's official app or site.",
+    }[lang];
+  }
+
+  if (
+    context.scenario === "fake_fine_cashback_app" ||
+    context.scenario === "penalty_points_cancellation"
+  ) {
+    return {
+      ru: "Логотип, слово «официально» или знакомый в ведомстве не подтверждают приложение и посредника. Неофициальный APK может получить доступ к SMS и банку, а частный перевод не исправляет государственную запись. Проверяйте штраф или баллы только через самостоятельно открытый официальный сервис.",
+      uz: "Logotip, «rasmiy» so'zi yoki idoradagi tanish ilova va vositachini tasdiqlamaydi. Norasmiy APK SMS va bankka kira olishi, shaxsiy o'tkazma esa davlat yozuvini tuzatmasligi mumkin. Jarima yoki ballarni faqat o'zingiz ochgan rasmiy xizmat orqali tekshiring.",
+      en: "A logo, the word “official,” or an alleged insider does not validate an app or intermediary. An unofficial APK may access SMS and banking, while a private transfer does not correct a government record. Check fines or points only through an official service you open independently.",
+    }[lang];
+  }
+
+  if (context.kind === "accidental_transfer_outgoing") {
+    return {
+      ru: "Обычный перевод, который вы подтвердили сами, не всегда можно отменить автоматически. Только ваш банк или платёжный сервис видит статус операции и может сказать, доступен ли отзыв. Поэтому не делайте второй перевод и обращайтесь через официальный канал как можно скорее.",
+      uz: "O'zingiz tasdiqlagan oddiy o'tkazmani har doim avtomatik bekor qilib bo'lmaydi. Operatsiya holatini faqat bank yoki to'lov xizmati ko'radi va qaytarib chaqirish mavjudligini ayta oladi. Ikkinchi o'tkazma qilmang va imkon qadar tez rasmiy kanalga murojaat qiling.",
+      en: "A transfer you authorized yourself cannot always be cancelled automatically. Only your bank or payment service can see its status and tell you whether recall is available. Do not make a second transfer; contact the official channel as soon as possible.",
+    }[lang];
+  }
+
+  return {
+    ru: "Риск создаёт не название организации, а просьба передать код, деньги, данные или установить файл под давлением. Эти действия могут дать другому человеку доступ к аккаунту или операции. Завершите контакт и проверьте просьбу независимо через официальный канал.",
+    uz: "Xavfni tashkilot nomi emas, bosim ostida kod, pul, ma'lumot yoki fayl o'rnatishni so'rash tug'diradi. Bu boshqa odamga akkaunt yoki operatsiyaga kirish berishi mumkin. Aloqani tugating va so'rovni rasmiy kanal orqali mustaqil tekshiring.",
+    en: "The risk comes from the pressured request for a code, money, data, or an installation—not from the organization name. Those actions may give someone access to an account or operation. End contact and verify independently through an official channel.",
+  }[lang];
+}
+
+function buildContextualNextStepsText(context: VictimIntentMatch, lang: Lang): string {
+  if (context.askedContext === "code") {
+    return {
+      ru: "Код не сообщайте и ничего им не подтверждайте. Завершите контакт, сами откройте официальное приложение или позвоните по официальному номеру. Если код уже передан, сразу завершите неизвестные сеансы или свяжитесь с банком — в зависимости от того, для чего пришёл код.",
+      uz: "Kodni aytmang va hech narsani tasdiqlamang. Aloqani tugatib, rasmiy ilovani o'zingiz oching yoki rasmiy raqamga qo'ng'iroq qiling. Kod berilgan bo'lsa, kod nimaga kelganiga qarab begona seanslarni tugating yoki bank bilan darhol bog'laning.",
+      en: "Do not share the code or approve anything. End contact and open the official app yourself or call an official number. If the code was already shared, end unknown sessions or contact the bank immediately, depending on what the code was for.",
+    }[lang];
+  }
+
+  if (context.kind === "authority_physical_coercion") {
+    return {
+      ru: "Сейчас: не выполняйте требование и не приближайтесь к указанному месту или предмету. Перейдите в безопасное место, позвоните 102 и сообщите близкому; несовершеннолетнему нужно сразу позвать взрослого. Сохраняйте переписку только если это безопасно.",
+      uz: "Hozir talabni bajarmang va aytilgan joy yoki buyumga yaqinlashmang. Xavfsiz joyga o'tib, 102 ga qo'ng'iroq qiling va yaqin insonga ayting; voyaga yetmagan bo'lsangiz, darhol kattani chaqiring. Yozishmani faqat xavfsiz bo'lsa saqlang.",
+      en: "Do not comply or approach the named place or object. Move somewhere safe, call 102, and tell someone you trust; a minor should tell a trusted adult immediately. Preserve the chat only if it is safe.",
+    }[lang];
+  }
+
+  if (context.kind === "violence_threat" || context.kind === "blackmail_threat") {
+    return {
+      ru: "Перейдите в безопасное место и сообщите близкому человеку. Не платите и не соглашайтесь на встречу. Сохраните профиль, время и угрозы без риска для себя, затем позвоните 102; если опасность непосредственная — звоните сразу.",
+      uz: "Xavfsiz joyga o'ting va yaqin insonga ayting. Pul to'lamang va uchrashuvga rozi bo'lmang. O'zingizga xavf tug'dirmasa, profil, vaqt va tahdidlarni saqlang, keyin 102 ga qo'ng'iroq qiling; xavf yaqin bo'lsa, darhol qo'ng'iroq qiling.",
+      en: "Move somewhere safe and tell a trusted person. Do not pay or agree to meet. Save the profile, timestamps, and threats only if safe, then call 102; call immediately if danger is imminent.",
+    }[lang];
+  }
+
+  if (context.kind === "accidental_transfer_outgoing") {
+    return {
+      ru: "Откройте официальный канал своего банка или платёжного сервиса, сообщите время, сумму и получателя и спросите, доступен ли отзыв перевода. Сохраните чек. Не обещайте возврат в чате и не отправляйте вторую сумму; результат возврата не гарантирован.",
+      uz: "Bank yoki to'lov xizmatining rasmiy kanalini ochib, vaqt, summa va oluvchini ayting hamda o'tkazmani qaytarib chaqirish mavjudligini so'rang. Chekni saqlang. Chatda qaytarishni va'da qilmang va ikkinchi summa yubormang; qaytish kafolatlanmaydi.",
+      en: "Use your bank or payment service's official channel, give the time, amount, and recipient, and ask whether transfer recall is available. Save the receipt. Do not promise a return in chat or send a second amount; recovery is not guaranteed.",
+    }[lang];
+  }
+
+  if (context.scenario === "fake_fine_cashback_app" || context.kind === "apk_request") {
+    return {
+      ru: "Не открывайте и не устанавливайте файл. Если APK уже установлен, включите авиарежим и отдельно выключите Wi‑Fi и мобильную связь; с другого доверенного устройства свяжитесь с банком. Сам штраф проверьте в официальном сервисе, открытом вручную.",
+      uz: "Faylni ochmang va o'rnatmang. APK o'rnatilgan bo'lsa, aviarejimni yoqing va Wi‑Fi hamda mobil aloqani alohida o'chiring; boshqa ishonchli qurilmadan bank bilan bog'laning. Jarimani o'zingiz ochgan rasmiy xizmatda tekshiring.",
+      en: "Do not open or install the file. If the APK is installed, enable airplane mode and separately turn off Wi‑Fi and mobile data; contact the bank from another trusted device. Check the fine in an official service you open manually.",
+    }[lang];
+  }
+
+  if (context.scenario === "known_contact_prize_link" || context.kind === "friend_money") {
+    return {
+      ru: "Не используйте ссылку и не отвечайте по существу в том же чате. Позвоните знакомому по сохранённому номеру. Акцию или просьбу проверьте отдельно через официальный сайт/приложение; коды и данные карты не вводите.",
+      uz: "Havoladan foydalanmang va shu chatning o'zida mazmunan javob bermang. Tanishga saqlangan raqam orqali qo'ng'iroq qiling. Aksiya yoki so'rovni rasmiy sayt/ilova orqali alohida tekshiring; kod va karta ma'lumotini kiritmang.",
+      en: "Do not use the link or resolve the request in the same chat. Call the person using a saved number. Verify the promotion or request separately through an official site or app; do not enter codes or card data.",
+    }[lang];
+  }
+
+  return {
+    ru: "Завершите контакт и ничего не подтверждайте. Сохраните сообщение без секретов и проверьте отправителя или организацию по номеру, сайту либо приложению, которые нашли самостоятельно. Если код, деньги или доступ уже переданы — сразу переходите к восстановлению через банк или соответствующий сервис.",
+    uz: "Aloqani tugating va hech narsani tasdiqlamang. Sirlarni qo'shmasdan xabarni saqlang va yuboruvchi yoki tashkilotni o'zingiz topgan raqam, sayt yoxud ilova orqali tekshiring. Kod, pul yoki kirish allaqachon berilgan bo'lsa, darhol bank yoki tegishli xizmat orqali tiklashga o'ting.",
+    en: "End contact and approve nothing. Save the message without secrets and verify the sender or organization using a number, site, or app you found independently. If a code, money, or access was already shared, move straight to recovery through the bank or relevant service.",
+  }[lang];
 }
 
 export function buildVictimGuidanceFollowUpText(
@@ -965,11 +1197,7 @@ export function buildVictimGuidanceFollowUpText(
   lang: Lang,
 ): string {
   if (followUp.action === "reply_script") {
-    return {
-      ru: "Скажите одну фразу: «Я ничего не сообщаю и сам перезвоню по официальному номеру». Затем завершите разговор и не отвечайте на давление.\n\nНе называйте код, данные карты или пароль и не переводите деньги.",
-      uz: "Bitta jumla ayting: «Hech narsa aytmayman, rasmiy raqamga o'zim qayta qo'ng'iroq qilaman». Keyin suhbatni tugating va bosimga javob bermang.\n\nKod, karta ma'lumoti yoki parolni aytmang, pul o'tkazmang.",
-      en: "Say one sentence: “I will not share anything; I will call back using the official number.” Then end the conversation and do not respond to pressure.\n\nDo not share codes, card data, or passwords, and do not transfer money.",
-    }[lang];
+    return buildContextualReplyScript(followUp.context, lang);
   }
 
   if (followUp.action === "verify_official") {
@@ -1011,6 +1239,14 @@ export function buildVictimGuidanceFollowUpText(
       uz: "Bu xavfli, chunki SMS-kod bank yoki Telegramga kirishni, kirish ma'lumotini o'zgartirishni yoxud pul operatsiyasini tasdiqlashi mumkin. Kodni olgan odam sizning nomingizdan harakat qilishi mumkin.\n\nKodni aytmang. Rasmiy ilovani o'zingiz oching yoki karta/rasmiy saytdagi raqamga qo'ng'iroq qiling.",
       en: "This is dangerous because an SMS code can approve a bank or Telegram login, an access change, or a money operation. Whoever gets the code may be able to act as you.\n\nDo not share it. Open the official app yourself or call the number on the card or official site.",
     }[lang];
+  }
+
+  if (followUp.action === "why") {
+    return buildContextualWhyText(followUp.context, lang);
+  }
+
+  if (followUp.action === "next_steps") {
+    return buildContextualNextStepsText(followUp.context, lang);
   }
 
   return buildVictimIntentText(followUp.context, lang);
@@ -1242,7 +1478,418 @@ function classifyPoliceImpersonationScenario(normalized: string): VictimIntentMa
   return null;
 }
 
+function isRentalViewingDepositRequest(normalized: string): boolean {
+  if (
+    /(?:без|не\s+(?:нужно|надо|просят|требуют)?\s*)(?:депозит|залог|задат)|(?:депозит|залог|задат).{0,70}(?:после\s+(?:просмотр|подписан|провер)|по\s+(?:подписанному\s+)?договору)|(?:do\s+not|don['’]?t|no)\s+(?:pay|send|transfer).{0,50}(?:deposit|holding\s+fee)|(?:deposit|holding\s+fee).{0,70}(?:after\s+(?:viewing|inspection|signing)|under\s+(?:the\s+)?signed\s+contract)|(?:depozit|garov).{0,70}(?:ko['’]?rgandan|tekshirgandan|shartnoma\s+imzolangandan)\s+keyin/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  return hasAllScenarioSignals(normalized, [
+    /(?<![\p{L}\p{N}_])(?:olx|avito)(?![\p{L}\p{N}_])|маркетплейс|площадк|объявлен|арендодател|владелец|риелтор|агент\p{L}*.{0,20}аренд|rental\s+platform|marketplace|listing|landlord|property\s+owner|rental\s+agent|ijara\s+platform|e['’]?lon|uy\s+egasi|ijara\s+agent/iu,
+    /(?:квартир|жиль|аренд|съ[её]м|просмотр|uy|kvartira|ijara|ko['’]?rish|apartment|flat|rental|rent|viewing)/iu,
+    /(?:депозит|залог|задат|depozit|garov|deposit|holding\s+fee|reservation\s+fee)/iu,
+    /(?:прос\p{L}*|треб\p{L}*|сказал\p{L}*|вел\p{L}*).{0,70}(?:внест|перевест|отправ|оплат)|(?:внест|перевест|отправ|оплат).{0,70}(?:депозит|залог|задат|карт)|(?:so['’]?ra|ayt|talab).{0,70}(?:yubor|o['’]?tkaz|to['’]?la)|(?:yubor|o['’]?tkaz|to['’]?la).{0,70}(?:depozit|garov|karta)|(?:ask|told|require|demand).{0,70}(?:pay|send|transfer)|(?:pay|send|transfer).{0,70}(?:deposit|fee|card)/iu,
+  ]);
+}
+
+function isGameAccountEscrowFeeRequest(normalized: string): boolean {
+  if (
+    /(?:yubormang|jo['’]?natmang|o['’]?tkazmang|to['’]?lamang|не\s+(?:отправляйте|переводите|платите)|do\s+not\s+(?:send|transfer|pay)|don['’]?t\s+(?:send|transfer|pay))|(?:platform|платформ|platforma).{0,60}(?:удерж|вычита|deduct|ushlab\s+qol).{0,50}(?:после|after|keyin).{0,35}(?:сделк|sale|savdo)/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  return hasAllScenarioSignals(normalized, [
+    /(?<!\p{L})(?:o['’]?yin\p{L}*|game\p{L}*|игр\p{L}*|roblox|steam)(?!\p{L})/iu,
+    /(?:akkaunt|account|аккаунт|skin|item|скин|предмет)/iu,
+    /(?:sotib\s+ol|sot\p{L}*|xarid|buy|sell|sale|прода|купить|покупа)/iu,
+    /(?:vositachi|escrow|garant|kafil|посредник|гарант)/iu,
+    /(?:(?:oldindan|avval|upfront|advance|заранее|предоплат).{0,60}(?:komiss|commission|fee|комисс|сбор|to['’]?lov|плат)|(?:komiss|commission|fee|комисс|сбор).{0,60}(?:yubor|jo['’]?nat|o['’]?tkaz|to['’]?la|send|transfer|pay|отправ|перев|оплат))/iu,
+    /(?:so['’]?ra|deyap|ayt|talab|прос|треб|сказ|вел|ask|tell|told|say|want|require|instruct)/iu,
+  ]);
+}
+
+function isSuspiciousBossVideoTransferRequest(normalized: string): boolean {
+  if (
+    /(?:never|do\s+not|don['’]?t|не\s+нужно|не\s+следует|нельзя|hech\s+qachon|yubormang|o['’]?tkazmang).{0,80}(?:transfer|wire|payment|send\s+(?:money|funds)|перев|плат|o['’]?tkaz|pul)/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  return hasAllScenarioSignals(normalized, [
+    /(?<!\p{L})(?:boss|manager|director|ceo|cfo|executive|supervisor)(?!\p{L})|руководител|директор|начальник|rahbar|direktor/iu,
+    /(?:video\s+call|zoom|teams|google\s+meet|видео(?:звон|созвон|вызов)|видеосвяз|video\s+qo['’]?ng['’]?iroq)/iu,
+    /(?:(?:look|sound|appear|seem)(?:ed|s)?).{0,30}(?:strange|odd|different|unusual|off|fake)|deepfake|(?:выглядел|звучал|голос|лицо).{0,30}(?:стран|необыч|друг|поддельн)|(?:ko['’]?rin|ovoz).{0,30}(?:g['’]?alati|boshqacha|soxta)/iu,
+    /(?:order|instruct|ask|tell|told|demand|request)(?:ed|s|ing)?.{0,110}(?:urgent\s+)?(?:transfer|wire|payment|send\s+(?:money|funds))|(?:приказ|попрос|сказал|треб).{0,110}(?:сроч\p{L}*\s+)?(?:перев|плат)|(?:buyur|so['’]?ra|ayt|talab).{0,110}(?:zudlik\p{L}*\s+)?(?:o['’]?tkaz|pul\s+yubor|to['’]?lov)/iu,
+  ]);
+}
+
+function isRecoveryFeeRequest(normalized: string): boolean {
+  if (
+    /(?:не\s+(?:платите|платить|просит|просят|требует|требуют).{0,60}(?:предоплат|комисс|сбор|заранее)|без\s+(?:предоплат|комисс)|(?:to['’]?lamang|to['’]?lamaslik|so['’]?ramaydi|talab\s+qilmaydi).{0,60}(?:oldindan|haq|komiss)|(?:oldindan\s+haq|komiss).{0,30}(?:yo['’]?q|so['’]?ramaydi)|(?:do\s+not|don['’]?t|never)(?:\s+to)?\s+pay.{0,60}(?:upfront|advance|fee|commission)|(?:no|without)\s+(?:an?\s+)?(?:upfront|advance)\s+(?:fee|payment)|does\s+not\s+(?:ask|require).{0,40}(?:fee|payment|commission))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  return hasAllScenarioSignals(normalized, [
+    /(?:уже|раньше|до\s+этого).{0,100}(?:потерял\p{L}*|лишил\p{L}*|перев[её]л\p{L}*).{0,100}(?:деньг|мошен|скам)|(?:oldin|avval).{0,100}(?:firib|aldan).{0,100}(?:pul\s+yo['’]?qot|pul\s+o['’]?tkaz)|(?:already|previously|before).{0,100}(?:lost|sent|paid).{0,100}(?:money|funds).{0,80}(?:scam|fraud)|(?:lost|sent|paid).{0,100}(?:money|funds).{0,80}(?:to\s+a\s+scam|to\s+a\s+fraud)/iu,
+    /(?:юрист|адвокат|агент\p{L}*.{0,30}(?:возврат|взыскан)|служб\p{L}*.{0,30}возврат).{0,120}(?:вернут|возврат|взыск|найт\p{L}*.{0,20}деньг)|(?:yurist|advokat|qaytarish\s+agent|recovery\s+agent).{0,120}(?:qaytar|recover|get\s+(?:the\s+)?money\s+back|retrieve)|(?:lawyer|attorney|recovery\s+(?:agent|service|expert)).{0,120}(?:recover|get\s+(?:it|the\s+money|funds)\s+back|return\s+(?:the\s+)?money)/iu,
+    /(?:(?:предоплат|комисс|сбор|аванс|оплат\p{L}*\s+заранее).{0,70}(?:прос|треб|нуж|заранее)|(?:прос|треб|нуж).{0,70}(?:предоплат|комисс|сбор|аванс)|(?:oldindan|avval).{0,40}(?:haq|komiss|to['’]?lov)|(?:haq|komiss|to['’]?lov).{0,50}(?:oldindan|avval)|(?:upfront|advance).{0,30}(?:fee|payment|commission)|(?:fee|commission|payment).{0,40}(?:upfront|in\s+advance))/iu,
+    /(?:прос|треб|плат|оплат|so['’]?ra|talab|to['’]?la|ask|require|demand|pay)/iu,
+  ]);
+}
+
+const AUTHORITY_PHYSICAL_DANGEROUS_ACTION_RE =
+  /(?:подж(?:ечь|игать|игай|игайте)|подож(?:гу|гут|жет|жёт|жешь|жите|ги|гите)|сжечь|сломать|разбить|повредить|перерезать|перерезать\s+кабел|подложить|подбросить|yoq(?:ish|ib|masa|ing|moq)|o['’]?t\s+qo['’]?y|buz|sindir|uz(?:ish|ib\s+tashla)|zarar\s+yetkaz|set\s+fire|burn|damage|break|destroy|cut.{0,35}(?:wire|cable))/iu;
+const AUTHORITY_PHYSICAL_RISKY_PACKAGE_RE =
+  /(?:(?:остав|подлож|подброс|отнес|отнест|перенес|перенест|спрят|полож).{0,35}(?:пакет|сумк|рюкзак|коробк|посылк|предмет).{0,90}(?:заправк|школ|склад|вокзал|станци|метро|обществен|людн|здан|объект)|(?:пакет|сумк|рюкзак|коробк|посылк|предмет).{0,90}(?:заправк|школ|склад|вокзал|станци|метро|обществен|людн|здан|объект).{0,90}(?:остав|подлож|подброс|отнес|отнест|перенес|перенест|спрят|полож)|(?:paket|sumka|buyum|quti)(?:ni)?\s+(?:olib\s+bor|qoldir|yashir).{0,90}(?:zapravka|maktab|ombor|vokzal|bekat|metro|jamoat|gavjum|bino|obyekt)|(?:paket|sumka|buyum|quti)(?:ni)?.{0,90}(?:zapravka|maktab|ombor|vokzal|bekat|metro|jamoat|gavjum|bino|obyekt).{0,90}(?:olib\s+bor|qoldir|yashir)|(?:leave|carry|take|hide|place).{0,35}(?:package|bag|backpack|box|object).{0,90}(?:gas\s+station|school|warehouse|railway\s+station|station|subway|public|crowded|building|site)|(?:package|bag|backpack|box|object).{0,90}(?:gas\s+station|school|warehouse|railway\s+station|station|subway|public|crowded|building|site).{0,90}(?:leave|carry|take|hide|place))/iu;
+const PROTECTIVE_DANGEROUS_IMPERATIVE_RE =
+  /(?:не\s+(?:поджигай(?:те)?|поджигайте|ломай(?:те)?|разбивай(?:те)?|трогай(?:те)?|подкладывай(?:те)?|переноси(?:те)?)|do\s+not\s+(?:burn|damage|break|touch|carry|leave)|don['’]?t\s+(?:burn|damage|break|touch|carry|leave)|(?:yoqmang|buzmang|sindirmang|tegmang|olib\s+bormang|qoldirmang))/giu;
+
+function isAuthorityPhysicalCoercion(normalized: string): boolean {
+  // Remove only protective imperative clauses ("не поджигайте"). Conditional
+  // threats such as "если сын не подожжет" / "yoqmasa" still describe the
+  // coerced dangerous act and must remain. A later live command in another
+  // clause therefore cannot be hidden by a neighbouring safety sentence.
+  const actionCandidate = normalized.replace(PROTECTIVE_DANGEROUS_IMPERATIVE_RE, " ");
+  if (
+    !AUTHORITY_PHYSICAL_DANGEROUS_ACTION_RE.test(actionCandidate) &&
+    !AUTHORITY_PHYSICAL_RISKY_PACKAGE_RE.test(actionCandidate)
+  ) {
+    return false;
+  }
+
+  const newsContext =
+    /(?:новост|статья|памятк|news|article|warning|maqola|ogohlantir|xabar(?:da|larda)?\s+(?:aytil|yozil))/iu.test(
+      normalized,
+    );
+  const addressedPerson =
+    /(?:мне|меня|нам|сыну|дочер|дочке|девочк|мальчик|парню|реб[её]нк|подростк|(?<!\p{L})(?:я|мы)(?!\p{L})|menga|meni|bizga|bolam|bolaga|o['’]?g['’]?limga|qizimga|o['’]?smirga|me|my\s+(?:child|son|daughter)|us|(?<!\p{L})i(?!\p{L}))/iu.test(
+      normalized,
+    );
+  if (newsContext && !addressedPerson) return false;
+
+  const hasAuthority =
+    /(?:налогов|полици|мвд|фсб|прокуратур|следо(?:в)?ател|оперативник|госбезопас|sol(?:iq|i|q)chi|so(?:l)?iq|politsiya|iib|iiv|prokuror(?:man|lik)?|prokuratura|profilaktika\s+inspektor|tergov|xavfsizlik\s+xizmat|tax|police|law[\s-]?enforcement|prosecutor|detective|federal\s+agent|[iі]nvesti?gator|security\s+service)/iu.test(
+      normalized,
+    );
+  const hasDirective =
+    /(?:приказ|велел|застав|принужд|треб|говор|пиш|напис|звон|угрож|buyur|majburl|talab|ayt|yoz|qo['’]?ng['’]?iroq|qo['’]?rqit|(?:yoq|buz|sindir|uz)\p{L}*masang|order(?:ed|ing|s)?|told|forced|demand|threaten|message|call|say)/iu.test(
+      normalized,
+    );
+  const hasStrongCoercion = /(?:застав|принужд|majburl|talab\s+qil|forced)/iu.test(normalized);
+  const hasThreatOrSecrecy =
+    /(?:иначе|если\s+(?:(?:я|мы|ты|вы|он|она|сын|дочь|реб[её]нок)\s+)?не|угрож\p{L}*.{0,35}(?:дел|арест|посад)|посад|уголовн\p{L}*\s+дел|арест|никому\s+не\s+(?:говор|скаж)|hech\s+kimga\s+aytma|aks\s+holda|bajarmasang|yoqmasa|jinoiy\s+ish|ish\s+och|qama|if\s+(?:i|you|he|she|my\s+(?:son|daughter|child))\s+(?:do\s+not|does\s+not|don['’]?t|doesn['’]?t)|unless.{0,70}arrest|otherwise|criminal\s+case|arrest|go\s+to\s+jail|face\s+jail|tell\s+no\s+one|keep\s+it\s+secret)/iu.test(
+      normalized,
+    );
+  return hasAuthority && hasDirective && (hasStrongCoercion || hasThreatOrSecrecy);
+}
+
+export function isExplicitNativeNeighborVideoSafe(normalized: string): boolean {
+  const knownContact =
+    /(?:со(?:с)?ед|соседк|жи(?:л)?ец|знаком|друг|подруг|qo['’]?s(?:h)?n?im?|tanish|do['’]?st|ne(?:i)?ghbor|neighbour|res(?:i)?d?ent|friend|someone\s+i\s+know)/iu.test(
+      normalized,
+    );
+  const nativeVideo =
+    /(?:обычн\p{L}*\s+(?:mp4|видео|видеокруж)|видеокруж|прямо\s+в\s+telegram|из\s+галереи|отправил\p{L}*\s+как\s+видео|normal\s+(?:mp4|native\s+telegram\s+video|video)|native\s+telegram\s+video|video\s+message|telegram\s+ichida\s+oddiy\s+video|oddiy\s+(?:mp4|video)|galereyadan)/iu.test(
+      normalized,
+    );
+  const explicitlyNoExternalArtifact =
+    /(?:ссыл\p{L}*|архив\p{L}*|приложен\p{L}*|файл\p{L}*).{0,45}(?:нет|не\s+было)|(?:без|никак(?:ой|ого))\s+(?:ссыл|архив|приложен|файл)|hech\s+qanday\s+(?:havola|arxiv|fayl|ilova).{0,45}(?:yo['’]?q|kerak\s+emas)|(?:havola|arxiv|fayl|ilova).{0,45}yo['’]?q|no\s+(?:link|archive|file|extra\s+(?:app|application))|with\s+no\s+(?:link|archive|file|extra\s+(?:app|application))/iu.test(
+      normalized,
+    );
+  const suspiciousAction =
+    /(?:откры|скач|установ|нажм|apk|проигрывател|кодек|och|yukla|o['’]?rnat|bos|open|download|install|click|viewer|codec)/iu.test(
+      normalized,
+    );
+  return knownContact && nativeVideo && explicitlyNoExternalArtifact && !suspiciousAction;
+}
+
+/**
+ * A police/authority safety notice can contain the same actor, dangerous-act,
+ * and "call" words as a live coercion report. Keep only an explicitly
+ * protective notice here; a first-person order, threat, or live contact still
+ * falls through to the incident routes below.
+ */
+export function isExplicitAuthoritySafetyNotice(normalized: string): boolean {
+  const safetySource =
+    /(?:(?:полици|мвд|налогов|ведомств|authority|police|law\s+enforcement|tax\s+authority|politsiya|iib|soliq).{0,90}(?:памятк|предупрежд|инструкц|safety\s+(?:notice|warning|advice)|warning|awareness|ogohlantir|eslatma)|(?:памятк|предупрежд|инструкц|safety\s+(?:notice|warning|advice)|warning|awareness|ogohlantir|eslatma).{0,90}(?:полици|мвд|налогов|ведомств|authority|police|law\s+enforcement|tax\s+authority|politsiya|iib|soliq))/iu;
+  const protectiveInstruction =
+    /(?:(?:никогда\s+не|не|нельзя)\s+(?:перенос|оставля|поджиг|сжиг|лома|поврежда|трога)|(?:never|do\s+not|don['’]?t)\s+(?:carry|leave|place|burn|damage|break|touch)|(?:hech\s+qachon|aslo).{0,30}(?:olib\s+bor|qoldir|yoq|buz)|(?:olib\s+bormang|qoldirmang|yoqmang|buzmang))/iu;
+  const liveIncident =
+    /(?:(?:мне|нам|меня|сыну|дочер|реб[её]нк).{0,100}(?:приказ|велел|застав|требу|угрожа|звон|пиш)|(?<!\p{L})(?:me|us)(?!\p{L}).{0,100}(?:order|told|force|demand|threaten|call|messag)|my\s+(?:child|son|daughter).{0,100}(?:order|told|force|demand|threaten|call|messag)|(?:menga|bizga|bolam|o['’]?g['’]?limga|qizimga).{0,100}(?:buyur|majburl|talab|tahdid|qo['’]?ng['’]?iroq|yoz))/iu;
+  return (
+    safetySource.test(normalized) &&
+    protectiveInstruction.test(normalized) &&
+    !liveIncident.test(normalized)
+  );
+}
+
+function isNeighborVideoMalwareBait(normalized: string): boolean {
+  if (isExplicitNativeNeighborVideoSafe(normalized)) return false;
+  if (
+    /(?:никак(?:ой|ого)\s+(?:файл|apk|приложен).{0,45}(?:не\s+нуж|не\s+надо|не\s+треб)|hech\s+qanday\s+(?:fayl|apk|ilova).{0,55}(?:kerak\s+emas|shart\s+emas|talab\s+qilinmaydi)|no\s+(?:file|apk|app).{0,45}(?:is\s+needed|required|to\s+install)|(?:устанавливать|скачивать|o['’]?rnatish|yuklash|installing|downloading).{0,25}(?:не\s+нуж|не\s+надо|kerak\s+emas|shart\s+emas|is\s+not\s+(?:needed|required)))/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+
+  const knownContact =
+    /(?:со(?:с)?ед|соседк|жи(?:л)?ец|знаком|друг|подруг|qo['’]?s(?:h)?n?im?|қўшни\p{L}*|tanish|do['’]?st|ne(?:i)?ghbor|neighbour|res(?:i)?d?ent|friend|someone\s+i\s+know)/iu;
+  const videoContext =
+    /(?:видео|ролик|двор\p{L}*.{0,30}камер|камер\p{L}*.{0,30}(?:двор|подъезд)|запис\p{L}*.{0,30}(?:камер|домофон)|домофон|video|footage|recording|courtyard.{0,20}camera|doorbell|kamera\s+yozuvi|hovli.{0,25}kamer|kirishdagi\s+video|videodagi|это\s+ты|is\s+this\s+you|senmi)/iu;
+  const artifact =
+    /(?:архив|файл|вложен|apk|ссыл|player|viewer|проигрывател|кодек|arxiv|fayl|ilova|havola|codec|archive|file|attachment|link|[\p{L}0-9_-]+\.(?:zip|rar|7z)|(?:отдельн|alohida|separate).{0,30}(?:видео|запис|video|recording))/iu;
+  const action =
+    /(?:откры|скач|установ|нажм|глян|посмотр|распак|просит|надо|нужно|och|yukla|o['’]?rnat|bos|ko['’]?r|so['’]?ra|оч|юклаб|ўрнат|бос|кўр|сўра|kerak|open|download|install|click|view|watch|extract|unpack|asks?|wants?|says?\s+to)/iu;
+  const artifactAction =
+    (artifact.test(normalized) && action.test(normalized)) ||
+    /(?:архив|файл|вложен|apk|ссыл|arxiv|fayl|ilova|havola|archive|file|attachment|link|[\p{L}0-9_-]+\.(?:zip|rar|7z)).{0,120}(?:откры|скач|установ|нажм|глян|посмотр|распак|och|yukla|o['’]?rnat|bos|ko['’]?r|оч|юклаб|ўрнат|бос|кўр|open|download|install|click|view|watch|extract|unpack)|(?:откры|скач|установ|нажм|глян|посмотр|распак|och|yukla|o['’]?rnat|bos|ko['’]?r|оч|юклаб|ўрнат|бос|кўр|open|download|install|click|view|watch|extract|unpack).{0,120}(?:архив|файл|вложен|apk|ссыл|arxiv|fayl|ilova|havola|archive|file|attachment|link|[\p{L}0-9_-]+\.(?:zip|rar|7z)|player|viewer|codec|проигрывател|просмотрщик|кодек|recording)/iu.test(
+      normalized,
+    );
+  return knownContact.test(normalized) && videoContext.test(normalized) && artifactAction;
+}
+
+export function isExplicitSafeOfficialFineAppPayment(normalized: string): boolean {
+  const fine = /(?:штраф|ja(?:r)?ima|жарима|traffic\s+(?:fine|ticket)|\bfine\b)/iu;
+  const completedPayment =
+    /(?:оплачен|оплатил|оплатила|to['’]?ladim|to['’]?langan|тўладим|тўланган|paid)/iu;
+  const officialApp =
+    /(?:(?:официальн\p{L}*|банковск\p{L}*).{0,35}(?:прилож|магазин)|(?:bankning\s+)?rasmiy\s+ilova|банкнинг\s+расмий\s+илова|official\s+(?:bank|government)\s+app|(?:bank|government)\s+official\s+app|app.{0,20}(?:official\s+store|app\s+store|google\s+play)|(?:из|found\s+in)\s+(?:официальн\p{L}*\s+)?(?:магазин|store))/iu;
+  const explicitlyNoExternalArtifact =
+    /(?:apk|файл|вложен|сообщени).{0,45}(?:не\s+было|не\s+приходил|не\s+присылал|нет)|(?:без|никак(?:ого|их))\s+(?:apk|файл|вложен)|(?:apk|fayl|xabar).{0,45}(?:kelma(?:di|gan)|yo['’]?q)|hech\s+narsa\s+yuklamadim|(?:apk|файл|хабар).{0,45}(?:келма(?:ди|ган)|йўқ)|ҳеч\s+нарса\s+юкламадим|no\s+(?:apk|chat\s+attachment|message\s+attachment)|(?:apk|chat\s+attachment).{0,35}(?:was\s+not|wasn['’]?t)\s+(?:involved|sent|received)/iu;
+  const suspiciousPromotion =
+    /(?:кешб[эе]к|cashback|keshbek|скидк|chegirma|discount|стопроцент|100\s*(?:%|процент|foiz)|one\s+hundred\s+percent|полностью\s+верн|to['’]?liq\s+qaytar|тўлиқ\s+қайтар|refund\s+the\s+full)/iu;
+
+  return (
+    fine.test(normalized) &&
+    completedPayment.test(normalized) &&
+    officialApp.test(normalized) &&
+    explicitlyNoExternalArtifact.test(normalized) &&
+    !suspiciousPromotion.test(normalized)
+  );
+}
+
+export function isExplicitCompletedPersonalGift(normalized: string): boolean {
+  const completedGift =
+    /(?:подарок.{0,25}(?:уже\s+)?получил|(?:уже\s+)?получил.{0,25}подарок|sovg['’]?a(?:ni)?.{0,25}oldim|совға(?:ни)?.{0,25}олдим|received\s+(?:the|a|my)\s+gift|(?:already\s+)?received.{0,20}(?:the|a|my)\s+gift)/iu;
+  const inPersonHandoff =
+    /(?:лично\s+(?:вручил|подарил)|(?:вручил|подарил).{0,20}лично|shaxsan\s+berdi|шахсан\s+берди|handed\s+me.{0,30}(?:in\s+person|phone)|handed\s+me\s+a\s+phone|personally\s+(?:gave|handed))/iu;
+  const personalOccasion = /(?:день\s+рождени|tug['’]?ilgan\s+kun|туғилган\s+кун|birthday)/iu;
+  const explicitlyNoLink =
+    /(?:ссыл\p{L}*.{0,20}не\s+было|havola.{0,20}yo['’]?q|ҳавола.{0,20}йўқ|(?:there\s+was\s+)?no\s+link)/iu;
+
+  return (
+    completedGift.test(normalized) &&
+    inPersonHandoff.test(normalized) &&
+    personalOccasion.test(normalized) &&
+    explicitlyNoLink.test(normalized)
+  );
+}
+
+export function isExplicitSelfFoundOfficialStoreApp(normalized: string): boolean {
+  const road24 = /(?:roa(?:d)?\s*24|роад\s*24)/iu;
+  const officialStore = /(?:google\s+play|app\s+store)/iu;
+  const selfFound =
+    /(?:сам\p{L}*.{0,35}(?:наш[её]л|скачал|установил)|o['’]?zim.{0,35}(?:topib|topdim|o['’]?rnatdim)|ўзим.{0,35}(?:топиб|топдим|ўрнатдим)|(?:found|downloaded|installed).{0,40}(?:myself|on\s+my\s+own))/iu;
+  const explicitlyNoChatApk =
+    /(?:из\s+чата.{0,25}apk.{0,25}не\s+присыл|chatdan.{0,25}apk.{0,25}kelmagan|чатдан.{0,25}apk.{0,25}келмаган|no\s+apk.{0,35}(?:came|arrived|was\s+sent).{0,25}(?:from\s+)?(?:a\s+)?chat)/iu;
+
+  return (
+    road24.test(normalized) &&
+    officialStore.test(normalized) &&
+    selfFound.test(normalized) &&
+    explicitlyNoChatApk.test(normalized)
+  );
+}
+
+function isNeutralEmergencyNumberFact(normalized: string): boolean {
+  return /^(?:(?:the\s+)?police(?:\s+emergency)?\s+number\s+is\s+102|полиция\s+рақами\s+102)[.!]?$/iu.test(
+    normalized,
+  );
+}
+
+function isNaturalAccidentalOutgoingTransferIntent(normalized: string): boolean {
+  const uzbekVariant = uzbekLatinMatchingVariant(normalized);
+  const variants = uzbekVariant === null ? [normalized] : [normalized, uzbekVariant];
+
+  return variants.some((variant) =>
+    /(?:(?:i|we)\s+accidentally\s+(?:transferred|sent|paid).{0,80}wrong\s+(?:person|recipient|account|card|number)|(?:i|we).{0,20}(?:topped\s+up|recharged|paid).{0,80}(?:someone\s+else['’]?s|wrong)\s+(?:phone|number|mobile).{0,50}(?:by\s+mistake|accidentally)|по\s+ошибке.{0,45}(?:оплатил\p{L}*|пополнил\p{L}*).{0,50}чуж(?:ой|ого)\s+(?:номер(?:а)?\s+телефон\p{L}*|телефон\p{L}*)|(?:оплатил\p{L}*|пополнил\p{L}*).{0,50}чуж(?:ой|ого)\s+(?:номер(?:а)?\s+телефон\p{L}*|телефон\p{L}*).{0,45}(?:по\s+ошибке|случайно)|adashib.{0,70}o['’]?zimnikining\s+o['’]?rniga.{0,90}boshqa\s+odamning\s+telefon\s+raqamiga.{0,60}to['’]?lov\s+qildim|(?:boshqa|begona)\s+(?:odamning\s+)?telefon\s+raqamiga.{0,45}(?:xato|adashib).{0,30}(?:to['’]?ladim|to['’]?lov\s+qildim))/iu.test(
+      variant,
+    ),
+  );
+}
+
+function isFakeFineCashbackApp(normalized: string): boolean {
+  if (isExplicitSafeOfficialFineAppPayment(normalized)) return false;
+
+  const fine = /(?:штраф|ja(?:r)?ima|жарима|traffic\s+(?:fine|ticket)|\bfine\b)/iu;
+  const artifact =
+    /(?:roa(?:d)?\s*24|роад\s*24|\.\s*apk|\bapk\b|приложен\p{L}*|\bilova\b|илова|\bapp\b)/iu;
+  const promotion =
+    /(?:кешб[эе]к|cashback|keshbek|скидк|chegirma|discount|стопроцент\p{L}*|100\s*(?:%|процент\p{L}*|foiz)|one\s+hundred\s+percent|верн\p{L}*\s+100|полност\p{L}*\s+верн|верн\p{L}*.{0,20}(?:весь|полный)\s+штраф|to['’]?liq\s+qaytar\p{L}*|тўлиқ\s+қайтар\p{L}*|hammasini\s+qaytar\p{L}*|ҳаммасини\s+қайтар\p{L}*|refund\p{L}*\s+(?:the\s+)?full\s+(?:amount|fine)|full\s+(?:amount\s+)?refund)/iu;
+  const activeDeliveryOrAction =
+    /(?:предлага|прос(?:ят|ит)|прислал|отправил|приш[её]л|получил|шлют|тороп|скачал|скачать|загруз|установ|открыл|открыть|удалить|yubor|kel|ol|taklif|deyish|shoshir|yukla|o['’]?rnat|ochdim|ochish|o['’]?chirish|юбор|кел|таклиф|шошир|юклаб|ўрнат|очдим|ўчириш|sent|received|got|pushing|rush|download|install|opened|open|remove|asked|offered)/iu;
+
+  return (
+    fine.test(normalized) &&
+    artifact.test(normalized) &&
+    promotion.test(normalized) &&
+    activeDeliveryOrAction.test(normalized)
+  );
+}
+
+function withoutExplicitlyNegatedViolence(normalized: string): string {
+  return normalized
+    .replace(
+      /(?<!\p{L})(?:(?:i|we|they)\s+)?(?:will\s+not|would\s+not|won['’]?t|never)\s+(?:(?:hurt|kill|beat)(?:\s+(?:you|me|him|her|them|us))?(?:\s+(?:or|and)\s+)?){1,3}/giu,
+      " ",
+    )
+    .replace(
+      /(?<!\p{L})не\s+(?:(?:уб(?:ью|ьем|ьём|ьют)|изоб(?:ью|ьем|ьём|ьют)|удар(?:ю|им|ят))(?:\s+(?:тебя|вас|его|её|ее|их|нас))?(?:\s+(?:или|и)\s+)?){1,3}/giu,
+      " ",
+    )
+    .replace(
+      /(?:(?:seni|meni|uni)\s+)?(?:urmay\p{L}*|o['’]?ldirmay\p{L}*|урмай\p{L}*|ўлдирмай\p{L}*)/giu,
+      " ",
+    )
+    .replace(
+      /(?<!\p{L})(?:(?:i|we|they)\s+)?(?:will\s+not|would\s+not|won['’]?t|never)\s+(?:shoot(?:\s+(?:you|me|him|her|them|us))?|break\s+(?:your|my|his|her|their|our)\s+neck|make\s+(?:you|me|him|her|them|us)\s+disappear)/giu,
+      " ",
+    )
+    .replace(
+      /(?<!\p{L})не\s+(?:застрел\p{L}*(?:\s+(?:тебя|вас|его|её|ее|их|нас))?|слом\p{L}*.{0,15}шею|закоп\p{L}*)/giu,
+      " ",
+    )
+    .replace(
+      /(?:(?:seni|meni|uni)\s+)?(?:otib\s+tashlamay\p{L}*|yo['’]?q\s+qilmay\p{L}*|отиб\s+ташламай\p{L}*|йўқ\s+қилмай\p{L}*)/giu,
+      " ",
+    );
+}
+
+function isPenaltyPointsCancellationOffer(normalized: string): boolean {
+  const context =
+    /(?:(?:штрафн|штран|дорожн|водительск).{0,25}балл|балл.{0,25}(?:штрафн|штран|нарушен|пдд)|ja(?:r)?ima\s+ball|yo['’]?l.{0,20}qoida.{0,25}ball|ballar(?:im)?ni|traffic\s+(?:pen(?:a)?lty|violation)\s+points?|(?:driving\s+)?(?:pen(?:a)?lty|violation)\s+points?)/iu;
+  const erasure =
+    /(?:обнул|стер|удал|убрат|снять|списать|спиш\p{L}*|аннулир|o['’]?chir|yo['’]?qot|olib\s+tashla|bekor\s+qil|nol(?:ga)?\s+qil|tozal|wipe|erase|delete|remove|clear|reset|cancel|take.{0,25}off)/iu;
+  const safety =
+    /(?:(?:обнул|стер|удал|убрат|снять|списать|спиш\p{L}*|аннулир).{0,35}(?:невозможно|нельзя)|(?:невозможно|нельзя).{0,35}(?:обнул|стер|удал|убрат|снять|списать|спиш\p{L}*|аннулир)|(?:o['’]?chir|yo['’]?qot|bekor\s+qil|nol(?:ga)?\s+qil|tozal).{0,35}(?:mumkin\s+emas|bo['’]?lmaydi)|(?:cannot|can['’]?t|impossible\s+to).{0,35}(?:wipe|erase|delete|remove|clear|reset|cancel)|(?:не\s+платите|pul\s+bermang|pul\s+o['’]?tkazmang|do\s+not\s+pay|don['’]?t\s+pay).{0,100}(?:посредник|vositachi|intermediar))/iu;
+  const officialProcess =
+    /(?:официальн\p{L}*\s+(?:провер|обжалован)|бесплатн\p{L}*\s+провер|rasmiy\s+(?:tekshir|shikoyat)|bepul\s+tekshir|official\s+(?:check|appeal)|free\s+check|lawful\s+appeal|government\s+portal|qonuniy\s+shikoyat)/iu;
+  const linkedPayment =
+    /(?:за\s+(?:деньг|оплат|комисс)|комисс|аванс|депозит|личн\p{L}*\s+(?:сч[её]т|карт)|знаком\p{L}*\s+(?:в\s+гаи|в\s+гибдд|в\s+мвд)|pulga|pul\s+evaziga|buning\s+uchun\s+pul\s+so['’]?ra|shaxsiy\s+karta|haq\s+so['’]?ra|komissiya\s+talab|yhxbda\s+odam|for\s+(?:money|cash|a\s+fee|payment)|cash\s+fee|personal\s+(?:account|card)|inside\s+traffic[\s-]?police\s+contact|(?:wants?|asks?|demands?)\s+(?:a|another)?\s*(?:fee|payment)|paid\s+(?:a\s+)?(?:deposit|fee))/iu;
+  const completedLinkedPayment =
+    /(?:(?:перев[её]л|оплатил|заплатил|дал).{0,100}(?:аванс|депозит|обещ|посредник|штрафн|штран|дорожн\p{L}*\s+балл|убрат|списать|аннулир)|(?:pul\s+o['’]?tkazdim|to['’]?ladim).{0,100}(?:bekor\s+qil|ballar|va['’]?da|vositachi)|paid.{0,100}(?:deposit|promis|clear|erase|reset|pen(?:a)?lty\s+points?))/iu;
+  const paymentRequest =
+    /(?:прос(?:ит|ят).{0,35}(?:оплат|перев|доплат)|(?:оплат|перевед|доплат)(?:и|ите)|haq\s+so['’]?ra|komissiya\s+talab|(?:pul|to['’]?lov).{0,35}(?:o['’]?tkaz|to['’]?la)|(?:asks?|wants?|demands?)\s+(?:a|another)?\s*(?:fee|payment)|pay\s+(?:me|us)|transfer.{0,35}(?:money|payment))/iu;
+
+  const clauses = splitScenarioAssertionClauses(normalized);
+  return clauses.some((clause, index) => {
+    if (!context.test(clause) || !erasure.test(clause)) return false;
+    const hasActiveOffer =
+      /(?:предлага|обеща|просит|таклиф|ва['’]?да|сўра|taklif|va['’]?da|so['’]?ra|offers?|promises?|asks?|wants?|demands?|fixer|intermediar|посредник|vositachi)/iu.test(
+        clause,
+      );
+    if (safety.test(clause)) return false;
+    if (officialProcess.test(clause) && !hasActiveOffer) return false;
+    if (linkedPayment.test(clause) || completedLinkedPayment.test(clause)) return true;
+    return [clauses[index - 1], clauses[index + 1]].some(
+      (candidate) => candidate !== undefined && paymentRequest.test(candidate),
+    );
+  });
+}
+
+function isExplicitSafeOfficialPrizeResults(normalized: string): boolean {
+  const officialDestination =
+    /(?:официальн\p{L}*.{0,25}(?:сайт|страниц)|(?:сайт|страниц).{0,25}официальн\p{L}*|rasmiy.{0,25}(?:sayt|sahifa)|(?:sayt|sahifa).{0,25}rasmiy|расмий.{0,25}(?:сайт|саҳифа)|official.{0,25}(?:site|website|page)|(?:site|website|page).{0,25}official)/iu;
+  const publishedResults =
+    /(?:опубликован\p{L}*.{0,35}победител|победител\p{L}*.{0,35}опубликован|итог\p{L}*\s+розыгрыш|rasmiy.{0,35}(?:yutuq\s+)?natija|g['’]?oliblar.{0,35}e['’]?lon\s+qilingan|расмий.{0,35}(?:ютуқ\s+)?натижа|ғолиблар.{0,35}эълон\s+қилинган|published\s+(?:the\s+)?winners|winners?.{0,25}(?:published|announced)|official\s+results?)/iu;
+  const independentNavigation =
+    /(?:сам\p{L}*.{0,35}(?:открыл|заш[её]л)|из\s+(?:своей\s+)?закладки|сообщени\p{L}*\s+от\s+друз\p{L}*.{0,30}(?:нет|не\s+было)|xatcho['’]?pdan.{0,35}o['’]?zim|o['’]?zim.{0,35}(?:ochdim|kirdim)|хатчўпдан.{0,35}ўзим|ўзим.{0,35}(?:очдим|кирдим)|opened.{0,35}(?:my\s+own\s+)?bookmark|no\s+(?:friend|contact).{0,25}messaged)/iu;
+  const liveClaimAction =
+    /(?:тороп|нажм|забир|получи|перейд|bos|shoshir|olib\s+(?:ol|qol)|o['’]?t|бос|шошир|олиб\s+(?:ол|қол)|ўт|rush|click|claim|get\s+yours?|wants?\s+me\s+to)/iu;
+
+  return (
+    officialDestination.test(normalized) &&
+    publishedResults.test(normalized) &&
+    (independentNavigation.test(normalized) || !liveClaimAction.test(normalized))
+  );
+}
+
+function isKnownContactPrizeLink(normalized: string): boolean {
+  if (isExplicitSafeOfficialPrizeResults(normalized)) return false;
+  if (
+    /(?:не\s+(?:переходите|открывайте|нажимайте).{0,80}(?:ссыл|кнопк)|(?:havola|tugma).{0,50}(?:bosmang|ochmang)|do\s+not\s+(?:click|open).{0,60}(?:link|button)|don['’]?t\s+(?:click|open).{0,60}(?:link|button))/iu.test(
+      normalized,
+    ) &&
+    !/(?:мне|меня|мой\s+знаком|menga|tanishim|sent\s+me|my\s+friend).{0,100}(?:прислал|отправил|написал|yubor|yoz|sent|wrote)/iu.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+  const knownContact =
+    /(?:зн(?:а)?ком|друг|подруг|брат|сестр|родствен|контакт|при(?:я)?т?ел\p{L}*|аккаунт\p{L}*\s+(?:знаком|друг)|ta(?:n)?i(?:s)?him|tanish|do['’]?st|aka(?:m|si)?|opa(?:m|si)?|тан(?:и)?(?:ш)?им|дўст|акам|опам|qarindosh|kontakt|fr(?:i)?end|brother|sister|coll(?:e)?ague|relative|someone\s+i\s+know|known\s+contact)/iu;
+  const prize =
+    /(?:банк|bank|приз|подар|розыгрыш|выигр|денежн\p{L}*\s+подар|yutuq|yutug|sovg['’]?a|pul\s+mukofot|ютуқ|совға|мукофот|giveaway|prize|gift|reward|cash\s+(?:bonus|gift))/iu;
+  const linkOrButton = /(?:ссыл|кнопк|havola|link|tugma|ҳавол|линк|тугма|button)/iu;
+  const activeClaimOrOpen =
+    /(?:переслал|зов[её]т|тороп|перейд|нажм|забир|получи|открыл|провер|утвержда|bos|aytdi|shoshir|olib\s+qol|ochdim|yubor|(?:sen\s+)?ham\s+ol|yozdi|бос|айтди|шошир|олиб\s+қол|очдим|юбор|ҳам\s+ол|ёзди|forwarded|wants?\s+me|rush|click|claim|opened|open|verify|insists?|sent)/iu;
+
+  return (
+    knownContact.test(normalized) &&
+    prize.test(normalized) &&
+    linkOrButton.test(normalized) &&
+    activeClaimOrOpen.test(normalized)
+  );
+}
+
 function classifyHighConfidenceEverydayScenario(normalized: string): VictimIntentMatch | null {
+  if (isAuthorityPhysicalCoercion(normalized)) {
+    return {
+      kind: "authority_physical_coercion",
+      askedContext: "call",
+      scenario: "authority_physical_coercion",
+    };
+  }
+
+  // These concrete emerging-scam combinations must outrank broad file and
+  // forwarded-message heuristics. Each predicate still requires independent
+  // scenario signals, so a bare ROAD24 brand or ordinary video remains neutral.
+  if (isFakeFineCashbackApp(normalized)) {
+    return { kind: "apk_request", askedContext: "apk", scenario: "fake_fine_cashback_app" };
+  }
+
+  if (isNeighborVideoMalwareBait(normalized)) {
+    return { kind: "file_received", askedContext: "apk", scenario: "neighbor_video_malware" };
+  }
+
+  if (isPenaltyPointsCancellationOffer(normalized)) {
+    return {
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "penalty_points_cancellation",
+    };
+  }
+
+  if (isKnownContactPrizeLink(normalized)) {
+    return {
+      kind: "identity_uncertain",
+      askedContext: "link_qr",
+      scenario: "known_contact_prize_link",
+    };
+  }
+
   if (isUnauthorizedCreditOpened(normalized)) {
     return { kind: "identity_loan", askedContext: "transfer" };
   }
@@ -1257,6 +1904,22 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
 
   if (isTaskRewardDepositTrap(normalized)) {
     return { kind: "task_scam", askedContext: "transfer" };
+  }
+
+  if (isRecoveryFeeRequest(normalized)) {
+    return { kind: "transfer_request", askedContext: "transfer", scenario: "recovery_fee" };
+  }
+
+  if (isRentalViewingDepositRequest(normalized)) {
+    return { kind: "transfer_request", askedContext: "transfer", scenario: "rental_deposit" };
+  }
+
+  if (isGameAccountEscrowFeeRequest(normalized)) {
+    return { kind: "transfer_request", askedContext: "transfer", scenario: "game_escrow_fee" };
+  }
+
+  if (isSuspiciousBossVideoTransferRequest(normalized)) {
+    return { kind: "identity_uncertain", askedContext: "transfer", scenario: "fake_boss_request" };
   }
 
   if (
@@ -1326,9 +1989,9 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
 
   if (
     hasAllScenarioSignals(normalized, [
-      /(?:фонд|charity|jamg['’]?arma|сбор\p{L}*.{0,50}(?:лечен|помощ)|(?:лечен|treatment|davolanish).{0,50}(?:сбор|collection|yig['’]?im))/iu,
+      /(?:фонд|благотвор|пожертв|charity|donation|fundrais|relief|jamg['’]?arma|xayriya|ehson|сбор\p{L}*.{0,50}(?:лечен|помощ|пострадав)|(?:лечен|treatment|davolanish|flood\s+victim).{0,50}(?:сбор|collection|yig['’]?im|donation))/iu,
       /(?:личн\p{L}*\s+карт|personal\s+card|shaxsiy\s+karta)/iu,
-      /(?:перев|transfer|o['’]?tkaz|pul)/iu,
+      /(?:перев|transfer|send|sent|pay|payment|o['’]?tkaz|pul)/iu,
     ])
   ) {
     return {
@@ -1548,6 +2211,36 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "acknowledgement" };
   }
 
+  if (isExplicitAuthoritySafetyNotice(normalized)) return null;
+
+  // Physical coercion must outrank the broad police/tax impersonation route.
+  // Its predicate requires an authority, a coercive instruction, a dangerous
+  // act, and a threat/secrecy signal, so this does not turn an ordinary
+  // authority mention into an emergency.
+  if (isAuthorityPhysicalCoercion(normalized)) {
+    return {
+      kind: "authority_physical_coercion",
+      askedContext: "call",
+      scenario: "authority_physical_coercion",
+    };
+  }
+
+  if (isNeighborVideoMalwareBait(normalized)) {
+    return { kind: "file_received", askedContext: "apk", scenario: "neighbor_video_malware" };
+  }
+
+  if (isFakeFineCashbackApp(normalized)) {
+    return { kind: "apk_request", askedContext: "apk", scenario: "fake_fine_cashback_app" };
+  }
+
+  if (isKnownContactPrizeLink(normalized)) {
+    return {
+      kind: "identity_uncertain",
+      askedContext: "link_qr",
+      scenario: "known_contact_prize_link",
+    };
+  }
+
   // Authority contact/accusation signals must run before generic unknown-call
   // and broad official-message routes, which would otherwise discard the
   // named РУВД/ОВД/МВД (or IIB/police) context.
@@ -1611,9 +2304,22 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE.test(normalized) ||
     SAFE_OFFICIAL_DOCUMENT_HANDOFF_RE.test(normalized) ||
     SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized) ||
+    isExplicitNativeNeighborVideoSafe(normalized) ||
+    isExplicitSafeOfficialFineAppPayment(normalized) ||
     isSafePhysicalAccessOnly(normalized)
   ) {
     return null;
+  }
+
+  // A sender who simply chose the wrong recipient needs neutral bank recall
+  // guidance. Do not reinterpret that ordinary mistake as a completed scam or
+  // police incident. Incoming "return it elsewhere" requests are excluded by
+  // the shared guard and continue to the money-mule route below.
+  if (
+    isAccidentalOutgoingTransferIntent(normalized) ||
+    isNaturalAccidentalOutgoingTransferIntent(normalized)
+  ) {
+    return { kind: "accidental_transfer_outgoing", askedContext: "transfer" };
   }
 
   if (
@@ -1743,33 +2449,42 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     return { kind: "unauthorized_charge", askedContext: "card" };
   }
 
+  // Threats of physical violence ("we will come to your home") — this is a
+  // crime, the answer must lead with 102, not with a risk verdict. Keep this
+  // above generic cries for help so wrappers such as "помогите" / "help me" /
+  // "yordam" cannot hide the concrete physical-safety emergency.
+  const violenceEvidence = withoutExplicitlyNegatedViolence(normalized);
   if (
-    /(?:я\s+боюсь|мне\s+страшно|п[оа]м[оа]гите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|я\s+запутал(?:ся|ась)|я\s+волнуюсь|не\s+понимаю,?\s+что\s+происходит|мне\s+плохо|я\s+в\s+панике|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|yordam|[её]рдам|qo['’]?rqyapman|nima\s+qilishni\s+bilmayman)/iu.test(
+    /(?:угрожа(?:ет|ют)|грозит(?:ся)?|грозят(?:ся)?|пригрозил[аи]?|tahdid\s+qil|threaten(?:s|ed|ing)?|said\s+they['’]?ll)[\s\S]{0,100}(?:приехать|приед(?:у|ем|ут)|прийти|прид(?:у|ем|ут)|найти|найд(?:у|ем|ут)|вычисл|адрес|домой|расправ|избить|избьют|изобьют|убить|убьют|порежут|сожгут|kelamiz|boramiz|uyingga|manzil|come\s+to\s+(?:my|your)\s+(?:home|house)|find\s+(?:me|you)|beat\s+(?:me|you)|kill\s+(?:me|you)|hurt\s+(?:me|you)|know\s+(?:my|your)\s+address)|(?:знаем|узнаем)[\s\S]{0,30}(?:где\s+ты|твой\s+адрес|адрес)|(?:мы\s+)?приедем\s+к\s+тебе|найдем\s+тебя|(?:тебя\s+)?(?:убью|убьем|убьют|изобью|изобьем|изобьют)|сломаю\s+(?:тебе\s+)?ноги|(?:seni\s+)?(?:uram(?:an|iz)|urib\s+tashla\p{L}*|o['’]?ldir(?:aman|amiz)|topamiz)|(?:сени\s+)?уриб\s+ташла\p{L}*|uyingga\s+(?:boramiz|kelamiz)|(?:uyingni|manzilingni)\s+bilamiz|(?:(?:we|i|they)\s+(?:will|['’]?ll)\s+)?(?:come\s+to\s+(?:your|my)\s+(?:home|house)|find\s+(?:you|me)|beat\s+(?:you|me)|kill\s+(?:you|me)|hurt\s+(?:you|me)|break\s+your\s+legs)|(?:we|they)\s+know\s+(?:where\s+you\s+live|your\s+address)/iu.test(
+      violenceEvidence,
+    ) ||
+    /(?:(?:тебя\s+)?(?:застрел\p{L}*|закоп\p{L}*)|сломаю\s+(?:тебе\s+)?шею|seni\s+(?:otib\s+tashla(?!may)\p{L}*|yo['’]?q\s+qil(?!may)\p{L}*)|сени\s+(?:отиб\s+ташла(?!май|маы)\p{L}*|йўқ\s+қил(?!май|маы)\p{L}*)|shoot\s+(?:you|me)|break\s+(?:your|my)\s+neck|make\s+(?:you|me)\s+disappear)/iu.test(
+      violenceEvidence,
+    )
+  ) {
+    return { kind: "violence_threat", askedContext: "transfer" };
+  }
+
+  if (
+    /(?:я\s+боюсь|мне\s+страшно|п[оа]м[оа]гите|срочно\s+помогите|мне\s+нужна\s+помощь|я\s+не\s+знаю\s+что\s+делать|я\s+запутал(?:ся|ась)|я\s+волнуюсь|не\s+понимаю,?\s+что\s+происходит|мне\s+плохо|я\s+в\s+панике|help\s+me|i\s+am\s+scared|i\s+don't\s+know\s+what\s+to\s+do|^(?:iltimos\s+)?yordam(?:\s+(?:bering|kerak))?$|menga\s+yordam|yordam(?:\s+(?:bering|kerak))?.{0,80}(?:nima\s+qilishni\s+bilmay|sarosima|qo['’]?rq|xavotir|o['’]?zim\s+hal\s+qila\s+olmay)|(?:iltimos.{0,40})?vaziyatni\s+tushunishga\s+yordam|[её]рдам|qo['’]?rqyapman|nima\s+qilishni\s+bilmay(?:man|\s+qoldim))/iu.test(
       normalized,
     )
   ) {
     return { kind: "emotional_help" };
   }
 
-  // Threats of physical violence ("we will come to your home") — this is a
-  // crime, the answer must lead with 102, not with a risk verdict.
-  if (
-    /(?:угрожа(?:ет|ют)|грозит(?:ся)?|грозят(?:ся)?|пригрозил[аи]?|tahdid\s+qil)[\s\S]{0,80}(?:приехать|приед(?:у|ем|ут)|прийти|прид(?:у|ем|ут)|найти|найд(?:у|ем|ут)|вычисл|адрес|домой|расправ|избить|избьют|изобьют|убить|убьют|порежут|сожгут|kelamiz|boramiz|uyingga|manzil)|(?:знаем|узнаем)[\s\S]{0,30}(?:где\s+ты|твой\s+адрес|адрес)|(?:мы\s+)?приедем\s+к\s+тебе|найдем\s+тебя|uyingni\s+bilamiz/iu.test(
-      normalized,
-    )
-  ) {
-    return { kind: "violence_threat", askedContext: "transfer" };
-  }
-
   // Blackmail / sextortion pressure: "pay or we publish your photos/chat".
   // Must come before the generic scam-concern block so the victim gets the
   // dedicated "do not pay, payment does not delete anything" guidance.
   if (
-    /(?:опублику|вылож[иау]|разошл|разосл|распростран|солью|сольют|слить|скинут?\s+всем|отправ(?:ит|ят|лю)\s+(?:всем|друзьям|родным|близким|контактам)|tarqat|e['’]?lon\s+qil|таркат)[\s\S]{0,80}(?:фото|видео|переписк|интим|голы|скрин|rasm|surat|видео|расм|сурат)|(?:фото|видео|переписк|интим|rasm|surat|расм|сурат)[\s\S]{0,80}(?:опублику|вылож|разошл|разосл|распростран|солью|сольют|всем\s+контакт|друзьям|родным|tarqat|e['’]?lon|таркат)/iu.test(
+    /(?:опублику|вылож[иау]|разошл|разосл|распростран|солью|сольют|слить|скинут?\s+всем|отправ(?:ит|ят|лю)\s+(?:всем|друзьям|родным|близким|контактам)|tarqat|e['’]?lon\s+qil|таркат)[\s\S]{0,80}(?:фото|видео|переписк|интим|голы|скрин|(?<!\p{L})(?:rasm|surat|расм|сурат)(?!\p{L}))|(?:фото|видео|переписк|интим|(?<!\p{L})(?:rasm|surat|расм|сурат)(?!\p{L}))[\s\S]{0,80}(?:опублику|вылож|разошл|разосл|распростран|солью|сольют|всем\s+контакт|друзьям|родным|tarqat|e['’]?lon|таркат)/iu.test(
       normalized,
     ) ||
     hasExplicitBlackmailLabel(normalized) ||
     /(?:compromising\s+(?:photos?|videos?|materials?|images?)|(?:компромат|компрометирующ|kompromat).{0,100}(?:фото|видео|переписк|материал|rasm|surat|photo|video|image)|(?:фото|видео|переписк|rasm|surat|photo|video|image).{0,100}(?:компромат|компрометирующ|kompromat|compromising))/iu.test(
+      normalized,
+    ) ||
+    /(?<!\p{L})(?:rasm(?:lar)?(?:im|ing|i|imiz|ingiz|lari)?(?:ni|ga|da|dan)?|surat(?:lar)?(?:im|ing|i|imiz|ingiz|lari)?(?:ni|ga|da|dan)?)(?!\p{L})[\s\S]{0,80}(?:tarqat\p{L}*|e['’]?lon\s+qil\p{L}*)[\s\S]{0,60}(?:deb|aks\s+holda|bo['’]?lmasa)[\s\S]{0,50}(?<!\p{L})pul\p{L}{0,8}(?!\p{L})[\s\S]{0,35}(?:so['’]?ra\p{L}*|talab\s+qil\p{L}*)/iu.test(
       normalized,
     ) ||
     /(?:требу(?:ет|ют)|просят|хотят|talab\s+qil)[\s\S]{0,40}(?:ден[ьи]?г|пул|pul|оплат|перевод)[\s\S]{0,80}(?:иначе|а\s+то|не\s+то|aks\s+holda|bo['’]?lmasa)[\s\S]{0,100}(?:опублику|разошл|разосл|вылож|расскаж|tarqat|e['’]?lon|таркат)|(?:иначе|а\s+то|aks\s+holda|bo['’]?lmasa)[\s\S]{0,60}(?:опублику|разошл|разосл|вылож|расскаж|tarqat|e['’]?lon|таркат)/iu.test(
@@ -2078,7 +2793,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   if (
     hasVictimRequestFrame(normalized) &&
     hasAskVerb(normalized) &&
-    /(?:apk|приложени|установ|скачать|anydesk|dastur|ilova|install|download|app|доступ\s+к\s+(?:телефон|экран|устройств)|демонстрац.{0,20}экран|screen\s+share|screen\s+access|phone\s+access)/iu.test(
+    /(?:apk|приложени|установ|скачать|anydesk|dastur|ilova|install|download|(?<!\p{L})app(?!\p{L})|доступ\s+к\s+(?:телефон|экран|устройств)|демонстрац.{0,20}экран|screen\s+share|screen\s+access|phone\s+access)/iu.test(
       normalized,
     )
   ) {
@@ -2437,7 +3152,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   if (
     FAMILY_CONTEXT_RE.test(normalized) &&
     ACTIVE_FAMILY_REQUEST_RE.test(normalized) &&
-    FAMILY_REQUEST_VALUE_RE.test(normalized)
+    (FAMILY_REQUEST_VALUE_RE.test(normalized) || FAMILY_IMPERSONATION_HELP_RE.test(normalized))
   ) {
     return { kind: "friend_money", askedContext: "transfer" };
   }
@@ -2519,6 +3234,46 @@ export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch):
 }
 
 const VICTIM_SCENARIO_TEXT: Partial<Record<VictimScenario, Record<Lang, string>>> = {
+  authority_physical_coercion: {
+    ru: "Если человек от имени полиции, налоговой или другой службы заставляет вас что-то поджечь, сломать, перенести или оставить — не выполняйте это. Настоящие органы не дают тайные опасные задания через мессенджер и не угрожают делом за отказ.\n\nОтойдите от предмета или места в безопасную сторону, завершите контакт и позвоните 102. Если вы несовершеннолетний — сразу скажите родителю, учителю или другому взрослому, которому доверяете. Сохраните переписку, но не рискуйте собой ради скриншота.",
+    uz: "Politsiya, soliq yoki boshqa idora nomidan biror narsani yoqish, buzish, olib borish yoki qoldirishga majburlashsa — bajarmang. Haqiqiy idoralar messenjerda maxfiy xavfli topshiriq bermaydi va rad etganingiz uchun ish ochish bilan qo'rqitmaydi.\n\nBuyum yoki joydan xavfsiz tomonga uzoqlashing, aloqani tugating va 102 ga qo'ng'iroq qiling. Voyaga yetmagan bo'lsangiz, darhol ota-ona, o'qituvchi yoki ishonchli kattaga ayting. Yozishmani saqlang, ammo skrin uchun o'zingizni xavfga qo'ymang.",
+    en: "If someone claiming to be police, tax, or another authority orders you to burn, damage, carry, or leave something, do not do it. Real authorities do not issue secret dangerous tasks over a messenger or threaten a case for refusing.\n\nMove away from the object or place to somewhere safe, end contact, and call 102. If you are a minor, tell a parent, teacher, or another trusted adult immediately. Preserve the chat only if you can do so without putting yourself at risk.",
+  },
+  neighbor_video_malware: {
+    ru: "Неожиданное «видео от соседей» или «это ты на видео?» может быть приманкой, особенно если это APK, вложенный файл или для просмотра требуют установить плеер. Имя знакомого не доказывает, что аккаунт не взломан.\n\nНе открывайте вложение и ничего не устанавливайте. Позвоните знакомому по сохранённому номеру и уточните, что он действительно отправлял. Обычное видео проверяйте по расширению: APK и файлы с двойным расширением не запускайте.",
+    uz: "Qo'shni yoki tanishdan kutilmaganda kelgan «videodagi senmi?» xabari tuzoq bo'lishi mumkin, ayniqsa APK, ilova fayli yoki ko'rish uchun player o'rnatish talab qilinsa. Tanish ism akkaunt buzilmaganini isbotlamaydi.\n\nFaylni ochmang va hech narsa o'rnatmang. Tanishga saqlangan raqam orqali o'zingiz qo'ng'iroq qilib, rostdan yuborganini tekshiring. Oddiy videoning kengaytmasini ko'ring: APK va ikki kengaytmali fayllarni ishga tushirmang.",
+    en: "An unexpected “video from a neighbor” or “is this you in the video?” can be bait, especially when it is an APK, attachment, or asks you to install a player. A familiar name does not prove the account is still controlled by that person.\n\nDo not open the attachment or install anything. Call the person using a saved number and ask whether they sent it. Check the extension of an ordinary video; never run an APK or a double-extension file.",
+  },
+  fake_fine_cashback_app: {
+    ru: "APK или приложение из сообщения для оплаты штрафа, особенно с обещанием кешбэка или скидки, может быть подделкой. Логотип МВД, банка или название вроде ROAD24 не подтверждают источник.\n\nНе устанавливайте файл и не давайте доступ к SMS, уведомлениям или специальным возможностям. Проверьте штраф самостоятельно в официальном приложении или на госпортале, который открыли сами. Если APK уже установлен — включите авиарежим, отдельно выключите Wi‑Fi и мобильную связь и свяжитесь с банком с другого доверенного устройства.",
+    uz: "Jarimani to'lash uchun xabarda yuborilgan APK yoki ilova, ayniqsa keshbek yoki chegirma va'da qilsa, soxta bo'lishi mumkin. IIV yoki bank logotipi va ROAD24 kabi nom manbani tasdiqlamaydi.\n\nFaylni o'rnatmang, SMS, bildirishnoma yoki maxsus imkoniyatlarga ruxsat bermang. Jarimani o'zingiz ochgan rasmiy ilova yoki davlat portalida tekshiring. APK o'rnatilgan bo'lsa, aviarejimni yoqing, Wi‑Fi va mobil aloqani alohida o'chiring va boshqa ishonchli qurilmadan bank bilan bog'laning.",
+    en: "An APK or app sent in a message to pay a fine, especially with cashback or a discount, may be fake. A police or bank logo and a name such as ROAD24 do not prove its source.\n\nDo not install the file or grant SMS, notification, or accessibility access. Check the fine yourself in an official app or government portal you opened independently. If the APK is already installed, enable airplane mode, separately turn off Wi‑Fi and mobile data, and contact the bank from another trusted device.",
+  },
+  penalty_points_cancellation: {
+    ru: "Обещание за деньги «обнулить» или удалить штрафные баллы через знакомого в дорожной службе — неофициальная и опасная сделка. Перевод посреднику не исправляет запись и может привести к новой оплате или краже данных.\n\nНе платите и не отправляйте документы. Бесплатно проверьте сведения на my.gov.uz или другом официальном сервисе; для исправления либо обжалования используйте официальную процедуру и канал уполномоченного ведомства. Сохраните переписку и реквизиты предложения.",
+    uz: "Yo'l jarima ballarini pulga «o'chirish» yoki YHXBdagi tanish orqali yo'qotish va'dasi norasmiy va xavfli taklif. Vositachiga pul o'tkazish yozuvni tuzatmaydi va yana pul yoki ma'lumot talabiga olib kelishi mumkin.\n\nPul va hujjat yubormang. Ma'lumotni my.gov.uz yoki boshqa rasmiy xizmatda bepul tekshiring; tuzatish yoki shikoyat uchun vakolatli idoraning rasmiy tartibi va kanalidan foydalaning. Taklif yozishmasi va rekvizitlarini saqlang.",
+    en: "An offer to wipe traffic penalty points for money or through an insider is an unofficial and risky deal. Paying an intermediary does not correct the record and may lead to further demands or data theft.\n\nDo not pay or send documents. Check the record free on my.gov.uz or another official service; use the authorized agency's official procedure and channel for a correction or appeal. Save the chat and payment details from the offer.",
+  },
+  known_contact_prize_link: {
+    ru: "Сообщение от знакомого «я уже получил подарок банка, забирай тоже» не подтверждает приз: его аккаунт могли взломать. Ссылка на подписку или получение денег может вести к краже Telegram, банковских данных или кода.\n\nНе открывайте ссылку и позвоните знакомому по сохранённому номеру; акцию найдите сами на официальном сайте или в приложении банка. Если ввели код входа Telegram — завершите неизвестные сеансы и включите двухэтапную защиту. Если сообщили банковский OTP или данные карты — сразу позвоните в банк по официальному номеру, попросите заблокировать карту/доступ и проверить последние операции.",
+    uz: "Tanishdan kelgan «men bank sovg'asini oldim, sen ham ol» xabari yutuqni tasdiqlamaydi: uning akkaunti buzilgan bo'lishi mumkin. Obuna yoki pul olish havolasi Telegram, bank ma'lumoti yoki kodni o'g'irlash uchun ishlatilishi mumkin.\n\nHavolani ochmang, tanishga saqlangan raqam orqali qo'ng'iroq qiling va aksiyani bankning rasmiy sayt yoki ilovasidan o'zingiz toping. Telegram kirish kodini kiritgan bo'lsangiz, begona seanslarni tugatib ikki bosqichli himoyani yoqing. Bank OTPsi yoki karta ma'lumotini bergan bo'lsangiz, bankka rasmiy raqam orqali darhol qo'ng'iroq qilib, karta/kirishni bloklash va so'nggi operatsiyalarni tekshirishni so'rang.",
+    en: "A message from a friend saying “I got the bank gift, claim yours” does not prove there is a prize; their account may be compromised. A subscribe-or-claim link can be used to steal Telegram access, banking data, or a code.\n\nDo not open the link. Call the person using a saved number and find the promotion independently in the bank's official app or site. If you entered a Telegram login code, end unknown sessions and enable two-step verification. If you shared a banking OTP or card data, call the bank on its official number immediately and ask it to block the card/access and review recent operations.",
+  },
+  rental_deposit: {
+    ru: "Депозит на карту до подтверждённого просмотра жилья — рискованная предоплата. Одного объявления на OLX недостаточно, чтобы подтвердить квартиру и личность владельца.\n\nПока не переводите деньги. Проверьте адрес и владельца независимо, осмотрите жильё и читайте договор до оплаты; не используйте реквизиты только из переписки.",
+    uz: "Uy-joyni tasdiqlangan ko'rishdan oldin kartaga depozit yuborish — xavfli oldindan to'lov. OLXdagi e'lonning o'zi uy va egasini tasdiqlamaydi.\n\nHozircha pul o'tkazmang. Manzil va egani mustaqil tekshiring, uyni ko'ring va to'lovdan oldin shartnomani o'qing; faqat yozishmadagi rekvizitdan foydalanmang.",
+    en: "A card deposit before a verified property viewing is a risky advance payment. A listing alone does not prove that the property or landlord is genuine.\n\nDo not transfer yet. Verify the address and owner independently, view the property, and read the contract before paying; do not rely only on payment details from the chat.",
+  },
+  game_escrow_fee: {
+    ru: "Предоплата комиссии отдельному «гаранту» при продаже игрового аккаунта может быть схемой с посредником. Само слово «гарант» не защищает перевод и не подтверждает покупателя.\n\nСначала проверьте, разрешает ли платформа передачу или продажу аккаунта. Только если это разрешено, используйте её встроенную защиту сделки; отдельную комиссию не переводите и не передавайте пароль, код входа или резервные коды.",
+    uz: "O'yin akkauntini sotishda alohida «vositachi»ga oldindan komissiya yuborish vositachilik firibgarligi bo'lishi mumkin. «Garant» degan nom o'tkazmani himoya qilmaydi va xaridorni tasdiqlamaydi.\n\nAvval platforma akkauntni berish yoki sotishga ruxsat berishini tekshiring. Faqat ruxsat etilgan bo'lsa, uning ichki savdo himoyasidan foydalaning; alohida komissiya yubormang, parol, kirish kodi yoki zaxira kodlarini bermang.",
+    en: "An upfront fee to a separate “escrow agent” during a game-account sale may be an intermediary scam. Calling someone a guarantor does not protect the transfer or verify the buyer.\n\nFirst check whether the platform permits account transfers or sales. Only if permitted, use its built-in trade protection; do not send a separate fee or share the password, login code, or backup codes.",
+  },
+  fake_boss_request: {
+    ru: "Странный голос или вид руководителя на видеозвонке вместе со срочным переводом — повод отдельно проверить личность. Это может быть взлом аккаунта или подмена видео/голоса, но по одному звонку это не доказано.\n\nНе переводите деньги. Позвоните руководителю по сохранённому номеру или свяжитесь через второй известный канал и получите обычное внутреннее подтверждение операции.",
+    uz: "Videoqo'ng'iroqda rahbarning ovozi yoki ko'rinishi g'alati bo'lib, shoshilinch pul o'tkazish buyurilsa, shaxsni alohida tekshirish kerak. Bu akkaunt buzilishi yoki video/ovoz soxtalashtirilishi bo'lishi mumkin, ammo bitta qo'ng'iroq buning isboti emas.\n\nPul o'tkazmang. Rahbarga saqlangan raqam orqali o'zingiz qo'ng'iroq qiling yoki ikkinchi ishonchli kanal orqali bog'lanib, odatiy ichki tasdiqni oling.",
+    en: "A boss who looks or sounds unusual on a video call while ordering an urgent transfer needs independent identity verification. It could be an account compromise or manipulated video or audio, but one call alone does not prove that.\n\nDo not transfer. Call the boss using a saved number or use a second known channel, then obtain the normal internal approval for the payment.",
+  },
   prize_fee: {
     ru: "Если для получения выигрыша, приза или подарка сначала требуют комиссию, налог или сбор — это схема с предоплатой. Настоящий приз не выдают после перевода на чужую карту.\n\nНе платите и не подтверждайте операцию кодом. Проверьте организатора самостоятельно через официальный сайт; если вы не участвовали в розыгрыше, выигрыш выдуман.",
     uz: "Yutuq, sovg'a yoki mukofotni olishdan oldin komissiya, soliq yoki yig'im talab qilinsa — bu oldindan to'lov sxemasi. Haqiqiy mukofot begona kartaga pul o'tkazgandan keyin berilmaydi.\n\nPul to'lamang va operatsiyani kod bilan tasdiqlamang. Tashkilotchini rasmiy sayt orqali mustaqil tekshiring; tanlovda qatnashmagan bo'lsangiz, yutuq uydirma.",
@@ -2550,9 +3305,14 @@ const VICTIM_SCENARIO_TEXT: Partial<Record<VictimScenario, Record<Lang, string>>
     en: "AnyDesk, TeamViewer, or screen sharing can let the other person see and control activity on your phone. A bank will not ask you to install it.\n\nDo not install the app or share your screen. If access was already granted, disconnect the internet, remove the app's permissions, and contact the bank using its official number.",
   },
   parcel_fee: {
-    ru: "Срочный таможенный сбор за посылку по просьбе «курьера» — частая схема с поддельной оплатой.\n\nНе платите по присланной ссылке. Проверьте номер отправления сами на официальном сайте службы доставки или позвоните ей по номеру с сайта.",
-    uz: "«Kuryer» so'ragan posilka uchun shoshilinch boj to'lovi ko'pincha soxta to'lov sxemasi bo'ladi.\n\nYuborilgan havola orqali to'lamang. Jo'natma raqamini yetkazib berish xizmatining rasmiy saytida o'zingiz tekshiring yoki saytdagi raqamga qo'ng'iroq qiling.",
-    en: "An urgent customs fee for a parcel requested by a “courier” is a common fake-payment pattern.\n\nDo not pay through the supplied link. Check the tracking number yourself on the delivery company's official site or call the number listed there.",
+    ru: "Запрос отдельной оплаты за посылку или таможню нужно проверить независимо: срочность и реквизиты из сообщения не подтверждают реальный сбор.\n\nПока не платите. Проверьте номер отправления и начисление на официальном сайте перевозчика или таможни, который вы открыли сами, либо позвоните по найденному там номеру.",
+    uz: "Posilka yoki bojxona uchun alohida to'lov so'rovini mustaqil tekshirish kerak: shoshilinchlik va xabardagi rekvizit haqiqiy bojni tasdiqlamaydi.\n\nHozircha to'lamang. Jo'natma raqami va bojni o'zingiz ochgan tashuvchi yoki bojxonaning rasmiy saytida tekshiring yoxud o'sha yerdagi raqamga qo'ng'iroq qiling.",
+    en: "A separate parcel or customs payment request needs independent verification: urgency and payment details from the message do not prove that the charge is genuine.\n\nDo not pay yet. Check the tracking number and charge on the carrier's or customs authority's official site opened independently, or call the number listed there.",
+  },
+  recovery_fee: {
+    ru: "Предложение вернуть уже потерянные деньги за предоплату или комиссию может быть повторной попыткой обмана. Само обещание юриста или «службы возврата» не доказывает, что они способны вернуть средства.\n\nНе платите заранее. Проверьте специалиста и организацию независимо, сохраните новое предложение и сначала обратитесь в свой банк и полицию только по официальным каналам.",
+    uz: "Oldin yo'qotilgan pulni oldindan haq yoki komissiya evaziga qaytarish va'dasi takroriy firibgarlik bo'lishi mumkin. Yurist yoki «qaytarish xizmati»ning va'dasi pulni qaytara olishini isbotlamaydi.\n\nOldindan to'lamang. Mutaxassis va tashkilotni mustaqil tekshiring, yangi taklifni saqlang va avval bankingiz hamda politsiyaga faqat rasmiy kanallar orqali murojaat qiling.",
+    en: "An offer to recover money already lost in exchange for an upfront fee may be a second scam attempt. A lawyer's or “recovery service's” promise does not prove that they can recover the funds.\n\nDo not pay upfront. Verify the professional and organization independently, save the new offer, and contact your bank and police through official channels first.",
   },
   marketplace_delivery: {
     ru: "Ссылка «курьера» от покупателя с просьбой ввести данные карты — типичная подмена доставки на маркетплейсе.\n\nНе вводите номер карты, срок, CVV или SMS-код. Оформляйте доставку и получение денег только внутри официального приложения или сайта площадки.",
@@ -2565,9 +3325,9 @@ const VICTIM_SCENARIO_TEXT: Partial<Record<VictimScenario, Record<Lang, string>>
     en: "An advance commission to approve a loan is a strong sign of an upfront-fee scheme. A real lending decision is verified with the bank or lender itself.\n\nDo not transfer the commission or confirm an operation with a code. Contact the lender only through its official app, site, or number.",
   },
   charity_pressure: {
-    ru: "Неизвестный фонд, давление и перевод на личную карту — небезопасный способ сбора пожертвований.\n\nПока не переводите деньги. Проверьте регистрацию фонда и реквизиты через его официальный сайт; надёжный фонд не запрещает такую проверку и не торопит.",
-    uz: "Notanish jamg'arma, bosim va shaxsiy kartaga o'tkazma — xayriya yig'ishning xavfsiz usuli emas.\n\nHozircha pul o'tkazmang. Jamg'arma ro'yxatdan o'tganini va rekvizitlarini rasmiy sayt orqali tekshiring; ishonchli jamg'arma tekshiruvga qarshi bo'lmaydi va shoshirmaydi.",
-    en: "An unknown charity using pressure and a transfer to a personal card is not a safe donation route.\n\nDo not transfer money yet. Verify the charity's registration and payment details through its official site; a legitimate charity will allow that check and will not rush you.",
+    ru: "Давление при сборе пожертвований и перевод на личную карту требуют отдельной проверки организатора. Срочность сама по себе не подтверждает, что деньги попадут пострадавшим.\n\nПока не переводите деньги. Найдите организацию или сбор самостоятельно, проверьте её реквизиты и отчётность через официальный источник, а не по данным из сообщения.",
+    uz: "Xayriya yig'imida bosim qilish va shaxsiy kartaga o'tkazma so'rash tashkilotchini alohida tekshirishni talab qiladi. Shoshilinchlikning o'zi pul jabrlanganlarga yetishini tasdiqlamaydi.\n\nHozircha pul o'tkazmang. Tashkilot yoki yig'imni o'zingiz toping, rekvizit va hisobotini xabardagi ma'lumotdan emas, rasmiy manbadan tekshiring.",
+    en: "Pressure around a donation request and payment to a personal card require independent verification of the organizer. Urgency alone does not prove that the money will reach the people affected.\n\nDo not transfer yet. Find the organization or fundraiser independently and verify its payment details and reporting through an official source, not the message.",
   },
   qr_login: {
     ru: "QR для входа в Telegram может авторизовать чужое устройство в вашем аккаунте.\n\nНе сканируйте QR, который прислал или показывает другой человек. Если уже сканировали — откройте Telegram → Устройства, завершите незнакомый сеанс и включите двухэтапную защиту.",
@@ -2602,18 +3362,18 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
 
   const byKind: Record<VictimIntentKind, Record<Lang, string>> = {
     emotional_help: {
-      ru: "Я рядом. Сначала остановимся и разберёмся спокойно.\n\nЧто происходит прямо сейчас: вам звонят, прислали ссылку/файл, просят код, карту или перевод? Нажмите подходящую кнопку ниже или напишите одной фразой.",
-      uz: "Men yoningizdaman. Avval to'xtab, xotirjam aniqlaymiz.\n\nHozir nima bo'lyapti: qo'ng'iroq qilishyaptimi, havola/fayl yuborishdimi, kod, karta yoki pul so'rashyaptimi? Pastdagi tugmani bosing yoki bir jumla bilan yozing.",
-      en: "I am here with you. First, pause and we will sort this out calmly.\n\nWhat is happening right now: are they calling, did they send a link/file, or are they asking for a code, card, or transfer? Tap a button below or write one short sentence.",
+      ru: "Я рядом. Давайте спокойно разберёмся. Пока ничего не отправляйте и не оплачивайте.\n\nЧто происходит прямо сейчас: вам звонят, прислали ссылку или файл, просят код, данные карты либо перевод? Нажмите подходящую кнопку ниже или напишите одной фразой.",
+      uz: "Men yoningizdaman. Keling, vaziyatni xotirjam aniqlaymiz. Hozircha hech narsa yubormang va to'lamang.\n\nHozir nima bo'lyapti: qo'ng'iroq qilishyaptimi, havola yoki fayl yuborishdimi, kod, karta ma'lumoti yoxud pul so'rashyaptimi? Pastdagi tugmani bosing yoki bir jumla bilan yozing.",
+      en: "I am here with you. Let us work through this calmly. Do not send or pay anything yet.\n\nWhat is happening right now: are they calling, did they send a link or file, or are they asking for a code, card data, or transfer? Tap a button below or write one short sentence.",
     },
     general_scam_concern: {
-      ru: "Вы правильно остановились. Пока ничего не отправляйте.\n\nЧтобы понять риск, напишите, что именно вас просят сделать: код, карту, перевод, APK, ссылку/QR или просто общение?",
-      uz: "To'g'ri to'xtadingiz. Hozircha hech narsa yubormang.\n\nXavfni tushunish uchun yozing: sizdan aynan nima so'rashyapti — kod, karta, pul, APK, havola/QR yoki shunchaki suhbatmi?",
-      en: "Good that you stopped. Do not send anything yet.\n\nTo understand the risk, tell me what they ask you to do: code, card, transfer, APK, link/QR, or just chatting?",
+      ru: "Хорошо, что вы решили проверить. Пока ничего не отправляйте и не оплачивайте.\n\nНапишите, что именно вас просят сделать: назвать код, дать данные карты, перевести деньги, установить APK, открыть ссылку/QR или просто продолжить общение?",
+      uz: "Tekshirishga qaror qilganingiz yaxshi. Hozircha hech narsa yubormang va to'lamang.\n\nSizdan aynan nima so'rashyapti: kod aytish, karta ma'lumotini berish, pul o'tkazish, APK o'rnatish, havola/QRni ochish yoki shunchaki suhbatni davom ettirishmi?",
+      en: "It is good that you decided to check. Do not send or pay anything yet.\n\nTell me what they are asking you to do: share a code, give card data, send money, install an APK, open a link/QR, or simply keep chatting?",
     },
     advice_question: {
       ru: "Безопасный шаг сейчас: не отправляйте код, карту, пароль, фото документов и деньги.\n\nПришлите коротко, что именно случилось или что вас просят сделать. Если уже отправили код/деньги — нажмите «Помощь сейчас».",
-      uz: "Hozir xavfsiz qadam: kod, karta, parol, hujjat rasmi yoki pul yubormang.\n\nNima bo'lganini yoki sizdan nima so'ralganini qisqa yozing. Kod/pul yuborgan bo'lsangiz — «Emergency» tugmasini bosing.",
+      uz: "Hozir xavfsiz qadam: kod, karta, parol, hujjat rasmi yoki pul yubormang.\n\nNima bo'lganini yoki sizdan nima so'ralganini qisqa yozing. Kod/pul yuborgan bo'lsangiz — «🆘 Shoshilinch qadamlar» tugmasini bosing.",
       en: "Safe step now: do not send codes, card data, passwords, document photos, or money.\n\nBriefly send what happened or what they ask you to do. If you already sent a code/money, press “Help now”.",
     },
     unknown_contact: {
@@ -2692,9 +3452,9 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "Water, gas, electricity, Suvsoz, or “smart meter” requests should be checked only through the official local office.\n\nDo not share passport data, ID number, SMS code, or pay by link. End the call and call back using the number from a bill, site, or app.",
     },
     pension_benefit: {
-      ru: "Пенсионный фонд, перерасчёт пенсии, субсидия, пособие или грант не оформляются через SMS-код, ссылку или данные карты в чате/звонке.\n\nНе называйте код, паспорт, ПИНФЛ и данные карты. Проверяйте через официальный номер 1271, 102 или личный кабинет, открытый вручную.",
-      uz: "Pensiya jamg'armasi, pensiyani qayta hisoblash, subsidiya, nafaqa yoki grant chat/qo'ng'iroqda SMS-kod, havola yoki karta ma'lumoti bilan rasmiylashtirilmaydi.\n\nKod, pasport, JSHSHIR/PINFL yoki karta ma'lumotini aytmang. 1271, 102 yoki o'zingiz ochgan rasmiy kabinet orqali tekshiring.",
-      en: "A pension recalculation, subsidy, benefit, or grant is not arranged through an SMS code, link, or card data in a chat/call.\n\nDo not share a code, passport, ID number, or card data. Verify through official number 1271, 102, or an official account opened manually.",
+      ru: "Перерасчёт пенсии, субсидия, пособие или грант не оформляются через передачу SMS-кода или данных карты человеку в чате либо звонке.\n\nНе называйте код, паспорт, ПИНФЛ и данные карты. Откройте официальный личный кабинет сами или найдите контакт нужного ведомства на его официальном сайте; номер из сообщения не используйте.",
+      uz: "Pensiyani qayta hisoblash, subsidiya, nafaqa yoki grant chat yoki qo'ng'iroqda boshqa odamga SMS-kod va karta ma'lumotini berish orqali rasmiylashtirilmaydi.\n\nKod, pasport, JSHSHIR/PINFL yoki karta ma'lumotini aytmang. Rasmiy kabinetni o'zingiz oching yoki idora kontaktini uning rasmiy saytidan toping; xabardagi raqamdan foydalanmang.",
+      en: "A pension recalculation, benefit, subsidy, or grant is not arranged by giving an SMS code or card data to someone in a chat or call.\n\nDo not share a code, passport, ID number, or card data. Open the official account yourself or find the agency's contact on its official website; do not use a number from the message.",
     },
     phone_borrowing: {
       ru: "Не отдавайте незнакомцу разблокированный телефон даже «на минуту».\n\nЕсли хотите помочь — наберите номер сами и включите громкую связь. Не передавайте телефон с открытым банком, Telegram, SMS или уведомлениями.",
@@ -2705,6 +3465,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Если деньги пришли «по ошибке» и просят вернуть на другой счёт — не переводите сами.\n\nСразу обратитесь в банк: пусть возврат идёт официально. Сохраните сообщение, чек и номер. Иначе можно стать участником чужой схемы.",
       uz: "Pul «xato» kelib, boshqa hisobga qaytarishni so'rashsa — o'zingiz o'tkazmang.\n\nDarhol bankka murojaat qiling: qaytarish rasmiy yo'l bilan bo'lsin. Xabar, chek va raqamni saqlang. Aks holda begona sxemaga aralashib qolishingiz mumkin.",
       en: "If money arrived “by mistake” and they ask you to send it to another account, do not transfer it yourself.\n\nContact the bank immediately so any return is handled officially. Save the message, receipt, and number. Otherwise you may become part of someone else's scheme.",
+    },
+    accidental_transfer_outgoing: {
+      ru: "Если вы сами ошиблись получателем, это ещё не означает мошенничество. Важно не делать второй перевод и не пытаться решать вопрос по реквизитам из чужого сообщения.\n\nСразу обратитесь в банк или платёжный сервис через официальный канал, сообщите время, сумму и получателя и спросите, доступен ли отзыв перевода. Сохраните чек и реквизиты. Возврат не гарантирован: доступную процедуру определит банк или сервис.",
+      uz: "Pulni o'zingiz xato oluvchiga yuborgan bo'lsangiz, bu hali firibgarlik degani emas. Ikkinchi o'tkazma qilmang va begona xabardagi rekvizit orqali masalani hal qilmang.\n\nBank yoki to'lov xizmatiga rasmiy kanal orqali darhol murojaat qiling, vaqt, summa va oluvchini ayting hamda o'tkazmani qaytarib chaqirish mavjudligini so'rang. Chek va rekvizitni saqlang. Qaytarish kafolatlanmaydi; mavjud tartibni bank yoki xizmat aytadi.",
+      en: "If you chose the wrong recipient yourself, that does not by itself mean fraud. Do not make a second transfer or use payment details from an unsolicited message to fix it.\n\nContact your bank or payment service immediately through an official channel, provide the time, amount, and recipient, and ask whether transfer recall is available. Save the receipt and details. Recovery is not guaranteed; the bank or service will explain the available procedure.",
     },
     open_budget: {
       ru: "Open Budget/голос за деньги — рискованная схема. Код из SMS может привязать ваш номер, карту или аккаунт к чужим действиям.\n\nНе продавайте голос и не называйте код. Проверяйте Open Budget только через официальный сайт/приложение.",
@@ -2717,14 +3482,14 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "A clinic, doctor, or DMED should not ask for an SMS code in chat or by phone.\n\nDo not dictate the code. Book only through the official service, reception desk, or saved clinic number.",
     },
     child_game_bonus: {
-      ru: "Бесплатные бонусы, игровая валюта или подарок ребёнку часто ведут к коду, аккаунту или вымогательству.\n\nНе вводите код и не переходите в сторонний чат. Лучше остановить переписку, сохранить скрин и обсудить это с ребёнком спокойно.",
-      uz: "Bolaga bepul bonus, o'yin valyutasi yoki sovg'a ko'pincha kod, akkaunt yoki qo'rqitishga olib boradi.\n\nKod kiritmang va begona chatga o'tmang. Yozishmani to'xtating, skrin saqlang va bola bilan xotirjam gaplashing.",
-      en: "Free bonuses, game currency, or gifts for a child often lead to codes, account theft, or extortion.\n\nDo not enter a code or move to a third-party chat. Stop the conversation, save a screenshot, and talk with the child calmly.",
+      ru: "Бесплатные бонусы, игровая валюта или подарок ребёнку часто ведут к коду, аккаунту или вымогательству.\n\nНе вводите код и не переходите в сторонний чат. Покупки и бонусы проверяйте только во встроенном официальном магазине или инструментах самой игры и с согласием родителя. Завершите переписку, сохраните скрин и спокойно обсудите это с ребёнком.",
+      uz: "Bolaga bepul bonus, o'yin valyutasi yoki sovg'a ko'pincha kod, akkaunt yoki qo'rqitishga olib boradi.\n\nKod kiritmang va begona chatga o'tmang. Xarid va bonuslarni faqat o'yinning rasmiy ichki do'koni yoki vositalarida, ota-ona roziligi bilan tekshiring. Yozishmani tugating, skrin saqlang va bola bilan xotirjam gaplashing.",
+      en: "Free bonuses, game currency, or gifts for a child often lead to codes, account theft, or extortion.\n\nDo not enter a code or move to a third-party chat. Check purchases and bonuses only through the game's official built-in store or tools and with parental consent. End the chat, save a screenshot, and talk with the child calmly.",
     },
     silent_call: {
-      ru: "Если звонят и молчат — лучше сразу сбросить.\n\nНе говорите «да», не продолжайте разговор и не перезванивайте по неизвестному номеру. Заблокируйте номер и предупредите близких, если звонки повторяются.",
-      uz: "Qo'ng'iroq qilib jim turishsa — darhol tugatgan yaxshi.\n\n«Ha» demang, suhbatni davom ettirmang va noma'lum raqamga qayta qo'ng'iroq qilmang. Raqamni bloklang va takrorlansa yaqinlaringizni ogohlantiring.",
-      en: "If they call and stay silent, it is safer to hang up immediately.\n\nDo not say “yes”, do not continue, and do not call back an unknown number. Block it and warn relatives if calls repeat.",
+      ru: "Если звонят и молчат — завершите вызов. Сам по себе короткий ответ не даёт доступ к счетам, но продолжать разговор с неизвестным номером незачем.\n\nНе сообщайте личные данные и коды, не нажимайте цифры по инструкции звонящего и не перезванивайте на неизвестный номер. При повторных звонках заблокируйте его.",
+      uz: "Qo'ng'iroq qilib jim turishsa, qo'ng'iroqni tugating. Qisqa javobning o'zi hisoblaringizga kirish bermaydi, ammo noma'lum raqam bilan suhbatni davom ettirish shart emas.\n\nShaxsiy ma'lumot va kod aytmang, qo'ng'iroq qiluvchi aytgan raqamlarni bosmang va noma'lum raqamga qayta qo'ng'iroq qilmang. Takrorlansa, raqamni bloklang.",
+      en: "If a caller stays silent, end the call. A short spoken answer alone does not grant access to your accounts, but there is no reason to continue with an unknown caller.\n\nDo not share personal data or codes, press keypad options on their instruction, or call the unknown number back. Block it if the calls repeat.",
     },
     official_impersonation: {
       ru: "Госорган, МВД, суд, налоговая или инспектор не должны требовать код, карту, паспорт, наличные или скрывать «операцию» от семьи и банка в личном чате. Требование никому не говорить — приём изоляции, а не доказательство официального расследования.\n\nЗавершите контакт. Не платите и ничего не передавайте; проверьте обращение сами через 102, официальный номер, сайт или личное обращение.",
@@ -2745,6 +3510,11 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       ru: "Звонок или чат от «майора», полиции, прокуратуры, налоговой, кадастра, суда или коллектора часто используют для давления страхом.\n\nНе называйте коды, не отправляйте документы и не платите по ссылке. Завершите контакт и проверяйте только через официальный номер или личное обращение.",
       uz: "«Mayor», politsiya, prokuratura, soliq, kadastr, sud yoki kollektor nomidan qo'ng'iroq/chat ko'pincha qo'rqitish uchun ishlatiladi.\n\nKod aytmang, hujjat yubormang va havola orqali to'lamang. Aloqani tugating va faqat rasmiy raqam yoki shaxsan murojaat orqali tekshiring.",
       en: "A call or chat from a “major”, police, prosecutor, tax office, cadastre, court, or collector is often used to pressure with fear.\n\nDo not share codes, send documents, or pay by link. End the contact and verify only through an official number or in person.",
+    },
+    authority_physical_coercion: {
+      ru: "Не выполняйте опасное или незаконное «задание» от человека, который представляется полицией, налоговой или другой службой. Отойдите в безопасное место, завершите контакт и позвоните 102.\n\nЕсли вы несовершеннолетний — сразу сообщите родителю, учителю или другому взрослому, которому доверяете. Не трогайте и не переносите предметы; сохраняйте переписку только без риска для себя.",
+      uz: "Politsiya, soliq yoki boshqa idora nomidan berilgan xavfli yoki noqonuniy «topshiriq»ni bajarmang. Xavfsiz joyga uzoqlashing, aloqani tugating va 102 ga qo'ng'iroq qiling.\n\nVoyaga yetmagan bo'lsangiz, darhol ota-ona, o'qituvchi yoki ishonchli kattaga ayting. Buyumlarga tegmang va ularni ko'chirmang; yozishmani faqat o'zingizga xavf tug'dirmasa saqlang.",
+      en: "Do not carry out a dangerous or illegal “task” from someone claiming to be police, tax, or another authority. Move to a safe place, end contact, and call 102.\n\nIf you are a minor, tell a parent, teacher, or another trusted adult immediately. Do not touch or move objects; preserve the chat only when doing so does not put you at risk.",
     },
     gov_service_login: {
       ru: "Soliq, OneID и госуслуги проверяем только через официальный сайт или приложение, открытые вручную.\n\nНе входите по ссылке из чата/SMS, не называйте пароль и SMS-код. Если вас просят «войти», «подтвердить» или «разблокировать» — пришлите ссылку или текст просьбы.",
@@ -2802,14 +3572,14 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "If money or a code was already sent, call the bank first and ask to block the card/operation. Then contact police/102 and save receipts, numbers, links, and chat history.\n\nTo warn others through Ishonch Guard, tap “Report” or send the number, link, username, and a short description.",
     },
     violence_threat: {
-      ru: "Угроза приехать или применить силу — это уже не просто мошенничество, это преступление. Чаще всего так запугивают на расстоянии, но безопасность важнее всего.\n\n1. Не платите и не соглашайтесь на встречу.\n2. Позвоните в милицию — 102. Сохраните скрины угроз, номера и username.\n3. Расскажите близкому человеку — не оставайтесь с этим один на один.\nЕсли угрожают из-за фото или переписки — платить всё равно нельзя: оплата не останавливает шантаж.",
-      uz: "Kelib qolish yoki kuch ishlatish tahdidi — bu endi oddiy firibgarlik emas, bu jinoyat. Ko'pincha bu masofadan qo'rqitish, lekin xavfsizlik hammasidan muhim.\n\n1. Pul to'lamang va uchrashuvga rozi bo'lmang.\n2. Militsiyaga qo'ng'iroq qiling — 102. Tahdid skrinlarini, raqam va username'ni saqlang.\n3. Yaqin insonga ayting — bu bilan yolg'iz qolmang.\nRasm yoki yozishma uchun tahdid qilishsa ham to'lash mumkin emas: to'lov shantajni to'xtatmaydi.",
-      en: "A threat to come to you or use force is no longer just a scam — it is a crime. Most often it is remote intimidation, but safety comes first.\n\n1. Do not pay and do not agree to meet.\n2. Call the police — 102. Save screenshots of the threats, numbers, and usernames.\n3. Tell a trusted person — do not stay alone with this.\nIf they threaten you over photos or chats, still do not pay: payment does not stop blackmail.",
+      ru: "Угроза приехать или применить силу — это вопрос физической безопасности. Не оценивайте сами, блеф это или нет.\n\n1. Не платите и не соглашайтесь на встречу; перейдите в безопасное место.\n2. Позвоните в милицию — 102. Сохраните скрины угроз, номер и username, если это можно сделать безопасно.\n3. Сразу расскажите близкому человеку и не оставайтесь с угрозой один на один.\nЕсли угрожают из-за фото или переписки, оплата всё равно не гарантирует прекращение шантажа.",
+      uz: "Kelib qolish yoki kuch ishlatish tahdidi — jismoniy xavfsizlik masalasi. Bu blefmi yoki yo'qmi, o'zingiz baholamang.\n\n1. Pul to'lamang va uchrashuvga rozi bo'lmang; xavfsiz joyga o'ting.\n2. 102 ga qo'ng'iroq qiling. Xavfsiz bo'lsa, tahdid skrinlari, raqam va username'ni saqlang.\n3. Darhol yaqin insonga ayting va tahdid bilan yolg'iz qolmang.\nRasm yoki yozishma bilan tahdid qilishsa ham, to'lov shantaj tugashini kafolatlamaydi.",
+      en: "A threat to come to you or use force is a physical-safety issue. Do not try to decide on your own whether it is a bluff.\n\n1. Do not pay or agree to meet; move somewhere safe.\n2. Call police on 102. Save the threats, number, and username only if it is safe to do so.\n3. Tell a trusted person immediately and do not face the threat alone.\nIf the threat involves photos or chats, payment still does not guarantee the extortion will stop.",
     },
     withdrawal_blocked: {
-      ru: "Похоже на ловушку с выводом средств: «налог», «комиссия» или «верификация», чтобы отдать ваши же деньги — продолжение той же схемы. Настоящая площадка не берёт плату за вывод ваших денег.\n\n1. Больше ничего не платите и не пополняйте баланс.\n2. Сохраните скрины кабинета, баланса и переписки с «поддержкой» или «наставником».\n3. Если пополняли картой — позвоните в банк по официальному номеру.\nПришлите ссылку платформы или @username наставника — проверю признаки.",
-      uz: "Bu pulni yechishdagi tuzoqqa o'xshaydi: o'z pulingizni olish uchun «soliq», «komissiya» yoki «verifikatsiya» — o'sha sxemaning davomi. Haqiqiy platforma pulingizni qaytarish uchun haq olmaydi.\n\n1. Boshqa hech narsa to'lamang va balans to'ldirmang.\n2. Kabinet, balans va «ustoz» yoki «qo'llab-quvvatlash» bilan yozishma skrinlarini saqlang.\n3. Karta orqali to'lagan bo'lsangiz — bankka rasmiy raqam orqali qo'ng'iroq qiling.\nPlatforma havolasini yoki ustozning @username'ini yuboring — belgilarini tekshiraman.",
-      en: "This looks like a withdrawal trap: a “tax”, “fee”, or “verification” to release your own money is part of the same scheme. A real platform does not charge you to give your money back.\n\n1. Do not pay or top up anything else.\n2. Save screenshots of the account, balance, and chats with “support” or the “mentor”.\n3. If you paid by card, call your bank using the official number.\nSend the platform link or the mentor's @username and I will check the signs.",
+      ru: "Похоже на ловушку с выводом средств, если новый «налог», «комиссию» или «верификацию» требуют перевести на личную карту либо оплатить по реквизитам из чата. Наличие такой оплаты в кабинете само по себе не доказывает обман, но её нужно проверить независимо.\n\n1. Пока больше ничего не платите и не пополняйте баланс.\n2. Сохраните скрины кабинета, баланса и переписки с «поддержкой» или «наставником».\n3. Проверьте условия на официальном сайте, найденном самостоятельно; если платили картой — позвоните в банк по официальному номеру.\nПришлите ссылку платформы или @username наставника — проверю признаки.",
+      uz: "Yangi «soliq», «komissiya» yoki «verifikatsiya»ni shaxsiy kartaga yoxud chatdagi rekvizitga to'lash talab qilinsa, bu pul yechish tuzog'iga o'xshaydi. Kabinetda to'lov ko'rsatilishining o'zi firibgarlikni isbotlamaydi, ammo uni mustaqil tekshirish kerak.\n\n1. Hozircha boshqa hech narsa to'lamang va balans to'ldirmang.\n2. Kabinet, balans va «ustoz» yoki «qo'llab-quvvatlash» bilan yozishma skrinlarini saqlang.\n3. Shartlarni o'zingiz topgan rasmiy saytda tekshiring; karta bilan to'lagan bo'lsangiz, bankka rasmiy raqam orqali qo'ng'iroq qiling.\nPlatforma havolasini yoki ustozning @username'ini yuboring — belgilarini tekshiraman.",
+      en: "This looks like a withdrawal trap when a new “tax”, “fee”, or “verification” must be sent to a personal card or payment details supplied in chat. A displayed fee alone is not proof of fraud, but it needs independent verification.\n\n1. Do not pay or top up anything else yet.\n2. Save screenshots of the account, balance, and chats with “support” or the “mentor”.\n3. Check the terms on an official site you find independently; if you paid by card, call your bank using its official number.\nSend the platform link or the mentor's @username and I will check the signs.",
     },
     identity_loan: {
       ru: "Если кредит или займ оформили на ваше имя без вас — решается это по официальной линии, платить тому, кто пишет или звонит, не нужно.\n\n1. Позвоните в банк/МФО, где оформлен кредит, по официальному номеру: заявите о мошенническом оформлении.\n2. Подайте заявление в милицию (102) — оно нужно для оспаривания долга.\n3. Проверьте свою кредитную историю в кредитном бюро и смените пароли от банковских приложений.\nСохраните все SMS и документы. Напишите, просили ли у вас до этого код, паспорт или фото документов.",
@@ -2827,14 +3597,14 @@ export function buildVictimIntentText(match: VictimIntentMatch, lang: Lang): str
       en: "Let's restore access and close the intruder's session:\n\n1. From another device, start password recovery (“Forgot password”) — access returns through the linked email or number.\n2. Enable two-factor protection right away and end unknown sessions in settings.\n3. Check the linked email: if it is also hacked, recover it first.\n4. Warn your friends: someone may ask them for money or codes in your name.\nIf money is already being requested in your name, send a screenshot and I will help write a warning.",
     },
     scammer_recontact: {
-      ru: "Если тот же человек выходит на связь с нового номера или аккаунта — не отвечайте и не спорьте: любая реакция для него сигнал, что канал живой.\n\n1. Заблокируйте новый номер/аккаунт и сохраните скрин.\n2. Пришлите номер или @username сюда — проверю и учту в базе.\n3. Если появились угрозы или требования денег — напишите, дам следующий шаг.",
-      uz: "O'sha odam yangi raqam yoki akkauntdan chiqsa — javob bermang va bahslashmang: har qanday javob u uchun kanal ishlayapti degan signal.\n\n1. Yangi raqam/akkauntni bloklang va skrin saqlang.\n2. Raqam yoki @username'ni shu yerga yuboring — tekshiraman va bazada hisobga olaman.\n3. Tahdid yoki pul talabi paydo bo'lsa — yozing, keyingi qadamni aytaman.",
-      en: "If the same person contacts you from a new number or account, do not reply and do not argue: any reaction tells them the channel works.\n\n1. Block the new number/account and save a screenshot.\n2. Send the number or @username here — I will check it and record it.\n3. If threats or money demands appear, write to me and I will give the next step.",
+      ru: "Если тот же человек выходит на связь с нового номера или аккаунта — не отвечайте и не спорьте: любая реакция показывает, что канал активен.\n\n1. Заблокируйте новый номер или аккаунт и сохраните скрин.\n2. Пришлите номер или @username сюда для проверки; чтобы оформить сообщение о случае, используйте кнопку «Сообщить случай».\n3. Если появились угрозы или требования денег — напишите, дам следующий безопасный шаг.",
+      uz: "O'sha odam yangi raqam yoki akkauntdan chiqsa, javob bermang va bahslashmang: har qanday javob kanal faol ekanini ko'rsatadi.\n\n1. Yangi raqam yoki akkauntni bloklang va skrin saqlang.\n2. Raqam yoki @username'ni tekshirish uchun shu yerga yuboring; holat haqida xabar berish uchun «Xabar berish» tugmasidan foydalaning.\n3. Tahdid yoki pul talabi paydo bo'lsa, yozing — keyingi xavfsiz qadamni aytaman.",
+      en: "If the same person contacts you from a new number or account, do not reply or argue; any reaction shows that the channel is active.\n\n1. Block the new number or account and save a screenshot.\n2. Send the number or @username here for a check; use the “Report” button if you want to submit the incident.\n3. If threats or money demands appear, write to me for the next safe step.",
     },
     privacy_question: {
-      ru: "Да, можно спокойно: я не публикую ваши сообщения и не храню сырые данные.\n\nНомера и ссылки сохраняются только в виде необратимого отпечатка (хеша), коды и данные карт вырезаются автоматически, скриншоты не сохраняются вовсе. Жалобы публикуются только обезличенно и только после проверки модератором.\n\nПришлите, что случилось — проверим.",
-      uz: "Ha, xotirjam bo'ling: xabarlaringizni e'lon qilmayman va xom ma'lumotlarni saqlamayman.\n\nRaqam va havolalar faqat qaytarib bo'lmaydigan iz (hash) ko'rinishida saqlanadi, kodlar va karta ma'lumotlari avtomatik o'chiriladi, skrinshotlar umuman saqlanmaydi. Shikoyatlar faqat shaxssiz ko'rinishda va moderator tekshiruvidan keyin e'lon qilinadi.\n\nNima bo'lganini yuboring — tekshiramiz.",
-      en: "Yes, you can share safely: I do not publish your messages and do not store raw data.\n\nNumbers and links are stored only as an irreversible fingerprint (hash), codes and card data are cut out automatically, and screenshots are not stored at all. Reports are published only anonymized and only after moderator review.\n\nSend what happened and we will check it.",
+      ru: "Полный исходный номер или URL не сохраняется в базе Ishonch Guard в открытом виде. Для повторного сопоставления и защиты от злоупотреблений могут сохраняться отпечаток (хеш), маскированное отображение номера или имя хоста ссылки. Распознанные коды и данные карт вырезаются перед сохранением.\n\nСообщение сначала проходит через Telegram и техническую инфраструктуру бота. Если анализ изображений включён, снимок может быть передан настроенному AI/vision-провайдеру для текущей проверки; исходные байты изображения локально не сохраняются и не добавляются в базу жалоб. Поэтому не присылайте настоящий SMS-код, PIN, CVV, пароль, сид-фразу или полное фото документа. Публикация жалобы возможна только обезличенно и после модерации.",
+      uz: "To'liq asl raqam yoki URL Ishonch Guard bazasida ochiq ko'rinishda saqlanmaydi. Qayta moslashtirish va suiiste'moldan himoya uchun iz (hash), raqamning niqoblangan ko'rinishi yoki havola hosti saqlanishi mumkin. Aniqlangan kod va karta ma'lumoti saqlashdan oldin olib tashlanadi.\n\nXabar avval Telegram va botning texnik infratuzilmasidan o'tadi. Rasm tahlili yoqilgan bo'lsa, joriy tekshiruv uchun surat sozlangan AI/vision provayderiga uzatilishi mumkin; rasmning asl baytlari lokal saqlanmaydi va shikoyatlar bazasiga qo'shilmaydi. Shuning uchun haqiqiy SMS-kod, PIN, CVV, parol, seed ibora yoki hujjatning to'liq rasmini yubormang. Shikoyat faqat shaxssiz va moderatsiyadan keyin e'lon qilinishi mumkin.",
+      en: "The full original number or URL is not stored in clear text in the Ishonch Guard database. For repeat matching and abuse prevention, the system may retain a fingerprint (hash), a masked number display, or the link hostname. Detected codes and card data are removed before storage.\n\nThe message first passes through Telegram and the bot's technical infrastructure. If image analysis is enabled, an image may be sent to the configured AI/vision provider for the current check; its original bytes are not stored locally or added to the reports database. Never send a real SMS code, PIN, CVV, password, seed phrase, or full document photo. A report can be published only after anonymization and moderation.",
     },
     relative_already_paid: {
       ru: "Если близкий уже перевёл деньги или назвал код — сейчас дорога каждая минута, действуйте вместе с ним.\n\n1. Позвоните вместе в его банк по официальному номеру: попросите заморозить перевод или заблокировать карту.\n2. Сохраните чеки, номера, переписку — это доказательства.\n3. Подайте заявление в милицию — 102.\nНе ругайте близкого: стыд мешает жертвам просить помощь. Подключите «Семейный щит» в меню — в следующий раз бот предупредит вас сразу.",
@@ -2903,7 +3673,7 @@ function askedContextIntro(context: AskedContextKind, lang: Lang): string {
       en: "Check the link or QR first. Do not enter a code, card data, password, or connect Telegram/wallet there.\n\nSend the URL or the next screen after opening it.",
     },
     call: {
-      ru: "Если звонок ещё идёт — спокойно завершите его.\n\nСкажите: «Я сам перезвоню по официальному номеру». Потом проверьте номер/просьбу здесь.",
+      ru: "Если звонок ещё идёт — спокойно завершите его.\n\nСкажите: «Я завершаю звонок и перезвоню по официальному номеру». Потом проверьте номер/просьбу здесь.",
       uz: "Qo'ng'iroq davom etayotgan bo'lsa — uni xotirjam tugating.\n\nAyting: «Men rasmiy raqamga o'zim qayta qo'ng'iroq qilaman». Keyin raqam/iltimosni shu yerda tekshiring.",
       en: "If the call is still ongoing, end it calmly.\n\nSay: “I will call back myself using the official number.” Then check the number/request here.",
     },
@@ -2924,6 +3694,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "transfer_request":
     case "coercive_secrecy":
     case "money_mule":
+    case "accidental_transfer_outgoing":
       return "transfer";
     case "apk_request":
     case "apple_security":
@@ -2939,6 +3710,7 @@ function matchAskedContext(kind: VictimIntentKind): AskedContextKind {
     case "unknown_call":
     case "foreign_call":
     case "authority_impersonation":
+    case "authority_physical_coercion":
     case "utility_impersonation":
     case "pension_benefit":
     case "phone_borrowing":

@@ -26,15 +26,26 @@ const CONFIDENCE_RE =
 const QR_OPEN_RE =
   /(?:можно|безопасно|стоит)\s+(?:открыть|сканировать|перейти).{0,25}qr|qr.{0,25}(?:можно|безопасно|открыть|сканировать|перейти)/i;
 const NEXT_STEPS_RE =
-  /(?:что\s+(?:делать|дальше|посоветуешь)|что\s+мне\s+делать|как\s+(?:поступить|быть)|какой\s+следующий\s+шаг|что\s+еще|что\s+ещё|what\s+(?:should\s+i\s+do|next)|next\s+step|nima\s+qilay|keyin\s+nima|qanday\s+qilay)/i;
+  /(?:что\s+(?:делать|дальше|посоветуешь)|что\s+мне\s+делать|(?:(?:ну|ок(?:ей)?)\s*(?:,|и)?\s*)?что\s+теперь|как\s+(?:поступить|быть)|какой\s+следующий\s+шаг|что\s+еще|что\s+ещё|what\s+(?:should\s+i\s+do|next)|next\s+step|(?:ok(?:ay)?\s*,?\s*(?:and\s+)?)?now\s+what|ok(?:ay)?\s*,?\s*(?:and\s+)?now|nima\s+qilay|keyin\s+nima|qanday\s+qilay|endi[-\s]*chi)/i;
 const CONTACTS_RE =
-  /(?:(?:дай|покажи|нужен|нужны|куда)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|как\s+.{0,20}(?:позвонить|связаться|найти)\s*.{0,20}(?:банк|служб|номер|контакт)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+raqam|rasmiy\s+raqam|qayerga\s+qo'ng'iroq))/i;
+  /(?:(?:дай|покажи|нужен|нужны|куда)\s+.{0,30}(?:номер|контакт|банк|горяч|звон)|как\s+.{0,20}(?:позвонить|связаться|найти)\s*.{0,20}(?:банк|служб|номер|контакт)|(?:номер|контакт|телефон|горячая\s+линия)\s+.{0,30}(?:банка|банк|служб)|(?:bank\s+number|official\s+number|where\s+to\s+call|call\s+the\s+bank|bank\s+contact|bank\s+contacts|bank\s+hotline|bank\s+(?:raqam|nomer)|rasmiy\s+raqam|qayerga\s+qo'ng'iroq|bank\s+nomeri\s+qane))/i;
 const REPORT_CONTEXT_RE =
   /(?:пожаловаться|заявлен|полици|102|куда\s+звонить\s+если|обманул|обманули|мошен|скам|report|police|fraud|scam|shikoyat|aldadi|firib)/i;
 const SIMPLE_EXPLAIN_RE =
   /(?:объясни|поясни|скажи|можно)\s*.{0,30}(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|человеческ)|(?:как\s+бабушк|простыми\s+словами|совсем\s+прост|по[-\s]?простому|для\s+(?:мамы|папы|пожил)|я\s+пожил|мне\s+сложно)|(?:explain|say|tell)\s*.{0,30}(?:simply|simple\s+words|like\s+i'?m\s+(?:five|old|elderly)|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:simple\s+words|eli5|like\s+i'?m\s+five|for\s+(?:my\s+)?(?:mom|mother|grandmother|grandma))|(?:oddiy|sodda|tushunarli)\s*.{0,30}(?:qilib|so'zlar|tushuntir)|(?:buvimga|onamga|otamga|keksalar)/i;
 const EXPLAIN_RE =
-  /^(?:почему(?:\s+.{1,120})?|объясни(?:\s+.{0,120})?|поясни(?:\s+.{0,120})?|я\s+не\s+понял[а]?(?:\s+.{0,80})?|не\s+понял[а]?(?:\s+.{0,80})?|что\s+это\s+значит|why(?:\s+.{0,120})?|explain(?:\s+.{0,120})?|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega(?:\s+.{0,120})?|tushunmadim|izohla(?:\s+.{0,120})?)[\s?!.,]*$/i;
+  /^(?:п(?:о|а)чему(?:\s+.{1,120})?|объясни(?:\s+.{0,120})?|поясни(?:\s+.{0,120})?|я\s+не\s+понял[а]?(?:\s+.{0,80})?|не\s+понял[а]?(?:\s+.{0,80})?|что\s+это\s+значит|why(?:\s+.{0,120})?|explain(?:\s+.{0,120})?|i\s+do\s+not\s+understand|i\s+don't\s+understand|nega(?:\s+.{0,120})?|nima\s+uchun(?:\s+.{0,120})?|tushunmadim|izohla(?:\s+.{0,120})?)[\s?!.,]*$/i;
+const REPLY_SCRIPT_RE =
+  /^(?:что(?:\s+мне)?\s+(?:им|ему|ей)\s+(?:сказать|ответить)|что\s+(?:им\s+)?(?:сказать|ответить)|мне\s+(?:им\s+)?отвечать|what\s+(?:should|do)\s+i\s+(?:say|reply|answer)(?:\s+to\s+them)?|(?:(?:ularga|unga)\s+)?nima\s+(?:(?:deb\s+)?javob\s+ber(?:ay|sam|ishim\s+kerak)|(?:dey|ayt|yoz)(?:in|ay|sam))|(?:(?:уларга|унга)\s+)?нима\s+(?:(?:деб\s+)?жавоб\s+бер(?:ай|сам|ишим\s+керак)|(?:дей|айт|ёз)(?:ин|ай|сам)))[?!.,\s]*$/iu;
+const BOUNDED_RU_LATIN_FOLLOW_UP_RE =
+  /^(?:p[oa]chemu|chto\s+(?:mne\s+)?delat\s+dalshe|chto\s+(?:mne\s+)?im\s+(?:skazat|otvetit)|nu\s+i\s+chto\s+teper)[?!.,\s]*$/iu;
+
+function classifyBoundedRuLatinFollowUp(text: string): LastCheckFollowUpAction | null {
+  if (!BOUNDED_RU_LATIN_FOLLOW_UP_RE.test(text)) return null;
+  if (/^p[oa]chemu/iu.test(text)) return "explain";
+  if (/(?:skazat|otvetit)/iu.test(text)) return "reply_script";
+  return "next_steps";
+}
 // "Is this made by AI / a neural net?" style questions about the last check.
 // We cannot reliably detect AI generation, so we answer honestly and redirect
 // to what actually matters for safety instead of returning a generic card.
@@ -125,6 +136,7 @@ const FRESH_CHECK_RISK_REASONS = new Set<ReasonCode>([
   "asks_for_pin",
   "asks_to_install_apk",
   "asks_to_share_screen",
+  "asks_for_money_transfer",
   "asks_to_transfer_to_safe_account",
   "threatens_legal_action",
   "asks_not_to_hang_up",
@@ -154,6 +166,9 @@ const FRESH_CHECK_RISK_REASONS = new Set<ReasonCode>([
   "advance_fee_prize_inheritance",
   "telegram_account_takeover_phishing",
   "dropper_recruitment",
+  "authority_coerced_dangerous_act",
+  "fake_penalty_points_erasure",
+  "threatens_physical_violence",
 ]);
 
 function hasFreshDeterministicRisk(text: string): boolean {
@@ -190,6 +205,7 @@ export const ALL_LAST_CHECK_FOLLOW_UP_ACTIONS = [
   "recheck",
   "disagreement",
   "next_steps",
+  "reply_script",
   "contacts",
   "explain",
   "simple_explain",
@@ -244,6 +260,11 @@ export const FOLLOW_UP_GOLDEN_PHRASES: Readonly<
     ru: { reply: "Хорошо, а что теперь?", typo: "Че делать дальше?" },
     uz: { reply: "Xo'p, endi nima qilay?", typo: "Nma qilay?" },
     en: { reply: "Okay, now what?", typo: "Wat should I do next?" },
+  },
+  reply_script: {
+    ru: { reply: "Что мне им ответить?", typo: "Что им атветить?" },
+    uz: { reply: "Ularga nima deyay?", typo: "Ularga nma yozay?" },
+    en: { reply: "What should I say to them?", typo: "What do I reply?" },
   },
   contacts: {
     ru: { reply: "Тогда дай номер банка", typo: "Номер баннка?" },
@@ -402,7 +423,13 @@ export function classifyLastCheckFollowUp(
   now = new Date(),
 ): LastCheckFollowUpAction | null {
   const original = text.trim();
-  if (!original || hasNewCheckPayload(original)) return null;
+  if (!original) return null;
+  // These few bounded Russian-Latin phrases are explicit follow-up controls.
+  // Resolve them before the broad fresh-payload guard so substrings such as
+  // `to` in `chto` cannot be reinterpreted as Uzbek payment vocabulary.
+  const boundedRuLatinAction = classifyBoundedRuLatinFollowUp(original);
+  if (boundedRuLatinAction) return boundedRuLatinAction;
+  if (hasNewCheckPayload(original)) return null;
   const trimmed = stripConversationWrappers(original);
   if (!trimmed) return null;
   if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
@@ -429,6 +456,7 @@ export function classifyLastCheckFollowUp(
   if (RECHECK_RE.test(trimmed)) return "recheck";
   if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
+  if (REPLY_SCRIPT_RE.test(trimmed)) return "reply_script";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (
@@ -450,7 +478,10 @@ export function classifyLastCheckFollowUp(
 
 export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpAction | null {
   const original = text.trim();
-  if (!original || hasNewCheckPayload(original)) return null;
+  if (!original) return null;
+  const boundedRuLatinAction = classifyBoundedRuLatinFollowUp(original);
+  if (boundedRuLatinAction) return boundedRuLatinAction;
+  if (hasNewCheckPayload(original)) return null;
   const trimmed = stripConversationWrappers(original);
   if (!trimmed) return null;
   if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
@@ -473,6 +504,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   if (RECHECK_RE.test(trimmed)) return "recheck";
   if (DISAGREEMENT_RE.test(trimmed)) return "disagreement";
   if (CONTACTS_RE.test(trimmed) && !REPORT_CONTEXT_RE.test(trimmed)) return "contacts";
+  if (REPLY_SCRIPT_RE.test(trimmed)) return "reply_script";
   if (NEXT_STEPS_RE.test(trimmed)) return "next_steps";
   if (SIMPLE_EXPLAIN_RE.test(trimmed)) return "simple_explain";
   if (
@@ -595,7 +627,7 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return "По этой картинке я не могу сказать точно: текст или QR не прочитались достаточно надёжно.\n\nЯ не буду выдумывать риск по мутному скрину. Для точной проверки пришлите текст из SMS/чата, ссылку, которая открывается по QR, или коротко: что вас просят сделать.";
   }
   if (snapshot.context === "qr_menu") {
-    return `Не могу гарантировать на 100%. По видимому скриншоту ${levelText(snapshot.level, lang)}: это похоже на меню или информационный QR.\n\nЕсли открываете QR — проверьте адрес страницы. Если попросят SMS-код, карту, логин или оплату, остановитесь и пришлите следующий экран.`;
+    return `Не могу гарантировать на 100%. По видимому скриншоту ${levelText(snapshot.level, lang)}: это похоже на меню или информационный QR.\n\nЕсли открываете QR — проверьте адрес страницы. Если попросят SMS-код, карту, логин или оплату, закройте страницу и пришлите следующий экран.`;
   }
   if (snapshot.context === "delivery") {
     return `Это не 100% гарантия, но по видимым данным ${levelText(snapshot.level, lang)}.\n\nЕсли появится ссылка, оплата, APK или просьба назвать код — пришлите это отдельно.`;
@@ -604,9 +636,9 @@ function confidenceText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return `Сам номер не даёт 100% вывода: ${levelText(snapshot.level, lang)}.\n\nЕсли в разговоре просили код, деньги, данные карты или приложение — кратко опишите, что именно сказали.`;
   }
   if (snapshot.context === "telegram_profile") {
-    return `Не могу гарантировать на 100%: по Telegram-профилю или каналу я вижу только открытые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nГлавное — не сам профиль, а что он просит: код, деньги, карту, APK или давление. Если это есть, остановитесь и пришлите сообщение.`;
+    return `Не могу гарантировать на 100%: по Telegram-профилю или каналу я вижу только открытые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nГлавное — не сам профиль, а что он просит: код, деньги, карту, APK или давление. Если это есть, не выполняйте просьбу и пришлите сообщение.`;
   }
-  return `Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nЕсли просят код, карту, APK, логин или оплату — остановитесь и пришлите это сообщение.`;
+  return `Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке ${levelText(snapshot.level, lang)}.\n\nЕсли просят код, карту, APK, логин или оплату — не выполняйте просьбу и пришлите это сообщение.`;
 }
 
 function methodologyText(snapshot: LastCheckSnapshot, lang: Lang): string {
@@ -766,7 +798,7 @@ function nextStepsText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return highRiskNextStepsText(snapshot, lang);
   }
   if (snapshot.context === "qr_menu") {
-    return "Следующий шаг:\n1. Если открываете QR — проверьте адрес страницы.\n2. Если просят код, карту, логин или оплату — остановитесь.\n3. Если появится новый подозрительный экран, пришлите скриншот.";
+    return "Следующий шаг:\n1. Если открываете QR — проверьте адрес страницы.\n2. Если просят код, карту, логин или оплату — закройте страницу и ничего не подтверждайте.\n3. Если появится новый подозрительный экран, пришлите скриншот.";
   }
   if (snapshot.context === "phone") {
     return "Следующий шаг:\n1. Не делайте вывод только по номеру.\n2. Если был звонок — напишите, что именно просили сделать.\n3. Если просят код, деньги или приложение — завершите разговор и звоните по официальному номеру.";
@@ -823,9 +855,29 @@ const SIMPLE_REASON_LABELS: Record<string, Record<Lang, string>> = {
     en: "they ask for card data or CVV",
   },
   asks_to_transfer_to_safe_account: {
-    ru: "просят перевести деньги",
-    uz: "pul o'tkazish so'ralyapti",
-    en: "they ask you to transfer money",
+    ru: "предлагают перевести деньги на «безопасный счёт»",
+    uz: "pulni «xavfsiz hisob»ga o'tkazish taklif qilinyapti",
+    en: "they propose a transfer to a ‘safe account’",
+  },
+  asks_for_money_transfer: {
+    ru: "просят перевести деньги или оплатить",
+    uz: "pul o'tkazish yoki to'lash so'ralyapti",
+    en: "they ask you to transfer money or pay",
+  },
+  authority_coerced_dangerous_act: {
+    ru: "под видом ведомства заставляют выполнить опасное действие",
+    uz: "idora nomidan xavfli ishni bajarishga majburlashyapti",
+    en: "someone claiming authority orders a dangerous physical act",
+  },
+  fake_penalty_points_erasure: {
+    ru: "за деньги обещают удалить штрафные баллы",
+    uz: "pul evaziga jarima ballarini o'chirishni va'da qilishyapti",
+    en: "they offer to erase penalty points for money",
+  },
+  threatens_physical_violence: {
+    ru: "угрожают приехать или применить физическую силу",
+    uz: "kelish yoki jismoniy kuch ishlatish bilan tahdid qilishyapti",
+    en: "they threaten to come to you or use physical violence",
   },
   asks_to_install_apk: {
     ru: "просят установить неизвестное приложение",
@@ -869,6 +921,21 @@ const SIMPLE_REASON_LABELS: Record<string, Record<Lang, string>> = {
   },
 };
 
+const PHYSICAL_SAFETY_FOLLOW_UP_REASONS = new Set<ReasonCode>([
+  "authority_coerced_dangerous_act",
+  "threatens_physical_violence",
+]);
+
+function hasPhysicalSafetyFollowUpReason(snapshot: LastCheckSnapshot): boolean {
+  return (snapshot.reasons ?? []).some((reason) =>
+    PHYSICAL_SAFETY_FOLLOW_UP_REASONS.has(reason as ReasonCode),
+  );
+}
+
+function hasLastCheckReason(snapshot: LastCheckSnapshot, reason: ReasonCode): boolean {
+  return (snapshot.reasons ?? []).includes(reason);
+}
+
 function simpleSignals(snapshot: LastCheckSnapshot, lang: Lang): string {
   const reasonCodes =
     snapshot.level === "unknown"
@@ -891,6 +958,15 @@ function simpleReasonText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.context === "image_unreadable") {
       return "Rasm xira: men matn yoki QRni ishonchli o'qiy olmadim. Shuning uchun xavfni o'ylab topmayman.";
+    }
+    if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+      return "Bu pul yoki akkaunt masalasi emas — jismoniy xavfsizlik masalasi. Tahdidni blef deb hisoblamang va xavfli talabni bajarmang.";
+    }
+    if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+      return "Jarima ballarini begona odam pul evaziga o'chira olmaydi. Shaxsiy karta yoki chatdagi rekvizitga to'lov so'ralishi — tuzoq belgisi.";
+    }
+    if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+      return "Xabardagi pul so'rovining o'zi oluvchi haqiqiyligini isbotlamaydi. Bosim yoki begona rekvizit bo'lsa, avval mustaqil tekshirish kerak.";
     }
     if (snapshot.level === "high_risk") {
       return "Bu holat kalitni notanish odamga berishga o'xshaydi. Kod, karta, parol, APK yoki QR-kirish pulingiz yoki akkauntingizga yo'l ochishi mumkin.";
@@ -920,6 +996,15 @@ function simpleReasonText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "image_unreadable") {
       return "The image was not clear enough: I could not reliably read the text or QR. So I will not invent danger.";
     }
+    if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+      return "This is a physical-safety issue, not just an account or payment risk. Do not assume the threat is a bluff, and do not carry out a dangerous demand.";
+    }
+    if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+      return "A stranger cannot erase official penalty points for a private payment. A request to pay card or account details from chat is a trap sign.";
+    }
+    if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+      return "A payment request in a message does not prove the recipient is genuine. Pressure or unfamiliar payment details mean you should verify independently first.";
+    }
     if (snapshot.level === "high_risk") {
       return "This is like giving a key to a stranger. A code, card data, password, APK, or QR login can open access to your money or account.";
     }
@@ -947,6 +1032,15 @@ function simpleReasonText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (snapshot.context === "image_unreadable") {
     return "Картинка была недостаточно понятной: я не смог надёжно прочитать текст или QR. Поэтому я не придумываю опасность.";
   }
+  if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+    return "Это вопрос физической безопасности, а не только денег или аккаунта. Не считайте угрозу блефом и не выполняйте опасное требование.";
+  }
+  if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+    return "Посторонний человек не может удалить официальные штрафные баллы за частный платёж. Просьба оплатить на карту или реквизиты из чата — признак ловушки.";
+  }
+  if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+    return "Просьба о переводе в сообщении не доказывает, что получатель настоящий. Давление или незнакомые реквизиты нужно сначала проверить независимо.";
+  }
   if (snapshot.level === "high_risk") {
     return "Это похоже на ситуацию, где незнакомцу могут дать ключ от ваших денег или аккаунта. Код, карта, пароль, APK или вход через QR могут открыть доступ мошенникам.";
   }
@@ -968,13 +1062,22 @@ function simpleReasonText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (snapshot.level === "suspicious") {
     return "Я вижу признаки, из-за которых лучше не спешить. Часто после таких сообщений просят код, карту, оплату или приложение.";
   }
-  return "В том, что вы прислали, я не увидел явной опасной просьбы. Но если дальше попросят код, карту или оплату - остановитесь.";
+  return "В том, что вы прислали, я не увидел явной опасной просьбы. Но если дальше попросят код, карту или оплату — не выполняйте просьбу и завершите контакт.";
 }
 
 function simpleActionText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (lang === "uz") {
     if (snapshot.context === "image_unreadable") {
       return "Xavfsiz qadam: xabar matnini, QR ochadigan havolani yoki sizdan nima so'ralganini yozib yuboring.";
+    }
+    if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+      return "Hozir xavfsiz qadam:\n1. Javob bermang va uchrashuvga rozi bo'lmang.\n2. Xavfsiz joyga o'ting.\n3. 102 ga qo'ng'iroq qiling va ishonchli odamga ayting.";
+    }
+    if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+      return "Xavfsiz qadam: pul o'tkazmang. Jarima ballarini faqat rasmiy portal yoki o'zingiz topgan IIB aloqasi orqali tekshiring.";
+    }
+    if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+      return "Xavfsiz qadam: pul o'tkazmang. Suhbatni tugatib, oluvchi va to'lov sababini saqlangan yoki rasmiy aloqa orqali tekshiring.";
     }
     if (snapshot.level === "high_risk") {
       return "Hozir xavfsiz qadam:\n1. Suhbatni to'xtating.\n2. Kod, karta, parol yoki hujjat rasmini yubormang.\n3. Faqat rasmiy ilova yoki rasmiy raqam orqali tekshiring.";
@@ -989,6 +1092,15 @@ function simpleActionText(snapshot: LastCheckSnapshot, lang: Lang): string {
     if (snapshot.context === "image_unreadable") {
       return "Safe step: send the message text, the link opened by the QR, or what they asked you to do.";
     }
+    if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+      return "Safe step now:\n1. Do not reply or agree to meet.\n2. Move somewhere safe.\n3. Call 102 and tell a trusted person.";
+    }
+    if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+      return "Safe step: do not pay. Verify penalty points only through the official portal or a police contact you find yourself.";
+    }
+    if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+      return "Safe step: do not transfer money. End the conversation and verify the recipient and payment reason through a saved or official contact.";
+    }
     if (snapshot.level === "high_risk") {
       return "Safe step now:\n1. Stop the conversation.\n2. Do not send codes, card data, passwords, or document photos.\n3. Check only through the official app or official number.";
     }
@@ -1001,13 +1113,22 @@ function simpleActionText(snapshot: LastCheckSnapshot, lang: Lang): string {
   if (snapshot.context === "image_unreadable") {
     return "Безопасный шаг: пришлите текст сообщения, ссылку из QR или словами, что вас просят сделать.";
   }
+  if (hasPhysicalSafetyFollowUpReason(snapshot)) {
+    return "Безопасный шаг сейчас:\n1. Не отвечайте и не соглашайтесь на встречу.\n2. Перейдите в безопасное место.\n3. Позвоните 102 и сообщите близкому человеку.";
+  }
+  if (hasLastCheckReason(snapshot, "fake_penalty_points_erasure")) {
+    return "Безопасный шаг: не платите. Проверяйте штрафные баллы только через официальный портал или самостоятельно найденный контакт МВД.";
+  }
+  if (hasLastCheckReason(snapshot, "asks_for_money_transfer")) {
+    return "Безопасный шаг: не переводите деньги. Завершите разговор и проверьте получателя и причину платежа через сохранённый или официальный контакт.";
+  }
   if (snapshot.level === "high_risk") {
     return "Безопасный шаг сейчас:\n1. Прекратите разговор.\n2. Не отправляйте код, карту, пароль или фото документов.\n3. Проверяйте только через официальное приложение или официальный номер.";
   }
   if (snapshot.level === "unknown") {
     return "Безопасный шаг: пришлите точный текст, ссылку или скриншот. До этого не сообщайте код, карту и не переводите деньги.";
   }
-  return "Безопасный шаг: не спешите. Если попросят код, карту, пароль, APK или деньги - остановитесь и пришлите это сообщение сюда.";
+  return "Безопасный шаг: не спешите. Если попросят код, карту, пароль, APK или деньги — не выполняйте просьбу и пришлите это сообщение сюда.";
 }
 
 function simpleExplainText(snapshot: LastCheckSnapshot, lang: Lang): string {
@@ -1133,9 +1254,9 @@ function aiOriginText(snapshot: LastCheckSnapshot, lang: Lang): string {
     return `Honestly: I can't reliably tell whether this was made by AI or a person — I have no trustworthy AI detector and I won't guess. But for safety it doesn't matter: an "AI" look alone does not prove a scam.\n\nWhat matters is ${whatMatters}. If it asks for payment, an SMS code, card data, or a login — stop and send me the next screen.`;
   }
   if (visualMenuContext) {
-    return `Да, визуально это может быть шаблонный или AI-сделанный макет меню/рекламы. Но я не буду утверждать это как факт: сам стиль картинки не доказывает мошенничество.\n\nДля безопасности важнее другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
+    return `Да, визуально это может быть шаблонный или AI-сделанный макет меню/рекламы. Но я не буду утверждать это как факт: сам стиль картинки не доказывает мошенничество.\n\nДля безопасности важнее другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — ничего не подтверждайте и пришлите следующий экран.`;
   }
-  return `Честно: я не берусь точно сказать, сделано это ИИ или человеком — у меня нет надёжного детектора AI, и я не хочу выдумывать. Но для безопасности это не главное: «AI-шный» вид сам по себе не доказывает мошенничество.\n\nВажно другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — остановитесь и пришлите следующий экран.`;
+  return `Честно: я не берусь точно сказать, сделано это ИИ или человеком — у меня нет надёжного детектора AI, и я не хочу выдумывать. Но для безопасности это не главное: «AI-шный» вид сам по себе не доказывает мошенничество.\n\nВажно другое — ${whatMatters}. Если попросят оплату, SMS-код, данные карты или вход — ничего не подтверждайте и пришлите следующий экран.`;
 }
 
 export function buildAcknowledgementFollowUpText(lang: Lang): string {
@@ -1166,6 +1287,55 @@ function confirmationRequestText(snapshot: LastCheckSnapshot | null, lang: Lang)
     ? "Перезвоните только по номеру из приложения, карты или официального сайта."
     : "Проверяйте только через официальное приложение, сайт или доверенный контакт.";
   return `Понял. «Подтверждение» часто означает SMS-код, push в приложении, вход через QR или операцию по карте.\n\nЕсли вас просят подтвердить вход, перевод, «безопасность» или операцию по карте — не подтверждайте и завершите разговор. ${channel}`;
+}
+
+function replyScriptText(snapshot: LastCheckSnapshot | null, lang: Lang): string {
+  const reasons = new Set(snapshot?.reasons ?? []);
+  const physicalDanger =
+    reasons.has("authority_coerced_dangerous_act") || reasons.has("threatens_physical_violence");
+  const paymentRequest =
+    snapshot?.type === "payment" ||
+    reasons.has("asks_for_money_transfer") ||
+    reasons.has("asks_to_transfer_to_safe_account") ||
+    reasons.has("payment_before_service") ||
+    reasons.has("fake_penalty_points_erasure");
+  const bankOrSecret =
+    snapshot?.context === "phone" ||
+    reasons.has("asks_for_otp") ||
+    reasons.has("asks_for_sms_code") ||
+    reasons.has("asks_for_card_cvv") ||
+    reasons.has("asks_for_pin") ||
+    reasons.has("impersonates_bank");
+
+  if (physicalDanger) {
+    return {
+      ru: "Лучше не отвечать и не предупреждать собеседника о своих действиях. Отойдите в безопасное место и позвоните 102. Если вы несовершеннолетний — сразу позовите взрослого, которому доверяете.",
+      uz: "Javob bermang va keyingi harakatingizni suhbatdoshga aytmang. Xavfsiz joyga uzoqlashib, 102 ga qo'ng'iroq qiling. Voyaga yetmagan bo'lsangiz, darhol ishonchli kattani chaqiring.",
+      en: "Do not reply or tell the sender what you plan to do. Move somewhere safe and call 102. If you are a minor, tell a trusted adult immediately.",
+    }[lang];
+  }
+
+  if (paymentRequest) {
+    return {
+      ru: "Можно ответить одной фразой: «Я не перевожу деньги до независимой проверки». После этого не продолжайте переписку и проверьте просьбу через официальный или ранее сохранённый контакт.",
+      uz: "Bitta jumla yozing: «Mustaqil tekshiruvsiz pul o'tkazmayman». Keyin yozishmani davom ettirmang va so'rovni rasmiy yoki oldindan saqlangan aloqa orqali tekshiring.",
+      en: "You can send one sentence: “I will not transfer money until I verify this independently.” Then stop replying and verify the request through an official or previously saved contact.",
+    }[lang];
+  }
+
+  if (bankOrSecret) {
+    return {
+      ru: "Скажите: «Я завершаю звонок и перезвоню по официальному номеру». Не объясняйте причину, не называйте код или данные карты и завершите разговор.",
+      uz: "Ayting: «Qo'ng'iroqni tugataman va rasmiy raqamga o'zim qo'ng'iroq qilaman». Sababni izohlamang, kod yoki karta ma'lumotini aytmang va suhbatni tugating.",
+      en: "Say: “I am ending this call and will call the official number myself.” Do not explain, share a code, or give card data; end the call.",
+    }[lang];
+  }
+
+  return {
+    ru: "Ответьте одной фразой: «Я ничего не подтверждаю и сначала проверю это независимо». Затем не спорьте и не продолжайте разговор под давлением.",
+    uz: "Bitta jumla yozing: «Hech narsani tasdiqlamayman, avval mustaqil tekshiraman». Keyin bahslashmang va bosim ostida suhbatni davom ettirmang.",
+    en: "Send one sentence: “I will not confirm anything until I verify it independently.” Then do not argue or continue the conversation under pressure.",
+  }[lang];
 }
 
 function identityText(lang: Lang): string {
@@ -1200,6 +1370,8 @@ export function buildLastCheckFollowUpText(
       return disagreementText(snapshot, lang);
     case "next_steps":
       return nextStepsText(snapshot, lang);
+    case "reply_script":
+      return replyScriptText(snapshot, lang);
     case "contacts":
       return contactsText(lang);
     case "explain":
@@ -1223,6 +1395,7 @@ export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, la
   if (action === "trusted_person") return trustedPersonText(lang);
   if (action === "recheck") return recheckText(lang);
   if (action === "confirmation_request") return confirmationRequestText(null, lang);
+  if (action === "reply_script") return replyScriptText(null, lang);
   if (action === "acknowledgement") return buildAcknowledgementFollowUpText(lang);
   if (action === "simple_explain") {
     if (lang === "uz") {
@@ -1283,7 +1456,7 @@ export function buildOrphanCheckFollowUpText(action: LastCheckFollowUpAction, la
   }
 
   if (action === "confidence") {
-    return "Я не вижу, к какой именно проверке относится вопрос. Пришлите ссылку, номер, скриншот или сообщение ещё раз — отвечу по нему точно.\n\nЕсли вопрос про QR: сам QR не опасен. Опасно, если после открытия просят код, карту, логин или оплату. В таком случае остановитесь и пришлите следующий экран.";
+    return "Я не вижу, к какой именно проверке относится вопрос. Пришлите ссылку, номер, скриншот или сообщение ещё раз — отвечу по нему точно.\n\nЕсли вопрос про QR: сам QR не опасен. Опасно, если после открытия просят код, карту, логин или оплату. В таком случае закройте страницу, ничего не подтверждайте и пришлите следующий экран.";
   }
   if (action === "explain") {
     return "Я могу объяснить причину только по конкретной проверке. Пришлите ссылку, номер, username, скриншот или текст сообщения.\n\nЕсли на вас сейчас давят: не сообщайте SMS-код, PIN, CVV, пароль или данные карты.";

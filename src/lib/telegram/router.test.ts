@@ -843,6 +843,7 @@ describe("dispatchUpdate priority routing", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleMetaIntent");
     expect(calls[0].arg).toBe("why_failed");
+    expect(calls[0].extra).toBe("Почему ты не смог проанализировать картинку?");
   });
 
   it("dispatches Telegram account capability questions to handleMetaIntent", async () => {
@@ -895,6 +896,88 @@ describe("dispatchUpdate priority routing", () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("handleCheck");
+  });
+
+  it("keeps an Uzbek why-question attached to a recent enum-only secret warning", async () => {
+    const { deps, calls } = makeDeps(
+      makeSession({
+        lang: "en",
+        scenarioData: withSessionChatScope(
+          {
+            lastSensitiveSecret: {
+              classes: ["code"],
+              lang: "uz",
+              at: new Date().toISOString(),
+            },
+          },
+          100,
+        ),
+      }),
+    );
+
+    await dispatchUpdate(messageUpdate({ text: "Nega bu xavfli va keyin nima qilay?" }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleCheck");
+    expect(calls[0].arg).toBe("Nega bu xavfli va keyin nima qilay?");
+    expect(calls.some((call) => call.name === "handleMetaIntent")).toBe(false);
+  });
+
+  it.each([
+    ["ru", "Почему это опасно?"],
+    ["uz", "Nega bu xavfli?"],
+    ["en", "Why is this dangerous?"],
+  ] as const)(
+    "keeps a contextual victim why-question ahead of generic meta routing: %s",
+    async (lang, text) => {
+      const { deps, calls } = makeDeps(
+        makeSession({
+          lang,
+          scenarioData: withSessionChatScope(
+            {
+              lastVictimIntent: {
+                kind: "apk_request",
+                askedContext: "apk",
+                scenario: "fake_fine_cashback_app",
+                at: new Date().toISOString(),
+              },
+            },
+            100,
+          ),
+        }),
+      );
+
+      await dispatchUpdate(messageUpdate({ text }), deps);
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].name).toBe("handleCheck");
+      expect(calls[0].arg).toBe(text);
+      expect(calls.some((call) => call.name === "handleMetaIntent")).toBe(false);
+    },
+  );
+
+  it("does not let an expired secret context override a normal meta answer", async () => {
+    const { deps, calls } = makeDeps(
+      makeSession({
+        lang: "en",
+        scenarioData: withSessionChatScope(
+          {
+            lastSensitiveSecret: {
+              classes: ["code"],
+              lang: "uz",
+              at: "2026-01-01T00:00:00.000Z",
+            },
+          },
+          100,
+        ),
+      }),
+    );
+
+    await dispatchUpdate(messageUpdate({ text: "Nega bu xavfli va keyin nima qilay?" }), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("handleMetaIntent");
+    expect(calls[0].arg).toBe("explain_risk");
   });
 
   it.each([

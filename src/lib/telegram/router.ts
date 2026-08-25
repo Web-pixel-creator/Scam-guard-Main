@@ -44,6 +44,8 @@ import {
   normalizeForwardSource,
   type TelegramForwardSourceContext,
 } from "@/lib/telegram/forward-context";
+import { classifySensitiveSecretFollowUp } from "@/lib/telegram/sensitive-secret-input";
+import { classifyVictimGuidanceFollowUp } from "@/lib/telegram/victim-intent";
 
 // ---------------------------------------------------------------------------
 // Telegram update schema (only the MVP-relevant fields; everything else is
@@ -353,7 +355,7 @@ export interface Handlers {
     source?: TelegramForwardSourceContext,
   ): Promise<void>;
   /** Plain questions about the bot itself → localized help response. */
-  handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void>;
+  handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx, content?: string): Promise<void>;
   /** Photo / image-document → OCR → Check_Pipeline (8.3). */
   handleImage(
     fileId: string,
@@ -918,14 +920,27 @@ export async function dispatchUpdate(
         ? { lastCheck: ctx.replyCheckSnapshot }
         : session.scenarioData;
       const recentFollowUp = classifyLastCheckFollowUp(action.content, followUpData);
+      const recentSensitiveSecretFollowUp = action.source
+        ? null
+        : classifySensitiveSecretFollowUp(
+            action.content,
+            ctx.session.scenarioData.lastSensitiveSecret,
+          );
+      const recentVictimGuidanceFollowUp =
+        action.source || ctx.replyCheckSnapshot
+          ? null
+          : classifyVictimGuidanceFollowUp(
+              action.content,
+              ctx.session.scenarioData.lastVictimIntent,
+            );
       const needsRecentProvenance =
         recentFollowUp && (!intent || intent === "explain_risk" || intent === "how_do_you_check");
-      if (needsRecentProvenance) {
+      if (recentSensitiveSecretFollowUp || recentVictimGuidanceFollowUp || needsRecentProvenance) {
         await handlers.handleCheck(action.content, ctx, action.source);
         break;
       }
       if (intent) {
-        await handlers.handleMetaIntent(intent, ctx);
+        await handlers.handleMetaIntent(intent, ctx, action.content);
         break;
       }
       await handlers.handleCheck(action.content, ctx, action.source);

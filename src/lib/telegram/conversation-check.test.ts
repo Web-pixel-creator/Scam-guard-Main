@@ -128,4 +128,99 @@ describe("Telegram Conversation Check v1", () => {
       at: "2026-07-01T10:05:00.000Z",
     });
   });
+
+  it.each([
+    [
+      "en negated warning",
+      "Never transfer to a safe account. Vendor asks transfer money to a personal card.",
+    ],
+    ["ru question", "Что такое безопасный счёт? Продавец просит перевести деньги на личную карту."],
+    [
+      "uz question",
+      "Xavfsiz hisob nima? Sotuvchi o'tkazishni so'rayapti: pulni shaxsiy kartaga yuboring.",
+    ],
+    [
+      "en educational warning",
+      "Banks never ask you to transfer money to a safe account. Vendor asks transfer money to a personal card.",
+    ],
+    [
+      "ru educational warning",
+      "Банки не просят переводить деньги на безопасный счёт. Продавец просит перевести деньги на личную карту.",
+    ],
+    [
+      "uz educational warning",
+      "Banklar xavfsiz hisobga pul o'tkazishni so'ramaydi. Sotuvchi o'tkazishni so'rayapti: pulni shaxsiy kartaga yuboring.",
+    ],
+  ])("keeps a separate generic transfer generic after a %s", (_name, text) => {
+    let draft = createConversationDraft();
+    const appended = appendConversationMessage(draft, text);
+    expect(appended.ok).toBe(true);
+    draft = appended.ok ? appended.draft : draft;
+
+    expect(draft.requestedActions).toContain("transfer_money");
+    expect(draft.reasonCounts.asks_for_money_transfer).toBe(1);
+    expect(draft.reasonCounts.asks_to_transfer_to_safe_account).toBeUndefined();
+  });
+
+  it.each([
+    ["ru", "Переведите деньги на безопасный счёт прямо сейчас."],
+    ["en", "Transfer money to a safe account immediately."],
+    ["uz", "U o'tkazishni so'rayapti — pulni xavfsiz hisobga hozir yuboring."],
+    ["ru zero-width", "Пере​ведите деньги на безопасный счёт прямо сейчас."],
+    ["uz Latin curly apostrophe", "Pulni xavfsiz hisobga o’tkazing."],
+    ["uz Cyrillic", "Пулни хавфсиз ҳисобга ўтказинг."],
+  ])("keeps a literal active safe-account transfer specific in %s", (_lang, text) => {
+    let draft = createConversationDraft();
+    const appended = appendConversationMessage(draft, text);
+    expect(appended.ok).toBe(true);
+    draft = appended.ok ? appended.draft : draft;
+
+    expect(draft.requestedActions).toContain("transfer_money");
+    expect(draft.reasonCounts.asks_to_transfer_to_safe_account).toBe(1);
+    expect(draft.reasonCounts.asks_for_money_transfer).toBeUndefined();
+  });
+
+  it.each([
+    ["ru direct question", "Мне перевести деньги на эту карту?"],
+    ["ru retold request", "Он сказал мне отправить 500 000 сум на личную карту."],
+  ])("does not mistake the end of 'мне' for Russian negation in %s", (_name, text) => {
+    let draft = createConversationDraft();
+    const appended = appendConversationMessage(draft, text);
+    expect(appended.ok).toBe(true);
+    draft = appended.ok ? appended.draft : draft;
+
+    expect(draft.requestedActions).toContain("transfer_money");
+    expect(draft.reasonCounts.asks_for_money_transfer).toBe(1);
+  });
+
+  it.each([
+    "Продавец просит перевести деньги на безопасный счёт.",
+    "Оператор сказал отправить деньги на безопасный счёт.",
+  ])("keeps a retold Russian infinitive safe-account request specific: %s", (text) => {
+    let draft = createConversationDraft();
+    const appended = appendConversationMessage(draft, text);
+    expect(appended.ok).toBe(true);
+    draft = appended.ok ? appended.draft : draft;
+
+    expect(draft.requestedActions).toContain("transfer_money");
+    expect(draft.reasonCounts.asks_to_transfer_to_safe_account).toBe(1);
+    expect(draft.reasonCounts.asks_for_money_transfer).toBeUndefined();
+  });
+
+  it.each([
+    ["ru", "Не переводите деньги на безопасный счёт."],
+    ["en", "Never transfer money to a safe account."],
+    ["uz", "Pulni xavfsiz hisobga o’tkazmang."],
+    ["uz Cyrillic", "Пулни хавфсиз ҳисобга ўтказманг."],
+  ])("keeps a standalone safe-account warning non-actionable in %s", (_lang, text) => {
+    let draft = createConversationDraft();
+    const appended = appendConversationMessage(draft, text);
+    expect(appended.ok).toBe(true);
+    draft = appended.ok ? appended.draft : draft;
+
+    expect(draft.strongestLevel).not.toBe("high_risk");
+    expect(draft.requestedActions).not.toContain("transfer_money");
+    expect(draft.reasonCounts.asks_to_transfer_to_safe_account).toBeUndefined();
+    expect(draft.reasonCounts.asks_for_money_transfer).toBeUndefined();
+  });
 });

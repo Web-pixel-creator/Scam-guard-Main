@@ -247,9 +247,9 @@ export function buildAskedContextText(kind: AskedContextKind, lang: Lang): strin
         "Не спорьте и не отвечайте на вопросы. Ваша задача — спокойно завершить звонок.",
         "",
         "Скажите одну фразу:",
-        "«Я сам перезвоню по официальному номеру».",
+        "«Я завершаю звонок и перезвоню по официальному номеру».",
         "",
-        "Потом положите трубку и нажмите «Экстренная помощь».",
+        "Потом положите трубку и нажмите «Что делать срочно».",
       ].join("\n"),
       uz: [
         "📞 Hozir qo'ng'iroq qilishyapti",
@@ -259,7 +259,7 @@ export function buildAskedContextText(kind: AskedContextKind, lang: Lang): strin
         "Bitta jumla ayting:",
         "«Men rasmiy raqamga o'zim qayta qo'ng'iroq qilaman».",
         "",
-        "Keyin qo'ng'iroqni tugating va «Emergency» tugmasini bosing.",
+        "Keyin qo'ng'iroqni tugating va «Shoshilinch qadamlar» tugmasini bosing.",
       ].join("\n"),
       en: [
         "📞 They are calling right now",
@@ -269,7 +269,7 @@ export function buildAskedContextText(kind: AskedContextKind, lang: Lang): strin
         "Say one phrase:",
         "“I will call back myself using the official number.”",
         "",
-        "Then hang up and press “Emergency help”.",
+        "Then hang up and press “Emergency steps”.",
       ].join("\n"),
     },
   };

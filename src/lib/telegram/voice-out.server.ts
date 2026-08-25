@@ -151,7 +151,7 @@ export function buildPanicVoiceOutText(panicId: PanicScenarioId, lang: Lang): st
 
   const uz: Record<PanicScenarioId, string> = {
     1: "Men yoningizdaman. Bankka rasmiy raqam orqali qo'ng'iroq qiling: SMS-kod berdim, karta va onlayn-bankni bloklang. Keyin parollarni boshqa qurilmadan almashtiring.",
-    2: "Men yoningizdaman. Hozir aviаrejimni yoqing. Shubhali ilovani o'chiring va bankni boshqa telefondan tekshiring.",
+    2: "Men yoningizdaman. Hozir aviarejimni yoqing. Shubhali ilovani o'chiring va bankni boshqa telefondan tekshiring.",
     3: "Men yoningizdaman. Bankka qo'ng'iroq qilib o'tkazmani muzlatish yoki qaytarishni so'rang. Qaytarish uchun yana pul yubormang.",
     4: "Men yoningizdaman. Kartani darhol bloklang. Operatsiyalarni tekshiring va bank parolini boshqa qurilmadan almashtiring.",
     5: "Men yoningizdaman. Telegramga boshqa qurilmadan kiring, noma'lum seanslarni tugating va ikki bosqichli parolni yoqing.",
@@ -195,13 +195,23 @@ export function buildGuardianVoiceOutText(
   if (!snapshot) return null;
   const reasons = new Set(snapshot.reasons);
   if (
+    reasons.has("threatens_physical_violence") ||
+    reasons.has("authority_coerced_dangerous_act")
+  ) {
+    return textByLang(lang, {
+      ru: "Я рядом. Не отвечайте на угрозу и не соглашайтесь на встречу или опасное требование. Перейдите в безопасное место и позвоните 102.",
+      uz: "Men yoningizdaman. Tahdidga javob bermang, uchrashuvga yoki xavfli talabga rozi bo'lmang. Xavfsiz joyga o'tib, 102 ga qo'ng'iroq qiling.",
+      en: "I am with you. Do not reply to the threat or agree to meet or carry out a dangerous demand. Move somewhere safe and call 102.",
+    });
+  }
+  if (
     snapshot.type === "apk" ||
     reasons.has("asks_to_install_apk") ||
     reasons.has("apk_download_link")
   ) {
     return textByLang(lang, {
       ru: "Я рядом. Сначала изолируйте телефон: включите авиарежим. Затем с другого устройства проверьте банк и смените пароли.",
-      uz: "Men yoningizdaman. Avval telefonni ajrating: aviаrejimni yoqing. Keyin bankni boshqa qurilmadan tekshiring va parollarni almashtiring.",
+      uz: "Men yoningizdaman. Avval telefonni ajrating: aviarejimni yoqing. Keyin bankni boshqa qurilmadan tekshiring va parollarni almashtiring.",
       en: "I am with you. First isolate the phone: turn on airplane mode. Then check the bank and change passwords from another device.",
     });
   }
@@ -214,6 +224,20 @@ export function buildGuardianVoiceOutText(
       ru: "Я рядом. Не называйте код. Завершите разговор и перезвоните в банк только по номеру из приложения, карты или официального сайта.",
       uz: "Men yoningizdaman. Kod aytmang. Suhbatni tugating va bankka faqat ilova, karta yoki rasmiy saytdagi raqam orqali qo'ng'iroq qiling.",
       en: "I am with you. Do not say the code. End the conversation and call the bank only through the app, card, or official website.",
+    });
+  }
+  if (reasons.has("fake_penalty_points_erasure")) {
+    return textByLang(lang, {
+      ru: "Я рядом. Не переводите деньги за удаление штрафных баллов. Проверьте баллы только через официальный портал или самостоятельно найденный контакт МВД.",
+      uz: "Men yoningizdaman. Jarima ballarini o'chirish uchun pul o'tkazmang. Ballarni faqat rasmiy portal yoki o'zingiz topgan IIB aloqasi orqali tekshiring.",
+      en: "I am with you. Do not pay to erase penalty points. Verify them only through the official portal or a police contact you find yourself.",
+    });
+  }
+  if (reasons.has("asks_for_money_transfer")) {
+    return textByLang(lang, {
+      ru: "Я рядом. Не переводите деньги по просьбе из сообщения. Завершите разговор и независимо проверьте получателя и причину платежа.",
+      uz: "Men yoningizdaman. Xabardagi so'rov bo'yicha pul o'tkazmang. Suhbatni tugatib, oluvchi va to'lov sababini mustaqil tekshiring.",
+      en: "I am with you. Do not transfer money because of a message request. End the conversation and independently verify the recipient and payment reason.",
     });
   }
   if (snapshot.type === "payment" || reasons.has("payment_before_service")) {

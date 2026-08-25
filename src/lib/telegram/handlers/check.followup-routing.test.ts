@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReasonCode } from "@/lib/risk/rules";
 import type { LastCheckSnapshot, Session } from "@/lib/telegram/session.server";
 
 const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
   runCheckCalls: [] as Array<{ input: string; type?: string; lang?: string }>,
+  runCheckReasons: ["external_phishing_url"] as ReasonCode[],
+  runCheckExplanation: "Fresh risk check.",
   saveSessionCalls: [] as Array<{ userId: number; patch: unknown }>,
   saveSessionResult: { ok: true } as { ok: true } | { ok: false; reason: "storage" | "stale" },
   familyNotifyCalls: [] as Array<{
@@ -33,8 +36,8 @@ vi.mock("@/lib/risk/check-core", () => ({
       display: params.input,
       level: "high_risk",
       score: 80,
-      reasons: ["phishing_url"],
-      explanation: "Fresh risk check.",
+      reasons: hoisted.runCheckReasons,
+      explanation: hoisted.runCheckExplanation,
       knownReports: 0,
       verifiedContact: null,
       brandEvidence: [],
@@ -127,6 +130,8 @@ describe("handleCheck follow-up routing", () => {
   beforeEach(() => {
     hoisted.sentMessages.length = 0;
     hoisted.runCheckCalls.length = 0;
+    hoisted.runCheckReasons = ["external_phishing_url"];
+    hoisted.runCheckExplanation = "Fresh risk check.";
     hoisted.saveSessionCalls.length = 0;
     hoisted.saveSessionResult = { ok: true };
     hoisted.familyNotifyCalls.length = 0;
@@ -195,6 +200,106 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages).toHaveLength(1);
     expect(hoisted.sentMessages[0].text).toContain("необычное доменное окончание");
     expect(hoisted.sentMessages[0].text).not.toContain("SMS-код");
+  });
+
+  it("keeps an explicit Reply-bound check ahead of ambient secret and victim contexts", async () => {
+    const now = new Date().toISOString();
+    const repliedResult = snapshot({
+      type: "url",
+      context: "generic",
+      level: "suspicious",
+      reasons: ["weird_domain"],
+    });
+
+    await handleCheck("Почему домен подозрительный?", {
+      chatId: 100,
+      userId: 42,
+      replyToMessageId: 101,
+      replyToOwnBotMessage: true,
+      replyCheckSnapshot: repliedResult,
+      session: sessionWithData({
+        lastCheck: snapshot({
+          type: "text",
+          context: "generic",
+          level: "high_risk",
+          reasons: ["asks_for_sms_code"],
+        }),
+        lastSensitiveSecret: {
+          classes: ["code"],
+          lang: "ru",
+          at: now,
+        },
+        lastVictimIntent: {
+          kind: "apk_request",
+          askedContext: "apk",
+          scenario: "fake_fine_cashback_app",
+          at: now,
+        },
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.saveSessionCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("необычное доменное окончание");
+    expect(hoisted.sentMessages[0].text).not.toContain("SMS-код");
+    expect(hoisted.sentMessages[0].text).not.toContain("APK");
+  });
+
+  it("keeps a Reply-bound confidence question ahead of an ambient victim confirmation", async () => {
+    await handleCheck("Точно?", {
+      chatId: 100,
+      userId: 42,
+      replyToMessageId: 101,
+      replyToOwnBotMessage: true,
+      replyCheckSnapshot: snapshot({
+        type: "url",
+        context: "generic",
+        level: "suspicious",
+        reasons: ["weird_domain"],
+      }),
+      session: sessionWithData({
+        lastVictimIntent: {
+          kind: "code_request",
+          askedContext: "code",
+          at: new Date().toISOString(),
+        },
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.saveSessionCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).toContain("Это не 100% гарантия");
+    expect(hoisted.sentMessages[0].text).not.toContain("Код никому не называйте");
+  });
+
+  it("keeps a Reply-bound next-step question ahead of an ambient contextual panic", async () => {
+    await handleCheck("ну я им всё сказала и что теперь", {
+      chatId: 100,
+      userId: 42,
+      replyToMessageId: 101,
+      replyToOwnBotMessage: true,
+      replyCheckSnapshot: snapshot({
+        type: "url",
+        context: "generic",
+        level: "suspicious",
+        reasons: ["weird_domain"],
+      }),
+      session: sessionWithData({
+        lastVictimIntent: {
+          kind: "code_request",
+          askedContext: "code",
+          at: new Date().toISOString(),
+        },
+      }),
+    });
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.saveSessionCalls).toHaveLength(0);
+    expect(hoisted.sentMessages).toHaveLength(1);
+    expect(hoisted.sentMessages[0].text).not.toContain("ПОЗВОНИТЕ В БАНК");
+    expect(hoisted.sentMessages[0].text).not.toContain("ЗАБЛОКИРУЙТЕ КАРТУ");
   });
 
   it.each([
@@ -921,6 +1026,33 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[0].text).not.toContain("Пришлите ссылку");
   });
 
+  it.each([
+    {
+      text: "Только сейчас увидел: я отправил деньги другому получателю по ошибке. Куда звонить, пока перевод обрабатывается?",
+      expected: "ошиблись получателем",
+      forbidden: "Официальный обратный звонок",
+    },
+    {
+      text: "I have just noticed that I sent the funds to a different card number accidentally. Who should I call now?",
+      expected: "wrong recipient",
+      forbidden: "Official callback",
+    },
+  ])(
+    "keeps a mistaken outgoing transfer ahead of a generic callback helper: $text",
+    async ({ text, expected, forbidden }) => {
+      await handleCheck(text, {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      });
+
+      expect(hoisted.runCheckCalls).toHaveLength(0);
+      expect(hoisted.sentMessages).toHaveLength(1);
+      expect(hoisted.sentMessages[0].text).toContain(expected);
+      expect(hoisted.sentMessages[0].text).not.toContain(forbidden);
+    },
+  );
+
   it("routes first-person already-sent-code text to the SMS-code SOS", async () => {
     await handleCheck("что если я уже назвал им код из смс?", {
       chatId: 100,
@@ -944,7 +1076,11 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages).toHaveLength(1);
     expect(hoisted.sentMessages[0].text).toContain("Kod yashirildi");
     expect(hoisted.sentMessages[0].text).not.toContain("1234");
-    expect(hoisted.saveSessionCalls).toEqual([]);
+    expect(hoisted.saveSessionCalls).toHaveLength(1);
+    const savedSecretContext = JSON.stringify(hoisted.saveSessionCalls[0].patch);
+    expect(savedSecretContext).toContain('"classes":["code"]');
+    expect(savedSecretContext).toContain('"lang":"uz"');
+    expect(savedSecretContext).not.toContain("1234");
   });
 
   it("keeps forwarded already-happened text on the normal risk pipeline", async () => {
@@ -1038,6 +1174,24 @@ describe("handleCheck follow-up routing", () => {
     expect(saved).not.toContain("kapitalbank.uz.evil.com");
     expect(saved).not.toContain("Fresh risk check");
   });
+
+  it.each(["authority_coerced_dangerous_act", "threatens_physical_violence"] as const)(
+    "does not suppress Guardian Angel for mixed QR + %s results",
+    async (physicalReason) => {
+      hoisted.runCheckReasons = ["asks_to_scan_qr", physicalReason];
+      hoisted.runCheckExplanation = "Decoded QR: Telegram login QR token hidden";
+
+      await handleCheck("Проверьте этот QR", {
+        chatId: 100,
+        userId: 42,
+        session: sessionWith(),
+      });
+
+      expect(hoisted.sentMessages).toHaveLength(2);
+      expect(hoisted.sentMessages[1].text).toContain("102");
+      expect(JSON.stringify(hoisted.sentMessages[1].keyboard)).toContain("guardian:next");
+    },
+  );
 
   it.each(["storage", "stale"] as const)(
     "does not publish a result when the session write is %s",
@@ -1165,7 +1319,7 @@ describe("handleCheck follow-up routing", () => {
     [
       "Сбор на лечение просит срочно перевести деньги на личную карту.",
       "ru",
-      "сбора пожертвований",
+      "сборе пожертвований",
     ],
     [
       "My online boyfriend says he is stranded and urgently needs money for a flight ticket.",

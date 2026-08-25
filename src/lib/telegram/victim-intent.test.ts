@@ -388,7 +388,9 @@ describe("classifyVictimIntent — confirmed direct-bot live regressions", () =>
     expect(buildVictimGuidanceFollowUpText(why!, "ru")).toContain("SMS-код");
     expect(buildVictimGuidanceFollowUpText(next!, "ru")).toContain("Код");
     expect(buildVictimGuidanceFollowUpText(trusted!, "ru")).toContain("близкому человеку");
-    expect(buildVictimGuidanceFollowUpText(reply!, "ru")).toContain("сам перезвоню");
+    expect(buildVictimGuidanceFollowUpText(reply!, "ru")).toContain(
+      "Я ничего не сообщаю и сам перезвоню",
+    );
     expect(buildVictimGuidanceFollowUpText(verify!, "ru")).toContain("обратной стороны карты");
     expect(buildVictimGuidanceFollowUpText(simple!, "ru")).toContain("Простыми словами");
     expect(buildVictimGuidanceFollowUpText(pressure!, "ru")).toContain("давление");
@@ -552,6 +554,130 @@ describe("classifyVictimIntent — job-entry fee priority", () => {
       expect(text).not.toContain(genericTransferCopy);
     },
   );
+});
+
+describe("classifyVictimIntent — utility word boundaries", () => {
+  it.each([
+    "Купил хлеб в магазине и получил обычный бумажный чек",
+    "Я выбрал телефон в магазине электроники",
+    "Нам прислали электронный чек за покупку",
+  ])("does not find a utility inside an ordinary word: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).not.toBe("utility_impersonation");
+  });
+
+  it.each([
+    "Газ отключат, если не оплатить долг по ссылке",
+    "За электричество просят оплатить по ссылке из SMS",
+    "Водоканал просит паспорт для проверки счётчика",
+  ])("keeps an explicit utility request: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("utility_impersonation");
+  });
+});
+
+describe("classifyVictimIntent — ordinary family help", () => {
+  it.each([
+    "Мама попросила помочь приготовить ужин",
+    "Onam uyda choy damlashga yordam berishimni so'radi",
+    "My mother asked me to help make dinner",
+  ])("does not turn ordinary help into a family emergency: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Мама попала в больницу и срочно просит перевести деньги",
+    "Onam kasalxonada, zudlik bilan pul o'tkazishni so'rayapti",
+    "My mother is in hospital and urgently asks me to transfer money",
+  ])("keeps explicit family distress on the emergency route: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("friend_money");
+  });
+});
+
+describe("classifyVictimIntent — bounded advance-payment and identity anomalies", () => {
+  it.each([
+    [
+      "На OLX просят внести депозит на карту, чтобы забронировать просмотр квартиры",
+      "rental_deposit",
+    ],
+    [
+      "O'yindagi akkauntimni sotib olmoqchi, vositachiga oldindan komissiya yuboring deyapti",
+      "game_escrow_fee",
+    ],
+    [
+      "My boss looked strange on a video call and ordered an urgent transfer to a partner account",
+      "fake_boss_request",
+    ],
+    [
+      "Я уже потерял деньги у мошенников. Теперь юрист обещает вернуть их и просит комиссию заранее",
+      "recovery_fee",
+    ],
+    [
+      "Oldin firibgarga pul yo'qotdim, endi yurist pulni qaytarish uchun oldindan haq so'rayapti",
+      "recovery_fee",
+    ],
+    [
+      "I already lost money to a scam. A recovery agent promises to get it back but asks for an upfront fee",
+      "recovery_fee",
+    ],
+    ["Donations for flood victims must be sent urgently to a personal card", "charity_pressure"],
+  ] as const)("keeps the concrete scenario for: %s", (text, scenario) => {
+    expect(classifyVictimIntent(text)).toMatchObject({ scenario });
+  });
+
+  it.each([
+    "В договоре банка указан обычный депозит",
+    "На OLX указано: залог только после просмотра и подписания договора",
+    "O'yin platformasi komissiyani savdo tugagandan keyin o'zi ushlab qoladi",
+    "O'yin akkaunti uchun vositachiga komissiya yubormang",
+    "My boss joined the scheduled video call to discuss an already approved invoice",
+    "A security trainer said never transfer money after a suspicious deepfake call",
+    "Я уже потерял деньги, как мне попытаться вернуть их через банк?",
+    "Юрист поможет подготовить заявление, условия оплаты указаны в письменном договоре",
+    "A lawyer explained the official complaint process and did not ask for an upfront fee",
+    "I already lost money to a scam. My lawyer warned me never to pay an upfront fee to anyone promising recovery",
+    "Я уже потерял деньги, а юрист предупредил никогда не платить комиссию заранее за возврат",
+    "Oldin pul yo'qotdim, yurist qaytarishni va'da qilganlarga oldindan haq to'lamang dedi",
+  ])("does not create a scam scenario from a safe neighbour: %s", (text) => {
+    expect(classifyVictimIntent(text)?.scenario).toBeUndefined();
+  });
+
+  it("keeps an actual mistaken incoming transfer on the money-mule route", () => {
+    expect(
+      classifyVictimIntent(
+        "Мне по ошибке пришёл перевод, и отправитель просит вернуть деньги на другой счёт",
+      ),
+    ).toEqual({ kind: "money_mule", askedContext: "transfer" });
+  });
+
+  it.each([
+    ["ru", "Предложение вернуть", /по\s+ошибке|другой\s+сч[её]т|штраф|текст\s+угрозы/iu],
+    ["uz", "takroriy firibgarlik", /pul\s+[«"]?xato|boshqa\s+hisob|jarima|tahdid\s+matni/iu],
+    [
+      "en",
+      "second scam attempt",
+      /arrived\s+[“"]?by\s+mistake|another\s+account|fine|threat\s+text/iu,
+    ],
+  ] as const)("uses evidence-faithful recovery-fee copy in %s", (lang, required, forbidden) => {
+    const text = buildVictimIntentText(
+      { kind: "transfer_request", askedContext: "transfer", scenario: "recovery_fee" },
+      lang,
+    );
+    expect(text).toContain(required);
+    expect(text).not.toMatch(forbidden);
+  });
+
+  it("does not invent a registered charity for a generic donation organizer", () => {
+    const match = classifyVictimIntent(
+      "Donations for flood victims must be sent urgently to a personal card",
+    );
+    expect(match).toEqual({
+      kind: "transfer_request",
+      askedContext: "transfer",
+      scenario: "charity_pressure",
+    });
+    const text = buildVictimIntentText(match!, "en");
+    expect(text).toMatch(/donation|organizer|fundraiser/iu);
+    expect(text).not.toMatch(/unknown\s+charity|legitimate\s+charity|safe\s+account/iu);
+  });
 });
 
 describe("classifyVictimIntent — task scams, BNPL identity theft and coercive secrecy", () => {
@@ -1313,4 +1439,433 @@ describe("classifyVictimContextualPanicIntent", () => {
       expect(classifyVictimContextualPanicIntent(text, codeContext, now)).toBeNull();
     },
   );
+});
+
+describe("new real-world scam wave routing", () => {
+  it.each([
+    [
+      "налоговая пишет, что заведёт дело, если я не подожгу заправку и никому не скажу",
+      "authority_physical_coercion",
+    ],
+    [
+      "soliqdanmiz deyapti, bajarmasang ish ochamiz, uskunani buzib ket deb majburlashyapti",
+      "authority_physical_coercion",
+    ],
+    [
+      "Police say I will be arrested unless I secretly leave a package at the building",
+      "authority_physical_coercion",
+    ],
+    [
+      "полиция требует отнести пакет к школе, иначе заведут уголовное дело",
+      "authority_physical_coercion",
+    ],
+    [
+      "IIB paketni gavjum binoda qoldirishni buyurdi, aks holda jinoiy ish ochamiz dedi",
+      "authority_physical_coercion",
+    ],
+    ["сосед неожиданно прислал «это ты на видео?» и просит открыть файл", "neighbor_video_malware"],
+    ["qo'shnim videodagi senmi deb faylni ochishni so'radi", "neighbor_video_malware"],
+    [
+      "A friend sent 'is this you in the video?' and asks me to install a player",
+      "neighbor_video_malware",
+    ],
+    [
+      "Сосед написал «это ты на видео?» и прислал camera_video.zip, просит открыть.",
+      "neighbor_video_malware",
+    ],
+    [
+      "Qo'shnim «bu senmi?» deb camera_video.zip yubordi, ochishni so'rayapti.",
+      "neighbor_video_malware",
+    ],
+    ["Қўшним «бу сенми?» деб camera_video.zip юборди, очишни сўраяпти.", "neighbor_video_malware"],
+    [
+      "A resident asks “is this you?” and sent camera_video.zip for me to open.",
+      "neighbor_video_malware",
+    ],
+    ["Сосед прислал video_from_camera.rar и просит распаковать архив.", "neighbor_video_malware"],
+    [
+      "Знакомый прислал запись с камеры в footage.7z, просит распакуй её.",
+      "neighbor_video_malware",
+    ],
+    [
+      "друг спрашивает «это ты на видео?» и просит открыть отдельный файл",
+      "neighbor_video_malware",
+    ],
+    ["tanishim videodagi senmi deb alohida faylni ochishni so'radi", "neighbor_video_malware"],
+    [
+      "прислали приложение для оплаты штрафа со 100% кешбэком, сказали установить",
+      "fake_fine_cashback_app",
+    ],
+    ["jarimani keshbek bilan to'lash uchun ilova o'rnat deyapti", "fake_fine_cashback_app"],
+    [
+      "They sent an app to pay a traffic fine with cashback and told me to install it",
+      "fake_fine_cashback_app",
+    ],
+    ["пришёл ROAD24.apk из сообщения со скидкой на штраф", "fake_fine_cashback_app"],
+    ["jarima uchun xabarda ROAD24 APK yuborib, keshbek va'da qilishdi", "fake_fine_cashback_app"],
+    [
+      "ROAD24 ilovasini chatdan o'rnatsam, jarima pulining hammasini qaytarishar ekan.",
+      "fake_fine_cashback_app",
+    ],
+    [
+      "ROAD24 иловасини чатдан ўрнатсам, жарима пулининг ҳаммасини қайтаришар экан.",
+      "fake_fine_cashback_app",
+    ],
+    [
+      "В чате прислали ROAD24.apk и обещают вернуть весь штраф, если установлю.",
+      "fake_fine_cashback_app",
+    ],
+    [
+      "They sent ROAD24.apk in a chat and promise to refund the full fine if I install it.",
+      "fake_fine_cashback_app",
+    ],
+    [
+      "предлагают за деньги обнулить штрафные баллы через знакомого в ГАИ",
+      "penalty_points_cancellation",
+    ],
+    [
+      "jarima ballarini pulga o'chirib beraman, YHXBda odamim bor deyapti",
+      "penalty_points_cancellation",
+    ],
+    [
+      "Telegramdagi vositachi 800 ming so'mga jarima ballarimni nol qilib, shaxsiy kartasiga pul o'tkazishni so'radi",
+      "penalty_points_cancellation",
+    ],
+    [
+      "Tanishim jarima ballarini olib tashlab beradi, buning uchun pul so'radi.",
+      "penalty_points_cancellation",
+    ],
+    [
+      "Танишим жарима балларини олиб ташлаб беради, бунинг учун пул сўради.",
+      "penalty_points_cancellation",
+    ],
+    [
+      "A fixer says he can wipe my driving penalty points for a cash fee.",
+      "penalty_points_cancellation",
+    ],
+    [
+      "A traffic officer contact will take my violation points off for cash.",
+      "penalty_points_cancellation",
+    ],
+    ["Знакомый в ГАИ якобы спишет штрафные баллы за комиссию.", "penalty_points_cancellation"],
+    [
+      "An insider says they can wipe my traffic penalty points for a fee",
+      "penalty_points_cancellation",
+    ],
+    [
+      "знакомый прислал ссылку: я уже получил подарок банка, забирай тоже",
+      "known_contact_prize_link",
+    ],
+    [
+      "tanishim men bank sovg'asini oldim, havoladan sen ham ol deb yozdi",
+      "known_contact_prize_link",
+    ],
+    [
+      "A friend sent a link saying I got the bank prize, claim yours too",
+      "known_contact_prize_link",
+    ],
+    [
+      "Брат прислал ссылку на подарок банка и пишет, что уже получил 70000 сум.",
+      "known_contact_prize_link",
+    ],
+    ["Акам банк совғасига ҳавола юборди ва 70000 сўмни олганини ёзди.", "known_contact_prize_link"],
+    [
+      "My brother sent a bank gift link and says he already received 70,000 soum.",
+      "known_contact_prize_link",
+    ],
+  ])("preserves the concrete scenario for %s", (text, scenario) => {
+    expect(classifyVictimIntent(text)?.scenario).toBe(scenario);
+  });
+
+  it.each([
+    "налоговая угрожает делом и заставляет поджечь заправку",
+    "15-летнему сыну написали от налоговой: если он не подожжет заправку, заведут уголовное дело",
+    "полиция заставляет дочь поджечь склад, иначе её арестуют",
+    "следователь пишет парню: подожги школу, иначе уголовное дело",
+    "15 yoshli o'g'limga soliqdan yozishdi: zapravkani yoqmasa jinoiy ish ochamiz",
+    "qizimga politsiyadan yozib, binoni yoqmasa qamash bilan qo'rqitishyapti",
+    "Police told my daughter to set fire to a building or they will arrest her",
+    "A detective ordered me to set fire to a car or I would be arrested.",
+    "Прокурорман деган одам камера симини узишимни талаб қиляпти.",
+    "Пишет оперативник: подожги склад, иначе посадим.",
+    "Profilaktika inspektoriman, kamerani buzmasang seni qamayman.",
+    "Профилактика инспекториман, камерани бузмасанг сени қамайман.",
+    "A federal agent told me to leave a backpack at the station or face arrest.",
+    "A law-enforcement detective says I must destroy a camera or go to jail.",
+    "Prokuraturadanmiz deganlar qutini maktab yoniga qoldirishga majburladi; men hali bormadim.",
+    "Прокуратураданмиз деганлар қутини мактаб ёнига қолдиришга мажбурлади; мен ҳали бормадим.",
+    "Полиция пишет. Не поджигайте старый склад. Подожгите школу, иначе уголовное дело.",
+  ])(
+    "routes authority coercion of the user, child, or third person to physical safety: %s",
+    (text) => {
+      expect(classifyVictimIntent(text)).toMatchObject({
+        kind: "authority_physical_coercion",
+        scenario: "authority_physical_coercion",
+      });
+    },
+  );
+
+  it.each([
+    "тебя убью если не заплатишь",
+    "мы приедем к тебе домой и сломаем ноги",
+    "seni topamiz va uramiz, pul yubor",
+    "uyingga boramiz, manzilingni bilamiz",
+    "We will come to your house and beat you if you do not pay",
+    "They said they'll kill me and know my address",
+    "помогите, они угрожают приехать домой и убить меня",
+    "yordam, uyingga boramiz, manzilingni bilamiz",
+    "help me, they will come to my house and beat me",
+    "Pul bermasang, seni urib tashlaymiz.",
+    "Пул бермасанг, сени уриб ташлаймиз.",
+    "Я тебя застрелю.",
+    "Я сломаю тебе шею.",
+    "Мы тебя закопаем.",
+    "Seni otib tashlayman.",
+    "Seni yo'q qilaman.",
+    "Сени отиб ташлайман.",
+    "Сени йўқ қиламан.",
+    "I'll shoot you.",
+    "I'll break your neck.",
+    "We will make you disappear.",
+  ])("recognizes a direct physical-violence threat in natural RU/UZ/EN: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).toBe("violence_threat");
+  });
+
+  it.each([
+    "I will come, but I won't hurt or kill you.",
+    "Я приеду. Но не убью тебя.",
+    "Men seni urmayman va o'ldirmayman.",
+    "I won't shoot you.",
+    "Я не застрелю тебя.",
+    "Seni otib tashlamayman.",
+  ])("does not turn an explicitly negated physical threat into violence: %s", (text) => {
+    expect(classifyVictimIntent(text)?.kind).not.toBe("violence_threat");
+  });
+
+  it.each(["I will hurt you, but I won't kill you.", "Я тебя изобью, но не убью."])(
+    "keeps an affirmative threat when only a second action is negated: %s",
+    (text) => {
+      expect(classifyVictimIntent(text)?.kind).toBe("violence_threat");
+    },
+  );
+
+  it.each([
+    "Jarimani bankning rasmiy ilovasida o'zim to'ladim, chatdan APK kelmagan.",
+    "Жаримани банкнинг расмий иловасида ўзим тўладим, чатдан APK келмаган.",
+    "Ertaga tasdiqlangan yetkazib beruvchiga bankning rasmiy ilovasida shartnoma bo'yicha to'lov qilaman.",
+    "Эртага тасдиқланган етказиб берувчига банкнинг расмий иловасида шартнома бўйича тўлов қиламан.",
+    "Yetkazib beruvchiga to'lov rejalashtirilgan edi, oluvchi va summa tasdiqlangan.",
+  ])("keeps an ordinary official Uzbek payment out of victim routing: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Подарок уже получил. Брат лично вручил мне телефон на день рождения, ссылок не было.",
+    "Sovg'ani oldim. Akam tug'ilgan kunimga telefonni shaxsan berdi, havola yo'q.",
+    "Совғани олдим. Акам туғилган кунимга телефонни шахсан берди, ҳавола йўқ.",
+    "I received the gift. My brother handed me a phone for my birthday; there was no link.",
+    "Я лично подарила брату новый телефон на день рождения; он уже получил подарок, никаких ссылок или файлов не было.",
+    "I personally gave my brother a new phone for his birthday; he already received the gift, and there were no links or files.",
+  ])("keeps a completed in-person personal gift out of prize-link routing: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Я сам нашёл ROAD24 в Google Play и установил официальное приложение, из чата APK не присылали.",
+    "ROAD24 ilovasini Google Play'dan o'zim topib o'rnatdim, chatdan APK kelmagan.",
+    "ROAD24 иловасини Google Play'дан ўзим топиб ўрнатдим, чатдан APK келмаган.",
+    "I found the official ROAD24 app myself in Google Play; no APK came from a chat.",
+  ])("keeps a self-found official ROAD24 store app out of APK routing: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "The police emergency number is 102.",
+    "Полиция рақами 102.",
+    "Police said a suspect set fire to a warehouse and was arrested.",
+  ])("keeps neutral police facts and third-person news out of live victim routing: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "Sayohat rasmlarimni oilaviy guruhga tarqatishadi deb aytishdi.",
+    "Fotosessiya uchun pul so'rashyapti, rasmlarimni keyin yuborishadi.",
+  ])(
+    "does not infer photo extortion without a tied publication threat and money demand: %s",
+    (text) => {
+      expect(classifyVictimIntent(text)?.kind).not.toBe("blackmail_threat");
+    },
+  );
+
+  it.each([
+    "я перевела деньги не тому человеку, можно отменить перевод?",
+    "men pulni adashib boshqa odamga yubordim, o'tkazmani bekor qilsa bo'ladimi",
+    "I sent money to the wrong recipient by mistake, can I recall the transfer?",
+    "I accidentally transferred money to the wrong person. Can my bank recall it?",
+    "По ошибке оплатила чужой номер телефона вместо своего. Можно отменить?",
+    "Adashib pulni boshqa odamga o'tkazib yubordim. Bank qaytarib bera oladimi?",
+    "Адашиб пулни бошқа одамга ўтказиб юбордим. Банк қайтариб бера оладими?",
+    "Adashib o'zimnikining o'rniga boshqa odamning telefon raqamiga to'lov qildim. Bekor qilsa bo'ladimi?",
+    "Адашиб ўзимникининг ўрнига бошқа одамнинг телефон рақамига тўлов қилдим. Бекор қилса бўладими?",
+    "Оплатила чужой телефон по ошибке — что теперь нажать, чтобы отменить?",
+    "Boshqa telefon raqamiga xato to'ladim — bekor qilish mumkinmi?",
+    "Бошқа телефон рақамига хато тўладим — бекор қилиш мумкинми?",
+    "I topped up someone else's phone by mistake—how can I cancel it?",
+    "Adashib boshqa odamga pul yubordim.",
+    "Адашиб бошқа одамга пул юбордим.",
+  ])("keeps an ordinary wrong-recipient transfer out of scam panic: %s", (text) => {
+    expect(classifyTextPanicIntent(text)).toBeNull();
+    expect(classifyVictimIntent(text)).toEqual({
+      kind: "accidental_transfer_outgoing",
+      askedContext: "transfer",
+    });
+  });
+
+  it("keeps incoming return-to-another-account wording on the money-mule route", () => {
+    expect(
+      classifyVictimIntent("мне пришли деньги по ошибке и просят вернуть их на другую карту"),
+    ).toMatchObject({ kind: "money_mule" });
+  });
+
+  it.each([
+    "сосед прислал обычное mp4 из галереи, мы заранее договаривались",
+    "Qo'shnim oddiy videoni Telegram ichida yubordi, hech qanday fayl yoki ilova o'rnatish kerak emas",
+    "Друг прислал видео с дня рождения, посмотреть?",
+    "Do'stim tug'ilgan kundan oddiy videoni yubordi, ko'rsam bo'ladimi?",
+    "My friend sent a birthday video in Telegram, should I watch it?",
+    "Я оплатил штраф в официальном приложении банка, APK и ссылок не было",
+    "Мне нужно оплатить штраф в официальном приложении, это можно?",
+    "Jarimani rasmiy ilovada to'lasam bo'ladimi?",
+    "Can I pay a fine in the official app?",
+    "Jarima ballarini pulga o'chirish mumkin emas, vositachiga pul bermang",
+    "официально бесплатно проверяю штрафные баллы на госпортале",
+    "новость предупреждает: не выполняйте опасные задания от имени полиции",
+    "ИИБ требует принести пакет документов в отделение, иначе будет штраф",
+    "IIB hujjatlar paketini bo'limga olib borishni talab qildi, aks holda jarima",
+    "Police require me to bring a document package to the station or pay a late fee",
+    "Друг прислал ссылку на официальный сайт банка с итогами розыгрыша",
+    "Do'stim bankning rasmiy saytidagi yutuq natijalari havolasini yubordi",
+    "My friend shared the official bank site with the giveaway results",
+  ])("does not turn a protective or ordinary statement into a new live incident: %s", (text) => {
+    expect(classifyVictimIntent(text)?.scenario).not.toBe("authority_physical_coercion");
+    expect(classifyVictimIntent(text)?.scenario).not.toBe("neighbor_video_malware");
+    expect(classifyVictimIntent(text)?.scenario).not.toBe("penalty_points_cancellation");
+    expect(classifyVictimIntent(text)?.scenario).not.toBe("fake_fine_cashback_app");
+    expect(classifyVictimIntent(text)?.scenario).not.toBe("known_contact_prize_link");
+  });
+
+  it.each([
+    "что такое безопасный счёт?",
+    "кто такая служба безопасности?",
+    "what does safe account mean?",
+    "xavfsiz hisob nima degani?",
+  ])("keeps a safe-account definition out of a live victim incident: %s", (text) => {
+    expect(classifyVictimIntent(text)).toBeNull();
+  });
+
+  it("understands bare why and gives a scenario-specific reply script", () => {
+    const at = new Date("2026-08-23T10:00:00.000Z");
+    const context = buildVictimFollowUpContext(
+      {
+        kind: "authority_physical_coercion",
+        askedContext: "call",
+        scenario: "authority_physical_coercion",
+      },
+      at,
+    );
+    const why = classifyVictimGuidanceFollowUp("а почему?", context, new Date(at.getTime() + 1000));
+    const reply = classifyVictimGuidanceFollowUp(
+      "что мне им сказать?",
+      context,
+      new Date(at.getTime() + 1000),
+    );
+
+    expect(why?.action).toBe("why");
+    expect(reply?.action).toBe("reply_script");
+    expect(buildVictimGuidanceFollowUpText(reply!, "ru")).toContain("102");
+    expect(buildVictimGuidanceFollowUpText(reply!, "ru")).not.toContain(
+      "перезвоню по официальному номеру",
+    );
+  });
+
+  it.each([
+    ["пачему?", "why"],
+    ["nima uchun?", "why"],
+    ["что теперь?", "next_steps"],
+    ["ok and now?", "next_steps"],
+    ["endi-chi?", "next_steps"],
+    ["what should I say to them?", "reply_script"],
+    ["ularga nima yozay?", "reply_script"],
+    ["Ularga nima deb javob beray?", "reply_script"],
+    ["Уларга нима деб жавоб берай?", "reply_script"],
+    ["pachemu?", "why"],
+    ["chto delat dalshe?", "next_steps"],
+    ["chto im skazat?", "reply_script"],
+    ["nu i chto teper?", "next_steps"],
+  ] as const)("keeps a natural or bounded-translit follow-up contextual: %s", (text, action) => {
+    const at = new Date("2026-08-23T10:00:00.000Z");
+    const context = buildVictimFollowUpContext(
+      {
+        kind: "authority_physical_coercion",
+        askedContext: "call",
+        scenario: "authority_physical_coercion",
+      },
+      at,
+    );
+
+    expect(
+      classifyVictimGuidanceFollowUp(text, context, new Date(at.getTime() + 1000))?.action,
+    ).toBe(action);
+  });
+
+  it("answers why and next-step follow-ups without repeating the original scenario card", () => {
+    const at = new Date("2026-08-23T10:00:00.000Z");
+    const match = {
+      kind: "apk_request",
+      askedContext: "apk",
+      scenario: "fake_fine_cashback_app",
+    } as const;
+    const context = buildVictimFollowUpContext(match, at);
+    const why = classifyVictimGuidanceFollowUp("почему?", context, new Date(at.getTime() + 1000));
+    const next = classifyVictimGuidanceFollowUp(
+      "что теперь?",
+      context,
+      new Date(at.getTime() + 1000),
+    );
+    const original = buildVictimIntentText(match, "ru");
+
+    expect(buildVictimGuidanceFollowUpText(why!, "ru")).not.toBe(original);
+    expect(buildVictimGuidanceFollowUpText(why!, "ru")).toMatch(/APK|официальн/iu);
+    expect(buildVictimGuidanceFollowUpText(next!, "ru")).not.toBe(original);
+    expect(buildVictimGuidanceFollowUpText(next!, "ru")).toMatch(/Wi|мобильн|доверенн/iu);
+  });
+
+  it("keeps high-stakes scenario copy factual, localized, and actionable", () => {
+    const fine = buildVictimIntentText(
+      { kind: "apk_request", askedContext: "apk", scenario: "fake_fine_cashback_app" },
+      "ru",
+    );
+    const prize = buildVictimIntentText(
+      { kind: "identity_uncertain", scenario: "known_contact_prize_link" },
+      "en",
+    );
+    const accidental = buildVictimIntentText(
+      { kind: "accidental_transfer_outgoing", askedContext: "transfer" },
+      "ru",
+    );
+    const game = buildVictimIntentText(
+      { kind: "transfer_request", scenario: "game_escrow_fee" },
+      "en",
+    );
+    const privacy = buildVictimIntentText({ kind: "privacy_question" }, "en");
+    const uzAdvice = buildVictimIntentText({ kind: "advice_question" }, "uz");
+
+    expect(fine).toMatch(/авиарежим|Wi|мобильн|другого доверенного/iu);
+    expect(prize).toMatch(/Telegram login code|unknown sessions|banking OTP|card data/iu);
+    expect(accidental).toMatch(/официальн.*канал|доступен ли отзыв|не гарантирован/iu);
+    expect(accidental).not.toMatch(/оспорить/iu);
+    expect(game).toMatch(/whether the platform permits|built-in/iu);
+    expect(privacy).toMatch(/masked number|hostname|AI\/vision provider|not stored locally/iu);
+    expect(uzAdvice).toContain("🆘 Shoshilinch qadamlar");
+  });
 });

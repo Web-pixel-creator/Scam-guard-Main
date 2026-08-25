@@ -95,4 +95,85 @@ describe("Telegram forward source context", () => {
     expect(brief).not.toMatch(/создан недавно|есть жалобы|спамит|точно мошенник/i);
     expect(brief).toContain("не видны");
   });
+
+  it.each([
+    ["ru", /угрожают приехать|физическую силу/iu, /безопасное место.*102/isu],
+    ["uz", /jismoniy kuch|tahdid/iu, /xavfsiz joyga.*102/isu],
+    ["en", /physical violence/iu, /somewhere safe.*102/isu],
+  ] as const)(
+    "keeps a forwarded violence threat on the urgent safety path in %s",
+    (lang, danger, step) => {
+      const enriched = enrichForwardSourceContext(
+        result({
+          level: "high_risk",
+          score: 80,
+          reasons: ["asks_for_sms_code", "threatens_physical_violence"],
+          explanation: "Generic account-risk explanation that must not lead.",
+        }),
+        { kind: "channel", title: "Unknown Channel", username: "unknown_source" },
+        lang,
+      );
+
+      expect(enriched.explanation).toMatch(danger);
+      expect(enriched.explanation).toMatch(step);
+      expect(enriched.explanation).not.toMatch(/Telegram account takeover|угон Telegram/iu);
+    },
+  );
+
+  it.each([
+    [
+      "asks_for_money_transfer",
+      "ru",
+      /просьба о переводе|непроверенному получателю/iu,
+      /не переводите.*проверьте/isu,
+    ],
+    [
+      "asks_for_money_transfer",
+      "uz",
+      /pul o'tkazish|tekshirilmagan oluvchi/iu,
+      /pul o'tkazmang.*mustaqil tekshiring/isu,
+    ],
+    [
+      "asks_for_money_transfer",
+      "en",
+      /transfer or payment request|unverified recipient/iu,
+      /do not transfer.*verify/isu,
+    ],
+    ["fake_penalty_points_erasure", "ru", /удалить штрафные баллы/iu, /не платите.*официальн/isu],
+    [
+      "fake_penalty_points_erasure",
+      "uz",
+      /jarima ballarini.*o'chirish/iu,
+      /pul yubormang.*rasmiy/isu,
+    ],
+    ["fake_penalty_points_erasure", "en", /erase penalty points/iu, /do not pay.*official/isu],
+  ] as const)(
+    "keeps forwarded payment guidance specific for %s in %s",
+    (reason, lang, scenario, step) => {
+      const enriched = enrichForwardSourceContext(
+        result({ level: "high_risk", score: 80, reasons: [reason] }),
+        { kind: "channel", title: "Payment Channel", username: "payment_source" },
+        lang,
+      );
+
+      expect(enriched.explanation).toMatch(scenario);
+      expect(enriched.explanation).toMatch(step);
+    },
+  );
+
+  it("keeps an APK action ahead of penalty-point payment copy in a forwarded post", () => {
+    const enriched = enrichForwardSourceContext(
+      result({
+        level: "high_risk",
+        score: 90,
+        reasons: ["fake_penalty_points_erasure", "asks_to_install_apk"],
+      }),
+      { kind: "channel", title: "ROAD24 Update", username: "road24_update" },
+      "ru",
+    );
+
+    expect(enriched.explanation).toContain("опасная просьба от имени банка/support");
+    expect(enriched.explanation).toContain("APK");
+    expect(enriched.explanation).not.toContain("Схема: обещают за деньги удалить штрафные баллы");
+  });
 });
