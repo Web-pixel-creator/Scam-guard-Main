@@ -3,10 +3,28 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-093 - Documentation-only commits may skip Railway deployment only after proof
+
+**Status: local candidate on 2026-08-20; not active in Railway.** The proposed
+`railway.toml` Watch Paths remain local until an approved configuration merge,
+post-deployment manifest/read-back and a separate documentation-only proof.
+
+Runtime source and configuration changes remain deploy-eligible. Root Markdown
+and `ai_docs/**` may be excluded only after Railway confirms the merged manifest
+is active. The first merge changes `railway.toml`, so it remains
+deployment-eligible and is expected to create an ordinary deployment and a new
+exact-release observation boundary; that deployment cannot prove the later
+documentation-only skip.
+
+After activation, one separate docs-only commit must pass its required GitHub
+checks while the active Railway deployment id, commit and image remain
+unchanged. Until that evidence exists, every merge to `main` is treated as
+deployment-eligible.
+
 ## D-092 - Direct primary results retry only after a definitive no-effect outcome
 
-**Status: local/unreleased on 2026-08-02.** This decision is not production
-behavior until its patch is reviewed, merged and deployed.
+**Status: deployed.** This policy is part of the production application
+baseline recorded in `CURRENT_STATE.md`.
 
 `sendMessage` separates three outcomes. A validated transient Bot API rejection
 or a pre-fetch config/fence failure is definitive and safe to retry; Direct
@@ -36,10 +54,9 @@ still lead to a duplicate after lease recovery.
 
 ## D-091 - Recurring monitoring is cost-free; provider probes require explicit bounded opt-in
 
-**Status: local/unreleased on 2026-08-02.** The historical GitHub schedule still
-attempts provider checks until this workflow change is reviewed and merged.
-One successful scheduled read-back must then show the disabled/no-request path
-before this decision becomes operational or canary evidence.
+**Status: deployed.** Scheduled production read-backs have confirmed the
+disabled/no-request baseline; the exact current evidence is recorded in
+`CURRENT_STATE.md`.
 
 The half-hour production monitor is a baseline availability/delivery check, not
 a recurring billable AI transaction. It explicitly sets

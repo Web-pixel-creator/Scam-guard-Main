@@ -16,11 +16,13 @@ moderation.
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
-- Verified production source: PR #125 merge
-  `1576e21cebd1ff7665ff2c37bb9c37a8d8f6588c`.
-- Verified PR #125 CI gate: 168 Vitest files and 13,003/13,003 tests, plus
-  TypeScript, lint, build, coverage, migrations/schema and security gates. A
-  2026-08-13 focused offline recheck passed 10,518/10,518 safety tests.
+- Verified production source: PR #129 merge
+  `901977645d3a8eb7a6498ac6aba90748daaa648e` (tree
+  `b68beea635e3d2a37e0fe15049c00eb20725813e`). Railway deployment
+  `59077b99-b155-4f6d-88db-e6769aa4a394` is healthy with image digest
+  `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
+- Verified PR #129 gate: 179 Vitest files and 15,327/15,327 tests, plus
+  TypeScript, lint, build, coverage, migrations/schema and security gates.
 - Runtime: Nitro `node-server` on Railway. Current Telegram production delivery
   uses durable Postgres-fenced polling; webhook remains a supported
   compatibility/fail-closed boundary.
@@ -28,10 +30,14 @@ moderation.
   risk verdict still works without AI; Inline does not invoke paid AI.
 - Formal release acceptance remains open. Never convert internal regression
   totals into claims of real-world accuracy or enterprise readiness.
-- Operational 72-hour checkpoint: `GO`; formal canary closure remains `OPEN`
-  under the unchanged 144-success and failure/restart rules. Full device,
-  accessibility and legal/privacy acceptance remains open.
-- Last documentation reconciliation: 2026-08-13.
+- The previous PR #126 runtime passed 226 eligible scheduled observations; one
+  separate GitHub setup failure ran no monitor check and is not product-failure
+  evidence. PR #128 restarted the observation window. Its first two scheduled
+  monitors passed, while formal current-RC canary closure remains `OPEN` under
+  the unchanged entry, count and restart rules.
+- Full Desktop/Android/iOS, accessibility and legal/privacy acceptance remains
+  open; the formal Inline client matrix remains 1/51.
+- Last documentation reconciliation: 2026-08-20.
 
 ## Documentation authority
 
@@ -44,9 +50,14 @@ When documents disagree, use this order:
 5. Dated audits, plans, QA reports and release records as historical evidence
    only.
 
-`main` is the public repository baseline. A local checkout may intentionally be
-on an older evidence branch. Verify with `git ls-remote origin refs/heads/main`
-before claiming that GitHub is stale. Do not use an open PR as deployed state.
+`main` is the public repository baseline, but repository tip and deployed
+runtime source are separate facts. Before Railway Watch Paths are independently
+verified, treat every merge as potentially deployment-triggering. After a
+verified docs exclusion, a documentation-only merge may advance `main` without
+changing the Railway deployment; in that state, record the newer docs tip and
+the older verified runtime commit separately. A local checkout may also
+intentionally be on an older evidence branch. Verify the public ref before
+claiming that GitHub is stale, and never use an open PR as deployed state.
 
 See `ai_docs/DOCUMENTATION_POLICY.md` for the full freshness and archival rules.
 
@@ -71,6 +82,7 @@ See `ai_docs/DOCUMENTATION_POLICY.md` for the full freshness and archival rules.
 | `ai_docs/ON_CALL_RUNBOOK.md`                           | Monitor alert triage and recovery.                                            |
 | `ai_docs/RECOVERY_AND_KEY_ROTATION.md`                 | Backup/restore, rollback and secret rotation.                                 |
 | `ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-08.md` | Historical immutable PR #121 release evidence.                                |
+| `ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-20.md` | Immutable PR #128 runtime release evidence.                                   |
 | `ai_docs/CANARY_72H.md`                                | Canary contract, current checkpoint and formal closure boundary.              |
 | `ai_docs/TELEGRAM_INTENT_CONTRACT.md`                  | Bot intent/action ids, side effects and dialogue contracts.                   |
 | `ai_docs/CODING_RULES.md`                              | Code, i18n, privacy and security rules.                                       |

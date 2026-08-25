@@ -282,6 +282,10 @@ instead of receiving misleading phone or Telegram-profile instructions.
   SIM swap, remote access, vote links, tax, investment, romance, extortion,
   parcel, loan, charity, QR login, fake support and related families instead of
   collapsing to a generic transfer/stranger reply.
+- The current deployed intent set includes task-scam salary/tax wording and the
+  `identity_loan` route for unauthorized credit/BNPL. Its installment boundary
+  keeps Klarna/loan wording separate from app-installation detection and retains
+  explicit self-opened/negated controls.
 - Bank/card plus code-disclosure wording takes precedence over a broad Telegram
   surface match, so a code-theft request delivered in Telegram does not become
   a Telegram-account-login answer. The common Russian typo
@@ -353,8 +357,9 @@ instead of receiving misleading phone or Telegram-profile instructions.
 - The three 2026-07-29 exact semantic regressions are also locked in focused
   victim/elderly handler tests. Targeted 468/468, Telegram 10,872/10,872 and
   adversarial 2,161/2,161 pass locally. The 2026-07-29 combined local gate
-  recorded 12,853 tests; current `main` GitHub CI at `b226bdd` passed
-  12,855/12,855. Real-client acceptance remains separate.
+  recorded 12,853 tests; the then-current documentation tip `b226bdd` passed
+  12,855/12,855 in GitHub CI. Current release totals belong to
+  `CURRENT_STATE.md`; real-client acceptance remains separate.
 
 **`src/lib/telegram/inline-context-robustness-corpus.ts`**
 
@@ -640,9 +645,9 @@ instead of receiving misleading phone or Telegram-profile instructions.
 
 ## Telegram
 
-The Direct primary-result delivery behavior described below is local and
-unreleased on 2026-08-02. It is not part of `origin/main` or the Railway
-deployment until separately reviewed, merged and deployed.
+The Direct primary-result delivery behavior described below implements deployed
+decision D-092. See `CURRENT_STATE.md` for the exact current application commit,
+Railway deployment and observation status.
 
 - `src/lib/telegram/webhook.server.ts`: compatibility webhook handler with
   fail-closed secret validation, capped body parsing and durable update
@@ -659,7 +664,7 @@ deployment until separately reviewed, merged and deployed.
   same-user/unknown-user work waits and the next stateful boundary is never
   crossed. Offset advances through the contiguous acknowledged frontier; later
   completed siblings are left for durable replay deduplication when an earlier
-  item fails. The local Direct P0 keeps that frontier at a definitively
+  item fails. The deployed Direct P0 keeps that frontier at a definitively
   retryable primary-result failure and honors its sanitized bounded delay.
   Production supplies handler installation and network/database dependencies;
   isolated tests and the soak reuse the same offset/claim/execute state machine
@@ -691,19 +696,19 @@ deployment until separately reviewed, merged and deployed.
   defaults to 20 records and clamps requested limits to `1..100`.
   `answerInlineQuery` has a 2.5-second transport deadline and returns typed
   failure data (`errorCode`, `description`, optional `retryAfterSec`) for its
-  delivery policy. The local Direct P0 makes `sendMessage` return a sanitized
+  delivery policy. The deployed Direct P0 makes `sendMessage` return a sanitized
   discriminated result: definitive versus ambiguous effect certainty, safe
   replay eligibility and optional numeric `errorCode`/`retryAfterSec`. The
   module also provides in-memory `sendAudio` for opt-in Voice-out and
   `setWebhook` registration pinned to the shared one-connection containment
   policy.
-- `src/lib/telegram/direct-result-delivery-error.ts`: local/unreleased control
-  error used only for a definitively undelivered, retryable Direct primary
+- `src/lib/telegram/direct-result-delivery-error.ts`: deployed control error
+  used only for a definitively undelivered, retryable Direct primary
   result. It clamps delays to 1-60 seconds and carries no chat id, message,
   Bot API description or token.
 - `src/lib/telegram/webhook-delivery-policy.ts`: exports the temporary `max_connections=1` webhook policy and the strict monitor predicate; this limits concurrency but is not treated as durable ordering evidence.
 - `src/lib/telegram/emergency.ts`: `buildPanicScenarioText` now returns compact panic first cards, `buildDetailedPanicScenarioText` keeps the full checklist for `panicctx:full`, plus panic keyboard builders, live-call callback parser and Emergency Copilot helpers: `classifyEmergencyFollowUp`, `buildEmergencyFollowUpText`, `buildEmergencyFollowUpKeyboard`. First panic cards keep the urgent action first and short human guidance cues without repeating "I am nearby" in every message; follow-up answers are guided for stressed/elderly users, keep safe-callback boundaries and use scenario-specific ready phrases/contact destinations for financial, APK, Telegram takeover, live-call, romance, sextortion/photo-video blackmail, publication threats, minor-safety, AI voice-clone, fake job/easy-money, delivery/top-up, crypto/TON/wallet and government grant/benefit cases. Minor-safety and publication-threat trusted-person flows have distinct copy instead of sharing the generic blackmail branch. The panic menu is paginated through page 3 (`panic:more2` / `panic:back2`) for scenarios `12..15`.
-- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check, recent-victim and orphan helper follow-up questions before `runCheck` (including already-paid/installed/uninstall replies), resolves each direct text/voice turn's RU/UZ/EN from the current content without changing the stored profile language, preserves narrow `VictimScenario` topics over generic panic/transfer copy, extracts a standalone phone only from an explicit bank-number identity question, and returns sink-sanitized secret guidance before a value can be echoed. It sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring. The local Direct P0 performs a context-neutral sequenced/fenced claim before the primary result, commits `lastCheck` only after successful or ambiguous delivery, retries only a safe transient/config/fence outcome, and suppresses Guardian/trusted-contact effects unless both primary delivery and its context commit are confirmed.
+- `src/lib/telegram/handlers/check.ts`: routes short post-panic, post-guardian, post-check, recent-victim and orphan helper follow-up questions before `runCheck` (including already-paid/installed/uninstall replies), resolves each direct text/voice turn's RU/UZ/EN from the current content without changing the stored profile language, preserves narrow `VictimScenario` topics over generic panic/transfer copy, extracts a standalone phone only from an explicit bank-number identity question, and returns sink-sanitized secret guidance before a value can be echoed. It sends Guardian Angel companion guidance after high-risk results, checks an early shared image-download budget before Telegram `getFile`/download, awaits bounded worker-isolated real-pixel QR decoding before structured image intelligence for photos and routed Telegram video thumbnails, adds an honest preview-frame note to video-thumbnail result cards, allows final no-reasons `safe` image results only through `isEvidenceBackedBenignImageContext`, transcribes capped voice notes, short Telegram audio files and routed audio documents, shows a non-message activity indicator while voice STT is slow, uses a dedicated exhausted-STT-budget copy, routes obvious already-happened voice transcripts (including first RU/UZ mixed-speech patterns) directly to matching `/panic` scenarios, stops low-signal transcripts before scoring and asks for correction, adds a transcript-correction button so users can recheck fixed text without another STT call, stores a safe `image_unreadable` last-check snapshot for OCR/QR failures, suppresses repeated album fallbacks, shortens repeated standalone image fallbacks, attaches unreadable-image triage buttons, fetches visible public Telegram post evidence before metadata-only fallback, and enriches Telegram username/link checks with best-effort public metadata plus moderated Ishonch Guard reputation and public forward-source context after scoring. The deployed Direct P0 performs a context-neutral sequenced/fenced claim before the primary result, commits `lastCheck` only after successful or ambiguous delivery, retries only a safe transient/config/fence outcome, and suppresses Guardian/trusted-contact effects unless both primary delivery and its context commit are confirmed.
 - `src/lib/telegram/media-admission.server.ts`: `claimTelegramImageDownloadBudget(userId)` claims the shared media bucket before any Bot API file metadata or body download; ordinary image and report-screenshot paths use the same boundary.
 - Secret-bearing Voice transcripts in `handlers/check.ts` use a fully static
   preview, stop before `runCheck`/AI/session persistence and are excluded from

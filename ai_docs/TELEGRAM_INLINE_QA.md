@@ -104,9 +104,9 @@ mutation; 36 focused localized contracts assert that the second title differs
 from the first and that the inserted message preserves the new line.
 
 These checks are offline: network fetch is forbidden and Inline continues with
-AI, reputation and persistence disabled. The remediation is now deployed: PR
-#110 passed application, coverage, Supabase migration/schema/pgTAP, CodeQL,
-Gitleaks and container/SBOM checks, merged as
+AI, reputation and persistence disabled. The remediation's historical minimum
+deployed source is PR #110: it passed application, coverage, Supabase
+migration/schema/pgTAP, CodeQL, Gitleaks and container/SBOM checks, merged as
 `581e71536e729253b73012baf5086241caf68e13`, and exact Railway deployment
 `f5915159-ccaa-46bc-9e42-be8c521010be` reached `SUCCESS` with image
 `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
@@ -185,11 +185,11 @@ chat unless the case is explicitly about report/appeal moderator delivery.
   expected there.
 - The 2026-07-15 remediation replay must target production containing merge
   `581e71536e729253b73012baf5086241caf68e13` or a verified descendant. Railway
-  deployment `f5915159-ccaa-46bc-9e42-be8c521010be` is the active PR #110
-  evidence, with image
-  `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`.
-  Supabase migration history is current, linked dry-run reports no pending
-  migration, and remote schema lint is clean. Do not retest against an older
+  deployment `f5915159-ccaa-46bc-9e42-be8c521010be` and image
+  `sha256:b094e4592d2492bece73f64a21eeb802792b7ec32996370800b2fa0efbe84ddb`
+  are immutable historical PR #110 evidence, not the current active baseline.
+  Resolve the current production commit/deployment from `CURRENT_STATE.md` and
+  verify that it is a descendant before replay. Do not retest against an older
   build and label the result post-fix.
 - The bounded post-deploy monitor passed home/health, secret rejection,
   polling-mode webhook shutdown, Telegram delivery with zero pending updates

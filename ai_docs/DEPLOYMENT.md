@@ -60,21 +60,22 @@ Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
-As of the read-only `2026-08-02` inspection, the GitHub repository is connected
-to the Railway service but the production environment has no source-branch
-binding; the Dashboard offers `Connect Environment to Branch`. Merges therefore
-do not currently auto-deploy. Keep explicit manual deployment as the documented
-behavior until an owner separately approves connecting `main` and accepts that
-future eligible changes can then deploy automatically. See
-`ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-02.md` for the current release
-identity and evidence.
+Production is now bound to GitHub `main`, with Railway Auto Deploy and Wait for
+CI enabled in the working US West region. The current source is PR #129 merge
+`901977645d3a8eb7a6498ac6aba90748daaa648e`; Railway deployment
+`59077b99-b155-4f6d-88db-e6769aa4a394` reached `SUCCESS` after merge-commit CI
+and Security Gates passed. The older 2026-08-02 no-branch/invalid-region record
+remains historical evidence in `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
 
-The current running deployment is healthy, but the later 2026-08-02 read-only
-recheck found `us-west2` in the service manifest and a Railway Dashboard warning
-that this invalid region blocks deployments. Do not start another deployment
-until an owner separately approves a valid replacement region and a rollback
-check. Fixing the region must not silently add a branch binding; they are two
-independent runtime decisions.
+Railway watch patterns `watchPatterns = ["**", "!/*.md", "!/ai_docs/**"]` were
+merged with PR #129 and are confirmed active in the deployed manifest.
+Documentation-only merges stay CI-verified without creating a new image or
+restarting the canary window; source and config changes remain fully
+deploy-eligible. Watch Paths affect Railway deployment eligibility only:
+GitHub CI and Security Gates continue to run for every merge under their
+existing workflow triggers. After each docs-only merge, record the docs SHA
+separately from the runtime SHA `9019776` and verify the deployment id stays
+`59077b99-b155-4f6d-88db-e6769aa4a394`.
 
 Backup/restore, application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
@@ -425,18 +426,15 @@ warning: failure makes its process/job red. Alert messages include only check
 names and sanitized details; they do not include tokens, webhook secrets, chat
 ids, user content or Supabase keys.
 
-Cost and canary boundary as of the 2026-08-02 audit: the committed 30-minute
-schedule has an AI provider key and its monitor path attempts one provider health
-request on every run. The five-day audit found 60 scheduled runs; 56/56
-inspected logs explicitly showed provider results. This is recurring provider
-usage, not a zero-cost health check. In addition, provider 429/5xx/network
-conditions are warnings, while the current schedule does not fail or alert on
-warnings. Reconcile that policy before using these runs as fixed-RC canary
-evidence. During the database freeze, the hard-failure alert path sent one
-sanitized operator Telegram alert because the intentionally removed app returned
-`404`; it was not a user/QA message.
+Historical cost boundary: before D-091, the committed 30-minute schedule had an
+AI provider key and attempted one provider health request on every run. The
+2026-07-29 through 2026-08-02 audit found 60 scheduled attempts; 56/56 inspected
+logs explicitly showed provider results. During the database freeze, the
+hard-failure alert path also sent one sanitized operator Telegram alert because
+the intentionally removed app returned `404`; it was not a user/QA message.
+These effects remain in historical cost accounting.
 
-The local post-audit fix changes that contract: the scheduled workflow sets
+D-091 is now deployed. The scheduled workflow sets
 `MONITOR_CHECK_AI=false`, passes no `OPENAI_*` secrets to its baseline job, and
 uses fail/alert-on-warning for the remaining baseline checks. A separate
 `workflow_dispatch` boolean input, `check_ai_provider`, defaults to false. Only
@@ -444,21 +442,18 @@ the exact boolean `true` starts an independent `--ai-only` job and exposes
 `OPENAI_*` secrets to its final consumer step. That job is GitHub-status-only,
 receives no Telegram credentials and treats missing key/429/5xx/network failure
 as hard failure. Manual runs have a run-specific concurrency group, so they
-cannot cancel the scheduled canary observation. This correction is local until
-reviewed and merged into the default branch. One successful scheduled read-back
-must then explicitly show the disabled/no-request result before the policy is
-operational evidence; a Railway application deployment alone does not publish a
-GitHub workflow. The historical 60 scheduled attempts plus one manual request
-remain part of cost accounting.
+cannot cancel the scheduled canary observation. Scheduled read-backs on the
+current PR #128 source explicitly report `disabled by policy` and `no request
+sent`; the manual AI probe remains explicit opt-in only. A Railway application
+deployment alone does not publish a GitHub workflow.
 
 Operator triage steps live in `ai_docs/ON_CALL_RUNBOOK.md`. Keep that runbook
 up to date when monitor checks, alert routing or production recovery commands
 change.
 
-This local worktree also includes `.github/workflows/prod-monitor.yml`, which is
-intended to run the cost-free baseline monitor on a 30-minute GitHub Actions
-schedule after merge and read-back. That
-workflow commits `MONITOR_REQUIRE_SECRET_CHECKS=true`: a missing Telegram bot
+The committed `.github/workflows/prod-monitor.yml` runs the cost-free baseline
+monitor on a 30-minute GitHub Actions schedule. The workflow commits
+`MONITOR_REQUIRE_SECRET_CHECKS=true`: a missing Telegram bot
 token or webhook secret is a hard failure, not a skipped green check. It always
 checks the public app and `/healthz`; secret-backed baseline checks use these
 GitHub repository secrets:
@@ -472,29 +467,39 @@ The scheduled baseline receives no `OPENAI_*` secret. The separate manual
 AI-provider job receives `OPENAI_API_KEY` plus optional `OPENAI_BASE_URL` and
 `OPENAI_MODEL` only when the operator submits `check_ai_provider=true`.
 
-Before release, prove this policy in a controlled Actions environment: one run
-with all required secrets present, one intentionally missing-secret run that
-must fail, then a restored-secrets run that must pass. Do not remove a live
+After any future monitor-policy change, repeat the controlled Actions drill:
+one run with all required secrets present, one intentionally missing-secret run
+that must fail, then a restored-secrets run that must pass. Do not remove a live
 production secret merely to create evidence when a protected test environment
 or temporary workflow copy can isolate the drill.
 
-## Telegram bot webhook deployment
+## Telegram bot delivery deployment
 
-The Telegram bot is a **new channel** to the same app. There is no separate
-service to deploy — the webhook endpoint is bound at the server `fetch` entry
-(`src/server.ts`), which intercepts `POST /api/telegram/webhook` ahead of the
-SSR/server entry. This TanStack Start (1.168.x) + Nitro v3 build exposes **no
-file-based server-route API**, so there is intentionally no
-`src/routes/api/telegram/webhook.ts` route file — do not look for one.
+The Telegram bot is a **new channel** to the same app. Current production uses
+durable Postgres-fenced polling; the webhook endpoint is retained as a
+compatibility and fail-closed boundary. There is no separate service to deploy
+— the endpoint is bound at the server `fetch` entry (`src/server.ts`), which
+intercepts `POST /api/telegram/webhook` ahead of the SSR/server entry. This
+TanStack Start (1.168.x) + Nitro v3 build exposes **no file-based server-route
+API**, so there is intentionally no `src/routes/api/telegram/webhook.ts` route
+file — do not look for one.
 
-Once the Node server is deployed behind a public HTTPS URL, follow these steps
-in order:
+Do not call `setWebhook` against the current polling production merely because
+the application was redeployed or a generic checklist says to do so. That call
+changes Telegram delivery topology and can steal updates from the polling
+leader. The webhook-only steps below apply only to a separately approved mode
+switch or rollback.
 
 ### 1. Apply database migrations
 
 Apply pending SQL migrations to your Supabase project. At minimum the Telegram
 bot requires `telegram_sessions`; newer deployments also include Family Shield,
 retention cleanup and security-definer hardening migrations.
+Current production has 33 migrations with head `20260729131000`. Both
+`20260729105030_family_notification_claim_retention.sql` and
+`20260729131000_admin_mfa_aal2_rls.sql` were applied once on 2026-08-01 and
+passed production postflight; do not reapply or repair them merely because an
+older checklist describes them as pending.
 The session-ordering release additionally requires
 `20260711010000_telegram_session_update_sequence.sql`, which adds
 `telegram_sessions.last_update_id` and the service-role-only
@@ -554,12 +559,15 @@ These are read **per request inside handlers** (`config.server.ts`). The
 webhook fails closed: if `TELEGRAM_BOT_TOKEN` or `TELEGRAM_WEBHOOK_SECRET` is
 missing, it returns `401` without processing the update (R17.4).
 
-### 3. Register the webhook with Telegram
+### 3. Register the webhook only for approved webhook mode
 
-Run the one-shot admin script once per deployment (or whenever the public URL
-or secret changes). It calls the Bot API `setWebhook`, pointing Telegram at
-`<public-url>/api/telegram/webhook` and installing the secret token. It reads
-the bot token and secret from the environment and **never prints their values**.
+**Skip this step for current polling production.** For an approved webhook-mode
+switch, first follow the delivery-mode cutover plan and fence/stop polling. Then
+run the one-shot admin script once for that switch or whenever the webhook-mode
+public URL or secret changes. It calls the Bot API `setWebhook`, pointing
+Telegram at `<public-url>/api/telegram/webhook` and installing the secret token.
+It reads the bot token and secret from the environment and **never prints their
+values**.
 
 The repo has no `tsx`/`ts-node` runner, so run it with `vite-node` (ships with
 Vitest, resolves the `@/` path alias via the Vite config). Provide the public
@@ -580,12 +588,18 @@ not-ok. `setWebhook` does send the secret token to Telegram over HTTPS — that
 is by design; Telegram then echoes it back in the request header so the webhook
 can authenticate updates.
 
-Webhook registration (including rollback from polling) sends
+Approved webhook registration (including an approved rollback from polling)
+sends
 `max_connections=1`. Immediately after registration, run the production monitor
 and verify the `telegram webhook info` check reports `max_connections=1` and
 `concurrency_ok=true`. A higher or missing value is a failed monitor check. This
 is conservative webhook delivery configuration; it does not replace the durable
 lifecycle/crash-recovery gate.
+
+In current polling mode the healthy inverse is an empty webhook URL, expected
+authenticated webhook `503`, pending updates `0`, no fresh Telegram error and a
+healthy polling leader. Do not interpret that `503` as a reason to register a
+webhook.
 
 ### 4. Enable Telegram inline mode
 
@@ -599,14 +613,19 @@ to be enabled for the bot in BotFather:
 
 After that, users can type `@scamguard_bot <number/link/text>` in any Telegram
 chat and insert a compact risk card. Inline previews are rules-only and
-non-persistent. The production webhook/non-persistence path can be checked with:
+non-persistent. The compatibility webhook/non-persistence path can be checked
+only while an approved webhook-mode environment is active:
 
 ```bash
 railway run npm run prod:telegram-inline-smoke -- https://your-app.example.com
 ```
 
-This uses synthetic inline query ids, so it validates deployed webhook handling
-and privacy invariants, not visual Telegram-client rendering.
+This uses synthetic inline query ids, so it validates webhook handling and
+privacy invariants, not visual Telegram-client rendering. Against current
+polling production it may prove only the expected authenticated `503` shutdown
+and absence of persistence side effects; it is not Inline success evidence.
+Use the offline handler suites plus the bounded real-client checklist for
+polling-mode Inline acceptance.
 
 For real Telegram-client rendering, use `ai_docs/TELEGRAM_INLINE_QA.md`. That
 checklist does not require a third chat: use an existing non-moderator place
@@ -617,7 +636,7 @@ only for explicit report/appeal flows.
 
 ### 5. Verify no secrets leak to logs or the client bundle
 
-- Confirm logs around webhook registration and runtime show **only** event
+- In webhook mode, confirm logs around registration and runtime show **only** event
   type / `Input_Type` / `Risk_Level`, never raw user content, identifiers, or
   secret values (R19.1–R19.3). The script and `api.server.ts` log method names
   and HTTP statuses only — no token/secret values.
@@ -625,9 +644,11 @@ only for explicit report/appeal flows.
   `*.server.ts` modules and are read via `config.server.ts`; none are exposed
   as `VITE_*`. A quick check: grep the built client assets for the secret
   variable names — they must not appear.
-- Confirm Telegram delivers updates: send `/start` to the bot and verify a
-  reply. A `401` from the endpoint means the `TELEGRAM_WEBHOOK_SECRET` in the
-  environment does not match what was registered in step 3.
+- Confirm the active delivery mode before any real-client check. In polling
+  mode, the no-AI monitor must show empty webhook URL, pending `0`, no last
+  error and a healthy leader. In approved webhook mode, a valid-secret `401`
+  indicates a secret mismatch. Sending `/start` is a separate bounded
+  real-client acceptance action, not a routine deployment smoke.
 
 ### 6. Run the production smoke script
 
