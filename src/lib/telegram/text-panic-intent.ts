@@ -1,5 +1,6 @@
 import type { LiveCallContext, PanicScenarioId } from "@/lib/telegram/emergency";
 import type { TelegramForwardSourceContext } from "@/lib/telegram/forward-context";
+import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 export function normalizeVoiceIntentText(text: string): string {
@@ -13,6 +14,75 @@ export function normalizeVoiceIntentText(text: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+const ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE =
+  /(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)|(?:^|[^\p{L}])(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:плат[её]ж|перевод)\s+(?:уже\s+)?(?:исполнил\p{L}*|прош[её]л|зачислен\p{L}*)|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?(?:sent|transferred|transerred|wired|paid|topped\s+up|recharged)|(?:payment|transfer)\s+(?:already\s+)?(?:settled|completed|went\s+through)|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:^|[^\p{L}])(?:pul(?:ni)?\s+)?(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:to['’]?lov|o['’]?tkazma)\s+(?:o['’]?tib\s+bo['’]?ldi|o['’]?tdi|bajarildi)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE =
+  /(?:не\s+(?:туда|тому|той|на\s+ту\s+(?:карту|сч[её]т)|тому\s+получателю)|друг(?:ому|ой)\s+(?:человеку|получателю|карте)|чуж(?:ому|ую)\s+(?:человеку|карту)|чуж(?:ой|ого)\s+(?:номер\p{L}*|телефон\p{L}*)|ошиб(?:ся|лась|очно)|по\s+ошибке|перепута\p{L}*\s+(?:адресат|получател)|неверн\p{L}*\s+(?:получател|карт|сч[её]т)|wrong\s+(?:person|recipient|account|card|number|phone|mobile)|someone\s+else['’]?s\s+(?:phone|number|mobile|account|card)|by\s+mistake|accidentally|adashib|xato(?:lik\s+bilan)?|noto['’]?g['’]?ri\s+(?:odam|oluvchi|karta|hisob|raqam)|boshqa\s+(?:odam|oluvchi|karta|hisob|raqam|telefon)(?:ga|ning)?)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE =
+  /(?:как\s+(?:отменить|вернуть|отозвать)\s+(?:этот\s+)?перевод|можно\s+ли\s+(?:отменить|вернуть|отозвать)\s+(?:этот\s+)?перевод|(?:cancel|reverse|recall)\s+(?:this|the|a)?\s*(?:transfer|payment)|(?:o['’]?tkazma|to['’]?lov)(?:ni)?\s+(?:bekor\s+qil|qaytar)|(?:bekor\s+qil|qaytar).{0,30}(?:o['’]?tkazma|to['’]?lov))/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_FRAUD_RE =
+  /(?:мошен|обман|скам|вымог|угрож|scam|fraud|blackmail|threat|firib|aldan|tovlam|tahdid)/iu;
+const INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE =
+  /(?:мне|нам|menga|bizga|to\s+me|into\s+my).{0,80}(?:пришл|поступ|зачисл|туш|tush|arriv|received).{0,120}(?:верн|qaytar|send\s+back|return)|(?:просят|требуют|deyapti|so['’]?ra|ask|told).{0,80}(?:верн|qaytar|send\s+back|return).{0,80}(?:друг|boshqa|another).{0,40}(?:карт|сч[её]т|karta|hisob|account)/iu;
+
+/**
+ * Distinguish a user's own ordinary recipient mistake from a scam payment.
+ * Incoming "return it to another account" stories deliberately stay outside
+ * this guard because they can be money-mule/social-engineering attempts.
+ */
+export function isAccidentalOutgoingTransferIntent(text: string): boolean {
+  const normalized = normalizeVoiceIntentText(text);
+  const uzbekVariant = uzbekLatinMatchingVariant(normalizeIntentTextForMatching(text));
+
+  return (
+    matchesAccidentalOutgoingTransfer(normalized) ||
+    (uzbekVariant !== null && matchesAccidentalOutgoingTransfer(uzbekVariant))
+  );
+}
+
+function matchesAccidentalOutgoingTransfer(normalized: string): boolean {
+  if (
+    !normalized ||
+    ACCIDENTAL_OUTGOING_TRANSFER_FRAUD_RE.test(normalized) ||
+    INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE.test(normalized)
+  ) {
+    return false;
+  }
+
+  return (
+    (ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE.test(normalized) &&
+      ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE.test(normalized)) ||
+    ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE.test(normalized)
+  );
+}
+
+function isRoutineConfirmedTransferIntent(text: string): boolean {
+  const normalized = normalizeVoiceIntentText(text);
+  const uzbekVariant = uzbekLatinMatchingVariant(normalizeIntentTextForMatching(text));
+  const variants = uzbekVariant === null ? [normalized] : [normalized, uzbekVariant];
+  if (
+    variants.some((variant) =>
+      /(?:мошен|обман|скам|угрож|незнаком|чуж|срочно|scam|fraud|threat|stranger|unknown|firib|tahdid|notanish|begona)/iu.test(
+        variant,
+      ),
+    )
+  ) {
+    return false;
+  }
+  return variants.some(
+    (variant) =>
+      /(?:запланирован\p{L}*\s+перевод|перевод\p{L}*\s+запланирован).{0,160}(?:официальн\p{L}*\s+сч[её]т|знаком\p{L}*\s+поставщик|получател\p{L}*\s+и\s+сумм\p{L}*\s+подтвержден)/iu.test(
+        variant,
+      ) ||
+      /(?:rejalashtirilgan\s+to['’]?lov|to['’]?lov\p{L}*\s+rejalashtirilgan).{0,180}(?:rasmiy\s+hisob|tanish\s+yetkazib\s+beruvchi|oluvchi\s+va\s+summa\s+to['’]?g['’]?ri)/iu.test(
+        variant,
+      ) ||
+      /(?:planned\s+transfer|transfer\s+was\s+planned).{0,160}(?:official\s+invoice|known\s+supplier|recipient\s+and\s+amount\s+(?:are\s+)?confirmed)/iu.test(
+        variant,
+      ),
+  );
+}
 const NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:не|net|yo'q|yoq)\s+(?:уже\s+)?(?:отправил[аи]?|отправлял[аи]?|сообщил[аи]?|назвал[аи]?|сказал[аи]?|скинул[аи]?|передал[аи]?|установил[аи]?|поставил[аи]?|скачал[аи]?|запустил[аи]?|открыл[аи]?|перевел[аи]?|перевёл[аи]?|оплатил[аи]?|пополнил[аи]?|ввел[аи]?|ввёл[аи]?|указал[аи]?|продиктовал[аи]?|отсканировал[аи]?|сканировал[аи]?|подтвердил[аи]?|yubormadim|jo'natmadim|jonatmadim|aytmadim|bermadim|kiritmadim|o'rnatmadim|ornatmadim|yuklamadim|skaner\s+qilmadim|scan\s+qilmadim)/;
 const UZ_NEGATED_VOICE_DONE_INTENT_RE =
@@ -20,7 +90,7 @@ const UZ_NEGATED_VOICE_DONE_INTENT_RE =
 const UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:^|\s)(?:юбормадим|жунатмадим|айтмадим|бермадим|киритмадим|урнатмадим|юкламадим|очмадим|утказмадим|толамадим|сканер\s+килмадим|scan\s+килмадим|тасдикламадим)(?=\s|[.!?,;:]|$)/;
 const EN_NEGATED_VOICE_DONE_INTENT_RE =
-  /(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|wire|wired|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b/;
+  /(?:(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|wire|wired|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b|(?:^|\s)(?:i|we)\s+(?:shared|sent|gave|entered|typed)\s+no\s+(?:codes?|otp|passwords?|card\s+(?:data|details))\b)/;
 const ABORTED_VOICE_DONE_INTENT_RE =
   /(?:(?:почти|чуть\s+не|едва\s+не).{0,60}(?:сказал|назвал|сообщил|отправил|скинул|передал|продиктовал|дал|перевел|перевёл|установил)|(?:almost|nearly).{0,60}(?:shared|sent|gave|told|said|read|wired|dictated|transferred|paid|installed)|(?:shared|sent|gave|told|said|read|wired|dictated).{0,60}but\s+(?:stopped|did\s+not\s+finish))/;
 
@@ -79,6 +149,8 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return null;
   if (isNegatedVoiceDoneIntent(text)) return null;
+  if (isRoutineConfirmedTransferIntent(text)) return null;
+  if (isAccidentalOutgoingTransferIntent(text)) return null;
   if (UZ_BENIGN_CODE_DISCUSSION_RE.test(text)) return null;
   const hasNegatedCallAction = UZ_NEGATED_CALL_ACTION_RE.test(text);
   const requestedAction = isRequestedActionVoiceText(text);
@@ -433,6 +505,11 @@ export function classifyTextPanicIntent(
   // Do not let the Latin-keyboard fallback reinterpret a quoted third-party
   // statement as the current user's own completed action.
   if (isQuotedOrThirdPartyDoneIntent(text)) return null;
+  if (isRoutineConfirmedTransferIntent(text)) return null;
+  // The direct classifier already excludes an ordinary wrong-recipient
+  // transfer, but a null result would otherwise continue into the Russian
+  // keyboard-transliteration fallback and could be reclassified as panic.
+  if (isAccidentalOutgoingTransferIntent(text)) return null;
   const direct = classifyGatedTextPanicIntent(text);
   if (direct !== null) return direct;
   // Latin-keyboard fallback: «ya perevel dengi», «vzlomali telegram».
@@ -443,6 +520,7 @@ export function classifyTextPanicIntent(
 function classifyGatedTextPanicIntent(text: string): PanicScenarioId | null {
   if (isQuotedOrThirdPartyDoneIntent(text)) return null;
   const normalized = normalizeVoiceIntentText(text);
+  if (isAccidentalOutgoingTransferIntent(normalized)) return null;
   const panicId = classifyVoicePanicIntent(text);
   if (panicId === null) return null;
   if (panicId === 6) return panicId;

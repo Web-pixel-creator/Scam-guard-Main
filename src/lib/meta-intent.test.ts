@@ -345,6 +345,59 @@ describe("classifyMetaIntent", () => {
     expect(hasScamWordingPattern("не кладите трубку, идет проверка")).toBe(true);
   });
 
+  it.each([
+    "Как ты проверяешь? Мне банк написал в Telegram.",
+    "Как ты проверяешь? Мне в Telegram написал банк.",
+    "Почему это опасно? Мне сейчас звонит полиция.",
+    "Qanday tekshirasiz? Menga bank Telegram orqali yozdi.",
+    "Qanday tekshirasiz? Menga Telegramda bank yozdi.",
+    "Nega bu xavfli? Menga hozir politsiya qo'ng'iroq qilyapti.",
+    "How do you check? My bank messaged me on Telegram.",
+    "How do you check? On Telegram my bank messaged me.",
+    "Why is this dangerous? The police are calling me right now.",
+  ])("does not hide a concrete bank/police contact report behind methodology: %s", (text) => {
+    expect(classifyMetaIntent(text)).toBeNull();
+  });
+
+  it.each([
+    ["Как ты проверяешь сообщения банков в Telegram?", "how_do_you_check"],
+    ["Как ты проверяешь сообщения банка в Telegram при сомнении?", "how_do_you_check"],
+    ["Banklarning Telegram xabarlarini qanday tekshirasiz?", "how_do_you_check"],
+    ["Bank xabarlarini menimcha qanday tekshirasiz?", "how_do_you_check"],
+    ["How do you check bank messages on Telegram?", "how_do_you_check"],
+  ] as const)("keeps educational methodology available: %s", (text, expected) => {
+    expect(classifyMetaIntent(text)).toBe(expected);
+  });
+
+  it.each([
+    ["как ты проверяешь фразу «безопасный счёт»?", "how_do_you_check"],
+    ["how do you check a message that mentions a safe account?", "how_do_you_check"],
+    ["xavfsiz hisob haqidagi xabarni qanday tekshirasiz?", "how_do_you_check"],
+  ] as const)("keeps a pure educational question in meta routing: %s", (text, intent) => {
+    expect(classifyMetaIntent(text)).toBe(intent);
+  });
+
+  it.each([
+    "что такое безопасный счёт?",
+    "кто такая служба безопасности?",
+    "what does the phrase safe account mean?",
+    "xavfsiz hisob nima degani?",
+  ])("does not treat a definition question as a live deterministic incident: %s", (text) => {
+    expect(classifyMetaIntent(text)).toBeNull();
+  });
+
+  it.each([
+    "помощь, полиция заставляет поджечь машину и молчать",
+    "help, the tax police told me to burn a gas station or face a criminal case",
+    "yordam, soliq xodimi xavfli topshiriqni bajarishni buyuryapti",
+    "помощь, предлагают за деньги удалить штрафные баллы",
+    "help, an insider offers to erase my traffic penalty points for a fee",
+    "помощь, я знаю твой адрес, приеду домой и убью тебя",
+    "help, I know your address and I will come to your house and beat you",
+  ])("does not let meta-help swallow a fresh high-risk incident: %s", (text) => {
+    expect(classifyMetaIntent(text)).toBeNull();
+  });
+
   it("does not find short payment markers inside ordinary words", () => {
     expect(hasScamContextSignal("Kulgili hikoya o'ylab toping")).toBe(false);
     expect(hasScamContextSignal("What song is popular now?")).toBe(false);

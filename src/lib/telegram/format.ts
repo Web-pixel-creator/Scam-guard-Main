@@ -557,13 +557,38 @@ function isDecodedInformationalQr(result: RunCheckResult): boolean {
  * Renders reason labels as a bullet list (max 3 items).
  */
 function presentationReasonCodes(codes: readonly ReasonCode[]): ReasonCode[] {
-  if (!codes.includes("asks_for_otp") || !codes.includes("asks_for_sms_code")) {
-    return [...codes];
-  }
+  const filtered = codes.filter((code) => {
+    // An SMS confirmation code is already an OTP. Keep both codes for scoring,
+    // but show one human-readable observation instead of repeating the same fact.
+    if (
+      code === "asks_for_otp" &&
+      codes.includes("asks_for_otp") &&
+      codes.includes("asks_for_sms_code")
+    ) {
+      return false;
+    }
 
-  // An SMS confirmation code is already an OTP. Keep both codes for scoring,
-  // but show one human-readable observation instead of repeating the same fact.
-  return codes.filter((code) => code !== "asks_for_otp");
+    // An explicit APK-install request already tells the user that the file is
+    // dangerous. Prefer a distinct visible signal (for example the suspicious
+    // domain or legal threat) over a second, generic malicious-file label.
+    if (code === "malicious_file_bait" && codes.includes("asks_to_install_apk")) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const safetyPriority: Partial<Record<ReasonCode, number>> = {
+    threatens_physical_violence: 0,
+    authority_coerced_dangerous_act: 1,
+  };
+
+  // Preserve detector order for ordinary evidence, but never let lower-impact
+  // observations push an immediate physical-safety reason beyond the 3-line
+  // presentation limit.
+  return filtered.sort(
+    (left, right) => (safetyPriority[left] ?? 10) - (safetyPriority[right] ?? 10),
+  );
 }
 
 function renderReasons(result: RunCheckResult, lang: Lang): string {
@@ -655,7 +680,12 @@ function renderWhatNoticed(result: RunCheckResult, lang: Lang): string {
     // The reason label already says that an SMS/OTP code is requested. Repeating
     // the same fact as a named pattern makes the answer feel robotic and adds no
     // evidence for the user.
-    (pattern) => pattern.id !== "otp-code-scam",
+    (pattern) =>
+      pattern.id !== "otp-code-scam" &&
+      !(
+        pattern.id === "penalty-points-erasure-scam" &&
+        observableReasons.includes("fake_penalty_points_erasure")
+      ),
   );
   if (matchingPatterns.length > 0) {
     matchingPatterns.slice(0, 3).forEach((p) => {

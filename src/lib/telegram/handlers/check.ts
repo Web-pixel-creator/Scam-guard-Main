@@ -128,9 +128,13 @@ import {
 } from "@/lib/telegram/intent-contract";
 import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
 import {
+  buildSensitiveSecretFollowUpContext,
+  buildSensitiveSecretFollowUpText,
   buildSensitiveSecretGuidance,
+  classifySensitiveSecretFollowUp,
   detectTelegramSensitiveSecret,
   hasPastedSensitiveSecretValue,
+  resolveSensitiveSecretFollowUpLanguage,
 } from "@/lib/telegram/sensitive-secret-input";
 import {
   buildReplyContextExpiredText,
@@ -188,7 +192,8 @@ function shouldVictimIntentOverridePanic(match: VictimIntentMatch): boolean {
   return (
     match.scenario !== undefined ||
     match.kind === "friend_money" ||
-    match.kind === "relative_already_paid"
+    match.kind === "relative_already_paid" ||
+    match.kind === "accidental_transfer_outgoing"
   );
 }
 const VOICE_TRANSCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -655,9 +660,10 @@ async function sendVictimIntentGuidance(
     lastPanicAt: _previousPanicAt,
     lastPanicId: _previousPanicId,
     lastVictimIntent: _previousVictimIntent,
+    lastSensitiveSecret: _previousSensitiveSecret,
     ...previousScenarioData
   } = ctx.session.scenarioData;
-  if (!nextContext && !_previousVictimIntent) return;
+  if (!nextContext && !_previousVictimIntent && !_previousSensitiveSecret) return;
   const previousEmergencyContext = preserveEmergencyContext
     ? {
         ...(_previousLiveCallContext === undefined
@@ -933,7 +939,11 @@ async function sendPanicRoute(
   triggerText?: string,
   victimMatch?: VictimIntentMatch,
 ): Promise<void> {
-  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const {
+    guardian: _previousGuardian,
+    lastSensitiveSecret: _previousSensitiveSecret,
+    ...previousScenarioData
+  } = ctx.session.scenarioData;
   const liveCallContext = panicId === 6 ? classifyLiveCallContext(triggerText) : undefined;
   const victimContext = victimMatch ? buildVictimFollowUpContext(victimMatch) : null;
   const nextScenarioData = {
@@ -969,11 +979,14 @@ function isQrFocusedResult(result: RunCheckResult): boolean {
     "asks_for_pin",
     "asks_to_install_apk",
     "apk_download_link",
+    "asks_for_money_transfer",
     "asks_to_transfer_to_safe_account",
     "payment_before_service",
     "fake_delivery_payment",
     "requests_card_digits",
     "brand_impersonation",
+    "authority_coerced_dangerous_act",
+    "threatens_physical_violence",
     "weird_domain",
     "hosted_app_platform",
   ]);
@@ -1100,7 +1113,11 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   const formatted = formatCheckResult(result, ctx.session.lang);
   const lastCheck = buildLastCheckSnapshot(result);
   const guardian = buildGuardianAngelSnapshot(result);
-  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const {
+    guardian: _previousGuardian,
+    lastSensitiveSecret: _previousSensitiveSecret,
+    ...previousScenarioData
+  } = ctx.session.scenarioData;
 
   const nextScenarioData = withSessionChatScope(
     {
@@ -1205,7 +1222,11 @@ async function replyImageOcrFailed(ctx: HandlerCtx, mediaGroupId?: string): Prom
   const reply = nextOcrFallbackReply(ctx.userId, mediaGroupId);
   if (reply === "suppress") return;
 
-  const { guardian: _previousGuardian, ...previousScenarioData } = ctx.session.scenarioData;
+  const {
+    guardian: _previousGuardian,
+    lastSensitiveSecret: _previousSensitiveSecret,
+    ...previousScenarioData
+  } = ctx.session.scenarioData;
   const lastCheck = buildImageUnreadableSnapshot();
   const nextScenarioData = withSessionChatScope(
     {
@@ -1323,7 +1344,13 @@ export async function handleCheck(
 ): Promise<void> {
   const startedAt = Date.now();
   const trimmed = content.trim();
-  const lang = resolveTelegramTextLanguage(trimmed, ctx.session.lang);
+  const sensitiveSecretFollowUp =
+    source || ctx.replyCheckSnapshot
+      ? null
+      : classifySensitiveSecretFollowUp(trimmed, ctx.session.scenarioData.lastSensitiveSecret);
+  const lang = sensitiveSecretFollowUp
+    ? resolveSensitiveSecretFollowUpLanguage(trimmed, sensitiveSecretFollowUp.context.lang)
+    : resolveTelegramTextLanguage(trimmed, ctx.session.lang);
   if (lang !== ctx.session.lang) {
     // Message language is an effective per-turn override. Clone the context so
     // every nested formatter/check sees it without mutating the caller's
@@ -1357,20 +1384,56 @@ export async function handleCheck(
   }
   if (sensitiveSecret) {
     const guidance = buildSensitiveSecretGuidance(sensitiveSecret.classes, lang);
-    await sendMessage({
+    const delivery = await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(`${guidance.title}\n\n${guidance.description}`),
+    });
+    if (delivery?.ok) {
+      const {
+        guardian: _previousGuardian,
+        lastCheck: _previousCheck,
+        lastLiveCallContext: _previousLiveCallContext,
+        lastPanicAt: _previousPanicAt,
+        lastPanicId: _previousPanicId,
+        lastVictimIntent: _previousVictimIntent,
+        lastSensitiveSecret: _previousSensitiveSecret,
+        ...previousScenarioData
+      } = ctx.session.scenarioData;
+      await saveSession(ctx.userId, {
+        scenarioData: withSessionChatScope(
+          {
+            ...previousScenarioData,
+            lastSensitiveSecret: buildSensitiveSecretFollowUpContext(sensitiveSecret.classes, lang),
+          },
+          ctx.chatId,
+          ctx.chatType,
+        ),
+      });
+    }
+    return;
+  }
+
+  if (sensitiveSecretFollowUp) {
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(
+        buildSensitiveSecretFollowUpText({
+          ...sensitiveSecretFollowUp,
+          context: { ...sensitiveSecretFollowUp.context, lang },
+        }),
+      ),
     });
     return;
   }
 
   const questionedPhone = extractQuestionedPhoneNumber(trimmed);
 
-  const victimGuidanceFollowUp = source
-    ? null
-    : questionedPhone
+  const victimGuidanceFollowUp =
+    source || ctx.replyCheckSnapshot
       ? null
-      : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
+      : questionedPhone
+        ? null
+        : classifyVictimGuidanceFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
   const deferVictimNextStepsToEmergency =
     victimGuidanceFollowUp?.action === "next_steps" &&
     hasRecentEmergencyContext(ctx.session.scenarioData);
@@ -1391,7 +1454,7 @@ export async function handleCheck(
   // must not swallow short-code questions such as «Ишонч телефони 1344ми».
   const directVictimIntent = source || questionedPhone ? null : classifyVictimIntent(trimmed);
   const contextualVictimIntent =
-    source || questionedPhone
+    source || questionedPhone || ctx.replyCheckSnapshot
       ? null
       : classifyVictimContextualFollowUp(trimmed, ctx.session.scenarioData.lastVictimIntent);
   // A narrow confirmation such as Uzbek «rostdan firibgarlarmi» belongs to
@@ -1411,7 +1474,7 @@ export async function handleCheck(
   const textPanicId =
     completedPanicId ??
     classifyTextPanicIntent(trimmed, source) ??
-    (source
+    (source || ctx.replyCheckSnapshot
       ? null
       : classifyVictimContextualPanicIntent(trimmed, ctx.session.scenarioData.lastVictimIntent));
   if (textPanicId !== null) {

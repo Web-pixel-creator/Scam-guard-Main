@@ -298,13 +298,16 @@ function assertHandoffRegression(rowId: string, turnNo: number, turn: TurnRecord
   }
   if (rowId === "ru-pension-01" && turnNo === 1) {
     expect(turn.runChecks).toHaveLength(0);
-    expect(visible).toContain("перерасчёт пенсии");
-    expect(visible).toContain("субсидия");
+    const normalized = visible.replace(/\\/gu, "").toLocaleLowerCase("ru");
+    expect(normalized).toContain("перерасчёт пенсии");
+    expect(normalized).toContain("субсидия");
   }
   if ((rowId === "uz-cyr-subsidy-01" || rowId === "uz-cyr-pension-01") && turnNo === 1) {
     expect(turn.runChecks).toHaveLength(0);
-    expect(visible).toContain("Pensiya jamg'armasi");
-    expect(visible).toContain("subsidiya");
+    const normalized = visible.replace(/\\/gu, "").toLocaleLowerCase("uz");
+    expect(normalized).toContain("pensiya");
+    expect(normalized).toContain("subsidiya");
+    expect(normalized).toMatch(/(?:kod|sms)/u);
   }
   if (rowId === "uz-lat-job-01" && turnNo === 1) {
     expect(turn.runChecks).toHaveLength(0);

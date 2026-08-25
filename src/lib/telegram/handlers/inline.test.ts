@@ -24,6 +24,7 @@ const hoisted = vi.hoisted(() => ({
     description?: string;
     retryAfterSec?: number;
   }>,
+  sessionWriteCalls: [] as Array<unknown>,
   escapeMarkdown: false,
 }));
 
@@ -69,6 +70,12 @@ vi.mock("@/lib/telegram/api.server", () => ({
       : value,
 }));
 
+vi.mock("@/lib/telegram/session.server", () => ({
+  saveSession: vi.fn(async (...args: unknown[]) => {
+    hoisted.sessionWriteCalls.push(args);
+  }),
+}));
+
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
 
 const session: Session = {
@@ -110,6 +117,7 @@ describe("handleInlineQuery", () => {
     hoisted.nextError = null;
     hoisted.nextAnswerResult = null;
     hoisted.answerResults.length = 0;
+    hoisted.sessionWriteCalls.length = 0;
     hoisted.escapeMarkdown = false;
   });
 
@@ -645,7 +653,9 @@ describe("handleInlineQuery", () => {
     };
 
     await handleInlineQuery(
-      "1340",
+      // The explicit phone marker disambiguates the public short code from a
+      // bare four-digit OTP/PIN, which must stay on the private Inline card.
+      "+1340",
       { userId: 42, session: { ...session, lang: "en" } },
       "iq-official-method",
     );
@@ -782,6 +792,11 @@ describe("handleInlineQuery", () => {
     ["ru", "12345678", "Код или неполный номер"],
     ["uz", "12 34 56", "Kod yoki to'liq bo'lmagan raqam"],
     ["en", "123-4567", "Code or incomplete number"],
+    ["ru", "4821", "Код или неполный номер"],
+    ["uz", "48 392", "Kod yoki to'liq bo'lmagan raqam"],
+    ["en", "4222 2222 2222 2", "Code or incomplete number"],
+    ["ru", "4111 1111 1111 1111", "Код или неполный номер"],
+    ["uz", "4000 0000 0000 0000 006", "Kod yoki to'liq bo'lmagan raqam"],
   ] as const)(
     "keeps an ambiguous short numeric %s query out of phone passports and visible output",
     async (lang, query, expectedTitle) => {
@@ -811,6 +826,29 @@ describe("handleInlineQuery", () => {
 
     expect(hoisted.runCheckCalls).toHaveLength(1);
     expect(hoisted.runCheckCalls[0]).toMatchObject({ input: "901234567" });
+  });
+
+  it.each(["901234567", "123456789012", "4111111111111112", "в 2026 году", "цена 15000 сум"])(
+    "does not broadly classify an ordinary numeric query as a private value: %s",
+    async (query) => {
+      await handleInlineQuery(query, { userId: 42, session }, `iq-ordinary-number-${query.length}`);
+
+      const article = hoisted.answerCalls[0].results[0] as { id: string };
+      expect(scopedArticleSemanticId(article.id)).not.toMatch(/^(?:ambiguous-numeric|private-)/u);
+    },
+  );
+
+  it("treats a standalone three-digit value as a private potential CVV", async () => {
+    await handleInlineQuery("123", { userId: 42, session }, "iq-private-three-digit");
+
+    expect(hoisted.runCheckCalls).toHaveLength(0);
+    expect(hoisted.sessionWriteCalls).toHaveLength(0);
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      input_message_content: { message_text: string };
+    };
+    expectScopedArticleId(article.id, "private-code");
+    expect(JSON.stringify(article)).not.toContain("123");
   });
 
   it.each([
@@ -1192,6 +1230,59 @@ describe("handleInlineQuery", () => {
     },
   );
 
+  it.each([
+    {
+      text: "Как связаться с банком?\nСотрудник просит назвать SMS-код",
+      profileLang: "uz" as const,
+      expectedId: "check-unknown-code-request",
+      expectedRunChecks: 1,
+      safety: /не сообщайте sms-код/iu,
+    },
+    {
+      text: "Bank bilan qanday bog'lansam bo'ladi?\nXodim CVVni yuborishni so'rayapti",
+      profileLang: "en" as const,
+      expectedId: "check-unknown-card-request",
+      expectedRunChecks: 1,
+      safety: /karta (?:raqami|ma'lumot).{0,80}yubormang/iu,
+    },
+    {
+      text: "How do I contact the bank?\nThey ask me to install an APK",
+      profileLang: "ru" as const,
+      expectedId: "check-unknown-malicious-file",
+      expectedRunChecks: 0,
+      safety: /do not (?:open|download|install|grant)/iu,
+    },
+  ])(
+    "keeps the priority danger above a bank-contact question: $text",
+    async ({ text, profileLang, expectedId, expectedRunChecks, safety }) => {
+      hoisted.nextResult = {
+        type: "text",
+        display: text,
+        level: "unknown",
+        score: 0,
+        reasons: ["unknown_sender"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(
+        text,
+        { userId: 42, session: { ...session, lang: profileLang } },
+        `iq-bank-danger-${expectedId}`,
+      );
+
+      expect(hoisted.runCheckCalls).toHaveLength(expectedRunChecks);
+      const article = hoisted.answerCalls[0].results[0] as {
+        id: string;
+        input_message_content: { message_text: string };
+      };
+      expectScopedArticleId(article.id, expectedId);
+      expect(article.input_message_content.message_text).toMatch(safety);
+    },
+  );
+
   it("explains what may be added to Inline without inviting real secrets", async () => {
     await handleInlineQuery("Мне ничего не присылать?", { userId: 42, session }, "iq-reply-safety");
 
@@ -1360,7 +1451,7 @@ describe("handleInlineQuery", () => {
     {
       text: "нужно оплатить доставку",
       id: "check-unknown-delivery-payment",
-      title: "Доставка: проверьте ссылку",
+      title: "Посылка/таможня: проверьте оплату",
     },
     {
       text: "я выиграл приз, просят оплатить налог",
@@ -1991,4 +2082,761 @@ describe("handleInlineQuery", () => {
       expect(article.input_message_content.message_text).not.toContain("Недостаточно данных");
     },
   );
+});
+
+describe("handleInlineQuery — researched scam-wave regressions", () => {
+  beforeEach(() => {
+    hoisted.runCheckCalls.length = 0;
+    hoisted.answerCalls.length = 0;
+    hoisted.nextResult = null;
+    hoisted.nextError = null;
+    hoisted.nextAnswerResult = null;
+    hoisted.answerResults.length = 0;
+    hoisted.escapeMarkdown = false;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [
+      "я перевела деньги не тому человеку, можно отменить перевод?",
+      "check-unknown-mistaken-transfer",
+      /ошибочн|банк/iu,
+    ],
+    [
+      "The payment already settled to the wrong account; I shared no codes. How do I start a bank dispute?",
+      "check-unknown-mistaken-transfer",
+      /wrong|bank|transfer/iu,
+    ],
+    [
+      "налоговая угрожает делом и заставляет поджечь заправку",
+      "check-unknown-dangerous-task",
+      /опасн|102/iu,
+    ],
+    [
+      "угрожают приехать домой и избить меня, если не заплачу",
+      "check-unknown-violence-threat",
+      /угроз|расправ|безопасн|102/iu,
+    ],
+    [
+      "сосед прислал это ты на видео и просит открыть файл",
+      "check-unknown-neighbor-video",
+      /видео|файл|apk/iu,
+    ],
+    [
+      "Сосед написал «это ты на видео?» и прислал camera_video.zip, просит открыть.",
+      "check-unknown-neighbor-video",
+      /видео|файл|apk/iu,
+    ],
+    [
+      "Qo'shnim «bu senmi?» deb camera_video.zip yubordi, ochishni so'rayapti.",
+      "check-unknown-neighbor-video",
+      /video|fayl|apk/iu,
+    ],
+    [
+      "Қўшним «бу сенми?» деб camera_video.zip юборди, очишни сўраяпти.",
+      "check-unknown-neighbor-video",
+      /video|fayl|apk/iu,
+    ],
+    [
+      "A resident asks “is this you?” and sent camera_video.zip for me to open.",
+      "check-unknown-neighbor-video",
+      /video|file|apk/iu,
+    ],
+    [
+      "Сосед прислал camera_video.rar и просит распаковать архив.",
+      "check-unknown-neighbor-video",
+      /видео|файл|apk/iu,
+    ],
+    [
+      "Qo'shnim camera_video.7z yubordi, arxivni ochishni so'rayapti.",
+      "check-unknown-neighbor-video",
+      /video|fayl|apk/iu,
+    ],
+    [
+      "прислали приложение для оплаты штрафа с кешбэком, просят установить",
+      "check-unknown-fake-fine-apk",
+      /штраф|apk|кешб/iu,
+    ],
+    [
+      "ROAD24 ilovasini chatdan o'rnatsam, jarima pulining hammasini qaytarishar ekan.",
+      "check-unknown-fake-fine-apk",
+      /jarima|apk|keshbek/iu,
+    ],
+    [
+      "ROAD24 иловасини чатдан ўрнатсам, жарима пулининг ҳаммасини қайтаришар экан.",
+      "check-unknown-fake-fine-apk",
+      /jarima|apk|keshbek/iu,
+    ],
+    [
+      "В чате прислали ROAD24.apk и обещают вернуть весь штраф, если установлю.",
+      "check-suspicious-fake-fine-apk",
+      /штраф|apk|кешб/iu,
+    ],
+    [
+      "They sent ROAD24.apk in a chat and promise to refund the full fine if I install it.",
+      "check-suspicious-fake-fine-apk",
+      /fine|apk|cashback/iu,
+    ],
+    [
+      "предлагают за деньги обнулить штрафные баллы через знакомого в ГАИ",
+      "check-unknown-penalty-points-fee",
+      /балл|посредник|гаи/iu,
+    ],
+    [
+      "Telegramdagi vositachi 800 ming so'mga jarima ballarimni nol qilib, shaxsiy kartasiga pul o'tkazishni so'radi",
+      "check-unknown-penalty-points-fee",
+      /jarima|ball|vositachi/iu,
+    ],
+    [
+      "Tanishim jarima ballarini olib tashlab beradi, buning uchun pul so'radi.",
+      "check-unknown-penalty-points-fee",
+      /jarima|ball|vositachi/iu,
+    ],
+    [
+      "Танишим жарима балларини олиб ташлаб беради, бунинг учун пул сўради.",
+      "check-unknown-penalty-points-fee",
+      /jarima|ball|vositachi/iu,
+    ],
+    [
+      "A fixer says he can wipe my driving penalty points for a cash fee.",
+      "check-unknown-penalty-points-fee",
+      /penalty|points|cash/iu,
+    ],
+    [
+      "A traffic officer contact will take my violation points off for cash.",
+      "check-unknown-penalty-points-fee",
+      /penalty|points|cash/iu,
+    ],
+    [
+      "Знакомый в ГАИ якобы спишет штрафные баллы за комиссию.",
+      "check-unknown-penalty-points-fee",
+      /балл|посредник|гаи/iu,
+    ],
+    [
+      "знакомый прислал: я получил подарок банка, забирай по ссылке тоже",
+      "check-unknown-known-contact-prize",
+      /знаком|приз|подар|банк/iu,
+    ],
+    [
+      "Брат прислал ссылку на подарок банка и пишет, что уже получил 70000 сум.",
+      "check-unknown-known-contact-prize",
+      /брат|подар|банк/iu,
+    ],
+    [
+      "Акам банк совғасига ҳавола юборди ва 70000 сўм олганини ёзди.",
+      "check-unknown-known-contact-prize",
+      /aka|sovg|bank/iu,
+    ],
+    [
+      "My brother sent a bank gift link and says he already received 70000 soum.",
+      "check-unknown-known-contact-prize",
+      /brother|gift|bank/iu,
+    ],
+    [
+      "I accidentally transferred money to the wrong person. Can my bank recall it?",
+      "check-unknown-mistaken-transfer",
+      /wrong|bank|transfer/iu,
+    ],
+    [
+      "По ошибке оплатила чужой номер телефона вместо своего. Можно отменить?",
+      "check-unknown-mistaken-transfer",
+      /ошиб|банк|плат/iu,
+    ],
+    [
+      "Adashib o'zimnikining o'rniga boshqa odamning telefon raqamiga to'lov qildim. Bekor qilsa bo'ladimi?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|to'lov/iu,
+    ],
+    [
+      "Адашиб ўзимникининг ўрнига бошқа одамнинг телефон рақамига тўлов қилдим. Бекор қилса бўладими?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|to'lov/iu,
+    ],
+    [
+      "Оплатила чужой телефон по ошибке — что теперь нажать, чтобы отменить?",
+      "check-unknown-mistaken-transfer",
+      /ошиб|банк|плат/iu,
+    ],
+    [
+      "Boshqa telefon raqamiga xato to'ladim — bekor qilish mumkinmi?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|to'lov/iu,
+    ],
+    [
+      "Бошқа телефон рақамига хато тўладим — бекор қилиш мумкинми?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|to'lov/iu,
+    ],
+    [
+      "I topped up someone else's phone by mistake—how can I cancel it?",
+      "check-unknown-mistaken-transfer",
+      /wrong|bank|transfer/iu,
+    ],
+    [
+      "Я по ошибке перевела деньги не тому человеку. Можно отменить перевод?",
+      "check-unknown-mistaken-transfer",
+      /ошиб|банк|перевод/iu,
+    ],
+    [
+      "Adashib pulni boshqa odamga o'tkazdim. Bank qaytara oladimi?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|o'tkazma/iu,
+    ],
+    [
+      "Адашиб пулни бошқа одамга ўтказдим. Банк қайтара оладими?",
+      "check-unknown-mistaken-transfer",
+      /xato|bank|o'tkazma/iu,
+    ],
+    [
+      "I transferred money to the wrong person by mistake. Can my bank recall it?",
+      "check-unknown-mistaken-transfer",
+      /wrong|bank|transfer/iu,
+    ],
+  ])("keeps a concrete semantic article for %s", async (text, semanticId, topic) => {
+    await handleInlineQuery(text, { userId: 42, session }, `iq-wave-${semanticId}`);
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      id: string;
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    expectScopedArticleId(article.id, semanticId);
+    expect(
+      `${article.title} ${article.description} ${article.input_message_content.message_text}`,
+    ).toMatch(topic);
+  });
+
+  it.each([
+    [
+      "МВД заставляет поджечь заправку, иначе заведёт уголовное дело",
+      "check-unknown-dangerous-task",
+      /опасн|102/iu,
+    ],
+    [
+      "IIB yoqilg'i shoxobchasiga o't qo'yishni talab qilyapti, bajarmasang jinoyat ishi ochadi",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    [
+      "Police ordered me to set fire to a gas station or face a criminal case",
+      "check-unknown-dangerous-task",
+      /danger|102/iu,
+    ],
+    [
+      "A detective ordered me to set fire to a car or I would be arrested.",
+      "check-unknown-dangerous-task",
+      /danger|102/iu,
+    ],
+    [
+      "Прокурорман деган одам камера симини узишимни талаб қиляпти.",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    [
+      "Пишет оперативник: подожги склад, иначе посадим.",
+      "check-unknown-dangerous-task",
+      /опасн|102/iu,
+    ],
+    [
+      "Profilaktika inspektoriman, kamerani buzmasang seni qamayman.",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    [
+      "Профилактика инспекториман, камерани бузмасанг сени қамайман.",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    [
+      "A federal agent told me to leave a backpack at the station or face arrest.",
+      "check-unknown-dangerous-task",
+      /danger|102/iu,
+    ],
+    [
+      "A law-enforcement detective says I must destroy a camera or go to jail.",
+      "check-unknown-dangerous-task",
+      /danger|102/iu,
+    ],
+    [
+      "Prokuraturadanmiz deganlar qutini maktab yoniga qoldirishga majburladi; men hali bormadim.",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    [
+      "Прокуратураданмиз деганлар қутини мактаб ёнига қолдиришга мажбурлади; мен ҳали бормадим.",
+      "check-unknown-dangerous-task",
+      /xavf|102/iu,
+    ],
+    ["Я тебя застрелю.", "check-unknown-violence-threat", /угроз|безопасн|102/iu],
+    ["Я сломаю тебе шею.", "check-unknown-violence-threat", /угроз|безопасн|102/iu],
+    ["Мы тебя закопаем.", "check-unknown-violence-threat", /угроз|безопасн|102/iu],
+    ["Seni otib tashlayman.", "check-unknown-violence-threat", /tahdid|xavfsiz|102/iu],
+    ["Seni yo'q qilaman.", "check-unknown-violence-threat", /tahdid|xavfsiz|102/iu],
+    ["Сени отиб ташлайман.", "check-unknown-violence-threat", /tahdid|xavfsiz|102/iu],
+    ["Сени йўқ қиламан.", "check-unknown-violence-threat", /tahdid|xavfsiz|102/iu],
+    ["I'll shoot you.", "check-unknown-violence-threat", /threat|safe|102/iu],
+    ["I'll break your neck.", "check-unknown-violence-threat", /threat|safe|102/iu],
+    ["We will make you disappear.", "check-unknown-violence-threat", /threat|safe|102/iu],
+    [
+      "Полиция обвиняет меня. Следователь угрожает: я приеду домой и убью тебя",
+      "check-unknown-violence-threat",
+      /угроз|безопасн|102/iu,
+    ],
+    [
+      "IIB meni jinoyatda gumon qilyapti. Tergovchi tahdid qildi: uyingga boramiz va seni o'ldiramiz",
+      "check-unknown-violence-threat",
+      /tahdid|xavfsiz|102/iu,
+    ],
+    [
+      "Police say I am accused. An investigator threatens: we will come to your house and kill you",
+      "check-unknown-violence-threat",
+      /threat|safe|102/iu,
+    ],
+    [
+      "Pul bermasang, seni urib tashlaymiz.",
+      "check-unknown-violence-threat",
+      /tahdid|xavfsiz|102/iu,
+    ],
+    [
+      "Пул бермасанг, сени уриб ташлаймиз.",
+      "check-unknown-violence-threat",
+      /tahdid|xavfsiz|102/iu,
+    ],
+  ])(
+    "keeps physical-safety priority above broad authority routing: %s",
+    async (text, semanticId, topic) => {
+      await handleInlineQuery(text, { userId: 42, session }, `iq-physical-${semanticId}`);
+
+      const article = hoisted.answerCalls[0].results[0] as {
+        id: string;
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      expectScopedArticleId(article.id, semanticId);
+      expect(
+        `${article.title} ${article.description} ${article.input_message_content.message_text}`,
+      ).toMatch(topic);
+    },
+  );
+
+  it.each([
+    "Полиция предупреждает: не выполняйте опасные задания и ничего не поджигайте",
+    "IIB ogohlantiradi: xavfli topshiriqni bajarmang va hech narsaga o't qo'ymang",
+    "Police warning: do not carry out dangerous tasks and do not set fire to anything",
+    "I will come, but I won't hurt or kill you.",
+    "Я приеду. Но не убью тебя.",
+  ])("keeps a protective authority warning out of physical-incident cards: %s", async (text) => {
+    await handleInlineQuery(text, { userId: 42, session }, `iq-physical-safe-${text.length}`);
+
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expect(article.id).not.toMatch(/dangerous-task|violence-threat/iu);
+  });
+
+  it.each([
+    [
+      "Я оплатил дорожный штраф в официальном приложении банка, APK мне никто не присылал",
+      /fake-fine-apk/iu,
+    ],
+    [
+      "Jarimani bankning rasmiy ilovasida o'zim to'ladim, chatdan APK kelmagan.",
+      /fake-fine-apk|malicious-file|file-received/iu,
+    ],
+    [
+      "Жаримани банкнинг расмий иловасида ўзим тўладим, чатдан APK келмаган.",
+      /fake-fine-apk|malicious-file|file-received/iu,
+    ],
+    [
+      "Я сам нашёл ROAD24 в Google Play и оплатил штраф через официальное приложение; из чата APK не присылали.",
+      /fake-fine-apk|malicious-file|file-received|app-request/iu,
+    ],
+    [
+      "ROAD24 ilovasini Google Play'dan o'zim topdim va jarimani rasmiy ilovada to'ladim; chatdan APK kelmagan.",
+      /fake-fine-apk|malicious-file|file-received|app-request/iu,
+    ],
+    [
+      "ROAD24 иловасини Google Play'дан ўзим топдим ва жаримани расмий иловада тўладим; чатдан APK келмаган.",
+      /fake-fine-apk|malicious-file|file-received|app-request/iu,
+    ],
+    [
+      "I found ROAD24 myself on Google Play and paid the fine in the official app; no APK came from a chat.",
+      /fake-fine-apk|malicious-file|file-received|app-request/iu,
+    ],
+    [
+      "Я лично подарила брату новый телефон на день рождения; он уже получил подарок, никаких ссылок или файлов не было.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "Men akamga tug'ilgan kunida yangi telefonni shaxsan sovg'a qildim; u sovg'ani oldi, hech qanday havola yoki fayl bo'lmagan.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "Мен акамга туғилган кунида янги телефонни шахсан совға қилдим; у совғани олди, ҳеч қандай ҳавола ёки файл бўлмаган.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "I personally gave my brother a new phone for his birthday; he received the gift, and there were no links or files.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "Подарок уже получил. Брат лично вручил мне телефон на день рождения, ссылок не было.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "Sovg'ani oldim. Akam tug'ilgan kunimga telefonni shaxsan berdi, havola yo'q.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "Совғани олдим. Акам туғилган кунимга телефонни шахсан берди, ҳавола йўқ.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "I received the gift. My brother handed me a phone for my birthday; there was no link.",
+      /malicious-file|file-received|link-request|known-contact-prize|prize/iu,
+    ],
+    [
+      "В новости написано: при опасности звоните в полицию по номеру 102.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    [
+      "Yangilikda xavf bo'lsa politsiyaga 102 raqami orqali qo'ng'iroq qilish kerakligi yozilgan.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    [
+      "Янгиликда хавф бўлса полицияга 102 рақами орқали қўнғироқ қилиш кераклиги ёзилган.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    [
+      "The news says to call police on emergency number 102 if there is danger.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    [
+      "The police emergency number is 102.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    [
+      "Полиция рақами 102.",
+      /report-request|report-question|official-impersonation|dangerous-task/iu,
+    ],
+    ["Adashib boshqa raqamga to'ladim.", /sent-money/iu],
+    [
+      "Qo'shnim oddiy videoni Telegram ichida yubordi, hech qanday fayl yoki ilova o'rnatish kerak emas",
+      /neighbor-video/iu,
+    ],
+    [
+      "Полиция предупреждает: не выполняйте опасные задания и ничего не поджигайте",
+      /dangerous-task/iu,
+    ],
+    [
+      "Jarima ballarini pulga o'chirish mumkin emas, vositachiga pul bermang",
+      /penalty-points-fee/iu,
+    ],
+    [
+      "Official bank giveaway results are published on the bank website; do not open other links",
+      /known-contact-prize/iu,
+    ],
+    [
+      "Я сделал запланированный перевод знакомому поставщику по официальному счёту; получатель и сумма подтверждены",
+      /sent-money/iu,
+    ],
+    [
+      "Rejalashtirilgan to'lovni tanish yetkazib beruvchiga rasmiy hisob bo'yicha yubordim; oluvchi va summa to'g'ri",
+      /sent-money|delivery|marketplace/iu,
+    ],
+    [
+      "Режалаштирилган тўловни таниш етказиб берувчига расмий ҳисоб бўйича юбордим; олувчи ва сумма тўғри",
+      /sent-money|delivery|marketplace/iu,
+    ],
+    [
+      "Tanish yetkazib beruvchi uchun rejalashtirilgan to'lovni rasmiy hisob bo'yicha yubordim; oluvchi va summa to'g'ri",
+      /sent-money|delivery|marketplace/iu,
+    ],
+    [
+      "Таниш етказиб берувчи учун режалаштирилган тўловни расмий ҳисоб бўйича юбордим; олувчи ва сумма тўғри",
+      /sent-money|delivery|marketplace/iu,
+    ],
+    [
+      "Yetkazib beruvchiga to'lov rejalashtirilgan edi, oluvchi va summa tasdiqlangan.",
+      /sent-money|delivery|marketplace/iu,
+    ],
+  ])("does not invent a live scam family for a safe control: %s", async (text, forbiddenId) => {
+    await handleInlineQuery(text, { userId: 42, session }, `iq-wave-safe-${text.length}`);
+
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expect(article.id).not.toMatch(forbiddenId);
+  });
+
+  it("never interpolates undefined and keeps a URL follow-up question", async () => {
+    hoisted.nextResult = {
+      type: "url",
+      display: "https://soliq-check.example/pay",
+      level: "suspicious",
+      score: 35,
+      reasons: ["weird_domain"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+
+    await handleInlineQuery(
+      "налоговая просит оплатить по ссылке\nпочему?\nhttps://soliq-check.example/pay",
+      { userId: 42, session },
+      "iq-tax-url-why",
+    );
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      title: string;
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    const copy = `${article.title}\n${article.description}\n${article.input_message_content.message_text}`;
+    expect(copy).not.toContain("undefined");
+    expect(copy).toMatch(/почему|рискован/iu);
+    expect(copy).toContain("soliq-check.example");
+  });
+
+  it.each([
+    {
+      text: "Просят проголосовать по ссылке\nКак понять, что ссылка подставная?\nhttps://vote-check.example/path",
+      profileLang: "uz" as const,
+      present: /адрес в запросе есть|url найден/iu,
+      missing: /без самого url|добавьте адрес целиком/iu,
+    },
+    {
+      text: "Ovoz berish havolasini ochishni so'rashyapti\nHavola soxta ekanini qanday bilaman?\nhttps://vote-check.example/path",
+      profileLang: "en" as const,
+      present: /manzil topildi|url topildi/iu,
+      missing: /urlning o'zi bo'lmasa|manzilni to'liq qo'shing/iu,
+    },
+    {
+      text: "They ask me to vote through a link\nHow do I know whether the link is fake?\nhttps://vote-check.example/path",
+      profileLang: "ru" as const,
+      present: /address is present|url found/iu,
+      missing: /without the actual url|add the complete address/iu,
+    },
+  ])(
+    "uses an actual third-line URL while answering its follow-up: $text",
+    async ({ text, profileLang, present, missing }) => {
+      hoisted.nextResult = {
+        type: "url",
+        display: "https://vote-check.example/path",
+        level: "suspicious",
+        score: 35,
+        reasons: ["weird_domain"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(
+        text,
+        { userId: 42, session: { ...session, lang: profileLang } },
+        `iq-link-url-follow-up-${profileLang}`,
+      );
+
+      const article = hoisted.answerCalls[0].results[0] as {
+        title: string;
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      const copy = `${article.title}\n${article.description}\n${article.input_message_content.message_text}`;
+      expect(copy).toContain("vote-check.example");
+      expect(copy).toMatch(present);
+      expect(copy).not.toMatch(missing);
+    },
+  );
+
+  it("does not derive visible article IDs from the value of a pasted OTP", async () => {
+    await handleInlineQuery("SMS код 481927", { userId: 42, session }, "iq-secret-a");
+    await handleInlineQuery("SMS код 592814", { userId: 42, session }, "iq-secret-b");
+
+    const [first, second] = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(first.id).toBe(second.id);
+    expect(first.input_message_content.message_text).not.toContain("481927");
+    expect(second.input_message_content.message_text).not.toContain("592814");
+  });
+
+  it("does not derive a visible article ID from a labelled card number", async () => {
+    const queries = [
+      "They ask for card number 4111 1111 1111 1111",
+      "They ask for card number 5555 5555 5555 4444",
+    ] as const;
+
+    for (const [index, query] of queries.entries()) {
+      hoisted.nextResult = {
+        type: "text",
+        display: query,
+        level: "unknown",
+        score: 0,
+        reasons: ["unknown_sender"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: null,
+        brandEvidence: [],
+      };
+      await handleInlineQuery(query, { userId: 42, session }, `iq-labelled-pan-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(articles[0].id).toBe(articles[1].id);
+    expectScopedArticleId(articles[0].id, "check-unknown-card-request");
+    for (const query of queries) expect(JSON.stringify(articles)).not.toContain(query);
+    expect(JSON.stringify(articles)).not.toMatch(/4111 1111 1111 1111|5555 5555 5555 4444/u);
+  });
+
+  it("keeps private code IDs invariant across NFKC, zero-width and confusable inputs", async () => {
+    const queries = [
+      "S\u200BMS code: 481927",
+      "ＳＭＳ ｃｏｄｅ：５９２８１４",
+      "SМS cоde: 731904",
+    ] as const;
+
+    for (const [index, query] of queries.entries()) {
+      await handleInlineQuery(query, { userId: 42, session }, `iq-obfuscated-secret-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expectScopedArticleId(articles[0].id, "private-code");
+    expect(JSON.stringify(articles)).not.toMatch(/481927|592814|731904/u);
+  });
+
+  it("keeps ambiguous bare-code IDs invariant across values", async () => {
+    const values = [
+      "4821",
+      "59372",
+      "４８２１",
+      "5\u200B9372",
+      "481927",
+      "592814",
+      "4222222222222",
+      "4111111111111111",
+      "4000000000000000006",
+    ] as const;
+
+    for (const [index, value] of values.entries()) {
+      await handleInlineQuery(value, { userId: 42, session }, `iq-bare-code-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expectScopedArticleId(articles[0].id, "ambiguous-numeric");
+    for (const value of values) expect(JSON.stringify(articles)).not.toContain(value);
+  });
+
+  it("keeps private password IDs invariant for zero-width and confusable labels", async () => {
+    const cases = [
+      ["p\u200Bassword: AlphaSecret42", "AlphaSecret42"],
+      ["pаsswоrd: BetaSecret84", "BetaSecret84"],
+    ] as const;
+
+    for (const [index, [query]] of cases.entries()) {
+      await handleInlineQuery(query, { userId: 42, session }, `iq-private-password-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expectScopedArticleId(articles[0].id, "private-password");
+    for (const [, secret] of cases) expect(JSON.stringify(articles)).not.toContain(secret);
+  });
+
+  it("keeps access-token IDs invariant across provider token values and formats", async () => {
+    const cases = [
+      ["API_KEY=sk-proj-InlineOnly1234567890abcdef", "sk-proj-InlineOnly1234567890abcdef"],
+      ["access token abcdefgh1234567890abcd", "abcdefgh1234567890abcd"],
+      [
+        "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.InlineOnly1234567890.signatureABC123",
+        "eyJhbGciOiJIUzI1NiJ9.InlineOnly1234567890.signatureABC123",
+      ],
+      [
+        "bot token: 123456789:AAExampleInlineToken1234567890abcdefghi",
+        "123456789:AAExampleInlineToken1234567890abcdefghi",
+      ],
+      [
+        "ghp_InlineOnlyToken1234567890ABCDEFGHIJ12345",
+        "ghp_InlineOnlyToken1234567890ABCDEFGHIJ12345",
+      ],
+      [
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.InlineOnlySignature1234567890abcdef",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.InlineOnlySignature1234567890abcdef",
+      ],
+      [
+        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEwIn0.InlineOnlySignature9876543210abcdef",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEwIn0.InlineOnlySignature9876543210abcdef",
+      ],
+      ["AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890", "AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890"],
+      ["AKIATESTONLY12345678", "AKIATESTONLY12345678"],
+      ["ASIATESTONLY87654321", "ASIATESTONLY87654321"],
+    ] as const;
+
+    for (const [index, [query]] of cases.entries()) {
+      await handleInlineQuery(query, { userId: 42, session }, `iq-private-access-token-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expectScopedArticleId(articles[0].id, "private-access-token");
+    for (const [, token] of cases) expect(JSON.stringify(articles)).not.toContain(token);
+  });
+
+  it("does not hash secret-bearing input on the too-long branch", async () => {
+    const padding = `${"ordinary context ".repeat(20)} `;
+    const cases = [
+      [`${padding}password: AlphaSecret42`, "AlphaSecret42"],
+      [`${padding}pаsswоrd: BetaSecret84`, "BetaSecret84"],
+    ] as const;
+
+    for (const [index, [query]] of cases.entries()) {
+      await handleInlineQuery(query, { userId: 42, session }, `iq-too-long-secret-${index}`);
+    }
+
+    const articles = hoisted.answerCalls.map(
+      (call) => call.results[0] as { id: string; input_message_content: { message_text: string } },
+    );
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expectScopedArticleId(articles[0].id, "too-long");
+    for (const [, secret] of cases) expect(JSON.stringify(articles)).not.toContain(secret);
+  });
+
+  it("does not repeat the same first safety sentence in an elevated inserted result", async () => {
+    hoisted.nextResult = {
+      type: "text",
+      display: "штрафные баллы",
+      level: "high_risk",
+      score: 70,
+      reasons: ["fake_penalty_points_erasure"],
+      explanation: null,
+      knownReports: 0,
+      verifiedContact: null,
+      brandEvidence: [],
+    };
+    const text = "предлагают за деньги обнулить штрафные баллы через знакомого в ГАИ";
+
+    await handleInlineQuery(text, { userId: 42, session }, "iq-no-repeat");
+
+    const article = hoisted.answerCalls[0].results[0] as {
+      input_message_content: { message_text: string };
+    };
+    const inserted = article.input_message_content.message_text;
+    const firstAction = "Проверка штрафных баллов на my.gov.uz бесплатна.";
+    expect(inserted.split(firstAction)).toHaveLength(2);
+  });
 });

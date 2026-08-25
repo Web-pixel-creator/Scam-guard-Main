@@ -142,9 +142,9 @@ export const bot_dict: BotDict = {
     en: "Sometimes an image cannot be read reliably: the text is blurry, tiny, covered by glare, the QR is too small, or there is too much extra content in the frame. I would rather say that honestly than invent a threat.\n\nWhat helps: paste the SMS/chat text, send the QR link, or briefly write what you are being asked to do.",
   },
   meta_explain_risk: {
-    ru: "Уровни риска простые: «безопасно» — опасных признаков не найдено; «недостаточно данных» — мало контекста; «требуется осторожность» — есть подозрительные признаки; «высокий риск» — есть сильные признаки обмана.\n\nЭто подсказка, а не юридический приговор. Если просят код, пароль, APK или деньги — остановитесь и проверьте через официальный канал.",
+    ru: "Уровни риска простые: «безопасно» — опасных признаков не найдено; «недостаточно данных» — мало контекста; «требуется осторожность» — есть подозрительные признаки; «высокий риск» — есть сильные признаки обмана.\n\nЭто подсказка, а не юридический приговор. Если просят код, пароль, APK или деньги — не выполняйте просьбу и проверьте её через официальный канал.",
     uz: "Xavf darajalari oddiy: «xavfsiz» — xavfli belgi topilmadi; «ma'lumot yetarli emas» — kontekst kam; «ehtiyot bo'ling» — shubhali belgilar bor; «yuqori xavf» — aldov belgilari kuchli.\n\nBu maslahat, yuridik hukm emas. Agar kod, parol, APK yoki pul so'rashsa — to'xtang va rasmiy kanal orqali tekshiring.",
-    en: "Risk levels are simple: “safe” means no dangerous signs found; “not enough data” means too little context; “be cautious” means suspicious signs exist; “high risk” means strong fraud signs.\n\nThis is guidance, not a legal verdict. If someone asks for a code, password, APK, or money, stop and verify through an official channel.",
+    en: "Risk levels are simple: “safe” means no dangerous signs found; “not enough data” means too little context; “be cautious” means suspicious signs exist; “high risk” means strong fraud signs.\n\nThis is guidance, not a legal verdict. If someone asks for a code, password, APK, or money, do not comply; verify the request through an official channel.",
   },
   meta_telegram_account_limits: {
     ru: "👤 Проверка Telegram-аккаунта\n\nЯ могу проверить только видимые признаки: username или t.me-ссылку, публичное название/описание, если Telegram отдаёт его боту, и сам контекст: просят ли код, деньги, карту, APK, вход по QR или ссылку.\n\nЯ не вижу скрытую метку SCAM, возраст аккаунта, историю жалоб и кому он писал — Telegram обычно не отдаёт это боту.\n\nЛучше пришлите @username вместе с сообщением или скриншотом, где видно, что человек просит сделать.",
@@ -662,12 +662,12 @@ export const bot_dict: BotDict = {
     en: "📞 This call may be risky.\n\nThe safe move is to end it now. Do not argue or answer questions.",
   },
   live_call_hangup: {
-    ru: "Скажите одну фразу: «Я сам перезвоню по официальному номеру.»\n\nПоложите трубку и нажмите «✅ Я положил трубку».\n\nКод, PIN, CVV, пароль и данные карты не называйте.",
+    ru: "Скажите одну фразу: «Я перезвоню по официальному номеру.»\n\nПоложите трубку и нажмите «✅ Я положил трубку».\n\nКод, PIN, CVV, пароль и данные карты не называйте.",
     uz: "Bitta jumla ayting: «Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nGo'shakni qo'ying va «✅ Go'shakni qo'ydim» tugmasini bosing.\n\nKod, PIN, CVV, parol va karta ma'lumotini aytmang.",
     en: "Say one sentence: “I will call back myself using the official number.”\n\nHang up and tap “✅ I hung up”.\n\nDo not share codes, PIN, CVV, passwords, or card data.",
   },
   live_call_what_to_say: {
-    ru: "💬 Прочитайте и завершите звонок:\n\n«Я не обсуждаю деньги, коды и карты по входящему звонку. Я сам перезвоню по официальному номеру.»\n\nНе объясняйте причину — просто положите трубку.",
+    ru: "💬 Прочитайте и завершите звонок:\n\n«Я не обсуждаю деньги, коды и карты по входящему звонку. Я перезвоню по официальному номеру.»\n\nНе объясняйте причину — просто положите трубку.",
     uz: "💬 O'qing va qo'ng'iroqni tugating:\n\n«Kiruvchi qo'ng'iroqda pul, kod va kartani muhokama qilmayman. Rasmiy raqamga o'zim qo'ng'iroq qilaman.»\n\nSabab tushuntirmang — go'shakni qo'ying.",
     en: "💬 Read this and end the call:\n\n“I do not discuss money, codes, or cards on an incoming call. I will call back myself using the official number.”\n\nDo not explain — just hang up.",
   },

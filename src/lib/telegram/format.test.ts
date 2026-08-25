@@ -970,6 +970,25 @@ describe("formatCheckResult — compressed high-risk first card", () => {
     expect(text).toContain(escapeMarkdownV2("caller asks for SMS code"));
     expect(text).not.toContain(escapeMarkdownV2("Detailed model explanation"));
   });
+
+  it("keeps a physical-violence reason ahead of lower-impact observations", () => {
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "high_risk",
+        reasons: [
+          "asks_for_sms_code",
+          "asks_for_otp",
+          "impersonates_bank",
+          "uses_urgency",
+          "threatens_physical_violence",
+        ],
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(REASON_LABELS.threatens_physical_violence.ru));
+    expect(text).not.toContain(escapeMarkdownV2(REASON_LABELS.uses_urgency.ru));
+  });
 });
 
 describe("formatCheckResult - deterministic URL fallback and scam patterns", () => {
@@ -1006,5 +1025,21 @@ describe("formatCheckResult - deterministic URL fallback and scam patterns", () 
 
     // Pattern title should appear in the what_noticed section
     expect(text).toContain(escapeMarkdownV2(deliveryPattern!.title.en));
+  });
+
+  it("does not repeat the penalty-points reason as an equivalent scam-pattern title", () => {
+    const penaltyPattern = SCAM_PATTERNS.find((p) => p.id === "penalty-points-erasure-scam");
+    expect(penaltyPattern).toBeDefined();
+
+    const { text } = formatCheckResult(
+      baseResult({
+        level: "suspicious",
+        reasons: ["fake_penalty_points_erasure"],
+      }),
+      "ru",
+    );
+
+    expect(text).toContain(escapeMarkdownV2(REASON_LABELS.fake_penalty_points_erasure.ru));
+    expect(text).not.toContain(escapeMarkdownV2(penaltyPattern!.title.ru));
   });
 });

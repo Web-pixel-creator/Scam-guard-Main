@@ -57,7 +57,7 @@ const CATEGORY_ALLOWED_FIRST_OUTCOMES = {
     families: ["victim", "panic", "risk"],
     victim: ["transfer_request", "money_mule"],
     panic: [6],
-    riskMustIncludeOneOf: ["asks_to_transfer_to_safe_account"],
+    riskMustIncludeOneOf: ["asks_for_money_transfer", "asks_to_transfer_to_safe_account"],
   },
   link_or_file_received: {
     families: ["victim", "panic"],
@@ -120,6 +120,7 @@ const CATEGORY_ALLOWED_FIRST_OUTCOMES = {
       "asks_for_card_cvv",
       "requests_personal_data",
       "asks_to_share_screen",
+      "asks_for_money_transfer",
       "asks_to_transfer_to_safe_account",
     ],
   },
@@ -131,6 +132,7 @@ const CATEGORY_ALLOWED_FIRST_OUTCOMES = {
       "asks_for_card_cvv",
       "asks_for_pin",
       "asks_to_scan_qr",
+      "asks_for_money_transfer",
       "asks_to_transfer_to_safe_account",
       "requests_card_digits",
       "requests_personal_data",
@@ -296,7 +298,7 @@ describe("540 semantically distinct everyday two-turn Telegram dialogues", () =>
       expected: {
         route: "panic.6",
         response:
-          "📞 Звонят сейчас\n\n⚡ ЗАВЕРШИТЕ ЗВОНОК\n\nНе доказывайте ничего по телефону: настоящая организация спокойно дождётся вашей проверки через официальный канал.\n\nСкажите одну фразу:\n«Я сам перезвоню по официальному номеру».\n\nПотом нажмите «Я положил трубку». Не называйте SMS-код, PIN, CVV, пароль, паспортные данные или данные карты.",
+          "📞 Звонят сейчас\n\n⚡ ЗАВЕРШИТЕ ЗВОНОК\n\nНе доказывайте ничего по телефону: настоящая организация спокойно дождётся вашей проверки через официальный канал.\n\nСкажите одну фразу:\n«Я перезвоню по официальному номеру».\n\nПотом нажмите «Я положил трубку». Не называйте SMS-код, PIN, CVV, пароль, паспортные данные или данные карты.",
         family: "panic",
         expectedPanicId: 6,
       },
@@ -306,7 +308,7 @@ describe("540 semantically distinct everyday two-turn Telegram dialogues", () =>
       expected: {
         route: "followup.confidence",
         response:
-          "Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке есть подозрительные признаки.\n\nЕсли просят код, карту, APK, логин или оплату — остановитесь и пришлите это сообщение.",
+          "Это не 100% гарантия: я проверяю только видимые признаки. По прошлой проверке есть подозрительные признаки.\n\nЕсли просят код, карту, APK, логин или оплату — не выполняйте просьбу и пришлите это сообщение.",
         family: "followup",
         expectedAction: "confidence",
       },

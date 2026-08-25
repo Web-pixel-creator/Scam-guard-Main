@@ -82,6 +82,10 @@ interface ScenarioBrief {
 }
 
 function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrief | null {
+  const violenceThreat = reasons.includes("threatens_physical_violence");
+  const dangerousAuthorityTask = reasons.includes("authority_coerced_dangerous_act");
+  const penaltyPointsFee = reasons.includes("fake_penalty_points_erasure");
+  const moneyRequest = reasons.includes("asks_for_money_transfer");
   const accountTakeover = reasons.includes("telegram_account_takeover_phishing");
   const wallet = reasons.includes("wallet_action_urgency");
   const bettingOrCasino = hasAny(reasons, [
@@ -93,6 +97,14 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
     "fake_captcha_or_voting",
     "task_reward_engagement_bait",
     "ton_referral_earning_scheme",
+  ]);
+  const credentialAction = hasAny(reasons, [
+    "asks_for_sms_code",
+    "asks_for_otp",
+    "requests_card_digits",
+    "asks_to_install_apk",
+    "asks_to_scan_qr",
+    "asks_to_transfer_to_safe_account",
   ]);
   const credentialOrOfficial = hasAny(reasons, [
     "asks_for_sms_code",
@@ -106,6 +118,27 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
   ]);
 
   if (lang === "uz") {
+    if (violenceThreat) {
+      return {
+        scheme: "Xavf: kelish yoki jismoniy kuch ishlatish bilan tahdid.",
+        goal: "Maqsad: qo'rqitib pul, uchrashuv yoki bo'ysunishga majburlash.",
+        step: "Qadam: javob bermang, xavfsiz joyga o'ting va 102 ga qo'ng'iroq qiling.",
+      };
+    }
+    if (dangerousAuthorityTask) {
+      return {
+        scheme: "Xavf: idora nomidan xavfli ishga majburlash.",
+        goal: "Maqsad: sizni xavfli yoki noqonuniy harakatga jalb qilish.",
+        step: "Qadam: talabni bajarmang, xavfsiz joyga o'ting va 102 ga qo'ng'iroq qiling.",
+      };
+    }
+    if (penaltyPointsFee && !accountTakeover && !wallet && !credentialAction) {
+      return {
+        scheme: "Sxema: jarima ballarini pul evaziga o'chirish va'dasi.",
+        goal: "Maqsad: norasmiy karta yoki rekvizitga pul oldirish.",
+        step: "Qadam: pul yubormang; ballarni faqat rasmiy tizim orqali tekshiring.",
+      };
+    }
     if (accountTakeover) {
       return {
         scheme: "Sxema: Telegram akkauntini egallash.",
@@ -141,10 +174,38 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
         step: "Qadam: faqat rasmiy raqam/sayt orqali tekshiring.",
       };
     }
+    if (moneyRequest) {
+      return {
+        scheme: "Sxema: Telegram orqali pul o'tkazish yoki to'lov so'rovi.",
+        goal: "Maqsad: tekshirilmagan oluvchiga pul yubortirish.",
+        step: "Qadam: pul o'tkazmang; oluvchi va sababni mustaqil tekshiring.",
+      };
+    }
     return null;
   }
 
   if (lang === "en") {
+    if (violenceThreat) {
+      return {
+        scheme: "Danger: threat to come to you or use physical violence.",
+        goal: "Goal: frighten you into paying, meeting, or complying.",
+        step: "Step: do not reply; move somewhere safe and call 102.",
+      };
+    }
+    if (dangerousAuthorityTask) {
+      return {
+        scheme: "Danger: claimed authority coerces a dangerous act.",
+        goal: "Goal: involve you in a dangerous or illegal physical action.",
+        step: "Step: do not comply; move somewhere safe and call 102.",
+      };
+    }
+    if (penaltyPointsFee && !accountTakeover && !wallet && !credentialAction) {
+      return {
+        scheme: "Scheme: an offer to erase penalty points for money.",
+        goal: "Goal: make you pay unofficial card or account details.",
+        step: "Step: do not pay; verify points only through the official system.",
+      };
+    }
     if (accountTakeover) {
       return {
         scheme: "Scheme: Telegram account takeover.",
@@ -180,9 +241,37 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
         step: "Step: verify only through the official number/site.",
       };
     }
+    if (moneyRequest) {
+      return {
+        scheme: "Scheme: a transfer or payment request through Telegram.",
+        goal: "Goal: make you send money to an unverified recipient.",
+        step: "Step: do not transfer; verify the recipient and reason independently.",
+      };
+    }
     return null;
   }
 
+  if (violenceThreat) {
+    return {
+      scheme: "Опасность: угрожают приехать или применить физическую силу.",
+      goal: "Цель: запугать и заставить заплатить, встретиться или подчиниться.",
+      step: "Шаг: не отвечайте, перейдите в безопасное место и позвоните 102.",
+    };
+  }
+  if (dangerousAuthorityTask) {
+    return {
+      scheme: "Опасность: от имени ведомства принуждают к опасному действию.",
+      goal: "Цель: вовлечь вас в опасное или незаконное действие.",
+      step: "Шаг: не выполняйте требование, отойдите в безопасное место и позвоните 102.",
+    };
+  }
+  if (penaltyPointsFee && !accountTakeover && !wallet && !credentialAction) {
+    return {
+      scheme: "Схема: обещают за деньги удалить штрафные баллы.",
+      goal: "Цель: получить оплату на неофициальную карту или реквизиты.",
+      step: "Шаг: не платите; проверяйте баллы только через официальную систему.",
+    };
+  }
   if (accountTakeover) {
     return {
       scheme: "Схема: угон Telegram-аккаунта.",
@@ -216,6 +305,13 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
       scheme: "Схема: опасная просьба от имени банка/support.",
       goal: "Цель: код, карта, APK, деньги или QR-вход.",
       step: "Шаг: проверяйте только через официальный номер/сайт.",
+    };
+  }
+  if (moneyRequest) {
+    return {
+      scheme: "Схема: просьба о переводе или оплате через Telegram.",
+      goal: "Цель: заставить отправить деньги непроверенному получателю.",
+      step: "Шаг: не переводите; независимо проверьте получателя и причину.",
     };
   }
   return null;

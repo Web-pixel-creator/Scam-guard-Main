@@ -82,6 +82,7 @@ vi.mock("@/lib/telegram/reputation.server", () => ({
 }));
 
 import type { Lang } from "@/lib/i18n";
+import type { SensitiveSecretClass } from "@/lib/risk/sensitive-text";
 import type { InlineQueryResultArticle } from "@/lib/telegram/api.server";
 import { handleCheck } from "@/lib/telegram/handlers/check";
 import { handleInlineQuery } from "@/lib/telegram/handlers/inline";
@@ -114,6 +115,7 @@ interface SecretRouteCase {
   input: string;
   lang: Lang;
   leakMarkers: readonly string[];
+  expectedClass?: SensitiveSecretClass;
 }
 
 const SECRET_ROUTE_CASES: readonly SecretRouteCase[] = [
@@ -281,6 +283,145 @@ const SECRET_ROUTE_CASES: readonly SecretRouteCase[] = [
       "пaрoль: BetaSecret84. pаsswоrd: AlphaSecret42.",
     ],
   },
+  {
+    name: "labeled API access token",
+    input: "API_KEY=sk-proj-RouteOnly1234567890abcdef",
+    lang: "en",
+    leakMarkers: ["sk-proj-RouteOnly1234567890abcdef"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "space-separated generic access token",
+    input: "access token abcdefgh1234567890abcd",
+    lang: "en",
+    leakMarkers: ["abcdefgh1234567890abcd"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "Authorization bearer token",
+    input: "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.RouteOnly1234567890.signatureABC123",
+    lang: "en",
+    leakMarkers: ["eyJhbGciOiJIUzI1NiJ9.RouteOnly1234567890.signatureABC123"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "Telegram bot token",
+    input: "bot token: 123456789:AAExampleRouteToken1234567890abcdefghi",
+    lang: "en",
+    leakMarkers: ["123456789:AAExampleRouteToken1234567890abcdefghi"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "GitHub personal access token",
+    input: "ghp_RouteOnlyToken1234567890ABCDEFGHIJ12345",
+    lang: "en",
+    leakMarkers: ["ghp_RouteOnlyToken1234567890ABCDEFGHIJ12345"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "raw JWT access token",
+    input:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.RouteOnlySignature1234567890abcdef",
+    lang: "en",
+    leakMarkers: [
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.RouteOnlySignature1234567890abcdef",
+    ],
+    expectedClass: "access_token",
+  },
+  {
+    name: "bare Bearer JWT access token",
+    input:
+      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEwIn0.RouteOnlySignature9876543210abcdef",
+    lang: "en",
+    leakMarkers: [
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEwIn0.RouteOnlySignature9876543210abcdef",
+    ],
+    expectedClass: "access_token",
+  },
+  {
+    name: "Google API key",
+    input: "AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890",
+    lang: "en",
+    leakMarkers: ["AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "AWS long-term access-key id",
+    input: "AKIATESTONLY12345678",
+    lang: "en",
+    leakMarkers: ["AKIATESTONLY12345678"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "AWS temporary access-key id",
+    input: "ASIATESTONLY87654321",
+    lang: "en",
+    leakMarkers: ["ASIATESTONLY87654321"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "0x-prefixed raw private key",
+    input: "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    lang: "en",
+    leakMarkers: ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"],
+    expectedClass: "private_key",
+  },
+  {
+    name: "punctuated standalone potential CVV",
+    input: "123?",
+    lang: "ru",
+    leakMarkers: ["123"],
+    expectedClass: "code",
+  },
+  {
+    name: "Uzbek Latin possessive password label",
+    input: "parolim: UzunMaxfiyParol",
+    lang: "uz",
+    leakMarkers: ["UzunMaxfiyParol"],
+    expectedClass: "password",
+  },
+  {
+    name: "Uzbek Cyrillic possessive password label",
+    input: "паролим: UzunMaxfiyParol",
+    lang: "uz",
+    leakMarkers: ["UzunMaxfiyParol"],
+    expectedClass: "password",
+  },
+  {
+    name: "Uzbek possessive code label",
+    input: "kodim: 4821",
+    lang: "uz",
+    leakMarkers: ["4821"],
+    expectedClass: "code",
+  },
+  {
+    name: "short explicit Bearer credential",
+    input: "Bearer abcdefghijklmnop",
+    lang: "en",
+    leakMarkers: ["abcdefghijklmnop"],
+    expectedClass: "access_token",
+  },
+  {
+    name: "emoji-separated Cyrillic password",
+    input: "Пароль🟠UzunMaxfiyParol",
+    lang: "ru",
+    leakMarkers: ["UzunMaxfiyParol"],
+    expectedClass: "password",
+  },
+  {
+    name: "arrow-separated Uzbek SMS code",
+    input: "SMS kodi 👉 592814",
+    lang: "uz",
+    leakMarkers: ["592814"],
+    expectedClass: "code",
+  },
+  {
+    name: "colon-separated short Bearer credential",
+    input: "Bearer: abcdefghijklmnop",
+    lang: "en",
+    leakMarkers: ["abcdefghijklmnop"],
+    expectedClass: "access_token",
+  },
 ];
 const INDEXED_SECRET_ROUTE_CASES = SECRET_ROUTE_CASES.map((testCase, index) => ({
   ...testCase,
@@ -325,7 +466,7 @@ describe("sensitive-secret Direct and Inline route preflight", () => {
 
   it.each(INDEXED_SECRET_ROUTE_CASES)(
     "$name never echoes the raw secret through Direct reply or Inline preview/insert",
-    async ({ name, input, lang, leakMarkers, index }) => {
+    async ({ name, input, lang, leakMarkers, expectedClass, index }) => {
       const userId = 9_810_000 + index;
       const session = sessionFor(lang, userId);
 
@@ -338,6 +479,39 @@ describe("sensitive-secret Direct and Inline route preflight", () => {
       expect(h.sentMessages, `${name}: direct replies`).toHaveLength(1);
       const directReply = h.sentMessages[0].text;
       expectNoRawSecret(directReply, leakMarkers, `${name}: direct reply`);
+      expect(h.sessionWrites, `${name}: Direct sanitized context`).toHaveLength(1);
+      const directWrite = h.sessionWrites[0] as {
+        userId: number;
+        patch: {
+          scenarioData?: {
+            chatScope?: unknown;
+            lastSensitiveSecret?: Record<string, unknown>;
+          };
+        };
+      };
+      const persistedContext = directWrite.patch.scenarioData?.lastSensitiveSecret;
+      expect(persistedContext, `${name}: bounded Direct context`).toBeDefined();
+      expect(Object.keys(persistedContext ?? {}).sort()).toEqual(["at", "classes", "lang"]);
+      expect(persistedContext?.lang).toMatch(/^(?:ru|uz|en)$/u);
+      expect(persistedContext?.classes).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^(?:password|code|recovery_phrase|private_key|access_token)$/u),
+        ]),
+      );
+      if (expectedClass) expect(persistedContext?.classes).toContain(expectedClass);
+      expect(Number.isFinite(Date.parse(String(persistedContext?.at)))).toBe(true);
+      expect(directWrite.patch.scenarioData?.chatScope).toEqual({
+        chatId: 9_820_000 + index,
+        chatType: "private",
+      });
+      expect(JSON.stringify(directWrite)).not.toContain(input);
+      expectNoRawSecret(
+        JSON.stringify(directWrite),
+        leakMarkers,
+        `${name}: Direct session context`,
+      );
+
+      h.sessionWrites.length = 0;
 
       await handleInlineQuery(
         input,
@@ -363,12 +537,260 @@ describe("sensitive-secret Direct and Inline route preflight", () => {
         input,
       );
       expect(article.id, `${name}: private-card semantic id`).toMatch(/^private-/u);
+      if (expectedClass === "access_token") {
+        expect(article.id, `${name}: access-token semantic id`).toMatch(/^private-access-token-/u);
+      }
       expectNoRawSecret(JSON.stringify(article), leakMarkers, `${name}: serialized article`);
 
       expect(h.runCheckCalls, `${name}: runCheck/AI`).toEqual([]);
       expect(h.sharedRateLimitCalls, `${name}: rate limit storage`).toEqual([]);
-      expect(h.sessionWrites, `${name}: session persistence`).toEqual([]);
+      expect(h.sessionWrites, `${name}: Inline session persistence`).toEqual([]);
       expect(fetchGuard, `${name}: network`).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      name: "RU seed next steps",
+      input:
+        "Для возврата крипты требуют seed phrase river apple stone cloud eagle mint ocean book lamp train gold moon",
+      followUp: "Что мне теперь делать?",
+      lang: "ru" as const,
+      profileLang: "uz" as const,
+      secret: "river apple stone cloud eagle mint ocean book lamp train gold moon",
+      topic: /сид\\?-фраз/iu,
+      safety: /не сообщайте|официальном приложении/iu,
+    },
+    {
+      name: "UZ OTP why and next steps",
+      input: "Xodim mendan SMS kod 592814 ni aytishni so'rayapti",
+      followUp: "Nega bu xavfli va keyin nima qilay?",
+      lang: "uz" as const,
+      profileLang: "en" as const,
+      secret: "592814",
+      topic: /sms-kod|otp|pin/iu,
+      safety: /kodni aytmang|rasmiy ilovani/iu,
+    },
+    {
+      name: "UZ password trust question",
+      input: "Yordam xizmati parolim Bahor2026!Z ni yuborishni so'radi",
+      followUp: "Nega ularga ishonmasligim kerak?",
+      lang: "uz" as const,
+      profileLang: "en" as const,
+      secret: "Bahor2026!Z",
+      topic: /parol/iu,
+      safety: /parolni aytmang|rasmiy sayt/iu,
+    },
+    {
+      name: "UZ seed next steps",
+      input:
+        "Kripto yordamchisi seed phrase river apple stone cloud eagle mint ocean book lamp train gold moon ni so'radi",
+      followUp: "Endi nima qilishim kerak?",
+      lang: "uz" as const,
+      profileLang: "en" as const,
+      secret: "river apple stone cloud eagle mint ocean book lamp train gold moon",
+      topic: /seed phrase/iu,
+      safety: /yubormang|rasmiy ilova/iu,
+    },
+    {
+      name: "EN seed next steps",
+      input:
+        "A recovery agent asks for seed phrase river apple stone cloud eagle mint ocean book lamp train gold moon",
+      followUp: "What should I do now?",
+      lang: "en" as const,
+      profileLang: "ru" as const,
+      secret: "river apple stone cloud eagle mint ocean book lamp train gold moon",
+      topic: /seed phrase/iu,
+      safety: /do not share|official app/iu,
+    },
+    {
+      name: "RU access-token next steps",
+      input: "В поддержку отправили API_KEY=sk-proj-FollowUpOnly1234567890abcdef",
+      followUp: "Что дальше?",
+      lang: "ru" as const,
+      profileLang: "uz" as const,
+      secret: "sk-proj-FollowUpOnly1234567890abcdef",
+      topic: /токен доступа/iu,
+      safety: /отзовите|создайте новый/iu,
+    },
+  ])(
+    "$name keeps only bounded topic/language context and never the secret value",
+    async ({ input, followUp, lang, profileLang, secret, topic, safety }) => {
+      const userId = 9_900_000;
+      await handleCheck(input, {
+        chatId: userId,
+        userId,
+        session: sessionFor(profileLang, userId),
+      });
+
+      expect(h.sessionWrites).toHaveLength(1);
+      const initialWrite = h.sessionWrites[0] as {
+        patch: { scenarioData: Session["scenarioData"] };
+      };
+      expect(initialWrite.patch.scenarioData.lastSensitiveSecret?.lang).toBe(lang);
+      expect(JSON.stringify(initialWrite)).not.toContain(input);
+      expect(JSON.stringify(initialWrite)).not.toContain(secret);
+
+      h.sentMessages.length = 0;
+      h.sessionWrites.length = 0;
+      await handleCheck(followUp, {
+        chatId: userId,
+        userId,
+        session: {
+          ...sessionFor(profileLang, userId),
+          scenarioData: initialWrite.patch.scenarioData,
+        },
+      });
+
+      expect(h.sentMessages).toHaveLength(1);
+      const reply = h.sentMessages[0].text;
+      expect(reply).toMatch(topic);
+      expect(reply).toMatch(safety);
+      expect(reply).not.toContain(secret);
+      expect(h.sessionWrites, "follow-up must not persist any new text").toEqual([]);
+      expect(h.runCheckCalls, "follow-up must bypass runCheck/AI").toEqual([]);
+      expect(h.sharedRateLimitCalls, "follow-up must bypass storage rate limiting").toEqual([]);
+      expect(fetchGuard, "follow-up network").not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps bare OTP/PIN and valid PAN values out of every Inline sink", async () => {
+    const values = [
+      "4821",
+      "59372",
+      "４８２１",
+      "5\u200B9372",
+      "4111 1111 1111 1111",
+      "4000 0000 0000 0000 006",
+    ] as const;
+    const session = sessionFor("en", 9_880_000);
+
+    for (const [index, value] of values.entries()) {
+      await handleInlineQuery(
+        value,
+        { userId: session.telegramUserId, languageCode: "en", session },
+        `private-numeric-${index}`,
+      );
+    }
+
+    const articles = h.answerCalls.map((call) => call.results[0] as InlineQueryResultArticle);
+    expect(new Set(articles.map((article) => article.id)).size).toBe(1);
+    expect(articles[0].id).toMatch(/^ambiguous-numeric-/u);
+    for (const value of values) {
+      expect(JSON.stringify(articles)).not.toContain(value);
+      const asciiDigits = value.replace(/\D/gu, "");
+      if (asciiDigits) expect(JSON.stringify(articles)).not.toContain(asciiDigits);
+    }
+    expect(h.runCheckCalls, "numeric private path must bypass runCheck/AI").toEqual([]);
+    expect(
+      h.sharedRateLimitCalls,
+      "numeric private path must bypass storage rate limiting",
+    ).toEqual([]);
+    expect(h.sessionWrites, "numeric Inline path must stay stateless").toEqual([]);
+    expect(fetchGuard, "numeric private path network").not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: "English follow-up overrides a saved Russian secret language",
+      input: "Сотрудник просит SMS код 481927",
+      followUp: "Why is this dangerous?",
+      initialLang: "ru" as const,
+      profileLang: "uz" as const,
+      expected: /an sms code|do not share the code/iu,
+      unexpected: /код не сообщайте|kodni aytmang/iu,
+    },
+    {
+      name: "Uzbek follow-up overrides a saved English secret language",
+      input: "Support asks for SMS code 592814",
+      followUp: "Nega bu xavfli?",
+      initialLang: "en" as const,
+      profileLang: "ru" as const,
+      expected: /sms-kod|kodni aytmang/iu,
+      unexpected: /do not share the code|код не сообщайте/iu,
+    },
+    {
+      name: "Russian follow-up overrides a saved Uzbek secret language",
+      input: "Xodim mendan SMS kod 731904 ni aytishni so'rayapti",
+      followUp: "Почему это опасно?",
+      initialLang: "uz" as const,
+      profileLang: "en" as const,
+      expected: /sms.*код.*код не сообщайте/isu,
+      unexpected: /do not share the code|kodni aytmang/iu,
+    },
+  ])(
+    "$name and uses saved language only as the resolver fallback",
+    async ({ input, followUp, initialLang, profileLang, expected, unexpected }) => {
+      const userId = 9_910_000;
+      await handleCheck(input, {
+        chatId: userId,
+        userId,
+        session: sessionFor(profileLang, userId),
+      });
+
+      const initialWrite = h.sessionWrites[0] as {
+        patch: { scenarioData: Session["scenarioData"] };
+      };
+      expect(initialWrite.patch.scenarioData.lastSensitiveSecret?.lang).toBe(initialLang);
+
+      h.sentMessages.length = 0;
+      h.sessionWrites.length = 0;
+      await handleCheck(followUp, {
+        chatId: userId,
+        userId,
+        session: {
+          ...sessionFor(profileLang, userId),
+          scenarioData: initialWrite.patch.scenarioData,
+        },
+      });
+
+      expect(h.sentMessages).toHaveLength(1);
+      expect(h.sentMessages[0].text).toMatch(expected);
+      expect(h.sentMessages[0].text).not.toMatch(unexpected);
+      expect(h.sessionWrites).toEqual([]);
+      expect(h.runCheckCalls).toEqual([]);
+      expect(h.sharedRateLimitCalls).toEqual([]);
+      expect(fetchGuard).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["почему?", "ru", /sms.*код.*не сообщайте/isu],
+    ["пачему?", "ru", /sms.*код.*не сообщайте/isu],
+    ["nega?", "uz", /sms.*kod.*kodni aytmang/isu],
+    ["nima uchun?", "uz", /sms.*kod.*kodni aytmang/isu],
+    ["why?", "en", /an sms code.*do not share the code/isu],
+    ["что дальше?", "ru", /sms.*код.*не сообщайте/isu],
+    ["дальше что?", "ru", /sms.*код.*не сообщайте/isu],
+    ["what next?", "en", /an sms code.*do not share the code/isu],
+    ["now what?", "en", /an sms code.*do not share the code/isu],
+    ["keyin nima?", "uz", /sms.*kod.*kodni aytmang/isu],
+    ["endi nima?", "uz", /sms.*kod.*kodni aytmang/isu],
+  ] as const)(
+    "answers the bounded secret follow-up %s without a fresh check",
+    async (text, lang, expected) => {
+      const userId = 9_920_000;
+      await handleCheck(text, {
+        chatId: userId,
+        userId,
+        session: {
+          ...sessionFor(lang, userId),
+          scenarioData: {
+            lastSensitiveSecret: {
+              classes: ["code"],
+              lang,
+              at: new Date().toISOString(),
+            },
+          },
+        },
+      });
+
+      expect(h.sentMessages).toHaveLength(1);
+      expect(h.sentMessages[0].text).toMatch(expected);
+      expect(h.sessionWrites).toEqual([]);
+      expect(h.runCheckCalls).toEqual([]);
+      expect(h.sharedRateLimitCalls).toEqual([]);
+      expect(fetchGuard).not.toHaveBeenCalled();
     },
   );
 });

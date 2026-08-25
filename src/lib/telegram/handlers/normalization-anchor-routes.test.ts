@@ -305,4 +305,85 @@ describe("Direct and Inline bounded normalization anchors", () => {
     expect(h.runCheckCalls).toHaveLength(2);
     expect(h.runCheckCalls.map(({ input }) => input)).toEqual([query, query]);
   });
+
+  it.each([
+    [
+      "Я уже потерял деньги у мошенников. Теперь юрист обещает вернуть их и просит комиссию заранее",
+      "uz",
+      /(?:возврат|вернуть).{0,80}(?:не платите|предоплат|комисси)|(?:не платите|предоплат|комисси).{0,80}(?:возврат|вернуть)/iu,
+      /(?:по ошибке|другой сч[её]т|безопасный сч[её]т|штраф)/iu,
+    ],
+    [
+      "Oldin firibgarga pul yo'qotdim, endi yurist pulni qaytarish uchun oldindan haq so'rayapti",
+      "en",
+      /(?:qaytar|oldindan).{0,100}(?:to'lamang|firib)|(?:to'lamang|firib).{0,100}(?:qaytar|oldindan)/iu,
+      /(?:pul\s+[«"]?xato|boshqa\s+hisob|xavfsiz\s+hisob|jarima)/iu,
+    ],
+    [
+      "I already lost money to a scam. A recovery agent promises to get it back but asks for an upfront fee",
+      "ru",
+      /(?:recover|recovery|upfront).{0,100}(?:do not pay|second scam)|(?:do not pay|second scam).{0,100}(?:recover|recovery|upfront)/iu,
+      /(?:arrived\s+[“"]?by mistake|another account|safe account|fine)/iu,
+    ],
+  ] as const)(
+    "keeps recovery-fee aftercare evidence-faithful in Direct and Inline: %s",
+    async (query, fallback, required, forbidden) => {
+      const article = await runInline(query, fallback);
+      const direct = await runDirect(query, fallback);
+      const inline = inlineVisible(article);
+
+      expect(article.id).toMatch(/^check-(?:unknown|suspicious|high_risk)-recovery-fee-/u);
+      expect(inline).toMatch(required);
+      expect(direct).toMatch(required);
+      expect(`${inline}\n${direct}`).not.toMatch(forbidden);
+    },
+  );
+
+  it("preserves marketplace delivery instead of collapsing it into parcel/customs copy", async () => {
+    const query =
+      "Xaridor kuryer havolasini yuborib karta ma'lumotini kiritishni so'rayapti https://delivery-market.example/pay";
+    const article = await runInline(query, "ru");
+    const direct = await runDirect(query, "ru");
+    const visible = `${inlineVisible(article)}\n${direct}`;
+
+    expect(article.id).toMatch(/^check-(?:unknown|suspicious|high_risk)-marketplace-delivery-/u);
+    expect(visible).toMatch(/(?:xaridor|marketpleys|kuryer).{0,100}(?:karta|havola)/iu);
+    expect(visible).toMatch(/(?:kiritmang|yubormang|faqat\s+platform)/iu);
+    expect(visible).not.toMatch(/(?:bojxona|posilka|xavfsiz\s+hisob)/iu);
+  });
+
+  it("keeps a parcel/customs request channel-neutral", async () => {
+    const query =
+      "Posilka bojxonada to'xtabdi, uni olish uchun shaxsiy kartaga boj to'lashimni aytishyapti";
+    const article = await runInline(query, "en");
+    const direct = await runDirect(query, "en");
+    const visible = `${inlineVisible(article)}\n${direct}`;
+
+    expect(visible).toMatch(/(?:posilka|bojxona|boj)/iu);
+    expect(visible).toMatch(/(?:to'lamang|hozircha|tekshiring)/iu);
+    expect(visible).not.toMatch(
+      /(?:Telegramda yozishyapti|chatdagi|«Kuryer» so['’]?ragan|Yuborilgan havola|@username|\bAPK\b)/iu,
+    );
+  });
+
+  it("does not invent a safe account for an English donation request", async () => {
+    const query = "Donations for flood victims must be sent urgently to a personal card";
+    const article = await runInline(query, "ru");
+    const direct = await runDirect(query, "ru");
+    const visible = `${inlineVisible(article)}\n${direct}`;
+
+    expect(article.id).toMatch(/^check-(?:unknown|suspicious|high_risk)-charity-pressure-/u);
+    expect(visible).toMatch(/(?:donation|organizer|fundraiser|personal card)/iu);
+    expect(visible).not.toMatch(/safe account|fake.{0,20}account/iu);
+  });
+
+  it("retains safe-account guidance only when that destination is literal", async () => {
+    const query = "The bank says to transfer all my money to a safe account immediately";
+    const article = await runInline(query, "uz");
+    const direct = await runDirect(query, "uz");
+    const visible = `${inlineVisible(article)}\n${direct}`;
+
+    expect(visible).toMatch(/safe account/iu);
+    expect(visible).toMatch(/(?:do not|don't).{0,30}transfer/iu);
+  });
 });

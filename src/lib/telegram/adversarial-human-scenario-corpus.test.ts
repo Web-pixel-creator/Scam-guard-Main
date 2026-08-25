@@ -232,7 +232,7 @@ function removeUserEcho(visible: string, query: string): string {
 
 // Unlike the broad language-safety assertion, this oracle examines only the
 // preview title/description (never the echoed user input). It prevents a
-// semantically wrong but vaguely cautious answer from passing the 1,080-case
+// semantically wrong but vaguely cautious answer from passing the 1,260-case
 // corpus, e.g. job fraud receiving generic OTP or link advice.
 const FAMILY_PREVIEW_TOPIC: Readonly<Record<string, RegExp>> = Object.freeze({
   "sms-code-request": /(?:sms|otp|код|kod|code)/iu,
@@ -266,6 +266,16 @@ const FAMILY_PREVIEW_TOPIC: Readonly<Record<string, RegExp>> = Object.freeze({
   "unknown-stranger-request": /(?:незнаком|просьб|notanish|so['’]?rov|stranger|request)/iu,
   "fake-support": /(?:поддерж|защит|yordam|himoya|qo['’]?llab|quvvat|xavfsiz|support|protection)/iu,
   "bank-contact-from-message": /(?:банк|номер|официал|bank|raqam|rasmiy|number|official)/iu,
+  "authority-physical-coercion":
+    /(?:подж|заправ|опасн\p{L}*\s+(?:задан|действ|требован)|o['’]?t\s+qo['’]?y|yoqilg['’]?i|xavfli\s+(?:topshiriq|harakat)|fire|burn|gas station|dangerous\s+(?:task|act|demand))/iu,
+  "neighbor-video-malware":
+    /(?=.*(?:видео|video))(?=.*(?:сосед|знаком|подъезд|камер|файл|apk|плеер|qo['’]?shni|tanish|kirish|kamera|fayl|ilova|player|neighbor|acquaint|contact|entrance|camera|file|viewer))/iu,
+  "fake-fine-cashback-app":
+    /(?=.*(?:штраф|jarima|fine))(?=.*(?:apk|прилож|ilova|app|файл|file|вред|zarar|malware))/iu,
+  "penalty-points-cancellation":
+    /(?:штрафн\p{L}*\s+балл|балл\p{L}*\s+(?:аннулир|спис|удал)|jarima\s+ball|ball\p{L}*\s+(?:bekor|o['’]?chir|nol)|penalty\s+point|points?\s+(?:delet|erase|cancel|remove))/iu,
+  "known-contact-prize-link":
+    /(?=[\s\S]*(?:знаком|друг|аккаунт|tanish|do['’]?st|akkaunt|friend|contact|account))(?=[\s\S]*(?:приз|подар|банк|yutuq|sovg['’]?a|mukofot|bank|prize|gift))/iu,
 });
 
 const FAMILY_INLINE_SEMANTIC: Readonly<Record<string, string>> = Object.freeze({
@@ -291,7 +301,7 @@ const FAMILY_INLINE_SEMANTIC: Readonly<Record<string, string>> = Object.freeze({
   "romance-money": "romance-money",
   "photo-extortion": "blackmail-threat",
   "parcel-fee": "delivery-payment",
-  "marketplace-delivery": "delivery-payment",
+  "marketplace-delivery": "marketplace-delivery",
   "loan-advance-fee": "loan-advance-fee",
   "charity-pressure": "charity-pressure",
   "qr-login": "qr-login",
@@ -299,6 +309,11 @@ const FAMILY_INLINE_SEMANTIC: Readonly<Record<string, string>> = Object.freeze({
   "unknown-stranger-request": "unknown-contact",
   "fake-support": "support-impersonation",
   "bank-contact-from-message": "bank-contact",
+  "authority-physical-coercion": "dangerous-task",
+  "neighbor-video-malware": "neighbor-video",
+  "fake-fine-cashback-app": "fake-fine-apk",
+  "penalty-points-cancellation": "penalty-points-fee",
+  "known-contact-prize-link": "known-contact-prize",
 });
 
 function expectInlineSemanticId(
@@ -337,7 +352,7 @@ function expectBoundedInlineArticle(
   expect(JSON.stringify(article), testCase.id).not.toContain("undefined");
 }
 
-describe("offline 1,080-scenario adversarial human-language corpus", () => {
+describe("offline 1,260-scenario adversarial human-language corpus", () => {
   beforeAll(() => {
     process.env.SUPABASE_URL = "https://offline-adversarial-corpus.invalid";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "offline-adversarial-corpus-service-key";
@@ -370,17 +385,17 @@ describe("offline 1,080-scenario adversarial human-language corpus", () => {
     vi.unstubAllGlobals();
   });
 
-  it("has the exact deterministic 30 x 3 x 12 shape and independent metadata", () => {
-    expect(ADVERSARIAL_HUMAN_FAMILY_COUNT).toBe(30);
+  it("has the exact deterministic 35 x 3 x 12 shape and independent metadata", () => {
+    expect(ADVERSARIAL_HUMAN_FAMILY_COUNT).toBe(35);
     expect(ADVERSARIAL_HUMAN_LANGUAGE_COUNT).toBe(3);
     expect(ADVERSARIAL_HUMAN_MUTATION_COUNT).toBe(12);
-    expect(ADVERSARIAL_HUMAN_EXPECTED_CASE_COUNT).toBe(1080);
-    expect(ADVERSARIAL_HUMAN_SCENARIO_CORPUS).toHaveLength(1080);
+    expect(ADVERSARIAL_HUMAN_EXPECTED_CASE_COUNT).toBe(1260);
+    expect(ADVERSARIAL_HUMAN_SCENARIO_CORPUS).toHaveLength(1260);
 
     const ids = ADVERSARIAL_HUMAN_SCENARIO_CORPUS.map(({ id }) => id);
     const queries = ADVERSARIAL_HUMAN_SCENARIO_CORPUS.map(({ lang, query }) => `${lang}\0${query}`);
-    expect(new Set(ids).size).toBe(1080);
-    expect(new Set(queries).size).toBe(1080);
+    expect(new Set(ids).size).toBe(1260);
+    expect(new Set(queries).size).toBe(1260);
 
     const familyCounts = new Map<string, number>();
     const languageCounts = new Map<Lang, number>();
@@ -395,8 +410,8 @@ describe("offline 1,080-scenario adversarial human-language corpus", () => {
     }
 
     expect([...familyCounts.values()].every((count) => count === 36)).toBe(true);
-    expect(Object.fromEntries(languageCounts)).toEqual({ ru: 360, uz: 360, en: 360 });
-    expect([...mutationCounts.values()].every((count) => count === 90)).toBe(true);
+    expect(Object.fromEntries(languageCounts)).toEqual({ ru: 420, uz: 420, en: 420 });
+    expect([...mutationCounts.values()].every((count) => count === 105)).toBe(true);
   });
 
   it.each(ADVERSARIAL_HUMAN_SCENARIO_CORPUS)(

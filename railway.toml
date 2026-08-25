@@ -1,4 +1,4 @@
-# Railway config-as-code. https://docs.railway.app/guides/config-as-code
+# Railway config-as-code. https://docs.railway.com/config-as-code/reference
 #
 # Build: use the repo Dockerfile (multi-stage Node SSR; Nitro node-server
 # preset emits dist/server/index.mjs). Railway injects $PORT at runtime, which
@@ -13,6 +13,10 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+# Keep every source/config change deploy-eligible by default. Changes confined
+# to the canonical documentation paths below are still verified by GitHub CI,
+# but do not need a new production image or a restarted canary window.
+watchPatterns = ["**", "!/*.md", "!/ai_docs/**"]
 
 [deploy]
 # The Dockerfile CMD already runs `node dist/server/index.mjs`; no override.

@@ -43,6 +43,16 @@ describe("Inline reason presentation policy", () => {
     expect(presented?.evidence).toMatch(/external reputation/i);
   });
 
+  it("ranks an explicit physical-violence threat ahead of account-risk signals", () => {
+    const presented = presentInlineReason(
+      ["asks_for_sms_code", "threatens_physical_violence", "impersonates_bank"],
+      "ru",
+    );
+
+    expect(presented?.reason).toBe("threatens_physical_violence");
+    expect(presented?.evidence).toMatch(/физическ|угрожают приехать/iu);
+  });
+
   it("breaks equal-priority ties deterministically", () => {
     const forward = presentInlineReason(["asks_for_sms_code", "asks_for_otp"], "en");
     const reverse = presentInlineReason(["asks_for_otp", "asks_for_sms_code"], "en");

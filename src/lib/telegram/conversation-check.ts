@@ -1,8 +1,10 @@
 import type { Lang } from "@/lib/i18n";
 import type { RiskLevel } from "@/lib/risk/rules";
+import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import type { InlineKeyboard } from "@/lib/telegram/api.server";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { CB } from "@/lib/telegram/format";
+import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
 import type {
   ConversationDraftSnapshot,
   ConversationPressureFlag,
@@ -124,6 +126,19 @@ const CODE_REQUEST_RE = new RegExp(
   "i",
 );
 
+const TRANSFER_ACTION_RE =
+  /(?:(?:перевед|перевести|отправ|оплат|пополни|send|transfer|pay|yubor|o['’]?tkaz|to['’]?la).{0,60}(?:деньг|сум|uzs|карт|счет|сч[её]т|money|funds?|pul|mablag|to['’]?lov)|(?:деньг|сум|uzs|карт|счет|сч[её]т|money|funds?|pul|mablag|to['’]?lov).{0,60}(?:перевед|перевести|отправ|оплат|пополни|send|transfer|pay|yubor|o['’]?tkaz|to['’]?la))/iu;
+const CONVERSATION_CLAUSE_BOUNDARY_RE =
+  /(?:[.!?;:\n\r]+|\s*[—–]\s*|\s+(?:but|however|whereas|но|однако|lekin|ammo)\s+)/iu;
+const TRANSFER_NEGATED_ACTION_RE =
+  /(?<![\p{L}\p{N}_])(?:никогда\s+не|не|нельзя|не\s+надо|не\s+следует)\s+(?:перевод|перевест|переводит|отправ|оплач|попол)|(?<![\p{L}\p{N}_])(?:не|никогда\s+не)\s+(?:прос(?:ит|ят)|требу(?:ет|ют)).{0,40}(?:перевод|перевест|отправ|оплач)|(?:never|do\s+not|don['’]?t|must\s+not|should\s+not|avoid)\s+(?:ever\s+)?(?:transfer|send|pay)|(?:(?:never|do(?:es)?\s+not|don['’]?t|doesn['’]?t)\s+ask|(?:asked|told).{0,20}not\s+to).{0,35}(?:transfer|send|pay)|(?:hech\s+qachon|aslo).{0,40}(?:o['’]?tkaz|yubor|to['’]?la)|(?:o['’]?tkazmang|yubormang|to['’]?lamang|so['’]?ramaydi)/iu;
+
+function hasActiveConversationTransfer(text: string): boolean {
+  return text
+    .split(CONVERSATION_CLAUSE_BOUNDARY_RE)
+    .some((clause) => TRANSFER_ACTION_RE.test(clause) && !TRANSFER_NEGATED_ACTION_RE.test(clause));
+}
+
 const ACTION_PATTERNS: Array<[ConversationRequestedAction, RegExp, string]> = [
   ["say_code", CODE_REQUEST_RE, "asks_for_sms_code"],
   [
@@ -131,11 +146,7 @@ const ACTION_PATTERNS: Array<[ConversationRequestedAction, RegExp, string]> = [
     /(?:карт[ау]|номер\s+карты|cvv|cvc|срок\s+карты|card).{0,60}(?:пришли|назов|введи|сообщи|send|enter|ayt|yubor)|(?:пришли|назов|введи|сообщи|send|enter|ayt|yubor).{0,60}(?:карт[ау]|номер\s+карты|cvv|cvc|card)/i,
     "asks_for_card_cvv",
   ],
-  [
-    "transfer_money",
-    /(?:перевед|перевести|отправь|оплат|пополни|send|transfer|pay|yubor|o'?tkaz|to'?la).{0,60}(?:деньг|сум|uzs|карт|счет|сч[её]т|money|pul|sum)/i,
-    "asks_to_transfer_to_safe_account",
-  ],
+  ["transfer_money", TRANSFER_ACTION_RE, "asks_for_money_transfer"],
   [
     "install_app",
     /(?:установ|скачай|открой|install|download|o'rnat|yukla).{0,60}(?:apk|апк|приложени|app|ilova)/i,
@@ -162,6 +173,40 @@ const ACTION_PATTERNS: Array<[ConversationRequestedAction, RegExp, string]> = [
     "keeps_user_on_call",
   ],
 ];
+
+const SAFE_ACCOUNT_WORDING_RE = /(?:безопасн.{0,15}(?:сч[её]т|карт)|safe account|xavfsiz hisob)/iu;
+const SAFE_ACCOUNT_CLAUSE_BOUNDARY_RE = CONVERSATION_CLAUSE_BOUNDARY_RE;
+const SAFE_ACCOUNT_TRANSFER_VERB_RE =
+  /(?:перевед(?:и|ите)|перевести|отправ(?:ь|ьте|ить)|оплат(?:и|ите|ить)|пополн(?:и|ите|ить)|(?:transfer|send|pay)\b|yubor(?:ing)?|o['’]?tkaz(?:ing)?|to['’]?la(?:ng)?)/iu;
+const SAFE_ACCOUNT_TRANSFER_REQUEST_RE =
+  /(?:прос(?:ит|ят|ил[аи]?)|требу(?:ет|ют)|сказал[аи]?|вел(?:ит|ят)|asks?|asked|tells?|told|requires?|required|demands?|demanded|says?|said|so['’]?ra(?:yapti|di|shdi)?\b|talab\s+qil(?:yapti|di|ishdi)?\b|ayt(?:di|yapti)\b|deyapti\b)/iu;
+const SAFE_ACCOUNT_DIRECT_TRANSFER_RE =
+  /(?:перевед(?:и|ите)|отправ(?:ь|ьте)|оплат(?:и|ите)|пополни(?:те)?|(?:^|\s)(?:please\s+)?(?:transfer|send|pay)\b|yubor(?:ing)?\b|o['’]?tkaz(?:ing)?\b|to['’]?la(?:ng)?\b)/iu;
+const SAFE_ACCOUNT_NEGATED_TRANSFER_RE = TRANSFER_NEGATED_ACTION_RE;
+const SAFE_ACCOUNT_EDUCATIONAL_RE =
+  /(?:что\s+такое|как\s+(?:работает|устроен)|банки?\s+не\s+прос)|(?:what\s+(?:is|are)|how\s+(?:does|do|to)|should\s+i|banks?\s+never\s+ask)|(?:xavfsiz\s+hisob\s+nima|banklar?.{0,80}so['’]?ramaydi)/iu;
+
+/**
+ * A generic transfer in one clause must not borrow "safe account" wording from
+ * a separate warning or question.  Keep the specific reason only when the
+ * same bounded clause contains an active transfer instruction or a retold
+ * request.  Raw message text is still discarded after signal extraction.
+ */
+function hasClauseLocalActiveSafeAccountTransfer(text: string): boolean {
+  return text.split(SAFE_ACCOUNT_CLAUSE_BOUNDARY_RE).some((clause) => {
+    if (!SAFE_ACCOUNT_WORDING_RE.test(clause) || !SAFE_ACCOUNT_TRANSFER_VERB_RE.test(clause)) {
+      return false;
+    }
+
+    if (SAFE_ACCOUNT_NEGATED_TRANSFER_RE.test(clause) || SAFE_ACCOUNT_EDUCATIONAL_RE.test(clause)) {
+      return false;
+    }
+
+    return (
+      SAFE_ACCOUNT_DIRECT_TRANSFER_RE.test(clause) || SAFE_ACCOUNT_TRANSFER_REQUEST_RE.test(clause)
+    );
+  });
+}
 
 const PRESSURE_PATTERNS: Array<[ConversationPressureFlag, RegExp]> = [
   ["urgent", /(?:срочно|немедленно|сейчас|urgent|immediately|hozir|tez|shoshil)/i],
@@ -195,13 +240,30 @@ function incrementCounts<T extends string>(counts: Partial<Record<T, number>>, v
 }
 
 function extractMessageSignals(text: string): MessageSignals {
-  const stages = STAGE_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(([stage]) => stage);
-  const pressureFlags = PRESSURE_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(
+  const normalized = normalizeIntentTextForMatching(text);
+  const uzbekLatin = uzbekLatinMatchingVariant(normalized);
+  const candidates =
+    uzbekLatin && uzbekLatin !== normalized ? [normalized, uzbekLatin] : [normalized];
+  const matchesAny = (pattern: RegExp): boolean =>
+    candidates.some((candidate) => pattern.test(candidate));
+
+  const stages = STAGE_PATTERNS.filter(([, pattern]) => matchesAny(pattern)).map(
+    ([stage]) => stage,
+  );
+  const pressureFlags = PRESSURE_PATTERNS.filter(([, pattern]) => matchesAny(pattern)).map(
     ([flag]) => flag,
   );
-  const actionHits = ACTION_PATTERNS.filter(([, pattern]) => pattern.test(text));
+  const actionHits = ACTION_PATTERNS.filter(([action, pattern]) =>
+    action === "transfer_money"
+      ? candidates.some(hasActiveConversationTransfer)
+      : matchesAny(pattern),
+  );
   const requestedActions = actionHits.map(([action]) => action);
-  const reasons = actionHits.map(([, , reason]) => reason);
+  const reasons = actionHits.map(([, , reason]) =>
+    reason === "asks_for_money_transfer" && candidates.some(hasClauseLocalActiveSafeAccountTransfer)
+      ? "asks_to_transfer_to_safe_account"
+      : reason,
+  );
 
   let level: RiskLevel = "unknown";
   if (requestedActions.length > 0) {
@@ -422,6 +484,11 @@ const reasonLabels: Record<string, Record<Lang, string>> = {
     en: "asks for card details",
   },
   asks_to_transfer_to_safe_account: {
+    ru: "предлагают «безопасный счёт»",
+    uz: "«xavfsiz hisob» taklif qilinyapti",
+    en: "proposes a ‘safe account’",
+  },
+  asks_for_money_transfer: {
     ru: "просят перевод/оплату",
     uz: "pul o'tkazish/to'lov so'ralgan",
     en: "asks for transfer/payment",
@@ -517,9 +584,9 @@ function nextStep(draft: ConversationDraftSnapshot, lang: Lang): string {
     }[lang];
   }
   return {
-    ru: "Пока не видно конкретного опасного действия. Если попросят код, карту, оплату, APK, QR или документ — остановитесь и пришлите это отдельно.",
+    ru: "Пока не видно конкретного опасного действия. Если попросят код, карту, оплату, APK, QR или документ — не выполняйте просьбу и пришлите её отдельно.",
     uz: "Hozircha aniq xavfli amal ko'rinmayapti. Kod, karta, to'lov, APK, QR yoki hujjat so'ralsa — to'xtang va alohida yuboring.",
-    en: "I do not see a concrete dangerous action yet. If they ask for a code, card, payment, APK, QR or document, stop and send that separately.",
+    en: "I do not see a concrete dangerous action yet. If they ask for a code, card, payment, APK, QR or document, do not comply; send that request separately.",
   }[lang];
 }
 

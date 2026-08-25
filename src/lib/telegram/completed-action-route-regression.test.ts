@@ -340,6 +340,12 @@ describe("completed-action Direct and Inline route regression", () => {
     });
     expect(h.sentMessages).toHaveLength(1);
     expect(markdownV2ToPlainText(h.sentMessages[0]!.text)).not.toContain(secret);
+    expect(h.sessionWrites).toHaveLength(1);
+    const directContext = JSON.stringify(h.sessionWrites[0]!.patch);
+    expect(directContext).toContain('"lastSensitiveSecret"');
+    expect(directContext).toContain(`"lang":"${lang}"`);
+    expect(directContext).not.toContain(secret);
+    h.sessionWrites.length = 0;
 
     await handleInlineQuery(
       query,

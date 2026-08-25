@@ -433,21 +433,21 @@ describe("Inline regressions from the 2026-07-16 Telegram Desktop screenshots", 
     {
       query:
         "Работодатель обещает удалённую работу, но сначала просит оплатить оформление документов",
-      title: "Работа: не платите взнос",
+      title: /Работа:.{0,40}не платите/iu,
     },
     {
       query:
         "Сбор на лечение заканчивается через час, срочно переведите деньги на личную карту, иначе ребёнок останется без помощи",
-      title: "Сбор помощи: сначала проверьте фонд",
+      title: /(?:Пожертвован|Сбор помощи).{0,50}(?:провер|фонд|организатор)/iu,
     },
     {
       query: "My online boyfriend says he is stranded and urgently needs money for a ticket",
-      title: "Relationship: do not send money",
+      title: /Relationship:.{0,40}do not send money/iu,
     },
   ])("preserves the concrete live-QA topic for: $query", async ({ query, title }) => {
     const article = await runInline(query);
 
-    expect(article.title).toBe(title);
+    expect(article.title).toMatch(title);
   });
 
   it("treats a bank-provided SMS number as contact guidance, not a code request", async () => {

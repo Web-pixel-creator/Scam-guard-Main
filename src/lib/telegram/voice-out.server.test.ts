@@ -146,6 +146,43 @@ describe("telegram Voice-out / TTS", () => {
     expect(text).not.toContain("+998");
   });
 
+  it.each([
+    ["ru", /безопасн.*102/isu],
+    ["uz", /xavfsiz.*102/isu],
+    ["en", /somewhere safe.*102/isu],
+  ] as const)("voices urgent physical-safety guidance in %s", (lang, expected) => {
+    const text = buildGuardianVoiceOutText(
+      {
+        level: "high_risk",
+        type: "text",
+        reasons: ["threatens_physical_violence"],
+        at: "2026-08-23T12:00:00.000Z",
+      },
+      lang,
+    );
+
+    expect(text).toMatch(expected);
+    expect(text).not.toMatch(/банк|bank|freeze|перевод|transfer/iu);
+  });
+
+  it.each([
+    ["asks_for_money_transfer", /не переводите.*проверьте получателя/isu],
+    ["fake_penalty_points_erasure", /не переводите.*штрафных баллов.*официальн/isu],
+  ] as const)("voices prevention-stage guidance for %s", (reason, expected) => {
+    const text = buildGuardianVoiceOutText(
+      {
+        level: "high_risk",
+        type: "text",
+        reasons: [reason],
+        at: "2026-08-23T12:00:00.000Z",
+      },
+      "ru",
+    );
+
+    expect(text).toMatch(expected);
+    expect(text).not.toMatch(/замороз|оспор|уже перев/iu);
+  });
+
   it("sends prerecorded panic audio before TTS budget or provider calls", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "voice-out-"));
     try {

@@ -7,7 +7,7 @@
 // membership in the reasons array (toContain / not.toContain) rather than strict
 // set equality, because realistic messages can legitimately fire several codes.
 import { describe, it, expect } from "vitest";
-import { evaluateTelegram, evaluateText, scoreFromCodes } from "./rules";
+import { evaluateTelegram, evaluateText, REASON_LABELS, scoreFromCodes } from "./rules";
 
 describe("evaluateText — confirmed bank SMS-code live regression", () => {
   it("treats a bank-authored SMS-code request as high risk", () => {
@@ -38,17 +38,17 @@ describe("evaluateText — received verification-code requests", () => {
 
 describe("evaluateText — benign completed Uzbek family actions", () => {
   it.each([
-    ["Otam ijara pulini to'ladi.", "asks_to_transfer_to_safe_account"],
-    ["Opam menga oziq-ovqat uchun pul yubordi.", "asks_to_transfer_to_safe_account"],
+    ["Otam ijara pulini to'ladi.", "asks_for_money_transfer"],
+    ["Opam menga oziq-ovqat uchun pul yubordi.", "asks_for_money_transfer"],
+    ["Oziq-ovqat uchun pulni shu kartaga yuboring.", "asks_for_money_transfer"],
+    ["Pulni shu hisobga o'tkazing.", "asks_for_money_transfer"],
     ["Onam menga eshik kodini aytdi.", "asks_for_sms_code"],
   ] as const)("does not turn completed everyday context into %s: %s", (text, code) => {
     expect(evaluateText(text)).not.toContain(code);
   });
 
   it.each([
-    ["Pulni shu hisobga o'tkazing.", "asks_to_transfer_to_safe_account"],
-    ["Oziq-ovqat uchun pulni shu kartaga yuboring.", "asks_to_transfer_to_safe_account"],
-    ["U pulni shu kartaga o'tkazishni so'rayapti.", "asks_to_transfer_to_safe_account"],
+    ["Notanish odam pulni begona kartaga o'tkazishni so'rayapti.", "asks_for_money_transfer"],
     ["SMS orqali kelgan kodni ayting.", "asks_for_sms_code"],
   ] as const)("keeps the paired direct danger %s as %s", (text, code) => {
     expect(evaluateText(text)).toContain(code);
@@ -781,6 +781,30 @@ describe("evaluateText — fake_boss_request (research feed)", () => {
       text: "Rahbar nomidan yozayapman, tez pasport ma'lumot va karta raqamini yuboring",
     },
     { name: "UZ official asks code", text: "Soliq organidanmiz, kod va ma'lumot yuboring" },
+    {
+      name: "EN unusual boss on video orders transfer",
+      text: "My boss looked strange on a video call and ordered an urgent transfer to a partner account",
+    },
+    {
+      name: "RU unusual boss voice orders transfer",
+      text: "На видеозвонке голос директора звучал необычно, и он велел срочно перевести деньги",
+    },
+    {
+      name: "UZ unusual boss video orders transfer",
+      text: "Videoqo'ng'iroqda rahbarning ovozi g'alati edi va u pul o'tkazishni buyurdi",
+    },
+    {
+      name: "EN local live incident after training sentence",
+      text: "Training says a boss may look strange on video. But today my boss looked strange on a video call and ordered an urgent transfer",
+    },
+    {
+      name: "RU local live incident after training sentence",
+      text: "В обучении сказано, что директор может странно выглядеть на видео. Но сегодня мой директор странно выглядел на видеозвонке и приказал срочно перевести деньги",
+    },
+    {
+      name: "UZ local live incident after training sentence",
+      text: "O'quv materialida rahbar videoda g'alati ko'rinishi mumkin deyilgan. Lekin bugun rahbarim videoqo'ng'iroqda g'alati ko'rindi va pul o'tkazishni buyurdi",
+    },
   ];
 
   const negatives: { name: string; text: string }[] = [
@@ -789,6 +813,38 @@ describe("evaluateText — fake_boss_request (research feed)", () => {
       text: "Руководитель просит завтра прийти на планёрку к 10 утра",
     },
     { name: "UZ ordinary HR", text: "Kadr bo'limi ertaga uchrashuv bo'lishini eslatdi" },
+    {
+      name: "EN ordinary boss video meeting",
+      text: "My boss looked tired on our video call and scheduled tomorrow's planning meeting",
+    },
+    {
+      name: "EN educational deepfake example",
+      text: "Security training example: a boss can look strange on video and order a transfer",
+    },
+    {
+      name: "RU explicit safety advice",
+      text: "Если голос директора на видеозвонке звучит странно, не переводите деньги",
+    },
+    {
+      name: "EN boss anomaly and unrelated vendor transfer",
+      text: "My boss looked strange on video. Later a vendor ordered transfer",
+    },
+    {
+      name: "RU boss anomaly and unrelated vendor transfer",
+      text: "Мой директор странно выглядел на видео. Позже поставщик потребовал перевод",
+    },
+    {
+      name: "UZ boss anomaly and unrelated vendor transfer",
+      text: "Rahbarim videoda g'alati ko'rindi. Keyin yetkazib beruvchi pul o'tkazishni buyurdi",
+    },
+    {
+      name: "RU educational authority example",
+      text: "Учебный пример: директор может странно выглядеть на видео и приказать перевод",
+    },
+    {
+      name: "UZ educational authority example",
+      text: "O'quv misolida rahbar videoda g'alati ko'rinishi va pul o'tkazishni buyurishi mumkin",
+    },
   ];
 
   it.each(positives)("positive: $name", ({ text }) => {
@@ -797,6 +853,92 @@ describe("evaluateText — fake_boss_request (research feed)", () => {
 
   it.each(negatives)("negative: $name", ({ text }) => {
     expect(evaluateText(text)).not.toContain("fake_boss_request");
+  });
+
+  it("does not let an educational prefix hide a later live boss-transfer incident", () => {
+    const text =
+      "Security training warned us about deepfakes. Now my boss looked strange on a video call and ordered an urgent transfer.";
+
+    expect(evaluateText(text)).toContain("fake_boss_request");
+  });
+
+  it.each([
+    "Security training example: a boss may look strange on video. My boss looked strange on a video call and ordered an urgent transfer",
+    "Учебный пример: директор может странно выглядеть на видео. Мой директор странно выглядел на видеозвонке и приказал срочно перевести деньги",
+    "O'quv misolida rahbar videoda g'alati ko'rinishi mumkin. Rahbarim videoqo'ng'iroqda g'alati ko'rindi va pul o'tkazishni buyurdi",
+  ])("limits educational suppression to its own local clause: %s", (text) => {
+    expect(evaluateText(text)).toContain("fake_boss_request");
+  });
+
+  it("uses an authority-wide label because the code also covers HR and government actors", () => {
+    expect(REASON_LABELS.fake_boss_request).toEqual({
+      ru: "Подозрительный запрос от имени руководителя или ведомства",
+      uz: "Rahbar yoki idora nomidan shubhali so‘rov",
+      en: "Suspicious request claiming employer or official authority",
+    });
+  });
+});
+
+describe("evaluateText — transfer evidence fidelity", () => {
+  it("keeps an English charity request generic instead of inventing a safe account", () => {
+    const reasons = evaluateText("An unknown charity pressures me to transfer to a personal card");
+
+    expect(reasons).toContain("asks_for_money_transfer");
+    expect(reasons).toContain("uses_urgency");
+    expect(reasons).not.toContain("asks_to_transfer_to_safe_account");
+  });
+
+  it.each([
+    "Donations for flood victims must be sent urgently to a personal card",
+    "Пожертвования для пострадавших нужно срочно перевести на личную карту",
+  ])("keeps a passive personal-card request generic and urgent: %s", (text) => {
+    const reasons = evaluateText(text);
+
+    expect(reasons).toContain("asks_for_money_transfer");
+    expect(reasons).toContain("uses_urgency");
+    expect(reasons).not.toContain("asks_to_transfer_to_safe_account");
+  });
+
+  it("recognizes a natural Uzbek passive charity-transfer request", () => {
+    const reasons = evaluateText("Xayriya puli shaxsiy kartaga yuborilishi kerak deyishyapti");
+
+    expect(reasons).toContain("asks_for_money_transfer");
+    expect(reasons).not.toContain("asks_to_transfer_to_safe_account");
+  });
+
+  it.each([
+    "Donations must not be sent to personal cards",
+    "Donations are not required to be sent to a personal card",
+    "Donations do not need to be sent to a personal card",
+    "Пожертвования нельзя переводить на личные карты",
+    "Пожертвования не требуется переводить на личную карту",
+    "Пожертвования не нужно отправлять на личную карту",
+    "Xayriya puli shaxsiy kartaga yuborilishi kerak emas",
+    "Ehson mablag'larini shaxsiy kartaga o'tkazish talab qilinmaydi",
+    "Our policy explains how verified charities receive donations",
+  ])("does not flag safety or policy text as a transfer request: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("asks_for_money_transfer");
+  });
+
+  it.each([
+    "Переведите деньги на безопасный счёт",
+    "Pulni xavfsiz hisobga o'tkazing",
+    "Хавфсиз ҳисобга пул ўтказинг дейишяпти Марказий банкданмиз дейишяпти нима бу",
+    "Transfer the money to a safe account",
+  ])("keeps literal safe-account wording specific: %s", (text) => {
+    const reasons = evaluateText(text);
+
+    expect(reasons).toContain("asks_to_transfer_to_safe_account");
+    expect(reasons).not.toContain("asks_for_money_transfer");
+  });
+
+  it.each([
+    "What is a safe account?",
+    "Что такое безопасный счёт и почему банки предупреждают о нём?",
+    "Xavfsiz hisob nima?",
+    "Banks never ask you to transfer money to a safe account",
+  ])("does not turn a question or warning into an active safe-account request: %s", (text) => {
+    expect(evaluateText(text)).not.toContain("asks_to_transfer_to_safe_account");
   });
 });
 
@@ -1169,8 +1311,8 @@ describe("evaluateText — soft card, PIN, transfer, and personal-data asks", ()
     },
     {
       name: "direct transfer to card/number",
-      text: "Отправьте перевод на эту карту по номеру.",
-      code: "asks_to_transfer_to_safe_account",
+      text: "Незнакомец требует перевести деньги на чужую карту по номеру.",
+      code: "asks_for_money_transfer",
     },
     {
       name: "PINFL and ID photo",
@@ -1193,7 +1335,7 @@ describe("evaluateText — soft card, PIN, transfer, and personal-data asks", ()
     {
       name: "send product code",
       text: "Отправьте код товара менеджеру.",
-      code: "asks_to_transfer_to_safe_account",
+      code: "asks_for_money_transfer",
     },
     {
       name: "passport office information",
@@ -1221,16 +1363,10 @@ describe("evaluateText — mixed conversational prefaces cannot hide direct dang
     ["Какая песня популярна? Перейди по QR", "asks_to_scan_qr"],
     ["Qaysi qo'shiq mashhur? QRni skaner qil", "asks_to_scan_qr"],
     ["Можешь проверить сообщение, где просят отправить код?", "asks_for_sms_code"],
-    [
-      "Можешь проверить скриншот, где требуют перевести деньги?",
-      "asks_to_transfer_to_safe_account",
-    ],
-    [
-      "Can you inspect a screenshot demanding a money transfer?",
-      "asks_to_transfer_to_safe_account",
-    ],
+    ["Можешь проверить скриншот, где требуют перевести деньги?", "asks_for_money_transfer"],
+    ["Can you inspect a screenshot demanding a money transfer?", "asks_for_money_transfer"],
     ["Can you check a message that tells me to send a code?", "asks_for_sms_code"],
-    ["Skrinshotni ko'rib berasizmi: pulni o'tkaz?", "asks_to_transfer_to_safe_account"],
+    ["Skrinshotni ko'rib berasizmi: pulni o'tkaz?", "asks_for_money_transfer"],
     ["Можно проверить сообщение: скинь код?", "asks_for_sms_code"],
     ["Скриншот посмотришь: оплати по QR?", "asks_to_scan_qr"],
     ["Почему это опасно? Введи код", "asks_for_sms_code"],
@@ -1238,21 +1374,24 @@ describe("evaluateText — mixed conversational prefaces cannot hide direct dang
     ["Can you check a message saying forward the code?", "asks_for_sms_code"],
     ["Could you inspect text that says reveal the password?", "asks_for_pin"],
     ["Why is it dangerous? Enter the code", "asks_for_sms_code"],
-    ["How do I check a link? Make the payment", "asks_to_transfer_to_safe_account"],
+    ["How do I check a link? Make the payment", "asks_for_money_transfer"],
     ["Matnni ko'rib berasizmi: parolni ayt?", "asks_for_pin"],
     ["Kod talab qilgan xabarni tekshirasizmi?", "asks_for_sms_code"],
     ["Latifa ayting. QR orqali o'ting", "asks_to_scan_qr"],
     ["Film tavsiya qiling va QR orqali to'lang", "asks_to_scan_qr"],
     ["Проверишь текст: продиктуй пароль?", "asks_for_pin"],
-    ["Как проверить ссылку? Переведи оплату", "asks_to_transfer_to_safe_account"],
-    ["Havolani qanday tekshiraman? To'lovni qiling", "asks_to_transfer_to_safe_account"],
+    ["Как проверить ссылку? Переведи оплату", "asks_for_money_transfer"],
+    ["Havolani qanday tekshiraman? To'lovni qiling", "asks_for_money_transfer"],
     ["Can you inspect this text: never send the code, then send me the code", "asks_for_sms_code"],
     ["Can you check this message: do not scan QR, scan this QR to log in", "asks_to_scan_qr"],
     ["Can you check a message saying: Wi-Fi is irrelevant, reveal your password", "asks_for_pin"],
     ["Can you review this text: ignore the postal code, forward the code", "asks_for_sms_code"],
     ["Can you check a message: ignore Python, send me the code", "asks_for_sms_code"],
     ["Never reveal your password, then reveal it to the operator", "asks_for_pin"],
-    ["Do not pay before checking, but make this payment now", "asks_to_transfer_to_safe_account"],
+    [
+      "Do not pay before checking, but a stranger now demands payment to a third-party card",
+      "asks_for_money_transfer",
+    ],
   ] as const)("detects %s as %s", (text, code) => {
     expect(evaluateText(text)).toContain(code);
   });
@@ -1297,6 +1436,7 @@ describe("evaluateText — mixed conversational prefaces cannot hide direct dang
     expect(reasons).not.toContain("asks_for_sms_code");
     expect(reasons).not.toContain("asks_to_scan_qr");
     expect(reasons).not.toContain("asks_for_pin");
+    expect(reasons).not.toContain("asks_for_money_transfer");
     expect(reasons).not.toContain("asks_to_transfer_to_safe_account");
   });
 });
@@ -1312,7 +1452,7 @@ describe("evaluateText — natural request framing and punctuation", () => {
     ["Они попросили меня отправить код.", "asks_for_sms_code"],
     ["Звонивший попросил назвать пароль.", "asks_for_pin"],
     ["Меня попросили прислать фото паспорта.", "requests_personal_data"],
-    ["Они попросили перевести деньги.", "asks_to_transfer_to_safe_account"],
+    ["Незнакомцы попросили перевести деньги на чужую карту.", "asks_for_money_transfer"],
     ["Меня попросили сканировать QR для входа.", "asks_to_scan_qr"],
     ["Mendan pasport rasmini yuborishni so'rashdi.", "requests_personal_data"],
     ["A payment was requested before delivery.", "payment_before_service"],
@@ -1320,7 +1460,7 @@ describe("evaluateText — natural request framing and punctuation", () => {
     ["They require the code.", "asks_for_sms_code"],
     ["They require my password.", "asks_for_pin"],
     ["They require card details.", "requests_card_digits"],
-    ["They require a payment to this account.", "asks_to_transfer_to_safe_account"],
+    ["A stranger requires payment to a third-party account.", "asks_for_money_transfer"],
     ["They asked for my passport.", "requests_personal_data"],
     ["My passport was requested.", "requests_personal_data"],
     ["Provide your passport for verification.", "requests_personal_data"],
@@ -1378,7 +1518,10 @@ describe("evaluateText — natural request framing and punctuation", () => {
     ["Never send the code — now send me the code.", "asks_for_sms_code"],
     ["Never reveal your password — reveal it to the operator.", "asks_for_pin"],
     ["Never scan QR — scan this QR to log in.", "asks_to_scan_qr"],
-    ["Do not pay: make this payment now.", "asks_to_transfer_to_safe_account"],
+    [
+      "Do not pay: a stranger now demands payment to a third-party card.",
+      "asks_for_money_transfer",
+    ],
     ["Do not share card details — send me the card number.", "requests_card_digits"],
   ] as const)("detects natural request %s as %s", (text, code) => {
     expect(evaluateText(text)).toContain(code);
@@ -1397,10 +1540,10 @@ describe("evaluateText — natural request framing and punctuation", () => {
     ["The app requires a password to sign in.", "asks_for_pin"],
     ["The bank asks customers not to share card details.", "requests_card_digits"],
     ["Karta ma'lumotlarini bank saytida tekshiring.", "requests_card_digits"],
-    ["The task showcases payment processing.", "asks_to_transfer_to_safe_account"],
-    ["Do not make payment before verifying.", "asks_to_transfer_to_safe_account"],
-    ["How do I make a payment in the app?", "asks_to_transfer_to_safe_account"],
-    ["The documentation explains how to make payment.", "asks_to_transfer_to_safe_account"],
+    ["The task showcases payment processing.", "asks_for_money_transfer"],
+    ["Do not make payment before verifying.", "asks_for_money_transfer"],
+    ["How do I make a payment in the app?", "asks_for_money_transfer"],
+    ["The documentation explains how to make payment.", "asks_for_money_transfer"],
     ["Do not send your passport photo.", "requests_personal_data"],
     ["I asked about my address.", "requests_personal_data"],
     ["The form requires an address for delivery.", "requests_personal_data"],
@@ -1664,27 +1807,27 @@ describe("evaluateText — long coordinated clauses cannot bypass safety boundar
       lang: "ru",
       area: "transfer",
       safeLead: "Не сообщайте SMS-код",
-      danger: "переведите деньги на эту карту",
+      danger: "незнакомец пишет срочно переведите деньги на чужую карту",
       safeTail: "не переводите деньги на эту карту",
-      expected: "asks_to_transfer_to_safe_account",
+      expected: "asks_for_money_transfer",
       excluded: "asks_for_sms_code",
     },
     {
       lang: "uz",
       area: "transfer",
       safeLead: "SMS kodni yubormang",
-      danger: "pulni shu kartaga o'tkazing",
+      danger: "notanish odam pulni begona kartaga o'tkazishni talab qiladi",
       safeTail: "pulni shu kartaga o'tkazmang",
-      expected: "asks_to_transfer_to_safe_account",
+      expected: "asks_for_money_transfer",
       excluded: "asks_for_sms_code",
     },
     {
       lang: "en",
       area: "transfer",
       safeLead: "Do not send the SMS code",
-      danger: "transfer money to this card",
+      danger: "a stranger demands a transfer to a third-party card",
       safeTail: "do not transfer money to this card",
-      expected: "asks_to_transfer_to_safe_account",
+      expected: "asks_for_money_transfer",
       excluded: "asks_for_sms_code",
     },
   ] as const;

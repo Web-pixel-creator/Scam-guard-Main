@@ -119,7 +119,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Вы правильно остановились",
+      replyIncludes: "Хорошо, что вы решили проверить",
     },
   },
   {
@@ -128,7 +128,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Вы правильно остановились",
+      replyIncludes: "Хорошо, что вы решили проверить",
     },
   },
   {
@@ -137,7 +137,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Вы правильно остановились",
+      replyIncludes: "Хорошо, что вы решили проверить",
     },
   },
   {
@@ -146,7 +146,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Вы правильно остановились",
+      replyIncludes: "Хорошо, что вы решили проверить",
     },
   },
   {
@@ -155,7 +155,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Вы правильно остановились",
+      replyIncludes: "Хорошо, что вы решили проверить",
     },
   },
   {
@@ -165,7 +165,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "Good that you stopped",
+      replyIncludes: "It is good that you decided to check",
     },
   },
   {
@@ -175,7 +175,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "To'g'ri to'xtadingiz",
+      replyIncludes: "Tekshirishga qaror qilganingiz yaxshi",
     },
   },
   {
@@ -842,7 +842,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "pension_benefit",
-      replyIncludes: "Пенсионный фонд",
+      replyIncludes: "Перерасчёт пенсии",
     },
   },
   {
@@ -1424,7 +1424,7 @@ export const LIVE_PHRASE_CASES: readonly LivePhraseCase[] = [
     expected: {
       kind: "victim_intent",
       intent: "general_scam_concern",
-      replyIncludes: "To'g'ri to'xtadingiz",
+      replyIncludes: "Tekshirishga qaror qilganingiz yaxshi",
     },
   },
   {

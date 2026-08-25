@@ -154,9 +154,71 @@ const CASINO_BONUS_RE =
 const CASINO_ACTION_RE =
   /(депозит|(?:^|[^a-zа-я])деп(?:а|ов)?(?=$|[^a-zа-я])|пополн|бонус|ссылк|перейти|вход на сайт|без vpn|регистрац|запущ|bonus|deposit|top\s?up|link|signup|register|launched|always here|no registration|mini\s?app|telegram app|первые\s+\d+\s+деп)/i;
 const GIVEAWAY_CONTEXT_RE =
-  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|подар|приз|giveaway|airdrop|lottery|sovg'a|sovrin|yutuq|\bstars?\b|зв[её]зд|ton\s?знаток|tonznatok)/i;
+  /(розыгрыш|разыгр|random\s*nft|nft|банка подарков|денежн.{0,12}подар|подар|приз|prizes?|cash\s+gift|giveaway|airdrop|lottery|sovg['’]?a|sovrin|yutuq|pul\s+mukofot|совға|соврин|ютуқ|мукофот|\bstars?\b|зв[её]зд|ton\s?знаток|tonznatok)/iu;
 const GIVEAWAY_ACTION_RE =
-  /(капч|captcha|реакци|reaction|проголос|голос|vote|voting|подпис|subscribe|участв|раздач|выда[еёю]|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп|join|claim|получ)/i;
+  /(капч|captcha|реакци|reaction|проголос|голос|vote|voting|подпис|subscribe|участв|раздач|выда[еёю]|забир|получи(?:те|ть)?(?![\p{L}\p{N}_])|ссылк|перейд|открой|кошел|wallet|hamyon|sms|otp|код|карта|депозит|деп|join|claim|get\s+yours?|open\s+(?:the\s+)?link|havola|olib\s+ol|o['’]?t|och|ҳавол|очиб|олинг)/iu;
+const GIVEAWAY_OFFICIAL_OR_SAFETY_RE =
+  /(?:официальн.{0,25}(?:итог|победител|новост)|итоги\s+розыгрыша|победител.{0,20}объявлен|официальн.{0,25}(?:сайт|страниц).{0,55}(?:итог|победител|результат)|не\s+(?:переходите|открывайте|забирайте)|мошенник.{0,25}(?:рассыла|обеща)|official.{0,20}(?:results?|winner|announcement)|official.{0,25}(?:site|website|page).{0,55}(?:results?|winners?)|winners?\s+(?:were|have\s+been)\s+announced|do\s+not\s+(?:open|follow|claim)|scammers?.{0,25}(?:send|promise)|rasmiy.{0,20}(?:natija|g['’]?olib)|rasmiy.{0,25}(?:sayt|sahifa).{0,55}(?:natija|g['’]?olib)|g['’]?oliblar.{0,20}e['’]?lon\s+qil|havolani\s+ochmang|sovrinni\s+olmang|firibgar.{0,25}(?:yubor|va['’]?da)|расмий.{0,20}(?:натижа|ғолиб)|расмий.{0,25}(?:сайт|саҳифа).{0,55}(?:натижа|ғолиб)|ғолиблар.{0,20}эълон\s+қил|ҳаволани\s+очманг|совринни\s+олманг|фирибгар.{0,25}(?:юбор|ваъда))/iu;
+const GIVEAWAY_OFFICIAL_DESTINATION_RE =
+  /(?:официальн.{0,20}(?:сайт|страниц)|official.{0,20}(?:site|website|page)|rasmiy.{0,20}(?:sayt|sahifa)|расмий.{0,20}(?:сайт|саҳифа))/iu;
+const GIVEAWAY_OFFICIAL_RESULTS_RE =
+  /(?:официальн.{0,25}(?:итог|победител|результат)|итоги\s+розыгрыша|official.{0,25}(?:results?|winners?)|rasmiy.{0,25}(?:natija|g['’]?olib)|расмий.{0,25}(?:натижа|ғолиб)|ғолиблар.{0,20}эълон\s+қил)/iu;
+const IMAGE_CLAUSE_SPLIT_RE =
+  /[,.!?;،:\u2013\u2014\n]+|\s+(?:but|however|но|однако|lekin|ammo)\s+/iu;
+
+function splitImageRiskClauses(text: string): string[] {
+  return text
+    .split(IMAGE_CLAUSE_SPLIT_RE)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+function hasUnsafeGiveawayImageAction(text: string): boolean {
+  const clauses = splitImageRiskClauses(text);
+  return clauses.some((actionClause, index) => {
+    if (
+      !GIVEAWAY_ACTION_RE.test(actionClause) ||
+      GIVEAWAY_OFFICIAL_OR_SAFETY_RE.test(actionClause)
+    ) {
+      return false;
+    }
+    const contextWindow = [clauses[index - 1], actionClause, clauses[index + 1]]
+      .filter(Boolean)
+      .join(". ");
+    if (
+      GIVEAWAY_OFFICIAL_DESTINATION_RE.test(actionClause) &&
+      GIVEAWAY_OFFICIAL_RESULTS_RE.test(contextWindow)
+    ) {
+      return false;
+    }
+    return GIVEAWAY_CONTEXT_RE.test(text);
+  });
+}
+
+const IMAGE_FINE_RE = /(?:штраф|jarima|жарима|traffic\s+fine|\bfines?\b|penalty)/iu;
+const IMAGE_OFFICIAL_APP_RE =
+  /(?:(?:официальн|государственн|government|official|rasmiy|расмий|давлат).{0,35}(?:прилож|app|ilova|илова|сайт|site|portal|портал)|(?:my\.?gov(?:\.uz)?|mygov|единый\s+портал|ягона\s+портал).{0,35}(?:прилож|app|ilova|илова|сайт|site|portal|портал)?)/iu;
+const IMAGE_OFFICIAL_STORE_RE =
+  /(?:google\s+play|play\s+market|app\s+store|официальн.{0,18}магазин\s+прилож|rasmiy.{0,18}ilovalar\s+do['’]?koni|расмий.{0,18}иловалар\s+дўкони)/iu;
+const IMAGE_FINE_RESULT_RE =
+  /(?:штраф.{0,55}(?:оплачен|оплатил|оплатила|квитанц)|(?:оплачен|оплатил|оплатила|квитанц).{0,55}штраф|(?:paid|receipt).{0,30}(?:traffic\s+)?fine|(?:traffic\s+)?fine.{0,30}(?:paid|payment\s+(?:was\s+)?successful|receipt)|jarima.{0,45}(?:to['’]?ladim|to['’]?langan|kvitansiya)|(?:to['’]?ladim|to['’]?langan|kvitansiya).{0,45}jarima|жарима.{0,45}(?:тўладим|тўланган|квитанция))/iu;
+const IMAGE_ACTIVE_FINE_PAYMENT_REQUEST_RE =
+  /(?:оплатите|переведите|отправьте|внесите).{0,45}(?:штраф|деньг|сум|оплат)|(?:pay\s+now|please\s+(?:pay|transfer|send)\b|\b(?:transfer|send)\b).{0,45}(?:fine|money|funds?|payment)|(?:jarima|pul|to['’]?lov).{0,45}(?:to['’]?lang(?![\p{L}\p{N}_])|o['’]?tkazing|yuboring)|(?:жарима|пул|тўлов).{0,45}(?:тўланг(?![\p{L}\p{N}_])|ўтказинг|юборинг)/iu;
+const IMAGE_UNTRUSTED_APP_SOURCE_RE =
+  /(?:неизвестн|незнаком|из\s+(?:чата|telegram|телеграма?|мессенджер)|прислал|отправил|вложени|ссылк|unknown|stranger|from\s+(?:a\s+)?(?:chat|message|telegram|messenger)|sent|attachment|link|notanish|begona|chatdan|telegramdan|yubor|havola)/iu;
+const IMAGE_FAKE_FINE_PROMO_OR_FILE_RE =
+  /(?:100\s*%?\s*(?:cashback|к[еэ]шб[еэ]к)|100\s*foiz\s*cashback|full\s+cashback|\.apk|apk[-\s]?(?:file|файл|fayl))/iu;
+
+function isOrdinaryOfficialFineAppImage(text: string): boolean {
+  return (
+    IMAGE_FINE_RE.test(text) &&
+    IMAGE_FINE_RESULT_RE.test(text) &&
+    (IMAGE_OFFICIAL_APP_RE.test(text) || IMAGE_OFFICIAL_STORE_RE.test(text)) &&
+    !IMAGE_ACTIVE_FINE_PAYMENT_REQUEST_RE.test(text) &&
+    !IMAGE_UNTRUSTED_APP_SOURCE_RE.test(text) &&
+    !IMAGE_FAKE_FINE_PROMO_OR_FILE_RE.test(text)
+  );
+}
 const FAKE_CAPTCHA_VOTING_RE =
   /(капч|captcha|реакци|reaction|проголос|голосован|vote|voting|verify|verification|проверка|подтверд|confirm)/i;
 const TASK_REWARD_RE =
@@ -175,7 +237,7 @@ const ORDINARY_NEWS_RE =
   /(supreme court|tariffs?|expected to release|just news|новост|breaking news|pavel durov|telegram apps center|каталог|catalog|categories|management|web3|games)/i;
 
 const STARS_GIFT_MECHANIC_RE =
-  /((?:nft|stars?|зв[её]зд|подар|gift).{0,80}(?:лудк|лутк|spin|спин|777|slot|слот|разыгр|розыгр|раздач|выда[еёю]|claim|получ|забер)|(?:лудк|лутк|spin|спин|777|slot|слот).{0,80}(?:nft|stars?|зв[её]зд|подар|gift))/i;
+  /((?:nft|stars?|зв[её]зд|подар|gift).{0,80}(?:лудк|лутк|spin|спин|777|slot|слот|разыгр|розыгр|раздач|выда[еёю]|claim|получи(?:те|ть)?(?![\p{L}\p{N}_])|забер)|(?:лудк|лутк|spin|спин|777|slot|слот).{0,80}(?:nft|stars?|зв[её]зд|подар|gift))/iu;
 const VOTING_PRIZE_MECHANIC_RE =
   /(voting\.[a-z0-9.-]+|blockchain-life\.com|проголос|голосован|vote|voting).{0,120}(статуэт|award|contest|prize|приз|подар|nft|stars?|зв[её]зд)|(?:статуэт|award|contest|prize|приз|подар|nft|stars?|зв[её]зд).{0,120}(voting\.[a-z0-9.-]+|blockchain-life\.com|проголос|голосован|vote|voting)/i;
 
@@ -335,8 +397,9 @@ function telegramProfileVisibleMessageNote(text: string | null, lang: Lang): str
 
 function deriveHints(text: string): ImageRiskHint[] {
   const hints: ImageRiskHint[] = [];
+  const ordinaryOfficialFineApp = isOrdinaryOfficialFineAppImage(text);
   if (SECRET_RE.test(text)) hints.push("otp_or_secret");
-  if (APK_RE.test(text)) hints.push("apk_install");
+  if (APK_RE.test(text) && !ordinaryOfficialFineApp) hints.push("apk_install");
   if (QR_LOGIN_RE.test(text)) hints.push("qr_login");
   if (QR_PAYMENT_RE.test(text)) hints.push("qr_payment");
   if (TELEGRAM_ACCOUNT_TAKEOVER_IMAGE_RE.test(text)) hints.push("telegram_account_takeover");
@@ -345,11 +408,21 @@ function deriveHints(text: string): ImageRiskHint[] {
     hints.push("apk_install");
     hints.push("urgent_pressure");
   }
-  if (PAYMENT_RE.test(text) && !WALLET_CONTEXT_RE.test(text)) hints.push("payment_request");
+  if (
+    (PAYMENT_RE.test(text) || IMAGE_ACTIVE_FINE_PAYMENT_REQUEST_RE.test(text)) &&
+    !WALLET_CONTEXT_RE.test(text) &&
+    !ordinaryOfficialFineApp
+  ) {
+    hints.push("payment_request");
+  }
   if (/(cvv|pin|карта|karta|card).{0,40}(номер|raqam|digits|цифр)/i.test(text))
     hints.push("card_data");
   if (URGENCY_RE.test(text)) hints.push("urgent_pressure");
-  if (BRAND_RE.test(text) && (SECRET_RE.test(text) || PAYMENT_RE.test(text) || APK_RE.test(text))) {
+  if (
+    BRAND_RE.test(text) &&
+    !ordinaryOfficialFineApp &&
+    (SECRET_RE.test(text) || PAYMENT_RE.test(text) || APK_RE.test(text))
+  ) {
     hints.push("brand_impersonation");
   }
   if (CASINO_BONUS_RE.test(text) && CASINO_ACTION_RE.test(text)) {
@@ -358,7 +431,7 @@ function deriveHints(text: string): ImageRiskHint[] {
   if (BETTING_PROMO_RE.test(text) && BETTING_ACTION_RE.test(text)) {
     hints.push("casino_bonus_or_free_spins");
   }
-  if (GIVEAWAY_CONTEXT_RE.test(text) && GIVEAWAY_ACTION_RE.test(text)) {
+  if (hasUnsafeGiveawayImageAction(text)) {
     hints.push("giveaway_or_prize_actions");
   }
   if (STARS_GIFT_MECHANIC_RE.test(text)) {

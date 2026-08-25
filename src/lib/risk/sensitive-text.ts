@@ -1,4 +1,9 @@
-export type SensitiveSecretClass = "password" | "code" | "recovery_phrase" | "private_key";
+export type SensitiveSecretClass =
+  | "password"
+  | "code"
+  | "recovery_phrase"
+  | "private_key"
+  | "access_token";
 
 export interface SensitiveTextSanitization {
   value: string;
@@ -9,7 +14,12 @@ export interface SensitiveTextSanitization {
 const HIDDEN_VALUE = "••••";
 const WORD_START = String.raw`(?<![\p{L}\p{N}_])`;
 const WORD_END = String.raw`(?![\p{L}\p{N}_])`;
-const EXPLICIT_VALUE_SEPARATOR = String.raw`(?:\s*[:=]\s*|\s+(?:is|это|bu)\s+)`;
+// People often paste a credential after one visual delimiter instead of a
+// colon: `password🟠secret`, `SMS kodi 👉 123456`, or `OTP → 123456`.
+// Keep this deliberately bounded to one pictograph/arrow. A broad `\p{S}+`
+// separator would turn ordinary prose and emoji-heavy advice into secrets.
+const VISUAL_VALUE_SEPARATOR = String.raw`(?:[→➜➤➡➔⇢⇒]|\p{Extended_Pictographic}(?:\uFE0E|\uFE0F|\p{Emoji_Modifier})?)`;
+const EXPLICIT_VALUE_SEPARATOR = String.raw`(?:\s*[:=]\s*|\s*${VISUAL_VALUE_SEPARATOR}\s*|\s+(?:is|это|bu)\s+)`;
 const VALUE_SEPARATOR = String.raw`(?:\s*[:=]\s*|\s+(?:is|это|bu)\s+|\s+)`;
 const HORIZONTAL_SPACE = String.raw`[^\S\r\n]+`;
 
@@ -28,7 +38,7 @@ const FULLY_SPACED_PRIVATE_KEY_LABEL = fullySpacedAsciiLabel("private key");
 // source text while replacing only the adjacent secret value.
 const CONFUSABLE_PASSWORD_LABEL = String.raw`[p\u0440][a\u0430][s\u0441][s\u0441]w[o\u043e]rd`;
 
-const PASSWORD_LABEL = String.raw`(?:${CONFUSABLE_PASSWORD_LABEL}|pasword|${FULLY_SPACED_PASSWORD_LABEL}|passphrase|парол(?:ь|я|ем|ю)?|parol(?:i|ni|ini|ga|dan)?|maxfiy\s+so['’]?z|махфий\s+(?:сўз|суз))`;
+const PASSWORD_LABEL = String.raw`(?:${CONFUSABLE_PASSWORD_LABEL}|pasword|${FULLY_SPACED_PASSWORD_LABEL}|passphrase|парол(?:ь|я|ем|ю|им|ингиз|ини|ни|га|дан)?|parol(?:i|im|ingiz|ni|ini|ga|dan)?|maxfiy\s+so['’]?z|махфий\s+(?:сўз|суз))`;
 const PASSWORD_LABEL_END = String.raw`(?![\p{L}\p{N}_]|[!@#$%^&*._-]+\p{N})`;
 const EXPLICIT_PASSWORD_RE = new RegExp(
   `(${WORD_START}${PASSWORD_LABEL}${PASSWORD_LABEL_END})(${EXPLICIT_VALUE_SEPARATOR})([^\\r\\n.!?;]{4,240})`,
@@ -39,8 +49,8 @@ const PASSWORD_RE = new RegExp(
   "giu",
 );
 
-const CODE_LABEL = String.raw`(?:otp(?:\s+code)?|sms[\s-]*(?:code|kod|код)|смс[\s-]*код|код(?:\s+(?:подтверждения|из\s+смс))?|(?:verification|verificaton)[\s-]+code|confirmation[\s-]+code|tasdiq(?:lash)?[\s-]+kod(?:i)?|bir[\s-]+martalik[\s-]+kod|pin|пин|cvv|cvc)`;
-const CODE_ADJACENCY_SEPARATOR = String.raw`(?:\s+(?:is|это|bu)\s+|[\s,;:=#№/–—()\[\]-]+)`;
+const CODE_LABEL = String.raw`(?:otp(?:\s+code)?|sms[\s-]*(?:code|kod|код)|смс[\s-]*код|код(?:им|ингиз|ини|ни|и)?(?:\s+(?:подтверждения|из\s+смс))?|kod(?:im|ingiz|ini|ni|i)?|(?:verification|verificaton)[\s-]+code|confirmation[\s-]+code|tasdiq(?:lash)?[\s-]+kod(?:i)?|bir[\s-]+martalik[\s-]+kod|pin|пин|cvv|cvc)`;
+const CODE_ADJACENCY_SEPARATOR = String.raw`(?:\s+(?:is|это|bu)\s+|[\s,;:=#№/–—()\[\]-]+|\s*${VISUAL_VALUE_SEPARATOR}\s*)`;
 const CODE_RE = new RegExp(
   `(${WORD_START}${CODE_LABEL}${WORD_END})(${CODE_ADJACENCY_SEPARATOR})(\\d(?:[\\d\\s\\u00a0\\u2000-\\u200a\\u202f.\\-–—]{0,38}\\d)?)`,
   "giu",
@@ -104,6 +114,132 @@ const PRIVATE_KEY_RE = new RegExp(
 );
 const PEM_PRIVATE_KEY_RE =
   /-----BEGIN ((?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY)-----[\s\S]{1,16384}?-----END \1-----/giu;
+
+// Unlabelled values are intentionally much narrower than labelled secrets.
+// A 64-hex digest is indistinguishable from a raw private key, and a normal
+// twelve-word sentence can look like a mnemonic. Sink redaction deliberately
+// prefers hiding an occasional digest over exposing a key. Bare mnemonics stay
+// bounded to canonical word counts and a phrase-like shape.
+const STANDALONE_HEX_PRIVATE_KEY_RE = /^(\s*)((?:0x)?[0-9a-f]{64})(\s*)$/iu;
+const EMBEDDED_HEX_PRIVATE_KEY_RE = /(?<![\p{L}\p{N}_])(?:0x)?[0-9a-f]{64}(?![\p{L}\p{N}_])/giu;
+const STANDALONE_THREE_DIGIT_CODE_RE = /^(\s*)(\d{3})([?!.,;:\s]*)$/u;
+const STANDALONE_RECOVERY_PHRASE_RE = /^(\s*)([a-z]+(?:[^\S\r\n]+[a-z]+){11,23})(\s*)$/iu;
+const HIGH_CONFIDENCE_BIP39_WORDS = new Set([
+  "abandon",
+  "ability",
+  "able",
+  "about",
+  "above",
+  "absent",
+  "absorb",
+  "abstract",
+  "absurd",
+  "abuse",
+  "access",
+  "accident",
+  "account",
+  "accuse",
+  "achieve",
+  "acid",
+  "acoustic",
+  "acquire",
+  "across",
+  "act",
+  "action",
+  "actor",
+  "actress",
+  "actual",
+  "apple",
+  "bicycle",
+  "book",
+  "candle",
+  "cloud",
+  "dragon",
+  "eagle",
+  "forest",
+  "garden",
+  "gold",
+  "harbor",
+  "island",
+  "jungle",
+  "kitten",
+  "lamp",
+  "lemon",
+  "mint",
+  "moon",
+  "ocean",
+  "river",
+  "stone",
+  "train",
+]);
+
+// Access credentials use only high-confidence shapes. Generic long words,
+// phone numbers and normal URLs must remain visible; an explicit label,
+// Authorization header or provider-issued prefix is required.
+const ACCESS_TOKEN_VALUE = String.raw`[A-Za-z0-9][A-Za-z0-9._~+/=-]{11,2047}`;
+const ACCESS_TOKEN_LABEL = String.raw`(?:api[\s_-]*(?:key|token)|access[\s_-]*token|bot[\s_-]*token)`;
+const LABELED_ACCESS_TOKEN_RE = new RegExp(
+  `(${WORD_START}${ACCESS_TOKEN_LABEL}${WORD_END})(\\s*[:=]\\s*|\\s+)(${ACCESS_TOKEN_VALUE})`,
+  "giu",
+);
+const AUTHORIZATION_BEARER_RE = new RegExp(
+  `(${WORD_START}authorization${WORD_END}\\s*:\\s*bearer\\s+)(${ACCESS_TOKEN_VALUE})`,
+  "giu",
+);
+const BARE_BEARER_RE = new RegExp(
+  `(${WORD_START}bearer${WORD_END}(?:${EXPLICIT_VALUE_SEPARATOR}|\\s+))(${ACCESS_TOKEN_VALUE})`,
+  "giu",
+);
+const GENERIC_LABELED_TOKEN_RE = new RegExp(
+  `(${WORD_START}token${WORD_END})(\\s*[:=]\\s*)(${ACCESS_TOKEN_VALUE})`,
+  "giu",
+);
+const TELEGRAM_BOT_TOKEN_RE =
+  /(?<![\p{L}\p{N}_:+-])\d{6,12}:AA[A-Za-z0-9_-]{28,62}(?![\p{L}\p{N}_-])/gu;
+const HIGH_CONFIDENCE_ACCESS_TOKEN_RE =
+  /(?<![\p{L}\p{N}_-])(?:eyJ[A-Za-z0-9_-]{5,512}\.[A-Za-z0-9_-]{8,2048}\.[A-Za-z0-9_-]{8,1024}|AIza[A-Za-z0-9_-]{35}|(?:AKIA|ASIA)[A-Z0-9]{16}|sk-(?:proj-)?[A-Za-z0-9_-]{16,240}|github_pat_[A-Za-z0-9_]{20,240}|gh[pousr]_[A-Za-z0-9]{20,240}|glpat-[A-Za-z0-9_-]{20,240}|xox[baprs]-[A-Za-z0-9-]{16,240}|(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,240})(?![\p{L}\p{N}_-])/gu;
+
+function isLikelyLabeledAccessToken(value: string, minimumLength = 20): boolean {
+  const hasHighConfidencePrefix = HIGH_CONFIDENCE_ACCESS_TOKEN_RE.test(value);
+  HIGH_CONFIDENCE_ACCESS_TOKEN_RE.lastIndex = 0;
+  if (hasHighConfidencePrefix) return true;
+  if (
+    value.length < minimumLength ||
+    /(?:placeholder|not[-_]?a[-_]?complete|documentation|your[-_]?token)/iu.test(value)
+  ) {
+    return false;
+  }
+  return /[A-Za-z]/u.test(value) && new Set(value.toLowerCase()).size >= 8;
+}
+
+function redactStandaloneHighConfidenceSecret(
+  input: string,
+  classes: Set<SensitiveSecretClass>,
+): string {
+  const recovery = input.match(STANDALONE_RECOVERY_PHRASE_RE);
+  if (recovery) {
+    const words = (recovery[2] ?? "").toLowerCase().split(/[^\S\r\n]+/u);
+    const allKnownWords = words.every((word) => HIGH_CONFIDENCE_BIP39_WORDS.has(word));
+    if (RECOVERY_WORD_COUNTS.has(words.length) && allKnownWords) {
+      classes.add("recovery_phrase");
+      return `${recovery[1] ?? ""}${HIDDEN_VALUE}${recovery[3] ?? ""}`;
+    }
+  }
+
+  const privateKey = input.match(STANDALONE_HEX_PRIVATE_KEY_RE);
+  if (privateKey) {
+    classes.add("private_key");
+    return `${privateKey[1] ?? ""}${HIDDEN_VALUE}${privateKey[3] ?? ""}`;
+  }
+
+  const threeDigitCode = input.match(STANDALONE_THREE_DIGIT_CODE_RE);
+  if (threeDigitCode) {
+    classes.add("code");
+    return `${threeDigitCode[1] ?? ""}${HIDDEN_VALUE}${threeDigitCode[3] ?? ""}`;
+  }
+
+  return input;
+}
 
 const PASSWORD_CONTEXT_WORDS = new Set([
   "change",
@@ -211,7 +347,13 @@ function isLikelyPasswordValue(value: string, separator: string): boolean {
   // Preserve the established phone masker when a report quotes a phone after
   // a password label; redactText applies that type-specific control next.
   if (/^\+[\d\s()-]{6,}\d$/u.test(candidate)) return false;
-  if (PASSWORD_CONTEXT_WORDS.has(candidate.toLowerCase())) return false;
+  const leadingWord = candidate.match(/^[\p{L}\p{M}'’-]+/u)?.[0]?.toLowerCase();
+  if (
+    PASSWORD_CONTEXT_WORDS.has(candidate.toLowerCase()) ||
+    (leadingWord !== undefined && PASSWORD_CONTEXT_WORDS.has(leadingWord))
+  ) {
+    return false;
+  }
   if (/[:=]/u.test(separator) || /\b(?:is|это|bu)\b/iu.test(separator)) return true;
   if (/[\p{N}\p{P}\p{S}]/u.test(candidate)) return true;
   return candidate.length >= 8;
@@ -323,8 +465,55 @@ function redactMultilineRecoveryPhrases(input: string, classes: Set<SensitiveSec
 export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSanitization {
   const classes = new Set<SensitiveSecretClass>();
 
-  let value = input.replace(PEM_PRIVATE_KEY_RE, () => {
+  let value = redactStandaloneHighConfidenceSecret(input, classes).replace(
+    PEM_PRIVATE_KEY_RE,
+    () => {
+      classes.add("private_key");
+      return HIDDEN_VALUE;
+    },
+  );
+
+  value = value.replace(EMBEDDED_HEX_PRIVATE_KEY_RE, () => {
     classes.add("private_key");
+    return HIDDEN_VALUE;
+  });
+
+  value = value.replace(AUTHORIZATION_BEARER_RE, (_match: string, label: string) => {
+    classes.add("access_token");
+    return `${label}${HIDDEN_VALUE}`;
+  });
+
+  value = value.replace(BARE_BEARER_RE, (match: string, label: string, candidate: string) => {
+    if (!isLikelyLabeledAccessToken(candidate, 16)) return match;
+    classes.add("access_token");
+    return `${label}${HIDDEN_VALUE}`;
+  });
+
+  value = value.replace(
+    GENERIC_LABELED_TOKEN_RE,
+    (match: string, label: string, separator: string, candidate: string) => {
+      if (!isLikelyLabeledAccessToken(candidate)) return match;
+      classes.add("access_token");
+      return `${label}${separator}${HIDDEN_VALUE}`;
+    },
+  );
+
+  value = value.replace(
+    LABELED_ACCESS_TOKEN_RE,
+    (match: string, label: string, separator: string, candidate: string) => {
+      if (!isLikelyLabeledAccessToken(candidate)) return match;
+      classes.add("access_token");
+      return `${label}${separator}${HIDDEN_VALUE}`;
+    },
+  );
+
+  value = value.replace(TELEGRAM_BOT_TOKEN_RE, () => {
+    classes.add("access_token");
+    return HIDDEN_VALUE;
+  });
+
+  value = value.replace(HIGH_CONFIDENCE_ACCESS_TOKEN_RE, () => {
+    classes.add("access_token");
     return HIDDEN_VALUE;
   });
 
@@ -350,7 +539,9 @@ export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSaniti
   value = value.replace(
     EXPLICIT_PASSWORD_RE,
     (match: string, label: string, separator: string, candidate: string) => {
-      if (candidate.trim() === HIDDEN_VALUE || startsWithPhoneShapedValue(candidate)) return match;
+      if (!isLikelyPasswordValue(candidate, separator) || startsWithPhoneShapedValue(candidate)) {
+        return match;
+      }
       classes.add("password");
       return `${label}${separator}${HIDDEN_VALUE}`;
     },

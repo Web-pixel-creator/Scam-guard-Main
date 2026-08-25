@@ -40,6 +40,11 @@ export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
   asks_for_pin: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },
   asks_to_install_apk: { priority: 12, evidence: "text_pattern", limitation: "signal_not_proof" },
   asks_to_share_screen: { priority: 12, evidence: "text_pattern", limitation: "signal_not_proof" },
+  asks_for_money_transfer: {
+    priority: 30,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
   asks_to_transfer_to_safe_account: {
     priority: 10,
     evidence: "text_pattern",
@@ -223,6 +228,21 @@ export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
     limitation: "telegram_visible_only",
   },
   dropper_recruitment: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },
+  authority_coerced_dangerous_act: {
+    priority: 2,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
+  fake_penalty_points_erasure: {
+    priority: 18,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
+  threatens_physical_violence: {
+    priority: 1,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
 };
 
 const EVIDENCE_COPY: Record<InlineEvidenceMethod, Record<Lang, string>> = {

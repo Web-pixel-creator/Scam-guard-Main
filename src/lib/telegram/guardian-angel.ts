@@ -35,7 +35,18 @@ export interface GuardianAngelSnapshot {
   at: string;
 }
 
-type GuardianContext = "apk" | "bank" | "card" | "money" | "telegram" | "qr" | "crypto" | "generic";
+type GuardianContext =
+  | "violence_safety"
+  | "physical_safety"
+  | "apk"
+  | "bank"
+  | "card"
+  | "money_request"
+  | "money"
+  | "telegram"
+  | "qr"
+  | "crypto"
+  | "generic";
 
 const BANK_REASONS = new Set<ReasonCode>([
   "asks_for_otp",
@@ -59,6 +70,15 @@ const APK_REASONS = new Set<ReasonCode>([
   "asks_to_install_apk",
   "apk_download_link",
   "malicious_file_bait",
+]);
+
+const PHYSICAL_SAFETY_REASONS = new Set<ReasonCode>(["authority_coerced_dangerous_act"]);
+
+const VIOLENCE_SAFETY_REASONS = new Set<ReasonCode>(["threatens_physical_violence"]);
+
+const MONEY_REQUEST_REASONS = new Set<ReasonCode>([
+  "asks_for_money_transfer",
+  "fake_penalty_points_erasure",
 ]);
 
 const MONEY_REASONS = new Set<ReasonCode>([
@@ -95,7 +115,12 @@ function hasReason(snapshot: GuardianAngelSnapshot, set: Set<ReasonCode>): boole
 }
 
 function contextOf(snapshot: GuardianAngelSnapshot): GuardianContext {
+  if (hasReason(snapshot, VIOLENCE_SAFETY_REASONS)) return "violence_safety";
+  if (hasReason(snapshot, PHYSICAL_SAFETY_REASONS)) return "physical_safety";
   if (snapshot.type === "apk" || hasReason(snapshot, APK_REASONS)) return "apk";
+  if (hasReason(snapshot, MONEY_REQUEST_REASONS) && !hasReason(snapshot, MONEY_REASONS)) {
+    return "money_request";
+  }
   if (snapshot.type === "payment" || hasReason(snapshot, MONEY_REASONS)) return "money";
   if (hasReason(snapshot, CARD_REASONS)) return "card";
   if (hasReason(snapshot, BANK_REASONS)) return "bank";
@@ -108,7 +133,13 @@ function contextOf(snapshot: GuardianAngelSnapshot): GuardianContext {
 function shouldShowSafeCallButton(snapshot?: GuardianAngelSnapshot): boolean {
   if (!snapshot) return true;
   const context = contextOf(snapshot);
-  return context === "apk" || context === "bank" || context === "card" || context === "money";
+  return (
+    context === "apk" ||
+    context === "bank" ||
+    context === "card" ||
+    context === "money_request" ||
+    context === "money"
+  );
 }
 
 function isRecent(snapshot: GuardianAngelSnapshot, now = new Date()): boolean {
@@ -140,9 +171,15 @@ function primaryStep(snapshot: GuardianAngelSnapshot, lang: Lang): string {
   const context = contextOf(snapshot);
   if (lang === "uz") {
     const uz: Record<GuardianContext, string> = {
-      apk: "telefonni ajrating: aviаrejimni yoqing va bankka boshqa qurilmadan qo'ng'iroq qiling",
+      violence_safety:
+        "javob bermang yoki uchrashuvga rozi bo'lmang, xavfsiz joyga o'ting va 102 ga qo'ng'iroq qiling",
+      physical_safety:
+        "xavfli topshiriqni bajarmang, buyum yoki joydan uzoqlashib xavfsiz joyga o'ting va 102 ga qo'ng'iroq qiling",
+      apk: "telefonni ajrating: aviarejimni yoqing va bankka boshqa qurilmadan qo'ng'iroq qiling",
       bank: "bankka faqat rasmiy raqam orqali qo'ng'iroq qiling va hisobni tekshirtiring",
       card: "kartani darhol bloklang va oxirgi operatsiyalarni tekshiring",
+      money_request:
+        "pul o'tkazmang; muloqotni tugating va oluvchi hamda to'lov sababini mustaqil tekshiring",
       money: "bankka qo'ng'iroq qilib o'tkazmani muzlatish yoki e'tiroz bildirishni so'rang",
       telegram: "Telegramdagi noma'lum seanslarni yoping va ikki bosqichli parolni yoqing",
       qr: "QR orqali kirishni to'xtating va Telegram/SMS kodini kiritmang",
@@ -153,9 +190,14 @@ function primaryStep(snapshot: GuardianAngelSnapshot, lang: Lang): string {
   }
   if (lang === "en") {
     const en: Record<GuardianContext, string> = {
+      violence_safety: "do not reply or agree to meet; move somewhere safe and call 102",
+      physical_safety:
+        "do not carry out the dangerous task; move away from the object or place to somewhere safe and call 102",
       apk: "isolate the phone: turn on airplane mode and call the bank from another device",
       bank: "call the bank only using an official number and ask them to check the account",
       card: "block the card now and check the latest transactions",
+      money_request:
+        "do not transfer money; end the conversation and independently verify the recipient and payment reason",
       money: "call the bank and ask to freeze or dispute the transfer",
       telegram: "terminate unknown Telegram sessions and enable two-step verification",
       qr: "stop the QR login flow and do not enter Telegram or SMS codes",
@@ -165,9 +207,15 @@ function primaryStep(snapshot: GuardianAngelSnapshot, lang: Lang): string {
     return en[context];
   }
   const ru: Record<GuardianContext, string> = {
+    violence_safety:
+      "не отвечайте и не соглашайтесь на встречу, перейдите в безопасное место и позвоните 102",
+    physical_safety:
+      "не выполняйте опасное задание, отойдите от предмета или места в безопасную сторону и позвоните 102",
     apk: "изолируйте телефон: включите авиарежим и звоните в банк с другого устройства",
     bank: "позвоните в банк только по официальному номеру и попросите проверить счёт",
     card: "заблокируйте карту сейчас и проверьте последние операции",
+    money_request:
+      "не переводите деньги; завершите разговор и независимо проверьте получателя и причину платежа",
     money: "позвоните в банк и попросите заморозить или оспорить перевод",
     telegram: "завершите неизвестные сеансы Telegram и включите двухэтапный пароль",
     qr: "остановите QR-вход и не вводите Telegram/SMS-код",
@@ -181,6 +229,16 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
   const context = contextOf(snapshot);
   const steps: Record<Lang, Record<GuardianContext, string[]>> = {
     ru: {
+      violence_safety: [
+        "Не отвечайте на угрозы, не платите и не соглашайтесь на встречу.",
+        "Перейдите в безопасное место и позвоните 102; не предупреждайте отправителя о своих действиях.",
+        "Расскажите близкому человеку и сохраните угрозы только если это можно сделать безопасно.",
+      ],
+      physical_safety: [
+        "Не выполняйте требование и не трогайте, не переносите и не поджигайте предметы.",
+        "Отойдите в безопасное место и позвоните 102; не предупреждайте собеседника о своих действиях.",
+        "Если вы несовершеннолетний — сразу позовите родителя, учителя или другого взрослого, которому доверяете.",
+      ],
       apk: [
         "Оставьте авиарежим включённым, пока не удалите приложение.",
         "С другого телефона позвоните в банк и временно заблокируйте карты.",
@@ -195,6 +253,11 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
         "Заблокируйте карту в приложении или по официальному номеру банка.",
         "Проверьте последние операции и попросите оспорить неизвестные.",
         "Если вводили пароль онлайн-банка — смените его с другого устройства.",
+      ],
+      money_request: [
+        "Не переводите деньги и не отвечайте на новые просьбы об оплате.",
+        "Свяжитесь с человеком или организацией по сохранённому официальному контакту и проверьте получателя и причину платежа.",
+        "Сохраните чат и платёжные реквизиты для проверки.",
       ],
       money: [
         "Позвоните в банк и попросите заморозить/оспорить перевод.",
@@ -223,8 +286,18 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
       ],
     },
     uz: {
+      violence_safety: [
+        "Tahdidga javob bermang, pul to'lamang va uchrashuvga rozi bo'lmang.",
+        "Xavfsiz joyga o'tib, 102 ga qo'ng'iroq qiling; keyingi harakatingizni yuboruvchiga aytmang.",
+        "Yaqin insonga darhol ayting va tahdidni faqat xavfsiz bo'lsa saqlang.",
+      ],
+      physical_safety: [
+        "Talabni bajarmang; buyumga tegmang, uni ko'chirmang va hech narsani yoqmang.",
+        "Xavfsiz joyga uzoqlashib, 102 ga qo'ng'iroq qiling; keyingi harakatingizni suhbatdoshga aytmang.",
+        "Voyaga yetmagan bo'lsangiz, darhol ota-ona, o'qituvchi yoki ishonchli kattani chaqiring.",
+      ],
       apk: [
-        "Ilovani o'chirmaguncha aviаrejimni yoqilgan holda qoldiring.",
+        "Ilovani o'chirmaguncha aviarejimni yoqilgan holda qoldiring.",
         "Boshqa telefondan bankka qo'ng'iroq qilib kartalarni vaqtincha bloklang.",
         "Toza qurilmadan bank, Telegram va pochta parollarini almashtiring.",
       ],
@@ -237,6 +310,11 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
         "Kartani ilova orqali yoki bankning rasmiy raqami orqali bloklang.",
         "Oxirgi operatsiyalarni tekshiring va begona operatsiyaga e'tiroz bildiring.",
         "Agar bank parolini kiritgan bo'lsangiz, uni boshqa qurilmadan almashtiring.",
+      ],
+      money_request: [
+        "Pul o'tkazmang va yangi to'lov so'rovlariga javob bermang.",
+        "Shaxs yoki tashkilot bilan saqlangan rasmiy aloqa orqali bog'lanib, oluvchi va to'lov sababini tekshiring.",
+        "Tekshiruv uchun chat va to'lov rekvizitlarini saqlang.",
       ],
       money: [
         "Bankka qo'ng'iroq qilib o'tkazmani muzlatish yoki qaytarishni so'rang.",
@@ -265,6 +343,16 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
       ],
     },
     en: {
+      violence_safety: [
+        "Do not reply to the threat, pay, or agree to meet.",
+        "Move somewhere safe and call 102; do not tell the sender what you plan to do.",
+        "Tell a trusted person and preserve the threat only if it is safe to do so.",
+      ],
+      physical_safety: [
+        "Do not obey the demand; do not touch, carry, damage, or burn anything.",
+        "Move somewhere safe and call 102; do not tell the sender what you plan to do.",
+        "If you are a minor, tell a parent, teacher, or another trusted adult immediately.",
+      ],
       apk: [
         "Keep airplane mode on until the app is removed.",
         "From another phone, call the bank and temporarily block your cards.",
@@ -279,6 +367,11 @@ function nextSteps(snapshot: GuardianAngelSnapshot, lang: Lang): string[] {
         "Block the card in the app or via the bank's official number.",
         "Check recent transactions and dispute unknown ones.",
         "If you entered an online-bank password, change it from another device.",
+      ],
+      money_request: [
+        "Do not transfer money or respond to new payment requests.",
+        "Contact the person or organization through a saved official channel and verify the recipient and payment reason.",
+        "Save the chat and payment details for verification.",
       ],
       money: [
         "Call the bank and ask to freeze or dispute the transfer.",
@@ -316,10 +409,15 @@ export function buildGuardianAngelSnapshot(
   now = new Date(),
 ): GuardianAngelSnapshot | null {
   if (result.level !== "high_risk") return null;
+  const urgentReasons: ReasonCode[] = result.reasons.filter(
+    (reason) =>
+      reason === "threatens_physical_violence" || reason === "authority_coerced_dangerous_act",
+  );
+  const remainingReasons = result.reasons.filter((reason) => !urgentReasons.includes(reason));
   return {
     level: "high_risk",
     type: result.type,
-    reasons: result.reasons.slice(0, 5),
+    reasons: [...new Set([...urgentReasons, ...remainingReasons])].slice(0, 5),
     at: now.toISOString(),
   };
 }
@@ -492,7 +590,15 @@ function buildDoneText(snapshot: GuardianAngelSnapshot, lang: Lang): string {
 
 function buildFullPlanText(snapshot: GuardianAngelSnapshot, lang: Lang): string {
   const steps = nextSteps(snapshot, lang);
+  const context = contextOf(snapshot);
+  const physicalSafety = context === "violence_safety" || context === "physical_safety";
   if (lang === "uz") {
+    if (physicalSafety) {
+      return (
+        "📋 To'liq xavfsiz reja\n\n" +
+        steps.map((step, index) => `${index + 1}. ${step}`).join("\n")
+      );
+    }
     return (
       "📋 To'liq xavfsiz reja\n\n" +
       steps.map((step, index) => `${index + 1}. ${step}`).join("\n") +
@@ -501,11 +607,22 @@ function buildFullPlanText(snapshot: GuardianAngelSnapshot, lang: Lang): string 
     );
   }
   if (lang === "en") {
+    if (physicalSafety) {
+      return (
+        "📋 Full safety plan\n\n" + steps.map((step, index) => `${index + 1}. ${step}`).join("\n")
+      );
+    }
     return (
       "📋 Full safety plan\n\n" +
       steps.map((step, index) => `${index + 1}. ${step}`).join("\n") +
       "\n4. Do not send new codes, card data, passwords, files, or money.\n" +
       "5. If money or card data may be at risk, call the bank through an official number."
+    );
+  }
+  if (physicalSafety) {
+    return (
+      "📋 Полный безопасный план\n\n" +
+      steps.map((step, index) => `${index + 1}. ${step}`).join("\n")
     );
   }
   return (

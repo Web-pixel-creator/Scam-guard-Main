@@ -96,6 +96,17 @@ describe("matchBrandInText", () => {
       expect(result.evidence[0].brandId).toBe("humo");
     });
 
+    it("brand + a detected money-transfer request → detects", () => {
+      const codes: ReasonCode[] = ["asks_for_money_transfer"];
+      const result = matchBrandInText(
+        "Kapitalbank security asks me to transfer money to a personal card",
+        [],
+        codes,
+      );
+      expect(result.detected).toBe(true);
+      expect(result.evidence[0].brandId).toBe("kapitalbank");
+    });
+
     it("brand + non-high-risk code (uses_urgency) → no detection", () => {
       const codes: ReasonCode[] = ["uses_urgency"];
       const result = matchBrandInText("Kapitalbank has a new promotion", [], codes);

@@ -340,6 +340,60 @@ describe("telegram public metadata", () => {
     expect(brief).not.toMatch(/точно мошенник|есть scam-label/i);
   });
 
+  it.each([
+    ["ru", /угроз[аы] физическ|угрожает.*физическ/iu, /безопасн.*102/isu],
+    ["uz", /jismoniy xavfsizlik|kuch ishlatish/iu, /xavfsiz.*102/isu],
+    ["en", /physical-safety threat/iu, /somewhere safe.*102/isu],
+  ] as const)(
+    "puts urgent violence-threat guidance before Telegram metadata limits in %s",
+    (lang, scenario, action) => {
+      const brief =
+        buildTelegramPublicMetadataBrief(
+          { status: "private_invite", value: "+threatSource" },
+          lang,
+          { reasons: ["unknown_sender", "threatens_physical_violence"], knownReports: 0 },
+        ) ?? "";
+
+      expect(brief).toMatch(scenario);
+      expect(brief).toMatch(action);
+      expect(brief.indexOf("102")).toBeLessThan(brief.indexOf("Telegram"));
+    },
+  );
+
+  it.each([
+    [
+      "asks_for_money_transfer",
+      /просьба о переводе|перевод или оплат/iu,
+      /не переводите.*проверьте/isu,
+    ],
+    ["fake_penalty_points_erasure", /удалить штрафные баллы/iu, /не переводите.*официальн/isu],
+  ] as const)(
+    "keeps Telegram payment metadata scenario-specific for %s",
+    (reason, scenario, step) => {
+      const brief =
+        buildTelegramPublicMetadataBrief(
+          { status: "private_invite", value: "+paymentSource" },
+          "ru",
+          { reasons: ["unknown_sender", reason], knownReports: 0 },
+        ) ?? "";
+
+      expect(brief).toMatch(scenario);
+      expect(brief).toMatch(step);
+    },
+  );
+
+  it("keeps an APK request ahead of penalty-point payment copy when both are present", () => {
+    const brief =
+      buildTelegramPublicMetadataBrief({ status: "private_invite", value: "+fineApk" }, "ru", {
+        reasons: ["fake_penalty_points_erasure", "asks_to_install_apk"],
+        knownReports: 0,
+      }) ?? "";
+
+    expect(brief).toContain("просьба: код, карта, APK");
+    expect(brief).toContain("не ставьте APK");
+    expect(brief).toContain("за деньги обещают удалить штрафные баллы");
+  });
+
   it("enriches explanation without changing deterministic verdict fields", async () => {
     const result = baseTelegramResult({
       level: "suspicious",

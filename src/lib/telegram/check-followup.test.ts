@@ -171,9 +171,30 @@ describe("last check follow-up router", () => {
   );
 
   it.each([
+    [
+      "Что теперь? Полиция велит поджечь склад, иначе заведут уголовное дело",
+      "authority_coerced_dangerous_act",
+    ],
+    [
+      "Nima qilay? Jarima ballarini pulga o'chirib berish uchun o'tkazma so'rashyapti",
+      "fake_penalty_points_erasure",
+    ],
+    ["Что теперь? Я знаю твой адрес, приеду домой и убью тебя", "threatens_physical_violence"],
+  ] as const)("does not attach a new P0/P1 danger to stale check context: %s", (phrase, reason) => {
+    const now = new Date("2026-08-23T12:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "safe" }), now);
+
+    expect(evaluateText(phrase)).toContain(reason);
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBeNull();
+  });
+
+  it.each([
     ["Что мне делать прямо сейчас?", "next_steps"],
     ["What should I do right now?", "next_steps"],
     ["Hozir nima qilay?", "next_steps"],
+    ["что теперь?", "next_steps"],
+    ["ok and now?", "next_steps"],
+    ["endi-chi?", "next_steps"],
   ] as const)(
     "routes a user safety question without treating it as attacker urgency: %s",
     (text, expectedAction) => {
@@ -184,6 +205,51 @@ describe("last check follow-up router", () => {
       expect(classifyLastCheckFollowUp(text, scenarioWith(snapshot), now)).toBe(expectedAction);
     },
   );
+
+  it.each([
+    ["что мне им сказать?", "ru", /не подтверждаю|не перевожу|завершаю/u],
+    ["что им ответить?", "ru", /не подтверждаю|не перевожу|завершаю/u],
+    ["мне отвечать?", "ru", /не подтверждаю|не перевожу|завершаю/u],
+    ["what should I say to them?", "en", /verify|official/u],
+    ["ularga nima deyay?", "uz", /mustaqil|rasmiy/u],
+    ["ularga nima yozay?", "uz", /mustaqil|rasmiy/u],
+    ["Ularga nima deb javob beray?", "uz", /mustaqil|rasmiy/u],
+    ["Уларга нима деб жавоб берай?", "uz", /mustaqil|rasmiy/u],
+  ] as const)(
+    "returns a sendable reply script instead of starting a generic check: %s",
+    (phrase, lang, expected) => {
+      const now = new Date("2026-08-23T12:00:00.000Z");
+      const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+      const action = classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now);
+
+      expect(action).toBe("reply_script");
+      expect(buildLastCheckFollowUpText(action!, snapshot, lang)).toMatch(expected);
+    },
+  );
+
+  it.each([
+    ["pachemu?", "explain"],
+    ["pochemu?", "explain"],
+    ["chto delat dalshe?", "next_steps"],
+    ["chto im skazat?", "reply_script"],
+    ["nu i chto teper?", "next_steps"],
+  ] as const)("uses a bounded Russian-Latin follow-up fallback: %s", (phrase, expected) => {
+    const now = new Date("2026-08-23T12:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBe(expected);
+  });
+
+  it.each([
+    ["Nima qilay?", "next_steps"],
+    ["Keyin nima?", "next_steps"],
+    ["Nega bunday?", "explain"],
+    ["Ishonsa bo'ladimi?", "confidence"],
+    ["Bank nomeri qane?", "contacts"],
+  ] as const)("keeps a short Uzbek last-check follow-up contextual: %s", (phrase, expected) => {
+    const now = new Date("2026-08-23T12:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(baseResult({ level: "suspicious" }), now);
+    expect(classifyLastCheckFollowUp(phrase, scenarioWith(snapshot), now)).toBe(expected);
+  });
 
   it("answers a short confidence question after a recent QR/menu check", () => {
     const now = new Date("2026-06-06T05:00:00.000Z");
@@ -393,6 +459,42 @@ describe("last check follow-up router", () => {
     expect(text).toContain("Номер сам по себе не доказывает");
     expect(text).not.toContain("Корректный узбекский номер");
     expect(text).not.toContain("Что я заметил");
+  });
+
+  it.each([
+    ["ru", /физическ.*безопасн|безопасн.*102/isu],
+    ["uz", /jismoniy.*xavfsiz|xavfsiz.*102/isu],
+    ["en", /physical.*safe|safe.*102/isu],
+  ] as const)("keeps simple-explain physical-safety guidance specific in %s", (lang, expected) => {
+    const now = new Date("2026-08-23T12:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({
+        level: "high_risk",
+        score: 80,
+        reasons: ["threatens_physical_violence"],
+      }),
+      now,
+    );
+
+    const text = buildLastCheckFollowUpText("simple_explain", snapshot, lang);
+    expect(text).toMatch(expected);
+    expect(text).toContain("102");
+    expect(text).not.toMatch(/ключ от (?:ваших )?(?:денег|аккаунта)|giving a key/iu);
+  });
+
+  it.each([
+    ["asks_for_money_transfer", /не переводите деньги.*проверьте получателя/isu],
+    ["fake_penalty_points_erasure", /не платите.*штрафные баллы.*официальн/isu],
+  ] as const)("keeps simple-explain action specific for %s", (reason, expected) => {
+    const now = new Date("2026-08-23T12:00:00.000Z");
+    const snapshot = buildLastCheckSnapshot(
+      baseResult({ level: "high_risk", score: 80, reasons: [reason] }),
+      now,
+    );
+
+    const text = buildLastCheckFollowUpText("simple_explain", snapshot, "ru");
+    expect(text).toMatch(expected);
+    expect(text).not.toMatch(/ключ от ваших денег|ввод через QR/iu);
   });
 
   it("does not intercept real scam payloads that need a fresh check", () => {

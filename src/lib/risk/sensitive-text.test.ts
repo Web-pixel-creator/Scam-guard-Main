@@ -106,7 +106,93 @@ describe("sanitizeSensitiveTextForSink", () => {
       "private key = -----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----",
       "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC",
     ],
-  ])("redacts a %s value", (expectedClass, input, marker) => {
+    [
+      "access_token",
+      "API_KEY=sk-proj-TestOnly1234567890abcdef",
+      "sk-proj-TestOnly1234567890abcdef",
+    ],
+    ["access_token", "access token abcdefgh1234567890abcd", "abcdefgh1234567890abcd"],
+    [
+      "access_token",
+      "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.TESTONLY1234567890.signatureABC123",
+      "eyJhbGciOiJIUzI1NiJ9.TESTONLY1234567890.signatureABC123",
+    ],
+    [
+      "access_token",
+      "Telegram bot token 123456789:AAExampleTokenValue1234567890abcdefghi",
+      "123456789:AAExampleTokenValue1234567890abcdefghi",
+    ],
+    [
+      "access_token",
+      "GitHub token ghp_TestOnlyToken1234567890ABCDEFGHIJ12345",
+      "ghp_TestOnlyToken1234567890ABCDEFGHIJ12345",
+    ],
+    [
+      "access_token",
+      "github_pat_TestOnlyToken_1234567890_ABCDEFGHIJ",
+      "github_pat_TestOnlyToken_1234567890_ABCDEFGHIJ",
+    ],
+    [
+      "access_token",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgT25seSJ9.TestOnlySignature1234567890abcdef",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgT25seSJ9.TestOnlySignature1234567890abcdef",
+    ],
+    [
+      "access_token",
+      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgT25seSJ9.TestOnlySignature9876543210abcdef",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgT25seSJ9.TestOnlySignature9876543210abcdef",
+    ],
+    [
+      "access_token",
+      "AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890",
+      "AIzaABCDEFGHIJKLMNOPQRSTUVWXY1234567890",
+    ],
+    ["access_token", "AKIATESTONLY12345678", "AKIATESTONLY12345678"],
+    ["access_token", "ASIATESTONLY87654321", "ASIATESTONLY87654321"],
+    [
+      "recovery_phrase",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+      "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    ],
+    [
+      "recovery_phrase",
+      "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    ],
+    [
+      "private_key",
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    ],
+    [
+      "private_key",
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    ],
+    ["code", "731", "731"],
+    ["code", "123?", "123"],
+    [
+      "access_token",
+      "Bearer CompletelyOpaqueCredentialMaterial",
+      "CompletelyOpaqueCredentialMaterial",
+    ],
+    [
+      "access_token",
+      "token=CompletelyOpaqueCredentialMaterial",
+      "CompletelyOpaqueCredentialMaterial",
+    ],
+    ["access_token", "API_KEY=CompletelyAlphabeticCredential", "CompletelyAlphabeticCredential"],
+    ["password", "password=CompletelyAlphabeticPassword", "CompletelyAlphabeticPassword"],
+    ["password", "parolim: UzunMaxfiyParol", "UzunMaxfiyParol"],
+    ["password", "паролим: UzunMaxfiyParol", "UzunMaxfiyParol"],
+    ["code", "kodim: 4821", "4821"],
+    ["code", "кодим: 4821", "4821"],
+    ["access_token", "Bearer abcdefghijklmnop", "abcdefghijklmnop"],
+    ["password", "Пароль🟠UzunMaxfiyParol", "UzunMaxfiyParol"],
+    ["code", "SMS kodi 👉 592814", "592814"],
+    ["code", "OTP → 482901", "482901"],
+    ["access_token", "Bearer: abcdefghijklmnop", "abcdefghijklmnop"],
+  ])("redacts a %s value from %s", (expectedClass, input, marker) => {
     const result = sanitizeSensitiveTextForSink(input);
     expect(result.redacted).toBe(true);
     expect(result.classes).toContain(expectedClass);
@@ -310,12 +396,42 @@ describe("sanitizeSensitiveTextForSink", () => {
     "do not reuse your password",
     "Do not share your bank password with a stranger.",
     "ПРОГНОЗ НА 100.000₽",
+    "The API key field is required, but no value was provided.",
+    "Authorization: Bearer token",
+    "Use https://docs.example.test/api-key to rotate credentials.",
+    "The ghp_documentation prefix is mentioned in this article.",
+    "sk-short is a documentation placeholder.",
+    "Call +998 90 123 45 67 for support.",
+    "Bearer eyJ.not-a-complete-token",
+    "AIza-short is a documentation placeholder.",
+    "AKIA is the documented AWS prefix.",
+    "AKIATESTONLY1234567",
+    "eyJhbGciOiJIUzI1NiJ9.payload-without-signature",
+    "Please remember to buy fresh apples oranges bananas milk bread cheese tomorrow",
+    "unknown people offer cheap tickets asking money quickly today sounds very risky",
+    "happy people enjoy sunny weather every morning birds sing near green trees",
+    "Room 731 is ready.",
+    "token=placeholder",
+    "API_KEY=placeholder",
+    "Пароль🟠должен быть длинным.",
+    "SMS kodi 👉 yuborilmagan.",
+    "OTP → field is empty.",
+    "Bearer: token",
+    "Bearer: documentationplaceholder",
   ])("preserves legitimate text without an actual secret value", (input) => {
     expect(sanitizeSensitiveTextForSink(input)).toEqual({
       value: input,
       redacted: false,
       classes: [],
     });
+  });
+
+  it("redacts an unlabelled 64-hex value even when it is embedded in prose", () => {
+    const raw = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const result = sanitizeSensitiveTextForSink(`received ${raw}.`);
+
+    expect(result.classes).toContain("private_key");
+    expect(result.value).not.toContain(raw);
   });
 
   it("is idempotent", () => {
@@ -336,6 +452,20 @@ describe("sanitizeSensitiveTextForSink", () => {
     expect(result.value).toContain("order 1234");
     expect(result.value).not.toContain("614");
     expect(result.classes).toContain("code");
+  });
+
+  it.each([
+    "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon",
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "731",
+    "Bearer CompletelyOpaqueCredentialMaterial",
+    "token=CompletelyOpaqueCredentialMaterial",
+    "API_KEY=CompletelyAlphabeticCredential",
+    "password=CompletelyAlphabeticPassword",
+  ])("does not leave a newly supported raw secret in the persistence redactor: %s", (input) => {
+    const redacted = redactText(input);
+    expect(redacted).toContain("••••");
+    expect(redacted).not.toContain(input.replace(/^(?:Bearer\s+|token=|API_KEY=|password=)/u, ""));
   });
 
   it.each([

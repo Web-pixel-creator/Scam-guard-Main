@@ -70,6 +70,7 @@ import {
   canonicalMetaIntentId,
   enforceTelegramReplyContract,
 } from "@/lib/telegram/intent-contract";
+import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-language";
 import { startReport } from "@/lib/telegram/handlers/report";
 import {
   buildImageTriageFollowUpKeyboard,
@@ -431,8 +432,13 @@ async function handleFamilyCallback(data: string, ctx: HandlerCtx): Promise<bool
   return false;
 }
 
-export async function handleMetaIntent(intent: MetaIntent, ctx: HandlerCtx): Promise<void> {
-  const text = escapeMarkdownV2(getMetaIntentResponse(intent, ctx.session.lang));
+export async function handleMetaIntent(
+  intent: MetaIntent,
+  ctx: HandlerCtx,
+  content?: string,
+): Promise<void> {
+  const lang = content ? resolveTelegramTextLanguage(content, ctx.session.lang) : ctx.session.lang;
+  const text = escapeMarkdownV2(getMetaIntentResponse(intent, lang));
   await sendMessage({
     chatId: ctx.chatId,
     text: enforceTelegramReplyContract(canonicalMetaIntentId(intent), "direct", text),

@@ -109,6 +109,109 @@ describe("Guardian Angel v1", () => {
     expect(qrCallbacks).toContain("guardian:full_plan");
   });
 
+  it.each([
+    {
+      lang: "ru",
+      expected: /не переводите.*проверьте получателя/isu,
+      forbidden: /замороз|оспор|уже перев|чек|время операции/iu,
+    },
+    {
+      lang: "uz",
+      expected: /pul o'tkazmang.*oluvchi/isu,
+      forbidden: /muzlat|qaytar|o'tkazgan|chek|operatsiya vaqti/iu,
+    },
+    {
+      lang: "en",
+      expected: /do not transfer.*verify the recipient/isu,
+      forbidden: /freeze|dispute|already (?:sent|transferred)|receipt|transaction time/iu,
+    },
+  ] as const)(
+    "keeps a generic requested transfer at the prevention stage in $lang",
+    ({ lang, expected, forbidden }) => {
+      const snapshot = buildGuardianAngelSnapshot(
+        highRiskResult({ type: "payment", reasons: ["asks_for_money_transfer"] }),
+      )!;
+      const messages = [
+        buildGuardianAngelIntro(snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.next, snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.fullPlan, snapshot, lang),
+      ];
+
+      expect(messages.join("\n")).toMatch(expected);
+      for (const message of messages) {
+        expect(message).not.toMatch(forbidden);
+      }
+    },
+  );
+
+  it.each([
+    ["ru", /безопасн.{0,30}102/isu, /банк|замороз|перевод/iu],
+    ["uz", /xavfsiz.{0,30}102/isu, /bank|muzlat|o'tkazma/iu],
+    ["en", /safe.{0,30}102/isu, /bank|freeze|transfer/iu],
+  ] as const)(
+    "prioritizes urgent physical safety for authority coercion in %s",
+    (lang, expected, forbidden) => {
+      const snapshot = buildGuardianAngelSnapshot(
+        highRiskResult({ reasons: ["authority_coerced_dangerous_act"] }),
+      )!;
+      const text = [
+        buildGuardianAngelIntro(snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.next, snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.fullPlan, snapshot, lang),
+      ].join("\n");
+
+      expect(text).toMatch(expected);
+      expect(text).toMatch(/поджиг|yoqmang|burn/iu);
+      expect(text).not.toMatch(forbidden);
+      expect(JSON.stringify(buildGuardianAngelKeyboard(lang, snapshot))).not.toContain(
+        GUARDIAN_CB.safeCall,
+      );
+    },
+  );
+
+  it.each([
+    ["ru", /не отвечайте.*безопасн.*102/isu],
+    ["uz", /javob bermang.*xavfsiz.*102/isu],
+    ["en", /do not reply.*safe.*102/isu],
+  ] as const)(
+    "prioritizes urgent physical safety for a violence threat in %s",
+    (lang, expected) => {
+      const snapshot = buildGuardianAngelSnapshot(
+        highRiskResult({ reasons: ["threatens_physical_violence"] }),
+      )!;
+      const text = [
+        buildGuardianAngelIntro(snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.next, snapshot, lang),
+        buildGuardianAngelText(GUARDIAN_CB.fullPlan, snapshot, lang),
+      ].join("\n");
+
+      expect(text).toMatch(expected);
+      expect(text).not.toMatch(/банк|bank|замороз|freeze|перевод|transfer/iu);
+      expect(JSON.stringify(buildGuardianAngelKeyboard(lang, snapshot))).not.toContain(
+        GUARDIAN_CB.safeCall,
+      );
+    },
+  );
+
+  it("retains a late physical-safety reason in the bounded snapshot", () => {
+    const snapshot = buildGuardianAngelSnapshot(
+      highRiskResult({
+        reasons: [
+          "asks_for_sms_code",
+          "impersonates_bank",
+          "uses_urgency",
+          "unknown_sender",
+          "suspicious_short_link",
+          "threatens_physical_violence",
+        ],
+      }),
+    )!;
+
+    expect(snapshot.reasons).toHaveLength(5);
+    expect(snapshot.reasons[0]).toBe("threatens_physical_violence");
+    expect(buildGuardianAngelIntro(snapshot, "ru")).toMatch(/безопасн.*102/isu);
+  });
+
   it("routes human follow-ups to the active guardian context", () => {
     const guardian = buildGuardianAngelSnapshot(highRiskResult(), new Date("2026-06-16T10:00Z"))!;
     const scenarioData: ReportDraft = { guardian };
