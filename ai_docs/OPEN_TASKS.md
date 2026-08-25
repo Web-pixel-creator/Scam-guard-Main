@@ -23,19 +23,18 @@ ids, test totals and tracker counts below describe the checkpoint at which
 each paragraph was written.
 
 Railway watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) are active in the
-deployed manifest. A documentation-only merge may now advance the docs tip
-without changing the Railway runtime; record the docs SHA and the runtime SHA
-`9019776` separately after the merge and verify the deployment id stays
-`59077b99`.
+deployed manifest. The documentation reconciliation merged as PR #130 (docs
+tip `2031205`) and Railway marked its placeholder deployment `fa9d5b40`
+`SKIPPED` — the docs-only no-deploy behavior is proven, the docs SHA and the
+runtime SHA `9019776` are recorded separately, and the active deployment id
+stayed `59077b99`.
 
 The immediate queue is:
 
 1. observe canary window #2 for deployed `9019776` to at least 144 eligible
    scheduled successes under the unchanged entry and restart rules, then issue
    the written GO/NO-GO verdict on or after `2026-08-28T15:07:00Z`;
-2. merge this documentation reconciliation as a docs-only change, verify the
-   Railway deployment id remains `59077b99`, and close the superseded docs
-   PR #127 with a pointer to this record;
+2. close the superseded docs PR #127 with a pointer to the merged PR #130;
 3. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
 4. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,

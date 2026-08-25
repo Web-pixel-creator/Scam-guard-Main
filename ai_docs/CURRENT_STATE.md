@@ -62,6 +62,17 @@ The post-deploy production smoke for this source returned:
 The recurring baseline never sends a Telegram user message. AI reachability is
 a separate false-by-default manual operation.
 
+## Docs-only no-deploy proof (2026-08-25)
+
+The documentation reconciliation (PR #130, docs tip
+`203120583c3a5145c7945621ab27c6e58686513a`) merged at `2026-08-25T16:05:00Z`
+touching only root Markdown and `ai_docs/**`. Railway created the placeholder
+deployment `fa9d5b40-5a56-4f11-9bea-04d39f1b3bc2` while CI ran, applied the
+active watch patterns, and marked it `SKIPPED` without building an image. The
+active production deployment remained `59077b99-b155-4f6d-88db-e6769aa4a394`
+(RC `9019776`) and `/healthz` returned `200 ok`. Docs-only merges therefore do
+not create a runtime deployment and do not restart canary window #2.
+
 ## Canary boundary
 
 PR #129 started fixed-RC observation window #2 at `2026-08-25T15:07:00Z`.
@@ -155,9 +166,8 @@ Detailed recovery and rotation evidence is in
 1. Keep PR #129 production unchanged through canary window #2 and issue a
    separate GO/NO-GO verdict on or after `2026-08-28T15:07:00Z` using the
    written 144-success and restart rules.
-2. Merge the documentation reconciliation as a docs-only change and prove the
-   Railway deployment id stays `59077b99` afterwards; close the superseded
-   docs PR #127 with a pointer to this record.
+2. Documentation reconciliation is merged and the docs-only no-deploy proof is
+   recorded; close the superseded docs PR #127 with a pointer to PR #130.
 3. Automate encrypted daily Supabase export/RPO evidence or select a managed
    backup plan.
 4. Record Railway payment-method expiry, spend alerts and response owner.

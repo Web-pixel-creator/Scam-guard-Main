@@ -77,6 +77,13 @@ existing workflow triggers. After each docs-only merge, record the docs SHA
 separately from the runtime SHA `9019776` and verify the deployment id stays
 `59077b99-b155-4f6d-88db-e6769aa4a394`.
 
+The behavior is proven: the PR #130 docs-only merge (tip `2031205`) produced
+placeholder deployment `fa9d5b40-5a56-4f11-9bea-04d39f1b3bc2`, which Railway
+marked `SKIPPED` after CI while applying the watch patterns. The active
+deployment remained `59077b99` and `/healthz` stayed `200 ok`. Expect the same
+pattern for every docs-only merge: a short-lived `WAITING` entry during CI,
+then `SKIPPED` instead of a build.
+
 Backup/restore, application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
 `ai_docs/RECOVERY_AND_KEY_ROTATION.md`; never test a restore by overwriting the
