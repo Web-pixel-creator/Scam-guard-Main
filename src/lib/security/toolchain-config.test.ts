@@ -62,13 +62,42 @@ describe("toolchain security boundaries", () => {
     expect(new Set(braceVersions)).toEqual(new Set(["5.0.8"]));
   });
 
-  it.each(["ci.yml", "security.yml"])("pins every action in %s to a commit SHA", (name) => {
-    const workflow = readFileSync(resolve(process.cwd(), ".github", "workflows", name), "utf8");
-    const actions = [...workflow.matchAll(/^\s*uses:\s+[^@\s]+@([^\s#]+)/gmu)];
+  it.each(["ci.yml", "security.yml", "prod-monitor.yml", "backup.yml", "backup-restore-drill.yml"])(
+    "pins every action in %s to a commit SHA",
+    (name) => {
+      const workflow = readFileSync(resolve(process.cwd(), ".github", "workflows", name), "utf8");
+      const actions = [...workflow.matchAll(/^\s*uses:\s+[^@\s]+@([^\s#]+)/gmu)];
 
-    expect(actions.length).toBeGreaterThan(0);
-    for (const action of actions) expect(action[1]).toMatch(/^[0-9a-f]{40}$/u);
-    expect(workflow).not.toMatch(/bun-version:\s*latest/iu);
+      expect(actions.length).toBeGreaterThan(0);
+      for (const action of actions) expect(action[1]).toMatch(/^[0-9a-f]{40}$/u);
+      expect(workflow).not.toMatch(/bun-version:\s*latest/iu);
+    },
+  );
+
+  it("keeps required-check job names ASCII-stable and workflow files BOM-free", () => {
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const monitor = readFileSync(
+      resolve(process.cwd(), ".github/workflows/prod-monitor.yml"),
+      "utf8",
+    );
+    const security = readFileSync(resolve(process.cwd(), ".github/workflows/security.yml"), "utf8");
+
+    const containsNonAsciiOrUnexpectedControl = (text: string): boolean =>
+      [...text].some((character) => {
+        const code = character.codePointAt(0) ?? 0;
+        return code > 0x7e || (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d);
+      });
+
+    for (const workflow of [ci, monitor, security]) {
+      expect(workflow.charCodeAt(0)).not.toBe(0xfeff);
+      expect(containsNonAsciiOrUnexpectedControl(workflow)).toBe(false);
+    }
+    for (const name of ["ci-verify", "coverage-thresholds", "database-gates"]) {
+      expect(ci).toContain(`name: ${name}`);
+    }
+    for (const name of ["codeql-js-ts", "gitleaks-scan", "container-security-sbom"]) {
+      expect(security).toContain(`name: ${name}`);
+    }
   });
 
   it("enforces coverage, SAST, secret, container and SBOM gates", () => {

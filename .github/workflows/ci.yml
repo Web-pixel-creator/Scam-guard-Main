@@ -1,8 +1,8 @@
-﻿name: CI
+name: CI
 
 # Runs lint, type-check, the full test suite (Vitest + fast-check), the production
 # build, and database migration checks on every push to main and pull request.
-# Keeps regressions out of main вЂ” nothing merges without a green build.
+# Keeps regressions out of main - nothing merges without a green build.
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   verify:
-    name: lint В· type-check В· test В· build
+    name: ci-verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -54,7 +54,7 @@ jobs:
         run: bun run build
 
   coverage:
-    name: coverage thresholds
+    name: coverage-thresholds
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -83,7 +83,7 @@ jobs:
           --coverage.thresholds.lines=80
 
   database:
-    name: migrations В· schema lint В· pgTAP
+    name: database-gates
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

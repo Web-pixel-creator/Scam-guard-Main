@@ -1,4 +1,4 @@
-﻿name: Production Monitor
+name: Production Monitor
 
 on:
   workflow_dispatch:

@@ -128,30 +128,30 @@ command without a separately approved maintenance window.
 
 ## Backup verification
 
-0. The workflow files described in `BACKUP_AUTOMATION.md` are merged but
-   **NOT ENABLED / NOT VERIFIED**. At the 2026-08-26 audit cutoff there were
-   zero backup runs, zero restore-drill runs, zero artifacts and neither
-   required repository secret. Their current raw `pg_dump`/plain-PostgreSQL
-   restore design must pass Supabase-specific security and portability review
-   before credentials are added. It is not current RPO or restore evidence.
-   The checks below continue to govern manual exports and every
-   pre-risky-change export.
+0. The hardened automated loop in `BACKUP_AUTOMATION.md` is still
+   **NOT ENABLED / NOT VERIFIED**. Its Supabase-compatible export, authenticated
+   encryption and isolated restore contracts are repository code, not operating
+   recovery evidence. It may be enabled only after independent workflow review,
+   selected-`main` split Environment protection, code-pinned recipient, age key
+   custody, authenticated read-back, isolated restore, independent freshness
+   monitoring and retained-ciphertext read-back evidence are complete. The
+   checks below still govern manual exports and every pre-risky-change export.
 1. In Supabase Dashboard, record plan, backup type, earliest/latest restore
    point and retention. Record metadata only; never attach a backup to the repo.
 2. On Free, confirm a successful encrypted logical export exists before every
    risky schema or Auth change. If no approved encrypted offsite destination is
    available, record the recovery gate as open and do not claim the target RPO.
 3. When a portable logical export is required, use an authorized operator shell
-   and prefer Supabase's documented split inventory: roles via
-   `supabase db dump --role-only`, schema via `supabase db dump`, and data via
-   `supabase db dump --data-only --use-copy`. A raw `pg_dump` is not accepted as
-   portable recovery evidence until an isolated Supabase-compatible restore
-   proves it. Store encrypted output outside GitHub, Codex logs and the
-   workspace. Do not pass a database password on the command line or paste it
-   into an issue.
+   and the official `supabase db dump` roles/schema/data split. Store the
+   authenticated ciphertext outside Codex logs and the workspace. GitHub
+   artifacts may be one encrypted pilot copy only after the trust gate in
+   `BACKUP_AUTOMATION.md`; they do not replace independent owner custody. Do not
+   pass a database password on the command line or paste it into an issue.
 4. Include schema, roles and data in the inventory, and separately record any
    non-database asset store. Ishonch Guard currently persists no user screenshots
-   in Supabase Storage.
+   in Supabase Storage. Preserve the official `supabase_migrations` schema/data
+   pair and the reviewed application-owned Auth/Storage hook artifact; ordinary
+   Supabase schema dumps exclude managed-schema customizations.
 5. Retain an owner, creation time, expiry, encryption/key owner and restore-test
    date for each export.
 
@@ -278,14 +278,15 @@ separate action-time approval.
 
 ## Key rotation matrix
 
-| Secret                          | Safe rotation order                                                                                                                                                                                                      | Required verification                                                                                                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `OPENAI_API_KEY` / fallback key | Create new provider key, update Railway/GitHub consumers, verify primary/fallback, then revoke old key.                                                                                                                  | AI monitor 200 plus deterministic no-key/429/5xx fallback tests.                                                                                                               |
-| `TELEGRAM_WEBHOOK_SECRET`       | Generate a new high-entropy value, update Railway and GitHub monitor in one window, restart, then remove the old value.                                                                                                  | Missing secret 401, valid secret expected 503 in polling, leader 200, monitor green.                                                                                           |
-| `TELEGRAM_BOT_TOKEN`            | Rotate in BotFather, update every Railway/GitHub consumer, restart polling without dropping updates, then verify the old token is rejected.                                                                              | `getMe`, pending queue, leader health, approved QA chat dispatch and cleanup.                                                                                                  |
-| Supabase service/secret key     | Use the Supabase Dashboard rotation workflow and overlap keys only when the platform supports it; update Railway and operator tooling before revocation.                                                                 | App/RLS/security/admin smokes and no service key in client bundle/logs.                                                                                                        |
-| Supabase publishable key        | Rotate through the Dashboard, update server and `VITE_*` build variables, rebuild the client, then revoke the old key.                                                                                                   | Login, public check/report/appeal and RLS-deny checks.                                                                                                                         |
-| Hash pepper                     | Direct replacement remains forbidden. The local code and additive migration support one active and one previous version; deploy them first, then introduce a new active slot while retaining the old secret as `legacy`. | Focused/full tests, count-only version checks, known-legacy lookup, new-target write, pending Family Shield invite, report/appeal/admin continuity and rollback compatibility. |
+| Secret                          | Safe rotation order                                                                                                                                                                                                                                                                                                                                                                                                                                 | Required verification                                                                                                                                                                                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY` / fallback key | Create new provider key, update Railway/GitHub consumers, verify primary/fallback, then revoke old key.                                                                                                                                                                                                                                                                                                                                             | AI monitor 200 plus deterministic no-key/429/5xx fallback tests.                                                                                                                                                                                                             |
+| `TELEGRAM_WEBHOOK_SECRET`       | Generate a new high-entropy value, update Railway and GitHub monitor in one window, restart, then remove the old value.                                                                                                                                                                                                                                                                                                                             | Missing secret 401, valid secret expected 503 in polling, leader 200, monitor green.                                                                                                                                                                                         |
+| `TELEGRAM_BOT_TOKEN`            | Rotate in BotFather, update every Railway/GitHub consumer, restart polling without dropping updates, then verify the old token is rejected.                                                                                                                                                                                                                                                                                                         | `getMe`, pending queue, leader health, approved QA chat dispatch and cleanup.                                                                                                                                                                                                |
+| Supabase service/secret key     | Use the Supabase Dashboard rotation workflow and overlap keys only when the platform supports it; update Railway and operator tooling before revocation.                                                                                                                                                                                                                                                                                            | App/RLS/security/admin smokes and no service key in client bundle/logs.                                                                                                                                                                                                      |
+| Supabase publishable key        | Rotate through the Dashboard, update server and `VITE_*` build variables, rebuild the client, then revoke the old key.                                                                                                                                                                                                                                                                                                                              | Login, public check/report/appeal and RLS-deny checks.                                                                                                                                                                                                                       |
+| Backup age identity / recipient | Keep the old identity while any retained artifact or independent copy still targets it. Under dual custody, prove offline decrypt with old and new identities; change the code-pinned public recipient through independent review; then require a new backup, authenticated read-back, isolated restore and retained-copy inventory before old-key retirement. Never put the private identity in `backup-export` or the DB URL in `backup-decrypt`. | Both offline decrypt proofs, reviewed recipient-change PR, selected-`main` Environment-policy read-back, successful new-recipient backup/read-back/restore run IDs, custody owners, artifact/copy inventory and explicit retirement confirmation; never record key material. |
+| Hash pepper                     | Direct replacement remains forbidden. The local code and additive migration support one active and one previous version; deploy them first, then introduce a new active slot while retaining the old secret as `legacy`.                                                                                                                                                                                                                            | Focused/full tests, count-only version checks, known-legacy lookup, new-target write, pending Family Shield invite, report/appeal/admin continuity and rollback compatibility.                                                                                               |
 
 Every rotation record contains only secret name, owners, timestamps, consumer
 list, validation run ids and revocation confirmation. It never contains values.
