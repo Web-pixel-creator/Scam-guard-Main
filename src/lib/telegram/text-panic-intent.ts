@@ -102,17 +102,40 @@ const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|wire|wired|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b|(?:^|\s)(?:i|we)\s+(?:shared|sent|gave|entered|typed)\s+no\s+(?:codes?|otp|passwords?|card\s+(?:data|details))\b)/;
 const ABORTED_VOICE_DONE_INTENT_RE =
   /(?:(?:почти|чуть\s+не|едва\s+не).{0,60}(?:сказал|назвал|сообщил|отправил|скинул|передал|продиктовал|дал|перевел|перевёл|установил)|(?:almost|nearly).{0,60}(?:shared|sent|gave|told|said|read|wired|dictated|transferred|paid|installed)|(?:shared|sent|gave|told|said|read|wired|dictated).{0,60}but\s+(?:stopped|did\s+not\s+finish))/;
+const UZ_ABORTED_VOICE_DONE_INTENT_RE =
+  /(?:sms|otp|kod|parol).{0,40}(?:yuboray|jo['’]?natay|aytay|beray)\s+dedim.{0,40}(?:to['’]?xtadim|qilmadim)/iu;
+const INTENT_POLARITY_CLAUSE_BOUNDARY_RE =
+  /(?:[;.!?]+|\b(?:but(?!\s+(?:stopped|did\s+not\s+finish))(?:\s+then)?|then|however|но|затем|потом|lekin(?!\s+(?:to['’]?xtadim|qilmadim))|keyin|ammo)\b)/iu;
+
+function hasCompletedActionOutsideNegatedClause(text: string): boolean {
+  return text.split(INTENT_POLARITY_CLAUSE_BOUNDARY_RE).some((part) => {
+    const clause = part.trim();
+    if (!clause) return false;
+    if (
+      NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      EN_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      ABORTED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_ABORTED_VOICE_DONE_INTENT_RE.test(clause)
+    ) {
+      return false;
+    }
+    return classifyVoicePanicIntent(clause) !== null;
+  });
+}
 
 export function isNegatedVoiceDoneIntent(transcript: string): boolean {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return false;
-  return (
+  const hasNegatedAction =
     NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     EN_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
-    ABORTED_VOICE_DONE_INTENT_RE.test(text)
-  );
+    ABORTED_VOICE_DONE_INTENT_RE.test(text) ||
+    UZ_ABORTED_VOICE_DONE_INTENT_RE.test(text);
+  return hasNegatedAction && !hasCompletedActionOutsideNegatedClause(text);
 }
 
 const UZ_REQUESTED_ACTION_VOICE_RE =
@@ -146,7 +169,7 @@ const RU_ONE_TIME_PASSWORD_DONE_RE =
 const EN_COMPLETED_CODE_STATE_RE =
   /^(?:they|he|she)\s+(?:(?:already|now)\s+)?(?:have|has|got|know|knows)\s+(?:already\s+)?(?:my|our)\s+(?:(?:sms|verification|login)\s+code|otp(?:\s+code)?|one[-\s]+time\s+(?:code|password)|passcode)(?:\s+now)?[.!?]*$/iu;
 const EN_ONE_TIME_PASSWORD_DONE_RE =
-  /^(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:read\s+(?:it\s+)?out\s+(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:gave|sent|shared|told)\s+(?:(?:them|him|her|the\s+(?:caller|scammer|contact)).{0,24}(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode).{0,24}(?:to|with)\s+(?:them|him|her|the\s+(?:caller|scammer|contact))))[.!?]*$/iu;
+  /^(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:read\s+(?:it\s+)?out\s+(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:gave|sent|shared|told)\s+(?:(?:them|him|her|the\s+(?:caller|scammer|contact|wrong\s+(?:person|recipient))).{0,24}(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode).{0,24}(?:to|with)\s+(?:them|him|her|the\s+(?:caller|scammer|contact|wrong\s+(?:person|recipient)))))[.!?]*$/iu;
 const RU_SKINUL_TRANSFER_DONE_RE =
   /^(?:я|мы)\s+(?:уже\s+)?скинул[аи]?\s+(?:им|ему|ей|туда)\s+(?:деньги|денег|сумму|\d[\d\s]*(?:сум|сумов|uzs))[.!?]*$/iu;
 const EN_WIRED_TRANSFER_DONE_RE =
@@ -281,6 +304,9 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
     ) ||
     /(?:sms|смс|kod|код|code|otp).{0,60}(юбор|жунат|айт|бер|кирит)/.test(text) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|entered|typed|confirmed).{0,60}(?:sms|otp|verification|login)?\s*(?:code|number|digits)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|entered|typed|confirmed).{0,60}(?:otp|passcode|one[-\s]+time\s+(?:code|password))(?!\p{L})/u.test(
       text,
     ) ||
     /(?:sms|otp|verification|login).{0,30}(?:code|number|digits).{0,60}(?:sent|shared|gave|given|told|read|entered|typed|confirmed)/.test(

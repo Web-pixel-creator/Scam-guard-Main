@@ -74,6 +74,18 @@ describe("pure Telegram text panic intent", () => {
   );
 
   it.each([
+    "I did not share the code at first, but then I sent my OTP to the wrong person.",
+    "Avval kodni bermadim, keyin SMS kodni boshqa odamga yubordim.",
+    "I sent my OTP to them, but I did not share any other codes.",
+    "Men SMS kodni yubordim, lekin boshqa kod bermadim.",
+    "I almost shared the code, but then I sent my OTP to them.",
+    "Avval SMS kodni yuboray dedim, lekin to'xtadim; keyin SMS kodni yubordim.",
+  ])("keeps a completed disclosure in a separate clause on panic guidance: %s", (text) => {
+    expect(isNegatedVoiceDoneIntent(text)).toBe(false);
+    expect(classifyTextPanicIntent(text)).toBe(1);
+  });
+
+  it.each([
     "Я сделал запланированный перевод знакомому поставщику по официальному счёту; получатель и сумма подтверждены.",
     "Rejalashtirilgan to'lovni tanish yetkazib beruvchiga rasmiy hisob bo'yicha yubordim; oluvchi va summa to'g'ri.",
     "Режалаштирилган тўловни таниш етказиб берувчига расмий ҳисоб бўйича юбордим; олувчи ва сумма тўғри.",
@@ -109,6 +121,10 @@ describe("pure Telegram text panic intent", () => {
     "Men pul o'tkazmayman.",
     "Raqamni tashlab yubormadim.",
     "Pulni jo'natvormadim.",
+    "SMS kodni yuboray dedim, lekin to'xtadim.",
+    "I did not share the code; then I sent an email to support.",
+    "I sent an email to support, but I did not share any codes.",
+    "Avval kodni bermadim, keyin yordam xizmatiga xat yubordim.",
   ])("keeps a negated action outside panic: %s", (text) => {
     expect(isNegatedVoiceDoneIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
