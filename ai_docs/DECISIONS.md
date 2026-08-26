@@ -3,23 +3,36 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-094 - Automated encrypted GitHub-artifact backups are the pilot offsite copy
+
+**Status: accepted 2026-08-25.** While the project remains on Supabase Free,
+the daily `Supabase Encrypted Backup` workflow and the weekly
+`Backup Restore Drill` provide the automated recovery loop: an AES-256-CBC
+(PBKDF2, 600k iterations) encrypted logical dump of `public`, `auth` and
+`storage` schemas stored as a 90-day GitHub Actions artifact, with in-CI
+read-back verification and a weekly isolated restore drill printing
+count-only invariants.
+
+This amends the manual-export rule that required backups to live outside
+GitHub: the artifact stores only encrypted bytes; the passphrase exists solely
+in GitHub Actions secrets and the owner password manager; the dump never
+touches the repository, workspace or logs. The owner may additionally download
+artifacts monthly into independent custody. A failed scheduled run is the
+failure alert. This does not provide PITR and does not meet the launch RPO
+target; Supabase Free remains an explicit pilot risk acceptance. See
+`BACKUP_AUTOMATION.md`.
+
 ## D-093 - Documentation-only commits may skip Railway deployment only after proof
 
-**Status: local candidate on 2026-08-20; not active in Railway.** The proposed
-`railway.toml` Watch Paths remain local until an approved configuration merge,
-post-deployment manifest/read-back and a separate documentation-only proof.
+**Status: active and proven 2026-08-25.** The `railway.toml` watch patterns
+(`**`, `!/*.md`, `!/ai_docs/**`) merged with PR #129 and are confirmed in the
+deployed manifest. Docs-only merges PR #130 (tip `2031205`), PR #131
+(`8092956`) and PR #132 each produced a placeholder deployment that Railway
+marked `SKIPPED` after CI, while the active deployment id, commit and image
+remained unchanged (`59077b99` / `9019776`).
 
-Runtime source and configuration changes remain deploy-eligible. Root Markdown
-and `ai_docs/**` may be excluded only after Railway confirms the merged manifest
-is active. The first merge changes `railway.toml`, so it remains
-deployment-eligible and is expected to create an ordinary deployment and a new
-exact-release observation boundary; that deployment cannot prove the later
-documentation-only skip.
-
-After activation, one separate docs-only commit must pass its required GitHub
-checks while the active Railway deployment id, commit and image remain
-unchanged. Until that evidence exists, every merge to `main` is treated as
-deployment-eligible.
+Runtime source and configuration changes remain deploy-eligible and restart
+the canary window.
 
 ## D-092 - Direct primary results retry only after a definitive no-effect outcome
 

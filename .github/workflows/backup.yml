@@ -1,0 +1,108 @@
+name: Supabase Encrypted Backup
+
+# Daily encrypted logical export of the production Supabase Postgres database.
+# The encrypted artifact is the automated offsite copy; the passphrase lives
+# only in GitHub Actions secrets and the owner's password manager, never in the
+# repository. A failed run is the failure alert: keep GitHub watch
+# notifications enabled for this repository.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-encrypted-backup
+  cancel-in-progress: false
+
+jobs:
+  encrypted-export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Fail fast when backup secrets are not configured
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. Add the Supabase session-pooler connection string (IPv4) as a repository secret."
+            exit 1
+          fi
+          if [ -z "$BACKUP_ENCRYPTION_PASSPHRASE" ]; then
+            echo "::error::BACKUP_ENCRYPTION_PASSPHRASE is not set. Add the backup passphrase as a repository secret."
+            exit 1
+          fi
+
+      - name: Install matching PostgreSQL client
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          SERVER_MAJOR="$(psql "$SUPABASE_DB_URL" -tAc 'SHOW server_version' | tr -d '[:space:]' | cut -d. -f1)"
+          echo "Server major: $SERVER_MAJOR"
+          sudo apt-get update -qq
+          if ! sudo apt-get install -y -qq "postgresql-client-${SERVER_MAJOR}"; then
+            echo "::error::postgresql-client-${SERVER_MAJOR} is not in the default runner apt repos. Add the PostgreSQL PGDG apt repository to this workflow (https://www.postgresql.org/download/linux/ubuntu/) or use a runner image that ships the matching client."
+            exit 1
+          fi
+          pg_dump --version
+
+      - name: Export logical dump (public, auth, storage)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          pg_dump "$SUPABASE_DB_URL" \
+            --schema=public --schema=auth --schema=storage \
+            --no-owner --no-privileges \
+            -f backup.sql
+          grep -q "CREATE TABLE" backup.sql
+          grep -q "CREATE TABLE auth.users" backup.sql
+          echo "dump-bytes: $(wc -c < backup.sql)"
+
+      - name: Encrypt and hash
+        env:
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -in backup.sql -out backup.sql.enc -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+          sha256sum backup.sql | awk '{print $1}' > backup.sql.sha256
+          sha256sum backup.sql.enc | awk '{print $1}' > backup.sql.enc.sha256
+          rm backup.sql
+          echo "encrypted-bytes: $(wc -c < backup.sql.enc)"
+
+      - name: Upload encrypted artifact (90-day retention)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: supabase-backup-${{ github.run_id }}
+          path: |
+            backup.sql.enc
+            backup.sql.sha256
+            backup.sql.enc.sha256
+          retention-days: 90
+          if-no-files-found: error
+
+  read-back:
+    needs: encrypted-export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact (read-back)
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: supabase-backup-${{ github.run_id }}
+
+      - name: Verify decryptability and checksums
+        env:
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          echo "$(cat backup.sql.enc.sha256)  backup.sql.enc" | sha256sum -c -
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+            -in backup.sql.enc -out read-back.sql -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+          echo "$(cat backup.sql.sha256)  read-back.sql" | sha256sum -c -
+          head -n 100 read-back.sql | grep -q "PostgreSQL database dump"
+          rm read-back.sql
+          echo "Read-back OK: the artifact downloads, decrypts and matches the original checksum."
