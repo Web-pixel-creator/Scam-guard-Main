@@ -1,4 +1,4 @@
-﻿name: Security Gates
+name: Security Gates
 
 on:
   pull_request:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   codeql:
-    name: CodeQL JavaScript/TypeScript
+    name: codeql-js-ts
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -44,7 +44,7 @@ jobs:
           category: /language:javascript-typescript
 
   secrets:
-    name: Gitleaks repository scan
+    name: gitleaks-scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -61,7 +61,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   container:
-    name: container vulnerabilities В· SBOM
+    name: container-security-sbom
     runs-on: ubuntu-latest
     timeout-minutes: 25
 

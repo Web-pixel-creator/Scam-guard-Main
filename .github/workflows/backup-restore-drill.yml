@@ -1,15 +1,13 @@
 name: Backup Restore Drill
 
-# Weekly non-production restore drill: download the latest encrypted backup
-# artifact, restore it into an isolated throwaway PostgreSQL container and
-# verify count-only invariants. No identifiers, no production credentials and
-# no outbound integrations are involved. The drill proves decryptability and
-# restorability; it never touches the production database.
+# Weekly restore into a disposable Supabase-local database. Production is read
+# only by the separate export workflow; this job has no production DB URL.
 
 on:
-  schedule:
-    - cron: "0 5 * * 6"
   workflow_dispatch: {}
+
+# HOLD: the reviewed enablement PR may add cron "23 5 * * 6" only after every
+# trust, freshness, recipient and restore-proof gate in BACKUP_AUTOMATION.md.
 
 permissions:
   contents: read
@@ -19,94 +17,913 @@ concurrency:
   group: backup-restore-drill
   cancel-in-progress: false
 
+env:
+  SUPABASE_CLI_VERSION: "2.104.0"
+  SUPABASE_CLI_LINUX_AMD64_SHA256: "5a0d3ed4c44f8dd1520a9f7ed6309aa60ef3bfc6c5483c9b11f70191f9d74cf6"
+  SUPABASE_INTERNAL_IMAGE_REGISTRY: "docker.io"
+  AGE_VERSION: "1.3.1"
+  AGE_LINUX_AMD64_SHA256: "bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377"
+  TARGET_POSTGRES_MAJOR: "17"
+  SUPABASE_POSTGRES_IMAGE: "supabase/postgres:17.6.1.132"
+  SUPABASE_POSTGRES_INDEX_DIGEST: "sha256:e09e93a61ed1560caf4be79c9eb29401875bea74b12aec4657cb08bf34ea3a13"
+  SUPABASE_POSTGRES_AMD64_IMAGE_ID: "sha256:e1939b94b1fd12b8a446404ff49455d7cf2a6a275a77f010abb56a247bfd5377"
+  SUPABASE_REALTIME_IMAGE: "supabase/realtime:v2.102.1"
+  SUPABASE_REALTIME_INDEX_DIGEST: "sha256:2ebc237cc41d2c941683fffb7848aa40a5af662a1fe30fff5d99f58c7164d8d3"
+  SUPABASE_REALTIME_AMD64_IMAGE_ID: "sha256:63bd3e50fe0aa66b07c6b48302047df320aa0474f82792d25694484d4ab4566d"
+  SUPABASE_STORAGE_IMAGE: "supabase/storage-api:v1.60.2"
+  SUPABASE_STORAGE_INDEX_DIGEST: "sha256:a7da87804e977a93dfa7963cc6353aa30d69f5cdd03e35dcd63ccee43c0a21f5"
+  SUPABASE_STORAGE_AMD64_IMAGE_ID: "sha256:5ccecb2958f5d19b267a2275e1f046278ea12b0ca11d22ad68925b332a832105"
+  SUPABASE_AUTH_IMAGE: "supabase/gotrue:v2.189.0"
+  SUPABASE_AUTH_INDEX_DIGEST: "sha256:385184459f57569c54c25209f51f3b2be99ddd7c4ce9e3555b5d3eea8447b7cf"
+  SUPABASE_AUTH_AMD64_IMAGE_ID: "sha256:369913f15697d0b2f41fd556ce39f6f979512649f40c2e2e1abf4ed03b5591e7"
+
 jobs:
   restore-and-verify:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: backup-decrypt
+    env:
+      DRILL_PROJECT_ID: ishonch-backup-drill-${{ github.run_id }}
+      DRILL_DB_PORT: "55432"
+      DRILL_INTERNAL_NETWORK: ishonch-backup-internal-${{ github.run_id }}
     steps:
-      - name: Find latest successful backup run
+      - name: Initialize private workspace
+        id: workspace
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          directory="$RUNNER_TEMP/ishonch-restore-${GITHUB_RUN_ID}"
+          install -d -m 0700 "$directory"
+          echo "DRILL_ROOT=$directory" >> "$GITHUB_ENV"
+          echo "path=$directory" >> "$GITHUB_OUTPUT"
+
+      - name: Find latest successful main-branch backup
+        id: backup-run
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUN_ID="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow 'Supabase Encrypted Backup' --status success --limit 1 --json databaseId --jq 'first | .databaseId')"
-          if [ -z "$RUN_ID" ]; then
-            echo "::error::No successful Supabase Encrypted Backup run found. The drill cannot run before the first successful backup."
+          set -Eeuo pipefail
+          if ! run_record="$(
+            gh run list --repo "$GITHUB_REPOSITORY" \
+              --workflow backup.yml --branch main --status success --limit 1 \
+              --json databaseId,createdAt,attempt,event,headBranch,headSha \
+              --jq 'first'
+          )"; then
+            echo "::error::Unable to resolve a successful main-branch backup."
             exit 1
           fi
-          echo "BACKUP_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          run_id="$(
+            jq --raw-output \
+              'if type == "object" and (.databaseId | type) == "number" then .databaseId else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          created_at="$(
+            jq --raw-output \
+              'if type == "object" and (.createdAt | type) == "string" then .createdAt else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          run_attempt="$(
+            jq --raw-output \
+              'if type == "object" and (.attempt | type) == "number" then .attempt else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          event="$(
+            jq --raw-output \
+              'if type == "object" and (.event | type) == "string" then .event else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          head_branch="$(
+            jq --raw-output \
+              'if type == "object" and (.headBranch | type) == "string" then .headBranch else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          head_sha="$(
+            jq --raw-output \
+              'if type == "object" and (.headSha | type) == "string" then .headSha else empty end' \
+              <<< "$run_record" 2> /dev/null || true
+          )"
+          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::No successful main-branch encrypted backup is available."
+            exit 1
+          fi
+          if [[ ! "$run_attempt" =~ ^[1-9][0-9]*$ \
+            || "$head_branch" != "main" \
+            || ! "$head_sha" =~ ^[0-9a-f]{40}$ \
+            || ! "$event" =~ ^(schedule|workflow_dispatch)$ ]]; then
+            echo "::error::Successful backup provenance metadata is malformed."
+            exit 1
+          fi
+          if ! created_epoch="$(date --date="$created_at" +%s 2> /dev/null)"; then
+            echo "::error::Successful backup metadata is malformed."
+            exit 1
+          fi
+          now_epoch="$(date --utc +%s)"
+          age_seconds="$((now_epoch - created_epoch))"
+          if (( age_seconds < -300 || age_seconds > 129600 )); then
+            echo "::error::Latest successful encrypted backup is not within the 36-hour freshness gate."
+            exit 1
+          fi
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_attempt=$run_attempt" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Download latest backup artifact
+      - name: Download latest encrypted backup
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: supabase-backup-${{ env.BACKUP_RUN_ID }}
-          run-id: ${{ env.BACKUP_RUN_ID }}
+          name: supabase-backup-${{ steps.backup-run.outputs.run_id }}
+          run-id: ${{ steps.backup-run.outputs.run_id }}
           github-token: ${{ github.token }}
+          path: ${{ steps.workspace.outputs.path }}/download
 
-      - name: Decrypt and verify checksum
-        env:
-          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      - name: Install checksum-pinned Supabase CLI
+        shell: bash
         run: |
-          if [ -z "$BACKUP_ENCRYPTION_PASSPHRASE" ]; then
-            echo "::error::BACKUP_ENCRYPTION_PASSPHRASE is not set."
-            exit 1
-          fi
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
-            -in backup.sql.enc -out backup.sql -pass env:BACKUP_ENCRYPTION_PASSPHRASE
-          echo "$(cat backup.sql.sha256)  backup.sql" | sha256sum -c -
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/supabase-cli.tar.gz"
+          unpacked="$RUNNER_TEMP/supabase-cli"
+          curl --fail --silent --show-error --location \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_${SUPABASE_CLI_VERSION}_linux_amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$SUPABASE_CLI_LINUX_AMD64_SHA256" "$archive" \
+            | sha256sum --check --status
+          install -d -m 0700 "$unpacked"
+          tar --extract --gzip --file "$archive" --directory "$unpacked" supabase
+          sudo install -m 0755 "$unpacked/supabase" /usr/local/bin/supabase
+          rm -rf "$archive" "$unpacked"
+          test "$(supabase --version)" = "$SUPABASE_CLI_VERSION"
 
-      - name: Start isolated PostgreSQL matching the dump version
+      - name: Preload immutable Supabase database initialization images
+        shell: bash
         run: |
-          DUMPED_MAJOR="$(grep -m1 'Dumped from database version' backup.sql | grep -oE '[0-9]+' | head -n 1)"
-          if [ -z "$DUMPED_MAJOR" ]; then
-            echo "::error::Could not read the dumped-from PostgreSQL major version from the dump header."
-            exit 1
-          fi
-          echo "Restoring into postgres:${DUMPED_MAJOR}"
-          docker run -d --name drill-pg \
-            -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=restore_drill \
-            -p 5432:5432 "postgres:${DUMPED_MAJOR}"
-          for i in $(seq 1 30); do
-            if pg_isready -h 127.0.0.1 -U postgres; then break; fi
-            sleep 2
+          set -Eeuo pipefail
+          pull_log="$RUNNER_TEMP/supabase-postgres-pull.log"
+          preload_image() {
+            local image="$1"
+            local digest="$2"
+            local image_id="$3"
+            docker pull "${image}@${digest}" >> "$pull_log" 2>&1
+            docker tag "${image}@${digest}" "$image"
+            docker image inspect "$image" --format '{{json .RepoDigests}}' \
+              | grep --fixed-strings --quiet "@${digest}"
+            test "$(docker image inspect "$image" --format '{{.Id}}')" = "$image_id"
+          }
+          preload_image "$SUPABASE_POSTGRES_IMAGE" \
+            "$SUPABASE_POSTGRES_INDEX_DIGEST" "$SUPABASE_POSTGRES_AMD64_IMAGE_ID"
+          preload_image "$SUPABASE_REALTIME_IMAGE" \
+            "$SUPABASE_REALTIME_INDEX_DIGEST" "$SUPABASE_REALTIME_AMD64_IMAGE_ID"
+          preload_image "$SUPABASE_STORAGE_IMAGE" \
+            "$SUPABASE_STORAGE_INDEX_DIGEST" "$SUPABASE_STORAGE_AMD64_IMAGE_ID"
+          preload_image "$SUPABASE_AUTH_IMAGE" \
+            "$SUPABASE_AUTH_INDEX_DIGEST" "$SUPABASE_AUTH_AMD64_IMAGE_ID"
+          rm -f "$pull_log"
+
+      - name: Install checksum-pinned age
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/age.tar.gz"
+          curl --fail --silent --show-error --location \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$AGE_LINUX_AMD64_SHA256" "$archive" | sha256sum --check --status
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          sudo install -m 0755 "$RUNNER_TEMP/age/age" /usr/local/bin/age
+          rm -rf "$archive" "$RUNNER_TEMP/age"
+          age --version | grep --fixed-strings --quiet "v${AGE_VERSION}"
+
+      - name: Install fail-closed host port boundary
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          firewall_tag="ishonch-restore-${GITHUB_RUN_ID}"
+          docker info > /dev/null
+          cli_network="supabase_network_${DRILL_PROJECT_ID}"
+          docker network create --driver bridge \
+            --label "com.supabase.cli.project=${DRILL_PROJECT_ID}" \
+            --opt com.docker.network.bridge.host_binding_ipv4=127.0.0.1 \
+            "$cli_network" > /dev/null
+          test "$(
+            docker network inspect "$cli_network" \
+              --format '{{index .Options "com.docker.network.bridge.host_binding_ipv4"}}'
+          )" = "127.0.0.1"
+          for command in iptables ip6tables; do
+            command -v "$command" > /dev/null
+            sudo "$command" -nL INPUT > /dev/null
+            sudo "$command" -nL DOCKER-USER > /dev/null
+            sudo "$command" -I INPUT 1 ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP
+            sudo "$command" -C INPUT ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP
+            sudo "$command" -I DOCKER-USER 1 ! -i lo -p tcp \
+              -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
+              -m comment --comment "$firewall_tag" -j DROP
+            sudo "$command" -C DOCKER-USER ! -i lo -p tcp \
+              -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
+              -m comment --comment "$firewall_tag" -j DROP
           done
-          pg_isready -h 127.0.0.1 -U postgres
 
-      - name: Pre-create extension schemas referenced by the dump
+      - name: Authenticate, decrypt and validate bundle
+        id: authenticated-bundle
+        shell: bash
         env:
-          PGPASSWORD: drill
+          BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+          EXPECTED_RUN_ID: ${{ steps.backup-run.outputs.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ steps.backup-run.outputs.run_attempt }}
+          EXPECTED_HEAD_SHA: ${{ steps.backup-run.outputs.head_sha }}
         run: |
-          grep -oE 'WITH SCHEMA [a-zA-Z_]+' backup.sql | awk '{print $3}' | sort -u |
-            while read -r schema; do
-              echo "Pre-creating schema: $schema"
-              psql -h 127.0.0.1 -U postgres -d restore_drill -v ON_ERROR_STOP=1 \
-                -c "CREATE SCHEMA IF NOT EXISTS $schema"
-            done
+          set -Eeuo pipefail
+          umask 077
+          if [[ -z "$BACKUP_AGE_IDENTITY" ]]; then
+            echo "::error::BACKUP_AGE_IDENTITY is not configured."
+            exit 1
+          fi
 
-      - name: Restore dump
-        env:
-          PGPASSWORD: drill
+          download="$DRILL_ROOT/download"
+          plain="$DRILL_ROOT/plain"
+          install -d -m 0700 "$plain"
+          printf '%s\n' "$BACKUP_AGE_IDENTITY" > "$DRILL_ROOT/identity.txt"
+
+          expected_cipher_sha="$(cat "$download/supabase-backup.tar.age.sha256")"
+          [[ "$expected_cipher_sha" =~ ^[0-9a-f]{64}$ ]]
+          actual_cipher_sha="$(sha256sum "$download/supabase-backup.tar.age" | cut -d' ' -f1)"
+          test "$actual_cipher_sha" = "$expected_cipher_sha"
+
+          if ! age --decrypt --identity "$DRILL_ROOT/identity.txt" \
+            --output "$DRILL_ROOT/backup.tar" \
+            "$download/supabase-backup.tar.age"; then
+            rm -f "$DRILL_ROOT/identity.txt"
+            unset BACKUP_AGE_IDENTITY
+            echo "::error::Authenticated backup decryption failed."
+            exit 1
+          fi
+          rm -f "$DRILL_ROOT/identity.txt"
+          unset BACKUP_AGE_IDENTITY
+
+          ARCHIVE="$DRILL_ROOT/backup.tar" PLAIN_DIR="$plain" python3 - <<'PY'
+          import os
+          import pathlib
+          import shutil
+          import tarfile
+
+          expected = sorted([
+              "data.sql",
+              "expected-counts.txt",
+              "expected-migrations.txt",
+              "history_data.sql",
+              "history_schema.sql",
+              "managed-schema.sql",
+              "manifest.json",
+              "roles.sql",
+              "schema.sql",
+          ])
+          destination = pathlib.Path(os.environ["PLAIN_DIR"])
+          with tarfile.open(os.environ["ARCHIVE"], mode="r:") as archive:
+              members = archive.getmembers()
+              if sorted(member.name for member in members) != expected:
+                  raise SystemExit("encrypted archive member allowlist failed")
+              if any(not member.isfile() for member in members):
+                  raise SystemExit("encrypted archive contains a non-regular member")
+              for member in members:
+                  source = archive.extractfile(member)
+                  if source is None:
+                      raise SystemExit("encrypted archive member is unreadable")
+                  with (destination / member.name).open("xb") as output:
+                      shutil.copyfileobj(source, output)
+          PY
+
+          jq --exit-status \
+            --arg format "ishonch-guard-supabase-logical-backup/v3" \
+            --arg cli "$SUPABASE_CLI_VERSION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg run_id "$EXPECTED_RUN_ID" \
+            --arg run_attempt "$EXPECTED_RUN_ATTEMPT" \
+            --arg head_sha "$EXPECTED_HEAD_SHA" \
+            '.format == $format
+              and .supabase_cli == $cli
+              and (.source_postgres_major | test("^(15|17)$"))
+              and .provenance.repository == $repository
+              and .provenance.run_id == $run_id
+              and .provenance.run_attempt == $run_attempt
+              and .provenance.head_sha == $head_sha
+              and (.files | keys == ["data.sql","expected-counts.txt","expected-migrations.txt","history_data.sql","history_schema.sql","managed-schema.sql","roles.sql","schema.sql"])
+              and (all(.files[]; type == "string" and test("^[0-9a-f]{64}$")))' \
+            "$plain/manifest.json" > /dev/null
+          for name in roles.sql schema.sql managed-schema.sql data.sql \
+            history_schema.sql history_data.sql expected-migrations.txt \
+            expected-counts.txt; do
+            expected_sha="$(jq --raw-output --arg name "$name" '.files[$name]' "$plain/manifest.json")"
+            [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]]
+            actual_sha="$(sha256sum "$plain/$name" | cut -d' ' -f1)"
+            test "$actual_sha" = "$expected_sha"
+          done
+
+          COUNTS_FILE="$plain/expected-counts.txt" python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          expected = sorted([
+              "auth.users",
+              "private.telegram_family_notification_claims",
+              "private.telegram_update_leaders",
+              "public.admin_actions",
+              "public.admin_allowlist",
+              "public.checks",
+              "public.embed_origin_events",
+              "public.entities",
+              "public.rate_limit_buckets",
+              "public.reports",
+              "public.reputation_appeals",
+              "public.telegram_family_shield",
+              "public.telegram_reputation_targets",
+              "public.telegram_sessions",
+              "public.telegram_webhook_updates",
+              "public.user_roles",
+              "storage.buckets",
+              "storage.objects",
+          ])
+          lines = pathlib.Path(os.environ["COUNTS_FILE"]).read_text(
+              encoding="ascii"
+          ).splitlines()
+          if len(lines) != len(expected):
+              raise SystemExit("state count inventory cardinality mismatch")
+          names = []
+          for line in lines:
+              match = re.fullmatch(r"([a-z_]+\.[a-z_]+)\t(0|[1-9][0-9]*)", line)
+              if match is None:
+                  raise SystemExit("state count inventory format mismatch")
+              names.append(match.group(1))
+          if names != expected:
+              raise SystemExit("state count inventory relation mismatch")
+          PY
+
+      - name: Initialize isolated Supabase-local target
+        shell: bash
         run: |
-          psql -h 127.0.0.1 -U postgres -d restore_drill \
-            -v ON_ERROR_STOP=1 -f backup.sql > restore.log
-          echo "restore-log-lines: $(wc -l < restore.log)"
+          set -Eeuo pipefail
+          umask 077
+          project="$DRILL_ROOT/project"
+          install -d -m 0700 "$project"
+          supabase init --workdir "$project" --yes > "$DRILL_ROOT/init.log" 2>&1
 
-      - name: Count-only invariants
-        env:
-          PGPASSWORD: drill
+          DRILL_PROJECT_ID="$DRILL_PROJECT_ID" DRILL_DB_PORT="$DRILL_DB_PORT" \
+            TARGET_POSTGRES_MAJOR="$TARGET_POSTGRES_MAJOR" \
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ["DRILL_ROOT"]) / "project" / "supabase" / "config.toml"
+          lines = path.read_text(encoding="utf-8").splitlines()
+          section = ""
+          project_set = False
+          port_set = False
+          major_set = False
+          for index, line in enumerate(lines):
+              stripped = line.strip()
+              if stripped.startswith("[") and stripped.endswith("]"):
+                  section = stripped
+              elif line.startswith("project_id = "):
+                  lines[index] = f'project_id = "{os.environ["DRILL_PROJECT_ID"]}"'
+                  project_set = True
+              elif section == "[db]" and line.startswith("port = "):
+                  lines[index] = f'port = {os.environ["DRILL_DB_PORT"]}'
+                  port_set = True
+              elif section == "[db]" and line.startswith("major_version = "):
+                  lines[index] = f'major_version = {os.environ["TARGET_POSTGRES_MAJOR"]}'
+                  major_set = True
+          if not (project_set and port_set and major_set):
+              raise SystemExit("generated Supabase config does not contain required keys")
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+          if ! supabase db start --workdir "$project" --yes > "$DRILL_ROOT/start.log" 2>&1; then
+            echo "::error::Supabase-local database initialization failed; plaintext logs will be deleted by cleanup."
+            exit 1
+          fi
+
+          # CLI initialization uses these cached one-shot images with local DB
+          # credentials. Re-assert every tag before decrypted data is copied.
+          test "$(docker image inspect "$SUPABASE_REALTIME_IMAGE" --format '{{.Id}}')" \
+            = "$SUPABASE_REALTIME_AMD64_IMAGE_ID"
+          test "$(docker image inspect "$SUPABASE_STORAGE_IMAGE" --format '{{.Id}}')" \
+            = "$SUPABASE_STORAGE_AMD64_IMAGE_ID"
+          test "$(docker image inspect "$SUPABASE_AUTH_IMAGE" --format '{{.Id}}')" \
+            = "$SUPABASE_AUTH_AMD64_IMAGE_ID"
+
+          container="supabase_db_${DRILL_PROJECT_ID}"
+          docker inspect "$container" > /dev/null
+          image="$(docker inspect --format '{{.Config.Image}}' "$container")"
+          image_id="$(docker image inspect "$image" --format '{{.Id}}')"
+          test "$image" = "$SUPABASE_POSTGRES_IMAGE"
+          test "$image_id" = "$SUPABASE_POSTGRES_AMD64_IMAGE_ID"
+          docker inspect "$container" \
+            | jq --exit-status --arg port "$DRILL_DB_PORT" \
+              '.[0].NetworkSettings.Ports["5432/tcp"]
+                | length == 1
+                  and .[0].HostIp == "127.0.0.1"
+                  and .[0].HostPort == $port' > /dev/null
+          firewall_tag="ishonch-restore-${GITHUB_RUN_ID}"
+          for command in iptables ip6tables; do
+            sudo "$command" -C INPUT ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP
+            sudo "$command" -C DOCKER-USER ! -i lo -p tcp \
+              -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
+              -m comment --comment "$firewall_tag" -j DROP
+          done
+          if ss -H -ltn6 "sport = :${DRILL_DB_PORT}" | grep --quiet .; then
+            sudo ip6tables -C INPUT ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP
+          fi
+          server_major="$(
+            docker exec --user postgres "$container" \
+              psql --dbname postgres --tuples-only --no-align \
+                --command 'show server_version_num' \
+              | cut -c 1-2
+          )"
+          test "$server_major" = "$TARGET_POSTGRES_MAJOR"
+
+          # Initialization jobs have completed. Move the database onto an
+          # internal-only network and detach the CLI NAT network before any
+          # production data is restored.
+          docker network create --internal "$DRILL_INTERNAL_NETWORK" > /dev/null
+          docker network connect "$DRILL_INTERNAL_NETWORK" "$container"
+          mapfile -t old_networks < <(
+            docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{println}}{{end}}' "$container" \
+              | grep -v "^${DRILL_INTERNAL_NETWORK}$"
+          )
+          for network in "${old_networks[@]}"; do
+            docker network disconnect "$network" "$container"
+          done
+          mapfile -t final_networks < <(
+            docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{println}}{{end}}' "$container"
+          )
+          [[ "${#final_networks[@]}" -eq 1 ]]
+          [[ "${final_networks[0]}" = "$DRILL_INTERNAL_NETWORK" ]]
+
+          # A restored pg_cron schedule must not mutate the snapshot while the
+          # drill validates it. Disable launch before any cron rows are loaded.
+          docker exec --user postgres "$container" \
+            psql --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "ALTER SYSTEM SET cron.launch_active_jobs = 'off'" \
+              --command 'SELECT pg_reload_conf()' > /dev/null
+          for _ in $(seq 1 10); do
+            cron_launch="$(
+              docker exec --user postgres "$container" \
+                psql --dbname postgres --tuples-only --no-align \
+                  --command "SELECT current_setting('cron.launch_active_jobs')"
+            )"
+            [[ "$cron_launch" = "off" ]] && break
+            sleep 1
+          done
+          [[ "$cron_launch" = "off" ]]
+
+      - name: Restore in one transaction and assert invariants
+        shell: bash
         run: |
-          q() { psql -h 127.0.0.1 -U postgres -d restore_drill -tAc "$1"; }
-          {
-            echo "## Restore drill invariants (count-only)"
-            echo "- auth.users: $(q 'SELECT count(*) FROM auth.users')"
-            echo "- public.checks: $(q 'SELECT count(*) FROM public.checks')"
-            echo "- public.reports: $(q 'SELECT count(*) FROM public.reports')"
-            echo "- public.entities: $(q 'SELECT count(*) FROM public.entities')"
-            echo "- public.user_roles: $(q 'SELECT count(*) FROM public.user_roles')"
-            echo "- public.admin_allowlist: $(q 'SELECT count(*) FROM public.admin_allowlist')"
-            echo "- public.reputation_appeals: $(q 'SELECT count(*) FROM public.reputation_appeals')"
-          } >> "$GITHUB_STEP_SUMMARY"
+          set -Eeuo pipefail
+          container="supabase_db_${DRILL_PROJECT_ID}"
 
-      - name: Cleanup plaintext artifacts
+          # supabase-local pre-provisions the Supabase roles, so replaying the
+          # role dump verbatim aborts with duplicate_object. Guard every
+          # CREATE ROLE behind an existence check; ALTER/GRANT replay as-is.
+          ROLES_SRC="$DRILL_ROOT/plain/roles.sql" python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          source = pathlib.Path(os.environ["ROLES_SRC"])
+          target = source.with_name("roles-idempotent.sql")
+          create_role = re.compile(
+              r'^CREATE ROLE ("?)((?:[^"]|"")+)\1(?: WITH .+)?;$'
+          )
+          transformed = []
+          for line in source.read_text(encoding="utf-8").splitlines():
+              match = create_role.match(line.strip())
+              if match is None:
+                  transformed.append(line)
+                  continue
+              name = match.group(2).replace('""', '"')
+              escaped_name = name.replace("'", "''")
+              escaped_statement = line.strip().replace("'", "''")
+              transformed.append(
+                  "DO $role$ BEGIN\n"
+                  f"  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{escaped_name}') THEN\n"
+                  f"    EXECUTE '{escaped_statement}';\n"
+                  "  END IF;\n"
+                  "END $role$;"
+              )
+          target.write_text("\n".join(transformed) + "\n", encoding="utf-8")
+          PY
+          test -s "$DRILL_ROOT/plain/roles-idempotent.sql"
+
+          docker exec "$container" install -d -m 0700 -o postgres -g postgres /tmp/restore
+          docker cp "$DRILL_ROOT/plain/." "$container:/tmp/restore/"
+          docker exec "$container" chown -R postgres:postgres /tmp/restore
+
+          if ! docker exec --user postgres "$container" \
+            psql --dbname postgres --single-transaction --set ON_ERROR_STOP=1 \
+              --file /tmp/restore/roles-idempotent.sql \
+              --file /tmp/restore/schema.sql \
+              --file /tmp/restore/managed-schema.sql \
+              --command 'SET session_replication_role = replica' \
+              --file /tmp/restore/data.sql \
+              --command 'SET session_replication_role = origin' \
+              --command 'DROP SCHEMA IF EXISTS supabase_migrations CASCADE' \
+              --file /tmp/restore/history_schema.sql \
+              --file /tmp/restore/history_data.sql \
+              > "$DRILL_ROOT/restore.log" 2>&1; then
+            echo "::error::Restore transaction failed; plaintext logs will be deleted by cleanup."
+            exit 1
+          fi
+
+          docker exec --user postgres "$container" \
+            psql --dbname postgres --tuples-only --no-align \
+              --command 'SELECT version FROM supabase_migrations.schema_migrations ORDER BY version' \
+            > "$DRILL_ROOT/restored-migrations.txt" 2>&1
+          cmp --silent "$DRILL_ROOT/plain/expected-migrations.txt" \
+            "$DRILL_ROOT/restored-migrations.txt"
+
+          : > "$DRILL_ROOT/restored-counts.txt"
+          while IFS=$'\t' read -r relation expected_count; do
+            schema="${relation%%.*}"
+            table="${relation#*.}"
+            if ! restored_count="$(
+              docker exec --user postgres "$container" \
+                psql --dbname postgres --tuples-only --no-align \
+                  --set ON_ERROR_STOP=1 \
+                  --command "SELECT count(*) FROM \"${schema}\".\"${table}\"" \
+                2> "$DRILL_ROOT/count-check.log"
+            )"; then
+              echo "::error::Restored state-count verification failed."
+              exit 1
+            fi
+            [[ "$restored_count" =~ ^(0|[1-9][0-9]*)$ ]]
+            test "$restored_count" = "$expected_count"
+            printf '%s\t%s\n' "$relation" "$restored_count" \
+              >> "$DRILL_ROOT/restored-counts.txt"
+          done < "$DRILL_ROOT/plain/expected-counts.txt"
+          rm -f "$DRILL_ROOT/count-check.log"
+          cmp --silent "$DRILL_ROOT/plain/expected-counts.txt" \
+            "$DRILL_ROOT/restored-counts.txt"
+
+          docker exec --user postgres --interactive "$container" \
+            psql --dbname postgres --set ON_ERROR_STOP=1 > /dev/null <<'SQL'
+          DO $$
+          DECLARE
+            missing_required integer;
+            app_without_rls integer;
+            missing_roles integer;
+            missing_functions integer;
+            missing_policies integer;
+          BEGIN
+            SELECT count(*) INTO missing_required
+            FROM (VALUES
+              ('auth.users'),
+              ('storage.objects'),
+              ('public.checks'),
+              ('public.reports'),
+              ('public.entities'),
+              ('public.user_roles'),
+              ('public.admin_allowlist'),
+              ('public.reputation_appeals'),
+              ('public.telegram_sessions'),
+              ('public.telegram_webhook_updates'),
+              ('public.admin_actions'),
+              ('public.telegram_reputation_targets'),
+              ('public.telegram_family_shield'),
+              ('public.rate_limit_buckets'),
+              ('public.embed_origin_events'),
+              ('private.telegram_family_notification_claims'),
+              ('private.telegram_update_leaders')
+            ) AS required(name)
+            WHERE to_regclass(required.name) IS NULL;
+            IF missing_required <> 0 THEN
+              RAISE EXCEPTION 'required relation invariant failed';
+            END IF;
+
+            SELECT count(*) INTO app_without_rls
+            FROM pg_class AS c
+            WHERE c.oid IN (
+              'public.checks'::regclass,
+              'public.reports'::regclass,
+              'public.entities'::regclass,
+              'public.user_roles'::regclass,
+              'public.admin_allowlist'::regclass,
+              'public.telegram_sessions'::regclass,
+              'public.telegram_webhook_updates'::regclass,
+              'public.admin_actions'::regclass,
+              'public.telegram_reputation_targets'::regclass,
+              'public.telegram_family_shield'::regclass,
+              'public.rate_limit_buckets'::regclass,
+              'public.reputation_appeals'::regclass,
+              'public.embed_origin_events'::regclass,
+              'private.telegram_family_notification_claims'::regclass,
+              'private.telegram_update_leaders'::regclass
+            )
+              AND NOT c.relrowsecurity;
+            IF app_without_rls <> 0 THEN
+              RAISE EXCEPTION 'application RLS invariant failed';
+            END IF;
+
+            SELECT count(*) INTO missing_roles
+            FROM (VALUES ('anon'), ('authenticated'), ('authenticator'), ('service_role')) AS required(name)
+            WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = required.name);
+            IF missing_roles <> 0 THEN
+              RAISE EXCEPTION 'Supabase role invariant failed';
+            END IF;
+
+            SELECT count(*) INTO missing_functions
+            FROM (VALUES
+              ('private', 'handle_admin_allowlist_role_change'),
+              ('private', 'has_role'),
+              ('private', 'is_admin_aal2'),
+              ('private', 'prune_app_retention'),
+              ('private', 'reconcile_admin_role'),
+              ('private', 'telegram_update_leader_is_current'),
+              ('private', 'telegram_update_lease_is_current'),
+              ('public', 'acquire_telegram_update_leader'),
+              ('public', 'begin_telegram_update'),
+              ('public', 'claim_rate_limit'),
+              ('public', 'claim_telegram_family_notification'),
+              ('public', 'complete_telegram_family_notification'),
+              ('public', 'complete_telegram_update'),
+              ('public', 'get_check_stats'),
+              ('public', 'handle_confirmed_admin_allowlist_role'),
+              ('public', 'handle_new_user_role'),
+              ('public', 'has_role'),
+              ('public', 'load_telegram_session_fenced'),
+              ('public', 'mark_telegram_update_failure'),
+              ('public', 'prune_telegram_sessions'),
+              ('public', 'release_telegram_update_leader'),
+              ('public', 'renew_telegram_update'),
+              ('public', 'renew_telegram_update_leader'),
+              ('public', 'save_telegram_session_fenced'),
+              ('public', 'save_telegram_session_sequenced'),
+              ('public', 'telegram_update_leader_status'),
+              ('public', 'telegram_update_lease_current')
+            ) AS required(schema_name, function_name)
+            WHERE NOT EXISTS (
+              SELECT 1
+              FROM pg_proc AS p
+              JOIN pg_namespace AS n ON n.oid = p.pronamespace
+              WHERE n.nspname = required.schema_name
+                AND p.proname = required.function_name
+            );
+            IF missing_functions <> 0 THEN
+              RAISE EXCEPTION 'application function inventory failed';
+            END IF;
+
+            SELECT count(*) INTO missing_functions
+            FROM (VALUES
+              ('private.reconcile_admin_role(uuid)'),
+              ('private.handle_admin_allowlist_role_change()'),
+              ('private.is_admin_aal2()'),
+              ('private.prune_app_retention(timestamp with time zone)'),
+              ('public.handle_new_user_role()'),
+              ('public.handle_confirmed_admin_allowlist_role()'),
+              ('public.claim_rate_limit(text,text,integer,integer)'),
+              ('public.save_telegram_session_sequenced(bigint,bigint,jsonb)')
+            ) AS required(signature)
+            WHERE to_regprocedure(required.signature) IS NULL;
+            IF missing_functions <> 0 THEN
+              RAISE EXCEPTION 'critical function signature inventory failed';
+            END IF;
+
+            SELECT count(*) INTO missing_policies
+            FROM (VALUES
+              ('checks', 'Admins read checks'),
+              ('reports', 'Admins read reports'),
+              ('reports', 'Admins update reports'),
+              ('entities', 'Public can read confirmed entities'),
+              ('entities', 'Admins read entities'),
+              ('entities', 'Admins update entities'),
+              ('user_roles', 'Users can view own roles'),
+              ('admin_allowlist', 'Nobody can read allowlist'),
+              ('telegram_sessions', 'No public access to telegram_sessions'),
+              ('admin_actions', 'Admins can read audit log'),
+              ('admin_actions', 'Service role inserts audit entries'),
+              ('telegram_reputation_targets', 'Admins can read telegram reputation'),
+              ('telegram_reputation_targets', 'Public can read confirmed telegram reputation'),
+              ('reputation_appeals', 'Service role manages reputation appeals')
+            ) AS required(table_name, policy_name)
+            WHERE NOT EXISTS (
+              SELECT 1
+              FROM pg_policies AS p
+              WHERE p.schemaname = 'public'
+                AND p.tablename = required.table_name
+                AND p.policyname = required.policy_name
+            );
+            IF missing_policies <> 0 THEN
+              RAISE EXCEPTION 'critical policy inventory failed';
+            END IF;
+
+            IF EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public'
+                AND (
+                  (tablename = 'checks' AND policyname = 'Anyone can insert checks')
+                  OR (tablename = 'reports' AND policyname = 'Anyone can submit reports')
+                )
+            ) OR has_table_privilege('anon', 'public.checks', 'INSERT')
+              OR has_table_privilege('authenticated', 'public.checks', 'INSERT')
+              OR has_table_privilege('anon', 'public.reports', 'INSERT')
+              OR has_table_privilege('authenticated', 'public.reports', 'INSERT')
+            THEN
+              RAISE EXCEPTION 'sensitive direct-write boundary failed';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_trigger AS t
+              WHERE t.tgrelid = 'auth.users'::regclass
+                AND t.tgname = 'on_auth_user_created_role'
+                AND NOT t.tgisinternal
+                AND t.tgenabled = 'O'
+                AND t.tgtype = 5
+                AND t.tgfoid = 'public.handle_new_user_role()'::regprocedure
+                AND t.tgqual IS NULL
+            ) THEN
+              RAISE EXCEPTION 'Auth INSERT trigger invariant failed';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_trigger AS t
+              WHERE t.tgrelid = 'auth.users'::regclass
+                AND t.tgname = 'on_auth_user_email_confirmed_role'
+                AND NOT t.tgisinternal
+                AND t.tgenabled = 'O'
+                AND t.tgtype = 17
+                AND t.tgfoid = 'public.handle_confirmed_admin_allowlist_role()'::regprocedure
+                AND t.tgqual IS NOT NULL
+                AND pg_get_triggerdef(t.oid) LIKE '%UPDATE OF email, email_confirmed_at ON auth.users%'
+                AND pg_get_triggerdef(t.oid) LIKE '%old.email IS DISTINCT FROM new.email%'
+                AND pg_get_triggerdef(t.oid) LIKE '%old.email_confirmed_at IS DISTINCT FROM new.email_confirmed_at%'
+            ) THEN
+              RAISE EXCEPTION 'Auth confirmation trigger invariant failed';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_trigger AS t
+              WHERE t.tgrelid = 'public.admin_allowlist'::regclass
+                AND t.tgname = 'on_admin_allowlist_role_change'
+                AND NOT t.tgisinternal
+                AND t.tgenabled = 'O'
+                AND t.tgtype = 29
+                AND t.tgfoid = 'private.handle_admin_allowlist_role_change()'::regprocedure
+                AND ARRAY(
+                  SELECT attribute.attname
+                  FROM unnest(t.tgattr::smallint[])
+                    WITH ORDINALITY AS trigger_attribute(attnum, position)
+                  JOIN pg_attribute AS attribute
+                    ON attribute.attrelid = t.tgrelid
+                    AND attribute.attnum = trigger_attribute.attnum
+                  ORDER BY trigger_attribute.position
+                ) = ARRAY['email']
+                AND t.tgqual IS NULL
+            ) THEN
+              RAISE EXCEPTION 'allowlist lifecycle trigger invariant failed';
+            END IF;
+
+            PERFORM count(*) FROM auth.users;
+            PERFORM count(*) FROM storage.objects;
+          END
+          $$;
+          SQL
+
+          echo "- Authenticated artifact: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Supabase-compatible isolated restore: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- State parity and required recovery invariants: PASS" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup plaintext, database and network
         if: always()
+        shell: bash
         run: |
-          rm -f backup.sql backup.sql.enc restore.log read-back.sql
-          docker rm -f drill-pg || true
+          set +e
+          cleanup_failed=0
+          project="${DRILL_ROOT:-}/project"
+          container="supabase_db_${DRILL_PROJECT_ID}"
+          firewall_tag="ishonch-restore-${GITHUB_RUN_ID}"
+
+          if [[ -n "${DRILL_ROOT:-}" && -d "$project" ]]; then
+            supabase stop --workdir "$project" --no-backup > /dev/null 2>&1
+          fi
+          if docker info > /dev/null 2>&1; then
+            mapfile -t project_containers < <(
+              docker ps --all --quiet \
+                --filter "label=com.supabase.cli.project=${DRILL_PROJECT_ID}"
+            )
+            if ((${#project_containers[@]} > 0)); then
+              docker rm --force "${project_containers[@]}" > /dev/null 2>&1 \
+                || cleanup_failed=1
+            fi
+            docker rm --force "$container" > /dev/null 2>&1
+
+            mapfile -t project_volumes < <(
+              docker volume ls --quiet \
+                --filter "label=com.supabase.cli.project=${DRILL_PROJECT_ID}"
+            )
+            if ((${#project_volumes[@]} > 0)); then
+              docker volume rm "${project_volumes[@]}" > /dev/null 2>&1 \
+                || cleanup_failed=1
+            fi
+            docker volume rm "supabase_db_${DRILL_PROJECT_ID}" > /dev/null 2>&1
+
+            mapfile -t project_networks < <(
+              docker network ls --quiet \
+                --filter "label=com.supabase.cli.project=${DRILL_PROJECT_ID}"
+            )
+            if ((${#project_networks[@]} > 0)); then
+              docker network rm "${project_networks[@]}" > /dev/null 2>&1 \
+                || cleanup_failed=1
+            fi
+            docker network rm "$DRILL_INTERNAL_NETWORK" > /dev/null 2>&1
+            docker network rm "supabase_network_${DRILL_PROJECT_ID}" > /dev/null 2>&1
+          else
+            cleanup_failed=1
+          fi
+
+          delete_rule() {
+            local command="$1"
+            local chain="$2"
+            shift 2
+            while sudo "$command" -C "$chain" "$@" > /dev/null 2>&1; do
+              if ! sudo "$command" -D "$chain" "$@" > /dev/null 2>&1; then
+                cleanup_failed=1
+                break
+              fi
+            done
+          }
+          for command in iptables ip6tables; do
+            if ! command -v "$command" > /dev/null \
+              || ! sudo "$command" -nL INPUT > /dev/null 2>&1 \
+              || ! sudo "$command" -nL DOCKER-USER > /dev/null 2>&1; then
+              cleanup_failed=1
+              continue
+            fi
+            delete_rule "$command" INPUT ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP
+            delete_rule "$command" DOCKER-USER ! -i lo -p tcp \
+              -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
+              -m comment --comment "$firewall_tag" -j DROP
+          done
+
+          if [[ -n "${DRILL_ROOT:-}" ]]; then
+            rm -rf -- "$DRILL_ROOT"
+          fi
+
+          if docker info > /dev/null 2>&1; then
+            if ! container_names="$(docker ps --all --format '{{.Names}}')"; then
+              cleanup_failed=1
+            elif grep --fixed-strings --quiet "$DRILL_PROJECT_ID" \
+              <<< "$container_names"; then
+              cleanup_failed=1
+            fi
+            if ! volume_names="$(docker volume ls --format '{{.Name}}')"; then
+              cleanup_failed=1
+            elif grep --fixed-strings --quiet "$DRILL_PROJECT_ID" \
+              <<< "$volume_names"; then
+              cleanup_failed=1
+            fi
+            if ! network_names="$(docker network ls --format '{{.Name}}')"; then
+              cleanup_failed=1
+            elif grep --fixed-strings --quiet "$DRILL_PROJECT_ID" \
+              <<< "$network_names"; then
+              cleanup_failed=1
+            fi
+          else
+            cleanup_failed=1
+          fi
+          for command in iptables ip6tables; do
+            if ! command -v "$command" > /dev/null \
+              || ! sudo "$command" -nL INPUT > /dev/null 2>&1 \
+              || ! sudo "$command" -nL DOCKER-USER > /dev/null 2>&1; then
+              cleanup_failed=1
+              continue
+            fi
+            sudo "$command" -C INPUT ! -i lo -p tcp \
+              --dport "$DRILL_DB_PORT" -m comment \
+              --comment "$firewall_tag" -j DROP \
+              > /dev/null 2>&1 && cleanup_failed=1
+            sudo "$command" -C DOCKER-USER ! -i lo -p tcp \
+              -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
+              -m comment --comment "$firewall_tag" -j DROP \
+              > /dev/null 2>&1 && cleanup_failed=1
+          done
+          [[ -n "${DRILL_ROOT:-}" && -e "$DRILL_ROOT" ]] && cleanup_failed=1
+
+          if (( cleanup_failed != 0 )); then
+            echo "::error::Restore drill cleanup left isolated resources behind."
+            exit 1
+          fi
