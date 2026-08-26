@@ -44,10 +44,18 @@ The immediate queue is:
    acceptance;
 7. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
    the separately approved Railway rollback/return and MFA factor-reset drills;
-8. retain staging until a separate destructive deletion approval is given;
-9. record Railway payment-method expiry/spend alerts and a response owner;
-10. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
-    the OCR fallback two-phase correction as explicit follow-up engineering.
+8. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+   the separately approved Railway rollback/return and MFA factor-reset drills;
+9. retain staging until a separate destructive deletion approval is given;
+10. record Railway payment-method expiry/spend alerts and a response owner;
+11. keep Nitro static `q`-weight handling and the OCR fallback two-phase
+    correction as explicit follow-up engineering;
+12. review and approve the two system-debt designs before implementation:
+    `DESIGN_OUTBOX_JOURNAL.md` (durable outbound delivery journal — the #1
+    architectural gap) and `DESIGN_OBSERVABILITY_BASELINE.md` (privacy-safe
+    metrics plus the rules latency budget that guards `rules.ts` against
+    ReDoS regressions). Both are proposal-status and unblock only after the
+    canary verdict allows source merges.
 
 ## Fragile / risky spots
 
