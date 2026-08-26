@@ -22,7 +22,7 @@ Actions secrets.
 1. Merge a dedicated infrastructure PR that fixes UTF-8 BOM/mojibake, gives
    required workflow jobs stable ASCII names and adds `CODEOWNERS` as an audit
    ownership signal. Re-run CI/Security Gates and record exact check names plus
-   GitHub App IDs from successful runs.
+   numeric GitHub App IDs from successful runs.
 2. Restrict GitHub Actions to the reviewed allowlist and enforce full-length SHA
    pinning. Verify every existing scheduled, CI, security and recovery workflow
    still starts before tightening `main`.
@@ -46,8 +46,9 @@ Actions secrets.
      backup or automatic 24-hour RPO.
 5. Prove the selected control with a harmless documentation PR, a deliberately
    failing test branch and a backup-workflow-only test change. Exact GitHub
-   App/integration IDs are permitted policy metadata because required checks are
-   bound to them; never record tokens or human actor identifiers.
+   App numeric IDs are the only permitted non-secret identity metadata because
+   required checks are bound to them; never record tokens, logins, user IDs or
+   other actor identifiers.
 6. Harden and stage-test the Supabase-compatible backup workflow described in
    `BACKUP_AUTOMATION.md`.
 7. Only in a separately approved canary-restart window, add the minimum scoped
@@ -61,7 +62,7 @@ Actions secrets.
   has no effective ruleset **or** while the sole-owner ruleset still has zero
   approvals and no protected-environment manual gate.
 - No ruleset activation until required checks use stable ASCII names and exact
-  App IDs.
+  numeric GitHub App IDs.
 - No broad Actions wildcard, mutable tag or unreviewed bypass.
 - No claim of unattended daily backup when a protected environment leaves
   scheduled runs waiting for manual approval.

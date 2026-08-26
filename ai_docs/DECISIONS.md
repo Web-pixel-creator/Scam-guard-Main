@@ -20,7 +20,9 @@ enough: credential activation additionally requires a second independent
 trusted reviewer with CODEOWNERS, at least one dismiss-stale approval and no
 bypass, or a protected environment with manual approval (scheduled runs then
 wait). Adding or rotating a backup secret deliberately restarts the current
-canary. D-094 records the intended design but not operational proof.
+canary. The plan-only replacement in `BACKUP_AUTOMATION.md` uses age/X25519
+recipient/identity separation and contains no approved executable restore
+recipe. D-094 records the superseded PR #133 intent, not operational proof.
 
 ## D-094 - Automated encrypted GitHub-artifact backups are the pilot offsite copy
 
