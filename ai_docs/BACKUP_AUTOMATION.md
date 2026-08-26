@@ -1,53 +1,89 @@
 # Backup Automation (Supabase Free pilot)
 
-Implemented 2026-08-25. This document describes the automated encrypted
-backup loop that closes the highest-severity recovery gap while the project
-remains on Supabase Free (no managed backups, no PITR). It follows the
-recovery contract in `RECOVERY_AND_KEY_ROTATION.md` and the decision recorded
-in `DECISIONS.md` (2026-08-25).
+Workflow files merged 2026-08-26. Operational status:
+**NOT ENABLED / NOT VERIFIED**. The independent audit found zero backup runs,
+zero restore-drill runs, zero backup artifacts and no required backup
+credentials. This file describes a candidate loop; it does not close the
+recovery gap or prove a daily RPO while the project remains on Supabase Free (no
+managed backups, no PITR).
 
-## What runs automatically
+The names and AES/PBKDF2 details below describe the unverified PR #133 candidate
+only. A separate backup-hardening track is replacing the crypto/credential
+contract; do not provision secrets from this document until that final infra
+diff is merged and this runbook is reconciled to it.
 
-| Workflow | Schedule (UTC) | What it does |
-| --- | --- | --- |
-| `Supabase Encrypted Backup` (`.github/workflows/backup.yml`) | daily 03:00, plus manual dispatch | logical `pg_dump` of `public`, `auth` and `storage` schemas, encrypts with AES-256-CBC/PBKDF2 (600k iterations), uploads one encrypted artifact with 90-day retention, then a separate read-back job downloads, decrypts and checksum-verifies it |
-| `Backup Restore Drill` (`.github/workflows/backup-restore-drill.yml`) | Saturdays 05:00, plus manual dispatch | downloads the latest successful backup artifact, decrypts, restores it into an isolated throwaway PostgreSQL container matching the dump version, and prints count-only invariants to the job summary |
+## Candidate behavior after approval and activation
 
-Both workflows fail loudly when required secrets are missing. A failed
-scheduled run is the failure alert: keep GitHub watch notifications enabled
-for this repository.
+| Workflow                                                              | Schedule (UTC)                                  | What it does                                                                                                                                                                          |
+| --------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Supabase Encrypted Backup` (`.github/workflows/backup.yml`)          | candidate daily 03:00, plus manual dispatch     | currently proposes a logical `pg_dump` of `public`, `auth` and `storage`, AES-256-CBC/PBKDF2 encryption, a 90-day artifact and checksum read-back; this path has not run successfully |
+| `Backup Restore Drill` (`.github/workflows/backup-restore-drill.yml`) | candidate Saturdays 05:00, plus manual dispatch | currently proposes download/decrypt/restore into ordinary PostgreSQL plus count-only invariants; this path has not run and is not Supabase restore proof                              |
 
-## One-time enablement (owner)
+Both workflows are designed to fail when required secrets are missing. No
+scheduled or manual execution exists yet, so the failure-alert path itself is
+also unverified.
 
-1. Generate a long random passphrase (for example `openssl rand -base64 32`).
-   Store it in the owner password manager.
-2. Add repository secrets:
-   - `SUPABASE_DB_URL` — the Supabase **session pooler** connection string
-     (IPv4-reachable from GitHub runners; the direct `db.<ref>.supabase.co`
-     host may be IPv6-only). Use the read-capable `postgres` role.
-   - `BACKUP_ENCRYPTION_PASSPHRASE` — the passphrase from step 1.
-3. Trigger `Supabase Encrypted Backup` once via `workflow_dispatch` and
-   confirm both jobs pass.
-4. Trigger `Backup Restore Drill` once and confirm the invariant summary.
+## Activation gate — do not add production secrets yet
 
-Never commit either value. The dump itself is never written to the repository,
-workspace or logs; only the encrypted artifact leaves the runner.
+1. Replace or independently validate the raw `pg_dump public+auth+storage`
+   approach against Supabase's supported migration/restore sequence. The
+   current ordinary `postgres:<major>` restore cannot by itself prove that
+   Supabase-managed Auth/Storage objects will restore correctly. Supabase's
+   documented path separates roles, schema and data with `supabase db dump`;
+   see <https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore>.
+2. Rehearse the revised export/read-back/restore against an approved
+   non-production Supabase target and retain run ids, artifact identity,
+   count-only invariants, cleanup and timing evidence.
+3. Treat the sole-owner `main` ruleset with `0` approvals as an interim
+   integrity control only. It does **not** protect a secret-consuming backup
+   workflow from an unreviewed change by the same owner and is not an eligible
+   credential gate.
+4. Before adding a production database credential or backup decryption identity,
+   implement and prove one of these controls:
+   - add a second independent trusted reviewer with verified recovery access;
+     make backup workflow paths owned by `CODEOWNERS`, require at least one
+     approval with stale approvals dismissed on push, and require code-owner
+     review with no bypass; or
+   - scope every secret-consuming backup job and credential to a protected
+     environment that requires trusted manual approval before the job can read
+     secrets. Enable prevent-self-review and disable bypass for this gate. A
+     scheduled run will wait for approval, so this path is manual-gated and must
+     not be described as an unattended daily backup or proven 24-hour RPO.
+5. In a separately approved canary restart window, provision only the minimum
+   production database credential and backup encryption/decryption identity
+   required by the final reviewed hardening workflow. Use its final secret
+   names and custody model; do not provision the obsolete PR #133 passphrase
+   contract from this historical candidate.
+6. Trigger `Supabase Encrypted Backup` once via `workflow_dispatch` and confirm
+   both jobs pass.
+7. Trigger `Backup Restore Drill` once and confirm the invariant summary.
+8. Only after the protection gate, both runs and retained evidence pass may this
+   document change status from `NOT ENABLED / NOT VERIFIED`.
 
-## Guarantees and honest limits
+Never commit any credential or decryption identity. The current jobs create plaintext SQL transiently in
+the ephemeral runner workspace during export, read-back and restore. It must
+never be uploaded, logged or committed and must be removed on every success and
+failure path; failure-path cleanup still requires hardening. The encrypted
+artifact itself contains sensitive production rows and must be handled as such.
 
-- Proven automatically, every day: the dump exists, contains
+## Intended checks and honest limits
+
+- **Not yet proven.** The candidate daily job intends to prove that a dump
+  exists, contains
   `CREATE TABLE auth.users` and at least one `CREATE TABLE`, the encrypted
   artifact downloads, decrypts and matches the original checksum.
-- Proven weekly: the latest artifact restores into a clean PostgreSQL of the
+- **Not yet proven.** The candidate weekly job intends to show that the latest
+  artifact restores into a clean PostgreSQL of the
   matching major version with `ON_ERROR_STOP=1`, and count-only invariants
   (auth users, checks, reports, entities, user roles, admin allowlist,
-  reputation appeals) are printed. No identifiers are exported.
-- Not covered by the dump: database roles (application authorization lives in
-  `public.user_roles` and Supabase Auth, not in login roles), Supabase
-  internal schemas, and any storage objects (Ishonch Guard persists no user
-  screenshots in Supabase Storage). Extensions are recreated by the restore
-  drill from the dump's `CREATE EXTENSION` statements against the PostgreSQL
-  contrib set.
+  reputation appeals) are printed. No identifiers are intended to be printed
+  in the job summary; the encrypted artifact still contains production rows and
+  identifiers.
+- The current raw dump/restore design omits database roles, migration-history
+  and platform configuration, and it does not include Storage objects. It has
+  not proven Supabase Auth/Storage portability. Application authorization also
+  lives in `public.user_roles` and Supabase Auth, not only in login roles.
+  Extension recreation against ordinary PostgreSQL is unverified.
 - The artifact retention is 90 days; older restore points expire. Download the
   latest artifact monthly into owner custody for a second, independent
   offsite copy if longer history is wanted.
@@ -55,14 +91,12 @@ workspace or logs; only the encrypted artifact leaves the runner.
   provide PITR and does not meet the launch RPO target while the project stays
   on Supabase Free; that remains an explicit pilot risk acceptance.
 
-## Manual restore procedure (owner)
+## Restore procedure status
 
-1. Download the latest `supabase-backup-*` artifact from a successful run.
-2. Decrypt:
-   `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in backup.sql.enc -out backup.sql -pass pass:<passphrase>`.
-3. Restore into an isolated PostgreSQL (never into production):
-   `psql -v ON_ERROR_STOP=1 -f backup.sql`.
-4. Apply migrations newer than the restore point, then follow the
-   non-production restore drill in `RECOVERY_AND_KEY_ROTATION.md` (schema
-   lint, pgTAP, count-only invariants, isolated smokes, evidence record,
-   approved destructive cleanup).
+There is no approved automated-artifact restore runbook yet. The obsolete PR
+#133 AES/passphrase commands must not be used after the hardening track changes
+the crypto and credential contract. The final infrastructure PR must update
+this section with its verified decrypt command, Supabase-compatible
+roles/schema/data restore order, failure cleanup and count-only evidence. Until
+then follow only the separately approved non-production procedure in
+`RECOVERY_AND_KEY_ROTATION.md`; never restore this candidate into production.

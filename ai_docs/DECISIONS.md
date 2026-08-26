@@ -3,22 +3,42 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-095 - Merged backup workflow files are not operating recovery evidence
+
+**Status: active, independent audit 2026-08-26.** PR #133 merged a candidate
+encrypted export and restore-drill design, but the audit found zero backup runs,
+zero restore-drill runs, zero artifacts and no required backup credentials.
+Operational status is therefore `NOT ENABLED / NOT VERIFIED`; the schedule must
+not be described as a daily backup or current RPO control.
+
+Before any production database credential or backup decryption identity is
+added, replace or validate the raw `pg_dump public+auth+storage` and
+ordinary-PostgreSQL restore path against Supabase's supported roles/schema/data
+procedure, rehearse it on an approved non-production target, and review
+repository/secret protections. A sole-owner ruleset with zero approvals is not
+enough: credential activation additionally requires a second independent
+trusted reviewer with CODEOWNERS, at least one dismiss-stale approval and no
+bypass, or a protected environment with manual approval (scheduled runs then
+wait). Adding or rotating a backup secret deliberately restarts the current
+canary. D-094 records the intended design but not operational proof.
+
 ## D-094 - Automated encrypted GitHub-artifact backups are the pilot offsite copy
 
-**Status: accepted 2026-08-25.** While the project remains on Supabase Free,
-the daily `Supabase Encrypted Backup` workflow and the weekly
-`Backup Restore Drill` provide the automated recovery loop: an AES-256-CBC
+**Status: design accepted 2026-08-25; not enabled or verified.** While the
+project remains on Supabase Free, the candidate daily
+`Supabase Encrypted Backup` workflow and weekly `Backup Restore Drill` propose
+an automated recovery loop: an AES-256-CBC
 (PBKDF2, 600k iterations) encrypted logical dump of `public`, `auth` and
 `storage` schemas stored as a 90-day GitHub Actions artifact, with in-CI
 read-back verification and a weekly isolated restore drill printing
 count-only invariants.
 
-This amends the manual-export rule that required backups to live outside
-GitHub: the artifact stores only encrypted bytes; the passphrase exists solely
-in GitHub Actions secrets and the owner password manager; the dump never
-touches the repository, workspace or logs. The owner may additionally download
-artifacts monthly into independent custody. A failed scheduled run is the
-failure alert. This does not provide PITR and does not meet the launch RPO
+If activated and proven, this may amend the manual-export rule that required
+backups to live outside GitHub: the artifact would store only encrypted bytes,
+and the passphrase would be held in GitHub Actions secrets and the owner password
+manager. The owner may additionally download artifacts monthly into independent
+custody. The proposed failed-run alert path is not verified. This does not
+provide PITR and does not meet the launch RPO
 target; Supabase Free remains an explicit pilot risk acceptance. See
 `BACKUP_AUTOMATION.md`.
 
@@ -26,10 +46,11 @@ target; Supabase Free remains an explicit pilot risk acceptance. See
 
 **Status: active and proven 2026-08-25.** The `railway.toml` watch patterns
 (`**`, `!/*.md`, `!/ai_docs/**`) merged with PR #129 and are confirmed in the
-deployed manifest. Docs-only merges PR #130 (tip `2031205`), PR #131
-(`8092956`) and PR #132 each produced a placeholder deployment that Railway
-marked `SKIPPED` after CI, while the active deployment id, commit and image
-remained unchanged (`59077b99` / `9019776`).
+deployed manifest. Six docs-only merges produced placeholder deployments that
+Railway marked `SKIPPED`: PR #130 `fa9d5b40`, PR #131 `1d5c40b0`, PR #132
+`e74549a0`, PR #134 `c52d23b3`, PR #136 `54f676f1` and PR #138 `a46d9565`.
+The first four kept runtime `9019776` / deployment `59077b99`; the last two kept
+runtime `a964153f` / deployment `464f3bb8`.
 
 Runtime source and configuration changes remain deploy-eligible and restart
 the canary window.

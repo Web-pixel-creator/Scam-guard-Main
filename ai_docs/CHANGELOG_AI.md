@@ -2,7 +2,29 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
-## 2026-08-25 - PR #129 production, canary #1 closure and docs-only reconciliation
+## 2026-08-26 - Independent status and recovery evidence correction
+
+- Separated GitHub docs tip `4380085d` from deployed runtime `a964153f` /
+  Railway `464f3bb8`; recorded six docs-only `SKIPPED` entries and three
+  non-SKIPPED deployment entries in the audited period.
+- Corrected historical window #1 to 188/188 scheduled successes and operational
+  `GO`, while keeping formal closure `OPEN / exception pending` because the
+  required polling dialogue was skipped and AI-probe attribution is incomplete.
+- Recorded window #3 `OPEN`: closure requires both at least 72 elapsed hours and
+  at least 144 eligible successes; production/repository secret changes restart
+  it.
+- Corrected backup status to `NOT ENABLED / NOT VERIFIED` (zero runs, restore
+  drills and artifacts; required secrets absent) and blocked secret activation
+  pending Supabase-compatible export/restore plus a real credential gate. A
+  sole-owner ruleset with zero approvals is explicitly insufficient; activation
+  requires independent CODEOWNER review with at least one dismiss-stale approval
+  or a protected-environment manual approval that leaves scheduled runs waiting.
+- Kept client acceptance at 1/51 and PR #137 `DRAFT/HOLD`, not deployed.
+  Candidate `e4db0135` completed its second OTP/SMS boundary TDD round and full
+  local re-gate, and GitHub CI passed 7/7; owner merge decision and canary
+  restart remain pending. Design documents are proposal-only.
+
+## 2026-08-25 - PR #129 production, canary #1 checkpoint and docs-only reconciliation
 
 - PR #129 (semantic / human-simulation hardening) merged as
   `901977645d3a8eb7a6498ac6aba90748daaa648e` and deployed through Railway Auto
@@ -11,13 +33,13 @@ Newest first. This tracks documentation/memory files, not every code commit.
   Its 179-file / 15,327-test merge gate and Security Gates passed. Railway
   watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) shipped in the same merge
   and are confirmed active in the deployed manifest.
-- The PR #128 canary window closed `2026-08-25` with verdict `GO`: 185/185
+- The PR #128 canary window reached operational `GO` on `2026-08-25`: 188/188
   eligible scheduled runs, zero non-success eligible runs, unchanged
   deployment and restart-rule review, final production/security/web-P1 smokes
   passed, polling-dialogue smoke recorded as skipped without owner approval.
-  Closure evidence is in `CANARY_72H.md`.
-- PR #129 opened canary window #2 at `2026-08-25T15:07:00Z`; formal status
-  `OPEN`, target verdict on or after `2026-08-28T15:07:00Z`.
+  Formal closure remains `OPEN / exception pending`; see `CANARY_72H.md`.
+- PR #129 opened canary window #2 at `2026-08-25T15:07:00Z`; it was later
+  superseded after 18/18 successes by the PR #133/#135 acceleration.
 - Prepared this docs-only reconciliation on a fresh worktree/branch from
   `main` `9019776`: CURRENT_STATE, OPEN_TASKS, CANARY_72H, AI_INDEX, README,
   DEPLOYMENT, ON_CALL_RUNBOOK and LATEST_PROJECT_STATUS updated to the PR #129

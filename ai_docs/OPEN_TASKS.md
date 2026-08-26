@@ -10,52 +10,80 @@ deployed application source is PR #135 merge
 `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-PR #135 passed 179 files / 15,327 tests, TypeScript, lint, build, coverage,
+GitHub documentation tip is PR #138 merge `4380085d`; it is intentionally
+newer than the deployed runtime above. PR #135 passed 179 files / 15,327 tests,
+TypeScript, lint, build, coverage,
 migration/schema and Security Gates. The application runtime is unchanged
 from PR #129; the deploy carries the backup automation workflows (PR #133)
-and the CI action batch. The automated encrypted backup is dormant until the
-owner adds the `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` secrets;
-the daily run fails loudly until then. The previous window #2 (PR #129) ran
+and the CI action batch. Backup status is `NOT ENABLED / NOT VERIFIED`: the
+audit found zero backup runs, zero restore-drill runs, zero artifacts and
+no required backup credentials. The previous window #2 (PR #129) ran
 18/18 clean and was superseded by the owner-approved acceleration. PR #135
 opened canary window #3 at `2026-08-26T03:54:30Z`; its formal status is
 `OPEN`. Old commit ids, test totals and tracker counts below describe the
 checkpoint at which each paragraph was written.
 
 Railway watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) are active in the
-deployed manifest and proven by four SKIPPED docs-only deployments
-(`fa9d5b40`, `1d5c40b0`, `e74549a0`, `c52d23b3`); the docs SHA and the
+deployed manifest and proven by six SKIPPED docs-only deployments
+(`fa9d5b40`, `1d5c40b0`, `e74549a0`, `c52d23b3`, `54f676f1`, `a46d9565`); the docs SHA and the
 runtime SHA `a964153f` are recorded separately.
 
 The immediate queue is:
 
-1. owner: add the backup secrets (`SUPABASE_DB_URL` session pooler,
-   `BACKUP_ENCRYPTION_PASSPHRASE`) so the daily encrypted export starts;
-2. observe canary window #3 for deployed `a964153f` to at least 144 eligible
-   scheduled successes under the unchanged entry and restart rules, then
-   issue the written GO/NO-GO verdict on or after `2026-08-29T03:54:30Z`;
-3. close the remaining dependabot items after the verdict: setup-cli 3.0.0
+1. keep PR #137 `DRAFT/HOLD` and not deployed; final candidate `e4db0135`
+   completed the generic "sent + wrong recipient/card/account" OTP/SMS TDD round
+   and full local gate, and GitHub CI passed 7/7; owner merge decision and
+   explicit canary restart remain required;
+2. observe canary window #3 for deployed `a964153f` until **both** at least 72
+   elapsed hours and at least 144 eligible scheduled successes are satisfied,
+   then re-check every restart/exception rule before a written GO/NO-GO;
+3. prepare Supabase export/restore and repository-security hardening on a HOLD
+   branch only; do not merge it or add production backup credentials while
+   preserving window #3. After the verdict (or explicit supersede decision),
+   stage-test it and prove either independent CODEOWNER review with ≥1
+   dismiss-stale approval or a protected-environment manual gate before
+   activation in a recorded restart window;
+4. resolve historical window #1's formal exception: run the separately
+   approved polling-dialogue smoke or record an owner/expiry-bound waiver, and
+   reconcile the incomplete AI-probe evidence;
+5. close the remaining dependabot items after the verdict: setup-cli 3.0.0
    through the staging CLI rehearsal, then application-dependency majors one
    branch at a time with the full local gate;
-4. capture non-destructive multi-instance polling handoff/re-election and
+6. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
-5. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
-   human Voice-out listen-through and bounded real RU/UZ Voice-in/STT evidence;
-6. complete accessibility scale/zoom/reduced-motion and legal/privacy
+7. execute `CLIENT_ACCEPTANCE_PLAN_2026-08.md`; it is a plan only and formal
+   Inline client evidence remains 1/51, then complete Direct RU/UZ/EN,
+   human Voice-out and bounded real RU/UZ Voice-in/STT evidence;
+8. complete accessibility scale/zoom/reduced-motion and legal/privacy
    acceptance;
-7. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+9. restore-test a successfully generated fresh archive with full timing/RPO/RTO
+   evidence, then run
    the separately approved Railway rollback/return and MFA factor-reset drills;
-8. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
-   the separately approved Railway rollback/return and MFA factor-reset drills;
-9. retain staging until a separate destructive deletion approval is given;
-10. record Railway payment-method expiry/spend alerts and a response owner;
-11. keep Nitro static `q`-weight handling and the OCR fallback two-phase
+10. retain staging until a separate destructive deletion approval is given;
+11. record Railway payment-method expiry/spend alerts and a response owner;
+12. keep Nitro static `q`-weight handling and the OCR fallback two-phase
     correction as explicit follow-up engineering;
-12. review and approve the two system-debt designs before implementation:
+13. review and approve the two system-debt designs before implementation:
     `DESIGN_OUTBOX_JOURNAL.md` (durable outbound delivery journal — the #1
     architectural gap) and `DESIGN_OBSERVABILITY_BASELINE.md` (privacy-safe
     metrics plus the rules latency budget that guards `rules.ts` against
     ReDoS regressions). Both are proposal-status and unblock only after the
     canary verdict allows source merges.
+14. migrate deprecated `railway.toml` before the hard `2026-12-01` cutoff using
+    manual CLI `>=5.44.0` pull/plan/apply; automatic migration leaves
+    watch/build as comments and omits restart policy, so blind apply is
+    forbidden. In the approved restart window, clear Dashboard Config File
+    `/railway.toml`, immediately inspect the human-readable plan and restore the
+    field on any unexpected deletion (`RAILWAY_IAC_MIGRATION_PLAN.md`);
+15. before any production database credential or backup decryption identity is
+    placed in GitHub, fix workflow BOM/mojibake and stable ASCII required-check
+    names, enforce the selected-Actions/SHA policy, add `CODEOWNERS` as an audit
+    signal and create a `main` ruleset with no bypass. Keep required approvals at
+    `0` and code-owner review disabled while only one owner exists
+    (`GITHUB_REPOSITORY_PROTECTION_PLAN.md`), but keep backup disabled in that
+    interim mode. Activation additionally requires a second independent trusted
+    reviewer with ≥1 dismiss-stale CODEOWNER approval, or a protected environment
+    with manual approval; scheduled runs wait under the latter path.
 
 ## Fragile / risky spots
 
@@ -869,22 +897,20 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
 - [ ] Keep `HASH_PEPPER_SECRET` as the required legacy read slot until a
       privacy-reviewed retirement report proves zero required dependencies.
       Direct replacement remains forbidden.
-- [ ] Continue the current fixed-RC observation documented in
-      `CANARY_72H.md` for exact PR #129 merge `9019776` and Railway deployment
-      `59077b99-b155-4f6d-88db-e6769aa4a394` (window #2, opened
-      `2026-08-25T15:07:00Z`). Require at least 144 successful eligible runs
-      under the unchanged entry/failure/restart rules. Only scheduled baseline
-      runs with `MONITOR_CHECK_AI=false` count. The older `1576e21` timeout and
-      its
-      operational/formal distinction remain historical evidence, not the
-      current window. Formal release acceptance also requires the remaining
-      real-client, accessibility and legal/privacy evidence; any
-      production/deploy/config/monitor change restarts the current window.
+- [ ] Continue fixed-RC observation window #3 documented in `CANARY_72H.md` for
+      exact PR #135 merge `a964153f` and Railway deployment `464f3bb8`
+      (opened `2026-08-26T03:54:30Z`). Closure requires both at least 72 elapsed
+      hours and at least 144 successful eligible scheduled runs under unchanged
+      entry/failure/restart rules. Only scheduled baselines with
+      `MONITOR_CHECK_AI=false` count. Any deployment, migration, production
+      secret, runtime config or monitor-workflow change restarts the window.
+      PR #129/window #2 is historical and superseded.
 - [x] ~~Resolve the Railway region and source-binding blockers.~~ Plan/payment
       activation made US West usable. Production is bound to `main`, Auto Deploy
       and Wait for CI are enabled. PR #122 first proved the complete path, and
-      PR #123-129 repeated it; current runtime merge `9019776` deployed
-      successfully as `59077b99-b155-4f6d-88db-e6769aa4a394`.
+      PR #123-129 repeated it; current runtime-wrapper merge `a964153f` deployed
+      successfully as `464f3bb8-45c8-4df9-9752-f8a9564a757f` while application
+      behavior remains the PR #129 baseline.
 - [ ] Record Railway payment method, expiry owner and spend/usage alerts through
       the Dashboard. CLI evidence proves `plan=pro`,
       `sleepApplication=false`, one replica and a successful current deployment,

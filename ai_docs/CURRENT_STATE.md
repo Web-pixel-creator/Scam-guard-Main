@@ -1,6 +1,6 @@
 # Current State
 
-Last reconciled: 2026-08-25 (`2026-08-25T15:30:00Z` evidence cutoff).
+Last reconciled: 2026-08-26 (independent audit evidence cutoff).
 
 This is the short operational source of truth. Dated audits, plans, release
 records and old checklist totals are historical evidence unless this file
@@ -10,23 +10,46 @@ internal test volume.
 ## One-minute status
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**.
-- GitHub `main` and deployed application source: PR #135 merge
+- GitHub documentation tip: PR #138 merge
+  `4380085d29885c16147127a96cffb0a1b440d941`. Railway Watch Paths skipped the
+  docs-only merge; it is not the deployed application source.
+- Deployed application source: PR #135 merge
   `a964153f2dc376015e3e3fbf93068049e97f1ee3`, tree
   `36d9d748e26fc3b41268c55af9f35ef1b82c2cad`.
 - Railway deployment: `464f3bb8-45c8-4df9-9752-f8a9564a757f`, status
   `SUCCESS`, image
   `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
 - Current canary window #3: opened `2026-08-26T03:54:30Z`, formal status
-  `OPEN`, verdict due on or after `2026-08-29T03:54:30Z`. The application
+  `OPEN`. Closure requires **both** at least 72 elapsed hours and at least 144
+  eligible scheduled successes under an unchanged baseline, so
+  `2026-08-29T03:54:30Z` is only the earliest possible decision time. The application
   runtime is unchanged from PR #129; the deploy carries the backup automation
   workflows and the CI action batch. Window #2 (PR #129) ran 18/18 clean and
   was superseded by the owner-approved acceleration.
-- Automated encrypted backups are merged but dormant: the owner must add the
-  `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets;
-  until then the daily run fails loudly by design (see `BACKUP_AUTOMATION.md`).
+- Backup workflow files are merged, but operational backup status is
+  **NOT ENABLED / NOT VERIFIED**: the audit found zero backup runs, zero restore
+  drill runs, zero backup artifacts and no required backup credentials.
+  Do not describe the repository schedule as a working daily backup. Activation
+  is blocked on the security/export/restore review in `BACKUP_AUTOMATION.md`.
 - Railway watch patterns are active in the deployed manifest
-  (`**`, `!/*.md`, `!/ai_docs/**`): docs-only merges stay CI-verified without a
-  new deployment.
+  (`**`, `!/*.md`, `!/ai_docs/**`): docs-only merges stay CI-verified and create
+  only a `SKIPPED` placeholder, without a build, image or runtime replacement.
+- `railway.toml` remains the effective manifest but is deprecated with a hard
+  `2026-12-01` cutoff. Migration to `.railway/railway.ts` is not implemented;
+  automatic migration is incomplete for watch/build/restart settings. Follow
+  `RAILWAY_IAC_MIGRATION_PLAN.md` in a separate restart window. Its non-atomic
+  ownership handoff must clear Dashboard Config File `/railway.toml`, immediately
+  review a human-readable plan, and restore that field on any unexpected
+  deletion.
+- GitHub is a public personal repository. Secret scanning/push protection and
+  SHA-pinned Actions are active, but `main` is unprotected and rulesets are
+  empty. Do not add a production database credential or backup decryption
+  identity until the ASCII/BOM and Actions policy are fixed and one real
+  credential gate in `GITHUB_REPOSITORY_PROTECTION_PLAN.md` is proven. A
+  sole-owner ruleset with zero approvals is not sufficient: use a second
+  independent trusted reviewer with CODEOWNERS + ≥1 dismiss-stale approval, or a
+  protected environment with manual approval. The latter leaves scheduled runs
+  waiting and is not unattended daily backup evidence.
 - Supabase production: 33 migrations, head `20260729131000`; AAL2 RLS and
   Family notification-claim retention migrations are applied.
 - Automated gate: 179 Vitest files, 15,327/15,327 tests, TypeScript, lint,
@@ -34,12 +57,22 @@ internal test volume.
   passed on the merge commits.
 - Formal Desktop/Android/iOS, accessibility, Voice and legal/privacy acceptance
   remains open. This is not a claim of real-world detection accuracy.
+- PR #137 is `DRAFT/HOLD`, not deployed. Final candidate
+  `e4db013559be8816319980eb5d4cad7eac09dff6` completed the second TDD round for
+  generic "sent + wrong recipient/card/account" OTP/SMS boundaries and a full
+  local re-gate: 15,357/15,357, focused 152/152, novel 321/321,
+  TypeScript/lint/build/prettier clean, plus manual EN/UZ polarity probes at
+  `panic=1`; GitHub CI passed 7/7. Owner merge approval and an explicit canary
+  restart remain required.
 
 ## Verified production baseline
 
-PR #129 was merged at `2026-08-25T15:01:26Z`. Railway Auto Deploy waited for
-green merge-commit CI and Security Gates and reported deployment
-`59077b99-b155-4f6d-88db-e6769aa4a394` successful at `2026-08-25T15:07:00Z`.
+The application changes originate in PR #129, merged at
+`2026-08-25T15:01:26Z`. PR #133 and PR #135 later changed workflow/CI files and
+produced the current Railway deployment
+`464f3bb8-45c8-4df9-9752-f8a9564a757f` for merge `a964153f`. The application
+runtime code is unchanged from PR #129. Keep this runtime identity separate
+from the newer GitHub documentation tip `4380085d`.
 
 The release is the semantic / human-simulation hardening batch: deterministic
 risk-rule and scam-pattern expansion with clause-local false-positive controls,
@@ -67,29 +100,36 @@ The post-deploy production smoke for this source returned:
 The recurring baseline never sends a Telegram user message. AI reachability is
 a separate false-by-default manual operation.
 
-## Docs-only no-deploy proof (2026-08-25)
+## Docs-only no-deploy proof (2026-08-25 to 2026-08-26)
 
-The documentation reconciliation (PR #130, docs tip
-`203120583c3a5145c7945621ab27c6e58686513a`) merged at `2026-08-25T16:05:00Z`
-touching only root Markdown and `ai_docs/**`. Railway created the placeholder
-deployment `fa9d5b40-5a56-4f11-9bea-04d39f1b3bc2` while CI ran, applied the
-active watch patterns, and marked it `SKIPPED` without building an image. The
-active production deployment remained `59077b99-b155-4f6d-88db-e6769aa4a394`
-(RC `9019776`) and `/healthz` returned `200 ok`. Docs-only merges therefore do
-not create a runtime deployment and do not restart canary window #2.
+Six documentation-only merges produced Railway entries marked `SKIPPED`:
+`fa9d5b40`, `1d5c40b0`, `e74549a0`, `c52d23b3`, `54f676f1` and `a46d9565`.
+The first four preserved deployment `59077b99` / runtime `9019776`; the last two
+preserved deployment `464f3bb8` / runtime `a964153f`. Together they advanced
+GitHub `main` to docs tip `4380085d` without replacing the runtime active at
+each merge. In the same audit period there were three non-SKIPPED deployment
+entries (`59077b99`, superseded `d1d79846`, and current `464f3bb8`), not four
+production releases.
 
 ## Canary boundary
 
-PR #129 started fixed-RC observation window #2 at `2026-08-25T15:07:00Z`.
-Formal status is `OPEN` until the written 144-success threshold and
-restart rules are re-checked, expected on or after `2026-08-28`.
+PR #135 started fixed-RC observation window #3 at `2026-08-26T03:54:30Z`.
+Formal status is `OPEN` until both the 72-hour wall-clock threshold and the
+144-success threshold are satisfied and all restart rules are re-checked.
+Adding or rotating any backup credential or decryption identity changes
+production/repository secret state and restarts the current window under the
+written contract.
 
-The superseded PR #128 source `58557765` closed its window on `2026-08-25`
-with verdict `GO`: 185/185 eligible scheduled runs through
-`2026-08-25T11:52:01Z`, zero non-success eligible runs, unchanged deployment
+The superseded PR #128 source `58557765` reached an **operational GO** on
+`2026-08-25`: 188/188 eligible scheduled runs through
+`2026-08-25T14:36:28Z`, zero non-success eligible runs, unchanged deployment
 and restart-rule review, final production/security/web-P1 smokes passed, and
 the polling-dialogue smoke recorded as skipped (needs a real Telegram message;
-owner approval was not granted). Full closure evidence is in `CANARY_72H.md`.
+owner approval was not granted). The written entry/closure checklist required
+that dialogue smoke, and the optional AI probe that returned `429` lacks the
+required approval/run-id/budget record. Formal status therefore remains
+`OPEN / exception pending`; it must not be called formally closed. Full evidence
+is in `CANARY_72H.md`.
 
 The earlier PR #126 source `8a76a5e` accumulated 226 successful scheduled
 monitor executions between `2026-08-13T12:52:46Z` and
@@ -155,6 +195,10 @@ remain unproven until privacy-safe product events and a real pilot exist.
 - A daily encrypted production export with failure alert, offsite read-back and
   periodic clean restore remains required unless a paid managed-backup plan
   replaces it.
+- The merged GitHub workflows do not satisfy this requirement yet: they have no
+  successful run or artifact, and their raw `pg_dump`/plain-PostgreSQL restore
+  design requires Supabase-specific export/restore and repository-security
+  review before production credentials are introduced.
 - The retained staging project must not be deleted without separate explicit
   approval.
 - Supabase CLI `2.104.0` has a documented Windows credential-store issue. A
@@ -168,26 +212,45 @@ Detailed recovery and rotation evidence is in
 
 ## Current ordered work
 
-1. Owner: add the `SUPABASE_DB_URL` (session pooler) and
-   `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets so the daily encrypted
-   backup starts protecting production (first run fails loudly until then).
-2. Keep PR #135 production unchanged through canary window #3 and issue a
-   separate GO/NO-GO verdict on or after `2026-08-29T03:54:30Z` using the
-   written 144-success and restart rules.
-3. Documentation reconciliation is merged and the docs-only no-deploy proof is
-   recorded; the superseded docs PR #127 is closed.
-4. Automate encrypted daily Supabase export/RPO evidence or select a managed
-   backup plan (automation merged; secrets pending).
-5. Record Railway payment-method expiry, spend alerts and response owner.
-6. Upgrade the pinned Supabase CLI through staging-only verification.
-7. Run a risk-based real-client gate on Desktop, Android and iOS for critical
-   Direct/Inline RU/UZ/EN scenarios per `CLIENT_ACCEPTANCE_PLAN_2026-08.md`,
-   then complete the remaining matrix.
-8. Add privacy-safe funnel events, run 5-8 moderated usability sessions and
-   only then a controlled 20-30-person pilot.
-9. Keep multi-instance polling handoff, durable outbound outbox, Voice human
-   review, accessibility and independent legal/privacy review as explicit
-   separate gates.
+1. Keep PR #137 `DRAFT/HOLD` until the owner makes a separate
+   merge/canary-restart decision; the full local gate on candidate `e4db0135` and
+   GitHub CI 7/7 are complete, but they are not production evidence.
+2. Prepare backup/export/restore hardening on a HOLD branch only; do not merge a
+   workflow change or add backup credentials while preserving window #3. Current status
+   remains `NOT ENABLED / NOT VERIFIED`.
+3. Keep PR #135 production unchanged through canary window #3 and issue a
+   separate GO/NO-GO only after **both** 72 hours and 144 eligible successes,
+   with all restart/exception evidence complete.
+4. After that verdict (or an explicit decision to supersede it), stage-test the
+   hardened backup path, prove independent reviewed ownership or a
+   protected-environment manual gate, approve the restart and only then
+   introduce the minimum backup credentials.
+5. Resolve the formal status of window #1: execute the separately approved
+   polling-dialogue smoke or record an explicit time-bounded exception, and
+   document the prior AI-probe approval/run-id/budget evidence.
+6. Migrate deprecated `railway.toml` manually through pull/plan/apply before
+   `2026-12-01`; no blind auto-migration. In the separate canary-restart window,
+   clear Dashboard Config File `/railway.toml`, immediately inspect the plan and
+   restore the field on any unexpected deletion.
+7. Fix workflow BOM/mojibake and stable ASCII required-check names, then add an
+   Actions allowlist/SHA policy, `CODEOWNERS` as a non-required audit signal and
+   a `main` ruleset before any production database credential or backup
+   decryption identity reaches GitHub Actions. Required approvals remain `0` and
+   code-owner review remains disabled until a second independent reviewer exists
+   to avoid sole-owner deadlock; that interim mode does not authorize backup
+   credentials. Enable ≥1 dismiss-stale CODEOWNER approval after adding the
+   reviewer, or use a protected-environment manual approval whose scheduled runs
+   wait.
+8. Record Railway payment-method expiry, spend alerts and response owner.
+9. Upgrade the pinned Supabase CLI through staging-only verification.
+10. Run a risk-based real-client gate on Desktop, Android and iOS for critical
+    Direct/Inline RU/UZ/EN scenarios per `CLIENT_ACCEPTANCE_PLAN_2026-08.md`,
+    then complete the remaining matrix.
+11. Add privacy-safe funnel events, run 5-8 moderated usability sessions and
+    only then a controlled 20-30-person pilot.
+12. Keep multi-instance polling handoff, durable outbound outbox, Voice human
+    review, accessibility and independent legal/privacy review as explicit
+    separate gates.
 
 Do not add another large product surface before pilot evidence identifies a
 real user problem. `OPEN_TASKS.md` owns the detailed queue.

@@ -128,20 +128,27 @@ command without a separately approved maintenance window.
 
 ## Backup verification
 
-0. Since 2026-08-25 the automated loop in `BACKUP_AUTOMATION.md` runs a daily
-   encrypted logical export with in-CI read-back verification and a weekly
-   isolated restore drill (`Supabase Encrypted Backup` and
-   `Backup Restore Drill` workflows). The checks below still apply to manual
-   exports and to the pre-risky-change export requirement.
+0. The workflow files described in `BACKUP_AUTOMATION.md` are merged but
+   **NOT ENABLED / NOT VERIFIED**. At the 2026-08-26 audit cutoff there were
+   zero backup runs, zero restore-drill runs, zero artifacts and neither
+   required repository secret. Their current raw `pg_dump`/plain-PostgreSQL
+   restore design must pass Supabase-specific security and portability review
+   before credentials are added. It is not current RPO or restore evidence.
+   The checks below continue to govern manual exports and every
+   pre-risky-change export.
 1. In Supabase Dashboard, record plan, backup type, earliest/latest restore
    point and retention. Record metadata only; never attach a backup to the repo.
 2. On Free, confirm a successful encrypted logical export exists before every
    risky schema or Auth change. If no approved encrypted offsite destination is
    available, record the recovery gate as open and do not claim the target RPO.
 3. When a portable logical export is required, use an authorized operator shell
-   and `supabase db dump`/`pg_dump`; store the encrypted output outside GitHub,
-   Codex logs and the workspace. Do not pass a database password on the command
-   line or paste it into an issue.
+   and prefer Supabase's documented split inventory: roles via
+   `supabase db dump --role-only`, schema via `supabase db dump`, and data via
+   `supabase db dump --data-only --use-copy`. A raw `pg_dump` is not accepted as
+   portable recovery evidence until an isolated Supabase-compatible restore
+   proves it. Store encrypted output outside GitHub, Codex logs and the
+   workspace. Do not pass a database password on the command line or paste it
+   into an issue.
 4. Include schema, roles and data in the inventory, and separately record any
    non-database asset store. Ishonch Guard currently persists no user screenshots
    in Supabase Storage.
