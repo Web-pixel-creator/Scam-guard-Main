@@ -118,10 +118,12 @@ Or via the CLI:
 ```bash
 railway init           # link/create the project
 railway up             # build & deploy from the Dockerfile
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-railway variables set HASH_PEPPER_SECRET=...
-railway variables set TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=...
 ```
+
+Add or rotate server-only values through Railway's Variables UI/secret manager
+without putting credential values in shell arguments, terminal history, logs or
+evidence. Stage related values together, review the staged changes and deploy
+them in one approved cutover.
 
 ## Environment variables
 
@@ -155,8 +157,10 @@ committed `.env`, never shipped to client):
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role client (`client.server.ts`). Bypasses RLS.
 - Hash pepper — `HASH_PEPPER_SECRET` is the legacy/initial HMAC pepper. A
   version-aware overlap additionally uses `HASH_PEPPER_ACTIVE_VERSION` and
-  `HASH_PEPPER_ACTIVE_SECRET`; see `RECOVERY_AND_KEY_ROTATION.md`. Incomplete or
-  ambiguous configuration fails closed.
+  `HASH_PEPPER_ACTIVE_SECRET`. During a later incident rotation,
+  `HASH_PEPPER_PREVIOUS_VERSION` and `HASH_PEPPER_PREVIOUS_SECRET` retain the
+  most-recent version while `HASH_PEPPER_SECRET` remains the legacy read slot;
+  see `RECOVERY_AND_KEY_ROTATION.md`. Partial or duplicate slots fail closed.
 - `OPENAI_API_KEY` — AI explanation provider (optional, OpenAI-compatible). If
   absent, AI explanation/OCR degrade to `null` gracefully and scoring continues
   by rules.

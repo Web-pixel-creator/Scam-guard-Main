@@ -6,9 +6,9 @@
 // secret pepper makes this infeasible without the pepper.
 //
 // Legacy deployments read HASH_PEPPER_SECRET. Versioned deployments use one
-// active pepper plus at most one previous pepper for bounded dual-read. If the
-// configuration is missing or ambiguous, hashing FAILS CLOSED. We never fall
-// back to a weak or unstable hash.
+// active write pepper plus an optional explicit previous version and the
+// legacy read slot. If the configuration is missing or overlapping, hashing
+// FAILS CLOSED. We never fall back to a weak or unstable hash.
 
 export interface IdentifierHash {
   hash: string;
@@ -22,7 +22,7 @@ interface PepperSlot {
 
 interface PepperConfiguration {
   active: PepperSlot;
-  previous: PepperSlot | null;
+  previous: PepperSlot[];
 }
 
 const LEGACY_PEPPER_VERSION = "legacy";
@@ -57,7 +57,7 @@ function pepperConfiguration(): PepperConfiguration {
     }
     return {
       active: { version: LEGACY_PEPPER_VERSION, secret: legacySecret },
-      previous: null,
+      previous: [],
     };
   }
 
@@ -65,24 +65,33 @@ function pepperConfiguration(): PepperConfiguration {
   if (!activeVersion || !activeSecret) {
     throw new Error("Active versioned hash pepper configuration is incomplete");
   }
+  if (activeVersion === LEGACY_PEPPER_VERSION) {
+    throw new Error("Active hash pepper version cannot use the reserved legacy label");
+  }
 
   const hasExplicitPrevious = previousVersionRaw !== null || previousSecret !== null;
-  let previous: PepperSlot | null = null;
+  const previous: PepperSlot[] = [];
   if (hasExplicitPrevious) {
     const previousVersion = normalizeVersion(previousVersionRaw);
     if (!previousVersion || !previousSecret) {
       throw new Error("Previous versioned hash pepper configuration is incomplete");
     }
-    if (legacySecret) {
-      throw new Error("Versioned hash pepper configuration is ambiguous");
-    }
-    previous = { version: previousVersion, secret: previousSecret };
-  } else if (legacySecret) {
-    previous = { version: LEGACY_PEPPER_VERSION, secret: legacySecret };
+    previous.push({ version: previousVersion, secret: previousSecret });
   }
 
-  if (previous && (previous.version === activeVersion || previous.secret === activeSecret)) {
-    throw new Error("Active and previous hash peppers must be distinct");
+  if (legacySecret) {
+    previous.push({ version: LEGACY_PEPPER_VERSION, secret: legacySecret });
+  }
+
+  const allSlots = [{ version: activeVersion, secret: activeSecret }, ...previous];
+  const versions = new Set<string>();
+  const secrets = new Set<string>();
+  for (const slot of allSlots) {
+    if (versions.has(slot.version) || secrets.has(slot.secret)) {
+      throw new Error("Active and previous hash peppers must be distinct");
+    }
+    versions.add(slot.version);
+    secrets.add(slot.secret);
   }
 
   return {
@@ -118,15 +127,13 @@ export function isHashPepperConfigured(): boolean {
 }
 
 /**
- * Returns the active write hash followed by the optional previous read hash.
+ * Returns the active write hash followed by the configured previous read hashes.
  * The raw identifier and pepper values are never returned or persisted.
  */
 export async function hashIdentifierCandidates(value: string): Promise<IdentifierHash[]> {
   const normalized = value.trim().toLowerCase();
   const configuration = pepperConfiguration();
-  const slots = [configuration.active, configuration.previous].filter(
-    (slot): slot is PepperSlot => slot !== null,
-  );
+  const slots = [configuration.active, ...configuration.previous];
 
   return Promise.all(
     slots.map(async (slot) => ({

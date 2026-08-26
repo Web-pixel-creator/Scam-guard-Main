@@ -426,15 +426,16 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(result.level).toBe("high_risk");
   });
 
-  it("keeps checks on the established previous hash until a controlled backfill", async () => {
-    vi.stubEnv("HASH_PEPPER_SECRET", "old-check-core-test-pepper");
-    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v2");
-    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "new-check-core-test-pepper");
+  it("keeps checks on the most-recent previous hash during a three-slot rotation", async () => {
+    vi.stubEnv("HASH_PEPPER_SECRET", "legacy-check-core-test-pepper");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v3");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "active-v3-check-core-test-pepper");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_SECRET", "previous-v2-check-core-test-pepper");
     const normalized = "+998901234567";
-    const [active, previous] = await hashIdentifierCandidates(normalized);
-    expect(active?.version).toBe("v2");
-    expect(previous?.version).toBe("legacy");
-    if (!active || !previous) throw new Error("expected active and previous test hashes");
+    const [active, previous, legacy] = await hashIdentifierCandidates(normalized);
+    expect([active?.version, previous?.version, legacy?.version]).toEqual(["v3", "v2", "legacy"]);
+    if (!active || !previous || !legacy) throw new Error("expected all three test hashes");
 
     hoisted.entityRowsByHash.set(previous.hash, {
       report_count: 4,
@@ -453,10 +454,10 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
 
     expect(result.knownReports).toBe(4);
     expect(result.reasons).toContain("known_reported");
-    expect(hoisted.entityHashQueries).toEqual([active.hash, previous.hash]);
+    expect(hoisted.entityHashQueries).toEqual([active.hash, previous.hash, legacy.hash]);
     expect(hoisted.insertCalls.at(-1)).toMatchObject({
       input_hash: previous.hash,
-      input_hash_version: "legacy",
+      input_hash_version: "v2",
     });
 
     const newNormalized = "+998901234568";
@@ -471,7 +472,41 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     });
     expect(hoisted.insertCalls.at(-1)).toMatchObject({
       input_hash: newActive?.hash,
-      input_hash_version: "v2",
+      input_hash_version: "v3",
+    });
+  });
+
+  it("keeps legacy checks visible as the final read slot during a three-slot rotation", async () => {
+    vi.stubEnv("HASH_PEPPER_SECRET", "legacy-check-core-test-pepper");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v3");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "active-v3-check-core-test-pepper");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_SECRET", "previous-v2-check-core-test-pepper");
+    const normalized = "+998901234569";
+    const [active, previous, legacy] = await hashIdentifierCandidates(normalized);
+    if (!active || !previous || !legacy) throw new Error("expected all three test hashes");
+
+    hoisted.entityRowsByHash.set(legacy.hash, {
+      report_count: 3,
+      moderation_status: "confirmed",
+      risk_level: "high_risk",
+    });
+
+    const result = await runCheck({
+      input: normalized,
+      type: "phone",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+      skipAi: true,
+    });
+
+    expect(result.knownReports).toBe(3);
+    expect(result.reasons).toContain("known_reported");
+    expect(hoisted.entityHashQueries).toEqual([active.hash, previous.hash, legacy.hash]);
+    expect(hoisted.insertCalls.at(-1)).toMatchObject({
+      input_hash: legacy.hash,
+      input_hash_version: "legacy",
     });
   });
 
