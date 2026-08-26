@@ -28,6 +28,8 @@ describe("pure Telegram text panic intent", () => {
     "Adashib boshqa odamning telefon raqamiga to'lov qildim.",
     "я пополнил не ту карту по ошибке",
     "пополнил не тот счёт, как вернуть деньги?",
+    "я пополнил не ту карту",
+    "пополнил не тот счёт",
   ])("keeps an ordinary outgoing recipient mistake out of scam panic: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
@@ -41,6 +43,25 @@ describe("pure Telegram text panic intent", () => {
   ])("does not hide an incoming return request behind the outgoing-mistake guard: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
   });
+
+  it.each([
+    "Я оплатил не тот тариф.",
+    "Я оплатил, но не тут.",
+    "Я отправил деньги, но не тотально уверен.",
+  ])("does not treat an unrelated Russian 'ту/тот' fragment as a recipient mistake: %s", (text) => {
+    expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+  });
+
+  it.each([
+    ["Я отправил не тот код из SMS.", 1],
+    ["Я отправил не тот OTP-код человеку, который позвонил из банка.", 1],
+  ] as const)(
+    "does not hide a completed code-disclosure scam behind the mistake guard: %s",
+    (text, panicId) => {
+      expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+      expect(classifyTextPanicIntent(text)).toBe(panicId);
+    },
+  );
 
   it.each([
     "Я сделал запланированный перевод знакомому поставщику по официальному счёту; получатель и сумма подтверждены.",
