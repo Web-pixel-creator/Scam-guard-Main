@@ -1,52 +1,53 @@
 # Open Tasks
 
-## Current checkpoint (2026-08-25)
+## Current checkpoint (2026-08-26)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The verified
-deployed application source is PR #129 merge
-`901977645d3a8eb7a6498ac6aba90748daaa648e` (tree
-`b68beea635e3d2a37e0fe15049c00eb20725813e`). Railway deployment
-`59077b99-b155-4f6d-88db-e6769aa4a394` reports `SUCCESS` with image
-`sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
+deployed application source is PR #135 merge
+`a964153f2dc376015e3e3fbf93068049e97f1ee3` (tree
+`36d9d748e26fc3b41268c55af9f35ef1b82c2cad`). Railway deployment
+`464f3bb8-45c8-4df9-9752-f8a9564a757f` reports `SUCCESS` with image
+`sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-PR #129 passed 179 files / 15,327 tests, TypeScript, lint, build, coverage,
-migration/schema and Security Gates. The post-deploy production smoke passed
-without sending a Telegram message; the optional AI provider health probe
-returned `429 quota_exhausted` (degraded; deterministic scoring unaffected).
-Production is bound to `main`; Auto Deploy plus Wait for CI was first proved by
-PR #122 and repeated through PR #129. The previous PR #128 window closed
-`2026-08-25` with verdict `GO` (185/185 eligible runs plus final bounded
-checks; polling-dialogue smoke recorded as skipped). PR #129 opened canary
-window #2 at `2026-08-25T15:07:00Z`; its formal status is `OPEN`. Old commit
-ids, test totals and tracker counts below describe the checkpoint at which
-each paragraph was written.
+PR #135 passed 179 files / 15,327 tests, TypeScript, lint, build, coverage,
+migration/schema and Security Gates. The application runtime is unchanged
+from PR #129; the deploy carries the backup automation workflows (PR #133)
+and the CI action batch. The automated encrypted backup is dormant until the
+owner adds the `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` secrets;
+the daily run fails loudly until then. The previous window #2 (PR #129) ran
+18/18 clean and was superseded by the owner-approved acceleration. PR #135
+opened canary window #3 at `2026-08-26T03:54:30Z`; its formal status is
+`OPEN`. Old commit ids, test totals and tracker counts below describe the
+checkpoint at which each paragraph was written.
 
 Railway watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) are active in the
-deployed manifest. The documentation reconciliation merged as PR #130 (docs
-tip `2031205`) and Railway marked its placeholder deployment `fa9d5b40`
-`SKIPPED` — the docs-only no-deploy behavior is proven, the docs SHA and the
-runtime SHA `9019776` are recorded separately, and the active deployment id
-stayed `59077b99`.
+deployed manifest and proven by four SKIPPED docs-only deployments
+(`fa9d5b40`, `1d5c40b0`, `e74549a0`, `c52d23b3`); the docs SHA and the
+runtime SHA `a964153f` are recorded separately.
 
 The immediate queue is:
 
-1. observe canary window #2 for deployed `9019776` to at least 144 eligible
-   scheduled successes under the unchanged entry and restart rules, then issue
-   the written GO/NO-GO verdict on or after `2026-08-28T15:07:00Z`;
-2. close the superseded docs PR #127 with a pointer to the merged PR #130;
-3. capture non-destructive multi-instance polling handoff/re-election and
+1. owner: add the backup secrets (`SUPABASE_DB_URL` session pooler,
+   `BACKUP_ENCRYPTION_PASSPHRASE`) so the daily encrypted export starts;
+2. observe canary window #3 for deployed `a964153f` to at least 144 eligible
+   scheduled successes under the unchanged entry and restart rules, then
+   issue the written GO/NO-GO verdict on or after `2026-08-29T03:54:30Z`;
+3. close the remaining dependabot items after the verdict: setup-cli 3.0.0
+   through the staging CLI rehearsal, then application-dependency majors one
+   branch at a time with the full local gate;
+4. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
-4. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
+5. complete the remaining real-client device matrix for Direct/Inline RU/UZ/EN,
    human Voice-out listen-through and bounded real RU/UZ Voice-in/STT evidence;
-5. complete accessibility scale/zoom/reduced-motion and legal/privacy
+6. complete accessibility scale/zoom/reduced-motion and legal/privacy
    acceptance;
-6. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
+7. restore-test the fresh archive with full timing/RPO/RTO evidence, then run
    the separately approved Railway rollback/return and MFA factor-reset drills;
-7. retain staging until a separate destructive deletion approval is given;
-8. record Railway payment-method expiry/spend alerts and a response owner;
-9. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
-   the OCR fallback two-phase correction as explicit follow-up engineering.
+8. retain staging until a separate destructive deletion approval is given;
+9. record Railway payment-method expiry/spend alerts and a response owner;
+10. keep Nitro static `q`-weight handling, a durable outbound outbox/journal and
+    the OCR fallback two-phase correction as explicit follow-up engineering.
 
 ## Fragile / risky spots
 
