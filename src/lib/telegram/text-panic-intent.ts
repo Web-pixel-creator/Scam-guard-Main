@@ -16,7 +16,13 @@ export function normalizeVoiceIntentText(text: string): string {
 }
 
 const ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE =
-  /(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)|(?:^|[^\p{L}])(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:плат[её]ж|перевод)\s+(?:уже\s+)?(?:исполнил\p{L}*|прош[её]л|зачислен\p{L}*)|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?(?:sent|transferred|transerred|wired|paid|topped\s+up|recharged)|(?:payment|transfer)\s+(?:already\s+)?(?:settled|completed|went\s+through)|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:^|[^\p{L}])(?:pul(?:ni)?\s+)?(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:to['’]?lov|o['’]?tkazma)\s+(?:o['’]?tib\s+bo['’]?ldi|o['’]?tdi|bajarildi)/iu;
+  /(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:перев[её]л[аи]?|перв[её]л[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:^|[^\p{L}])(?:перев[её]л[аи]?|перв[её]л[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:плат[её]ж|перевод)\s+(?:уже\s+)?(?:исполнил\p{L}*|прош[её]л|зачислен\p{L}*)|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?(?:transferred|transerred|wired|paid|topped\s+up|recharged)(?!\p{L})|(?:payment|transfer)\s+(?:already\s+)?(?:settled|completed|went\s+through)|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)(?!\p{L})|(?:^|[^\p{L}])(?:o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)(?!\p{L})|(?:to['’]?lov|o['’]?tkazma)\s+(?:o['’]?tib\s+bo['’]?ldi|o['’]?tdi|bajarildi)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_GENERIC_MONEY_SEND_RE =
+  /(?:(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:отправил[аи]?|скинул[аи]?)(?!\p{L}).{0,80}(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*)|(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*).{0,80}(?:отправил[аи]?|скинул[аи]?)(?!\p{L})|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?sent\b.{0,80}(?:money|funds|payment|transfer|sum|uzs|card|account|balance|wallet|(?:phone|mobile)\s+number)\b|(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L})|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L}).{0,80}(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam))/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_SECRET_RE =
+  /(?:смс|sms|otp|одноразов\p{L}*\s+(?:код|парол)|код\p{L}*|парол\p{L}*|pin|пин|cvv|cvc)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_NEGATED_SECRET_RE =
+  /(?:(?:никому\s+)?не\s+(?:сообщал|отправлял|передавал|называл|говорил)\p{L}*.{0,40}(?:смс|sms|otp|код|парол)|(?:^|[^\p{L}])(?:i|we)\s+(?:(?:(?:did|do)\s+not|didn['’]?t|don['’]?t)\s+(?:share|send|give|tell).{0,40}(?:codes?|otp|passwords?)|(?:shared|sent|gave|told)\s+no\s+(?:codes?|otp|passwords?))|(?:hech\s+kimga\s+)?(?:sms|otp|kod|parol).{0,30}(?:bermadim|yubormadim|jo['’]?natmadim|aytmadim))/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE =
   /(?:не\s+(?:туда|тому|той|ту\s+карту(?!\p{L})|тот\s+сч[её]т(?!\p{L})|на\s+ту\s+(?:карту|сч[её]т)(?!\p{L})|тому\s+получателю)|друг(?:ому|ой)\s+(?:человеку|получателю|карте)|чуж(?:ому|ую)\s+(?:человеку|карту)|чуж(?:ой|ого)\s+(?:номер\p{L}*|телефон\p{L}*)|ошиб(?:ся|лась|очно)|по\s+ошибке|перепута\p{L}*\s+(?:адресат|получател)|неверн\p{L}*\s+(?:получател|карт|сч[её]т)|wrong\s+(?:person|recipient|account|card|number|phone|mobile)|someone\s+else['’]?s\s+(?:phone|number|mobile|account|card)|by\s+mistake|accidentally|adashib|xato(?:lik\s+bilan)?|noto['’]?g['’]?ri\s+(?:odam|oluvchi|karta|hisob|raqam)|boshqa\s+(?:odam|oluvchi|karta|hisob|raqam|telefon)(?:ga|ning)?)/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE =
@@ -45,13 +51,16 @@ function matchesAccidentalOutgoingTransfer(normalized: string): boolean {
   if (
     !normalized ||
     ACCIDENTAL_OUTGOING_TRANSFER_FRAUD_RE.test(normalized) ||
-    INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE.test(normalized)
+    INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE.test(normalized) ||
+    (ACCIDENTAL_OUTGOING_TRANSFER_SECRET_RE.test(normalized) &&
+      !ACCIDENTAL_OUTGOING_TRANSFER_NEGATED_SECRET_RE.test(normalized))
   ) {
     return false;
   }
 
   return (
-    (ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE.test(normalized) &&
+    ((ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE.test(normalized) ||
+      ACCIDENTAL_OUTGOING_TRANSFER_GENERIC_MONEY_SEND_RE.test(normalized)) &&
       ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE.test(normalized)) ||
     ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE.test(normalized)
   );
@@ -131,7 +140,7 @@ const UZ_COLLOQUIAL_CODE_DONE_RE =
 const UZ_COLLOQUIAL_TRANSFER_DONE_RE =
   /(?:(?:pul(?:ni)?|sum|so['’]?m|karta).{0,60}(?:o['’]?tkaz|yubor|jo['’]?nat)(?:dim|(?:ib)?vordim)|(?:o['’]?tkaz|yubor|jo['’]?nat)(?:dim|(?:ib)?vordim).{0,60}(?:pul|sum|so['’]?m|karta))/iu;
 const RU_SKINUL_CODE_DONE_RE =
-  /^(?:я|мы)\s+(?:им|ему|ей|туда)\s+(?:уже\s+)?скинул[аи]?.{0,40}(?:(?:смс|sms|otp)[-\s]*(?:код|цифр[аы]?)|(?:одноразов|проверочн).{0,12}(?:код|парол)|код.{0,18}(?:из\s+(?:смс|сообщени[ея])|подтверждени|вход)|цифр[аы]?.{0,18}(?:из\s+(?:смс|сообщени[ея])|кода))(?:[.!?,;:]|\s|$)/iu;
+  /^(?:я|мы)\s+(?:(?:им|ему|ей|туда)\s+(?:уже\s+)?скинул[аи]?|(?:уже\s+)?скинул[аи]?.{0,40}(?:им|ему|ей|не\s+тому\s+человеку|не\s+той\s+женщине)).{0,40}(?:(?:смс|sms|otp)[-\s]*(?:код|цифр[аы]?)|(?:одноразов|проверочн).{0,12}(?:код|парол)|код.{0,18}(?:из\s+(?:смс|сообщени[ея])|подтверждени|вход)|цифр[аы]?.{0,18}(?:из\s+(?:смс|сообщени[ея])|кода))(?:[.!?,;:]|\s|$)/iu;
 const RU_ONE_TIME_PASSWORD_DONE_RE =
   /^(?:я|мы)\s+(?:(?:им|ему|ей|туда)\s+)?(?:уже\s+|только\s+что\s+|недавно\s+)?(?:назвал[аи]?|продиктовал[аи]?|отправил[аи]?|скинул[аи]?|передал[аи]?|сообщил[аи]?(?!\s+(?:банк|полици|милици|поддержк|служб|друг|сын|доч|ребен|ребён|родствен|знаком))).{0,12}одноразов(?:ый|ого|ым)\s+парол(?:ь|я|ем)/iu;
 const EN_COMPLETED_CODE_STATE_RE =
