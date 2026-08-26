@@ -4,9 +4,30 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
-## Current RC observation status (2026-08-25, window #2)
+## Current RC observation status (2026-08-26, window #3)
 
-- Current RC: PR #129 merge `901977645d3a8eb7a6498ac6aba90748daaa648e` (tree
+- Current RC: PR #135 merge `a964153f2dc376015e3e3fbf93068049e97f1ee3` (tree
+  `36d9d748e26fc3b41268c55af9f35ef1b82c2cad`).
+- Railway deployment: `464f3bb8-45c8-4df9-9752-f8a9564a757f`; image
+  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
+- Window opened `2026-08-26T03:54:30Z` after the owner-approved acceleration:
+  PR #133 (automated encrypted Supabase backup + weekly restore drill) and
+  PR #135 (CI action batch: codeql-action commit pin, checkout v7) merged
+  back-to-back so the canary restarts once instead of twice. Both PRs passed
+  the full CI/Security Gates; `/healthz` returned `200 ok` after the deploy.
+  The runtime application code is unchanged from PR #129; the deploy carries
+  workflow and CI-action files only.
+- Formal status: `OPEN`. Target closure: on or after
+  `2026-08-29T03:54:30Z` via the written 144-success and restart rules.
+  Docs-only merges keep this clock; any source, config, secret or workflow
+  change restarts it.
+- The backup workflows are merged but dormant until the owner adds the
+  `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets;
+  without them the first scheduled run fails loudly by design.
+
+## Superseded window #2 (2026-08-25, PR #129)
+
+- RC: PR #129 merge `901977645d3a8eb7a6498ac6aba90748daaa648e` (tree
   `b68beea635e3d2a37e0fe15049c00eb20725813e`).
 - Railway deployment: `59077b99-b155-4f6d-88db-e6769aa4a394`; image
   `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
@@ -15,16 +36,12 @@ or production-secret change restarts the 72-hour clock.
   `/healthz` 200, webhook 401/503 boundaries, delivery `mode=polling`,
   `pending=0`, `last_error=none`, polling leader 200, optional AI provider
   probe `429 quota_exhausted` (degraded; deterministic scoring unaffected).
-- Window opened `2026-08-25T15:07:00Z`. Formal status: `OPEN`. Target
-  closure: on or after `2026-08-28T15:07:00Z` via the written 144-success and
-  restart rules. Railway watch patterns are active, so docs-only merges do not
-  restart this clock.
-- First eligible scheduled observation for this RC:
-  [`32866638702`](https://github.com/Web-pixel-creator/Scam-guard-Main/actions/runs/32866638702)
-  passed at `2026-08-25T15:34:30Z` for exact `9019776`. The follow-up run
-  [`32872040216`](https://github.com/Web-pixel-creator/Scam-guard-Main/actions/runs/32872040216)
-  passed at `2026-08-25T16:27:10Z` on docs tip `8092956` with the runtime
-  unchanged; docs-only merges keep this window intact.
+- Window opened `2026-08-25T15:07:00Z` and ran clean until the deliberate
+  restart: 18/18 scheduled observations passed between
+  `2026-08-25T15:34:30Z` and `2026-08-26T03:31:01Z` with zero non-success
+  runs (one on exact `9019776`, the rest on docs tips with the runtime
+  unchanged). It was superseded on `2026-08-26` by the owner-approved
+  acceleration above, not by any failure.
 
 ## Closed window #1 (2026-08-20, PR #128)
 

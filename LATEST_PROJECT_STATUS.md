@@ -17,28 +17,33 @@
   пилота**. Это уже работающий продукт, но не доказанная массовым использованием
   и независимой приёмкой enterprise-система.
 - GitHub `main`: PR
-  [№129](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/129), commit
-  `901977645d3a8eb7a6498ac6aba90748daaa648e`.
+  [№135](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/135), commit
+  `a964153f2dc376015e3e3fbf93068049e97f1ee3`.
 - Railway production deployment:
-  `59077b99-b155-4f6d-88db-e6769aa4a394`, статус `SUCCESS`.
+  `464f3bb8-45c8-4df9-9752-f8a9564a757f`, статус `SUCCESS`.
 - Railway image digest:
-  `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
+  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
 - Публичное приложение:
   [scam-guard-main-production.up.railway.app](https://scam-guard-main-production.up.railway.app/).
-- Production gate PR №129: **179 test files, 15 327/15 327 тестов**, TypeScript,
+- Production gate PR №135: **179 test files, 15 327/15 327 тестов**, TypeScript,
   lint, production build, coverage, migrations/schema/pgTAP и Security Gates
-  прошли.
+  прошли. Application runtime не менялся со времён PR №129 — деплой нёс
+  backup-автоматизацию (№133) и CI-actions батч (№135).
 - Railway watch patterns активны: docs-only merge не создаёт deployment и не
-  перезапускает canary.
+  перезапускает canary (подтверждено 4 SKIPPED-деплоями).
+- Автоматический зашифрованный backup смержен (№133), но спит до добавления
+  владельцем секретов `SUPABASE_DB_URL` и `BACKUP_ENCRYPTION_PASSPHRASE`;
+  ежедневный прогон без них падает громко — это и есть сигнал включения.
 - Supabase production: **33 миграции**, head `20260729131000`; AAL2 RLS и
   retention истёкших Family Shield claims применены.
 - Canary PR №128 закрыт `2026-08-25` с вердиктом **GO**: 185/185 eligible
   scheduled run плюс финальные production/security/web-P1 проверки;
   polling-dialogue smoke честно записан как skipped (нужно реальное
   Telegram-сообщение, разрешения не было).
-- Canary PR №129 (окно №2) открыт `2026-08-25T15:07:00Z`, формальный статус
-  `OPEN`; целевое закрытие — с `2026-08-28T15:07:00Z` по письменным правилам
-  (минимум 144 eligible success).
+- Окно №2 (PR №129) прошло 18/18 чисто и осознанно заменено ускорением;
+  окно №3 (PR №135) открыто `2026-08-26T03:54:30Z`, формальный статус `OPEN`;
+  вердикт — с `2026-08-29T03:54:30Z` по письменным правилам (минимум 144
+  eligible success).
 
 ## Что опубликовано в production за последнее время
 
@@ -180,14 +185,15 @@ Completed incident/aftercare имеет приоритет над обычной
 
 ## Последние production-релизы
 
-| Дата       | Релиз               | Что изменилось                                                                                     | Статус                                                                            |
-| ---------- | ------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 2026-08-25 | PR №129, `9019776`  | Semantic/human-simulation hardening: rules, patterns, RU/UZ/EN routing, QA corpora; watch patterns | Production, canary окно №2 `OPEN`                                                 |
-| 2026-08-20 | PR №128, `58557765` | Исправлен `installment`/APK конфликт в Inline и русский task-scam «зарплата → налог»               | Superseded production; canary закрыт `2026-08-25`, вердикт `GO`                   |
-| 2026-08-13 | PR №126, `8a76a5e`  | Большой RU/UZ/EN hardening, privacy/secret paths, completed actions, report TTL                    | Superseded production; 226 eligible monitor success, operational observation `GO` |
-| 2026-08-09 | PR №125, `1576e21`  | Coercive transaction secrecy context                                                               | Historical production checkpoint                                                  |
-| 2026-08-09 | PR №124, `eb944f3`  | Task scam, BNPL и coercion hardening                                                               | Входит в текущий `main`                                                           |
-| 2026-08-08 | PR №123, `f3a2343`  | Completed-action и language hardening                                                              | Входит в текущий `main`                                                           |
+| Дата       | Релиз                   | Что изменилось                                                                                              | Статус                                                                            |
+| ---------- | ----------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 2026-08-26 | PR №133+135, `a964153f` | Backup-автоматизация (ежедневный шифрованный экспорт + restore-drill) и CI-actions батч; runtime не менялся | Production, canary окно №3 `OPEN`, вердикт ≥ `2026-08-29T03:54:30Z`               |
+| 2026-08-25 | PR №129, `9019776`      | Semantic/human-simulation hardening: rules, patterns, RU/UZ/EN routing, QA corpora; watch patterns          | Superseded production; окно №2 прошло 18/18, заменено ускорением                  |
+| 2026-08-20 | PR №128, `58557765`     | Исправлен `installment`/APK конфликт в Inline и русский task-scam «зарплата → налог»                        | Superseded production; canary закрыт `2026-08-25`, вердикт `GO`                   |
+| 2026-08-13 | PR №126, `8a76a5e`      | Большой RU/UZ/EN hardening, privacy/secret paths, completed actions, report TTL                             | Superseded production; 226 eligible monitor success, operational observation `GO` |
+| 2026-08-09 | PR №125, `1576e21`      | Coercive transaction secrecy context                                                                        | Historical production checkpoint                                                  |
+| 2026-08-09 | PR №124, `eb944f3`      | Task scam, BNPL и coercion hardening                                                                        | Входит в текущий `main`                                                           |
+| 2026-08-08 | PR №123, `f3a2343`      | Completed-action и language hardening                                                                       | Входит в текущий `main`                                                           |
 
 Подробный неизменяемый отчёт о последнем релизе:
 [`ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-25.md`](ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-25.md).
@@ -280,7 +286,7 @@ gh pr list --state merged --limit 10
 Ожидаемый production commit на дату этой сводки:
 
 ```text
-901977645d3a8eb7a6498ac6aba90748daaa648e
+a964153f2dc376015e3e3fbf93068049e97f1ee3
 ```
 
 Не выполняйте `reset`, `checkout`, `clean`, `stash`, `rebase` или обычный

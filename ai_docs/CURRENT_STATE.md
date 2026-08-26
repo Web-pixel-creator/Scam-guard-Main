@@ -10,15 +10,20 @@ internal test volume.
 ## One-minute status
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**.
-- GitHub `main` and deployed application source: PR #129 merge
-  `901977645d3a8eb7a6498ac6aba90748daaa648e`, tree
-  `b68beea635e3d2a37e0fe15049c00eb20725813e`.
-- Railway deployment: `59077b99-b155-4f6d-88db-e6769aa4a394`, status
+- GitHub `main` and deployed application source: PR #135 merge
+  `a964153f2dc376015e3e3fbf93068049e97f1ee3`, tree
+  `36d9d748e26fc3b41268c55af9f35ef1b82c2cad`.
+- Railway deployment: `464f3bb8-45c8-4df9-9752-f8a9564a757f`, status
   `SUCCESS`, image
-  `sha256:cc242ed84ce1acdbd1fdab4c4791f79b363d53d0ded2bd28a0fcb67a531a4744`.
-- Current PR #129 canary (window #2): opened `2026-08-25T15:07:00Z`, formal
-  status `OPEN`. The superseded PR #128 window closed `2026-08-25` with verdict
-  `GO` (185/185 eligible runs plus final bounded checks).
+  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
+- Current canary window #3: opened `2026-08-26T03:54:30Z`, formal status
+  `OPEN`, verdict due on or after `2026-08-29T03:54:30Z`. The application
+  runtime is unchanged from PR #129; the deploy carries the backup automation
+  workflows and the CI action batch. Window #2 (PR #129) ran 18/18 clean and
+  was superseded by the owner-approved acceleration.
+- Automated encrypted backups are merged but dormant: the owner must add the
+  `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets;
+  until then the daily run fails loudly by design (see `BACKUP_AUTOMATION.md`).
 - Railway watch patterns are active in the deployed manifest
   (`**`, `!/*.md`, `!/ai_docs/**`): docs-only merges stay CI-verified without a
   new deployment.
@@ -26,7 +31,7 @@ internal test volume.
   Family notification-claim retention migrations are applied.
 - Automated gate: 179 Vitest files, 15,327/15,327 tests, TypeScript, lint,
   production build, coverage, migrations/schema/pgTAP and Security Gates
-  passed on the merge commit.
+  passed on the merge commits.
 - Formal Desktop/Android/iOS, accessibility, Voice and legal/privacy acceptance
   remains open. This is not a claim of real-world detection accuracy.
 
@@ -163,20 +168,24 @@ Detailed recovery and rotation evidence is in
 
 ## Current ordered work
 
-1. Keep PR #129 production unchanged through canary window #2 and issue a
-   separate GO/NO-GO verdict on or after `2026-08-28T15:07:00Z` using the
+1. Owner: add the `SUPABASE_DB_URL` (session pooler) and
+   `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets so the daily encrypted
+   backup starts protecting production (first run fails loudly until then).
+2. Keep PR #135 production unchanged through canary window #3 and issue a
+   separate GO/NO-GO verdict on or after `2026-08-29T03:54:30Z` using the
    written 144-success and restart rules.
-2. Documentation reconciliation is merged and the docs-only no-deploy proof is
-   recorded; close the superseded docs PR #127 with a pointer to PR #130.
-3. Automate encrypted daily Supabase export/RPO evidence or select a managed
-   backup plan.
-4. Record Railway payment-method expiry, spend alerts and response owner.
-5. Upgrade the pinned Supabase CLI through staging-only verification.
-6. Run a risk-based real-client gate on Desktop, Android and iOS for critical
-   Direct/Inline RU/UZ/EN scenarios, then complete the remaining matrix.
-7. Add privacy-safe funnel events, run 5-8 moderated usability sessions and
+3. Documentation reconciliation is merged and the docs-only no-deploy proof is
+   recorded; the superseded docs PR #127 is closed.
+4. Automate encrypted daily Supabase export/RPO evidence or select a managed
+   backup plan (automation merged; secrets pending).
+5. Record Railway payment-method expiry, spend alerts and response owner.
+6. Upgrade the pinned Supabase CLI through staging-only verification.
+7. Run a risk-based real-client gate on Desktop, Android and iOS for critical
+   Direct/Inline RU/UZ/EN scenarios per `CLIENT_ACCEPTANCE_PLAN_2026-08.md`,
+   then complete the remaining matrix.
+8. Add privacy-safe funnel events, run 5-8 moderated usability sessions and
    only then a controlled 20-30-person pilot.
-8. Keep multi-instance polling handoff, durable outbound outbox, Voice human
+9. Keep multi-instance polling handoff, durable outbound outbox, Voice human
    review, accessibility and independent legal/privacy review as explicit
    separate gates.
 
