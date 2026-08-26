@@ -30,6 +30,12 @@ describe("pure Telegram text panic intent", () => {
     "пополнил не тот счёт, как вернуть деньги?",
     "я пополнил не ту карту",
     "пополнил не тот счёт",
+    "Я отправил деньги не той женщине.",
+    "Я скинул перевод не тому человеку.",
+    "I sent the payment to the wrong person.",
+    "Платёж уже исполнился, я ошибся получателем и никому не сообщал коды.",
+    "To'lov o'tdi, noto'g'ri hisobga yubordim, hech kimga kod bermadim.",
+    "The payment settled to the wrong account; I did not share any OTP codes.",
   ])("keeps an ordinary outgoing recipient mistake out of scam panic: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
@@ -55,6 +61,10 @@ describe("pure Telegram text panic intent", () => {
   it.each([
     ["Я отправил не тот код из SMS.", 1],
     ["Я отправил не тот OTP-код человеку, который позвонил из банка.", 1],
+    ["Я отправил не той женщине код из SMS.", 1],
+    ["Я скинул не тому человеку OTP-код после звонка из банка.", 1],
+    ["Men SMS kodni adashib boshqa odamga yubordim.", 1],
+    ["I sent the wrong person my OTP code after a bank call.", 1],
   ] as const)(
     "does not hide a completed code-disclosure scam behind the mistake guard: %s",
     (text, panicId) => {
