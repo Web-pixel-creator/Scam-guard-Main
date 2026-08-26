@@ -26,6 +26,8 @@ describe("pure Telegram text panic intent", () => {
     "I topped up someone else's phone by mistake—how can I cancel it?",
     "Boshqa telefon raqamiga xato to'ladim — bekor qilish mumkinmi?",
     "Adashib boshqa odamning telefon raqamiga to'lov qildim.",
+    "я пополнил не ту карту по ошибке",
+    "пополнил не тот счёт, как вернуть деньги?",
   ])("keeps an ordinary outgoing recipient mistake out of scam panic: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
