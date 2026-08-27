@@ -77,6 +77,20 @@ describe("hashIdentifier", () => {
     ]);
   });
 
+  it("keeps both the most recent previous version and legacy reads during incident rotation", async () => {
+    vi.stubEnv("HASH_PEPPER_SECRET", "first-legacy-test-pepper");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v3");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "third-active-test-pepper");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_VERSION", "v2");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_SECRET", "second-previous-test-pepper");
+
+    const candidates = await hashIdentifierCandidates("@target");
+
+    expect(candidates.map((candidate) => candidate.version)).toEqual(["v3", "v2", "legacy"]);
+    expect(new Set(candidates.map((candidate) => candidate.hash)).size).toBe(3);
+    await expect(hashIdentifierVersioned("@target")).resolves.toEqual(candidates[0]);
+  });
+
   it.each([
     {
       activeVersion: "bad-version!",
@@ -100,11 +114,32 @@ describe("hashIdentifier", () => {
       legacy: "",
     },
     {
-      activeVersion: "v2",
+      activeVersion: "legacy",
       activeSecret: "new-active-test-pepper",
-      previousVersion: "v1",
-      previousSecret: "old-explicit-test-pepper",
-      legacy: "old-legacy-test-pepper",
+      previousVersion: "",
+      previousSecret: "",
+      legacy: "",
+    },
+    {
+      activeVersion: "v3",
+      activeSecret: "third-active-test-pepper",
+      previousVersion: "v2",
+      previousSecret: "",
+      legacy: "first-legacy-test-pepper",
+    },
+    {
+      activeVersion: "v3",
+      activeSecret: "third-active-test-pepper",
+      previousVersion: "",
+      previousSecret: "second-previous-test-pepper",
+      legacy: "first-legacy-test-pepper",
+    },
+    {
+      activeVersion: "v3",
+      activeSecret: "same-legacy-test-pepper",
+      previousVersion: "v2",
+      previousSecret: "second-previous-test-pepper",
+      legacy: "same-legacy-test-pepper",
     },
   ])("fails closed for incomplete or ambiguous versioned configuration", async (configuration) => {
     vi.stubEnv("HASH_PEPPER_SECRET", configuration.legacy);
@@ -114,6 +149,30 @@ describe("hashIdentifier", () => {
     vi.stubEnv("HASH_PEPPER_PREVIOUS_SECRET", configuration.previousSecret);
 
     await expect(hashIdentifier("target")).rejects.toThrow();
+    expect(isHashPepperConfigured()).toBe(false);
+  });
+
+  it.each([
+    {
+      previousVersion: "legacy",
+      previousSecret: "second-previous-test-pepper",
+      legacy: "first-legacy-test-pepper",
+    },
+    {
+      previousVersion: "v2",
+      previousSecret: "same-previous-test-pepper",
+      legacy: "same-previous-test-pepper",
+    },
+  ])("fails closed when the two previous read slots overlap", async (configuration) => {
+    vi.stubEnv("HASH_PEPPER_SECRET", configuration.legacy);
+    vi.stubEnv("HASH_PEPPER_ACTIVE_VERSION", "v3");
+    vi.stubEnv("HASH_PEPPER_ACTIVE_SECRET", "third-active-test-pepper");
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_VERSION", configuration.previousVersion);
+    vi.stubEnv("HASH_PEPPER_PREVIOUS_SECRET", configuration.previousSecret);
+
+    await expect(hashIdentifier("target")).rejects.toThrow(
+      "Active and previous hash peppers must be distinct",
+    );
     expect(isHashPepperConfigured()).toBe(false);
   });
 });

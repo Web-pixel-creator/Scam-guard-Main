@@ -302,8 +302,8 @@ that no required rows depend on it.
    This step proves schema/application compatibility before any secret changes.
 4. In a separately approved maintenance window, add a new, independently
    generated `HASH_PEPPER_ACTIVE_SECRET` and a bounded version id such as `v2`.
-   Keep the existing `HASH_PEPPER_SECRET`; it becomes the single previous
-   `legacy` read slot. Never expose either value in commands, logs or evidence.
+   Keep the existing `HASH_PEPPER_SECRET`; it becomes the previous `legacy`
+   read slot. Never expose either value in commands, logs or evidence.
 5. Verify count-only invariants and bounded synthetic cases:
    - a known legacy entity/report/appeal remains visible and is not duplicated;
    - a new synthetic identifier is written with the active version;
@@ -318,9 +318,23 @@ that no required rows depend on it.
    intentionally preserves an established legacy canonical hash to prevent
    split histories; therefore this retirement gate is still open.
 
-For a later explicit previous slot, remove `HASH_PEPPER_SECRET` before setting
-`HASH_PEPPER_PREVIOUS_VERSION` and `HASH_PEPPER_PREVIOUS_SECRET`. Supplying both
-legacy and explicit previous configuration is ambiguous and fails closed.
+When an already-versioned active pepper must be rotated while required legacy
+rows still exist, deploy the three-slot reader before changing configuration.
+Then, in one reviewed configuration window:
+
+1. copy the current active version and secret into
+   `HASH_PEPPER_PREVIOUS_VERSION` and `HASH_PEPPER_PREVIOUS_SECRET` without
+   revealing their values;
+2. replace `HASH_PEPPER_ACTIVE_VERSION` and `HASH_PEPPER_ACTIVE_SECRET` with a
+   new version and independently generated secret;
+3. retain `HASH_PEPPER_SECRET` as the legacy read slot.
+
+The resulting read order is new active, most-recent previous, then legacy. New
+writes use only the new active slot. Duplicate versions, duplicate secrets,
+partial pairs and an active/previous collision fail closed. Historical peppers
+remain sensitive and cannot be called revoked while required stored hashes
+still depend on them; this procedure contains new writes but does not erase the
+confidentiality impact of an earlier exposure.
 
 ## Supabase Auth hardening gate
 
