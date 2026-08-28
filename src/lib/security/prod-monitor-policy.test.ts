@@ -114,6 +114,28 @@ describe("production monitor required-check policy", () => {
     expect(smoke).not.toContain("const degraded =");
   });
 
+  it("removes AI and TTS provider access before the polling-dispatch QA handlers run", () => {
+    const smoke = readFileSync(
+      new URL("../../../scripts/prod-telegram-polling-dispatch-smoke.ts", import.meta.url),
+      "utf8",
+    );
+    const disableIndex = smoke.indexOf("\n  disableProviderAccessForPollingQa();");
+    const installIndex = smoke.indexOf("\n  installTelegramHandlers();");
+
+    expect(disableIndex).toBeGreaterThan(0);
+    expect(installIndex).toBeGreaterThan(disableIndex);
+    expect(smoke).toContain("delete process.env[name]");
+    for (const name of [
+      "OPENAI_API_KEY",
+      "OPENAI_FALLBACK_API_KEY",
+      "OPENAI_TTS_API_KEY",
+      "GEMINI_TTS_API_KEY",
+      "GOOGLE_TTS_API_KEY",
+    ]) {
+      expect(smoke).toContain(`"${name}"`);
+    }
+  });
+
   it("rejects Telegram webhook concurrency drift above one connection", () => {
     expect(TELEGRAM_WEBHOOK_MAX_CONNECTIONS).toBe(1);
     expect(hasSafeTelegramWebhookConcurrency(1)).toBe(true);
