@@ -54,6 +54,18 @@ interface SmokeContext {
   userIds: number[];
 }
 
+const PROVIDER_SECRET_ENV_NAMES = [
+  "OPENAI_API_KEY",
+  "OPENAI_FALLBACK_API_KEY",
+  "OPENAI_TTS_API_KEY",
+  "GEMINI_TTS_API_KEY",
+  "GOOGLE_TTS_API_KEY",
+] as const;
+
+function disableProviderAccessForPollingQa(): void {
+  for (const name of PROVIDER_SECRET_ENV_NAMES) delete process.env[name];
+}
+
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -294,6 +306,10 @@ async function cleanup(
 }
 
 async function main(): Promise<void> {
+  // `railway run` injects the production service environment. This smoke is a
+  // deterministic routing/delivery check, so provider access must be removed
+  // inside the child process before any Telegram handler can call `runCheck`.
+  disableProviderAccessForPollingQa();
   if (requiredEnv("TELEGRAM_UPDATE_DELIVERY_MODE") !== "polling") {
     fail("TELEGRAM_UPDATE_DELIVERY_MODE must be polling");
   }
@@ -316,6 +332,7 @@ async function main(): Promise<void> {
   console.log(
     "Synthetic inbound payloads remain in this QA process; no polling lease is acquired.",
   );
+  console.log("AI/TTS provider credentials are disabled inside this smoke process.");
 
   await verifyPollingHealth(publicUrl, webhookSecret);
   console.log("OK production polling leader is active");
