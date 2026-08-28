@@ -1,0 +1,10 @@
+/.github/CODEOWNERS @Web-pixel-creator
+/.github/workflows/ @Web-pixel-creator
+/.github/workflows/backup.yml @Web-pixel-creator
+/.github/workflows/backup-restore-drill.yml @Web-pixel-creator
+/src/lib/security/backup-workflow-contract.test.ts @Web-pixel-creator
+/src/lib/security/toolchain-config.test.ts @Web-pixel-creator
+/supabase/recovery/ @Web-pixel-creator
+/ai_docs/BACKUP_AUTOMATION.md @Web-pixel-creator
+/ai_docs/RECOVERY_AND_KEY_ROTATION.md @Web-pixel-creator
+/ai_docs/DECISIONS.md @Web-pixel-creator

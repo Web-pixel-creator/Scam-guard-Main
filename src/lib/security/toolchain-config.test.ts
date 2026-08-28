@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -62,13 +62,42 @@ describe("toolchain security boundaries", () => {
     expect(new Set(braceVersions)).toEqual(new Set(["5.0.8"]));
   });
 
-  it.each(["ci.yml", "security.yml"])("pins every action in %s to a commit SHA", (name) => {
-    const workflow = readFileSync(resolve(process.cwd(), ".github", "workflows", name), "utf8");
-    const actions = [...workflow.matchAll(/^\s*uses:\s+[^@\s]+@([^\s#]+)/gmu)];
+  it.each(["ci.yml", "security.yml", "prod-monitor.yml", "backup.yml", "backup-restore-drill.yml"])(
+    "pins every action in %s to a commit SHA",
+    (name) => {
+      const workflow = readFileSync(resolve(process.cwd(), ".github", "workflows", name), "utf8");
+      const actions = [...workflow.matchAll(/^\s*uses:\s+[^@\s]+@([^\s#]+)/gmu)];
 
-    expect(actions.length).toBeGreaterThan(0);
-    for (const action of actions) expect(action[1]).toMatch(/^[0-9a-f]{40}$/u);
-    expect(workflow).not.toMatch(/bun-version:\s*latest/iu);
+      expect(actions.length).toBeGreaterThan(0);
+      for (const action of actions) expect(action[1]).toMatch(/^[0-9a-f]{40}$/u);
+      expect(workflow).not.toMatch(/bun-version:\s*latest/iu);
+    },
+  );
+
+  it("keeps required-check job names ASCII-stable and workflow files BOM-free", () => {
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const monitor = readFileSync(
+      resolve(process.cwd(), ".github/workflows/prod-monitor.yml"),
+      "utf8",
+    );
+    const security = readFileSync(resolve(process.cwd(), ".github/workflows/security.yml"), "utf8");
+
+    const containsNonAsciiOrUnexpectedControl = (text: string): boolean =>
+      [...text].some((character) => {
+        const code = character.codePointAt(0) ?? 0;
+        return code > 0x7e || (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d);
+      });
+
+    for (const workflow of [ci, monitor, security]) {
+      expect(workflow.charCodeAt(0)).not.toBe(0xfeff);
+      expect(containsNonAsciiOrUnexpectedControl(workflow)).toBe(false);
+    }
+    for (const name of ["ci-verify", "coverage-thresholds", "database-gates"]) {
+      expect(ci).toContain(`name: ${name}`);
+    }
+    for (const name of ["codeql-js-ts", "gitleaks-scan", "container-security-sbom"]) {
+      expect(security).toContain(`name: ${name}`);
+    }
   });
 
   it("enforces coverage, SAST, secret, container and SBOM gates", () => {
@@ -89,27 +118,27 @@ describe("toolchain security boundaries", () => {
     expect(security).toContain("actions/upload-artifact@");
   });
 
-  it("keeps canonical documentation paths out of Railway autodeploys", () => {
-    const railway = readFileSync(resolve(process.cwd(), "railway.toml"), "utf8");
+  it("keeps the reviewed production invariants in Railway IaC", () => {
+    const railway = readFileSync(resolve(process.cwd(), ".railway", "railway.ts"), "utf8");
     const ci = readFileSync(resolve(process.cwd(), ".github", "workflows", "ci.yml"), "utf8");
     const security = readFileSync(
       resolve(process.cwd(), ".github", "workflows", "security.yml"),
       "utf8",
     );
-    const buildStart = railway.search(/^\[build\]\s*$/mu);
 
-    expect(buildStart).toBeGreaterThanOrEqual(0);
-
-    const afterBuildHeader = railway.slice(buildStart + "[build]".length);
-    const nextSection = afterBuildHeader.search(/^\[[^\]]+\]\s*$/mu);
-    const buildSection =
-      nextSection >= 0 ? afterBuildHeader.slice(0, nextSection) : afterBuildHeader;
-
-    expect(buildSection).toMatch(
-      /^watchPatterns\s*=\s*\["\*\*",\s*"!\/\*\.md",\s*"!\/ai_docs\/\*\*"\]\s*$/mu,
-    );
-    expect(railway).toContain('builder = "DOCKERFILE"');
-    expect(railway).toContain('dockerfilePath = "Dockerfile"');
+    expect(existsSync(resolve(process.cwd(), "railway.toml"))).toBe(false);
+    expect(existsSync(resolve(process.cwd(), "railway.json"))).toBe(false);
+    expect(railway).toContain('github("Web-pixel-creator/Scam-guard-Main"');
+    expect(railway).toContain('branch: "main"');
+    expect(railway).toContain('builder: "DOCKERFILE"');
+    expect(railway).toContain('dockerfilePath: "Dockerfile"');
+    expect(railway).toMatch(/watchPatterns:\s*\["\*\*",\s*"!\/\*\.md",\s*"!\/ai_docs\/\*\*"\]/u);
+    expect(railway).toContain('healthcheckPath: "/healthz"');
+    expect(railway).toContain("healthcheckTimeout: 100");
+    expect(railway).not.toContain("restartPolicyType:");
+    expect(railway).toContain("restartPolicyMaxRetries: 5");
+    expect(railway).toContain('replicas: { "us-west2": 1 }');
+    expect(railway.match(/\bpreserve\(\)/gu)).toHaveLength(22);
     for (const workflow of [ci, security]) {
       expect(workflow).toMatch(/^\s{2}push:\s*\r?\n\s{4}branches:\s*\r?\n\s{6}- main\s*$/mu);
       expect(workflow).not.toMatch(/^\s+paths(?:-ignore)?:/mu);

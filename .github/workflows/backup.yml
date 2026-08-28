@@ -1,15 +1,14 @@
 name: Supabase Encrypted Backup
 
-# Daily encrypted logical export of the production Supabase Postgres database.
-# The encrypted artifact is the automated offsite copy; the passphrase lives
-# only in GitHub Actions secrets and the owner's password manager, never in the
-# repository. A failed run is the failure alert: keep GitHub watch
-# notifications enabled for this repository.
+# Daily logical export for Supabase Free. The artifact contains only age-
+# encrypted bytes and a transport checksum. The private age identity is never
+# available to the export job.
 
 on:
-  schedule:
-    - cron: "0 3 * * *"
   workflow_dispatch: {}
+
+# HOLD: the reviewed enablement PR may add cron "17 3 * * *" only after every
+# trust, freshness, recipient and restore-proof gate in BACKUP_AUTOMATION.md.
 
 permissions:
   contents: read
@@ -18,91 +17,554 @@ concurrency:
   group: supabase-encrypted-backup
   cancel-in-progress: false
 
+env:
+  SUPABASE_CLI_VERSION: "2.104.0"
+  SUPABASE_CLI_LINUX_AMD64_SHA256: "5a0d3ed4c44f8dd1520a9f7ed6309aa60ef3bfc6c5483c9b11f70191f9d74cf6"
+  SUPABASE_INTERNAL_IMAGE_REGISTRY: "docker.io"
+  SUPABASE_POSTGRES_IMAGE: "supabase/postgres:17.6.1.132"
+  SUPABASE_POSTGRES_INDEX_DIGEST: "sha256:e09e93a61ed1560caf4be79c9eb29401875bea74b12aec4657cb08bf34ea3a13"
+  SUPABASE_POSTGRES_AMD64_IMAGE_ID: "sha256:e1939b94b1fd12b8a446404ff49455d7cf2a6a275a77f010abb56a247bfd5377"
+  AGE_VERSION: "1.3.1"
+  AGE_LINUX_AMD64_SHA256: "bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377"
+  # Public but integrity-sensitive: replace only through a reviewed commit.
+  BACKUP_AGE_RECIPIENT: "UNCONFIGURED_REVIEWED_RECIPIENT_REQUIRED"
+
 jobs:
   encrypted-export:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: backup-export
     steps:
-      - name: Check out repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout reviewed recovery artifact
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Fail fast when backup secrets are not configured
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      - name: Initialize private workspace
+        id: workspace
+        shell: bash
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::SUPABASE_DB_URL is not set. Add the Supabase session-pooler connection string (IPv4) as a repository secret."
+          set -Eeuo pipefail
+          directory="$RUNNER_TEMP/ishonch-backup-${GITHUB_RUN_ID}"
+          install -d -m 0700 "$directory"
+          echo "BACKUP_DIR=$directory" >> "$GITHUB_ENV"
+          echo "path=$directory" >> "$GITHUB_OUTPUT"
+
+      - name: Install checksum-pinned Supabase CLI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/supabase-cli.tar.gz"
+          unpacked="$RUNNER_TEMP/supabase-cli"
+          curl --fail --silent --show-error --location \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_${SUPABASE_CLI_VERSION}_linux_amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$SUPABASE_CLI_LINUX_AMD64_SHA256" "$archive" \
+            | sha256sum --check --status
+          install -d -m 0700 "$unpacked"
+          tar --extract --gzip --file "$archive" --directory "$unpacked" supabase
+          sudo install -m 0755 "$unpacked/supabase" /usr/local/bin/supabase
+          rm -rf "$archive" "$unpacked"
+          test "$(supabase --version)" = "$SUPABASE_CLI_VERSION"
+
+      - name: Preload immutable Supabase Postgres image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pull_log="$RUNNER_TEMP/supabase-postgres-pull.log"
+          docker pull "${SUPABASE_POSTGRES_IMAGE}@${SUPABASE_POSTGRES_INDEX_DIGEST}" \
+            > "$pull_log" 2>&1
+          docker tag \
+            "${SUPABASE_POSTGRES_IMAGE}@${SUPABASE_POSTGRES_INDEX_DIGEST}" \
+            "$SUPABASE_POSTGRES_IMAGE"
+          docker image inspect "$SUPABASE_POSTGRES_IMAGE" \
+            --format '{{json .RepoDigests}}' \
+            | grep --fixed-strings --quiet \
+              "@${SUPABASE_POSTGRES_INDEX_DIGEST}"
+          test "$(docker image inspect "$SUPABASE_POSTGRES_IMAGE" --format '{{.Id}}')" \
+            = "$SUPABASE_POSTGRES_AMD64_IMAGE_ID"
+          rm -f "$pull_log"
+
+      - name: Install checksum-pinned age
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/age.tar.gz"
+          curl --fail --silent --show-error --location \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$AGE_LINUX_AMD64_SHA256" "$archive" | sha256sum --check --status
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          sudo install -m 0755 "$RUNNER_TEMP/age/age" /usr/local/bin/age
+          sudo install -m 0755 "$RUNNER_TEMP/age/age-keygen" /usr/local/bin/age-keygen
+          rm -rf "$archive" "$RUNNER_TEMP/age"
+          age --version | grep --fixed-strings --quiet "v${AGE_VERSION}"
+
+      - name: Validate reviewed encryption recipient
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ ! "$BACKUP_AGE_RECIPIENT" =~ ^age1[023456789acdefghjklmnpqrstuvwxyz]{58}$ ]]; then
+            echo "::error::Reviewed backup encryption recipient is not configured."
             exit 1
           fi
-          if [ -z "$BACKUP_ENCRYPTION_PASSPHRASE" ]; then
-            echo "::error::BACKUP_ENCRYPTION_PASSPHRASE is not set. Add the backup passphrase as a repository secret."
-            exit 1
-          fi
 
-      - name: Install matching PostgreSQL client
+      - name: Export, authenticate and encrypt logical backup
+        shell: bash
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          SERVER_MAJOR="$(psql "$SUPABASE_DB_URL" -tAc 'SHOW server_version' | tr -d '[:space:]' | cut -d. -f1)"
-          echo "Server major: $SERVER_MAJOR"
-          sudo apt-get update -qq
-          if ! sudo apt-get install -y -qq "postgresql-client-${SERVER_MAJOR}"; then
-            echo "::error::postgresql-client-${SERVER_MAJOR} is not in the default runner apt repos. Add the PostgreSQL PGDG apt repository to this workflow (https://www.postgresql.org/download/linux/ubuntu/) or use a runner image that ships the matching client."
+          set -Eeuo pipefail
+          umask 077
+          if [[ -z "$SUPABASE_DB_URL" ]]; then
+            echo "::error::SUPABASE_DB_URL is not configured."
             exit 1
           fi
-          pg_dump --version
+          echo "::add-mask::$SUPABASE_DB_URL"
 
-      - name: Export logical dump (public, auth, storage)
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          pg_dump "$SUPABASE_DB_URL" \
-            --schema=public --schema=auth --schema=storage \
-            --no-owner --no-privileges \
-            -f backup.sql
-          grep -q "CREATE TABLE" backup.sql
-          grep -q "CREATE TABLE auth.users" backup.sql
-          echo "dump-bytes: $(wc -c < backup.sql)"
+          plain="$BACKUP_DIR/plain"
+          install -d -m 0700 "$plain"
+          install -m 0600 \
+            "$GITHUB_WORKSPACE/supabase/recovery/managed-schema-hooks.sql" \
+            "$plain/managed-schema.sql"
 
-      - name: Encrypt and hash
-        env:
-          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
-        run: |
-          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
-            -in backup.sql -out backup.sql.enc -pass env:BACKUP_ENCRYPTION_PASSPHRASE
-          sha256sum backup.sql | awk '{print $1}' > backup.sql.sha256
-          sha256sum backup.sql.enc | awk '{print $1}' > backup.sql.enc.sha256
-          rm backup.sql
-          echo "encrypted-bytes: $(wc -c < backup.sql.enc)"
+          # The normal dump excludes managed Auth/Storage DDL. Prove the live
+          # application-owned objects still match the reviewed recovery
+          # artifact before exporting data. The URL arrives over stdin and all
+          # client output remains private because libpq can echo malformed
+          # nested URLs including a raw password.
+          verify_managed_schema() {
+            if ! printf '%s\n' "$SUPABASE_DB_URL" \
+              | docker run --rm --interactive --network host \
+                  --entrypoint /bin/bash \
+                  --volume \
+                    "$GITHUB_WORKSPACE/supabase/recovery/verify-managed-schema-live.sql:/verify-managed-schema-live.sql:ro" \
+                  "$SUPABASE_POSTGRES_IMAGE" -ceu \
+                  'IFS= read -r database_url; exec psql "$database_url" --no-psqlrc --set ON_ERROR_STOP=1 --single-transaction --file /verify-managed-schema-live.sql' \
+                  > "$BACKUP_DIR/managed-schema-check.log" 2>&1; then
+              echo "::error::Managed Auth/Storage recovery inventory does not match reviewed code."
+              exit 1
+            fi
+          }
+          verify_managed_schema
 
-      - name: Upload encrypted artifact (90-day retention)
+          capture_live_migrations() {
+            local output="$1"
+            if ! printf '%s\n' "$SUPABASE_DB_URL" \
+              | docker run --rm --interactive --network host \
+                  --entrypoint /bin/bash "$SUPABASE_POSTGRES_IMAGE" -ceu \
+                  'IFS= read -r database_url; exec psql "$database_url" --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --single-transaction --command "SET TRANSACTION READ ONLY; SELECT version FROM supabase_migrations.schema_migrations ORDER BY version"' \
+                  > "$output" 2>> "$BACKUP_DIR/migration-bracket.log"; then
+              echo "::error::Migration-history consistency check failed."
+              exit 1
+            fi
+            test -s "$output"
+            if grep --invert-match --extended-regexp --quiet '^[0-9]{14}$' "$output"; then
+              echo "::error::Migration-history inventory is malformed."
+              exit 1
+            fi
+            test "$(sort --unique "$output" | wc -l)" = "$(wc -l < "$output")"
+          }
+          capture_live_migrations "$BACKUP_DIR/migrations-before.txt"
+
+          # CLI 2.104.0 can include a raw nested URL parse error. Keep all dump
+          # output in the private workspace and emit only a bounded failure.
+          run_dump() {
+            if ! supabase db dump "$@" >> "$BACKUP_DIR/dump.log" 2>&1; then
+              echo "::error::Supabase logical export failed; private diagnostics will be deleted."
+              exit 1
+            fi
+          }
+
+          # Official Supabase logical-backup split. The CLI removes managed
+          # schema definitions while data-only includes Auth/Storage rows.
+          run_dump --db-url "$SUPABASE_DB_URL" \
+            --file "$plain/roles.sql" --role-only
+          run_dump --db-url "$SUPABASE_DB_URL" \
+            --file "$plain/schema.sql" --keep-comments
+          run_dump --db-url "$SUPABASE_DB_URL" \
+            --file "$plain/data.sql" --data-only --use-copy \
+            --exclude "storage.buckets_vectors" \
+            --exclude "storage.vector_indexes" \
+            --exclude "auth.migrations" \
+            --exclude "storage.migrations" \
+            --exclude "supabase_functions.migrations"
+          run_dump --db-url "$SUPABASE_DB_URL" \
+            --file "$plain/history_schema.sql" --schema supabase_migrations \
+            --keep-comments
+          run_dump --db-url "$SUPABASE_DB_URL" \
+            --file "$plain/history_data.sql" --schema supabase_migrations \
+            --data-only --use-copy
+          capture_live_migrations "$BACKUP_DIR/migrations-after.txt"
+          verify_managed_schema
+
+          test -s "$plain/roles.sql"
+          test -s "$plain/schema.sql"
+          test -s "$plain/data.sql"
+          test -s "$plain/managed-schema.sql"
+          test -s "$plain/history_schema.sql"
+          test -s "$plain/history_data.sql"
+          grep --quiet 'PostgreSQL database dump complete' "$plain/roles.sql"
+          grep --quiet '^-- PostgreSQL database dump' "$plain/schema.sql"
+          grep --quiet '^SET session_replication_role = replica;' "$plain/data.sql"
+          grep --quiet '"public"\."checks"' "$plain/schema.sql"
+          grep --quiet '"auth"\."users"' "$plain/data.sql"
+          grep --quiet 'supabase_migrations' "$plain/history_schema.sql"
+          grep --quiet 'schema_migrations' "$plain/history_data.sql"
+
+          # Derive count parity from this exact COPY-format logical snapshot,
+          # never from a second live query that could race concurrent writes.
+          # The inventory remains inside the encrypted bundle.
+          DATA_SQL="$plain/data.sql" COUNTS_FILE="$plain/expected-counts.txt" \
+            python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          expected = sorted([
+              "auth.users",
+              "private.telegram_family_notification_claims",
+              "private.telegram_update_leaders",
+              "public.admin_actions",
+              "public.admin_allowlist",
+              "public.checks",
+              "public.embed_origin_events",
+              "public.entities",
+              "public.rate_limit_buckets",
+              "public.reports",
+              "public.reputation_appeals",
+              "public.telegram_family_shield",
+              "public.telegram_reputation_targets",
+              "public.telegram_sessions",
+              "public.telegram_webhook_updates",
+              "public.user_roles",
+              "storage.buckets",
+              "storage.objects",
+          ])
+          counts = {name: None for name in expected}
+          in_copy = False
+          active = None
+          header = re.compile(
+              r'^COPY (?:(?:"([^"]+)")|([a-z_][a-z0-9_]*))\.'
+              r'(?:(?:"([^"]+)")|([a-z_][a-z0-9_]*)) '
+              r'\(.+\) FROM stdin;$'
+          )
+          for line in pathlib.Path(os.environ["DATA_SQL"]).read_text(
+              encoding="utf-8"
+          ).splitlines():
+              if in_copy:
+                  if line == r"\.":
+                      in_copy = False
+                      active = None
+                  elif active is not None:
+                      counts[active] += 1
+                  continue
+              match = header.fullmatch(line)
+              if match is None:
+                  continue
+              relation = f"{match.group(1) or match.group(2)}.{match.group(3) or match.group(4)}"
+              in_copy = True
+              if relation not in counts:
+                  continue
+              if counts[relation] is not None:
+                  raise SystemExit("duplicate state relation in COPY snapshot")
+              counts[relation] = 0
+              active = relation
+          if in_copy or any(count is None for count in counts.values()):
+              raise SystemExit("state relation inventory missing from COPY snapshot")
+          output = pathlib.Path(os.environ["COUNTS_FILE"])
+          output.write_text(
+              "".join(f"{name}\t{counts[name]}\n" for name in expected),
+              encoding="ascii",
+          )
+          PY
+
+          mapfile -t expected_migrations < <(
+            find "$GITHUB_WORKSPACE/supabase/migrations" -maxdepth 1 -type f \
+              -printf '%f\n' \
+              | sed -nE 's/^([0-9]{14})_.*\.sql$/\1/p' \
+              | sort
+          )
+          [[ "${#expected_migrations[@]}" -gt 0 ]]
+          [[ "$(printf '%s\n' "${expected_migrations[@]}" | sort -u | wc -l)" \
+            -eq "${#expected_migrations[@]}" ]]
+          printf '%s\n' "${expected_migrations[@]}" \
+            > "$plain/expected-migrations.txt"
+          cmp --silent "$BACKUP_DIR/migrations-before.txt" \
+            "$BACKUP_DIR/migrations-after.txt"
+          cmp --silent "$plain/expected-migrations.txt" \
+            "$BACKUP_DIR/migrations-after.txt"
+          rm -f "$BACKUP_DIR/dump.log" \
+            "$BACKUP_DIR/managed-schema-check.log" \
+            "$BACKUP_DIR/migration-bracket.log" \
+            "$BACKUP_DIR/migrations-before.txt" \
+            "$BACKUP_DIR/migrations-after.txt"
+
+          source_major="$(
+            sed -nE 's/^-- Dumped from database version ([0-9]+).*/\1/p' \
+              "$plain/schema.sql" | head -n 1
+          )"
+          if [[ ! "$source_major" =~ ^(15|17)$ ]]; then
+            echo "::error::Unsupported or unreadable source PostgreSQL major."
+            exit 1
+          fi
+
+          roles_sha="$(sha256sum "$plain/roles.sql" | cut -d' ' -f1)"
+          schema_sha="$(sha256sum "$plain/schema.sql" | cut -d' ' -f1)"
+          data_sha="$(sha256sum "$plain/data.sql" | cut -d' ' -f1)"
+          managed_sha="$(sha256sum "$plain/managed-schema.sql" | cut -d' ' -f1)"
+          history_schema_sha="$(sha256sum "$plain/history_schema.sql" | cut -d' ' -f1)"
+          history_data_sha="$(sha256sum "$plain/history_data.sql" | cut -d' ' -f1)"
+          migrations_sha="$(sha256sum "$plain/expected-migrations.txt" | cut -d' ' -f1)"
+          counts_sha="$(sha256sum "$plain/expected-counts.txt" | cut -d' ' -f1)"
+          jq --null-input --compact-output \
+            --arg format "ishonch-guard-supabase-logical-backup/v3" \
+            --arg cli "$SUPABASE_CLI_VERSION" \
+            --arg pg "$source_major" \
+            --arg roles "$roles_sha" \
+            --arg schema "$schema_sha" \
+            --arg data "$data_sha" \
+            --arg managed "$managed_sha" \
+            --arg history_schema "$history_schema_sha" \
+            --arg history_data "$history_data_sha" \
+            --arg migrations "$migrations_sha" \
+            --arg counts "$counts_sha" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg head_sha "$GITHUB_SHA" \
+            '{format:$format,supabase_cli:$cli,source_postgres_major:$pg,provenance:{repository:$repository,run_id:$run_id,run_attempt:$run_attempt,head_sha:$head_sha},files:{"roles.sql":$roles,"schema.sql":$schema,"managed-schema.sql":$managed,"data.sql":$data,"history_schema.sql":$history_schema,"history_data.sql":$history_data,"expected-migrations.txt":$migrations,"expected-counts.txt":$counts}}' \
+            > "$plain/manifest.json"
+
+          tar --create --file "$BACKUP_DIR/backup.tar" \
+            --directory "$plain" --sort=name --owner=0 --group=0 \
+            --numeric-owner --mtime='UTC 1970-01-01' \
+            roles.sql schema.sql managed-schema.sql data.sql \
+            history_schema.sql history_data.sql expected-migrations.txt \
+            expected-counts.txt \
+            manifest.json
+
+          # age uses authenticated encryption; tampering is rejected before
+          # extraction. The recipient is public, while the identity is held
+          # separately by the read-back and restore jobs.
+          age --encrypt --recipient "$BACKUP_AGE_RECIPIENT" \
+            --output "$BACKUP_DIR/supabase-backup.tar.age" \
+            "$BACKUP_DIR/backup.tar"
+          sha256sum "$BACKUP_DIR/supabase-backup.tar.age" \
+            | cut -d' ' -f1 > "$BACKUP_DIR/supabase-backup.tar.age.sha256"
+
+          rm -rf "$plain" "$BACKUP_DIR/backup.tar"
+          test -s "$BACKUP_DIR/supabase-backup.tar.age"
+          test -s "$BACKUP_DIR/supabase-backup.tar.age.sha256"
+          echo "Authenticated encrypted export: PASS" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload encrypted artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: supabase-backup-${{ github.run_id }}
           path: |
-            backup.sql.enc
-            backup.sql.sha256
-            backup.sql.enc.sha256
+            ${{ steps.workspace.outputs.path }}/supabase-backup.tar.age
+            ${{ steps.workspace.outputs.path }}/supabase-backup.tar.age.sha256
           retention-days: 90
           if-no-files-found: error
 
-  read-back:
+      - name: Cleanup transient plaintext and ciphertext
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          cleanup_failed=0
+          if [[ -n "${BACKUP_DIR:-}" ]]; then
+            rm -rf -- "$BACKUP_DIR" || cleanup_failed=1
+            [[ -e "$BACKUP_DIR" ]] && cleanup_failed=1
+          fi
+          if (( cleanup_failed != 0 )); then
+            echo "::error::Backup cleanup left transient material behind."
+            exit 1
+          fi
+
+  authenticated-read-back:
+    if: github.ref == 'refs/heads/main'
     needs: encrypted-export
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: backup-decrypt
     steps:
-      - name: Download artifact (read-back)
+      - name: Initialize private workspace
+        id: workspace
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          directory="$RUNNER_TEMP/ishonch-readback-${GITHUB_RUN_ID}"
+          install -d -m 0700 "$directory"
+          echo "READBACK_DIR=$directory" >> "$GITHUB_ENV"
+          echo "path=$directory" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: supabase-backup-${{ github.run_id }}
+          path: ${{ steps.workspace.outputs.path }}/download
 
-      - name: Verify decryptability and checksums
-        env:
-          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      - name: Install checksum-pinned age
+        shell: bash
         run: |
-          echo "$(cat backup.sql.enc.sha256)  backup.sql.enc" | sha256sum -c -
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
-            -in backup.sql.enc -out read-back.sql -pass env:BACKUP_ENCRYPTION_PASSPHRASE
-          echo "$(cat backup.sql.sha256)  read-back.sql" | sha256sum -c -
-          head -n 100 read-back.sql | grep -q "PostgreSQL database dump"
-          rm read-back.sql
-          echo "Read-back OK: the artifact downloads, decrypts and matches the original checksum."
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/age.tar.gz"
+          curl --fail --silent --show-error --location \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$AGE_LINUX_AMD64_SHA256" "$archive" | sha256sum --check --status
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP"
+          sudo install -m 0755 "$RUNNER_TEMP/age/age" /usr/local/bin/age
+          rm -rf "$archive" "$RUNNER_TEMP/age"
+          age --version | grep --fixed-strings --quiet "v${AGE_VERSION}"
+
+      - name: Verify authenticated decryptability and manifest
+        shell: bash
+        env:
+          BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          if [[ -z "$BACKUP_AGE_IDENTITY" ]]; then
+            echo "::error::BACKUP_AGE_IDENTITY is not configured."
+            exit 1
+          fi
+
+          download="$READBACK_DIR/download"
+          plain="$READBACK_DIR/plain"
+          install -d -m 0700 "$plain"
+          printf '%s\n' "$BACKUP_AGE_IDENTITY" > "$READBACK_DIR/identity.txt"
+
+          expected_cipher_sha="$(cat "$download/supabase-backup.tar.age.sha256")"
+          [[ "$expected_cipher_sha" =~ ^[0-9a-f]{64}$ ]]
+          actual_cipher_sha="$(sha256sum "$download/supabase-backup.tar.age" | cut -d' ' -f1)"
+          test "$actual_cipher_sha" = "$expected_cipher_sha"
+
+          # A successful age decrypt authenticates the complete ciphertext.
+          if ! age --decrypt --identity "$READBACK_DIR/identity.txt" \
+            --output "$READBACK_DIR/backup.tar" \
+            "$download/supabase-backup.tar.age"; then
+            rm -f "$READBACK_DIR/identity.txt"
+            unset BACKUP_AGE_IDENTITY
+            echo "::error::Authenticated backup decryption failed."
+            exit 1
+          fi
+          rm -f "$READBACK_DIR/identity.txt"
+          unset BACKUP_AGE_IDENTITY
+
+          ARCHIVE="$READBACK_DIR/backup.tar" PLAIN_DIR="$plain" python3 - <<'PY'
+          import os
+          import pathlib
+          import shutil
+          import tarfile
+
+          expected = sorted([
+              "data.sql",
+              "expected-counts.txt",
+              "expected-migrations.txt",
+              "history_data.sql",
+              "history_schema.sql",
+              "managed-schema.sql",
+              "manifest.json",
+              "roles.sql",
+              "schema.sql",
+          ])
+          destination = pathlib.Path(os.environ["PLAIN_DIR"])
+          with tarfile.open(os.environ["ARCHIVE"], mode="r:") as archive:
+              members = archive.getmembers()
+              if sorted(member.name for member in members) != expected:
+                  raise SystemExit("encrypted archive member allowlist failed")
+              if any(not member.isfile() for member in members):
+                  raise SystemExit("encrypted archive contains a non-regular member")
+              for member in members:
+                  source = archive.extractfile(member)
+                  if source is None:
+                      raise SystemExit("encrypted archive member is unreadable")
+                  with (destination / member.name).open("xb") as output:
+                      shutil.copyfileobj(source, output)
+          PY
+
+          jq --exit-status \
+            --arg format "ishonch-guard-supabase-logical-backup/v3" \
+            --arg cli "$SUPABASE_CLI_VERSION" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg head_sha "$GITHUB_SHA" \
+            '.format == $format
+              and .supabase_cli == $cli
+              and (.source_postgres_major | test("^(15|17)$"))
+              and .provenance.repository == $repository
+              and .provenance.run_id == $run_id
+              and .provenance.run_attempt == $run_attempt
+              and .provenance.head_sha == $head_sha
+              and (.files | keys == ["data.sql","expected-counts.txt","expected-migrations.txt","history_data.sql","history_schema.sql","managed-schema.sql","roles.sql","schema.sql"])
+              and (all(.files[]; type == "string" and test("^[0-9a-f]{64}$")))' \
+            "$plain/manifest.json" > /dev/null
+          for name in roles.sql schema.sql managed-schema.sql data.sql \
+            history_schema.sql history_data.sql expected-migrations.txt \
+            expected-counts.txt; do
+            expected_sha="$(jq --raw-output --arg name "$name" '.files[$name]' "$plain/manifest.json")"
+            [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]]
+            actual_sha="$(sha256sum "$plain/$name" | cut -d' ' -f1)"
+            test "$actual_sha" = "$expected_sha"
+          done
+          COUNTS_FILE="$plain/expected-counts.txt" python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          expected = sorted([
+              "auth.users",
+              "private.telegram_family_notification_claims",
+              "private.telegram_update_leaders",
+              "public.admin_actions",
+              "public.admin_allowlist",
+              "public.checks",
+              "public.embed_origin_events",
+              "public.entities",
+              "public.rate_limit_buckets",
+              "public.reports",
+              "public.reputation_appeals",
+              "public.telegram_family_shield",
+              "public.telegram_reputation_targets",
+              "public.telegram_sessions",
+              "public.telegram_webhook_updates",
+              "public.user_roles",
+              "storage.buckets",
+              "storage.objects",
+          ])
+          lines = pathlib.Path(os.environ["COUNTS_FILE"]).read_text(
+              encoding="ascii"
+          ).splitlines()
+          if len(lines) != len(expected):
+              raise SystemExit("state count inventory cardinality mismatch")
+          names = []
+          for line in lines:
+              match = re.fullmatch(r"([a-z_]+\.[a-z_]+)\t(0|[1-9][0-9]*)", line)
+              if match is None:
+                  raise SystemExit("state count inventory format mismatch")
+              names.append(match.group(1))
+          if names != expected:
+              raise SystemExit("state count inventory relation mismatch")
+          PY
+          echo "Authenticated read-back: PASS" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup decrypted material
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          cleanup_failed=0
+          if [[ -n "${READBACK_DIR:-}" ]]; then
+            rm -rf -- "$READBACK_DIR" || cleanup_failed=1
+            [[ -e "$READBACK_DIR" ]] && cleanup_failed=1
+          fi
+          if (( cleanup_failed != 0 )); then
+            echo "::error::Read-back cleanup left decrypted material behind."
+            exit 1
+          fi

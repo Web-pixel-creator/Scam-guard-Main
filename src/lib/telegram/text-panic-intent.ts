@@ -16,9 +16,15 @@ export function normalizeVoiceIntentText(text: string): string {
 }
 
 const ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE =
-  /(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)|(?:^|[^\p{L}])(?:перев[её]л[аи]?|перв[её]л[аи]?|отправил[аи]?|скинул[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:плат[её]ж|перевод)\s+(?:уже\s+)?(?:исполнил\p{L}*|прош[её]л|зачислен\p{L}*)|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?(?:sent|transferred|transerred|wired|paid|topped\s+up|recharged)|(?:payment|transfer)\s+(?:already\s+)?(?:settled|completed|went\s+through)|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:^|[^\p{L}])(?:pul(?:ni)?\s+)?(?:yubordim|jo['’]?natdim|jo['’]?natganman|o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)|(?:to['’]?lov|o['’]?tkazma)\s+(?:o['’]?tib\s+bo['’]?ldi|o['’]?tdi|bajarildi)/iu;
+  /(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:перев[её]л[аи]?|перв[её]л[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:^|[^\p{L}])(?:перев[её]л[аи]?|перв[её]л[аи]?|заплатил[аи]?|оплатил[аи]?|пополнил[аи]?)(?!\p{L})|(?:плат[её]ж|перевод)\s+(?:уже\s+)?(?:исполнил\p{L}*|прош[её]л|зачислен\p{L}*)|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?(?:transferred|transerred|wired|paid|topped\s+up|recharged)(?!\p{L})|(?:payment|transfer)\s+(?:already\s+)?(?:settled|completed|went\s+through)|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)(?!\p{L})|(?:^|[^\p{L}])(?:o['’]?tkazdim|otkazdim|to['’]?ladim|to['’]?lov\s+qildim)(?!\p{L})|(?:to['’]?lov|o['’]?tkazma)\s+(?:o['’]?tib\s+bo['’]?ldi|o['’]?tdi|bajarildi)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_GENERIC_MONEY_SEND_RE =
+  /(?:(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:отправил[аи]?|скинул[аи]?)(?!\p{L}).{0,80}(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*)|(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*).{0,80}(?:отправил[аи]?|скинул[аи]?)(?!\p{L})|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?sent\b.{0,80}(?:money|funds|payment|transfer|sum|uzs|card|account|balance|wallet|(?:phone|mobile)\s+number)\b|(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L})|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L}).{0,80}(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam))/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_SECRET_RE =
+  /(?:смс|sms|otp|одноразов\p{L}*\s+(?:код|парол)|код\p{L}*|парол\p{L}*|pin|пин|cvv|cvc)/iu;
+const ACCIDENTAL_OUTGOING_TRANSFER_NEGATED_SECRET_RE =
+  /(?:(?:никому\s+)?не\s+(?:сообщал|отправлял|передавал|называл|говорил)\p{L}*.{0,40}(?:смс|sms|otp|код|парол)|(?:^|[^\p{L}])(?:i|we)\s+(?:(?:(?:did|do)\s+not|didn['’]?t|don['’]?t)\s+(?:share|send|give|tell).{0,40}(?:codes?|otp|passwords?)|(?:shared|sent|gave|told)\s+no\s+(?:codes?|otp|passwords?))|(?:hech\s+kimga\s+)?(?:sms|otp|kod|parol).{0,30}(?:bermadim|yubormadim|jo['’]?natmadim|aytmadim))/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE =
-  /(?:не\s+(?:туда|тому|той|на\s+ту\s+(?:карту|сч[её]т)|тому\s+получателю)|друг(?:ому|ой)\s+(?:человеку|получателю|карте)|чуж(?:ому|ую)\s+(?:человеку|карту)|чуж(?:ой|ого)\s+(?:номер\p{L}*|телефон\p{L}*)|ошиб(?:ся|лась|очно)|по\s+ошибке|перепута\p{L}*\s+(?:адресат|получател)|неверн\p{L}*\s+(?:получател|карт|сч[её]т)|wrong\s+(?:person|recipient|account|card|number|phone|mobile)|someone\s+else['’]?s\s+(?:phone|number|mobile|account|card)|by\s+mistake|accidentally|adashib|xato(?:lik\s+bilan)?|noto['’]?g['’]?ri\s+(?:odam|oluvchi|karta|hisob|raqam)|boshqa\s+(?:odam|oluvchi|karta|hisob|raqam|telefon)(?:ga|ning)?)/iu;
+  /(?:не\s+(?:туда|тому|той|ту\s+карту(?!\p{L})|тот\s+сч[её]т(?!\p{L})|на\s+ту\s+(?:карту|сч[её]т)(?!\p{L})|тому\s+получателю)|друг(?:ому|ой)\s+(?:человеку|получателю|карте)|чуж(?:ому|ую)\s+(?:человеку|карту)|чуж(?:ой|ого)\s+(?:номер\p{L}*|телефон\p{L}*)|ошиб(?:ся|лась|очно)|по\s+ошибке|перепута\p{L}*\s+(?:адресат|получател)|неверн\p{L}*\s+(?:получател|карт|сч[её]т)|wrong\s+(?:person|recipient|account|card|number|phone|mobile)|someone\s+else['’]?s\s+(?:phone|number|mobile|account|card)|by\s+mistake|accidentally|adashib|xato(?:lik\s+bilan)?|noto['’]?g['’]?ri\s+(?:odam|oluvchi|karta|hisob|raqam)|boshqa\s+(?:odam|oluvchi|karta|hisob|raqam|telefon)(?:ga|ning)?)/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE =
   /(?:как\s+(?:отменить|вернуть|отозвать)\s+(?:этот\s+)?перевод|можно\s+ли\s+(?:отменить|вернуть|отозвать)\s+(?:этот\s+)?перевод|(?:cancel|reverse|recall)\s+(?:this|the|a)?\s*(?:transfer|payment)|(?:o['’]?tkazma|to['’]?lov)(?:ni)?\s+(?:bekor\s+qil|qaytar)|(?:bekor\s+qil|qaytar).{0,30}(?:o['’]?tkazma|to['’]?lov))/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_FRAUD_RE =
@@ -45,13 +51,16 @@ function matchesAccidentalOutgoingTransfer(normalized: string): boolean {
   if (
     !normalized ||
     ACCIDENTAL_OUTGOING_TRANSFER_FRAUD_RE.test(normalized) ||
-    INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE.test(normalized)
+    INCOMING_ACCIDENTAL_TRANSFER_REQUEST_RE.test(normalized) ||
+    (ACCIDENTAL_OUTGOING_TRANSFER_SECRET_RE.test(normalized) &&
+      !ACCIDENTAL_OUTGOING_TRANSFER_NEGATED_SECRET_RE.test(normalized))
   ) {
     return false;
   }
 
   return (
-    (ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE.test(normalized) &&
+    ((ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE.test(normalized) ||
+      ACCIDENTAL_OUTGOING_TRANSFER_GENERIC_MONEY_SEND_RE.test(normalized)) &&
       ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE.test(normalized)) ||
     ACCIDENTAL_OUTGOING_TRANSFER_RECALL_RE.test(normalized)
   );
@@ -93,17 +102,40 @@ const EN_NEGATED_VOICE_DONE_INTENT_RE =
   /(?:(?:^|\s)(?:i|we)\s+(?:(?:have|did|do)\s+not|haven't|didn't|don't)\s+(?:already\s+)?(?:send|sent|share|shared|give|gave|given|tell|told|say|said|read|wire|wired|dictate|dictated|install|installed|download|downloaded|open|opened|allow|allowed|enable|enabled|transfer|transferred|pay|paid|top\s+up|topped\s+up|enter|entered|type|typed|scan|scanned|confirm|confirmed|approve|approved|link|linked)\b|(?:^|\s)(?:i|we)\s+(?:shared|sent|gave|entered|typed)\s+no\s+(?:codes?|otp|passwords?|card\s+(?:data|details))\b)/;
 const ABORTED_VOICE_DONE_INTENT_RE =
   /(?:(?:почти|чуть\s+не|едва\s+не).{0,60}(?:сказал|назвал|сообщил|отправил|скинул|передал|продиктовал|дал|перевел|перевёл|установил)|(?:almost|nearly).{0,60}(?:shared|sent|gave|told|said|read|wired|dictated|transferred|paid|installed)|(?:shared|sent|gave|told|said|read|wired|dictated).{0,60}but\s+(?:stopped|did\s+not\s+finish))/;
+const UZ_ABORTED_VOICE_DONE_INTENT_RE =
+  /(?:sms|otp|kod|parol).{0,40}(?:yuboray|jo['’]?natay|aytay|beray)\s+dedim.{0,40}(?:to['’]?xtadim|qilmadim)/iu;
+const INTENT_POLARITY_CLAUSE_BOUNDARY_RE =
+  /(?:[;.!?]+|\b(?:but(?!\s+(?:stopped|did\s+not\s+finish))(?:\s+then)?|then|however|но|затем|потом|lekin(?!\s+(?:to['’]?xtadim|qilmadim))|keyin|ammo)\b)/iu;
+
+function hasCompletedActionOutsideNegatedClause(text: string): boolean {
+  return text.split(INTENT_POLARITY_CLAUSE_BOUNDARY_RE).some((part) => {
+    const clause = part.trim();
+    if (!clause) return false;
+    if (
+      NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      EN_NEGATED_VOICE_DONE_INTENT_RE.test(clause) ||
+      ABORTED_VOICE_DONE_INTENT_RE.test(clause) ||
+      UZ_ABORTED_VOICE_DONE_INTENT_RE.test(clause)
+    ) {
+      return false;
+    }
+    return classifyVoicePanicIntent(clause) !== null;
+  });
+}
 
 export function isNegatedVoiceDoneIntent(transcript: string): boolean {
   const text = normalizeVoiceIntentText(transcript);
   if (!text) return false;
-  return (
+  const hasNegatedAction =
     NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     UZ_CYRILLIC_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
     EN_NEGATED_VOICE_DONE_INTENT_RE.test(text) ||
-    ABORTED_VOICE_DONE_INTENT_RE.test(text)
-  );
+    ABORTED_VOICE_DONE_INTENT_RE.test(text) ||
+    UZ_ABORTED_VOICE_DONE_INTENT_RE.test(text);
+  return hasNegatedAction && !hasCompletedActionOutsideNegatedClause(text);
 }
 
 const UZ_REQUESTED_ACTION_VOICE_RE =
@@ -131,13 +163,13 @@ const UZ_COLLOQUIAL_CODE_DONE_RE =
 const UZ_COLLOQUIAL_TRANSFER_DONE_RE =
   /(?:(?:pul(?:ni)?|sum|so['’]?m|karta).{0,60}(?:o['’]?tkaz|yubor|jo['’]?nat)(?:dim|(?:ib)?vordim)|(?:o['’]?tkaz|yubor|jo['’]?nat)(?:dim|(?:ib)?vordim).{0,60}(?:pul|sum|so['’]?m|karta))/iu;
 const RU_SKINUL_CODE_DONE_RE =
-  /^(?:я|мы)\s+(?:им|ему|ей|туда)\s+(?:уже\s+)?скинул[аи]?.{0,40}(?:(?:смс|sms|otp)[-\s]*(?:код|цифр[аы]?)|(?:одноразов|проверочн).{0,12}(?:код|парол)|код.{0,18}(?:из\s+(?:смс|сообщени[ея])|подтверждени|вход)|цифр[аы]?.{0,18}(?:из\s+(?:смс|сообщени[ея])|кода))(?:[.!?,;:]|\s|$)/iu;
+  /^(?:я|мы)\s+(?:(?:им|ему|ей|туда)\s+(?:уже\s+)?скинул[аи]?|(?:уже\s+)?скинул[аи]?.{0,40}(?:им|ему|ей|не\s+тому\s+человеку|не\s+той\s+женщине)).{0,40}(?:(?:смс|sms|otp)[-\s]*(?:код|цифр[аы]?)|(?:одноразов|проверочн).{0,12}(?:код|парол)|код.{0,18}(?:из\s+(?:смс|сообщени[ея])|подтверждени|вход)|цифр[аы]?.{0,18}(?:из\s+(?:смс|сообщени[ея])|кода))(?:[.!?,;:]|\s|$)/iu;
 const RU_ONE_TIME_PASSWORD_DONE_RE =
   /^(?:я|мы)\s+(?:(?:им|ему|ей|туда)\s+)?(?:уже\s+|только\s+что\s+|недавно\s+)?(?:назвал[аи]?|продиктовал[аи]?|отправил[аи]?|скинул[аи]?|передал[аи]?|сообщил[аи]?(?!\s+(?:банк|полици|милици|поддержк|служб|друг|сын|доч|ребен|ребён|родствен|знаком))).{0,12}одноразов(?:ый|ого|ым)\s+парол(?:ь|я|ем)/iu;
 const EN_COMPLETED_CODE_STATE_RE =
   /^(?:they|he|she)\s+(?:(?:already|now)\s+)?(?:have|has|got|know|knows)\s+(?:already\s+)?(?:my|our)\s+(?:(?:sms|verification|login)\s+code|otp(?:\s+code)?|one[-\s]+time\s+(?:code|password)|passcode)(?:\s+now)?[.!?]*$/iu;
 const EN_ONE_TIME_PASSWORD_DONE_RE =
-  /^(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:read\s+(?:it\s+)?out\s+(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:gave|sent|shared|told)\s+(?:(?:them|him|her|the\s+(?:caller|scammer|contact)).{0,24}(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode).{0,24}(?:to|with)\s+(?:them|him|her|the\s+(?:caller|scammer|contact))))[.!?]*$/iu;
+  /^(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:read\s+(?:it\s+)?out\s+(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:gave|sent|shared|told)\s+(?:(?:them|him|her|the\s+(?:caller|scammer|contact|wrong\s+(?:person|recipient))).{0,24}(?:one[-\s]+time\s+(?:code|password)|otp|passcode)|(?:(?:the|my|our)\s+)?(?:one[-\s]+time\s+(?:code|password)|otp|passcode).{0,24}(?:to|with)\s+(?:them|him|her|the\s+(?:caller|scammer|contact|wrong\s+(?:person|recipient)))))[.!?]*$/iu;
 const RU_SKINUL_TRANSFER_DONE_RE =
   /^(?:я|мы)\s+(?:уже\s+)?скинул[аи]?\s+(?:им|ему|ей|туда)\s+(?:деньги|денег|сумму|\d[\d\s]*(?:сум|сумов|uzs))[.!?]*$/iu;
 const EN_WIRED_TRANSFER_DONE_RE =
@@ -272,6 +304,9 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
     ) ||
     /(?:sms|смс|kod|код|code|otp).{0,60}(юбор|жунат|айт|бер|кирит)/.test(text) ||
     /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|told|read|entered|typed|confirmed).{0,60}(?:sms|otp|verification|login)?\s*(?:code|number|digits)/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:sent|shared|gave|given|entered|typed|confirmed).{0,60}(?:otp|passcode|one[-\s]+time\s+(?:code|password))(?!\p{L})/u.test(
       text,
     ) ||
     /(?:sms|otp|verification|login).{0,30}(?:code|number|digits).{0,60}(?:sent|shared|gave|given|told|read|entered|typed|confirmed)/.test(
