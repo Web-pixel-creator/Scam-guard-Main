@@ -1,25 +1,39 @@
-# Railway configuration
+# Railway configuration candidate
 
-This project defines its Railway infrastructure in code.
+Status: **NOT APPLIED / HOLD** until the owner opens one controlled release
+window. This directory is an authoring candidate; it does not prove that
+Railway is currently managed from this file.
 
 ```txt
 .railway/railway.ts
 ```
 
-Use this file to describe the Railway project you want: services, databases, buckets, custom domains, replicas, groups, and environment variables.
+The candidate preserves the reviewed production builder, watch, health,
+restart, replica, region, networking and variable boundaries. The active
+runtime is source `b36c453` in deployment `311997d0`; authoring and planning
+this file did not deploy or restart it.
 
-## Common commands
+The Dashboard custom-path field was read back as `railwayConfigFile=null`.
+However, `resolvedFileConfig.configFile=/railway.toml` proves that Railway still
+auto-detects the legacy root file from `main`; it remains the active source for
+those deployment settings until the reviewed deletion is merged. The
+post-rotation readable plan contains six field updates and zero deletions. The
+candidate includes all 22 live user variables as `preserve()`, including the
+active/previous/legacy hash-pepper slots. Neither fact means that this candidate
+has been applied.
 
-Create the configuration files:
+The complete migration, rollback and evidence sequence is in
+`../ai_docs/RAILWAY_IAC_MIGRATION_PLAN.md`. Railway's `railway.toml` cutoff is
+`2026-12-01`.
+
+## Commands for the approved window
+
+Use Railway CLI `5.44.0` or newer. Re-import live state only in a disposable
+worktree before final review; do not overwrite this reviewed candidate without
+diffing and restoring every invariant:
 
 ```bash
-railway config init
-```
-
-Import an existing Railway project into code:
-
-```bash
-railway config pull
+railway config pull --force
 ```
 
 Preview what Railway would change:
@@ -28,7 +42,9 @@ Preview what Railway would change:
 railway config plan
 ```
 
-Apply the planned changes:
+Application is forbidden while this candidate is on HOLD. After the canary
+boundary, a fresh pull, a clean readable plan, and explicit owner approval, use
+the interactive command only:
 
 ```bash
 railway config apply
@@ -36,11 +52,17 @@ railway config apply
 
 ## Notes
 
-- `railway config plan` is safe and does not change Railway.
-- `railway config apply` previews changes and asks before applying unless you pass `--yes`.
-- Destructive changes in non-interactive or agent sessions require `railway config apply --confirm-destructive` after reviewing the plan.
-- Services already managed by `railway.json` must be migrated before `.railway/railway.ts` can manage them.
-- Keep one `.railway` file for the whole project. A named `export const partial` (or `PARTIAL` / `const Partial`) is a last resort for separate repos that cannot share that file. Do not add it unless omit=delete across repos is a blocker.
-- Use `replicas` for scaling; advanced placement can still specify region names.
-- Use `group("Name", [resources])` to keep large projects organized on the Railway canvas.
-- Secrets imported from Railway are rendered as `preserve()` so existing values are retained without writing secret values to source. Use `railway config pull --omit-preserved-variables` for a smaller import.
+- `railway config plan` is read-only, but its output still needs human review.
+- The expected post-rotation preflight is six field updates and zero deletions. Treat any
+  changed count or destructive/resource/variable change as a stop condition.
+- Do not use `--yes`, `--confirm-destructive`, `--json`, `--show-values` or
+  `--decrypt-variables` for this migration.
+- Never paste the pulled variable inventory into source, logs or chat.
+  `preserve()` retains live values without exposing them.
+- This candidate intentionally deletes `railway.toml`, as Railway's migration
+  contract requires one source of truth. Preserve the known-good file through
+  Git history and the recorded baseline, not as a second live file.
+- In the approved window, apply the reviewed dashboard-equivalent settings
+  first while `main` still has its known-good legacy file, then immediately
+  merge this already-reviewed deletion. Start the new canary only after that
+  final deployment passes read-back and smoke.

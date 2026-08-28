@@ -74,15 +74,9 @@ outcome to match the present.
 
 ## Documentation-only Railway boundary
 
-The Watch Paths configuration currently present in the local `railway.toml`
-candidate is not a deployed production capability. Until it is separately
-approved, merged, deployed and read back from the active Railway manifest,
-every merge to `main` remains deployment-triggering, including a documentation-
-only merge.
-
-After the manifest read-back, one later documentation-only merge must prove
-that GitHub CI stays green while Railway skips the deployment and leaves the
-active deployment id unchanged. Only after that proof may maintained documents
+The deployed Watch Paths behavior is proven: root Markdown and `ai_docs/**`
+changes can produce a Railway `SKIPPED` placeholder while GitHub CI still runs
+and the active image stays unchanged. Maintained documents may therefore
 record two different current identities:
 
 - the GitHub documentation tip SHA;
@@ -92,6 +86,14 @@ When those identities differ, `CURRENT_STATE.md` must say so explicitly and
 confirm that every intervening change is excluded by the proven documentation
 patterns. A newer documentation tip is not evidence that its SHA is running in
 production, and any deploy-eligible change ends that equivalence claim.
+
+The separate `.railway/railway.ts` migration is **NOT APPLIED / HOLD**. The
+Dashboard custom-path field is `railwayConfigFile=null`, but live read-back
+still resolves `/railway.toml` automatically from `main`. That fact and a
+six-field/zero-deletion plan are preflight evidence only. They do not replace
+the current runtime or authorize apply. Follow `RAILWAY_IAC_MIGRATION_PLAN.md`
+after the active canary boundary and before the `2026-12-01` legacy-format
+cutoff.
 
 ## Local workspace hygiene
 
