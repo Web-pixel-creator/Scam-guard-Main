@@ -3,46 +3,54 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
-## D-095 - Merged backup workflow files are not operating recovery evidence
+## D-095 - Backup workflow code is not operating recovery evidence
 
-**Status: active, independent audit 2026-08-26.** PR #133 merged a candidate
-encrypted export and restore-drill design, but the audit found zero backup runs,
-zero restore-drill runs, zero artifacts and no required backup credentials.
-Operational status is therefore `NOT ENABLED / NOT VERIFIED`; the schedule must
-not be described as a daily backup or current RPO control.
+**Status: active, reconciled 2026-08-28.** PR #133 merged an initial candidate,
+but the independent audit found zero backup runs, zero restore-drill runs, zero
+artifacts and no required credentials. The hardened replacement implementation
+uses Supabase's roles/schema/data export, age/X25519 recipient/identity
+separation and an isolated Supabase-local restore contract. Its existence in the
+repository still does not prove a working backup, restore or RPO.
 
-Before any production database credential or backup decryption identity is
-added, replace or validate the raw `pg_dump public+auth+storage` and
-ordinary-PostgreSQL restore path against Supabase's supported roles/schema/data
-procedure, rehearse it on an approved non-production target, and review
-repository/secret protections. A sole-owner ruleset with zero approvals is not
-enough: credential activation additionally requires a second independent
-trusted reviewer with CODEOWNERS, at least one dismiss-stale approval and no
-bypass, or a protected environment with manual approval (scheduled runs then
-wait). Adding or rotating a backup secret deliberately restarts the current
-canary. The plan-only replacement in `BACKUP_AUTOMATION.md` uses age/X25519
-recipient/identity separation and contains no approved executable restore
-recipe. D-094 records the superseded PR #133 intent, not operational proof.
+Operational status remains `NOT ENABLED / NOT VERIFIED` until the workflow trust
+gate, independent freshness monitoring, offline key custody, successful
+authenticated read-back, isolated restore, cleanup and retained-ciphertext
+read-back are all proven. A sole-owner ruleset with zero approvals is not enough:
+credential activation additionally requires a second independent trusted
+reviewer with CODEOWNERS, at least one dismiss-stale approval and no bypass, or a
+protected environment with manual approval. In the latter mode scheduled runs
+wait and cannot be called unattended daily backups. D-094 records the current
+design boundary, not operational proof.
 
-## D-094 - Automated encrypted GitHub-artifact backups are the pilot offsite copy
+## D-094 - Automated authenticated backup remains gated until trust and restore proof
 
-**Status: design accepted 2026-08-25; not enabled or verified.** While the
-project remains on Supabase Free, the candidate daily
-`Supabase Encrypted Backup` workflow and weekly `Backup Restore Drill` propose
-an automated recovery loop: an AES-256-CBC
-(PBKDF2, 600k iterations) encrypted logical dump of `public`, `auth` and
-`storage` schemas stored as a 90-day GitHub Actions artifact, with in-CI
-read-back verification and a weekly isolated restore drill printing
-count-only invariants.
+**Status: amended 2026-08-28; HOLD / not enabled.** The original raw `pg_dump`
+plus AES-CBC proposal is superseded before credential enablement. The hardened
+candidate uses the official Supabase CLI roles/schema/data split and age
+authenticated public-key encryption. The export job receives the production DB
+URL but no decryption identity; read-back and restore receive the identity but
+no production DB URL. The restore target is a pinned, isolated Supabase-local
+database rather than stock PostgreSQL, and public evidence is PASS/FAIL only.
 
-If activated and proven, this may amend the manual-export rule that required
-backups to live outside GitHub: the artifact would store only encrypted bytes,
-and the passphrase would be held in GitHub Actions secrets and the owner password
-manager. The owner may additionally download artifacts monthly into independent
-custody. The proposed failed-run alert path is not verified. This does not
-provide PITR and does not meet the launch RPO
-target; Supabase Free remains an explicit pilot risk acceptance. See
-`BACKUP_AUTOMATION.md`.
+Official migration-history schema/data and a reviewed idempotent artifact for
+the application-owned `auth.users` triggers are included and hashed inside the
+encrypted bundle. Source logical dumps from PostgreSQL 15 or 17 are allowed only
+into the immutable Supabase-local PostgreSQL 17 target; other majors fail closed.
+CLI/age assets and every DB-initialization image are checksum/digest and
+linux/amd64-ID pinned before secrets. Raw dump diagnostics stay private because
+CLI nested URL parse errors can reveal an unmasked password.
+
+GitHub artifact storage is not an independent trust domain from GitHub Actions.
+A second independent reviewer with enforced CODEOWNER approval is required; a
+zero-approval ruleset or CODEOWNERS file alone is not protection. Environment
+secrets must be split into `backup-export` (DB URL only) and `backup-decrypt`
+(age identity only), with both deployment-branch policies restricted to
+selected protected `main` and no repository-level copies. Independently held
+age recovery custody, successful authenticated read-back/isolated restore,
+separately downloaded ciphertext read-back and a different-schedule-domain
+freshness monitor are also prerequisites. Until then it is
+`NOT ENABLED / NOT VERIFIED`. This still does not provide PITR or meet the
+proposed launch RPO. See `BACKUP_AUTOMATION.md`.
 
 ## D-093 - Documentation-only commits may skip Railway deployment only after proof
 
