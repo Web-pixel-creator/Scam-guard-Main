@@ -135,7 +135,7 @@ describe("toolchain security boundaries", () => {
     expect(railway).toMatch(/watchPatterns:\s*\["\*\*",\s*"!\/\*\.md",\s*"!\/ai_docs\/\*\*"\]/u);
     expect(railway).toContain('healthcheckPath: "/healthz"');
     expect(railway).toContain("healthcheckTimeout: 100");
-    expect(railway).toContain('restartPolicyType: "ON_FAILURE"');
+    expect(railway).not.toContain("restartPolicyType:");
     expect(railway).toContain("restartPolicyMaxRetries: 5");
     expect(railway).toContain('replicas: { "us-west2": 1 }');
     expect(railway.match(/\bpreserve\(\)/gu)).toHaveLength(22);
