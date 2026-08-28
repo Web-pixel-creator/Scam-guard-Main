@@ -1,14 +1,20 @@
 # Railway IaC Migration Plan
 
-Status: **OPEN / PLAN ONLY**. No Railway configuration has been changed by this
-document.
+Status: **NOT APPLIED / HOLD**. No Railway configuration has been changed by
+this document or by the audited candidate.
 
 `railway.toml` remains the effective deployed manifest, but Railway has marked
 that format deprecated with a hard cutoff on `2026-12-01`. Migration to
-`.railway/railway.ts` is not implemented. The installed workstation CLI is
-`4.30.4`; the migration requires Railway CLI `5.44.0` or newer. Platform
+`.railway/railway.ts` is prepared on an isolated HOLD branch. Native Railway
+CLI `5.44.0` is available at `C:\Scam-guard\tools\railway.exe`. Platform
 references: <https://docs.railway.com/infrastructure-as-code> and
 <https://docs.railway.com/cli/config>.
+
+The 2026-08-28 post-rotation audit caught a real destructive preflight: the
+stale candidate would have deleted the new previous hash-pepper secret/version
+variables. Both were added as `preserve()` and the repeated readable plan now
+reports `0 add`, two resource updates and `0 destroy`. This is proof that the
+stop condition worked, not permission to apply.
 
 ## Invariants that must survive
 
@@ -17,20 +23,22 @@ references: <https://docs.railway.com/infrastructure-as-code> and
 - healthcheck path `/healthz` with timeout `100` seconds;
 - restart policy `ON_FAILURE` with maximum `5` retries;
 - region `us-west2`, one replica;
-- current service/environment binding, domains and all live variables without
-  copying their names or values into documentation.
+- current service/environment binding, domains and all 22 live user variables
+  through `preserve()` without copying values into documentation.
 
 ## Why automatic migration is insufficient
 
-The current `railway config migrate` output is incomplete for this service:
-watch/build settings are emitted only as comments and the restart policy is
-omitted. Blindly applying that output could change production behavior.
+The automatic import omitted reviewed build/deploy invariants. The first
+post-rotation plan also demonstrated that a previously complete `preserve()`
+inventory becomes unsafe after a later credential/topology change. Blindly
+applying generated or stale output could change production behavior or delete
+required compatibility state.
 
 ## Approved sequence
 
-1. Upgrade Railway CLI to `>=5.44.0` in an isolated operator environment and
-   confirm the exact `railway config` command syntax with `--help`.
-2. Start from a clean branch and run the live import with
+1. Use native Railway CLI `>=5.44.0` in an isolated operator environment and
+   confirm the exact linked project/environment/service.
+2. Start from a disposable worktree and run the live import with
    `railway config pull --force`. Never paste the pulled variable inventory into
    a ticket, chat, log or this document.
 3. Build `.railway/railway.ts` manually from the live pull. Use `preserve()` for
@@ -41,23 +49,23 @@ omitted. Blindly applying that output could change production behavior.
    unplanned region, replica, health, restart, builder or watch change.
 5. Obtain explicit owner approval for one production-config/canary restart
    window, freeze unrelated merges/deploys and record the active deployment,
-   runtime SHA, image digest and `/healthz`. Do not combine this migration with
-   application, backup or secret work.
-6. In that window, clear the Railway Dashboard **Config File** field currently
-   set to `/railway.toml`. This is the critical non-atomic step: the legacy file
-   and IaC cannot control the service simultaneously.
-7. Immediately run the human-readable `railway config plan --verbose` again.
-   If it proposes any unexpected deletion or invariant change, do not apply;
-   restore Dashboard Config File to `/railway.toml` immediately and verify the
-   previous effective manifest.
-8. Run interactive `railway config apply` only for the reviewed clean plan. Do
+   runtime SHA, image digest and `/healthz`.
+6. Repeat the Dashboard/live API read-back. The audited state is
+   `railwayConfigFile=null` while the resolved repo manifest remains
+   `/railway.toml`; there is no Dashboard field to clear. Any non-null drift is
+   a stop condition.
+7. In the candidate worktree where `railway.toml` is absent locally, repeat
+   `railway config plan --verbose`. Require the reviewed six field updates,
+   `0 add` and `0 destroy`; any variable/resource deletion is a stop condition.
+8. Run interactive `railway config apply` only for that reviewed clean plan. Do
    not use `--json`, `--show-values`, `--decrypt-variables`, `--yes` or
    `--confirm-destructive`. Immediately read back the live manifest and verify
    deployment identity, `/healthz`, replica/region, restart policy and the
    no-AI production smoke.
-9. In the same infrastructure PR, remove legacy `railway.toml`, update its guard
-   test for `.railway/railway.ts`, rerun CI and merge only after the live IaC
-   apply is clean.
+9. Only after the apply/read-back is clean, merge the already-reviewed
+   infrastructure PR that removes `railway.toml`, keeps
+   `.railway/railway.ts`, and updates its guard test. Observe the resulting
+   deployment through `SUCCESS`.
 10. Prove both watch exclusions with one root-Markdown change and one
     `ai_docs/**` change: each must produce `SKIPPED` while deployment/image stay
     unchanged.
@@ -68,15 +76,14 @@ omitted. Blindly applying that output could change production behavior.
 
 - Stop before apply if the plan is incomplete, destructive or differs from the
   invariants above.
-- Preserve the last known-good `railway.toml` commit, Dashboard Config File
-  value `/railway.toml` and pre-apply live read-back as rollback evidence until
-  the new IaC path passes canary.
-- Before apply, any unexpected plan is rolled back by restoring Dashboard Config
-  File to `/railway.toml`; verify the old effective manifest before leaving the
-  window.
-- If post-apply identity/health differs, restore `/railway.toml` as the Dashboard
-  Config File and the reviewed previous configuration in the same approved
-  window, then verify the immutable runtime according to
-  `RECOVERY_AND_KEY_ROTATION.md`.
+- Preserve the last known-good `railway.toml` commit and pre-apply live
+  read-back as rollback evidence until the new IaC path passes canary.
+- Before apply, any unexpected plan means no production change: do not apply and
+  keep the effective root `railway.toml` untouched.
+- If apply/read-back diverges before merge, do not merge the legacy-file
+  deletion; correct or reverse the underlying setting while `main` still has
+  the known-good file. If the post-merge deployment diverges, revert the
+  migration commit to restore `railway.toml`, verify health, then decide whether
+  the underlying IaC-applied settings also require reversal.
 - Never use blind `apply`, interactive defaults or a generated migration file
   that leaves required settings as comments.

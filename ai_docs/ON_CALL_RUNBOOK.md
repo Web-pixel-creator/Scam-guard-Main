@@ -14,23 +14,25 @@ Current production target:
 
 - Public app: `https://scam-guard-main-production.up.railway.app`
 - Railway service: `Scam-guard-Main`
-- GitHub documentation tip: PR #138 merge
-  `4380085d29885c16147127a96cffb0a1b440d941`
-- Deployed source: PR #135 merge
-  `a964153f2dc376015e3e3fbf93068049e97f1ee3` (application behavior unchanged
-  from PR #129)
-- Railway deployment: `464f3bb8-45c8-4df9-9752-f8a9564a757f` (`SUCCESS`, US
+- GitHub and deployed source: PR #141 merge
+  `b36c453a08b3afd05c6e623d938e15dfc5b6084c`
+- Railway deployment: `311997d0-2c1a-4428-88a0-d8be1308f679` (`SUCCESS`, US
   West, `main` Auto Deploy + Wait for CI)
 - Supabase: 33 migrations, head `20260729131000`; AAL2 RLS and Family
   notification-claim retention migrations are applied
 - Monitor command: `railway run npm run monitor:prod -- https://scam-guard-main-production.up.railway.app`
 
-**Current status (2026-08-26):** D-091 is deployed. Every scheduled baseline
+**Current status (2026-08-28):** D-091 is deployed. Every scheduled baseline
 sets `MONITOR_CHECK_AI=false`, receives no `OPENAI_*` secret and reports the AI
 provider disabled by policy without sending a request. AI reachability is a
 separate false-by-default manual job and runs only when an operator explicitly
 submits `check_ai_provider=true` after approving one provider call. Historical
 pre-D-091 provider attempts remain part of cost accounting.
+
+The 2026-08-28 secret-cutover postflight passed with `pending=0`, no Telegram
+last error and fresh Railway error/warn scans at `0/0`. Manual monitor run
+`33148010977` passed with AI disabled. No formal release canary is active until
+the remaining deploy-eligible bundle is resolved.
 
 ## Alert Meaning
 

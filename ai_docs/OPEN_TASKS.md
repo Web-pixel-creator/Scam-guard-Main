@@ -1,81 +1,82 @@
 # Open Tasks
 
-## Current checkpoint (2026-08-26)
+## Current checkpoint (2026-08-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The verified
-deployed application source is PR #135 merge
-`a964153f2dc376015e3e3fbf93068049e97f1ee3` (tree
-`36d9d748e26fc3b41268c55af9f35ef1b82c2cad`). Railway deployment
-`464f3bb8-45c8-4df9-9752-f8a9564a757f` reports `SUCCESS` with image
-`sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
+deployed application source is PR #141 merge
+`b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Railway deployment
+`311997d0-2c1a-4428-88a0-d8be1308f679` reports `SUCCESS` with image
+`sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
 Supabase production has `33` migrations with head `20260729131000`; both
 2026-07-29 hardening migrations are applied and postflight-verified.
-GitHub documentation tip is PR #138 merge `4380085d`; it is intentionally
-newer than the deployed runtime above. PR #135 passed 179 files / 15,327 tests,
-TypeScript, lint, build, coverage,
-migration/schema and Security Gates. The application runtime is unchanged
-from PR #129; the deploy carries the backup automation workflows (PR #133)
-and the CI action batch. Backup status is `NOT ENABLED / NOT VERIFIED`: the
+PR #141 passed all seven GitHub CI/Security jobs; its post-cutover production
+and security smokes passed and `/healthz` returned `200`. Backup status is
+`NOT ENABLED / NOT VERIFIED`: the
 audit found zero backup runs, zero restore-drill runs, zero artifacts and
-no required backup credentials. The previous window #2 (PR #129) ran
-18/18 clean and was superseded by the owner-approved acceleration. PR #135
-opened canary window #3 at `2026-08-26T03:54:30Z`; its formal status is
-`OPEN`. Old commit ids, test totals and tracker counts below describe the
-checkpoint at which each paragraph was written.
+no required backup credentials. Window #3 for PR #135 was superseded by PR #141
+and then by owner-approved production secret cutovers. There is no active
+formal canary. Old commit ids, test totals and tracker counts below describe
+the checkpoint at which each paragraph was written.
 
 Railway watch patterns (`**`, `!/*.md`, `!/ai_docs/**`) are active in the
 deployed manifest and proven by six SKIPPED docs-only deployments
 (`fa9d5b40`, `1d5c40b0`, `e74549a0`, `c52d23b3`, `54f676f1`, `a46d9565`); the docs SHA and the
-runtime SHA `a964153f` are recorded separately.
+runtime SHA at each historical merge were recorded separately.
 
 The immediate queue is:
 
-1. keep PR #137 `DRAFT/HOLD` and not deployed; final candidate `e4db0135`
+1. keep PR #137 and PR #140 `DRAFT/HOLD` and not deployed; rebased PR #137
+   candidate `c437a30`
    completed the generic "sent + wrong recipient/card/account" OTP/SMS TDD round
-   and full local gate, and GitHub CI passed 7/7; owner merge decision and
-   explicit canary restart remain required;
-2. observe canary window #3 for deployed `a964153f` until **both** at least 72
-   elapsed hours and at least 144 eligible scheduled successes are satisfied,
-   then re-check every restart/exception rule before a written GO/NO-GO;
-3. prepare Supabase export/restore and repository-security hardening on a HOLD
-   branch only; do not merge it or add production backup credentials while
-   preserving window #3. After the verdict (or explicit supersede decision),
-   stage-test it and prove either independent CODEOWNER review with ≥1
+   and full local gate, and GitHub CI passed 7/7. PR #140 is the dormant
+   backup/restore trust-contract candidate `b076450`; its local gates and
+   GitHub CI 7/7 passed before the owner release decision;
+2. review Railway-IaC Draft/HOLD PR #142 (`8c440ba`) without applying it. Its
+   first post-rotation plan exposed two destructive previous-pepper deletions;
+   adding both `preserve()` entries produced the required `0 destroy` plan.
+   Then present one explicit bundle decision: merge approved candidates in one
+   controlled release window or defer them individually;
+3. after that decision, deploy once, rerun no-AI production/security smokes and
+   start a new fixed-baseline canary requiring **both** at least 72 elapsed hours
+   and at least 144 eligible scheduled successes;
+4. do not add production backup credentials until the candidate is merged and
+   either independent CODEOWNER review with ≥1
    dismiss-stale approval or a protected-environment manual gate before
-   activation in a recorded restart window;
-4. resolve historical window #1's formal exception: run the separately
+   activation has been proven;
+5. resolve historical window #1's formal exception: run the separately
    approved polling-dialogue smoke or record an owner/expiry-bound waiver, and
    reconcile the incomplete AI-probe evidence;
-5. close the remaining dependabot items after the verdict: setup-cli 3.0.0
+6. close the remaining dependabot items after the verdict: setup-cli 3.0.0
    through the staging CLI rehearsal, then application-dependency majors one
    branch at a time with the full local gate;
-6. capture non-destructive multi-instance polling handoff/re-election and
+7. capture non-destructive multi-instance polling handoff/re-election and
    definitive Telegram-provider failure-recovery evidence;
-7. execute `CLIENT_ACCEPTANCE_PLAN_2026-08.md`; it is a plan only and formal
+8. execute `CLIENT_ACCEPTANCE_PLAN_2026-08.md`; it is a plan only and formal
    Inline client evidence remains 1/51, then complete Direct RU/UZ/EN,
    human Voice-out and bounded real RU/UZ Voice-in/STT evidence;
-8. complete accessibility scale/zoom/reduced-motion and legal/privacy
+9. complete accessibility scale/zoom/reduced-motion and legal/privacy
    acceptance;
-9. restore-test a successfully generated fresh archive with full timing/RPO/RTO
-   evidence, then run
-   the separately approved Railway rollback/return and MFA factor-reset drills;
-10. retain staging until a separate destructive deletion approval is given;
-11. record Railway payment-method expiry/spend alerts and a response owner;
-12. keep Nitro static `q`-weight handling and the OCR fallback two-phase
+10. restore-test a successfully generated fresh archive with full timing/RPO/RTO
+    evidence, then run
+    the separately approved Railway rollback/return and MFA factor-reset drills;
+11. retain staging until a separate destructive deletion approval is given;
+12. record Railway payment-method expiry/spend alerts and a response owner;
+13. keep Nitro static `q`-weight handling and the OCR fallback two-phase
     correction as explicit follow-up engineering;
-13. review and approve the two system-debt designs before implementation:
+14. review and approve the two system-debt designs before implementation:
     `DESIGN_OUTBOX_JOURNAL.md` (durable outbound delivery journal — the #1
     architectural gap) and `DESIGN_OBSERVABILITY_BASELINE.md` (privacy-safe
     metrics plus the rules latency budget that guards `rules.ts` against
     ReDoS regressions). Both are proposal-status and unblock only after the
     canary verdict allows source merges.
-14. migrate deprecated `railway.toml` before the hard `2026-12-01` cutoff using
+15. migrate deprecated `railway.toml` before the hard `2026-12-01` cutoff using
     manual CLI `>=5.44.0` pull/plan/apply; automatic migration leaves
     watch/build as comments and omits restart policy, so blind apply is
-    forbidden. In the approved restart window, clear Dashboard Config File
-    `/railway.toml`, immediately inspect the human-readable plan and restore the
-    field on any unexpected deletion (`RAILWAY_IAC_MIGRATION_PLAN.md`);
-15. before any production database credential or backup decryption identity is
+    forbidden. The Dashboard custom path is currently `null`; do not invent a
+    clear-field step. In the approved window require a fresh `0 destroy` plan,
+    interactive apply/read-back, then merge the reviewed legacy-file deletion
+    (`RAILWAY_IAC_MIGRATION_PLAN.md`);
+16. before any production database credential or backup decryption identity is
     placed in GitHub, fix workflow BOM/mojibake and stable ASCII required-check
     names, enforce the selected-Actions/SHA policy, add `CODEOWNERS` as an audit
     signal and create a `main` ruleset with no bypass. Keep required approvals at
@@ -892,25 +893,23 @@ qa:telegram-report` regenerates `ai_docs/TELEGRAM_BOT_QA_REPORT.md` from the
       hash, new targets use the active version, and incomplete/ambiguous
       configuration fails closed.
 - [x] ~~Apply and drill the hash-pepper overlap procedure.~~ Production uses
-      active version `v2`; bounded synthetic write/read/cleanup passed and
-      historical legacy counts remained stable.
+      active version `v3`, previous `v2` and the required legacy read slot.
+      Bounded synthetic write/read/cleanup proved new report, appeal and check
+      hashes use `v3`; historical legacy/v2 counts remained stable.
 - [ ] Keep `HASH_PEPPER_SECRET` as the required legacy read slot until a
       privacy-reviewed retirement report proves zero required dependencies.
       Direct replacement remains forbidden.
-- [ ] Continue fixed-RC observation window #3 documented in `CANARY_72H.md` for
-      exact PR #135 merge `a964153f` and Railway deployment `464f3bb8`
-      (opened `2026-08-26T03:54:30Z`). Closure requires both at least 72 elapsed
-      hours and at least 144 successful eligible scheduled runs under unchanged
-      entry/failure/restart rules. Only scheduled baselines with
-      `MONITOR_CHECK_AI=false` count. Any deployment, migration, production
-      secret, runtime config or monitor-workflow change restarts the window.
-      PR #129/window #2 is historical and superseded.
+- [ ] Start a new fixed-RC observation window only after the deploy-eligible
+      release bundle is merged or explicitly deferred. Window #3 for PR #135 is
+      historical and superseded by PR #141 plus the subsequent production
+      secret cutovers. Closure still requires both at least 72 elapsed hours and
+      at least 144 successful eligible scheduled runs under unchanged rules;
+      only scheduled baselines with `MONITOR_CHECK_AI=false` count.
 - [x] ~~Resolve the Railway region and source-binding blockers.~~ Plan/payment
       activation made US West usable. Production is bound to `main`, Auto Deploy
       and Wait for CI are enabled. PR #122 first proved the complete path, and
-      PR #123-129 repeated it; current runtime-wrapper merge `a964153f` deployed
-      successfully as `464f3bb8-45c8-4df9-9752-f8a9564a757f` while application
-      behavior remains the PR #129 baseline.
+      later releases repeated it. Current PR #141 merge `b36c453` is deployed
+      successfully as `311997d0-2c1a-4428-88a0-d8be1308f679`.
 - [ ] Record Railway payment method, expiry owner and spend/usage alerts through
       the Dashboard. CLI evidence proves `plan=pro`,
       `sleepApplication=false`, one replica and a successful current deployment,

@@ -23,19 +23,17 @@ Ishonch Guard — **production-deployed safety MVP и кандидат для к
 измерение качества распознавания, legal/privacy review и оставшиеся
 эксплуатационные проверки.
 
-Проверенный снимок на 2026-08-26 (repository tip и runtime учитываются
-раздельно):
+Проверенный снимок на 2026-08-28:
 
-| Параметр              | Подтверждённое состояние                                                                                                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub docs tip       | PR №138, commit `4380085d`; docs-only merge не заменил runtime                                                                                                                   |
-| Production source     | PR №135, commit `a964153f`, tree `36d9d748`; application runtime не менялся с PR №129                                                                                            |
-| Railway deployment    | `464f3bb8-45c8-4df9-9752-f8a9564a757f` — `SUCCESS`, `/healthz` возвращает `200 ok`                                                                                               |
-| Автоматические тесты  | Deployed gate: 179 Vitest-файлов, 15 327/15 327; полный CI и coverage прошли                                                                                                     |
-| CI/security           | TypeScript, lint, build, coverage, migrations, pgTAP, CodeQL, Gitleaks, Trivy и SBOM прошли                                                                                      |
-| Telegram transport    | Durable single-leader polling в production; webhook остаётся совместимым fail-closed режимом                                                                                     |
-| AI в плановом monitor | Отключён политикой; scheduled monitor не получает AI-ключи и не делает provider-запросы                                                                                          |
-| Формальная приёмка    | Окно №3 `OPEN`: нужны ≥72 часа **и** ≥144 eligible success; окно №1 имеет operational GO, но formal `OPEN/exception pending`; device/a11y/legal и real-client матрица не закрыты |
+| Параметр              | Подтверждённое состояние                                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub / production   | PR №141, commit `b36c453a08b3afd05c6e623d938e15dfc5b6084c`                                                                       |
+| Railway deployment    | `311997d0-2c1a-4428-88a0-d8be1308f679` — `SUCCESS`, `/healthz` возвращает `200 ok`                                               |
+| Автоматические тесты  | PR №141 прошёл все 7 CI/Security jobs; post-cutover production/security smokes зелёные                                           |
+| CI/security           | TypeScript, lint, build, coverage, migrations, pgTAP, CodeQL, Gitleaks, Trivy и SBOM прошли                                      |
+| Telegram transport    | Durable single-leader polling в production; webhook остаётся совместимым fail-closed режимом                                     |
+| AI в плановом monitor | Отключён политикой; scheduled monitor не получает AI-ключи и не делает provider-запросы                                          |
+| Формальная приёмка    | Активного canary-окна сейчас нет: №3 superseded PR №141 и ротациями секретов; device/a11y/legal и real-client матрица не закрыты |
 
 Текущие идентификаторы, границы доказательств и оставшиеся проверки записаны в
 [`CURRENT_STATE.md`](ai_docs/CURRENT_STATE.md) и
@@ -57,10 +55,14 @@ Workflow-файлы backup смержены, но backup сейчас **NOT ENAB
 VERIFIED**: нет успешных запусков, restore-drill и артефактов, обязательные
 секреты отсутствуют. Sole-owner ruleset с нулём approvals не разрешает их
 добавление: сначала нужен независимый обязательный review или защищённое
-environment с ручным approval. PR №137 также не является готовым релизом: он
-остаётся `DRAFT/HOLD` и не задеплоен. Его финальный candidate `e4db0135`
-полностью перепроверен локально, GitHub CI 7/7; ещё нужны решение владельца и
-явный перезапуск canary при merge.
+environment с ручным approval. PR №137 (`c437a30`) и PR №140 остаются
+`DRAFT/HOLD` и не задеплоены. После их merge или явной отсрочки должен начаться
+новый, не смешанный с прежними baseline, 72-часовой canary.
+
+Production-секреты прошли контролируемую ротацию: новые hash-pepper записи
+используют `v3`, предыдущий `v2` и legacy slot сохранены для чтения; Telegram
+token/webhook синхронизированы между Railway и GitHub, а старый bot token
+возвращает `401`. Значения секретов в репозитории не записываются.
 
 ## Что уже работает
 

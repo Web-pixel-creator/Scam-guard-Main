@@ -1,6 +1,6 @@
 # Ishonch Guard — что выполнено за последнее время
 
-Обновлено: **2026-08-26** (независимая сверка).
+Обновлено: **2026-08-28** (post-rotation read-back).
 Период сводки: примерно последние 30 дней.
 
 Этот файл — короткая точка входа для владельца проекта, разработчика или
@@ -16,22 +16,18 @@
 - Стадия проекта: **production-deployed safety MVP / кандидат для ограниченного
   пилота**. Это уже работающий продукт, но не доказанная массовым использованием
   и независимой приёмкой enterprise-система.
-- GitHub `main` / docs tip: PR
-  [№138](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/138), commit
-  `4380085d29885c16147127a96cffb0a1b440d941`.
-- Deployed runtime: PR №135, commit
-  `a964153f2dc376015e3e3fbf93068049e97f1ee3`. Эти SHA намеренно различаются:
-  docs-only merges были пропущены Railway.
+- GitHub `main` и deployed runtime: PR
+  [№141](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/141), commit
+  `b36c453a08b3afd05c6e623d938e15dfc5b6084c`.
 - Railway production deployment:
-  `464f3bb8-45c8-4df9-9752-f8a9564a757f`, статус `SUCCESS`.
+  `311997d0-2c1a-4428-88a0-d8be1308f679`, статус `SUCCESS`.
 - Railway image digest:
-  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
+  `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
 - Публичное приложение:
   [scam-guard-main-production.up.railway.app](https://scam-guard-main-production.up.railway.app/).
-- Production gate PR №135: **179 test files, 15 327/15 327 тестов**, TypeScript,
-  lint, production build, coverage, migrations/schema/pgTAP и Security Gates
-  прошли. Application runtime не менялся со времён PR №129 — деплой нёс
-  backup-автоматизацию (№133) и CI-actions батч (№135).
+- PR №141 прошёл все **7/7 GitHub CI/Security jobs**. После ротации no-AI
+  production smoke, полный security smoke и `/healthz=200` прошли; свежие
+  error/warn логи — `0/0`.
 - Railway watch patterns активны: за проверенный период зафиксировано 3
   non-SKIPPED deployment entries и 6 docs-only placeholder deployments со
   статусом `SKIPPED`; шесть docs merges не меняли runtime.
@@ -48,10 +44,14 @@
   финальные production/security/web-P1 проверки. Formal closure остаётся
   `OPEN / exception pending`: обязательный polling-dialogue smoke был skipped,
   а AI-probe evidence не содержит требуемых approval/run-id/request-count/budget.
-- Окно №2 (PR №129) прошло 18/18 чисто и осознанно заменено ускорением;
-  окно №3 (PR №135) открыто `2026-08-26T03:54:30Z`, формальный статус `OPEN`;
-  `2026-08-29T03:54:30Z` — только самое раннее время решения; нужны одновременно
-  ≥72 часа и ≥144 eligible success без restart-триггера.
+- Окно №2 (PR №129) прошло 18/18 чисто и было заменено ускорением. Окно №3
+  (PR №135) затем superseded изменением runtime в PR №141 и production-secret
+  cutover. **Активного формального canary сейчас нет**; новый baseline стартует
+  только после решения по deploy-eligible PR №137, PR №140 и Railway-IaC.
+- Hash-pepper rotation завершена по трём слотам: active `v3`, previous `v2`,
+  legacy read slot сохранён. Telegram token/webhook синхронизированы между
+  Railway и GitHub; старый token возвращает `401`, новый принадлежит
+  `@scamguard_bot`. Значения секретов нигде в отчёте не записаны.
 
 ## Что опубликовано в production за последнее время
 
@@ -195,7 +195,8 @@ Completed incident/aftercare имеет приоритет над обычной
 
 | Дата       | Релиз                   | Что изменилось                                                                                                   | Статус                                                                            |
 | ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 2026-08-26 | PR №133+135, `a964153f` | Candidate backup workflow-файлы (`NOT ENABLED / NOT VERIFIED`) и CI-actions батч; application runtime не менялся | Production, canary окно №3 `OPEN`; earliest decision `2026-08-29T03:54:30Z`       |
+| 2026-08-28 | PR №141, `b36c453`      | Three-slot hash-pepper runtime и контролируемая ротация production credentials                                   | Production `311997d0`, healthy; формальный canary ещё не начат                    |
+| 2026-08-26 | PR №133+135, `a964153f` | Candidate backup workflow-файлы (`NOT ENABLED / NOT VERIFIED`) и CI-actions батч; application runtime не менялся | Superseded PR №141 и secret cutovers; окно №3 закрыто без формального verdict     |
 | 2026-08-25 | PR №129, `9019776`      | Semantic/human-simulation hardening: rules, patterns, RU/UZ/EN routing, QA corpora; watch patterns               | Superseded production; окно №2 прошло 18/18, заменено ускорением                  |
 | 2026-08-20 | PR №128, `58557765`     | Исправлен `installment`/APK конфликт в Inline и русский task-scam «зарплата → налог»                             | Superseded; operational `GO`, formal `OPEN / exception pending`                   |
 | 2026-08-13 | PR №126, `8a76a5e`      | Большой RU/UZ/EN hardening, privacy/secret paths, completed actions, report TTL                                  | Superseded production; 226 eligible monitor success, operational observation `GO` |
@@ -210,11 +211,14 @@ Completed incident/aftercare имеет приоритет над обычной
 
 - [PR №137](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/137) —
   `DRAFT/HOLD`, не задеплоен. Candidate
-  `e4db013559be8816319980eb5d4cad7eac09dff6` завершил второй TDD-раунд по generic
-  «отправил + не той/не тому» и полностью re-gated локально: 15 357/15 357,
-  focused 152/152, novel 321/321, TypeScript/lint/build/prettier чисто; ручные
-  EN/UZ polarity probes дали `panic=1`, GitHub CI 7/7. Нужны решение владельца и
-  явный canary restart.
+  `c437a30` после rebase на текущий `main` завершил второй TDD-раунд по generic
+  «отправил + не той/не тому» и полностью re-gated локально: 15 364/15 364,
+  focused 152/152, TypeScript/lint/build/prettier чисто; GitHub CI 7/7. Нужны
+  решение владельца и явный новый canary.
+- [PR №140](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/140) —
+  `DRAFT/HOLD`, candidate `b076450`, hardened backup/restore trust contract.
+  Local gates и GitHub CI 7/7 прошли. Он не включает cron и не доказывает
+  operational backup до реального backup/read-back/restore.
 - PR №138 смержил только предложения
   `ai_docs/DESIGN_OUTBOX_JOURNAL.md` и
   `ai_docs/DESIGN_OBSERVABILITY_BASELINE.md`. Outbox и observability baseline не
@@ -225,10 +229,12 @@ Completed incident/aftercare имеет приоритет над обычной
 
 ## Что ещё не завершено
 
-1. Сохранить неизменным runtime `a964153f` (окно №3) до одновременного выполнения
-   ≥72 часов и ≥144 eligible scheduled success либо явно перезапустить окно.
-2. PR №137 имеет полный локальный gate и GitHub CI 7/7, но остаётся `DRAFT/HOLD`;
-   не мержить без отдельного решения владельца о merge/canary restart.
+1. Принять одно решение по release bundle: PR №137, PR №140 и Railway-IaC Draft
+   PR №142 (`8c440ba`) — merge одним окном либо явная отсрочка каждого пункта. IaC-аудит
+   уже поймал и исправил два потенциальных удаления previous-pepper variables;
+   повторный plan показывает `0 destroy`, но apply не выполнялся.
+2. После единственного deploy выполнить read-back/smokes и начать новый canary;
+   нужны одновременно ≥72 часа и ≥144 eligible scheduled success.
 3. Разобрать formal exception окна №1: отдельное разрешение на
    polling-dialogue smoke или owner/expiry-bound waiver плюс полная AI-probe
    evidence.
@@ -302,8 +308,8 @@ gh pr list --state merged --limit 10
 Ожидаемые идентификаторы на дату этой сводки:
 
 ```text
-GitHub docs tip: 4380085d29885c16147127a96cffb0a1b440d941
-Deployed runtime: a964153f2dc376015e3e3fbf93068049e97f1ee3
+GitHub main: b36c453a08b3afd05c6e623d938e15dfc5b6084c
+Deployed runtime: b36c453a08b3afd05c6e623d938e15dfc5b6084c
 ```
 
 Не выполняйте `reset`, `checkout`, `clean`, `stash`, `rebase` или обычный

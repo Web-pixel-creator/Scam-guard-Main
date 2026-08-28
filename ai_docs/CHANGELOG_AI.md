@@ -2,6 +2,28 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-08-28 - PR #141 and production secret cutover reconciled
+
+- Recorded PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`
+  and active Railway deployment `311997d0-2c1a-4428-88a0-d8be1308f679`, image
+  `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
+- Recorded the value-free production rotation result: hash-pepper active `v3`,
+  previous `v2`, legacy read compatibility retained; Telegram token/webhook
+  consumers synchronized, old token rejected with `401`, no-AI Production
+  Monitor run `33148010977` successful.
+- Marked canary window #3 superseded by the runtime and secret restart triggers.
+  There is no active formal window until the remaining deploy-eligible bundle
+  is merged or explicitly deferred.
+- Rebased and re-gated PR #137 on current `main`: candidate `c437a30`, focused
+  152/152, full 15,364/15,364, GitHub CI 7/7. Rebased PR #140 candidate
+  `b076450` passed local gates and GitHub CI 7/7 but remains a dormant
+  backup/restore `DRAFT/HOLD`; operational backup status is unchanged.
+- Audited the unapplied Railway-IaC candidate against post-rotation live state.
+  The first plan proposed deleting both previous hash-pepper variables; adding
+  the missing `preserve()` entries changed the plan to `0 add`, two field groups
+  updated and `0 destroy`. Published the result as Draft/HOLD PR #142
+  (`8c440ba`). No `config apply` or production change was made.
+
 ## 2026-08-26 - Independent status and recovery evidence correction
 
 - Separated GitHub docs tip `4380085d` from deployed runtime `a964153f` /

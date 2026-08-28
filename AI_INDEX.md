@@ -16,15 +16,14 @@ moderation.
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
-- GitHub documentation tip: PR #138 merge
-  `4380085d29885c16147127a96cffb0a1b440d941`. Deployed source: PR #135 merge
-  `a964153f2dc376015e3e3fbf93068049e97f1ee3` (application behavior unchanged
-  from PR #129), Railway deployment
-  `464f3bb8-45c8-4df9-9752-f8a9564a757f`, image
-  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
-  These SHA values are intentionally different after docs-only Railway skips.
-- Verified PR #129 gate: 179 Vitest files and 15,327/15,327 tests, plus
-  TypeScript, lint, build, coverage, migrations/schema and security gates.
+- GitHub `main` and deployed source: PR #141 merge
+  `b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Active Railway deployment:
+  `311997d0-2c1a-4428-88a0-d8be1308f679`, image
+  `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
+  The 2026-08-28 read-back returned `/healthz=200`.
+- PR #141 passed all seven GitHub CI/Security checks. Post-cutover no-AI
+  production and full security smokes passed and fresh error/warn scans were
+  `0/0`.
 - Runtime: Nitro `node-server` on Railway. Current Telegram production delivery
   uses durable Postgres-fenced polling; webhook remains a supported
   compatibility/fail-closed boundary.
@@ -35,21 +34,30 @@ moderation.
 - Historical window #1 (`58557765`) supports operational `GO`, but formal
   closure remains `OPEN / exception pending`: the required polling-dialogue
   smoke was skipped and the optional AI-probe evidence is incomplete. Window #2
-  was superseded. Current window #3 (`a964153f`) is `OPEN` and requires both at
-  least 72 elapsed hours and at least 144 eligible successes with no restart
-  trigger.
+  and window #3 were superseded. There is currently **no active formal canary**:
+  PR #141 and the later production secret cutovers changed the fixed baseline.
+  Start a new window only after the remaining deploy-eligible bundle is merged
+  or explicitly deferred.
 - Backup workflow files are merged but `NOT ENABLED / NOT VERIFIED`: zero runs,
   restore drills and artifacts were found, and required backup credentials are
   absent. A sole-owner ruleset with zero approvals is not a credential gate;
   independent reviewed ownership or a protected-environment manual approval is
-  required first. Credential changes restart the current canary.
-- PR #137 is `DRAFT/HOLD`, not deployed. Candidate
-  `e4db013559be8816319980eb5d4cad7eac09dff6` completed the second TDD round and
-  full local re-gate, and GitHub CI is 7/7. It still awaits the owner merge
-  decision and an explicit canary restart.
+  required first. Credential changes restart any active canary.
+- Three-slot hash-pepper rotation is live: active writes use `v3`, previous
+  `v2` and legacy reads remain available. The Telegram token/webhook pair was
+  rotated across Railway and GitHub; the old token returns `401`, and no secret
+  value is present in documentation.
+- PR #137 is `DRAFT/HOLD`, not deployed. Rebased candidate `c437a30` passed
+  15,364/15,364 locally and GitHub CI 7/7. PR #140 candidate `b076450` is also
+  `DRAFT/HOLD`; its local gates and GitHub CI 7/7 passed, but it remains a
+  dormant backup/restore candidate. Both await the owner release decision and
+  an explicit new canary start.
+- Railway-IaC Draft PR #142 (`8c440ba`) is `NOT APPLIED / HOLD`. Its corrected
+  read-only plan is `0 destroy`; it depends on this documentation reconciliation
+  and requires a separate owner-approved interactive apply/read-back before merge.
 - Full Desktop/Android/iOS, accessibility and legal/privacy acceptance remains
   open; the formal Inline client matrix remains 1/51.
-- Last documentation reconciliation: 2026-08-26.
+- Last documentation reconciliation: 2026-08-28.
 
 ## Documentation authority
 

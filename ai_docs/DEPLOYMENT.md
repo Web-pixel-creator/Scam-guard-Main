@@ -61,13 +61,12 @@ runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
 Production is bound to GitHub `main`, with Railway Auto Deploy and Wait for CI
-enabled in the working US West region. GitHub documentation tip is PR #138
-merge `4380085d29885c16147127a96cffb0a1b440d941`; deployed source is the older
-PR #135 merge `a964153f2dc376015e3e3fbf93068049e97f1ee3`. Railway deployment
-`464f3bb8-45c8-4df9-9752-f8a9564a757f` reached `SUCCESS` with image
-`sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
-Application behavior remains the PR #129 baseline. The docs/runtime SHA split
-is intentional after docs-only Railway skips.
+enabled in the working US West region. GitHub and deployed source are PR #141
+merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Railway deployment
+`311997d0-2c1a-4428-88a0-d8be1308f679` reached `SUCCESS` with image
+`sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
+The 2026-08-28 read-back confirmed Dockerfile build, `/healthz`, one replica,
+`ON_FAILURE` and five retries.
 
 Railway watch patterns `watchPatterns = ["**", "!/*.md", "!/ai_docs/**"]` were
 merged with PR #129 and are confirmed active in the deployed manifest.
@@ -96,7 +95,8 @@ production project and never replace a hash pepper directly. Apply the additive
 version metadata migration and version-aware application before using the
 approved bounded-overlap procedure.
 
-The public-release canary follows `ai_docs/CANARY_72H.md`. It starts only after
+The public-release canary follows `ai_docs/CANARY_72H.md`. No formal window is
+active after PR #141 and the production-secret cutovers. A new window starts only after
 the exact RC deployment and every required migration are fixed; any code,
 schema, secret or runtime-config change restarts the 72-hour clock.
 
