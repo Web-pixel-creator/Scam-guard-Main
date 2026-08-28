@@ -14,7 +14,8 @@ export default defineRailway(() => {
     deploy: {
       healthcheckPath: "/healthz",
       healthcheckTimeout: 100,
-      restartPolicyType: "ON_FAILURE",
+      // Railway omits its ON_FAILURE default from the imported IaC graph.
+      // Declaring that default explicitly creates a permanent null -> ON_FAILURE drift.
       restartPolicyMaxRetries: 5,
     },
     replicas: { "us-west2": 1 },
