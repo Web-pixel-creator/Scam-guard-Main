@@ -26,6 +26,16 @@ describe("pure Telegram text panic intent", () => {
     "I topped up someone else's phone by mistake—how can I cancel it?",
     "Boshqa telefon raqamiga xato to'ladim — bekor qilish mumkinmi?",
     "Adashib boshqa odamning telefon raqamiga to'lov qildim.",
+    "я пополнил не ту карту по ошибке",
+    "пополнил не тот счёт, как вернуть деньги?",
+    "я пополнил не ту карту",
+    "пополнил не тот счёт",
+    "Я отправил деньги не той женщине.",
+    "Я скинул перевод не тому человеку.",
+    "I sent the payment to the wrong person.",
+    "Платёж уже исполнился, я ошибся получателем и никому не сообщал коды.",
+    "To'lov o'tdi, noto'g'ri hisobga yubordim, hech kimga kod bermadim.",
+    "The payment settled to the wrong account; I did not share any OTP codes.",
   ])("keeps an ordinary outgoing recipient mistake out of scam panic: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
@@ -38,6 +48,41 @@ describe("pure Telegram text panic intent", () => {
     "Men pul o'tkazdim.",
   ])("does not hide an incoming return request behind the outgoing-mistake guard: %s", (text) => {
     expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+  });
+
+  it.each([
+    "Я оплатил не тот тариф.",
+    "Я оплатил, но не тут.",
+    "Я отправил деньги, но не тотально уверен.",
+  ])("does not treat an unrelated Russian 'ту/тот' fragment as a recipient mistake: %s", (text) => {
+    expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+  });
+
+  it.each([
+    ["Я отправил не тот код из SMS.", 1],
+    ["Я отправил не тот OTP-код человеку, который позвонил из банка.", 1],
+    ["Я отправил не той женщине код из SMS.", 1],
+    ["Я скинул не тому человеку OTP-код после звонка из банка.", 1],
+    ["Men SMS kodni adashib boshqa odamga yubordim.", 1],
+    ["I sent the wrong person my OTP code after a bank call.", 1],
+  ] as const)(
+    "does not hide a completed code-disclosure scam behind the mistake guard: %s",
+    (text, panicId) => {
+      expect(isAccidentalOutgoingTransferIntent(text)).toBe(false);
+      expect(classifyTextPanicIntent(text)).toBe(panicId);
+    },
+  );
+
+  it.each([
+    "I did not share the code at first, but then I sent my OTP to the wrong person.",
+    "Avval kodni bermadim, keyin SMS kodni boshqa odamga yubordim.",
+    "I sent my OTP to them, but I did not share any other codes.",
+    "Men SMS kodni yubordim, lekin boshqa kod bermadim.",
+    "I almost shared the code, but then I sent my OTP to them.",
+    "Avval SMS kodni yuboray dedim, lekin to'xtadim; keyin SMS kodni yubordim.",
+  ])("keeps a completed disclosure in a separate clause on panic guidance: %s", (text) => {
+    expect(isNegatedVoiceDoneIntent(text)).toBe(false);
+    expect(classifyTextPanicIntent(text)).toBe(1);
   });
 
   it.each([
@@ -76,6 +121,10 @@ describe("pure Telegram text panic intent", () => {
     "Men pul o'tkazmayman.",
     "Raqamni tashlab yubormadim.",
     "Pulni jo'natvormadim.",
+    "SMS kodni yuboray dedim, lekin to'xtadim.",
+    "I did not share the code; then I sent an email to support.",
+    "I sent an email to support, but I did not share any codes.",
+    "Avval kodni bermadim, keyin yordam xizmatiga xat yubordim.",
   ])("keeps a negated action outside panic: %s", (text) => {
     expect(isNegatedVoiceDoneIntent(text)).toBe(true);
     expect(classifyTextPanicIntent(text)).toBeNull();
