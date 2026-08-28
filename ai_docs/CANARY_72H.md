@@ -4,26 +4,37 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
-## Current RC observation status (2026-08-26, window #3)
+## Current RC observation status (2026-08-28)
 
-- Current RC: PR #135 merge `a964153f2dc376015e3e3fbf93068049e97f1ee3` (tree
+- Formal status: **NO ACTIVE WINDOW**. Do not count current scheduled monitor
+  runs toward a release canary yet.
+- Current production source: PR #141 merge
+  `b36c453a08b3afd05c6e623d938e15dfc5b6084c`.
+- Active Railway deployment: `311997d0-2c1a-4428-88a0-d8be1308f679`; image
+  `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
+- The 2026-08-28 read-back returned `/healthz=200`; no-AI production and full
+  security smokes passed, fresh error/warn scans returned `0/0`, and manual
+  Production Monitor run `33148010977` passed with the provider check disabled.
+- PR #137 and PR #140 remain deploy-eligible `DRAFT/HOLD` candidates and the
+  Railway-IaC migration candidate remains unapplied. Starting a 72-hour window
+  before the owner merges or explicitly defers that bundle would create a
+  knowingly short-lived baseline.
+- The backup workflow files are merged but operational status remains
+  `NOT ENABLED / NOT VERIFIED`: no successful backup/read-back/restore evidence
+  or protected backup credentials have been recorded.
+
+## Superseded window #3 (2026-08-26, PR #135)
+
+- RC: PR #135 merge `a964153f2dc376015e3e3fbf93068049e97f1ee3` (tree
   `36d9d748e26fc3b41268c55af9f35ef1b82c2cad`).
 - Railway deployment: `464f3bb8-45c8-4df9-9752-f8a9564a757f`; image
   `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
-- Window opened `2026-08-26T03:54:30Z` after the owner-approved acceleration:
-  PR #133 (automated encrypted Supabase backup + weekly restore drill) and
-  PR #135 (CI action batch: codeql-action commit pin, checkout v7) merged
-  back-to-back so the canary restarts once instead of twice. Both PRs passed
-  the full CI/Security Gates; `/healthz` returned `200 ok` after the deploy.
-  The runtime application code is unchanged from PR #129; the deploy carries
-  workflow and CI-action files only.
-- Formal status: `OPEN`. Target closure: on or after
-  `2026-08-29T03:54:30Z` via the written 144-success and restart rules.
-  Docs-only merges keep this clock; any source, config, secret or workflow
-  change restarts it.
-- The backup workflows are merged but dormant until the owner adds the
-  `SUPABASE_DB_URL` and `BACKUP_ENCRYPTION_PASSPHRASE` repository secrets;
-  without them the first scheduled run fails loudly by design.
+- Window opened `2026-08-26T03:54:30Z` after the owner-approved acceleration.
+  PR #141 changed runtime source on 2026-08-27, then the owner-approved
+  hash-pepper and Telegram credential cutovers changed production secret state.
+  Each is a written restart trigger. Window #3 is therefore superseded and has
+  no formal GO/NO-GO verdict; none of its observations carry into the next
+  window.
 
 ## Superseded window #2 (2026-08-25, PR #129)
 
@@ -43,7 +54,7 @@ or production-secret change restarts the 72-hour clock.
   unchanged). It was superseded on `2026-08-26` by the owner-approved
   acceleration above, not by any failure.
 
-## Closed window #1 (2026-08-20, PR #128)
+## Historical window #1 — operational GO; formal OPEN / exception pending
 
 - RC: `58557765ad28d58bfc279ffda35a298b817ded7f` (tree
   `94efdb4a753d296c93a183b754313b5949eb41bf`).
@@ -56,12 +67,11 @@ or production-secret change restarts the 72-hour clock.
 - The first two eligible scheduled observations, runs `32340016736` and
   `32344631404`, passed.
 
-### Formal closure (2026-08-25): CLOSED, verdict GO
+### Operational checkpoint (2026-08-25): GO; formal closure not claimed
 
-- Scheduled observation window `2026-08-20T06:32:24Z` → `2026-08-25T14:36:28Z`:
-  185/185 eligible runs recorded through `2026-08-25T11:52:01Z`, and the 60
-  most recent scheduled runs through `2026-08-25T14:36:28Z` (run
-  `32860557803`) all passed; zero non-success eligible runs in the window.
+- Scheduled observation window `2026-08-20T06:32:24Z` →
+  `2026-08-25T14:36:28Z`: 188/188 eligible scheduled runs passed; zero
+  non-success eligible runs in the window. The final run was `32860557803`.
 - Restart-rule review: `main` HEAD unchanged (`58557765`), the active Railway
   deployment is still `11e41786-8633-4ee7-bd67-4b71fb768a6c`, and no new
   migrations, workflow or runtime-config changes were merged since the RC
@@ -72,18 +82,23 @@ or production-secret change restarts the 72-hour clock.
   expected polling-mode 503 with secret; delivery `mode=polling`,
   `pending=0`, `last_error=none`; polling leader 200). The optional AI
   provider health probe returned `429 quota_exhausted` (degraded; the
-  deterministic scoring core is unaffected). The security smoke passed
+  deterministic scoring core is unaffected). Its separate approval, run id,
+  provider-request count and budget owner were not recorded as required by
+  this contract. The security smoke passed
   (anon deny-by-default on tables and RPC, service-role paths, admin
   allowlist boundaries). The web P1 smoke passed with a synthetic report and
   appeal accepted, moderated, audited and cleaned up (marker
-  `QA-P1-WEB-20260825144913`).
+  `QA-P1-WEB-20260825144913`). That web-P1 smoke performed bounded
+  create/moderate/cleanup writes and therefore was not a read-only check.
 - Polling-dialogue smoke: skipped — it requires a real Telegram message and no
   explicit owner approval was granted for this window; it stays an open P1
   acceptance item, not a canary failure.
-- Verdict: `CANARY_72H` **CLOSED** for RC `58557765` / deployment `11e41786`
-  with operational verdict **GO**. Device, voice, accessibility and
-  legal/privacy acceptance remain open as separate P1 items. Any code, schema
-  or secret change (including the PR #129 merge) starts a new window.
+- Verdict: evidence supports operational **GO** for RC `58557765` / deployment
+  `11e41786`, but formal `CANARY_72H` closure remains `OPEN / exception
+pending`. The hour-72 polling-dialogue requirement was skipped and no
+  owner/expiry-bound exception is recorded; AI-probe attribution evidence is
+  also incomplete. Device, voice, accessibility and legal/privacy acceptance
+  remain open as separate P1 items. PR #129 subsequently superseded this RC.
 
 ### Historical PR #126 runtime observation
 
@@ -226,16 +241,18 @@ Record only:
 Do not attach tokens, chat ids, database URLs, user messages, screenshots or
 row-level production exports.
 
-### Closed window #1 baseline evidence for `58557765`
+### Historical window #1 baseline evidence for `58557765`
 
 - PR #128 merge-commit CI and Security Gates: passed, 174 files / 13,486 tests.
 - Railway deployment: `SUCCESS`; exact commit, tree and image digest match this
   file.
 - Post-deploy `/healthz` and no-AI/no-live-message smoke: passed.
 - First scheduled observations: runs `32340016736` and `32344631404`, both
-  successful; explicitly enabled AI probes/provider requests: `0`.
-- Final formal canary status for this window: `CLOSED`, verdict `GO`
-  (see "Formal closure (2026-08-25)" above).
+  successful. Eligible scheduled baseline provider requests were `0`; a
+  separate optional provider probe later returned `429`, but its required
+  approval/run-id/request-count/budget record is incomplete.
+- Final status: operational `GO`; formal closure `OPEN / exception pending`
+  (see "Operational checkpoint (2026-08-25)" above).
 
 ### Historical observation evidence for `8a76a5e`
 

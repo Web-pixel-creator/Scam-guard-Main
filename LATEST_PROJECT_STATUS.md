@@ -1,6 +1,6 @@
 # Ishonch Guard — что выполнено за последнее время
 
-Обновлено: **2026-08-25**.  
+Обновлено: **2026-08-28** (post-rotation read-back).
 Период сводки: примерно последние 30 дней.
 
 Этот файл — короткая точка входа для владельца проекта, разработчика или
@@ -16,34 +16,42 @@
 - Стадия проекта: **production-deployed safety MVP / кандидат для ограниченного
   пилота**. Это уже работающий продукт, но не доказанная массовым использованием
   и независимой приёмкой enterprise-система.
-- GitHub `main`: PR
-  [№135](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/135), commit
-  `a964153f2dc376015e3e3fbf93068049e97f1ee3`.
+- GitHub `main` и deployed runtime: PR
+  [№141](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/141), commit
+  `b36c453a08b3afd05c6e623d938e15dfc5b6084c`.
 - Railway production deployment:
-  `464f3bb8-45c8-4df9-9752-f8a9564a757f`, статус `SUCCESS`.
+  `311997d0-2c1a-4428-88a0-d8be1308f679`, статус `SUCCESS`.
 - Railway image digest:
-  `sha256:92297f360af6e096a166bfd47ec6005bbc6f448c84aa0b47acc70c9aac1a7920`.
+  `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
 - Публичное приложение:
   [scam-guard-main-production.up.railway.app](https://scam-guard-main-production.up.railway.app/).
-- Production gate PR №135: **179 test files, 15 327/15 327 тестов**, TypeScript,
-  lint, production build, coverage, migrations/schema/pgTAP и Security Gates
-  прошли. Application runtime не менялся со времён PR №129 — деплой нёс
-  backup-автоматизацию (№133) и CI-actions батч (№135).
-- Railway watch patterns активны: docs-only merge не создаёт deployment и не
-  перезапускает canary (подтверждено 4 SKIPPED-деплоями).
-- Автоматический зашифрованный backup смержен (№133), но спит до добавления
-  владельцем секретов `SUPABASE_DB_URL` и `BACKUP_ENCRYPTION_PASSPHRASE`;
-  ежедневный прогон без них падает громко — это и есть сигнал включения.
+- PR №141 прошёл все **7/7 GitHub CI/Security jobs**. После ротации no-AI
+  production smoke, полный security smoke и `/healthz=200` прошли; свежие
+  error/warn логи — `0/0`.
+- Railway watch patterns активны: за проверенный период зафиксировано 3
+  non-SKIPPED deployment entries и 6 docs-only placeholder deployments со
+  статусом `SKIPPED`; шесть docs merges не меняли runtime.
+- Workflow-файлы зашифрованного backup смержены (№133), но operational status
+  — **NOT ENABLED / NOT VERIFIED**: 0 backup runs, 0 restore-drill runs,
+  0 artifacts, обязательные backup credentials отсутствуют. Их нельзя добавлять
+  до security/Supabase portability review и отдельного credential gate:
+  independent trusted reviewer + CODEOWNERS + ≥1 approval/dismiss-stale либо
+  protected environment с ручным approval. Изменение credentials перезапускает
+  canary.
 - Supabase production: **33 миграции**, head `20260729131000`; AAL2 RLS и
   retention истёкших Family Shield claims применены.
-- Canary PR №128 закрыт `2026-08-25` с вердиктом **GO**: 185/185 eligible
-  scheduled run плюс финальные production/security/web-P1 проверки;
-  polling-dialogue smoke честно записан как skipped (нужно реальное
-  Telegram-сообщение, разрешения не было).
-- Окно №2 (PR №129) прошло 18/18 чисто и осознанно заменено ускорением;
-  окно №3 (PR №135) открыто `2026-08-26T03:54:30Z`, формальный статус `OPEN`;
-  вердикт — с `2026-08-29T03:54:30Z` по письменным правилам (минимум 144
-  eligible success).
+- Canary PR №128 имеет **operational GO**: 188/188 eligible scheduled runs плюс
+  финальные production/security/web-P1 проверки. Formal closure остаётся
+  `OPEN / exception pending`: обязательный polling-dialogue smoke был skipped,
+  а AI-probe evidence не содержит требуемых approval/run-id/request-count/budget.
+- Окно №2 (PR №129) прошло 18/18 чисто и было заменено ускорением. Окно №3
+  (PR №135) затем superseded изменением runtime в PR №141 и production-secret
+  cutover. **Активного формального canary сейчас нет**; новый baseline стартует
+  только после решения по deploy-eligible PR №137, PR №140 и Railway-IaC.
+- Hash-pepper rotation завершена по трём слотам: active `v3`, previous `v2`,
+  legacy read slot сохранён. Telegram token/webhook синхронизированы между
+  Railway и GitHub; старый token возвращает `401`, новый принадлежит
+  `@scamguard_bot`. Значения секретов нигде в отчёте не записаны.
 
 ## Что опубликовано в production за последнее время
 
@@ -185,62 +193,76 @@ Completed incident/aftercare имеет приоритет над обычной
 
 ## Последние production-релизы
 
-| Дата       | Релиз                   | Что изменилось                                                                                              | Статус                                                                            |
-| ---------- | ----------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 2026-08-26 | PR №133+135, `a964153f` | Backup-автоматизация (ежедневный шифрованный экспорт + restore-drill) и CI-actions батч; runtime не менялся | Production, canary окно №3 `OPEN`, вердикт ≥ `2026-08-29T03:54:30Z`               |
-| 2026-08-25 | PR №129, `9019776`      | Semantic/human-simulation hardening: rules, patterns, RU/UZ/EN routing, QA corpora; watch patterns          | Superseded production; окно №2 прошло 18/18, заменено ускорением                  |
-| 2026-08-20 | PR №128, `58557765`     | Исправлен `installment`/APK конфликт в Inline и русский task-scam «зарплата → налог»                        | Superseded production; canary закрыт `2026-08-25`, вердикт `GO`                   |
-| 2026-08-13 | PR №126, `8a76a5e`      | Большой RU/UZ/EN hardening, privacy/secret paths, completed actions, report TTL                             | Superseded production; 226 eligible monitor success, operational observation `GO` |
-| 2026-08-09 | PR №125, `1576e21`      | Coercive transaction secrecy context                                                                        | Historical production checkpoint                                                  |
-| 2026-08-09 | PR №124, `eb944f3`      | Task scam, BNPL и coercion hardening                                                                        | Входит в текущий `main`                                                           |
-| 2026-08-08 | PR №123, `f3a2343`      | Completed-action и language hardening                                                                       | Входит в текущий `main`                                                           |
+| Дата       | Релиз                   | Что изменилось                                                                                                   | Статус                                                                            |
+| ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 2026-08-28 | PR №141, `b36c453`      | Three-slot hash-pepper runtime и контролируемая ротация production credentials                                   | Production `311997d0`, healthy; формальный canary ещё не начат                    |
+| 2026-08-26 | PR №133+135, `a964153f` | Candidate backup workflow-файлы (`NOT ENABLED / NOT VERIFIED`) и CI-actions батч; application runtime не менялся | Superseded PR №141 и secret cutovers; окно №3 закрыто без формального verdict     |
+| 2026-08-25 | PR №129, `9019776`      | Semantic/human-simulation hardening: rules, patterns, RU/UZ/EN routing, QA corpora; watch patterns               | Superseded production; окно №2 прошло 18/18, заменено ускорением                  |
+| 2026-08-20 | PR №128, `58557765`     | Исправлен `installment`/APK конфликт в Inline и русский task-scam «зарплата → налог»                             | Superseded; operational `GO`, formal `OPEN / exception pending`                   |
+| 2026-08-13 | PR №126, `8a76a5e`      | Большой RU/UZ/EN hardening, privacy/secret paths, completed actions, report TTL                                  | Superseded production; 226 eligible monitor success, operational observation `GO` |
+| 2026-08-09 | PR №125, `1576e21`      | Coercive transaction secrecy context                                                                             | Historical production checkpoint                                                  |
+| 2026-08-09 | PR №124, `eb944f3`      | Task scam, BNPL и coercion hardening                                                                             | Входит в текущий `main`                                                           |
+| 2026-08-08 | PR №123, `f3a2343`      | Completed-action и language hardening                                                                            | Входит в текущий `main`                                                           |
 
 Подробный неизменяемый отчёт о последнем релизе:
 [`ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-25.md`](ai_docs/PRODUCTION_APPLICATION_RELEASE_2026-08-25.md).
 
-## Что готово локально, но ещё не опубликовано
+## Что не находится в production
 
-Этот файл и остальная документационная сверка подготовлены в чистом worktree
-`C:\Scam-guard\docs-release-record-20260825` от `main` `9019776` как docs-only
-изменение:
-
-- документация сверена с production PR №129 (commit, deployment, image, 15 327
-  тестов);
-- canary-рекорд PR №128 закрыт с вердиктом GO и полными доказательствами;
-- открытие canary-окна №2 зафиксировано с целевой датой вердикта
-  `2026-08-28T15:07:00Z`;
-- Railway Watch Paths уже слиты через PR №129 и подтверждены в активном
-  manifest, поэтому этот docs-only merge не должен создать deployment — это
-  проверяется сразу после merge по неизменному deployment id.
-
-Старый открытый PR
-[#127](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/127) описывает
-предыдущий baseline `8a76a5e`. Он **устарел на два production-релиза** и будет
-закрыт с комментарием-указателем на этот docs-PR; сливать его как есть нельзя.
+- [PR №137](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/137) —
+  `DRAFT/HOLD`, не задеплоен. Candidate
+  `c437a30` после rebase на текущий `main` завершил второй TDD-раунд по generic
+  «отправил + не той/не тому» и полностью re-gated локально: 15 364/15 364,
+  focused 152/152, TypeScript/lint/build/prettier чисто; GitHub CI 7/7. Нужны
+  решение владельца и явный новый canary.
+- [PR №140](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/140) —
+  `DRAFT/HOLD`, candidate `b076450`, hardened backup/restore trust contract.
+  Local gates и GitHub CI 7/7 прошли. Он не включает cron и не доказывает
+  operational backup до реального backup/read-back/restore.
+- PR №138 смержил только предложения
+  `ai_docs/DESIGN_OUTBOX_JOURNAL.md` и
+  `ai_docs/DESIGN_OBSERVABILITY_BASELINE.md`. Outbox и observability baseline не
+  реализованы.
+- `ai_docs/CLIENT_ACCEPTANCE_PLAN_2026-08.md` — план, а не выполненная приёмка;
+  формальный Inline результат остаётся 1/51.
+- PR №127 уже закрыт как устаревший; он не является текущим кандидатом.
 
 ## Что ещё не завершено
 
-1. Набрать минимум 144 eligible scheduled success для неизменного production
-   commit `9019776` (окно №2) и дать отдельный operational GO/NO-GO начиная с
-   `2026-08-28T15:07:00Z`.
-2. Не смешивать это canary-окно с закрытым окном №1 (`58557765`) и
-   историческими окнами `8a76a5e` и `1576e21`.
-3. Провести отложенный polling-dialogue smoke на реальном Telegram-сообщении —
-   только по отдельному разрешению владельца.
-4. Автоматизировать ежедневный зашифрованный Supabase export с failure alert,
-   offsite read-back и периодическим clean restore либо перейти на платный
-   managed backup/PITR.
-5. Записать Railway payment-method expiry, spend alerts и ответственного за
+1. Принять одно решение по release bundle: PR №137, PR №140 и Railway-IaC Draft
+   PR №142 (`8c440ba`) — merge одним окном либо явная отсрочка каждого пункта. IaC-аудит
+   уже поймал и исправил два потенциальных удаления previous-pepper variables;
+   повторный plan показывает `0 destroy`, но apply не выполнялся.
+2. После единственного deploy выполнить read-back/smokes и начать новый canary;
+   нужны одновременно ≥72 часа и ≥144 eligible scheduled success.
+3. Разобрать formal exception окна №1: отдельное разрешение на
+   polling-dialogue smoke или owner/expiry-bound waiver плюс полная AI-probe
+   evidence.
+4. Перед добавлением production backup credentials исправить и stage-test
+   Supabase-compatible export/restore и доказать один credential gate:
+   independent trusted reviewer + CODEOWNERS + ≥1 approval/dismiss-stale либо
+   protected environment с ручным approval. Во втором случае scheduled job ждёт
+   человека и не является unattended daily backup. Затем запустить
+   backup/read-back/restore в явно записанном новом canary-окне.
+5. До `2026-12-01` вручную мигрировать deprecated `railway.toml` на
+   `.railway/railway.ts` через CLI `>=5.44` pull/plan/apply; blind auto migrate
+   запрещён, потому что он не сохраняет все watch/build/restart инварианты.
+6. До DB credential исправить BOM/mojibake и стабильные ASCII job names,
+   ограничить Actions+SHA и включить `main` ruleset без bypass. Required
+   approvals оставить `0` до появления второго независимого reviewer, но при
+   таком sole-owner режиме backup credentials остаются заблокированы, если нет
+   отдельного protected-environment approval.
+7. Записать Railway payment-method expiry, spend alerts и ответственного за
    реакцию.
-6. Обновить Supabase CLI с `2.104.0` до проверенной версии `2.110.0+` сначала в
+8. Обновить Supabase CLI с `2.104.0` до проверенной версии `2.110.0+` сначала в
    staging, не экспериментируя на production-linked окружении.
-7. Завершить risk-based real-client matrix Desktop/Android/iOS для критических
+9. Завершить risk-based real-client matrix Desktop/Android/iOS для критических
    Direct/Inline RU/UZ/EN сценариев. Формальный Inline client pack пока 1/51.
-8. Отдельно провести Voice, accessibility и независимую legal/privacy приёмку.
-9. Перепроверить реальный Telegram → browser путь `/appeal` на RU/UZ/EN.
-10. Провести 5–8 модерируемых usability sessions, затем ограниченный пилот на
+10. Отдельно провести Voice, accessibility и независимую legal/privacy приёмку.
+11. Перепроверить реальный Telegram → browser путь `/appeal` на RU/UZ/EN.
+12. Провести 5–8 модерируемых usability sessions, затем ограниченный пилот на
     20–30 человек и собирать только privacy-safe funnel events.
-11. Сохранять как отдельные архитектурные границы multi-instance polling
+13. Сохранять как отдельные архитектурные границы multi-instance polling
     handoff и durable outbound outbox; не заявлять exactly-once до их реализации.
 
 ## Где смотреть самые свежие изменения
@@ -283,10 +305,11 @@ gh pr list --state open
 gh pr list --state merged --limit 10
 ```
 
-Ожидаемый production commit на дату этой сводки:
+Ожидаемые идентификаторы на дату этой сводки:
 
 ```text
-a964153f2dc376015e3e3fbf93068049e97f1ee3
+GitHub main: b36c453a08b3afd05c6e623d938e15dfc5b6084c
+Deployed runtime: b36c453a08b3afd05c6e623d938e15dfc5b6084c
 ```
 
 Не выполняйте `reset`, `checkout`, `clean`, `stash`, `rebase` или обычный
@@ -317,7 +340,8 @@ production.
 recovery и delivery boundaries. Это серьёзная инженерная база для безопасного
 пилота.
 
-При этом внутренние 13 486 тестов не доказывают реальную точность на людях,
+При этом deployed gate 15 327/15 327 не доказывает реальную точность на людях,
 спрос или предотвращённые потери. Следующий качественный шаг — не добавление ещё
-одной большой функции, а завершение текущего canary, backup/RPO automation,
-device QA и контролируемого пользовательского пилота с privacy-safe метриками.
+одной большой функции, а корректное завершение текущего canary, исправление
+PR №137, реальная backup/RPO proof, device QA и контролируемый пользовательский
+пилот с privacy-safe метриками.

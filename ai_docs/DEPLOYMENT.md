@@ -60,12 +60,13 @@ Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
-Production is now bound to GitHub `main`, with Railway Auto Deploy and Wait for
-CI enabled in the working US West region. The current source is PR #129 merge
-`901977645d3a8eb7a6498ac6aba90748daaa648e`; Railway deployment
-`59077b99-b155-4f6d-88db-e6769aa4a394` reached `SUCCESS` after merge-commit CI
-and Security Gates passed. The older 2026-08-02 no-branch/invalid-region record
-remains historical evidence in `PRODUCTION_APPLICATION_RELEASE_2026-08-02.md`.
+Production is bound to GitHub `main`, with Railway Auto Deploy and Wait for CI
+enabled in the working US West region. GitHub and deployed source are PR #141
+merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Railway deployment
+`311997d0-2c1a-4428-88a0-d8be1308f679` reached `SUCCESS` with image
+`sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
+The 2026-08-28 read-back confirmed Dockerfile build, `/healthz`, one replica,
+`ON_FAILURE` and five retries.
 
 Railway watch patterns `watchPatterns = ["**", "!/*.md", "!/ai_docs/**"]` were
 merged with PR #129 and are confirmed active in the deployed manifest.
@@ -74,24 +75,28 @@ restarting the canary window; source and config changes remain fully
 deploy-eligible. Watch Paths affect Railway deployment eligibility only:
 GitHub CI and Security Gates continue to run for every merge under their
 existing workflow triggers. After each docs-only merge, record the docs SHA
-separately from the runtime SHA `9019776` and verify the deployment id stays
-`59077b99-b155-4f6d-88db-e6769aa4a394`.
+separately from the runtime SHA and verify the active deployment id does not
+change.
 
-The behavior is proven: the PR #130 docs-only merge (tip `2031205`) produced
-placeholder deployment `fa9d5b40-5a56-4f11-9bea-04d39f1b3bc2`, which Railway
-marked `SKIPPED` after CI while applying the watch patterns. The active
-deployment remained `59077b99` and `/healthz` stayed `200 ok`. Expect the same
-pattern for every docs-only merge: a short-lived `WAITING` entry during CI,
-then `SKIPPED` instead of a build.
+The behavior is proven by six docs-only `SKIPPED` entries: `fa9d5b40`,
+`1d5c40b0`, `e74549a0`, `c52d23b3`, `54f676f1` and `a46d9565`. The first four
+kept `59077b99` / `9019776`; the last two kept `464f3bb8` / `a964153f`.
+During the audited period Railway also recorded three non-SKIPPED deployment
+entries (`59077b99`, superseded `d1d79846`, current `464f3bb8`), not four
+production releases.
 
-Backup/restore, application rollback, credential rotation and Supabase Auth
+The merged backup workflows remain `NOT ENABLED / NOT VERIFIED`: there are no
+successful runs, restore drills or artifacts, and their raw dump/restore design
+must be hardened before production secrets are added. Backup/restore,
+application rollback, credential rotation and Supabase Auth
 hardening are release drills, not ad-hoc incident commands. Follow
 `ai_docs/RECOVERY_AND_KEY_ROTATION.md`; never test a restore by overwriting the
 production project and never replace a hash pepper directly. Apply the additive
 version metadata migration and version-aware application before using the
 approved bounded-overlap procedure.
 
-The public-release canary follows `ai_docs/CANARY_72H.md`. It starts only after
+The public-release canary follows `ai_docs/CANARY_72H.md`. No formal window is
+active after PR #141 and the production-secret cutovers. A new window starts only after
 the exact RC deployment and every required migration are fixed; any code,
 schema, secret or runtime-config change restarts the 72-hour clock.
 
@@ -454,7 +459,7 @@ the exact boolean `true` starts an independent `--ai-only` job and exposes
 receives no Telegram credentials and treats missing key/429/5xx/network failure
 as hard failure. Manual runs have a run-specific concurrency group, so they
 cannot cancel the scheduled canary observation. Scheduled read-backs on the
-current PR #128 source explicitly report `disabled by policy` and `no request
+current deployed baseline explicitly report `disabled by policy` and `no request
 sent`; the manual AI probe remains explicit opt-in only. A Railway application
 deployment alone does not publish a GitHub workflow.
 

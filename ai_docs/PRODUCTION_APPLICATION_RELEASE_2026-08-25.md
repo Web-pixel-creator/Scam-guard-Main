@@ -3,6 +3,20 @@
 > Immutable release evidence for PR #129. For the current operational status,
 > use `CURRENT_STATE.md` and `OPEN_TASKS.md`.
 
+## Independent audit correction (2026-08-26)
+
+The release identity and gate evidence below remain immutable. Subsequent state:
+
+- window #2 was superseded after 18/18 successful scheduled observations by
+  the owner-approved PR #133/#135 acceleration; it did not reach a formal
+  canary verdict;
+- historical PR #128 evidence supports operational `GO`, but formal status is
+  `OPEN / exception pending` because the required polling dialogue was skipped
+  and optional AI-probe attribution evidence is incomplete;
+- GitHub docs tip is now `4380085d`, while deployed runtime is `a964153f` /
+  deployment `464f3bb8`; this record's `9019776` / `59077b99` identifiers are
+  historical PR #129 release facts.
+
 ## Identity
 
 - Pull request: [#129](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/129),
@@ -62,18 +76,21 @@ and Inline remains rules-only, stateless and non-persistent.
   clean.
 - Railway Auto Deploy waited for the merge checks and reported the exact
   deployment above as `SUCCESS`.
-- Post-deploy production smoke passed without sending a Telegram message or
-  mutating Supabase: home and `/healthz` `200`, webhook `401` without secret
+- The no-live-message/no-database-mutation baseline portions of the post-deploy
+  production smoke passed: home and `/healthz` `200`, webhook `401` without secret
   and expected polling-mode `503` with secret, delivery `mode=polling`,
-  `pending=0`, `last_error=none`, polling leader `200`. The optional AI
-  provider health probe returned `429 quota_exhausted` (degraded; the
-  deterministic scoring core is unaffected).
+  `pending=0`, `last_error=none`, polling leader `200`. A separate optional AI
+  provider request returned `429 quota_exhausted`; it is not green no-AI
+  baseline evidence, and the required approval, run id, request count and
+  budget-owner record is incomplete. The deterministic scoring core is
+  unaffected.
 
 ## Canary boundary
 
 Deployment of PR #129 opened fixed-RC observation window #2 at
-`2026-08-25T15:07:00Z`. Formal status is `OPEN`; the written verdict is due on
-or after `2026-08-28T15:07:00Z` under the unchanged 144-success and restart
-rules. The superseded PR #128 window closed `2026-08-25` with verdict `GO`
-(see `CANARY_72H.md`). Docs-only merges do not restart this clock while the
-watch patterns remain active; any code, schema or secret change does.
+`2026-08-25T15:07:00Z`. It later ended as `superseded` after 18/18 successful
+scheduled observations when PR #133/#135 deliberately restarted the baseline;
+it has no formal GO/NO-GO verdict. Historical PR #128 has operational `GO` but
+formal `OPEN / exception pending` (see `CANARY_72H.md`). Docs-only merges do not
+restart the current clock while watch patterns remain active; any code, schema,
+secret or workflow change does.
