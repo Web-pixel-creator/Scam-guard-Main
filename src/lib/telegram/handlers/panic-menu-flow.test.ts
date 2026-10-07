@@ -23,6 +23,7 @@ const h = vi.hoisted(() => ({
   answerCalls: [] as string[],
   saveCalls: [] as { userId: number; patch: unknown }[],
   audioCalls: [] as unknown[],
+  mediaConsentCalls: [] as Array<{ context: HandlerCtx; callback: unknown }>,
   // Mutable editMessageText result — swap per test.
   editResult: { current: { ok: true } as { ok: boolean } },
 }));
@@ -71,6 +72,16 @@ vi.mock("@/lib/telegram/session.server", () => ({
     chatId: number,
     chatType = "private",
   ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
+}));
+
+vi.mock("@/lib/telegram/media-provider-consent.server", () => ({
+  assertMediaProviderTransferAllowed: () => Promise.resolve(),
+  handleMediaProviderConsentCallback: (context: HandlerCtx, callback: unknown) => {
+    h.mediaConsentCalls.push({ context, callback });
+    return Promise.resolve("granted");
+  },
+  isMediaProviderConsentStorageError: () => false,
+  sendMediaProviderConsentFailure: () => Promise.resolve(),
 }));
 
 import { handleCallback } from "./misc";
@@ -122,6 +133,7 @@ beforeEach(() => {
   h.answerCalls.length = 0;
   h.saveCalls.length = 0;
   h.audioCalls.length = 0;
+  h.mediaConsentCalls.length = 0;
   h.editResult.current = { ok: true };
 });
 
@@ -146,6 +158,20 @@ describe("voice_correct callback", () => {
     expect(h.sendCalls[0].chatId).toBe(CHAT_ID);
     expect(h.sendCalls[0].text).toContain("исправленный текст");
   });
+});
+
+describe("media provider consent callbacks", () => {
+  it.each(["image", "voice"] as const)(
+    "routes an exact %s approval to the durable consent boundary",
+    async (kind) => {
+      const context = makeCtx();
+      await handleCallback(`media_consent:${kind}`, context, `consent-${kind}`);
+
+      expect(h.answerCalls).toContain(`consent-${kind}`);
+      expect(h.mediaConsentCalls).toEqual([{ context, callback: { action: "allow", kind } }]);
+      expect(h.saveCalls).toHaveLength(0);
+    },
+  );
 });
 
 // ===========================================================================

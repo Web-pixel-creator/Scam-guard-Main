@@ -28,7 +28,7 @@ const appealSchema = z.object({
 type AppealInput = z.input<typeof appealSchema>;
 
 type AppealResult =
-  | { ok: true; duplicate?: boolean }
+  | { ok: true }
   | {
       ok: false;
       error: "unsupported_target" | "rate_limited" | "submit_failed";
@@ -178,8 +178,6 @@ export async function submitReputationAppealCore(
     findOpenAppealHash(targetHashes),
   ]);
   const canonicalTargetHash = existingAppeal ?? storedTargetHash ?? activeTargetHash;
-  const duplicate = existingAppeal !== null;
-
   const { error } = await supabaseAdmin.from("reputation_appeals").insert({
     target_type: targetType,
     target_hash: canonicalTargetHash.hash,
@@ -201,7 +199,10 @@ export async function submitReputationAppealCore(
     targetDisplay,
     language: appeal.lang,
   });
-  return duplicate ? { ok: true, duplicate: true } : { ok: true };
+  // Keep the public response indistinguishable for new and already-open
+  // appeals. Revealing which targets are in the moderation queue would turn
+  // this endpoint into a reputation-status oracle.
+  return { ok: true };
 }
 
 export const submitReputationAppeal = createServerFn({ method: "POST" })

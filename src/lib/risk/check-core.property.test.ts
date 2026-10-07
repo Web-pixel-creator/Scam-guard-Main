@@ -66,7 +66,12 @@ vi.mock("./rate-limit", () => ({
   checkRateLimit: () => ({ ok: true, remaining: 10, retryAfterSec: 0 }),
 }));
 
-import { analyzeImageCore, ocrExtractCore, runCheck } from "./check-core";
+import {
+  __resetAiCircuitBreakerForTests,
+  analyzeImageCore,
+  ocrExtractCore,
+  runCheck,
+} from "./check-core";
 import { hashIdentifierCandidates } from "./hash";
 import {
   buildImageCheckInput,
@@ -318,6 +323,34 @@ describe("check-core property tests (telegram-bot-mvp)", () => {
     expect(text).not.toContain("8600 1234 5678 9012");
     expect(text).not.toContain("+998901234567");
     expect(maxDigitRun(text)).toBeLessThanOrEqual(3);
+  });
+
+  it("sends a consented web screenshot at most once without provider fallback or redirects", async () => {
+    __resetAiCircuitBreakerForTests();
+    vi.stubEnv("OPENAI_API_KEY", "test-primary-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://primary.example/v1");
+    vi.stubEnv("OPENAI_FALLBACK_API_KEY", "test-fallback-key");
+    vi.stubEnv("OPENAI_FALLBACK_BASE_URL", "https://fallback.example/v1");
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      Promise.resolve(
+        new Response("temporarily unavailable", {
+          status: 503,
+          headers: { "content-type": "text/plain" },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      ocrExtractCore("data:image/png;base64,AAAA", "ru", nextKey(), {
+        maxAttempts: 5,
+        allowFallback: true,
+      }),
+    ).resolves.toEqual({ text: null });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("primary.example");
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ redirect: "error" }));
   });
 
   it("rejects invalid image data URLs before any AI provider call", async () => {

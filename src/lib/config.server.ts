@@ -14,6 +14,8 @@
 //     and server (analytics IDs, public URLs). Define in .env with the
 //     VITE_ prefix. Never put secrets here — they ship to the browser.
 
+import { isProtectedServerRuntime } from "@/lib/runtime-env.server";
+
 export function getServerConfig() {
   return {
     nodeEnv: process.env.NODE_ENV,
@@ -27,21 +29,25 @@ export function getServerConfig() {
  * Whether admin server actions require a Supabase Auth `aal2` access token.
  *
  * Local development and tests stay disabled when unset. Production and Railway
- * require an explicit value so losing the rollout flag cannot silently weaken
- * an enabled deployment. Unsupported explicit values always fail closed.
+ * require explicit `true` so a missing or disabled rollout flag cannot silently
+ * weaken an enabled deployment. Unsupported explicit values always fail closed.
  */
 export function getRequireAdminMfaAal2(): boolean {
   const value = process.env.REQUIRE_ADMIN_MFA_AAL2?.trim().toLowerCase();
+  const isProtectedRuntime = isProtectedServerRuntime();
   if (!value) {
-    const isProtectedRuntime =
-      process.env.NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT?.trim());
     if (isProtectedRuntime) {
       throw new Error("REQUIRE_ADMIN_MFA_AAL2 is required in production or Railway");
     }
     return false;
   }
   if (value === "true") return true;
-  if (value === "false") return false;
+  if (value === "false") {
+    if (isProtectedRuntime) {
+      throw new Error("REQUIRE_ADMIN_MFA_AAL2 must be true in production or Railway");
+    }
+    return false;
+  }
   throw new Error('Invalid REQUIRE_ADMIN_MFA_AAL2: expected "true" or "false"');
 }
 

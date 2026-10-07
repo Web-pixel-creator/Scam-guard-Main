@@ -137,8 +137,21 @@ export function CheckInput({
       const dataUrl = await fileToDataUrl(file);
       setImageDataUrl(dataUrl);
       setImageName(file.name);
-      setOcrLoading(true);
-      const { text } = await ocrFn({ data: { image: dataUrl, lang } });
+    } catch (e: unknown) {
+      console.error("screenshot staging failed", safeClientErrorReason(e));
+      setError(t("ocr_failed", lang));
+      clearImage();
+    }
+  }
+
+  async function requestOcrWithConsent() {
+    if (!imageDataUrl || ocrLoading) return;
+    setError(null);
+    setOcrLoading(true);
+    try {
+      const { text } = await ocrFn({
+        data: { image: imageDataUrl, lang, externalProviderConsent: true },
+      });
       if (text && text.trim()) {
         setOcrText(text.trim());
         setOcrPreviewOpen(true);
@@ -290,6 +303,41 @@ export function CheckInput({
             {charCount} / {MAX_INPUT_CHARS}
           </span>
         </label>
+
+        {imageDataUrl && !ocrPreviewOpen && (
+          <div className="signal-ocr-preview">
+            <div>
+              <strong>{imageName || "Скриншот"}</strong>
+              <span>{t("screenshot_warning", lang)}</span>
+            </div>
+            <div className="checker-actions">
+              <button
+                type="button"
+                className="upload-button"
+                onClick={clearImage}
+                disabled={ocrLoading}
+              >
+                <X aria-hidden="true" />
+                {t("ocr_cancel", lang)}
+              </button>
+              <button
+                type="button"
+                className="check-button animated-orange-cta"
+                onClick={() => void requestOcrWithConsent()}
+                disabled={ocrLoading}
+              >
+                <span className="points_wrapper" aria-hidden="true">
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <i className="point" key={index} />
+                  ))}
+                </span>
+                <span className="animated-cta-inner">
+                  {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {ocrPreviewOpen && (
           <div className="signal-ocr-preview">
@@ -546,7 +594,7 @@ export function CheckInput({
         )}
 
         {imageDataUrl && !ocrPreviewOpen && (
-          <div className="mt-1 mx-5 mb-2 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2.5">
+          <div className="mt-1 mx-5 mb-2 flex flex-col gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-3 sm:flex-row sm:items-center">
             <img
               src={imageDataUrl}
               alt="screenshot"
@@ -554,27 +602,50 @@ export function CheckInput({
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate text-[#18181B]">{imageName}</p>
-              {ocrLoading ? (
-                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-[#52525B] flex items-start gap-1 mt-1 leading-relaxed">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{t("screenshot_warning", lang)}</span>
+              </p>
+              {ocrLoading && (
+                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {t("ocr_recognizing", lang)}
                 </p>
-              ) : (
-                <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>{t("screenshot_warning", lang)}</span>
-                </p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearImage}
-              className="shrink-0 rounded-[4px]"
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:min-w-[220px]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearImage}
+                disabled={ocrLoading}
+                className="w-full shrink-0 rounded-[4px]"
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                {t("ocr_cancel", lang)}
+              </Button>
+              <button
+                type="button"
+                onClick={() => void requestOcrWithConsent()}
+                disabled={ocrLoading}
+                className="fancy-btn w-full"
+              >
+                <span className="fancy-points" aria-hidden="true">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <i key={i} className="fancy-point" />
+                  ))}
+                </span>
+                <span className="fancy-inner">
+                  {ocrLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
