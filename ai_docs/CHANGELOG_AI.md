@@ -2,6 +2,21 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-10-07 - Approved edge probe blocked; fresh production offline read-back
+
+- Owner approved a disposable isolated probe, not a plan purchase/transfer or
+  production release. Prepared a dependency-free fingerprint-only diagnostic
+  outside application worktrees; local spoof positive control passed.
+- Native project creation failed on expired trial in the production workspace.
+  Fresh inventory verified zero created probe projects; no upload/resource
+  cleanup was required. A different Hobby workspace was not used.
+- Browser showed production offline/no active deployment; `/healthz` returned
+  404; CLI independently read prior deployment `94d3fef2` as `REMOVED`.
+  Exact removal time/actor is unknown. Historical canary is not current health.
+- Recorded the immediate owner billing/recovery decision before live edge proof.
+  No production mutation, migration, trust enablement, merge or provider call.
+  PR #149 stays Draft/HOLD; all existing release/design gates remain separate.
+
 ## 2026-10-07 - Hosted gates and real local admin review reconciled
 
 - Recorded PR #149 application head `c67fca7` hosted 7/7 PASS, exact CI/Security

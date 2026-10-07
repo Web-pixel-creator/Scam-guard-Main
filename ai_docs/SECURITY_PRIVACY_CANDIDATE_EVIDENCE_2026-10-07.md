@@ -116,7 +116,10 @@ the successful run above is not silently reassigned to a newer commit.
    Keep later exact-head CI and review decisions separate from that evidence.
 2. Prove Railway edge overwrites/strips spoofed `X-Real-IP`; keep the trust flag
    off until verified. Read-only inventory found no staging service. A temporary
-   isolated probe needs owner approval; ordinary `/healthz`, edge access logs
+   isolated probe was later approved but could not be created on the expired
+   trial. Fresh read-back found production offline/no active deployment and
+   `/healthz=404`; first resolve account/workspace and separately approved
+   recovery (`RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md`). Ordinary `/healthz`, edge access logs
    and the public routing diagnostic do not expose the application-received
    header. Local authenticated admin review is recorded with its open UI issue.
 3. Obtain a separate owner release decision. Freeze changes, disable delivery

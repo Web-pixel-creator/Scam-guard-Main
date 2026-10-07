@@ -101,6 +101,11 @@ made.
 
 ## Remaining release boundary
 
+Later same-day read-back: the owner approved the disposable probe, but the
+target workspace's expired trial prevented creation. Production has no active
+deployment and `/healthz=404`; see `RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md`.
+The approval-pending paragraph below describes the earlier review checkpoint.
+
 Real Railway `X-Real-IP` overwrite/strip behavior is still **NOT VERIFIED**.
 Read-only inventory found only production. The existing application has no
 safe received-header probe endpoint, and the public routing diagnostic only

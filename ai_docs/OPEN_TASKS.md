@@ -1,5 +1,20 @@
 # Open Tasks
 
+## Immediate Railway blocker (2026-10-07, later checkpoint)
+
+Owner-approved isolated edge probe creation failed: the production workspace
+has an expired trial. Fresh inventory confirms zero probe projects/resources.
+Production UI shows no active deployment; `/healthz=404`; prior deployment
+`94d3fef2` is `REMOVED`. Removal time/actor is not yet established. See
+`RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md`.
+
+First obtain the owner's account/workspace billing decision and separately
+approved recovery of production availability. Do not purchase/transfer/redeploy
+on the probe authorization alone. A different accessible Hobby workspace was
+not used. Then run the probe and cleanup; edge trust stays **NOT VERIFIED/OFF**.
+PR #149 remains **Draft/HOLD**, with separate migration-first release approval.
+Do not silently reuse the historical closed canary as current health evidence.
+
 ## Latest candidate checkpoint (2026-10-07)
 
 Local code/build gates, a fresh 34-migration Supabase apply, 154 pgTAP assertions
@@ -17,10 +32,10 @@ production acceptance. A separate P2 UI follow-up is confirmed at 320px:
 width ~60.40px). Prepare/review a local layout correction separately; no
 design change may deploy without explicit approval.
 
-Next: owner-approved isolated Railway probe → edge overwrite/strip proof →
+Next after the availability blocker above: isolated Railway probe → edge overwrite/strip proof →
 owner-approved migration-first release → new fixed-baseline canary.
 Railway read-only inventory found only production; a new diagnostic service
-may incur a small cost, so it has not been created without owner approval.
+was approved but could not be created because the trial expired.
 The public Railway routing diagnostic did not expose the received header and
 cannot substitute for an application-side observation.
 Do not merge, enable the edge-trust flag or apply the production migration just

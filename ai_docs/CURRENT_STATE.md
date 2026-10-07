@@ -1,7 +1,31 @@
 # Current State
 
-Last production reconciliation: 2026-08-28 (post-rotation read-back). Local
-candidate documentation updated 2026-09-04; it is not deployed evidence.
+Last full production reconciliation: 2026-08-28 (post-rotation read-back).
+Fresh limited availability check: 2026-10-07, approximately 22:14-22:18
+Asia/Tashkent, **OFFLINE / no active deployment**. Local candidate evidence
+is separate and does not imply deployment.
+
+## Fresh Railway blocker and offline service (2026-10-07)
+
+The owner approved a disposable isolated edge probe, but the native CLI refused
+project creation because the production workspace's trial expired. Browser
+read-back independently confirmed that notice. Inventory verified zero created
+probe projects; no upload/resource/domain/delete or production mutation occurred.
+An accessible Hobby workspace is a different workspace; its billing was not
+used without an owner choice.
+
+The production service page says **Service offline / no active deployment**.
+`/healthz` returned **404**. CLI metadata independently shows prior deployment
+`94d3fef2-c90c-4002-8068-19c331be01b3` (`7e8ac7fe`) as **REMOVED**.
+Exact removal time/actor and a full causal history are not established.
+Do not report the old deployment/image/canary as healthy current runtime.
+See `RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md` for scope and artifacts.
+
+Immediate order: owner account/workspace billing decision → separately approved
+production recovery/read-back → disposable live edge proof/cleanup → separately
+approved PR #149 migration-first cutover → new exact-baseline canary. Edge trust
+stays unverified/off; PR #149 stays Draft/HOLD. No new plan, transfer, redeploy,
+migration or secret change was authorized by the probe approval.
 
 ## Latest repository and candidate checkpoint (2026-10-07)
 
@@ -35,8 +59,9 @@ a local same-origin API adapter. See `LOCAL_ADMIN_REVIEW_2026-10-07.md`.
 This is local evidence, not production login or real-operator acceptance.
 One 320px filter-label fit defect remains open; no design/CSS was changed.
 
-Current order: Draft PR #149 stays HOLD; obtain live Railway edge-header proof
-(no staging service exists, a temporary isolated probe needs owner approval);
+Current order: Draft PR #149 stays HOLD; resolve the fresh Railway account and
+offline-service blocker above, then obtain live Railway edge-header proof
+(the approved temporary probe could not be created because the trial expired);
 track the separate narrow-screen UI follow-up; obtain separate owner approval
 for the controlled migration-first cutover; then a new exact-baseline canary. The
 August snapshot and queue below are history, not instructions to repeat
