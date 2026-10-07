@@ -74,6 +74,31 @@ Telegram rendering are **NOT VERIFIED** here.
 
 ## Remaining ordered gates
 
+The first hosted run `37589352839` failed only its container gate on seven
+fixed High/Critical Perl advisories: inherited `perl-base` was
+`5.36.0-7+deb12u3`, fixed floor `5.36.0-7+deb12u4`. The Dockerfile now upgrades
+that package from the Debian mirror and asserts the fixed version floor before
+removing apt indexes. No Trivy exclusion or threshold was weakened. The updated
+container must pass a fresh hosted scan; until then the failure remains open.
+
+The Docker builder now pins Bun `1.3.14`, matching CI instead of floating `:1`
+(which resolved to `1.4.2` locally). `.dockerignore` excludes local `output/`
+and `.playwright-cli/` evidence so it cannot enter the build context. The
+existing toolchain contract test protects these rules and the Perl fixed floor.
+
+The final local image built successfully and read-back returned Node `v22.23.3`,
+`perl-base 5.36.0-7+deb12u4` and runtime UID `1000`. Docker's two key-name warnings
+refer to build arguments for Supabase **publishable** keys, not service-role
+secrets. No real credential was supplied to this local build.
+
+Two unrestricted parallel local reruns were not green: three and then two tests
+failed; the diagnostic rerun identified the existing 5-second timeout on the
+massive semantic/Inline tests. The four-file focused run passed 334/334. The
+complete suite then passed **191 files, 15,509/15,509** with `--maxWorkers=2`
+in 70.70 seconds. No test timeout, assertion or CI policy was changed. Retain
+these failed-run artifacts rather than presenting only the successful retry;
+hosted CI must still repeat the normal repository command on the final head.
+
 1. Publish only a Draft/HOLD PR and verify hosted CI on its exact head, including
    clean DB, pgTAP, concurrency, coverage, CodeQL, Gitleaks and container/SBOM.
 2. Prove Railway edge overwrites/strips spoofed `X-Real-IP`; keep the trust flag

@@ -18,6 +18,14 @@ Newest first. This tracks documentation/memory files, not every code commit.
   content, real Telegram clients and Railway edge behavior remain unverified.
 - Added dated candidate evidence, retaining Draft/HOLD, hosted-CI and separate
   migration-first owner-release gates. No production credentials changed.
+- The first hosted container scan found seven fixed High/Critical advisories in
+  inherited Debian `perl-base` (`deb12u3`). Added a package-only security update
+  with a `deb12u4` minimum-version build assertion; kept Trivy policy unchanged.
+  Fresh scan evidence is required before describing the container gate as green.
+- Pinned Docker's Bun builder to CI's 1.3.14 and excluded local QA/browser
+  artifacts from its context. Built the final image and read back patched Perl
+  and non-root UID 1000. Preserved two local timeout-failed runs; focused 334/334
+  and the full 15,509/15,509 with two workers passed without raising timeouts.
 
 ## 2026-09-04 - P1 security/privacy boundary candidate documented locally
 

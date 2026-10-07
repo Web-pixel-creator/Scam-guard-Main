@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Build stage (Bun — matches CI and bun.lock) ────────────────────────────
-FROM oven/bun:1 AS build
+FROM oven/bun:1.3.14 AS build
 WORKDIR /app
 
 # Install deps from the committed bun.lock (reproducible, frozen).
@@ -33,6 +33,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+
+# Refresh the inherited Debian package: the 2026-10-07 container gate found
+# fixed High/Critical Perl vulnerabilities in the base image's deb12u3.
+# Fail the build if the security mirror cannot supply at least the fixed floor.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends --only-upgrade perl-base \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' perl-base)" ge 5.36.0-7+deb12u4 \
+  && rm -rf /var/lib/apt/lists/*
 
 # The application starts with Node directly. npm/Corepack and their transitive
 # packages are unnecessary in production, so remove them from the runtime image
