@@ -20,14 +20,25 @@ On October 7 the candidate passed local TypeScript, lint (eight existing
 warnings), build, 15,509/15,509 Vitest cases in 191 files, a fresh local Supabase
 apply of all 34 migrations, SQL lint, all 154 pgTAP assertions (62 consent
 assertions), and two executions of the direct-PostgreSQL one-winner proof with
-verified fixture cleanup. UI checks covered `/` and the unauthenticated
-`/admin` → `/login` boundary at all eight required widths; authenticated admin
-content remains unverified. See the dated candidate evidence for commands,
-limitations and remaining release gates.
+verified fixture cleanup. Draft PR #149 application head `c67fca7` passed all
+seven hosted checks: CI run `37590797245`, Security run `37590797252`.
+This includes the normal 15,509-test command, DB/concurrency and the repaired
+container gate; neither the previous scan failure nor local timeout retries
+were hidden.
 
-Current order: Draft PR and hosted CI; HOLD until Railway edge-header behavior
-and authenticated admin review are proven; separate owner approval for the
-controlled migration-first cutover; then a new exact-baseline canary. The
+Later October 7 browser review used real isolated local Supabase Auth/TOTP,
+not mocked authentication. `/` and authenticated `/admin`, report queue,
+appeals and read-only report detail were checked at all eight required widths.
+Four protected read functions admitted AAL2 admin and denied AAL1 admin,
+non-admin and unauthenticated controls. The production CSP was preserved by
+a local same-origin API adapter. See `LOCAL_ADMIN_REVIEW_2026-10-07.md`.
+This is local evidence, not production login or real-operator acceptance.
+One 320px filter-label fit defect remains open; no design/CSS was changed.
+
+Current order: Draft PR #149 stays HOLD; obtain live Railway edge-header proof
+(no staging service exists, a temporary isolated probe needs owner approval);
+track the separate narrow-screen UI follow-up; obtain separate owner approval
+for the controlled migration-first cutover; then a new exact-baseline canary. The
 August snapshot and queue below are history, not instructions to repeat
 completed merges or secret rotations.
 

@@ -68,9 +68,14 @@ Local media-consent concurrency proof: PASS (2 concurrent claims + 1 replay, 1 w
 Artifacts and JSON test report are local-only in `output/playwright/`. UI build
 used fake loopback Supabase public configuration, not production values.
 Homepage consent/cancel was checked at all eight widths; cancel caused zero
-server-function dispatches. `/admin` was tested only as an unauthenticated
-redirect to `/login`. Authenticated operator layout and real Desktop/Android/iOS
-Telegram rendering are **NOT VERIFIED** here.
+server-function dispatches. The first review tested `/admin` only as an
+unauthenticated redirect to `/login`. A subsequent real local Auth/TOTP review
+now covers authenticated admin top/queue/appeals/detail at all eight widths
+and four protected read functions with AAL2/AAL1/non-admin/unauthenticated
+controls. See `LOCAL_ADMIN_REVIEW_2026-10-07.md` for the isolated stack, unchanged
+CSP, cleanup, failed harness attempts and the remaining 320px label-fit issue.
+Production authentication, moderation mutations, and real Desktop/Android/iOS
+Telegram rendering are **NOT VERIFIED** by that local review.
 
 ## Remaining ordered gates
 
@@ -79,7 +84,9 @@ fixed High/Critical Perl advisories: inherited `perl-base` was
 `5.36.0-7+deb12u3`, fixed floor `5.36.0-7+deb12u4`. The Dockerfile now upgrades
 that package from the Debian mirror and asserts the fixed version floor before
 removing apt indexes. No Trivy exclusion or threshold was weakened. The updated
-container must pass a fresh hosted scan; until then the failure remains open.
+container subsequently passed the fresh hosted scan on application head
+`c67fca77e2ace2e9c54a0dcde5b01b26cdf0e772`, Security run `37590797252`.
+The original failure remains part of the history, not an unresolved final gate.
 
 The Docker builder now pins Bun `1.3.14`, matching CI instead of floating `:1`
 (which resolved to `1.4.2` locally). `.dockerignore` excludes local `output/`
@@ -97,12 +104,21 @@ massive semantic/Inline tests. The four-file focused run passed 334/334. The
 complete suite then passed **191 files, 15,509/15,509** with `--maxWorkers=2`
 in 70.70 seconds. No test timeout, assertion or CI policy was changed. Retain
 these failed-run artifacts rather than presenting only the successful retry;
-hosted CI must still repeat the normal repository command on the final head.
+hosted CI then repeated the normal repository command (no worker override)
+on `c67fca7` successfully: 191 files, 15,509 tests, run `37590797245`.
+All seven hosted checks passed, including clean DB, 154 pgTAP assertions,
+the real concurrency sentinel, coverage, CodeQL, Gitleaks and container/SBOM.
+Coverage read-back was 87.13% statements and 82.32% branches. Documentation
+changes after that application head require their own exact-head CI result;
+the successful run above is not silently reassigned to a newer commit.
 
-1. Publish only a Draft/HOLD PR and verify hosted CI on its exact head, including
-   clean DB, pgTAP, concurrency, coverage, CodeQL, Gitleaks and container/SBOM.
+1. PR #149 is published as Draft/HOLD and hosted gates passed on `c67fca7`.
+   Keep later exact-head CI and review decisions separate from that evidence.
 2. Prove Railway edge overwrites/strips spoofed `X-Real-IP`; keep the trust flag
-   off until verified. Complete authenticated admin viewport review.
+   off until verified. Read-only inventory found no staging service. A temporary
+   isolated probe needs owner approval; ordinary `/healthz`, edge access logs
+   and the public routing diagnostic do not expose the application-received
+   header. Local authenticated admin review is recorded with its open UI issue.
 3. Obtain a separate owner release decision. Freeze changes, disable delivery
    without dropping pending updates and disable raw providers, drain old image
    and leases, apply/read back migration, verify the consent-aware app while

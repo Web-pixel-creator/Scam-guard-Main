@@ -6,10 +6,23 @@ Local code/build gates, a fresh 34-migration Supabase apply, 154 pgTAP assertion
 and the direct-PostgreSQL one-winner proof now pass; see
 `SECURITY_PRIVACY_CANDIDATE_EVIDENCE_2026-10-07.md`. September review gates below
 remain the release contract, but statements that the local SQL proof has not
-run are superseded. Hosted CI must independently repeat these gates.
+run are superseded. Hosted CI independently repeated them on application head
+`c67fca7`: PR #149, 7/7 PASS, including the repaired container scan.
 
-Next: Draft PR/CI → Railway edge overwrite/strip proof → authenticated admin UI
-review → owner-approved migration-first release → new fixed-baseline canary.
+Authenticated admin review now has real local Auth/TOTP and four protected
+read-function positive/negative controls; all eight required viewport sizes
+were inspected. See `LOCAL_ADMIN_REVIEW_2026-10-07.md`. Do not convert that into
+production acceptance. A separate P2 UI follow-up is confirmed at 320px:
+`Подтверждено` exceeds its three-column filter cell (text ~79.84px, inner
+width ~60.40px). Prepare/review a local layout correction separately; no
+design change may deploy without explicit approval.
+
+Next: owner-approved isolated Railway probe → edge overwrite/strip proof →
+owner-approved migration-first release → new fixed-baseline canary.
+Railway read-only inventory found only production; a new diagnostic service
+may incur a small cost, so it has not been created without owner approval.
+The public Railway routing diagnostic did not expose the received header and
+cannot substitute for an application-side observation.
 Do not merge, enable the edge-trust flag or apply the production migration just
 because local gates pass. The old canary closed at the prior September 20
 checkpoint; there is no reason to keep waiting on its old clock.

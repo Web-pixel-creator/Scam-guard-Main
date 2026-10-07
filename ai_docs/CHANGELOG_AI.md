@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-10-07 - Hosted gates and real local admin review reconciled
+
+- Recorded PR #149 application head `c67fca7` hosted 7/7 PASS, exact CI/Security
+  run IDs, the normal 15,509-test command and repaired container scan. Retained
+  the earlier failed scan and local timeout history as evidence.
+- Completed real local Supabase Auth/TOTP AAL2 admin review at the eight
+  required widths. Four read-only server functions admitted the AAL2 control
+  and rejected AAL1/non-admin/unauthenticated controls; no auth/RPC mock was used.
+- Preserved the production CSP with a loopback-only same-origin API adapter;
+  retained the initial CSP/protocol/selector failed attempts rather than
+  presenting those harness corrections as application fixes.
+- Documented a 320px filter-label fit defect as a separate UI follow-up;
+  design/source/CSS were not changed. Synthetic local fixtures were removed
+  and read back; own browser, servers and local stack were stopped.
+- Railway inventory contains only production. Edge-header trust remains
+  unverified/off; creating a temporary isolated diagnostic service requires
+  owner approval. No production mutation or paid provider call occurred.
+
 ## 2026-10-07 - Paused security/privacy candidate re-gated
 
 - Reverified unchanged GitHub `main` at PR #144 `7e8ac7fe`; candidate source is
