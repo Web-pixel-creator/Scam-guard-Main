@@ -9,10 +9,36 @@ function isEnabled(value: string | undefined): boolean {
 }
 
 type ProxyIpHeaderEnv = Partial<
-  Record<"TRUST_PROXY_IP_HEADERS" | "TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED", string | undefined>
+  Record<
+    | "RAILWAY_ENVIRONMENT_ID"
+    | "RAILWAY_ENVIRONMENT_NAME"
+    | "RAILWAY_DEPLOYMENT_ID"
+    | "TRUST_PROXY_IP_HEADERS"
+    | "TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED",
+    string | undefined
+  >
 >;
 
+function isRailwayRuntime(env: ProxyIpHeaderEnv): boolean {
+  return Boolean(
+    env.RAILWAY_ENVIRONMENT_ID?.trim() ||
+    env.RAILWAY_ENVIRONMENT_NAME?.trim() ||
+    env.RAILWAY_DEPLOYMENT_ID?.trim(),
+  );
+}
+
 export function checkProxyIpHeaderTrust(env: ProxyIpHeaderEnv): SecuritySmokeCheckResult {
+  if (isRailwayRuntime(env)) {
+    const verified = isEnabled(env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED);
+    return {
+      label: "Railway client IP header trust has edge verification",
+      ok: verified,
+      detail: verified
+        ? "Railway X-Real-IP trust is enabled only after explicit edge overwrite/strip verification"
+        : "Railway requires TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true only after verifying that its edge overwrites or strips a client-supplied X-Real-IP header",
+    };
+  }
+
   if (!isEnabled(env.TRUST_PROXY_IP_HEADERS)) {
     return {
       label: "proxy IP header trust is disabled by default",

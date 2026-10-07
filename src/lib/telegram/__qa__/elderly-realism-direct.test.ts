@@ -149,6 +149,17 @@ vi.mock("@/lib/telegram/session.server", async (importActual) => {
   };
 });
 
+// This harness dispatches handlers without polling's durable update/leader
+// lease. Model the consent store as an empty ledger and explicitly keep the
+// approval keyboard unavailable; raw provider media must remain fail-closed.
+vi.mock("@/lib/telegram/media-provider-consent-store.server", () => ({
+  claimMediaProviderConsent: async () => "missing" as const,
+  grantMediaProviderConsent: async () => "missing" as const,
+  revokeMediaProviderConsent: async () => "missing" as const,
+  registerMediaProviderConsent: async () => "missing" as const,
+  isMediaProviderConsentSupported: () => false,
+}));
+
 // ── Enrichment layers: pass-through / not linked (no Bot API, no DB) ────────
 vi.mock("@/lib/telegram/public-post.server", () => ({
   buildTelegramPublicPostCheckEvidence: async () => null,
@@ -457,7 +468,7 @@ describe("elderly-realism QA — direct chat", () => {
     report.push(record);
   });
 
-  it("simulates a screenshot sent instead of text (no-AI degradation, RU/UZ/EN)", async () => {
+  it("keeps a screenshot fail-closed without polling consent (RU/UZ/EN)", async () => {
     // 1x1 transparent PNG — decodes as an image with no QR and no OCR.
     h.imageDataUrl =
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
@@ -481,6 +492,8 @@ describe("elderly-realism QA — direct chat", () => {
       await dispatchUpdate(update);
       const turnRecord = drainTurn(1, `[screenshot:${clientLang}]`);
       expect(turnRecord.messages.length, `screenshot ${clientLang}`).toBeGreaterThan(0);
+      expect(turnRecord.messages.flatMap((message) => message.buttons)).toHaveLength(0);
+      expect(turnRecord.runChecks).toHaveLength(0);
       report.push({
         id: `screenshot-no-ai-${clientLang}`,
         family: "screenshot_instead_of_text",
@@ -493,7 +506,7 @@ describe("elderly-realism QA — direct chat", () => {
     }
   });
 
-  it("simulates a voice note when STT is unavailable (RU/UZ/EN)", async () => {
+  it("keeps a voice note fail-closed without polling consent (RU/UZ/EN)", async () => {
     for (const clientLang of ["ru", "uz", "en"] as const) {
       rowIndex += 1;
       const userId = 93_000_000 + rowIndex;
@@ -519,6 +532,8 @@ describe("elderly-realism QA — direct chat", () => {
       await dispatchUpdate(update);
       const turnRecord = drainTurn(1, `[voice-no-stt:${clientLang}]`);
       expect(turnRecord.messages.length, `voice ${clientLang}`).toBeGreaterThan(0);
+      expect(turnRecord.messages.flatMap((message) => message.buttons)).toHaveLength(0);
+      expect(turnRecord.runChecks).toHaveLength(0);
       report.push({
         id: `voice-no-stt-${clientLang}`,
         family: "voice_stt_unavailable",

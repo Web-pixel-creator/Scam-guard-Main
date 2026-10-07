@@ -1,13 +1,170 @@
 # Current State
 
-Last reconciled: 2026-08-28 (post-rotation read-back).
+Last full production reconciliation: 2026-08-28 (post-rotation read-back).
+Fresh limited availability check: 2026-10-07, approximately 22:14-22:18
+Asia/Tashkent, **OFFLINE / no active deployment**. Local candidate evidence
+is separate and does not imply deployment.
+
+## Fresh Railway blocker and offline service (2026-10-07)
+
+The owner approved a disposable isolated edge probe, but the native CLI refused
+project creation because the production workspace's trial expired. Browser
+read-back independently confirmed that notice. Inventory verified zero created
+probe projects; no upload/resource/domain/delete or production mutation occurred.
+An accessible Hobby workspace is a different workspace; its billing was not
+used without an owner choice.
+
+The production service page says **Service offline / no active deployment**.
+`/healthz` returned **404**. CLI metadata independently shows prior deployment
+`94d3fef2-c90c-4002-8068-19c331be01b3` (`7e8ac7fe`) as **REMOVED**.
+Exact removal time/actor and a full causal history are not established.
+Do not report the old deployment/image/canary as healthy current runtime.
+See `RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md` for scope and artifacts.
+
+Immediate order: owner account/workspace billing decision → separately approved
+production recovery/read-back → disposable live edge proof/cleanup → separately
+approved PR #149 migration-first cutover → new exact-baseline canary. Edge trust
+stays unverified/off; PR #149 stays Draft/HOLD. No new plan, transfer, redeploy,
+migration or secret change was authorized by the probe approval.
+
+## Latest repository and candidate checkpoint (2026-10-07)
+
+GitHub `main` was read back as `7e8ac7feda46df76a2e1fc02db1c1759a1442021`
+(PR #144). The local security/privacy candidate below still starts there;
+no candidate migration, deployment or production setting has been applied.
+
+The prior 2026-09-20 checkpoint recorded formal canary closure with 150/150
+eligible scheduled successes and zero eligible failures for runtime `7e8ac7fe`,
+deployment `94d3fef2-c90c-4002-8068-19c331be01b3` and image
+`sha256:7f38ba24abb9736e85b24d8e360c95e663a3d4cca75322697f838bb9c4e4923e`.
+That automation was removed. These are prior recorded facts, not a fresh
+Railway/config/secret read-back on October 7.
+
+On October 7 the candidate passed local TypeScript, lint (eight existing
+warnings), build, 15,509/15,509 Vitest cases in 191 files, a fresh local Supabase
+apply of all 34 migrations, SQL lint, all 154 pgTAP assertions (62 consent
+assertions), and two executions of the direct-PostgreSQL one-winner proof with
+verified fixture cleanup. Draft PR #149 application head `c67fca7` passed all
+seven hosted checks: CI run `37590797245`, Security run `37590797252`.
+This includes the normal 15,509-test command, DB/concurrency and the repaired
+container gate; neither the previous scan failure nor local timeout retries
+were hidden.
+
+Later October 7 browser review used real isolated local Supabase Auth/TOTP,
+not mocked authentication. `/` and authenticated `/admin`, report queue,
+appeals and read-only report detail were checked at all eight required widths.
+Four protected read functions admitted AAL2 admin and denied AAL1 admin,
+non-admin and unauthenticated controls. The production CSP was preserved by
+a local same-origin API adapter. See `LOCAL_ADMIN_REVIEW_2026-10-07.md`.
+This is local evidence, not production login or real-operator acceptance.
+One 320px filter-label fit defect remains open; no design/CSS was changed.
+
+Current order: Draft PR #149 stays HOLD; resolve the fresh Railway account and
+offline-service blocker above, then obtain live Railway edge-header proof
+(the approved temporary probe could not be created because the trial expired);
+track the separate narrow-screen UI follow-up; obtain separate owner approval
+for the controlled migration-first cutover; then a new exact-baseline canary. The
+August snapshot and queue below are history, not instructions to repeat
+completed merges or secret rotations.
 
 This is the short operational source of truth. Dated audits, plans, release
 records and old checklist totals are historical evidence unless this file
 repeats them. Never infer adoption, accuracy or enterprise readiness from
 internal test volume.
 
-## One-minute status
+## Open P1 security/privacy candidate (local only, 2026-09-04)
+
+The isolated branch `agent/security-privacy-boundaries-20260904` starts from
+locally verified `origin/main` `7e8ac7feda46df76a2e1fc02db1c1759a1442021`.
+Its working tree is an open review candidate, not production state. It
+introduces all of the following as one proposed boundary-hardening set:
+
+- prompt-message-, chat- and media-kind-bound consent, expiring ten minutes
+  after the disclosure request, for exactly one external Direct image item
+  (photo, image document or video frame), Voice item (voice note or audio file)
+  or `/report` screenshot provider operation; report screenshots additionally bind
+  registration, grant and claim to the active `reportFlowId`; the exact Cancel
+  button can revoke an unused grant, and a dedicated private database claim
+  atomically selects one winner before the provider call; after local
+  download/decoding, the update and leader leases are checked again immediately
+  before the raw provider transfer. A report-image result advances the flow and
+  announces success only after its redacted summary is saved; storage failure
+  gets localized `report_image_save_failed`, while a stale write stays silent.
+  The initial report prompt has the same boundary: it appears only after its
+  fresh `reportFlowId` draft is saved; storage gets localized
+  `report_start_save_failed`, and stale stays silent;
+- a separate Web OCR boundary: the explicit upload action supplies
+  `externalProviderConsent=true` for one HTTP request with one provider attempt
+  and no fallback. It is not a durable/idempotent consent claim, and client-side
+  loading suppression does not prevent a later retry from transmitting the same
+  image again;
+- Railway public-rate-limit identity from a syntactically valid `X-Real-IP`
+  only after `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; without that gate the
+  header is ignored and socket identity is used. Enabling the gate requires
+  prior evidence that Railway's edge overwrites or strips a client-supplied
+  `X-Real-IP`, and the production security smoke remains red until then.
+  Non-Railway generic proxy headers require both explicit trust and
+  edge-verification flags;
+- exact `REQUIRE_ADMIN_MFA_AAL2=true` in production/Railway; explicit `false`,
+  missing and invalid protected-runtime values fail closed;
+- one indistinguishable public success response for new and already-open
+  reputation appeals, plus fixed-length timing-safe webhook-secret comparison.
+
+The consent candidate adds unapplied migration
+`20260904120000_telegram_media_provider_consent_claim.sql`: a private
+metadata-only table plus service-role-only, current-update-lease-fenced
+register/grant/revoke/claim RPCs and expiry pruning. Consent no longer lives in
+`telegram_sessions.scenario_data`; only the non-secret `reportFlowId` generation
+marker remains in the active report draft. Raw-media consent is enabled only
+inside the ordered single-leader polling lifecycle. The adapter rejects
+webhook/non-polling updates before any consent RPC or external provider call. A
+consumed or revoked tombstone retains the row only for the remainder of its
+original request TTL; terminal transitions never extend `expires_at`.
+
+RPC error, malformed response or lost response is storage uncertainty, not
+success or a semantic miss. It propagates so polling can retry the Telegram
+update; the consented Telegram provider call for that claim is never retried. If
+an atomic claim committed but its response was lost, the replay observes no
+claimable grant and performs no provider I/O. Raw-media provider fetches also
+reject redirects rather than forwarding credentials or payloads to a new
+location. Consent prompt and grant/cancel confirmation delivery propagates only
+a definitive retryable Telegram no-effect result for polling replay; ambiguous
+or non-retryable outcomes are not sent again, avoiding a duplicate user-visible
+message.
+
+The reviewed migration must be applied and verified before any application
+deployment that calls those RPCs. The authorized production sequence is:
+freeze unrelated merges/config/secrets, disable Telegram delivery without
+dropping pending updates and disable raw-media provider access, drain the old
+image plus polling leader/in-flight update leases, apply and read back the
+migration, deploy and verify the consent-aware application while delivery and
+provider access stay disabled, prove the old image is gone, then restore
+provider access, re-enable polling and verify the new leader/frontier. A
+post-migration rollback may use only a reviewed consent-aware artifact;
+otherwise delivery/provider access stays disabled while the release rolls
+forward. Reversing or skipping that order is a failed release, not a supported
+compatibility mode.
+
+None of those candidate changes or the new migration is merged, applied or
+deployed at the time of this note. They must not be counted as production
+behavior or canary evidence. They are not complete even as a candidate until a
+clean-database CI job starts a real local Supabase instance, passes the full
+migration chain and pgTAP, and runs a two-session concurrency probe proving the
+one-winner claim/replay boundary: two concurrent claims yield exactly one
+winner, then a third replay misses. The proof uses independent direct `psql`
+sessions: both wait behind a database barrier, and the loser is observed blocked
+by the uncommitted winner. All waits are bounded and CI accepts only its exact
+PASS sentinel. The 62-assertion pgTAP source
+plan includes DML ACL, wrong-scope and grant-after-revoke negatives, but its
+count is not passing evidence until that job runs. The structural media guard
+must also discover every production `src/` image/STT provider call site and
+keep its consent, final-fence and one-attempt assertions; report scenario
+regression coverage must keep both session-save failures closed. Merge still
+requires review and the separately approved migration-first release. The older
+production and canary facts below remain the last full operational
+reconciliation in this file; this candidate note does not rewrite them.
+
+## Historical one-minute status (2026-08-28)
 
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**.
 - GitHub `main` and deployed application source: PR #141 merge
@@ -70,7 +227,7 @@ internal test volume.
   7/7, but remains operationally dormant and must not be confused with an enabled backup.
   Owner merge approval and an explicit new canary start remain required.
 
-## Verified production baseline
+## Historical verified production baseline (2026-08-28)
 
 The active source is PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`.
 The final controlled secret redeploy is Railway deployment
@@ -219,7 +376,7 @@ remain unproven until privacy-safe product events and a real pilot exist.
 Detailed recovery and rotation evidence is in
 `RECOVERY_AND_KEY_ROTATION.md` and dated restore/migration records.
 
-## Current ordered work
+## Historical ordered work (2026-08-28; superseded by latest checkpoint)
 
 1. Keep PR #137 and PR #140 `DRAFT/HOLD` until the owner makes one explicit
    bundle decision. PR #137 candidate `c437a30` has local and GitHub gates; PR

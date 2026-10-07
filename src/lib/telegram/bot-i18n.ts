@@ -281,6 +281,11 @@ export const bot_dict: BotDict = {
     uz: "Shikoyatni yuborib bo‘lmadi. Iltimos, birozdan so‘ng qayta urinib ko‘ring.",
     en: "Couldn’t submit the report. Please try again a little later.",
   },
+  report_start_save_failed: {
+    ru: "Не удалось безопасно начать жалобу. Попробуйте, пожалуйста, чуть позже.",
+    uz: "Shikoyatni xavfsiz boshlashning iloji bo‘lmadi. Iltimos, birozdan so‘ng qayta urinib ko‘ring.",
+    en: "I could not start the report safely. Please try again a little later.",
+  },
   report_image_added: {
     ru: "Скриншот добавлен к жалобе как краткое описание:\n\n{summary}\n\nСамо изображение я не сохраняю.",
     uz: "Skrinshot shikoyatga qisqa tavsif sifatida qo‘shildi:\n\n{summary}\n\nRasmning o‘zini saqlamayman.",
@@ -290,6 +295,56 @@ export const bot_dict: BotDict = {
     ru: "Я получил скриншот, но не смог надёжно извлечь суть для жалобы. Напишите 1-2 фразы: что просили сделать и через что с вами связались.",
     uz: "Skrinshotni oldim, lekin shikoyat uchun mazmunini ishonchli ajrata olmadim. 1-2 jumla yozing: nima qilishni so‘rashdi va siz bilan qayerda bog‘lanishdi.",
     en: "I received the screenshot, but could not reliably extract the incident details. Type 1-2 sentences: what they asked you to do and where they contacted you.",
+  },
+  report_image_save_failed: {
+    ru: "Не удалось сохранить извлечённое описание. Сам скриншот не сохранён. Попробуйте позже или пришлите очищенное описание текстом.",
+    uz: "Ajratilgan tavsifni saqlab bo‘lmadi. Skrinshotning o‘zi saqlanmadi. Keyinroq urinib ko‘ring yoki tozalangan tavsifni matn bilan yuboring.",
+    en: "I could not save the extracted description. The screenshot itself was not stored. Try later or send a redacted description as text.",
+  },
+  media_image_provider_consent_required: {
+    ru: "Для чтения текста исходное изображение, файл изображения или кадр видео один раз передаётся настроенному внешнему сервису анализа. Сначала закройте или обрежьте SMS/OTP-коды, PIN, CVV, пароли, данные карты, seed-фразы, приватные ключи и документы. Можно вместо медиа прислать очищенный текст. Если согласны — нажмите кнопку и отправьте очищенный медиафайл заново.",
+    uz: "Matnni o‘qish uchun asl rasm, rasm fayli yoki video kadri sozlangan tashqi tahlil xizmatiga bir marta yuboriladi. Avval SMS/OTP-kod, PIN, CVV, parol, karta ma’lumoti, seed-ibora, maxfiy kalit va hujjatlarni yoping yoki kesib tashlang. Media o‘rniga tozalangan matn yuborishingiz mumkin. Rozilik bersangiz, tugmani bosing va tozalangan mediafaylni qayta yuboring.",
+    en: "To read text, the original image, image file, or video frame is sent once to the configured external analysis service. First crop or cover SMS/OTP codes, PINs, CVVs, passwords, card details, seed phrases, private keys, and documents. You can send redacted text instead. If you agree, tap the button and resend the redacted media file.",
+  },
+  media_report_image_provider_consent_required: {
+    ru: "Чтобы сделать краткое описание для жалобы, исходный скриншот один раз передаётся настроенному внешнему сервису анализа. Сначала закройте или обрежьте SMS/OTP-коды, PIN, CVV, пароли, карты, seed-фразы, приватные ключи и документы. Можно написать описание вручную. Если согласны — нажмите кнопку и отправьте скриншот заново.",
+    uz: "Shikoyat uchun qisqa tavsif tuzish maqsadida asl skrinshot sozlangan tashqi tahlil xizmatiga bir marta yuboriladi. Avval SMS/OTP-kod, PIN, CVV, parol, karta, seed-ibora, maxfiy kalit va hujjatlarni yoping yoki kesib tashlang. Tavsifni qo‘lda yozishingiz ham mumkin. Rozilik bersangiz, tugmani bosing va skrinshotni qayta yuboring.",
+    en: "To create a short report description, the original screenshot is sent once to the configured external analysis service. First crop or cover SMS/OTP codes, PINs, CVVs, passwords, card details, seed phrases, private keys, and documents. You can type the description instead. If you agree, tap the button and resend the screenshot.",
+  },
+  media_voice_provider_consent_required: {
+    ru: "Для распознавания исходный аудиофайл или голосовое сообщение один раз передаётся настроенному внешнему сервису речи. Не отправляйте голосом SMS/OTP-коды, PIN, CVV, пароли, данные карты, seed-фразы, приватные ключи или документы. Можно вместо аудио написать очищенный текст. Если согласны — нажмите кнопку и отправьте очищенное аудио или голосовое заново.",
+    uz: "Tanib olish uchun asl audiofayl yoki ovozli xabar sozlangan tashqi nutq xizmatiga bir marta yuboriladi. Ovozda SMS/OTP-kod, PIN, CVV, parol, karta ma’lumoti, seed-ibora, maxfiy kalit yoki hujjat yubormang. Audio o‘rniga tozalangan matn yozishingiz mumkin. Rozilik bersangiz, tugmani bosing va tozalangan audio yoki ovozli xabarni qayta yuboring.",
+    en: "For transcription, the original audio file or voice note is sent once to the configured external speech service. Do not speak SMS/OTP codes, PINs, CVVs, passwords, card details, seed phrases, private keys, or documents. You can type redacted text instead. If you agree, tap the button and resend the redacted audio or voice note.",
+  },
+  media_image_provider_consent_granted: {
+    ru: "Согласие сохранено для одного изображения или кадра. Теперь отправьте очищенный медиафайл заново.",
+    uz: "Rozilik bitta rasm yoki kadr uchun saqlandi. Endi tozalangan mediafaylni qayta yuboring.",
+    en: "Consent is saved for one image or frame. Now resend the redacted media file.",
+  },
+  media_report_image_provider_consent_granted: {
+    ru: "Согласие сохранено для одного скриншота жалобы. Теперь отправьте очищенный скриншот заново.",
+    uz: "Rozilik shikoyatning bitta skrinshoti uchun saqlandi. Endi tozalangan skrinshotni qayta yuboring.",
+    en: "Consent is saved for one report screenshot. Now resend the redacted screenshot.",
+  },
+  media_voice_provider_consent_granted: {
+    ru: "Согласие сохранено для одного аудиофайла или голосового сообщения. Теперь отправьте его заново без кодов, паролей и других секретов.",
+    uz: "Rozilik bitta audiofayl yoki ovozli xabar uchun saqlandi. Endi uni kod, parol va boshqa sirlarsiz qayta yuboring.",
+    en: "Consent is saved for one audio file or voice note. Now resend it without codes, passwords, or other secrets.",
+  },
+  media_provider_consent_cancelled: {
+    ru: "Хорошо, внешнюю обработку не запускаю. Пришлите очищенный текст — я проверю его без фото или голосового.",
+    uz: "Yaxshi, tashqi tahlilni ishga tushirmayman. Tozalangan matnni yuboring — rasm yoki ovozsiz tekshiraman.",
+    en: "OK, I will not start external processing. Send redacted text and I will check it without the image or voice note.",
+  },
+  media_provider_consent_invalid: {
+    ru: "Эта кнопка уже недействительна или относится к другому файлу. Отправьте изображение или голосовое заново, чтобы получить новую кнопку.",
+    uz: "Bu tugma eskirgan yoki boshqa faylga tegishli. Yangi tugma olish uchun rasm yoki ovozli xabarni qayta yuboring.",
+    en: "This button has expired or belongs to another file. Resend the image or voice note to get a new button.",
+  },
+  media_provider_consent_storage_failed: {
+    ru: "Не удалось безопасно сохранить разрешение, поэтому внешнюю обработку не запускаю. Попробуйте позже или пришлите очищенный текст.",
+    uz: "Rozilikni xavfsiz saqlab bo‘lmadi, shuning uchun tashqi tahlilni ishga tushirmayman. Keyinroq urinib ko‘ring yoki tozalangan matn yuboring.",
+    en: "I could not safely save permission, so I will not start external processing. Try later or send redacted text.",
   },
 
   // ── Rate limit (R10.2) — {seconds} placeholder filled via bt(..., { seconds }) ─
@@ -528,6 +583,26 @@ export const bot_dict: BotDict = {
     ru: "Отмена",
     uz: "Bekor qilish",
     en: "Cancel",
+  },
+  btn_media_provider_consent_image: {
+    ru: "Разрешить анализ одного изображения",
+    uz: "Bitta rasm tahliliga ruxsat berish",
+    en: "Allow analysis of one image",
+  },
+  btn_media_provider_consent_report_image: {
+    ru: "Разрешить анализ одного скриншота",
+    uz: "Bitta skrinshot tahliliga ruxsat berish",
+    en: "Allow analysis of one screenshot",
+  },
+  btn_media_provider_consent_voice: {
+    ru: "Разрешить распознавание одного голосового",
+    uz: "Bitta ovozli xabarni tanishga ruxsat berish",
+    en: "Allow one voice transcription",
+  },
+  btn_media_provider_consent_cancel: {
+    ru: "Отмена — отправлю текст",
+    uz: "Bekor qilish — matn yuboraman",
+    en: "Cancel — I will send text",
   },
   btn_emergency: {
     ru: "🆘 Что делать срочно",

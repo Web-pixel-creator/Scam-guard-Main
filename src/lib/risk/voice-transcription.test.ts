@@ -144,6 +144,66 @@ describe("transcribeVoiceCore", () => {
     expect(result.text).toBe("Men SMS kod yubormadim.");
   });
 
+  it("does not retry or fall back when consented Gemini STT returns a transient error", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-primary-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai");
+    vi.stubEnv("OPENAI_MODEL", "gemini-3.5-flash");
+    vi.stubEnv("OPENAI_FALLBACK_API_KEY", "test-fallback-key");
+    vi.stubEnv("OPENAI_FALLBACK_BASE_URL", "https://fallback.example/v1");
+    vi.stubEnv("OPENAI_FALLBACK_MODEL", "fallback-model");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const beforeProviderTransfer = vi.fn(async () => {});
+    const fetchMock: FetchMock = vi.fn(
+      async () => new Response("temporarily unavailable", { status: 503 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      transcribeVoiceCore(DATA_URL, "ru", "tg:42", {
+        maxAttempts: 1,
+        allowFallback: false,
+        beforeProviderTransfer,
+      }),
+    ).resolves.toEqual({ text: null });
+
+    expect(beforeProviderTransfer).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toContain("generativelanguage.googleapis.com");
+    expect(String(url)).not.toContain("fallback.example");
+    expect(init).toEqual(expect.objectContaining({ redirect: "error" }));
+  });
+
+  it("does not retry or fall back when consented OpenAI-compatible STT has a network failure", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-primary-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://primary.example/v1");
+    vi.stubEnv("OPENAI_MODEL", "primary-model");
+    vi.stubEnv("OPENAI_FALLBACK_API_KEY", "test-fallback-key");
+    vi.stubEnv("OPENAI_FALLBACK_BASE_URL", "https://fallback.example/v1");
+    vi.stubEnv("OPENAI_FALLBACK_MODEL", "fallback-model");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const beforeProviderTransfer = vi.fn(async () => {});
+    const fetchMock: FetchMock = vi.fn(async () => {
+      throw new TypeError("synthetic network failure");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      transcribeVoiceCore(DATA_URL, "ru", "tg:42", {
+        maxAttempts: 1,
+        allowFallback: false,
+        beforeProviderTransfer,
+      }),
+    ).resolves.toEqual({ text: null });
+
+    expect(beforeProviderTransfer).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe("https://primary.example/v1/audio/transcriptions");
+    expect(String(url)).not.toContain("fallback.example");
+    expect(init).toEqual(expect.objectContaining({ redirect: "error" }));
+  });
+
   it("returns null without an AI key and does not call fetch", async () => {
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("OPENAI_BASE_URL", "");

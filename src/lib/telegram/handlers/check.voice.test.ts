@@ -11,6 +11,8 @@ const hoisted = vi.hoisted(() => ({
   runCheck: vi.fn(),
   saveSession: vi.fn(),
   checkSharedRateLimit: vi.fn(),
+  consentResult: { current: "consumed" as "consumed" | "missing" | "storage" | "stale" },
+  transferLeaseCurrent: { current: true },
 }));
 
 const FAKE_RESULT = {
@@ -28,7 +30,11 @@ const FAKE_RESULT = {
 vi.mock("@/lib/risk/check-core", () => ({
   runCheck: hoisted.runCheck,
   analyzeImageCore: vi.fn(),
-  transcribeVoiceCore: hoisted.transcribeVoiceCore,
+  transcribeVoiceCore: async (...args: unknown[]) => {
+    const options = args[3] as { beforeProviderTransfer?: () => Promise<void> } | undefined;
+    await options?.beforeProviderTransfer?.();
+    return hoisted.transcribeVoiceCore(...args);
+  },
 }));
 
 vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
@@ -55,6 +61,24 @@ vi.mock("@/lib/telegram/session.server", () => ({
   ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
+vi.mock("@/lib/telegram/media-provider-consent.server", () => ({
+  consumeMediaProviderConsent: () => Promise.resolve(hoisted.consentResult.current),
+  isMediaProviderConsentStorageError: (error: unknown) =>
+    error instanceof Error && error.message === "media_provider_consent_storage",
+  requestMediaProviderConsent: (context: HandlerCtx, kind: string) =>
+    hoisted.sendMessage({
+      chatId: context.chatId,
+      text: "provider consent required",
+      keyboard: [[{ text: "allow", callback_data: `media_consent:${kind}` }]],
+    }),
+  assertMediaProviderTransferAllowed: async () => {
+    if (!hoisted.transferLeaseCurrent.current) {
+      throw new Error("media_provider_consent_storage");
+    }
+  },
+  sendMediaProviderConsentFailure: vi.fn(),
+}));
+
 import { handleCheck, handleVoice } from "./check";
 import { bt } from "../bot-i18n";
 import {
@@ -64,7 +88,8 @@ import {
   isVoiceSttPanicReplayFixture,
 } from "../voice-stt-provider-fixtures";
 
-function ctx(lang: Session["lang"] = "ru"): HandlerCtx {
+function ctx(lang: Session["lang"] = "ru", withConsent = true): HandlerCtx {
+  hoisted.consentResult.current = withConsent ? "consumed" : "missing";
   const session: Session = {
     telegramUserId: 42,
     lang,
@@ -83,9 +108,47 @@ beforeEach(() => {
   hoisted.transcribeVoiceCore.mockResolvedValue({ text: "caller asks for SMS code" });
   hoisted.runCheck.mockResolvedValue(FAKE_RESULT);
   hoisted.checkSharedRateLimit.mockResolvedValue({ ok: true, remaining: 4, retryAfterSec: 0 });
+  hoisted.consentResult.current = "consumed";
+  hoisted.transferLeaseCurrent.current = true;
 });
 
 describe("handleVoice", () => {
+  it("does not download or transcribe a new voice note before explicit provider consent", async () => {
+    await handleVoice("voice-file-id", ctx("ru", false), {
+      fileSize: 1024,
+      duration: 8,
+      mimeType: "audio/ogg",
+      fileUniqueId: "unconsented-voice",
+    });
+
+    expect(hoisted.getFile).not.toHaveBeenCalled();
+    expect(hoisted.downloadFileAsDataUrl).not.toHaveBeenCalled();
+    expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
+    expect(hoisted.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 100,
+        keyboard: [[expect.objectContaining({ callback_data: "media_consent:voice" })]],
+      }),
+    );
+  });
+
+  it("does not invoke STT when the update lease is lost after download", async () => {
+    hoisted.transferLeaseCurrent.current = false;
+
+    await expect(
+      handleVoice("voice-file-id", ctx(), {
+        fileSize: 1024,
+        duration: 8,
+        mimeType: "audio/ogg",
+        fileUniqueId: "stale-after-download",
+      }),
+    ).rejects.toThrow("media_provider_consent_storage");
+
+    expect(hoisted.getFile).toHaveBeenCalledWith("voice-file-id");
+    expect(hoisted.downloadFileAsDataUrl).toHaveBeenCalledWith("voice/file_1.oga");
+    expect(hoisted.transcribeVoiceCore).not.toHaveBeenCalled();
+  });
+
   it.each(["Мне звонят из налоговой и просят данные", "Звонит из налоговой и просит данные"])(
     "uses government live-call copy when the caller claims to be tax office: %s",
     async (text) => {

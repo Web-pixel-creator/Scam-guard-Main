@@ -37,7 +37,9 @@ import { checkSharedRateLimit } from "./shared-rate-limit.server";
 
 const originalEnv = {
   NODE_ENV: process.env.NODE_ENV,
-  RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+  RAILWAY_ENVIRONMENT_ID: process.env.RAILWAY_ENVIRONMENT_ID,
+  RAILWAY_ENVIRONMENT_NAME: process.env.RAILWAY_ENVIRONMENT_NAME,
+  RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID,
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   HASH_PEPPER_SECRET: process.env.HASH_PEPPER_SECRET,
@@ -66,6 +68,9 @@ beforeEach(() => {
   hoisted.hashError = false;
   hoisted.rpcResponse = null;
   restoreEnv();
+  delete process.env.RAILWAY_ENVIRONMENT_ID;
+  delete process.env.RAILWAY_ENVIRONMENT_NAME;
+  delete process.env.RAILWAY_DEPLOYMENT_ID;
 });
 
 afterEach(() => {
@@ -231,7 +236,7 @@ describe("checkSharedRateLimit", () => {
 
   it("fails closed when Railway is detected even if NODE_ENV is missing", async () => {
     delete process.env.NODE_ENV;
-    process.env.RAILWAY_ENVIRONMENT = "production";
+    process.env.RAILWAY_ENVIRONMENT_ID = "00000000-0000-4000-8000-000000000001";
     delete process.env.HASH_PEPPER_SECRET;
 
     await expect(

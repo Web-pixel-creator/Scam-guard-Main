@@ -151,6 +151,15 @@ describe("toolchain security boundaries", () => {
     expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
     expect(dockerfile).toContain("/usr/local/lib/node_modules/corepack");
     expect(dockerfile).toContain("/opt/yarn-v1.22.22");
+    expect(dockerfile).toContain("FROM oven/bun:1.3.14 AS build");
+    const dockerignore = readFileSync(resolve(process.cwd(), ".dockerignore"), "utf8");
+    expect(dockerignore.split(/\r?\n/u)).toContain("output");
+    expect(dockerignore.split(/\r?\n/u)).toContain(".playwright-cli");
+    expect(dockerfile).toContain("--only-upgrade perl-base");
+    expect(dockerfile).toContain("ge 5.36.0-7+deb12u4");
+    expect(dockerfile.indexOf("--only-upgrade perl-base")).toBeLessThan(
+      dockerfile.indexOf("USER node"),
+    );
     expect(dockerfile).toMatch(/USER\s+node/u);
     expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
   });

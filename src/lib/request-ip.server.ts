@@ -1,29 +1,46 @@
+import { isIP } from "node:net";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
+import { isRailwayRuntime } from "@/lib/runtime-env.server";
 
-function trustProxyIpHeaders(): boolean {
-  return process.env.TRUST_PROXY_IP_HEADERS === "true";
+function isEnabled(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() === "true";
 }
 
-function cleanHeaderIp(value: string | undefined): string | null {
-  const first = value?.split(",")[0]?.trim();
-  if (!first || first.length > 64) return null;
-  return /^[A-Fa-f0-9:.]+$/.test(first) ? first : null;
+function trustRailwayClientIpHeader(): boolean {
+  return isEnabled(process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED);
 }
 
-function trustedProxyIp(): string | null {
+function trustGenericProxyIpHeaders(): boolean {
   return (
-    cleanHeaderIp(getRequestHeader("cf-connecting-ip")) ||
-    cleanHeaderIp(getRequestHeader("x-real-ip")) ||
-    cleanHeaderIp(getRequestIP({ xForwardedFor: true }))
+    isEnabled(process.env.TRUST_PROXY_IP_HEADERS) &&
+    isEnabled(process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED)
+  );
+}
+
+function cleanIp(value: string | undefined): string | null {
+  const candidate = value?.trim();
+  if (!candidate || candidate.length > 64) return null;
+  return isIP(candidate) === 0 ? null : candidate;
+}
+
+function genericTrustedProxyIp(): string | null {
+  return (
+    cleanIp(getRequestHeader("cf-connecting-ip")) ||
+    cleanIp(getRequestHeader("x-real-ip")) ||
+    cleanIp(getRequestIP({ xForwardedFor: true }))
   );
 }
 
 export function publicRateLimitKey(scope: "check" | "report" | "appeal"): string {
   try {
-    const ip =
-      (trustProxyIpHeaders() ? trustedProxyIp() : null) ||
-      cleanHeaderIp(getRequestIP({ xForwardedFor: false })) ||
-      "unknown";
+    const proxyIp = isRailwayRuntime()
+      ? trustRailwayClientIpHeader()
+        ? cleanIp(getRequestHeader("x-real-ip"))
+        : null
+      : trustGenericProxyIpHeaders()
+        ? genericTrustedProxyIp()
+        : null;
+    const ip = proxyIp || cleanIp(getRequestIP({ xForwardedFor: false })) || "unknown";
     return `${scope}:${ip}`;
   } catch {
     return `${scope}:unknown`;

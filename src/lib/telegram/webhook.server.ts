@@ -28,6 +28,7 @@
 //
 // Server-only (.server.ts): reads secrets and pulls in service-role modules.
 // Never import this file into the client bundle.
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   getTelegramBotToken,
   getTelegramUpdateDeliveryMode,
@@ -64,6 +65,18 @@ type UpdateProcessingDecision =
   | { decision: "duplicate" }
   | { decision: "retry"; retryAfterSec: number };
 
+function webhookSecretMatches(actual: string | null, expected: string): boolean {
+  // Hash both inputs to fixed-length buffers before timingSafeEqual. This keeps
+  // comparison work independent of a mismatched token's length and avoids the
+  // variable-time semantics of ordinary string equality.
+  const actualDigest = createHash("sha256")
+    .update(actual ?? "", "utf8")
+    .digest();
+  const expectedDigest = createHash("sha256").update(expected, "utf8").digest();
+  const matches = timingSafeEqual(actualDigest, expectedDigest);
+  return actual !== null && matches;
+}
+
 /**
  * Handle a single Telegram webhook request. Returns 401 for any token-stage
  * failure (missing secrets or bad/absent header). Invalid bodies after valid
@@ -84,7 +97,7 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   // R12.1 / R12.2 — on mismatch we return 401 and never parse the body or call
   // dispatchUpdate.
   const header = request.headers.get(SECRET_HEADER);
-  if (header !== secret) {
+  if (!webhookSecretMatches(header, secret)) {
     return new Response("unauthorized", { status: 401 });
   }
 

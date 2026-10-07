@@ -40,7 +40,7 @@ function AppealPage() {
   const [reason, setReason] = useState("");
   const [contact, setContact] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<"new" | "duplicate" | null>(null);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canGoBackRef = useRef<boolean>(
@@ -131,11 +131,6 @@ function AppealPage() {
     },
     submit: { ru: "Отправить на проверку", uz: "Tekshiruvga yuborish", en: "Submit for review" },
     doneTitle: { ru: "Запрос принят", uz: "So'rov qabul qilindi", en: "Request received" },
-    duplicateTitle: {
-      ru: "Такой запрос уже в очереди",
-      uz: "Bu so'rov navbatda bor",
-      en: "This request is already queued",
-    },
     doneText: {
       ru: "Мы проверим запись вручную. Если метка ошибочна или устарела, администратор снимет её или обновит данные. Ваши личные контакты не станут публичными.",
       uz: "Yozuv qo'lda tekshiriladi. Agar belgi xato yoki eskirgan bo'lsa, administrator uni olib tashlaydi yoki ma'lumotni yangilaydi. Shaxsiy kontaktingiz ommaga chiqmaydi.",
@@ -179,7 +174,7 @@ function AppealPage() {
         },
       });
       if (result.ok) {
-        setDone(result.duplicate ? "duplicate" : "new");
+        setDone(true);
         return;
       }
       setError(
@@ -269,14 +264,12 @@ function AppealPage() {
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
                 <CheckCircle2 aria-hidden="true" className="h-6 w-6" />
               </div>
-              <h2 className="apex-h1 mt-5 text-[32px]">
-                {done === "duplicate" ? copy.duplicateTitle[lang] : copy.doneTitle[lang]}
-              </h2>
+              <h2 className="apex-h1 mt-5 text-[32px]">{copy.doneTitle[lang]}</h2>
               <p className="apex-lead mx-auto mt-3">{copy.doneText[lang]}</p>
               <button
                 type="button"
                 onClick={() => {
-                  setDone(null);
+                  setDone(false);
                   setTarget("");
                   setReason("");
                   setContact("");

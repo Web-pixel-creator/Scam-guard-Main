@@ -66,6 +66,8 @@ export interface ReportDraft {
    * Prevents an old Skip / No value / Retry button from mutating a newer flow.
    */
   reportCallbackBinding?: ReportCallbackBinding;
+  /** Random generation id binding report-image consent to this exact draft. */
+  reportFlowId?: string;
   /**
    * Chat boundary for state that can influence a later bot response. This
    * prevents private context from being reused in group chats by the same user.
@@ -332,6 +334,7 @@ function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
     data.lastVictimIntent ??
     data.lastSensitiveSecret ??
     data.reportCallbackBinding ??
+    data.reportFlowId ??
     data.guardian ??
     data.conversation,
   );

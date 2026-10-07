@@ -14,6 +14,32 @@ moderation.
 
 ## Current status
 
+Current repository read-back on **2026-10-07**: GitHub `main` remains
+`7e8ac7feda46df76a2e1fc02db1c1759a1442021` (PR #144). The separate
+`agent/security-privacy-boundaries-20260904` candidate is not deployed. Its
+local gate includes 15,509 passing tests, clean Supabase migration apply,
+154 passing pgTAP assertions and the real one-winner concurrency proof.
+Draft PR #149 application head `c67fca7` passed all seven hosted checks.
+Real local Auth/TOTP admin access and eight-width authenticated review now
+have evidence; a 320px filter-label fit defect remains a separate UI follow-up.
+Railway edge-header trust remains unverified and disabled. Precise limitations
+and a later fresh availability read-back are in
+`ai_docs/RAILWAY_EDGE_PROBE_BLOCKER_2026-10-07.md`: the owner approved the
+temporary probe, but the target workspace's expired trial prevented creation.
+Production now has no active deployment (`94d3fef2` is `REMOVED`), and
+`/healthz` returned 404. Restore account/service availability before release.
+The prior September canary is not a current health claim. Candidate limitations
+and release gates are in
+`ai_docs/SECURITY_PRIVACY_CANDIDATE_EVIDENCE_2026-10-07.md` and
+`ai_docs/LOCAL_ADMIN_REVIEW_2026-10-07.md`, with the queue in
+`ai_docs/CURRENT_STATE.md`. The production canary was closed in the prior
+2026-09-20 checkpoint; this is not a fresh production read-back on October 7.
+
+### Historical operational snapshot (2026-08-28)
+
+The bullets below are retained history, not the current repository or release
+queue. Prefer the latest reconciliation at the top of `CURRENT_STATE.md`.
+
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
 - GitHub `main` and deployed source: PR #141 merge

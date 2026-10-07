@@ -139,13 +139,13 @@ Public (in `.env`, prefixed `VITE_`, safe for browser):
 
 Server-only runtime controls:
 
-- `REQUIRE_ADMIN_MFA_AAL2`: production and Railway must set an explicit `true`
-  or `false`; missing, empty and invalid values fail closed. Local development
-  and tests may omit it and default to `false`. When `true`, every admin server
-  action requires the Supabase JWT `aal` claim to be `aal2`. Explicit `false`
-  is retained only as a bounded enrollment or emergency-recovery state: deploy
-  `/admin-mfa`, enroll two approved owners and complete the recovery drill
-  before enabling `true` in a separate window. Migration `20260729131000`
+- `REQUIRE_ADMIN_MFA_AAL2`: the local P1 candidate requires production and
+  Railway to set exact `true`; explicit `false`, missing, empty and invalid
+  protected-runtime values fail closed. Local development and tests may omit it
+  and default to `false`. Every production admin server action requires the
+  Supabase JWT `aal` claim to be `aal2`; recovery uses an independently enrolled
+  owner and the authorized factor-reset procedure, never a production downgrade.
+  Migration `20260729131000`
   independently requires AAL2 at the protected direct RLS/PostgREST boundary.
   It passes isolated-staging catalog/pgTAP verification, guarded official
   history repair and the same-client HTTP user-client smoke, and was applied to
@@ -192,12 +192,16 @@ committed `.env`, never shipped to client):
 - `PHISHTANK_API_KEY` - optional PhishTank check key. URL reputation calls use
   only normalized URL tokens and strip credentials, query strings and fragments
   before provider requests.
-- `TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS` / `TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS` -
-  optional Telegram image-intelligence budget (defaults: `6500` ms / `1`
-  attempt). If the provider is slow, the bot falls back to QR/OCR-safe guidance.
+- `TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS` - optional Telegram image-intelligence
+  timeout (default: `6500` ms). In the local P1 candidate, a consented image is
+  sent at most once and never to the fallback provider; if that one request
+  fails, the bot falls back to local QR/text guidance rather than retransmitting
+  raw pixels. The raw request also uses `redirect: "error"` so payload/auth
+  cannot follow a 3xx.
 - `TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS` - optional Telegram voice STT budget
-  (default: `8000` ms). Voice notes still keep the 60 seconds / 2 MB / daily
-  per-user caps.
+  (default: `12000` ms). Voice notes still keep the 60 seconds / 2 MB / daily
+  per-user caps. In the local P1 candidate, consented Voice uses one provider
+  attempt, no fallback and rejects redirects.
 - `GEMINI_TTS_API_KEY` — optional Google AI Studio / Gemini API key for opt-in
   Telegram Voice-out audio tips. When present, Gemini TTS is tried first.
 - `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` — optional Gemini speech model and
@@ -281,13 +285,17 @@ This production `HOST` is separate from the Vite development listener. Local
 explicit trusted-network CLI override such as
 `npm run dev -- --host 0.0.0.0`; never make an external bind the committed
 default.
-Leave `TRUST_PROXY_IP_HEADERS` unset/false unless the deployment sits behind a
-trusted edge proxy that overwrites or strips spoofed forwarding headers. Enabling
-it without that proxy-chain proof lets clients partition public check/report/
-appeal rate-limit buckets by sending fake IP headers. If it must be enabled,
-set `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` only after that edge behavior is
-verified; `prod:security-smoke` fails when the trust opt-in lacks this proof
-flag.
+In the local P1 candidate Railway runtime accepts Railway's syntactically valid
+`X-Real-IP` for public-rate-limit identity only when
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; otherwise the header is ignored and
+the direct request IP is used. Before setting the flag, prove that Railway's
+edge overwrites or strips a client-supplied `X-Real-IP`; Railway
+`prod:security-smoke` intentionally fails until that release prerequisite is
+met. Outside Railway, leave `TRUST_PROXY_IP_HEADERS` unset/false unless a trusted
+edge overwrites or strips spoofed forwarding headers. Generic proxy identity
+requires both `TRUST_PROXY_IP_HEADERS=true` and
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; one flag alone fails the security
+smoke.
 
 Env is read **per request inside handlers** (`config.server.ts`), never at
 module top level — this keeps the secret reads correct across runtimes.
@@ -334,6 +342,56 @@ Passing the guard does not itself authorize an external change. Production
 migration work requires a separately approved maintenance window and its own
 reviewed target controls; this wrapper intentionally never targets production.
 
+The local P1 media-consent candidate adds unapplied migration
+`20260904120000_telegram_media_provider_consent_claim.sql`. Raw-media consent is
+supported only by ordered single-leader polling: the application adapter rejects
+webhook/non-polling execution before an RPC/provider call, and SQL claim also
+requires the polling-leader token. Its production release is a controlled
+delivery-stop window, not an ordinary application-first deploy:
+
+Before authorizing that window, require a clean local-database CI run of the
+full migration chain plus pgTAP and a real two-session concurrency proof with
+exactly one successful claim. Static/mocked tests alone do not complete the P1
+candidate.
+
+1. freeze merges plus unrelated Railway/Supabase configuration and secret
+   changes; record
+   the exact production commit, deployment/image, migration head, delivery mode,
+   webhook state, pending count and current polling leader as rollback evidence;
+2. set `TELEGRAM_UPDATE_DELIVERY_MODE=disabled` and remove/disable the raw-media
+   provider credentials available to the old application. Do not delete the
+   webhook with `drop_pending_updates=true` or otherwise drop queued updates;
+   wait for this no-delivery/no-provider deployment to be active;
+3. drain the former polling leader and every in-flight update/outbound-effect
+   lease. Read back that no old worker can still perform a Telegram/provider
+   effect before changing the schema;
+4. apply only the reviewed migration and read back the private table/RLS, no
+   direct table privileges, exact service-role-only RPC signatures/ACLs,
+   `report_flow_id` constraint, polling/current-lease fences, one-winner claim,
+   original-expiry tombstones and retention result key;
+5. keep delivery and raw-media provider access disabled while deploying the
+   consent-aware application version that calls the RPCs. Verify exact commit/
+   image, `/healthz`, migration head and the no-provider security configuration
+   plus the reviewed claim-order/final pre-provider lease-recheck contract; do
+   not manufacture a raw-media call;
+6. prove that every pre-consent application image/worker is fully drained. Only
+   then restore the reviewed provider credentials and re-enable
+   `TELEGRAM_UPDATE_DELIVERY_MODE=polling`; wait for exactly one new healthy
+   leader, and verify empty webhook URL, preserved/draining pending updates, no
+   fresh Telegram error and the contiguous durable frontier;
+7. run the bounded no-AI postflight, review logs for consent/lifecycle failure
+   codes and open a new exact-baseline canary. Any unexpected plan/read-back or
+   active old worker stops the rollout before the next step.
+
+Deploying the application first, switching through webhook mode, skipping the
+drain, restoring provider access while a pre-consent image may still run or
+treating a fail-closed missing-RPC response as success is not an approved
+compatibility path. After this migration, rollback is allowed only to a reviewed
+consent-aware artifact compatible with the table/RPC contract. If none is
+available, keep delivery and provider access disabled and roll forward; never
+restore a pre-consent artifact. None of these candidate steps has been applied
+to production.
+
 After DB/RLS migrations, run:
 
 ```bash
@@ -356,6 +414,10 @@ Migration `20260729105030`, pgTAP-verified in isolated staging and later applied
 to production, adds expired metadata-only Family notification
 claims to the same function; the cron schedule did not need to be recreated.
 The production postflight confirmed the existing cron entry after apply.
+Candidate migration `20260904120000` extends the same function with expired
+media-consent/tombstone cleanup and a count-only result key. That behavior is not
+production evidence until the migration-first release is separately approved,
+applied and read back.
 
 Shared public rate limits are stored in `rate_limit_buckets` through the
 service-role-only `claim_rate_limit()` RPC. A valid hash-pepper configuration
@@ -367,11 +429,15 @@ missing in local/test environments, the app uses the bounded 4096-key in-memory
 limiter. Release validation must force missing-config, hash exception, RPC error
 and invalid-shape cases and confirm `429`/safe failure before any AI/media/fetch,
 report or appeal sink work.
-Public web rate-limit identity ignores proxy IP headers by default. Set
+In the local P1 candidate Railway trusts validated `X-Real-IP` only when
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; otherwise it uses socket identity
+and the production security smoke fails. Record proof that Railway's edge
+overwrites or strips a client-supplied header before setting that flag. Outside
+Railway, set
 `TRUST_PROXY_IP_HEADERS=true` only after confirming the edge proxy overwrites
-`CF-Connecting-IP`, `X-Real-IP` and `X-Forwarded-For`, then set
-`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` so `prod:security-smoke` records the
-review.
+`CF-Connecting-IP`, `X-Real-IP` and `X-Forwarded-For`, and also set
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; one flag alone is ignored and fails
+the production security configuration check.
 
 Telegram voice STT is cost-capped in the app before provider calls: maximum
 60 seconds / 2 MB per voice note, 5 STT calls per Telegram user per 24 hours,
@@ -390,7 +456,7 @@ payloads.
 Latency defaults are conservative for Telegram UX: AI explanations use
 `TELEGRAM_AI_EXPLANATION_TIMEOUT_MS=2500`, image intelligence uses
 `TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS=6500`, and voice STT uses
-`TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS=8000`. Raise these only if quality matters
+`TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS=12000`. Raise these only if quality matters
 more than responsiveness for a specific production incident.
 
 ## Production monitor / alerting
@@ -525,6 +591,17 @@ Telegram chat-scoped session hardening stores its boundary inside existing
 `telegram_sessions.scenario_data`, so it does not require an additional SQL
 migration. After deploy, any old active/contextual session row without a
 matching `chatScope` is reset on the user's next update.
+The local P1 media-provider-consent state is deliberately different: it does
+not live in `scenario_data`. Migration
+`20260904120000_telegram_media_provider_consent_claim.sql` must be applied and
+verified before the matching application deploy because the handler requires
+its private-table register/grant/revoke/atomic-claim RPCs. The active report
+draft may retain a non-secret UUID `reportFlowId`; report-image
+registration/grant/claim must match it, but it is not consent state. Terminal
+claim/revoke keeps the original expiry rather than starting a new ten-minute
+clock. RPC error/malformed response is propagated for polling-update retry; a
+replayed ambiguously committed claim cannot win again and therefore cannot send
+raw media twice.
 
 ```powershell
 npm run supabase:linked:status
@@ -901,14 +978,21 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
 - [ ] Server-only secrets set in the host environment (Supabase service role +
       one valid legacy/versioned hash-pepper configuration + optional AI key),
       not in `VITE_*`.
-- [ ] `REQUIRE_ADMIN_MFA_AAL2` is explicitly `true` or an approved bounded
-      recovery `false`; it is never missing in production/Railway.
+- [ ] `REQUIRE_ADMIN_MFA_AAL2` is exactly `true`; false, missing and invalid
+      values fail closed in production/Railway.
 - [ ] Before applying the exact admin-role reconciliation migration, run
       `npm run admin-role:preflight` in the production environment and require
       `staleAdminRoleCount=0` and `missingAdminRoleCount=0`; retain counts only.
 - [ ] Migrations applied to the Supabase project; `admin_allowlist` seeded with
       admin email(s), and Supabase email confirmation kept enabled so
       allowlisted admins receive `admin` only after verifying mailbox ownership.
+- [ ] Before deploying the P1 media-consent application, apply and read back
+      `20260904120000_telegram_media_provider_consent_claim.sql`: no direct table
+      access, service-role-only lease-fenced RPCs, report-flow binding, polling-
+      only atomic one-winner claim, original-expiry tombstones and expiry
+      pruning. Use the mandatory freeze → delivery disabled → leader/update
+      drain → migration/read-back → disabled application deploy/verification →
+      polling re-enable/postflight sequence; never reverse or compress it.
 - [x] In isolated staging,
       `20260729131000_admin_mfa_aal2_rls.sql` is applied, official migration
       history matches, and the same-client MFA smoke proves protected
@@ -925,9 +1009,13 @@ article; use the Desktop/Android/iOS real-client matrix for that claim.
       Applied once on `2026-08-01` UTC; function/ACL/cron postflight passed.
 - [ ] Public impact counter migration applied so report/loss totals count only
       `reports.status='confirmed'`.
-- [ ] `TRUST_PROXY_IP_HEADERS` is unset/false, or the edge proxy has been
-      verified to overwrite spoofed forwarding headers and
-      `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` is set before enabling it.
+- [ ] For the local P1 candidate, prove that Railway's edge overwrites or strips
+      a client-supplied `X-Real-IP`, record the evidence, and only then set
+      `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; without the flag runtime uses
+      direct request identity and `prod:security-smoke` must remain red. Outside
+      Railway, `TRUST_PROXY_IP_HEADERS` remains unset/false unless the edge is
+      verified; only then are both trust and edge-verification flags enabled
+      together.
 - [ ] Verify RLS/security smoke passes (`npm run prod:security-smoke`) and do
       not substitute service-role reads for authenticated AAL2 evidence.
 - [ ] Confirm the AI provider key works (`OPENAI_API_KEY`); otherwise explanations are blank but the app still scores.

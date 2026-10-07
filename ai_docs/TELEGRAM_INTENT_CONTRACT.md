@@ -94,6 +94,64 @@ action and scenario for 20 minutes. Missing, malformed, future or expired
 timestamps, cross-chat state and mismatched message/action/scenario fail
 closed without submitting or mutating a report.
 
+In the local P1 candidate, external Telegram media analysis has a separate,
+shorter consent contract. A Direct image item (photo, image document or video
+frame), Voice item (voice note or audio file) or `/report` screenshot may reach
+the configured vision/STT provider only after the bot displays a localized
+disclosure naming that media form and the user approves that exact prompt. The
+pending request is bound to its prompt message id, current chat, media kind
+(`image`, `voice` or `report_image`) and a
+ten-minute request TTL. `report_image` registration, grant and claim also match
+the UUID `reportFlowId` of the active `report_desc` generation. Approval creates
+one matching private-table grant; the handler must win its atomic update- and
+polling-leader-fenced claim before one external provider operation, then
+revalidate both leases immediately before the raw transfer after any
+download/local-decoding gap. Claim or revoke writes a terminal tombstone without
+extending the original `expires_at`; it lasts only for the TTL remainder, and a
+non-older valid prompt may replace the row earlier. A concurrent/replayed handler
+therefore cannot reuse the grant. Storage/lease failure, an old/cross-chat
+prompt, wrong kind, wrong report generation/scenario or cancel action triggers
+no provider call. The user
+resends redacted media after approval or submits cleaned text instead. The
+authorized raw media is attempted at most once: these consented provider calls
+have no automatic retry or cross-provider fallback and reject HTTP redirects.
+
+Consent does not live in `telegram_sessions.scenario_data`. Candidate migration
+`20260904120000_telegram_media_provider_consent_claim.sql` owns the dedicated
+`private.telegram_media_provider_consents` metadata table and service-role-only
+register/grant/revoke/claim RPCs; it must be applied before the calling
+application is deployed. Production rollout must freeze other changes, disable
+delivery without dropping pending updates and disable raw-media provider
+access, drain the old image plus polling leader/in-flight leases, apply and read
+back the migration, deploy/verify the consent-aware application while still
+disabled, prove the old image is gone, then restore provider access, re-enable
+polling and verify its new leader/frontier. Post-migration rollback may target
+only a reviewed consent-aware artifact. The table contains
+only user/chat/kind/prompt,
+ordering/expiry and terminal metadata. It never contains Telegram file ids, raw
+image/audio bytes, OCR, transcripts or provider output. The grant remains linked
+to the original prompt until claimed, revoked or expired so its exact Cancel
+button can revoke an unused grant. `reportFlowId` remains in the report draft as
+a non-secret generation marker, not as consent. The application exposes this
+boundary only inside single-leader polling; webhook/non-polling execution stops
+before a consent RPC/provider call. Within polling, local QR decoding may run
+without a provider grant and may avoid the provider entirely. The consent
+boundary does not claim reliable pixel/audio secret detection; users are
+explicitly told to crop, cover or omit OTP/PIN/CVV/password/card/seed,
+private-key or document data before resending.
+
+RPC error, malformed result or lost response is storage ambiguity. It is
+propagated so the polling lifecycle can retry the Telegram update; it is not
+treated as success or a normal missing grant. Register/grant/revoke accept a
+same-update replay, while the atomic claim never returns a second winner. If a
+claim committed but its response was lost, replay performs no provider I/O.
+This permits a safe false negative rather than a duplicate raw-media transfer.
+The disclosure prompt and grant/cancel confirmation are retried only when
+Telegram returns a definitive retryable no-effect result: a sanitized
+control-flow error keeps the same polling update behind the frontier. Ambiguous
+or non-retryable delivery does not trigger another send, avoiding a duplicate
+visible prompt or confirmation.
+
 Adding an intent requires updating its typed source list; contract cardinality
 tests then require a matching canonical entry. New user artifacts always bypass
 follow-up helpers and enter a fresh risk check. A confidence/methodology phrase

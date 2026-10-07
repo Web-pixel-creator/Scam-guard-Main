@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hashIdentifier, isHashPepperConfigured } from "./hash";
 import { checkRateLimit, type RateLimitResult } from "./rate-limit";
+import { isProtectedServerRuntime } from "@/lib/runtime-env.server";
 
 export type SharedRateLimitScope = "check" | "report" | "telegram_public_post" | "appeal";
 
@@ -60,7 +61,7 @@ function localFallback(
 }
 
 function isProductionRuntime(): boolean {
-  return process.env.NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT?.trim());
+  return isProtectedServerRuntime();
 }
 
 function degradedResult(windowMs: number): RateLimitResult {

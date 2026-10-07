@@ -3,8 +3,9 @@
 //
 // Goal: prove the web contract did NOT change once the pipeline moved into
 // `runCheck`/`ocrExtractCore`:
-//   - the rate-limit key is still IP-based, in the exact `check:<ip>` form
-//     (cf-connecting-ip → x-real-ip → getRequestIP → "unknown"), never tg:/user-based;
+//   - the rate-limit key is still IP-based, in the exact `check:<ip>` form;
+//     Railway uses X-Real-IP while generic forwarding requires explicit trust
+//     and edge verification, and neither path ever uses tg:/user identity;
 //   - `channel: "web"` is forwarded to the core;
 //   - the response is the core's `RunCheckResult` passed through verbatim
 //     (same keys, same values) — identical to the pre-refactor shape.
@@ -226,12 +227,16 @@ beforeEach(() => {
   hoisted.sharedRateLimitCalls.length = 0;
   hoisted.sharedRateLimitResults.length = 0;
   delete process.env.TRUST_PROXY_IP_HEADERS;
+  delete process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED;
+  delete process.env.RAILWAY_ENVIRONMENT_ID;
+  delete process.env.RAILWAY_ENVIRONMENT_NAME;
+  delete process.env.RAILWAY_DEPLOYMENT_ID;
 });
 
 describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
   it("ignores spoofable forwarding headers by default when building the rate-limit key", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
-    // Other sources also set, to prove cf-connecting-ip wins (priority unchanged).
+    // Other sources are also set to prove they remain ignored without trust.
     hoisted.headers["x-real-ip"] = "198.51.100.9";
     hoisted.requestIp = "192.0.2.1";
 
@@ -243,8 +248,9 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     expect(params.channel).toBe("web");
   });
 
-  it("uses trusted proxy headers only when explicitly enabled", async () => {
+  it("uses generic proxy headers only when trust and edge verification are enabled", async () => {
     process.env.TRUST_PROXY_IP_HEADERS = "true";
+    process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED = "true";
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
     hoisted.headers["x-real-ip"] = "198.51.100.9";
     hoisted.requestIp = "192.0.2.1";
@@ -518,17 +524,35 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
 });
 
 describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
-  it("delegates to ocrExtractCore with image, lang and the same `check:<ip>` key", async () => {
+  it("requires explicit external-provider consent before delegating to OCR", async () => {
+    const image = "data:image/png;base64,AAAA";
+
+    await expect(ocrExtract({ data: { image, lang: "ru" } })).rejects.toBeDefined();
+    await expect(
+      ocrExtract({ data: { image, lang: "ru", externalProviderConsent: false } }),
+    ).rejects.toBeDefined();
+
+    expect(hoisted.ocrCalls).toHaveLength(0);
+  });
+
+  it("delegates a consented image with one attempt and no provider fallback", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
     hoisted.requestIp = "192.0.2.1";
 
-    await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "en" } });
+    await ocrExtract({
+      data: {
+        image: "data:image/png;base64,AAAA",
+        lang: "en",
+        externalProviderConsent: true,
+      },
+    });
 
     expect(hoisted.ocrCalls).toHaveLength(1);
-    const [image, lang, rateLimitKey] = hoisted.ocrCalls[0];
+    const [image, lang, rateLimitKey, providerOptions] = hoisted.ocrCalls[0];
     expect(image).toBe("data:image/png;base64,AAAA");
     expect(lang).toBe("en");
     expect(rateLimitKey).toBe("check:192.0.2.1");
+    expect(providerOptions).toEqual({ maxAttempts: 1, allowFallback: false });
   });
 
   it("rejects non-image or malformed data URLs before the OCR core", async () => {
@@ -541,7 +565,9 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
     ];
 
     for (const image of invalidImages) {
-      await expect(ocrExtract({ data: { image, lang: "ru" } })).rejects.toBeDefined();
+      await expect(
+        ocrExtract({ data: { image, lang: "ru", externalProviderConsent: true } }),
+      ).rejects.toBeDefined();
     }
 
     expect(hoisted.ocrCalls).toHaveLength(0);
@@ -550,14 +576,22 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
   it("rejects decoded images larger than the web screenshot byte limit", async () => {
     const oversized = `data:image/png;base64,${"A".repeat(5_600_000)}`;
 
-    await expect(ocrExtract({ data: { image: oversized, lang: "ru" } })).rejects.toBeDefined();
+    await expect(
+      ocrExtract({ data: { image: oversized, lang: "ru", externalProviderConsent: true } }),
+    ).rejects.toBeDefined();
     expect(hoisted.ocrCalls).toHaveLength(0);
   });
 
   it("allows png, jpeg and webp data URLs after validation", async () => {
-    await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "ru" } });
-    await ocrExtract({ data: { image: "data:image/jpeg;base64,BBBB", lang: "ru" } });
-    await ocrExtract({ data: { image: "data:image/webp;base64,CCCC", lang: "ru" } });
+    await ocrExtract({
+      data: { image: "data:image/png;base64,AAAA", lang: "ru", externalProviderConsent: true },
+    });
+    await ocrExtract({
+      data: { image: "data:image/jpeg;base64,BBBB", lang: "ru", externalProviderConsent: true },
+    });
+    await ocrExtract({
+      data: { image: "data:image/webp;base64,CCCC", lang: "ru", externalProviderConsent: true },
+    });
 
     expect(hoisted.ocrCalls.map(([image]) => image)).toEqual([
       "data:image/png;base64,AAAA",
@@ -567,7 +601,9 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
   });
 
   it("defaults lang to 'ru' and reuses the IP-based key (unknown when no IP)", async () => {
-    await ocrExtract({ data: { image: "data:image/png;base64,BBBB" } });
+    await ocrExtract({
+      data: { image: "data:image/png;base64,BBBB", externalProviderConsent: true },
+    });
 
     const [, lang, rateLimitKey] = hoisted.ocrCalls[0];
     expect(lang).toBe("ru");

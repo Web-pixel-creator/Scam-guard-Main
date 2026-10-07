@@ -3,6 +3,101 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-098 - Web OCR consent is explicit but request-scoped
+
+**Status: local candidate on 2026-09-04; not deployed.** Web screenshot OCR
+requires the explicit upload action to send the literal
+`externalProviderConsent=true`. The server accepts one provider attempt and no
+fallback for that HTTP request, and the shared fetch transport rejects
+redirects. This is not the durable Telegram media-consent table/claim contract:
+the client loading flag only suppresses an immediate duplicate dispatch, while
+a retry or later repeated request may transmit the same image again. Durable
+client/server idempotency is an explicit P2 follow-up, not a closed property.
+
+## D-097 - Public security boundaries are non-enumerating and environment-specific
+
+**Status: local candidate on 2026-09-04; not deployed.** Public reputation
+appeal submission returns the same `{ ok: true }` shape whether the target is
+new or already has an open appeal; deduplication remains private moderation
+state. Telegram webhook tokens are compared as fixed-length SHA-256 digests
+with `timingSafeEqual`, after which the existing token-first body boundary is
+unchanged.
+
+Railway public-rate-limit identity accepts a syntactically valid `X-Real-IP`
+only when `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; without that explicit
+gate it ignores the header and uses the direct socket identity. The flag is a
+release prerequisite only after evidence proves that Railway's edge overwrites
+or strips client-supplied `X-Real-IP`; Railway production security smoke fails
+until then. Outside Railway, `CF-Connecting-IP`, `X-Real-IP` and forwarded
+request identity are accepted only when both `TRUST_PROXY_IP_HEADERS=true` and
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`. Production/Railway admin server
+paths likewise accept only explicit `REQUIRE_ADMIN_MFA_AAL2=true`; explicit
+`false`, missing, empty or invalid values fail closed. Development/test may
+still opt out explicitly. These are candidate semantics until the reviewed
+release is deployed and read back.
+
+## D-096 - External Telegram media requires one-item informed consent
+
+**Status: local candidate on 2026-09-04; not deployed.** A Direct image, Voice
+message or `/report` screenshot may reach the configured external vision/STT
+provider only after the bot sends a localized disclosure and the user approves
+the exact prompt. The pending request is bound to its prompt message, chat,
+media kind and an expiry ten minutes after the request. A report screenshot is
+also bound to the UUID `reportFlowId` of the active `report_desc` generation, so
+an older report prompt cannot authorize a newer report. Approval creates one
+media-kind-specific grant; the next matching handler must atomically claim it
+before provider I/O and must revalidate the update/leader leases immediately
+before the raw transfer after any download/local-decoding gap. Mismatch, expiry,
+cross-chat/report reuse, lease loss or storage uncertainty fails closed. The
+user must resend the redacted media after approval. The exact still-visible
+Cancel button revokes an unused grant; the user may then submit cleaned text
+instead. The authorized raw payload is transmitted at most once: provider retry
+and cross-provider fallback are disabled, and raw-provider fetches reject
+redirects.
+
+Consent state is not session JSON. Migration
+`20260904120000_telegram_media_provider_consent_claim.sql` owns
+`private.telegram_media_provider_consents` and service-role-only
+register/grant/revoke/claim RPCs. Every transition is fenced by the current
+Telegram update lease and polling-leader lease. The application adapter rejects
+webhook/non-polling use before any consent RPC; SQL claim independently refuses
+a missing polling-leader token. Claim/revoke writes a terminal tombstone, so
+concurrent or replayed handlers cannot win twice. Terminal state preserves the
+original `expires_at` and therefore lasts only for the remaining portion of the
+request's ten-minute TTL, unless a non-older valid prompt registration replaces
+the row first; scheduled retention removes expired rows. The table contains
+only user/chat/kind/prompt/report-generation, lease-ordering timestamps and
+terminal metadata—never a Telegram file id, image/audio bytes, OCR, transcript
+or provider payload.
+
+An RPC error, malformed response or lost response is an ambiguous storage
+outcome. The handler propagates it so the polling update remains retryable;
+same-update register/grant/revoke replay is idempotent, while claim can return
+`applied=true` only once. If claim committed but its response was lost, update
+replay performs no provider call. This deliberate false-negative boundary is
+safer than retransmitting raw media.
+
+Consent prompt and grant/cancel confirmation delivery follows the same
+certainty discipline as other durable Telegram effects. A definitive retryable
+no-effect result throws a sanitized control-flow error so polling replays the
+same update. Ambiguous and non-retryable outcomes are acknowledged without a
+second send, preventing duplicate visible prompts or confirmations.
+
+The migration must be applied before the calling application is deployed. The
+production cutover must freeze unrelated changes, disable Telegram delivery
+without dropping queued updates and disable raw-media provider access, drain the
+old image plus leader/in-flight leases, apply and read back the migration,
+deploy and verify the consent-aware application while both remain disabled,
+prove the old image is gone, then restore provider access, re-enable
+single-leader polling and verify the new frontier. Afterward, rollback may use
+only a reviewed consent-aware artifact; otherwise remain disabled and roll
+forward.
+
+Within polling mode, local QR decoding may still produce deterministic evidence
+when no provider grant exists, but it does not authorize an external transfer.
+This contract is consent for one provider operation, not a claim that arbitrary
+secrets can be detected reliably inside pixels or audio.
+
 ## D-095 - Backup workflow code is not operating recovery evidence
 
 **Status: active, reconciled 2026-08-28.** PR #133 merged an initial candidate,
@@ -663,6 +758,9 @@ referrer policy and the widget's public-only API surface. If we ever need to
 host untrusted partner code in the frame, move it to a separate origin first.
 
 ## D-051 - Public rate-limit IP trust is opt-in
+
+**Historical deployed rule; superseded for the local P1 Railway candidate by
+D-097.**
 
 Public check, report and appeal rate-limit keys must ignore client-supplied
 proxy IP headers unless `TRUST_PROXY_IP_HEADERS=true`. That opt-in is valid only

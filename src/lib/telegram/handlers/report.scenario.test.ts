@@ -138,13 +138,18 @@ const h = vi.hoisted(() => ({
     },
   },
   nextMessageId: { current: undefined as number | undefined },
+  consentResult: { current: "consumed" as "consumed" | "missing" | "storage" | "stale" },
+  transferLeaseCurrent: { current: true },
+  saveResult: {
+    current: { ok: true } as { ok: true } | { ok: false; reason: "storage" | "stale" },
+  },
 }));
 
 // Session store — capture the persisted patches, never hit Supabase.
 vi.mock("@/lib/telegram/session.server", () => ({
   saveSession: (userId: number, patch: SavePatch) => {
     h.saveCalls.push({ userId, patch });
-    return Promise.resolve({ ok: true });
+    return Promise.resolve(h.saveResult.current);
   },
   resetScenario: (userId: number) => {
     h.resetCalls.push(userId);
@@ -178,11 +183,35 @@ vi.mock("@/lib/telegram/api.server", () => ({
 }));
 
 vi.mock("@/lib/risk/check-core", () => ({
-  analyzeImageCore: async (dataUrl: string, lang: string, rateLimitKey: string) => {
+  analyzeImageCore: async (
+    dataUrl: string,
+    lang: string,
+    rateLimitKey: string,
+    options?: { beforeProviderTransfer?: () => Promise<void> },
+  ) => {
+    await options?.beforeProviderTransfer?.();
     h.imageAnalysisCalls.push({ dataUrl, lang, rateLimitKey });
     if (h.imageError.current) throw h.imageError.current;
     return h.imageEvidence.current;
   },
+}));
+
+vi.mock("@/lib/telegram/media-provider-consent.server", () => ({
+  consumeMediaProviderConsent: () => Promise.resolve(h.consentResult.current),
+  isMediaProviderConsentStorageError: (error: unknown) =>
+    error instanceof Error && error.message === "media_provider_consent_storage",
+  requestMediaProviderConsent: (context: HandlerCtx, kind: string) => {
+    h.sendCalls.push({
+      chatId: context.chatId,
+      text: "provider consent required",
+      keyboard: [[{ text: "allow", callback_data: `media_consent:${kind}` }]],
+    });
+    return Promise.resolve(true);
+  },
+  assertMediaProviderTransferAllowed: async () => {
+    if (!h.transferLeaseCurrent.current) throw new Error("media_provider_consent_storage");
+  },
+  sendMediaProviderConsentFailure: () => Promise.resolve(),
 }));
 
 vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
@@ -250,6 +279,7 @@ import { REPORT_CALLBACK_BINDING_TTL_MS } from "../report-flow";
 const USER_ID = 777;
 const CHAT_ID = 555;
 const REPORT_CALLBACK_TEST_NOW = new Date("2026-08-13T08:00:00.000Z");
+const REPORT_FLOW_ID = "4a761fe8-d3d6-4ff4-996c-59bef651ed86";
 
 function makeCtx(session: Partial<Session> = {}): HandlerCtx {
   return {
@@ -265,6 +295,23 @@ function makeCtx(session: Partial<Session> = {}): HandlerCtx {
       ...session,
     },
   };
+}
+
+function reportImageScenarioData(data: ReportDraft, withConsent = true): ReportDraft {
+  h.consentResult.current = withConsent ? "consumed" : "missing";
+  return {
+    ...data,
+    reportFlowId: REPORT_FLOW_ID,
+    chatScope: { chatId: CHAT_ID, chatType: "private" },
+  };
+}
+
+function callbackData(keyboard: unknown): string[] {
+  if (!Array.isArray(keyboard)) return [];
+  return (keyboard as { callback_data?: string }[][])
+    .flat()
+    .map((button) => button.callback_data)
+    .filter((value): value is string => typeof value === "string");
 }
 
 /** Apply a persisted patch onto the ctx session, exactly as the router would by
@@ -335,6 +382,9 @@ beforeEach(() => {
   h.mediaAdmissionCalls.length = 0;
   h.mediaAdmissionResult.current = { ok: true, remaining: 9, retryAfterSec: 0 };
   h.nextMessageId.current = undefined;
+  h.consentResult.current = "consumed";
+  h.transferLeaseCurrent.current = true;
+  h.saveResult.current = { ok: true };
 });
 
 afterEach(() => {
@@ -357,7 +407,10 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       patch: {
         scenario: "report_value",
         scenarioStep: 0,
-        scenarioData: { chatScope: { chatId: CHAT_ID, chatType: "private" } },
+        scenarioData: {
+          chatScope: { chatId: CHAT_ID, chatType: "private" },
+          reportFlowId: expect.stringMatching(/^[0-9a-f-]{36}$/u),
+        },
       },
     });
     // Asks for the value on the current language.
@@ -365,11 +418,24 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
     expect(sentKeyboardData()).toContain(REPORT_NO_VALUE_CALLBACK);
   });
 
+  it("does not show the first report prompt when the new flow was not persisted", async () => {
+    h.saveResult.current = { ok: false, reason: "storage" };
+    const ctx = makeCtx({ scenario: "none" });
+
+    await startReport(ctx);
+
+    expect(h.saveCalls).toHaveLength(1);
+    expect(sentTexts()).toEqual([bt("report_start_save_failed", "ru")]);
+    expect(sentTexts()).not.toContain(bt("report_ask_value", "ru"));
+  });
+
   it("advances value → desc → scamType → city → amount, saving each transition", async () => {
     const ctx = makeCtx({ scenario: "none" });
 
     await startReport(ctx); // save #1 → report_value
     applyPatch(ctx, h.saveCalls[0].patch);
+    const reportFlowId = ctx.session.scenarioData.reportFlowId;
+    expect(reportFlowId).toMatch(/^[0-9a-f-]{36}$/u);
 
     const sValue = await runStep(ctx, "+998901234567"); // → report_desc
     const sDesc = await runStep(ctx, "Звонили из банка и просили код из СМС"); // → report_scamType
@@ -384,6 +450,7 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenarioData: {
         target: expectedTarget("+998901234567"),
         chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportFlowId,
       },
     });
     expect(sDesc[0]).toEqual({
@@ -392,6 +459,7 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenarioData: {
         target: expectedTarget("+998901234567"),
         chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportFlowId,
         description: "Звонили из банка и просили код из СМС",
       },
     });
@@ -401,6 +469,7 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenarioData: {
         target: expectedTarget("+998901234567"),
         chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportFlowId,
         description: "Звонили из банка и просили код из СМС",
         scamType: "фейковый банк",
       },
@@ -411,6 +480,7 @@ describe("/report — persists telegram_sessions on every step (R15.2)", () => {
       scenarioData: {
         target: expectedTarget("+998901234567"),
         chatScope: { chatId: CHAT_ID, chatType: "private" },
+        reportFlowId,
         description: "Звонили из банка и просили код из СМС",
         scamType: "фейковый банк",
         city: "Ташкент",
@@ -765,6 +835,30 @@ describe("/report — callback prompt integrity", () => {
 // ===========================================================================
 
 describe("/report — screenshot evidence in report_desc", () => {
+  it("does not download or analyze report screenshots before explicit provider consent", async () => {
+    h.consentResult.current = "missing";
+    h.imageEvidence.current = {
+      text: "password: synthetic-test-secret",
+      visualCategory: "unknown",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown", decodedValues: [] },
+      riskHints: [],
+      summary: "credential screenshot",
+    };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: { target: expectedTarget("@scammer_bank") },
+    });
+
+    await handleScenarioImage("unconsented-report-image", ctx);
+
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    expect(h.imageAnalysisCalls).toHaveLength(0);
+    expect(callbackData(h.sendCalls[0]?.keyboard)).toContain("media_consent:report_image");
+  });
+
   it("turns usable screenshot evidence into a short redacted draft description", async () => {
     h.imageEvidence.current = {
       text: null,
@@ -783,7 +877,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { target: expectedTarget("@scammer_bank") },
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -809,6 +903,47 @@ describe("/report — screenshot evidence in report_desc", () => {
     expect(sentTexts()).toContain(bt("report_ask_scam_type", "ru"));
   });
 
+  it("does not announce or advance a report image when the extracted draft was not saved", async () => {
+    h.imageEvidence.current = {
+      text: null,
+      visualCategory: "qr_login_or_payment",
+      confidence: "high",
+      qr: { present: true, visibleUrl: null, purpose: "login", decodedValues: [] },
+      riskHints: [],
+      summary: "Подозрительная форма входа просит подтвердить данные",
+    };
+    h.saveResult.current = { ok: false, reason: "storage" };
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
+    });
+
+    await handleScenarioImage("photo-file-id", ctx);
+
+    expect(h.imageAnalysisCalls).toHaveLength(1);
+    expect(h.saveCalls).toHaveLength(1);
+    expect(sentTexts()).toEqual([bt("report_image_save_failed", "ru")]);
+    expect(sentTexts()).not.toContain(bt("report_ask_scam_type", "ru"));
+  });
+
+  it("does not invoke vision when the update lease is lost after download", async () => {
+    h.transferLeaseCurrent.current = false;
+    const ctx = makeCtx({
+      scenario: "report_desc",
+      scenarioStep: 1,
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
+    });
+
+    await expect(handleScenarioImage("stale-report-image", ctx)).rejects.toThrow(
+      "media_provider_consent_storage",
+    );
+
+    expect(h.getFileCalls).toEqual(["stale-report-image"]);
+    expect(h.downloadCalls).toEqual(["photos/file.jpg"]);
+    expect(h.imageAnalysisCalls).toHaveLength(0);
+  });
+
   it("asks for a typed description when screenshot evidence is unreadable", async () => {
     h.imageEvidence.current = {
       text: null,
@@ -821,7 +956,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { target: expectedTarget("@scammer_bank") },
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -835,7 +970,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { target: expectedTarget("@scammer_bank") },
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
     });
 
     await handleScenarioImage("photo-file-id", ctx);
@@ -849,7 +984,7 @@ describe("/report — screenshot evidence in report_desc", () => {
     const ctx = makeCtx({
       scenario: "report_desc",
       scenarioStep: 1,
-      scenarioData: { target: expectedTarget("@scammer_bank") },
+      scenarioData: reportImageScenarioData({ target: expectedTarget("@scammer_bank") }),
     });
 
     await handleScenarioImage("rate-limited-photo", ctx);
@@ -963,6 +1098,28 @@ describe("/report — submit failure handling (R6.8, R15.5)", () => {
 // ===========================================================================
 
 describe("/report — validation keeps the step in place (R6.5, R6.6)", () => {
+  it.each([
+    ["report_value", 0, "kodim: 4821"],
+    ["report_desc", 1, "password=CompletelyAlphabeticPassword"],
+  ] as const)(
+    "keeps pasted secrets out of the %s draft and report pipeline",
+    async (scenario, scenarioStep, secret) => {
+      const ctx = makeCtx({
+        scenario,
+        scenarioStep,
+        scenarioData: { reportFlowId: REPORT_FLOW_ID },
+      });
+
+      await handleScenarioStep(secret, ctx);
+
+      expect(h.saveCalls).toHaveLength(0);
+      expect(h.submitCalls).toHaveLength(0);
+      expect(sentTexts().join("\n")).toMatch(/скрыт|не сообщайте/iu);
+      expect(sentTexts().join("\n")).not.toContain(secret);
+      expect(ctx.session.scenario).toBe(scenario);
+    },
+  );
+
   it("rejects a value longer than 500 chars without advancing (R6.6)", async () => {
     const ctx = makeCtx({ scenario: "report_value", scenarioStep: 0, scenarioData: {} });
     await handleScenarioStep("a".repeat(501), ctx);

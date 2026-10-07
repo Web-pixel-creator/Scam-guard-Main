@@ -57,7 +57,15 @@ const ocrSchema = z.object({
       return parsed.dataUrl;
     }),
   lang: z.enum(["ru", "uz", "en"]).default("ru"),
+  // A raw screenshot may leave the app only after the user confirms the
+  // external-provider disclosure shown for this specific upload.
+  externalProviderConsent: z.literal(true),
 });
+
+const WEB_OCR_PROVIDER_OPTIONS = {
+  maxAttempts: 1,
+  allowFallback: false,
+} as const;
 
 // Thin web wrapper: extract IP → build `check:<ip>` key → delegate to the core.
 // Behaviour is unchanged: same rate-limit key, 10/60_000 limit, response shape
@@ -109,7 +117,12 @@ export const checkInput = createServerFn({ method: "POST" })
 export const ocrExtract = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ocrSchema.parse(data))
   .handler(async ({ data }) => {
-    return ocrExtractCore(data.image, data.lang, publicRateLimitKey("check"));
+    return ocrExtractCore(
+      data.image,
+      data.lang,
+      publicRateLimitKey("check"),
+      WEB_OCR_PROVIDER_OPTIONS,
+    );
   });
 
 async function loadPublicStatsUncached(): Promise<PublicStats> {

@@ -2,6 +2,155 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-10-07 - Approved edge probe blocked; fresh production offline read-back
+
+- Owner approved a disposable isolated probe, not a plan purchase/transfer or
+  production release. Prepared a dependency-free fingerprint-only diagnostic
+  outside application worktrees; local spoof positive control passed.
+- Native project creation failed on expired trial in the production workspace.
+  Fresh inventory verified zero created probe projects; no upload/resource
+  cleanup was required. A different Hobby workspace was not used.
+- Browser showed production offline/no active deployment; `/healthz` returned
+  404; CLI independently read prior deployment `94d3fef2` as `REMOVED`.
+  Exact removal time/actor is unknown. Historical canary is not current health.
+- Recorded the immediate owner billing/recovery decision before live edge proof.
+  No production mutation, migration, trust enablement, merge or provider call.
+  PR #149 stays Draft/HOLD; all existing release/design gates remain separate.
+
+## 2026-10-07 - Hosted gates and real local admin review reconciled
+
+- Recorded PR #149 application head `c67fca7` hosted 7/7 PASS, exact CI/Security
+  run IDs, the normal 15,509-test command and repaired container scan. Retained
+  the earlier failed scan and local timeout history as evidence.
+- Completed real local Supabase Auth/TOTP AAL2 admin review at the eight
+  required widths. Four read-only server functions admitted the AAL2 control
+  and rejected AAL1/non-admin/unauthenticated controls; no auth/RPC mock was used.
+- Preserved the production CSP with a loopback-only same-origin API adapter;
+  retained the initial CSP/protocol/selector failed attempts rather than
+  presenting those harness corrections as application fixes.
+- Documented a 320px filter-label fit defect as a separate UI follow-up;
+  design/source/CSS were not changed. Synthetic local fixtures were removed
+  and read back; own browser, servers and local stack were stopped.
+- Railway inventory contains only production. Edge-header trust remains
+  unverified/off; creating a temporary isolated diagnostic service requires
+  owner approval. No production mutation or paid provider call occurred.
+
+## 2026-10-07 - Paused security/privacy candidate re-gated
+
+- Reverified unchanged GitHub `main` at PR #144 `7e8ac7fe`; candidate source is
+  still isolated and not deployed. Labelled August snapshots historical and
+  recorded the prior September 20 canary closure separately.
+- Re-ran the 191-file local suite (15,509 passing tests), TypeScript, lint and
+  build. Applied all 34 migrations only to a fresh, separately named local
+  Supabase database; SQL lint and all 154 pgTAP assertions passed.
+- Executed the persisted direct-PostgreSQL concurrency proof twice: independent
+  sessions, observed barriers/locks, exactly one winner, replay miss and
+  verified fixture cleanup. Corrected the old two-client wording.
+- Checked eight required widths for homepage consent UI and unauthenticated
+  admin/login. Cancel dispatched no server function. Authenticated admin
+  content, real Telegram clients and Railway edge behavior remain unverified.
+- Added dated candidate evidence, retaining Draft/HOLD, hosted-CI and separate
+  migration-first owner-release gates. No production credentials changed.
+- The first hosted container scan found seven fixed High/Critical advisories in
+  inherited Debian `perl-base` (`deb12u3`). Added a package-only security update
+  with a `deb12u4` minimum-version build assertion; kept Trivy policy unchanged.
+  Fresh scan evidence is required before describing the container gate as green.
+- Pinned Docker's Bun builder to CI's 1.3.14 and excluded local QA/browser
+  artifacts from its context. Built the final image and read back patched Perl
+  and non-root UID 1000. Preserved two local timeout-failed runs; focused 334/334
+  and the full 15,509/15,509 with two workers passed without raising timeouts.
+
+## 2026-09-04 - P1 security/privacy boundary candidate documented locally
+
+- Recorded the local review candidate on
+  `agent/security-privacy-boundaries-20260904`; it is not merged, deployed or
+  eligible canary evidence.
+- Added a prompt-message-, chat- and media-kind-bound consent contract, expiring
+  ten minutes after the request, for one external Direct image item (photo,
+  image document or video frame), Voice item (voice note or audio file) or
+  `/report` screenshot provider operation. Report screenshots also bind the
+  registration, grant and claim to the active non-secret `reportFlowId`. The
+  revised review architecture stores consent metadata in
+  `private.telegram_media_provider_consents`, not session JSON, and uses
+  service-role-only register/grant/revoke/claim RPCs fenced by the current
+  Telegram update and polling-leader leases. Claim is an atomic one-winner
+  transition; the same leases are revalidated immediately before provider I/O
+  after any local download/decoding gap. A consume/revoke tombstone lasts only
+  for the remainder of the original request TTL; it does not receive a new
+  ten-minute lifetime, and a non-older prompt registration may replace it earlier.
+- Restricted the raw-media consent path to single-leader polling. The adapter
+  rejects webhook/non-polling execution before an RPC/provider call. RPC errors,
+  malformed/lost responses and claim ambiguity propagate as retryable polling
+  update failures; provider I/O is never blindly retried, and a response-lost
+  committed claim becomes a safe no-provider replay. Raw-media provider fetches
+  use `redirect: "error"` and the one-attempt/no-fallback policy.
+- Kept Web OCR separate from that durable Telegram contract. The local candidate
+  requires an explicit UI action carrying `externalProviderConsent=true` and
+  allows one provider attempt without fallback per HTTP request. Its client
+  loading guard is immediate duplicate suppression only; retries or repeated
+  dispatch can send the image again, so durable Web OCR idempotency remains P2.
+- Added unapplied migration
+  `20260904120000_telegram_media_provider_consent_claim.sql`, including expiry
+  pruning through `private.prune_app_retention()`. The migration must be applied
+  and verified before the application that calls the RPCs is deployed.
+- Recorded the proposed Railway client identity policy: accept a validated
+  `X-Real-IP` only behind `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`, otherwise
+  fall back to the direct socket. The release must first prove that Railway's
+  edge overwrites or strips client-supplied `X-Real-IP`, and its production
+  security smoke stays red until the flag is set. Outside Railway, generic proxy
+  headers require both trust and edge-verification flags.
+- Tightened the protected-runtime AAL2 contract so only explicit `true` is
+  accepted, made new/already-open appeal submissions return the same public
+  success shape, and replaced ordinary webhook-token equality with a
+  fixed-length timing-safe comparison.
+- Updated the file/function/API/database/Telegram contracts and coding rules
+  without changing production configuration, secrets, Railway, Supabase or the
+  active runtime. The candidate changes repository schema, but the migration is
+  not applied to any hosted database.
+- Recorded the required production cutover order: freeze changes, disable
+  Telegram delivery without dropping queued updates, drain leader/in-flight
+  leases, apply/read back the migration, deploy and verify while disabled, then
+  re-enable polling and verify its new leader/frontier.
+- Kept the candidate explicitly incomplete pending a real clean-database CI
+  apply, pgTAP and two-session one-winner claim proof. SQL-review P2 follow-ups
+  remain tracked in `OPEN_TASKS.md`; static inspection does not close them.
+- Documented the loopback-only direct-PostgreSQL proof wired after pgTAP in the
+  clean-database CI job. Its code/structural guard is present locally, but the
+  actual database proof is not claimed until that job executes successfully.
+  Its database barrier and lock observations have bounded waits, and CI requires the
+  exact PASS sentinel rather than accepting process exit alone.
+- Recorded the report-image post-analysis save boundary: the candidate advances
+  the report flow and announces success only after `saveSession` succeeds;
+  storage failure gets localized `report_image_save_failed`, while a stale
+  write stays silent. The media-boundary contract now discovers all production
+  `src/` image/STT provider call sites rather than relying on a hand-maintained
+  partial list. The former wrapper was removed; the sole final-fence hook is
+  `assertMediaProviderTransferAllowed` via `beforeProviderTransfer`.
+- Recorded the same fail-closed entry boundary for `startReport`: its first
+  prompt is sent only after the fresh `reportFlowId` draft is saved; storage gets
+  localized `report_start_save_failed`, and a stale save sends no prompt. Both
+  behaviors have candidate TDD coverage.
+- Reconciled the consent SQL plan from 55 to 62 assertions after adding DML ACL,
+  wrong-scope and grant-after-revoke negatives. The loopback database proof now
+  requires two concurrent claims with one winner plus a third replay miss; CI
+  checks its revised exact PASS sentinel. These remain pending execution in the
+  clean-database job, not claimed green evidence.
+- Recorded the consent-message delivery boundary: disclosure prompts and
+  grant/cancel confirmations propagate a sanitized control-flow error only for
+  definitive retryable Telegram no-effect failures so polling retries the same
+  update. Ambiguous/non-retryable outcomes are not resent, avoiding duplicate
+  visible messages.
+- Updated the elderly-realism Direct-media harness for the polling-only consent
+  boundary. Its screenshot and voice rows now use an unsupported/empty consent
+  ledger outside polling and require no actionable approval keyboard,
+  `runCheck`, provider or network call. The focused local result is 66/66; this
+  mocked evidence is not a real polling or provider proof.
+- Tightened recovery documentation: after the consent migration, rollback to a
+  pre-consent application artifact is forbidden. Cutover disables Telegram
+  delivery and raw-media provider credentials, drains old work, applies the
+  migration, verifies the consent-aware application while disabled, proves the
+  old image is gone, and only then restores provider access and polling.
+
 ## 2026-08-28 - PR #141 and production secret cutover reconciled
 
 - Recorded PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`

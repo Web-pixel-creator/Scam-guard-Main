@@ -1,6 +1,11 @@
 # Database
 
-Postgres via Supabase. Schema = `public`. RLS is enabled on all app tables. Source of truth: `supabase/migrations/*.sql`; generated TypeScript types live in `src/integrations/supabase/types.ts`.
+Postgres via Supabase. `public` is the primary exposed application schema;
+internal operational/security objects also live in `private`. RLS is enabled on
+all app tables, and private objects additionally rely on explicit least-
+privilege schema/table/function grants. Source of truth:
+`supabase/migrations/*.sql`; generated TypeScript types live in
+`src/integrations/supabase/types.ts`.
 
 ## Enums
 
@@ -106,6 +111,9 @@ service-role client. Targets and optional contacts are HMAC-hashed before
 storage. Display fields are masked/redacted and intended for admin triage only.
 Reason and contact display use the same sink credential sanitizer; contact
 hashing still uses the normalized original value so deduplication remains stable.
+The local P1 candidate keeps whether an open appeal already existed private:
+new and already-open targets return the same public `{ ok: true }` response.
+This changes no table, RLS or retention behavior.
 
 Admin decisions do not delete reports. A successful removal moves the public
 `entities` record to `moderation_status='rejected'` and `risk_level='unknown'`;
@@ -158,6 +166,54 @@ byte size before an image can reach an external AI provider. Category-only
 benign image labels are not persisted as `safe` without readable supporting
 evidence and deterministic destination scoring; low-signal image checks remain
 `unknown`.
+
+### `private.telegram_media_provider_consents` (local candidate only)
+
+Migration `20260904120000_telegram_media_provider_consent_claim.sql` proposes a
+dedicated metadata-only consent row keyed by `(telegram_user_id, chat_id)`:
+`chat_type, media_kind, report_flow_id, prompt_message_id, requested_at,
+granted_at, terminal_at, terminal_reason, expires_at, last_update_id`. Allowed
+media kinds are `image`, `voice` and `report_image`; terminal reasons are
+`consumed` and `revoked`. `report_flow_id` is required exactly for
+`report_image`, and registration/grant/claim must match the active report
+generation. The UUID itself remains non-secret report-session routing metadata;
+it is not a consent grant in `telegram_sessions`.
+
+The table is private, has RLS enabled and grants no direct access to `PUBLIC`,
+`anon`, `authenticated` or `service_role`. Only service-role execution of the
+SECURITY DEFINER register/grant/revoke/claim RPCs may mutate it. Every RPC first
+validates the current Telegram update lease and processing/leader fences.
+Grant is bound to the exact user, chat, chat type, kind and prompt message.
+Report-image grant and claim also match `report_flow_id`. Claim is one atomic
+conditional update: only one concurrent/replayed handler can write the
+`consumed` tombstone and receive `applied=true`; SQL claim additionally refuses
+execution without a polling-leader token. Revocation writes a `revoked`
+tombstone. Neither terminal transition changes `expires_at`: the tombstone lasts
+only for the remainder of the original request's ten-minute TTL. A non-older
+valid prompt registration may replace the row earlier. After expiry, the
+candidate SQL currently permits a registration with an older `update_id` to
+replace the row; whether expiry should override monotonic ordering is an open P2
+review item and is safe only behind the ordered polling frontier.
+
+The application store exposes these transitions only inside the ordered
+single-leader polling lifecycle. An RPC error, malformed result or lost response
+is storage uncertainty, never a semantic miss/success. It propagates to keep the
+polling update retryable. Register/grant/revoke support same-update replay;
+claim remains one-winner, so a committed claim with a lost response is not
+claimable on replay and cannot cause provider I/O.
+
+Rows contain no Telegram file id, filename, media bytes, text, OCR, transcript,
+provider payload or secret value. This candidate migration is not applied to
+production. It must be applied and verified before the application version that
+calls the new RPCs is deployed. The candidate pgTAP plan now contains 62
+assertions, including DML privilege denials, wrong-scope cases and grant-after-
+revoke denial; those counts are source definitions, not passing database
+evidence. Candidate completion additionally requires the real clean-database CI
+migration/pgTAP run and its loopback two-session proof of exactly one winner
+across two concurrent claims followed by a third replay miss; the structural
+contract test alone is not that database evidence. Production use must then
+follow the delivery-disabled, drained, migration-first rollout in
+`DEPLOYMENT.md`.
 
 ### `telegram_webhook_updates`
 
@@ -287,11 +343,22 @@ reported_loss_uzs)` is service-role-only and called through the web server
   `mark_telegram_update_failure`, `telegram_update_lease_current`,
   `load_telegram_session_fenced` and `save_telegram_session_fenced` are
   service-role-only SECURITY DEFINER functions with empty `search_path`.
+- Candidate RPCs `register_telegram_media_provider_consent`,
+  `grant_telegram_media_provider_consent`,
+  `revoke_telegram_media_provider_consent` and
+  `claim_telegram_media_provider_consent` are service-role-only SECURITY
+  DEFINER transitions over the private consent table. They validate the current
+  Telegram update lease/fences; report registration/grant/claim additionally
+  bind `report_flow_id`; `claim` requires polling-leader ownership, atomically
+  returns one winner and leaves a terminal tombstone without extending expiry.
 - `private.prune_app_retention(as_of timestamptz default now()) -> jsonb`
   deletes rows eligible under the retention windows and returns per-table
   counts. Migration `20260729105030`, applied and pgTAP-verified in isolated
   staging and later applied in production, adds
   `telegram_family_notification_claims_deleted` to that result.
+  Candidate migration `20260904120000` additionally proposes expired consent
+  cleanup and a `telegram_media_provider_consents_deleted` count; it is not
+  production behavior until separately applied and verified.
 - `prune_telegram_sessions()` remains as a legacy service-role-only helper for sessions idle more than 30 days.
 
 ## Retention windows
@@ -308,6 +375,11 @@ confirmed the existing job at `17 20 * * *` and the updated function.
 - `checks`: 90 days.
 - `reports`: terminal states after 365 days; stale `new`/`reviewing` after 180 days.
 - `telegram_sessions`: 30 days after last update.
+- `private.telegram_media_provider_consents`: candidate ten-minute expiry;
+  the clock starts at registration. Consumed/revoked tombstones last only until
+  that original `expires_at`, unless a non-older valid prompt registration
+  replaces the row earlier; after migration apply, scheduled retention removes
+  expired rows.
 - `telegram_webhook_updates`: processing up to 7 days, completed approximately
   3 days / `expires_at <= as_of`.
 - `rate_limit_buckets`: `expires_at <= as_of` (normally one request window plus a short buffer).
@@ -327,6 +399,15 @@ confirmed the existing job at `17 20 * * *` and the updated function.
 - Screenshots are OCR'd/analyzed in memory and discarded. Telegram report
   screenshots are supported only as transient description evidence after the
   shared media admission check; raw images and decoded QR payloads are not stored.
+  In the local P1 candidate, an external Direct-image, Voice or report-image
+  provider call additionally requires a fresh exact prompt/chat/kind grant that
+  wins the atomic lease-fenced database claim before provider I/O. Report images
+  also require the active `reportFlowId`; the whole boundary is polling-only.
+  Consent is not stored in `telegram_sessions`; within polling, local QR decoding
+  without provider I/O is not an external transfer.
+  Web OCR does not use this durable table: its candidate
+  `externalProviderConsent=true` is scoped to one HTTP request and is not stored
+  as an idempotency claim, so a retry/re-dispatch may transmit the image again.
 - Public exposure requires admin moderation.
 - Description-only incident reports are useful for review/research, but they do
   not affect public entity reputation.

@@ -294,7 +294,7 @@ describe("submitReputationAppealCore", () => {
         },
         "appeal:test",
       ),
-    ).resolves.toEqual({ ok: true, duplicate: true });
+    ).resolves.toEqual({ ok: true });
 
     expect(hoisted.hashInputs).toEqual(["@FakeSupportBot"]);
     expect(hoisted.inserts).toHaveLength(1);

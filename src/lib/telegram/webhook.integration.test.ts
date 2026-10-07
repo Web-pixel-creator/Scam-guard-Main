@@ -39,6 +39,30 @@ import process from "node:process";
 import QRCode from "qrcode";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+type TestMediaProviderKind = "image" | "voice" | "report_image";
+
+interface TestMediaProviderConsentRow {
+  telegramUserId: number;
+  chatId: number;
+  chatType: "private" | "group" | "supergroup" | "channel";
+  mediaKind: TestMediaProviderKind;
+  reportFlowId: string | null;
+  promptMessageId: number;
+  requestedAt: number;
+  grantedAt: number | null;
+  terminalAt: number | null;
+  terminalReason: "consumed" | "revoked" | null;
+  expiresAt: number;
+  lastUpdateId: number;
+}
+
+interface TestMediaProviderConsentTransition {
+  name: string;
+  key: string;
+  applied: boolean;
+  updateId: number;
+}
+
 // ---------------------------------------------------------------------------
 // Hoisted capture/control state — referenced inside the (hoisted) vi.mock
 // factories below. Reset in beforeEach.
@@ -65,7 +89,18 @@ const h = vi.hoisted(() => ({
   timeline: [] as string[],
 
   // Image analysis core stub
-  ocrCalls: [] as { dataUrl: string; lang: string; key: string }[],
+  ocrCalls: [] as {
+    dataUrl: string;
+    lang: string;
+    key: string;
+    options: { maxAttempts?: number; allowFallback?: boolean } | undefined;
+  }[],
+  voiceTranscribeCalls: [] as {
+    dataUrl: string;
+    lang: string;
+    key: string;
+    options: { maxAttempts?: number; allowFallback?: boolean } | undefined;
+  }[],
   ocrText: null as string | null,
   imageEvidence: null as unknown,
   voiceTranscript: "caller asks for SMS code",
@@ -79,6 +114,8 @@ const h = vi.hoisted(() => ({
   inserts: [] as { table: string; payload: unknown }[],
   upserts: [] as { table: string; payload: unknown }[],
   rpcs: [] as { name: string; args: Record<string, unknown> }[],
+  mediaConsentRows: new Map<string, TestMediaProviderConsentRow>(),
+  mediaConsentTransitions: [] as TestMediaProviderConsentTransition[],
   sessionRpcResult: {
     data: [{ applied: true, current_update_id: 0 }] as unknown,
     error: null as unknown,
@@ -157,6 +194,114 @@ vi.mock("@/integrations/supabase/client.server", () => {
       },
       rpc: async (name: string, args: Record<string, unknown>) => {
         h.rpcs.push({ name, args });
+        const consentResult = (key: string, updateId: number, applied: boolean) => {
+          h.mediaConsentTransitions.push({ name, key, updateId, applied });
+          return { data: [{ lease_valid: true, applied }], error: null };
+        };
+        if (name === "register_telegram_media_provider_consent") {
+          const userId = Number(args.p_telegram_user_id);
+          const chatId = Number(args.p_chat_id);
+          const updateId = Number(args.p_update_id);
+          const key = `${userId}:${chatId}`;
+          const now = Date.now();
+          const existing = h.mediaConsentRows.get(key);
+          const applied =
+            existing === undefined ||
+            updateId >= existing.lastUpdateId ||
+            existing.expiresAt <= now;
+          if (applied) {
+            h.mediaConsentRows.set(key, {
+              telegramUserId: userId,
+              chatId,
+              chatType: args.p_chat_type as TestMediaProviderConsentRow["chatType"],
+              mediaKind: args.p_media_kind as TestMediaProviderKind,
+              reportFlowId:
+                typeof args.p_report_flow_id === "string" ? args.p_report_flow_id : null,
+              promptMessageId: Number(args.p_prompt_message_id),
+              requestedAt: now,
+              grantedAt: null,
+              terminalAt: null,
+              terminalReason: null,
+              expiresAt: now + 10 * 60 * 1_000,
+              lastUpdateId: updateId,
+            });
+          }
+          return consentResult(key, updateId, applied);
+        }
+        if (name === "grant_telegram_media_provider_consent") {
+          const userId = Number(args.p_telegram_user_id);
+          const chatId = Number(args.p_chat_id);
+          const updateId = Number(args.p_update_id);
+          const key = `${userId}:${chatId}`;
+          const now = Date.now();
+          const row = h.mediaConsentRows.get(key);
+          const applied = Boolean(
+            row &&
+            row.chatType === args.p_chat_type &&
+            row.mediaKind === args.p_media_kind &&
+            row.reportFlowId === (args.p_report_flow_id ?? null) &&
+            row.promptMessageId === Number(args.p_prompt_message_id) &&
+            row.requestedAt <= now &&
+            row.expiresAt >= now &&
+            row.terminalAt === null &&
+            ((row.grantedAt === null && updateId >= row.lastUpdateId) ||
+              (row.grantedAt !== null && updateId === row.lastUpdateId)),
+          );
+          if (row && applied) {
+            row.grantedAt = now;
+            row.lastUpdateId = updateId;
+          }
+          return consentResult(key, updateId, applied);
+        }
+        if (name === "revoke_telegram_media_provider_consent") {
+          const userId = Number(args.p_telegram_user_id);
+          const chatId = Number(args.p_chat_id);
+          const updateId = Number(args.p_update_id);
+          const key = `${userId}:${chatId}`;
+          const now = Date.now();
+          const row = h.mediaConsentRows.get(key);
+          const applied = Boolean(
+            row &&
+            row.chatType === args.p_chat_type &&
+            row.promptMessageId === Number(args.p_prompt_message_id) &&
+            row.requestedAt <= now &&
+            row.expiresAt >= now &&
+            ((row.terminalAt === null && updateId >= row.lastUpdateId) ||
+              (row.terminalReason === "revoked" && updateId === row.lastUpdateId)),
+          );
+          if (row && applied) {
+            row.terminalAt = now;
+            row.terminalReason = "revoked";
+            row.lastUpdateId = updateId;
+          }
+          return consentResult(key, updateId, applied);
+        }
+        if (name === "claim_telegram_media_provider_consent") {
+          const userId = Number(args.p_telegram_user_id);
+          const chatId = Number(args.p_chat_id);
+          const updateId = Number(args.p_update_id);
+          const key = `${userId}:${chatId}`;
+          const now = Date.now();
+          const row = h.mediaConsentRows.get(key);
+          const applied = Boolean(
+            row &&
+            row.chatType === args.p_chat_type &&
+            row.mediaKind === args.p_media_kind &&
+            row.reportFlowId === (args.p_report_flow_id ?? null) &&
+            row.requestedAt <= now &&
+            row.expiresAt >= now &&
+            row.grantedAt !== null &&
+            row.grantedAt <= now &&
+            row.terminalAt === null &&
+            updateId > row.lastUpdateId,
+          );
+          if (row && applied) {
+            row.terminalAt = now;
+            row.terminalReason = "consumed";
+            row.lastUpdateId = updateId;
+          }
+          return consentResult(key, updateId, applied);
+        }
         if (name === "begin_telegram_update") {
           return {
             data: [
@@ -172,6 +317,9 @@ vi.mock("@/integrations/supabase/client.server", () => {
           };
         }
         if (name === "complete_telegram_update" || name === "mark_telegram_update_failure") {
+          return { data: true, error: null };
+        }
+        if (name === "telegram_update_lease_current") {
           return { data: true, error: null };
         }
         if (name === "load_telegram_session_fenced") {
@@ -225,20 +373,37 @@ vi.mock("@/lib/risk/check-core", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/risk/check-core")>();
   return {
     ...actual,
-    analyzeImageCore: vi.fn(async (dataUrl: string, lang: string, key: string) => {
-      h.ocrCalls.push({ dataUrl, lang, key });
-      if (h.imageEvidence) return h.imageEvidence;
-      if (h.ocrText === null) return null;
-      return {
-        text: h.ocrText,
-        visualCategory: "unknown",
-        confidence: "medium",
-        qr: { present: /qr/i.test(h.ocrText), visibleUrl: null, purpose: "unknown" },
-        riskHints: [],
-        summary: null,
-      };
-    }),
-    transcribeVoiceCore: vi.fn(async () => ({ text: h.voiceTranscript })),
+    analyzeImageCore: vi.fn(
+      async (
+        dataUrl: string,
+        lang: string,
+        key: string,
+        options?: { maxAttempts?: number; allowFallback?: boolean },
+      ) => {
+        h.ocrCalls.push({ dataUrl, lang, key, options });
+        if (h.imageEvidence) return h.imageEvidence;
+        if (h.ocrText === null) return null;
+        return {
+          text: h.ocrText,
+          visualCategory: "unknown",
+          confidence: "medium",
+          qr: { present: /qr/i.test(h.ocrText), visibleUrl: null, purpose: "unknown" },
+          riskHints: [],
+          summary: null,
+        };
+      },
+    ),
+    transcribeVoiceCore: vi.fn(
+      async (
+        dataUrl: string,
+        lang: string,
+        key: string,
+        options?: { maxAttempts?: number; allowFallback?: boolean },
+      ) => {
+        h.voiceTranscribeCalls.push({ dataUrl, lang, key, options });
+        return { text: h.voiceTranscript };
+      },
+    ),
   };
 });
 
@@ -273,7 +438,13 @@ vi.mock("@/lib/report.functions", () => {
 // Import AFTER the mocks are registered. The handler aggregator installs the
 // REAL handlers into the REAL router via its module-load side effect, and
 // webhook.server re-installs them (idempotent) before dispatching.
-import { __resetTelegramWebhookDedupeForTests, handleTelegramWebhook } from "./webhook.server";
+import {
+  __resetTelegramWebhookDedupeForTests,
+  executeAndCompleteTelegramUpdate,
+  handleTelegramWebhook,
+} from "./webhook.server";
+import type { TelegramUpdate } from "./router";
+import type { TelegramUpdateLease } from "./update-lifecycle.server";
 import { __resetTelegramUserUpdateQueuesForTests } from "./update-serialization.server";
 import { CB, RISK_EMOJI } from "./format";
 import { imageTriageCallback } from "./image-fallback";
@@ -316,6 +487,25 @@ function webhookRequest(update: unknown, header: string | null = SECRET): Reques
   });
 }
 
+/**
+ * Exercise the real router/handlers under the ordered single-leader polling
+ * frontier required by raw-provider consent. This deliberately bypasses the
+ * HTTP webhook transport; webhook-mode fail-closed behaviour has its own test.
+ */
+async function dispatchPollingRequest(request: Request): Promise<Response> {
+  const update = (await request.json()) as TelegramUpdate;
+  const lease: TelegramUpdateLease = {
+    updateId: update.update_id,
+    leaseToken: "11111111-1111-4111-8111-111111111111",
+    processingFence: update.update_id + 1,
+    leaseExpiresAt: "2099-01-01T00:00:00.000Z",
+    leaderToken: "22222222-2222-4222-8222-222222222222",
+    leaderFence: 7,
+  };
+  const completed = await executeAndCompleteTelegramUpdate(update, lease);
+  return new Response(completed ? "ok" : "retry", { status: completed ? 200 : 503 });
+}
+
 /** A minimal valid text message update. */
 function textUpdate(opts: {
   userId: number;
@@ -348,6 +538,28 @@ function inlineQueryUpdate(opts: { userId: number; query: string; id?: string })
   };
 }
 
+function grantTestMediaProviderConsent(
+  userId: number,
+  chatId: number,
+  kind: TestMediaProviderKind,
+): void {
+  const now = Date.now();
+  h.mediaConsentRows.set(`${userId}:${chatId}`, {
+    telegramUserId: userId,
+    chatId,
+    chatType: "private",
+    mediaKind: kind,
+    reportFlowId: null,
+    promptMessageId: 1,
+    requestedAt: now,
+    grantedAt: now,
+    terminalAt: null,
+    terminalReason: null,
+    expiresAt: now + 10 * 60 * 1_000,
+    lastUpdateId: 0,
+  });
+}
+
 /** A photo message update (two sizes — the router picks the largest). */
 function photoUpdate(opts: {
   userId: number;
@@ -357,7 +569,11 @@ function photoUpdate(opts: {
   captionEntities?: unknown[];
   mediaGroupId?: string;
   replyMarkup?: unknown;
+  providerConsent?: TestMediaProviderKind | false;
 }): unknown {
+  if (opts.providerConsent !== false) {
+    grantTestMediaProviderConsent(opts.userId, opts.chatId, opts.providerConsent ?? "image");
+  }
   return {
     update_id: nextSyntheticUpdateId(),
     message: {
@@ -383,7 +599,11 @@ function videoUpdate(opts: {
   caption?: string;
   captionEntities?: unknown[];
   thumbnail?: { file_id: string; file_size?: number };
+  providerConsent?: TestMediaProviderKind | false;
 }): unknown {
+  if (opts.providerConsent !== false) {
+    grantTestMediaProviderConsent(opts.userId, opts.chatId, opts.providerConsent ?? "image");
+  }
   return {
     update_id: nextSyntheticUpdateId(),
     message: {
@@ -410,7 +630,11 @@ function voiceUpdate(opts: {
   fileUniqueId?: string;
   duration?: number;
   fileSize?: number;
+  providerConsent?: TestMediaProviderKind | false;
 }): unknown {
+  if (opts.providerConsent !== false) {
+    grantTestMediaProviderConsent(opts.userId, opts.chatId, opts.providerConsent ?? "voice");
+  }
   return {
     update_id: nextSyntheticUpdateId(),
     message: {
@@ -507,10 +731,13 @@ beforeEach(() => {
   h.getFileCalls.length = 0;
   h.downloadCalls.length = 0;
   h.ocrCalls.length = 0;
+  h.voiceTranscribeCalls.length = 0;
   h.fromCalls.length = 0;
   h.inserts.length = 0;
   h.upserts.length = 0;
   h.rpcs.length = 0;
+  h.mediaConsentRows.clear();
+  h.mediaConsentTransitions.length = 0;
   h.timeline.length = 0;
   h.sessionRpcResult = {
     data: [{ applied: true, current_update_id: 0 }],
@@ -576,6 +803,19 @@ describe("webhook end-to-end — invalid token (R12.2)", () => {
     expect(h.sendCalls).toHaveLength(0);
     expect(h.fromCalls).toHaveLength(0);
     expect(h.getFileCalls).toHaveLength(0);
+  });
+
+  it("rejects same-length near-matches at either end of the webhook secret", async () => {
+    const update = textUpdate({ userId: 1000, chatId: 5000, text: HIGH_RISK_TEXT });
+    const nearMatches = [`X${SECRET.slice(1)}`, `${SECRET.slice(0, -1)}X`];
+
+    for (const header of nearMatches) {
+      const response = await handleTelegramWebhook(webhookRequest(update, header));
+      expect(response.status).toBe(401);
+    }
+
+    expect(h.sendCalls).toHaveLength(0);
+    expect(h.fromCalls).toHaveLength(0);
   });
 
   it("rejects an absent token with 401 and never dispatches", async () => {
@@ -1439,6 +1679,7 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
             scenario_step: 0,
             scenario_data: {
               chatScope: { chatId: 5102, chatType: "private" },
+              reportFlowId: expect.stringMatching(/^[0-9a-f-]{36}$/u),
             },
           }),
         }),
@@ -1667,6 +1908,93 @@ describe("webhook end-to-end — start and quick button callbacks", () => {
       ]),
     );
     expect(h.sendCalls).toHaveLength(1);
+  });
+
+  it("uses the same atomic one-shot consent ledger for report screenshot evidence", async () => {
+    const userId = 1120;
+    const chatId = 5120;
+    const reportFlowId = "33333333-3333-4333-8333-333333333333";
+    h.sessionRow = {
+      telegram_user_id: userId,
+      lang: "ru",
+      scenario: "report_desc",
+      scenario_step: 1,
+      scenario_data: {
+        noValue: true,
+        reportFlowId,
+        chatScope: { chatId, chatType: "private" },
+      },
+      updated_at: new Date().toISOString(),
+    };
+    h.imageEvidence = {
+      text: "Мошенник просит срочно оплатить страховку перед выдачей займа",
+      visualCategory: "chat_screenshot",
+      confidence: "high",
+      qr: { present: false, visibleUrl: null, purpose: "unknown" },
+      riskHints: ["payment_request"],
+      summary: "Требование предоплаты перед выдачей займа.",
+    };
+
+    const first = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+    );
+    expect(first.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.ocrCalls).toHaveLength(0);
+    const promptMessageId = h.sendCalls[0].messageId;
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("media_consent:report_image");
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      mediaKind: "report_image",
+      reportFlowId,
+      promptMessageId,
+      grantedAt: null,
+      terminalAt: null,
+    });
+
+    const allow = await dispatchPollingRequest(
+      webhookRequest(
+        callbackUpdate({
+          userId,
+          chatId,
+          data: "media_consent:report_image",
+          messageId: promptMessageId,
+        }),
+      ),
+    );
+    expect(allow.status).toBe(200);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      grantedAt: expect.any(Number),
+      terminalAt: null,
+    });
+
+    h.sendCalls.length = 0;
+    const accepted = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+    );
+    expect(accepted.status).toBe(200);
+    expect(h.getFileCalls).toEqual(["full"]);
+    expect(h.downloadCalls).toEqual(["photos/file_42.jpg"]);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(h.ocrCalls[0]?.options).toMatchObject({ maxAttempts: 1, allowFallback: false });
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      terminalAt: expect.any(Number),
+      terminalReason: "consumed",
+    });
+    expect(h.upserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "telegram_sessions",
+          payload: expect.objectContaining({
+            telegram_user_id: userId,
+            scenario: "report_scamType",
+            scenario_step: 2,
+          }),
+        }),
+      ]),
+    );
+    const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
+    expect(persisted).not.toContain("data:image");
+    expect(persisted).not.toContain("U0NSRUVOU0hPVF9CWVRFUw");
   });
 
   it("acknowledges the report retry callback and clears the draft after success", async () => {
@@ -1978,12 +2306,360 @@ describe("webhook end-to-end — incomplete dispatch stays retryable", () => {
 // 4. Photo update → getFile + downloadFileAsDataUrl (in memory) → OCR → check;
 //    the image itself is NEVER persisted (R5.3, R12.2/R12.4).
 // ---------------------------------------------------------------------------
-describe("webhook end-to-end — screenshot OCR flow without saving the image (R5.3)", () => {
+describe("ordered polling dispatch — screenshot OCR flow without saving the image (R5.3)", () => {
+  it("fails closed in webhook mode before showing consent controls or touching raw media", async () => {
+    const response = await handleTelegramWebhook(
+      webhookRequest(photoUpdate({ userId: 9499, chatId: 5499, providerConsent: false })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(h.rpcs.some(({ name }) => name.includes("media_provider_consent"))).toBe(false);
+    expect(h.sendCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[0]?.keyboard)).toHaveLength(0);
+    expect(h.sendCalls[0]?.text).toContain("безопасно сохранить разрешение");
+  });
+
+  it("does not expose a first screenshot to vision AI before explicit consent", async () => {
+    h.ocrText = "password: synthetic-test-secret";
+
+    const response = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId: 9402, chatId: 5402, providerConsent: false })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(callbackData(h.sendCalls[0]?.keyboard)).toContain("media_consent:image");
+    expect(h.mediaConsentRows.get("9402:5402")).toMatchObject({
+      mediaKind: "image",
+      promptMessageId: h.sendCalls[0]?.messageId,
+      grantedAt: null,
+      terminalAt: null,
+    });
+  });
+
+  it("uses an exact consent callback once, then requires a new grant", async () => {
+    const userId = 9404;
+    const chatId = 5404;
+    h.ocrText = "ordinary screenshot text";
+
+    const first = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+    );
+    expect(first.status).toBe(200);
+    expect(h.ocrCalls).toHaveLength(0);
+    const promptMessageId = h.sendCalls[0].messageId;
+
+    const allow = await dispatchPollingRequest(
+      webhookRequest(
+        callbackUpdate({
+          userId,
+          chatId,
+          data: "media_consent:image",
+          messageId: promptMessageId,
+        }),
+      ),
+    );
+    expect(allow.status).toBe(200);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      mediaKind: "image",
+      promptMessageId,
+      grantedAt: expect.any(Number),
+      terminalAt: null,
+    });
+
+    const duplicateAllow = await dispatchPollingRequest(
+      webhookRequest(
+        callbackUpdate({
+          userId,
+          chatId,
+          data: "media_consent:image",
+          messageId: promptMessageId,
+        }),
+      ),
+    );
+    expect(duplicateAllow.status).toBe(200);
+    expect(
+      h.mediaConsentTransitions
+        .filter((transition) => transition.name === "grant_telegram_media_provider_consent")
+        .map((transition) => transition.applied),
+    ).toEqual([true, false]);
+    h.sendCalls.length = 0;
+
+    const resend = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+    );
+    expect(resend.status).toBe(200);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(h.ocrCalls[0]?.options).toMatchObject({ maxAttempts: 1, allowFallback: false });
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      terminalAt: expect.any(Number),
+      terminalReason: "consumed",
+    });
+    expect(
+      h.mediaConsentTransitions.filter(
+        (transition) =>
+          transition.name === "claim_telegram_media_provider_consent" && transition.applied,
+      ),
+    ).toHaveLength(1);
+
+    const replay = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+    );
+    expect(replay.status).toBe(200);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[h.sendCalls.length - 1]?.keyboard)).toContain(
+      "media_consent:image",
+    );
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      mediaKind: "image",
+      grantedAt: null,
+      terminalAt: null,
+    });
+  });
+
+  it("rejects consent callbacks unless chat, kind, prompt, and update order match exactly", async () => {
+    const cases: Array<{
+      userId: number;
+      chatId: number;
+      mutate: (promptMessageId: number) => {
+        chatId: number;
+        data: string;
+        messageId: number;
+      };
+      makeStale?: boolean;
+    }> = [
+      {
+        userId: 9410,
+        chatId: 5410,
+        mutate: (promptMessageId) => ({
+          chatId: 5411,
+          data: "media_consent:image",
+          messageId: promptMessageId,
+        }),
+      },
+      {
+        userId: 9411,
+        chatId: 5412,
+        mutate: (promptMessageId) => ({
+          chatId: 5412,
+          data: "media_consent:voice",
+          messageId: promptMessageId,
+        }),
+      },
+      {
+        userId: 9412,
+        chatId: 5413,
+        mutate: (promptMessageId) => ({
+          chatId: 5413,
+          data: "media_consent:image",
+          messageId: promptMessageId + 1,
+        }),
+      },
+      {
+        userId: 9413,
+        chatId: 5414,
+        makeStale: true,
+        mutate: (promptMessageId) => ({
+          chatId: 5414,
+          data: "media_consent:image",
+          messageId: promptMessageId,
+        }),
+      },
+    ];
+
+    for (const testCase of cases) {
+      const sendStart = h.sendCalls.length;
+      const requested = await dispatchPollingRequest(
+        webhookRequest(
+          photoUpdate({
+            userId: testCase.userId,
+            chatId: testCase.chatId,
+            providerConsent: false,
+          }),
+        ),
+      );
+      expect(requested.status).toBe(200);
+      const promptMessageId = h.sendCalls[sendStart].messageId;
+      const row = h.mediaConsentRows.get(`${testCase.userId}:${testCase.chatId}`);
+      expect(row).toBeDefined();
+      if (testCase.makeStale && row) row.lastUpdateId = Number.MAX_SAFE_INTEGER;
+
+      const mismatch = testCase.mutate(promptMessageId);
+      const callback = await dispatchPollingRequest(
+        webhookRequest(
+          callbackUpdate({
+            userId: testCase.userId,
+            chatId: mismatch.chatId,
+            data: mismatch.data,
+            messageId: mismatch.messageId,
+          }),
+        ),
+      );
+      expect(callback.status).toBe(200);
+    }
+
+    const grants = h.mediaConsentTransitions.filter(
+      (transition) => transition.name === "grant_telegram_media_provider_consent",
+    );
+    expect(grants).toHaveLength(4);
+    expect(grants.every((transition) => !transition.applied)).toBe(true);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(
+      [...h.mediaConsentRows.values()].every(
+        (row) => row.grantedAt === null && row.terminalAt === null,
+      ),
+    ).toBe(true);
+  });
+
+  it("allows only one external analysis when two media updates race for one grant", async () => {
+    const userId = 9414;
+    const chatId = 5415;
+    h.ocrText = "ordinary screenshot text";
+    grantTestMediaProviderConsent(userId, chatId, "image");
+    const firstUpdate = photoUpdate({ userId, chatId, providerConsent: false });
+    const secondUpdate = photoUpdate({ userId, chatId, providerConsent: false });
+
+    const responses = await Promise.all([
+      dispatchPollingRequest(webhookRequest(firstUpdate)),
+      dispatchPollingRequest(webhookRequest(secondUpdate)),
+    ]);
+
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+    const claims = h.mediaConsentTransitions.filter(
+      (transition) => transition.name === "claim_telegram_media_provider_consent",
+    );
+    expect(claims).toHaveLength(2);
+    expect(claims.filter((transition) => transition.applied)).toHaveLength(1);
+    // Both updates may download in memory for the consent-free local QR
+    // decoder, but only the atomically claimed update may reach vision AI.
+    expect(h.getFileCalls).toHaveLength(2);
+    expect(h.downloadCalls).toHaveLength(2);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(callbackData(h.sendCalls[h.sendCalls.length - 1]?.keyboard)).toContain(
+      "media_consent:image",
+    );
+  });
+
+  it("revokes an unused grant when the exact still-visible Cancel button is tapped", async () => {
+    const userId = 9406;
+    const chatId = 5406;
+    h.ocrText = "ordinary screenshot text";
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    const promptMessageId = h.sendCalls[0].messageId;
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(
+            callbackUpdate({
+              userId,
+              chatId,
+              data: "media_consent:image",
+              messageId: promptMessageId,
+            }),
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      grantedAt: expect.any(Number),
+      terminalAt: null,
+    });
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(
+            callbackUpdate({
+              userId,
+              chatId,
+              data: "media_consent:cancel",
+              messageId: promptMessageId,
+            }),
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      terminalAt: expect.any(Number),
+      terminalReason: "revoked",
+    });
+
+    h.sendCalls.length = 0;
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(callbackData(h.sendCalls[0]?.keyboard)).toContain("media_consent:image");
+  });
+
+  it("preserves the consent handoff after /check resets await_check", async () => {
+    const userId = 9405;
+    const chatId = 5405;
+    h.ocrText = "ordinary screenshot text";
+
+    expect(
+      (await dispatchPollingRequest(webhookRequest(textUpdate({ userId, chatId, text: "/check" }))))
+        .status,
+    ).toBe(200);
+    loadLatestSessionUpsert(userId);
+    h.sendCalls.length = 0;
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.ocrCalls).toHaveLength(0);
+    const promptMessageId = h.sendCalls[0].messageId;
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(
+            callbackUpdate({
+              userId,
+              chatId,
+              data: "media_consent:image",
+              messageId: promptMessageId,
+            }),
+          ),
+        )
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(photoUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.ocrCalls).toHaveLength(1);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)?.terminalReason).toBe("consumed");
+  });
+
   it("rate-limits repeated image checks before fetching Telegram file bytes", async () => {
     h.ocrText = "ordinary screenshot text";
 
     for (let i = 0; i < 11; i += 1) {
-      const response = await handleTelegramWebhook(
+      const response = await dispatchPollingRequest(
         webhookRequest(photoUpdate({ userId: 9403, chatId: 5403, messageId: i + 1 })),
       );
       expect(response.status).toBe(200);
@@ -1999,7 +2675,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.ocrText = HIGH_RISK_TEXT; // OCR yields a deterministic high_risk text
     const update = photoUpdate({ userId: 1003, chatId: 5003 });
 
-    const response = await handleTelegramWebhook(webhookRequest(update));
+    const response = await dispatchPollingRequest(webhookRequest(update));
 
     expect(response.status).toBe(200);
 
@@ -2044,7 +2720,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       thumbnail: { file_id: "video_thumb", file_size: 900 },
     });
 
-    const response = await handleTelegramWebhook(webhookRequest(update));
+    const response = await dispatchPollingRequest(webhookRequest(update));
 
     expect(response.status).toBe(200);
     expect(h.getFileCalls).toEqual(["video_thumb"]);
@@ -2081,7 +2757,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       ],
     });
 
-    const response = await handleTelegramWebhook(webhookRequest(update));
+    const response = await dispatchPollingRequest(webhookRequest(update));
 
     expect(response.status).toBe(200);
     expect(h.getFileCalls).toHaveLength(0);
@@ -2101,7 +2777,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       },
     });
 
-    const response = await handleTelegramWebhook(webhookRequest(update));
+    const response = await dispatchPollingRequest(webhookRequest(update));
 
     expect(response.status).toBe(200);
     expect(h.getFileCalls).toHaveLength(0);
@@ -2119,7 +2795,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       thumbnail: { file_id: "video_thumb", file_size: 900 },
     });
 
-    const response = await handleTelegramWebhook(webhookRequest(update));
+    const response = await dispatchPollingRequest(webhookRequest(update));
 
     expect(response.status).toBe(200);
     expect(h.getFileCalls).toHaveLength(0);
@@ -2134,12 +2810,12 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   it("sends only one OCR fallback for repeated photos from the same media group", async () => {
     h.ocrText = null;
 
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(
         photoUpdate({ userId: 1007, chatId: 5007, messageId: 1, mediaGroupId: "album-42" }),
       ),
     );
-    const second = await handleTelegramWebhook(
+    const second = await dispatchPollingRequest(
       webhookRequest(
         photoUpdate({ userId: 1007, chatId: 5007, messageId: 2, mediaGroupId: "album-42" }),
       ),
@@ -2167,10 +2843,10 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       updated_at: new Date().toISOString(),
     };
 
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1008, chatId: 5008, messageId: 1 })),
     );
-    const second = await handleTelegramWebhook(
+    const second = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1008, chatId: 5008, messageId: 2 })),
     );
 
@@ -2204,7 +2880,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       updated_at: new Date().toISOString(),
     };
 
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1009, chatId: 5009 })),
     );
     expect(first.status).toBe(200);
@@ -2219,7 +2895,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.inserts.length = 0;
     h.upserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1009, chatId: 5009, text: "Sure?" })),
     );
 
@@ -2242,7 +2918,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на SMS о выдаче заказа.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1010, chatId: 5010 })),
     );
 
@@ -2267,7 +2943,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Looks like a delivery SMS.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1021, chatId: 5021 })),
     );
 
@@ -2290,7 +2966,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Скрин профиля Telegram.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1022, chatId: 5022 })),
     );
 
@@ -2316,7 +2992,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Ложное предупреждение безопасности телефона.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1023, chatId: 5023 })),
     );
 
@@ -2343,7 +3019,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Файл .pdf.apk под видом судебной повестки.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1024, chatId: 5024 })),
     );
 
@@ -2373,7 +3049,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на фишинг Telegram.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1025, chatId: 5025 })),
     );
 
@@ -2401,7 +3077,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на ресторанное меню и QR программы лояльности.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1011, chatId: 5011 })),
     );
 
@@ -2427,7 +3103,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на ресторанное меню и QR программы лояльности.",
     };
 
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1013, chatId: 5013 })),
     );
     expect(first.status).toBe(200);
@@ -2437,7 +3113,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1013, chatId: 5013, text: "Точно?" })),
     );
 
@@ -2460,7 +3136,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на ресторанное меню.",
     };
 
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1014, chatId: 5014 })),
     );
     expect(first.status).toBe(200);
@@ -2468,7 +3144,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     loadLatestSessionUpsert(1014);
 
     h.sendCalls.length = 0;
-    const why = await handleTelegramWebhook(
+    const why = await dispatchPollingRequest(
       webhookRequest(
         callbackUpdate({
           userId: 1014,
@@ -2487,7 +3163,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
 
     h.sendCalls.length = 0;
     h.upserts.length = 0;
-    const checkAnother = await handleTelegramWebhook(
+    const checkAnother = await dispatchPollingRequest(
       webhookRequest(callbackUpdate({ userId: 1014, chatId: 5014, data: CB.checkAnother })),
     );
 
@@ -2501,7 +3177,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUpAfterPrompt = await handleTelegramWebhook(
+    const followUpAfterPrompt = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1014, chatId: 5014, text: "Точно?" })),
     );
 
@@ -2525,12 +3201,12 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Похоже на ресторанное меню.",
     };
 
-    await handleTelegramWebhook(webhookRequest(photoUpdate({ userId, chatId })));
+    await dispatchPollingRequest(webhookRequest(photoUpdate({ userId, chatId })));
     const resultAMessageId = h.sendCalls[0].messageId;
     loadLatestSessionUpsert(userId);
 
     h.sendCalls.length = 0;
-    await handleTelegramWebhook(
+    await dispatchPollingRequest(
       webhookRequest(
         textUpdate({
           userId,
@@ -2543,7 +3219,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     loadLatestSessionUpsert(userId);
 
     h.sendCalls.length = 0;
-    await handleTelegramWebhook(
+    await dispatchPollingRequest(
       webhookRequest(callbackUpdate({ userId, chatId, data: CB.why, messageId: resultAMessageId })),
     );
     expect(h.sendCalls).toHaveLength(1);
@@ -2551,7 +3227,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).not.toContain("доменное окончание");
 
     h.sendCalls.length = 0;
-    await handleTelegramWebhook(
+    await dispatchPollingRequest(
       webhookRequest(
         callbackUpdate({
           userId,
@@ -2566,7 +3242,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).not.toContain("информационный QR");
 
     h.sendCalls.length = 0;
-    await handleTelegramWebhook(
+    await dispatchPollingRequest(
       webhookRequest(callbackUpdate({ userId, chatId, data: CB.why, messageId: 999_999 })),
     );
     expect(h.sendCalls).toHaveLength(1);
@@ -2575,7 +3251,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   });
 
   it("answers a bank-number follow-up from the last phone check without re-checking it", async () => {
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1015, chatId: 5015, text: "+998 90 123 45 67" })),
     );
     expect(first.status).toBe(200);
@@ -2585,7 +3261,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1015, chatId: 5015, text: "дай номер банка" })),
     );
 
@@ -2598,7 +3274,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   });
 
   it("answers a next-step follow-up after a high-risk check without losing context", async () => {
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1016, chatId: 5016, text: HIGH_RISK_TEXT })),
     );
     expect(first.status).toBe(200);
@@ -2607,7 +3283,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1016, chatId: 5016, text: "Что делать дальше?" })),
     );
 
@@ -2621,7 +3297,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   });
 
   it("explains the previous result when the user asks why", async () => {
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1017, chatId: 5017, text: HIGH_RISK_TEXT })),
     );
     expect(first.status).toBe(200);
@@ -2630,7 +3306,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1017, chatId: 5017, text: "Почему так?" })),
     );
 
@@ -2642,7 +3318,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   });
 
   it("explains the previous result in simple words without starting a new check", async () => {
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: HIGH_RISK_TEXT })),
     );
     expect(first.status).toBe(200);
@@ -2651,7 +3327,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const followUp = await handleTelegramWebhook(
+    const followUp = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1027, chatId: 5027, text: "Объясни простыми словами" })),
     );
 
@@ -2664,7 +3340,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
   });
 
   it("still sends a suspicious payload after a last check into the risk pipeline", async () => {
-    const first = await handleTelegramWebhook(
+    const first = await dispatchPollingRequest(
       webhookRequest(textUpdate({ userId: 1018, chatId: 5018, text: HIGH_RISK_TEXT })),
     );
     expect(first.status).toBe(200);
@@ -2673,7 +3349,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     h.sendCalls.length = 0;
     h.inserts.length = 0;
 
-    const payload = await handleTelegramWebhook(
+    const payload = await dispatchPollingRequest(
       webhookRequest(
         textUpdate({
           userId: 1018,
@@ -2699,7 +3375,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "Видно розыгрыш NFT с условиями в виде капчи, реакций и голосования.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1019, chatId: 5019 })),
     );
 
@@ -2723,7 +3399,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       width: 256,
     });
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1020, chatId: 5020 })),
     );
 
@@ -2753,7 +3429,7 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
       summary: "QR используется для входа или подтверждения аккаунта.",
     };
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(photoUpdate({ userId: 1012, chatId: 5012 })),
     );
 
@@ -2763,19 +3439,94 @@ describe("webhook end-to-end — screenshot OCR flow without saving the image (R
     expect(h.sendCalls[0].text).toContain(RISK_EMOJI.high_risk);
     expect(h.sendCalls[0].text).toContain("Telegram login QR");
     expect(h.sendCalls[0].text).not.toContain("Я рядом");
+    expect(h.ocrCalls).toHaveLength(0);
     const persisted = JSON.stringify([...h.inserts, ...h.upserts]);
     expect(persisted).toContain("asks_to_scan_qr");
     expect(persisted).toContain("guardian");
+
+    expect(h.mediaConsentRows.get("1012:5012")).toMatchObject({
+      terminalAt: expect.any(Number),
+      terminalReason: "consumed",
+    });
+    h.sendCalls.length = 0;
+    h.dataUrl = "data:image/jpeg;base64,U0NSRUVOU0hPVF9CWVRFUw==";
+    h.ocrText = "ordinary screenshot text";
+
+    const unrelated = await dispatchPollingRequest(
+      webhookRequest(photoUpdate({ userId: 1012, chatId: 5012, providerConsent: false })),
+    );
+    expect(unrelated.status).toBe(200);
+    expect(h.ocrCalls).toHaveLength(0);
+    expect(callbackData(h.sendCalls[0]?.keyboard)).toContain("media_consent:image");
   });
 });
 
-describe("webhook end-to-end - voice STT flow", () => {
+describe("ordered polling dispatch - voice STT flow", () => {
+  it("requires an exact one-shot consent callback before Telegram download and STT", async () => {
+    const userId = 1132;
+    const chatId = 5132;
+    h.dataUrl = "data:audio/ogg;base64,AAAA";
+    h.voiceTranscript = "ha yoq";
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(voiceUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.getFileCalls).toHaveLength(0);
+    expect(h.downloadCalls).toHaveLength(0);
+    const promptMessageId = h.sendCalls[0].messageId;
+    expect(callbackData(h.sendCalls[0].keyboard)).toContain("media_consent:voice");
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(
+            callbackUpdate({
+              userId,
+              chatId,
+              data: "media_consent:voice",
+              messageId: promptMessageId,
+            }),
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      mediaKind: "voice",
+      promptMessageId,
+      grantedAt: expect.any(Number),
+      terminalAt: null,
+    });
+
+    expect(
+      (
+        await dispatchPollingRequest(
+          webhookRequest(voiceUpdate({ userId, chatId, providerConsent: false })),
+        )
+      ).status,
+    ).toBe(200);
+    expect(h.getFileCalls).toEqual(["voice_1"]);
+    expect(h.downloadCalls).toEqual(["photos/file_42.jpg"]);
+    expect(h.voiceTranscribeCalls).toHaveLength(1);
+    expect(h.voiceTranscribeCalls[0]?.options).toMatchObject({
+      maxAttempts: 1,
+      allowFallback: false,
+    });
+    expect(h.mediaConsentRows.get(`${userId}:${chatId}`)).toMatchObject({
+      terminalAt: expect.any(Number),
+      terminalReason: "consumed",
+    });
+  });
+
   it("routes an already-transferred voice emergency without a generic handler error", async () => {
     h.dataUrl = "data:audio/ogg;base64,AAAA";
     h.voiceTranscript =
       "\u044f \u0443\u0436\u0435 \u043f\u0435\u0440\u0435\u0432\u0451\u043b \u0434\u0435\u043d\u044c\u0433\u0438 \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u043a\u0430\u043c, \u043f\u043e\u043c\u043e\u0433\u0438\u0442\u0435";
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(voiceUpdate({ userId: 1130, chatId: 5130 })),
     );
 
@@ -2791,7 +3542,7 @@ describe("webhook end-to-end - voice STT flow", () => {
     h.dataUrl = "data:audio/ogg;base64,AAAA";
     h.voiceTranscript = "ha yoq";
 
-    const response = await handleTelegramWebhook(
+    const response = await dispatchPollingRequest(
       webhookRequest(voiceUpdate({ userId: 1131, chatId: 5131 })),
     );
 
