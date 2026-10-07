@@ -1,6 +1,9 @@
 # API
 
-There is no public standalone REST API yet. The web app uses TanStack Start server functions (`createServerFn`) as typed RPC from React. The Telegram bot uses one HTTP webhook endpoint.
+There is no public standalone REST API yet. The web app uses TanStack Start
+server functions (`createServerFn`) as typed RPC from React. The Telegram bot
+exposes one compatibility HTTP webhook endpoint, while current production
+delivery explicitly uses durable polling.
 
 ## Server functions
 
@@ -11,16 +14,20 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 | RPC                       | Auth         | Input                                                                                                | Returns                                                                                               |
 | ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `checkInput`              | public       | `{ input: 1-2000, type?, lang, embed? }`                                                             | risk result or `{ metaIntent, response }` for questions to the bot                                    |
-| `ocrExtract`              | public       | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
+| `ocrExtract`              | public       | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang, externalProviderConsent: true }`      | `{ text }`                                                                                            |
 | `getPublicStats`          | public       | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
 | `submitReport`            | public       | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
 | `listReports`             | admin + AAL2 | `{ status }`                                                                                         | report rows (<= 200)                                                                                  |
 | `listEntities`            | admin + AAL2 | `{ status }`                                                                                         | entity rows (<= 200)                                                                                  |
 | `moderateReport`          | admin + AAL2 | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                                              |
-| `submitReputationAppeal`  | public       | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                                    |
+| `submitReputationAppeal`  | public       | `{ target, reason, contact?, lang }`                                                                 | `{ ok }` or safe error; open-appeal state is never disclosed                                          |
 | `listReputationAppeals`   | admin + AAL2 | `{ status }`                                                                                         | appeal rows                                                                                           |
 | `resolveReputationAppeal` | admin + AAL2 | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                                              |
 | `adminStats`              | admin + AAL2 | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }`                   |
+
+The `ocrExtract.externalProviderConsent` input and non-enumerating appeal return
+shown above describe the local P1 candidate; they are not deployed production
+behavior yet.
 
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",
@@ -31,6 +38,14 @@ Production/Railway shared-rate-limit configuration, HMAC or RPC failures also
 fail closed to the same rate-limited behavior; they never grant a new
 per-process allowance. Only non-production local/test runtimes use the bounded
 in-memory fallback.
+In the local P1 candidate Railway accepts a syntactically valid `X-Real-IP` only
+when `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; otherwise it ignores the
+header and falls back to the direct request IP. The flag may be enabled only
+after a release check proves that Railway's edge overwrites or strips a
+client-supplied `X-Real-IP`; Railway `prod:security-smoke` intentionally fails
+until that proof is recorded and the flag is set. Outside Railway, proxy headers
+are accepted only when both `TRUST_PROXY_IP_HEADERS=true` and
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; one flag alone is not trust proof.
 
 ## HTTP response transport
 
@@ -52,10 +67,14 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
 - Path: `POST /api/telegram/webhook`.
 - Binding: `src/server.ts` intercepts the request before SSR.
 - Handler: `src/lib/telegram/webhook.server.ts`.
-- Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal `TELEGRAM_WEBHOOK_SECRET`.
+- Auth: Telegram `X-Telegram-Bot-Api-Secret-Token` must equal
+  `TELEGRAM_WEBHOOK_SECRET`. The local P1 candidate compares fixed-length
+  SHA-256 digests with `timingSafeEqual`; missing/mismatched values still fail
+  before body parsing.
 - Missing secrets or bad token => HTTP 401. Valid token with invalid body => HTTP 200 and ignore.
 - `TELEGRAM_UPDATE_DELIVERY_MODE=webhook|polling|disabled` selects delivery;
-  the compatibility default is `webhook` until the explicit production cutover.
+  the unset/non-production compatibility default is `webhook`, while current
+  production explicitly sets `polling`.
 - In webhook mode a valid update is acknowledged only after handler success and
   durable `complete_telegram_update`. Handler failure, timeout, busy lease or
   lifecycle outage returns HTTP 503 with `Retry-After`. Only a DB `completed`
@@ -143,7 +162,9 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
 - `/appeal` submits a privacy-safe correction/removal request for phone,
   Telegram, URL or APK reputation. The server stores only target/contact hashes,
   masked display values and redacted reason text. Admin removal hides the public
-  reputation label without deleting report history.
+  reputation label without deleting report history. In the local P1 candidate,
+  new and already-open targets produce the same public `{ ok: true }` response
+  and UI confirmation so the endpoint cannot expose moderation-queue status.
 - Report and appeal target displays fail closed to `[link]` when URL parsing
   fails; the malformed raw value is never reused as a display fallback.
   Narrative redaction removes complete `tg://` and `telegram://` custom-scheme
@@ -151,6 +172,21 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   moderation formatting. Valid HTTP(S) targets still retain only a useful
   host/path indicator such as `example.com/…`.
 - Telegram photos/screenshots use structured image intelligence before scoring.
+  In the local P1 candidate an external image provider is not invoked on the
+  first item. The bot first sends a localized disclosure; the approval callback
+  must match the exact prompt message, current chat, media kind and ten-minute
+  request TTL. Approval authorizes one resent provider operation. Its
+  private-table grant must win the atomic update- and polling-leader-fenced
+  claim before provider I/O. After the in-memory download/local QR gap, the same
+  leases are revalidated immediately before any raw provider transfer. The
+  winner writes a consumed tombstone without extending the original
+  `expires_at`. Cancellation, mismatch, replay, lease loss or storage
+  uncertainty triggers no provider call. The adapter refuses raw-media consent
+  outside single-leader polling. Consent is not stored in `telegram_sessions`.
+  Within polling, Direct-image local QR decoding may still return deterministic
+  evidence without external transfer. Disclosure prompts and grant/cancel
+  confirmations replay only after a definitive retryable Telegram no-effect
+  result; ambiguous/non-retryable delivery does not trigger another send.
   Repeated image checks claim a shared `telegram-image:<tg:userId>` budget
   before Telegram file metadata/download, so media-cost throttling happens
   before bytes are fetched.
@@ -161,7 +197,10 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   terminates an active job after 900 ms. Saturation, timeout, worker failure and
   unsupported/oversized input all fail closed to no decoded QR evidence.
   The `/report` screenshot path claims the same media budget before `getFile`;
-  decoded Wi-Fi passwords, labeled credentials/recovery phrases and
+  in the local P1 candidate it also requires the active UUID `reportFlowId` on
+  registration, approval and atomic claim, so an older report generation cannot
+  authorize the current draft.
+  Decoded Wi-Fi passwords, labeled credentials/recovery phrases and
   authenticator/login secrets are removed before check input or persistence.
   Benign delivery SMS and restaurant/menu QR screenshots can be shown as `safe`
   only when no reason codes match and the benign category is backed by readable
@@ -170,7 +209,13 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   through normal reason-code scoring.
 - Web screenshot OCR accepts only server-validated base64 `image/png`,
   `image/jpeg` or `image/webp` data URLs within the decoded byte limit before
-  any AI vision provider call.
+  any AI vision provider call. In the local P1 candidate it also requires the
+  literal request field `externalProviderConsent: true`, set only by the explicit
+  upload UI action. The provider is attempted once with no fallback for that
+  HTTP request. This is request-scoped consent, not Telegram's durable atomic
+  claim or an idempotency guarantee: the client loading guard stops an immediate
+  duplicate click, but a retry or repeated dispatch can transmit the image
+  again.
 - Optional external URL-reputation providers receive only the normalized HTTP(S)
   scheme/origin. Userinfo, path, query and fragment are never sent because paths
   may contain reset, invite, signed-download or bearer secrets. The full cleaned
@@ -184,6 +229,11 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
   `reports.status='confirmed'` rows.
 - Telegram voice notes, native audio attachments and audio documents such as
   `.ogg`/`.m4a` use `handleVoice` -> `transcribeVoiceCore` -> `runCheck`.
+  In the local P1 candidate the same exact prompt/chat/kind/ten-minute contract
+  authorizes one resent Voice operation; the atomic private-table claim must
+  return one winner before cache lookup, Telegram download or STT provider I/O.
+  The current update/leader leases are checked again just before STT.
+  Webhook/non-polling execution is rejected before an RPC/provider call.
   Audio is downloaded only in memory, files are capped at 60 seconds / 2 MB
   before transcription, and only the redacted transcript reaches the check
   pipeline. STT calls are protected by a separate 5/day per-user budget and
@@ -249,9 +299,9 @@ runtime/upstream limitation; do not describe all HTTP compression as closed.
 Browser session token (Supabase) is attached by `attachSupabaseAuth` on every
 server-function call. Admin functions validate it server-side
 (`requireSupabaseAuth`), check the `admin` role in `user_roles` and require JWT
-`aal2` when the production flag is enabled. Production/Railway requires an
-explicit `REQUIRE_ADMIN_MFA_AAL2` value; missing, empty or invalid
-configuration fails closed, and the deployed value is `true`.
+`aal2` when the production flag is enabled. The local P1 candidate accepts only
+explicit `REQUIRE_ADMIN_MFA_AAL2=true` in production/Railway; explicit `false`,
+missing, empty or invalid protected-runtime configuration fails closed.
 
 Migration `20260729131000` applies the same role-plus-AAL2 requirement
 to direct authenticated RLS/PostgREST SELECT on `checks`, `reports`, `entities`,
@@ -296,19 +346,38 @@ the baseline `user` role remains.
   public-post fetches, the voice STT daily budget and the opt-in Voice-out/TTS
   daily budget. Voice budgets use distinct key prefixes under the existing
   `check` scope so no raw Telegram id is persisted.
+- Unapplied candidate migration `20260904120000` adds service-role-only
+  `register_telegram_media_provider_consent`,
+  `grant_telegram_media_provider_consent`,
+  `revoke_telegram_media_provider_consent` and
+  `claim_telegram_media_provider_consent`. All four are SECURITY DEFINER RPCs
+  over a no-direct-access private table and validate the current
+  Telegram update lease/fences. Report-image registration, grant and claim also
+  match the active `report_flow_id`. The application adapter requires a polling
+  leader for all four operations and SQL claim independently refuses a missing
+  leader token. `claim` is an atomic one-winner transition. Consume/revoke does
+  not extend expiry: the tombstone lasts only for the remainder of the original
+  request TTL, unless a non-older prompt registration replaces the row first.
+  RPC errors, malformed results and lost responses are storage ambiguity and
+  propagate so polling may retry the update; a replay after an ambiguously
+  committed claim performs no provider call. The migration must be applied
+  before the application that invokes these RPCs is deployed, using the
+  delivery-disabled freeze/drain/re-enable sequence in `DEPLOYMENT.md`.
 - `private.prune_app_retention()` is service-role/private maintenance SQL for
   retention cleanup. It is not exposed as a public API. Migration
   `20260729105030` includes expired Family notification claims and returns their
   deleted count; isolated staging pgTAP passes 10/10. It was applied to
   production on 2026-08-01, where postflight confirmed the updated function,
   ACL and existing daily cron schedule.
+  Candidate migration `20260904120000` additionally deletes expired media
+  consent/tombstone rows and returns their count; this is not deployed behavior.
 - `embed_origin_events` is service-role-only, RLS-protected `/embed/check`
   origin telemetry. Retention pruning deletes rows older than 180 days.
 
 ## External integrations
 
 - **Supabase:** Postgres/Auth/RLS via `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-- **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations, web screenshot OCR and Telegram structured image analysis. Telegram voice STT uses Gemini native audio when `OPENAI_BASE_URL` points to `generativelanguage.googleapis.com`, otherwise OpenAI-compatible `/audio/transcriptions` with `OPENAI_TRANSCRIBE_MODEL` / `OPENAI_AUDIO_MODEL` / `gpt-4o-mini-transcribe`. Missing key, provider error or blocked unsafe explanation returns `null`; scoring continues where text evidence is available.
+- **OpenAI-compatible AI provider:** `POST {OPENAI_BASE_URL}/chat/completions` (default `https://api.openai.com/v1`) with `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4o-mini`). Used for explanations, web screenshot OCR and Telegram structured image analysis. Telegram voice STT uses Gemini native audio when `OPENAI_BASE_URL` points to `generativelanguage.googleapis.com`, otherwise OpenAI-compatible `/audio/transcriptions` with `OPENAI_TRANSCRIBE_MODEL` / `OPENAI_AUDIO_MODEL` / `gpt-4o-mini-transcribe`. In the local P1 candidate raw Telegram Direct images, Voice and report screenshots require the one winning polling-lease-fenced private-table consent claim; report screenshots additionally match the active `reportFlowId`. Those consented calls use one attempt and no fallback provider. The shared image/chat-completion transport and Gemini/OpenAI audio transports use `redirect: "error"`, so neither request bodies nor provider credentials follow a 3xx response. Missing key, provider error or blocked unsafe explanation returns `null`; scoring continues where text evidence is available.
 - **URL reputation providers:** optional Google Safe Browsing, URLhaus and
   PhishTank checks add `external_phishing_url` / `external_malware_url` reason
   codes only. The pipeline extracts URL tokens from mixed messages, strips

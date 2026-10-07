@@ -13,6 +13,57 @@
 6. Entities become publicly visible only after `moderation_status='confirmed'`.
 7. Never name a specific person as a scammer. Use risk labels only.
 8. Read secrets inside server handlers/helpers, not at module scope.
+9. Telegram Direct image, Voice and `/report` screenshot bytes may reach an
+   external provider only after an exact prompt-message/chat/media-kind grant
+   expiring ten minutes after registration wins an atomic private-table claim
+   fenced by the current update and polling-leader leases. Report screenshots
+   must additionally match the active `reportFlowId`. One grant authorizes one
+   provider operation; mismatch, replay, expiry, lease loss or storage
+   uncertainty fails closed. Consent must never live in session JSON or store a
+   file id, media bytes, OCR, transcript or provider payload; `reportFlowId` is
+   only a non-secret report-generation marker. A consumed/revoked tombstone
+   retains the original `expires_at`, not a fresh ten-minute lifetime, and may
+   be replaced earlier only by a non-older valid prompt. Raw-media consent is
+   polling-only; webhook/non-polling execution must stop before the RPC/provider
+   boundary. Apply and verify the consent migration before deploying code that
+   calls its RPCs. Production release must freeze other changes, disable
+   delivery without dropping updates and disable raw-media provider access,
+   drain the old image plus leader/update leases, apply/read back the migration,
+   deploy/verify the consent-aware app while disabled, prove the old image is
+   gone, then restore provider access and re-enable polling. A post-migration
+   rollback may target only a consent-aware artifact.
+   Within polling, local QR decoding alone is not an external transfer.
+   Revalidate both update and leader leases immediately before the raw provider
+   callback after any download/local-processing gap.
+10. Consent RPC error, malformed result or lost response is ambiguous storage
+    failure and must propagate so the polling update remains retryable. Never
+    convert it to success or semantic `missing`. Register/grant/revoke may replay
+    the same update idempotently; claim may produce one winner only. If a claim
+    response is lost, replay must perform no provider call. Consented raw-media
+    provider requests use one attempt, no fallback and `redirect: "error"`.
+    Consent prompt and grant/cancel confirmation delivery retries only after a
+    definitive retryable Telegram no-effect result: propagate its sanitized
+    control-flow error so polling replays the same update. Ambiguous or
+    non-retryable delivery is acknowledged without another send to avoid a
+    duplicate visible prompt/confirmation.
+11. Web OCR must require literal `externalProviderConsent=true` from an explicit
+    UI action and use one provider attempt with no fallback per HTTP request.
+    This is request-scoped, not durable consent or idempotency; never describe a
+    client loading guard as proof that retry/re-dispatch cannot transmit again.
+12. Railway public-rate-limit identity trusts a syntactically valid `X-Real-IP`
+    only when `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; otherwise use socket
+    identity and keep the production security smoke red. Enable that gate only
+    after proving that Railway's edge overwrites or strips a client-supplied
+    `X-Real-IP`. Outside Railway, generic proxy identity requires both
+    `TRUST_PROXY_IP_HEADERS=true` and
+    `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`; never enable trust from one
+    flag or an unverified forwarding chain.
+13. Production/Railway must accept only exact
+    `REQUIRE_ADMIN_MFA_AAL2=true`; false/missing/invalid protected-runtime
+    configuration must fail closed.
+14. Public submission responses must not disclose whether a private moderation
+    record already exists. Secret-token comparisons must use a fixed-length
+    timing-safe boundary, not ordinary string equality.
 
 ## Risk engine
 

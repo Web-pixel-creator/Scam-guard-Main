@@ -250,6 +250,16 @@ HTTP/PostgREST smoke closed the staging boundary with exact synthetic cleanup.
 
 ## Application rollback drill
 
+The following generic drill applies only while both artifacts implement the
+same privacy boundary. Once
+`20260904120000_telegram_media_provider_consent_claim.sql` is applied, a
+pre-consent application artifact is permanently ineligible for rollback: with
+provider access restored it could transmit Telegram image/audio without the new
+claim. Roll back only to a reviewed consent-aware artifact compatible with the
+private table/RPC contract. If no such artifact exists, keep delivery and raw
+media provider credentials disabled and roll forward; do not recover service by
+starting an older pre-consent image.
+
 1. Record current commit, Railway deployment id, image digest and database
    migration head.
 2. Select the latest previously successful deployment compatible with the
@@ -260,8 +270,22 @@ HTTP/PostgREST smoke closed the staging boundary with exact synthetic cleanup.
    monitor checks.
 4. Redeploy the current release and repeat the same checks. Record both
    directions and elapsed recovery time.
-5. Telegram rollback from polling to webhook follows the fenced procedure in
-   `DEPLOYMENT.md`; never use `drop_pending_updates=true`.
+5. Only for releases predating the media-consent migration, Telegram rollback
+   from polling to webhook follows the fenced procedure in `DEPLOYMENT.md`;
+   never use `drop_pending_updates=true`. After the migration, webhook is not a
+   consent-compatible rollback shortcut: keep delivery disabled until a
+   consent-aware polling artifact is ready.
+
+The first consent-boundary cutover has a stricter sequence: freeze unrelated
+merges/config/secrets; disable Telegram delivery without dropping updates and
+disable raw-media provider credentials; wait for that deployment and drain the
+former leader, in-flight updates/outbound effects and old provider-capable
+workers; apply/read back the migration; deploy and verify the consent-aware
+application while delivery/provider access remains disabled; prove every old
+image/worker is drained; only then restore reviewed provider credentials,
+re-enable polling and verify the new leader/frontier. A post-migration rollback
+must preserve that same disable/drain discipline and target a consent-aware
+artifact only.
 
 The 2026-08-01 UTC maintenance window proved one bounded recovery direction:
 after removing the exact active deployment for the write freeze, Railway
@@ -387,17 +411,16 @@ Read-only Dashboard audit on 2026-07-24 (no settings were changed):
   HTTP/PostgREST AAL1-deny/AAL2-allow smoke passed with exact cleanup.
   Production subsequently applied the migration and postflight confirmed all
   seven protected AAL2 policies, including both UPDATE `WITH CHECK` clauses.
-- Production/Railway must set
-  `REQUIRE_ADMIN_MFA_AAL2=true|false` explicitly. Missing, empty or invalid
-  configuration fails closed. Explicit `false` is retained only as a bounded
-  enrollment/recovery rollback state; dev/test may omit the flag.
+- Production/Railway must set `REQUIRE_ADMIN_MFA_AAL2=true`. Explicit `false`,
+  missing, empty or invalid protected-runtime configuration fails closed.
+  Development and tests may omit the flag or opt out explicitly.
 
-Historical safe enablement order, completed for production and retained as the
-future rollout/recovery template:
+Historical enablement order, completed before the current fail-closed runtime.
+Step 1 records the old bootstrap state; it is not a current rollback procedure:
 
-1. deploy the enrollment/challenge UI with explicit
-   `REQUIRE_ADMIN_MFA_AAL2=false`; do not combine first deployment and
-   enforcement, and never rely on an unset production value;
+1. the enrollment/challenge UI was originally deployed with explicit
+   `REQUIRE_ADMIN_MFA_AAL2=false`; the current runtime no longer accepts that
+   production state;
 2. enroll one approved admin from `Admin -> MFA / security`, verify AAL2, then
    enroll and independently verify a second recovery owner;
 3. from a fresh AAL1 session, prove the policy routes to `/admin-mfa`, the
@@ -414,9 +437,11 @@ future rollout/recovery template:
    reviewed apply process;
 6. set `REQUIRE_ADMIN_MFA_AAL2=true` only in a separate approved window, then
    verify all read and mutation admin actions with both owners;
-7. if the UI cannot complete a challenge, set explicit
-   `REQUIRE_ADMIN_MFA_AAL2=false` only as the bounded rollback. Missing and
-   invalid production values intentionally fail closed.
+7. if the UI cannot complete a challenge, keep AAL2 enforcement enabled. Use
+   the independently enrolled recovery owner and the authorized Supabase factor
+   reset procedure; for an application regression, roll back only to a reviewed
+   AAL2-enforcing release. Never restore production service by setting the flag
+   to `false`.
 
 ## Evidence required to close the release gates
 

@@ -14,6 +14,21 @@ moderation.
 
 ## Current status
 
+Current repository read-back on **2026-10-07**: GitHub `main` remains
+`7e8ac7feda46df76a2e1fc02db1c1759a1442021` (PR #144). The separate
+`agent/security-privacy-boundaries-20260904` candidate is not deployed. Its
+local gate includes 15,509 passing tests, clean Supabase migration apply,
+154 passing pgTAP assertions and the real one-winner concurrency proof.
+Precise UI limitations and release gates are in
+`ai_docs/SECURITY_PRIVACY_CANDIDATE_EVIDENCE_2026-10-07.md` and
+`ai_docs/CURRENT_STATE.md`. The production canary was closed in the prior
+2026-09-20 checkpoint; this is not a fresh production read-back on October 7.
+
+### Historical operational snapshot (2026-08-28)
+
+The bullets below are retained history, not the current repository or release
+queue. Prefer the latest reconciliation at the top of `CURRENT_STATE.md`.
+
 - Stage: **production-deployed safety MVP / controlled-pilot candidate**, not a
   proven enterprise product.
 - GitHub `main` and deployed source: PR #141 merge

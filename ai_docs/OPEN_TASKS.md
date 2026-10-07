@@ -1,6 +1,86 @@
 # Open Tasks
 
-## Current checkpoint (2026-08-28)
+## Latest candidate checkpoint (2026-10-07)
+
+Local code/build gates, a fresh 34-migration Supabase apply, 154 pgTAP assertions
+and the direct-PostgreSQL one-winner proof now pass; see
+`SECURITY_PRIVACY_CANDIDATE_EVIDENCE_2026-10-07.md`. September review gates below
+remain the release contract, but statements that the local SQL proof has not
+run are superseded. Hosted CI must independently repeat these gates.
+
+Next: Draft PR/CI → Railway edge overwrite/strip proof → authenticated admin UI
+review → owner-approved migration-first release → new fixed-baseline canary.
+Do not merge, enable the edge-trust flag or apply the production migration just
+because local gates pass. The old canary closed at the prior September 20
+checkpoint; there is no reason to keep waiting on its old clock.
+
+## Local P1 candidate review gate (2026-09-04; not deployed)
+
+The `agent/security-privacy-boundaries-20260904` media-consent/security set is
+still an open candidate. Do not mark it complete, merge-ready, migration-applied
+or deployed until the clean-database CI job starts a real local Supabase
+instance, applies the full migration chain, passes pgTAP, and runs a real
+two-session concurrency probe proving the one-winner claim/replay boundary.
+Static inspection and mocked Vitest are not substitutes for those gates.
+
+Release is also blocked until a live Railway probe proves that the edge
+overwrites or strips client-supplied `X-Real-IP`; only then may
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true` be set and the production security
+smoke turn green. If this candidate is approved, do not deploy it as an ordinary
+application update: follow the mandatory freeze → delivery/provider disable →
+old-image and lease drain → migration/read-back → consent-aware app verification
+while disabled → old-image absence proof → provider/polling re-enable sequence
+in `DEPLOYMENT.md`. Post-migration rollback may target only a reviewed
+consent-aware artifact.
+
+Keep these review findings as explicit P2 follow-ups even if the P1 gates pass:
+
+1. decide and test whether an expired row with a newer `last_update_id` may be
+   replaced by an older registration; preserve the intended monotonic ordering
+   rather than relying on expiry alone;
+2. document and prove that advisory-lock serialization follows database arrival
+   order, not `update_id`; this is safe only while raw-media consent remains
+   behind the ordered single-leader polling frontier;
+3. give retention pruning a singleton/runtime concurrency contract and bounded
+   `lock_timeout`, so cleanup cannot create an unbounded wait against live
+   register/grant/revoke/claim traffic;
+4. expand negative pgTAP coverage for table/RPC ACLs, wrong user/chat/kind/
+   prompt/report-flow scope, absent or stale polling leader, stale update lease,
+   terminal replay and expiry boundaries;
+5. add a durable Web OCR client/server idempotency design if product requirements
+   demand one-transfer semantics. The current local candidate has explicit
+   request-scoped `externalProviderConsent=true`, one provider attempt per HTTP
+   request and an immediate client loading guard, but retry/re-dispatch may send
+   the same image again;
+6. decide the UX/idempotency policy for a physically repeated Allow callback
+   delivered with a newer Telegram `update_id` after the grant is already
+   active. Current same-update replay is safe, but this distinct-update case
+   remains an explicit P2 rather than a claimed closed property.
+7. preserve non-secret secret-class metadata across Voice STT redaction. The
+   current pipeline redacts the transcript before the handler, so passwords
+   still match on their label but OTP/PIN/SMS-code values can lose the special
+   rotation-guidance/cache-exclusion branch after becoming `••••`. Persistence
+   and `runCheck` remain redacted and privacy-safe; the follow-up should return
+   `{ text, secretClasses }` (or an equivalent non-secret signal) from the STT
+   boundary and test the real redacted result rather than a raw-secret mock.
+8. canonicalize equivalent IPv6 spellings and IPv4-mapped IPv6 addresses before
+   hashing a public rate-limit identity; syntactic validation alone can assign
+   multiple buckets to one address.
+9. remove the residual appeal timing/moderation-spam surface: use a fixed-shape
+   lookup path and an idempotent evidence/notification policy while retaining
+   the uniform public `{ ok: true }` response.
+10. approve legal retention/anonymization periods for `reputation_appeals` and
+    `admin_actions`, including the `admin_user_id` foreign-key deletion effect,
+    and make the retention contract test inspect the latest function-defining
+    migration rather than an older snapshot.
+11. add a dynamic webhook request with a poison/observable body stream and prove
+    that an invalid secret causes zero body reads. The timing-safe digest code is
+    present, but its current source-level contract is not that runtime proof.
+12. decide the UX/retry contract for an ambiguously delivered consent prompt and
+    for a result-delivery failure after a one-shot grant is consumed. Both are
+    privacy-safe today, but can require the user to resend and consent again.
+
+## Historical checkpoint (2026-08-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The verified
 deployed application source is PR #141 merge
@@ -36,9 +116,12 @@ The immediate queue is:
    adding both `preserve()` entries produced the required `0 destroy` plan.
    Then present one explicit bundle decision: merge approved candidates in one
    controlled release window or defer them individually;
-3. after that decision, deploy once, rerun no-AI production/security smokes and
-   start a new fixed-baseline canary requiring **both** at least 72 elapsed hours
-   and at least 144 eligible scheduled successes;
+3. after that decision, deploy once. If the P1 consent candidate is included,
+   use its mandatory delivery/provider-disabled, drained, migration-first
+   sequence rather than an application-first deploy; then rerun no-AI
+   production/security smokes and start a new fixed-baseline canary requiring
+   **both** at least 72 elapsed hours and at least 144 eligible scheduled
+   successes;
 4. do not add production backup credentials until the candidate is merged and
    either independent CODEOWNER review with ≥1
    dismiss-stale approval or a protected-environment manual gate before
@@ -144,9 +227,11 @@ The immediate queue is:
   push recipes were retired after closeout; the child CLI environment excludes
   application service-role, Telegram, AI and Vite variables. Raw linked mutation
   examples must not be restored to operator docs.
-- **The final clean-database gate is closed locally.** A fresh local Supabase
-  database applied all 33 migrations from scratch, schema lint found no errors
-  and all four pgTAP files passed 86/86. This is local evidence, not production
+- **The 2026-07-29 33-migration clean-database baseline closed locally.** A
+  fresh local Supabase database applied those 33 migrations from scratch,
+  schema lint found no errors and the then-current four pgTAP files passed
+  86/86. This historical local evidence does not close the 2026-09-04 candidate
+  migration, pgTAP or two-session concurrency gates above and is not production
   deployment proof.
 
 - **2026-07-15 Inline/Desktop QA remediation is deployed; migration/deployment/health
