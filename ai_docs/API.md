@@ -1,5 +1,14 @@
 # API
 
+2026-10-20: application API definitions unchanged. TanStack Start1.168.60 and
+server-core1.169.39 patch the vendor server-function transport advisory;
+Seroval1.6.7 is pinned. This is dependency hardening, not a new endpoint and not
+evidence that these versions are deployed. No provider/Telegram/cloud test calls.
+
+2026-10-18 R1 changes no public API/auth/provider behavior. Offline recovery CLI
+accepts only production-33; secret-bearing workflows require explicit main/profile
+at their job boundary. No Telegram/AI/TTS or production request was used.
+
 There is no public standalone REST API yet. The web app uses TanStack Start server functions (`createServerFn`) as typed RPC from React. The Telegram bot uses one HTTP webhook endpoint.
 
 ## Server functions

@@ -1,5 +1,14 @@
 # Database
 
+2026-10-20: no schema/migration/grant changes. COPY inventory calculation fixes
+Unicode row overcount; the production33 fingerprint remains unchanged.
+All database verification is synthetic local PostgreSQL17.11, not a live snapshot.
+
+2026-10-18 R1 adds no migration or production write. The33 reviewed migration
+sources remain base-identical; the profile checks18 relations and one trusted
+schedule. Isolated-target preparation is recovery-only, with the cron launcher
+off. No candidate38 consent/OCR/appeal/retention schema is included or applied.
+
 Postgres via Supabase. Schema = `public`. RLS is enabled on all app tables. Source of truth: `supabase/migrations/*.sql`; generated TypeScript types live in `src/integrations/supabase/types.ts`.
 
 ## Enums

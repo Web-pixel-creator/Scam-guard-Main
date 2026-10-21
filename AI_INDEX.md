@@ -1,5 +1,23 @@
 # AI_INDEX.md
 
+## Local R1 repair — 2026-10-20
+
+Current local candidate: see ai_docs/BACKUP_RELEASE_REPAIR_2026-10-20.md.
+The October18 R1 review is preserved separately. Its Unicode COPY defect is
+fixed here; dependency security updates form a separate five-file patch.
+Do not call this tree backup-only or base-identical in dependencies/shared CI.
+No production check/change, publication or enablement. Design stays excluded.
+All older status blocks below are historical.
+
+## Local backup-only candidate — 2026-10-18
+
+R1 is based on verified GitHub main7e8ac7fe, not the newer dirty application/design
+candidate. See ai_docs/BACKUP_RELEASE_CANDIDATE_2026-10-18.md. Only production33
+recovery tooling/tests/docs change; application, migrations, locks and shared CI
+remain base-identical. Local gates23/23,29/29,56/56; no publication or production
+check. The older operational statements below are historical, not a current
+availability claim. Release/enablement HOLD.
+
 > Entry point for any AI agent working on this project. Read this file first.
 > Do not infer current status from a dated audit, an arbitrary local worktree or
 > an unmerged branch.

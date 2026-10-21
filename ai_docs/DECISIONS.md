@@ -3,6 +3,23 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-123 - Separate dependency prerequisite from repaired backup R1
+
+2026-10-20 local only. Preserve the immutable October18 reviewed package.
+Fix COPY Unicode counting minimally with red/green tests. Address known
+dependency advisories in a separate five-file security patch, including only
+the required router type compatibility change; integrate for final local gates.
+Do not silently call the resulting release backup-only. No design/migration or
+production operation, no cron. See BACKUP_RELEASE_REPAIR_2026-10-20.md.
+
+## D-122 - Separate production33-only backup release preview
+
+Local preparation2026-10-18, not approved for merge/deployment/enablement.
+Derive R1 from verified main7e8ac7fe: no new app/schema/design/lock/shared-CI
+changes. Candidate38 stays with the later dependency-bearing application track.
+Use a dedicated secret-free recovery CI; preserve exact33 fingerprint and
+fail-closed profile/job boundaries. See BACKUP_RELEASE_CANDIDATE_2026-10-18.md.
+
 ## D-095 - Backup workflow code is not operating recovery evidence
 
 **Status: active, reconciled 2026-08-28.** PR #133 merged an initial candidate,

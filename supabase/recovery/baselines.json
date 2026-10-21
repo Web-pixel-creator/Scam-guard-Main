@@ -1,0 +1,171 @@
+{
+  "format": "ishonch-recovery-profiles/v1",
+  "profiles": {
+    "production-33": {
+      "migrations": [
+        {
+          "name": "20260528182724_7b75cab2-9f54-4f0f-a8c8-4414f9bb2d28.sql",
+          "sha256": "14a7fdb97b36054fb04f8cbab28f141f607effb7737f1ff53568266370591dac"
+        },
+        {
+          "name": "20260528182754_00147ce4-eaae-4296-9e78-a4cb68eed7b5.sql",
+          "sha256": "9a282a1ac2e444faa403e563f1fd38e9504ac81d97910f498332136b5a7320f6"
+        },
+        {
+          "name": "20260528184815_ed7546fe-883f-44e7-acad-c9fcae6d2469.sql",
+          "sha256": "9b551b6f0c3de9d113f81643fcfa5213d39d7b9cc6e05e669c08d32f703150c7"
+        },
+        {
+          "name": "20260528184849_f5fb38f1-39d5-4d92-bc72-afa8c6075a8c.sql",
+          "sha256": "9f6225663426c590d952495083770aa69a35657a497521949db107f72658bd69"
+        },
+        {
+          "name": "20260528190119_28e7cdde-6e72-44d7-a6ab-137f9a389bc1.sql",
+          "sha256": "3782a2fd0f3bc8c9952dd20feef3c5eda85878a1e05ffe0c453167f8a2cb516f"
+        },
+        {
+          "name": "20260528190148_773cb8ae-4bb5-40d1-a7fd-f43e073ed6c1.sql",
+          "sha256": "a8c78a5bf23dea309b92c50fbf96223ce55699bdaa4d66d82af5fb694bc5931f"
+        },
+        {
+          "name": "20260530181805_715d728a-8fc8-49b2-9aae-88b610488fb0.sql",
+          "sha256": "4d5003322f9c387c6df327fb8076ae6dd0f42b226253d082272631b5e084de49"
+        },
+        {
+          "name": "20260531090000_0c3c0c8c-225b-435f-9d6f-f6f8363cb56b.sql",
+          "sha256": "b485fdc305fa0e1694b51e129a349ca637d8b558c75e21b5502e94cdf5414284"
+        },
+        {
+          "name": "20260602130000_lock_down_public_sensitive_writes.sql",
+          "sha256": "b0b892fccbc916ff1853173cc94406cb50bbc62cb85ec591d8b8c060d6f809cd"
+        },
+        {
+          "name": "20260603100000_cleanup_duplicate_trigger.sql",
+          "sha256": "03ac795d19c59bee5063f285267ddc8b9c51fd716dc493d5a41c3b7877ead3be"
+        },
+        {
+          "name": "20260609143000_telegram_reputation_targets.sql",
+          "sha256": "cfa9198a786a441cc9dd0bf62c02e0f61ab106442de6de6e39abbe789427e16b"
+        },
+        {
+          "name": "20260612053155_telegram_family_shield.sql",
+          "sha256": "dc8a2f0f00252db95ab909e677c24d5dcdb173d159b4efdf02f554c1a099a070"
+        },
+        {
+          "name": "20260612123431_retention_cleanup_v1.sql",
+          "sha256": "87f67e217a386a0a91ba7935d7ee0e7fb1e288a5c6395a00be806072c3fd2aaa"
+        },
+        {
+          "name": "20260612124559_security_definer_hardening_v1.sql",
+          "sha256": "d7f11dba7e038c4c67ef31353a88f020874eabec1948d012ba8ed0dc776ca114"
+        },
+        {
+          "name": "20260612154149_telegram_webhook_dedup.sql",
+          "sha256": "ffb4b2f0f17e259323502d1d35e2cd03652b322aa3cebf6f4e8ac76ad332de48"
+        },
+        {
+          "name": "20260612165300_shared_rate_limits_v1.sql",
+          "sha256": "8e7285b90761b5076d7eba54b441dafe165a07a7c60a622b335a228430e4319f"
+        },
+        {
+          "name": "20260612172249_fix_claim_rate_limit_updated_at.sql",
+          "sha256": "c591d2ede812233e41d68fbe06b2e976ffd2c71c26cca39ef3b38d398db41699"
+        },
+        {
+          "name": "20260613182647_honest_impact_counters_v1.sql",
+          "sha256": "5e73fa6d482b5aba371fa1201a7e09b8fb5fa4f727f29357410be97f5071ce2f"
+        },
+        {
+          "name": "20260614064831_schedule_retention_cleanup_v1.sql",
+          "sha256": "dca2717ff49a9adf5db21aeda5eac171010590257939f854ec0811884b150460"
+        },
+        {
+          "name": "20260614094245_reputation_appeals_v1.sql",
+          "sha256": "e57ecee1a76b1605da09510f11617babd6155cfc03bd632151d7e91656f49241"
+        },
+        {
+          "name": "20260615105000_allow_appeal_rate_limit_scope.sql",
+          "sha256": "94e7ce898332fc9d49ee73c2893b0d454e51cfcc4e32973b9b7dee043d848c69"
+        },
+        {
+          "name": "20260629085533_gate_admin_allowlist_on_email_confirmation.sql",
+          "sha256": "d7257ba28bb742f8bb4f8a46ca363eee41c16d56f303ef01b27cb9d6908c40a2"
+        },
+        {
+          "name": "20260629153000_entities_report_count_confirmed_only.sql",
+          "sha256": "bae9f36b7b5a18248a65dfe830b657afc786022e3c7a397c54b5c492956db908"
+        },
+        {
+          "name": "20260629163000_public_impact_counters_confirmed_reports.sql",
+          "sha256": "5c3bedc8ab9f1f8d17ded38b987fc51bf243d58ef1c55e273db88f4e7958bd47"
+        },
+        {
+          "name": "20260702063847_embed_origin_analytics_v1.sql",
+          "sha256": "c4e0f19455d2bc5ebb6ce99b0d417f87a94566999bb8d0b86b1708b5347f7693"
+        },
+        {
+          "name": "20260711010000_telegram_session_update_sequence.sql",
+          "sha256": "145a8f0876cf0e285a0209d059f92c2594aeece9e9461a34693d4d4fb3294a9e"
+        },
+        {
+          "name": "20260711050337_telegram_update_lifecycle.sql",
+          "sha256": "aa63cf01e02a0aa27b2c6d38c56da27a9e430d1a56d7c38be5bdbf7a849dcc27"
+        },
+        {
+          "name": "20260712142514_reconcile_admin_role_lifecycle.sql",
+          "sha256": "123e3cc8c102bb30c07e36007ffc9f68c70c96364ea390369db9206cbde58802"
+        },
+        {
+          "name": "20260715040836_telegram_polling_stale_leader_reclaim.sql",
+          "sha256": "b5fff8de6dc6d2863c55b6eabb2cc8f1b9e8364e3ef1e8f64ed5ad6a1b1d90e6"
+        },
+        {
+          "name": "20260724190000_hash_pepper_versioning_v1.sql",
+          "sha256": "a4aace131325ec79de4f50a33acc91e506affa68f5a8bfdb0a70e55df9145533"
+        },
+        {
+          "name": "20260726090000_family_shield_consent_idempotency.sql",
+          "sha256": "6548cb5e1a4fd6b40ce48885c9f11fdec7af0eb6b45046aa5f107c13aab6f7ed"
+        },
+        {
+          "name": "20260729105030_family_notification_claim_retention.sql",
+          "sha256": "383dd0b468e04e2d9f4488ad7bf3b9641bdb5684321d512a5f7cc30656b99e2b"
+        },
+        {
+          "name": "20260729131000_admin_mfa_aal2_rls.sql",
+          "sha256": "68bc65b20a5e45bc4591f2435a4348a8f679bc76d4894c1442a9af9c24e8ca87"
+        }
+      ],
+      "relations": [
+        "auth.users",
+        "private.telegram_family_notification_claims",
+        "private.telegram_update_leaders",
+        "public.admin_actions",
+        "public.admin_allowlist",
+        "public.checks",
+        "public.embed_origin_events",
+        "public.entities",
+        "public.rate_limit_buckets",
+        "public.reports",
+        "public.reputation_appeals",
+        "public.telegram_family_shield",
+        "public.telegram_reputation_targets",
+        "public.telegram_sessions",
+        "public.telegram_webhook_updates",
+        "public.user_roles",
+        "storage.buckets",
+        "storage.objects"
+      ],
+      "rpc": [],
+      "restricted_tables": {},
+      "schedules": [
+        {
+          "name": "ishonch_prune_app_retention_daily",
+          "schedule": "17 20 * * *",
+          "command": "SELECT private.prune_app_retention();",
+          "migration": "20260614064831_schedule_retention_cleanup_v1.sql"
+        }
+      ]
+    }
+  }
+}

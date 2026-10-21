@@ -1,5 +1,26 @@
 # Open Tasks
 
+## Current local queue — 2026-10-20
+
+1. Review the repaired R1 plus separately inspect the dependency-security patch
+   and exact integrated evidence in BACKUP_RELEASE_REPAIR_2026-10-20.md.
+2. Obtain separate publication/deployment authority; no merge or cloud write here.
+3. Hosted CI/security, protected Environments, custody and synthetic transport/
+   firewall proof remain OPEN even after local PASS.
+4. Fresh production baseline/snapshot/restore requires a separate authorization.
+5. Keep candidate38/new design outside this release. No cron enablement.
+
+## R1 queue — 2026-10-18
+
+1. Review exact backup-only diff and run final locked-base/required CI gates.
+2. Explicit publication/deployment handling; no automatic merge permission.
+3. Protected reviews/Environments, custody and synthetic hosted transport/firewall.
+4. Separately authorized fresh baseline/export/isolated restore.
+5. Candidate38/app migrations and design remain separate future releases.
+
+No cron or recipient enablement. See BACKUP_RELEASE_CANDIDATE_2026-10-18.md.
+Operational statements below are historical, not a new availability check.
+
 ## Current checkpoint (2026-08-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The verified

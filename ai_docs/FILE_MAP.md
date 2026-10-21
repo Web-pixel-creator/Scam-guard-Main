@@ -1,6 +1,18 @@
 # File Map
 
+2026-10-20: recovery_contract.py counts physical LF-delimited COPY records.
+Its regression file adds Unicode/escaped/empty/multiline payload coverage.
+Dependency patch: package.json, bun.lock, ci.yml (matching coverage version),
+toolchain-config.test.ts and type-only ErrorComponentProps in routes/\_\_root.tsx.
+Evidence/release boundaries: BACKUP_RELEASE_REPAIR_2026-10-20.md.
+
 Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by hand.
+
+2026-10-18 R1: supabase/recovery/{baselines.json,recovery_contract.py} binds only
+production33. verify_image_identity.py/prepare_cli_versions.py and their tests
+supply toolchain boundaries; local_workflow_rehearsal.py/workflow-gates.Dockerfile
+exercise56 offline cases. backup-recovery-ci.yml is separate from shared CI.
+See BACKUP_RELEASE_CANDIDATE_2026-10-18.md for the complete scoped manifest.
 
 ## Root
 

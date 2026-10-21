@@ -26,12 +26,27 @@ describe("Supabase backup workflow contract", () => {
     "utf8",
   );
   const codeowners = readFileSync(resolve(process.cwd(), ".github", "CODEOWNERS"), "utf8");
+  const profiles = readFileSync(
+    resolve(process.cwd(), "supabase", "recovery", "baselines.json"),
+    "utf8",
+  );
 
   const normalizeSql = (sql: string): string =>
     sql
       .replace(/^--.*$/gmu, "")
       .replace(/\s+/gu, " ")
       .trim();
+
+  it("does not mix psql command tags with migration identities", () => {
+    const capture = backup.slice(
+      backup.indexOf("capture_live_migrations()"),
+      backup.indexOf('capture_live_migrations "$BACKUP_DIR/migrations-before.txt"'),
+    );
+    expect(capture).toContain("--quiet --tuples-only --no-align");
+    expect(capture).toContain("--set ON_ERROR_STOP=1 --single-transaction");
+    expect(capture).toContain("SET TRANSACTION READ ONLY; SELECT version");
+    expect(capture).toContain("'^[0-9]{14}$'");
+  });
 
   const triggerBlock = (sql: string, triggerName: string): string => {
     const escapedName = triggerName.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
@@ -62,7 +77,7 @@ describe("Supabase backup workflow contract", () => {
     expect(backup).not.toMatch(/(^|\s)pg_dump\s/u);
     expect(backup).not.toContain("RESET ALL;");
     expect(backup).toContain(
-      "grep --quiet 'PostgreSQL database dump complete' \"$plain/roles.sql\"",
+      "grep --quiet '^-- PostgreSQL database cluster dump complete$' \"$plain/roles.sql\"",
     );
   });
 
@@ -74,6 +89,24 @@ describe("Supabase backup workflow contract", () => {
     expect(restoreStep).toContain("--file /tmp/restore/roles-idempotent.sql");
     expect(restoreStep).not.toMatch(/--file \/tmp\/restore\/roles\.sql(?![^/])/u);
     expect(restoreStep).toContain("SET session_replication_role = replica");
+  });
+
+  it("prepares empty-target ACL defaults before restoring source objects", () => {
+    const step = restore.slice(restore.indexOf("Restore in one transaction"));
+    expect(step).toContain("--file /tmp/restore/prepare-isolated-target.sql");
+    expect(step.indexOf("--file /tmp/restore/prepare-isolated-target.sql")).toBeLessThan(
+      step.indexOf("--file /tmp/restore/schema.sql"),
+    );
+    const preparation = readFileSync(
+      resolve(process.cwd(), "supabase/recovery/prepare-isolated-target.sql"),
+      "utf8",
+    );
+    expect(preparation).toContain("requires empty isolated application schemas");
+    for (const kind of ["TABLES", "FUNCTIONS", "SEQUENCES"]) {
+      expect(preparation).toContain(
+        `REVOKE ALL ON ${kind} FROM PUBLIC, anon, authenticated, service_role`,
+      );
+    }
   });
 
   it("uses authenticated public-key encryption with separated credentials", () => {
@@ -139,12 +172,12 @@ describe("Supabase backup workflow contract", () => {
   it("preloads the exact Supabase Postgres image before either secret-bearing job step", () => {
     for (const workflow of [backup, restore]) {
       expect(workflow).toContain('SUPABASE_INTERNAL_IMAGE_REGISTRY: "docker.io"');
-      expect(workflow).toContain('SUPABASE_POSTGRES_IMAGE: "supabase/postgres:17.6.1.132"');
+      expect(workflow).toContain('SUPABASE_POSTGRES_IMAGE: "supabase/postgres:17.11.0.003"');
       expect(workflow).toContain(
-        'SUPABASE_POSTGRES_INDEX_DIGEST: "sha256:e09e93a61ed1560caf4be79c9eb29401875bea74b12aec4657cb08bf34ea3a13"',
+        'SUPABASE_POSTGRES_INDEX_DIGEST: "sha256:7374d196da7e301512cc5329e18040e0f7bb856287b323777cdadecccbc6c7e4"',
       );
       expect(workflow).toContain(
-        'SUPABASE_POSTGRES_AMD64_IMAGE_ID: "sha256:e1939b94b1fd12b8a446404ff49455d7cf2a6a275a77f010abb56a247bfd5377"',
+        'SUPABASE_POSTGRES_AMD64_IMAGE_ID: "sha256:4011bb9bf67341889fc52b7c12f91cf602a92c948559f4aa23144b2b06f69cca"',
       );
       expect(workflow).toContain(".RepoDigests");
       expect(workflow).not.toContain(
@@ -166,6 +199,23 @@ describe("Supabase backup workflow contract", () => {
     ).toBeLessThan(restore.indexOf("BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}"));
   });
 
+  it("installs both CLI 2.104 binaries and selects reviewed tags in private CLI caches", () => {
+    for (const workflow of [backup, restore]) {
+      expect(workflow).toContain('SUPABASE_TELEMETRY_DISABLED: "1"');
+      expect(workflow).toContain('DO_NOT_TRACK: "1"');
+      expect(workflow).toContain('"$unpacked" supabase supabase-go');
+      expect(workflow).toContain(
+        'sudo install -m 0755 "$unpacked/supabase-go" /usr/local/bin/supabase-go',
+      );
+      expect(workflow).toContain("supabase-go --version > /dev/null");
+      expect(workflow).toContain("python3 supabase/recovery/prepare_cli_versions.py --project");
+    }
+    expect(backup).toContain('--file "$plain/roles.sql" --role-only --keep-comments');
+    expect(backup).toContain('cli_project="$BACKUP_DIR/cli"');
+    expect(restore).toContain("jq --raw-output '.[0].NetworkSettings.Networks | keys[]'");
+    expect(restore).not.toContain("{{$name}}{{println}}{{end}}");
+  });
+
   it("pins every Supabase-local init image before decrypt and reasserts its ID", () => {
     for (const [name, tag, digest, id] of [
       [
@@ -176,28 +226,29 @@ describe("Supabase backup workflow contract", () => {
       ],
       [
         "STORAGE",
-        "supabase/storage-api:v1.60.2",
-        "sha256:a7da87804e977a93dfa7963cc6353aa30d69f5cdd03e35dcd63ccee43c0a21f5",
-        "sha256:5ccecb2958f5d19b267a2275e1f046278ea12b0ca11d22ad68925b332a832105",
+        "supabase/storage-api:v1.67.15",
+        "sha256:545a5a40307a75a398417e0c74644c8e13afde3146a1252b66ab829db0a8191c",
+        "sha256:de7f2a5861a846a00b6dda1bb2f492821403ba2b282c52a904c60cbcbf023cf3",
       ],
       [
         "AUTH",
-        "supabase/gotrue:v2.189.0",
-        "sha256:385184459f57569c54c25209f51f3b2be99ddd7c4ce9e3555b5d3eea8447b7cf",
-        "sha256:369913f15697d0b2f41fd556ce39f6f979512649f40c2e2e1abf4ed03b5591e7",
+        "supabase/gotrue:v2.194.0",
+        "sha256:2b352c02adf11a2025cd5993c246ef85db73743553c39194d2b1862d1cc4d1fd",
+        "sha256:fce15be8b40e53ba326a076bce4aa33dd7f7c1a6ea8757f8ca4f5dc9a8b10566",
       ],
     ]) {
       expect(restore).toContain(`SUPABASE_${name}_IMAGE: "${tag}"`);
       expect(restore).toContain(`SUPABASE_${name}_INDEX_DIGEST: "${digest}"`);
       expect(restore).toContain(`SUPABASE_${name}_AMD64_IMAGE_ID: "${id}"`);
       expect(restore).toContain(
-        `test "$(docker image inspect "$SUPABASE_${name}_IMAGE" --format '{{.Id}}')"`,
+        `--image "$SUPABASE_${name}_IMAGE" --digest "$SUPABASE_${name}_INDEX_DIGEST"`,
       );
+      expect(restore).toContain(`--config-id "$SUPABASE_${name}_AMD64_IMAGE_ID"`);
     }
   });
 
   it("keeps the encrypted manifest privacy-safe and cleans plaintext always", () => {
-    expect(backup).toContain("ishonch-guard-supabase-logical-backup/v3");
+    expect(backup).toContain("ishonch-guard-supabase-logical-backup/v4");
     expect(backup).not.toMatch(/manifest[\s\S]{0,300}(?:row_count|user_id|project_ref)/iu);
     expect(backup).not.toMatch(/GITHUB_STEP_SUMMARY[\s\S]{0,200}count\(/iu);
     expect(backup).toMatch(/Cleanup transient plaintext and ciphertext[\s\S]*if: always\(\)/u);
@@ -218,7 +269,9 @@ describe("Supabase backup workflow contract", () => {
   });
 
   it("keeps every database CLI diagnostic private even when URL parsing fails", () => {
-    expect(backup).toContain('if ! supabase db dump "$@" >> "$BACKUP_DIR/dump.log" 2>&1; then');
+    expect(backup).toContain(
+      'if ! supabase db dump --workdir "$cli_project" "$@" >> "$BACKUP_DIR/dump.log" 2>&1; then',
+    );
     expect(backup).toContain(
       "Supabase logical export failed; private diagnostics will be deleted.",
     );
@@ -249,6 +302,13 @@ describe("Supabase backup workflow contract", () => {
     expect(restore).not.toMatch(/docker run[\s\S]{0,200}(?:^|\s)postgres:/mu);
   });
 
+  it("disables local cron with the bootstrap admin rather than an unprivileged postgres login", () => {
+    expect(restore).toMatch(
+      /psql --username supabase_admin --dbname postgres --set ON_ERROR_STOP=1\s*\\\r?\n\s*--command "ALTER SYSTEM SET cron\.launch_active_jobs = 'off'"/u,
+    );
+    expect(restore).toContain('[[ "$cron_launch" = "off" ]]');
+  });
+
   it("fails closed on an unsupported source major or stale backup", () => {
     expect(backup).toContain('if [[ ! "$source_major" =~ ^(15|17)$ ]]');
     expect(restore).toContain('.source_postgres_major | test("^(15|17)$")');
@@ -258,6 +318,40 @@ describe("Supabase backup workflow contract", () => {
     expect(restore).toContain('if type == "object"');
     expect(backup).toContain(".provenance.run_id == $run_id");
     expect(restore).toContain(".provenance.head_sha == $head_sha");
+    expect(restore).toContain('if [[ ! "$run_id" =~ ^[1-9][0-9]*$ ]]');
+    expect(restore).toContain('"$created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T');
+    expect(restore).toContain('date --utc --date="@$created_epoch" +%Y-%m-%dT%H:%M:%SZ');
+  });
+
+  it("runs real Linux workflow component regressions in a networkless credential-free container", () => {
+    const ci = readWorkflow("backup-recovery-ci.yml");
+    const harness = readFileSync(
+      resolve(process.cwd(), "supabase/recovery/local_workflow_rehearsal.py"),
+      "utf8",
+    );
+    const image = readFileSync(
+      resolve(process.cwd(), "supabase/recovery/workflow-gates.Dockerfile"),
+      "utf8",
+    );
+    expect(ci).toContain("docker run --rm --network none --read-only --cap-drop ALL");
+    expect(ci).toContain("--security-opt no-new-privileges");
+    expect(ci).toContain("--tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777");
+    expect(ci).toContain("target=/work/supabase/recovery,readonly");
+    expect(image).toContain("USER 10001:10001");
+    expect(image).toContain("bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377");
+    expect(harness).toContain('step(DRILL, "Find latest successful main-branch backup")');
+    expect(harness).toContain("step(workflow, step_name)");
+    expect(harness).toContain('"temporaryKeysAndPlaintextRemoved": True');
+    expect(harness).not.toContain("os.environ.copy()");
+  });
+
+  it("checks pinned image content and the container image rather than assuming Docker's ID format", () => {
+    for (const workflow of [backup, restore]) {
+      expect(workflow).toContain("python3 supabase/recovery/verify_image_identity.py");
+      expect(workflow).toContain('--config-id "$SUPABASE_POSTGRES_AMD64_IMAGE_ID"');
+    }
+    expect(restore).toContain('image_id="$(docker inspect --format \'{{.Image}}\' "$container")"');
+    expect(restore).toContain('--image "$image_id" --digest "$SUPABASE_POSTGRES_INDEX_DIGEST"');
   });
 
   it("bundles the reviewed managed-schema recovery hook and verifies lifecycle bindings", () => {
@@ -274,6 +368,10 @@ describe("Supabase backup workflow contract", () => {
     expect(managedLiveVerifier).toContain("trigger.tgrelid = 'auth.users'::regclass");
     expect(managedLiveVerifier).toContain("trigger.tgattr::smallint[]");
     expect(managedLiveVerifier).toContain("regexp_replace(");
+    expect(managedLiveVerifier).toContain("attribute.attname::text");
+    expect(managedLiveVerifier).not.toContain("pg_get_expr(trigger.tgqual");
+    expect(managedLiveVerifier).toContain("old.email::textisdistinctfromnew.email::text");
+    expect(restore).toContain("attribute.attname::text");
     expect(managedLiveVerifier).toContain("managed_policy_count <> 0");
     expect(restore).toContain("on_auth_user_created_role");
     expect(restore).toContain("on_auth_user_email_confirmed_role");
@@ -301,7 +399,7 @@ describe("Supabase backup workflow contract", () => {
       "private.telegram_update_leaders",
     ]) {
       expect(restore).toContain(`('${relation}')`);
-      expect(backup).toContain(`"${relation}"`);
+      expect(profiles).toContain(`"${relation}"`);
     }
     expect(restore).toContain("application function inventory failed");
     expect(restore).toContain("critical policy inventory failed");
@@ -321,6 +419,36 @@ describe("Supabase backup workflow contract", () => {
     expect(restore).toContain('sudo "$command" -C DOCKER-USER');
     expect(backup).toContain("Backup cleanup left transient material behind");
     expect(backup).toContain("Read-back cleanup left decrypted material behind");
+  });
+
+  it("binds export, read-back and restore to the same explicitly reviewed profile", () => {
+    for (const workflow of [backup, restore]) {
+      expect(workflow).toContain("default: production-33");
+      expect(workflow).not.toContain("- candidate-38");
+      expect(workflow).toContain("&& inputs.recovery_profile == 'production-33'");
+      expect(workflow).toContain("RECOVERY_PROFILE: ${{ inputs.recovery_profile }}");
+      expect(workflow).toContain("python3 supabase/recovery/recovery_contract.py verify");
+      expect(workflow).toContain(' --profile "$RECOVERY_PROFILE" --plain "$plain"');
+    }
+    expect(backup).toContain("recovery_profile_sha256:$profile_sha");
+    expect(backup).toContain("recovery_contract.py prepare");
+    expect(backup).not.toContain("mapfile -t expected_migrations");
+    expect(restore).toContain("recovery_contract.py security-sql");
+    expect(restore).toContain("--file /tmp/restore/profile-security.sql");
+    expect(profiles).not.toContain("private.web_ocr_ticket_claims");
+    expect(profiles).not.toContain("private.telegram_media_provider_consents");
+  });
+
+  it("checks source schedules and rebuilds trusted jobs while the drill launcher is disabled", () => {
+    expect(backup).toContain("recovery_contract.py schedule-check-sql");
+    expect(backup).toContain("--file /schedule-check.sql");
+    expect(restore).toContain("recovery_contract.py schedule-restore-sql");
+    expect(restore).toContain("--file /tmp/restore/profile-schedules.sql");
+    expect(restore.indexOf("--file /tmp/restore/profile-schedules.sql")).toBeGreaterThan(
+      restore.indexOf("--file /tmp/restore/history_data.sql"),
+    );
+    expect(profiles).toContain("ishonch_prune_app_retention_daily");
+    expect(profiles).not.toContain("ishonch_prune_web_ocr_ticket_claims_hourly");
   });
 
   it("emits PASS/FAIL evidence without real counts or identifiers", () => {

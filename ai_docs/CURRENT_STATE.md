@@ -1,5 +1,24 @@
 # Current State
 
+## Local reconciliation — 2026-10-20
+
+Repository main freshly read as7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+No production read-back permitted or performed. Current repair is the non-Git
+filesystem candidate backup-release-fixed-20261020; see
+BACKUP_RELEASE_REPAIR_2026-10-20.md. Unicode COPY fix and separate dependency
+security patch supersede October18 local readiness, not live production state.
+No application feature/design/migration changes; one type-only ErrorComponent
+compatibility change accompanies TanStack. Publication/enablement HOLD.
+
+## Local R1 preparation — 2026-10-18
+
+Last repository ref check: main7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+This is an uncommitted filesystem preview, not a deployment or Git branch.
+See BACKUP_RELEASE_CANDIDATE_2026-10-18.md: production33 only, no schema/app/design
+changes; dedicated secret-free recovery CI. Gates23/23,29/29,56/56 locally.
+No fresh production read-back; historical live claims below are not current.
+Publication/enablement HOLD. Trust/custody/hosted and fresh snapshot gates OPEN.
+
 Last reconciled: 2026-08-28 (post-rotation read-back).
 
 This is the short operational source of truth. Dated audits, plans, release

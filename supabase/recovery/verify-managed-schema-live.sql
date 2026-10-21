@@ -78,7 +78,7 @@ BEGIN
       AND trigger.tgfoid =
         'public.handle_confirmed_admin_allowlist_role()'::regprocedure
       AND ARRAY(
-        SELECT attribute.attname
+        SELECT attribute.attname::text
         FROM unnest(trigger.tgattr::smallint[])
           WITH ORDINALITY AS trigger_attribute(attnum, position)
         JOIN pg_attribute AS attribute
@@ -88,12 +88,14 @@ BEGIN
       ) = ARRAY['email', 'email_confirmed_at']
       AND trigger.tgqual IS NOT NULL
       AND regexp_replace(
-        lower(pg_get_expr(trigger.tgqual, trigger.tgrelid)),
+        lower(substring(pg_get_triggerdef(trigger.oid) FROM ' WHEN \((.*)\) EXECUTE FUNCTION ')),
         '[[:space:]()]',
         '',
         'g'
-      ) =
-        'old.emailisdistinctfromnew.emailorold.email_confirmed_atisdistinctfromnew.email_confirmed_at'
+      ) IN (
+        'old.emailisdistinctfromnew.emailorold.email_confirmed_atisdistinctfromnew.email_confirmed_at',
+        'old.email::textisdistinctfromnew.email::textorold.email_confirmed_atisdistinctfromnew.email_confirmed_at'
+      )
   ) THEN
     RAISE EXCEPTION 'managed-schema confirmation trigger mismatch';
   END IF;

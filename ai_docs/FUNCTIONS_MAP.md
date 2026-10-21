@@ -1,6 +1,17 @@
 # Functions Map
 
+2026-10-20: copy_counts(profile,text) splits physical LF only, preserving Unicode
+separators inside fields. Existing missing/unknown/duplicate/truncated snapshot
+guards remain. ErrorComponent uses router ErrorComponentProps (unknown errors);
+safeClientErrorReason already accepts unknown. No other app signature changed.
+
 Signatures and intent only. See file paths for source.
+
+2026-10-18 R1: no app signatures changed. recovery_contract.load_profile accepts
+only production-33; prepare/counts/verify/security-sql/schedule-check-sql/
+schedule-restore-sql/fingerprint share exact trusted profile contracts.
+verify_image_identity.verify validates immutable Docker identities;
+prepare_cli_versions.prepare writes only new private CLI image caches.
 
 ## Approved UI integration
 

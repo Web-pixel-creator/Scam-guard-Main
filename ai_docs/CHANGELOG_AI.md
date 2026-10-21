@@ -2,6 +2,20 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-10-20 - R1 Unicode repair and dependency prerequisite
+
+New local candidate; October18 review preserved. Current-state/queue/maps now
+distinguish Unicode fix, separate dependency patch and integrated checks.
+D-123 records release separation. Production/hosted/real-user evidence is not
+inferred from local gates; no publication or enablement.
+
+## 2026-10-18 - R1 backup-only release preparation
+
+Separate preview from verified main; scoped operator/maps and D-122. Only33
+profile allowed, all secret jobs guarded, checkout credentials not persisted,
+dedicated recovery CI.23/23 Vitest,29/29 Python,56/56 Linux component cases.
+No app/schema/design change or publication; hosted/real recovery gates OPEN.
+
 ## 2026-08-28 - PR #141 and production secret cutover reconciled
 
 - Recorded PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`

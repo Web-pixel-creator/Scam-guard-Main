@@ -1,0 +1,41 @@
+name: Backup Recovery Gates
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-recovery-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery-offline:
+    name: backup-recovery-offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout reviewed recovery sources
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Offline recovery profile regressions
+        run: python3 -B -m unittest discover -s supabase/recovery -p 'test_*.py'
+      - name: Linux synthetic backup workflow gates without network or credentials
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker build --platform linux/amd64 \
+            --file supabase/recovery/workflow-gates.Dockerfile \
+            --tag ishonch-recovery-gates:local supabase/recovery
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
+            --mount "type=bind,source=$PWD/.github/workflows,target=/work/.github/workflows,readonly" \
+            --mount "type=bind,source=$PWD/supabase/recovery,target=/work/supabase/recovery,readonly" \
+            --mount "type=bind,source=$PWD/supabase/migrations,target=/work/supabase/migrations,readonly" \
+            ishonch-recovery-gates:local
