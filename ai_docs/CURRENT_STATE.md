@@ -1,5 +1,69 @@
 # Current State
 
+## R1 publication checkpoint — 2026-10-25
+
+Last reconciled: 2026-10-25, candidate publication only. The owner authorized
+commit/push of the reviewed ACL/RLS and PG17 MAINTAIN corrections to Draft PR150
+and verification of CI on its new exact head. This revision supersedes the
+uncommitted/publication-approval queue in the historical blocks below.
+Use [PR150 head and Checks](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+for current source/CI identity; do not reuse old f4f4e0fa results or infer a pass
+until all checks on the new head finish. Local evidence remains dated separately.
+
+Verified repository main at publication preflight:
+7e8ac7feda46df76a2e1fc02db1c1759a1442021. Railway metadata was read only to confirm
+PR deployments disabled and the only repository trigger on main. No runtime
+request, credential/config change, deployment or production DB action.
+Merge/deployment, backup enablement and design remain outside this authorization.
+Backup NOT ENABLED / NOT VERIFIED; independent review, protected Environments,
+custody, hosted full recovery/transport, offsite copy and freshness remain OPEN.
+
+## Local R1 review — 2026-10-25
+
+Reviewed the uncommitted October23 correction. A further PG17 MAINTAIN ACL gap
+was reproduced and fixed locally: 10/10 direct/inherited mutations now rejected;
+real workflow rejects a weakened grant and accepts the correct production33
+synthetic backup with 92/92 restored authorization assertions. Python48/48,
+Linux components56/56, IPv4/IPv6 firewall and cleanup-failure controls passed.
+See the October25 follow-up in BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
+Read-only GitHub check: PR150 Draft/unmerged, head f4f4e0fa, published CI8/8;
+no submitted reviews. Main7e8ac7fe is unprotected with no rulesets; required
+backup-export/decrypt Environments are absent; both backup workflows remain
+disabled_manually. These settings were not changed. Published CI does NOT cover
+the local delta. No fresh production inspection, application/design change,
+commit/push/merge/deployment or enablement. Backup NOT ENABLED / NOT VERIFIED.
+
+## Local R1 authorization correction — 2026-10-23
+
+PR150 was published October21 as Draft/HOLD at f4f4e0fa; current local HEAD is
+unchanged and the ACL/RLS recovery-gate delta is uncommitted. This supersedes the
+older filesystem-preview/publication queue below, not any live state. See
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md and its local evidence report.
+No GitHub/Railway/Supabase production access or changes this session. No new
+migration, application behavior, design, secret, cron, commit or push.
+Backup NOT ENABLED / NOT VERIFIED; separate review/publication and trust/hosted/
+custody/production approvals remain required.
+
+## Local reconciliation — 2026-10-20
+
+Repository main freshly read as7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+No production read-back permitted or performed. Current repair is the non-Git
+filesystem candidate backup-release-fixed-20261020; see
+BACKUP_RELEASE_REPAIR_2026-10-20.md. Unicode COPY fix and separate dependency
+security patch supersede October18 local readiness, not live production state.
+No application feature/design/migration changes; one type-only ErrorComponent
+compatibility change accompanies TanStack. Publication/enablement HOLD.
+
+## Local R1 preparation — 2026-10-18
+
+Last repository ref check: main7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+This is an uncommitted filesystem preview, not a deployment or Git branch.
+See BACKUP_RELEASE_CANDIDATE_2026-10-18.md: production33 only, no schema/app/design
+changes; dedicated secret-free recovery CI. Gates23/23,29/29,56/56 locally.
+No fresh production read-back; historical live claims below are not current.
+Publication/enablement HOLD. Trust/custody/hosted and fresh snapshot gates OPEN.
+
 Last reconciled: 2026-08-28 (post-rotation read-back).
 
 This is the short operational source of truth. Dated audits, plans, release

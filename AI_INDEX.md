@@ -1,5 +1,50 @@
 # AI_INDEX.md
 
+## R1 publication revision — 2026-10-25
+
+This revision packages the reviewed authorization and PG17 MAINTAIN corrections
+for [Draft PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150).
+The owner authorized commit/push and exact-new-head CI, not merge/deployment.
+Use the PR head and Checks tab for publication/CI identity; earlier f4f4e0fa
+results below are historical and do not validate this revision. Test evidence:
+ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Backup NOT ENABLED / NOT VERIFIED;
+independent review, trust/custody/hosted recovery remain OPEN. No design change.
+
+## Local R1 review follow-up — 2026-10-25
+
+PR150 remains Draft at f4f4e0fa (published CI 8/8, no submitted reviews).
+Local review found and corrected an omitted PG17 MAINTAIN privilege check;
+see the October25 follow-up in ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+Fresh local restore/authorization/firewall evidence is separate from hosted CI.
+Commit/push approval, hosted gates and trust/custody remain OPEN. No production,
+design, migration, secret, GitHub setting or deployment changes.
+
+## Local R1 authorization follow-up — 2026-10-23
+
+Current worktree is backup-r1-release-20261021, base PR150 head f4f4e0fa.
+Uncommitted ACL/RLS validator correction; see
+ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. No push/merge/deploy or
+production/design changes. Historical October21 CI does not cover this delta.
+Backup remains NOT ENABLED / NOT VERIFIED; hosted/trust/custody gates OPEN.
+
+## Local R1 repair — 2026-10-20
+
+Current local candidate: see ai_docs/BACKUP_RELEASE_REPAIR_2026-10-20.md.
+The October18 R1 review is preserved separately. Its Unicode COPY defect is
+fixed here; dependency security updates form a separate five-file patch.
+Do not call this tree backup-only or base-identical in dependencies/shared CI.
+No production check/change, publication or enablement. Design stays excluded.
+All older status blocks below are historical.
+
+## Local backup-only candidate — 2026-10-18
+
+R1 is based on verified GitHub main7e8ac7fe, not the newer dirty application/design
+candidate. See ai_docs/BACKUP_RELEASE_CANDIDATE_2026-10-18.md. Only production33
+recovery tooling/tests/docs change; application, migrations, locks and shared CI
+remain base-identical. Local gates23/23,29/29,56/56; no publication or production
+check. The older operational statements below are historical, not a current
+availability claim. Release/enablement HOLD.
+
 > Entry point for any AI agent working on this project. Read this file first.
 > Do not infer current status from a dated audit, an arbitrary local worktree or
 > an unmerged branch.
