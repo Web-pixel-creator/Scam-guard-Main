@@ -113,9 +113,14 @@ def security_sql(profile):
             assertions.append(f"IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass({literal(relation)})) THEN RAISE EXCEPTION 'profile RLS missing'; END IF;")
     for relation, grants in profile["restricted_tables"].items():
         for role in ("anon", "authenticated", "service_role"):
-            for privilege in ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
+            for privilege in ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "MAINTAIN"):
                 expected = str(role == "service_role" and privilege in grants).lower()
-                assertions.append(f"IF has_table_privilege('{role}', {literal(relation)}, '{privilege}') IS DISTINCT FROM {expected} THEN RAISE EXCEPTION 'profile table privilege mismatch'; END IF;")
+                check = f"IF has_table_privilege('{role}', {literal(relation)}, '{privilege}') IS DISTINCT FROM {expected} THEN RAISE EXCEPTION 'profile table privilege mismatch'; END IF;"
+                if privilege == "MAINTAIN":
+                    # Added in PG17. Older servers reject the privilege name;
+                    # a nested PL/pgSQL IF prevents evaluating it on PG15/16.
+                    check = "IF current_setting('server_version_num')::integer >= 170000 THEN " + check + " END IF;"
+                assertions.append(check)
         assertions.append(f"IF EXISTS (SELECT 1 FROM pg_class c CROSS JOIN LATERAL aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a WHERE c.oid = to_regclass({literal(relation)}) AND a.grantee = 0) THEN RAISE EXCEPTION 'profile PUBLIC table privilege'; END IF;")
     for rpc in profile["rpc"]:
         signature = literal(rpc["signature"])
@@ -124,7 +129,8 @@ def security_sql(profile):
         path_config = literal("search_path=" + rpc["search_path"])
         assertions.append(f"IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid = to_regprocedure({signature}) AND prosecdef = {mode} AND coalesce(proconfig, ARRAY[]::text[]) @> ARRAY[{path_config}]) THEN RAISE EXCEPTION 'profile RPC security mode mismatch'; END IF;")
         for role in ("anon", "authenticated", "service_role"):
-            expected = str(role == "service_role" and rpc["service_execute"]).lower()
+            expected = str((role == "service_role" and rpc["service_execute"])
+                           or (role == "authenticated" and rpc.get("authenticated_execute", False))).lower()
             assertions.append(f"IF has_function_privilege('{role}', {signature}, 'EXECUTE') IS DISTINCT FROM {expected} THEN RAISE EXCEPTION 'profile RPC privilege mismatch'; END IF;")
         assertions.append(f"IF EXISTS (SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a WHERE p.oid = to_regprocedure({signature}) AND a.grantee = 0 AND a.privilege_type = 'EXECUTE') THEN RAISE EXCEPTION 'profile PUBLIC RPC privilege'; END IF;")
     return "SET TRANSACTION READ ONLY;\nDO $recovery$ BEGIN\n" + "\n".join(assertions) + "\nEND $recovery$;\n" + schedule_sql(profile).removeprefix("SET TRANSACTION READ ONLY;\n")

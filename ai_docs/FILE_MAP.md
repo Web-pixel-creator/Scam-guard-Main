@@ -1,5 +1,12 @@
 # File Map
 
+2026-10-23 R1: supabase/recovery/restored_authorization.py + its unit tests enforce
+the restored92-assertion authorization gate. baselines.json pins the four SQL
+tests and21 RPC/3 table contracts; recovery_contract.py supports the intentional
+authenticated AAL2-helper grant. backup-restore-drill.yml runs the gate before
+PASS; backup-workflow-contract.test.ts guards placement. No new SQL migration.
+Evidence: BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
 2026-10-20: recovery_contract.py counts physical LF-delimited COPY records.
 Its regression file adds Unicode/escaped/empty/multiline payload coverage.
 Dependency patch: package.json, bun.lock, ci.yml (matching coverage version),

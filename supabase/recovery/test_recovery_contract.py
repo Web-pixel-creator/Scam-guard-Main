@@ -128,7 +128,7 @@ class RecoveryContractTests(unittest.TestCase):
     def test_profile_fingerprint_is_stable_and_content_bound(self):
         profile = rc.load_profile("production-33")
         self.assertEqual(rc.fingerprint(profile),
-                         "4f889170aeede11588a0cc22d4109afe64d2010ef286c33cbc7f1a0d6b01182a")
+                         "9b633aaaac618051209f1be94d619f7314c18668c72a0b15a93a90022d6bebfd")
         self.assertEqual(rc.fingerprint(profile), rc.fingerprint(json.loads(json.dumps(profile))))
         changed = copy.deepcopy(profile)
         changed["schedules"][0]["schedule"] = "0 0 * * *"
@@ -151,6 +151,41 @@ class RecoveryContractTests(unittest.TestCase):
                      "ARRAY['search_path=pg_catalog, public']", "aclexplode",
                      "profile PUBLIC RPC privilege", "profile PUBLIC table privilege"]:
             self.assertIn(text, sql)
+
+    def test_production_acl_contract_is_not_an_empty_placeholder(self):
+        profile = rc.load_profile("production-33")
+        self.assertEqual(len(profile["rpc"]), 21)
+        self.assertEqual(len(profile["restricted_tables"]), 3)
+        sql = rc.security_sql(profile)
+        self.assertIn("has_function_privilege('anon', 'public.begin_telegram_update(bigint,uuid,integer,uuid,bigint)', 'EXECUTE') IS DISTINCT FROM false", sql)
+        self.assertIn("has_function_privilege('authenticated', 'private.is_admin_aal2()', 'EXECUTE') IS DISTINCT FROM true", sql)
+        self.assertIn("prosecdef = false", sql)
+        self.assertIn("search_path=\"\"", sql)
+        self.assertIn("profile PUBLIC RPC privilege", sql)
+        self.assertIn("profile PUBLIC table privilege", sql)
+
+    def test_pg17_maintain_is_checked_for_every_restricted_table_role(self):
+        profile = rc.load_profile("production-33")
+        sql = rc.security_sql(profile)
+        for table in profile["restricted_tables"]:
+            for role in ("anon", "authenticated", "service_role"):
+                assertion = (f"IF has_table_privilege('{role}', '{table}', 'MAINTAIN') "
+                             "IS DISTINCT FROM false THEN RAISE EXCEPTION "
+                             "'profile table privilege mismatch'; END IF;")
+                # PostgreSQL 15/16 do not recognize this privilege name. Use a
+                # nested IF, not SQL AND, so evaluation cannot be reordered.
+                self.assertIn("IF current_setting('server_version_num')::integer >= 170000 THEN "
+                              + assertion + " END IF;", sql)
+        self.assertEqual(sql.count("'MAINTAIN'"), 9)
+
+    def test_maintain_respects_explicit_service_allowlist_only(self):
+        profile = copy.deepcopy(rc.load_profile("production-33"))
+        profile["restricted_tables"] = {"private.synthetic_guard": ["MAINTAIN"]}
+        sql = rc.security_sql(profile)
+        for role, expected in (("anon", "false"), ("authenticated", "false"),
+                               ("service_role", "true")):
+            self.assertIn(f"has_table_privilege('{role}', 'private.synthetic_guard', 'MAINTAIN') "
+                          f"IS DISTINCT FROM {expected}", sql)
 
     def test_schedules_match_reviewed_migration(self):
         profile = rc.load_profile("production-33")

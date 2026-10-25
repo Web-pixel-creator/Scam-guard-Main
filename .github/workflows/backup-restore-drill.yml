@@ -819,6 +819,12 @@ jobs:
           $$;
           SQL
 
+          # Metadata parity is not authorization parity. These hash-pinned
+          # checkout tests exercise the restored database with rolled-back
+          # fixtures; their private SQL diagnostics never reach Actions logs.
+          python3 supabase/recovery/restored_authorization.py --profile "$RECOVERY_PROFILE"
+
+          echo "- Restored authorization behavior: PASS" >> "$GITHUB_STEP_SUMMARY"
           echo "- Authenticated artifact: PASS" >> "$GITHUB_STEP_SUMMARY"
           echo "- Supabase-compatible isolated restore: PASS" >> "$GITHUB_STEP_SUMMARY"
           echo "- State parity and required recovery invariants: PASS" >> "$GITHUB_STEP_SUMMARY"

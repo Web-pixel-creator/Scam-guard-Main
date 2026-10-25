@@ -1,5 +1,16 @@
 # Functions Map
 
+2026-10-25: recovery_contract.security_sql also checks MAINTAIN through
+has_table_privilege (effective/inherited permissions), inside a nested PG17+
+version guard. No application API change; two generator regressions added.
+
+2026-10-23: restored_authorization.check_tap rejects incomplete/nonpassing TAP;
+load_tests validates checkout hashes; verify_isolation/check_target validate the
+owned immutable internal-network target; run_tests requires cron off and handles
+rolled-back fixtures/extension cleanup. security_sql adds the optional reviewed
+authenticated_execute flag (default false), preserving service-only defaults.
+No application API signature changed.
+
 2026-10-20: copy_counts(profile,text) splits physical LF only, preserving Unicode
 separators inside fields. Existing missing/unknown/duplicate/truncated snapshot
 guards remain. ErrorComponent uses router ErrorComponentProps (unknown errors);

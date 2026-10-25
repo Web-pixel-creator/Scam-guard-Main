@@ -156,8 +156,162 @@
         "storage.buckets",
         "storage.objects"
       ],
-      "rpc": [],
-      "restricted_tables": {},
+      "rpc": [
+        {
+          "signature": "private.handle_admin_allowlist_role_change()",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "private.is_admin_aal2()",
+          "security_definer": false,
+          "search_path": "\"\"",
+          "service_execute": true,
+          "authenticated_execute": true
+        },
+        {
+          "signature": "private.prune_app_retention(timestamp with time zone)",
+          "security_definer": true,
+          "search_path": "pg_catalog, public",
+          "service_execute": true
+        },
+        {
+          "signature": "private.reconcile_admin_role(uuid)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "private.telegram_update_leader_is_current(uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "private.telegram_update_lease_is_current(bigint,uuid,bigint,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "public.acquire_telegram_update_leader(uuid,integer)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.begin_telegram_update(bigint,uuid,integer,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.claim_telegram_family_notification(bigint,text,text,integer)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.complete_telegram_family_notification(uuid,boolean)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.complete_telegram_update(bigint,uuid,bigint,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.handle_confirmed_admin_allowlist_role()",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "public.handle_new_user_role()",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": false
+        },
+        {
+          "signature": "public.load_telegram_session_fenced(bigint,bigint,uuid,bigint,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.mark_telegram_update_failure(bigint,uuid,bigint,text,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.release_telegram_update_leader(uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.renew_telegram_update_leader(uuid,bigint,integer)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.renew_telegram_update(bigint,uuid,bigint,integer,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.save_telegram_session_fenced(bigint,bigint,uuid,bigint,jsonb,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.telegram_update_leader_status()",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        },
+        {
+          "signature": "public.telegram_update_lease_current(bigint,uuid,bigint,uuid,bigint)",
+          "security_definer": true,
+          "search_path": "\"\"",
+          "service_execute": true
+        }
+      ],
+      "restricted_tables": {
+        "private.telegram_family_notification_claims": [],
+        "private.telegram_update_leaders": [],
+        "public.telegram_webhook_updates": ["SELECT", "DELETE"]
+      },
+      "authorization_tests": [
+        {
+          "file": "admin_mfa_aal2_rls.test.sql",
+          "tests": 23,
+          "sha256": "871d6b2bc9e58b64f6b0dd5775ddceef64ffeb1cc1d5e231b628f5098997ed86"
+        },
+        {
+          "file": "admin_role_lifecycle.test.sql",
+          "tests": 18,
+          "sha256": "9b2d988d54f3af865dcc31b93432b4884771f9ec74dad3adfe2b3dd175b9f67f"
+        },
+        {
+          "file": "family_notification_retention.test.sql",
+          "tests": 10,
+          "sha256": "880f010d5d66531e189c639ab7f275f6f3827ad202675b3e0ce47df6253cd742"
+        },
+        {
+          "file": "telegram_update_lifecycle.test.sql",
+          "tests": 41,
+          "sha256": "9139dd347b387c4d4ef5293a3eb79aa497ebba159ec30a9700294dc83379bb63"
+        }
+      ],
       "schedules": [
         {
           "name": "ishonch_prune_app_retention_daily",

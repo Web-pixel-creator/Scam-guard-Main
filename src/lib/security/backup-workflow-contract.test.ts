@@ -451,6 +451,22 @@ describe("Supabase backup workflow contract", () => {
     expect(profiles).not.toContain("ishonch_prune_web_ocr_ticket_claims_hourly");
   });
 
+  it("requires restored authorization behavior before declaring restore success", () => {
+    const gate =
+      'python3 supabase/recovery/restored_authorization.py --profile "$RECOVERY_PROFILE"';
+    expect(restore).toContain(gate);
+    expect(restore.indexOf(gate)).toBeGreaterThan(
+      restore.indexOf("--file /tmp/restore/profile-security.sql"),
+    );
+    expect(restore.indexOf(gate)).toBeLessThan(
+      restore.indexOf("State parity and required recovery invariants: PASS"),
+    );
+    expect(profiles).toContain('"authorization_tests"');
+    expect(profiles).toContain('"private.is_admin_aal2()"');
+    expect(profiles).not.toContain('"rpc": []');
+    expect(profiles).not.toContain('"restricted_tables": {}');
+  });
+
   it("emits PASS/FAIL evidence without real counts or identifiers", () => {
     expect(restore).toContain("State parity and required recovery invariants: PASS");
     expect(restore).not.toMatch(/GITHUB_STEP_SUMMARY[\s\S]{0,200}\$\(.*count/iu);

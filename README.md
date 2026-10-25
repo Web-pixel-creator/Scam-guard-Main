@@ -1,5 +1,16 @@
 # Ishonch Guard
 
+## Проверенный R1 в Draft PR №150 — 25 октября 2026
+
+[Актуальный кандидат и CI](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+содержит исправления проверки восстановленной авторизации и прав PostgreSQL17.
+[Проверки и ограничения](ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md)
+отделяют локальное восстановление от hosted CI и production.
+Владелец разрешил commit/push этой ревизии, но не merge/deployment. Дизайн и новые
+миграции исключены. Backup по-прежнему **NOT ENABLED / NOT VERIFIED**.
+Ниже сохранены исторические этапы; текущая очередь — в
+[`CURRENT_STATE`](ai_docs/CURRENT_STATE.md) и [`OPEN_TASKS`](ai_docs/OPEN_TASKS.md).
+
 ## Локальное исправление R1 — 20 октября 2026
 
 [Актуальный состав и границы](ai_docs/BACKUP_RELEASE_REPAIR_2026-10-20.md):

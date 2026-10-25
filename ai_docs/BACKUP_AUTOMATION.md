@@ -1,5 +1,18 @@
 # Backup Automation — production33-only candidate
 
+2026-10-25: local security_sql now checks PG17 MAINTAIN, including inherited
+rights, on all three restricted tables. Fresh synthetic restore and deliberate
+bad-grant rejection passed. GitHub read-back confirms both backup workflows
+still disabled_manually; backup-export/decrypt Environments are absent.
+No enablement or production action. See the dated follow-up in the report below.
+
+2026-10-23 local follow-up: required restored ACL/RLS behavior gate,21 RPC/3 table
+contracts and a new content-bound profile fingerprint. See
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Fresh artifacts must use the same
+reviewed contract. Hosted workflows were disabled at the last October21 read;
+this session did not recheck or change them. The uncommitted delta has not run
+on GitHub; production remains outside scope.
+
 2026-10-20 local repair supersedes the October18 preparation below:
 see BACKUP_RELEASE_REPAIR_2026-10-20.md. Unicode COPY accounting is fixed and
 dependency security updates are a separate prerequisite patch. No production

@@ -3,6 +3,23 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-124 - Restore success requires authorization behavior, not object names
+
+2026-10-23 local R1 correction for P2 R1 REVIEW 01. Pin critical production33
+ACL/mode/search_path expectations and execute the existing92 rollback-only SQL
+assertions on the isolated restored target before PASS. Test cases and profile
+are bound to the trusted checkout, never supplied by the archive. Any failed,
+skipped or incomplete assertion fails closed; no private SQL diagnostics in CI.
+Change the profile fingerprint explicitly; old artifacts need fresh export,
+not a compatibility bypass. No application migration or production grant change.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md; enablement remains separately gated.
+
+October25 review addendum: the same restricted-table contract includes PG17
+MAINTAIN. Check effective privileges, not only direct ACL entries; use a nested
+server-version guard for older servers. This strengthens the existing policy
+without changing migrations or its profile fingerprint. Local live proof used
+PG17.11; no new live PG15/16 compatibility claim is made.
+
 ## D-123 - Separate dependency prerequisite from repaired backup R1
 
 2026-10-20 local only. Preserve the immutable October18 reviewed package.
