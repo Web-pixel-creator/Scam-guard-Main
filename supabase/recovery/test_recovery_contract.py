@@ -187,6 +187,41 @@ class RecoveryContractTests(unittest.TestCase):
             self.assertIn(f"has_table_privilege('{role}', 'private.synthetic_guard', 'MAINTAIN') "
                           f"IS DISTINCT FROM {expected}", sql)
 
+    def test_column_acl_checks_cover_every_restricted_role_and_privilege(self):
+        profile = rc.load_profile("production-33")
+        sql = rc.security_sql(profile)
+        for table, grants in profile["restricted_tables"].items():
+            for role in ("anon", "authenticated", "service_role"):
+                for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                    expected = str(role == "service_role" and privilege in grants).lower()
+                    self.assertIn(f"has_any_column_privilege('{role}', '{table}', '{privilege}') "
+                                  f"IS DISTINCT FROM {expected}", sql)
+        self.assertEqual(sql.count("has_any_column_privilege("), 36)
+        for privilege in ("DELETE", "TRUNCATE", "TRIGGER", "MAINTAIN"):
+            self.assertNotRegex(sql, rf"has_any_column_privilege\([^\n]+, '{privilege}'\)")
+
+    def test_public_column_acl_is_rejected_even_when_service_grant_is_allowed(self):
+        sql = rc.security_sql(rc.load_profile("production-33"))
+        for table in rc.load_profile("production-33")["restricted_tables"]:
+            self.assertIn(f"a.attrelid = to_regclass('{table}')", sql)
+        for fragment in ("pg_attribute a", "aclexplode(a.attacl)", "a.attnum > 0",
+                         "NOT a.attisdropped", "acl.grantee = 0",
+                         "profile PUBLIC column privilege"):
+            self.assertIn(fragment, sql)
+
+    def test_column_acl_uses_reviewed_allowlist_not_an_unconditional_deny(self):
+        profile = copy.deepcopy(rc.load_profile("production-33"))
+        profile["restricted_tables"] = {"private.synthetic_guard": ["SELECT", "UPDATE"]}
+        sql = rc.security_sql(profile)
+        for role in ("anon", "authenticated", "service_role"):
+            for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                expected = str(role == "service_role" and privilege in ("SELECT", "UPDATE")).lower()
+                self.assertIn(f"has_any_column_privilege('{role}', 'private.synthetic_guard', '{privilege}') "
+                              f"IS DISTINCT FROM {expected}", sql)
+        self.assertTrue(sql.startswith("SET TRANSACTION READ ONLY;"))
+        self.assertNotIn("GRANT ", sql)
+        self.assertNotIn("REVOKE ", sql)
+
     def test_schedules_match_reviewed_migration(self):
         profile = rc.load_profile("production-33")
         self.assertEqual(len(profile["schedules"]), 1)

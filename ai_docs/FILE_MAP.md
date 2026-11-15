@@ -1,5 +1,10 @@
 # File Map
 
+2026-11-14: recovery_contract.py adds effective and PUBLIC column-ACL validation;
+test_recovery_contract.py adds three red/green generator regressions. No new
+workflow, application file or migration. Dated evidence is in
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md; the delta is local/uncommitted.
+
 2026-10-23 R1: supabase/recovery/restored_authorization.py + its unit tests enforce
 the restored92-assertion authorization gate. baselines.json pins the four SQL
 tests and21 RPC/3 table contracts; recovery_contract.py supports the intentional

@@ -1,5 +1,29 @@
 # Open Tasks
 
+## Approved publication queue — 2026-11-15
+
+1. Owner approved commit/push of the reviewed column-ACL delta to Draft PR150.
+   Verify all hosted checks on its exact new head; prior 37b2be1 CI is historical.
+2. Keep Draft/HOLD: no Ready, merge, deployment, production or design action.
+3. Obtain independent review of the revision and separately approved repository/
+   Environment protection. Self-review and local tests do not close trust gates.
+4. Resolve key custody, hosted full recovery/artifact transport, offsite copies
+   and independent freshness monitoring. Production export/read-back/isolated
+   restore and backup enablement require separate approval. No cron enablement.
+5. Application candidate38, migrations and design stay separate.
+
+## Current local queue — 2026-11-14
+
+1. Column-ACL correction from the October26 review is locally verified; review
+   the two Python files and dated evidence in BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+2. Obtain separate commit/push approval for this delta, then verify exact-new-head
+   hosted CI. PR150 remains Draft at37b2be1; no merge/deployment approval implied.
+3. Independently review the revised candidate and close repository protection,
+   credential approval, key custody, hosted full recovery/transport, offsite and
+   freshness gates. Earlier snapshots of GitHub settings are not fresh evidence.
+4. Production export/read-back/isolated restore and backup enablement still need
+   separate approval. Design, application candidate38 and migrations stay separate.
+
 ## Publication queue — 2026-10-25
 
 1. Owner approved commit/push of the tested correction to Draft PR150. Verify

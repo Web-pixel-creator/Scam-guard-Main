@@ -1,5 +1,10 @@
 # Functions Map
 
+2026-11-14: security_sql checks has_any_column_privilege for SELECT/INSERT/UPDATE/
+REFERENCES against the existing role allowlist, plus explicit PUBLIC entries in
+pg_attribute.attacl. Inherited effective grants are included; table ACL checks
+remain mandatory. The generator stays read-only; no application signatures change.
+
 2026-10-25: recovery_contract.security_sql also checks MAINTAIN through
 has_table_privilege (effective/inherited permissions), inside a nested PG17+
 version guard. No application API change; two generator regressions added.

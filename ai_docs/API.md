@@ -1,5 +1,9 @@
 # API
 
+2026-11-14: no application API or recovery CLI signature changes. The offline
+security-sql output now checks column ACLs as well as table ACLs; it still
+does not open connections or modify grants. Local validator correction only.
+
 2026-10-20: application API definitions unchanged. TanStack Start1.168.60 and
 server-core1.169.39 patch the vendor server-function transport advisory;
 Seroval1.6.7 is pinned. This is dependency hardening, not a new endpoint and not

@@ -1,5 +1,12 @@
 # Database
 
+2026-11-14: column-ACL validation strengthens the same three restricted-table
+contracts. No migration, live grant or profile-fingerprint change. Real synthetic
+PG17.11 tests reject82 forbidden grants and accept2 redundant allowed grants;
+full restore rejects unsafe restored rights. Missing reserved-role membership
+can make an inherited source grant ineffective after export; this was tested,
+not assumed to be rejection. No claim of current production schema inspection.
+
 2026-10-25: recovery validation includes PG17 MAINTAIN for the same three
 restricted tables. Direct and inherited synthetic grants were rejected after
 the fix. No migration, live grant or profile-fingerprint change; this is a

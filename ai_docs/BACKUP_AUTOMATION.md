@@ -1,5 +1,17 @@
 # Backup Automation — production33-only candidate
 
+2026-11-15: owner-approved publication of the reviewed column-ACL correction
+to Draft PR150, followed by exact-new-head CI. No workflow/version/cron change.
+Older uncommitted/approval-pending notes below are historical; use PR150 Checks
+for current hosted status. Merge/deployment and enablement remain HOLD.
+Backup NOT ENABLED / NOT VERIFIED; independent review and trust gates stay OPEN.
+
+2026-11-14: local column-ACL correction tested against direct/inherited/PUBLIC
+rights and actual restore steps. No workflow/cron/version change. PR150 remains
+Draft at37b2be1; the correction is uncommitted and has no hosted CI result.
+Backup NOT ENABLED / NOT VERIFIED. See the November14 evidence section in
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md; trust/hosted/custody gates remain OPEN.
+
 2026-10-25: local security_sql now checks PG17 MAINTAIN, including inherited
 rights, on all three restricted tables. Fresh synthetic restore and deliberate
 bad-grant rejection passed. GitHub read-back confirms both backup workflows

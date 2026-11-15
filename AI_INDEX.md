@@ -1,5 +1,24 @@
 # AI_INDEX.md
 
+## Approved column-ACL publication — 2026-11-15
+
+This revision packages the reviewed column-ACL correction for
+[Draft PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150).
+The owner approved commit/push and exact-new-head CI only. Earlier uncommitted
+and approval-pending blocks below are historical. Use the PR head and Checks
+for publication/CI identity; prior 37b2be1 CI does not validate this revision.
+Local evidence: ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+Merge/deployment, production, design and backup enablement remain out of scope.
+Backup NOT ENABLED / NOT VERIFIED; independent review and trust gates stay OPEN.
+
+## Local column-ACL correction — 2026-11-14
+
+Uncommitted follow-up to Draft PR150 head37b2be1. The October26 independent
+review's column-privilege gap is corrected and tested locally; see the November14
+section of ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Existing published
+CI does not cover this delta. No commit/push/merge/deployment or production/design
+change. Backup NOT ENABLED / NOT VERIFIED; publication and enablement stay HOLD.
+
 ## R1 publication revision — 2026-10-25
 
 This revision packages the reviewed authorization and PG17 MAINTAIN corrections

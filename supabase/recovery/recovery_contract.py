@@ -121,7 +121,13 @@ def security_sql(profile):
                     # a nested PL/pgSQL IF prevents evaluating it on PG15/16.
                     check = "IF current_setting('server_version_num')::integer >= 170000 THEN " + check + " END IF;"
                 assertions.append(check)
+            # Table ACLs do not include column grants. This inquiry also sees
+            # privileges inherited through role membership and PUBLIC.
+            for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                expected = str(role == "service_role" and privilege in grants).lower()
+                assertions.append(f"IF has_any_column_privilege('{role}', {literal(relation)}, '{privilege}') IS DISTINCT FROM {expected} THEN RAISE EXCEPTION 'profile column privilege mismatch'; END IF;")
         assertions.append(f"IF EXISTS (SELECT 1 FROM pg_class c CROSS JOIN LATERAL aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a WHERE c.oid = to_regclass({literal(relation)}) AND a.grantee = 0) THEN RAISE EXCEPTION 'profile PUBLIC table privilege'; END IF;")
+        assertions.append(f"IF EXISTS (SELECT 1 FROM pg_attribute a CROSS JOIN LATERAL aclexplode(a.attacl) acl WHERE a.attrelid = to_regclass({literal(relation)}) AND a.attnum > 0 AND NOT a.attisdropped AND acl.grantee = 0) THEN RAISE EXCEPTION 'profile PUBLIC column privilege'; END IF;")
     for rpc in profile["rpc"]:
         signature = literal(rpc["signature"])
         assertions.append(f"IF to_regprocedure({signature}) IS NULL THEN RAISE EXCEPTION 'profile RPC missing'; END IF;")

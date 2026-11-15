@@ -20,6 +20,13 @@ server-version guard for older servers. This strengthens the existing policy
 without changing migrations or its profile fingerprint. Local live proof used
 PG17.11; no new live PG15/16 compatibility claim is made.
 
+November14 review addendum: table ACL inquiries do not cover column grants.
+Check effective SELECT/INSERT/UPDATE/REFERENCES on columns, including role
+inheritance, and reject explicit PUBLIC column ACLs. Preserve allowed table
+rights and read-only validation; no migration or fingerprint change. Judge
+restore by actual target privileges: an unsafe source membership may be omitted
+by export, while existing target membership must still fail the contract.
+
 ## D-123 - Separate dependency prerequisite from repaired backup R1
 
 2026-10-20 local only. Preserve the immutable October18 reviewed package.

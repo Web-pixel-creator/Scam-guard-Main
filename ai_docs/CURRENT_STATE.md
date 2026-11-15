@@ -1,5 +1,45 @@
 # Current State
 
+## Column-ACL publication checkpoint — 2026-11-15
+
+Last reconciled: 2026-11-15, owner-approved candidate publication only.
+This revision packages the two reviewed Python files and their documentation
+for Draft PR150. Commit/push and exact-new-head CI are authorized; Ready,
+merge/deployment, production access, design and enablement are not.
+Use [PR150 head and Checks](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+for hosted identity/status. Do not transfer the prior 37b2be1 CI result to this
+revision or claim success before the new checks complete.
+
+November15 self-review found no new blocking issue in the delta; Python 51/51,
+document formatting and diff-check passed. Functional hashes match the November14
+local PG17.11 matrix 84/84 and full restore with 92 assertions; those full
+database tests were not rerun on November15. This is not independent approval.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for evidence and limitations.
+
+Read-only publication preflight: GitHub main remains
+7e8ac7feda46df76a2e1fc02db1c1759a1442021; PR150 is Draft without auto-merge.
+Railway PR deployments are disabled; repository triggers target main only.
+No runtime request or credential/config/DB change. These metadata checks do not
+establish current production health. Backup NOT ENABLED / NOT VERIFIED;
+independent review, protection/credential approval/custody/hosted recovery/
+offsite/freshness gates remain OPEN. Older local/publication blocks are historical.
+
+## Local R1 column-ACL checkpoint — 2026-11-14
+
+Last reconciled: 2026-11-14, local correction only. Read-only GitHub confirms
+PR150 OPEN/DRAFT at37b2be17d637091a934366f293e13174eef4d750, not merged.
+The uncommitted validator now checks effective column rights and PUBLIC column
+ACLs. Python51/51, Linux components56/56, real PG17.11 matrix84/84 and correct
+full restore with92 assertions pass. Unsafe direct/PUBLIC grants and inherited
+target-membership drift are rejected. Source inherited membership was omitted
+by export; the restored target instead has no UPDATE privilege (verified).
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for the failed test expectation,
+correction, evidence and limitations. Firewall/failure cleanup passed; owned
+resources removed and unrelated worktrees preserved. Existing hosted CI does
+not validate this new local delta. No production/design/secret/workflow changes,
+publication or enablement. Backup NOT ENABLED / NOT VERIFIED; release HOLD.
+Protection/custody/hosted/offsite/freshness gates are not closed by these tests.
+
 ## R1 publication checkpoint — 2026-10-25
 
 Last reconciled: 2026-10-25, candidate publication only. The owner authorized

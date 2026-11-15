@@ -2,6 +2,24 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-11-15 - Owner-approved column-ACL publication to Draft PR150
+
+Reconcile README, AI_INDEX, CURRENT_STATE, OPEN_TASKS and backup notes with
+explicit commit/push authorization. Keep the November14 local evidence intact;
+record November15 self-review and exact-new-head CI requirement without claiming
+unobserved success. Only publication-status text changes after review; functional
+sources remain fixed. Merge/deployment, production, design and backup enablement
+stay excluded; independent review and trust/custody/hosted gates remain OPEN.
+
+## 2026-11-14 - Local column-ACL correction after independent R1 review
+
+Reconciled README, AI_INDEX, CURRENT_STATE, OPEN_TASKS, backup evidence/operator
+notes, FILE/FUNCTIONS/DATABASE/API maps and D-124. Record exact37b2be1 base,
+uncommitted status, red/green tests, real grant matrix and restore results,
+including the failed inherited-archive expectation and verified safe target.
+No old CI result is applied to the local delta. No publication, production,
+design, secret, migration or workflow change. Enablement remains HOLD.
+
 ## 2026-10-25 - Owner-authorized Draft PR150 publication revision
 
 README, AI_INDEX, CURRENT_STATE and OPEN_TASKS now distinguish this approved

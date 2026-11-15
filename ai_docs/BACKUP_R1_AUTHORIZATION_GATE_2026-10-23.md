@@ -1,5 +1,103 @@
 # R1 restored-authorization gate — 2026-10-23
 
+## Owner-approved publication — 2026-11-15
+
+The owner explicitly approved commit/push of the reviewed local column-ACL
+correction to Draft PR150, followed by exact-new-head CI. No Ready, merge,
+deployment, production or design changes are authorized. This section supersedes
+the publication-approval boundary in the dated local evidence below; it does
+not close independent review, trust/custody/hosted/offsite/freshness gates.
+
+November15 self-review: two Python files plus twelve documentation paths,
+Python 51/51 and formatting/diff checks pass. Functional source matches sixteen
+saved green-run input snapshots from November14. The intentional pre-fix RED
+snapshot is excluded; the failed inherited-membership expectation is retained.
+The real matrix 84/84 and full restore with 92 SQL assertions remain November14
+evidence, not new hosted recovery proof or a repeated November15 database run.
+Publication updates only status/authorization text; tested functional bytes
+remain unchanged. Use [PR150 head and Checks](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+for the new commit and its CI; do not reuse prior head37b2be1 results.
+
+Read-only preflight confirms PR150 Draft/no auto-merge, unchanged GitHub main
+7e8ac7feda46df76a2e1fc02db1c1759a1442021 and Railway PR deployments disabled
+with repository triggers only on main. This is not a production-health check.
+Evidence folders: `C:\Scam-guard\backup-r1-column-review-20261115` and
+`C:\Scam-guard\backup-r1-column-publication-20261115`.
+Backup remains **NOT ENABLED / NOT VERIFIED**; release/enablement HOLD.
+
+## Column-ACL correction — 2026-11-14
+
+Local, uncommitted correction to the October26 independent review finding.
+Base: **37b2be17d637091a934366f293e13174eef4d750**. Read-only GitHub confirms
+PR150 remains OPEN/DRAFT at that head, not merged. Published CI does not cover
+this delta. No commit/push, merge, deployment, production, design or credential
+action. Older blocks below remain historical evidence for their own dates.
+
+### Correction and red/green proof
+
+`security_sql` now checks effective SELECT/INSERT/UPDATE/REFERENCES through
+`has_any_column_privilege`, in addition to existing table ACL checks. Expected
+rights come from the existing restricted-table allowlist. Inherited and PUBLIC
+rights cannot bypass it; explicit PUBLIC column entries are also rejected via
+`pg_attribute.attacl`, ignoring dropped/system columns. No migration, profile
+fingerprint, application behavior, workflow or pinned-version change.
+See [PostgreSQL privilege inquiry semantics](https://www.postgresql.org/docs/17/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE).
+
+Three new generator tests failed on the unmodified validator, then all51 Python
+tests passed after the correction. They pin all36 role/table/column-privilege
+checks, PUBLIC ACL detection, allowed service rights and read-only output.
+
+### Fresh synthetic Linux/PG17.11 evidence
+
+- **84/84 real privilege cases:**35 direct +35 two-level inherited +12 PUBLIC
+  forbidden grants rejected;2 redundant allowed SELECT grants accepted.
+  The original production33 contract is rechecked after every cleanup.
+- **Correct full restore PASS:** actual export, age encryption, authenticated
+  read-back, single-transaction restore,18 relations, auth/storage sentinels,
+  count parity, disabled cron launcher and92 restored SQL assertions.
+- Actual workflow rejects archives carrying direct and PUBLIC UPDATE column
+  rights, before an authorization PASS summary. A separate probe with an
+  inherited membership pre-existing in the isolated target is also rejected.
+- **Important qualification:** the initial negative test expected a source
+  inherited grant to survive export. That expectation failed: restore passed.
+  Follow-up proved the reserved-role membership was not restored, effective
+  UPDATE=false, and a real service_role UPDATE returned permission denied.
+  This is safe target behavior, not a rejected archive. The separate target-drift
+  probe proves the validator rejects inherited rights when actually effective.
+  The failed first expectation remains in negative.log/json, not hidden as PASS.
+- Linux workflow components56/56; IPv4/IPv6 INPUT and DOCKER-USER positive/deny
+  controls pass. Missing IPv6 chain fails closed. Busy-volume cleanup reports
+  failure, removes plaintext/firewall state, then cleans without residue.
+- actionlint0, Bash syntax PASS, Gitleaks recovery scan0. Full application
+  Vitest/tsc/build were not rerun: only two Python files and documentation change.
+  Prior application totals are not new evidence for this session.
+
+Docker Desktop was started locally. Loading the pinned images took532s; three
+matching cached helper images seeded the owned nested cache. The original
+workflow still pulled and verified its immutable digests/config identities;
+no identity guard or version was replaced. CLI stays pinned at2.104.0.
+No host Docker socket or public port is exposed by the outer runner. Synthetic
+source data and keys only; Actions artifact transport remains a local copy,
+not proof of hosted upload/download, custody, offsite copies or freshness.
+
+All nested containers/volumes/custom networks/namespaces/tagged firewall rules
+and data roots were removed, followed by the exact owned outer container/volume.
+Unrelated host resource inventory and dirty repo/consent worktrees matched
+before/after. Functional source hashes stayed constant throughout all gates;
+documentation reconciliation happens after cleanup.
+
+Evidence: `C:\Scam-guard\backup-r1-column-fix-20261114` (runner/probes, red/green
+unit logs, matrix, full, negative and negative-followup, firewall/failures,
+per-gate source hashes, final-inner/cleanup/final verification). Matrix and full
+rehearsal are local evidence, not newly added hosted database CI jobs. The three
+new unit tests join the existing offline recovery CI when this delta is published.
+
+**Disposition:** column-ACL finding corrected and verified locally; release and
+enablement remain HOLD / NOT ENABLED / NOT VERIFIED. Next: review local diff,
+separately approve commit/push, verify exact-new-head CI and independently review
+the revision. Protection/credential approval/custody/hosted recovery/offsite/
+freshness and owner-approved production work remain separate open gates.
+
 ## Review follow-up — 2026-10-25
 
 Scope stays local and uncommitted at f4f4e0fa. The October23 source snapshot

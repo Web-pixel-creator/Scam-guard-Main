@@ -1,5 +1,23 @@
 # Ishonch Guard
 
+## Публикация исправления backup — 15 ноября 2026
+
+Владелец разрешил commit/push проверенного исправления прав на столбцы в
+[Draft PR №150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150).
+Точный опубликованный commit и результаты CI смотрите в PR → Checks;
+прежний CI на `37b2be1` не подтверждает новую версию.
+[Локальные доказательства и ограничения](ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md)
+сохранены отдельно. Merge/deployment не разрешены; production и дизайн
+не меняются. Backup **NOT ENABLED / NOT VERIFIED**. Старые статусы ниже исторические.
+
+## Локальное исправление backup — 14 ноября 2026
+
+Исправлен пропуск прав на столбцы в валидаторе восстановления. Изменения ещё
+не закоммичены и не опубликованы: Draft PR №150 остаётся на37b2be1.
+[Результаты и ограничения](ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md)
+отделяют локальные тесты от CI, включения backup и production.
+Production и дизайн не менялись; backup **NOT ENABLED / NOT VERIFIED**.
+
 ## Проверенный R1 в Draft PR №150 — 25 октября 2026
 
 [Актуальный кандидат и CI](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
