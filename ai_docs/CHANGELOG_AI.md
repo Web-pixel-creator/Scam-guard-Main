@@ -2,6 +2,86 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-11-16 - Owner-approved fixture-fix Draft publication
+
+Reconcile entry points, state/queue and dated evidence with explicit commit/push
+and exact-head CI approval. Preserve independently reviewed functional bytes and
+dated local evidence. Railway preflight is read-only/main-only/no PR deploys;
+no Ready/merge/deployment, production, design or backup activation approval.
+
+## 2026-11-16 - Independent review and read-only readiness refresh
+
+Record separate AI review of the local fixture fix, fresh57/57 and32/32 evidence
+comparisons, unchanged functional code and exact published cb8c61c CI boundary.
+Refresh GitHub protection/Environment/workflow metadata without mutations.
+Only review/status docs and the owner journal change; no new full DB rehearsal
+or publication/production/design action. Human/custody/hosted gates stay OPEN.
+
+## 2026-11-15 - Local lifecycle fixture collision correction
+
+Reconcile entry points, status/queue, four maps, D-124 and dated evidence with
+the uncommitted cb8c61c follow-up. Record Python57, components56, full restore92,
+collision matrix287, old-SQL negative controls, preservation and cleanup. Keep
+the failed fingerprint expectation and NULL-timestamp rehearsal mistake visible.
+Published CI is not transferred to this delta; full application tests were not
+rerun. No hosted changes, production/design access or enablement authorization.
+
+## 2026-11-15 - Owner-approved column-ACL publication to Draft PR150
+
+Reconcile README, AI_INDEX, CURRENT_STATE, OPEN_TASKS and backup notes with
+explicit commit/push authorization. Keep the November14 local evidence intact;
+record November15 self-review and exact-new-head CI requirement without claiming
+unobserved success. Only publication-status text changes after review; functional
+sources remain fixed. Merge/deployment, production, design and backup enablement
+stay excluded; independent review and trust/custody/hosted gates remain OPEN.
+
+## 2026-11-14 - Local column-ACL correction after independent R1 review
+
+Reconciled README, AI_INDEX, CURRENT_STATE, OPEN_TASKS, backup evidence/operator
+notes, FILE/FUNCTIONS/DATABASE/API maps and D-124. Record exact37b2be1 base,
+uncommitted status, red/green tests, real grant matrix and restore results,
+including the failed inherited-archive expectation and verified safe target.
+No old CI result is applied to the local delta. No publication, production,
+design, secret, migration or workflow change. Enablement remains HOLD.
+
+## 2026-10-25 - Owner-authorized Draft PR150 publication revision
+
+README, AI_INDEX, CURRENT_STATE and OPEN_TASKS now distinguish this approved
+commit/push revision from the historical uncommitted review snapshots. Exact
+publication head/CI identity is available from PR150; no old green check is
+reused. Tested recovery code is unchanged; merge, deployment, production and
+design remain outside scope.
+
+## 2026-10-25 - R1 review: PG17 maintenance privilege and trust read-back
+
+Recorded the locally reproduced/corrected MAINTAIN ACL gap, fresh synthetic
+restore/firewall evidence and failed harness attempts without recasting them
+as passing tests. Updated current queue/maps/operator notes. GitHub checks
+remain tied to old published head; main protection/backup Environments and
+independent review are still absent. No production or remote mutation.
+
+## 2026-10-23 - Local restored-authorization gate for Draft PR150
+
+Reconciled the October21 publication/review and new local validator delta.
+D-124, recovery operator notes and source maps describe21 RPC/3 table contracts,
+the pinned92-assertion behavioral gate and new fingerprint. Current scope is
+uncommitted local work, not the old CI head or a production change. Hosted,
+trust, custody, production and enablement gates remain OPEN; design excluded.
+
+## 2026-10-20 - R1 Unicode repair and dependency prerequisite
+
+New local candidate; October18 review preserved. Current-state/queue/maps now
+distinguish Unicode fix, separate dependency patch and integrated checks.
+D-123 records release separation. Production/hosted/real-user evidence is not
+inferred from local gates; no publication or enablement.
+
+## 2026-10-18 - R1 backup-only release preparation
+
+Separate preview from verified main; scoped operator/maps and D-122. Only33
+profile allowed, all secret jobs guarded, checkout credentials not persisted,
+dedicated recovery CI.23/23 Vitest,29/29 Python,56/56 Linux component cases.
+No app/schema/design change or publication; hosted/real recovery gates OPEN.
+
 ## 2026-08-28 - PR #141 and production secret cutover reconciled
 
 - Recorded PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`

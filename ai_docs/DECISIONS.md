@@ -3,6 +3,54 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-124 - Restore success requires authorization behavior, not object names
+
+November15 local follow-up: restored fixtures must not depend on archive IDs
+being absent. Reserve the exact lifecycle test keys inside its transaction and
+verify retained/unrelated rows after rollback. Keep all92 assertions, update the
+test hash/profile fingerprint, and preserve fail-closed drift handling. An
+opt-in seven-case real-DB matrix is separate from offline component CI and does
+not constitute hosted recovery or independent human approval.
+
+2026-10-23 local R1 correction for P2 R1 REVIEW 01. Pin critical production33
+ACL/mode/search_path expectations and execute the existing92 rollback-only SQL
+assertions on the isolated restored target before PASS. Test cases and profile
+are bound to the trusted checkout, never supplied by the archive. Any failed,
+skipped or incomplete assertion fails closed; no private SQL diagnostics in CI.
+Change the profile fingerprint explicitly; old artifacts need fresh export,
+not a compatibility bypass. No application migration or production grant change.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md; enablement remains separately gated.
+
+October25 review addendum: the same restricted-table contract includes PG17
+MAINTAIN. Check effective privileges, not only direct ACL entries; use a nested
+server-version guard for older servers. This strengthens the existing policy
+without changing migrations or its profile fingerprint. Local live proof used
+PG17.11; no new live PG15/16 compatibility claim is made.
+
+November14 review addendum: table ACL inquiries do not cover column grants.
+Check effective SELECT/INSERT/UPDATE/REFERENCES on columns, including role
+inheritance, and reject explicit PUBLIC column ACLs. Preserve allowed table
+rights and read-only validation; no migration or fingerprint change. Judge
+restore by actual target privileges: an unsafe source membership may be omitted
+by export, while existing target membership must still fail the contract.
+
+## D-123 - Separate dependency prerequisite from repaired backup R1
+
+2026-10-20 local only. Preserve the immutable October18 reviewed package.
+Fix COPY Unicode counting minimally with red/green tests. Address known
+dependency advisories in a separate five-file security patch, including only
+the required router type compatibility change; integrate for final local gates.
+Do not silently call the resulting release backup-only. No design/migration or
+production operation, no cron. See BACKUP_RELEASE_REPAIR_2026-10-20.md.
+
+## D-122 - Separate production33-only backup release preview
+
+Local preparation2026-10-18, not approved for merge/deployment/enablement.
+Derive R1 from verified main7e8ac7fe: no new app/schema/design/lock/shared-CI
+changes. Candidate38 stays with the later dependency-bearing application track.
+Use a dedicated secret-free recovery CI; preserve exact33 fingerprint and
+fail-closed profile/job boundaries. See BACKUP_RELEASE_CANDIDATE_2026-10-18.md.
+
 ## D-095 - Backup workflow code is not operating recovery evidence
 
 **Status: active, reconciled 2026-08-28.** PR #133 merged an initial candidate,

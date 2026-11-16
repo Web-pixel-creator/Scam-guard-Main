@@ -1,5 +1,122 @@
 # Open Tasks
 
+## Approved fixture publication queue — 2026-11-16
+
+1. Owner approved commit/push of the independently reviewed fixture correction
+   to Draft PR150, followed by all checks on the new exact head. Do not reuse
+   cb8c61c CI or local full-restore evidence as hosted full-recovery proof.
+2. Preserve Draft/HOLD: no Ready, merge/deployment, production, design or backup
+   enablement. Independent AI review does not replace human credential approval.
+3. Close separately approved main/Environment protection, custody, hosted full
+   recovery/transport, offsite/read-back and freshness gates before credentials
+   or activation. Dependency/application/design changes remain separate.
+
+## Reviewed local candidate queue — 2026-11-16
+
+1. Independent AI re-review of the fixture correction is complete: no new
+   blocking finding, original P2 technically closed locally. Human approval and
+   full hosted recovery are separate; see the dated authorization report.
+2. Obtain explicit commit/push approval for the uncommitted delta, publish only
+   to Draft PR150 and verify exact-new-head CI. No Ready/merge/deployment implied.
+3. Fresh read-back confirms main unprotected, backup Environments/credentials
+   absent and workflows disabled/0 runs. Independently reviewed protection,
+   credential custody, hosted full recovery/transport, offsite and freshness
+   gates remain OPEN. No production keys until those prerequisite controls pass.
+4. Dependency advisory remediation and application/design work remain separate.
+
+## Local fixture-fix queue — 2026-11-15
+
+1. Review the uncommitted cb8c61c follow-up: lifecycle test isolation, pinned
+   hashes, opt-in real-DB collision regression and six offline contract tests.
+   Local full recovery and cleanup pass; see the dated authorization evidence.
+2. Obtain separate commit/push approval, then verify exact-new-head CI. No Ready,
+   merge, deployment or backup enablement is implied. Published cb8c61c CI is
+   not evidence for the local delta; repeat independent review of the delta.
+3. Keep trust/custody/hosted/offsite/freshness gates OPEN. Earlier November15
+   read-only review found unprotected main, absent backup Environments/credentials
+   and disabled workflows; no settings changed here. Human approval is separate.
+4. Triage/remediate the candidate dependency-advisory matches in a separate
+   compatibility-reviewed change. Do not call the backup work a full app audit.
+5. Production, application candidate38, migrations and design remain separate.
+
+## Approved publication queue — 2026-11-15
+
+1. Owner approved commit/push of the reviewed column-ACL delta to Draft PR150.
+   Verify all hosted checks on its exact new head; prior 37b2be1 CI is historical.
+2. Keep Draft/HOLD: no Ready, merge, deployment, production or design action.
+3. Obtain independent review of the revision and separately approved repository/
+   Environment protection. Self-review and local tests do not close trust gates.
+4. Resolve key custody, hosted full recovery/artifact transport, offsite copies
+   and independent freshness monitoring. Production export/read-back/isolated
+   restore and backup enablement require separate approval. No cron enablement.
+5. Application candidate38, migrations and design stay separate.
+
+## Current local queue — 2026-11-14
+
+1. Column-ACL correction from the October26 review is locally verified; review
+   the two Python files and dated evidence in BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+2. Obtain separate commit/push approval for this delta, then verify exact-new-head
+   hosted CI. PR150 remains Draft at37b2be1; no merge/deployment approval implied.
+3. Independently review the revised candidate and close repository protection,
+   credential approval, key custody, hosted full recovery/transport, offsite and
+   freshness gates. Earlier snapshots of GitHub settings are not fresh evidence.
+4. Production export/read-back/isolated restore and backup enablement still need
+   separate approval. Design, application candidate38 and migrations stay separate.
+
+## Publication queue — 2026-10-25
+
+1. Owner approved commit/push of the tested correction to Draft PR150. Verify
+   every required CI check on the new exact head; prior f4f4e0fa CI is historical.
+2. Keep Draft/HOLD, with no merge, deployment or backup enablement.
+3. Obtain independent review and separately approved main/Environment protection;
+   resolve custody, hosted full recovery/Actions transport, offsite and freshness.
+4. Production baseline/export/restore/enablement require separate authority.
+5. Candidate38/application migrations and design remain separate. No cron.
+
+## Current local queue — 2026-10-25
+
+1. Local reviewer follow-up and PG17 MAINTAIN correction are tested; review the
+   dated evidence in BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+2. Obtain separate commit/push approval for the local delta in Draft PR150,
+   then exact-new-head hosted CI. No merge/deployment implied.
+3. Independent submitted review, main protection and protected backup Environments
+   remain OPEN (read-only GitHub check October25); settings changes need approval.
+4. Key custody, hosted full restore/Actions transport, offsite ciphertext and
+   freshness remain OPEN. Production baseline/export/enablement need separate scope.
+5. Keep candidate38/application migrations and design outside R1. No cron.
+
+## Current local queue — 2026-10-23
+
+1. Review the local ACL/RLS validator correction and final receipts in
+   BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Production33 stays33 migrations.
+2. Separate commit/push approval and exact-head hosted CI for PR150; no merge or
+   deployment authorization is implied. Existing hosted CI predates this delta.
+3. Independent review/protected Environments, key custody, hosted full restore/
+   firewall and retained encrypted-copy/freshness proofs remain OPEN.
+4. Fresh production baseline/export/restore and enablement require separate scope.
+5. Candidate38/application migrations and design remain outside R1. No cron.
+
+## Current local queue — 2026-10-20
+
+1. Review the repaired R1 plus separately inspect the dependency-security patch
+   and exact integrated evidence in BACKUP_RELEASE_REPAIR_2026-10-20.md.
+2. Obtain separate publication/deployment authority; no merge or cloud write here.
+3. Hosted CI/security, protected Environments, custody and synthetic transport/
+   firewall proof remain OPEN even after local PASS.
+4. Fresh production baseline/snapshot/restore requires a separate authorization.
+5. Keep candidate38/new design outside this release. No cron enablement.
+
+## R1 queue — 2026-10-18
+
+1. Review exact backup-only diff and run final locked-base/required CI gates.
+2. Explicit publication/deployment handling; no automatic merge permission.
+3. Protected reviews/Environments, custody and synthetic hosted transport/firewall.
+4. Separately authorized fresh baseline/export/isolated restore.
+5. Candidate38/app migrations and design remain separate future releases.
+
+No cron or recipient enablement. See BACKUP_RELEASE_CANDIDATE_2026-10-18.md.
+Operational statements below are historical, not a new availability check.
+
 ## Current checkpoint (2026-08-28)
 
 Use `CURRENT_STATE.md` before the historical evidence below. The verified

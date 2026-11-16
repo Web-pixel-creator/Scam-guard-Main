@@ -1,6 +1,36 @@
 # File Map
 
+2026-11-15 local: telegram_update_lifecycle.test.sql isolates its three update
+IDs and one session inside rollback. baselines.json and the fingerprint test
+bind that revision. New recovery/lifecycle_fixture_rehearsal.py is an opt-in
+isolated real-DB collision matrix; test_lifecycle_fixture_rehearsal.py supplies
+six offline contracts. No application/migration/workflow changes or publication.
+
+2026-11-14: recovery_contract.py adds effective and PUBLIC column-ACL validation;
+test_recovery_contract.py adds three red/green generator regressions. No new
+workflow, application file or migration. Dated evidence is in
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md; the delta is local/uncommitted.
+
+2026-10-23 R1: supabase/recovery/restored_authorization.py + its unit tests enforce
+the restored92-assertion authorization gate. baselines.json pins the four SQL
+tests and21 RPC/3 table contracts; recovery_contract.py supports the intentional
+authenticated AAL2-helper grant. backup-restore-drill.yml runs the gate before
+PASS; backup-workflow-contract.test.ts guards placement. No new SQL migration.
+Evidence: BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
+2026-10-20: recovery_contract.py counts physical LF-delimited COPY records.
+Its regression file adds Unicode/escaped/empty/multiline payload coverage.
+Dependency patch: package.json, bun.lock, ci.yml (matching coverage version),
+toolchain-config.test.ts and type-only ErrorComponentProps in routes/\_\_root.tsx.
+Evidence/release boundaries: BACKUP_RELEASE_REPAIR_2026-10-20.md.
+
 Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by hand.
+
+2026-10-18 R1: supabase/recovery/{baselines.json,recovery_contract.py} binds only
+production33. verify_image_identity.py/prepare_cli_versions.py and their tests
+supply toolchain boundaries; local_workflow_rehearsal.py/workflow-gates.Dockerfile
+exercise56 offline cases. backup-recovery-ci.yml is separate from shared CI.
+See BACKUP_RELEASE_CANDIDATE_2026-10-18.md for the complete scoped manifest.
 
 ## Root
 

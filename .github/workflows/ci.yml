@@ -71,7 +71,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install pinned coverage provider without changing locks
-        run: bun add --dev --no-save --ignore-scripts @vitest/coverage-v8@4.1.8
+        run: bun add --dev --no-save --ignore-scripts @vitest/coverage-v8@4.1.11
 
       - name: Enforce repository coverage floor
         run: >-

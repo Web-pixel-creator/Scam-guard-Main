@@ -28,6 +28,7 @@ describe("toolchain security boundaries", () => {
 
   it("declares patched toolchain versions and overrides", () => {
     const manifest = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
       overrides?: Record<string, string | Record<string, string>>;
     };
@@ -38,9 +39,14 @@ describe("toolchain security boundaries", () => {
     expect(manifest.overrides?.["@babel/core"]).toBe("7.29.7");
     expect(manifest.overrides?.vite).toBe("7.3.6");
     expect(manifest.overrides?.esbuild).toBe("0.28.1");
-    expect(manifest.overrides?.["js-yaml"]).toBe("4.3.0");
-    expect(manifest.overrides?.postcss).toBe("8.5.22");
-    expect(manifest.overrides?.["brace-expansion"]).toBe("5.0.8");
+    expect(manifest.overrides?.["js-yaml"]).toBe("4.3.2");
+    expect(manifest.overrides?.postcss).toBe("8.5.23");
+    expect(manifest.overrides?.["brace-expansion"]).toBe("5.0.12");
+    expect(manifest.dependencies?.["@tanstack/react-start"]).toBe("1.168.60");
+    expect(manifest.dependencies?.["@tanstack/react-router"]).toBe("1.170.41");
+    expect(manifest.dependencies?.["@tanstack/router-plugin"]).toBe("1.168.42");
+    expect(manifest.devDependencies?.vitest).toBe("4.1.11");
+    expect(manifest.overrides?.seroval).toBe("1.6.7");
   });
 
   it("keeps the Docker Bun lock free of the same vulnerable versions", () => {
@@ -49,9 +55,9 @@ describe("toolchain security boundaries", () => {
     expect(bunLock).toContain("vite@7.3.6");
     expect(bunLock).toContain("esbuild@0.28.1");
     expect(bunLock).toContain("@babel/core@7.29.7");
-    expect(bunLock).toContain("js-yaml@4.3.0");
-    expect(bunLock).toContain("postcss@8.5.22");
-    expect(bunLock).toContain("brace-expansion@5.0.8");
+    expect(bunLock).toContain("js-yaml@4.3.2");
+    expect(bunLock).toContain("postcss@8.5.23");
+    expect(bunLock).toContain("brace-expansion@5.0.12");
     expect(bunLock).not.toMatch(/vite@7\.3\.[0-4](?:\D|$)/);
     expect(bunLock).not.toContain("esbuild@0.27.");
     expect(bunLock).not.toContain("js-yaml@4.2.0");
@@ -59,7 +65,33 @@ describe("toolchain security boundaries", () => {
     const braceVersions = [...bunLock.matchAll(/brace-expansion@(\d+\.\d+\.\d+)/gu)].map(
       ([, version]) => version,
     );
-    expect(new Set(braceVersions)).toEqual(new Set(["5.0.8"]));
+    expect(new Set(braceVersions)).toEqual(new Set(["5.0.12"]));
+  });
+
+  it("pins all resolved security patch versions and the matching CI coverage provider", () => {
+    const lock = readFileSync(resolve(process.cwd(), "bun.lock"), "utf8");
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const patched = {
+      "@tanstack/react-start": "1.168.60",
+      "@tanstack/start-server-core": "1.169.39",
+      seroval: "1.6.7",
+      vitest: "4.1.11",
+      "@vitest/mocker": "4.1.11",
+      "js-yaml": "4.3.2",
+      postcss: "8.5.23",
+      browserslist: "4.28.7",
+      "baseline-browser-mapping": "2.11.0",
+      nanoid: "3.3.18",
+      "source-map-js": "1.2.2",
+    };
+    for (const [name, expected] of Object.entries(patched)) {
+      const versions = [...lock.matchAll(/"([^"]+)@(\d+\.\d+\.\d+)"/gu)]
+        .filter(([, packageName]) => packageName === name)
+        .map(([, , version]) => version);
+      expect(new Set(versions), name).toEqual(new Set([expected]));
+    }
+    expect(ci).toContain("@vitest/coverage-v8@4.1.11");
+    expect(ci).not.toContain("@vitest/coverage-v8@4.1.8");
   });
 
   it.each(["ci.yml", "security.yml", "prod-monitor.yml", "backup.yml", "backup-restore-drill.yml"])(

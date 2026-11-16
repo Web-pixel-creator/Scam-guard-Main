@@ -1,5 +1,97 @@
 # AI_INDEX.md
 
+## Approved fixture-fix publication — 2026-11-16
+
+The owner approved commit/push of the independently reviewed fixture-isolation
+correction to Draft PR150 and verification of the new exact-head CI. This
+revision packages the same tested functional bytes; only publication-status
+text changed after review. Use the PR head/Checks for hosted identity and result,
+not the historical cb8c61c CI. No Ready/merge/deploy, production, design or backup
+enablement approval. CURRENT_STATE and OPEN_TASKS retain the unclosed gates.
+
+## Independent local review — 2026-11-16
+
+Fixture-fix re-review completed without new blocking findings; no functional
+change today. Fresh57/57 offline tests and evidence-hash checks pass. The delta
+on cb8c61c remains uncommitted/unpublished; published CI8/8 covers cb8c61c only.
+See CURRENT_STATE/OPEN_TASKS and the November16 section in
+ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Backup NOT ENABLED / NOT VERIFIED;
+no production/design/remote changes. AI review is not independent human approval.
+
+## Local fixture-isolation follow-up — 2026-11-15
+
+Uncommitted delta on cb8c61ca0b5df71284d9a7bfbbd166f1aec44914 after independent
+review. Lifecycle fixtures now reserve only their own IDs inside rollback;
+actual local PG17.11 full recovery92 and collision matrix287 pass. Current
+status/remaining gates: ai_docs/CURRENT_STATE.md and OPEN_TASKS.md. Detailed
+red/green and cleanup evidence: BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+No publication/production/design changes. Prior hosted CI covers cb8c61c only;
+backup remains NOT ENABLED / NOT VERIFIED. Older checkpoints below are history.
+
+## Approved column-ACL publication — 2026-11-15
+
+This revision packages the reviewed column-ACL correction for
+[Draft PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150).
+The owner approved commit/push and exact-new-head CI only. Earlier uncommitted
+and approval-pending blocks below are historical. Use the PR head and Checks
+for publication/CI identity; prior 37b2be1 CI does not validate this revision.
+Local evidence: ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+Merge/deployment, production, design and backup enablement remain out of scope.
+Backup NOT ENABLED / NOT VERIFIED; independent review and trust gates stay OPEN.
+
+## Local column-ACL correction — 2026-11-14
+
+Uncommitted follow-up to Draft PR150 head37b2be1. The October26 independent
+review's column-privilege gap is corrected and tested locally; see the November14
+section of ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Existing published
+CI does not cover this delta. No commit/push/merge/deployment or production/design
+change. Backup NOT ENABLED / NOT VERIFIED; publication and enablement stay HOLD.
+
+## R1 publication revision — 2026-10-25
+
+This revision packages the reviewed authorization and PG17 MAINTAIN corrections
+for [Draft PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150).
+The owner authorized commit/push and exact-new-head CI, not merge/deployment.
+Use the PR head and Checks tab for publication/CI identity; earlier f4f4e0fa
+results below are historical and do not validate this revision. Test evidence:
+ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Backup NOT ENABLED / NOT VERIFIED;
+independent review, trust/custody/hosted recovery remain OPEN. No design change.
+
+## Local R1 review follow-up — 2026-10-25
+
+PR150 remains Draft at f4f4e0fa (published CI 8/8, no submitted reviews).
+Local review found and corrected an omitted PG17 MAINTAIN privilege check;
+see the October25 follow-up in ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+Fresh local restore/authorization/firewall evidence is separate from hosted CI.
+Commit/push approval, hosted gates and trust/custody remain OPEN. No production,
+design, migration, secret, GitHub setting or deployment changes.
+
+## Local R1 authorization follow-up — 2026-10-23
+
+Current worktree is backup-r1-release-20261021, base PR150 head f4f4e0fa.
+Uncommitted ACL/RLS validator correction; see
+ai_docs/BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. No push/merge/deploy or
+production/design changes. Historical October21 CI does not cover this delta.
+Backup remains NOT ENABLED / NOT VERIFIED; hosted/trust/custody gates OPEN.
+
+## Local R1 repair — 2026-10-20
+
+Current local candidate: see ai_docs/BACKUP_RELEASE_REPAIR_2026-10-20.md.
+The October18 R1 review is preserved separately. Its Unicode COPY defect is
+fixed here; dependency security updates form a separate five-file patch.
+Do not call this tree backup-only or base-identical in dependencies/shared CI.
+No production check/change, publication or enablement. Design stays excluded.
+All older status blocks below are historical.
+
+## Local backup-only candidate — 2026-10-18
+
+R1 is based on verified GitHub main7e8ac7fe, not the newer dirty application/design
+candidate. See ai_docs/BACKUP_RELEASE_CANDIDATE_2026-10-18.md. Only production33
+recovery tooling/tests/docs change; application, migrations, locks and shared CI
+remain base-identical. Local gates23/23,29/29,56/56; no publication or production
+check. The older operational statements below are historical, not a current
+availability claim. Release/enablement HOLD.
+
 > Entry point for any AI agent working on this project. Read this file first.
 > Do not infer current status from a dated audit, an arbitrary local worktree or
 > an unmerged branch.

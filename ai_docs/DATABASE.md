@@ -1,5 +1,39 @@
 # Database
 
+2026-11-15 local: no migration or production DB access. Recovery test setup
+temporarily deletes only update IDs900001/900002/900003 and session700002;
+ROLLBACK preserves archived rows. Real PG17.11 collision/control tests verify
+both nested and outer rollback, including unrelated rows. Test hash/profile
+fingerprint intentionally changed; artifacts bound to the old profile require
+fresh export, not bypass. See the November15 authorization evidence section.
+
+2026-11-14: column-ACL validation strengthens the same three restricted-table
+contracts. No migration, live grant or profile-fingerprint change. Real synthetic
+PG17.11 tests reject82 forbidden grants and accept2 redundant allowed grants;
+full restore rejects unsafe restored rights. Missing reserved-role membership
+can make an inherited source grant ineffective after export; this was tested,
+not assumed to be rejection. No claim of current production schema inspection.
+
+2026-10-25: recovery validation includes PG17 MAINTAIN for the same three
+restricted tables. Direct and inherited synthetic grants were rejected after
+the fix. No migration, live grant or profile-fingerprint change; this is a
+stricter validator of the existing contract, not a live schema assertion.
+
+2026-10-23: no application migration or live grant changes. Recovery profile now
+pins21 critical RPC ACL/mode/search_path contracts and3 closed-table contracts;
+hash-pinned92 behavioral assertions run with rollback on the isolated restored
+database. Profile fingerprint changed intentionally; see
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md. Synthetic proof is not live DB proof.
+
+2026-10-20: no schema/migration/grant changes. COPY inventory calculation fixes
+Unicode row overcount; the production33 fingerprint remains unchanged.
+All database verification is synthetic local PostgreSQL17.11, not a live snapshot.
+
+2026-10-18 R1 adds no migration or production write. The33 reviewed migration
+sources remain base-identical; the profile checks18 relations and one trusted
+schedule. Isolated-target preparation is recovery-only, with the cron launcher
+off. No candidate38 consent/OCR/appeal/retention schema is included or applied.
+
 Postgres via Supabase. Schema = `public`. RLS is enabled on all app tables. Source of truth: `supabase/migrations/*.sql`; generated TypeScript types live in `src/integrations/supabase/types.ts`.
 
 ## Enums

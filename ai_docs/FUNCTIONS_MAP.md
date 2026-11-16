@@ -1,6 +1,39 @@
 # Functions Map
 
+2026-11-15 local: lifecycle_fixture_rehearsal.collision_test wraps the trusted
+SQL body in a savepoint inside an outer rollback; run_matrix checks seven
+collision/control seeds and retained-row equality. main reuses the existing
+immutable-image/owned-internal-target gate before SQL. No application signatures
+change; the existing92-assertion recovery gate remains mandatory and unchanged.
+
+2026-11-14: security_sql checks has_any_column_privilege for SELECT/INSERT/UPDATE/
+REFERENCES against the existing role allowlist, plus explicit PUBLIC entries in
+pg_attribute.attacl. Inherited effective grants are included; table ACL checks
+remain mandatory. The generator stays read-only; no application signatures change.
+
+2026-10-25: recovery_contract.security_sql also checks MAINTAIN through
+has_table_privilege (effective/inherited permissions), inside a nested PG17+
+version guard. No application API change; two generator regressions added.
+
+2026-10-23: restored_authorization.check_tap rejects incomplete/nonpassing TAP;
+load_tests validates checkout hashes; verify_isolation/check_target validate the
+owned immutable internal-network target; run_tests requires cron off and handles
+rolled-back fixtures/extension cleanup. security_sql adds the optional reviewed
+authenticated_execute flag (default false), preserving service-only defaults.
+No application API signature changed.
+
+2026-10-20: copy_counts(profile,text) splits physical LF only, preserving Unicode
+separators inside fields. Existing missing/unknown/duplicate/truncated snapshot
+guards remain. ErrorComponent uses router ErrorComponentProps (unknown errors);
+safeClientErrorReason already accepts unknown. No other app signature changed.
+
 Signatures and intent only. See file paths for source.
+
+2026-10-18 R1: no app signatures changed. recovery_contract.load_profile accepts
+only production-33; prepare/counts/verify/security-sql/schedule-check-sql/
+schedule-restore-sql/fingerprint share exact trusted profile contracts.
+verify_image_identity.verify validates immutable Docker identities;
+prepare_cli_versions.prepare writes only new private CLI image caches.
 
 ## Approved UI integration
 

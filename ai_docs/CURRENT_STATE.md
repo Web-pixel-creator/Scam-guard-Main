@@ -1,5 +1,166 @@
 # Current State
 
+## Owner-approved fixture-fix publication — 2026-11-16
+
+Last reconciled: 2026-11-16, owner-approved commit/push and exact-head CI only.
+This revision packages the independently reviewed local fixture-isolation fix
+for Draft PR150. Reviewed functional bytes are unchanged; only publication-status
+documentation changed after review. Exact published head/checks must be read at
+[PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150); cb8c61c CI
+below is historical, not proof of this revision's hosted result.
+
+Read-only publication preflight: main7e8ac7fe unchanged, PR150 Draft/no auto-merge,
+Railway PR deployments disabled and repository trigger main-only. No runtime
+request or settings change. Local Python57, Linux components56 and November15
+full restore92/matrix287 remain bound to the tested bytes; independent technical
+review found no new blocker. This is not independent human credential approval.
+No Ready/merge/deploy, production, design, secrets or enablement action. Backup
+NOT ENABLED / NOT VERIFIED; trust/custody/hosted/offsite/freshness remain OPEN.
+
+## Independent fixture-fix review — 2026-11-16
+
+Last reconciled: 2026-11-16. Separate read-only AI reviewer found no new blocking
+issue in the local cb8c61c fixture-isolation delta; original P2 is technically
+closed in the verified local scope. Fresh offline tests57/57 and32/32 functional
+manifest comparisons pass; all SQL assertions are retained. Full Linux92/287
+evidence remains dated November15, not a new DB run. Review is not human approval.
+
+Fresh GitHub read-back: PR150 still Draft/cb8c61c, hosted checks8/8, submitted
+reviews0; main7e8ac7fe unprotected, rulesets empty, backup Environments/credential
+names absent, both backup workflows disabled with0 runs. Nothing changed remotely.
+The local delta is not published and has no hosted CI. Next: separately approved
+commit/push, exact-head CI, then trust/custody/hosted/offsite/freshness gates.
+Backup NOT ENABLED / NOT VERIFIED; no Ready/merge/deploy, production or design
+action. Only review documentation changed today; functional files are unchanged.
+Details: BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
+## Local fixture-isolation correction — 2026-11-15
+
+Last reconciled: 2026-11-15, local-only follow-up to independent cb8c61c review.
+Base/unchanged HEAD: cb8c61ca0b5df71284d9a7bfbbd166f1aec44914. Draft PR150 was
+verified at that head with 8/8 hosted checks earlier today; those checks do not
+cover this uncommitted delta. No new commit/push or hosted change in this task.
+
+The reproduced P2 lifecycle-fixture collision is corrected by rollback-scoped
+cleanup of three update IDs and one session ID, with the pinned test/profile
+fingerprints updated. Local Windows/Linux Python57/57, components56/56, actual
+PG17.11 full restore92/92 and collision matrix7/7 (287 assertions) pass. Old
+committed SQL rejects five collision cases; both control cases pass. Archived
+rows survive the gate and all regression transactions. Firewall IPv4/IPv6 and
+failure/cleanup probes pass; owned resources removed, dirty worktrees preserved.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for failed rehearsal expectations,
+new fingerprint and limits. Application-wide tests were not rerun for this delta.
+
+Backup NOT ENABLED / NOT VERIFIED; release HOLD. Review this new local delta
+before separately approved publication/CI. Independent human approval, main/
+Environment protection, custody, hosted full recovery/transport, offsite and
+freshness remain open. No production, design, migrations, secrets, workflow or
+dependency changes. Earlier blocks below describe historical checkpoints.
+
+## Column-ACL publication checkpoint — 2026-11-15
+
+Last reconciled: 2026-11-15, owner-approved candidate publication only.
+This revision packages the two reviewed Python files and their documentation
+for Draft PR150. Commit/push and exact-new-head CI are authorized; Ready,
+merge/deployment, production access, design and enablement are not.
+Use [PR150 head and Checks](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+for hosted identity/status. Do not transfer the prior 37b2be1 CI result to this
+revision or claim success before the new checks complete.
+
+November15 self-review found no new blocking issue in the delta; Python 51/51,
+document formatting and diff-check passed. Functional hashes match the November14
+local PG17.11 matrix 84/84 and full restore with 92 assertions; those full
+database tests were not rerun on November15. This is not independent approval.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for evidence and limitations.
+
+Read-only publication preflight: GitHub main remains
+7e8ac7feda46df76a2e1fc02db1c1759a1442021; PR150 is Draft without auto-merge.
+Railway PR deployments are disabled; repository triggers target main only.
+No runtime request or credential/config/DB change. These metadata checks do not
+establish current production health. Backup NOT ENABLED / NOT VERIFIED;
+independent review, protection/credential approval/custody/hosted recovery/
+offsite/freshness gates remain OPEN. Older local/publication blocks are historical.
+
+## Local R1 column-ACL checkpoint — 2026-11-14
+
+Last reconciled: 2026-11-14, local correction only. Read-only GitHub confirms
+PR150 OPEN/DRAFT at37b2be17d637091a934366f293e13174eef4d750, not merged.
+The uncommitted validator now checks effective column rights and PUBLIC column
+ACLs. Python51/51, Linux components56/56, real PG17.11 matrix84/84 and correct
+full restore with92 assertions pass. Unsafe direct/PUBLIC grants and inherited
+target-membership drift are rejected. Source inherited membership was omitted
+by export; the restored target instead has no UPDATE privilege (verified).
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for the failed test expectation,
+correction, evidence and limitations. Firewall/failure cleanup passed; owned
+resources removed and unrelated worktrees preserved. Existing hosted CI does
+not validate this new local delta. No production/design/secret/workflow changes,
+publication or enablement. Backup NOT ENABLED / NOT VERIFIED; release HOLD.
+Protection/custody/hosted/offsite/freshness gates are not closed by these tests.
+
+## R1 publication checkpoint — 2026-10-25
+
+Last reconciled: 2026-10-25, candidate publication only. The owner authorized
+commit/push of the reviewed ACL/RLS and PG17 MAINTAIN corrections to Draft PR150
+and verification of CI on its new exact head. This revision supersedes the
+uncommitted/publication-approval queue in the historical blocks below.
+Use [PR150 head and Checks](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150)
+for current source/CI identity; do not reuse old f4f4e0fa results or infer a pass
+until all checks on the new head finish. Local evidence remains dated separately.
+
+Verified repository main at publication preflight:
+7e8ac7feda46df76a2e1fc02db1c1759a1442021. Railway metadata was read only to confirm
+PR deployments disabled and the only repository trigger on main. No runtime
+request, credential/config change, deployment or production DB action.
+Merge/deployment, backup enablement and design remain outside this authorization.
+Backup NOT ENABLED / NOT VERIFIED; independent review, protected Environments,
+custody, hosted full recovery/transport, offsite copy and freshness remain OPEN.
+
+## Local R1 review — 2026-10-25
+
+Reviewed the uncommitted October23 correction. A further PG17 MAINTAIN ACL gap
+was reproduced and fixed locally: 10/10 direct/inherited mutations now rejected;
+real workflow rejects a weakened grant and accepts the correct production33
+synthetic backup with 92/92 restored authorization assertions. Python48/48,
+Linux components56/56, IPv4/IPv6 firewall and cleanup-failure controls passed.
+See the October25 follow-up in BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
+Read-only GitHub check: PR150 Draft/unmerged, head f4f4e0fa, published CI8/8;
+no submitted reviews. Main7e8ac7fe is unprotected with no rulesets; required
+backup-export/decrypt Environments are absent; both backup workflows remain
+disabled_manually. These settings were not changed. Published CI does NOT cover
+the local delta. No fresh production inspection, application/design change,
+commit/push/merge/deployment or enablement. Backup NOT ENABLED / NOT VERIFIED.
+
+## Local R1 authorization correction — 2026-10-23
+
+PR150 was published October21 as Draft/HOLD at f4f4e0fa; current local HEAD is
+unchanged and the ACL/RLS recovery-gate delta is uncommitted. This supersedes the
+older filesystem-preview/publication queue below, not any live state. See
+BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md and its local evidence report.
+No GitHub/Railway/Supabase production access or changes this session. No new
+migration, application behavior, design, secret, cron, commit or push.
+Backup NOT ENABLED / NOT VERIFIED; separate review/publication and trust/hosted/
+custody/production approvals remain required.
+
+## Local reconciliation — 2026-10-20
+
+Repository main freshly read as7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+No production read-back permitted or performed. Current repair is the non-Git
+filesystem candidate backup-release-fixed-20261020; see
+BACKUP_RELEASE_REPAIR_2026-10-20.md. Unicode COPY fix and separate dependency
+security patch supersede October18 local readiness, not live production state.
+No application feature/design/migration changes; one type-only ErrorComponent
+compatibility change accompanies TanStack. Publication/enablement HOLD.
+
+## Local R1 preparation — 2026-10-18
+
+Last repository ref check: main7e8ac7feda46df76a2e1fc02db1c1759a1442021.
+This is an uncommitted filesystem preview, not a deployment or Git branch.
+See BACKUP_RELEASE_CANDIDATE_2026-10-18.md: production33 only, no schema/app/design
+changes; dedicated secret-free recovery CI. Gates23/23,29/29,56/56 locally.
+No fresh production read-back; historical live claims below are not current.
+Publication/enablement HOLD. Trust/custody/hosted and fresh snapshot gates OPEN.
+
 Last reconciled: 2026-08-28 (post-rotation read-back).
 
 This is the short operational source of truth. Dated audits, plans, release
