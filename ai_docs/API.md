@@ -1,5 +1,11 @@
 # API
 
+2026-11-15 local: no public API change. Optional Linux regression command
+`python3 supabase/recovery/lifecycle_fixture_rehearsal.py` uses only the existing
+DRILL_PROJECT_ID/DRILL_INTERNAL_NETWORK/DRILL_DB_PORT and immutable image/digest
+environment fields of an already isolated target. No URL/password argument,
+production request or workflow integration; aggregate-only output, rollback.
+
 2026-11-14: no application API or recovery CLI signature changes. The offline
 security-sql output now checks column ACLs as well as table ACLs; it still
 does not open connections or modify grants. Local validator correction only.

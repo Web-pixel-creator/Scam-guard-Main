@@ -5,6 +5,13 @@ use a new unique id.
 
 ## D-124 - Restore success requires authorization behavior, not object names
 
+November15 local follow-up: restored fixtures must not depend on archive IDs
+being absent. Reserve the exact lifecycle test keys inside its transaction and
+verify retained/unrelated rows after rollback. Keep all92 assertions, update the
+test hash/profile fingerprint, and preserve fail-closed drift handling. An
+opt-in seven-case real-DB matrix is separate from offline component CI and does
+not constitute hosted recovery or independent human approval.
+
 2026-10-23 local R1 correction for P2 R1 REVIEW 01. Pin critical production33
 ACL/mode/search_path expectations and execute the existing92 rollback-only SQL
 assertions on the isolated restored target before PASS. Test cases and profile

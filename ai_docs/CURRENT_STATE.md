@@ -1,5 +1,62 @@
 # Current State
 
+## Owner-approved fixture-fix publication — 2026-11-16
+
+Last reconciled: 2026-11-16, owner-approved commit/push and exact-head CI only.
+This revision packages the independently reviewed local fixture-isolation fix
+for Draft PR150. Reviewed functional bytes are unchanged; only publication-status
+documentation changed after review. Exact published head/checks must be read at
+[PR150](https://github.com/Web-pixel-creator/Scam-guard-Main/pull/150); cb8c61c CI
+below is historical, not proof of this revision's hosted result.
+
+Read-only publication preflight: main7e8ac7fe unchanged, PR150 Draft/no auto-merge,
+Railway PR deployments disabled and repository trigger main-only. No runtime
+request or settings change. Local Python57, Linux components56 and November15
+full restore92/matrix287 remain bound to the tested bytes; independent technical
+review found no new blocker. This is not independent human credential approval.
+No Ready/merge/deploy, production, design, secrets or enablement action. Backup
+NOT ENABLED / NOT VERIFIED; trust/custody/hosted/offsite/freshness remain OPEN.
+
+## Independent fixture-fix review — 2026-11-16
+
+Last reconciled: 2026-11-16. Separate read-only AI reviewer found no new blocking
+issue in the local cb8c61c fixture-isolation delta; original P2 is technically
+closed in the verified local scope. Fresh offline tests57/57 and32/32 functional
+manifest comparisons pass; all SQL assertions are retained. Full Linux92/287
+evidence remains dated November15, not a new DB run. Review is not human approval.
+
+Fresh GitHub read-back: PR150 still Draft/cb8c61c, hosted checks8/8, submitted
+reviews0; main7e8ac7fe unprotected, rulesets empty, backup Environments/credential
+names absent, both backup workflows disabled with0 runs. Nothing changed remotely.
+The local delta is not published and has no hosted CI. Next: separately approved
+commit/push, exact-head CI, then trust/custody/hosted/offsite/freshness gates.
+Backup NOT ENABLED / NOT VERIFIED; no Ready/merge/deploy, production or design
+action. Only review documentation changed today; functional files are unchanged.
+Details: BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md.
+
+## Local fixture-isolation correction — 2026-11-15
+
+Last reconciled: 2026-11-15, local-only follow-up to independent cb8c61c review.
+Base/unchanged HEAD: cb8c61ca0b5df71284d9a7bfbbd166f1aec44914. Draft PR150 was
+verified at that head with 8/8 hosted checks earlier today; those checks do not
+cover this uncommitted delta. No new commit/push or hosted change in this task.
+
+The reproduced P2 lifecycle-fixture collision is corrected by rollback-scoped
+cleanup of three update IDs and one session ID, with the pinned test/profile
+fingerprints updated. Local Windows/Linux Python57/57, components56/56, actual
+PG17.11 full restore92/92 and collision matrix7/7 (287 assertions) pass. Old
+committed SQL rejects five collision cases; both control cases pass. Archived
+rows survive the gate and all regression transactions. Firewall IPv4/IPv6 and
+failure/cleanup probes pass; owned resources removed, dirty worktrees preserved.
+See BACKUP_R1_AUTHORIZATION_GATE_2026-10-23.md for failed rehearsal expectations,
+new fingerprint and limits. Application-wide tests were not rerun for this delta.
+
+Backup NOT ENABLED / NOT VERIFIED; release HOLD. Review this new local delta
+before separately approved publication/CI. Independent human approval, main/
+Environment protection, custody, hosted full recovery/transport, offsite and
+freshness remain open. No production, design, migrations, secrets, workflow or
+dependency changes. Earlier blocks below describe historical checkpoints.
+
 ## Column-ACL publication checkpoint — 2026-11-15
 
 Last reconciled: 2026-11-15, owner-approved candidate publication only.

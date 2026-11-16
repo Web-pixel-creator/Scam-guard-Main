@@ -2,6 +2,30 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-11-16 - Owner-approved fixture-fix Draft publication
+
+Reconcile entry points, state/queue and dated evidence with explicit commit/push
+and exact-head CI approval. Preserve independently reviewed functional bytes and
+dated local evidence. Railway preflight is read-only/main-only/no PR deploys;
+no Ready/merge/deployment, production, design or backup activation approval.
+
+## 2026-11-16 - Independent review and read-only readiness refresh
+
+Record separate AI review of the local fixture fix, fresh57/57 and32/32 evidence
+comparisons, unchanged functional code and exact published cb8c61c CI boundary.
+Refresh GitHub protection/Environment/workflow metadata without mutations.
+Only review/status docs and the owner journal change; no new full DB rehearsal
+or publication/production/design action. Human/custody/hosted gates stay OPEN.
+
+## 2026-11-15 - Local lifecycle fixture collision correction
+
+Reconcile entry points, status/queue, four maps, D-124 and dated evidence with
+the uncommitted cb8c61c follow-up. Record Python57, components56, full restore92,
+collision matrix287, old-SQL negative controls, preservation and cleanup. Keep
+the failed fingerprint expectation and NULL-timestamp rehearsal mistake visible.
+Published CI is not transferred to this delta; full application tests were not
+rerun. No hosted changes, production/design access or enablement authorization.
+
 ## 2026-11-15 - Owner-approved column-ACL publication to Draft PR150
 
 Reconcile README, AI_INDEX, CURRENT_STATE, OPEN_TASKS and backup notes with

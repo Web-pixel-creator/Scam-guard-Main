@@ -1,5 +1,12 @@
 # Database
 
+2026-11-15 local: no migration or production DB access. Recovery test setup
+temporarily deletes only update IDs900001/900002/900003 and session700002;
+ROLLBACK preserves archived rows. Real PG17.11 collision/control tests verify
+both nested and outer rollback, including unrelated rows. Test hash/profile
+fingerprint intentionally changed; artifacts bound to the old profile require
+fresh export, not bypass. See the November15 authorization evidence section.
+
 2026-11-14: column-ACL validation strengthens the same three restricted-table
 contracts. No migration, live grant or profile-fingerprint change. Real synthetic
 PG17.11 tests reject82 forbidden grants and accept2 redundant allowed grants;

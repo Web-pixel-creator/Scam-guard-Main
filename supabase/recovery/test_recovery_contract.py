@@ -128,7 +128,7 @@ class RecoveryContractTests(unittest.TestCase):
     def test_profile_fingerprint_is_stable_and_content_bound(self):
         profile = rc.load_profile("production-33")
         self.assertEqual(rc.fingerprint(profile),
-                         "9b633aaaac618051209f1be94d619f7314c18668c72a0b15a93a90022d6bebfd")
+                         "09a902fc60b22f260a852e269ebad382d7e45d64af7f6bdbb02639928abb81df")
         self.assertEqual(rc.fingerprint(profile), rc.fingerprint(json.loads(json.dumps(profile))))
         changed = copy.deepcopy(profile)
         changed["schedules"][0]["schedule"] = "0 0 * * *"

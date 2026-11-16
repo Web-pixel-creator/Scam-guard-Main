@@ -309,7 +309,7 @@
         {
           "file": "telegram_update_lifecycle.test.sql",
           "tests": 41,
-          "sha256": "9139dd347b387c4d4ef5293a3eb79aa497ebba159ec30a9700294dc83379bb63"
+          "sha256": "dc971b6cc5f08ef8936f23638df32b5cb1937ab6879ae962f82875e5634a31fb"
         }
       ],
       "schedules": [

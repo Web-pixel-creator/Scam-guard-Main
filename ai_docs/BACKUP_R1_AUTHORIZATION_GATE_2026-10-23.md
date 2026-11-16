@@ -1,5 +1,132 @@
 # R1 restored-authorization gate — 2026-10-23
 
+## Owner-approved fixture publication — 2026-11-16
+
+The owner explicitly approved commit/push of the reviewed fixture-isolation
+delta to Draft PR150 and checking CI on its new exact head. No Ready, merge,
+deployment, production, design or backup enablement is authorized. Publication
+changes only status text after the independent review; all functional bytes
+match its final snapshot and the prior full-recovery input manifests.
+
+Read-only preflight confirms Draft/no auto-merge, unchanged main7e8ac7fe,
+Railway PR deployments disabled and main-only repository trigger. No deployment
+or runtime check is requested. Use the exact PR head/Checks for hosted results;
+do not transfer cb8c61c's8/8 CI to this revision. Local57/56/92/287 and technical
+review evidence below retain their dates and limits. Publication evidence is
+kept in `C:\Scam-guard\backup-r1-fixture-publication-20261116`.
+Backup remains NOT ENABLED / NOT VERIFIED; human/trust/custody/hosted recovery/
+offsite/freshness gates remain OPEN irrespective of PR CI.
+
+## Independent review of local fixture correction — 2026-11-16
+
+Separate read-only AI review of the uncommitted delta on
+**cb8c61ca0b5df71284d9a7bfbbd166f1aec44914** found no new blocking issue. Original
+P2 is technically closed within the reviewed local implementation/evidence.
+This is not independent human approval or permission to enable credentials.
+
+The reviewer confirmed exact fixture-key deletes inside the test transaction,
+unchanged SQL from SELECT plan(41) to the final ROLLBACK, retained92 assertions,
+hash/profile agreement and unchanged mandatory authorization/workflow code.
+Seven collision/control cases use nested rollback and retained-row comparisons;
+gate failure is not swallowed. The optional entry point verifies owned target,
+internal network and immutable image before SQL and accepts no database URL.
+
+Fresh offline Python57/57 passes independently and in the parent session.
+The five functional files plus authorization runner/two workflows match four
+November15 green input manifests:32/32 comparisons. Parent also verified all
+candidate bytes against the November15 final snapshot before review. Old SQL
+negative controls reject specifically pgTAP behavior failure, not arbitrary
+command errors; failed full/full-diagnostic attempts remain separate from
+full-final PASS. No new Docker/PostgreSQL/full application rehearsal was run
+today: Linux92/287, firewall and cleanup remain November15 evidence.
+
+Fresh read-only GitHub result at10:06 UTC (15:06 Asia/Tashkent): PR150 Draft,
+headcb8c61c,8/8 completed checks,0 submitted reviews/current-head approvals;
+main7e8ac7fe unprotected, no rulesets and protection404; Actions allow all with
+SHA enforcement off; backup-export/decrypt Environments absent, corresponding
+repository secret names absent; both backup workflows disabled_manually/0 runs.
+Secret scanning/push protection are enabled. No secret values were read.
+No settings, run dispatch, PR, production, design or dependency changes.
+
+Formatting and CRLF-aware diff-check pass. Initial review-only formatting
+command misparsed the first porcelain path as I_INDEX.md; it failed without
+editing any candidate file. The diagnostic now obtains names via git diff
+--name-only; the successful retry and failed log are both retained. Functional
+bytes and protected dirty worktrees stayed unchanged. Only local review/status
+documentation and the owner-requested journal were updated after the review.
+
+Evidence: `C:\Scam-guard\backup-r1-fixture-review-20261116`, including before.json,
+unit/format-final/diff-check logs, github-readiness.json, review-result.json and
+unchanged-after-review.json. No commit/push, Ready/merge/deployment or production
+access. Candidate is ready for separately authorized Draft publication/CI;
+backup enablement remains **NO-GO / NOT ENABLED / NOT VERIFIED** until independent
+human/trust/custody/hosted-transport/recovery/offsite/freshness gates are satisfied.
+
+## Local collision correction after independent review — 2026-11-15
+
+Uncommitted follow-up on exact base **cb8c61ca0b5df71284d9a7bfbbd166f1aec44914**.
+The preceding independent AI review reproduced P2: retained lifecycle update
+IDs can make a valid archive fail the pinned authorization suite. This local
+change fixes that finding; it has not itself received independent re-review.
+Draft PR150 was verified earlier today at cb8c61c, CI8/8. No commit/push, Ready,
+merge, deployment, settings, secrets, production, design or dependency action.
+
+The lifecycle suite deletes only update IDs900001/900002/900003 and session700002
+inside its existing BEGIN/ROLLBACK, in addition to its singleton-leader fixture.
+All41 lifecycle assertions and all92 mandatory restore assertions are retained.
+`restored_authorization.py` and the two backup workflows are unchanged.
+
+Pinned SQL SHA256 becomes
+`dc971b6cc5f08ef8936f23638df32b5cb1937ab6879ae962f82875e5634a31fb`;
+production33 profile fingerprint becomes
+`09a902fc60b22f260a852e269ebad382d7e45d64af7f6bdbb02639928abb81df`.
+The old fingerprint below is historical. Older-bound artifacts require a fresh
+export with the reviewed profile; no compatibility bypass was introduced.
+
+Persistent regression sources: lifecycle_fixture_rehearsal.py and its six
+offline tests. The optional real-DB entry point requires the existing reviewed
+DRILL target/image environment, verifies isolation before SQL and uses trusted
+hash-pinned checkout SQL, not archive code. Each case seeds inside an outer
+transaction, runs the suite inside a savepoint, verifies complete retained-row
+equality in SQL, then rolls back; an outer digest comparison checks preservation
+again. No row values/private SQL diagnostics are printed. This is a local
+regression entry point, not automatic execution of a hosted full restore.
+
+| Local gate                                        | Observed result                                                                   |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Python, Windows and Linux                         | 57/57 each                                                                        |
+| Offline workflow components                       | 56/56                                                                             |
+| Published old SQL on identical target/seeds       | five collision cases rejected; empty/leader controls pass                         |
+| Corrected collision matrix, real PG17.11          | seven cases, 287/287 assertions; retained/unrelated rows preserved                |
+| Actual workflow full export/age/read-back/restore | 33 migrations, 18 relations, 92/92 authorization assertions                       |
+| Archive/source equality                           | colliding rows and synthetic auth/storage sentinels preserved                     |
+| Isolation/firewall                                | internal-only, egress denied; INPUT/DOCKER-USER IPv4+IPv6 controls pass           |
+| Failure/cleanup probes                            | absent IPv6 chain rejected; in-use volume detected; retry leaves no residue       |
+| Other checks                                      | actionlint, 23 Bash blocks/1205 lines, Gitleaks, JSON formatting, diff-check pass |
+
+Honest failed attempts: the new contract test first failed on the old fixture
+setup as expected. A subsequent run caught the stale expected profile hash;
+that expectation was updated explicitly. Two full rehearsal attempts restored
+successfully but failed this session's negative-control expectation: the seeded
+future session had NULL last_update_at, which intentionally permits a new
+sequencing epoch. The source function's rule was checked; the seed now includes
+a fresh timestamp and its offline contract pins it. The final repeated full
+restore/matrix passes. Failed logs and per-gate input hashes are retained;
+neither failed attempt is counted as a successful full rehearsal.
+
+All owned inner/outer containers, volumes, temporary networks/firewall rules and
+plaintext were removed. Unrelated host inventory and dirty repo/consent worktree
+snapshots match. No migration, runtime or design change. Full application
+Vitest/TypeScript/build were not rerun for this test-only delta. These are local
+synthetic checks; hosted Actions artifact transport, production recovery, key
+custody, offsite/freshness and independent human review remain unverified.
+
+Evidence: `C:\Scam-guard\backup-r1-fixture-fix-20261115` (runner/probes, immutable
+failed/final logs, input hashes, full-final.log/json, final-inner.log, cleanup.json).
+Backup **NOT ENABLED / NOT VERIFIED**, release HOLD. Next: review this diff,
+separately authorize publication and exact-head CI, then resolve the remaining
+trust/custody/hosted/offsite/freshness gates. No calendar-based automatic merge.
+
 ## Owner-approved publication — 2026-11-15
 
 The owner explicitly approved commit/push of the reviewed local column-ACL

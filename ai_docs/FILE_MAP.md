@@ -1,5 +1,11 @@
 # File Map
 
+2026-11-15 local: telegram_update_lifecycle.test.sql isolates its three update
+IDs and one session inside rollback. baselines.json and the fingerprint test
+bind that revision. New recovery/lifecycle_fixture_rehearsal.py is an opt-in
+isolated real-DB collision matrix; test_lifecycle_fixture_rehearsal.py supplies
+six offline contracts. No application/migration/workflow changes or publication.
+
 2026-11-14: recovery_contract.py adds effective and PUBLIC column-ACL validation;
 test_recovery_contract.py adds three red/green generator regressions. No new
 workflow, application file or migration. Dated evidence is in

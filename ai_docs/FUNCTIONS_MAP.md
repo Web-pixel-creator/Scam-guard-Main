@@ -1,5 +1,11 @@
 # Functions Map
 
+2026-11-15 local: lifecycle_fixture_rehearsal.collision_test wraps the trusted
+SQL body in a savepoint inside an outer rollback; run_matrix checks seven
+collision/control seeds and retained-row equality. main reuses the existing
+immutable-image/owned-internal-target gate before SQL. No application signatures
+change; the existing92-assertion recovery gate remains mandatory and unchanged.
+
 2026-11-14: security_sql checks has_any_column_privilege for SELECT/INSERT/UPDATE/
 REFERENCES against the existing role allowlist, plus explicit PUBLIC entries in
 pg_attribute.attacl. Inherited effective grants are included; table ACL checks

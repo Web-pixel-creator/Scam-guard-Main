@@ -1,5 +1,44 @@
 # Open Tasks
 
+## Approved fixture publication queue — 2026-11-16
+
+1. Owner approved commit/push of the independently reviewed fixture correction
+   to Draft PR150, followed by all checks on the new exact head. Do not reuse
+   cb8c61c CI or local full-restore evidence as hosted full-recovery proof.
+2. Preserve Draft/HOLD: no Ready, merge/deployment, production, design or backup
+   enablement. Independent AI review does not replace human credential approval.
+3. Close separately approved main/Environment protection, custody, hosted full
+   recovery/transport, offsite/read-back and freshness gates before credentials
+   or activation. Dependency/application/design changes remain separate.
+
+## Reviewed local candidate queue — 2026-11-16
+
+1. Independent AI re-review of the fixture correction is complete: no new
+   blocking finding, original P2 technically closed locally. Human approval and
+   full hosted recovery are separate; see the dated authorization report.
+2. Obtain explicit commit/push approval for the uncommitted delta, publish only
+   to Draft PR150 and verify exact-new-head CI. No Ready/merge/deployment implied.
+3. Fresh read-back confirms main unprotected, backup Environments/credentials
+   absent and workflows disabled/0 runs. Independently reviewed protection,
+   credential custody, hosted full recovery/transport, offsite and freshness
+   gates remain OPEN. No production keys until those prerequisite controls pass.
+4. Dependency advisory remediation and application/design work remain separate.
+
+## Local fixture-fix queue — 2026-11-15
+
+1. Review the uncommitted cb8c61c follow-up: lifecycle test isolation, pinned
+   hashes, opt-in real-DB collision regression and six offline contract tests.
+   Local full recovery and cleanup pass; see the dated authorization evidence.
+2. Obtain separate commit/push approval, then verify exact-new-head CI. No Ready,
+   merge, deployment or backup enablement is implied. Published cb8c61c CI is
+   not evidence for the local delta; repeat independent review of the delta.
+3. Keep trust/custody/hosted/offsite/freshness gates OPEN. Earlier November15
+   read-only review found unprotected main, absent backup Environments/credentials
+   and disabled workflows; no settings changed here. Human approval is separate.
+4. Triage/remediate the candidate dependency-advisory matches in a separate
+   compatibility-reviewed change. Do not call the backup work a full app audit.
+5. Production, application candidate38, migrations and design remain separate.
+
 ## Approved publication queue — 2026-11-15
 
 1. Owner approved commit/push of the reviewed column-ACL delta to Draft PR150.
