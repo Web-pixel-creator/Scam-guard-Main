@@ -4,7 +4,10 @@ This gate begins only after the release-candidate commit, every required
 production migration and the exact Railway deployment are fixed. A code, schema
 or production-secret change restarts the 72-hour clock.
 
-## Current RC observation status (2026-08-28)
+## Historical RC observation (2026-08-28)
+
+This section records a previous release. For present availability, use
+[current state](CURRENT_STATE.md); for a new release, use the criteria below.
 
 - Formal status: **NO ACTIVE WINDOW**. Do not count current scheduled monitor
   runs toward a release canary yet.

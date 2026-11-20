@@ -2,6 +2,11 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-11-20 — repository navigation
+
+Consolidated the release snapshot in [current state](CURRENT_STATE.md).
+The [active queue](OPEN_TASKS.md) now links to the preserved August backlog.
+
 ## 2026-08-28 - PR #141 and production secret cutover reconciled
 
 - Recorded PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`

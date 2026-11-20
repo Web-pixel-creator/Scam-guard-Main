@@ -12,13 +12,9 @@ Do not start by crawling the whole project. `AI_INDEX.md` is the navigation laye
 
 Product: **Ishonch Guard** is a free anti-scam assistant for Uzbekistan (Tashkent first, then nationwide). It helps people check suspicious phone calls, SMS/Telegram messages, Telegram usernames, links, APK files, screenshots and payment requests before they lose money. It also lets the community report scammers.
 
-Current state: **production-deployed safety MVP / controlled-pilot candidate**
-with a real codebase: TanStack Start + React 19 + Supabase + Telegram bot
-channel. Runtime is self-hosted Node SSR via Nitro `node-server` on Railway.
-Current Telegram production delivery uses durable polling; webhook remains a
-supported compatibility path. This status does not imply completed external
-acceptance, independent real-world accuracy or enterprise readiness. Lovable
-was used only for the initial UI design; it is not the production runtime.
+The application uses TanStack Start, React, PostgreSQL and a Telegram bot.
+Read [current state](ai_docs/CURRENT_STATE.md) to distinguish published code,
+open candidates and the last observed production status.
 
 ## How future AI should work in this project
 

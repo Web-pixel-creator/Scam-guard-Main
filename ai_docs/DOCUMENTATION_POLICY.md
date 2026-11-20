@@ -1,7 +1,5 @@
 # Documentation Freshness and Archive Policy
 
-Last reconciled: 2026-08-20.
-
 This policy prevents historical audits, local evidence branches and old release
 totals from being mistaken for the current Ishonch Guard baseline.
 
@@ -74,24 +72,11 @@ outcome to match the present.
 
 ## Documentation-only Railway boundary
 
-The Watch Paths configuration currently present in the local `railway.toml`
-candidate is not a deployed production capability. Until it is separately
-approved, merged, deployed and read back from the active Railway manifest,
-every merge to `main` remains deployment-triggering, including a documentation-
-only merge.
-
-After the manifest read-back, one later documentation-only merge must prove
-that GitHub CI stays green while Railway skips the deployment and leaves the
-active deployment id unchanged. Only after that proof may maintained documents
-record two different current identities:
-
-- the GitHub documentation tip SHA;
-- the active Railway runtime SHA and deployment id.
-
-When those identities differ, `CURRENT_STATE.md` must say so explicitly and
-confirm that every intervening change is excluded by the proven documentation
-patterns. A newer documentation tip is not evidence that its SHA is running in
-production, and any deploy-eligible change ends that equivalence claim.
+Check the effective Railway Watch Paths against **every changed path** before
+expecting a skip. A Markdown edit and a Git configuration edit are not the same
+release scope. After an approved merge, record the GitHub commit and the actual
+Railway result separately. A docs commit alone proves neither a deployment nor
+its absence. Previous skip evidence is recorded in [Deployment](DEPLOYMENT.md).
 
 ## Local workspace hygiene
 
@@ -117,7 +102,5 @@ Before merging documentation changes:
    claims.
 4. Ensure old evidence is labelled rather than silently rewritten.
 5. Run formatting and the repository's normal CI gates.
-6. Treat the merge as a production-triggering action while the Watch Paths
-   candidate lacks approved manifest read-back and docs-only skip proof. After
-   that proof, verify the separate documentation-tip/runtime identities instead
-   of assuming either equality or a deployment.
+6. Treat the merge as potentially deployment-triggering unless its paths and
+   the effective deployment policy have been verified.
