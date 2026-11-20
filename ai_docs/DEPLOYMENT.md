@@ -60,19 +60,19 @@ Railway builds straight from the repo `Dockerfile` and injects `$PORT` at
 runtime, which the Nitro node-server already honours. Config-as-code lives in
 `railway.toml` (Dockerfile builder + healthcheck on `/healthz` + restart policy).
 
-Production is bound to GitHub `main`, with Railway Auto Deploy and Wait for CI
-enabled in the working US West region. GitHub and deployed source are PR #141
-merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Railway deployment
+For current availability, check [current state](CURRENT_STATE.md) and the
+active Railway deployment. In the 2026-08-28 read-back, production was bound to
+GitHub `main` with Auto Deploy and Wait for CI. At that checkpoint the deployed
+source was PR #141 merge `b36c453a08b3afd05c6e623d938e15dfc5b6084c`. Railway deployment
 `311997d0-2c1a-4428-88a0-d8be1308f679` reached `SUCCESS` with image
 `sha256:8250a9a2edc1b7b0b451fc9fb274cb1e9c986b753cbc2f4a7db501f1a2b3651c`.
 The 2026-08-28 read-back confirmed Dockerfile build, `/healthz`, one replica,
 `ON_FAILURE` and five retries.
 
 Railway watch patterns `watchPatterns = ["**", "!/*.md", "!/ai_docs/**"]` were
-merged with PR #129 and are confirmed active in the deployed manifest.
-Documentation-only merges stay CI-verified without creating a new image or
-restarting the canary window; source and config changes remain fully
-deploy-eligible. Watch Paths affect Railway deployment eligibility only:
+merged with PR #129 and were confirmed in that manifest. Matching docs-only
+merges did not create an image; source and config changes were deploy-eligible.
+Recheck the effective paths before relying on a skip. Watch Paths affect Railway deployment eligibility only:
 GitHub CI and Security Gates continue to run for every merge under their
 existing workflow triggers. After each docs-only merge, record the docs SHA
 separately from the runtime SHA and verify the active deployment id does not
@@ -491,7 +491,7 @@ or temporary workflow copy can isolate the drill.
 
 ## Telegram bot delivery deployment
 
-The Telegram bot is a **new channel** to the same app. Current production uses
+The Telegram bot is a channel of the same app. The recorded deployment used
 durable Postgres-fenced polling; the webhook endpoint is retained as a
 compatibility and fail-closed boundary. There is no separate service to deploy
 — the endpoint is bound at the server `fetch` entry (`src/server.ts`), which
@@ -500,7 +500,7 @@ TanStack Start (1.168.x) + Nitro v3 build exposes **no file-based server-route
 API**, so there is intentionally no `src/routes/api/telegram/webhook.ts` route
 file — do not look for one.
 
-Do not call `setWebhook` against the current polling production merely because
+Do not call `setWebhook` against a polling deployment merely because
 the application was redeployed or a generic checklist says to do so. That call
 changes Telegram delivery topology and can steal updates from the polling
 leader. The webhook-only steps below apply only to a separately approved mode
@@ -511,7 +511,8 @@ switch or rollback.
 Apply pending SQL migrations to your Supabase project. At minimum the Telegram
 bot requires `telegram_sessions`; newer deployments also include Family Shield,
 retention cleanup and security-definer hardening migrations.
-Current production has 33 migrations with head `20260729131000`. Both
+The August production check recorded 33 migrations with head `20260729131000`.
+Verify migration history on the intended environment before any new release. Both
 `20260729105030_family_notification_claim_retention.sql` and
 `20260729131000_admin_mfa_aal2_rls.sql` were applied once on 2026-08-01 and
 passed production postflight; do not reapply or repair them merely because an

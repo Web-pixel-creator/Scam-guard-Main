@@ -10,7 +10,8 @@ GitHub scheduled `Production Monitor` workflow. Alerts are intentionally
 sanitized: they must not contain bot tokens, webhook secrets, chat ids,
 Supabase keys, user content, phone numbers, URLs, screenshots or report text.
 
-Current production target:
+Monitor target and historical release details (2026-08-28). Before incident
+response, check [current state](CURRENT_STATE.md) and verify the active deployment.
 
 - Public app: `https://scam-guard-main-production.up.railway.app`
 - Railway service: `Scam-guard-Main`
@@ -22,7 +23,7 @@ Current production target:
   notification-claim retention migrations are applied
 - Monitor command: `railway run npm run monitor:prod -- https://scam-guard-main-production.up.railway.app`
 
-**Current status (2026-08-28):** D-091 is deployed. Every scheduled baseline
+**Recorded configuration (2026-08-28):** D-091 was deployed. Every scheduled baseline
 sets `MONITOR_CHECK_AI=false`, receives no `OPENAI_*` secret and reports the AI
 provider disabled by policy without sending a request. AI reachability is a
 separate false-by-default manual job and runs only when an operator explicitly
@@ -31,8 +32,8 @@ pre-D-091 provider attempts remain part of cost accounting.
 
 The 2026-08-28 secret-cutover postflight passed with `pending=0`, no Telegram
 last error and fresh Railway error/warn scans at `0/0`. Manual monitor run
-`33148010977` passed with AI disabled. No formal release canary is active until
-the remaining deploy-eligible bundle is resolved.
+`33148010977` passed with AI disabled. No formal release canary was active at
+that checkpoint.
 
 ## Alert Meaning
 
