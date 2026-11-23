@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -32,6 +32,7 @@ export function HeroChecker() {
   const copy = HOME_COPY[lang].hero;
   const [result, setResult] = useState<CheckResult | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const getLabelId = useId();
 
   return (
     <div className="vp-checker" id="checker">
@@ -67,14 +68,19 @@ export function HeroChecker() {
       </div>
       <div className="vp-checker-foot">
         {!result && (
-          <ul className="vp-get" aria-label={copy.getLabel}>
-            {copy.get.map(([title, detail]) => (
-              <li key={title}>
-                <strong>{title}</strong>
-                <small>{detail}</small>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="vp-get-label" id={getLabelId}>
+              {copy.getLabel}
+            </p>
+            <ul className="vp-get" aria-labelledby={getLabelId}>
+              {copy.get.map(([title, detail]) => (
+                <li key={title}>
+                  <strong>{title}</strong>
+                  <small>{detail}</small>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
         <p className="vp-checker-privacy">
           <Lock aria-hidden="true" />

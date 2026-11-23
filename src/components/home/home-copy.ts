@@ -17,7 +17,7 @@ type UrgentCardCopy = {
 export const HOME_COPY = {
   ru: {
     hero: {
-      eyebrow: "Антискам-помощник для Узбекистана",
+      eyebrow: "Проверка на мошенников · Узбекистан",
       title: ["Не доверяйте на слово.", "Проверьте за секунды."],
       lead: "Вставьте **номер, ссылку или текст сообщения**. Покажем **уровень риска**, причины простыми словами и **один безопасный шаг**.",
       chips: ["Бесплатно", "Без регистрации", "Текст не публикуется", "RU · UZ · EN"],
@@ -227,7 +227,7 @@ export const HOME_COPY = {
   },
   uz: {
     hero: {
-      eyebrow: "O‘zbekiston uchun antiskam-yordamchi",
+      eyebrow: "Firibgarlikka tekshiruv · O‘zbekiston",
       title: ["So‘zga darrov ishonmang.", "Soniyalarda tekshiring."],
       lead: "**Raqam, havola yoki xabar matnini** joylashtiring. **Xavf darajasi**, oddiy so‘zlar bilan sabablar va **bitta xavfsiz qadamni** ko‘rsatamiz.",
       chips: ["Bepul", "Ro‘yxatdan o‘tmasdan", "Matn e’lon qilinmaydi", "RU · UZ · EN"],
@@ -445,7 +445,7 @@ export const HOME_COPY = {
   },
   en: {
     hero: {
-      eyebrow: "Anti-scam helper for Uzbekistan",
+      eyebrow: "Scam check for Uzbekistan",
       title: ["Don’t take it on trust.", "Check it in seconds."],
       lead: "Paste **a number, link or message**. We show **the risk level**, the reasons in plain words and **one safe next step**.",
       chips: ["Free", "No signup", "Text never published", "RU · UZ · EN"],
