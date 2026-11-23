@@ -4,33 +4,35 @@ Signatures and intent only. See file paths for source.
 
 ## Approved UI integration
 
-- `ApprovedRussianHomepage()` composes the exact approved Russian landing page
-  and reads `getPublicStats()` plus the verified-contact directory for factual
-  counters. Local and deployed hosts keep real loading/all-zero states and do
-  not substitute remembered production values.
-- `CheckInput({ variant: "signal" })` and
-  `QuickReportForm({ variant: "signal" })` reuse the production server
-  functions inside the exact checker and community-report presentation. The
-  signal checker auto-detects phone/Telegram/URL/message input, keeps screenshot
-  OCR separate and marks the prefilled verdict as a demo.
-- `ApprovedHomeHero({ lang, result, formRef, onResult, onReset, onScrollToForm })`
-  remains the translated UZ/EN-compatible production hero. It does not fork
-  risk evaluation, OCR, reporting or persistence logic.
-- `Layout` keeps the public route map and language selector intact while
-  applying one shared responsive header/footer and floating-points CTA system.
-- `AdminPage` keeps the existing role-plus-AAL2 queries and mutation handlers;
-  an eligible AAL1 session routes through `/admin-mfa` before protected work.
-  The page adds client-side report search, non-destructive QA/smoke hiding,
-  compact session status and explicit decision confirmations. Report-card hover
-  never moves layout, and entity rows reserve a smooth disclosure region while
-  their real detail query resolves.
+- `ViperHome()` composes the unified RU/UZ/EN homepage (`D-109..D-121`) using
+  shared kit primitives (`src/components/viper/kit.tsx`) and homepage blocks
+  (`src/components/home/blocks.tsx`), reading `getPublicStats()` (shown only from
+  1,000+ checks upward) and verified-contact directory counts.
+- `CheckInput()` starts empty with localized example chips, stages screenshots
+  locally without invoking OCR until explicit consent (`issueOcrTicket` →
+  `ocrExtract`), ignores stale check settlements via revision checks, and renders
+  first-action advice via `filterAdvice(..., { reportedBankSms })`.
+- `EmbedCheckWidget()` uses `embedCheckReducer` (`src/lib/embed-check-state.ts`)
+  so edited drafts ignore late in-flight responses (including A→B→A edits), and
+  remounts on `lang`/`partner` changes via `src/routes/embed_.check.tsx`.
+- `reportedBankSms()`, `detectFirstAction()`, `reportsUnauthorizedDebit()` and
+  `firstAdvice()` coordinate Patch v4 bank-SMS handoffs, carrier dial-command vs
+  post-dial advice, unauthorized-debit aftercare, and speaker separation across
+  web, Telegram Direct and Inline.
+- `attachSupabaseAuthWhenSignedIn` (`src/lib/server-fn-auth.ts`) attaches a
+  bearer token only when a Supabase admin session exists, keeping public bundles
+  free of the Supabase JS client (`D-121`).
+- `Layout` keeps the public route map, SSR-synchronized `ig_lang` switcher and
+  header/footer navigation; `/admin` and `/admin-mfa` preserve the striped
+  admin surface, role-plus-AAL2 queries, search/filter and decision confirmations.
 
 ## Server functions
 
 | Function                                                                                             | File                                     | Auth         | Purpose                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `checkInput({ input, type?, lang, embed? })`                                                         | `src/lib/check.functions.ts`             | public       | Web wrapper around `runCheck`; shared rate-limited 10/min/IP. Meta-intents claim the same shared bucket before optional privacy-safe embed analytics, so denied requests create no telemetry row.                    |
-| `ocrExtract({ image, lang })`                                                                        | `src/lib/check.functions.ts`             | public       | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs before screenshot OCR + deterministic redaction.                                                                                       |
+| `issueOcrTicket({ imageDigest, lang, externalProviderConsent })`                                     | `src/lib/check.functions.ts`             | public       | Issues a signed 10-minute single-use Web OCR ticket bound to `imageDigest` without calling external AI providers.                                                                                                    |
+| `ocrExtract({ image, lang, externalProviderConsent, operationTicket })`                              | `src/lib/check.functions.ts`             | public       | Web wrapper around `ocrExtractCore`; validates png/jpeg/webp base64 data URLs and atomically consumes `operationTicket` before screenshot OCR + deterministic redaction.                                            |
 | `getPublicStats()`                                                                                   | `src/lib/check.functions.ts`             | public       | Cached server-side stats wrapper; calls service-role-only `get_check_stats()` instead of browser RPC, de-duplicates aggregate work, and keeps report/loss impact confirmed-only.                                     |
 | `submitReport({ value, type?, description, scamType?, city?, amountLostUzs?, incidentOnly?, lang })` | `src/lib/report.functions.ts`            | public       | Prepares a target hash/masked display, inserts a redacted report, stores same-day duplicates as private `duplicate` evidence without public entity side effects, and can trigger an opt-in private moderation alert. |
 | `submitReputationAppeal({ target, reason, contact?, lang })`                                         | `src/lib/reputation-appeal.functions.ts` | public       | Creates a privacy-safe appeal/removal request for reputation targets; can trigger an opt-in private moderation alert.                                                                                                |

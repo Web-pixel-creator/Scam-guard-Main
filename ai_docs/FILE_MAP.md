@@ -55,6 +55,21 @@ Where things live. `src/routeTree.gen.ts` is auto-generated; never edit it by ha
 | `.kiro/specs/*/`                                                             | Feature specs for Telegram UX, brand impersonation, meta intent, image/link intelligence, inline check, menu/result polish, emergency copilot, response compression, phone directory, webhook dedup, shared rate limits, voice STT/TTS, research-feed, website trust/trends/impact and embed-widget work. |
 | `.lovable/project.json`                                                      | Historical template marker only; not a production runtime target.                                                                                                                                                                                                                                         |
 
+## Unified candidate modules (P1/P2, Viper, Patch v4)
+
+| Path                                                                 | Purpose                                                                                                                                      |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/viper/kit.tsx`                                       | Shared Viper UI kit (`Pill`, `PillButton`, `PageHero`, `RowHead`, `Callout`, `Rich`, `MetaBar`, `Dots`).                                     |
+| `src/components/home/blocks.tsx`                                     | Shared homepage/check/emergency blocks (`HeroChecker`, `KindsBand`, `UrgentPlans`, `UrgentPlaque`, `HeroChips`).                             |
+| `src/components/ViperHome.tsx`                                       | Unified RU/UZ/EN homepage built on the Viper editorial system (`D-109..D-121`).                                                              |
+| `src/components/CheckInput.tsx`                                      | Public checker with explicit staged Web OCR consent, single-use ticket issuance, revision-guarded results and first-action advice.           |
+| `src/components/EmbedCheckWidget.tsx`                                | Compact iframe widget backed by `embedCheckReducer` (`src/lib/embed-check-state.ts`) and `reportedBankSms` advice hints.                     |
+| `src/lib/page-meta.ts`                                               | Centralized RU/UZ/EN page titles, descriptions, canonicals, robots and JSON-LD FAQ metadata (`D-121`).                                       |
+| `src/lib/lang-preference.ts`                                         | First-party `ig_lang` cookie and `Accept-Language` SSR language negotiation (`D-120`).                                                       |
+| `src/lib/server-fn-auth.ts`                                          | Conditional `attachSupabaseAuthWhenSignedIn` middleware so public visitors never load the Supabase JS client (`D-121`).                      |
+| `src/lib/web-ocr-ticket.server.ts`, `src/lib/web-ocr-lifecycle.ts`, `src/lib/web-ocr-image-digest.ts` | Signed 10-minute Web OCR ticket issuance/replay guard and selection-owned client OCR lifecycle (`D-107`, `D-108`). |
+| `src/lib/risk/incident-first-action.ts`, `src/lib/risk/reported-bank-sms.ts`, `src/lib/telegram/first-advice.ts` | Patch v4 bank SMS, carrier command, post-dial, unauthorized-debit and family-callback first-action logic + fixtures (`first-advice-regression.fixtures.ts`). |
+
 ## `src/` entry points
 
 | Path                  | Purpose                                                                                                                                                                                      |
