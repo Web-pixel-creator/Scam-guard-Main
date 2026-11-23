@@ -3,6 +3,32 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("toolchain security boundaries", () => {
+  it.each(["verify", "coverage"])("selects Node 22 inside the %s job before install", (job) => {
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const jobs = [...ci.matchAll(/^ {2}([a-z][a-z-]*):\r?$/gmu)];
+    const index = jobs.findIndex((entry) => entry[1] === job);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const block = ci.slice(jobs[index].index, jobs[index + 1]?.index ?? ci.length);
+    const setup = block.match(
+      /uses: actions\/setup-node@[a-f0-9]{40}[^\n]*\r?\n\s+with:\r?\n\s+node-version: 22\s*\r?\n/u,
+    );
+    expect(
+      setup,
+      `${job} cannot inherit Node from another job or the hosted runner`,
+    ).not.toBeNull();
+    expect(setup?.index).toBeLessThan(block.indexOf("run: bun install --frozen-lockfile"));
+  });
+
+  it("bounds full-suite CPU contention without relaxing test deadlines or retries", () => {
+    const config = readFileSync(resolve(process.cwd(), "vitest.config.ts"), "utf8");
+
+    expect(config).toMatch(/maxWorkers:\s*2\s*,/u);
+    expect(config).not.toMatch(/\b(?:testTimeout|hookTimeout|retry|exclude)\s*:/u);
+    expect(config).toContain('include: ["src/**/*.{test,spec}.{ts,tsx}"]');
+    expect(config).toContain('setupFiles: ["./vitest.setup.ts"]');
+    expect(config).not.toMatch(/\bisolate\s*:\s*false/u);
+  });
+
   it("binds the default Vite dev server to IPv4 loopback", () => {
     const config = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
     expect(config).toMatch(/host:\s*["']127\.0\.0\.1["']/);
@@ -184,6 +210,15 @@ describe("toolchain security boundaries", () => {
     expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
     expect(dockerfile).toContain("/usr/local/lib/node_modules/corepack");
     expect(dockerfile).toContain("/opt/yarn-v1.22.22");
+    expect(dockerfile).toContain("FROM oven/bun:1.3.14 AS build");
+    const dockerignore = readFileSync(resolve(process.cwd(), ".dockerignore"), "utf8");
+    expect(dockerignore.split(/\r?\n/u)).toContain("output");
+    expect(dockerignore.split(/\r?\n/u)).toContain(".playwright-cli");
+    expect(dockerfile).toContain("--only-upgrade perl-base");
+    expect(dockerfile).toContain("ge 5.36.0-7+deb12u4");
+    expect(dockerfile.indexOf("--only-upgrade perl-base")).toBeLessThan(
+      dockerfile.indexOf("USER node"),
+    );
     expect(dockerfile).toMatch(/USER\s+node/u);
     expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
   });

@@ -18,6 +18,13 @@ const HARNESS_ENV = Object.freeze({
 const ORIGINAL_ENV = new Map(
   Object.keys(HARNESS_ENV).map((key) => [key, process.env[key]] as const),
 );
+// These authored sessions do not test elapsed wall time. A real-clock ISO
+// millisecond suffix can accidentally equal a short synthetic CVV (e.g. 614),
+// making the strict string oracle report a leak in enum-only metadata. Keep
+// Date deterministic, not the oracle permissive; timers/performance stay real.
+const HARNESS_TIME = "2026-10-09T00:00:00.000Z";
+const REAL_SET_TIMEOUT = globalThis.setTimeout;
+const REAL_PERFORMANCE_NOW = performance.now;
 
 function installHarnessEnvironment(): void {
   for (const [key, value] of Object.entries(HARNESS_ENV)) process.env[key] = value;
@@ -179,10 +186,26 @@ vi.mock("@/lib/telegram/public-metadata.server", () => ({
 vi.mock("@/lib/telegram/reputation.server", () => ({
   enrichTelegramReputation: async (_input: string, result: unknown) => result,
 }));
-vi.mock("@/lib/telegram/family-shield.server", () => ({
-  notifyTrustedContact: async () => ({ ok: false as const, reason: "not_linked" as const }),
-  getFamilyShieldStatus: async () => ({ kind: "none" as const }),
-}));
+vi.mock("@/lib/telegram/family-shield.server", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/telegram/family-shield.server")>();
+  const denyUnexpectedFamilyAction = async (): Promise<never> => {
+    throw new Error("expanded people harness denied an unexpected family action");
+  };
+  return {
+    // The callback router reads the pure action table before dispatching the
+    // offered hang-up button. Keep that contract real; family effects remain
+    // explicit mocks or fail closed, never accidentally reach their provider.
+    FAMILY_CB: actual.FAMILY_CB,
+    familyIdFromCallback: actual.familyIdFromCallback,
+    parseFamilyCallback: actual.parseFamilyCallback,
+    notifyTrustedContact: async () => ({ ok: false as const, reason: "not_linked" as const }),
+    getFamilyShieldStatus: async () => ({ kind: "none" as const }),
+    createFamilyInvite: denyUnexpectedFamilyAction,
+    revokeFamilyShield: denyUnexpectedFamilyAction,
+    revokeFamilyShieldForTrusted: denyUnexpectedFamilyAction,
+    setFamilyAutoAlertsConsent: denyUnexpectedFamilyAction,
+  };
+});
 vi.mock("@/lib/report.functions", () => ({
   submitReport: async () => ({ ok: true as const }),
   prepareReportIdentifier: async (value: string) => ({
@@ -233,7 +256,7 @@ interface PersonCase {
   secrets?: readonly string[];
   followup?: string;
   benign?: boolean;
-  languageSignal?: RegExp;
+  behaviorContract?: "independent-employer-verification";
   semanticFamily?: string;
   provenance?: "authored-phrase" | "generated-mutation";
 }
@@ -508,8 +531,9 @@ const BLIND_SPOTS: PersonCase[] = [
     profileLang: "ru",
     query:
       "My boss looked strange on a video call and ordered an urgent transfer to a partner account",
-    topic: /(?:boss|video|identity|transfer|partner)/iu,
+    topic: /(?:boss|employer|video|identity|transfer|partner)/iu,
     safety: SAFETY.en,
+    behaviorContract: "independent-employer-verification",
   },
   {
     id: "blind-en-video-passport",
@@ -880,9 +904,8 @@ const BENIGN: PersonCase[] = [
     lang: "ru",
     profileLang: "uz",
     query: "Привет",
-    topic: /(?:привет|здравств|помог|провер)/iu,
+    topic: /(?:привет|здравств|помог|провер|данн|пришлите|текст)/iu,
     benign: true,
-    languageSignal: /(?:привет|здравств|помог|провер)/iu,
   },
   {
     id: "benign-uz-greeting-mismatch",
@@ -891,9 +914,8 @@ const BENIGN: PersonCase[] = [
     lang: "uz",
     profileLang: "en",
     query: "Salom",
-    topic: /(?:salom|yordam|tekshir|yubor)/iu,
+    topic: /(?:salom|yordam|tekshir|yubor|ma['’]?lumot|matn)/iu,
     benign: true,
-    languageSignal: /(?:salom|yordam|tekshir|yubor)/iu,
   },
   {
     id: "benign-en-greeting-mismatch",
@@ -902,9 +924,8 @@ const BENIGN: PersonCase[] = [
     lang: "en",
     profileLang: "ru",
     query: "Hello",
-    topic: /(?:hello|help|check|send)/iu,
+    topic: /(?:hello|help|check|send|information|text)/iu,
     benign: true,
-    languageSignal: /(?:hello|help|check|send)/iu,
   },
   {
     id: "benign-ru-family-plan",
@@ -913,7 +934,7 @@ const BENIGN: PersonCase[] = [
     lang: "ru",
     profileLang: "uz",
     query: "Завтра встречаюсь с дочерью в кафе в пять часов",
-    topic: /(?:контекст|данн|провер|сообщен)/iu,
+    topic: /(?:контекст|данн|провер|сообщен|текст)/iu,
     benign: true,
   },
   {
@@ -923,7 +944,7 @@ const BENIGN: PersonCase[] = [
     lang: "ru",
     profileLang: "uz",
     query: "Купил хлеб в магазине и получил обычный бумажный чек",
-    topic: /(?:контекст|данн|провер|сообщен)/iu,
+    topic: /(?:контекст|данн|провер|сообщен|текст)/iu,
     benign: true,
   },
   {
@@ -933,7 +954,7 @@ const BENIGN: PersonCase[] = [
     lang: "uz",
     profileLang: "en",
     query: "Ertaga qizim bilan kafeda soat beshda uchrashaman",
-    topic: /(?:kontekst|ma['’]?lumot|tekshir|xabar)/iu,
+    topic: /(?:kontekst|ma['’]?lumot|tekshir|xabar|matn)/iu,
     benign: true,
   },
   {
@@ -943,7 +964,7 @@ const BENIGN: PersonCase[] = [
     lang: "uz",
     profileLang: "en",
     query: "Onam uyda choy damlashga yordam berishimni so'radi",
-    topic: /(?:kontekst|ma['’]?lumot|tekshir|xabar)/iu,
+    topic: /(?:kontekst|ma['’]?lumot|tekshir|xabar|matn)/iu,
     benign: true,
   },
   {
@@ -953,7 +974,7 @@ const BENIGN: PersonCase[] = [
     lang: "en",
     profileLang: "ru",
     query: "I am meeting my daughter at the cafe tomorrow at five",
-    topic: /(?:context|information|check|message)/iu,
+    topic: /(?:context|information|check|message|text)/iu,
     benign: true,
   },
   {
@@ -963,7 +984,7 @@ const BENIGN: PersonCase[] = [
     lang: "en",
     profileLang: "ru",
     query: "The official bank branch opens at nine and I will visit it in person",
-    topic: /(?:context|information|check|message|official)/iu,
+    topic: /(?:context|information|check|message|official|text)/iu,
     benign: true,
   },
 ];
@@ -978,6 +999,66 @@ const PEOPLE: PersonCase[] = [
 const EXPECTED_SURFACE_CASE_COUNT = ADVERSARIAL_HUMAN_EXPECTED_CASE_COUNT + 48;
 const EXPECTED_AUTHORED_PHRASE_COUNT = 35 * 3 + 48;
 const EXPECTED_GENERATED_MUTATION_COUNT = 35 * 3 * 11;
+
+// Additional audit, not 5,244 independent human-authored threats or load users.
+// Reuse strict family/topic/safety oracles; every generated session has its own
+// user id. Message style, language/profile mismatch and surface vary; I/O stays
+// deny-closed. Failures are reported, never converted into expected success.
+function auditStyle(query: string, lang: Lang, index: number): string {
+  const prefixes: Record<Lang, readonly string[]> = {
+    ru: [
+      "",
+      "Мне пишут такое: ",
+      "Подскажите пожалуйста. ",
+      "Вот что прислали мне — ",
+      "Посмотри: ",
+      "Не понимаю, что делать. ",
+    ],
+    uz: [
+      "",
+      "Menga shunday yozishdi: ",
+      "Iltimos maslahat bering. ",
+      "Mana yuborgan xabari — ",
+      "Shuni tekshirib bering: ",
+      "Nima qilishni bilmay qoldim. ",
+    ],
+    en: [
+      "",
+      "They sent me this: ",
+      "Please help me understand. ",
+      "Here is what they wrote — ",
+      "Can you check this: ",
+      "I do not know what to do. ",
+    ],
+  };
+  if (index === 0) return query;
+  if (index === 1) return query.toLocaleLowerCase(lang === "ru" ? "ru" : "en");
+  if (index === 2) return query.replace(/ /gu, "  ");
+  if (index === 3) return `\n${query}\n`;
+  if (index === 4) return query.replace(/ /u, "\n");
+  if (index === 5) return query.replace(/['’‘]/gu, "ʻ");
+  const prefix = prefixes[lang][1 + ((index - 6) % 5)];
+  const decoration = index < 11 ? "" : index < 16 ? "\n" : " … ";
+  const body = index < 16 ? query : query.toLocaleLowerCase(lang === "ru" ? "ru" : "en");
+  return `${prefix}${decoration}${body}${index === 21 ? " ?" : ""}`;
+}
+
+function buildLargeAudit(): PersonCase[] {
+  const authored = PEOPLE.filter((person) => provenanceOf(person) === "authored-phrase");
+  return authored.flatMap((person) => {
+    const modes: Mode[] = person.group === "documented" ? ["direct", "inline"] : [person.mode];
+    const styles = person.group === "documented" ? 22 : 13;
+    return modes.flatMap((mode) =>
+      Array.from({ length: styles }, (_, style) => ({
+        ...person,
+        id: `audit-${person.id}-${mode}-${style}`,
+        mode,
+        query: auditStyle(person.query, person.lang, style),
+        provenance: style === 0 ? ("authored-phrase" as const) : ("generated-mutation" as const),
+      })),
+    );
+  });
+}
 
 function provenanceOf(person: PersonCase): NonNullable<PersonCase["provenance"]> {
   return person.provenance ?? "authored-phrase";
@@ -1056,16 +1137,134 @@ function assertNoSecret(value: string, secrets: readonly string[]): void {
   }
 }
 
+function assertNoStructuredSecret(value: unknown, secrets: readonly string[]): void {
+  if (typeof value === "string") {
+    assertNoSecret(value, secrets);
+  } else if (typeof value === "number") {
+    // A short CVV can occur inside an unrelated timestamp/user id. Still
+    // reject a numeric field equal to the secret, and scan all text verbatim.
+    if (secrets.some((secret) => String(value) === normalize(secret))) {
+      throw new Error("synthetic numeric secret was persisted");
+    }
+  } else if (Array.isArray(value)) {
+    for (const item of value) assertNoStructuredSecret(item, secrets);
+  } else if (value !== null && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      assertNoSecret(key, secrets);
+      assertNoStructuredSecret(item, secrets);
+    }
+  }
+}
+
 function hasSafetyTerm(value: string, terms: readonly string[]): boolean {
   const visible = normalize(value);
   return terms.some((term) => visible.includes(normalize(term)));
 }
 
 function isHighRisk(value: string, articleId = ""): boolean {
-  return /(?:high[_ -]?risk|высок\w* риск|yuqori xavf|🔴)/iu.test(`${articleId}\n${value}`);
+  return /(?:high[_ -]?risk|высок\p{L}*\s+риск|yuqori\s+xavf|🔴)/iu.test(`${articleId}\n${value}`);
 }
 
-function assertDocumentedDirectSemanticContract(person: PersonCase): void {
+// Authored response-language evidence, independent of the runtime language
+// detector. A Russian request for more context is still Russian even if it
+// contains none of the old greeting-only words. Require multiple distinct
+// markers and dominance over other languages; a lone quoted greeting cannot
+// make an otherwise English answer pass as Uzbek.
+const REPLY_LANGUAGE_MARKERS: Readonly<Record<Lang, readonly RegExp[]>> = {
+  ru: [
+    /(?:привет|здравств)/iu,
+    /(?:помо[гщ]|провер)/iu,
+    /(?:данн|оценк)/iu,
+    /(?:пришл|отправ)/iu,
+    /(?:сообщен|переписк)/iu,
+    /(?:ссылк|номер|текст)/iu,
+    /(?:нужно|нужен|можно|делать)/iu,
+  ],
+  uz: [
+    /\bsalom\b/iu,
+    /\b(?:yordam|tekshir)\p{L}*/iu,
+    /\bma['’ʻ]?lumot\b/iu,
+    /\b(?:yubor|qo['’ʻ]?sh)\p{L}*/iu,
+    /\b(?:xabar|matn|havola|raqam)\p{L}*/iu,
+    /\b(?:kerak|qadam|aytaman|baholash)\b/iu,
+    /\b(?:qiling|qilmang|nima|aniq|xavfsiz)\b/iu,
+    /\b(?:murojaat|rasmiy|mumkinligini|so['’ʻ]?rang)\b/iu,
+    /\b(?:bankingiz|bankka|o['’ʻ]?tkazma\p{L}*|qaytarib)\b/iu,
+  ],
+  en: [
+    /\bhello\b/iu,
+    /\b(?:help|check|verify)\b/iu,
+    /\b(?:data|information|assessment)\b/iu,
+    /\b(?:send|add)\b/iu,
+    /\b(?:message|text|link|number)\b/iu,
+    /\b(?:need|can|will|what)\b/iu,
+    /\b(?:safe|step|please|enough)\b/iu,
+  ],
+};
+
+function hasReplyLanguage(value: string, lang: Lang): boolean {
+  const text = normalize(value);
+  const counts = Object.fromEntries(
+    (Object.keys(REPLY_LANGUAGE_MARKERS) as Lang[]).map((candidate) => [
+      candidate,
+      REPLY_LANGUAGE_MARKERS[candidate].filter((marker) => marker.test(text)).length,
+    ]),
+  ) as Record<Lang, number>;
+  return (
+    counts[lang] >= 2 &&
+    (Object.keys(counts) as Lang[]).every(
+      (candidate) => candidate === lang || counts[lang] > counts[candidate],
+    )
+  );
+}
+
+// An authority-impersonation route is an acceptable tax-payment explanation
+// only when it protects the actual payment action and verifies independently.
+// Recognizing an authority token or emitting generic caution is insufficient.
+function hasProtectiveTaxAdvice(value: string, lang: Lang): boolean {
+  const text = normalize(value);
+  const requirements: Record<Lang, readonly RegExp[]> = {
+    ru: [
+      /налог/iu,
+      /не\s+(?:платите|оплачивайте|переводите).{0,65}(?:ссылк|деньг)|(?:ссылк).{0,40}не\s+(?:платите|оплачивайте)/iu,
+      /(?:официальн|официал).{0,65}(?:номер|канал|сайт)|(?:номер|канал|сайт).{0,40}официал/iu,
+      /(?:проверьте|проверяйте|перезвоните|позвоните)/iu,
+    ],
+    uz: [
+      /\bsoliq\b/iu,
+      /\bhavola.{0,40}to['’ʻ]?lamang\b/iu,
+      /\brasmiy\s+(?:raqam|kanal|sayt)\b/iu,
+      /\b(?:tekshiring|qo['’ʻ]?ng['’ʻ]?iroq\s+qiling)\b/iu,
+    ],
+    en: [
+      /\btax\b/iu,
+      /\b(?:do not|don't|never)\s+pay.{0,65}\blink\b/iu,
+      /\b(?:official|independently verified)\s+(?:number|channel|website)\b/iu,
+      /\b(?:verify|check|call)\b/iu,
+    ],
+  };
+  return requirements[lang].every((requirement) => requirement.test(text));
+}
+
+function hasIndependentEmployerVerification(value: string): boolean {
+  const text = normalize(value);
+  return (
+    /\b(?:boss|employer|organization|company|identity)\b/iu.test(text) &&
+    text
+      .split(/[.!?\n]/u)
+      .some(
+        (sentence) =>
+          /\b(?:call|contact|verify|confirm)\b.{0,110}\b(?:official|known|independent|trusted)\b/iu.test(
+            sentence,
+          ) &&
+          !/\b(?:do not|don't|never|no need to)\s+(?:call|contact|verify|confirm)\b/iu.test(
+            sentence,
+          ),
+      )
+  );
+}
+
+function assertDocumentedDirectSemanticContract(person: PersonCase, captured: Captured): void {
   if (!person.semanticFamily || person.mode !== "direct") return;
   const contract = DIRECT_SEMANTIC_CONTRACT[person.semanticFamily];
   if (!contract) throw new Error(`missing Direct semantic contract: ${person.semanticFamily}`);
@@ -1082,7 +1281,12 @@ function assertDocumentedDirectSemanticContract(person: PersonCase): void {
   }
   if (contract.scenario) {
     expected.push(`scenario:${contract.scenario}`);
-    exactSignals.push(match?.scenario === contract.scenario);
+    exactSignals.push(
+      match?.scenario === contract.scenario ||
+        (person.semanticFamily === "fake-tax-payment" &&
+          match?.kind === "authority_impersonation" &&
+          hasProtectiveTaxAdvice(captured.topicVisible, person.lang)),
+    );
   }
   if (contract.reasonAny) {
     expected.push(`reasons:${contract.reasonAny.join("|")}`);
@@ -1124,6 +1328,7 @@ interface CapturedSegment {
 interface Captured extends CapturedSegment {
   articleId: string;
   followup?: CapturedSegment;
+  liveCallContinuation?: CapturedSegment;
 }
 
 let handleTelegramWebhook!: (request: Request) => Promise<Response>;
@@ -1194,6 +1399,51 @@ async function runDirect(person: PersonCase, userId: number): Promise<Captured> 
     articleId: "",
     messages: messages.length,
   };
+  // This case describes a call in progress. Follow the actual offered
+  // "I hung up" button through the real callback router before judging the
+  // later payment advice. No invented callback and no automatic provider I/O.
+  const liveCallPrompt = messages.find((message) => {
+    if (person.semanticFamily !== "safe-account-transfer" || person.lang !== "uz") return false;
+    if (!Array.isArray(message.keyboard)) return false;
+    return message.keyboard.some(
+      (row: unknown) =>
+        Array.isArray(row) &&
+        row.some(
+          (button: unknown) =>
+            typeof button === "object" &&
+            button !== null &&
+            "callback_data" in button &&
+            button.callback_data === "livecall:hangup",
+        ),
+    );
+  });
+  if (liveCallPrompt) {
+    const continuationStart = h.sent.length;
+    await postUpdate({
+      callback_query: {
+        id: `audit-hangup-${userId}`,
+        from: { id: userId, language_code: person.profileLang, first_name: "Synthetic" },
+        data: "livecall:hangup",
+        message: {
+          message_id: 900_000 + h.sent.indexOf(liveCallPrompt) + 1,
+          date: 1_790_000_001,
+          text: liveCallPrompt.text,
+          chat: { id: userId, type: "private" },
+          from: { id: 777_000, is_bot: true, first_name: "Ishonch Guard" },
+        },
+      },
+    });
+    const continuationMessages = h.sent
+      .slice(continuationStart)
+      .filter((call) => call.chatId === userId);
+    captured.liveCallContinuation = {
+      visible: continuationMessages.map((call) => call.text).join("\n"),
+      topicVisible: continuationMessages
+        .map((call) => withoutExactQueryEcho(call.text, [person.query]))
+        .join("\n"),
+      messages: continuationMessages.length,
+    };
+  }
   if (person.followup) {
     const followupStart = h.sent.length;
     await postUpdate({
@@ -1304,19 +1554,16 @@ function oracleSegment(
   captured: CapturedSegment,
   turn: "initial" | "follow-up",
   articleId = "",
+  liveCallFirstTurn = false,
 ): void {
   const prefix = `${turn}: `;
   if (captured.messages < 1 || normalize(captured.visible).length < 8) {
     throw new Error(`${prefix}no meaningful reply`);
   }
-  if (
-    turn === "initial" &&
-    person.languageSignal &&
-    !person.languageSignal.test(normalize(captured.visible))
-  ) {
+  if (person.benign && !hasReplyLanguage(captured.topicVisible, person.lang)) {
     throw new Error(`${prefix}profile/message language mismatch was not resolved from message`);
   }
-  if (!person.topic.test(normalize(captured.topicVisible))) {
+  if (!liveCallFirstTurn && !person.topic.test(normalize(captured.topicVisible))) {
     throw new Error(`${prefix}expected topic missing after removing the echoed query`);
   }
   if (person.safety && !person.safety.test(normalize(captured.visible))) {
@@ -1327,6 +1574,12 @@ function oracleSegment(
   }
   if (person.forbidden?.test(normalize(captured.visible))) {
     throw new Error(`${prefix}known wrong-topic marker present`);
+  }
+  if (
+    person.behaviorContract === "independent-employer-verification" &&
+    !hasIndependentEmployerVerification(captured.topicVisible)
+  ) {
+    throw new Error(`${prefix}independent employer verification action missing`);
   }
   assertNoSecret(captured.visible, person.secrets ?? []);
   if (person.benign && isHighRisk(captured.visible, articleId)) {
@@ -1341,10 +1594,34 @@ function oracleSegment(
   }
 }
 
+function assertLiveCallFirstTurn(person: PersonCase, captured: Captured): void {
+  if (
+    person.semanticFamily !== "safe-account-transfer" ||
+    person.lang !== "uz" ||
+    person.mode !== "direct"
+  ) {
+    throw new Error("unexpected live-call continuation");
+  }
+  const first = normalize(captured.topicVisible);
+  if (
+    !/qo['’ʻ]?ng['’ʻ]?iroqni\s+tugating/iu.test(first) ||
+    !/rasmiy\s+raqam/iu.test(first) ||
+    !/(?:sms|pin|cvv).{0,150}aytmang/iu.test(first)
+  ) {
+    throw new Error("live-call first turn must stop contact and protect credentials");
+  }
+}
+
 function oracle(person: PersonCase, captured: Captured): void {
-  assertDocumentedDirectSemanticContract(person);
+  assertDocumentedDirectSemanticContract(person, captured);
   assertDocumentedInlineSemanticContract(person, captured.articleId);
-  oracleSegment(person, captured, "initial", captured.articleId);
+  if (captured.liveCallContinuation) {
+    assertLiveCallFirstTurn(person, captured);
+    oracleSegment(person, captured, "initial", captured.articleId, true);
+    oracleSegment(person, captured.liveCallContinuation, "follow-up");
+  } else {
+    oracleSegment(person, captured, "initial", captured.articleId);
+  }
   if (person.followup) {
     if (!captured.followup) throw new Error("follow-up: no captured reply");
     oracleSegment(person, captured.followup, "follow-up");
@@ -1358,6 +1635,8 @@ describe("expanded offline simulation: 1,308 deterministic surface cases", () =>
     h.externalFetchAttempts = 0;
     installDenyClosedFetchGuard();
     try {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(HARNESS_TIME));
       installHarnessEnvironment();
       const webhook = await import("@/lib/telegram/webhook.server");
       handleTelegramWebhook = webhook.handleTelegramWebhook;
@@ -1371,6 +1650,7 @@ describe("expanded offline simulation: 1,308 deterministic surface cases", () =>
     } catch (error) {
       restoreHarnessEnvironment();
       restoreFetchAfterSuite();
+      vi.useRealTimers();
       throw error;
     }
   }, 30_000);
@@ -1379,11 +1659,16 @@ describe("expanded offline simulation: 1,308 deterministic surface cases", () =>
     try {
       restoreHarnessEnvironment();
     } finally {
-      restoreFetchAfterSuite();
+      try {
+        restoreFetchAfterSuite();
+      } finally {
+        vi.useRealTimers();
+      }
     }
   });
 
   beforeEach(() => {
+    vi.setSystemTime(new Date(HARNESS_TIME));
     h.sent.length = 0;
     h.inline.length = 0;
     h.sessions.clear();
@@ -1501,6 +1786,333 @@ describe("expanded offline simulation: 1,308 deterministic surface cases", () =>
         )
         .toBe(true);
     }
+  }, 240_000);
+
+  it("distinguishes numeric metadata from persisted secrets without relaxing text checks", () => {
+    expect(() =>
+      assertNoStructuredSecret({ updatedAt: 1_794_974_970_000, userId: 110_000_497 }, ["497"]),
+    ).not.toThrow();
+    expect(() => assertNoStructuredSecret({ input: "CVV 497" }, ["497"])).toThrow();
+    expect(() => assertNoStructuredSecret({ nested: [{ cvv: 497 }] }, ["497"])).toThrow();
+    expect(() => assertNoStructuredSecret({ input: "Summer2026!Q" }, ["Summer2026!Q"])).toThrow();
+  });
+
+  it("uses a Date-only fixed clock containing none of the corpus synthetic secrets", () => {
+    const secrets = [
+      ...new Set([
+        ...PEOPLE.flatMap((person) => person.secrets ?? []),
+        ...REPLY_LIKE_CONVERSATIONS.flatMap((conversation) => conversation.secrets ?? []),
+      ]),
+    ];
+    expect(secrets.length).toBeGreaterThan(0);
+    expect(new Date().toISOString()).toBe(HARNESS_TIME);
+    expect(Date.now()).toBe(Date.parse(HARNESS_TIME));
+    expect(globalThis.setTimeout).toBe(REAL_SET_TIMEOUT);
+    expect(performance.now).toBe(REAL_PERFORMANCE_NOW);
+    expect(() => assertNoSecret(HARNESS_TIME, secrets)).not.toThrow();
+  });
+
+  it("still rejects a coincidental timestamp substring and actual textual or numeric secret leaks", () => {
+    // This reproduces the old false alarm without exempting timestamps or
+    // changing either privacy oracle: every persisted string remains scanned.
+    expect(() => assertNoStructuredSecret({ at: "2026-10-09T07:40:20.614Z" }, ["614"])).toThrow(
+      "synthetic secret was echoed",
+    );
+    expect(() => assertNoStructuredSecret({ input: "CVV 614" }, ["614"])).toThrow(
+      "synthetic secret was echoed",
+    );
+    expect(() => assertNoStructuredSecret({ nested: [{ cvv: 614 }] }, ["614"])).toThrow(
+      "synthetic numeric secret was persisted",
+    );
+  });
+
+  it("reproduces the real CVV handler timestamp collision and restores the stable fixture clock", async () => {
+    const authored = documentedCases().find(
+      (person) =>
+        person.semanticFamily === "card-cvv-request" &&
+        person.lang === "uz" &&
+        provenanceOf(person) === "authored-phrase",
+    );
+    expect(authored).toBeDefined();
+    const person: PersonCase = {
+      ...authored!,
+      mode: "direct",
+      query: auditStyle(authored!.query, "uz", 2),
+    };
+    const secrets = person.secrets ?? [];
+    expect(secrets).toContain("614");
+    try {
+      vi.setSystemTime(new Date("2026-10-09T07:40:20.614Z"));
+      const colliding = await runDirect(person, 119_999_997);
+      expect(() => assertNoSecret(colliding.visible, secrets)).not.toThrow();
+      expect(h.sessions.get(119_999_997)).toMatchObject({
+        scenario_data: { lastSensitiveSecret: { at: "2026-10-09T07:40:20.614Z" } },
+      });
+      expect(() => assertNoStructuredSecret(h.sessions.get(119_999_997), secrets)).toThrow(
+        "synthetic secret was echoed",
+      );
+      vi.setSystemTime(new Date(HARNESS_TIME));
+      const stable = await runDirect(person, 119_999_998);
+      expect(stable.visible).toBe(colliding.visible);
+      expect(h.sessions.get(119_999_998)).toMatchObject({
+        scenario_data: { lastSensitiveSecret: { at: HARNESS_TIME } },
+      });
+      expect(() => assertNoStructuredSecret(h.sessions.get(119_999_998), secrets)).not.toThrow();
+      expect(h.externalFetchAttempts).toBe(0);
+    } finally {
+      vi.setSystemTime(new Date(HARNESS_TIME));
+    }
+  });
+
+  it.each([
+    ["ru", "Пришлите полный текст сообщения: для оценки нужно больше данных."],
+    ["ru", "Я помогу. Добавьте текст, ссылку или номер для проверки."],
+    ["uz", "Aniq baholash uchun ma'lumot kerak. Xabar matnini yuboring."],
+    ["uz", "Salom! Matn yoki havolani yuboring, xavfsiz qadamni aytaman."],
+    [
+      "uz",
+      "Xato o'tkazma: bankingizga murojaat qiling. Bankning rasmiy kanalidan qaytarib chaqirishni so'rang.",
+    ],
+    ["en", "I need more information. Please send the full message text."],
+    ["en", "Hello! I can help you check a link or message."],
+  ] as const)("oracle language evidence accepts a neutral %s response: %s", (lang, text) => {
+    expect(hasReplyLanguage(text, lang)).toBe(true);
+    for (const other of ["ru", "uz", "en"] as const) {
+      if (other !== lang) expect(hasReplyLanguage(text, other)).toBe(false);
+    }
+  });
+
+  it("oracle rejects an English answer carrying only a quoted Uzbek greeting", () => {
+    expect(
+      hasReplyLanguage('You wrote "Salom". I need more data. Send the full message text.', "uz"),
+    ).toBe(false);
+  });
+
+  it("oracle benign help allows neutral context requests but keeps risk and language controls", () => {
+    const benign = BENIGN.find((person) => person.id === "benign-ru-greeting-mismatch")!;
+    const visible = "Для точной оценки нужно больше данных. Пришлите полный текст сообщения.";
+    const captured: CapturedSegment = { visible, topicVisible: visible, messages: 1 };
+    expect(() => oracleSegment(benign, captured, "initial")).not.toThrow();
+    expect(() =>
+      oracleSegment(benign, { ...captured, visible: `${visible} 🔴 Высокий риск.` }, "initial"),
+    ).toThrow(/benign input was labelled high risk/u);
+    expect(() =>
+      oracleSegment(benign, { ...captured, visible: `${visible} Высокий риск.` }, "initial"),
+    ).toThrow(/benign input was labelled high risk/u);
+    for (const label of ["High risk", "Yuqori xavf", "Высокий риск"]) {
+      expect(isHighRisk(label)).toBe(true);
+    }
+    expect(() =>
+      oracleSegment(
+        benign,
+        {
+          visible: "Send the full message text. I need more information.",
+          topicVisible: "Send the full message text. I need more information.",
+          messages: 1,
+        },
+        "initial",
+      ),
+    ).toThrow(/language mismatch/u);
+  });
+
+  it("oracle still rejects generic help when a concrete scam needs a topical action", () => {
+    const person = documentedCases().find(
+      (candidate) => candidate.semanticFamily === "passport-request" && candidate.lang === "en",
+    )!;
+    const visible = "Please send the text or link. I can check it. Do not send anything yet.";
+    expect(() =>
+      oracleSegment(person, { visible, topicVisible: visible, messages: 1 }, "initial"),
+    ).toThrow(/expected topic missing/u);
+  });
+
+  it("oracle tax-route equivalence requires refusal of the payment and independent verification", () => {
+    const safe =
+      "Soliq nomidan yozishyapti. Havola orqali to'lamang. Rasmiy raqam orqali tekshiring.";
+    expect(hasProtectiveTaxAdvice(safe, "uz")).toBe(true);
+    expect(hasProtectiveTaxAdvice(safe.replace("to'lamang", "to'lang"), "uz")).toBe(false);
+    expect(
+      hasProtectiveTaxAdvice(
+        safe.replace("Rasmiy raqam orqali tekshiring.", "SMS kodni aytmang."),
+        "uz",
+      ),
+    ).toBe(false);
+    expect(
+      hasProtectiveTaxAdvice("Soliq xabari xavfli bo'lishi mumkin. Ehtiyot bo'ling.", "uz"),
+    ).toBe(false);
+  });
+
+  it("oracle accepts conservative employer advice only with an independent identity check", () => {
+    const safe =
+      "Suspicious request claiming employer authority. Call the organization back on the official number.";
+    expect(hasIndependentEmployerVerification(safe)).toBe(true);
+    expect(
+      hasIndependentEmployerVerification("Your boss requested an urgent transfer. Be careful."),
+    ).toBe(false);
+    expect(
+      hasIndependentEmployerVerification("Your employer is trusted. Transfer the money now."),
+    ).toBe(false);
+    expect(
+      hasIndependentEmployerVerification(
+        "Do not call the employer on the official number. Transfer the money now.",
+      ),
+    ).toBe(false);
+  });
+
+  it("oracle live-call continuation cannot bypass the initial protective action or later topic", () => {
+    const person = documentedCases().find(
+      (candidate) =>
+        candidate.semanticFamily === "safe-account-transfer" && candidate.lang === "uz",
+    )!;
+    const initial =
+      "Qo'ng'iroqni tugating. Rasmiy raqam orqali tekshiring. SMS, PIN, CVV yoki parolni aytmang.";
+    const final = "Pulni xavfsiz hisobga o'tkazmang. Rasmiy bank raqamiga qo'ng'iroq qiling.";
+    const captured: Captured = {
+      visible: initial,
+      topicVisible: initial,
+      messages: 1,
+      articleId: "",
+      liveCallContinuation: { visible: final, topicVisible: final, messages: 1 },
+    };
+    expect(() => assertLiveCallFirstTurn({ ...person, mode: "direct" }, captured)).not.toThrow();
+    expect(() =>
+      assertLiveCallFirstTurn(
+        { ...person, mode: "direct" },
+        {
+          ...captured,
+          topicVisible: initial.replace("Qo'ng'iroqni tugating.", "Suhbatni davom ettiring."),
+        },
+      ),
+    ).toThrow(/must stop contact/u);
+    expect(() =>
+      oracleSegment(
+        person,
+        {
+          visible: "Xavf bor, ehtiyot bo'ling. Matnni yuboring.",
+          topicVisible: "Xavf bor, ehtiyot bo'ling. Matnni yuboring.",
+          messages: 1,
+        },
+        "follow-up",
+      ),
+    ).toThrow(/expected topic missing/u);
+  });
+
+  it("follows the actually offered hang-up action before checking the safe-account continuation", async () => {
+    const authored = documentedCases().find(
+      (person) =>
+        person.semanticFamily === "safe-account-transfer" &&
+        person.lang === "uz" &&
+        provenanceOf(person) === "authored-phrase",
+    )!;
+    const person: PersonCase = {
+      ...authored,
+      mode: "direct",
+      query: auditStyle(authored.query, authored.lang, 6),
+    };
+    const captured = await runDirect(person, 119_999_999);
+    expect(captured.liveCallContinuation).toBeDefined();
+    expect(captured.liveCallContinuation?.visible).toMatch(/(?:xavfsiz|tekshir)/iu);
+    oracle(person, captured);
+    expect(h.externalFetchAttempts).toBe(0);
+  });
+
+  it("audits 5,244 isolated virtual sessions with strict semantic/privacy oracles", async () => {
+    const people = buildLargeAudit();
+    expect(people).toHaveLength(5244);
+    expect(new Set(people.map((person) => person.id)).size).toBe(5244);
+    const matrix: Record<string, { passed: number; failed: number }> = {};
+    const failures: Array<{
+      id: string;
+      lang: Lang;
+      mode: Mode;
+      error: string;
+      sample: string;
+      input: string;
+      topicVisible: string;
+    }> = [];
+    const latencies: number[] = [];
+    const updatesBefore = updateId;
+    let followups = 0;
+    let liveCallContinuations = 0;
+    let benignHighRiskSessions = 0;
+    for (const [index, person] of people.entries()) {
+      const started = performance.now();
+      const userId = 110_000_000 + index;
+      const checksBefore = h.runChecks.length;
+      let captured: Captured | undefined;
+      let failure: string | undefined;
+      try {
+        captured =
+          person.mode === "direct"
+            ? await runDirect(person, userId)
+            : await runInline(person, userId);
+        assertNoSecret(captured.visible, person.secrets ?? []);
+        if (captured.followup) assertNoSecret(captured.followup.visible, person.secrets ?? []);
+        if (captured.liveCallContinuation) {
+          liveCallContinuations += 1;
+          assertNoSecret(captured.liveCallContinuation.visible, person.secrets ?? []);
+        }
+        assertNoStructuredSecret(h.sessions.get(userId) ?? {}, person.secrets ?? []);
+        assertNoStructuredSecret(h.runChecks.slice(checksBefore), person.secrets ?? []);
+        if (h.externalFetchAttempts !== 0) throw new Error("denied external request attempted");
+        // Record this independently: a topic/language oracle can fail before
+        // oracleSegment reaches the benign-risk assertion.
+        if (person.benign && isHighRisk(captured.visible, captured.articleId)) {
+          benignHighRiskSessions += 1;
+        }
+        oracle(person, captured);
+      } catch (error) {
+        failure = error instanceof Error ? error.message : String(error);
+      }
+      latencies.push(performance.now() - started);
+      if (person.followup) followups += 1;
+      for (const key of [
+        `lang:${person.lang}`,
+        `mode:${person.mode}`,
+        `group:${person.group}`,
+        `family:${person.semanticFamily ?? person.id.split("-").slice(0, 3).join("-")}`,
+      ]) {
+        matrix[key] ??= { passed: 0, failed: 0 };
+        matrix[key][failure ? "failed" : "passed"] += 1;
+      }
+      if (failure) {
+        const sample = (person.secrets ?? [])
+          .reduce(
+            (value, secret) => value.replaceAll(normalize(secret), "[redacted]"),
+            normalize(
+              [captured?.visible, captured?.liveCallContinuation?.visible]
+                .filter(Boolean)
+                .join("\n[after hangup]\n"),
+            ),
+          )
+          .slice(0, 700);
+        const redactAuditText = (value: string): string =>
+          (person.secrets ?? []).reduce(
+            (text, secret) => text.replaceAll(normalize(secret), "[redacted]"),
+            normalize(value),
+          );
+        failures.push({
+          id: person.id,
+          lang: person.lang,
+          mode: person.mode,
+          error: failure,
+          sample,
+          input: redactAuditText(person.query).slice(0, 500),
+          topicVisible: redactAuditText(captured?.topicVisible ?? "").slice(0, 400),
+        });
+      }
+    }
+    latencies.sort((a, b) => a - b);
+    const percentile = (p: number): number => latencies[Math.ceil(p * latencies.length) - 1];
+    console.log(
+      `LARGE_AUDIT_SUMMARY=${JSON.stringify({ sessions: people.length, authoredSeeds: 153, documentedFamilies: 35, passed: people.length - failures.length, failed: failures.length, followups, liveCallContinuations, updates: updateId - updatesBefore, benignHighRiskSessions, externalFetchAttempts: h.externalFetchAttempts, inProcessMs: { p50: percentile(0.5), p95: percentile(0.95), p99: percentile(0.99), max: latencies.at(-1) } })}`,
+    );
+    console.log(`LARGE_AUDIT_MATRIX=${JSON.stringify(matrix)}`);
+    console.log(`LARGE_AUDIT_FAILURES=${JSON.stringify(failures)}`);
+    expect(h.externalFetchAttempts, "strictly offline, even on failure").toBe(0);
+    expect(
+      failures.length,
+      `semantic/privacy audit failed; first=${JSON.stringify(failures.slice(0, 8))}`,
+    ).toBe(0);
   }, 240_000);
 
   it.each(REPLY_LIKE_CONVERSATIONS)(

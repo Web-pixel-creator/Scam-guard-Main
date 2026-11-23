@@ -15,7 +15,7 @@ const expectedRpcPath = "/rest/v1/rpc/claim_rate_limit";
 const originalFetch = globalThis.fetch;
 const originalEnv = {
   NODE_ENV: process.env.NODE_ENV,
-  RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+  RAILWAY_ENVIRONMENT_ID: process.env.RAILWAY_ENVIRONMENT_ID,
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   HASH_PEPPER_SECRET: process.env.HASH_PEPPER_SECRET,
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
   // below prevents every real network call and fails if any sink other than the
   // synthetic claim_rate_limit RPC is attempted.
   process.env.NODE_ENV = "production";
-  process.env.RAILWAY_ENVIRONMENT ||= "runtime-smoke";
+  process.env.RAILWAY_ENVIRONMENT_ID ||= "00000000-0000-4000-8000-000000000001";
   process.env.SUPABASE_URL = syntheticSupabaseUrl;
   process.env.SUPABASE_SERVICE_ROLE_KEY = "synthetic-runtime-smoke-service-key";
   process.env.HASH_PEPPER_SECRET = "synthetic-runtime-smoke-hmac-pepper";

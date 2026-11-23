@@ -48,6 +48,7 @@ export type ReasonCode =
   | "crypto_casino_bonus_funnel"
   | "fake_captcha_or_voting"
   | "task_reward_engagement_bait"
+  | "task_withdrawal_payment"
   | "unauthorized_credit_opened"
   | "coercive_secrecy"
   | "wallet_action_urgency"
@@ -111,6 +112,7 @@ const WEIGHTS: Record<ReasonCode, number> = {
   crypto_casino_bonus_funnel: 25,
   fake_captcha_or_voting: 30,
   task_reward_engagement_bait: 20,
+  task_withdrawal_payment: 50,
   unauthorized_credit_opened: 40,
   coercive_secrecy: 30,
   wallet_action_urgency: 30,
@@ -184,6 +186,7 @@ export const REASON_TRUST_IMPACT: Record<ReasonCode, ReasonTrustImpact> = {
   crypto_casino_bonus_funnel: "risk",
   fake_captcha_or_voting: "risk",
   task_reward_engagement_bait: "risk",
+  task_withdrawal_payment: "risk",
   unauthorized_credit_opened: "risk",
   coercive_secrecy: "risk",
   wallet_action_urgency: "risk",
@@ -530,6 +533,14 @@ function shouldFlagFakeCaptchaOrVoting(text: string): boolean {
 
 const TASK_REWARD_CONTEXT_RE =
   /(reward\s?pool|leaderboard|points?|campaign participants?|easycoin|выполняй|выполн.{0,20}действ|легк.{0,20}действ|задани|апгрейд|кейс|безпроигрышн|невозможно проиграть|топов.{0,20}приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|прокачивай|(?:за\s+(?:лайк|реакци).{0,30}(?:начисл|заплат|выплат|зарплат|деньг|сум)|(?:ставьте|поставьте|ставить|поставить).{0,30}(?:лайк|реакци))|(?:смотрите|посмотрите|просмотр).{0,25}(?:видео|ролик)|(?:пишите|оставьте|размещайте).{0,25}(?:отзыв|комментар)|ochko|topshiriq|vazifa|layk\s+bos|video\s+ko['’]?r|sharh\s+(?:yoz|qoldir)|like\s+(?:videos?|posts?)|watch\s+videos?|(?:post(?:ed|ing)?|write|leave)\s+(?:reviews?|comments?))/iu;
+// New natural forms tie the earnings to the activity itself. Merely mentioning
+// likes and an unrelated salary/money clause is not a compensated task offer.
+const TASK_REWARD_COMPENSATED_ACTIVITY_RE =
+  /(?:за\s+(?:лайк\p{L}*|реакци\p{L}*)\s+(?:(?:мне|нам)\s+)?(?:обещ|предлага)\p{L}*[^,;.!?\r\n]{0,25}(?:заработ|деньг|оплат)|(?:обещ|предлага)\p{L}*[^,;.!?\r\n]{0,25}(?:заработ|деньг|оплат)[^,;.!?\r\n]{0,15}за\s+(?:лайк|реакци)|layk(?:lar)?\s+uchun\s+(?:pul|daromad|haq)\s+va['’]?da|(?:earn\p{L}*|money|reward\p{L}*)\s+(?:for|from)\s+(?:liking\s+(?:posts?|videos?)|likes?)|liking\s+(?:posts?|videos?)\s+for\s+(?:money|cash|rewards?))/iu;
+// Only an explicit backward reference may connect a separate reward sentence
+// to the immediately preceding task. An unrelated salary remains unrelated.
+const TASK_REWARD_ANAPHORIC_BENEFIT_RE =
+  /^(?:за\s+это\s+(?:(?:мне|нам)\s+)?(?:обещ|предлага|плат)\p{L}*[^,;.!?\r\n]{0,25}(?:заработ|деньг|оплат)|(?:they\s+)?(?:offer|promise|pay)\p{L}*\s+(?:(?:me|us)\s+)?(?:money|cash|earnings?|rewards?)\s+for\s+(?:doing\s+(?:that|this)|(?:that|this)|each\s+(?:one|task))\b|(?:buning|shuning)\s+uchun\s+(?:(?:menga|bizga)\s+)?(?:pul|daromad|haq)\s+(?:va['’]?da\s+qil|to['’]?la|ber))/iu;
 const TASK_REWARD_BENEFIT_RE =
   /(\$\s?\d+|\d+[\s.,]?\d*\s?(usd|usdt|ton|stars?)|tokens?|токен|приз(?:ы|ов|а|у|е|ом|ам|ами|ах)?(?![а-яёa-z])|вывод|withdraw|заработ|зарплат|начисл|выплат|reward|earn|yutuq|mukofot|pul)/iu;
 const TASK_REWARD_PAYMENT_GATE_RE =
@@ -538,14 +549,154 @@ const TASK_REWARD_WITHDRAWAL_RE =
   /(?:вывод|вывести|снять|получить\s+(?:деньги|заработок)|(?:зарплат|заработ).{0,30}(?:получ|выплат|вывест|снять)|(?:получ|выплат).{0,30}(?:зарплат|заработ)|withdraw|cash(?:ing)?\s*out|release\s+(?:the\s+)?earnings|pulni\s+yech|daromadni\s+ol|ish\s+haq(?:i|ini).{0,30}(?:ol|yech|ber))/iu;
 const TASK_REWARD_SAFETY_WARNING_RE =
   /(?:(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang).{0,120}(?:мошен|обман|опасн|scam|fraud|firib|xavf)|(?:мошен|обман|опасн|scam|fraud|firib|xavf).{0,120}(?:не\s+(?:пополняйте|платите)|(?:do\s+not|don['’]?t|never)\s+(?:top\s*up|pay)|balansni\s+to['’]?ldirmang))/iu;
+const TASK_REWARD_DENIED_BENEFIT_RE =
+  /(?<!\p{L})(?:не\s+(?:обещ\p{L}*|плат\p{L}*|начисл\p{L}*)|va['’]?da\s+qil(?:ish|in)?may\p{L}*|to['’]?lashmay\p{L}*|(?:nobody|no\s+one)\s+(?:promis\p{L}*|offer\p{L}*|pay\p{L}*)|no\s+(?:earnings?|money|rewards?)\s+(?:is|are)\s+promised|promis\p{L}*\s+no\s+(?:earnings?|money|rewards?)|(?:do(?:es)?\s+not|don['’]?t|doesn['’]?t|never)\s+(?:(?:offer|promise|pay)\s+(?:(?:me|us)\s+)?(?:any\s+)?(?:money|earnings?|rewards?)|(?:get|receive|earn)\s+(?:any\s+)?(?:money|earnings?|rewards?)\s+(?:for|from)\s+(?:liking|likes?)))/iu;
+const TASK_REWARD_PAYMENT_ACTION_RE =
+  /(?:пополни|внести|оплат|переве|треб|прос|top\s*up|add\s+(?:money|funds)|pay|demand|require|ask|balans(?:ni)?\s+to['’]?ldir|pul\s+o['’]?tkaz|to['’]?la|so['’]?ra|talab)/iu;
 
-function shouldFlagTaskRewardEngagementBait(text: string): boolean {
-  if (TASK_REWARD_SAFETY_WARNING_RE.test(text)) return false;
-  return (
-    TASK_REWARD_CONTEXT_RE.test(text) &&
-    (TASK_REWARD_BENEFIT_RE.test(text) ||
-      (TASK_REWARD_PAYMENT_GATE_RE.test(text) && TASK_REWARD_WITHDRAWAL_RE.test(text)))
-  );
+// A withdrawal mention alone is not an advance-fee demand. Require a causal
+// release condition and a fresh outgoing payment, not a fee withheld from pay.
+const TASK_WITHDRAWAL_CONDITION_RE =
+  /(?:для\s+(?:вывода|получения|снятия)|чтобы\s+(?:вывести|получить|снять)|пока\s+не|\b(?:to|before)\s+(?:withdraw|cash(?:ing)?\s*out|release)|\buntil\s+(?:i|you|we)\s+pay|(?:pulni\s+yech\p{L}*(?:\s+ol\p{L}*)?|ish\s+haqini\s+ol\p{L}*|daromadni\s+ol\p{L}*)\s+uchun)/iu;
+const TASK_FRESH_PAYMENT_RE =
+  /(?:пополни\p{L}*\s+баланс|пополня\p{L}*\s+баланс|(?:внес|внест)\p{L}*\s+депозит|(?:оплат|заплат)\p{L}*.{0,25}(?:налог|комисс|сбор)|(?:треб|прос)\p{L}*.{0,35}(?:налог|комисс|сбор|перевести)|top\s*up|add\s+(?:money|funds)|(?:pay|demand|require|send|transfer|asks?\s+for).{0,40}(?:deposit|fee|tax|money|funds)|balans(?:ni)?\s+to['’]?ldir|(?:komissiya|soliq|depozit).{0,25}to['’]?la|pul\s+o['’]?tkaz)/iu;
+const TASK_NO_FRESH_PAYMENT_RE =
+  /(?:не\s+(?:(?:треб\p{L}*|прос\p{L}*|нуж\p{L}*|надо)\s+(?:дополнительно\s+|отдельно\s+)?(?:пополн|пополня|оплат|плат|внести|перевест)|пополня\p{L}*|пополни\p{L}*|плати\p{L}*)|(?:пополн\p{L}*|пополня\p{L}*|оплат\p{L}*|плат\p{L}*|внести)[^,;.!?\r\n]{0,35}не\s+(?:надо|нуж\p{L}*|треб\p{L}*)|\b(?:do\s+not|does\s+not|don['’]?t|doesn['’]?t)\s+(?:(?:need|have)\s+to\s+)?(?:pay|send|transfer|top\s*up)|\bno\s+(?:new\s+)?(?:payment|top[ -]?up|deposit|tax|fee|commission).{0,20}required|(?:to['’]?ldir\p{L}*|to['’]?la\p{L}*|to['’]?lov)\s+(?:kerak|shart|lozim)\s+emas|to['’]?ldirmang|to['’]?lamang|(?:fee|tax|commission).{0,25}(?:deducted|withheld).{0,20}(?:earnings|pay|salary)|(?:комисс|налог).{0,30}удерж\p{L}*.{0,20}(?:заработ|зарплат)|(?:komissiya|soliq).{0,30}ushlab\s+qolin)/iu;
+
+function hasFreshTaskPayment(clause: string): boolean {
+  // Comma-delimited assertions have independent polarity. Split a conjunction
+  // only before an explicit new denial: "do not pay tax and pay a deposit"
+  // retains the shared negation, unlike "pay tax and no deposit is required".
+  let sharedActionDenial = false;
+  return clause
+    .replace(/пока\s+не(?=\s+(?:попол|оплат|внес))/giu, "пока")
+    .split(
+      /,(?!\s*(?:which|that|котор\p{L}*)(?!\p{L}))\s*|\s+(?:and|и|va)\s+(?=(?:no|не)(?!\p{L}))/iu,
+    )
+    .some((assertion) => {
+      if (TASK_NO_FRESH_PAYMENT_RE.test(assertion)) {
+        sharedActionDenial =
+          /(?:\b(?:do\s+not|does\s+not|don['’]?t|doesn['’]?t)\s+(?:(?:need|have)\s+to\s+)?(?:pay|send|transfer|top\s*up)|не\s+(?:нуж\p{L}*|надо|треб\p{L}*)\s+(?:плат|оплат|попол|внес))/iu.test(
+            assertion,
+          );
+        return false;
+      }
+      if (
+        sharedActionDenial &&
+        /^(?:pay|send|transfer|top\s*up|add\s+(?:money|funds)|платить|оплатить|заплатить|пополнить|пополнять|внести)(?!\p{L})/iu.test(
+          assertion,
+        )
+      ) {
+        return false;
+      }
+      sharedActionDenial = false;
+      return TASK_FRESH_PAYMENT_RE.test(assertion);
+    });
+}
+
+// Only a payment-only denial can bridge a contrast in the same sentence; a
+// different topic or a new sentence cannot lend its task context to a payment.
+const TASK_PAYMENT_ONLY_DENIAL_RE =
+  /^(?:(?:to\s+withdraw(?:\s+(?:my|the)\s+earnings)?|чтобы\s+вывести\s+деньги|pulni\s+yechish\s+uchun)\s*,?\s*)?(?:(?:they\s+say)\s+)?(?:no\s+(?:new\s+)?(?:deposit|payment|tax|fee|top[ -]?up)(?:\s+or\s+(?:deposit|payment|tax|fee|top[ -]?up))?\s+(?:(?:is|was)\s+)?required|(?:платить\s+налог|пополнять\s+баланс)\s+не\s+(?:надо|нужно)|(?:depozit|soliq|komissiya|balansni\s+to['’]?ldirish)\s+(?:kerak|shart)\s+emas)\s*,?$/iu;
+
+const OWN_BANK_WITHDRAWAL_RE =
+  /(?:\bmy\s+(?:own\s+)?bank\b|сво\p{L}*\s+банк|o['’]?z\s+bank).{0,120}(?:withdraw\s+cash|at\s+an?\s+atm|наличн|банкомат|bankomat|naqd)/iu;
+
+// Remove only the denied payment noun phrase before checking the rest of the
+// clause. A second actual deposit demand must remain visible to the rule.
+const DENIED_ADVANCE_PAYMENT_PHRASE_RE =
+  /\bno\s+(?:new\s+)?(?:payment|deposit|prepayment)(?:\s+or\s+(?:new\s+)?(?:payment|deposit|prepayment))?\s+(?:(?:is|was)\s+)?required\b/giu;
+
+function taskRewardReason(text: string): ReasonCode | null {
+  const scenarioText = withoutDocumentAttributedQuote(text);
+  const clauses = splitScenarioAssertionClauses(scenarioText);
+  const isExcluded = (clause: string) =>
+    TASK_REWARD_SAFETY_WARNING_RE.test(clause) ||
+    TASK_REWARD_DENIED_BENEFIT_RE.test(clause) ||
+    isNonUserEducationalExample(clause);
+  const isTaskAnchor = (clause: string) =>
+    !!clause &&
+    !isNonUserEducationalExample(clause) &&
+    !TASK_REWARD_SAFETY_WARNING_RE.test(clause) &&
+    (TASK_REWARD_CONTEXT_RE.test(clause) ||
+      TASK_REWARD_COMPENSATED_ACTIVITY_RE.test(clause) ||
+      /\btasks?\b/iu.test(clause));
+  const isLinkedReward = (previous: string, clause: string) =>
+    isTaskAnchor(previous) &&
+    !isExcluded(previous) &&
+    !isExcluded(clause) &&
+    TASK_REWARD_ANAPHORIC_BENEFIT_RE.test(clause);
+
+  let hasRewardBait = false;
+  let previousEnd = 0;
+  for (const [index, clause] of clauses.entries()) {
+    const previous = clauses[index - 1] ?? "";
+    const beforePrevious = clauses[index - 2] ?? "";
+    const start = scenarioText.indexOf(clause, previousEnd);
+    const sameSentenceContrast =
+      index > 0 &&
+      /^[,\s]*(?:but|however|но|однако|lekin|biroq)\s+$/iu.test(
+        scenarioText.slice(previousEnd, start),
+      );
+    previousEnd = start + clause.length;
+    const next = clauses[index + 1] ?? "";
+    const afterNext = clauses[index + 2] ?? "";
+    const hasLiveSource =
+      EXPLICIT_RISK_SOURCE_PREFIX_RE.test(clause) ||
+      /^(?:a|an)\s+(?:stranger|caller|scammer|fraudster|attacker|unknown\s+contact)\b/iu.test(
+        clause,
+      );
+    if (isExcluded(clause) || (!hasLiveSource && isEducationalContinuation(previous, clause))) {
+      continue;
+    }
+    // A following warning can explain a quoted lure. A separate explicitly
+    // attributed live request keeps its own meaning even beside safety advice.
+    if (
+      TASK_REWARD_SAFETY_WARNING_RE.test(`${next} ${afterNext}`) &&
+      /^(?:это|такое|this|that|bu)(?!\p{L})/iu.test(next) &&
+      !hasLiveSource
+    ) {
+      continue;
+    }
+    const hasLocalOffer =
+      TASK_REWARD_COMPENSATED_ACTIVITY_RE.test(clause) ||
+      (TASK_REWARD_CONTEXT_RE.test(clause) &&
+        (TASK_REWARD_BENEFIT_RE.test(clause) ||
+          (TASK_REWARD_PAYMENT_GATE_RE.test(clause) && TASK_REWARD_WITHDRAWAL_RE.test(clause))));
+    // A reward continuation needs an explicit anaphoric payment promise, not
+    // merely earnings somewhere beside a task. Keep the same exclusion guards.
+    const hasLinkedReward = isLinkedReward(previous, clause);
+    // Otherwise carry a prior task only into an explicit pay-to-withdraw demand.
+    // Prior denial of earnings does not negate this new payment demand.
+    const hasContinuationGate =
+      previous &&
+      !isNonUserEducationalExample(previous) &&
+      !TASK_REWARD_SAFETY_WARNING_RE.test(previous) &&
+      (TASK_REWARD_CONTEXT_RE.test(previous) ||
+        TASK_REWARD_COMPENSATED_ACTIVITY_RE.test(previous)) &&
+      TASK_REWARD_PAYMENT_GATE_RE.test(clause) &&
+      TASK_REWARD_PAYMENT_ACTION_RE.test(clause) &&
+      TASK_REWARD_WITHDRAWAL_RE.test(clause);
+    const deniedPaymentBridge =
+      sameSentenceContrast &&
+      TASK_PAYMENT_ONLY_DENIAL_RE.test(previous) &&
+      isTaskAnchor(beforePrevious);
+    const priorTask =
+      isTaskAnchor(previous) || isLinkedReward(beforePrevious, previous) || deniedPaymentBridge;
+    if (
+      (hasLocalOffer || priorTask) &&
+      (TASK_WITHDRAWAL_CONDITION_RE.test(clause) ||
+        (deniedPaymentBridge && TASK_WITHDRAWAL_CONDITION_RE.test(previous))) &&
+      hasFreshTaskPayment(clause) &&
+      !(
+        OWN_BANK_WITHDRAWAL_RE.test(clause) &&
+        !/(?:earnings|заработ|ish\s+haqi|daromad)/iu.test(clause)
+      )
+    )
+      return "task_withdrawal_payment";
+    hasRewardBait ||= hasLocalOffer || !!hasLinkedReward || !!hasContinuationGate;
+  }
+  return hasRewardBait ? "task_reward_engagement_bait" : null;
 }
 
 const UNAUTHORIZED_CREDIT_SUBJECT_RE =
@@ -1340,6 +1491,9 @@ function shouldFlagDirectTransferRequest(text: string): boolean {
       !hasTransferRequest ||
       ORDINARY_TRANSFER_CONTEXT_RE.test(actionClause) ||
       TRANSFER_SAFETY_RE.test(actionClause) ||
+      /\b(?:do\s+not|does\s+not|don['’]?t|doesn['’]?t)\s+(?:need|have)\s+to\s+(?:send|transfer|pay)\b/iu.test(
+        actionClause,
+      ) ||
       PERSONAL_CARD_TRANSFER_SAFETY_RE.test(actionClause) ||
       isGeneralSafetyClause(actionClause)
     ) {
@@ -1715,6 +1869,15 @@ function evaluateTextScript(text: string): ReasonCode[] {
     if (code === "asks_to_install_apk" && isOrdinaryOfficialFineAppPayment(text)) continue;
     if (code === "fake_delivery_payment" && isOrdinaryPlannedSupplierPayment(text)) continue;
     if (code === "asks_for_money_transfer" && !shouldFlagDirectTransferRequest(text)) continue;
+    if (
+      code === "payment_before_service" &&
+      !splitScenarioAssertionClauses(text).some(
+        (clause) =>
+          re.test(clause.replace(DENIED_ADVANCE_PAYMENT_PHRASE_RE, "")) &&
+          !(TASK_WITHDRAWAL_CONDITION_RE.test(clause) && TASK_NO_FRESH_PAYMENT_RE.test(clause)),
+      )
+    )
+      continue;
     if (code === "fake_boss_request" && !shouldFlagAuthorityRequest(text)) continue;
     if (
       code === "asks_to_transfer_to_safe_account" &&
@@ -1780,7 +1943,8 @@ function evaluateTextScript(text: string): ReasonCode[] {
   if (shouldFlagGiveawayEngagementBait(text)) codes.add("giveaway_engagement_bait");
   if (shouldFlagCryptoCasinoBonusFunnel(text)) codes.add("crypto_casino_bonus_funnel");
   if (shouldFlagFakeCaptchaOrVoting(text)) codes.add("fake_captcha_or_voting");
-  if (shouldFlagTaskRewardEngagementBait(text)) codes.add("task_reward_engagement_bait");
+  const taskReason = taskRewardReason(text);
+  if (taskReason) codes.add(taskReason);
   if (shouldFlagUnauthorizedCreditOpened(text)) codes.add("unauthorized_credit_opened");
   if (shouldFlagCoerciveSecrecy(text)) codes.add("coercive_secrecy");
   if (shouldFlagWalletActionUrgency(text)) codes.add("wallet_action_urgency");
@@ -2161,6 +2325,11 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Вознаграждение за простые действия",
     uz: "Oddiy harakatlar uchun mukofot",
     en: "Reward for simple tasks",
+  },
+  task_withdrawal_payment: {
+    ru: "Требуют доплатить для вывода заработка",
+    uz: "Ish haqini yechish uchun qo'shimcha pul so'rashmoqda",
+    en: "Additional payment required to withdraw earnings",
   },
   unauthorized_credit_opened: {
     ru: "Кредит или рассрочка оформлены без согласия",

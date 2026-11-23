@@ -156,6 +156,11 @@ export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
     evidence: "text_pattern",
     limitation: "signal_not_proof",
   },
+  task_withdrawal_payment: {
+    priority: 14,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
   unauthorized_credit_opened: {
     priority: 15,
     evidence: "text_pattern",

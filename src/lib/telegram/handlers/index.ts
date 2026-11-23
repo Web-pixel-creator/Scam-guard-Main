@@ -27,6 +27,7 @@
 import { setHandlers, type Handlers, type HandlerCtx } from "@/lib/telegram/router";
 import { resetScenario } from "@/lib/telegram/session.server";
 import { answerCallbackQuery } from "@/lib/telegram/api.server";
+import { handleReportImageDeliveryRecovery } from "@/lib/telegram/report-image-delivery.server";
 
 import { handleCommand } from "@/lib/telegram/handlers/commands";
 import {
@@ -131,6 +132,7 @@ async function handleCallback(
 
 /** The fully composed handler set wired into the router. */
 export const telegramHandlers: Handlers = {
+  handleReportImageDeliveryRecovery,
   handleCommand,
   handleScenarioStep,
   handleScenarioImage,

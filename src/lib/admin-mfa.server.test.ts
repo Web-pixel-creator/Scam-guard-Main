@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { assertAdminMfaAal2 } from "@/lib/admin-mfa.server";
 import { getRequireAdminMfaAal2 } from "@/lib/config.server";
 
 const ORIGINAL_REQUIRE_ADMIN_MFA_AAL2 = process.env.REQUIRE_ADMIN_MFA_AAL2;
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
-const ORIGINAL_RAILWAY_ENVIRONMENT = process.env.RAILWAY_ENVIRONMENT;
+const ORIGINAL_RAILWAY_ENVIRONMENT_ID = process.env.RAILWAY_ENVIRONMENT_ID;
+const ORIGINAL_RAILWAY_ENVIRONMENT_NAME = process.env.RAILWAY_ENVIRONMENT_NAME;
+const ORIGINAL_RAILWAY_DEPLOYMENT_ID = process.env.RAILWAY_DEPLOYMENT_ID;
 
 function restoreEnv(name: string, value: string | undefined): void {
   if (value === undefined) {
@@ -14,17 +16,25 @@ function restoreEnv(name: string, value: string | undefined): void {
   }
 }
 
+beforeEach(() => {
+  vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
+  vi.stubEnv("RAILWAY_ENVIRONMENT_NAME", "");
+  vi.stubEnv("RAILWAY_DEPLOYMENT_ID", "");
+});
+
 afterEach(() => {
   vi.unstubAllEnvs();
   restoreEnv("REQUIRE_ADMIN_MFA_AAL2", ORIGINAL_REQUIRE_ADMIN_MFA_AAL2);
   restoreEnv("NODE_ENV", ORIGINAL_NODE_ENV);
-  restoreEnv("RAILWAY_ENVIRONMENT", ORIGINAL_RAILWAY_ENVIRONMENT);
+  restoreEnv("RAILWAY_ENVIRONMENT_ID", ORIGINAL_RAILWAY_ENVIRONMENT_ID);
+  restoreEnv("RAILWAY_ENVIRONMENT_NAME", ORIGINAL_RAILWAY_ENVIRONMENT_NAME);
+  restoreEnv("RAILWAY_DEPLOYMENT_ID", ORIGINAL_RAILWAY_DEPLOYMENT_ID);
 });
 
 describe("getRequireAdminMfaAal2", () => {
   it("keeps enforcement disabled when the flag is unset or blank outside production", () => {
     vi.stubEnv("NODE_ENV", "test");
-    vi.stubEnv("RAILWAY_ENVIRONMENT", "");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
     delete process.env.REQUIRE_ADMIN_MFA_AAL2;
     expect(getRequireAdminMfaAal2()).toBe(false);
 
@@ -37,9 +47,9 @@ describe("getRequireAdminMfaAal2", () => {
     ["test", "production"],
   ])(
     "fails closed when the flag is missing or blank in a protected runtime",
-    (nodeEnv, railwayEnvironment) => {
+    (nodeEnv, railwayEnvironmentId) => {
       vi.stubEnv("NODE_ENV", nodeEnv);
-      vi.stubEnv("RAILWAY_ENVIRONMENT", railwayEnvironment);
+      vi.stubEnv("RAILWAY_ENVIRONMENT_ID", railwayEnvironmentId);
       delete process.env.REQUIRE_ADMIN_MFA_AAL2;
 
       expect(() => getRequireAdminMfaAal2()).toThrow(
@@ -54,12 +64,26 @@ describe("getRequireAdminMfaAal2", () => {
   );
 
   it("accepts explicit true and false values case-insensitively", () => {
-    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
     vi.stubEnv("REQUIRE_ADMIN_MFA_AAL2", " TRUE ");
     expect(getRequireAdminMfaAal2()).toBe(true);
 
     vi.stubEnv("REQUIRE_ADMIN_MFA_AAL2", "False");
     expect(getRequireAdminMfaAal2()).toBe(false);
+  });
+
+  it.each([
+    ["production", ""],
+    ["test", "production"],
+  ])("rejects an explicit false value in a protected runtime", (nodeEnv, railwayEnvironmentId) => {
+    vi.stubEnv("NODE_ENV", nodeEnv);
+    vi.stubEnv("RAILWAY_ENVIRONMENT_ID", railwayEnvironmentId);
+    vi.stubEnv("REQUIRE_ADMIN_MFA_AAL2", "false");
+
+    expect(() => getRequireAdminMfaAal2()).toThrow(
+      "REQUIRE_ADMIN_MFA_AAL2 must be true in production or Railway",
+    );
   });
 
   it("fails closed on an unsupported explicit value", () => {
@@ -74,7 +98,7 @@ describe("getRequireAdminMfaAal2", () => {
 describe("assertAdminMfaAal2", () => {
   it("fails closed before evaluating claims when production configuration is missing", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("RAILWAY_ENVIRONMENT", "");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
     delete process.env.REQUIRE_ADMIN_MFA_AAL2;
 
     expect(() => assertAdminMfaAal2({ aal: "aal2" })).toThrow(
@@ -83,6 +107,8 @@ describe("assertAdminMfaAal2", () => {
   });
 
   it("does not change the current admin flow while enforcement is disabled", () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
     vi.stubEnv("REQUIRE_ADMIN_MFA_AAL2", "false");
 
     expect(() => assertAdminMfaAal2(undefined)).not.toThrow();

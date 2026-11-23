@@ -72,6 +72,11 @@ import {
 } from "@/lib/telegram/intent-contract";
 import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-language";
 import { startReport } from "@/lib/telegram/handlers/report";
+import { parseMediaProviderConsentCallback } from "@/lib/telegram/media-provider-consent";
+import {
+  handleMediaProviderConsentCallback,
+  sendMediaProviderConsentFailure,
+} from "@/lib/telegram/media-provider-consent.server";
 import {
   buildImageTriageFollowUpKeyboard,
   buildImageTriageKeyboard,
@@ -481,6 +486,14 @@ export async function handleCallback(
   }
 
   const lang = ctx.session.lang;
+  const mediaConsent = parseMediaProviderConsentCallback(data);
+  if (mediaConsent !== null) {
+    const result = await handleMediaProviderConsentCallback(ctx, mediaConsent);
+    if (result === "invalid" || result === "storage") {
+      await sendMediaProviderConsentFailure(ctx, result);
+    }
+    return;
+  }
   if (await handleFamilyCallback(data, ctx)) return;
 
   if (voiceOutAction !== null) {

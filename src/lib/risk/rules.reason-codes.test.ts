@@ -453,7 +453,8 @@ describe("evaluateText — scam research feed v2: Telegram/Web3 promo patterns",
     "Like videos and top up your balance to withdraw your earnings",
     "I posted reviews, but they demand a verification fee before cashing out",
   ])("flags a task-scam payment gate in RU/UZ/EN: %s", (text) => {
-    expect(evaluateText(text)).toContain("task_reward_engagement_bait");
+    expect(evaluateText(text)).toContain("task_withdrawal_payment");
+    expect(evaluateText(text)).not.toContain("task_reward_engagement_bait");
   });
 
   it.each([

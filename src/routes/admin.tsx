@@ -283,7 +283,7 @@ function AdminPage() {
 
   return (
     <div className="admin-redesign home-stripes-bg">
-      <main className="admin-shell">
+      <div className="admin-shell">
         <header className="admin-topbar">
           <Link to="/" className="brand">
             <span className="brand-mark">
@@ -733,7 +733,7 @@ function AdminPage() {
             }
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -9,11 +9,7 @@ import {
   redactText,
   type InputType,
 } from "@/lib/risk/detect";
-import {
-  hashIdentifierCandidates,
-  hashIdentifierVersioned,
-  type IdentifierHash,
-} from "@/lib/risk/hash";
+import { hashIdentifierCandidates } from "@/lib/risk/hash";
 import { checkSharedRateLimit } from "@/lib/risk/shared-rate-limit.server";
 import { logServerError } from "@/lib/safe-server-log.server";
 import { notifyModeration } from "@/lib/telegram/moderation-notifier.server";
@@ -28,7 +24,7 @@ const appealSchema = z.object({
 type AppealInput = z.input<typeof appealSchema>;
 
 type AppealResult =
-  | { ok: true; duplicate?: boolean }
+  | { ok: true }
   | {
       ok: false;
       error: "unsupported_target" | "rate_limited" | "submit_failed";
@@ -40,66 +36,9 @@ const APPEAL_RATE_WINDOW_MS = 10 * 60 * 1000;
 const APPEAL_TARGET_TYPES = new Set<InputType>(["phone", "telegram", "url", "apk"]);
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
-function establishedHashReadOrder(candidates: IdentifierHash[]): IdentifierHash[] {
-  return candidates.length > 1 ? [...candidates.slice(1), candidates[0]!] : candidates;
-}
-
-async function findStoredTargetHash(
-  targetType: InputType,
-  candidates: IdentifierHash[],
-): Promise<IdentifierHash | null> {
-  for (const candidate of establishedHashReadOrder(candidates)) {
-    const { data, error } = await supabaseAdmin
-      .from("entities")
-      .select("entity_hash,entity_hash_version")
-      .eq("entity_hash", candidate.hash)
-      .maybeSingle();
-    if (!error && data) {
-      return {
-        hash: data.entity_hash ?? candidate.hash,
-        version: data.entity_hash_version ?? candidate.version,
-      };
-    }
-  }
-
-  if (targetType !== "telegram") return null;
-  for (const candidate of establishedHashReadOrder(candidates)) {
-    const { data, error } = await supabaseAdmin
-      .from("telegram_reputation_targets")
-      .select("target_hash,target_hash_version")
-      .eq("target_hash", candidate.hash)
-      .maybeSingle();
-    if (!error && data) {
-      return {
-        hash: data.target_hash ?? candidate.hash,
-        version: data.target_hash_version ?? candidate.version,
-      };
-    }
-  }
-  return null;
-}
-
-async function findOpenAppealHash(
-  candidates: IdentifierHash[],
-): Promise<(IdentifierHash & { id: string }) | null> {
-  for (const candidate of establishedHashReadOrder(candidates)) {
-    const { data, error } = await supabaseAdmin
-      .from("reputation_appeals")
-      .select("id,target_hash,target_hash_version")
-      .eq("target_hash", candidate.hash)
-      .in("status", ["new", "reviewing"])
-      .limit(1);
-    const row = data?.[0];
-    if (!error && row) {
-      return {
-        id: row.id,
-        hash: row.target_hash ?? candidate.hash,
-        version: row.target_hash_version ?? candidate.version,
-      };
-    }
-  }
-  return null;
-}
+const appealSubmissionResult = z
+  .array(z.object({ accepted: z.literal(true), notify_moderation: z.boolean() }).strict())
+  .length(1);
 
 function maskEmail(email: string): string {
   const [local, domain] = email.toLowerCase().split("@");
@@ -127,7 +66,9 @@ function maskContact(raw: string): string {
   EMAIL_RE.lastIndex = 0;
   if (EMAIL_RE.test(trimmed)) {
     EMAIL_RE.lastIndex = 0;
-    return trimmed.replace(EMAIL_RE, (email) => maskEmail(email));
+    // A contact can mix an email with a password/OTP/link. Masking only the
+    // email must not bypass the shared secret redaction for the rest.
+    return redactAppealText(trimmed);
   }
 
   const type = detectInputType(trimmed);
@@ -162,46 +103,60 @@ export async function submitReputationAppealCore(
   }
 
   const normalizedTarget = normalize(appeal.target, targetType);
-  const targetHashes = await hashIdentifierCandidates(normalizedTarget);
-  const activeTargetHash = targetHashes[0];
-  if (!activeTargetHash) return { ok: false, error: "submit_failed" };
   const targetDisplay = maskForDisplay(normalizedTarget, targetType);
   const reason = redactAppealText(appeal.reason.trim());
   const contact = appeal.contact?.trim();
-  const contactHash = contact
-    ? await hashIdentifierVersioned(`appeal-contact:${normalizeContact(contact)}`)
-    : null;
-  const contactDisplay = contact ? maskContact(contact) : null;
+  // Email masking can expand a short local part. Only the display is clipped;
+  // contact identity is hashed in full, before any display transformation.
+  const contactDisplay = contact ? maskContact(contact).slice(0, 160) : null;
 
-  const [storedTargetHash, existingAppeal] = await Promise.all([
-    findStoredTargetHash(targetType, targetHashes),
-    findOpenAppealHash(targetHashes),
-  ]);
-  const canonicalTargetHash = existingAppeal ?? storedTargetHash ?? activeTargetHash;
-  const duplicate = existingAppeal !== null;
-
-  const { error } = await supabaseAdmin.from("reputation_appeals").insert({
-    target_type: targetType,
-    target_hash: canonicalTargetHash.hash,
-    target_hash_version: canonicalTargetHash.version,
-    target_display: targetDisplay,
-    reason,
-    contact_hash: contactHash?.hash ?? null,
-    contact_hash_version: contactHash?.version ?? null,
-    contact_display: contactDisplay,
-  });
-
-  if (error) {
-    logServerError("reputation_appeal.insert_failed", error);
+  let notify = false;
+  try {
+    const targetHashes = await hashIdentifierCandidates(normalizedTarget);
+    const contactHashes = contact
+      ? await hashIdentifierCandidates(`appeal-contact:${normalizeContact(contact)}`)
+      : [];
+    if (!targetHashes.length || (contact && !contactHashes.length)) {
+      throw new Error("Appeal hash configuration unavailable");
+    }
+    // One fixed application round trip, regardless of stored target/appeal
+    // state. The RPC serializes writers and preserves distinct evidence.
+    // It is not a constant-time endpoint or a durable notification outbox.
+    const { data: result, error } = await supabaseAdmin.rpc("submit_reputation_appeal", {
+      p_target_type: targetType,
+      p_target_hashes: targetHashes.map(({ hash, version }) => ({ hash, version })),
+      p_target_display: targetDisplay,
+      p_reason: reason,
+      p_contact_hashes: contactHashes.map(({ hash, version }) => ({ hash, version })),
+      p_contact_display: contactDisplay,
+    });
+    if (error) throw error;
+    const validated = appealSubmissionResult.safeParse(result);
+    if (!validated.success) throw new Error("Invalid appeal submission result");
+    notify = validated.data[0]!.notify_moderation;
+  } catch (error) {
+    logServerError("reputation_appeal.submit_failed", error);
     return { ok: false, error: "submit_failed" };
   }
-  void notifyModeration({
-    kind: "appeal",
-    targetType,
-    targetDisplay,
-    language: appeal.lang,
-  });
-  return duplicate ? { ok: true, duplicate: true } : { ok: true };
+  if (notify) {
+    // Best effort only: failure cannot reverse an accepted DB transaction.
+    // A lost post-commit RPC response may leave a row without an alert; the
+    // admin queue remains authoritative. Never retry the write on uncertainty.
+    void Promise.resolve()
+      .then(() =>
+        notifyModeration({
+          kind: "appeal",
+          targetType,
+          targetDisplay,
+          language: appeal.lang,
+        }),
+      )
+      .catch((error: unknown) => logServerError("reputation_appeal.notify_failed", error));
+  }
+  // Keep the public response indistinguishable for new and already-open
+  // appeals. Revealing which targets are in the moderation queue would turn
+  // this endpoint into a reputation-status oracle.
+  return { ok: true };
 }
 
 export const submitReputationAppeal = createServerFn({ method: "POST" })

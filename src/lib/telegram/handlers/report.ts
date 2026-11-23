@@ -31,6 +31,7 @@
 //
 // Server-only: pulls in `session.server.ts` (service-role Supabase) and
 // `report.functions.ts` (server fn). Never import into the client bundle.
+import { randomUUID } from "node:crypto";
 import {
   sendMessage,
   escapeMarkdownV2,
@@ -57,6 +58,18 @@ import {
 import type { Lang } from "@/lib/i18n";
 import { redactText } from "@/lib/risk/detect";
 import { analyzeImageCore, type RateLimitedError } from "@/lib/risk/check-core";
+import {
+  consumeMediaProviderConsent,
+  assertMediaProviderTransferAllowed,
+  isMediaProviderConsentStorageError,
+  requestMediaProviderConsent,
+  sendMediaProviderConsentFailure,
+} from "@/lib/telegram/media-provider-consent.server";
+import { isMediaProviderReportFlowId } from "@/lib/telegram/media-provider-consent";
+import {
+  buildSensitiveSecretGuidance,
+  detectTelegramSensitiveSecret,
+} from "@/lib/telegram/sensitive-secret-input";
 import { logServerError } from "@/lib/safe-server-log.server";
 import {
   hasUsableImageEvidence,
@@ -78,11 +91,22 @@ import {
   type ReportCallbackScenario,
 } from "@/lib/telegram/report-flow";
 import { claimTelegramImageDownloadBudget } from "@/lib/telegram/media-admission.server";
+import {
+  prepareReportImageDelivery,
+  sendSavedReportImageDelivery,
+} from "@/lib/telegram/report-image-delivery.server";
+import { directDeliveryRetryAfterMs } from "@/lib/telegram/direct-result-delivery-error";
 
 // ── Limits (mirror reportSchema in report.functions.ts) ─────────────────────
 const VALUE_MAX = 500; // R6.6
 const DESC_MIN = 5; // R6.5
 const DESC_MAX = 5000; // R6.5
+const REPORT_IMAGE_ANALYSIS_OPTIONS = {
+  // One informed-consent grant authorizes exactly one external transfer.
+  maxAttempts: 1,
+  allowFallback: false,
+  beforeProviderTransfer: assertMediaProviderTransferAllowed,
+} as const;
 const OPTIONAL_FIELD_MAX = 80; // scamType / city column bound (reportSchema)
 const AMOUNT_MAX = 10_000_000_000; // amountLostUzs bound (reportSchema)
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -162,6 +186,8 @@ function redactOptionalReportText(value: string): string {
 
 async function sanitizeDraftForStorage(draft: ReportDraft): Promise<ReportDraft> {
   const clean: ReportDraft = withoutReportCallbackBinding(draft);
+  // Advancing/replacing a draft ends its bounded image-card recovery authority.
+  delete clean.reportImageDelivery;
 
   if (!clean.target && clean.value && !clean.noValue) {
     clean.target = await prepareReportIdentifier(clean.value);
@@ -526,12 +552,18 @@ async function askAmount(ctx: HandlerCtx, lang: Lang, draft: ReportDraft): Promi
  */
 export async function startReport(ctx: HandlerCtx): Promise<void> {
   const lang = ctx.session.lang;
-  const draft = withSessionChatScope({}, ctx.chatId, ctx.chatType);
-  await saveSession(ctx.userId, {
+  const draft = withSessionChatScope({ reportFlowId: randomUUID() }, ctx.chatId, ctx.chatType);
+  const saved = await saveSession(ctx.userId, {
     scenario: "report_value",
     scenarioStep: 0,
     scenarioData: draft,
   });
+  if (!saved.ok) {
+    if (saved.reason === "storage") {
+      await sendText(ctx, "report_start_save_failed", lang);
+    }
+    return;
+  }
   await askValue(ctx, lang, draft);
 }
 
@@ -630,6 +662,32 @@ export async function handleScenarioImage(
   const lang = ctx.session.lang;
   if (ctx.session.scenario !== "report_desc") return;
 
+  // Sessions opened before this release have no generation id. Add one once,
+  // before creating/claiming consent, so a grant can never cross report drafts.
+  if (!isMediaProviderReportFlowId(ctx.session.scenarioData.reportFlowId)) {
+    const scenarioData: ReportDraft = {
+      ...ctx.session.scenarioData,
+      reportFlowId: randomUUID(),
+    };
+    const saved = await saveSession(ctx.userId, { scenarioData });
+    if (!saved.ok) {
+      await sendMediaProviderConsentFailure(ctx, "storage");
+      return;
+    }
+    ctx.session.scenarioData = scenarioData;
+  }
+
+  const consent = await consumeMediaProviderConsent(ctx, "report_image");
+  if (consent === "stale") return;
+  if (consent === "missing") {
+    await requestMediaProviderConsent(ctx, "report_image");
+    return;
+  }
+  if (consent === "storage") {
+    await sendMediaProviderConsentFailure(ctx, "storage");
+    return;
+  }
+
   async function askForTypedDescription(): Promise<void> {
     await sendText(ctx, "report_image_unreadable", lang);
   }
@@ -652,7 +710,12 @@ export async function handleScenarioImage(
       return;
     }
 
-    const evidence = await analyzeImageCore(dataUrl, lang, reportImageRateLimitKey(ctx.userId));
+    const evidence = await analyzeImageCore(
+      dataUrl,
+      lang,
+      reportImageRateLimitKey(ctx.userId),
+      REPORT_IMAGE_ANALYSIS_OPTIONS,
+    );
     if (!evidence || !hasUsableImageEvidence(evidence)) {
       await askForTypedDescription();
       return;
@@ -670,18 +733,23 @@ export async function handleScenarioImage(
       lang,
     );
     if (!draft) return;
-    await saveSession(ctx.userId, {
+    const deliveryDraft = prepareReportImageDelivery(ctx, draft);
+    const saved = await saveSession(ctx.userId, {
       scenario: "report_scamType",
       scenarioStep: 2,
-      scenarioData: draft,
+      scenarioData: deliveryDraft,
     });
+    if (!saved.ok) {
+      if (saved.reason === "storage") {
+        await sendText(ctx, "report_image_save_failed", lang);
+      }
+      return;
+    }
 
-    await sendMessage({
-      chatId: ctx.chatId,
-      text: escapeMarkdownV2(bt("report_image_added", lang, { summary: description })),
-    });
-    await askScamType({ ...ctx, session: { ...ctx.session, scenarioData: draft } }, lang, draft);
+    await sendSavedReportImageDelivery(ctx, deliveryDraft);
   } catch (e) {
+    if (directDeliveryRetryAfterMs(e) !== null) throw e;
+    if (isMediaProviderConsentStorageError(e)) throw e;
     if (isRateLimitedError(e)) {
       await sendMessage({
         chatId: ctx.chatId,
@@ -814,6 +882,18 @@ async function finalizeReport(ctx: HandlerCtx, draft: ReportDraft): Promise<void
  * the appropriate module.
  */
 export async function handleScenarioStep(text: string, ctx: HandlerCtx): Promise<void> {
+  // Report fields are persistence inputs. A real credential value must never
+  // be hashed as a target or copied into the draft, even in redacted form.
+  const sensitiveSecret = detectTelegramSensitiveSecret(text);
+  if (sensitiveSecret) {
+    const guidance = buildSensitiveSecretGuidance(sensitiveSecret.classes, ctx.session.lang);
+    await sendMessage({
+      chatId: ctx.chatId,
+      text: escapeMarkdownV2(`${guidance.title}\n\n${guidance.description}`),
+    });
+    return;
+  }
+
   switch (ctx.session.scenario) {
     case "report_value":
       await stepValue(text, ctx);

@@ -49,6 +49,18 @@ export type Scenario =
   | "report_amount"; // опционально
 
 export interface ReportDraft {
+  /** Bounded report-card delivery metadata only; never another copy of OCR/media. */
+  reportImageDelivery?: {
+    version: 1;
+    updateId: number;
+    flowId: string;
+    lang: Lang;
+    draftDigest: string;
+    state: "sealed" | "retryable";
+    attempts: number;
+    createdAt: number;
+    retryAt: number;
+  };
   /**
    * Legacy pre-DSCAN-R2-004 raw target from existing rows only. New saves must
    * convert it into `target` and remove this field before persistence.
@@ -66,6 +78,8 @@ export interface ReportDraft {
    * Prevents an old Skip / No value / Retry button from mutating a newer flow.
    */
   reportCallbackBinding?: ReportCallbackBinding;
+  /** Random generation id binding report-image consent to this exact draft. */
+  reportFlowId?: string;
   /**
    * Chat boundary for state that can influence a later bot response. This
    * prevents private context from being reused in group chats by the same user.
@@ -332,6 +346,7 @@ function hasStatefulScenarioData(data: ReportDraft | undefined): boolean {
     data.lastVictimIntent ??
     data.lastSensitiveSecret ??
     data.reportCallbackBinding ??
+    data.reportFlowId ??
     data.guardian ??
     data.conversation,
   );

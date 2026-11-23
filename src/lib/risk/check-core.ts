@@ -20,6 +20,8 @@ import type { Lang } from "@/lib/i18n";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { logServerError } from "@/lib/safe-server-log.server";
 import { detectInputType, normalize, maskForDisplay, redactText, type InputType } from "./detect";
+import { detectSensitiveSecretValue } from "./sensitive-secret-detection";
+import type { SensitiveSecretClass } from "./sensitive-text";
 import {
   evaluatePhone,
   evaluateTelegram,
@@ -548,6 +550,7 @@ export async function ocrExtractCore(
   dataUrl: string,
   lang: Lang,
   rateLimitKey: string,
+  options: ChatCompletionOptions = {},
 ): Promise<{ text: string | null }> {
   const rl = await checkSharedRateLimit("check", rateLimitKey, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
@@ -555,7 +558,13 @@ export async function ocrExtractCore(
   }
   const image = parseAllowedImageDataUrl(dataUrl);
   if (!image) return { text: null };
-  const text = await ocrScreenshot(image.dataUrl, lang);
+  // Web OCR transfers raw pixels. Always clamp the transfer to one provider
+  // attempt even if a caller omits or weakens the options.
+  const text = await ocrScreenshot(image.dataUrl, lang, {
+    ...options,
+    maxAttempts: 1,
+    allowFallback: false,
+  });
   return { text };
 }
 
@@ -583,30 +592,40 @@ export async function analyzeImageCore(
   return sanitizeImageIntelligence(raw) ?? fallbackImageIntelligence(raw);
 }
 
+export interface VoiceTranscriptionResult {
+  /** Sanitized and bounded. Secret-bearing transcripts are replaced entirely. */
+  text: string | null;
+  /** Locally derived enum-only categories, never values or provider JSON metadata. */
+  secretClasses: readonly SensitiveSecretClass[];
+}
+
 /**
  * Voice-note transcription for Telegram.
  *
  * Audio stays in memory as a data URL. The returned text is redacted and clipped
- * before the Telegram handler passes it into `runCheck`, so persistence still
- * sees only sanitized check input.
+ * before the Telegram handler passes it into `runCheck`. Secret categories are
+ * detected before redaction/clipping so the caller can exclude them from normal
+ * checks, persistence and replay caches without ever receiving the secret.
  */
 export async function transcribeVoiceCore(
   dataUrl: string,
   lang: Lang,
   _rateLimitKey: string,
   options: ChatCompletionOptions = {},
-): Promise<{ text: string | null }> {
+): Promise<VoiceTranscriptionResult> {
   const cfg = getAiConfig();
-  if (!cfg) return { text: null };
+  if (!cfg) return { text: null, secretClasses: [] };
 
   const parsed = parseDataUrlPayload(dataUrl);
-  if (!parsed || !parsed.mimeType.startsWith("audio/")) return { text: null };
+  if (!parsed || !parsed.mimeType.startsWith("audio/")) {
+    return { text: null, secretClasses: [] };
+  }
 
   const raw = isGeminiConfig(cfg)
     ? await transcribeAudioWithGemini(cfg, parsed, lang, options)
     : await transcribeAudioWithOpenAiCompatible(cfg, parsed, lang, options);
 
-  return { text: sanitizeTranscript(raw) };
+  return sanitizeTranscript(raw);
 }
 
 // ---------------------------------------------------------------------------
@@ -670,15 +689,25 @@ function parseDataUrlPayload(dataUrl: string): DataUrlPayload | null {
   return { mimeType, base64 };
 }
 
-function sanitizeTranscript(raw: string | null): string | null {
+function sanitizeTranscript(raw: string | null): VoiceTranscriptionResult {
   const text = raw?.trim();
-  if (!text) return null;
+  if (!text) return { text: null, secretClasses: [] };
+  // Use the same value-aware classifier as text ingress, before information is
+  // erased. Do not infer a secret from ordinary phone/order-number redaction or
+  // trust metadata supplied by the provider. No raw transcript crosses this
+  // boundary when a secret is recognized (including obfuscated labels).
+  const secret = detectSensitiveSecretValue(text);
+  if (secret) return { text: "••••", secretClasses: secret.classes };
   const redacted = redactText(text).trim();
-  if (!redacted) return null;
+  if (!redacted) return { text: null, secretClasses: [] };
   const normalized = normalizeVoiceTranscriptProviderArtifacts(redacted);
-  return normalized.length > MAX_TRANSCRIPT_CHARS
-    ? normalized.slice(0, MAX_TRANSCRIPT_CHARS).trim()
-    : normalized;
+  return {
+    text:
+      normalized.length > MAX_TRANSCRIPT_CHARS
+        ? normalized.slice(0, MAX_TRANSCRIPT_CHARS).trim()
+        : normalized,
+    secretClasses: [],
+  };
 }
 
 function normalizeVoiceTranscriptProviderArtifacts(text: string): string {
@@ -737,11 +766,17 @@ async function transcribeAudioWithGemini(
   )}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
   const prompt = buildVoiceTranscriptionPrompt(lang);
 
+  // Await this at the last possible boundary: callers may have spent time in
+  // admission/download work since consent was claimed, so an earlier lease
+  // check cannot authorize this network transfer.
+  await options.beforeProviderTransfer?.();
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
   try {
     const res = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [
@@ -784,11 +819,14 @@ async function transcribeAudioWithOpenAiCompatible(
   form.set("prompt", buildVoiceTranscriptionPrompt(lang));
   form.set("file", new Blob([bytes], { type: payload.mimeType }), "telegram-voice.ogg");
 
+  await options.beforeProviderTransfer?.();
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), normalizedAiTimeoutMs(options.timeoutMs));
   try {
     const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
       method: "POST",
+      redirect: "error",
       headers: { Authorization: `Bearer ${cfg.apiKey}` },
       body: form,
       signal: controller.signal,
@@ -819,8 +857,9 @@ type ChatMessage =
 
 /**
  * Call the OpenAI-compatible Chat Completions endpoint and return the assistant
- * message content, or `null` on any failure (missing key, non-2xx, network or
- * parse error). Never throws — callers degrade gracefully.
+ * message content, or `null` on provider failure (missing key, non-2xx,
+ * network or parse error). A caller-supplied authorization fence deliberately
+ * throws past this layer so stale consent can never degrade into a send.
  */
 
 // ── AI Circuit Breaker ────────────────────────────────────────────────────
@@ -835,10 +874,20 @@ const AI_RETRY_BACKOFF_MS = [50, 150] as const;
 interface ChatCompletionOptions {
   timeoutMs?: number;
   maxAttempts?: number;
+  /** Prevent a consented raw payload from being sent to a second provider. */
+  allowFallback?: boolean;
+  /** Last-moment authorization check immediately before each provider fetch. */
+  beforeProviderTransfer?: () => Promise<void>;
 }
 
 let aiConsecutiveFailures = 0;
 let aiCircuitOpenUntil = 0;
+
+/** Reset process-local AI resilience state between isolated test cases. */
+export function __resetAiCircuitBreakerForTests(): void {
+  aiConsecutiveFailures = 0;
+  aiCircuitOpenUntil = 0;
+}
 
 function isAiCircuitOpen(): boolean {
   if (aiCircuitOpenUntil === 0) return false;
@@ -914,12 +963,15 @@ async function callChatCompletionOnce(
   attempt: number,
   maxAttempts: number,
   timeoutMs: number,
+  beforeProviderTransfer?: () => Promise<void>,
 ): Promise<{ kind: "success"; text: string | null } | { kind: "failure"; transient: boolean }> {
+  await beforeProviderTransfer?.();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
+      redirect: "error",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({ model: cfg.model, messages }),
       signal: controller.signal,
@@ -967,6 +1019,7 @@ async function chatCompletionWithRetry(
       attempt,
       maxAttempts,
       timeoutMs,
+      options.beforeProviderTransfer,
     );
     if (result.kind === "success") return { text: result.text, transientFailure: false };
     if (!result.transient) return { text: null, transientFailure: false };
@@ -983,7 +1036,7 @@ async function chatCompletion(
 ): Promise<string | null> {
   const cfg = getAiConfig();
   if (!cfg) return null;
-  const fallback = getFallbackAiConfig();
+  const fallback = options.allowFallback === false ? null : getFallbackAiConfig();
 
   if (isAiCircuitOpen()) {
     // Primary is broken — try fallback provider if configured.
@@ -1055,7 +1108,11 @@ async function aiExplain(opts: {
  * card numbers and full phone numbers so sensitive data never lands in our DB.
  * We additionally run `redactText` as a defence-in-depth step.
  */
-async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null> {
+async function ocrScreenshot(
+  dataUrl: string,
+  lang: Lang,
+  options: ChatCompletionOptions = {},
+): Promise<string | null> {
   const sys = `You are an OCR + privacy filter for an anti-scam bot. Extract ALL readable text from the image, including sender names, visible domains, labels near QR codes, and short context like "SMS screenshot", "restaurant menu", or "QR code visible" when it is obvious from the image. If a QR URL is visibly printed next to the QR, include that URL; do not guess or claim to decode a QR that is not visibly readable. Then redact sensitive items: replace OTP / SMS confirmation codes with "••••", full card numbers with "•••• •••• •••• ••••", and full phone numbers with their last 2 digits only (e.g. "+998 •••••••12"). Do NOT add advice, verdicts, translation, or analysis — return only the cleaned, redacted text/context. Reply language: ${lang}.`;
   const text = await chatCompletion(
     [
@@ -1069,6 +1126,7 @@ async function ocrScreenshot(dataUrl: string, lang: Lang): Promise<string | null
       },
     ],
     "ocr",
+    options,
   );
   return text ? redactText(text) : null;
 }

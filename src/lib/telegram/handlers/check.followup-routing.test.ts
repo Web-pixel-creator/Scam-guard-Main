@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReasonCode } from "@/lib/risk/rules";
 import type { LastCheckSnapshot, Session } from "@/lib/telegram/session.server";
+import { DOCUMENT_DISCLOSURE_CASES } from "@/lib/telegram/__qa__/document-disclosure-fixtures";
 
 const hoisted = vi.hoisted(() => ({
   sentMessages: [] as Array<{ chatId: number; text: string; keyboard?: unknown }>,
@@ -137,6 +138,33 @@ describe("handleCheck follow-up routing", () => {
     hoisted.familyNotifyCalls.length = 0;
     hoisted.familyNotifyResult = { ok: false, reason: "not_linked" };
   });
+
+  it.each(DOCUMENT_DISCLOSURE_CASES)(
+    "document semantics $expected: $text",
+    async ({ text, lang, expected }) => {
+      const fetchGuard = vi.fn(() => {
+        throw new Error("document semantics must stay offline");
+      });
+      vi.stubGlobal("fetch", fetchGuard);
+      try {
+        await handleCheck(text, {
+          chatId: 100,
+          userId: 42,
+          session: { ...sessionWithData(), lang },
+        });
+        const sent = hoisted.sentMessages.map((message) => message.text).join("\n");
+        expect(sent).not.toBe("");
+        const completedClaim =
+          /Документы уже отправлены|Hujjatlar allaqachon yuborilgan|documents have already been shared/iu;
+        if (expected === "aftercare") expect(sent).toMatch(completedClaim);
+        else expect(sent).not.toMatch(completedClaim);
+        for (const call of hoisted.runCheckCalls) expect(call.input).toBe(text);
+        expect(fetchGuard).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
 
   it("answers confidence follow-ups from the last result instead of running a new check", async () => {
     await handleCheck("Точно?", {

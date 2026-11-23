@@ -104,6 +104,7 @@ const CRYPTO_REASONS = new Set<ReasonCode>([
   "gambling_prediction_promo",
   "giveaway_engagement_bait",
   "task_reward_engagement_bait",
+  "task_withdrawal_payment",
   "wallet_action_urgency",
   "ton_referral_earning_scheme",
   "investment_fast_profit_pitch",

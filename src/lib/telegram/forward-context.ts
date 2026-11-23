@@ -85,7 +85,8 @@ function scenarioBrief(reasons: readonly ReasonCode[], lang: Lang): ScenarioBrie
   const violenceThreat = reasons.includes("threatens_physical_violence");
   const dangerousAuthorityTask = reasons.includes("authority_coerced_dangerous_act");
   const penaltyPointsFee = reasons.includes("fake_penalty_points_erasure");
-  const moneyRequest = reasons.includes("asks_for_money_transfer");
+  const moneyRequest =
+    reasons.includes("asks_for_money_transfer") || reasons.includes("task_withdrawal_payment");
   const accountTakeover = reasons.includes("telegram_account_takeover_phishing");
   const wallet = reasons.includes("wallet_action_urgency");
   const bettingOrCasino = hasAny(reasons, [

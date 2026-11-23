@@ -40,6 +40,7 @@ const RESEARCH_FEED_CODES = [
   "crypto_casino_bonus_funnel",
   "fake_captcha_or_voting",
   "task_reward_engagement_bait",
+  "task_withdrawal_payment",
   "unauthorized_credit_opened",
   "coercive_secrecy",
   "wallet_action_urgency",
@@ -156,9 +157,9 @@ describe("risk rules — property-based scoring invariants", () => {
   it("fixtures cover the full reason-code universe without overlap", () => {
     expect(OLD_CODES.length).toBe(26);
     expect(NEW_CODES.length).toBe(4);
-    expect(RESEARCH_FEED_CODES.length).toBe(24);
+    expect(RESEARCH_FEED_CODES.length).toBe(25);
     expect(ADDITIONAL_CODES.length).toBe(7);
-    expect(new Set(ALL_CODES).size).toBe(61);
+    expect(new Set(ALL_CODES).size).toBe(62);
     expect(
       new Set([...OLD_CODES, ...NEW_CODES, ...RESEARCH_FEED_CODES, ...ADDITIONAL_CODES]),
     ).toEqual(new Set(ALL_CODES));
@@ -207,7 +208,7 @@ describe("risk rules — property-based scoring invariants", () => {
   it("every risk-classified reason overrides verified-contact protection", () => {
     const riskCodes = ALL_CODES.filter((code) => REASON_TRUST_IMPACT[code] === "risk");
 
-    expect(riskCodes.length).toBe(58);
+    expect(riskCodes.length).toBe(59);
     for (const code of riskCodes) {
       expect(canVerifiedContactMarkSafe([code])).toBe(false);
       expect(scoreFromCodes(["verified_official", code]).level).not.toBe("safe");

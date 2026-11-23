@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 function migration(name: string): string {
@@ -8,7 +8,15 @@ function migration(name: string): string {
   ).replace(/\r\n/g, "\n");
 }
 
-const retentionSql = migration("20260612165300_shared_rate_limits_v1.sql");
+const migrationNames = readdirSync(new URL("../../supabase/migrations/", import.meta.url))
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .reverse();
+const retentionSql = migration(
+  migrationNames.find((name) =>
+    migration(name).includes("CREATE OR REPLACE FUNCTION private.prune_app_retention"),
+  ) ?? "missing-retention-function.sql",
+);
 const scheduleSql = migration("20260614064831_schedule_retention_cleanup_v1.sql");
 const adminActionsSql = migration("20260603100000_cleanup_duplicate_trigger.sql");
 const hardeningSql = migration("20260612124559_security_definer_hardening_v1.sql");
@@ -65,6 +73,30 @@ describe("CORE-009 retention and admin audit migrations", () => {
     expect(fn).toContain("DELETE FROM public.rate_limit_buckets");
     expect(fn).not.toMatch(/DELETE FROM public\.admin_actions/);
     expect(fn).not.toMatch(/DELETE FROM public\.reputation_appeals/);
+  });
+
+  it("bounds each runtime lock wait and rejects overlapping pruning transactions before deleting", () => {
+    const fn = withoutLineComments(latestRetentionFunction(retentionSql));
+    expect(fn).toMatch(/SET search_path = pg_catalog, public\s+SET lock_timeout = '5s'\s+AS \$\$/);
+    expect(fn).toContain("pg_catalog.pg_try_advisory_xact_lock(");
+    expect(fn).toContain("pg_catalog.hashtextextended('ishonch_guard:prune_app_retention:v1', 0)");
+    expect(fn).toContain(
+      "RAISE EXCEPTION USING ERRCODE = '55P03', MESSAGE = 'retention_prune_busy'",
+    );
+    expect(fn.indexOf("pg_try_advisory_xact_lock")).toBeLessThan(fn.indexOf("DELETE FROM"));
+    expect(fn).not.toMatch(/\bEXCEPTION\s+WHEN\b/i);
+    expect(fn).not.toMatch(/pg_(?:try_)?advisory_(?:lock|unlock)\(/);
+  });
+
+  it("preserves the previous deletion order, windows and successful JSON response", () => {
+    const previous = latestRetentionFunction(
+      migration("20260904120000_telegram_media_provider_consent_claim.sql"),
+    );
+    const deletionAndResult = (sql: string): string =>
+      withoutLineComments(sql.slice(sql.indexOf("  DELETE FROM public.checks"))).trim();
+    expect(deletionAndResult(latestRetentionFunction(retentionSql))).toBe(
+      deletionAndResult(previous),
+    );
   });
 
   it("schedules retention cleanup through cron APIs instead of direct cron.job writes", () => {

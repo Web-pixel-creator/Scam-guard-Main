@@ -8,6 +8,12 @@ import { publicRateLimitKey } from "@/lib/request-ip.server";
 import { logServerError } from "@/lib/safe-server-log.server";
 import { MAX_IMAGE_DATA_URL_LENGTH, parseAllowedImageDataUrl } from "./risk/media-data-url";
 import { checkSharedRateLimit } from "./risk/shared-rate-limit.server";
+import { digestWebOcrImage } from "./web-ocr-image-digest";
+import {
+  consumeWebOcrTicket,
+  issueWebOcrTicket,
+  validateWebOcrTicket,
+} from "./web-ocr-ticket.server";
 import {
   embedTelemetryContextSchema,
   recordEmbedOriginEvent,
@@ -41,6 +47,7 @@ const checkSchema = z.object({
 });
 
 const ocrSchema = z.object({
+  operationTicket: z.string().min(1).max(512),
   image: z
     .string()
     .min(1)
@@ -57,7 +64,23 @@ const ocrSchema = z.object({
       return parsed.dataUrl;
     }),
   lang: z.enum(["ru", "uz", "en"]).default("ru"),
+  // A raw screenshot may leave the app only after the user confirms the
+  // external-provider disclosure shown for this specific upload.
+  externalProviderConsent: z.literal(true),
 });
+
+const ocrTicketSchema = z
+  .object({
+    imageDigest: z.string().regex(/^[0-9a-f]{64}$/),
+    lang: z.enum(["ru", "uz", "en"]).default("ru"),
+    externalProviderConsent: z.literal(true),
+  })
+  .strict();
+
+const WEB_OCR_PROVIDER_OPTIONS = {
+  maxAttempts: 1,
+  allowFallback: false,
+} as const;
 
 // Thin web wrapper: extract IP → build `check:<ip>` key → delegate to the core.
 // Behaviour is unchanged: same rate-limit key, 10/60_000 limit, response shape
@@ -105,11 +128,35 @@ export const checkInput = createServerFn({ method: "POST" })
     return result;
   });
 
-// Thin web wrapper: same `check:<ip>` rate-limit key → delegate to OCR core.
+// Issuance receives no raw screenshot and performs no provider transfer. This
+// separate purpose key does not double-charge the existing extraction quota.
+export const issueOcrTicket = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => ocrTicketSchema.parse(data))
+  .handler(async ({ data }) => {
+    const admission = await checkSharedRateLimit(
+      "check",
+      `web-ocr-ticket:${publicRateLimitKey("check")}`,
+      CHECK_RATE_LIMIT,
+      CHECK_RATE_WINDOW_MS,
+    );
+    if (!admission.ok) throw rateLimitedError(admission.retryAfterSec);
+    return { ticket: await issueWebOcrTicket(data.imageDigest, data.lang) };
+  });
+
+// A retry must retain its issued ticket. Consumption is terminal even when the
+// provider fails or the HTTP response is lost; there is no cached OCR result.
 export const ocrExtract = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ocrSchema.parse(data))
   .handler(async ({ data }) => {
-    return ocrExtractCore(data.image, data.lang, publicRateLimitKey("check"));
+    const claim = await validateWebOcrTicket(
+      data.operationTicket,
+      await digestWebOcrImage(data.image),
+      data.lang,
+    );
+    return ocrExtractCore(data.image, data.lang, publicRateLimitKey("check"), {
+      ...WEB_OCR_PROVIDER_OPTIONS,
+      beforeProviderTransfer: () => consumeWebOcrTicket(claim),
+    });
   });
 
 async function loadPublicStatsUncached(): Promise<PublicStats> {

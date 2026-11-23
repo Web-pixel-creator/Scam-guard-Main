@@ -33,6 +33,7 @@ export type ProtectiveActionId =
   | "avoid_betting_payment"
   | "avoid_giveaway_trap"
   | "avoid_reward_chain"
+  | "avoid_withdrawal_payment"
   | "verify_investment"
   | "avoid_wallet_action"
   | "avoid_invite_credentials"
@@ -90,6 +91,7 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   crypto_casino_bonus_funnel: "avoid_casino_deposit",
   fake_captcha_or_voting: "avoid_giveaway_trap",
   task_reward_engagement_bait: "avoid_reward_chain",
+  task_withdrawal_payment: "avoid_withdrawal_payment",
   unauthorized_credit_opened: "verify_official_channel",
   coercive_secrecy: "end_pressure_call",
   wallet_action_urgency: "avoid_wallet_action",
@@ -247,6 +249,14 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
   },
   // Task/reward/referral bait -> avoid engagement loops and referral pressure.
   {
+    id: "avoid_withdrawal_payment",
+    advice: {
+      ru: "Не доплачивайте для вывода заработка: остановите переводы и сохраните переписку и чеки",
+      uz: "Pulni yechish uchun qo'shimcha pul to'lamang: o'tkazmalarni to'xtating, yozishmalar va cheklarni saqlang",
+      en: "Do not pay more to withdraw your earnings: stop transfers and keep the conversation and receipts",
+    },
+  },
+  {
     id: "avoid_reward_chain",
     advice: {
       ru: "Не выполняйте цепочку заданий/рефералов ради обещанного TON, Stars, токенов или лёгкого заработка",
@@ -323,6 +333,8 @@ const ADVICE_PRIORITY = [
   "seek_physical_safety",
   "avoid_dangerous_act",
   "stop_reported_contact",
+  "protect_secrets",
+  "avoid_withdrawal_payment",
   "avoid_qr",
   "secure_telegram_account",
   "protect_identity_access",
@@ -334,7 +346,6 @@ const ADVICE_PRIORITY = [
   "verify_investment",
   "avoid_invite_credentials",
   "avoid_wallet_action",
-  "protect_secrets",
   "protect_card_details",
   "protect_personal_data",
   "avoid_link_or_apk",

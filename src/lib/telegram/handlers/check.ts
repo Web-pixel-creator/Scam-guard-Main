@@ -52,8 +52,16 @@ import { detectInputType, maskForDisplay, normalize } from "@/lib/risk/detect";
 import { sanitizeSensitiveTextForSink, type SensitiveSecretClass } from "@/lib/risk/sensitive-text";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
+  consumeMediaProviderConsent,
+  assertMediaProviderTransferAllowed,
+  isMediaProviderConsentStorageError,
+  requestMediaProviderConsent,
+  sendMediaProviderConsentFailure,
+} from "@/lib/telegram/media-provider-consent.server";
+import {
   buildEmergencyFollowUpKeyboard,
   buildEmergencyFollowUpText,
+  buildLiveCallActiveKeyboard,
   classifyEmergencyFollowUp,
   asLiveCallContext,
   buildPanicScenarioText,
@@ -250,15 +258,12 @@ const TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS = readBoundedIntEnv(
   1000,
   15_000,
 );
-const TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS = readBoundedIntEnv(
-  "TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS",
-  1,
-  1,
-  2,
-);
 const TELEGRAM_IMAGE_ANALYSIS_OPTIONS = {
   timeoutMs: TELEGRAM_IMAGE_ANALYSIS_TIMEOUT_MS,
-  maxAttempts: TELEGRAM_IMAGE_ANALYSIS_MAX_ATTEMPTS,
+  // One informed-consent grant authorizes exactly one external transfer.
+  maxAttempts: 1,
+  allowFallback: false,
+  beforeProviderTransfer: assertMediaProviderTransferAllowed,
 } as const;
 const TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS = readBoundedIntEnv(
   "TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS",
@@ -268,6 +273,9 @@ const TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS = readBoundedIntEnv(
 );
 const TELEGRAM_VOICE_TRANSCRIBE_OPTIONS = {
   timeoutMs: TELEGRAM_VOICE_TRANSCRIBE_TIMEOUT_MS,
+  maxAttempts: 1,
+  allowFallback: false,
+  beforeProviderTransfer: assertMediaProviderTransferAllowed,
 } as const;
 
 const MEDIA_GROUP_FALLBACK_TTL_MS = 30_000;
@@ -954,6 +962,9 @@ async function sendPanicRoute(
     nextScenarioData.lastLiveCallContext = liveCallContext;
   }
   await saveSession(ctx.userId, {
+    // Callback updates have no message text to resolve again. Keep their
+    // language aligned with this saved emergency card and its next actions.
+    lang: ctx.session.lang,
     scenario: "none",
     scenarioStep: 0,
     scenarioData: withSessionChatScope(nextScenarioData, ctx.chatId, ctx.chatType),
@@ -965,7 +976,10 @@ async function sendPanicRoute(
         ? buildPanicScenarioText(panicId, ctx.session.lang)
         : buildPanicScenarioText(panicId, ctx.session.lang, { liveCallContext }),
     ),
-    keyboard: buildEmergencyFollowUpKeyboard(ctx.session.lang, panicId),
+    keyboard:
+      panicId === 6
+        ? buildLiveCallActiveKeyboard(ctx.session.lang)
+        : buildEmergencyFollowUpKeyboard(ctx.session.lang, panicId),
   });
 }
 
@@ -1316,6 +1330,7 @@ async function guarded(ctx: HandlerCtx, label: string, work: () => Promise<void>
   try {
     await work();
   } catch (e) {
+    if (isMediaProviderConsentStorageError(e)) throw e;
     if (directDeliveryRetryAfterMs(e) !== null) throw e;
     if (isRateLimitedError(e)) {
       const key =
@@ -1782,6 +1797,16 @@ export async function handleImage(
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleImage", async () => {
+    // Claim a fresh grant at handler entry so this exact media item consumes
+    // it even when admission, metadata or download fails. A missing grant may
+    // still use local QR decoding; only external analysis remains blocked.
+    const consent = await consumeMediaProviderConsent(ctx, "image");
+    if (consent === "stale") return;
+    if (consent === "storage") {
+      await sendMediaProviderConsentFailure(ctx, "storage");
+      return;
+    }
+
     const budgetStartedAt = Date.now();
     await claimTelegramImageDownloadBudget(ctx.userId);
     logTelegramTiming("image.download_budget", budgetStartedAt, {
@@ -1835,6 +1860,11 @@ export async function handleImage(
           qrPurpose: decodedOnlyEvidence.qr.purpose,
         });
       } else {
+        // Raw pixels may leave our process only after a fresh, chat-scoped,
+        // one-item grant was durably claimed at handler entry. Local QR
+        // decoding above remains available without provider consent.
+        if (consent === "missing") return { kind: "consent_required" as const };
+
         // 5) Structured image evidence (OCR + visual category + QR purpose).
         const analysisStartedAt = Date.now();
         const aiEvidence = await analyzeImageCore(
@@ -1887,6 +1917,10 @@ export async function handleImage(
       };
     });
 
+    if (outcome.kind === "consent_required") {
+      await requestMediaProviderConsent(ctx, "image");
+      return;
+    }
     if (outcome.kind === "ocr_failed") {
       await replyImageOcrFailed(ctx, mediaGroupId); // R5.6
       return;
@@ -2035,6 +2069,15 @@ export async function handleVoice(
   const lang = ctx.session.lang;
 
   await guarded(ctx, "handleVoice", async () => {
+    // Claim at entry: an oversized or otherwise rejected voice item must not
+    // leave a grant available for an unrelated later recording.
+    const consent = await consumeMediaProviderConsent(ctx, "voice");
+    if (consent === "stale") return;
+    if (consent === "storage") {
+      await sendMediaProviderConsentFailure(ctx, "storage");
+      return;
+    }
+
     const declaredSize = meta?.fileSize ?? 0;
     if (
       declaredSize > MAX_VOICE_BYTES ||
@@ -2046,6 +2089,14 @@ export async function handleVoice(
         fileSizeBytes: declaredSize,
         durationSec: meta?.duration ?? null,
       });
+      return;
+    }
+
+    // Consent is consumed before cache lookup, Telegram download, or STT. This
+    // prevents a stale/cross-chat grant from exposing either raw or derived
+    // voice content and fails closed if the session write cannot be confirmed.
+    if (consent === "missing") {
+      await requestMediaProviderConsent(ctx, "voice");
       return;
     }
 
@@ -2148,12 +2199,15 @@ export async function handleVoice(
       });
       if (!transcript.text) return { kind: "failed" };
       const sensitiveSecret = detectTelegramSensitiveSecret(transcript.text);
-      if (sensitiveSecret) {
+      const secretClasses = [
+        ...new Set([...(transcript.secretClasses ?? []), ...(sensitiveSecret?.classes ?? [])]),
+      ];
+      if (secretClasses.length > 0) {
         // Do not resolve the shared in-flight promise with the raw credential:
         // callers need only the non-secret class summary and character count.
         return {
           kind: "sensitive_secret" as const,
-          classes: sensitiveSecret.classes,
+          classes: secretClasses,
           transcriptChars: transcript.text.length,
         };
       }

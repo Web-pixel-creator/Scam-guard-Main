@@ -20,7 +20,7 @@ const ACCIDENTAL_OUTGOING_TRANSFER_ACTION_RE =
 const ACCIDENTAL_OUTGOING_TRANSFER_GENERIC_MONEY_SEND_RE =
   /(?:(?:^|[^\p{L}])(?:я|мы)\s+(?:уже\s+|только\s+что\s+)?(?:отправил[аи]?|скинул[аи]?)(?!\p{L}).{0,80}(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*)|(?:деньг\p{L}*|денег|сумм\p{L}*|плат[её]ж\p{L}*|перевод\p{L}*|оплат\p{L}*|карт\p{L}*|сч[её]т\p{L}*|баланс\p{L}*|кошел[её]к\p{L}*|номер\p{L}*\s+телефон\p{L}*).{0,80}(?:отправил[аи]?|скинул[аи]?)(?!\p{L})|(?:^|[^\p{L}])(?:i|we)\s+(?:already\s+|just\s+)?sent\b.{0,80}(?:money|funds|payment|transfer|sum|uzs|card|account|balance|wallet|(?:phone|mobile)\s+number)\b|(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L})|(?:^|[^\p{L}])(?:men|biz)(?!\p{L}).{0,100}(?:yubordim|jo['’]?natdim|jo['’]?natganman)(?!\p{L}).{0,80}(?:pul|sum|so['’]?m|to['’]?lov|o['’]?tkazma|karta|hisob|balans|hamyon|telefon\s+raqam))/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_SECRET_RE =
-  /(?:смс|sms|otp|одноразов\p{L}*\s+(?:код|парол)|код\p{L}*|парол\p{L}*|pin|пин|cvv|cvc)/iu;
+  /(?:смс|sms|otp|одноразов\p{L}*\s+(?:код|парол)|код\p{L}*|парол\p{L}*|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|cvv|cvc)/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_NEGATED_SECRET_RE =
   /(?:(?:никому\s+)?не\s+(?:сообщал|отправлял|передавал|называл|говорил)\p{L}*.{0,40}(?:смс|sms|otp|код|парол)|(?:^|[^\p{L}])(?:i|we)\s+(?:(?:(?:did|do)\s+not|didn['’]?t|don['’]?t)\s+(?:share|send|give|tell).{0,40}(?:codes?|otp|passwords?)|(?:shared|sent|gave|told)\s+no\s+(?:codes?|otp|passwords?))|(?:hech\s+kimga\s+)?(?:sms|otp|kod|parol).{0,30}(?:bermadim|yubormadim|jo['’]?natmadim|aytmadim))/iu;
 const ACCIDENTAL_OUTGOING_TRANSFER_MISTAKE_RE =
@@ -225,28 +225,28 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
   }
 
   if (
-    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
+    /(?:^|\s)(я|мы)\s+(уже\s+)?(?:назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк)/.test(
       text,
     ) ||
-    /(?:cvv|cvc|pin|пин|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?)/.test(
+    /(?:cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|код безопасности|три цифры|3 цифры|оборот[ае] карт|парол[ья]\s+от\s+(?:онлайн\s+)?банк).{0,80}(назвал[аи]?|сказал[аи]?|передал[аи]?|продиктовал[аи]?|показал[аи]?|отправил[аи]?|дал[аи]?)/.test(
       text,
     ) ||
-    /(?:kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam).{0,80}(ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat)/.test(
+    /(?:kartaning|karta|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|maxfiy\s+kod|uch\s+raqam|3\s+raqam).{0,80}(ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat)/.test(
       text,
     ) ||
-    /(?:ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat).{0,80}(kartaning|karta|card|cvv|cvc|pin|maxfiy\s+kod|uch\s+raqam|3\s+raqam)/.test(
+    /(?:ayt|ber|yubor|jo'nat|jonat|ko'rsat|korsat).{0,80}(kartaning|karta|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|maxfiy\s+kod|uch\s+raqam|3\s+raqam)/.test(
       text,
     ) ||
-    /(?:карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам).{0,80}(айт|бер|юбор|жунат|курсат|кирит)/.test(
+    /(?:карта|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|махфий\s+код|уч\s+ракам|3\s+ракам).{0,80}(айт|бер|юбор|жунат|курсат|кирит)/.test(
       text,
     ) ||
-    /(?:айт|бер|юбор|жунат|курсат|кирит).{0,80}(карта|card|cvv|cvc|pin|пин|махфий\s+код|уч\s+ракам|3\s+ракам)/.test(
+    /(?:айт|бер|юбор|жунат|курсат|кирит).{0,80}(карта|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|махфий\s+код|уч\s+ракам|3\s+ракам)/.test(
       text,
     ) ||
-    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed).{0,80}(?:cvv|cvc|pin|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password)/.test(
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed).{0,80}(?:cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password)/.test(
       text,
     ) ||
-    /(?:cvv|cvc|pin|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password).{0,80}(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed)/.test(
+    /(?:cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|security\s+code|three\s+digits|3\s+digits|back\s+of\s+(?:the\s+|my\s+)?card|card\s+number|card\s+details|expiry|expiration|online\s+bank\s+password|bank\s+password).{0,80}(?:gave|given|shared|sent|said|told|read|dictated|entered|typed|showed)/.test(
       text,
     )
   ) {
@@ -379,14 +379,22 @@ export function classifyVoicePanicIntent(transcript: string): PanicScenarioId | 
     /(?:^|\s)(я|мы)\s+(уже\s+)?(ввел[аи]?|ввёл[аи]?|вбил[аи]?|указал[аи]?|назвал[аи]?|отправил[аи]?|дал[аи]?).{0,80}(карт[уы]|номер карты|cvv|cvc|срок карты|данные карты)/.test(
       text,
     ) ||
-    /(?:karta|card|cvv|cvc|pin).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(text) ||
-    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|pin)/.test(text) ||
-    /(?:карта|card|cvv|cvc|pin|пин).{0,80}(кирит|бер|айт|юбор|жунат)/.test(text) ||
-    /(?:кирит|бер|айт|юбор|жунат).{0,80}(карта|card|cvv|cvc|pin|пин)/.test(text) ||
-    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:entered|typed|gave|given|shared|sent).{0,80}(?:card|card\s+number|card\s+details|cvv|cvc|pin|expiry|expiration)/.test(
+    /(?:karta|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])).{0,80}(kirit|ber|ayt|yubor|jo'nat|jonat)/.test(
       text,
     ) ||
-    /(?:card|card\s+number|card\s+details|cvv|cvc|pin|expiry|expiration).{0,80}(?:entered|typed|gave|given|shared|sent)/.test(
+    /(?:kirit|ber|ayt|yubor|jo'nat|jonat).{0,80}(karta|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/.test(
+      text,
+    ) ||
+    /(?:карта|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])).{0,80}(кирит|бер|айт|юбор|жунат)/.test(
+      text,
+    ) ||
+    /(?:кирит|бер|айт|юбор|жунат).{0,80}(карта|card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё]))/.test(
+      text,
+    ) ||
+    /(?:^|\s)(?:i|we)\s+(?:(?:have|has)\s+)?(?:already\s+)?(?:entered|typed|gave|given|shared|sent).{0,80}(?:card|card\s+number|card\s+details|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|expiry|expiration)/.test(
+      text,
+    ) ||
+    /(?:card|card\s+number|card\s+details|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|expiry|expiration).{0,80}(?:entered|typed|gave|given|shared|sent)/.test(
       text,
     )
   ) {

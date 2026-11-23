@@ -1,0 +1,113 @@
+-- Serialize scheduled/manual pruning without waiting for another pruner.
+-- Runtime lock_timeout bounds each lock acquisition, not total cleanup duration.
+SET lock_timeout = '5s';
+SET statement_timeout = '60s';
+
+CREATE OR REPLACE FUNCTION private.prune_app_retention(as_of TIMESTAMPTZ DEFAULT now())
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+SET lock_timeout = '5s'
+AS $$
+DECLARE
+  deleted_checks INT := 0;
+  deleted_reports_terminal INT := 0;
+  deleted_reports_stale_open INT := 0;
+  deleted_sessions INT := 0;
+  deleted_reputation_stale INT := 0;
+  deleted_family_revoked INT := 0;
+  deleted_family_stale_pending INT := 0;
+  deleted_family_notification_claims INT := 0;
+  deleted_media_provider_consents INT := 0;
+  deleted_webhook_updates INT := 0;
+  deleted_rate_limit_buckets INT := 0;
+  deleted_embed_origin_events INT := 0;
+BEGIN
+  -- Held until the caller transaction ends, including manual invocations.
+  IF NOT pg_catalog.pg_try_advisory_xact_lock(
+    pg_catalog.hashtextextended('ishonch_guard:prune_app_retention:v1', 0)
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '55P03', MESSAGE = 'retention_prune_busy';
+  END IF;
+
+  DELETE FROM public.checks
+  WHERE created_at < as_of - interval '90 days';
+  GET DIAGNOSTICS deleted_checks = ROW_COUNT;
+
+  DELETE FROM public.reports
+  WHERE status IN ('confirmed', 'rejected', 'duplicate')
+    AND created_at < as_of - interval '365 days';
+  GET DIAGNOSTICS deleted_reports_terminal = ROW_COUNT;
+
+  DELETE FROM public.reports
+  WHERE status IN ('new', 'reviewing')
+    AND created_at < as_of - interval '180 days';
+  GET DIAGNOSTICS deleted_reports_stale_open = ROW_COUNT;
+
+  DELETE FROM public.telegram_sessions
+  WHERE updated_at < as_of - interval '30 days';
+  GET DIAGNOSTICS deleted_sessions = ROW_COUNT;
+
+  DELETE FROM public.telegram_reputation_targets
+  WHERE moderation_status <> 'confirmed'
+    AND source_type IN ('system_observed', 'telegram_public', 'user_submitted_unverified')
+    AND last_seen_at < as_of - interval '180 days';
+  GET DIAGNOSTICS deleted_reputation_stale = ROW_COUNT;
+
+  DELETE FROM private.telegram_family_notification_claims
+  WHERE expires_at <= as_of;
+  GET DIAGNOSTICS deleted_family_notification_claims = ROW_COUNT;
+
+  DELETE FROM public.telegram_family_shield
+  WHERE status = 'revoked'
+    AND COALESCE(revoked_at, updated_at, created_at) < as_of - interval '30 days';
+  GET DIAGNOSTICS deleted_family_revoked = ROW_COUNT;
+
+  DELETE FROM public.telegram_family_shield
+  WHERE status = 'pending'
+    AND created_at < as_of - interval '7 days';
+  GET DIAGNOSTICS deleted_family_stale_pending = ROW_COUNT;
+
+  DELETE FROM public.telegram_webhook_updates
+  WHERE expires_at <= as_of;
+  GET DIAGNOSTICS deleted_webhook_updates = ROW_COUNT;
+
+  -- Keep lifecycle -> consent lock order aligned with the transition RPCs.
+  DELETE FROM private.telegram_media_provider_consents
+  WHERE expires_at <= as_of;
+  GET DIAGNOSTICS deleted_media_provider_consents = ROW_COUNT;
+
+  DELETE FROM public.rate_limit_buckets
+  WHERE expires_at <= as_of;
+  GET DIAGNOSTICS deleted_rate_limit_buckets = ROW_COUNT;
+
+  DELETE FROM public.embed_origin_events
+  WHERE created_at < as_of - interval '180 days';
+  GET DIAGNOSTICS deleted_embed_origin_events = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'checks_deleted', deleted_checks,
+    'reports_terminal_deleted', deleted_reports_terminal,
+    'reports_stale_open_deleted', deleted_reports_stale_open,
+    'telegram_sessions_deleted', deleted_sessions,
+    'telegram_reputation_stale_deleted', deleted_reputation_stale,
+    'telegram_family_revoked_deleted', deleted_family_revoked,
+    'telegram_family_stale_pending_deleted', deleted_family_stale_pending,
+    'telegram_family_notification_claims_deleted', deleted_family_notification_claims,
+    'telegram_media_provider_consents_deleted', deleted_media_provider_consents,
+    'telegram_webhook_updates_deleted', deleted_webhook_updates,
+    'rate_limit_buckets_deleted', deleted_rate_limit_buckets,
+    'embed_origin_events_deleted', deleted_embed_origin_events,
+    'as_of', as_of
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.prune_app_retention(TIMESTAMPTZ)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.prune_app_retention(TIMESTAMPTZ)
+  TO service_role;
+
+COMMENT ON FUNCTION private.prune_app_retention(TIMESTAMPTZ) IS
+  'Private service-role retention; transaction-scoped singleton rejects overlap with 55P03, each runtime lock wait is bounded to five seconds and failures propagate without partial deletes.';

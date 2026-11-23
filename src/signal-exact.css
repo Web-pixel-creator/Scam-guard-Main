@@ -4412,6 +4412,9 @@ summary:focus-visible {
   transform: none;
   background: #fff;
 }
+.admin-redesign .admin-metrics article.is-accent:hover {
+  background: var(--orange);
+}
 .admin-redesign .admin-metrics strong {
   font-size: 38px;
 }

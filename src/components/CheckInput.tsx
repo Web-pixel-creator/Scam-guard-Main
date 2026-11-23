@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Search,
@@ -24,12 +24,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
-import { t } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { safeCheckErrorMessage, safeClientErrorReason } from "@/lib/client-error";
 import { useServerFn } from "@tanstack/react-start";
-import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
+import {
+  checkInput,
+  issueOcrTicket,
+  ocrExtract,
+  type MetaIntentCheckResult,
+} from "@/lib/check.functions";
 import { RiskResultCard, type CheckResult } from "./RiskResultCard";
 import { ADVICE, REASON_LABELS } from "@/lib/risk/rules";
+import { createWebOcrLifecycle, type WebOcrSelection } from "@/lib/web-ocr-lifecycle";
+import { digestWebOcrImage } from "@/lib/web-ocr-image-digest";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MIN_INPUT_CHARS = 3;
@@ -54,22 +61,29 @@ function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
   );
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
+function fileToDataUrl(file: File) {
+  const reader = new FileReader();
+  const promise = new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.onabort = () => reject(new DOMException("Image read cancelled", "AbortError"));
+    reader.readAsDataURL(file);
   });
+  return {
+    promise,
+    abort() {
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+    },
+  };
 }
 
-function validateInput(value: string, hasOcr: boolean): string | null {
+function validateInput(value: string, hasOcr: boolean, lang: Lang): string | null {
   const v = value.trim();
-  if (!v && !hasOcr) return "Введите номер, ссылку, username или текст сообщения.";
+  if (!v && !hasOcr) return t("check_input_required", lang);
   if (!hasOcr && v.length < MIN_INPUT_CHARS)
-    return `Слишком короткий ввод — минимум ${MIN_INPUT_CHARS} символа.`;
+    return t("check_input_too_short", lang).replace("{min}", String(MIN_INPUT_CHARS));
   if (v.length > MAX_INPUT_CHARS)
-    return `Слишком длинный текст — максимум ${MAX_INPUT_CHARS} символов.`;
+    return t("check_input_too_long", lang).replace("{max}", String(MAX_INPUT_CHARS));
   return null;
 }
 
@@ -89,6 +103,7 @@ export function CheckInput({
   const [value, setValue] = useState(defaultValue);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+  const [imageSelection, setImageSelection] = useState<WebOcrSelection | null>(null);
   const [ocrText, setOcrText] = useState("");
   const [ocrPreviewOpen, setOcrPreviewOpen] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -99,12 +114,35 @@ export function CheckInput({
   const [touched, setTouched] = useState(false);
   const [signalEdited, setSignalEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [ocrLifecycle] = useState(() => createWebOcrLifecycle());
+  const activeReadRef = useRef<{
+    selection: WebOcrSelection;
+    read: ReturnType<typeof fileToDataUrl>;
+  } | null>(null);
   const checkFn = useServerFn(checkInput);
+  const issueOcrTicketFn = useServerFn(issueOcrTicket);
   const ocrFn = useServerFn(ocrExtract);
 
+  useEffect(() => {
+    // StrictMode may set up again after cleanup on the same component instance.
+    ocrLifecycle.activate();
+    return () => {
+      ocrLifecycle.dispose();
+      const pending = activeReadRef.current;
+      activeReadRef.current = null;
+      pending?.read.abort();
+    };
+  }, [ocrLifecycle]);
+
+  function abortActiveRead() {
+    const pending = activeReadRef.current;
+    activeReadRef.current = null;
+    pending?.read.abort();
+  }
+
   const validationMsg = useMemo(
-    () => (touched ? validateInput(value, ocrPreviewOpen) : null),
-    [value, ocrPreviewOpen, touched],
+    () => (touched ? validateInput(value, ocrPreviewOpen, lang) : null),
+    [value, ocrPreviewOpen, touched, lang],
   );
 
   const status: Status = error
@@ -125,20 +163,68 @@ export function CheckInput({
   };
 
   async function onPickFile(file: File | undefined) {
+    // Cancelling the native chooser is not a new selection or new consent.
+    if (!file) return;
+    const selection = ocrLifecycle.startSelection();
+    if (!selection) return;
+    // Invalidate first: abort may synchronously settle an older FileReader.
+    abortActiveRead();
     setError(null);
+    setImageDataUrl(null);
+    setImageName(null);
+    setImageSelection(null);
     setOcrPreviewOpen(false);
     setOcrText("");
-    if (!file) return;
+    setOcrLoading(false);
     if (file.size > MAX_IMAGE_BYTES) {
       setError(t("screenshot_too_large", lang));
+      clearImage();
       return;
     }
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const read = fileToDataUrl(file);
+      activeReadRef.current = { selection, read };
+      const dataUrl = await read.promise;
+      if (!ocrLifecycle.completeRead(selection)) return;
       setImageDataUrl(dataUrl);
       setImageName(file.name);
-      setOcrLoading(true);
-      const { text } = await ocrFn({ data: { image: dataUrl, lang } });
+      setImageSelection(selection);
+    } catch (e: unknown) {
+      if (!ocrLifecycle.isCurrentSelection(selection)) return;
+      console.error("screenshot staging failed", safeClientErrorReason(e));
+      setError(t("ocr_failed", lang));
+      clearImage();
+    } finally {
+      if (activeReadRef.current?.selection === selection) activeReadRef.current = null;
+    }
+  }
+
+  async function requestOcrWithConsent() {
+    if (!imageDataUrl || !imageSelection) return;
+    // Claim the selection captured by this rendered button, never the latest
+    // image through a stale handler. This lock is synchronous before any await.
+    const attempt = ocrLifecycle.claimOcr(imageSelection);
+    if (!attempt) return;
+    setError(null);
+    setOcrLoading(true);
+    try {
+      const imageDigest = await digestWebOcrImage(imageDataUrl);
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
+      const { ticket } = await issueOcrTicketFn({
+        data: { imageDigest, lang, externalProviderConsent: true },
+      });
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
+      // Keep this ticket for the captured selection. Never automatically mint
+      // another after an uncertain issuer/OCR response or retry the image.
+      const { text } = await ocrFn({
+        data: {
+          image: imageDataUrl,
+          lang,
+          externalProviderConsent: true,
+          operationTicket: ticket,
+        },
+      });
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
       if (text && text.trim()) {
         setOcrText(text.trim());
         setOcrPreviewOpen(true);
@@ -147,27 +233,32 @@ export function CheckInput({
         clearImage();
       }
     } catch (e: unknown) {
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
       console.error("ocr extraction failed", safeClientErrorReason(e));
       const msg = (e as { message?: string })?.message ?? "";
       if (msg.includes("rate_limited") || msg.includes("429")) setError(t("rate_limited", lang));
       else setError(t("ocr_failed", lang));
       clearImage();
     } finally {
-      setOcrLoading(false);
+      if (ocrLifecycle.finishAttempt(attempt)) setOcrLoading(false);
     }
   }
 
   function clearImage() {
+    ocrLifecycle.clear();
+    abortActiveRead();
     setImageDataUrl(null);
     setImageName(null);
+    setImageSelection(null);
     setOcrText("");
     setOcrPreviewOpen(false);
+    setOcrLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function run() {
     setTouched(true);
-    const vmsg = validateInput(value, ocrPreviewOpen);
+    const vmsg = validateInput(value, ocrPreviewOpen, lang);
     if (vmsg) {
       setError(vmsg);
       return;
@@ -177,6 +268,7 @@ export function CheckInput({
     setError(null);
     setResult(null);
     setMetaResponse(null);
+    const checkedImageSelection = ocrPreviewOpen ? imageSelection : null;
     try {
       const input = ocrPreviewOpen
         ? value.trim()
@@ -184,16 +276,26 @@ export function CheckInput({
           : ocrText.trim()
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
+      if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        return;
+      }
       if (isMetaIntentResult(r)) {
         setMetaResponse(r.response);
         onResult?.(null);
-        if (ocrPreviewOpen) clearImage();
+        if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+          clearImage();
+        }
         return;
       }
       setResult(r as CheckResult);
       onResult?.(r as CheckResult);
-      if (ocrPreviewOpen) clearImage();
+      if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        clearImage();
+      }
     } catch (e: unknown) {
+      if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        return;
+      }
       console.error("check failed", safeClientErrorReason(e));
       setError(safeCheckErrorMessage(e, lang));
     } finally {
@@ -290,6 +392,41 @@ export function CheckInput({
             {charCount} / {MAX_INPUT_CHARS}
           </span>
         </label>
+
+        {imageDataUrl && !ocrPreviewOpen && (
+          <div className="signal-ocr-preview">
+            <div>
+              <strong>{imageName || "Скриншот"}</strong>
+              <span>{t("screenshot_warning", lang)}</span>
+            </div>
+            <div className="checker-actions">
+              <button
+                type="button"
+                className="upload-button"
+                onClick={clearImage}
+                disabled={ocrLoading}
+              >
+                <X aria-hidden="true" />
+                {t("ocr_cancel", lang)}
+              </button>
+              <button
+                type="button"
+                className="check-button animated-orange-cta"
+                onClick={() => void requestOcrWithConsent()}
+                disabled={ocrLoading}
+              >
+                <span className="points_wrapper" aria-hidden="true">
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <i className="point" key={index} />
+                  ))}
+                </span>
+                <span className="animated-cta-inner">
+                  {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {ocrPreviewOpen && (
           <div className="signal-ocr-preview">
@@ -546,7 +683,7 @@ export function CheckInput({
         )}
 
         {imageDataUrl && !ocrPreviewOpen && (
-          <div className="mt-1 mx-5 mb-2 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2.5">
+          <div className="mt-1 mx-5 mb-2 flex flex-col gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-3 sm:flex-row sm:items-center">
             <img
               src={imageDataUrl}
               alt="screenshot"
@@ -554,27 +691,50 @@ export function CheckInput({
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate text-[#18181B]">{imageName}</p>
-              {ocrLoading ? (
-                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-[#52525B] flex items-start gap-1 mt-1 leading-relaxed">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{t("screenshot_warning", lang)}</span>
+              </p>
+              {ocrLoading && (
+                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {t("ocr_recognizing", lang)}
                 </p>
-              ) : (
-                <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>{t("screenshot_warning", lang)}</span>
-                </p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearImage}
-              className="shrink-0 rounded-[4px]"
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:min-w-[220px]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearImage}
+                disabled={ocrLoading}
+                className="w-full shrink-0 rounded-[4px]"
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                {t("ocr_cancel", lang)}
+              </Button>
+              <button
+                type="button"
+                onClick={() => void requestOcrWithConsent()}
+                disabled={ocrLoading}
+                className="fancy-btn w-full"
+              >
+                <span className="fancy-points" aria-hidden="true">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <i key={i} className="fancy-point" />
+                  ))}
+                </span>
+                <span className="fancy-inner">
+                  {ocrLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -629,7 +789,7 @@ export function CheckInput({
               {loading
                 ? t("checking", lang)
                 : status === "success"
-                  ? "Готово"
+                  ? statusLabel.success
                   : t("check_now", lang)}
             </span>
           </button>
