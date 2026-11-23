@@ -1,28 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Smartphone, KeyRound, Banknote, ShieldAlert, ArrowRight } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  DeviceMobile,
+  Key,
+  Megaphone,
+  Money,
+  PhoneCall,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import { UrgentPlans } from "@/components/home/blocks";
+import { Callout, PageHero, Pill, RowHead } from "@/components/viper/kit";
 import { useLang } from "@/lib/lang-context";
-import { FancyShell } from "@/components/FancyButton";
 
 export const Route = createFileRoute("/emergency")({
-  head: () => ({
-    meta: [
-      { title: "Срочные шаги — Ishonch Guard" },
-      {
-        name: "description",
-        content:
-          "Если вы уже отправили SMS-код, установили APK или перевели деньги — конкретные шаги что делать прямо сейчас.",
-      },
-      { property: "og:title", content: "Срочные шаги — Ishonch Guard" },
-    ],
-  }),
   component: EmergencyPage,
 });
 
 const GUIDES = {
   ru: [
     {
-      icon: KeyRound,
-      title: "Отправил SMS-код / OTP",
+      icon: Key,
+      title: "Отправили SMS-код / OTP",
       steps: [
         "Срочно позвоните в банк по номеру с обратной стороны карты.",
         "Заблокируйте карту и онлайн-банк, смените пароль.",
@@ -32,8 +29,8 @@ const GUIDES = {
       ],
     },
     {
-      icon: Smartphone,
-      title: "Установил APK / приложение",
+      icon: DeviceMobile,
+      title: "Установили APK / приложение",
       steps: [
         "Отключите интернет (Wi-Fi и мобильный) на устройстве.",
         "Удалите подозрительное приложение и связанные с ним.",
@@ -44,8 +41,8 @@ const GUIDES = {
       ],
     },
     {
-      icon: Banknote,
-      title: "Перевёл деньги",
+      icon: Money,
+      title: "Перевели деньги",
       steps: [
         "Сразу позвоните в свой банк и попросите попытаться отозвать перевод.",
         "Зафиксируйте всё: чек, скриншоты, номер телефона, Telegram, ссылки.",
@@ -56,42 +53,42 @@ const GUIDES = {
   ],
   uz: [
     {
-      icon: KeyRound,
-      title: "SMS-kod / OTP yuborib qo'yganman",
+      icon: Key,
+      title: "SMS-kod / OTP yubordingiz",
       steps: [
-        "Karta orqa tomonidagi raqam bo'yicha bankka darhol qo'ng'iroq qiling.",
-        "Karta va onlayn-bankni bloklang, parolni o'zgartiring.",
-        "Telegram → Sozlamalar → Qurilmalar bo'limida begona seanslarni yopib qo'ying.",
+        "Karta orqa tomonidagi raqam bo‘yicha bankka darhol qo‘ng‘iroq qiling.",
+        "Karta va onlayn-bankni bloklang, parolni o‘zgartiring.",
+        "Telegram → Sozlamalar → Qurilmalar bo‘limida begona seanslarni yopib qo‘ying.",
         "Yozishmalar skrinshotini va raqamni saqlang.",
-        "Ishonch Guard'ga xabar bering.",
+        "Ishonch Guard’ga xabar bering.",
       ],
     },
     {
-      icon: Smartphone,
-      title: "APK / ilova o'rnatib qo'yganman",
+      icon: DeviceMobile,
+      title: "APK / ilova o‘rnatdingiz",
       steps: [
-        "Wi-Fi va mobil internetni o'chirib qo'ying.",
-        "Shubhali ilova va u bilan bog'liq narsalarni o'chiring.",
+        "Wi-Fi va mobil internetni o‘chirib qo‘ying.",
+        "Shubhali ilova va u bilan bog‘liq narsalarni o‘chiring.",
         "Boshqa qurilmadan bank, pochta va Telegram parollarini almashtiring.",
         "Ikki bosqichli himoyani yoqing.",
         "Eng yaxshisi — qurilmani zavod sozlamalariga qaytaring.",
-        "Bankka qo'ng'iroq qilib, xavf haqida xabar bering.",
+        "Bankka qo‘ng‘iroq qilib, xavf haqida xabar bering.",
       ],
     },
     {
-      icon: Banknote,
-      title: "Pul o'tkazib yubordim",
+      icon: Money,
+      title: "Pul o‘tkazib yubordingiz",
       steps: [
-        "Darhol bankka qo'ng'iroq qilib, o'tkazmani qaytarishga urinib ko'ring.",
+        "Darhol bankka qo‘ng‘iroq qilib, o‘tkazmani qaytarishga urinib ko‘ring.",
         "Hamma narsani saqlang: chek, skrinshot, raqam, Telegram, havolalar.",
-        "Huquq idoralariga ariza yozing — qancha tez bo'lsa, shuncha yaxshi.",
+        "Huquq idoralariga ariza yozing — qancha tez bo‘lsa, shuncha yaxshi.",
         "Firibgar bilan suhbatni davom ettirmang, «komissiya» yubormang.",
       ],
     },
   ],
   en: [
     {
-      icon: KeyRound,
+      icon: Key,
       title: "I sent an SMS / OTP code",
       steps: [
         "Call the bank now using the number on the back of your card.",
@@ -102,7 +99,7 @@ const GUIDES = {
       ],
     },
     {
-      icon: Smartphone,
+      icon: DeviceMobile,
       title: "I installed an APK / app",
       steps: [
         "Turn off Wi-Fi and mobile data on the device.",
@@ -114,7 +111,7 @@ const GUIDES = {
       ],
     },
     {
-      icon: Banknote,
+      icon: Money,
       title: "I transferred money",
       steps: [
         "Call your bank immediately and ask them to try to recall the transfer.",
@@ -126,165 +123,125 @@ const GUIDES = {
   ],
 } as const;
 
+const PAGE = {
+  ru: {
+    eyebrow: "Срочно · каждая минута важна",
+    title: ["Уже отправили код или деньги?", "Действуйте по порядку."],
+    lead: "Сначала **заблокируйте карту** и **позвоните в банк**. Чем раньше вы это сделаете, тем выше шанс защитить деньги и аккаунты.",
+    asideTitle: "Перезванивайте только сами",
+    asideText:
+      "По номеру с обратной стороны карты или из списка ниже. Не перезванивайте на номер, с которого вам звонили.",
+    callLabel: "Куда звонить",
+    callNote: "Проверенные номера из справочника",
+    guidesLabel: "Что делать — по ситуации",
+    guidesNote: "Делайте шаги по порядку",
+    situation: "Ситуация",
+    ctaTitle: "Поделитесь случаем — предупредите других",
+    ctaText: "Жалоба анонимная и проходит модерацию. Чужие личные данные не публикуются.",
+    cta: "Сообщить о случае",
+  },
+  uz: {
+    eyebrow: "Shoshilinch · har bir daqiqa muhim",
+    title: ["Kod yoki pulni yuborib qo‘ydingizmi?", "Tartib bilan harakat qiling."],
+    lead: "Avval **kartani bloklang** va **bankka qo‘ng‘iroq qiling**. Qancha tez qilsangiz, pul va hisoblarni saqlab qolish imkoni shuncha yuqori.",
+    asideTitle: "Faqat o‘zingiz qayta qo‘ng‘iroq qiling",
+    asideText:
+      "Karta orqasidagi yoki quyidagi ro‘yxatdagi raqamga. Sizga qo‘ng‘iroq qilgan raqamga qayta qo‘ng‘iroq qilmang.",
+    callLabel: "Qayerga qo‘ng‘iroq qilish",
+    callNote: "Ma’lumotnomadagi tasdiqlangan raqamlar",
+    guidesLabel: "Nima qilish kerak — holatga qarab",
+    guidesNote: "Qadamlarni tartib bilan bajaring",
+    situation: "Holat",
+    ctaTitle: "Holatni baham ko‘ring — boshqalarni ogohlantiring",
+    ctaText:
+      "Shikoyat anonim va moderatsiyadan o‘tadi. Boshqalarning shaxsiy ma’lumotlari e’lon qilinmaydi.",
+    cta: "Holat haqida xabar berish",
+  },
+  en: {
+    eyebrow: "Urgent · every minute counts",
+    title: ["Already sent a code or money?", "Act in this order."],
+    lead: "First **block your card** and **call your bank**. The sooner you do it, the better your chance to protect your money and accounts.",
+    asideTitle: "Only call back yourself",
+    asideText:
+      "Use the number on the back of your card or from the list below. Never call back the number that called you.",
+    callLabel: "Who to call",
+    callNote: "Verified numbers from the directory",
+    guidesLabel: "What to do — by situation",
+    guidesNote: "Follow the steps in order",
+    situation: "Situation",
+    ctaTitle: "Share the case — warn others",
+    ctaText:
+      "Reports are anonymous and moderated. Other people’s personal data is never published.",
+    cta: "Report an incident",
+  },
+} as const;
+
 function EmergencyPage() {
   const { lang } = useLang();
   const guides = GUIDES[lang];
+  const page = PAGE[lang];
 
   return (
-    <div className="apex-page space-y-8 sm:space-y-10">
-      {/* Header frame */}
-      <div className="apex-card apex-frame apex-stripes relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#DC2626] via-[#F97316] to-[#FB923C] z-[1]" />
-        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono inline-flex items-center gap-1.5">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-[#DC2626] opacity-60 animate-ping" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-            </span>
-            {{ ru: "Срочно", uz: "Shoshilinch", en: "Urgent" }[lang]}
-          </span>
-          <span className="apex-mono text-right">
-            <span className="hidden xs:inline">
-              {{ ru: "Очень важно", uz: "Juda muhim", en: "Critical" }[lang]}
-            </span>
-            <span className="xs:hidden">{{ ru: "Важно", uz: "Muhim", en: "Critical" }[lang]}</span>
-          </span>
-        </div>
+    <div className="vp-home vp-page">
+      <div className="vp-shell">
+        <PageHero
+          alert
+          icon={<WarningCircle weight="bold" />}
+          eyebrow={page.eyebrow}
+          title={page.title}
+          lead={page.lead}
+          aside={
+            <Callout tone="alert" icon={<PhoneCall weight="bold" />} title={page.asideTitle}>
+              <p>{page.asideText}</p>
+            </Callout>
+          }
+        />
 
-        <div className="max-w-3xl">
-          <span className="pain-pill">
-            <span className="pain-pill-dot" />
-            {
-              {
-                ru: "Уже отправили код или деньги? Действуйте сейчас",
-                uz: "Kod yoki pul yuborib qo'ydingizmi? Hozir harakat qiling",
-                en: "Sent a code or money? Act right now",
-              }[lang]
-            }
+        <section className="vp-page-section" aria-labelledby="emergency-call">
+          <RowHead id="emergency-call" label={page.callLabel} note={page.callNote} />
+          <UrgentPlans />
+        </section>
+
+        <section className="vp-page-section" aria-labelledby="emergency-guides">
+          <RowHead id="emergency-guides" label={page.guidesLabel} note={page.guidesNote} />
+          <div className="vp-guides">
+            {guides.map((guide, index) => (
+              <article className="vp-guide" key={guide.title}>
+                <div className="vp-card-top">
+                  <span className="vp-card-icon" aria-hidden="true">
+                    <guide.icon weight="bold" />
+                  </span>
+                  <span>
+                    {page.situation} {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3>{guide.title}</h3>
+                <ol className="vp-numbered">
+                  {guide.steps.map((step, stepIndex) => (
+                    <li key={step}>
+                      <span aria-hidden="true">{stepIndex + 1}</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="vp-cta-band">
+          <span className="vp-cta-band-icon" aria-hidden="true">
+            <Megaphone weight="fill" />
           </span>
-          <p className="label-md mb-3 sm:mb-4">
-            03 — {{ ru: "Срочные шаги", uz: "Shoshilinch qadamlar", en: "Emergency" }[lang]}
-          </p>
-          <h1 className="apex-h1">
-            {
-              {
-                ru: (
-                  <>
-                    Действовать <span className="font-serif-italic text-[#8B8B92]">сейчас</span>
-                  </>
-                ),
-                uz: (
-                  <>
-                    Hozir <span className="font-serif-italic text-[#8B8B92]">harakat</span> qiling
-                  </>
-                ),
-                en: (
-                  <>
-                    Act <span className="font-serif-italic text-[#8B8B92]">right now</span>
-                  </>
-                ),
-              }[lang]
-            }
-          </h1>
-          <p className="apex-lead mt-5 sm:mt-6">
-            {
-              {
-                ru: "Сделайте сейчас — порядок важен. Каждая минута увеличивает шанс защитить деньги и аккаунты.",
-                uz: "Hozir bajaring — tartib muhim. Har bir daqiqa pul va hisoblarni saqlash imkonini oshiradi.",
-                en: "Do this now — order matters. Every minute increases your chance to protect money and accounts.",
-              }[lang]
-            }
-          </p>
-        </div>
+          <div>
+            <h2>{page.ctaTitle}</h2>
+            <p>{page.ctaText}</p>
+          </div>
+          <Pill to="/report" tone="white">
+            {page.cta}
+          </Pill>
+        </section>
       </div>
-
-      {/* Guides — apex hairline grid */}
-      <section className="apex-card apex-frame apex-stripes" style={{ background: "#F4F2EB" }}>
-        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">
-            {
-              {
-                ru: `${guides.length} шага`,
-                uz: `${guides.length} qadam`,
-                en: `${guides.length} steps`,
-              }[lang]
-            }
-          </span>
-          <span className="apex-mono text-right">
-            <span className="hidden xs:inline">
-              {
-                { ru: "Делайте по порядку", uz: "Tartib bilan bajaring", en: "Follow in order" }[
-                  lang
-                ]
-              }
-            </span>
-            <span className="xs:hidden">
-              {{ ru: "По порядку", uz: "Tartib bilan", en: "In order" }[lang]}
-            </span>
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8]">
-          {guides.map((g, idx) => (
-            <article
-              key={g.title}
-              className="bg-white/90 backdrop-blur-[4px] p-6 sm:p-8 md:p-10 flex flex-col min-h-[360px] md:min-h-[420px]"
-            >
-              <div className="flex items-center justify-between mb-6 sm:mb-8">
-                <span className="apex-mono">0{idx + 1}</span>
-                <ShieldAlert
-                  className="h-3.5 w-3.5 text-[#DC2626]/70"
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                  focusable="false"
-                />
-              </div>
-              <div className="flex items-center justify-center w-10 h-10 rounded-[3px] border border-[#E2E0D8] mb-6 sm:mb-8 text-[#F97316]">
-                <g.icon
-                  className="h-4 w-4"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                  focusable="false"
-                />
-              </div>
-              <h2 className="apex-h2 mb-5 sm:mb-6">{g.title}</h2>
-              <ol className="space-y-3 sm:space-y-3.5 text-[15px] md:text-[15.5px] leading-[1.7] text-[#3F3F46]">
-                {g.steps.map((s, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="apex-mono text-[#A1A1AA] shrink-0 mt-[3px] tabular-nums">
-                      {(i + 1).toString().padStart(2, "0")}
-                    </span>
-                    <span className="prose-pretty">{s}</span>
-                  </li>
-                ))}
-              </ol>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-[#E2E0D8] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <span className="apex-mono text-[#71717A]">
-            {
-              {
-                ru: "Поделитесь случаем — поможете другим",
-                uz: "Holatni baham ko'ring — boshqalarga yordam berasiz",
-                en: "Share the case — help others",
-              }[lang]
-            }
-          </span>
-          <Link to="/report" className="fancy-btn">
-            <FancyShell>
-              {
-                {
-                  ru: "Сообщить о случае",
-                  uz: "Holat haqida xabar berish",
-                  en: "Report an incident",
-                }[lang]
-              }
-            </FancyShell>
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

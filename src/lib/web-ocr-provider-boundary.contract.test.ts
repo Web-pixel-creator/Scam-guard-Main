@@ -81,7 +81,7 @@ describe("web screenshot external-provider consent boundary", () => {
   });
 
   it("gates OCR-backed check success and failure before every result/error effect", () => {
-    const run = sourceSection("async function run()", "const canSubmit");
+    const run = sourceSection("async function run()", "const charCount");
     const success = run.slice(run.indexOf("const r = await checkFn("), run.indexOf("} catch"));
     const failure = run.slice(run.indexOf("} catch"), run.indexOf("} finally"));
     const staleGuard =

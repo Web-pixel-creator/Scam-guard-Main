@@ -1,23 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Lock, ShieldCheck, EyeOff, Database, FileWarning, Clock3, BadgeCheck } from "lucide-react";
+import {
+  ClockCounterClockwise,
+  Database,
+  DeviceMobile,
+  EyeSlash,
+  Lock,
+  SealCheck,
+  ShieldCheck,
+  WarningDiamond,
+} from "@phosphor-icons/react";
+import { HOME_COPY } from "@/components/home/home-copy";
+import { Callout, PageHero } from "@/components/viper/kit";
 import { useLang } from "@/lib/lang-context";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "Приватность — Ishonch Guard" },
-      {
-        name: "description",
-        content:
-          "Как Ishonch Guard защищает ваши данные: маскирование, хеширование, никаких OTP, CVV и PIN.",
-      },
-      { property: "og:title", content: "Приватность — Ishonch Guard" },
-    ],
-  }),
   component: PrivacyPage,
 });
 
-const ICONS = [EyeOff, Database, ShieldCheck, Clock3, BadgeCheck, FileWarning] as const;
+const ICONS = [
+  EyeSlash,
+  Database,
+  ClockCounterClockwise,
+  DeviceMobile,
+  SealCheck,
+  ShieldCheck,
+  WarningDiamond,
+] as const;
 
 const TEXT = {
   ru: {
@@ -43,7 +51,7 @@ const TEXT = {
           "В интерфейсе показывается только маскированная версия (например, +998 90 ••• •• 12).",
           "Тексты сообщений автоматически чистятся от карт, OTP и личных номеров.",
           "Скриншоты обрабатываются в памяти и удаляются; сохраняться может только очищенный текст и результат проверки.",
-          "Жалобы проходят модерацию перед тем, как влиять на публичный risk score.",
+          "Жалобы проходят модерацию перед тем, как влиять на публичную оценку риска.",
         ],
       },
       {
@@ -52,6 +60,14 @@ const TEXT = {
           "Очищенные проверки хранятся до 90 дней, сессии Telegram — до 30 дней после последней активности.",
           "Закрытые жалобы хранятся до 365 дней, незавершённые новые/проверяемые — до 180 дней.",
           "Апелляции содержат только хеш, маску и очищенный текст; окончательный срок для них требует отдельного юридического решения.",
+        ],
+      },
+      {
+        title: "Что хранится на вашем устройстве",
+        items: [
+          "Выбранный язык сайта — в cookie ig_lang (ru, uz или en) на 1 год, чтобы страницы сразу открывались на вашем языке. Пока вы не выбрали язык, сайт ориентируется на язык браузера и ничего не сохраняет.",
+          "Настройки доступности (размер шрифта и контраст) — только в памяти вашего браузера.",
+          "Эти данные не используются для рекламы и не передаются сторонним сервисам; сторонних счётчиков на сайте нет.",
         ],
       },
       {
@@ -81,57 +97,65 @@ const TEXT = {
   uz: {
     h_lead: "Maxfiylik va",
     h_accent: "xavfsizlik",
-    sub: "Biz anti-skam mahsulotmiz. Ma'lumotlarni himoya qilish — bizning ishimizning bir qismi.",
+    sub: "Biz antiskam mahsulotmiz. Ma’lumotlarni himoya qilish — bizning ishimizning bir qismi.",
     sections: [
       {
-        title: "Biz HECHQACHON so'ramaymiz",
+        title: "Biz HECH QACHON so‘ramaymiz",
         items: [
           "OTP va SMS tasdiqlash kodlari.",
           "Karta PIN kodi.",
           "Karta CVV / CVC.",
-          "To'liq karta raqami.",
+          "To‘liq karta raqami.",
           "Bank, pochta yoki Telegram parollari.",
           "Pasport nusxasi.",
         ],
       },
       {
-        title: "Ma'lumotlar bilan qanday ishlaymiz",
+        title: "Ma’lumotlar bilan qanday ishlaymiz",
         items: [
           "Raqam va Telegram ID xeshlanadi hamda himoyalangan tarzda saqlanadi.",
-          "Interfeysda faqat maskalangan ko'rinish ko'rsatiladi.",
+          "Interfeysda faqat maskalangan ko‘rinish ko‘rsatiladi.",
           "Xabar matnlaridagi karta, OTP va shaxsiy raqamlar avtomatik tozalanadi.",
-          "Skrinshotlar xotirada qayta ishlanib o'chiriladi; faqat tozalangan matn va tekshiruv natijasi saqlanishi mumkin.",
-          "Shikoyatlar publik risk score'ga ta'sir qilishidan oldin moderatsiyadan o'tadi.",
+          "Skrinshotlar xotirada qayta ishlanib o‘chiriladi; faqat tozalangan matn va tekshiruv natijasi saqlanishi mumkin.",
+          "Shikoyatlar ommaviy xavf bahosiga ta’sir qilishidan oldin moderatsiyadan o‘tadi.",
         ],
       },
       {
         title: "Saqlash muddatlari",
         items: [
           "Tozalangan tekshiruvlar 90 kungacha, Telegram sessiyalari oxirgi faollikdan keyin 30 kungacha saqlanadi.",
-          "Yakunlangan shikoyatlar 365 kungacha, tugallanmagan new/reviewing yozuvlar 180 kungacha saqlanadi.",
+          "Yakunlangan shikoyatlar 365 kungacha, tugallanmagan yangi va ko‘rib chiqilayotgan shikoyatlar 180 kungacha saqlanadi.",
           "Apellyatsiyada faqat xesh, maska va tozalangan matn qoladi; yakuniy muddat alohida yuridik qarorni talab qiladi.",
+        ],
+      },
+      {
+        title: "Qurilmangizda nima saqlanadi",
+        items: [
+          "Tanlangan sayt tili — ig_lang cookie faylida (ru, uz yoki en) 1 yil saqlanadi, sahifalar darhol sizning tilingizda ochilishi uchun. Til tanlanmaguncha sayt brauzer tiliga qaraydi va hech narsa saqlamaydi.",
+          "Maxsus imkoniyatlar sozlamalari (shrift o‘lchami va kontrast) — faqat brauzeringiz xotirasida.",
+          "Bu ma’lumotlar reklama uchun ishlatilmaydi va uchinchi tomon xizmatlariga berilmaydi; saytda begona hisoblagichlar yo‘q.",
         ],
       },
       {
         title: "Ommaviy reputatsiyani tuzatish",
         items: [
-          "Telegramdagi /appeal orqali ommaviy belgini tekshirish yoki olib tashlashni so'rash mumkin.",
-          "Qarorni moderator qabul qiladi va o'zgarish audit jurnaliga yoziladi.",
-          "Apellyatsiya uchun pasport, parol, kod, PIN, CVV yoki to'liq karta raqamini yubormang.",
+          "Telegram’dagi /appeal orqali ommaviy belgini tekshirish yoki olib tashlashni so‘rash mumkin.",
+          "Qarorni moderator qabul qiladi va o‘zgarish audit jurnaliga yoziladi.",
+          "Apellyatsiya uchun pasport, parol, kod, PIN, CVV yoki to‘liq karta raqamini yubormang.",
         ],
       },
       {
-        title: "Biz E'LON QILMAYMIZ",
+        title: "Biz E’LON QILMAYMIZ",
         items: [
           "Raqam egasining ismi, fotosi, manzili.",
-          "Shikoyat qilingan odamlarning shaxsiy ma'lumotlari.",
+          "Shikoyat qilingan odamlarning shaxsiy ma’lumotlari.",
           "Aniq odamga qaratilgan ochiq ayblovlar.",
         ],
       },
       {
         title: "Eslatma",
         items: [
-          "Ishonch Guard xavfni baholashga yordam beradi, lekin bank, huquq idoralari yoki yuridik maslahat o'rnini bosmaydi.",
+          "Ishonch Guard xavfni baholashga yordam beradi, lekin bank, huquq idoralari yoki yuridik maslahat o‘rnini bosmaydi.",
         ],
       },
     ],
@@ -171,6 +195,14 @@ const TEXT = {
         ],
       },
       {
+        title: "What is stored on your device",
+        items: [
+          "Your chosen site language — in the ig_lang cookie (ru, uz or en) for 1 year, so pages open in your language straight away. Until you choose, the site follows your browser's language and stores nothing.",
+          "Accessibility settings (text size and contrast) — only in your browser's storage.",
+          "This data is not used for advertising and is not shared with third-party services; the site has no third-party trackers.",
+        ],
+      },
+      {
         title: "Correcting public reputation",
         items: [
           "Use /appeal in Telegram to request review or removal of a public label.",
@@ -196,93 +228,61 @@ const TEXT = {
   },
 } as const;
 
+// Sections 1 and 6 list what we never ask for / never publish.
+const NEGATIVE_SECTIONS = new Set([0, 5]);
+
 function PrivacyPage() {
   const { lang } = useLang();
   const data = TEXT[lang];
 
   return (
-    <div className="apex-page space-y-8 sm:space-y-10">
-      <div className="apex-card apex-frame apex-stripes">
-        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono inline-flex items-center gap-1.5">
-            <Lock
-              className="h-3 w-3 text-[#F97316]"
-              strokeWidth={2}
-              aria-hidden="true"
-              focusable="false"
-            />
-            {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}
-          </span>
-          <span className="apex-mono text-right">
-            <span className="hidden xs:inline">
-              {
-                { ru: "Данные зашифрованы", uz: "Ma'lumotlar shifrlangan", en: "Data encrypted" }[
-                  lang
-                ]
-              }
-            </span>
-            <span className="xs:hidden">
-              {{ ru: "Зашифровано", uz: "Shifrlangan", en: "Encrypted" }[lang]}
-            </span>
-          </span>
-        </div>
+    <div className="vp-home vp-page">
+      <div className="vp-shell">
+        <PageHero
+          icon={<Lock weight="bold" />}
+          eyebrow={{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}
+          title={[data.h_lead, `${data.h_accent}.`]}
+          lead={data.sub}
+          aside={
+            <Callout
+              tone="ok"
+              icon={<ShieldCheck weight="fill" />}
+              title={HOME_COPY[lang].hero.privacy}
+            >
+              <p>{HOME_COPY[lang].hero.chips.slice(0, 3).join(" · ")}</p>
+            </Callout>
+          }
+        />
 
-        <div className="max-w-3xl">
-          <span className="pain-pill">
-            <span className="pain-pill-dot" />
-            {
-              {
-                ru: "Боитесь, что данные утекут? Читайте, что мы НЕ делаем",
-                uz: "Ma'lumotlar oqib ketishidan qo'rqasizmi? Biz NIMA qilmasligimizni o'qing",
-                en: "Worried your data leaks? See what we never do",
-              }[lang]
-            }
-          </span>
-          <p className="label-md mb-3 sm:mb-4">
-            04 — {{ ru: "Приватность", uz: "Maxfiylik", en: "Privacy" }[lang]}
-          </p>
-          <h1 className="apex-h1">
-            {data.h_lead} <span className="font-serif-italic text-[#8B8B92]">{data.h_accent}</span>
-          </h1>
-          <p className="apex-lead mt-5 sm:mt-6">{data.sub}</p>
+        <div className="vp-privacy-grid vp-page-section">
+          {data.sections.map((section, index) => {
+            const Icon = ICONS[index % ICONS.length];
+            const negative = NEGATIVE_SECTIONS.has(index);
+            return (
+              <article
+                // The closing disclaimer spans the row, so 7 cards never leave one alone.
+                className={
+                  index === data.sections.length - 1 ? "vp-card vp-privacy-wide" : "vp-card"
+                }
+                key={section.title}
+              >
+                <div className="vp-card-top">
+                  <span className="vp-card-icon" aria-hidden="true">
+                    <Icon weight="bold" />
+                  </span>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <h2 className="vp-card-title">{section.title}</h2>
+                <ul className={`vp-list ${negative ? "vp-list--no" : "vp-list--dot"}`}>
+                  {section.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
         </div>
       </div>
-
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] bg-[#E2E0D8] border border-[#E2E0D8] rounded-[6px] overflow-hidden">
-        {data.sections.map((s, idx) => {
-          const Icon = ICONS[idx % ICONS.length];
-          return (
-            <article
-              key={s.title}
-              className="bg-white/90 backdrop-blur-[4px] p-6 sm:p-8 md:p-10 flex flex-col min-h-[260px] sm:min-h-[300px]"
-            >
-              <div className="flex items-center justify-between mb-6 sm:mb-8">
-                <span className="apex-mono">0{idx + 1}</span>
-                <div className="flex items-center justify-center w-9 h-9 rounded-[3px] border border-[#E2E0D8] text-[#F97316]">
-                  <Icon
-                    className="h-4 w-4"
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                    focusable="false"
-                  />
-                </div>
-              </div>
-              <h2 className="apex-h2 mb-4 sm:mb-5">{s.title}</h2>
-              <ul className="space-y-3 text-[15.5px] leading-[1.7] text-[#3F3F46]">
-                {s.items.map((it, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span
-                      className="text-[#F97316] mt-[8px] h-[3px] w-[3px] rounded-full bg-current shrink-0"
-                      aria-hidden
-                    />
-                    <span className="prose-pretty">{it}</span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          );
-        })}
-      </section>
     </div>
   );
 }

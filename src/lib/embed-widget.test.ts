@@ -22,6 +22,14 @@ describe("embed widget helpers", () => {
     expect(sanitizePartner("")).toBeNull();
   });
 
+  it("titles the iframe in the widget language for screen readers", () => {
+    const uz = buildEmbedIframeSnippet("https://ishonch.example", { lang: "uz" });
+    expect(uz).toContain('title="Firibgarlikni tekshirish — Ishonch Guard"');
+    expect(buildEmbedIframeSnippet("https://ishonch.example", { lang: "fr" })).toContain(
+      'title="Проверка на мошенничество — Ishonch Guard"',
+    );
+  });
+
   it("builds a deterministic widget URL", () => {
     const url = buildEmbedWidgetUrl("https://example.com/path?q=1", {
       lang: "uz",

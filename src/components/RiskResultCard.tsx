@@ -1,12 +1,12 @@
 import {
+  Question,
+  SealCheck,
   ShieldCheck,
-  ShieldAlert,
-  ShieldQuestion,
-  AlertTriangle,
-  Volume2,
-  Square,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+  ShieldWarning,
+  SpeakerHigh,
+  Stop,
+  Warning,
+} from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
@@ -19,7 +19,8 @@ import {
   type RiskPassportSummary,
 } from "@/lib/risk/risk-passport";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
-import { FancyShell } from "@/components/FancyButton";
+import { Callout, Pill, PillButton } from "@/components/viper/kit";
+import { displayRiskScore } from "@/lib/risk/display-score";
 
 export type CheckResult = {
   type: string;
@@ -45,62 +46,21 @@ export type CheckResult = {
 type LevelStyle = {
   icon: typeof ShieldCheck;
   key: string;
-  accent: string; // hex used for dot/icon
-  badgeBg: string;
-  badgeBorder: string;
-  badgeText: string;
-  tag: string; // SCAM/SAFE/WATCH text
-  topBar: string; // gradient class for top stripe
+  tag: "low" | "medium" | "high" | "critical";
 };
 
 const TAG_LABELS: Record<RiskLevel, { ru: string; uz: string; en: string }> = {
   safe: { ru: "Безопасно", uz: "Xavfsiz", en: "Safe" },
-  unknown: { ru: "Неизвестно", uz: "Noma'lum", en: "Unknown" },
+  unknown: { ru: "Неизвестно", uz: "Noma’lum", en: "Unknown" },
   suspicious: { ru: "Подозрительно", uz: "Shubhali", en: "Watch" },
   high_risk: { ru: "Обман", uz: "Aldov", en: "Scam" },
 };
 
 const LEVEL_STYLES: Record<RiskLevel, LevelStyle> = {
-  safe: {
-    icon: ShieldCheck,
-    key: "risk_safe",
-    accent: "#059669",
-    badgeBg: "bg-[#ECFDF5]",
-    badgeBorder: "border-[#A7F3D0]/70",
-    badgeText: "text-[#065F46]",
-    tag: "safe",
-    topBar: "from-[#10B981] via-[#34D399] to-[#6EE7B7]",
-  },
-  unknown: {
-    icon: ShieldQuestion,
-    key: "risk_unknown",
-    accent: "#71717A",
-    badgeBg: "bg-[#F4F4F5]",
-    badgeBorder: "border-[#E4E4E7]",
-    badgeText: "text-[#3F3F46]",
-    tag: "unknown",
-    topBar: "from-[#FDBA74]/40 via-[#E2E0D8] to-[#FDBA74]/40",
-  },
-  suspicious: {
-    icon: AlertTriangle,
-    key: "risk_suspicious",
-    accent: "#D97706",
-    badgeBg: "bg-[#FFFBEB]",
-    badgeBorder: "border-[#FCD34D]/70",
-    badgeText: "text-[#92400E]",
-    tag: "suspicious",
-    topBar: "from-[#F59E0B] via-[#FBBF24] to-[#FCD34D]",
-  },
-  high_risk: {
-    icon: ShieldAlert,
-    key: "risk_high",
-    accent: "#DC2626",
-    badgeBg: "bg-[#FEF2F2]",
-    badgeBorder: "border-[#FCA5A5]/60",
-    badgeText: "text-[#991B1B]",
-    tag: "high_risk",
-    topBar: "from-[#F97316] via-[#FB923C] to-[#C2410C]",
-  },
+  safe: { icon: ShieldCheck, key: "risk_safe", tag: "low" },
+  unknown: { icon: Question, key: "risk_unknown", tag: "medium" },
+  suspicious: { icon: Warning, key: "risk_suspicious", tag: "high" },
+  high_risk: { icon: ShieldWarning, key: "risk_high", tag: "critical" },
 };
 
 const TYPE_LABELS: Record<string, { ru: string; uz: string; en: string }> = {
@@ -131,7 +91,7 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const isHot = result.level === "high_risk" || result.level === "suspicious";
   const isUnknown = result.level === "unknown";
   const typeLabel = TYPE_LABELS[result.type]?.[lang] ?? result.type;
-  const displayScore = Math.min(100, Math.max(0, Math.round(result.score)));
+  const displayScore = displayRiskScore(result.score);
   const passport = buildRiskPassportSummary(result, lang);
   const title = passport?.title ?? t(s.key as never, lang);
   const reasonsToShow = passport
@@ -172,263 +132,169 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
     setSpeaking(true);
   };
 
+  const scoreLabel = isUnknown
+    ? {
+        ru: "Оценка риска · Недостаточно данных",
+        uz: "Xavf bahosi · Ma’lumot yetarli emas",
+        en: "Risk score · Insufficient data",
+      }[lang]
+    : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${displayScore} / 100`;
+
   return (
-    <div className="apex-shell">
-      <div className="relative bg-white">
-        <div
-          className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.topBar} z-[1]`}
-        />
-        <div className="p-7 sm:p-9 md:p-10">
-          {/* Header strip */}
-          <div className="flex items-center justify-between gap-4 mb-8 pb-5 border-b border-[#E2E0D8]">
-            <span className="apex-mono inline-flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                {isHot && (
-                  <span
-                    className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping"
-                    style={{ backgroundColor: s.accent }}
-                  />
-                )}
-                <span
-                  className="relative inline-flex h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: s.accent }}
-                />
-              </span>
-              {{ ru: "Результат", uz: "Natija", en: "Result" }[lang]}
-            </span>
-            <span className="apex-mono text-right tabular-nums">
-              {isUnknown
-                ? {
-                    ru: "Оценка риска · Недостаточно данных",
-                    uz: "Xavf bahosi · Ma'lumot yetarli emas",
-                    en: "Risk score · Insufficient data",
-                  }[lang]
-                : `${{ ru: "Оценка", uz: "Baho", en: "Score" }[lang]} · ${displayScore}%`}
-            </span>
-          </div>
+    <div className={`vp-report vp-report--${result.level}`}>
+      <div className="vp-report-head">
+        <span className="vp-report-label">
+          <i aria-hidden="true" className={isHot ? "is-hot" : undefined} />
+          {{ ru: "Результат", uz: "Natija", en: "Result" }[lang]}
+        </span>
+        <span className="vp-report-score">{scoreLabel}</span>
+      </div>
 
-          {/* Read-aloud control — bigger tap target for elderly users */}
-          <div className="-mt-4 mb-6 flex justify-end">
-            <button
-              type="button"
-              onClick={speak}
-              aria-pressed={speaking}
-              className="inline-flex items-center gap-2 min-h-11 px-4 rounded-[6px] border border-[#E2E0D8] bg-white text-[13.5px] font-semibold text-[#18181B] hover:border-[#F97316] hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
-            >
-              {speaking ? (
-                <>
-                  <Square
-                    aria-hidden="true"
-                    className="h-4 w-4"
-                    strokeWidth={2}
-                    fill="currentColor"
-                  />
-                  {{ ru: "Остановить чтение", uz: "O'qishni to'xtatish", en: "Stop reading" }[lang]}
-                </>
-              ) : (
-                <>
-                  <Volume2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-                  {{ ru: "Прочитать вслух", uz: "Ovoz chiqarib o'qish", en: "Read aloud" }[lang]}
-                </>
-              )}
-            </button>
-          </div>
+      <div className="vp-report-title">
+        <span className="vp-report-icon" aria-hidden="true">
+          <Icon weight="fill" />
+        </span>
+        <div>
+          <p className="vp-report-meta">
+            {{ ru: "Тип:", uz: "Turi:", en: "Type:" }[lang]} <b>{typeLabel}</b>
+            <span className={`vp-tag vp-tag--${s.tag}`}>{TAG_LABELS[result.level][lang]}</span>
+          </p>
+          <h3>{title}</h3>
+        </div>
+      </div>
 
-          {/* Title block */}
-          <div className="flex items-start gap-5">
-            <div
-              className="grid h-12 w-12 place-items-center rounded-[4px] border border-[#E2E0D8] shrink-0"
-              style={{ color: s.accent }}
-            >
-              <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-3 text-[12px] text-[#71717A]">
-                <span>{{ ru: "Тип:", uz: "Turi:", en: "Type:" }[lang]}</span>
-                <span className="text-[#18181B] font-medium">{typeLabel}</span>
-                <span className="text-[#A1A1AA]">·</span>
-                <span className="text-[#18181B] font-medium uppercase tracking-wider">
-                  {TAG_LABELS[result.level][lang]}
-                </span>
-              </div>
+      {result.type === "text" ? (
+        <blockquote className="vp-report-quote">{result.display}</blockquote>
+      ) : (
+        <p className="vp-report-display" translate="no">
+          {result.display}
+        </p>
+      )}
 
-              <h3 className="font-sans text-[26px] sm:text-3xl md:text-[34px] font-medium tracking-[-0.04em] text-[#18181B] leading-[1.1]">
-                {title}
-              </h3>
-              {result.type === "text" ? (
-                <blockquote className="mt-3 border-l-2 border-[#E2E0D8] pl-3 text-[13.5px] leading-[1.6] text-[#52525B] font-sans whitespace-pre-wrap break-words line-clamp-4">
-                  {result.display}
-                </blockquote>
-              ) : (
-                <p className="mt-2 font-mono text-[13.5px] text-[#52525B] break-all">
-                  {result.display}
-                </p>
-              )}
+      <PillButton
+        tone="outline"
+        className="vp-pill--small vp-report-speak"
+        onClick={speak}
+        aria-pressed={speaking}
+        icon={speaking ? <Stop weight="fill" /> : <SpeakerHigh weight="fill" />}
+      >
+        {speaking
+          ? { ru: "Остановить чтение", uz: "O‘qishni to‘xtatish", en: "Stop reading" }[lang]
+          : { ru: "Прочитать вслух", uz: "Ovoz chiqarib o‘qish", en: "Read aloud" }[lang]}
+      </PillButton>
 
-              {passport && <RiskPassportPanel passport={passport} />}
+      {passport && <RiskPassportPanel passport={passport} />}
 
-              {!passport && result.explanation && (
-                <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
-                  {result.explanation}
-                </p>
-              )}
-              {!passport &&
-                !result.explanation &&
-                result.reasons.includes("hosted_app_platform") && (
-                  <p className="mt-5 text-[14.5px] md:text-[15px] leading-[1.65] text-[#52525B] whitespace-pre-line text-pretty">
-                    {
-                      {
-                        ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
-                        uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o'zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo'lmasa, OTP, PIN, CVV, parol yoki karta ma'lumotlarini kiritmang.",
-                        en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
-                      }[lang]
-                    }
-                  </p>
-                )}
+      {!passport && result.explanation && <p className="vp-report-text">{result.explanation}</p>}
+      {!passport && !result.explanation && result.reasons.includes("hosted_app_platform") && (
+        <p className="vp-report-text">
+          {
+            {
+              ru: "Этот адрес размещён на публичной платформе для веб-приложений. Сам домен не является признаком мошенничества, но владелец конкретной страницы не подтверждён.\n\nНе вводите OTP, PIN, CVV, пароли или данные карты, если не уверены в источнике ссылки.",
+              uz: "Bu manzil veb-ilovalar uchun ommaviy platformada joylashgan. Domen o‘zi firibgarlik belgisi emas, lekin aniq sahifa egasi tasdiqlanmagan.\n\nAgar havola manbasiga ishonchingiz komil bo‘lmasa, OTP, PIN, CVV, parol yoki karta ma’lumotlarini kiritmang.",
+              en: "This address is hosted on a public web application platform. The domain itself is not a sign of fraud, but the owner of this specific page is not verified.\n\nDo not enter OTP, PIN, CVV, passwords or card details unless you are sure about the link source.",
+            }[lang]
+          }
+        </p>
+      )}
 
-              {/* Verified official contact match (D-011) */}
-              {result.verifiedContact && (
-                <div className="mt-5 p-4 rounded-lg border border-[#A7F3D0]/70 bg-[#ECFDF5]">
-                  <p className="text-[14px] font-medium text-[#065F46] mb-2">
-                    ✅{" "}
-                    {
-                      {
-                        ru: "Точное совпадение в официальном справочнике:",
-                        uz: "Rasmiy ma'lumotnomada aniq moslik:",
-                        en: "Exact match in the official directory:",
-                      }[lang]
-                    }{" "}
-                    {result.verifiedContact.orgName}
-                  </p>
-                  <p className="text-[13px] text-[#3F3F46] leading-[1.5] mb-2">
-                    {
-                      {
-                        ru: "Контакт",
-                        uz: "Kontakt",
-                        en: "Contact",
-                      }[lang]
-                    }
-                    : {result.verifiedContact.display}. {result.verifiedContact.description}.{" "}
-                    {
-                      {
-                        ru: "Проверка",
-                        uz: "Tekshiruv",
-                        en: "Verification",
-                      }[lang]
-                    }
-                    :{" "}
-                    {
-                      {
-                        ru:
-                          result.verifiedContact.verificationLevel === "high"
-                            ? "высокая"
-                            : "средняя",
-                        uz:
-                          result.verifiedContact.verificationLevel === "high" ? "yuqori" : "o'rta",
-                        en: result.verifiedContact.verificationLevel,
-                      }[lang]
-                    }
-                    .
-                  </p>
-                  <p className="text-[13px] text-[#52525B] leading-[1.5]">
-                    {
-                      {
-                        ru: "⚠️ Это не доказывает, что входящий звонок безопасен. Номер на экране могут подменить. Если просят код, карту, приложение или перевод — положите трубку и перезвоните сами.",
-                        uz: "⚠️ Bu kiruvchi qo'ng'iroq xavfsizligini isbotlamaydi. Ekrandagi raqam soxtalashtirilishi mumkin. Kod, karta, ilova yoki pul so'rashsa — go'shakni qo'ying va o'zingiz qayta qo'ng'iroq qiling.",
-                        en: "⚠️ This does not prove an incoming call is safe. Caller ID can be spoofed. If they ask for a code, card, app or transfer — hang up and call back yourself.",
-                      }[lang]
-                    }
-                  </p>
-                </div>
-              )}
-              {!passport &&
-                !result.verifiedContact &&
-                result.phoneIntelligence?.officialLookalike && (
-                  <div className="mt-5 p-4 rounded-lg border border-[#FCD34D]/70 bg-[#FFFBEB]">
-                    <p className="text-[14px] font-medium text-[#92400E] mb-2">
-                      ⚠️{" "}
-                      {
-                        {
-                          ru: "Похож на официальный контакт, но не совпадает:",
-                          uz: "Rasmiy kontaktga o'xshaydi, lekin aniq mos emas:",
-                          en: "Similar to an official contact, but not an exact match:",
-                        }[lang]
-                      }{" "}
-                      {result.phoneIntelligence.officialLookalike.org[lang]} —{" "}
-                      {result.phoneIntelligence.officialLookalike.display}
-                    </p>
-                    <p className="text-[13px] text-[#52525B] leading-[1.5]">
-                      {
-                        {
-                          ru: "Это не доказывает мошенничество. Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
-                          uz: "Bu firibgarlikni isbotlamaydi. Kiruvchi raqamga qayta qo'ng'iroq qilmang: ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
-                          en: "This does not prove fraud. Do not call back via the incoming number: use the app, card, official site, or verified contact.",
-                        }[lang]
-                      }
-                    </p>
-                  </div>
-                )}
-            </div>
-          </div>
+      {/* Verified official contact match (D-011) */}
+      {result.verifiedContact && (
+        <Callout
+          tone="ok"
+          icon={<SealCheck weight="fill" />}
+          title={`${
+            {
+              ru: "Точное совпадение в официальном справочнике:",
+              uz: "Rasmiy ma’lumotnomada aniq moslik:",
+              en: "Exact match in the official directory:",
+            }[lang]
+          } ${result.verifiedContact.orgName}`}
+        >
+          <p>
+            {{ ru: "Контакт", uz: "Kontakt", en: "Contact" }[lang]}:{" "}
+            {result.verifiedContact.display}. {result.verifiedContact.description}.{" "}
+            {{ ru: "Проверка", uz: "Tekshiruv", en: "Verification" }[lang]}:{" "}
+            {
+              {
+                ru: result.verifiedContact.verificationLevel === "high" ? "высокая" : "средняя",
+                uz: result.verifiedContact.verificationLevel === "high" ? "yuqori" : "o'rta",
+                en: result.verifiedContact.verificationLevel,
+              }[lang]
+            }
+            .
+          </p>
+          <p>
+            {
+              {
+                ru: "Это не доказывает, что входящий звонок безопасен. Номер на экране могут подменить. Если просят код, карту, приложение или перевод — положите трубку и перезвоните сами.",
+                uz: "Bu kiruvchi qo‘ng‘iroq xavfsizligini isbotlamaydi. Ekrandagi raqam soxtalashtirilishi mumkin. Kod, karta, ilova yoki pul so‘rashsa — go‘shakni qo‘ying va o‘zingiz qayta qo‘ng‘iroq qiling.",
+                en: "This does not prove an incoming call is safe. Caller ID can be spoofed. If they ask for a code, card, app or transfer — hang up and call back yourself.",
+              }[lang]
+            }
+          </p>
+        </Callout>
+      )}
+      {!passport && !result.verifiedContact && result.phoneIntelligence?.officialLookalike && (
+        <Callout
+          tone="alert"
+          icon={<Warning weight="fill" />}
+          title={`${
+            {
+              ru: "Похож на официальный контакт, но не совпадает:",
+              uz: "Rasmiy kontaktga o‘xshaydi, lekin aniq mos emas:",
+              en: "Similar to an official contact, but not an exact match:",
+            }[lang]
+          } ${result.phoneIntelligence.officialLookalike.org[lang]} — ${result.phoneIntelligence.officialLookalike.display}`}
+        >
+          <p>
+            {
+              {
+                ru: "Это не доказывает мошенничество. Не перезванивайте по входящему номеру: используйте приложение, карту, официальный сайт или проверенный контакт.",
+                uz: "Bu firibgarlikni isbotlamaydi. Kiruvchi raqamga qayta qo‘ng‘iroq qilmang: ilova, karta, rasmiy sayt yoki tekshirilgan kontaktdan foydalaning.",
+                en: "This does not prove fraud. Do not call back via the incoming number: use the app, card, official site, or verified contact.",
+              }[lang]
+            }
+          </p>
+        </Callout>
+      )}
 
-          {/* Reasons */}
-          {reasonsToShow.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-[#E2E0D8]">
-              <p className="label-md mb-4">{t("why_title", lang)}</p>
-              <ul className="space-y-2.5">
-                {reasonsToShow.map((r, idx) => (
-                  <li key={r} className="flex gap-3 text-[14.5px] leading-[1.6] text-[#52525B]">
-                    <span className="font-mono text-[12px] text-[#A1A1AA] shrink-0 mt-[2px] tabular-nums">
-                      {(idx + 1).toString().padStart(2, "0")}
-                    </span>
-                    <span className="text-pretty">{REASON_LABELS[r]?.[lang] ?? r}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {reasonsToShow.length > 0 && (
+        <div className="vp-report-block">
+          <h4>{t("why_title", lang)}</h4>
+          <ol className="vp-numbered">
+            {reasonsToShow.map((reason, index) => (
+              <li key={reason}>
+                <span aria-hidden="true">{index + 1}</span>
+                <span>{REASON_LABELS[reason]?.[lang] ?? reason}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
-          {/* Advice — emphasized as primary action block */}
-          <div className="mt-8">
-            <div className="rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#F97316]" />
-                <p className="apex-mono text-[#9A3412]">{t("what_to_do", lang)}</p>
-              </div>
-              <ul className="space-y-3">
-                {advice.map((a, i) => (
-                  <li key={i} className="flex gap-3 text-[15px] leading-[1.6] text-[#18181B]">
-                    <span className="text-[#F97316] shrink-0 mt-[1px] font-semibold" aria-hidden>
-                      →
-                    </span>
-                    <span className="text-pretty">{a}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+      <div className="vp-report-advice">
+        <h4>
+          <ShieldCheck weight="fill" aria-hidden="true" />
+          {t("what_to_do", lang)}
+        </h4>
+        <ul className="vp-list vp-list--check">
+          {advice.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
 
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-[#E2E0D8] flex flex-wrap items-center justify-between gap-4">
-            <span className="apex-mono text-[#71717A]">
-              {{ ru: "Жалобы", uz: "Shikoyatlar", en: "Reports" }[lang]} ·{" "}
-              {result.knownReports > 0 ? result.knownReports : "0"}
-            </span>
-
-            <div className="flex flex-wrap gap-3">
-              <Link to="/report" className="fancy-btn">
-                <FancyShell>{t("report_btn", lang)}</FancyShell>
-              </Link>
-              {isHot && (
-                <Link
-                  to="/emergency"
-                  className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#52525B] underline-offset-4 decoration-[#E2E0D8] hover:text-[#18181B] hover:underline hover:decoration-[#F97316] transition-colors self-center"
-                >
-                  {t("emergency_cta", lang)}
-                </Link>
-              )}
-            </div>
-          </div>
+      <div className="vp-report-foot">
+        <span>
+          {{ ru: "Жалобы", uz: "Shikoyatlar", en: "Reports" }[lang]} ·{" "}
+          {result.knownReports > 0 ? result.knownReports : "0"}
+        </span>
+        <div className="vp-actions">
+          {isHot && <Pill to="/emergency">{t("emergency_cta", lang)}</Pill>}
+          <Pill to="/report" tone={isHot ? "outline" : "dark"}>
+            {t("report_btn", lang)}
+          </Pill>
         </div>
       </div>
     </div>
@@ -437,14 +303,12 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
 
 function RiskPassportPanel({ passport }: { passport: RiskPassportSummary }) {
   return (
-    <div className="mt-5 border-y border-[#E2E0D8] py-4" aria-label={passport.title}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="apex-mono text-[#C2410C]">{passport.eyebrow}</p>
-        <span className="rounded-[4px] border border-[#E2E0D8] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#71717A]">
-          {passport.kind}
-        </span>
+    <div className="vp-report-passport" aria-label={passport.title}>
+      <div className="vp-card-top">
+        <span>{passport.eyebrow}</span>
+        <span className="vp-tag">{passport.kind}</span>
       </div>
-      <div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+      <div className="vp-report-passport-grid">
         {passport.sections.map((section, index) => (
           <RiskPassportSectionBlock section={section} key={`${section.id}-${index}`} />
         ))}
@@ -454,29 +318,12 @@ function RiskPassportPanel({ passport }: { passport: RiskPassportSummary }) {
 }
 
 function RiskPassportSectionBlock({ section }: { section: RiskPassportSection }) {
-  const tone =
-    section.tone === "warning"
-      ? "text-[#9A3412]"
-      : section.tone === "safe"
-        ? "text-[#065F46]"
-        : "text-[#3F3F46]";
-
   return (
-    <section className="min-w-0">
-      <h4 className={`text-[12px] font-bold uppercase tracking-[0.12em] ${tone}`}>
-        {section.title}
-      </h4>
-      <ul className="mt-2 space-y-1.5">
+    <section className={`vp-report-passport-section is-${section.tone ?? "neutral"}`}>
+      <h4>{section.title}</h4>
+      <ul className="vp-list vp-list--dot">
         {section.lines.slice(0, 3).map((line) => (
-          <li
-            key={line}
-            className="flex gap-2 text-[13.5px] leading-[1.55] text-[#52525B] text-pretty"
-          >
-            <span aria-hidden="true" className="mt-[1px] text-[#A1A1AA]">
-              •
-            </span>
-            <span>{line}</span>
-          </li>
+          <li key={line}>{line}</li>
         ))}
       </ul>
     </section>

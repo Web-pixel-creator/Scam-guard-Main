@@ -1,57 +1,88 @@
-import { AlertTriangle, Layers, Lock, Map, ShieldCheck } from "lucide-react";
+import { LockKey, ShieldCheck, Stack, Warning, Lock } from "@phosphor-icons/react";
 
+import { Callout, RowHead } from "@/components/viper/kit";
 import { useLang } from "@/lib/lang-context";
 import {
   getPrivacySafeScamMapIndex,
   SCAM_MAP_PRIVACY_POLICY,
   type ScamMapCategoryBucket,
 } from "@/lib/trust/scam-map-index";
-import type { SchemeTrendSeverity } from "@/lib/trust/scheme-trends";
+import type { SchemeTrendSeverity, SchemeTrendSource } from "@/lib/trust/scheme-trends";
 
 const SEVERITY_LABEL: Record<SchemeTrendSeverity, Record<"ru" | "uz" | "en", string>> = {
   critical: { ru: "Критично", uz: "Kritik", en: "Critical" },
   high: { ru: "Высокий", uz: "Yuqori", en: "High" },
-  medium: { ru: "Средний", uz: "O'rtacha", en: "Medium" },
+  medium: { ru: "Средний", uz: "O‘rtacha", en: "Medium" },
 };
 
-const SEVERITY_CLASS: Record<SchemeTrendSeverity, string> = {
-  critical: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
-  high: "border-[#FED7AA] bg-[#FFF7ED] text-[#9A3412]",
-  medium: "border-[#FDE68A] bg-[#FEFCE8] text-[#854D0E]",
+// Plain words for the data sources behind each category.
+const SOURCE_CHIP: Record<SchemeTrendSource, Record<"ru" | "uz" | "en", string>> = {
+  coverage: { ru: "правила", uz: "qoidalar", en: "rules" },
+  research_feed: {
+    ru: "мониторинг новостей",
+    uz: "yangiliklar monitoringi",
+    en: "news monitoring",
+  },
+  moderated_aggregate: {
+    ru: "проверенные жалобы",
+    uz: "tekshirilgan shikoyatlar",
+    en: "moderated reports",
+  },
 };
+
+const TEXT = {
+  ru: {
+    label: "Индекс схем",
+    note: "Только типы схем — без людей и номеров",
+    title: "Карта показывает типы схем, а не людей, номера или чаты",
+    lead: "Публичный слой строится из правил, мониторинга новостей и проверенных жалоб в обобщённом виде. Малые региональные группы скрыты, чтобы нельзя было восстановить жалобы или личности.",
+    index: "Индекс по типам схем",
+    stats: ["Типы схем", "Публичные тактики", "Критичные", "Скрытые слои"],
+    locked: "Региональный слой пока закрыт",
+  },
+  uz: {
+    label: "Sxemalar indeksi",
+    note: "Faqat sxema turlari — odamlar va raqamlarsiz",
+    title: "Xarita odam, raqam yoki chatlarni emas, sxema turlarini ko‘rsatadi",
+    lead: "Ommaviy qatlam qoidalar, yangiliklar monitoringi va tekshirilgan shikoyatlarning umumlashtirilgan ma’lumotlaridan tuziladi. Kichik hududiy guruhlar shikoyat yoki shaxsni tiklab bo‘lmasligi uchun yashiriladi.",
+    index: "Sxema turlari indeksi",
+    stats: ["Sxema turlari", "Ommaviy taktikalar", "Kritik", "Yashirin qatlamlar"],
+    locked: "Hududiy qatlam hozircha yopiq",
+  },
+  en: {
+    label: "Scheme index",
+    note: "Scheme types only — no people or numbers",
+    title: "The map shows scheme types, not people, numbers or chats",
+    lead: "The public layer is built from rules, news monitoring and moderated reports in aggregate. Small regional groups stay hidden so reports or identities cannot be reconstructed.",
+    index: "Index by scheme type",
+    stats: ["Scheme types", "Public tactics", "Critical", "Hidden layers"],
+    locked: "Regional layer is locked for now",
+  },
+} as const;
 
 function CategoryIndexRow({ bucket }: { bucket: ScamMapCategoryBucket }) {
   const { lang } = useLang();
 
   return (
-    <li className="grid gap-3 border-t border-[#F4F2EB] py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[14px] font-bold text-[#18181B]">{bucket.label[lang]}</p>
-          <span
-            className={`rounded-[999px] border px-2 py-0.5 text-[11px] font-bold ${SEVERITY_CLASS[bucket.highestSeverity]}`}
-          >
-            {SEVERITY_LABEL[bucket.highestSeverity][lang]}
-          </span>
-        </div>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-[#71717A]">
-          {
-            {
-              ru: `${bucket.trendCount} тактик, ${bucket.activeWatchCount} сейчас на контроле`,
-              uz: `${bucket.trendCount} taktika, ${bucket.activeWatchCount} hozir kuzatuvda`,
-              en: `${bucket.trendCount} tactics, ${bucket.activeWatchCount} currently watched`,
-            }[lang]
-          }
-        </p>
+    <li>
+      <div className="vp-index-row-main">
+        <strong>{bucket.label[lang]}</strong>
+        <span className={`vp-tag vp-tag--${bucket.highestSeverity}`}>
+          {SEVERITY_LABEL[bucket.highestSeverity][lang]}
+        </span>
       </div>
-      <div className="flex flex-wrap gap-2 sm:justify-end">
+      <p>
+        {
+          {
+            ru: `${bucket.trendCount} тактик, ${bucket.activeWatchCount} сейчас на контроле`,
+            uz: `${bucket.trendCount} taktika, ${bucket.activeWatchCount} hozir kuzatuvda`,
+            en: `${bucket.trendCount} tactics, ${bucket.activeWatchCount} currently watched`,
+          }[lang]
+        }
+      </p>
+      <div className="vp-chiplist">
         {bucket.sourceTypes.map((source) => (
-          <span
-            key={source}
-            className="rounded-[6px] bg-[#F4F2EB] px-2.5 py-1 text-[11.5px] font-semibold text-[#52525B]"
-          >
-            {source.replaceAll("_", " ")}
-          </span>
+          <span key={source}>{SOURCE_CHIP[source][lang]}</span>
         ))}
       </div>
     </li>
@@ -60,145 +91,61 @@ function CategoryIndexRow({ bucket }: { bucket: ScamMapCategoryBucket }) {
 
 export function ScamMapIndexPanel() {
   const { lang } = useLang();
+  const text = TEXT[lang];
   const index = getPrivacySafeScamMapIndex();
   const suppressedRegion = index.regionBuckets.find((bucket) => !bucket.published);
+  const stats = [
+    { icon: Stack, value: index.summary.categoryCount },
+    { icon: ShieldCheck, value: index.summary.trendCount },
+    { icon: Warning, value: index.summary.criticalCount },
+    { icon: Lock, value: index.summary.suppressedRegionBuckets },
+  ];
 
   return (
-    <section
-      aria-labelledby="scam-map-index-title"
-      className="mb-8 rounded-[8px] border border-[#E2E0D8] bg-white p-5 shadow-[0_10px_30px_-24px_rgba(11,11,15,0.35)] sm:p-6"
-    >
-      <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-        <div>
-          <p className="apex-mono mb-3 inline-flex items-center gap-2 text-[#0F766E]">
-            <Map aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
-            {
-              {
-                ru: "privacy-safe index",
-                uz: "privacy-safe indeks",
-                en: "privacy-safe index",
-              }[lang]
-            }
-          </p>
-          <h2
-            id="scam-map-index-title"
-            className="font-sans text-[25px] font-medium leading-[1.08] tracking-[-0.035em] text-[#18181B] sm:text-[32px]"
-          >
-            {
-              {
-                ru: "Карта показывает типы схем, а не людей, номера или чаты",
-                uz: "Xarita odam, raqam yoki chatlarni emas, sxema turlarini ko'rsatadi",
-                en: "The map shows scheme types, not people, numbers or chats",
-              }[lang]
-            }
-          </h2>
-          <p className="mt-3 max-w-2xl text-[14.5px] leading-[1.65] text-[#52525B]">
-            {
-              {
-                ru: "Публичный слой строится из правил, research-feed категорий и модерированных агрегатов. Малые региональные группы скрыты, чтобы нельзя было восстановить жалобы или личности.",
-                uz: "Ommaviy qatlam qoidalar, research-feed kategoriyalari va moderatsiyalangan agregatlardan tuziladi. Kichik hududiy guruhlar shikoyat yoki shaxsni tiklab bo'lmasligi uchun yashiriladi.",
-                en: "The public layer is built from rules, research-feed categories and moderated aggregates. Small regional groups stay hidden so reports or identities cannot be reconstructed.",
-              }[lang]
-            }
-          </p>
-
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            {[
-              {
-                icon: Layers,
-                value: index.summary.categoryCount,
-                label: { ru: "типов схем", uz: "sxema turi", en: "scheme types" }[lang],
-              },
-              {
-                icon: ShieldCheck,
-                value: index.summary.trendCount,
-                label: { ru: "публичных тактик", uz: "ommaviy taktika", en: "public tactics" }[
-                  lang
-                ],
-              },
-              {
-                icon: AlertTriangle,
-                value: index.summary.criticalCount,
-                label: { ru: "критичных", uz: "kritik", en: "critical" }[lang],
-              },
-              {
-                icon: Lock,
-                value: index.summary.suppressedRegionBuckets,
-                label: { ru: "слоёв скрыто", uz: "qatlam yashirin", en: "layers hidden" }[lang],
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className="rounded-[6px] border border-[#F4F2EB] bg-[#FAFAF8] p-3"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <Icon aria-hidden="true" className="h-4 w-4 text-[#0F766E]" strokeWidth={2} />
-                    <span className="font-display text-[22px] font-extrabold leading-none text-[#0B0B0F] tabular-nums">
-                      {item.value}
-                    </span>
-                  </div>
-                  <p className="text-[11.5px] font-semibold leading-snug text-[#71717A]">
-                    {item.label}
-                  </p>
-                </div>
-              );
-            })}
+    <section className="vp-page-section" aria-labelledby="scam-map-index-title">
+      <RowHead id="scam-map-index-title" label={text.label} note={text.note} />
+      <div className="vp-split">
+        <article className="vp-card">
+          <h3 className="vp-card-title">{text.title}</h3>
+          <p className="vp-card-text">{text.lead}</p>
+          <div className="vp-mini-stats">
+            {stats.map(({ icon: Icon, value }, position) => (
+              <div key={text.stats[position]}>
+                <Icon weight="bold" aria-hidden="true" />
+                <b>{value}</b>
+                <span>{text.stats[position]}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </article>
 
-        <div className="grid gap-4">
-          <div className="rounded-[8px] border border-[#E2E0D8] bg-[#FAFAF8] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Layers aria-hidden="true" className="h-4 w-4 text-[#0F766E]" strokeWidth={2} />
-              <h3 className="text-[15px] font-bold text-[#18181B]">
-                {
-                  {
-                    ru: "Индекс по типам схем",
-                    uz: "Sxema turlari indeksi",
-                    en: "Index by scheme type",
-                  }[lang]
-                }
-              </h3>
+        <div className="vp-stack">
+          <article className="vp-card">
+            <div className="vp-card-top">
+              <span className="vp-card-icon" aria-hidden="true">
+                <Stack weight="bold" />
+              </span>
+              <span>{text.index}</span>
             </div>
-            <ul>
+            <ul className="vp-index-list">
               {index.categoryBuckets.map((bucket) => (
                 <CategoryIndexRow key={bucket.id} bucket={bucket} />
               ))}
             </ul>
-          </div>
+          </article>
 
-          <div className="rounded-[8px] border border-[#C7D2FE] bg-[#EEF2FF] p-4">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-white text-[#3730A3]">
-                <Lock aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-              </span>
-              <div>
-                <h3 className="text-[15px] font-bold text-[#18181B]">
-                  {
-                    {
-                      ru: "Региональный слой пока закрыт",
-                      uz: "Hududiy qatlam hozircha yopiq",
-                      en: "Regional layer is locked for now",
-                    }[lang]
-                  }
-                </h3>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#3730A3]">
-                  {suppressedRegion?.suppressionReason?.[lang]}
-                </p>
-                <p className="mt-3 text-[12.5px] font-semibold leading-relaxed text-[#312E81]">
-                  {
-                    {
-                      ru: `Порог: минимум ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} модерированных записей, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} разных схемы и ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} типа источников на регион.`,
-                      uz: `Chegara: har hudud uchun kamida ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} moderatsiyalangan yozuv, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} xil sxema va ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} manba turi.`,
-                      en: `Threshold: at least ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} moderated records, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} distinct schemes and ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} source types per region.`,
-                    }[lang]
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
+          <Callout icon={<LockKey weight="bold" />} title={text.locked}>
+            <p>{suppressedRegion?.suppressionReason?.[lang]}</p>
+            <p className="vp-callout-meta">
+              {
+                {
+                  ru: `Порог: минимум ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} модерированных записей, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} разных схемы и ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} типа источников на регион.`,
+                  uz: `Chegara: har hudud uchun kamida ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} moderatsiyalangan yozuv, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} xil sxema va ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} manba turi.`,
+                  en: `Threshold: at least ${SCAM_MAP_PRIVACY_POLICY.minModeratedReportsPerRegion} moderated records, ${SCAM_MAP_PRIVACY_POLICY.minDistinctSchemesPerRegion} distinct schemes and ${SCAM_MAP_PRIVACY_POLICY.minSourceTypesPerRegion} source types per region.`,
+                }[lang]
+              }
+            </p>
+          </Callout>
         </div>
       </div>
     </section>

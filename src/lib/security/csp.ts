@@ -1,18 +1,13 @@
-export const UNICORN_STUDIO_SCRIPT_SRC =
-  "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js";
-export const UNICORN_STUDIO_SCRIPT_INTEGRITY =
-  "sha384-Xg8DtdOWbiPrB2CcbZPF1rDwqrUpJcomkAg9OblxsedMf+s4gGou6PjcM9FKTfCs";
-
 const SCRIPT_SRC_DIRECTIVE_RE = /(^|;\s*)script-src\s+([^;]+)/;
 const EMBED_DEV_FRAME_ANCESTORS = ["http://localhost:*", "http://127.0.0.1:*"] as const;
 
-// Keep script-src strict: TanStack/Vite app code is loaded from self, and the
-// optional Unicorn background loads from one pinned CDN URL. Inline style
+// Keep script-src strict: TanStack/Vite app code is loaded from self only (the
+// unused Unicorn CDN background and its allowance were removed). Inline style
 // attributes are scoped to style-src-attr because the app uses React style
 // props for small dynamic values; inline <style> blocks are not broadly allowed.
 export const DEFAULT_CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  `script-src 'self' ${UNICORN_STUDIO_SCRIPT_SRC}`,
+  "script-src 'self'",
   "script-src-attr 'none'",
   "style-src 'self'",
   "style-src-elem 'self'",

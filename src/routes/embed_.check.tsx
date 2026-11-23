@@ -1,27 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { EmbedCheckWidget } from "@/components/EmbedCheckWidget";
-import { normalizeEmbedLang, sanitizePartner } from "@/lib/embed-widget";
+import { sanitizePartner } from "@/lib/embed-widget";
+import { useLang } from "@/lib/lang-context";
+import { isLang } from "@/lib/lang-preference";
 
 export const Route = createFileRoute("/embed_/check")({
+  // Absent values stay undefined: a null would be written back into the URL
+  // (/embed/check?partner=null) through an extra redirect.
   validateSearch: (search: Record<string, unknown>) => ({
-    lang: normalizeEmbedLang(search.lang),
-    partner: sanitizePartner(search.partner),
-  }),
-  head: () => ({
-    meta: [
-      { title: "Ishonch Guard Embed Check" },
-      {
-        name: "description",
-        content: "Compact Ishonch Guard anti-scam check widget for trusted partner sites.",
-      },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    // Without ?lang= the widget follows the visitor's language (D-120).
+    lang: isLang(search.lang) ? search.lang : undefined,
+    partner: sanitizePartner(search.partner) ?? undefined,
   }),
   component: EmbedCheckRoute,
 });
 
 function EmbedCheckRoute() {
   const { lang, partner } = Route.useSearch();
-  return <EmbedCheckWidget lang={lang} partner={partner} />;
+  const visitor = useLang().lang;
+  return <EmbedCheckWidget lang={lang ?? visitor} partner={partner} />;
 }

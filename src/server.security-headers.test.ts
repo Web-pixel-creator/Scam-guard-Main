@@ -74,6 +74,14 @@ describe("server security headers", () => {
     );
   });
 
+  it("marks HTML as varying by language cookie and browser languages", async () => {
+    const response = await fetchPath("/", { headers: { "accept-encoding": "br" } });
+    const vary = (response.headers.get("vary") ?? "").split(",").map((v) => v.trim());
+
+    expect(vary).toEqual(expect.arrayContaining(["Cookie", "Accept-Language", "Accept-Encoding"]));
+    expect((await fetchPath("/healthz")).headers.get("vary") ?? "").not.toContain("Cookie");
+  });
+
   it("keeps security headers on a 406 when every available encoding is forbidden", async () => {
     const response = await fetchPath("/", {
       headers: {

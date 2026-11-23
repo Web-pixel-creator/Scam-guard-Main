@@ -1,7 +1,9 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
+@import "./fonts-inter.css";
 @import "./approved-design.css";
 @import "./signal-exact.css";
+@import "./viper.css";
 
 @source "../src";
 
@@ -9,9 +11,11 @@
 
 @theme inline {
   --breakpoint-xs: 420px;
-  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    "Inter", "Inter Fallback", "Inter Fallback Android", ui-sans-serif, system-ui, sans-serif;
   --font-display:
-    "Space Grotesk Variable", "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+    "Inter Display", "Inter Display Fallback", "Inter Display Fallback Android", "Inter",
+    ui-sans-serif, system-ui, sans-serif;
   --font-serif: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
   --radius-sm: 12px;
@@ -185,7 +189,6 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv11", "ss01";
     position: relative;
     font-size: 1rem;
     line-height: 1.65;
@@ -200,7 +203,7 @@
     font-weight: 800;
     line-height: 0.95;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "ss01", "cv11", "kern";
+    font-feature-settings: "kern";
   }
   /* Tabular numerals for counters / case numbers / mono labels */
   .apex-mono,
@@ -265,73 +268,6 @@
   font-feature-settings: "ss01", "cv11";
 }
 
-/* ===== Unified rhythm utilities — apply to every section / card ===== */
-.section-pad {
-  padding: var(--pad-section);
-}
-.section-stack > * + * {
-  margin-top: var(--gap-stack);
-}
-.card-pad {
-  padding: var(--pad-card);
-}
-.grid-hairline {
-  display: grid;
-  gap: var(--gap-grid);
-  background: var(--apex-border);
-  border: 1px solid var(--apex-border);
-}
-
-/* Section header rhythm — same gap stack everywhere */
-.section-eyebrow {
-  margin-bottom: 16px;
-}
-.section-title {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: clamp(34px, 5.4vw, 60px);
-  line-height: 1.02;
-  letter-spacing: -0.05em;
-  color: #18181b;
-  text-wrap: balance;
-}
-.section-meta-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.section-divider {
-  margin-top: 40px;
-  margin-bottom: 40px;
-  padding-bottom: 28px;
-  border-bottom: 1px solid var(--apex-border);
-}
-@media (min-width: 768px) {
-  .section-divider {
-    margin-top: 48px;
-    margin-bottom: 48px;
-    padding-bottom: 32px;
-  }
-}
-
-/* Card body text — bumped for readability. Slightly larger + darker so
-   users can scan cards without leaning in. */
-.card-body {
-  font-size: 17px;
-  line-height: 1.7;
-  color: #3f3f46;
-  max-width: 44ch;
-  text-wrap: pretty;
-}
-@media (min-width: 768px) {
-  .card-body {
-    font-size: 17.5px;
-    line-height: 1.75;
-  }
-}
-
 /* Body paragraph helper: pretty wrapping + safe break for long urls/words.
    Russian/Uzbek hyphenation is unreliable cross-browser, so we rely on
    text-wrap:pretty + overflow-wrap to avoid ragged lines on 320–414 widths. */
@@ -344,72 +280,6 @@
   .prose-pretty {
     text-wrap: balance;
   }
-}
-
-/* APEX glass surface — thin border, soft blur, no shadow */
-.apex-glass {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(4px) saturate(140%);
-  -webkit-backdrop-filter: blur(4px) saturate(140%);
-  border: 0.8px solid var(--apex-border);
-}
-
-/* APEX gradient border shell — wrap with 1px padding to expose hairline gradient */
-.apex-shell {
-  position: relative;
-  padding: 1px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #fb923c 0%, #fb923c 50%, #c2410c 100%);
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 10px 15px -3px rgba(249, 115, 22, 0.1),
-    0 4px 6px -4px rgba(249, 115, 22, 0.1);
-}
-.apex-shell > * {
-  border-radius: 8px;
-}
-
-.apex-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--apex-border), transparent);
-}
-
-/* Hairline label */
-.apex-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border: 0.8px solid var(--apex-border);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(4px);
-  border-radius: 3px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--apex-text);
-}
-.apex-tag-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #f97316, #fb923c);
-}
-
-.glass {
-  background: color-mix(in oklab, #ffffff 75%, transparent);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(10, 11, 15, 0.08);
-}
-
-.grid-bg {
-  background-image:
-    linear-gradient(to right, rgba(10, 11, 15, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(10, 11, 15, 0.05) 1px, transparent 1px);
-  background-size: 64px 64px;
 }
 
 .text-gradient {
@@ -428,53 +298,6 @@
   color: transparent;
 }
 
-.glow-primary {
-  box-shadow:
-    0 0 0 1px rgba(11, 11, 15, 0.06),
-    0 30px 80px -20px rgba(11, 11, 15, 0.18),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
-}
-
-/* Soft dark-blue under-glow (use on a wrapper around CTA / card) */
-.cta-glow {
-  position: relative;
-  isolation: isolate;
-}
-.cta-glow::before {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  background: radial-gradient(
-    60% 60% at 50% 60%,
-    rgba(30, 41, 90, 0.18) 0%,
-    rgba(30, 41, 90, 0) 70%
-  );
-  filter: blur(18px);
-  opacity: 1;
-  z-index: -1;
-  transition: none;
-}
-
-.glow-danger {
-  box-shadow:
-    0 0 0 1px rgba(220, 38, 38, 0.18),
-    0 30px 80px -20px rgba(220, 38, 38, 0.22),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
-}
-
-.card-hover {
-  transition:
-    transform var(--dur-base) var(--ease-out),
-    border-color var(--dur-fast) ease,
-    background-color var(--dur-fast) ease;
-}
-.card-hover:hover {
-  transform: translateY(-2px);
-  border-color: rgba(124, 107, 255, 0.35);
-  background-color: rgba(124, 107, 255, 0.04);
-}
-
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -484,9 +307,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes shimmer {
@@ -503,9 +323,6 @@
     transform: translateX(-50%);
   }
 }
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
 
 @keyframes pulse-ring {
   0% {
@@ -518,62 +335,7 @@
     box-shadow: 0 0 0 0 rgba(124, 107, 255, 0);
   }
 }
-.animate-pulse-ring {
-  animation: pulse-ring 2.4s cubic-bezier(0.66, 0, 0, 1) infinite;
-}
 
-/* Neuform-style dark grid panel with violet bloom rising from the bottom */
-.neuform-panel {
-  position: relative;
-  isolation: isolate;
-  background-color: #07070b;
-  overflow: hidden;
-}
-/* Fine grid lines */
-.neuform-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-  background-size: 44px 44px;
-  /* Fade grid towards edges so it doesn't read as a hard table */
-  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 55%, #000 55%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 75% at 50% 55%, #000 55%, transparent 100%);
-  z-index: 0;
-  pointer-events: none;
-}
-/* Violet bloom rising from the bottom */
-.neuform-panel::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -20%;
-  width: 90%;
-  height: 110%;
-  transform: translateX(-50%);
-  background:
-    radial-gradient(
-      ellipse 55% 60% at 50% 100%,
-      rgba(139, 92, 246, 0.55) 0%,
-      rgba(139, 92, 246, 0.25) 35%,
-      rgba(139, 92, 246, 0) 65%
-    ),
-    radial-gradient(
-      ellipse 40% 45% at 50% 100%,
-      rgba(196, 181, 253, 0.45) 0%,
-      rgba(196, 181, 253, 0) 60%
-    );
-  filter: blur(20px);
-  z-index: 0;
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .neuform-panel::after {
-    animation: neuform-bloom 8s ease-in-out infinite alternate;
-  }
-}
 @keyframes neuform-bloom {
   0% {
     opacity: 0.85;
@@ -624,16 +386,6 @@
 .home-stripes-bg > * {
   position: relative;
   z-index: 1;
-}
-
-/* Defer rendering work for below-the-fold sections without removing them from
-   SSR/SEO. Keeps HTML present for crawlers, but lets the browser skip layout
-   + paint until the section scrolls near the viewport. contain-intrinsic-size
-   reserves vertical space so there's no layout shift (CLS) when content
-   becomes visible. */
-.cv-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 800px;
 }
 
 /* === Accessibility: user-controlled font scale (A−/A+) === */
@@ -746,26 +498,9 @@ html.a11y-high-contrast :focus-visible {
   border-left: 0;
   border-top: 0;
 }
-/* Sweep scanline — only when NOT focused inside, so it doesn't distract typing */
-.apex-frame > .apex-scan {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.45), transparent);
-  transform: translate3d(-100%, 0, 0);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 3;
-  will-change: transform, opacity;
-}
 
 /* Respect reduced-motion globally for these effects */
 @media (prefers-reduced-motion: reduce) {
-  .apex-frame > .apex-scan {
-    display: none !important;
-  }
   .apex-btn-outline:hover {
     transform: none !important;
   }
@@ -785,16 +520,6 @@ html.a11y-high-contrast :focus-visible {
 
 .apex-on-dark {
   color: #fff !important;
-}
-
-.apex-wordmark {
-  font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.85;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(11, 11, 15, 0.08);
-  user-select: none;
 }
 
 .apex-btn-outline {
@@ -909,22 +634,6 @@ html.a11y-high-contrast :focus-visible {
   }
 }
 
-/* Indeterminate progress bar */
-.apex-progress {
-  position: relative;
-  height: 2px;
-  width: 100%;
-  background: rgba(11, 11, 15, 0.06);
-  overflow: hidden;
-}
-.apex-progress::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 35%;
-  background: linear-gradient(90deg, transparent, #f97316, #fb923c, transparent);
-  animation: apex-progress-slide 1.2s ease-in-out infinite;
-}
 @keyframes apex-progress-slide {
   0% {
     transform: translateX(-100%);
@@ -1007,20 +716,6 @@ textarea.apex-field {
   content: "!";
   font-weight: 700;
 }
-.apex-success {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  line-height: 1.5;
-  color: #047857;
-}
-.apex-success::before {
-  content: "\2713";
-  font-weight: 700;
-}
 
 /* ===== Section / page chrome — unified responsive padding ===== */
 .apex-page {
@@ -1089,47 +784,6 @@ textarea.apex-field {
   }
 }
 
-/* Pain pill — pulsing red pain badge used in page heroes (mirrors home hero) */
-.pain-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  border: 1px solid rgba(252, 165, 165, 0.6);
-  background: #fef2f2;
-  color: #991b1b;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-bottom: 18px;
-}
-.pain-pill-dot {
-  position: relative;
-  display: inline-flex;
-  width: 6px;
-  height: 6px;
-}
-.pain-pill-dot::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: #dc2626;
-  opacity: 0.6;
-  animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-.pain-pill-dot::after {
-  content: "";
-  position: relative;
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: #dc2626;
-}
 @keyframes ping {
   75%,
   100% {
@@ -1149,223 +803,6 @@ textarea.apex-field {
   }
 }
 
-/* Hero techno system rail */
-.hero-rail {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 9px 14px;
-  border: 0.8px solid var(--apex-border);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  max-width: 620px;
-  width: 100%;
-}
-.hero-rail-divider {
-  flex: 1;
-  height: 1px;
-  background: repeating-linear-gradient(90deg, var(--apex-border) 0 4px, transparent 4px 8px);
-}
-
-/* ===== APEX pill action button — soft white pill with colored icon ===== */
-.apex-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #eceae2;
-  color: #18181b;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  box-shadow:
-    0 1px 0 rgba(11, 11, 15, 0.02),
-    0 1px 2px rgba(11, 11, 15, 0.04);
-  transition:
-    transform var(--dur-base) var(--ease-out),
-    box-shadow var(--dur-base) var(--ease-out),
-    border-color var(--dur-fast) ease,
-    background-color var(--dur-fast) ease;
-  cursor: pointer;
-  will-change: transform;
-}
-.apex-pill:hover {
-  transform: translate3d(0, -1px, 0);
-  border-color: #fdba74;
-  background: #fff7ed;
-  color: #c2410c;
-  box-shadow:
-    0 1px 0 rgba(11, 11, 15, 0.02),
-    0 10px 24px -10px rgba(249, 115, 22, 0.35);
-}
-.apex-pill:hover svg {
-  color: #c2410c;
-  transition: color var(--dur-fast) ease;
-}
-.apex-pill:active {
-  transform: translate3d(0, 0, 0);
-  box-shadow: 0 1px 0 rgba(11, 11, 15, 0.04);
-}
-.apex-pill:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px rgba(249, 115, 22, 0.28),
-    0 1px 2px rgba(11, 11, 15, 0.05);
-}
-.apex-pill[disabled] {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* ===== Header nav link — animated underline + soft hover pill ===== */
-.nav-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
-  color: #52525b;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  transition:
-    color var(--dur-fast) ease,
-    background-color var(--dur-fast) ease;
-  -webkit-tap-highlight-color: transparent;
-}
-.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 6px;
-  height: 1.5px;
-  background: linear-gradient(90deg, #f97316, #c2410c);
-  border-radius: 2px;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--dur-base) var(--ease-out);
-}
-.nav-link:hover {
-  color: #18181b;
-  background: rgba(249, 115, 22, 0.06);
-}
-.nav-link:hover::after {
-  transform: scaleX(1);
-}
-.nav-link:active {
-  color: #c2410c;
-}
-.nav-link.active,
-.nav-link[aria-current="page"] {
-  color: #18181b;
-}
-.nav-link.active::after,
-.nav-link[aria-current="page"]::after {
-  transform: scaleX(1);
-}
-.nav-link:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
-}
-
-/* ===== APEX primary CTA — solid dark pill ===== */
-.apex-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 46px;
-  padding: 0 22px;
-  border-radius: 11px;
-  background: linear-gradient(180deg, #1a1a22 0%, #0b0b0f 100%);
-  color: #ffffff;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  border: 1px solid #0b0b0f;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(11, 11, 15, 0.12),
-    0 10px 24px -14px rgba(11, 11, 15, 0.45);
-  transition:
-    transform var(--dur-base) var(--ease-out),
-    box-shadow var(--dur-base) var(--ease-out);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  will-change: transform;
-}
-.apex-cta::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 35%,
-    rgba(249, 115, 22, 0.28) 50%,
-    transparent 65%
-  );
-  transform: translate3d(-110%, 0, 0);
-  transition: transform var(--dur-slow) var(--ease-out);
-  pointer-events: none;
-}
-.apex-cta:hover {
-  transform: translate3d(0, -1px, 0);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 2px rgba(11, 11, 15, 0.15),
-    0 16px 32px -16px rgba(249, 115, 22, 0.45);
-}
-.apex-cta:hover::after {
-  transform: translate3d(110%, 0, 0);
-}
-.apex-cta:active {
-  transform: translate3d(0, 0, 0);
-}
-.apex-cta[disabled] {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-.apex-cta:focus-visible {
-  outline: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 0 3px rgba(249, 115, 22, 0.35);
-}
-
-/* Hero v2 — minimal vertical-rule layout */
-.hero-rule {
-  position: relative;
-  padding-left: 20px;
-}
-.hero-rule::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: linear-gradient(180deg, #f97316 0%, #fb923c 50%, #c2410c 100%);
-  border-radius: 2px;
-}
-
 /* Soft vertical bounce for hero scroll hint */
 @keyframes bounce-soft {
   0%,
@@ -1376,15 +813,6 @@ textarea.apex-field {
   50% {
     transform: translateY(3px);
     opacity: 1;
-  }
-}
-.animate-bounce-soft {
-  display: inline-block;
-  animation: bounce-soft 1.8s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-bounce-soft {
-    animation: none !important;
   }
 }
 
@@ -1601,87 +1029,6 @@ textarea.apex-field {
   }
 }
 
-/* Footer link — 44×44 hit-area without shifting layout */
-.footer-link {
-  color: #52525b;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 10px 8px;
-  margin: -10px -8px;
-  transition: color var(--dur-fast) ease;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.footer-link::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  height: 1px;
-  background: #f97316;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--dur-base) var(--ease-out);
-}
-.footer-link:hover {
-  color: #18181b;
-}
-.footer-link:hover::after {
-  transform: scaleX(1);
-}
-.footer-link:active {
-  color: #c2410c;
-}
-.footer-link:focus-visible {
-  outline: 2px solid #f97316;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-/* =========================================================
-   BLOOM BAND — CSS-only animated bloom that stretches with
-   container height. Replaces fixed-size canvas backgrounds
-   so the animation adapts to OCR preview / result expansion.
-   ========================================================= */
-.bloom-band {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background:
-    radial-gradient(120% 70% at 20% 20%, #ffd1a8 0%, transparent 60%),
-    radial-gradient(110% 70% at 80% 80%, #fdba74 0%, transparent 60%),
-    linear-gradient(135deg, #fde7d3 0%, #fed7aa 55%, #fdba74 100%);
-}
-.bloom-band::before,
-.bloom-band::after {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  z-index: 0;
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-.bloom-band::before {
-  background:
-    radial-gradient(35% 35% at 30% 30%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
-    radial-gradient(40% 40% at 70% 60%, rgba(249, 115, 22, 0.35) 0%, transparent 70%);
-  animation: bloom-drift-a 18s ease-in-out infinite alternate;
-}
-.bloom-band::after {
-  background:
-    radial-gradient(45% 45% at 75% 25%, rgba(251, 146, 60, 0.45) 0%, transparent 70%),
-    radial-gradient(35% 35% at 25% 75%, rgba(194, 65, 12, 0.25) 0%, transparent 70%);
-  animation: bloom-drift-b 24s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
-}
-.bloom-band > * {
-  position: relative;
-  z-index: 1;
-}
-
 @keyframes bloom-drift-a {
   0% {
     transform: translate3d(-3%, -2%, 0) scale(1);
@@ -1709,21 +1056,4 @@ textarea.apex-field {
     transform: translate3d(1%, 4%, 0) scale(1.06);
     opacity: 0.9;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bloom-band::before,
-  .bloom-band::after {
-    animation: none;
-  }
-}
-
-/* Make UnicornStudio canvas stretch to container as it grows */
-[data-us-project] {
-  width: 100% !important;
-  height: 100% !important;
-}
-[data-us-project] canvas {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
 }

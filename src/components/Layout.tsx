@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, ChevronDown, Globe, Menu, ShieldCheck, X } from "lucide-react";
-import { LanguageSwitcher } from "./LanguageSwitcher";
-import { FancyShell } from "./FancyButton";
+import { ArrowLeft, ArrowRight, Menu, X } from "lucide-react";
+import { PersonArmsSpread } from "@phosphor-icons/react";
+import { requestA11yPanel } from "@/lib/a11y-panel-bus";
 import { useLang } from "@/lib/lang-context";
-import { t } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
+
+const LANGS: readonly Lang[] = ["ru", "uz", "en"];
 
 function BackButton() {
   const { lang } = useLang();
@@ -20,214 +22,274 @@ function BackButton() {
     }
   };
   return (
-    <button type="button" onClick={onClick} aria-label={label} className="header-back">
+    <button type="button" onClick={onClick} aria-label={label} className="vp-back">
       <ArrowLeft aria-hidden="true" />
       <span>{label}</span>
     </button>
   );
 }
 
-export function Header() {
+function LanguageToggle({ onPick, className }: { onPick?: () => void; className: string }) {
   const { lang, setLang } = useLang();
+  return (
+    <div
+      className={className}
+      role="group"
+      aria-label={{ ru: "Выбор языка", uz: "Tilni tanlash", en: "Choose language" }[lang]}
+    >
+      {LANGS.map((code) => (
+        <button
+          key={code}
+          type="button"
+          aria-pressed={lang === code}
+          onClick={() => {
+            setLang(code);
+            onPick?.();
+          }}
+        >
+          {code.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CheckPill({ isHomepage, onClick }: { isHomepage: boolean; onClick: () => void }) {
+  const { lang } = useLang();
+  const label = { ru: "Проверить", uz: "Tekshirish", en: "Check" }[lang];
+  const content = (
+    <>
+      <span className="vp-pill-dot" aria-hidden="true">
+        <ArrowRight />
+      </span>
+      {label}
+    </>
+  );
+  return isHomepage ? (
+    <a href="#checker" className="vp-pill vp-pill--dark vp-pill--small" onClick={onClick}>
+      {content}
+    </a>
+  ) : (
+    <Link to="/check" className="vp-pill vp-pill--dark vp-pill--small" onClick={onClick}>
+      {content}
+    </Link>
+  );
+}
+
+export function Header() {
+  const { lang } = useLang();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isHomepage = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
-  const homepageNav = {
-    ru: ["Как работает", "Схемы", "Официальные номера", "Помощь"],
-    uz: ["Qanday ishlaydi", "Sxemalar", "Rasmiy raqamlar", "Yordam"],
-    en: ["How it works", "Trends", "Official numbers", "Help"],
-  }[lang];
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+  // The menu sits before its button in the DOM: move focus into it on open,
+  // and let Esc close it and return to the button.
+  useEffect(() => {
+    if (!menuOpen) return;
+    navRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  const homeLinks = [
+    { href: "#how", label: { ru: "Как работает", uz: "Qanday ishlaydi", en: "How it works" } },
+    { href: "#help", label: { ru: "Срочная помощь", uz: "Shoshilinch yordam", en: "Urgent help" } },
+    { href: "#official", label: { ru: "Номера", uz: "Raqamlar", en: "Numbers" } },
+    { href: "#faq", label: { ru: "Вопросы", uz: "Savollar", en: "FAQ" } },
+  ];
+  const pageLinks = [
+    { to: "/check", label: t("nav_check", lang) },
+    { to: "/scam-trends", label: { ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang] },
+    {
+      to: "/official-numbers",
+      label: { ru: "Официальные номера", uz: "Rasmiy raqamlar", en: "Official numbers" }[lang],
+    },
+    {
+      to: "/emergency",
+      label: { ru: "Срочная помощь", uz: "Shoshilinch yordam", en: "Urgent help" }[lang],
+    },
+    { to: "/report", label: t("nav_report", lang) },
+  ] as const;
+
+  // Viper-style wordmark; the link keeps the full brand name for screen readers.
+  const brand = (
+    <span aria-hidden="true">
+      Ishonch<b>*</b>
+    </span>
+  );
 
   return (
-    <header className={`site-header${isHomepage ? " is-home" : " is-subpage"}`}>
-      <div className="site-header-inner">
-        <div className="site-brand-row">
+    <>
+      <div className="vp-topbar" aria-hidden="true" />
+      <header className="vp-header">
+        <div className="vp-shell vp-header-inner">
           <BackButton />
           {isHomepage ? (
-            <a href="#top" className="brand" onClick={closeMenu}>
-              <span className="brand-mark">
-                <ShieldCheck strokeWidth={2.25} />
-              </span>
-              <span>{t("brand", lang)}</span>
+            <a href="#top" className="vp-brand" aria-label={t("brand", lang)} onClick={closeMenu}>
+              {brand}
             </a>
           ) : (
-            <Link to="/" className="brand" onClick={closeMenu}>
-              <span className="brand-mark">
-                <ShieldCheck strokeWidth={2.25} />
-              </span>
-              <span>{t("brand", lang)}</span>
+            <Link to="/" className="vp-brand" aria-label={t("brand", lang)} onClick={closeMenu}>
+              {brand}
             </Link>
           )}
-        </div>
-        <nav className={`main-nav${menuOpen ? " is-open" : ""}`} aria-label="Main navigation">
-          {isHomepage ? (
-            <>
-              <a href="#how" onClick={closeMenu}>
-                {homepageNav[0]}
-              </a>
-              <a href="#signals" onClick={closeMenu}>
-                {homepageNav[1]}
-              </a>
-              <a href="#official" onClick={closeMenu}>
-                {homepageNav[2]}
-              </a>
-              <a href="#help" onClick={closeMenu}>
-                {homepageNav[3]}
-              </a>
-            </>
-          ) : (
-            <>
-              <Link to="/check" onClick={closeMenu}>
-                {t("nav_check", lang)}
-              </Link>
-              <Link to="/scam-trends" onClick={closeMenu}>
-                {{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}
-              </Link>
-              <Link to="/official-numbers" onClick={closeMenu}>
-                {{ ru: "Официальные номера", uz: "Rasmiy raqamlar", en: "Official numbers" }[lang]}
-              </Link>
-              <Link to="/emergency" onClick={closeMenu}>
-                {t("nav_emergency", lang)}
-              </Link>
-              <Link to="/report" onClick={closeMenu}>
-                {t("nav_report", lang)}
-              </Link>
-            </>
-          )}
-          <div
-            className="mobile-language-switcher"
-            aria-label={{ ru: "Выбор языка", uz: "Tilni tanlash", en: "Choose language" }[lang]}
+          <nav
+            ref={navRef}
+            className={`vp-nav${menuOpen ? " is-open" : ""}`}
+            aria-label={
+              { ru: "Основная навигация", uz: "Asosiy navigatsiya", en: "Main navigation" }[lang]
+            }
           >
-            {(["ru", "uz", "en"] as const).map((code) => (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={lang === code}
-                onClick={() => {
-                  setLang(code);
-                  closeMenu();
-                }}
-              >
-                {code.toUpperCase()}
-              </button>
-            ))}
+            {isHomepage
+              ? homeLinks.map((link, index) => (
+                  <a key={link.href} href={link.href} onClick={closeMenu}>
+                    {link.label[lang]}
+                    <sup>{String(index + 1).padStart(2, "0")}</sup>
+                  </a>
+                ))
+              : pageLinks.map((link) => (
+                  <Link key={link.to} to={link.to} onClick={closeMenu}>
+                    {link.label}
+                  </Link>
+                ))}
+            <LanguageToggle className="vp-langs vp-mobile-langs" onPick={closeMenu} />
+            {/* Phones/tablets: the accessibility panel opens from the menu, so no
+                floating button covers the text. */}
+            <button
+              type="button"
+              className="vp-menu-a11y"
+              onClick={() => {
+                closeMenu();
+                requestA11yPanel();
+              }}
+            >
+              <PersonArmsSpread weight="bold" aria-hidden="true" />
+              {{ ru: "Доступность", uz: "Maxsus imkoniyatlar", en: "Accessibility" }[lang]}
+            </button>
+          </nav>
+          <div className="vp-header-actions">
+            <LanguageToggle className="vp-langs" />
+            <CheckPill isHomepage={isHomepage} onClick={closeMenu} />
+            <button
+              ref={menuButtonRef}
+              type="button"
+              className="vp-menu-button"
+              aria-label={
+                menuOpen
+                  ? { ru: "Закрыть меню", uz: "Menyuni yopish", en: "Close menu" }[lang]
+                  : { ru: "Открыть меню", uz: "Menyuni ochish", en: "Open menu" }[lang]
+              }
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            </button>
           </div>
-        </nav>
-        <div className="header-actions">
-          {isHomepage ? (
-            <>
-              <button
-                type="button"
-                className="language-button"
-                aria-label={
-                  { ru: "Переключить язык", uz: "Tilni almashtirish", en: "Switch language" }[lang]
-                }
-                onClick={() => setLang(lang === "ru" ? "uz" : lang === "uz" ? "en" : "ru")}
-              >
-                <Globe aria-hidden="true" />
-                {lang.toUpperCase()}
-                <ChevronDown aria-hidden="true" />
-              </button>
-              <a href="#checker" className="header-cta animated-orange-cta" onClick={closeMenu}>
-                <span className="points_wrapper" aria-hidden="true">
-                  {Array.from({ length: 10 }).map((_, index) => (
-                    <i className="point" key={index} />
-                  ))}
-                </span>
-                <span className="animated-cta-inner">
-                  {{ ru: "Проверить", uz: "Tekshirish", en: "Check" }[lang]}
-                </span>
-              </a>
-            </>
-          ) : (
-            <>
-              <LanguageSwitcher />
-              <Link to="/check" className="fancy-btn header-cta" onClick={closeMenu}>
-                <FancyShell showArrow={false}>{t("nav_check", lang)}</FancyShell>
-              </Link>
-            </>
-          )}
-          <button
-            type="button"
-            className="menu-button"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          </button>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 
 export function Footer() {
   const { lang } = useLang();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHomepage = pathname === "/";
+  const links = [
+    { to: "/check", label: t("nav_check", lang) },
+    {
+      to: "/emergency",
+      label: { ru: "Срочная помощь", uz: "Shoshilinch yordam", en: "Urgent help" }[lang],
+    },
+    {
+      to: "/official-numbers",
+      label: { ru: "Официальные номера", uz: "Rasmiy raqamlar", en: "Official numbers" }[lang],
+    },
+    { to: "/scam-trends", label: { ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang] },
+    { to: "/report", label: t("nav_report", lang) },
+    { to: "/appeal", label: t("nav_appeal", lang) },
+    { to: "/privacy", label: t("nav_privacy", lang) },
+    { to: "/embed", label: { ru: "Виджет", uz: "Vidjet", en: "Widget" }[lang] },
+  ] as const;
+  const copy = {
+    ru: {
+      title: ["Проверяйте до того, ", "как поверить."],
+      text: "Бесплатный антискам-помощник для Узбекистана. Без регистрации, на русском, узбекском и английском.",
+      cta: "Проверить риск",
+      city: "Ташкент, Узбекистан",
+    },
+    uz: {
+      title: ["Ishonishdan oldin ", "tekshiring."],
+      text: "O‘zbekiston uchun bepul antiskam-yordamchi. Ro‘yxatdan o‘tmasdan, rus, o‘zbek va ingliz tillarida.",
+      cta: "Xavfni tekshirish",
+      city: "Toshkent, O‘zbekiston",
+    },
+    en: {
+      title: ["Check before ", "you trust."],
+      text: "A free anti-scam helper for Uzbekistan. No signup, in Russian, Uzbek and English.",
+      cta: "Check the risk",
+      city: "Tashkent, Uzbekistan",
+    },
+  }[lang];
+  const ctaContent = (
+    <>
+      <span className="vp-pill-dot" aria-hidden="true">
+        <ArrowRight />
+      </span>
+      {copy.cta}
+    </>
+  );
+
   return (
-    <footer className="site-footer">
-      <div className="footer-main">
-        <Link to="/" className="brand footer-brand">
-          <span className="brand-mark">
-            <ShieldCheck strokeWidth={2.25} />
-          </span>
-          <span>{t("brand", lang)}</span>
-        </Link>
-        <h2>
-          {
-            {
-              ru: (
-                <>
-                  Проверяйте до того,
-                  <br />
-                  как поверить.
-                </>
-              ),
-              uz: (
-                <>
-                  Ishonishdan oldin
-                  <br />
-                  tekshiring.
-                </>
-              ),
-              en: (
-                <>
-                  Check before
-                  <br />
-                  you trust.
-                </>
-              ),
-            }[lang]
-          }
-        </h2>
-        <Link to="/check" className="fancy-btn footer-check">
-          <FancyShell>
-            {{ ru: "Проверить риск", uz: "Xavfni tekshirish", en: "Check risk" }[lang]}
-          </FancyShell>
-        </Link>
-      </div>
-      <div className="footer-meta">
-        <p>
-          {t("brand", lang)} — {t("footer_made", lang)}
-          <br />
-          {lang === "ru"
-            ? "Без регистрации · за секунды · RU / UZ / EN"
-            : lang === "uz"
-              ? "Ro‘yxatdan o‘tmasdan · soniyalarda · RU / UZ / EN"
-              : "No signup · in seconds · RU / UZ / EN"}
+    <footer className="vp-footer">
+      <div className="vp-shell">
+        <div className="vp-footer-top">
+          <div>
+            <h2>
+              {copy.title[0]}
+              <span>{copy.title[1]}</span>
+            </h2>
+            <p>{copy.text}</p>
+            {isHomepage ? (
+              <a href="#checker" className="vp-pill vp-pill--dark">
+                {ctaContent}
+              </a>
+            ) : (
+              <Link to="/check" className="vp-pill vp-pill--dark">
+                {ctaContent}
+              </Link>
+            )}
+          </div>
+          <nav
+            className="vp-footer-nav"
+            aria-label={
+              { ru: "Навигация в подвале", uz: "Pastki navigatsiya", en: "Footer navigation" }[lang]
+            }
+          >
+            {links.map((link, index) => (
+              <Link key={link.to} to={link.to}>
+                <span>{String(index + 1).padStart(2, "0")}/</span>
+                {link.label}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <p className="vp-wordmark" aria-hidden="true">
+          Ishonch<span>*</span>
         </p>
-        <nav>
-          <Link to="/privacy">{t("nav_privacy", lang)}</Link>
-          <Link to="/emergency">{t("nav_emergency", lang)}</Link>
-          <Link to="/appeal">{t("nav_appeal", lang)}</Link>
-          <Link to="/official-numbers">
-            {{ ru: "Номера", uz: "Raqamlar", en: "Numbers" }[lang]}
-          </Link>
-          <Link to="/scam-trends">{{ ru: "Схемы", uz: "Sxemalar", en: "Trends" }[lang]}</Link>
-          <Link to="/embed">{{ ru: "Виджет", uz: "Vidjet", en: "Widget" }[lang]}</Link>
-        </nav>
-        <span>© 2026 ISHONCH GUARD · TASHKENT, UZ</span>
+        <div className="vp-footer-bottom">
+          <span>© 2026 {t("brand", lang)}</span>
+          <span>{copy.city}</span>
+        </div>
       </div>
     </footer>
   );
